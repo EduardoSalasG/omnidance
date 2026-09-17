@@ -78,6 +78,10 @@ Para una modificación acotada, verifica primero la superficie afectada (`pnpm -
 
 - `omni-dance.md` es la spec viva — actualízala cuando cambien reglas de producto.
 - README/docs cuando cambien setup, flujos o arquitectura.
+- **Docs de API siempre sincronizadas** — al agregar/cambiar/quitar endpoints:
+  - Swagger: ya es automático (`@nestjs/swagger` en `main.ts`) — UI en `/api/docs`, JSON en `/api/docs-json`. Mantener DTOs con `class-validator` para que el schema quede útil.
+  - `node apps/api/scripts/export-api-docs.cjs` (API viva) → regenera `docs/openapi.json` + `docs/postman/omni-dance.postman_collection.json`. Commitear los regenerados junto al cambio de endpoints.
+  - `docs/architecture.md` (módulos, RBAC, params, wiring, modelo) y `docs/flows.md` (secuencias/estados en mermaid) — actualizar el diagrama/sección que el cambio vuelva inexacto.
 
 ## Roles de colaboración (multi-agente)
 
@@ -126,7 +130,7 @@ Paraleliza con subagentes solo tareas independientes (sin estado compartido ni d
 
 ## Convenciones de plataforma (post-RBAC)
 
-- **RBAC global**: nunca crear guards ad-hoc por rol. Las rutas protegidas usan `@UseGuards(SessionGuard, RolesGuard)` + `@RequireRoles(...)` de `src/common/rbac`. `req.person.roles` = solo APPROVED; `req.person.roleStates` = todos con status. SANDBOX solo pasa con `@AllowSandbox()` explícito; PENDING nunca pasa.
+- **RBAC global DB-driven**: nunca crear guards ad-hoc ni listas de roles/permisos en código. Las rutas protegidas usan `@UseGuards(SessionGuard, RolesGuard)` + `@RequirePermissions(...)` de `src/common/rbac` (roles/permisos/grants viven en `Role`/`Permission`/`RolePermission`; `Role.isSuperuser` bypass, solo seed). `req.person.roles` = solo APPROVED; `req.person.roleStates` = todos con status (PENDING/SANDBOX/APPROVED/REJECTED). SANDBOX solo pasa con `@AllowSandbox()` explícito; PENDING y REJECTED nunca pasan. `@RequireRoles` queda como escape hatch — preferir permisos. Tras mutar grants llamar `invalidateRoleCatalog()` (el cache del guard es 30s).
 - **Parámetros operativos**: van en `PlatformParam` (DB), se leen con `ParamsService.getNumber(key, fallback)` (cache 30s) — no hardcodear ni leer env en runtime de negocio. Edición solo vía `PUT /api/admin/params/:key` (ADMIN, audita `PARAM_UPDATE`). `GET /api/params/public` solo expone la whitelist — no agregar datos sensibles ahí.
 - **Acciones admin auditan**: `AuditLog` con actorId/action/targetType/targetId/payload (prev/next).
 - `tsc --noEmit` deja `tsconfig.tsbuildinfo` que confunde al watch de Nest — si `dist/` queda incompleto: `rm -rf dist tsconfig.tsbuildinfo` y reiniciar.
