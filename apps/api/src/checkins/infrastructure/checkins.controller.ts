@@ -22,7 +22,8 @@ import {
   type CheckinResult,
   type RegisterCheckinInput,
 } from "../domain/checkins.service";
-import { StaffGuard } from "./staff.guard";
+import { RolesGuard } from "../../common/rbac/roles.guard";
+import { RequireRoles } from "../../common/rbac/roles.decorator";
 
 class ScanCheckinDto {
   @IsString()
@@ -71,7 +72,8 @@ export class CheckinsController {
   ) {}
 
   @Post()
-  @UseGuards(SessionGuard, StaffGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("STAFF", "ADMIN")
   async scan(
     @Body() dto: ScanCheckinDto,
     @Req() req: Request,
@@ -91,7 +93,8 @@ export class CheckinsController {
   }
 
   @Post("manual")
-  @UseGuards(SessionGuard, StaffGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("STAFF", "ADMIN")
   manual(
     @Body() dto: ManualCheckinDto,
     @Req() req: Request,
@@ -118,7 +121,8 @@ export class EventCheckinsController {
   constructor(private readonly checkins: CheckinsService) {}
 
   @Get(":eventId/checkins")
-  @UseGuards(SessionGuard, StaffGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("STAFF", "ADMIN")
   async list(@Param("eventId") eventId: string) {
     try {
       return await this.checkins.listByEvent(eventId);

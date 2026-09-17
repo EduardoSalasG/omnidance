@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { ParamsModule } from "../params/params.module";
 import { QrService } from "./domain/qr.service";
 import { QrController } from "./qr.controller";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ParamsModule],
   controllers: [QrController],
   providers: [
     {

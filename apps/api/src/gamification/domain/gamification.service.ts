@@ -7,6 +7,8 @@ import {
   evaluateMission,
   leaderboard,
   maskSmallCount,
+  PRIME_DEFAULT_CAPACITY,
+  PRIME_THRESHOLD_PCT,
   primeWindow,
   type MissionActivity,
   type TimeWindow,
@@ -68,6 +70,10 @@ export class GamificationService {
   constructor(
     private readonly repo: GamificationRepo,
     private readonly awarder = new BadgeAwarder(),
+    /** PlatformParam reader — structural para no acoplar el dominio a Nest. */
+    private readonly params?: {
+      getNumber(key: string, fallback: number): Promise<number>;
+    },
   ) {}
 
   /** Racha de "salidas semanales": semanas consecutivas con ≥1 check-in o sesión CONFIRMED. */
@@ -149,11 +155,20 @@ export class GamificationService {
       this.repo.confirmedSessionsForEvent(eventId),
       this.repo.happyHoursForEvent(eventId),
     ]);
+    // Umbral: override del productor > % parametrizable del aforo > default.
+    const pct = this.params
+      ? await this.params.getNumber(
+          "prime_time.threshold_pct",
+          PRIME_THRESHOLD_PCT,
+        )
+      : PRIME_THRESHOLD_PCT;
     const result = computePrimeTime({
       sessions: sessions.map((s) => ({ at: s.confirmedAt ?? s.scannedAt })),
       window,
       capacity: event.capacity,
-      primeThreshold: event.primeThreshold,
+      primeThreshold:
+        event.primeThreshold ??
+        Math.ceil((event.capacity ?? PRIME_DEFAULT_CAPACITY) * pct),
       happyHours: happyHours.map((h) => ({
         start: h.startsAt,
         end: h.endsAt,

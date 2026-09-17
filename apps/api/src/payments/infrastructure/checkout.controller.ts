@@ -17,6 +17,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import { encodeTicketOrderRef } from "../domain/order-ref";
+import { ParamsService } from "../../params/params.service";
 import { SERVICE_FEE } from "@omnidance/shared";
 
 class CheckoutTicketDto {
@@ -34,6 +35,7 @@ export class CheckoutController {
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly pricing: PricingService,
+    private readonly params: ParamsService,
   ) {}
 
   @Post("ticket")
@@ -104,12 +106,14 @@ export class CheckoutController {
       }
     }
 
-    const serviceFeeClt = Number(
-      process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP,
+    // fee parametrizable: PlatformParam → env → default del shared
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.presale_clp",
+      Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
     );
     const quote = this.pricing.quote({
       listPrice: event.presalePrice,
-      serviceFeeClt,
+      serviceFeeClp,
       discount: code,
     });
 

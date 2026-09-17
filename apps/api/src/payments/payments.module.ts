@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { AuthModule } from "../auth/auth.module";
+import { ParamsModule } from "../params/params.module";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "./domain/ports";
 import { PricingService } from "./domain/pricing.service";
 import { StubGateway } from "./infrastructure/stub.gateway";
@@ -12,7 +13,7 @@ import {
 import { PaymentsController } from "./infrastructure/webhook.controller";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ParamsModule],
   controllers: [CheckoutController, TicketsController, PaymentsController],
   providers: [
     PrismaService,

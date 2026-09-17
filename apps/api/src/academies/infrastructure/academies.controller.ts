@@ -30,7 +30,11 @@ import {
   InvalidEnrollmentTransitionError,
 } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
-import { AcademyOwnerGuard } from "./academy-role.guard";
+import { RolesGuard } from "../../common/rbac/roles.guard";
+import {
+  AllowSandbox,
+  RequireRoles,
+} from "../../common/rbac/roles.decorator";
 
 const PLAN_TYPES: PlanType[] = ["MONTHLY", "CLASS_PACK", "PERIOD", "TRIAL"];
 const ENROLLMENT_STATUSES: EnrollmentStatus[] = [
@@ -148,7 +152,9 @@ export class AcademiesController {
   }
 
   @Post()
-  @UseGuards(SessionGuard, AcademyOwnerGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("ACADEMY_OWNER")
+  @AllowSandbox() // spec: owners SANDBOX crean academia demo antes del APPROVED
   create(@Body() dto: CreateAcademyDto, @Req() req: Request) {
     // isDemo: el schema no tiene la columna — academias de owners no
     // APPROVED quedan indistinguibles (gap reportado).

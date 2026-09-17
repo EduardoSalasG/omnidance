@@ -17,7 +17,8 @@ import {
   assertCanJoinWaitlist,
   nextWaitlistPosition,
 } from "../domain/social.service";
-import { ProducerStaffGuard } from "./roles.guard";
+import { RolesGuard } from "../../common/rbac/roles.guard";
+import { RequireRoles } from "../../common/rbac/roles.decorator";
 
 @Controller("events")
 export class WaitlistController {
@@ -103,7 +104,8 @@ export class WaitlistController {
    */
   @Post(":eventId/waitlist/promote")
   @HttpCode(200)
-  @UseGuards(SessionGuard, ProducerStaffGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("PRODUCER", "STAFF", "ADMIN")
   async promote(@Param("eventId") eventId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },

@@ -12,7 +12,13 @@ import { SESSION_COOKIE } from "./auth.controller";
 
 declare module "express" {
   interface Request {
-    person?: { id: string; roles: string[] };
+    person?: {
+      id: string;
+      // roles APPROVED únicamente — lo que la persona puede ejercer.
+      roles: string[];
+      // estado completo de sus roles (para RBAC y UI "en revisión").
+      roleStates: { role: string; status: string }[];
+    };
   }
 }
 
@@ -38,7 +44,13 @@ export class SessionGuard implements CanActivate {
     const person = await this.repo.findById(personId);
     if (!person) throw new UnauthorizedException();
 
-    req.person = { id: person.id, roles: person.roles.map((r) => r.role) };
+    req.person = {
+      id: person.id,
+      roles: person.roles
+        .filter((r) => r.status === "APPROVED")
+        .map((r) => r.role),
+      roleStates: person.roles,
+    };
     return true;
   }
 

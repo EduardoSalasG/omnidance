@@ -9,8 +9,11 @@ export class QrService {
     this.key = new TextEncoder().encode(secret);
   }
 
-  async mint(personId: string): Promise<{ token: string; expiresAt: string }> {
-    const expiresAt = new Date(Date.now() + QR_TTL_SECONDS * 1000);
+  async mint(
+    personId: string,
+    ttlSeconds = QR_TTL_SECONDS,
+  ): Promise<{ token: string; expiresAt: string }> {
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
     const token = await new SignJWT({ purpose: "qr" })
       .setSubject(personId)
       .setProtectedHeader({ alg: "HS256" })

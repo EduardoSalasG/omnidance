@@ -11,7 +11,8 @@ import {
 import { IsInt, IsOptional, IsString, Min } from "class-validator";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
-import { ProducerStaffGuard } from "./roles.guard";
+import { RolesGuard } from "../../common/rbac/roles.guard";
+import { RequireRoles } from "../../common/rbac/roles.decorator";
 
 class CreateGuestListDto {
   @IsString()
@@ -38,7 +39,8 @@ export class EventGuestListsController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Post(":eventId/guest-lists")
-  @UseGuards(SessionGuard, ProducerStaffGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("PRODUCER", "STAFF", "ADMIN")
   async create(
     @Param("eventId") eventId: string,
     @Body() dto: CreateGuestListDto,
@@ -67,7 +69,8 @@ export class EventGuestListsController {
   }
 
   @Get(":eventId/guest-lists")
-  @UseGuards(SessionGuard, ProducerStaffGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("PRODUCER", "STAFF", "ADMIN")
   async list(@Param("eventId") eventId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
@@ -111,7 +114,8 @@ export class GuestListsController {
 
   /** Agregar persona a una lista (status PENDING). */
   @Post(":id/entries")
-  @UseGuards(SessionGuard, ProducerStaffGuard)
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequireRoles("PRODUCER", "STAFF", "ADMIN")
   async addEntry(@Param("id") id: string, @Body() dto: AddEntryDto) {
     const list = await this.prisma.guestList.findUnique({ where: { id } });
     if (!list) throw new NotFoundException("guest list no encontrada");

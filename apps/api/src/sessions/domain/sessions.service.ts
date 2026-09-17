@@ -52,6 +52,7 @@ export class SessionsService {
     inviteeId: string,
     lastPairSession: SessionLike | null,
     now = new Date(),
+    cooldownMs = PAIR_COOLDOWN_MS,
   ): void {
     if (inviterId === inviteeId) {
       throw new SessionDomainError(
@@ -62,7 +63,7 @@ export class SessionsService {
     if (
       lastPairSession &&
       COOLDOWN_STATUSES.includes(lastPairSession.status) &&
-      now.getTime() - lastPairSession.scannedAt.getTime() < PAIR_COOLDOWN_MS
+      now.getTime() - lastPairSession.scannedAt.getTime() < cooldownMs
     ) {
       throw new SessionDomainError(
         "PAIR_COOLDOWN",

@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { PrismaService } from "../prisma.service";
 import { AcademyAccess } from "./infrastructure/academy-access.service";
-import { AcademyOwnerGuard } from "./infrastructure/academy-role.guard";
 import {
   AcademiesController,
   EnrollmentsController,
@@ -16,6 +15,6 @@ import { AttendanceController } from "./infrastructure/attendance.controller";
     EnrollmentsController,
     AttendanceController,
   ],
-  providers: [PrismaService, AcademyAccess, AcademyOwnerGuard],
+  providers: [PrismaService, AcademyAccess],
 })
 export class AcademiesModule {}

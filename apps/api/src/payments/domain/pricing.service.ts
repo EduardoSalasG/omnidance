@@ -11,7 +11,7 @@ export interface QuoteDiscount {
 
 export interface QuoteInput {
   listPrice: number;
-  serviceFeeClt: number;
+  serviceFeeClp: number;
   discount?: QuoteDiscount | null;
 }
 
@@ -23,7 +23,7 @@ export interface Quote {
 }
 
 export class PricingService {
-  quote({ listPrice, serviceFeeClt, discount }: QuoteInput): Quote {
+  quote({ listPrice, serviceFeeClp, discount }: QuoteInput): Quote {
     const percentCut = Math.round(
       (listPrice * Math.max(0, discount?.percentOff ?? 0)) / 100,
     );
@@ -32,7 +32,7 @@ export class PricingService {
       percentCut + Math.max(0, discount?.amountOff ?? 0),
     );
     const net = Math.max(0, listPrice - cut);
-    const serviceFee = net > 0 ? Math.max(0, serviceFeeClt) : 0;
+    const serviceFee = net > 0 ? Math.max(0, serviceFeeClp) : 0;
     return {
       listPrice,
       discount: cut,
