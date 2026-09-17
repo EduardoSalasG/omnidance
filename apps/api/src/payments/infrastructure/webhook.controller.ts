@@ -18,6 +18,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import { decodeTicketOrderRef } from "../domain/order-ref";
+import { ParamsService } from "../../params/params.service";
 import { SERVICE_FEE } from "@omnidance/shared";
 
 class WebhookDto {
@@ -45,6 +46,7 @@ export class PaymentsController {
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly pricing: PricingService,
+    private readonly params: ParamsService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -105,8 +107,9 @@ export class PaymentsController {
         : null;
       const quote = this.pricing.quote({
         listPrice: event?.presalePrice ?? payment.amount,
-        serviceFeeClt: Number(
-          process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP,
+        serviceFeeClp: await this.params.getNumber(
+          "service_fee.presale_clp",
+          Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
         ),
         discount: code,
       });

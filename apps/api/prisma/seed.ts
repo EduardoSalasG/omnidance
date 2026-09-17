@@ -160,7 +160,25 @@ async function main() {
     });
   }
 
-  console.log("Seed listo:", { admin: admin.email, academias: [muvet.name] });
+  // Parámetros de plataforma — defaults operativos (editables en /admin)
+  const params: Array<{ key: string; value: unknown; description: string }> = [
+    { key: "service_fee.presale_clp", value: 500, description: "Cargo por servicio por ticket de preventa (CLP)" },
+    { key: "service_fee.door_app_clp", value: 700, description: "Cargo por servicio venta en puerta por app (CLP)" },
+    { key: "service_fee.door_cash_clp", value: 0, description: "Cargo por servicio registro en efectivo (CLP)" },
+    { key: "session.cooldown_minutes", value: 4, description: "Minutos de cooldown entre sesiones del mismo par" },
+    { key: "qr.rotation_seconds", value: 60, description: "Segundos de vigencia del QR personal rotativo" },
+    { key: "prime_time.window_minutes", value: 30, description: "Minutos de la ventana Prime Time" },
+    { key: "prime_time.threshold_pct", value: 0.2, description: "Umbral Prime Time como fracción del aforo" },
+  ];
+  for (const p of params) {
+    await prisma.platformParam.upsert({
+      where: { key: p.key },
+      update: {},
+      create: { key: p.key, value: p.value as never, description: p.description },
+    });
+  }
+
+  console.log("Seed listo:", { admin: admin.email, academias: [muvet.name], params: params.length });
 }
 
 main()

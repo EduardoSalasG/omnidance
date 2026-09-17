@@ -18,6 +18,8 @@ import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { QrService } from "../../qr/domain/qr.service";
+import { ParamsService } from "../../params/params.service";
+import { SESSION_RULES } from "@omnidance/shared";
 import {
   SessionDomainError,
   SessionsService,
@@ -64,6 +66,7 @@ export class SessionsController {
     private readonly prisma: PrismaService,
     private readonly qr: QrService,
     private readonly sessions: SessionsService,
+    private readonly params: ParamsService,
   ) {}
 
   @Post("invite")
@@ -95,8 +98,19 @@ export class SessionsController {
       orderBy: { scannedAt: "desc" },
     });
 
+    const cooldownMs =
+      (await this.params.getNumber(
+        "session.cooldown_minutes",
+        SESSION_RULES.INVITE_COOLDOWN_MINUTES,
+      )) * 60_000;
     try {
-      this.sessions.assertInvitable(inviterId, inviteeId, lastPair);
+      this.sessions.assertInvitable(
+        inviterId,
+        inviteeId,
+        lastPair,
+        new Date(),
+        cooldownMs,
+      );
     } catch (e) {
       this.toHttp(e);
     }

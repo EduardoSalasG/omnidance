@@ -22,7 +22,7 @@ export class PrismaAuthRepo implements AuthRepo {
   findById(id: string) {
     return this.prisma.person.findUnique({
       where: { id },
-      include: { roles: { select: { role: true } } },
+      include: { roles: { select: { role: true, status: true } } },
     });
   }
 }

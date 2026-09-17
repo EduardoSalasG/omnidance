@@ -35,7 +35,8 @@ import type {
   ListedDiscountCode,
   ListedRedemption,
 } from "../domain/ports";
-import { ProducerGuard } from "./producer.guard";
+import { RolesGuard } from "../../common/rbac/roles.guard";
+import { RequireRoles } from "../../common/rbac/roles.decorator";
 
 class CreateDiscountCodeDto {
   @IsString()
@@ -94,7 +95,8 @@ function mapDomainError(e: unknown): never {
 }
 
 @Controller("discount-codes")
-@UseGuards(SessionGuard, ProducerGuard)
+@UseGuards(SessionGuard, RolesGuard)
+@RequireRoles("PRODUCER", "ADMIN")
 export class DiscountsController {
   constructor(private readonly discounts: DiscountsService) {}
 

@@ -15,6 +15,7 @@ import { SocialModule } from "./social/social.module";
 import { AcademiesModule } from "./academies/academies.module";
 import { AdminModule } from "./admin/admin.module";
 import { GamificationModule } from "./gamification/gamification.module";
+import { ParamsModule } from "./params/params.module";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { GamificationModule } from "./gamification/gamification.module";
     AcademiesModule,
     AdminModule,
     GamificationModule,
+    ParamsModule,
   ],
   controllers: [HealthController],
   providers: [PrismaService],

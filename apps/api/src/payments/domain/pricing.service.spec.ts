@@ -8,7 +8,7 @@ describe("PricingService.quote", () => {
   const FEE = 500;
 
   it("sin descuento: total = lista + fee fijo", () => {
-    const q = pricing.quote({ listPrice: 10000, serviceFeeClt: FEE });
+    const q = pricing.quote({ listPrice: 10000, serviceFeeClp: FEE });
     expect(q).toEqual({
       listPrice: 10000,
       discount: 0,
@@ -20,7 +20,7 @@ describe("PricingService.quote", () => {
   it("percentOff aplica sobre lista y el fee se mantiene fijo", () => {
     const q = pricing.quote({
       listPrice: 10000,
-      serviceFeeClt: FEE,
+      serviceFeeClp: FEE,
       discount: { percentOff: 50 },
     });
     expect(q.discount).toBe(5000);
@@ -31,7 +31,7 @@ describe("PricingService.quote", () => {
   it("amountOff descuenta monto fijo sin afectar el fee", () => {
     const q = pricing.quote({
       listPrice: 10000,
-      serviceFeeClt: FEE,
+      serviceFeeClp: FEE,
       discount: { amountOff: 3000 },
     });
     expect(q.discount).toBe(3000);
@@ -42,7 +42,7 @@ describe("PricingService.quote", () => {
   it("amountOff no excede la lista (cap) → entrada gratis, fee 0", () => {
     const q = pricing.quote({
       listPrice: 5000,
-      serviceFeeClt: FEE,
+      serviceFeeClp: FEE,
       discount: { amountOff: 99999 },
     });
     expect(q.discount).toBe(5000);
@@ -53,7 +53,7 @@ describe("PricingService.quote", () => {
   it("percentOff 100 → cortesía gratis, fee 0", () => {
     const q = pricing.quote({
       listPrice: 8000,
-      serviceFeeClt: FEE,
+      serviceFeeClp: FEE,
       discount: { percentOff: 100 },
     });
     expect(q.discount).toBe(8000);
@@ -64,7 +64,7 @@ describe("PricingService.quote", () => {
   it("percentOff + amountOff combinados quedan capeados en la lista", () => {
     const q = pricing.quote({
       listPrice: 10000,
-      serviceFeeClt: FEE,
+      serviceFeeClp: FEE,
       discount: { percentOff: 60, amountOff: 6000 },
     });
     expect(q.discount).toBe(10000); // 6000 + 6000 → cap 10000
@@ -72,23 +72,23 @@ describe("PricingService.quote", () => {
   });
 
   it("el fee es independiente del precio de lista", () => {
-    expect(pricing.quote({ listPrice: 9999, serviceFeeClt: FEE }).serviceFee).toBe(500);
-    expect(pricing.quote({ listPrice: 1000, serviceFeeClt: FEE }).serviceFee).toBe(500);
+    expect(pricing.quote({ listPrice: 9999, serviceFeeClp: FEE }).serviceFee).toBe(500);
+    expect(pricing.quote({ listPrice: 1000, serviceFeeClp: FEE }).serviceFee).toBe(500);
   });
 
-  it("serviceFeeClt 0 → sin cargo", () => {
-    const q = pricing.quote({ listPrice: 10000, serviceFeeClt: 0 });
+  it("serviceFeeClp 0 → sin cargo", () => {
+    const q = pricing.quote({ listPrice: 10000, serviceFeeClp: 0 });
     expect(q.serviceFee).toBe(0);
     expect(q.total).toBe(10000);
   });
 
   it("discount null/undefined equivale a sin descuento", () => {
     expect(
-      pricing.quote({ listPrice: 1000, serviceFeeClt: FEE, discount: null })
+      pricing.quote({ listPrice: 1000, serviceFeeClp: FEE, discount: null })
         .discount,
     ).toBe(0);
     expect(
-      pricing.quote({ listPrice: 1000, serviceFeeClt: FEE }).discount,
+      pricing.quote({ listPrice: 1000, serviceFeeClp: FEE }).discount,
     ).toBe(0);
   });
 });

@@ -9,5 +9,7 @@ export interface Mailer {
 
 export interface AuthRepo {
   upsertByEmail(email: string): Promise<Person>;
-  findById(id: string): Promise<(Person & { roles: { role: string }[] }) | null>;
+  findById(
+    id: string,
+  ): Promise<(Person & { roles: { role: string; status: string }[] }) | null>;
 }

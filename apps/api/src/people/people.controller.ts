@@ -19,7 +19,10 @@ export class PeopleController {
       name: person.name,
       email: person.email,
       photoUrl: person.photoUrl,
-      roles: person.roles.map((r) => r.role),
+      roles: person.roles
+        .filter((r) => r.status === "APPROVED")
+        .map((r) => r.role),
+      roleStates: person.roles,
     };
   }
 }

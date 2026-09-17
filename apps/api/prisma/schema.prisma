@@ -970,3 +970,15 @@ model AuditLog {
   payload   Json?
   createdAt DateTime @default(now())
 }
+
+// ═══════════════════ CONFIGURACIÓN DE PLATAFORMA ═══════════════════
+
+// Parámetros operativos editables desde /admin (fees, ventanas, thresholds).
+// Defaults documentados en @omnidance/shared; este modelo es la fuente viva.
+model PlatformParam {
+  key         String   @id
+  value       Json
+  description String?
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
