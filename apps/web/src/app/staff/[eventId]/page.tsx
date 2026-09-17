@@ -450,7 +450,7 @@ export default function DoorConsolePage({
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
-                  className="min-h-12 min-w-0 flex-1 rounded-xl border border-night-700 bg-night-900 px-4 text-white outline-none focus:border-neon"
+                  className="min-h-12 min-w-0 flex-1 rounded-xl border border-night-700 bg-night-900 px-4 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
                 />
                 <Button type="submit" disabled={!personId.trim()}>
                   {t("manual")}

@@ -12,7 +12,7 @@ export type PriceTagProps = {
 
 export function PriceTag({ amount, className = "" }: PriceTagProps) {
   if (amount == null) {
-    return <span className={`text-white/40 ${className}`}>—</span>;
+    return <span className={`text-white/50 ${className}`}>—</span>;
   }
   return (
     <span className={`font-semibold text-neon ${className}`}>

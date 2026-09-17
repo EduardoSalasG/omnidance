@@ -62,7 +62,7 @@ const fmtDay = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
 
 const inputCls =
   "min-h-12 w-full rounded-xl border border-night-700 bg-night-950 px-4 py-3 " +
-  "text-white outline-none focus:border-neon disabled:opacity-50";
+  "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50";
 
 export default function ProducerPage() {
   const t = useTranslations("producer");

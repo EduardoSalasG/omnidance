@@ -77,7 +77,7 @@ export function SessionCard({
           <EventDate
             variant="time"
             start={session.scannedAt}
-            className="block text-xs text-white/40"
+            className="block text-xs text-white/50"
           />
         </div>
         {meta && <Badge variant={meta.variant}>{t(meta.key)}</Badge>}

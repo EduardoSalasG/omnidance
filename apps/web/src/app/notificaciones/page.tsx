@@ -169,7 +169,7 @@ export default function NotificacionesPage() {
                           {n.body}
                         </span>
                       )}
-                      <span className="mt-1 block text-xs text-white/40">
+                      <span className="mt-1 block text-xs text-white/50">
                         {relativeTime(n.createdAt)}
                       </span>
                     </span>

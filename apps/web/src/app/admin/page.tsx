@@ -359,7 +359,7 @@ export default function AdminPage() {
                             {statusLabel(r.status)}
                           </Badge>
                           <Badge variant="neon">{roleLabel(r.role)}</Badge>
-                          <span className="text-xs text-white/40">
+                          <span className="text-xs text-white/50">
                             {fmtDay.format(new Date(r.createdAt))}
                           </span>
                         </div>
@@ -421,7 +421,7 @@ export default function AdminPage() {
                         {r.requestable && (
                           <Badge variant="outline">requestable</Badge>
                         )}
-                        <span className="ml-auto text-xs text-white/40">
+                        <span className="ml-auto text-xs text-white/50">
                           {r._count.personRoles} personas
                         </span>
                       </div>
@@ -449,7 +449,7 @@ export default function AdminPage() {
                                 className={`min-h-[44px] rounded-full border px-3 font-mono text-xs transition ${
                                   granted
                                     ? "border-neon bg-neon/15 text-neon"
-                                    : "border-white/15 text-white/40"
+                                    : "border-white/15 text-white/50"
                                 }`}
                               >
                                 {granted ? "✓ " : ""}
@@ -541,7 +541,7 @@ export default function AdminPage() {
                         )}
                       </div>
                       {u.roles.length === 0 ? (
-                        <span className="text-xs text-white/40">
+                        <span className="text-xs text-white/50">
                           {t("users.noRoles")}
                         </span>
                       ) : (
@@ -637,12 +637,12 @@ export default function AdminPage() {
                           {a.targetType}
                           {a.targetId ? `:${a.targetId.slice(0, 8)}` : ""}
                         </span>
-                        <span className="ml-auto text-white/40">
+                        <span className="ml-auto text-white/50">
                           {fmtTime.format(new Date(a.createdAt))}
                         </span>
                       </div>
                       {a.payload != null && (
-                        <pre className="mt-1 overflow-x-auto text-white/40">
+                        <pre className="mt-1 overflow-x-auto text-white/50">
                           {JSON.stringify(a.payload)}
                         </pre>
                       )}

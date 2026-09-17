@@ -143,7 +143,7 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
           </Button>
         </div>
       ) : students.length === 0 ? (
-        <p className="text-sm text-white/40">—</p>
+        <p className="text-sm text-white/50">—</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {students.map((s) => (

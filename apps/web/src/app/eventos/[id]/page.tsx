@@ -106,7 +106,7 @@ export default async function EventoDetailPage({
             <p className="text-white/50">{event.venue.address}</p>
           )}
           {capacity != null && (
-            <p className="mt-1 text-xs text-white/40">
+            <p className="mt-1 text-xs text-white/50">
               {t.capacity.replace("{count}", capacity.toLocaleString("es-CL"))}
             </p>
           )}

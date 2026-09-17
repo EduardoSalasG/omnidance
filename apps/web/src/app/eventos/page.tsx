@@ -31,8 +31,8 @@ export default async function EventosPage() {
         <ul className="flex flex-col gap-4">
           {events.map((e) => (
             <li key={e.id}>
-              <Link href={`/eventos/${e.id}`} className="block">
-                <Card className="transition-colors hover:border-neon/50">
+              <Link href={`/eventos/${e.id}`} className="block rounded-2xl">
+                <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex flex-wrap items-center gap-2">

@@ -5,3 +5,80 @@
 :root {
   color-scheme: dark;
 }
+
+/* ─── Base táctil: el flash gris de iOS compite con nuestro feedback
+   (active:scale). Lo apagamos y dejamos que la escala hable. ─── */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  /* System font stack — optical sizing y tracking ya calibrados por plataforma */
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Foco por teclado consistente: anillo neon en todo elemento
+   interactivo que no declare su propio focus-visible. ─── */
+:focus-visible {
+  outline: 2px solid #e040fb;
+  outline-offset: 2px;
+}
+
+/* ─── Selección acorde al tema ─── */
+::selection {
+  background: rgba(224, 64, 251, 0.35);
+  color: #fff;
+}
+
+/* ─── Scrollbar sutil en dark ─── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a3a transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 4px;
+}
+
+/* ─── Reduced motion (apple-design §14): no es "sin feedback", es un
+   equivalente no-vestibular — cross-fades cortos, sin escalas ni
+   desplazamientos. Cubre transitions, keyframes y el smooth-scroll. ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .active\:scale-\[0\.97\]:active,
+  .active\:scale-\[0\.98\]:active,
+  .active\:scale-\[0\.99\]:active,
+  .active\:scale-95:active {
+    transform: none !important;
+  }
+}
+
+/* ─── Utilidades de sistema ─── */
+@layer utilities {
+  /* Display type — tracking óptico: negativo al crecer (WWDC typography) */
+  .text-display {
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+  }
+
+  /* Glow radial sutil — la pista de baile como material de fondo */
+  .glow-neon {
+    background: radial-gradient(
+      ellipse 80% 50% at 50% 0%,
+      rgba(224, 64, 251, 0.14),
+      transparent 70%
+    );
+  }
+}

@@ -60,7 +60,7 @@ export function BottomNav() {
 
   return (
     <nav
-      aria-label={t("home")}
+      aria-label={t("main")}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
       <ul className="mx-auto flex h-16 max-w-lg items-stretch justify-between">
@@ -74,7 +74,7 @@ export function BottomNav() {
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex h-full min-h-11 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors active:scale-95 ${
+                className={`flex h-full min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors active:scale-95 ${
                   tab.center
                     ? "text-neon"
                     : active
