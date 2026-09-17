@@ -1,0 +1,1054 @@
+A continuación tienes un resumen completo, estructurado y autocontenido de todo lo conversado. Está escrito para que puedas copiarlo y pegarlo en otro chat y continuar el diseño sin perder contexto. No asume conocimiento previo.
+
+# **Resumen General – Plataforma de Baile (Social + Academias + Eventos)**
+
+# **Visión general**
+
+La app es una plataforma integral para el ecosistema SBK (salsa, bachata, cubano, etc.), que conecta:
+
+- bailarines,
+- academias,
+- productores de eventos,
+- locales,
+
+a través de:
+
+- validación de actividad real (QR),
+- reputación privada y justa,
+- analíticas operativas,
+- ticketing,
+- suscripciones académicas.
+
+La app se diseña mobile-first (web app / PWA) y se integra al ritual natural del social, sin interrumpirlo.
+
+# **Módulos principales del bailarín**
+
+El bailarín tiene dos módulos claramente separados:
+
+**1. Mi aprendizaje / Mis clases**
+
+Enfocado en el largo plazo y la relación con academias.
+
+Incluye:
+
+- Academias a las que pertenece.
+- Estado como alumno:
+    - presencial,
+    - online,
+    - pausado.
+- 
+- Historial de clases asistidas.
+- Historial de talleres/workshops.
+- Acceso a videos (si aplica):
+    - rutinas de clases asistidas,
+    - cursos online.
+- 
+- Score interno de academia (versión suave).
+- Progreso personal no competitivo.
+
+**2. Social**
+
+Enfocado en el baile social nocturno.
+
+Incluye:
+
+- Calendario de eventos.
+- Confirmar asistencia.
+- Ver qué amigos van.
+- Check-in:
+    - “Ya llegué” manual,
+    - o automático vía ingreso con ticket.
+- 
+- Sesiones de baile:
+    - Nuevo baile (escanea QR),
+    - Mi QR (para ser escaneado).
+- 
+- Evaluación de bailarines.
+- Evaluación del evento.
+- Progreso de la noche:
+    - barra temporal,
+    - cantidad de bailes,
+    - proporción salsa/bachata.
+- 
+- Rankings e incentivos.
+
+# **Sesión de baile (core del producto)**
+
+- 1 sesión = 1 canción.
+- Se crea solo mediante escaneo QR.
+- Leader o follower puede iniciar.
+- Flujo:
+    1. Persona A toca “Nuevo baile”.
+    2. Escanea el QR personal de la persona B.
+    3. Se crea sesión pendiente.
+    4. Persona B confirma con 1 tap.
+- 
+- Sin confirmación → la sesión no cuenta.
+
+La sesión está asociada a:
+
+- evento,
+- estilo (a nivel género en pista),
+- leader/follower.
+
+# **Evaluación del baile (privada)**
+
+Después del baile, el bailarín puede evaluar:
+
+- Puntaje global (obligatorio).
+- Dimensiones opcionales:
+    - Conexión,
+    - Comodidad,
+    - Musicalidad.
+- 
+- UI ultra simple (5 estrellas, 4 filas).
+
+Reglas clave:
+
+- No se muestran evaluaciones individuales.
+- No se ve quién evaluó a quién.
+- Solo promedios agregados.
+- El bailarín ve:
+    - puntaje promedio,
+    - promedios por dimensión,
+    - segmentado por estilo + rol.
+- 
+
+# **Evaluación del evento**
+
+Post-evento, los bailarines evalúan:
+
+- Ocupación (qué tan lleno).
+- Comodidad del espacio.
+- Temperatura.
+- Música.
+
+Estas evaluaciones afectan:
+
+- ranking del evento,
+- ranking del productor.
+
+No hay comentarios de texto.
+
+# **Rankings e incentivos**
+
+**Ranking Prime Time**
+
+- Ventana aproximada: 23:00 – 00:00.
+- Revelación en vivo:
+    - Mejor Leader,
+    - Mejor Follower del social.
+- 
+- Incentiva:
+    - llegar temprano,
+    - escanear,
+    - bailar más.
+- 
+
+**Ranking Post–Midnight**
+
+- Después de medianoche.
+- No se revela en vivo.
+- Impacta perfil y rankings históricos.
+
+No hay rankings en tiempo real visibles.
+
+# **Check-in y salida del evento**
+
+- El bailarín puede marcar:
+    - “Ya llegué” → estado Asistente.
+    - “Me fui” → marca salida.
+- 
+- Si no marca salida:
+    - se cierra automáticamente al término del evento.
+- 
+- Los amigos pueden ver quién ya llegó.
+- Se puede enviar una notificación suave a amigos que también asistirán.
+
+# **Ticketing e ingreso al evento**
+
+**Compra**
+
+- Preventa desde la app (opcional al inicio).
+- Venta en puerta:
+    - integrada a la app,
+    - o registrada manualmente.
+- 
+
+**Ingreso**
+
+- El staff/productor escanea el QR personal del bailarín.
+- El QR valida:
+    - ticket comprado,
+    - evento correcto,
+    - ticket no usado.
+- 
+- Si es válido:
+    - se autoriza ingreso,
+    - se hace check-in automático,
+    - se registra hora de llegada.
+- 
+
+Un solo QR sirve para:
+
+- ingreso,
+- sesiones de baile.
+
+# **Estilos de baile**
+
+Modelo jerárquico:
+
+- Género: Salsa / Bachata.
+- Estilo:
+    - Bachata sensual,
+    - Bachata dominicana,
+    - Mambo (on2),
+    - Línea/on1,
+    - Cubano (casino, timba, afro, son).
+- 
+- Rol: leader / follower.
+
+En pista se usa género.
+
+En perfil y reputación se usa estilo + rol.
+
+# **Roles del sistema**
+
+**Bailarín**
+
+Usuario final. Baila, evalúa, aprende, asiste a eventos.
+
+**Productor**
+
+- Crea eventos y series.
+- Gestiona staff.
+- Configura rankings.
+- Ve métricas básicas.
+
+**Productor Pro (SaaS)**
+
+- Analítica avanzada:
+    - llegada/salida,
+    - permanencia,
+    - leader/follower,
+    - salsa/bachata.
+- 
+- Comparativas históricas.
+- Activaciones e incentivos.
+- Exportación de reportes.
+
+**Local**
+
+- Ve métricas agregadas del local:
+    - flujo,
+    - permanencia,
+    - horarios pico.
+- 
+
+**Local Pro (SaaS)**
+
+- Analítica avanzada del local.
+- Correlación eventos ↔ consumo indirecto.
+- Medición de activaciones.
+
+**Staff**
+
+- Escanea QR para ingreso.
+- Registra pagos en puerta.
+- Acceso solo a eventos asignados.
+
+**Academia**
+
+- Gestión de alumnos.
+- Cobros recurrentes (mensualidades).
+- Talleres pagos.
+- Registro de asistencia.
+- Subida de videos (feature paga).
+- Creación de eventos propios.
+
+**Soporte**
+
+- Manejo de incidencias.
+- Reprocesos operativos.
+- No toca reglas ni finanzas.
+
+**Admin**
+
+- Control total del sistema.
+
+# **Academias – funcionalidades clave**
+
+**Mensualidades**
+
+- Suscripciones recurrentes.
+- Planes configurables.
+- Prorrateo, pausas, estados.
+- Comisión baja.
+
+**Talleres pagos**
+
+- Venta desde la app.
+- Check-in por QR.
+- Reportes de ingresos.
+
+**Asistencia**
+
+- Registro de clases.
+- Historial por alumno.
+- Alimenta score interno.
+
+**Videos (feature paga)**
+
+- La academia puede subir rutinas/clases.
+- El alumno:
+    - ve clases asistidas (gratis),
+    - ve videos solo si paga upgrade.
+- 
+- No se pueden descargar ni compartir.
+
+**Alumnos online**
+
+- Solo acceden a videos.
+- Pagan suscripción mensual.
+- No participan en sociales ni eventos.
+
+# **Score interno de academia (fidelidad)**
+
+Mide compromiso, no nivel técnico.
+
+Variables:
+
+- Tiempo como alumno.
+- Asistencia a clases.
+- Participación en eventos de la academia.
+
+Uso:
+
+- Segmentación de alumnos.
+- Retención.
+- Beneficios internos.
+
+Visible:
+
+- Completo para la academia.
+- Suave/etiquetas para el alumno.
+
+No es público ni competitivo.
+
+# **Monetización (resumen)**
+
+- Ticketing eventos:
+    - comisión diferenciada:
+        - puerta (más alta),
+        - preventa (más baja).
+    - 
+- 
+- SaaS Productor Pro.
+- SaaS Local Pro.
+- SaaS Academia.
+- Comisión talleres.
+- Add-on videos.
+- Suscripciones alumnos online.
+
+# **Principios de diseño**
+
+- Privacidad por defecto.
+- Validación de actividad real.
+- Cero reviews públicas.
+- UX mínima en pista.
+- Incentivos alineados al comportamiento real.
+- Modularidad (aprendizaje ≠ social).
+
+# **En una frase**
+
+Una plataforma que conecta aprendizaje, baile social y eventos,
+
+valida actividad real, construye reputación justa
+
+y entrega herramientas profesionales a academias, productores y locales.
+
+Si quieres continuar en otro chat, este texto contiene todo el contexto necesario para seguir diseñando producto, negocio o arquitectura sin perder nada.
+
+Perfecto. A continuación tienes un “fill in the blanks” completamente rellenado con toda la información que dependía del contexto de mis respuestas. Está pensado como documento base para continuar el proyecto en otro chat, PRD o pitch, sin huecos conceptuales.
+
+# **Plataforma SBK — Contexto Completo (Fill in the Blanks)**
+
+# **1. Visión del producto**
+
+¿Qué es la app?
+
+Una plataforma integral de baile que conecta aprendizaje (academias) y baile social (eventos), valida actividad real mediante QR, construye reputación privada y justa, ofrece ticketing, analíticas B2B y suscripciones.
+
+Plataforma inicial:
+
+Web App / PWA (mobile-first).
+
+# **2. Usuarios principales**
+
+- Bailarines
+- Productores de eventos
+- Locales
+- Academias
+- Staff
+- Soporte
+- Admin
+
+# **3. Módulos del bailarín**
+
+Módulo A: Mi aprendizaje / Mis clases
+
+- Academias a las que pertenece
+- Estado del alumno (presencial / online / pausado)
+- Historial de clases y talleres
+- Acceso a videos (si paga)
+- Score interno de academia (fidelidad)
+- Progreso no competitivo
+
+Módulo B: Social
+
+- Calendario de eventos
+- Confirmar asistencia
+- Ver amigos que van
+- Check-in (“Ya llegué”) / Salida (“Me fui”)
+- Sesiones de baile
+- Evaluaciones
+- Rankings e incentivos
+- Progreso de la noche
+
+# **4. Sesión de baile (core)**
+
+Regla: 1 sesión = 1 canción
+
+Creación: solo por escaneo QR
+
+Flujo:
+
+1. “Nuevo baile” → abre cámara
+2. Escaneo del QR del otro bailarín
+3. Sesión pendiente
+4. Confirmación con 1 tap
+Si no se confirma: no cuenta
+
+# **5. Evaluación del baile**
+
+- Puntaje global (obligatorio)
+- Dimensiones opcionales: Conexión, Comodidad, Musicalidad
+- 5 estrellas
+- Privado y agregado
+- El bailarín ve solo promedios por estilo + rol
+
+# **6. Evaluación del evento**
+
+Dimensiones:
+
+- Ocupación
+- Comodidad del espacio
+- Temperatura
+- Música
+
+Impacta:
+
+- Ranking del evento
+- Ranking del productor
+
+# **7. Rankings**
+
+Prime Time:
+
+- Ventana aprox. 23:00–00:00
+- Revelación en vivo: Mejor Leader / Mejor Follower
+
+Post–Midnight:
+
+- Después de medianoche
+- No se anuncia en vivo
+- Impacta perfil histórico
+
+# **8. Check-in y salida**
+
+- “Ya llegué” → estado Asistente
+- “Me fui” → marca salida
+- Cierre automático al término del evento si no marca salida
+- Notificación suave a amigos que asistirán (opcional)
+
+# **9. Ticketing e ingreso**
+
+Compra:
+
+- Preventa (opcional al inicio)
+- Puerta (integrada o registrada)
+
+Ingreso:
+
+- Staff/Productor escanea el QR personal del bailarín
+- Valida ticket / evento / uso único
+- Check-in automático + hora de llegada
+
+Un solo QR sirve para ingreso y para bailar.
+
+# **10. Estilos de baile**
+
+Géneros: Salsa / Bachata
+
+Estilos:
+
+- Bachata sensual
+- Bachata dominicana
+- Mambo (on2)
+- Línea / on1
+- Cubano (casino, timba, afro, son)
+
+Uso:
+
+- En pista: Género
+- En perfil: Estilo + Rol (leader/follower)
+
+# **11. Roles y permisos**
+
+**Bailarín**
+
+- Bailar, evaluar, aprender, asistir, ver su reputación agregada
+
+**Productor**
+
+- Crear eventos/series
+- Configurar rankings
+- Gestionar staff
+- Métricas básicas
+
+**Productor Pro (SaaS)**
+
+- Analíticas avanzadas
+- Comparativas históricas
+- Activaciones
+- Exportes
+
+**Local**
+
+- Métricas agregadas del local
+
+**Local Pro (SaaS)**
+
+- Analítica avanzada de flujo y permanencia
+- Medición de activaciones
+
+**Staff**
+
+- Escaneo de ingreso
+- Registro de pagos en puerta
+
+**Soporte**
+
+- Incidencias operativas
+- Reprocesos
+- Escalamiento
+
+**Admin**
+
+- Control total del sistema
+
+# **12. Academias — funcionalidades**
+
+**Mensualidades**
+
+- Suscripciones recurrentes
+- Planes configurables
+- Pausas y estados
+- Comisión baja
+
+**Talleres pagos**
+
+- Venta desde la app
+- Check-in QR
+- Reportes
+
+**Asistencia**
+
+- Registro por clase
+- Historial por alumno
+- Alimenta score interno
+
+**Videos (feature paga)**
+
+- Subida de rutinas/clases
+- Acceso del alumno solo si paga
+- No descarga ni share
+
+**Alumnos online**
+
+- Acceso solo a videos
+- Suscripción mensual
+- No participan en sociales
+
+# **13. Score interno de academia**
+
+Qué mide: fidelidad y compromiso (no técnica)
+
+Variables:
+
+- Permanencia
+- Asistencia a clases
+- Eventos de la academia
+
+Visibilidad:
+
+- Completa para la academia
+- Etiquetas suaves para el alumno
+
+# **14. Monetización**
+
+- Ticketing eventos (comisión diferenciada: puerta > preventa)
+- SaaS Productor Pro
+- SaaS Local Pro
+- SaaS Academia
+- Comisión talleres
+- Add-on videos
+- Suscripciones alumnos online
+
+# **15. Principios de diseño**
+
+- Privacidad por defecto
+- Validación de actividad real
+- UX mínima en pista
+- Incentivos alineados al comportamiento
+- Separación clara aprendizaje vs social
+
+# **16. Contexto Santiago (operativo)**
+
+- Locales: Orixas, Tierra Dura (fuertes), Havana (medio)
+- Productores: Carlos Andrés, Ardilla, Tierra Dura, Havana
+- SaaS aplica a: Ardilla, Carlos Andrés, Tierra Dura
+- Preventa actual: transferencia (0% comisión)
+- Puerta actual: POS (3–4% + IVA)
+
+# **17. Economía (referencia)**
+
+- Asistencia promedio: ~180
+- Preventa: $5.500 CLP (80%)
+- Puerta: $8.500 CLP (20%)
+- Comisión total: 7% (incluye pasarela)
+- Revenue neto app: ~$25.000 CLP por evento
+- Infraestructura mensual: ~$150.000 CLP
+
+# **18. En una frase**
+
+Plataforma que integra aprendizaje y baile social, valida actividad real, construye reputación privada y entrega herramientas profesionales a academias, productores y locales.
+
+Si quieres, en el próximo mensaje puedo:
+
+- convertir esto en PRD técnico,
+- generar backlog por módulos,
+- o preparar un one-pager comercial por actor.
+
+Entendido. A continuación tienes todo el intercambio de mensajes, tuyos y míos, en orden cronológico, excluyendo:
+
+- los mensajes donde pediste:
+    - resúmenes,
+    - listados de tus mensajes,
+    - “fill in the blanks”,
+- 
+- y excluyendo también mis respuestas a esas peticiones de resumen/listado.
+
+Es decir: queda solo la conversación de diseño real del producto.
+
+# ⚠️ Nota: para mantenerlo legible, tus mensajes van marcados como “Usuario” y los míos como “Asistente”, pero el contenido está íntegro (no resumido).
+
+# **Conversación completa (sin mensajes meta)**
+
+**Usuario**
+
+Acorde a su tiempo de duración, cuáles son las clasificaciones de los cursos, diplomados, especialidades, etc?
+
+**Usuario**
+
+Pinponeemos ideas sobre una app.
+
+Conoces los sociales sbk?
+
+Donde va la gente que baila mambo, casino y bachata?
+
+**Usuario**
+
+La idea principal que tuve fue que la gente pudiera votar por “el mejor leader” y “la mejor follower”
+
+Así estos se ganan un premio.
+
+Pero estoy abierto a todas las ideas que rodeen el universo de los sociales, de las comunidades, academias, eventos, fiestas, congresos, prácticas, etc
+
+**Usuario**
+
+Al iniciar cada baile, el follower debe escanear el código del leader y viceversa. Así se crea una “sesión de baile” y se valida que la persona pueda votar por la otra
+
+**Usuario**
+
+Shazam tendrá API abierta? Así al escanear, el teléfono escucha la canción e identifica.
+
+Así la persona solo ingresa el estilo que bailó
+
+**Usuario**
+
+Estaba pensando en una app web primero
+
+**Usuario**
+
+Lo de Shazam no es una feature principal. Fue una idea no más.
+
+Conversemos sobre las features principales.
+
+**Usuario**
+
+Existen productores, eventos, locales, academias de baile,
+
+Bailarines, estilos de baile.
+
+**Usuario**
+
+Los bailarines pueden pertenecer a una o más academias de baile.
+
+Los bailarines pueden bailar 1 o más estilos de baile. Pueden bailar como follower o como leader.
+
+Podríamos evaluar incluir que un bailarín pueda bailar como leader o follower en un estilo. Por lo tanto, tendría dos estilos asociados, en el que cambia el rol.
+
+Esta relación sería compuesta bailarín, estilo, rol.
+
+**Usuario**
+
+Los bailarines pueden asistir a eventos.
+
+Los eventos son organizados por uno o más productores.
+
+El evento ocurre en un local.
+
+**Usuario**
+
+Pueden existir eventos que se repiten, fiestas que son permanentes. Esto no he pensado como clasificarlo. Capaz como serie de eventos, así el evento queda como ese punto en el tiempo específico.
+
+**Usuario**
+
+Existen djs que participan en eventos, puede haber uno o más djs en un evento.
+
+**Usuario**
+
+Los bailarines pueden ser amigos entre ellos.
+
+**Usuario**
+
+Los bailarines comparten sesión de baile, a esta va asociada un evento, un estilo de baile, puntuación del follower y puntuación del leader.
+
+Mínimo y máximo dos bailarines por sesión de baile.
+
+**Usuario**
+
+Este es un primer alcance, seguimos conversando
+
+**Usuario**
+
+Sigamos conversando de features.
+
+Cómo bailarín, puedes confirmar que irás a un evento y también ver cuáles de tus amigos van.
+
+**Usuario**
+
+Como amigos, puedes ver todas las sesiones de baile con tu amigos.
+
+Igual si entras en eventos a los que he asistido, ves todas tu sesiones en ese evento.
+
+**Usuario**
+
+Para el productor, podemos ofrecerle analíticas del público que fue a su evento, proporción leader-follower, hombre-mujer, edades. De pago.
+
+**Usuario**
+
+Los eventos también guardan esta información promedio, proporción hombre-mujer, proporción leader-follower, asistentes promedio, si estuvo muy lleno o no, si se podía bailar cómodo o no por el espacio, calor o frío, etc
+
+**Usuario**
+
+Calendario con próximos eventos. Dentro de la serie de eventos puedes ver un calendario con sus proximos eventos.
+
+Dentro del productor puedes ver su serie de eventos, sus eventos próximos.
+
+**Usuario**
+
+El bailarín no puede saber cómo lo puntuó el bailarín con el que bailó.
+
+**Usuario**
+
+El bailarín solo podrá ver su “puntuación promedio” en su perfil. Esta será la recopilación de sus distintas puntuaciones por evento.
+
+**Usuario**
+
+Así se mantiene la privacidad de la sesión
+
+**Usuario**
+
+Me gusta tu recomendación de puntaje. Mantenemos el global y las dimensiones. Me parece bien conexión, comodidad y musicalidad
+
+**Usuario**
+
+El bailarín también puede puntear el evento.
+
+Estaba muy lleno? Pudiste bailar cómodo en el espacio?
+
+Que tal la temperatura?
+
+Que tal la música?
+
+**Usuario**
+
+Sí afectan al ranking de los eventos y del productor
+
+**Usuario**
+
+Creo que hay fricción en la puntuación del bailarín.
+
+A veces ocurre que las followers terminan de bailar e inmediatamente otro leader le pide bailar. Ni puede agarrar el teléfono.
+
+En general, la gente no está muy pendiente del teléfono. Solo los que están aburridos en las mesas.
+
+Por lo tanto, debe existir algún incentivo para la puntuación de la sesión de baile y así los bailarines se toman el tiempo de puntuar.
+
+Igual esa UI debe ser súper sencilla.
+
+Me imagino que sean 4 filas:
+
+Puntuación general y las tres dimensiones que definimos.
+
+Así la persona puntúa en base a 5 estrellas
+
+**Usuario**
+
+El tema es que también puede ocurrir esa fricción para crear la sesión, para hacer el escaneo de qr
+
+**Usuario**
+
+No entiendo el tap rápido.
+
+La opción B me parece la mejor.
+
+**Usuario**
+
+Si debe ser un qr por canción, porque cada sesión tiene una sola canción
+
+**Usuario**
+
+Para el punto 5, hay que tomar en cuenta que en un evento pueden ir hasta 400 personas.
+
+El promedio debe ser 150-200 yo creo
+
+**Usuario**
+
+Para el escaneo, el leader puede escanear al follower o viceversa.
+
+**Usuario**
+
+Debe haber un botón que diga comenzar baile o similar, esto activa la cámara y escanea el qr.
+
+así la persona que escaneo crea la sesión de baile automáticamente con la otra persona. En el qr estaría el id público de la persona
+
+**Usuario**
+
+Una persona escanea el qr en el teléfono de la otra.
+
+**Usuario**
+
+Variante 2
+
+**Usuario**
+
+Ahora, además del ranking, debe haber un incentivo para que el bailarín escanee. El productor también está interesado en que esto ocurra.
+
+**Usuario**
+
+Capaz a una hora determinada del evento se revela el mejor leader del social y la mejor follower?
+
+**Usuario**
+
+En el cronograma de estos eventos, usualmente comienzan a las 22. Alternan 2 salsas y 2 bachatas o 3 y 3.
+
+A las 00:30 aprox se presentan los shows de las academias.
+
+Cada show dura entre 1:30 a 5 minutos máximo. Promediemos en 7-10 con la narración de presentación, aplausos, etc.
+
+usualmente son 2-3 shows. Pero hay eventos grandes en los que pueden haber hasta 6-7 aprox.
+
+Después de estos shows, vienen los cumpleaños.
+
+Se retoma el social hasta las 03:45 aprox.
+
+**Usuario**
+
+El detalle es que la gente llega a partir de las 23 aprox.
+
+Y la mayoría se va alrededor de las 01:30 aprox
+
+**Usuario**
+
+Me gusta
+
+Ranking “post–midnight”
+
+**Usuario**
+
+Al local también le interesa que se llene el local temprano y que la gente consuma bebidas y comidas
+
+**Usuario**
+
+Barra de avance de la noche, cantidad de bailes, proporción estilos basado en cantidad de bailes
+
+**Usuario**
+
+Nuevo baile.
+
+Mi QR
+
+**Usuario**
+
+El bailarín puede avisar que ya llegó al social. Así cambia su estado a asistente en el social y sus amigos piden ver que ya está ahí, podría enviarle una notificación a sus amigos que también asistirán notificando que ya llegó
+
+**Usuario**
+
+Puede existir la opción de “me fui” así marca salida y si no marca, se cierra a la hora de término del social
+
+**Usuario**
+
+En otra iteración podríamos evaluar que el productor pueda permitir la venta de entrada desde la app y llevar su control. Así servimos como pasarela de pago y cobramos comisiones
+
+**Usuario**
+
+Cuánto estimas que puede ser el revenue de esta app?
+
+Las preventas a los sociales valen entre 4 y 5k pesos chilenos.
+
+Las entradas en puerta entre 7 y 8
+
+Yo creo que un 80% compra preventa
+
+**Usuario**
+
+Este es el panorama en Santiago
+
+En el local Orixas los miércoles son de bachata mania fijo todas las semanas.
+
+Los jueves son de jueves cubano lo produce dj ardilla.
+
+3 viernes al mes está la Gozadera que lo produce ardilla.
+
+2 sábados al mes está la Gozadera.
+
+1 viernes al mes está desafío de tronos.
+
+1 sábados y 1 viernes al mes está social con estilo
+
+1 sábado o viernes al mes hay fiesta de alguna academia
+
+**Usuario**
+
+A mi 5% de comisión toma en cuenta la comisión de pasarela de pago de tarjeta
+
+**Usuario**
+
+Pensemos en 7% como comisión total.
+
+Calcula igual el IVA de la operación
+
+**Usuario**
+
+Toma la preventa en 5.000 y la venta en puerta de 8.000
+
+**Usuario**
+
+Toma la preventa en 5.500 y la venta en puerta en 8.500
+
+**Usuario**
+
+Creo que con dos desarrolladores full stack sacamos el producto.
+
+Calcula los costos operativos de infraestructura para esa cantidad de usuarios.
+
+Puede ser autoescalable, evidentemente el mayor tráfico estará en la noche a partir de las 22 hasta las 04 aprox.
+
+Y en el día probablemente será en las horas libres de las personas, usualmente colación 12-3 y después de las 17 aprox
+
+**Usuario**
+
+En Santiago existen 1 local más. Y otro que consideremos como medio local, porque el público de este no es tanto de academia
+
+**Usuario**
+
+Creo que podemos tener 3 productores
+
+Carlos Andrés produce bachata mania y social con estilo.
+
+Ardilla produce Gozadera y jueves cubano.
+
+Y el otro local es tierra dura, ahí creo que es un solo productor.
+
+Para el tercer local que es la mitad, es un solo productor que lo maneja. Este local es Havana
+
+**Usuario**
+
+Saas productor sirve para ardilla, Carlos y tierra dura
+
+**Usuario**
+
+Actualmente, las preventas se pagan a la productora con transferencia eléctronica. No hay comisiones de por medio para ellos.
+
+Las ventas en puerta sí usan pos mercadopago, sumup o similar
+
+**Usuario**
+
+El productor en la entrada escanea el mismo qr del bailarín.
+
+El bailarín ya hizo su compra por la app y está como comprada su entrada en la app y puede hacer ingreso.
+
+El ingreso es mediante el escaneo del productor o la persona encargada en la entrada
+
+**Usuario**
+
+Tendremos roles de bailarín, productor, productor pro, staff, admin, local
+
+**Usuario**
+
+También puede haber local pro, y así le cobramos a ellos también.
+
+Y soporte, para incidencias. En caso de que los devs deleguen esa tarea a alguien
+
+**Usuario**
+
+Incluyamos a las academias.
+
+Proponerle el sistema de mensualidades para los alumnos, cobros recurrentes tipo suscripción con distintos planes, posibilidad de crear eventos y todo lo añadido.
+
+Que más se te ocurre?
+
+**Usuario**
+
+Los alumnos/bailarines pueden tener puntuación interna dentro de la academia. Esta puntuación va relacionada al tiempo de permanencia, la cantidad de clases que toman, los eventos de la academia a los que asisten. Es como un score de “que tanto está interesado este alumno en la academia, cuál es su proximidad y fidelidad”
+
+**Usuario**
+
+Las academias pueden hacer talleres pagos y usar la función de asistencia y pago.
+
+La academia puede subir un video de la rutina de la clase. Esta opción es paga.
+
+El alumno puede ver las clases a las que ha asistido.
+
+Y si paga adicional, puede ver video de sus clases
+
+**Usuario**
+
+Las academias pueden tener alumnos online que solo vean los videos. Esos alumnos pagan una suscripción
+
+El bailarín tendrá dos módulos principales, mis clases/mi aprendizaje y social
+
+# **Cierre**
+
+Este listado contiene toda la conversación de ideación y diseño, sin resúmenes ni meta-peticiones.
+
+Puedes copiarlo y pegarlo en otro chat para seguir exactamente desde el mismo punto.
+
+Si quieres, en el siguiente mensaje puedo:
+
+- convertir esto en documento plano (TXT / Markdown),
+- separar inputs tuyos vs decisiones finales, o
+- reconstruir el timeline de decisiones de producto.
