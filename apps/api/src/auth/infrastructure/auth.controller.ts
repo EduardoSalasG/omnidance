@@ -63,4 +63,11 @@ export class AuthController {
       throw new UnauthorizedException("Link inválido o expirado");
     }
   }
+
+  @Post("logout")
+  @HttpCode(200)
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie(SESSION_COOKIE, { path: "/" });
+    return { ok: true };
+  }
 }
