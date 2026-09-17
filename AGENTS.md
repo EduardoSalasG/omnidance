@@ -32,7 +32,7 @@ Ejecutar desde la raíz del repo:
 - Instalar dependencias: `pnpm install`
 - Levantar DB + Redis: `pnpm db:up` (docker compose)
 - Preparar esquema: `pnpm db:push` · migración versionada: `pnpm db:migrate`
-- Seed de datos: `pnpm db:seed`
+- Seed de datos: `pnpm db:seed` — idempotente (upserts por clave natural). `SEED_ENV=dev` (default) siembra baseline + demo Santiago con personas `*@omnidance.dev` logueables por magic link; `SEED_ENV=prod` solo baseline + admin (requiere `SEED_ADMIN_EMAIL`). Ambos se pueden re-correr sin duplicar ni pisar params editados en /admin.
 - Backend dev: `pnpm dev:api` → http://localhost:4000 (requiere `pnpm --filter @omnidance/shared build` antes la primera vez — la API importa `shared/dist` en runtime)
 - Frontend dev: `pnpm dev:web` → http://localhost:3000
 - Ambos: `pnpm dev`

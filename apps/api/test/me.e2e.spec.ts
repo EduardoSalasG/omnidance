@@ -41,7 +41,7 @@ describe("GET /api/me", () => {
 
   it("con sesión válida → 200 con id y roles", async () => {
     const person = await prisma.person.findFirstOrThrow({
-      where: { email: "admin@omnidance.cl" },
+      where: { email: "admin@omnidance.dev" },
     });
     const session = await auth.issueSession(person.id);
     const res = await fetch(`${baseUrl}/api/me`, {

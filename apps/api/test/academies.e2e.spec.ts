@@ -98,7 +98,7 @@ describe("academies e2e", () => {
     outsiderSession = await auth.issueSession(outsider.id);
 
     const admin = await prisma.person.findFirstOrThrow({
-      where: { email: "admin@omnidance.cl" },
+      where: { email: "admin@omnidance.dev" },
     });
     adminSession = await auth.issueSession(admin.id);
 

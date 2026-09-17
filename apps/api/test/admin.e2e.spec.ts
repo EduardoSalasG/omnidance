@@ -55,7 +55,7 @@ describe("admin role-requests e2e", () => {
     baseUrl = `http://127.0.0.1:${address.port}`;
 
     const admin = await prisma.person.findFirstOrThrow({
-      where: { email: "admin@omnidance.cl" },
+      where: { email: "admin@omnidance.dev" },
     });
     adminSession = await auth.issueSession(admin.id);
 
