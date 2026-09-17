@@ -1,6 +1,7 @@
 // Reglas de precio del checkout (omni-dance.md §10) — servicio puro, sin Nest/Prisma.
 //
-// serviceFee = SERVICE_FEE_PCT % sobre la lista POST-descuento.
+// serviceFee = cargo fijo por ticket (SERVICE_FEE.PRESALE_CLP en @omnidance/shared).
+// El fee no depende del descuento; una entrada que queda en $0 no cobra fee.
 // amountOff queda capeado en la lista; el total nunca es negativo.
 
 export interface QuoteDiscount {
@@ -10,7 +11,7 @@ export interface QuoteDiscount {
 
 export interface QuoteInput {
   listPrice: number;
-  serviceFeePct: number;
+  serviceFeeClt: number;
   discount?: QuoteDiscount | null;
 }
 
@@ -22,7 +23,7 @@ export interface Quote {
 }
 
 export class PricingService {
-  quote({ listPrice, serviceFeePct, discount }: QuoteInput): Quote {
+  quote({ listPrice, serviceFeeClt, discount }: QuoteInput): Quote {
     const percentCut = Math.round(
       (listPrice * Math.max(0, discount?.percentOff ?? 0)) / 100,
     );
@@ -31,7 +32,7 @@ export class PricingService {
       percentCut + Math.max(0, discount?.amountOff ?? 0),
     );
     const net = Math.max(0, listPrice - cut);
-    const serviceFee = Math.round((net * Math.max(0, serviceFeePct)) / 100);
+    const serviceFee = net > 0 ? Math.max(0, serviceFeeClt) : 0;
     return {
       listPrice,
       discount: cut,

@@ -257,8 +257,8 @@ describe("checkout + payments e2e", () => {
       expect(body.quote).toEqual({
         listPrice: 10000,
         discount: 0,
-        serviceFee: 800,
-        total: 10800,
+        serviceFee: 500,
+        total: 10500,
       });
       const payment = await prisma.payment.findUniqueOrThrow({
         where: { id: body.paymentId },
@@ -266,7 +266,7 @@ describe("checkout + payments e2e", () => {
       expect(payment.status).toBe("PENDING");
       expect(payment.orderType).toBe("TICKET");
       expect(payment.personId).toBe(buyerId);
-      expect(payment.amount).toBe(10800);
+      expect(payment.amount).toBe(10500);
       expect(payment.gatewayRef).toBe(`stub-${payment.refId}`);
     });
   });
@@ -360,8 +360,8 @@ describe("checkout + payments e2e", () => {
       expect(body.quote).toEqual({
         listPrice: 10000,
         discount: 2000,
-        serviceFee: 640, // 8% de 8000
-        total: 8640,
+        serviceFee: 500, // fee fijo SERVICE_FEE.PRESALE_CLP
+        total: 8500,
       });
       paymentId = body.paymentId;
       const payment = await prisma.payment.findUniqueOrThrow({
@@ -388,7 +388,7 @@ describe("checkout + payments e2e", () => {
       expect(ticket.status).toBe("ACTIVE");
       expect(ticket.buyerId).toBe(buyerId);
       expect(ticket.listPrice).toBe(10000);
-      expect(ticket.serviceFee).toBe(640);
+      expect(ticket.serviceFee).toBe(500);
       expect(ticket.discountCodeId).toBe(promoCodeId);
 
       const redemption = await prisma.discountRedemption.findFirstOrThrow({
@@ -512,7 +512,7 @@ describe("checkout + payments e2e", () => {
       expect(body.id).toBe(payment.id);
       expect(body.status).toBe("PAID");
       expect(body.orderType).toBe("TICKET");
-      expect(body.amount).toBe(8640);
+      expect(body.amount).toBe(8500);
     });
 
     it("pago ajeno → 404", async () => {

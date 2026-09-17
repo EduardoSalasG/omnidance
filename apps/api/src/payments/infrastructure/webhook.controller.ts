@@ -18,6 +18,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import { decodeTicketOrderRef } from "../domain/order-ref";
+import { SERVICE_FEE } from "@omnidance/shared";
 
 class WebhookDto {
   @IsOptional()
@@ -104,7 +105,9 @@ export class PaymentsController {
         : null;
       const quote = this.pricing.quote({
         listPrice: event?.presalePrice ?? payment.amount,
-        serviceFeePct: Number(process.env.SERVICE_FEE_PCT ?? 8),
+        serviceFeeClt: Number(
+          process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP,
+        ),
         discount: code,
       });
 

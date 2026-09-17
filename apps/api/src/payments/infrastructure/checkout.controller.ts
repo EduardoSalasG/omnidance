@@ -17,6 +17,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import { encodeTicketOrderRef } from "../domain/order-ref";
+import { SERVICE_FEE } from "@omnidance/shared";
 
 class CheckoutTicketDto {
   @IsString()
@@ -103,10 +104,12 @@ export class CheckoutController {
       }
     }
 
-    const serviceFeePct = Number(process.env.SERVICE_FEE_PCT ?? 8);
+    const serviceFeeClt = Number(
+      process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP,
+    );
     const quote = this.pricing.quote({
       listPrice: event.presalePrice,
-      serviceFeePct,
+      serviceFeeClt,
       discount: code,
     });
 
