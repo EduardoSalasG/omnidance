@@ -33,7 +33,7 @@ Ejecutar desde la raíz del repo:
 - Levantar DB + Redis: `pnpm db:up` (docker compose)
 - Preparar esquema: `pnpm db:push` · migración versionada: `pnpm db:migrate`
 - Seed de datos: `pnpm db:seed`
-- Backend dev: `pnpm dev:api` → http://localhost:4000
+- Backend dev: `pnpm dev:api` → http://localhost:4000 (requiere `pnpm --filter @omnidance/shared build` antes la primera vez — la API importa `shared/dist` en runtime)
 - Frontend dev: `pnpm dev:web` → http://localhost:3000
 - Ambos: `pnpm dev`
 - Build completo: `pnpm build`
