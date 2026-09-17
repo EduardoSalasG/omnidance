@@ -1,7 +1,8 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
-import { PrismaService } from "../prisma.service";
 import { QrModule } from "../qr/qr.module";
+import { PrismaModule } from "../prisma.module";
+import { GamificationModule } from "../gamification/gamification.module";
 import { CheckinsService } from "./domain/checkins.service";
 import { CHECKINS_REPO, type CheckinsRepo } from "./domain/ports";
 import {
@@ -11,10 +12,9 @@ import {
 import { PrismaCheckinsRepo } from "./infrastructure/prisma-checkins.repo";
 
 @Module({
-  imports: [AuthModule, QrModule],
+  imports: [AuthModule, QrModule, GamificationModule, PrismaModule],
   controllers: [CheckinsController, EventCheckinsController],
   providers: [
-    PrismaService,
     { provide: CHECKINS_REPO, useClass: PrismaCheckinsRepo },
     {
       provide: CheckinsService,

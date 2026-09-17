@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
-import type { GamificationRepo } from "../domain/ports";
+import type { GamificationRepo, NewLedgerEntry } from "../domain/ports";
 
 @Injectable()
 export class PrismaGamificationRepo implements GamificationRepo {
@@ -23,9 +23,17 @@ export class PrismaGamificationRepo implements GamificationRepo {
   confirmedSessionsForEvent(eventId: string) {
     // RATED sigue siendo una sesión confirmada (ya puntuada) — si solo se
     // cuenta CONFIRMED, el primer rating la saca de leaderboard/misiones.
+    // retroDeclared NO cuenta: el Prime Time/leaderboard se alimenta del
+    // escaneo en vivo (spec §6); las declaradas sí cuentan para
+    // streaks/badges/puntos vía confirmedSessionsForPerson.
     return this.prisma.danceSession.findMany({
-      where: { eventId, status: { in: ["CONFIRMED", "RATED"] } },
+      where: {
+        eventId,
+        status: { in: ["CONFIRMED", "RATED"] },
+        retroDeclared: false,
+      },
       select: {
+        eventId: true,
         inviterId: true,
         inviteeId: true,
         styleId: true,
@@ -35,15 +43,42 @@ export class PrismaGamificationRepo implements GamificationRepo {
     });
   }
 
+  ratedSessionsForEvent(eventId: string) {
+    // Reveal: solo sesiones confirmadas y evaluadas del evento, sin
+    // retro-declaradas (misma regla que el contador Prime Time).
+    return this.prisma.danceSession.findMany({
+      where: {
+        eventId,
+        status: { in: ["CONFIRMED", "RATED"] },
+        retroDeclared: false,
+      },
+      select: {
+        inviterId: true,
+        inviteeId: true,
+        styleId: true,
+        ratings: { select: { raterId: true, global: true } },
+      },
+    });
+  }
+
+  styleRolesForPeople(personIds: string[]) {
+    return this.prisma.personStyleRole.findMany({
+      where: { personId: { in: personIds } },
+      select: { personId: true, styleId: true, role: true },
+    });
+  }
+
   confirmedSessionsForPerson(personId: string, eventId?: string) {
     return this.prisma.danceSession.findMany({
       where: {
         // RATED = confirmada y ya puntuada: sigue contando como actividad.
+        // retroDeclared SÍ cuenta aquí (streaks/badges/puntos = conducta).
         status: { in: ["CONFIRMED", "RATED"] },
         ...(eventId ? { eventId } : {}),
         OR: [{ inviterId: personId }, { inviteeId: personId }],
       },
       select: {
+        eventId: true,
         inviterId: true,
         inviteeId: true,
         styleId: true,
@@ -135,6 +170,61 @@ export class PrismaGamificationRepo implements GamificationRepo {
       where: { personId_badgeId: { personId, badgeId } },
       create: { personId, badgeId },
       update: {},
+    });
+  }
+
+  async awardBadgeWithExpiry(
+    personId: string,
+    badgeId: string,
+    expiresAt: Date,
+  ) {
+    // Corona vigente → no re-otorga (idempotencia del reveal); corona
+    // expirada o inexistente → crea/renueva (re-win en otro evento).
+    const existing = await this.prisma.personBadge.findUnique({
+      where: { personId_badgeId: { personId, badgeId } },
+    });
+    if (
+      existing?.expiresAt &&
+      existing.expiresAt.getTime() > Date.now()
+    ) {
+      return existing;
+    }
+    return this.prisma.personBadge.upsert({
+      where: { personId_badgeId: { personId, badgeId } },
+      create: { personId, badgeId, expiresAt },
+      update: { expiresAt },
+    });
+  }
+
+  activeSeason(now: Date) {
+    return this.prisma.season.findFirst({
+      where: { startsAt: { lte: now }, endsAt: { gte: now } },
+      orderBy: { startsAt: "desc" },
+    });
+  }
+
+  findLedgerEntry(
+    personId: string,
+    reason: string,
+    refType: string | null,
+    refId: string | null,
+  ) {
+    return this.prisma.pointLedger.findFirst({
+      where: { personId, reason, refType, refId },
+    });
+  }
+
+  createLedgerEntry(entry: NewLedgerEntry) {
+    return this.prisma.pointLedger.create({ data: entry });
+  }
+
+  ledgerForPerson(personId: string, seasonId?: string) {
+    return this.prisma.pointLedger.findMany({
+      where: {
+        personId,
+        ...(seasonId !== undefined ? { seasonId } : {}),
+      },
+      select: { reason: true, points: true },
     });
   }
 }

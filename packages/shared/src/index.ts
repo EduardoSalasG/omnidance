@@ -191,3 +191,7 @@ export const SESSION_RULES = {
   BAYESIAN_C: 10,
   DECAY_WINDOW_DAYS: 90,
 } as const;
+
+// Ventana "reciente" para listar eventos/prácticas: un evento que empezó
+// hace menos de 12h sigue siendo descubrible (fiestas que cruzan medianoche).
+export const EVENT_RECENT_LOOKBACK_MS = 12 * 60 * 60 * 1000;

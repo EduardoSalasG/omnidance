@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { ParamsModule } from "../params/params.module";
+import { PrismaModule } from "../prisma.module";
 import { ParamsService } from "../params/params.service";
-import { PrismaService } from "../prisma.service";
 import { GamificationService } from "./domain/gamification.service";
 import { GAMIFICATION_REPO, type GamificationRepo } from "./domain/ports";
 import {
@@ -12,10 +12,9 @@ import {
 import { PrismaGamificationRepo } from "./infrastructure/prisma-gamification.repo";
 
 @Module({
-  imports: [AuthModule, ParamsModule],
+  imports: [AuthModule, ParamsModule, PrismaModule],
   controllers: [GamificationController, EventGamificationController],
   providers: [
-    PrismaService,
     { provide: GAMIFICATION_REPO, useClass: PrismaGamificationRepo },
     {
       provide: GamificationService,

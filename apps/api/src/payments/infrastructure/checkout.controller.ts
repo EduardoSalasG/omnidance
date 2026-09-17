@@ -13,15 +13,20 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsEmail, IsOptional, IsString } from "class-validator";
+import { IsEmail, IsOptional, IsString, MaxLength } from "class-validator";
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import { encodeTicketOrderRef } from "../domain/order-ref";
+import { isRedeemable } from "../../discounts/domain/discounts.service";
 import { ParamsService } from "../../params/params.service";
 import { SERVICE_FEE } from "@omnidance/shared";
+
+// Una orden PENDING solo reserva cupo mientras el pago puede completarse;
+// pasado el TTL se considera abandonada y deja de contar contra el cap.
+const PENDING_ORDER_TTL_MS = 30 * 60 * 1000;
 
 class CheckoutTicketDto {
   @IsString()
@@ -30,6 +35,13 @@ class CheckoutTicketDto {
   @IsOptional()
   @IsString()
   discountCode?: string;
+
+  // Canción pedida para el DJ (spec song-suggestions): se guarda ligada al
+  // comprador; el top-N del evento solo cuenta personas con ticket pagado.
+  @IsOptional()
+  @IsString()
+  @MaxLength(140)
+  songSuggestion?: string;
 }
 
 @Controller("checkout")
@@ -62,7 +74,7 @@ export class CheckoutController {
     }
 
     if (event.presaleCap != null) {
-      // tickets emitidos + órdenes PENDING en vuelo cuentan contra el cap
+      // tickets emitidos + órdenes PENDING recientes cuentan contra el cap
       const [sold, inFlight] = await Promise.all([
         this.prisma.ticket.count({
           where: { eventId: event.id, status: { not: "CANCELLED" } },
@@ -71,7 +83,8 @@ export class CheckoutController {
           where: {
             orderType: "TICKET",
             status: "PENDING",
-            refId: { startsWith: `tkt_${event.id}_` },
+            eventId: event.id,
+            createdAt: { gt: new Date(Date.now() - PENDING_ORDER_TTL_MS) },
           },
         }),
       ]);
@@ -95,17 +108,20 @@ export class CheckoutController {
         where: { code: dto.discountCode },
       });
       if (!code) throw new BadRequestException("código inválido");
-      if (code.expiresAt && code.expiresAt.getTime() < Date.now()) {
-        throw new BadRequestException("código expirado");
-      }
-      if (code.maxUses != null && code.usedCount >= code.maxUses) {
-        throw new BadRequestException("código agotado");
-      }
-      if (code.eventId && code.eventId !== event.id) {
-        throw new BadRequestException("código no aplica a este evento");
-      }
-      if (code.seriesId && code.seriesId !== event.seriesId) {
-        throw new BadRequestException("código no aplica a este evento");
+      // regla pura del dominio (misma semántica que discounts.service)
+      const check = isRedeemable(code, {
+        now: new Date(),
+        eventId: event.id,
+        seriesId: event.seriesId ?? undefined,
+      });
+      if (!check.ok) {
+        const msg =
+          check.reason === "EXPIRED"
+            ? "código expirado"
+            : check.reason === "EXHAUSTED"
+              ? "código agotado"
+              : "código no aplica a este evento";
+        throw new BadRequestException(msg);
       }
     }
 
@@ -138,9 +154,23 @@ export class CheckoutController {
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
-        gateway: this.gatewayName(),
+        gateway: this.gateway.name,
       },
     });
+
+    // SongSuggestion: se crea ya (ligada a personId+eventId) porque el
+    // webhook no recibe el texto — el top-N filtra por ticket pagado, así
+    // una sugerencia de pago FAILED/abandonado nunca se expone. Una activa
+    // por persona/evento: la última checkout reemplaza la anterior.
+    const suggestion = dto.songSuggestion?.trim().replace(/\s+/g, " ");
+    if (suggestion) {
+      await this.prisma.songSuggestion.deleteMany({
+        where: { eventId: event.id, personId },
+      });
+      await this.prisma.songSuggestion.create({
+        data: { eventId: event.id, personId, title: suggestion },
+      });
+    }
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const order = await this.gateway.createOrder({
@@ -156,12 +186,6 @@ export class CheckoutController {
     });
 
     return { paymentUrl: order.paymentUrl, paymentId: payment.id, quote };
-  }
-
-  private gatewayName(): string {
-    return process.env.PAYMENT_GATEWAY === "flow" && process.env.FLOW_API_KEY
-      ? "FLOW"
-      : "STUB";
   }
 }
 

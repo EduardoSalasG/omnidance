@@ -645,11 +645,11 @@ describe("gamification e2e", () => {
     it("idempotente: segunda consulta no duplica", async () => {
       const res = await get("/api/gamification/me/badges", ids.meSession);
       const list = await res.json();
-      expect(list).toHaveLength(2);
+      expect(list).toHaveLength(3);
       const count = await prisma.personBadge.count({
         where: { personId: ids.meId },
       });
-      expect(count).toBe(2);
+      expect(count).toBe(3);
     });
 
     it("sin sesiones → sin badges", async () => {

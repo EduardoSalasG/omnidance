@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
-import { PrismaService } from "../prisma.service";
+import { PrismaModule } from "../prisma.module";
 import { NotificationsService } from "./domain/notifications.service";
 import { NOTIFICATIONS_REPO, type NotificationsRepo } from "./domain/ports";
 import {
@@ -10,10 +10,9 @@ import {
 import { PrismaNotificationsRepo } from "./infrastructure/prisma-notifications.repo";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, PrismaModule],
   controllers: [NotificationsController, PushTokensController],
   providers: [
-    PrismaService,
     { provide: NOTIFICATIONS_REPO, useClass: PrismaNotificationsRepo },
     {
       provide: NotificationsService,

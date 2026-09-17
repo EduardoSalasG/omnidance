@@ -1,16 +1,19 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { ParamsModule } from "../params/params.module";
+import { GamificationModule } from "../gamification/gamification.module";
 import { QrService } from "./domain/qr.service";
 import { QrController } from "./qr.controller";
+import { secretOrDevFallback } from "../common/env";
 
 @Module({
-  imports: [AuthModule, ParamsModule],
+  imports: [AuthModule, ParamsModule, GamificationModule],
   controllers: [QrController],
   providers: [
     {
       provide: QrService,
-      useFactory: () => new QrService(process.env.QR_SECRET ?? "dev-qr-secret-change-me"),
+      useFactory: () =>
+        new QrService(secretOrDevFallback("QR_SECRET", "dev-qr-secret-change-me")),
     },
   ],
   exports: [QrService],

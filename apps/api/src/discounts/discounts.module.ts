@@ -1,16 +1,15 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
-import { PrismaService } from "../prisma.service";
+import { PrismaModule } from "../prisma.module";
 import { DiscountsService } from "./domain/discounts.service";
 import { DISCOUNTS_REPO, type DiscountsRepo } from "./domain/ports";
 import { DiscountsController } from "./infrastructure/discounts.controller";
 import { PrismaDiscountsRepo } from "./infrastructure/prisma-discounts.repo";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, PrismaModule],
   controllers: [DiscountsController],
   providers: [
-    PrismaService,
     { provide: DISCOUNTS_REPO, useClass: PrismaDiscountsRepo },
     {
       provide: DiscountsService,

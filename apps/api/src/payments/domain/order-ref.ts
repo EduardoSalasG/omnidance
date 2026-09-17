@@ -1,10 +1,9 @@
-// Referencia de orden legible: el modelo Payment no persiste eventId ni
-// discountCodeId, así que el contexto de la compra viaja codificado en refId.
+// Referencia de orden legible para correlación con la pasarela de pago.
 // Formato: tkt_<eventId>_<codeId|->_<uuid>
 // (cuid/uuid no contienen "_", por lo que el split es seguro).
 //
-// NOTA: lo ideal es agregar `metadata Json` (o `eventId`) a Payment — cambio
-// de schema pendiente, reportado.
+// El contexto de la compra se persiste en Payment.eventId/discountCodeId;
+// el decode solo queda como fallback para pagos legacy sin esas columnas.
 
 import { randomUUID } from "node:crypto";
 

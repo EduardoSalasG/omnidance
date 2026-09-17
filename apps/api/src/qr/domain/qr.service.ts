@@ -1,6 +1,8 @@
 import { SignJWT, jwtVerify } from "jose";
+import { SESSION_RULES } from "@omnidance/shared";
 
-const QR_TTL_SECONDS = 60;
+// Default del dominio — los callers parametrizan vía qr.rotation_seconds.
+const QR_TTL_SECONDS: number = SESSION_RULES.QR_ROTATION_SECONDS;
 
 export class QrService {
   private readonly key: Uint8Array;

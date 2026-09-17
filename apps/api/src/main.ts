@@ -7,7 +7,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix("api");
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.enableCors({ origin: true, credentials: true });
+  // Whitelist de orígenes: auth por cookie no puede reflejar cualquier origen.
+  const corsOrigins = (
+    process.env.CORS_ORIGINS ??
+    process.env.WEB_URL ??
+    "http://localhost:3000"
+  )
+    .split(",")
+    .map((o) => o.trim());
+  app.enableCors({ origin: corsOrigins, credentials: true });
 
   // OpenAPI: UI en /api/docs, documento JSON en /api/docs-json.
   // El script scripts/export-api-docs.cjs lo consume para generar
