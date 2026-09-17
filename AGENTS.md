@@ -123,3 +123,11 @@ Paraleliza con subagentes solo tareas independientes (sin estado compartido ni d
 - Reglas breves, concretas y comprobables sobre principios genéricos.
 - Actualiza la regla en el mismo cambio que la vuelve inexacta.
 - Error repetido → primero automatiza su prevención (test, lint, CI) antes de añadir regla.
+
+## Convenciones de plataforma (post-RBAC)
+
+- **RBAC global**: nunca crear guards ad-hoc por rol. Las rutas protegidas usan `@UseGuards(SessionGuard, RolesGuard)` + `@RequireRoles(...)` de `src/common/rbac`. `req.person.roles` = solo APPROVED; `req.person.roleStates` = todos con status. SANDBOX solo pasa con `@AllowSandbox()` explícito; PENDING nunca pasa.
+- **Parámetros operativos**: van en `PlatformParam` (DB), se leen con `ParamsService.getNumber(key, fallback)` (cache 30s) — no hardcodear ni leer env en runtime de negocio. Edición solo vía `PUT /api/admin/params/:key` (ADMIN, audita `PARAM_UPDATE`). `GET /api/params/public` solo expone la whitelist — no agregar datos sensibles ahí.
+- **Acciones admin auditan**: `AuditLog` con actorId/action/targetType/targetId/payload (prev/next).
+- `tsc --noEmit` deja `tsconfig.tsbuildinfo` que confunde al watch de Nest — si `dist/` queda incompleto: `rm -rf dist tsconfig.tsbuildinfo` y reiniciar.
+- Smoke RBAC/params reproducible: `node apps/api/scripts/smoke-rbac-params.cjs` (API viva en :4000).
