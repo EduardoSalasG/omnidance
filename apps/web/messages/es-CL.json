@@ -233,6 +233,27 @@
     "reject": "Rechazar",
     "empty": "No hay solicitudes pendientes.",
     "notAdmin": "Esta sección es para administradores",
+    "tabs": {
+      "requests": "Solicitudes",
+      "params": "Parámetros",
+      "users": "Usuarios",
+      "audit": "Auditoría"
+    },
+    "params": {
+      "title": "Parámetros de plataforma",
+      "hint": "Los cambios aplican en segundos (cache de 30s)."
+    },
+    "users": {
+      "title": "Usuarios",
+      "search": "Buscar por nombre o email…",
+      "addRole": "Agregar rol",
+      "revoke": "Revocar",
+      "noRoles": "Sin roles"
+    },
+    "audit": {
+      "empty": "Sin eventos registrados."
+    },
+    "saved": "Guardado ✓",
     "status": {
       "PENDING": "Pendiente",
       "SANDBOX": "Sandbox",
@@ -280,7 +301,8 @@
       "VENUE_MANAGER": "Dueño de local",
       "ACADEMY_OWNER": "Dueño de academia",
       "INSTRUCTOR": "Instructor",
-      "ADMIN": "Administrador"
+      "ADMIN": "Administrador",
+      "SUPPORT": "Soporte"
     }
   }
 }
