@@ -78,6 +78,7 @@ class FakeCheckinsRepo implements CheckinsRepo {
       syncedAt: new Date(),
       voidedAt: null,
       voidReason: null,
+      note: data.note,
     };
     this.checkins.push(checkin);
     if (pass?.kind === "TICKET") {
@@ -159,6 +160,7 @@ describe("CheckinsService.register", () => {
     expect(res.checkin.staffId).toBe("staff-1");
     expect(res.checkin.method).toBe("SCAN");
     expect(res.ticket).toEqual({ id: "tkt-9", status: "USED" });
+    expect(res.passType).toBeNull();
     expect(repo.tickets[0].status).toBe("USED");
     expect(res.person).toEqual({
       name: "Bailarín Uno",
@@ -176,10 +178,11 @@ describe("CheckinsService.register", () => {
     expect(res.checkin.passId).toBeNull();
     expect(res.checkin.staffId).toBe("staff-1");
     expect(res.ticket).toBeNull();
+    expect(res.passType).toBeNull();
   });
 
-  it("sin ticket pero con EntryPass ACTIVE → resuelve el pase y lo marca USED", async () => {
-    repo.entryPasses.push(mkEntryPass({ id: "pass-7" }));
+  it("sin ticket pero con EntryPass ACTIVE → resuelve el pase, lo marca USED y expone passType", async () => {
+    repo.entryPasses.push(mkEntryPass({ id: "pass-7", type: "LIST" }));
     const res = await svc.register({
       eventId: "evt-1",
       personId: "per-1",
@@ -189,6 +192,29 @@ describe("CheckinsService.register", () => {
     expect(res.checkin.passId).toBe("pass-7");
     expect(repo.entryPasses[0].status).toBe("USED");
     expect(res.ticket).toBeNull();
+    expect(res.passType).toBe("LIST");
+  });
+
+  it("note del staff se persiste en el checkin", async () => {
+    const res = await svc.register({
+      eventId: "evt-1",
+      personId: "per-1",
+      staffId: "staff-1",
+      method: "MANUAL",
+      note: "cortesía cumpleaños",
+    });
+    expect(repo.createdWith[0].data.note).toBe("cortesía cumpleaños");
+    expect(res.checkin.note).toBe("cortesía cumpleaños");
+  });
+
+  it("sin note → Checkin.note queda null", async () => {
+    const res = await svc.register({
+      eventId: "evt-1",
+      personId: "per-1",
+      staffId: "staff-1",
+      method: "MANUAL",
+    });
+    expect(res.checkin.note).toBeNull();
   });
 
   it("ticket tiene prioridad sobre EntryPass cuando ambos existen", async () => {

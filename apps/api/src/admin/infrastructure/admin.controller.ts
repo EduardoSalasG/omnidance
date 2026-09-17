@@ -30,7 +30,12 @@ import {
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 
-const ALL_STATUSES: RoleStatus[] = ["PENDING", "SANDBOX", "APPROVED"];
+const ALL_STATUSES: RoleStatus[] = [
+  "PENDING",
+  "SANDBOX",
+  "APPROVED",
+  "REJECTED",
+];
 const ROLE_KEY = /^[A-Z0-9_]+$/;
 const PERM_KEY = /^[a-z0-9_.-]+$/;
 
@@ -131,8 +136,9 @@ export class AdminController {
   }
 
   /**
-   * Rechazo: el enum RoleStatus no tiene REJECTED (gap de schema) —
-   * decisión: se borra el PersonRole y se devuelve el registro eliminado.
+   * Rechazo: marca el PersonRole como REJECTED (registro preservado —
+   * auditable). Una solicitud REJECTED no re-aparece en la cola ni da
+   * acceso; para revertir se usa POST /admin/users/:personId/roles.
    */
   @Post("role-requests/:personRoleId/reject")
   @HttpCode(200)
@@ -144,13 +150,17 @@ export class AdminController {
       where: { id: personRoleId },
     });
     if (!role) throw new NotFoundException("solicitud de rol no encontrada");
-    await this.prisma.personRole.delete({ where: { id: personRoleId } });
+    const updated = await this.prisma.personRole.update({
+      where: { id: personRoleId },
+      data: { status: "REJECTED" },
+    });
     await this.audit(req, "ROLE_REJECT", "PersonRole", personRoleId, {
       personId: role.personId,
       role: role.role,
       prev: role.status,
+      next: "REJECTED",
     });
-    return role;
+    return updated;
   }
 
   // ── Usuarios ──────────────────────────────────────────────────────────

@@ -44,7 +44,7 @@ class ManualCheckinDto {
   @IsString()
   personId!: string;
 
-  /** Nota del staff (lista/cortesía) — sin columna en schema v1, se acepta y no persiste. */
+  /** Nota del staff (lista/cortesía) — se persiste en Checkin.note. */
   @IsOptional()
   @IsString()
   note?: string;
@@ -104,6 +104,7 @@ export class CheckinsController {
       personId: dto.personId,
       staffId: req.person!.id,
       method: "MANUAL",
+      note: dto.note,
     });
   }
 

@@ -183,6 +183,9 @@ describe("checkout + payments e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: [buyerId, otherId] } },
     });
+    await prisma.notification.deleteMany({
+      where: { personId: { in: [buyerId, otherId] } },
+    });
     await prisma.person.deleteMany({ where: { id: { in: [buyerId, otherId] } } });
     await app.close();
   });
@@ -266,6 +269,8 @@ describe("checkout + payments e2e", () => {
       expect(payment.status).toBe("PENDING");
       expect(payment.orderType).toBe("TICKET");
       expect(payment.personId).toBe(buyerId);
+      expect(payment.eventId).toBe(ids.eventId);
+      expect(payment.discountCodeId).toBeNull();
       expect(payment.amount).toBe(10500);
       expect(payment.gatewayRef).toBe(`stub-${payment.refId}`);
     });
@@ -367,6 +372,8 @@ describe("checkout + payments e2e", () => {
       const payment = await prisma.payment.findUniqueOrThrow({
         where: { id: paymentId },
       });
+      expect(payment.eventId).toBe(ids.eventId);
+      expect(payment.discountCodeId).toBe(promoCodeId);
       refId = payment.refId;
     });
 

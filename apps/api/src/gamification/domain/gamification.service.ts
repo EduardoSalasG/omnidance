@@ -63,8 +63,9 @@ export interface MissionView {
  * Orquestación de gamificación (omni-dance.md §6-7). Sin Nest: recibe el repo
  * por constructor y delega el cálculo en las funciones puras de `rules.ts`.
  *
- * Awards de badges y progreso de misiones se evalúan LAZY al consultar —
- * v1 no engancha el confirm de sesión para no tocar módulos ajenos.
+ * Awards de badges y progreso de misiones se evalúan LAZY al consultar, y
+ * además quedan enganchados vía `evaluateBadgesFor` al confirm/rate de
+ * sesiones (lo invoca SessionsController cuando está inyectado).
  */
 export class GamificationService {
   constructor(
@@ -92,19 +93,32 @@ export class GamificationService {
   /** Badges ganados; evalúa y otorga lazy los pendientes (conducta, no puntaje). */
   async badgesFor(personId: string): Promise<AwardedBadge[]> {
     const owned = await this.repo.badgesForPerson(personId);
+    const awarded = await this.evaluateBadgesFor(personId, owned);
+    return awarded ? this.repo.badgesForPerson(personId) : owned;
+  }
+
+  /**
+   * Hook invocable desde otros dominios (confirm/rate de sesión): evalúa las
+   * reglas de award y otorga los badges pendientes de la persona.
+   * `owned` opcional evita una query extra cuando el caller ya la tiene.
+   * Retorna true si otorgó al menos un badge nuevo.
+   */
+  async evaluateBadgesFor(
+    personId: string,
+    owned?: AwardedBadge[],
+  ): Promise<boolean> {
+    const current = owned ?? (await this.repo.badgesForPerson(personId));
     const confirmed = await this.repo.confirmedSessionsForPerson(personId);
     const newKeys = this.awarder.evaluate(
       { confirmedSessions: confirmed.length },
-      owned.map((b) => b.badge.key),
+      current.map((b) => b.badge.key),
     );
-    if (newKeys.length > 0) {
-      const badges = await this.repo.badgesByKeys(newKeys);
-      for (const b of badges) {
-        await this.repo.awardBadge(personId, b.id);
-      }
-      return this.repo.badgesForPerson(personId);
+    if (newKeys.length === 0) return false;
+    const badges = await this.repo.badgesByKeys(newKeys);
+    for (const b of badges) {
+      await this.repo.awardBadge(personId, b.id);
     }
-    return owned;
+    return true;
   }
 
   /**

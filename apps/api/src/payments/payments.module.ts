@@ -11,9 +11,10 @@ import {
   TicketsController,
 } from "./infrastructure/checkout.controller";
 import { PaymentsController } from "./infrastructure/webhook.controller";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
-  imports: [AuthModule, ParamsModule],
+  imports: [AuthModule, ParamsModule, NotificationsModule],
   controllers: [CheckoutController, TicketsController, PaymentsController],
   providers: [
     PrismaService,

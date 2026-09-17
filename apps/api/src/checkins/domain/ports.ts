@@ -13,6 +13,8 @@ export interface CreateCheckinData {
   staffId: string;
   method: CheckinMethod;
   passId: string | null;
+  /** Nota del staff (cortesías manuales) — se persiste en Checkin.note. */
+  note: string | null;
 }
 
 export type ListedCheckin = Checkin & {

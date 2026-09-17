@@ -60,6 +60,12 @@ export const PARAM_DEFAULTS: Array<{
   { key: "prime_time.threshold_pct", value: 0.2, description: "Umbral Prime Time como fracción del aforo" },
 ];
 
+/** Catálogo de badges — las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
+export const BADGE_CATALOG = [
+  { key: "primera_bachata", name: "Primera bachata", category: "MILESTONE" },
+  { key: "bailarin_constante", name: "Bailarín constante", category: "MILESTONE" },
+] as const;
+
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
 export async function ensurePerson(
   prisma: PrismaClient,
@@ -132,6 +138,15 @@ export async function seedCommon(prisma: PrismaClient) {
     }
   }
 
+  // ─── Badges — catálogo para que BadgeAwarder pueda otorgar ───
+  for (const b of BADGE_CATALOG) {
+    await prisma.badge.upsert({
+      where: { key: b.key },
+      update: { name: b.name, category: b.category },
+      create: b,
+    });
+  }
+
   // ─── Parámetros — nunca pisar valores editados en /admin ───
   for (const p of PARAM_DEFAULTS) {
     await prisma.platformParam.upsert({
@@ -142,6 +157,6 @@ export async function seedCommon(prisma: PrismaClient) {
   }
 
   console.log(
-    `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${PARAM_DEFAULTS.length} params`,
+    `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${BADGE_CATALOG.length} badges, ${PARAM_DEFAULTS.length} params`,
   );
 }

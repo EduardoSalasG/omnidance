@@ -120,6 +120,9 @@ describe("sessions e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: [aId, bId, cId] } },
     });
+    await prisma.notification.deleteMany({
+      where: { personId: { in: [aId, bId, cId] } },
+    });
     await prisma.person.deleteMany({ where: { id: { in: [aId, bId, cId] } } });
     await prisma.$disconnect();
     await app.close();
@@ -414,7 +417,7 @@ describe("sessions e2e", () => {
       expect(list.length).toBeGreaterThanOrEqual(4);
 
       const s1 = list.find((s: { id: string }) => s.id === ids.s1Id);
-      expect(s1.status).toBe("CONFIRMED");
+      expect(s1.status).toBe("RATED");
       expect(s1.role).toBe("inviter");
       expect(s1.partner.name).toBe("Invitee E2E");
       expect(s1.myRating.global).toBe(4);

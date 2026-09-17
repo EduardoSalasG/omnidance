@@ -454,7 +454,7 @@ describe("academies e2e", () => {
       expect(res.status).toBe(201);
     });
 
-    it("GET attendance owner → registros del rango", async () => {
+    it("GET attendance owner → registros del rango con join de person", async () => {
       const res = await get(
         `/api/academies/${ids.academyId}/attendance?from=2025-06-01&to=2025-06-30`,
         ownerSession,
@@ -462,9 +462,14 @@ describe("academies e2e", () => {
       expect(res.status).toBe(200);
       const list = await res.json();
       expect(list.length).toBeGreaterThanOrEqual(2);
-      expect(
-        list.some((a: { personId: string }) => a.personId === ids.studentId),
-      ).toBe(true);
+      const row = list.find(
+        (a: { personId: string }) => a.personId === ids.studentId,
+      );
+      expect(row).toBeTruthy();
+      expect(row.person).toMatchObject({
+        id: ids.studentId,
+        name: "Alumno Academia Test",
+      });
     });
 
     it("GET attendance instructor → 403 (solo owner/admin)", async () => {

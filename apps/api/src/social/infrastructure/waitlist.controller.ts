@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   NotFoundException,
+  Optional,
   Param,
   Post,
   Req,
@@ -12,6 +13,10 @@ import {
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
+import {
+  NotificationsService,
+  type NotifyInput,
+} from "../../notifications/domain/notifications.service";
 import {
   SocialDomainError,
   assertCanJoinWaitlist,
@@ -22,7 +27,12 @@ import { RequirePermissions } from "../../common/rbac/roles.decorator";
 
 @Controller("events")
 export class WaitlistController {
-  constructor(private readonly prisma: PrismaService) {}
+  // NotificationsService es @Optional: SocialModule aún no importa
+  // NotificationsModule (pendiente de wiring — ver handoff).
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly notifications?: NotificationsService,
+  ) {}
 
   /**
    * Unirse a la waitlist. Decisión v1: no se exige que el evento esté agotado
@@ -120,9 +130,32 @@ export class WaitlistController {
     if (!next) {
       throw new NotFoundException("no hay nadie en espera para promover");
     }
-    return this.prisma.waitlist.update({
+    const promoted = await this.prisma.waitlist.update({
       where: { id: next.id },
       data: { status: "PROMOTED" },
     });
+    await this.safeNotify(promoted.personId, {
+      category: "SOCIAL",
+      type: "waitlist.promoted",
+      title: "Se liberó un cupo — avanzaste en la lista de espera",
+      data: { eventId },
+    });
+    return promoted;
+  }
+
+  /**
+   * Notificación best-effort: un fallo del centro de notificaciones (o la
+   * ausencia del provider mientras el módulo no esté wireado) nunca rompe el
+   * flujo de dominio.
+   */
+  private async safeNotify(
+    personId: string,
+    input: NotifyInput,
+  ): Promise<void> {
+    try {
+      await this.notifications?.notify(personId, input);
+    } catch {
+      /* notificación no crítica */
+    }
   }
 }

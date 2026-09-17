@@ -6,6 +6,7 @@ import {
   HttpCode,
   Inject,
   NotFoundException,
+  Optional,
   Param,
   Post,
   Req,
@@ -19,6 +20,10 @@ import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import { decodeTicketOrderRef } from "../domain/order-ref";
 import { ParamsService } from "../../params/params.service";
+import {
+  NotificationsService,
+  type NotifyInput,
+} from "../../notifications/domain/notifications.service";
 import { SERVICE_FEE } from "@omnidance/shared";
 
 class WebhookDto {
@@ -42,11 +47,14 @@ class WebhookDto {
 
 @Controller("payments")
 export class PaymentsController {
+  // NotificationsService es @Optional: PaymentsModule aún no importa
+  // NotificationsModule (pendiente de wiring — ver handoff).
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly pricing: PricingService,
     private readonly params: ParamsService,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -76,6 +84,12 @@ export class PaymentsController {
         where: { id: payment.id },
         data: { status: "FAILED" },
       });
+      await this.safeNotify(payment.personId, {
+        category: "TRANSACTIONAL",
+        type: "payment.failed",
+        title: "Tu pago no pudo procesarse",
+        data: { paymentId: payment.id, refId: payment.refId },
+      });
       return { ok: true, status: "FAILED" };
     }
 
@@ -84,6 +98,9 @@ export class PaymentsController {
       throw new BadRequestException("refId sin formato de orden ticket");
     }
 
+    // la notificación solo sale si esta llamada fue la que marcó PAID
+    // (no en re-notificaciones ni carreras perdidas dentro de la tx)
+    let paidNow = false;
     await this.prisma.$transaction(async (tx) => {
       // re-check dentro de la tx: doble webhook concurrente no duplica
       const fresh = await tx.payment.findUnique({
@@ -96,6 +113,7 @@ export class PaymentsController {
         where: { id: payment.id },
         data: { status: "PAID" },
       });
+      paidNow = true;
 
       // el ticket SOLO se emite cuando el pago queda PAID
       const event = await tx.event.findUnique({
@@ -141,6 +159,15 @@ export class PaymentsController {
       }
     });
 
+    if (paidNow) {
+      await this.safeNotify(payment.personId, {
+        category: "TRANSACTIONAL",
+        type: "payment.paid",
+        title: "Pago confirmado — tu ticket está listo",
+        data: { paymentId: payment.id, refId: payment.refId },
+      });
+    }
+
     return { ok: true, status: "PAID" };
   }
 
@@ -159,5 +186,21 @@ export class PaymentsController {
       amount: payment.amount,
       createdAt: payment.createdAt,
     };
+  }
+
+  /**
+   * Notificación best-effort: un fallo del centro de notificaciones (o la
+   * ausencia del provider mientras el módulo no esté wireado) nunca rompe el
+   * webhook — la pasarela debe recibir 200 igual.
+   */
+  private async safeNotify(
+    personId: string,
+    input: NotifyInput,
+  ): Promise<void> {
+    try {
+      await this.notifications?.notify(personId, input);
+    } catch {
+      /* notificación no crítica */
+    }
   }
 }
