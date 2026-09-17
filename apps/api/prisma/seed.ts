@@ -1,10 +1,67 @@
 // Seed de desarrollo — data real de la escena SBK Santiago (spec: omni-dance.md §2)
-import { PrismaClient, UserRole, Genre } from "@prisma/client";
+import { PrismaClient, Genre } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Catálogo RBAC vivo en DB — el enum UserRole se reemplazó por el modelo Role.
+// requestable: se puede auto-solicitar desde /perfil; isSuperuser: pasa todo
+// check de permisos (solo ADMIN).
+const ROLE_CATALOG = [
+  { key: "DANCER", label: "Bailarín", requestable: true },
+  { key: "DJ", label: "DJ", requestable: true },
+  { key: "PRODUCER", label: "Productor", requestable: true },
+  { key: "STAFF", label: "Staff", requestable: true },
+  { key: "VENUE_MANAGER", label: "Dueño de local", requestable: true },
+  { key: "ACADEMY_OWNER", label: "Dueño de academia", requestable: true },
+  { key: "INSTRUCTOR", label: "Instructor", requestable: true },
+  { key: "SUPPORT", label: "Soporte", requestable: true },
+  { key: "ADMIN", label: "Administrador", requestable: false, isSuperuser: true },
+] as const;
+
+// Permisos que las rutas exigen con @RequirePermissions + matriz rol→permiso.
+const PERMISSION_CATALOG = [
+  { key: "admin.access", description: "Panel de administración de plataforma" },
+  { key: "checkins.write", description: "Operar check-in de puerta" },
+  { key: "discounts.manage", description: "Crear y gestionar códigos de descuento" },
+  { key: "social.manage", description: "Gestionar guest lists y waitlists" },
+  { key: "academies.create", description: "Crear academia propia" },
+] as const;
+
+const ROLE_GRANTS: Record<string, string[]> = {
+  STAFF: ["checkins.write", "social.manage"],
+  PRODUCER: ["discounts.manage", "social.manage"],
+  ACADEMY_OWNER: ["academies.create"],
+  // ADMIN: isSuperuser — pasa todo sin grants explícitos
+};
+
 async function main() {
   console.log("Seeding omnidance dev data…");
+
+  // ─── Catálogo RBAC (idempotente — debe existir antes que PersonRole por FK) ───
+  for (const r of ROLE_CATALOG) {
+    await prisma.role.upsert({
+      where: { key: r.key },
+      update: { label: r.label, requestable: r.requestable, isSuperuser: "isSuperuser" in r },
+      create: { ...r, isSuperuser: "isSuperuser" in r },
+    });
+  }
+  for (const p of PERMISSION_CATALOG) {
+    await prisma.permission.upsert({
+      where: { key: p.key },
+      update: { description: p.description },
+      create: p,
+    });
+  }
+  for (const [roleKey, perms] of Object.entries(ROLE_GRANTS)) {
+    for (const permissionKey of perms) {
+      await prisma.rolePermission.upsert({
+        where: { roleKey_permissionKey: { roleKey, permissionKey } },
+        update: {},
+        create: { roleKey, permissionKey },
+      });
+    }
+  }
+  console.log(`  ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos`);
 
   // ─── Estilos ───
   const styles = await Promise.all(
@@ -27,7 +84,7 @@ async function main() {
       email: "admin@omnidance.cl",
       name: "Admin Omnidance",
       roles: {
-        create: [{ role: UserRole.ADMIN, status: "APPROVED" }],
+        create: [{ role: "ADMIN", status: "APPROVED" }],
       },
     },
   });
@@ -46,7 +103,7 @@ async function main() {
   // ─── Personas (multi-rol) ───
   const person = (
     name: string,
-    roles: { role: UserRole; status?: "APPROVED" | "SANDBOX" }[]
+    roles: { role: string; status?: "APPROVED" | "SANDBOX" }[]
   ) =>
     prisma.person.create({
       data: {
@@ -55,27 +112,27 @@ async function main() {
       },
     });
 
-  const carlos = await person("Carlos Andrés", [{ role: UserRole.PRODUCER }]);
+  const carlos = await person("Carlos Andrés", [{ role: "PRODUCER" }]);
   const ardilla = await person("Ardilla", [
-    { role: UserRole.PRODUCER },
-    { role: UserRole.DJ },
+    { role: "PRODUCER" },
+    { role: "DJ" },
   ]);
-  const steban = await person("DJ Steban", [{ role: UserRole.DJ }]);
-  const matias = await person("Matías Herrera", [{ role: UserRole.DJ }]);
-  const fabian = await person("Fabián Valladares", [{ role: UserRole.DJ }]);
+  const steban = await person("DJ Steban", [{ role: "DJ" }]);
+  const matias = await person("Matías Herrera", [{ role: "DJ" }]);
+  const fabian = await person("Fabián Valladares", [{ role: "DJ" }]);
   const cesar = await person("César Moreno", [
-    { role: UserRole.PRODUCER },
-    { role: UserRole.DJ },
+    { role: "PRODUCER" },
+    { role: "DJ" },
   ]);
-  const jesus = await person("DJ Jesús", [{ role: UserRole.DJ }]);
+  const jesus = await person("DJ Jesús", [{ role: "DJ" }]);
 
   // MuéveteOnTour — academia Y productor
   const muvet = await prisma.academy.create({
     data: { name: "MuéveteOnTour", ownerId: carlos.id },
   });
   const muvetOwner = await person("Dueño MuéveteOnTour", [
-    { role: UserRole.ACADEMY_OWNER },
-    { role: UserRole.PRODUCER },
+    { role: "ACADEMY_OWNER" },
+    { role: "PRODUCER" },
   ]);
 
   // ─── Series + eventos ───

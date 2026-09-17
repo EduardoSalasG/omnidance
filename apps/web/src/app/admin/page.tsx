@@ -39,8 +39,20 @@ type AuditRow = {
   createdAt: string;
 };
 
+type RoleRow = {
+  key: string;
+  label: string;
+  description: string | null;
+  requestable: boolean;
+  isSuperuser: boolean;
+  permissions: { permissionKey: string }[];
+  _count: { personRoles: number };
+};
+
+type PermissionRow = { key: string; description: string | null };
+
 type Gate = "loading" | "unauth" | "notAdmin" | "error" | "ready";
-type Tab = "requests" | "params" | "users" | "audit";
+type Tab = "requests" | "roles" | "params" | "users" | "audit";
 
 const fmtDay = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
 const fmtTime = new Intl.DateTimeFormat("es-CL", {
@@ -53,18 +65,6 @@ const STATUS_VARIANT: Record<string, "muted" | "outline" | "neon"> = {
   SANDBOX: "outline",
   APPROVED: "neon",
 };
-
-const ROLES = [
-  "DANCER",
-  "DJ",
-  "PRODUCER",
-  "STAFF",
-  "VENUE_MANAGER",
-  "ACADEMY_OWNER",
-  "INSTRUCTOR",
-  "SUPPORT",
-  "ADMIN",
-];
 
 const STATUSES = ["PENDING", "SANDBOX", "APPROVED"];
 
@@ -88,6 +88,8 @@ export default function AdminPage() {
   const [params, setParams] = useState<Param[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [audit, setAudit] = useState<AuditRow[]>([]);
+  const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [permissions, setPermissions] = useState<PermissionRow[]>([]);
 
   const [acting, setActing] = useState<string | null>(null);
   const [actionError, setActionError] = useState(false);
@@ -96,7 +98,17 @@ export default function AdminPage() {
   const [userQuery, setUserQuery] = useState("");
 
   const loadTab = useCallback(async (which: Tab, q = "") => {
-    const urls: Record<Tab, string> = {
+    if (which === "roles") {
+      const [rolesRes, permsRes] = await Promise.all([
+        apiFetch("/admin/roles"),
+        apiFetch("/admin/permissions"),
+      ]);
+      if (!rolesRes.ok || !permsRes.ok) throw new Error("fetch failed");
+      setRoles((await rolesRes.json()) as RoleRow[]);
+      setPermissions((await permsRes.json()) as PermissionRow[]);
+      return;
+    }
+    const urls: Record<Exclude<Tab, "roles">, string> = {
       requests: "/admin/role-requests",
       params: "/admin/params",
       users: `/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`,
@@ -113,9 +125,16 @@ export default function AdminPage() {
         Object.fromEntries(rows.map((p) => [p.key, JSON.stringify(p.value)])),
       );
     }
-    if (which === "users") setUsers(data as UserRow[]);
+    if (which === "users") {
+      setUsers(data as UserRow[]);
+      // catálogo de roles para el dropdown de asignación
+      if (roles.length === 0) {
+        const rr = await apiFetch("/admin/roles");
+        if (rr.ok) setRoles((await rr.json()) as RoleRow[]);
+      }
+    }
     if (which === "audit") setAudit(data as AuditRow[]);
-  }, []);
+  }, [roles.length]);
 
   const boot = useCallback(async () => {
     setGate("loading");
@@ -213,6 +232,41 @@ export default function AdminPage() {
     }
   }
 
+  async function togglePermission(
+    roleKey: string,
+    permission: string,
+    grant: boolean,
+  ) {
+    if (acting) return;
+    setActing(roleKey + permission);
+    setActionError(false);
+    try {
+      const res = await apiFetch(`/admin/roles/${roleKey}/permissions`, {
+        method: "POST",
+        body: JSON.stringify({ permission, grant }),
+      });
+      if (!res.ok) return setActionError(true);
+      setRoles((rs) =>
+        rs.map((r) =>
+          r.key !== roleKey
+            ? r
+            : {
+                ...r,
+                permissions: grant
+                  ? [...r.permissions, { permissionKey: permission }]
+                  : r.permissions.filter(
+                      (p) => p.permissionKey !== permission,
+                    ),
+              },
+        ),
+      );
+    } catch {
+      setActionError(true);
+    } finally {
+      setActing(null);
+    }
+  }
+
   async function revokeRole(personId: string, role: string) {
     if (acting) return;
     if (!window.confirm(`${t("users.revoke")}: ${role}`)) return;
@@ -232,7 +286,8 @@ export default function AdminPage() {
   }
 
   const roleLabel = (r: string) =>
-    tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
+    roles.find((x) => x.key === r)?.label ??
+    (tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r);
   const statusLabel = (s: string) =>
     t.has(`status.${s}`) ? t(`status.${s}`) : s;
 
@@ -269,7 +324,7 @@ export default function AdminPage() {
       {gate === "ready" && (
         <>
           <nav className="flex gap-2 overflow-x-auto" aria-label={t("title")}>
-            {(["requests", "params", "users", "audit"] as Tab[]).map((k) => (
+            {(["requests", "roles", "params", "users", "audit"] as Tab[]).map((k) => (
               <button
                 key={k}
                 onClick={() => void switchTab(k)}
@@ -346,6 +401,68 @@ export default function AdminPage() {
                   ))}
                 </ul>
               )}
+            </section>
+          )}
+
+          {tab === "roles" && (
+            <section className="flex flex-col gap-3">
+              <ul className="flex flex-col gap-3">
+                {roles.map((r) => (
+                  <li key={r.key}>
+                    <Card className="flex flex-col gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-sm text-neon">
+                          {r.key}
+                        </span>
+                        <span className="font-semibold">{r.label}</span>
+                        {r.isSuperuser && (
+                          <Badge variant="neon">superuser</Badge>
+                        )}
+                        {r.requestable && (
+                          <Badge variant="outline">requestable</Badge>
+                        )}
+                        <span className="ml-auto text-xs text-white/40">
+                          {r._count.personRoles} personas
+                        </span>
+                      </div>
+                      {r.description && (
+                        <p className="text-xs text-white/50">{r.description}</p>
+                      )}
+                      {!r.isSuperuser && (
+                        <div className="flex flex-wrap gap-2">
+                          {permissions.map((p) => {
+                            const granted = r.permissions.some(
+                              (x) => x.permissionKey === p.key,
+                            );
+                            return (
+                              <button
+                                key={p.key}
+                                disabled={acting !== null}
+                                onClick={() =>
+                                  void togglePermission(
+                                    r.key,
+                                    p.key,
+                                    !granted,
+                                  )
+                                }
+                                title={p.description ?? p.key}
+                                className={`min-h-[44px] rounded-full border px-3 font-mono text-xs transition ${
+                                  granted
+                                    ? "border-neon bg-neon/15 text-neon"
+                                    : "border-white/15 text-white/40"
+                                }`}
+                              >
+                                {granted ? "✓ " : ""}
+                                {p.key}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </Card>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 
@@ -471,13 +588,15 @@ export default function AdminPage() {
                           <option value="" disabled>
                             {t("users.addRole")}
                           </option>
-                          {ROLES.filter(
-                            (r) => !u.roles.some((ur) => ur.role === r),
-                          ).map((r) => (
-                            <option key={r} value={r}>
-                              {roleLabel(r)}
-                            </option>
-                          ))}
+                          {roles
+                            .filter(
+                              (r) => !u.roles.some((ur) => ur.role === r.key),
+                            )
+                            .map((r) => (
+                              <option key={r.key} value={r.key}>
+                                {r.label}
+                              </option>
+                            ))}
                         </select>
                         <Button
                           size="sm"

@@ -108,6 +108,38 @@ async function main() {
   check("GET /admin/audit → 200", audit.status === 200, `(${audit.body?.length} rows)`);
   check("audit registró PARAM_UPDATE", audit.body?.some((a) => a.action === "PARAM_UPDATE"));
 
+  // 6. catálogo RBAC vivo en DB
+  const rolesRes = await call("GET", "/admin/roles", adminTok);
+  check("GET /admin/roles → 200", rolesRes.status === 200, `(${rolesRes.body?.length} roles)`);
+  check(
+    "ADMIN es isSuperuser",
+    rolesRes.body?.some((r) => r.key === "ADMIN" && r.isSuperuser),
+  );
+  const permsRes = await call("GET", "/admin/permissions", adminTok);
+  check("GET /admin/permissions → 200", permsRes.status === 200, `(${permsRes.body?.length} perms)`);
+  const catalogRes = await call("GET", "/roles/catalog");
+  check("GET /roles/catalog público", catalogRes.status === 200, `(${catalogRes.body?.length} requestable)`);
+  check(
+    "ADMIN no es requestable",
+    !catalogRes.body?.some((r) => r.key === "ADMIN"),
+  );
+
+  // 7. permisos dinámicos: revocar grant → 403 inmediato (invalidación de
+  // cache en el endpoint); re-otorgar → vuelve a pasar el guard.
+  await call("POST", "/admin/roles/STAFF/permissions", adminTok, {
+    permission: "social.manage",
+    grant: false,
+  });
+  const wl = await call("POST", `/events/${ev.id}/waitlist/promote`, approvedTok, {});
+  check("waitlist sin grant → 403", wl.status === 403, `got ${wl.status}`);
+
+  await call("POST", "/admin/roles/STAFF/permissions", adminTok, {
+    permission: "social.manage",
+    grant: true,
+  });
+  const wl2 = await call("POST", `/events/${ev.id}/waitlist/promote`, approvedTok, {});
+  check("waitlist con grant → !403", wl2.status !== 403, `got ${wl2.status}`);
+
   // cleanup: el usuario smoke queda con STAFF APPROVED — revertir a PENDING
   await call("POST", `/admin/users/${pending.id}/roles`, adminTok, { role: "STAFF", status: "PENDING" });
   await prisma.$disconnect();

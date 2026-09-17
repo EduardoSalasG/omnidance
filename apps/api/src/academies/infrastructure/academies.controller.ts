@@ -33,7 +33,7 @@ import { AcademyAccess } from "./academy-access.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import {
   AllowSandbox,
-  RequireRoles,
+  RequirePermissions,
 } from "../../common/rbac/roles.decorator";
 
 const PLAN_TYPES: PlanType[] = ["MONTHLY", "CLASS_PACK", "PERIOD", "TRIAL"];
@@ -153,7 +153,7 @@ export class AcademiesController {
 
   @Post()
   @UseGuards(SessionGuard, RolesGuard)
-  @RequireRoles("ACADEMY_OWNER")
+  @RequirePermissions("academies.create")
   @AllowSandbox() // spec: owners SANDBOX crean academia demo antes del APPROVED
   create(@Body() dto: CreateAcademyDto, @Req() req: Request) {
     // isDemo: el schema no tiene la columna — academias de owners no

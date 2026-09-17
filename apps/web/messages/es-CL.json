@@ -237,7 +237,8 @@
       "requests": "Solicitudes",
       "params": "Parámetros",
       "users": "Usuarios",
-      "audit": "Auditoría"
+      "audit": "Auditoría",
+      "roles": "Roles"
     },
     "params": {
       "title": "Parámetros de plataforma",
@@ -258,6 +259,10 @@
       "PENDING": "Pendiente",
       "SANDBOX": "Sandbox",
       "APPROVED": "Aprobado"
+    },
+    "roles": {
+      "title": "Catálogo de roles",
+      "perms": "Permisos"
     }
   },
   "producer": {

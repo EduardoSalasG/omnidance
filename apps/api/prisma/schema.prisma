@@ -11,18 +11,6 @@ datasource db {
 
 // ═══════════════════ IDENTIDAD ═══════════════════
 
-enum UserRole {
-  DANCER
-  DJ
-  PRODUCER
-  STAFF
-  VENUE_MANAGER
-  ACADEMY_OWNER
-  INSTRUCTOR
-  ADMIN
-  SUPPORT
-}
-
 enum RoleStatus {
   PENDING
   SANDBOX
@@ -54,11 +42,44 @@ model Person {
   eventDjs       EventDj[]
 }
 
+// Catálogo de roles vivo en DB — se administran desde /admin, no desde código.
+// isSuperuser pasa cualquier check de permisos (ADMIN); requestable habilita
+// la auto-solicitud desde /perfil (ADMIN queda fuera).
+model Role {
+  key         String   @id
+  label       String
+  description String?
+  requestable Boolean  @default(false)
+  isSuperuser Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  personRoles PersonRole[]
+  permissions RolePermission[]
+}
+
+// Permisos declarativos que las rutas exigen con @RequirePermissions.
+model Permission {
+  key         String   @id
+  description String?
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  role          Role       @relation(fields: [roleKey], references: [key])
+  roleKey       String
+  permission    Permission @relation(fields: [permissionKey], references: [key])
+  permissionKey String
+
+  @@id([roleKey, permissionKey])
+}
+
 model PersonRole {
   id        String     @id @default(cuid())
   person    Person     @relation(fields: [personId], references: [id])
   personId  String
-  role      UserRole
+  role      String // FK → Role.key (catálogo en DB)
+  roleRef   Role       @relation(fields: [role], references: [key])
   status    RoleStatus @default(PENDING) // sandbox/demo hasta aprobación admin
   createdAt DateTime   @default(now())
 

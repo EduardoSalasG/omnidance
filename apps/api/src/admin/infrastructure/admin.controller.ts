@@ -12,34 +12,63 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsIn, IsOptional, IsString, MaxLength } from "class-validator";
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from "class-validator";
 import type { Request } from "express";
-import type { Prisma, RoleStatus, UserRole } from "@prisma/client";
+import type { Prisma, RoleStatus } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
-import { RolesGuard } from "../../common/rbac/roles.guard";
-import { RequireRoles } from "../../common/rbac/roles.decorator";
-
-const ALL_ROLES: UserRole[] = [
-  "DANCER",
-  "DJ",
-  "PRODUCER",
-  "STAFF",
-  "VENUE_MANAGER",
-  "ACADEMY_OWNER",
-  "INSTRUCTOR",
-  "ADMIN",
-  "SUPPORT",
-];
+import {
+  invalidateRoleCatalog,
+  RolesGuard,
+} from "../../common/rbac/roles.guard";
+import { RequirePermissions } from "../../common/rbac/roles.decorator";
 
 const ALL_STATUSES: RoleStatus[] = ["PENDING", "SANDBOX", "APPROVED"];
+const ROLE_KEY = /^[A-Z0-9_]+$/;
+const PERM_KEY = /^[a-z0-9_.-]+$/;
 
 class SetRoleDto {
-  @IsIn(ALL_ROLES)
-  role!: UserRole;
+  @IsString()
+  @Matches(ROLE_KEY, { message: "rol inválido" })
+  role!: string;
 
   @IsIn(ALL_STATUSES)
   status!: RoleStatus;
+}
+
+class CreateRoleDto {
+  @IsString()
+  @Matches(ROLE_KEY, { message: "key inválida (MAYÚSCULAS_Y_GUIONES)" })
+  key!: string;
+
+  @IsString()
+  @MaxLength(80)
+  label!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  description?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  requestable?: boolean;
+}
+
+class GrantPermissionDto {
+  @IsString()
+  @Matches(PERM_KEY, { message: "permiso inválido" })
+  permission!: string;
+
+  @IsBoolean()
+  grant!: boolean;
 }
 
 class UsersQueryDto {
@@ -50,12 +79,13 @@ class UsersQueryDto {
 }
 
 /**
- * Consola admin B2B — aprobación de roles, gestión de usuarios y auditoría.
- * RBAC global: solo ADMIN APPROVED (RolesGuard + RequireRoles).
+ * Consola admin B2B — aprobación de roles, gestión de usuarios, catálogo
+ * RBAC (roles/permisos/grants) y auditoría. Todo se resuelve en DB:
+ * permiso admin.access vía RolePermission (o Role.isSuperuser).
  */
 @Controller("admin")
 @UseGuards(SessionGuard, RolesGuard)
-@RequireRoles("ADMIN")
+@RequirePermissions("admin.access")
 export class AdminController {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -169,6 +199,13 @@ export class AdminController {
       select: { id: true },
     });
     if (!person) throw new NotFoundException("usuario no encontrado");
+    const roleExists = await this.prisma.role.findUnique({
+      where: { key: dto.role },
+      select: { key: true },
+    });
+    if (!roleExists) {
+      throw new BadRequestException(`rol ${dto.role} no existe en el catálogo`);
+    }
 
     const prev = await this.prisma.personRole.findUnique({
       where: { personId_role: { personId, role: dto.role } },
@@ -194,11 +231,11 @@ export class AdminController {
     @Param("role") role: string,
     @Req() req: Request,
   ) {
-    if (!ALL_ROLES.includes(role as UserRole)) {
+    if (!ROLE_KEY.test(role)) {
       throw new BadRequestException("rol inválido");
     }
     const existing = await this.prisma.personRole.findUnique({
-      where: { personId_role: { personId, role: role as UserRole } },
+      where: { personId_role: { personId, role } },
     });
     if (!existing) throw new NotFoundException("el usuario no tiene ese rol");
     await this.prisma.personRole.delete({ where: { id: existing.id } });
@@ -206,6 +243,113 @@ export class AdminController {
       personId,
       role,
       prev: existing.status,
+    });
+    return { ok: true };
+  }
+
+  // ── Catálogo RBAC (roles, permisos, grants) ───────────────────────────
+
+  @Get("roles")
+  roles() {
+    return this.prisma.role.findMany({
+      orderBy: { key: "asc" },
+      select: {
+        key: true,
+        label: true,
+        description: true,
+        requestable: true,
+        isSuperuser: true,
+        permissions: { select: { permissionKey: true } },
+        _count: { select: { personRoles: true } },
+      },
+    });
+  }
+
+  /** Crea un rol custom en el catálogo (ej. un rol operativo nuevo). */
+  @Post("roles")
+  async createRole(@Body() dto: CreateRoleDto, @Req() req: Request) {
+    const row = await this.prisma.role.upsert({
+      where: { key: dto.key },
+      update: {
+        label: dto.label,
+        description: dto.description,
+        requestable: dto.requestable,
+      },
+      create: {
+        key: dto.key,
+        label: dto.label,
+        description: dto.description,
+        requestable: dto.requestable ?? false,
+      },
+    });
+    invalidateRoleCatalog(dto.key);
+    await this.audit(req, "ROLE_UPSERT", "Role", dto.key, {
+      label: dto.label,
+      requestable: dto.requestable ?? false,
+    });
+    return row;
+  }
+
+  @Get("permissions")
+  permissions() {
+    return this.prisma.permission.findMany({
+      orderBy: { key: "asc" },
+      select: { key: true, description: true },
+    });
+  }
+
+  /** Alta de un permiso nuevo (normalmente lo declara una ruta nueva). */
+  @Post("permissions")
+  async createPermission(
+    @Body() dto: { key?: string; description?: string },
+    @Req() req: Request,
+  ) {
+    if (!dto.key || !PERM_KEY.test(dto.key)) {
+      throw new BadRequestException("key de permiso inválida");
+    }
+    const row = await this.prisma.permission.upsert({
+      where: { key: dto.key },
+      update: { description: dto.description },
+      create: { key: dto.key, description: dto.description },
+    });
+    await this.audit(req, "PERMISSION_UPSERT", "Permission", dto.key, {
+      description: dto.description ?? null,
+    });
+    return row;
+  }
+
+  /** Otorga o revoca un permiso a un rol (grant: true/false). */
+  @Post("roles/:key/permissions")
+  @HttpCode(200)
+  async grantPermission(
+    @Param("key") roleKey: string,
+    @Body() dto: GrantPermissionDto,
+    @Req() req: Request,
+  ) {
+    const [role, perm] = await Promise.all([
+      this.prisma.role.findUnique({ where: { key: roleKey } }),
+      this.prisma.permission.findUnique({ where: { key: dto.permission } }),
+    ]);
+    if (!role) throw new NotFoundException("rol no encontrado");
+    if (!perm) throw new NotFoundException("permiso no encontrado");
+
+    if (dto.grant) {
+      await this.prisma.rolePermission.upsert({
+        where: {
+          roleKey_permissionKey: { roleKey, permissionKey: dto.permission },
+        },
+        update: {},
+        create: { roleKey, permissionKey: dto.permission },
+      });
+    } else {
+      await this.prisma.rolePermission.deleteMany({
+        where: { roleKey, permissionKey: dto.permission },
+      });
+    }
+    invalidateRoleCatalog(roleKey);
+    await this.audit(req, "PERMISSION_GRANT", "Role", roleKey, {
+      permission: dto.permission,
+      grant: dto.grant,
     });
     return { ok: true };
   }

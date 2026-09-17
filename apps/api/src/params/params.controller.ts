@@ -11,7 +11,7 @@ import {
 import type { Request } from "express";
 import type { Prisma } from "@prisma/client";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
-import { RequireRoles } from "../common/rbac/roles.decorator";
+import { RequirePermissions } from "../common/rbac/roles.decorator";
 import { RolesGuard } from "../common/rbac/roles.guard";
 import { PrismaService } from "../prisma.service";
 import { ParamsService } from "./params.service";
@@ -44,7 +44,7 @@ export class PublicParamsController {
 // Consola admin: lectura y escritura de todos los parámetros + audit trail.
 @Controller("admin/params")
 @UseGuards(SessionGuard, RolesGuard)
-@RequireRoles("ADMIN")
+@RequirePermissions("admin.access")
 export class AdminParamsController {
   constructor(
     private readonly params: ParamsService,
