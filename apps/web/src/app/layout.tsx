@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import messages from "../../messages/es-CL.json";
+import { BottomNav } from "@/components/layout/BottomNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,9 +23,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es-CL" className="dark">
-      <body className="bg-night-950 text-white min-h-screen antialiased">
+      <body className="bg-night-950 text-white min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))] antialiased">
         <NextIntlClientProvider locale="es-CL" messages={messages}>
           {children}
+          <BottomNav />
         </NextIntlClientProvider>
       </body>
     </html>

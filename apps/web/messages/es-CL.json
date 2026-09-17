@@ -16,7 +16,19 @@
   "home": {
     "subtitle": "Nightlife + Academias. Un solo QR para toda la escena.",
     "seeEvents": "Ver eventos",
-    "myQr": "Mi QR"
+    "myQr": "Mi QR",
+    "tonight": "Esta noche",
+    "social": "Social",
+    "management": "Gestión",
+    "hi": "Hola, {name}"
+  },
+  "nav": {
+    "home": "Inicio",
+    "events": "Eventos",
+    "dances": "Bailes",
+    "scan": "Escanear",
+    "tickets": "Entradas",
+    "profile": "Perfil"
   },
   "login": {
     "title": "Entra a Omnidance",
