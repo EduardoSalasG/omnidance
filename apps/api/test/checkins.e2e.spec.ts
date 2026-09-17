@@ -56,7 +56,7 @@ describe("checkins e2e", () => {
 
     // ─── datos de prueba ───
     const admin = await prisma.person.findFirstOrThrow({
-      where: { email: "admin@omnidance.cl" },
+      where: { email: "admin@omnidance.dev" },
     });
     staffId = admin.id;
     staffSession = await auth.issueSession(admin.id);

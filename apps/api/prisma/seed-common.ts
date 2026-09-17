@@ -1,0 +1,147 @@
+// Baseline compartida por seed-dev y seed-prod: catálogo RBAC, permisos,
+// grants, estilos y parámetros de plataforma. Todo idempotente — upserts
+// por clave natural; find-or-create donde el schema no tiene unique.
+import { PrismaClient, Genre } from "@prisma/client";
+
+// Catálogo RBAC vivo en DB. requestable: auto-solicitable desde /perfil;
+// isSuperuser: pasa todo check de permisos (solo ADMIN — no editable por API).
+export const ROLE_CATALOG = [
+  { key: "DANCER", label: "Bailarín", requestable: true },
+  { key: "DJ", label: "DJ", requestable: true },
+  { key: "PRODUCER", label: "Productor", requestable: true },
+  { key: "STAFF", label: "Staff", requestable: true },
+  { key: "VENUE_MANAGER", label: "Dueño de local", requestable: true },
+  { key: "ACADEMY_OWNER", label: "Dueño de academia", requestable: true },
+  { key: "INSTRUCTOR", label: "Instructor", requestable: true },
+  { key: "SUPPORT", label: "Soporte", requestable: true },
+  { key: "ADMIN", label: "Administrador", requestable: false, isSuperuser: true },
+] as const;
+
+// Permisos que las rutas exigen con @RequirePermissions + matriz rol→permiso.
+export const PERMISSION_CATALOG = [
+  { key: "admin.access", description: "Panel de administración de plataforma" },
+  { key: "checkins.write", description: "Operar check-in de puerta" },
+  { key: "discounts.manage", description: "Crear y gestionar códigos de descuento" },
+  { key: "social.manage", description: "Gestionar guest lists y waitlists" },
+  { key: "academies.create", description: "Crear academia propia" },
+] as const;
+
+export const ROLE_GRANTS: Record<string, string[]> = {
+  STAFF: ["checkins.write", "social.manage"],
+  PRODUCER: ["discounts.manage", "social.manage"],
+  ACADEMY_OWNER: ["academies.create"],
+  // ADMIN: isSuperuser — pasa todo sin grants explícitos
+};
+
+// Catálogo de estilos — data de producto, no demo (aplica a prod también).
+export const STYLE_CATALOG = [
+  { name: "Salsa cubana (casino)", genre: Genre.CUBANO },
+  { name: "Salsa on2", genre: Genre.SALSA },
+  { name: "Salsa on1", genre: Genre.SALSA },
+  { name: "Bachata sensual", genre: Genre.BACHATA },
+  { name: "Bachata dominicana", genre: Genre.BACHATA },
+  { name: "Bachata tradicional", genre: Genre.BACHATA },
+  { name: "Rueda de casino", genre: Genre.CUBANO },
+  { name: "Timba", genre: Genre.CUBANO },
+] as const;
+
+// Defaults operativos — update:{} no pisa valores editados desde /admin.
+export const PARAM_DEFAULTS: Array<{
+  key: string;
+  value: unknown;
+  description: string;
+}> = [
+  { key: "service_fee.presale_clp", value: 500, description: "Cargo por servicio por ticket de preventa (CLP)" },
+  { key: "service_fee.door_app_clp", value: 700, description: "Cargo por servicio venta en puerta por app (CLP)" },
+  { key: "service_fee.door_cash_clp", value: 0, description: "Cargo por servicio registro en efectivo (CLP)" },
+  { key: "session.cooldown_minutes", value: 4, description: "Minutos de cooldown entre sesiones del mismo par" },
+  { key: "qr.rotation_seconds", value: 60, description: "Segundos de vigencia del QR personal rotativo" },
+  { key: "prime_time.window_minutes", value: 30, description: "Minutos de la ventana Prime Time" },
+  { key: "prime_time.threshold_pct", value: 0.2, description: "Umbral Prime Time como fracción del aforo" },
+];
+
+/** Crea o confirma una persona con sus roles. Idempotente por email. */
+export async function ensurePerson(
+  prisma: PrismaClient,
+  email: string,
+  name: string,
+  roles: Array<{ role: string; status?: "PENDING" | "SANDBOX" | "APPROVED" }>,
+) {
+  const person = await prisma.person.upsert({
+    where: { email },
+    update: { name },
+    create: { email, name },
+  });
+  for (const r of roles) {
+    await prisma.personRole.upsert({
+      where: { personId_role: { personId: person.id, role: r.role } },
+      update: { status: r.status ?? "APPROVED" },
+      create: {
+        personId: person.id,
+        role: r.role,
+        status: r.status ?? "APPROVED",
+      },
+    });
+  }
+  return person;
+}
+
+/** Baseline de plataforma — corre en dev y prod antes del dataset propio. */
+export async function seedCommon(prisma: PrismaClient) {
+  // ─── Catálogo RBAC (debe existir antes que PersonRole por FK) ───
+  for (const r of ROLE_CATALOG) {
+    await prisma.role.upsert({
+      where: { key: r.key },
+      update: {
+        label: r.label,
+        requestable: r.requestable,
+        isSuperuser: "isSuperuser" in r,
+      },
+      create: { ...r, isSuperuser: "isSuperuser" in r },
+    });
+  }
+  for (const p of PERMISSION_CATALOG) {
+    await prisma.permission.upsert({
+      where: { key: p.key },
+      update: { description: p.description },
+      create: p,
+    });
+  }
+  for (const [roleKey, perms] of Object.entries(ROLE_GRANTS)) {
+    for (const permissionKey of perms) {
+      await prisma.rolePermission.upsert({
+        where: { roleKey_permissionKey: { roleKey, permissionKey } },
+        update: {},
+        create: { roleKey, permissionKey },
+      });
+    }
+  }
+
+  // ─── Estilos — find-or-create por nombre (sin unique en schema) ───
+  for (const s of STYLE_CATALOG) {
+    const existing = await prisma.style.findFirst({ where: { name: s.name } });
+    if (existing) {
+      if (existing.genre !== s.genre) {
+        await prisma.style.update({
+          where: { id: existing.id },
+          data: { genre: s.genre },
+        });
+      }
+    } else {
+      await prisma.style.create({ data: s });
+    }
+  }
+
+  // ─── Parámetros — nunca pisar valores editados en /admin ───
+  for (const p of PARAM_DEFAULTS) {
+    await prisma.platformParam.upsert({
+      where: { key: p.key },
+      update: {},
+      create: { key: p.key, value: p.value as never, description: p.description },
+    });
+  }
+
+  console.log(
+    `  baseline: ${ROLE_CATALOG.length} roles, ${PERMISSION_CATALOG.length} permisos, ${STYLE_CATALOG.length} estilos, ${PARAM_DEFAULTS.length} params`,
+  );
+}
