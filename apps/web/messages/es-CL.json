@@ -48,5 +48,102 @@
     "subtitle": "Muéstralo en la puerta o para invitar a bailar",
     "loginRequired": "Entra con tu correo para ver tu QR",
     "refreshIn": "Se renueva solo"
+  },
+  "checkout": {
+    "title": "Conseguir entrada",
+    "price": "Precio",
+    "serviceFee": "Cargo por servicio",
+    "discount": "Descuento",
+    "total": "Total",
+    "discountCode": "Código de descuento (opcional)",
+    "discountPlaceholder": "CUMPLE20",
+    "pay": "Ir a pagar",
+    "processing": "Generando orden…",
+    "invalidCode": "El código no es válido para este evento",
+    "soldOut": "Preventa agotada",
+    "loginRequired": "Entra con tu correo para comprar",
+    "success": "¡Pago confirmado! Tu entrada está lista.",
+    "pending": "Esperando confirmación del pago…",
+    "failed": "El pago no se completó"
+  },
+  "wallet": {
+    "title": "Mis entradas",
+    "empty": "Aún no tienes entradas.",
+    "emptyCta": "Ver eventos",
+    "active": "Activa",
+    "used": "Usada",
+    "cancelled": "Cancelada",
+    "transferred": "Transferida"
+  },
+  "sessions": {
+    "title": "Bailes de la noche",
+    "inviteSent": "Invitación enviada",
+    "invitedYou": "te invitó a bailar",
+    "youInvited": "Invitaste a",
+    "confirm": "Aceptar",
+    "decline": "Ahora no",
+    "discard": "Descartar",
+    "confirmed": "Confirmado",
+    "pending": "Pendiente",
+    "expired": "Expiró",
+    "rate": "Puntuar",
+    "ratePrompt": "¿Cómo estuvo el baile?",
+    "scanToInvite": "Escanea el QR de tu pareja para invitarla",
+    "empty": "Aún no hay bailes. ¡Escanea el QR de alguien!",
+    "cooldown": "Ya bailaron hace poquito — espera un momento"
+  },
+  "staff": {
+    "title": "Puerta",
+    "scan": "Escanear QR",
+    "scanning": "Apunta al QR del asistente",
+    "checkinOk": "Entrada registrada",
+    "noPass": "Sin entrada — check-in manual registrado",
+    "duplicate": "Ya hizo check-in",
+    "manual": "Check-in manual",
+    "list": "Asistentes",
+    "cameraError": "No pudimos abrir la cámara",
+    "notStaff": "Esta sección es para staff del evento"
+  },
+  "gamification": {
+    "streak": "Semanas seguidas",
+    "streakBest": "Tu mejor racha",
+    "badges": "Insignias",
+    "leaderboard": "Ranking de la noche",
+    "leaders": "Leaders",
+    "followers": "Followers",
+    "primeTime": "Prime Time",
+    "primeProgress": "{current} de {threshold}",
+    "primeUnlocked": "¡Prime Time desbloqueado!",
+    "missions": "Misiones",
+    "completed": "Completada"
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "Sin notificaciones por ahora.",
+    "markAll": "Marcar todas como leídas"
+  },
+  "academy": {
+    "title": "Mi academia",
+    "students": "Alumnos",
+    "plans": "Planes",
+    "slots": "Horarios",
+    "dashboard": "Panel",
+    "newPlan": "Nuevo plan",
+    "newEnrollment": "Nueva inscripción",
+    "attendance": "Asistencia",
+    "status": {
+      "ACTIVE": "Activo",
+      "PAUSED": "Pausado",
+      "TRIAL": "Prueba",
+      "FROZEN": "Congelado",
+      "CANCELLED": "Cancelado"
+    }
+  },
+  "profile": {
+    "title": "Mi perfil",
+    "roles": "Roles",
+    "requestRole": "Solicitar rol",
+    "rolePending": "En revisión",
+    "logout": "Cerrar sesión"
   }
 }
