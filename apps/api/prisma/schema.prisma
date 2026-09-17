@@ -51,6 +51,7 @@ model Person {
   styleRoles     PersonStyleRole[]
   notifications  Notification[]
   pushTokens     PushToken[]
+  eventDjs       EventDj[]
 }
 
 model PersonRole {
@@ -240,6 +241,7 @@ model EventDj {
   id       String @id @default(cuid())
   event    Event  @relation(fields: [eventId], references: [id])
   eventId  String
+  person   Person @relation(fields: [personId], references: [id])
   personId String
   slotNote String?
 

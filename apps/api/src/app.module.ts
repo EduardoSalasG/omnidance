@@ -5,6 +5,7 @@ import { HealthController } from "./health.controller";
 import { AuthModule } from "./auth/auth.module";
 import { PeopleModule } from "./people/people.module";
 import { QrModule } from "./qr/qr.module";
+import { EventsModule } from "./events/events.module";
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { QrModule } from "./qr/qr.module";
     AuthModule,
     PeopleModule,
     QrModule,
+    EventsModule,
   ],
   controllers: [HealthController],
   providers: [PrismaService],
