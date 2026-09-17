@@ -128,6 +128,140 @@
         }
       }
     },
+    "/api/gamification/me/streak": {
+      "get": {
+        "operationId": "GamificationController_streak",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gamification/me/badges": {
+      "get": {
+        "operationId": "GamificationController_badges",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gamification/me/points": {
+      "get": {
+        "operationId": "GamificationController_points",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/gamification/progress": {
+      "post": {
+        "operationId": "GamificationController_progress",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecalcProgressDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{eventId}/leaderboard": {
+      "get": {
+        "operationId": "EventGamificationController_leaderboard",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{eventId}/prime-time": {
+      "get": {
+        "operationId": "EventGamificationController_primeTime",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{eventId}/prime-time/reveal": {
+      "get": {
+        "operationId": "EventGamificationController_primeTimeReveal",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{eventId}/missions": {
+      "get": {
+        "operationId": "EventGamificationController_missions",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events": {
       "get": {
         "operationId": "EventsController_list",
@@ -159,6 +293,183 @@
         }
       }
     },
+    "/api/events/{id}/ratings": {
+      "post": {
+        "operationId": "EventRatingsController_rate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/ratings/summary": {
+      "get": {
+        "operationId": "EventRatingsController_summary",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/table-reservations": {
+      "post": {
+        "operationId": "TableReservationsController_request",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestReservationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "TableReservationsController_listForEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/table-reservations/{id}": {
+      "patch": {
+        "operationId": "TableReservationsController_manage",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManageReservationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "TableReservationsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/table-reservations/mine": {
+      "get": {
+        "operationId": "TableReservationsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/song-suggestions": {
+      "get": {
+        "operationId": "SongSuggestionsController_top",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/sessions/invite": {
       "post": {
         "operationId": "SessionsController_invite",
@@ -169,6 +480,27 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/InviteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/sessions/declare": {
+      "post": {
+        "operationId": "SessionsController_declare",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclareDto"
               }
             }
           }
@@ -390,109 +722,6 @@
         }
       }
     },
-    "/api/gamification/me/streak": {
-      "get": {
-        "operationId": "GamificationController_streak",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/gamification/me/badges": {
-      "get": {
-        "operationId": "GamificationController_badges",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/gamification/progress": {
-      "post": {
-        "operationId": "GamificationController_progress",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RecalcProgressDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/leaderboard": {
-      "get": {
-        "operationId": "EventGamificationController_leaderboard",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/prime-time": {
-      "get": {
-        "operationId": "EventGamificationController_primeTime",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/missions": {
-      "get": {
-        "operationId": "EventGamificationController_missions",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/checkins": {
       "post": {
         "operationId": "CheckinsController_scan",
@@ -524,6 +753,77 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ManualCheckinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkins/{id}/out": {
+      "post": {
+        "operationId": "CheckinsController_out",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkins/{id}/void": {
+      "post": {
+        "operationId": "CheckinsController_voidCheckin",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidCheckinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkins/door-sale": {
+      "post": {
+        "operationId": "CheckinsController_doorSale",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DoorSaleDto"
               }
             }
           }
@@ -1126,6 +1426,146 @@
         }
       }
     },
+    "/api/blocks": {
+      "post": {
+        "operationId": "BlocksController_block",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "BlocksController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/blocks/{personId}": {
+      "delete": {
+        "operationId": "BlocksController_unblock",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/friends": {
+      "post": {
+        "operationId": "FriendsController_request",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FriendRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "FriendsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/friends/{id}/accept": {
+      "post": {
+        "operationId": "FriendsController_accept",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/friends/{id}/decline": {
+      "post": {
+        "operationId": "FriendsController_decline",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/friends/{id}": {
+      "delete": {
+        "operationId": "FriendsController_unfriend",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/academies/mine": {
       "get": {
         "operationId": "AcademiesController_mine",
@@ -1712,7 +2152,27 @@
         "type": "object",
         "properties": {}
       },
+      "RecalcProgressDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RateEventDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RequestReservationDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ManageReservationDto": {
+        "type": "object",
+        "properties": {}
+      },
       "InviteDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DeclareDto": {
         "type": "object",
         "properties": {}
       },
@@ -1724,15 +2184,19 @@
         "type": "object",
         "properties": {}
       },
-      "RecalcProgressDto": {
-        "type": "object",
-        "properties": {}
-      },
       "ScanCheckinDto": {
         "type": "object",
         "properties": {}
       },
       "ManualCheckinDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "VoidCheckinDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DoorSaleDto": {
         "type": "object",
         "properties": {}
       },
@@ -1777,6 +2241,14 @@
         "properties": {}
       },
       "SetAvailabilityDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "BlockDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "FriendRequestDto": {
         "type": "object",
         "properties": {}
       },

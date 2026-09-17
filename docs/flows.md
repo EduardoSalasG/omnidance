@@ -210,3 +210,101 @@ sequenceDiagram
     API->>DB: upsert RolePermission + AuditLog + invalidateRoleCatalog()
     Note over API,DB: efecto inmediato — el guard<br/>relee el catálogo sin esperar TTL
 ```
+
+## Venta en puerta (door-sale, cuenta ligera)
+
+```mermaid
+sequenceDiagram
+    actor S as Staff / Productor / Admin
+    participant API as CheckinsController
+    participant Dom as CheckinsService
+    participant DB as Postgres
+    participant QR as QrService
+
+    S->>API: POST /checkins/door-sale {eventId, channel, name, phone}
+    API->>Dom: doorSale(input, actor)
+    Dom->>DB: evento existe + PUBLISHED/LIVE (si no → 409)
+    Dom->>DB: autorización: superuser | producerId | checkins.write+StaffAssignment
+    Dom->>DB: doorCap: checkins MANUAL no anulados < cap
+    alt phone ya existe
+        Dom->>DB: reutiliza Person
+    else cuenta ligera
+        Dom->>DB: create Person{isLightAccount, phone} + rol DANCER APPROVED
+    end
+    Dom->>DB: tx: Ticket USED (doorPrice + fee del canal) + Checkin MANUAL
+    Dom->>QR: mint(personId) → qrToken para mostrar al instante
+    API-->>S: {person, ticket, checkin, qrToken}
+```
+
+## Prime Time — contador → reveal
+
+```mermaid
+sequenceDiagram
+    actor DJ as Pantalla/DJ (público)
+    participant API as EventGamificationController
+    participant Dom as GamificationService
+    participant DB as Postgres
+
+    DJ->>API: GET /events/:id/prime-time
+    Dom->>DB: confirmedSessionsForEvent (retroDeclared:false!)
+    Note over Dom: ventana happyHour, umbral<br/>override | 20% aforo (param)
+    API-->>DJ: {current, threshold, unlocked, window}
+
+    DJ->>API: GET /events/:id/prime-time/reveal
+    alt no desbloqueado
+        API-->>DJ: {unlocked:false}
+    else desbloqueado, antes del fin de ventana
+        API-->>DJ: {unlocked:true, revealed:false}
+    else reveal
+        Dom->>DB: ratedSessionsForEvent (sin retro) + styleRoles
+        Note over Dom: bayes (Σv+C·m)/(n+C), ≥3 eval<br/>leader/follower + pareja mutua ≥4
+        Dom->>DB: PersonBadge prime_time_crown +7d (idempotente)
+        API-->>DJ: {bestLeader, bestFollower, coupleOfTheNight}
+```
+
+## Puntos de temporada (PointLedger)
+
+```mermaid
+sequenceDiagram
+    participant C as Sessions/Checkins Controller
+    participant Dom as GamificationService
+    participant DB as Postgres
+
+    Note over C: hooks tras confirm / rate / check-in temprano / misión
+    C->>Dom: accruePoints(personId, reason, refType, refId)
+    Dom->>DB: findLedgerEntry (idempotente por ref)
+    Dom->>DB: activeSeason → PointLedger{seasonId?, points}
+    Note over Dom: session_confirmed 10 · rating_closed 5<br/>early_checkin 15 · mission_completed 20
+    C->>Dom: GET /gamification/me/points → {seasonId, total, byReason}
+```
+
+## Bloques y amistades (safety/social)
+
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant API as Blocks/Friends/Sessions Controllers
+    participant DB as Postgres
+
+    U->>API: POST /blocks {personId} — silencioso, sin notificación
+    U->>API: POST /sessions/invite|declare
+    API->>DB: UserBlock (invitee → inviter) existe?
+    Note over API: sí → 403 genérico "no se puede enviar la invitación"<br/>NUNCA revelar que existe el bloqueo
+
+    U->>API: POST /friends {personId} → PENDING + notifica al destinatario
+    Note over DB: aId=solicitante, bId=destinatario<br/>solo bId acepta; ambos pueden borrar
+    U->>API: GET /friends → {friends, pendingReceived, pendingSent}
+```
+
+## Check-in — salida y anulación
+
+```mermaid
+sequenceDiagram
+    actor P as Persona / Staff
+    participant API as CheckinsController
+    participant DB as Postgres
+
+    P->>API: POST /checkins/:id/out — dueño o checkins.write, idempotente
+    P->>API: POST /checkins/:id/void {reason} — staff asignado o admin
+    API->>DB: tx: voidedAt+reason, pase USED→ACTIVE, AuditLog CHECKIN_VOID
+```
