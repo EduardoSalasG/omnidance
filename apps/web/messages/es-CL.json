@@ -1,0 +1,36 @@
+{
+  "common": {
+    "appName": "Omnidance",
+    "tagline": "La plataforma de la escena SBK",
+    "loading": "Cargando…",
+    "error": "Algo salió mal",
+    "login": "Entrar",
+    "logout": "Salir"
+  },
+  "home": {
+    "subtitle": "Nightlife + Academias. Un solo QR para toda la escena.",
+    "seeEvents": "Ver eventos",
+    "myQr": "Mi QR"
+  },
+  "login": {
+    "title": "Entra a Omnidance",
+    "emailLabel": "Tu correo",
+    "emailPlaceholder": "tu@correo.cl",
+    "submit": "Enviar link de acceso",
+    "sent": "Revisa tu correo — te enviamos un link de acceso (válido 15 minutos).",
+    "invalidEmail": "Ingresa un correo válido"
+  },
+  "events": {
+    "title": "Próximos eventos",
+    "empty": "No hay eventos publicados por ahora.",
+    "presale": "Preventa",
+    "free": "Gratis",
+    "from": "desde"
+  },
+  "qr": {
+    "title": "Mi QR",
+    "subtitle": "Muéstralo en la puerta o para invitar a bailar",
+    "loginRequired": "Entra con tu correo para ver tu QR",
+    "refreshIn": "Se renueva solo"
+  }
+}

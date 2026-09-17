@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import messages from "../../messages/es-CL.json";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="es-CL" className="dark">
       <body className="bg-night-950 text-white min-h-screen antialiased">
-        {children}
+        <NextIntlClientProvider locale="es-CL" messages={messages}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );
