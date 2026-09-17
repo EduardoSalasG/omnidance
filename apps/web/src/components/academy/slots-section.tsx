@@ -62,7 +62,7 @@ export function SlotsSection({ academyId, slots, onChanged }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {slots.length === 0 ? (
-        <p className="text-sm text-white/40">—</p>
+        <p className="text-sm text-white/50">—</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {slots.map((s) => (

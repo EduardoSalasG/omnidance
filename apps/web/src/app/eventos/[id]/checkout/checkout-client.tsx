@@ -236,7 +236,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             placeholder={t("discountPlaceholder")}
             disabled={busy}
             autoComplete="off"
-            className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 uppercase text-white outline-none focus:border-neon disabled:opacity-50"
+            className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 uppercase text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
           />
         </label>
 
@@ -288,7 +288,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             <p className="animate-pulse text-white/70">{t("pending")}</p>
             {isStub && (
               <div className="flex w-full flex-col gap-3 border-t border-night-700 pt-4">
-                <p className="text-xs uppercase tracking-wide text-white/40">
+                <p className="text-xs uppercase tracking-wide text-white/50">
                   {t("devSimTitle")}
                 </p>
                 <div className="flex gap-3">

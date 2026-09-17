@@ -26,7 +26,7 @@ type ListState = "loading" | "ready" | "error";
 
 const inputCls =
   "min-h-11 w-full rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
-  "text-white placeholder:text-white/30 " +
+  "text-white placeholder:text-white/40 " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
 /** Duración por defecto de una práctica (el DTO exige endsAt; sin input propio). */
@@ -218,7 +218,7 @@ export default function PracticasPage() {
                       {p.venue.name}
                     </p>
                     {p.venue.address && (
-                      <p className="mt-0.5 text-xs text-white/40">
+                      <p className="mt-0.5 text-xs text-white/50">
                         {p.venue.address}
                       </p>
                     )}

@@ -166,7 +166,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
           </Button>
         </div>
       ) : items.length === 0 ? (
-        <p className="text-sm text-white/40">—</p>
+        <p className="text-sm text-white/50">—</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {items.map((a) => (

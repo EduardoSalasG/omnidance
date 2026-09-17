@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
   const t = useTranslations("login");
@@ -29,7 +30,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
       {sent ? (
-        <p className="max-w-sm text-center text-white/70">{t("sent")}</p>
+        <p aria-live="polite" className="max-w-sm text-center text-white/70">
+          {t("sent")}
+        </p>
       ) : (
         <form onSubmit={submit} className="flex w-full max-w-sm flex-col gap-4">
           <label className="flex flex-col gap-2">
@@ -37,20 +40,21 @@ export default function LoginPage() {
             <input
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("emailPlaceholder")}
-              className="rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-white outline-none focus:border-neon"
+              className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
             />
           </label>
-          {error && <p className="text-sm text-red-400">{t("invalidEmail")}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-xl bg-neon px-5 py-3 font-semibold text-night-950 disabled:opacity-50"
-          >
+          {error && (
+            <p role="alert" className="text-sm text-red-400">
+              {t("invalidEmail")}
+            </p>
+          )}
+          <Button type="submit" size="lg" disabled={loading} className="w-full">
             {loading ? "…" : t("submit")}
-          </button>
+          </Button>
         </form>
       )}
     </main>

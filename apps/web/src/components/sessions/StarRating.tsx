@@ -36,7 +36,7 @@ export function StarRating({ value = null, onSelect, busy = false }: StarRatingP
           onPointerLeave={() => setPreview(null)}
           aria-label={`${star} / 5`}
           className={`flex min-h-11 min-w-11 items-center justify-center text-3xl transition-transform active:scale-90 disabled:pointer-events-none ${
-            star <= active ? "text-neon" : "text-white/30"
+            star <= active ? "text-neon" : "text-white/40"
           }`}
         >
           {star <= active ? "★" : "☆"}
