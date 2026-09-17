@@ -24,7 +24,6 @@ const inputCls =
 
 export default function ViajesPage() {
   const t = useTranslations("trips");
-  const te = useTranslations("events");
   const tc = useTranslations("common");
 
   const [state, setState] = useState<PageState>("loading");
@@ -128,11 +127,9 @@ export default function ViajesPage() {
                 className={inputCls}
               />
             </label>
-            {/* Catálogo sin clave "hasta": se reutiliza events.from ("desde")
-                y common.back ("Volver") como etiquetas del rango de fechas. */}
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="text-white/70">{te("from")}</span>
+                <span className="text-white/70">{t("from")}</span>
                 <input
                   required
                   type="date"
@@ -142,7 +139,7 @@ export default function ViajesPage() {
                 />
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="text-white/70">{tc("back")}</span>
+                <span className="text-white/70">{t("until")}</span>
                 <input
                   required
                   type="date"

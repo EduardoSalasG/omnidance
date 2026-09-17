@@ -13,7 +13,8 @@ type WaitlistStatus = "WAITING" | "PROMOTED" | "EXPIRED" | string;
 
 type WaitlistMe = { position: number; status: WaitlistStatus };
 
-type Attendee = { personId: string; name: string; photoUrl: string | null };
+/** GET /me/rsvp → estado persistido del usuario por evento. */
+type MyRsvp = { eventId: string; status: RsvpStatus; createdAt: string };
 
 function applyDelta(
   c: Counts,
@@ -33,8 +34,8 @@ function applyDelta(
 /**
  * RSVP + waitlist del evento. Self-fetching:
  * - GET /events/:id/rsvps es público (solo agregados).
- * - El estado propio se reconstruye con /me + /events/:id/attendees
- *   (el backend no expone "mi RSVP"; INTERESTED solo persiste en sesión).
+ * - GET /me/rsvp → estado propio persistido por evento (GOING|INTERESTED);
+ *   401 = no autenticado. La UI queda controlada por el estado server-side.
  * - GET /events/:id/waitlist/me → posición/estado propios (404 = fuera).
  */
 export function RsvpControls({ eventId }: { eventId: string }) {
@@ -61,9 +62,12 @@ export function RsvpControls({ eventId }: { eventId: string }) {
         // Sin contadores: los botones igual funcionan
       }
 
-      // Sesión → mi RSVP (GOING vía attendees) + mi waitlist
+      // Sesión → mi RSVP persistido (/me/rsvp) + mi waitlist
       try {
-        const meRes = await apiFetch("/me");
+        const [meRes, wlRes] = await Promise.all([
+          apiFetch("/me/rsvp"),
+          apiFetch(`/events/${eventId}/waitlist/me`),
+        ]);
         if (cancelled) return;
         if (meRes.status === 401) {
           setAuthed(false);
@@ -71,19 +75,9 @@ export function RsvpControls({ eventId }: { eventId: string }) {
         }
         if (!meRes.ok) return;
         setAuthed(true);
-        const me = (await meRes.json()) as { id: string };
-
-        const [attRes, wlRes] = await Promise.all([
-          apiFetch(`/events/${eventId}/attendees`),
-          apiFetch(`/events/${eventId}/waitlist/me`),
-        ]);
-        if (cancelled) return;
-        if (attRes.ok) {
-          const attendees = (await attRes.json()) as Attendee[];
-          if (attendees.some((a) => a.personId === me.id)) {
-            setMyStatus("GOING");
-          }
-        }
+        const rsvps = (await meRes.json()) as MyRsvp[];
+        const mine = rsvps.find((r) => r.eventId === eventId);
+        setMyStatus(mine?.status ?? null);
         if (wlRes.ok) setWaitlist((await wlRes.json()) as WaitlistMe);
       } catch {
         // Fallos de red: la UI queda en estado no autenticado/neutro

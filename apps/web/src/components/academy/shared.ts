@@ -65,10 +65,12 @@ export type ClassSlot = {
   capacity: number;
 };
 
-// GET /academies/:id/attendance — personId es FK plana (sin join de nombre).
+// GET /academies/:id/attendance — person viene del join manual del controller
+// (Attendance.personId es FK plana en schema); personId se mantiene por compat.
 export type AttendanceItem = {
   id: string;
   personId: string;
+  person: { id: string; name: string | null; email: string | null };
   checkedAt: string;
   class: { id: string; date: string; classSlotId: string };
 };

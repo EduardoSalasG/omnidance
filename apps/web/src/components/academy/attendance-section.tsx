@@ -173,7 +173,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
             <li key={a.id}>
               <Card className="flex flex-wrap items-center gap-x-4 gap-y-1 p-4">
                 <span className="min-w-0 flex-1 truncate font-mono text-sm">
-                  {a.personId}
+                  {a.person.name ?? a.personId}
                 </span>
                 <span className="text-sm text-white/60">
                   {slotText(slotById.get(a.class.classSlotId))}

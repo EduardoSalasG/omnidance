@@ -31,6 +31,9 @@ type CheckinResult = {
   checkin: { id: string; inAt: string; method: string };
   person: { name: string; photoUrl: string | null };
   ticket: { id: string; status: string } | null;
+  /** Tipo de EntryPass cuando el check-in no vino de un Ticket
+      (LIST/COMP/ARTIST/STAFF…) — contrato nuevo del API. */
+  passType?: string | null;
 };
 
 type ListedCheckin = {
@@ -46,7 +49,7 @@ type ListedCheckin = {
 };
 
 type ScanResult =
-  | { kind: "ok"; name: string }
+  | { kind: "ok"; name: string; passType?: string | null }
   | { kind: "nopass"; name: string }
   | { kind: "duplicate"; name: string | null; at: string | null }
   | { kind: "error"; message: string };
@@ -215,9 +218,15 @@ export default function DoorConsolePage({
       if (res.status === 201) {
         const data = (await res.json()) as CheckinResult;
         buzz(50);
+        // EntryPass (lista/cortesía/artist) → éxito verde con el tipo de pase,
+        // no el ámbar "sin entrada" (el check-in sí se registró).
         showResult(
-          data.ticket
-            ? { kind: "ok", name: data.person.name }
+          data.ticket || data.passType
+            ? {
+                kind: "ok",
+                name: data.person.name,
+                passType: data.passType ?? null,
+              }
             : { kind: "nopass", name: data.person.name },
         );
         void loadCheckins();
@@ -527,6 +536,11 @@ export default function DoorConsolePage({
                 {result.name}
               </p>
               <p className="text-xl font-semibold">{t("checkinOk")}</p>
+              {result.passType && (
+                <p className="text-lg font-semibold opacity-90">
+                  {t("pass", { type: result.passType })}
+                </p>
+              )}
             </>
           )}
           {result.kind === "nopass" && (
