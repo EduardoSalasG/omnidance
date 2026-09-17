@@ -22,6 +22,14 @@ type Practice = {
   venue: { name: string; address: string | null };
 };
 
+/** GET /venues (público) — alimenta el datalist del formulario. */
+type Venue = {
+  id: string;
+  name: string;
+  address: string | null;
+  capacity: number | null;
+};
+
 type ListState = "loading" | "ready" | "error";
 
 const inputCls =
@@ -49,6 +57,7 @@ export default function PracticasPage() {
   const [name, setName] = useState("");
   const [venueId, setVenueId] = useState("");
   const [startsAt, setStartsAt] = useState("");
+  const [venues, setVenues] = useState<Venue[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -70,6 +79,12 @@ export default function PracticasPage() {
     apiFetch("/me")
       .then((res) => setAuthed(res.ok))
       .catch(() => setAuthed(false));
+    // Venues para el datalist (público). Si falla, el input sigue libre.
+    apiFetch("/venues")
+      .then(async (res) => {
+        if (res.ok) setVenues((await res.json()) as Venue[]);
+      })
+      .catch(() => {});
   }, [load]);
 
   async function createPractice(e: React.FormEvent) {
@@ -149,17 +164,25 @@ export default function PracticasPage() {
                 className={inputCls}
               />
             </label>
-            {/* TODO(venues): no existe GET /venues — venueId se ingresa
-                como texto. Cuando haya endpoint, reemplazar por selector. */}
+            {/* Datalist con GET /venues (value=id, label=nombre). Si la API
+                falla el input sigue aceptando texto libre como fallback. */}
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="text-white/70">{t("venue")}</span>
               <input
                 required
+                list="practice-venues"
                 value={venueId}
                 onChange={(e) => setVenueId(e.target.value)}
                 placeholder="venueId"
                 className={inputCls}
               />
+              <datalist id="practice-venues">
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </datalist>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="text-white/70">{t("startsAt")}</span>

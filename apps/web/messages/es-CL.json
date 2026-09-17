@@ -127,7 +127,14 @@
     "cancelled": "Cancelada",
     "transferred": "Transferida",
     "loginRequired": "Entra con tu correo para ver tus entradas",
-    "showQrHint": "Muestra tu QR en puerta"
+    "showQrHint": "Muestra tu QR en puerta",
+    "transfer": "Regalar entrada",
+    "transferTitle": "Regalar esta entrada",
+    "transferDesc": "La entrada pasará a ser de la persona con este correo. No se puede deshacer.",
+    "transferEmail": "correo@de-la-persona.cl",
+    "transferSubmit": "Regalar",
+    "transferSuccess": "¡Entrada regalada!",
+    "transferError": "No pudimos transferirla — revisa el correo"
   },
   "sessions": {
     "title": "Bailes de la noche",
@@ -154,6 +161,7 @@
     "scan": "Escanear QR",
     "scanning": "Apunta al QR del asistente",
     "checkinOk": "Entrada registrada",
+    "pass": "Pase: {type}",
     "noPass": "Sin entrada — check-in manual registrado",
     "duplicate": "Ya hizo check-in",
     "manual": "Check-in manual",
@@ -250,11 +258,41 @@
     "host": "Anfitrión",
     "created": "¡Práctica creada!"
   },
+  "availability": {
+    "toggle": "Disponible para bailar",
+    "toggleOn": "Estás disponible",
+    "toggleOff": "No estás disponible",
+    "location": "¿Dónde? (opcional)",
+    "feedTitle": "Disponibles ahora",
+    "feedEmpty": "Nadie está disponible ahora — ¡activa el toggle!",
+    "loginRequired": "Entra con tu correo para marcarte disponible"
+  },
+  "partnerRequests": {
+    "title": "Busco pareja de baile",
+    "compose": "Publicar solicitud",
+    "styleLabel": "Estilo (opcional)",
+    "roleLabel": "Rol",
+    "roleLeader": "Leader",
+    "roleFollower": "Follower",
+    "roleAny": "Cualquiera",
+    "roleSwitch": "Switch",
+    "levelLabel": "Nivel (opcional)",
+    "noteLabel": "Nota (opcional)",
+    "locationLabel": "Zona / comuna (opcional)",
+    "submit": "Publicar",
+    "close": "Cerrar",
+    "empty": "No hay solicitudes abiertas",
+    "mine": "Tu solicitud",
+    "created": "¡Solicitud publicada!",
+    "loginRequired": "Entra con tu correo para publicar"
+  },
   "trips": {
     "title": "Mis viajes",
     "empty": "Aún no has anunciado viajes.",
     "add": "Anunciar viaje",
     "destination": "Destino",
+    "from": "Desde",
+    "until": "Hasta",
     "loginRequired": "Entra con tu correo para ver tus viajes"
   },
   "admin": {

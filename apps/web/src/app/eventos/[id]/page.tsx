@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import messages from "../../../../messages/es-CL.json";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
@@ -33,6 +34,17 @@ type EventDetail = {
   }[];
 };
 
+/** MissionView del API (gamification.service.ts): misiones del evento + progreso propio. */
+type MissionView = {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+};
+
 async function getEvent(id: string): Promise<EventDetail | "error"> {
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
@@ -42,13 +54,31 @@ async function getEvent(id: string): Promise<EventDetail | "error"> {
   return (await res.json()) as EventDetail;
 }
 
+/**
+ * GET /events/:id/missions (SessionGuard en el API): requiere la cookie de
+ * sesión del request — 401 = no autenticado → la sección se oculta (null).
+ * Shape real (GamificationService.missionsFor → MissionView): ver type abajo.
+ */
+async function getMissions(eventId: string): Promise<MissionView[] | null> {
+  const res = await fetch(`${API_URL}/api/events/${eventId}/missions`, {
+    cache: "no-store",
+    headers: { cookie: cookies().toString() },
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
+  return (await res.json()) as MissionView[];
+}
+
 export default async function EventoDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
   const t = messages.events;
-  const event = await getEvent(params.id);
+  const tg = messages.gamification;
+  const [event, missions] = await Promise.all([
+    getEvent(params.id),
+    getMissions(params.id),
+  ]);
 
   if (event === "error") {
     return (
@@ -151,6 +181,62 @@ export default async function EventoDetailPage({
         >
           {messages.practices.title} →
         </Link>
+      )}
+
+      {/* Misiones — solo con sesión (401 → getMissions devuelve null y se oculta) */}
+      {missions !== null && missions.length > 0 && (
+        <section aria-labelledby="missions-heading">
+          <Card>
+            <h2
+              id="missions-heading"
+              className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50"
+            >
+              {tg.missions}
+            </h2>
+            <ul className="flex flex-col gap-4">
+              {missions.map((m) => {
+                const pct =
+                  m.target > 0
+                    ? Math.min(100, Math.round((m.progress / m.target) * 100))
+                    : 0;
+                return (
+                  <li key={m.id} className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">{m.name}</p>
+                      {m.completed ? (
+                        <Badge variant="neon">{tg.completed}</Badge>
+                      ) : (
+                        <span className="shrink-0 text-sm text-white/50">
+                          {tg.primeProgress
+                            .replace("{current}", String(m.progress))
+                            .replace("{threshold}", String(m.target))}
+                        </span>
+                      )}
+                    </div>
+                    {m.description && (
+                      <p className="text-sm text-white/60">{m.description}</p>
+                    )}
+                    <div
+                      role="progressbar"
+                      aria-valuenow={m.progress}
+                      aria-valuemin={0}
+                      aria-valuemax={m.target}
+                      aria-label={m.name}
+                      className="h-2 w-full overflow-hidden rounded-full bg-night-800"
+                    >
+                      <div
+                        className={`h-full rounded-full transition-[width] duration-500 ${
+                          m.completed ? "bg-neon" : "bg-neon/60"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        </section>
       )}
 
       {/* Lineup */}
