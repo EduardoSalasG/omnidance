@@ -24,8 +24,24 @@
     "title": "Próximos eventos",
     "empty": "No hay eventos publicados por ahora.",
     "presale": "Preventa",
+    "door": "En puerta",
     "free": "Gratis",
-    "from": "desde"
+    "from": "desde",
+    "backToList": "Volver a eventos",
+    "lineup": "Lineup",
+    "schedule": "Timeline de la noche",
+    "openFloor": "Pista abierta",
+    "getTicket": "Conseguir entrada",
+    "capacity": "Aforo: {count}",
+    "live": "En vivo",
+    "loadError": "No pudimos cargar este evento. Intenta de nuevo en un rato.",
+    "type": {
+      "SOCIAL": "Social",
+      "PRACTICA": "Práctica",
+      "GALA": "Gala",
+      "CONGRESS": "Congreso",
+      "COMPETITION": "Competencia"
+    }
   },
   "qr": {
     "title": "Mi QR",
