@@ -78,7 +78,7 @@ export default async function EventoDetailPage({
   const capacity = event.capacity ?? event.venue.capacity;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-32 pt-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-44 pt-6 sm:px-6">
       <Link
         href="/eventos"
         className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"
@@ -215,9 +215,9 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* CTA sticky (mobile-first) */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 sm:px-6">
+      {/* CTA sticky (mobile-first) — flota sobre la BottomNav */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <span className="block text-xs text-white/50">{ctaLabel}</span>
             {ctaPrice != null ? (
