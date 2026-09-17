@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import messages from "../../../../messages/es-CL.json";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
+import { RsvpControls } from "@/components/rsvp/RsvpControls";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,17 @@ export default async function EventoDetailPage({
           </dl>
         )}
       </Card>
+
+      {/* RSVP social */}
+      <RsvpControls eventId={event.id} />
+      {event.type === "PRACTICA" && (
+        <Link
+          href="/practicas"
+          className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 underline-offset-4 hover:text-neon"
+        >
+          {messages.practices.title} →
+        </Link>
+      )}
 
       {/* Lineup */}
       {event.djs.length > 0 && (
