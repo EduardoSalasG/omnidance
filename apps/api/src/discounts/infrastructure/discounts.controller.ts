@@ -36,7 +36,7 @@ import type {
   ListedRedemption,
 } from "../domain/ports";
 import { RolesGuard } from "../../common/rbac/roles.guard";
-import { RequireRoles } from "../../common/rbac/roles.decorator";
+import { RequirePermissions } from "../../common/rbac/roles.decorator";
 
 class CreateDiscountCodeDto {
   @IsString()
@@ -96,7 +96,7 @@ function mapDomainError(e: unknown): never {
 
 @Controller("discount-codes")
 @UseGuards(SessionGuard, RolesGuard)
-@RequireRoles("PRODUCER", "ADMIN")
+@RequirePermissions("discounts.manage")
 export class DiscountsController {
   constructor(private readonly discounts: DiscountsService) {}
 

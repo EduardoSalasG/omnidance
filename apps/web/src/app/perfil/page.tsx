@@ -11,7 +11,10 @@ type Me = {
   email: string;
   photoUrl: string | null;
   roles: string[];
+  roleStates?: { role: string; status: string }[];
 };
+
+type RoleCatalogItem = { key: string; label: string };
 
 type Streak = {
   currentWeeks: number;
@@ -25,27 +28,8 @@ type BadgeItem = {
 
 type PageState = "loading" | "ready" | "unauth" | "error";
 
-const REQUESTABLE_ROLES = [
-  "DJ",
-  "PRODUCER",
-  "STAFF",
-  "VENUE_MANAGER",
-  "ACADEMY_OWNER",
-  "INSTRUCTOR",
-] as const;
-
-// Etiquetas legibles de roles — las claves viven en profile.roleLabels.*;
-// un rol desconocido se muestra tal cual.
-const KNOWN_ROLES = [
-  "DANCER",
-  "DJ",
-  "PRODUCER",
-  "STAFF",
-  "VENUE_MANAGER",
-  "ACADEMY_OWNER",
-  "INSTRUCTOR",
-  "ADMIN",
-] as const;
+// El catálogo de roles solicitables vive en DB (GET /roles/catalog);
+// las etiquetas i18n son fallback para keys sin label de catálogo.
 
 export default function PerfilPage() {
   const t = useTranslations("profile");
@@ -58,11 +42,12 @@ export default function PerfilPage() {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [pendingRoles, setPendingRoles] = useState<Set<string>>(new Set());
   const [requesting, setRequesting] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
 
   function roleLabel(role: string): string {
-    return (KNOWN_ROLES as readonly string[]).includes(role)
-      ? t(`roleLabels.${role}`)
-      : role;
+    const fromCatalog = catalog.find((r) => r.key === role)?.label;
+    if (fromCatalog) return fromCatalog;
+    return t.has(`roleLabels.${role}`) ? t(`roleLabels.${role}`) : role;
   }
 
   useEffect(() => {
@@ -87,17 +72,22 @@ export default function PerfilPage() {
         return;
       }
 
-      // Gamificación se construye en paralelo — fallos no bloquean el perfil
+      // Gamificación + catálogo de roles en paralelo — fallos no bloquean
       try {
-        const [streakRes, badgesRes] = await Promise.all([
+        const [streakRes, badgesRes, catalogRes] = await Promise.all([
           apiFetch("/gamification/me/streak"),
           apiFetch("/gamification/me/badges"),
+          apiFetch("/roles/catalog"),
         ]);
         if (cancelled) return;
         if (streakRes.ok) setStreak((await streakRes.json()) as Streak);
         if (badgesRes.ok) {
           const json: unknown = await badgesRes.json();
           setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
+        }
+        if (catalogRes.ok) {
+          const json: unknown = await catalogRes.json();
+          setCatalog(Array.isArray(json) ? (json as RoleCatalogItem[]) : []);
         }
       } catch {
         // Silencioso: widgets muestran valores por defecto
@@ -166,8 +156,12 @@ export default function PerfilPage() {
     );
   }
 
-  const heldRoles = new Set(me.roles);
-  const requestable = REQUESTABLE_ROLES.filter((r) => !heldRoles.has(r));
+  const heldRoles = new Set(
+    me.roleStates?.map((r) => r.role) ?? me.roles,
+  );
+  const requestable = catalog
+    .map((r) => r.key)
+    .filter((r) => !heldRoles.has(r));
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -193,11 +187,22 @@ export default function PerfilPage() {
         <div className="min-w-0">
           <p className="truncate text-lg font-semibold">{me.name}</p>
           <p className="truncate text-sm text-white/50">{me.email}</p>
-          {me.roles.length > 0 && (
+          {(me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" })))
+            .length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {me.roles.map((r) => (
-                <Badge key={r} variant="neon">
-                  {roleLabel(r)}
+              {(me.roleStates ??
+                me.roles.map((r) => ({ role: r, status: "APPROVED" }))
+              ).map((rs) => (
+                <Badge
+                  key={rs.role}
+                  variant={rs.status === "APPROVED" ? "neon" : "outline"}
+                >
+                  {roleLabel(rs.role)}
+                  {rs.status !== "APPROVED" && (
+                    <span className="ml-1 text-white/50">
+                      · {rs.status === "SANDBOX" ? "demo" : t("rolePending")}
+                    </span>
+                  )}
                 </Badge>
               ))}
             </div>
