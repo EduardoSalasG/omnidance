@@ -126,7 +126,11 @@ export class SessionsService {
     }
   }
 
-  /** Solo participantes de sesiones CONFIRMED pueden puntuar. */
+  /**
+   * Solo participantes de sesiones CONFIRMED pueden puntuar.
+   * RATED también es rateable: el primer rating marca la sesión como RATED y
+   * la contraparte todavía debe poder entregar su propia evaluación.
+   */
   assertRateable(session: SessionLike, raterId: string, now = new Date()): void {
     if (raterId !== session.inviterId && raterId !== session.inviteeId) {
       throw new SessionDomainError(
@@ -134,7 +138,8 @@ export class SessionsService {
         "solo los participantes pueden puntuar la sesión",
       );
     }
-    if (this.effectiveStatus(session, now) !== "CONFIRMED") {
+    const effective = this.effectiveStatus(session, now);
+    if (effective !== "CONFIRMED" && effective !== "RATED") {
       throw new SessionDomainError(
         "INVALID_STATE",
         "solo sesiones confirmadas pueden puntuarse",

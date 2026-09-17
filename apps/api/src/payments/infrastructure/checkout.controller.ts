@@ -3,14 +3,17 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
+  HttpCode,
   Inject,
   NotFoundException,
+  Param,
   Post,
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsOptional, IsString } from "class-validator";
+import { IsEmail, IsOptional, IsString } from "class-validator";
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
@@ -117,7 +120,8 @@ export class CheckoutController {
       discount: code,
     });
 
-    // refId transporta eventId + codeId (Payment no tiene esos campos)
+    // refId correlaciona con la pasarela y el webhook; eventId/discountCodeId
+    // también quedan desnormalizados en Payment para reporting.
     const refId = encodeTicketOrderRef(event.id, code?.id);
     const person = await this.prisma.person.findUnique({
       where: { id: personId },
@@ -129,6 +133,8 @@ export class CheckoutController {
         orderType: "TICKET",
         refId,
         personId,
+        eventId: event.id,
+        discountCodeId: code?.id ?? null,
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
@@ -157,6 +163,11 @@ export class CheckoutController {
       ? "FLOW"
       : "STUB";
   }
+}
+
+class TransferTicketDto {
+  @IsEmail()
+  toEmail!: string;
 }
 
 @Controller("tickets")
@@ -189,5 +200,45 @@ export class TicketsController {
       serviceFee: t.serviceFee,
       event: byId.get(t.eventId) ?? null,
     }));
+  }
+
+  /**
+   * Transferir un ticket propio a otra persona por email.
+   * ownerId pasa al destinatario, giftedFromId registra al dueño anterior;
+   * buyerId no cambia (trazabilidad del comprador original).
+   */
+  @Post(":id/transfer")
+  @HttpCode(200)
+  async transfer(
+    @Param("id") id: string,
+    @Body() dto: TransferTicketDto,
+    @Req() req: Request,
+  ) {
+    const ticket = await this.prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) throw new NotFoundException("ticket no encontrado");
+    if (ticket.ownerId !== req.person!.id) {
+      throw new ForbiddenException("solo el dueño puede transferir el ticket");
+    }
+    if (ticket.status !== "ACTIVE") {
+      throw new ConflictException("el ticket no está activo");
+    }
+
+    const target = await this.prisma.person.findUnique({
+      where: { email: dto.toEmail },
+      select: { id: true },
+    });
+    if (!target) {
+      throw new BadRequestException("no existe una persona con ese email");
+    }
+    if (target.id === ticket.ownerId) {
+      throw new BadRequestException(
+        "no puedes transferir el ticket a ti mismo",
+      );
+    }
+
+    return this.prisma.ticket.update({
+      where: { id },
+      data: { ownerId: target.id, giftedFromId: ticket.ownerId },
+    });
   }
 }

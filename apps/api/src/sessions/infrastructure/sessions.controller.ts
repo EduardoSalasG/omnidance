@@ -7,6 +7,7 @@ import {
   Get,
   HttpCode,
   NotFoundException,
+  Optional,
   Param,
   Post,
   Query,
@@ -25,6 +26,11 @@ import {
   SessionsService,
   type SessionAction,
 } from "../domain/sessions.service";
+import {
+  NotificationsService,
+  type NotifyInput,
+} from "../../notifications/domain/notifications.service";
+import { GamificationService } from "../../gamification/domain/gamification.service";
 
 class InviteDto {
   @IsString()
@@ -62,11 +68,17 @@ class RateDto {
 @Controller("sessions")
 @UseGuards(SessionGuard)
 export class SessionsController {
+  // NotificationsService y GamificationService son @Optional: SessionsModule
+  // aún no importa NotificationsModule/GamificationModule (pendiente de wiring
+  // — ver handoff). Una vez importados se resuelven solos; sin ellos los hooks
+  // son no-op y el flujo de dominio no se rompe.
   constructor(
     private readonly prisma: PrismaService,
     private readonly qr: QrService,
     private readonly sessions: SessionsService,
     private readonly params: ParamsService,
+    @Optional() private readonly notifications?: NotificationsService,
+    @Optional() private readonly gamification?: GamificationService,
   ) {}
 
   @Post("invite")
@@ -140,6 +152,13 @@ export class SessionsController {
     const inviter = await this.prisma.person.findUnique({
       where: { id: inviterId },
       select: { name: true, photoUrl: true },
+    });
+
+    await this.safeNotify(inviteeId, {
+      category: "SOCIAL",
+      type: "session.invite",
+      title: `${inviter?.name ?? "Alguien"} te invitó a bailar`,
+      data: { sessionId: session.id },
     });
 
     return { ...session, inviter };
@@ -226,11 +245,28 @@ export class SessionsController {
         comfort: this.optionalScore(dto.comfort),
         musicality: this.optionalScore(dto.musicality),
       };
-      return await this.prisma.sessionRating.upsert({
+      const rating = await this.prisma.sessionRating.upsert({
         where: { sessionId_raterId: { sessionId: id, raterId } },
         create: { sessionId: id, raterId, ...data },
         update: data,
       });
+
+      // La sesión queda RATED (sigue siendo rateable para la contraparte —
+      // ver SessionsService.assertRateable).
+      await this.prisma.danceSession.update({
+        where: { id },
+        data: { status: "RATED" },
+      });
+
+      // Hook de gamificación: evalúa badges del rater y del rated.
+      const ratedId =
+        session.inviterId === raterId
+          ? session.inviteeId
+          : session.inviterId;
+      await this.safeEvaluateBadges(raterId);
+      await this.safeEvaluateBadges(ratedId);
+
+      return rating;
     } catch (e) {
       this.toHttp(e);
     }
@@ -247,15 +283,65 @@ export class SessionsController {
     if (!session) throw new NotFoundException("sesión no encontrada");
     try {
       const result = this.sessions.transition(session, actorId, action);
-      return await this.prisma.danceSession.update({
+      const updated = await this.prisma.danceSession.update({
         where: { id },
         data: {
           status: result.status,
           ...(result.confirmedAt ? { confirmedAt: result.confirmedAt } : {}),
         },
       });
+
+      if (action === "confirm" || action === "decline") {
+        const actor = await this.prisma.person.findUnique({
+          where: { id: actorId },
+          select: { name: true },
+        });
+        const actorName = actor?.name ?? "Tu pareja de baile";
+        await this.safeNotify(session.inviterId, {
+          category: "SOCIAL",
+          type:
+            action === "confirm" ? "session.confirmed" : "session.declined",
+          title:
+            action === "confirm"
+              ? `${actorName} aceptó bailar contigo`
+              : `${actorName} no pudo bailar esta vez`,
+          data: { sessionId: id },
+        });
+      }
+      if (action === "confirm") {
+        // La sesión ya cuenta como actividad confirmada: evalúa badges de ambos.
+        await this.safeEvaluateBadges(session.inviterId);
+        await this.safeEvaluateBadges(session.inviteeId);
+      }
+
+      return updated;
     } catch (e) {
       this.toHttp(e);
+    }
+  }
+
+  /**
+   * Notificación best-effort: un fallo del centro de notificaciones (o la
+   * ausencia del provider mientras el módulo no esté wireado) nunca rompe el
+   * flujo de dominio.
+   */
+  private async safeNotify(
+    personId: string,
+    input: NotifyInput,
+  ): Promise<void> {
+    try {
+      await this.notifications?.notify(personId, input);
+    } catch {
+      /* notificación no crítica */
+    }
+  }
+
+  /** Hook de gamificación best-effort (evalúa y otorga badges pendientes). */
+  private async safeEvaluateBadges(personId: string): Promise<void> {
+    try {
+      await this.gamification?.evaluateBadgesFor(personId);
+    } catch {
+      /* gamificación no crítica */
     }
   }
 

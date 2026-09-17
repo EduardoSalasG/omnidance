@@ -21,8 +21,10 @@ export class PrismaGamificationRepo implements GamificationRepo {
   }
 
   confirmedSessionsForEvent(eventId: string) {
+    // RATED sigue siendo una sesión confirmada (ya puntuada) — si solo se
+    // cuenta CONFIRMED, el primer rating la saca de leaderboard/misiones.
     return this.prisma.danceSession.findMany({
-      where: { eventId, status: "CONFIRMED" },
+      where: { eventId, status: { in: ["CONFIRMED", "RATED"] } },
       select: {
         inviterId: true,
         inviteeId: true,
@@ -36,7 +38,8 @@ export class PrismaGamificationRepo implements GamificationRepo {
   confirmedSessionsForPerson(personId: string, eventId?: string) {
     return this.prisma.danceSession.findMany({
       where: {
-        status: "CONFIRMED",
+        // RATED = confirmada y ya puntuada: sigue contando como actividad.
+        status: { in: ["CONFIRMED", "RATED"] },
         ...(eventId ? { eventId } : {}),
         OR: [{ inviterId: personId }, { inviteeId: personId }],
       },

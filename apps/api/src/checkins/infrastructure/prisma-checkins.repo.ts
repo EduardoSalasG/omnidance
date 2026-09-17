@@ -55,6 +55,7 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
           staffId: data.staffId,
           method: data.method,
           passId: data.passId,
+          note: data.note,
           syncedAt: new Date(),
         },
       });

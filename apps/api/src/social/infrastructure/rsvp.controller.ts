@@ -104,3 +104,22 @@ export class RsvpController {
     });
   }
 }
+
+/**
+ * RSVP propios: GET /api/me/rsvp → [{ eventId, status, createdAt }]
+ * del usuario autenticado (el front lo usa para marcar "voy/interesado").
+ */
+@Controller("me")
+export class MeRsvpController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  @Get("rsvp")
+  @UseGuards(SessionGuard)
+  mine(@Req() req: Request) {
+    return this.prisma.rsvp.findMany({
+      where: { personId: req.person!.id },
+      orderBy: { createdAt: "desc" },
+      select: { eventId: true, status: true, createdAt: true },
+    });
+  }
+}

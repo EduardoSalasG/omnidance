@@ -29,6 +29,7 @@ describe("social e2e", () => {
     guestListId: "",
     styleId: "",
     practiceEventIds: [] as string[],
+    practiceNoVenueId: "",
     ticketId: "",
   };
 
@@ -108,7 +109,11 @@ describe("social e2e", () => {
   });
 
   afterAll(async () => {
-    const eventIds = [ids.eventId, ...ids.practiceEventIds];
+    const eventIds = [
+      ids.eventId,
+      ids.practiceNoVenueId,
+      ...ids.practiceEventIds,
+    ].filter(Boolean);
     const peopleIds = [
       ids.producerId,
       ids.dancerId,
@@ -130,6 +135,9 @@ describe("social e2e", () => {
     await prisma.style.delete({ where: { id: ids.styleId } });
     await prisma.venue.delete({ where: { id: ids.venueId } });
     await prisma.personRole.deleteMany({
+      where: { personId: { in: peopleIds } },
+    });
+    await prisma.notification.deleteMany({
       where: { personId: { in: peopleIds } },
     });
     await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
@@ -388,6 +396,7 @@ describe("social e2e", () => {
       expect(body.status).toBe("PENDING");
       expect(body.personId).toBe(ids.dancer2Id);
       expect(body.person.name).toBe("Bailarín Social Dos");
+      expect(body.createdAt).toBeTruthy();
     });
 
     it("duplicado → 409", async () => {
@@ -424,6 +433,7 @@ describe("social e2e", () => {
       expect(list.entries).toHaveLength(1);
       expect(list.entries[0].status).toBe("PENDING");
       expect(list.entries[0].person.name).toBe("Bailarín Social Dos");
+      expect(list.entries[0].createdAt).toBeTruthy();
     });
   });
 
@@ -641,14 +651,19 @@ describe("social e2e", () => {
       expect(res.status).toBe(400);
     });
 
-    it("sin venueId → 400 (schema exige Event.venueId)", async () => {
+    it("sin venueId → 201 con venueId null (parque/plaza, spec §8)", async () => {
       const res = await req(
         "POST",
         "/api/practices",
-        { name: "Práctica sin venue", startsAt: future(48), endsAt: future(50) },
+        { name: "Práctica en el parque", startsAt: future(48), endsAt: future(50) },
         dancerSession,
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(201);
+      const event = await res.json();
+      ids.practiceNoVenueId = event.id;
+      expect(event.type).toBe("PRACTICA");
+      expect(event.status).toBe("PUBLISHED");
+      expect(event.venueId).toBeNull();
     });
 
     it("venue inexistente → 404", async () => {
@@ -748,6 +763,12 @@ describe("social e2e", () => {
       expect(mine.type).toBe("PRACTICA");
       expect(mine.hostId).toBe(ids.dancerId);
       expect(mine.venue.name).toBe("Venue Social Test");
+      // la práctica sin local aparece con venue null
+      const noVenue = list.find(
+        (e: { id: string }) => e.id === ids.practiceNoVenueId,
+      );
+      expect(noVenue).toBeTruthy();
+      expect(noVenue.venue).toBeNull();
       // ningún evento que no sea práctica se cuela
       expect(
         list.every((e: { type: string }) => e.type === "PRACTICA"),

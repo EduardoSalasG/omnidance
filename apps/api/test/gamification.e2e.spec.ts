@@ -166,8 +166,9 @@ describe("gamification e2e", () => {
     );
     ids.extraIds = extras.map((p) => p.id);
 
-    // ─── badges catálogo ───
+    // ─── badges catálogo — global compartido (también lo siembra el seed) ───
     await prisma.badge.createMany({
+      skipDuplicates: true,
       data: [
         { key: "primera_bachata", name: "Primera bachata", category: "MILESTONE" },
         {
@@ -408,9 +409,7 @@ describe("gamification e2e", () => {
     await prisma.personBadge.deleteMany({
       where: { personId: { in: personIds } },
     });
-    await prisma.badge.deleteMany({
-      where: { key: { in: ["primera_bachata", "bailarin_constante"] } },
-    });
+    // El catálogo Badge es global (seed + otros specs) — no se borra.
     await prisma.danceSession.deleteMany({
       where: { eventId: { in: [ids.eventLiveId, ids.eventDraftId] } },
     });

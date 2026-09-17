@@ -1,4 +1,4 @@
-import type { Checkin } from "@prisma/client";
+import type { Checkin, PassType } from "@prisma/client";
 import type {
   CheckinMethod,
   CheckinsRepo,
@@ -33,12 +33,16 @@ export interface RegisterCheckinInput {
   /** Quien opera la puerta — siempre auditado. */
   staffId: string;
   method: CheckinMethod;
+  /** Nota del staff (solo check-in manual / cortesías). */
+  note?: string;
 }
 
 export interface CheckinResult {
   checkin: Checkin;
   person: { name: string; photoUrl: string | null };
   ticket: { id: string; status: string } | null;
+  /** Tipo del EntryPass resuelto (COMP/LIST/…) — null si fue ticket o sin pase. */
+  passType: PassType | null;
 }
 
 /**
@@ -84,6 +88,7 @@ export class CheckinsService {
         staffId: input.staffId,
         method: input.method,
         passId: pass?.id ?? null,
+        note: input.note ?? null,
       },
       pass,
     );
@@ -92,6 +97,7 @@ export class CheckinsService {
       checkin,
       person: { name: person.name, photoUrl: person.photoUrl },
       ticket: ticket ? { id: ticket.id, status: "USED" } : null,
+      passType: entryPass?.type ?? null,
     };
   }
 

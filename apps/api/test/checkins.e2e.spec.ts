@@ -26,8 +26,10 @@ describe("checkins e2e", () => {
     eventId: "",
     attendeeId: "",
     attendeeNoTicketId: "",
+    attendeePassId: "",
     dancerId: "",
     ticketId: "",
+    entryPassId: "",
     checkinIds: [] as string[],
   };
 
@@ -87,6 +89,11 @@ describe("checkins e2e", () => {
     });
     ids.attendeeNoTicketId = noTicket.id;
 
+    const withPass = await prisma.person.create({
+      data: { name: "Asistente Con Pase" },
+    });
+    ids.attendeePassId = withPass.id;
+
     const dancer = await prisma.person.create({
       data: {
         name: "Bailarín Sin Rol Staff",
@@ -106,6 +113,15 @@ describe("checkins e2e", () => {
       },
     });
     ids.ticketId = ticket.id;
+
+    const entryPass = await prisma.entryPass.create({
+      data: {
+        eventId: event.id,
+        personId: withPass.id,
+        type: "COMP",
+      },
+    });
+    ids.entryPassId = entryPass.id;
   });
 
   afterAll(async () => {
@@ -113,6 +129,7 @@ describe("checkins e2e", () => {
       where: { eventId: ids.eventId },
     });
     await prisma.ticket.deleteMany({ where: { eventId: ids.eventId } });
+    await prisma.entryPass.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.event.delete({ where: { id: ids.eventId } });
     await prisma.venue.delete({ where: { id: ids.venueId } });
     await prisma.personRole.deleteMany({
@@ -120,7 +137,14 @@ describe("checkins e2e", () => {
     });
     await prisma.person.deleteMany({
       where: {
-        id: { in: [ids.attendeeId, ids.attendeeNoTicketId, ids.dancerId] },
+        id: {
+          in: [
+            ids.attendeeId,
+            ids.attendeeNoTicketId,
+            ids.attendeePassId,
+            ids.dancerId,
+          ],
+        },
       },
     });
     await app.close();
@@ -180,6 +204,7 @@ describe("checkins e2e", () => {
       expect(body.checkin.passId).toBe(ids.ticketId);
       expect(body.person.name).toBe("Asistente Con Ticket");
       expect(body.ticket).toEqual({ id: ids.ticketId, status: "USED" });
+      expect(body.passType).toBeNull();
 
       const ticket = await prisma.ticket.findUniqueOrThrow({
         where: { id: ids.ticketId },
@@ -222,7 +247,32 @@ describe("checkins e2e", () => {
       expect(body.checkin.passId).toBeNull();
       expect(body.checkin.staffId).toBe(staffId);
       expect(body.ticket).toBeNull();
+      expect(body.passType).toBeNull();
       expect(body.person.name).toBe("Asistente Sin Ticket");
+    });
+
+    it("persona con EntryPass → passId=pass.id, passType del pase y note persistida", async () => {
+      const res = await post(
+        "/api/checkins/manual",
+        {
+          eventId: ids.eventId,
+          personId: ids.attendeePassId,
+          note: "cortesía del DJ",
+        },
+        staffSession,
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      ids.checkinIds.push(body.checkin.id);
+      expect(body.checkin.passId).toBe(ids.entryPassId);
+      expect(body.checkin.note).toBe("cortesía del DJ");
+      expect(body.passType).toBe("COMP");
+      expect(body.ticket).toBeNull();
+
+      const pass = await prisma.entryPass.findUniqueOrThrow({
+        where: { id: ids.entryPassId },
+      });
+      expect(pass.status).toBe("USED");
     });
 
     it("doble check-in manual → 409", async () => {

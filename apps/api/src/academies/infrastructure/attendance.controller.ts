@@ -100,7 +100,7 @@ export class AttendanceController {
     const gte = from ? new Date(from) : new Date(Date.now() - 30 * 86400000);
     const lte = to ? new Date(to) : new Date();
     lte.setUTCHours(23, 59, 59, 999);
-    return this.prisma.attendance.findMany({
+    const rows = await this.prisma.attendance.findMany({
       where: {
         class: {
           slot: { academyId: id },
@@ -115,5 +115,20 @@ export class AttendanceController {
         class: { select: { id: true, date: true, classSlotId: true } },
       },
     });
+    // Attendance.personId es FK plana (sin relación en schema) — join manual,
+    // mismo patrón que GET /academies/:id/students. personId se mantiene por compat.
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: rows.map((r) => r.personId) } },
+      select: { id: true, name: true, email: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return rows.map((r) => ({
+      ...r,
+      person: byId.get(r.personId) ?? {
+        id: r.personId,
+        name: null,
+        email: null,
+      },
+    }));
   }
 }

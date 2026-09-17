@@ -14,7 +14,12 @@ export const USER_ROLES = [
 ] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const ROLE_STATUSES = ["PENDING", "SANDBOX", "APPROVED"] as const;
+export const ROLE_STATUSES = [
+  "PENDING",
+  "SANDBOX",
+  "APPROVED",
+  "REJECTED",
+] as const;
 export type RoleStatus = (typeof ROLE_STATUSES)[number];
 
 // ─── Eventos ─────────────────────────────────────────────

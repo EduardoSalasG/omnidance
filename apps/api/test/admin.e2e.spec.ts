@@ -174,17 +174,26 @@ describe("admin role-requests e2e", () => {
   });
 
   describe("POST /api/admin/role-requests/:id/reject", () => {
-    it("admin rechaza → el PersonRole se elimina (enum sin REJECTED)", async () => {
+    it("admin rechaza → status REJECTED y el registro se preserva", async () => {
       const res = await post(
         `/api/admin/role-requests/${ids.sandboxRoleId}/reject`,
         {},
         adminSession,
       );
       expect(res.status).toBe(200);
-      const role = await prisma.personRole.findUnique({
+      const body = await res.json();
+      expect(body.status).toBe("REJECTED");
+      const role = await prisma.personRole.findUniqueOrThrow({
         where: { id: ids.sandboxRoleId },
       });
-      expect(role).toBeNull();
+      expect(role.status).toBe("REJECTED");
+      // la solicitud rechazada ya no aparece en la cola
+      const list = await (
+        await get("/api/admin/role-requests", adminSession)
+      ).json();
+      expect(
+        list.find((r: { id: string }) => r.id === ids.sandboxRoleId),
+      ).toBeUndefined();
     });
 
     it("id inexistente → 404", async () => {
@@ -241,6 +250,23 @@ describe("admin role-requests e2e", () => {
         dancerSession,
       );
       expect(res.status).toBe(409);
+    });
+
+    it("rechazo preserva la fila → re-solicitud del mismo rol → 409", async () => {
+      const reject = await post(
+        `/api/admin/role-requests/${ids.requestedRoleId}/reject`,
+        {},
+        adminSession,
+      );
+      expect(reject.status).toBe(200);
+      const res = await post(
+        "/api/roles/request",
+        { role: "INSTRUCTOR" },
+        dancerSession,
+      );
+      expect(res.status).toBe(409);
+      const body = await res.json();
+      expect(body.personRole.status).toBe("REJECTED");
     });
   });
 });

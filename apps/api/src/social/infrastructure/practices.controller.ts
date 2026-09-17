@@ -27,12 +27,10 @@ class CreatePracticeDto {
   @IsString()
   name!: string;
 
-  /**
-   * Decisión v1 (gap de schema): la spec lo declara opcional ("parque/plaza")
-   * pero Event.venueId es requerido → en v1 la práctica necesita un venue.
-   */
+  /** Opcional (spec omni-dance.md §8): práctica sin local — parque/plaza. */
+  @IsOptional()
   @IsString()
-  venueId!: string;
+  venueId?: string;
 
   @IsDateString()
   startsAt!: string;
@@ -80,11 +78,15 @@ export class PracticesController {
       throw e;
     }
 
-    const venue = await this.prisma.venue.findUnique({
-      where: { id: dto.venueId },
-      select: { id: true },
-    });
-    if (!venue) throw new NotFoundException("venue no encontrado");
+    // venueId opcional: si viene, debe existir; si no, la práctica queda
+    // sin local (parque/plaza) → Event.venueId = null.
+    if (dto.venueId) {
+      const venue = await this.prisma.venue.findUnique({
+        where: { id: dto.venueId },
+        select: { id: true },
+      });
+      if (!venue) throw new NotFoundException("venue no encontrado");
+    }
 
     // style: id directo o match por nombre → ScheduleBlock con el estilo foco
     let styleId: string | null = null;
@@ -102,7 +104,7 @@ export class PracticesController {
           type: "PRACTICA",
           status: "PUBLISHED",
           hostId,
-          venueId: dto.venueId,
+          venueId: dto.venueId ?? null,
           name: dto.name,
           startsAt,
           endsAt,

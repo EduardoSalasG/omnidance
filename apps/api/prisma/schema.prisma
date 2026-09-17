@@ -15,6 +15,7 @@ enum RoleStatus {
   PENDING
   SANDBOX
   APPROVED
+  REJECTED // solicitud rechazada por admin — registro preservado (auditable)
 }
 
 enum EntityType {
@@ -210,8 +211,8 @@ model Event {
   id          String      @id @default(cuid())
   series      EventSeries? @relation(fields: [seriesId], references: [id])
   seriesId    String?     // null = standalone (galas de academia)
-  venue       Venue       @relation(fields: [venueId], references: [id])
-  venueId     String
+  venue       Venue?      @relation(fields: [venueId], references: [id])
+  venueId     String?     // null = práctica sin local (parque/plaza)
   producerId  String?
   hostId      String?     // host de práctica (creador bailarín)
   academyId   String?
@@ -324,6 +325,7 @@ model Checkin {
   syncedAt   DateTime? // cuándo llegó al server (offline-first)
   voidedAt   DateTime?
   voidReason String?
+  note       String?  // nota del staff (cortesías manuales)
 }
 
 model StaffAssignment {
@@ -351,6 +353,7 @@ model GuestListEntry {
   guestListId String
   personId    String
   status      String    @default("PENDING") // PENDING | ARRIVED
+  createdAt   DateTime  @default(now())
 
   @@unique([guestListId, personId])
 }
@@ -821,6 +824,8 @@ model Payment {
   orderType String // TICKET | SERIES_PASS | MEMBERSHIP | PRIVATE_LESSON | WORKSHOP
   refId     String
   personId  String
+  eventId   String? // contexto desnormalizado (también viaja en refId)
+  discountCodeId String? // código aplicado al checkout
   amount    Int // total cobrado (lista + cargo)
   fee       Int // costo pasarela
   net       Int
