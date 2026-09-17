@@ -135,3 +135,7 @@ Paraleliza con subagentes solo tareas independientes (sin estado compartido ni d
 - **Acciones admin auditan**: `AuditLog` con actorId/action/targetType/targetId/payload (prev/next).
 - `tsc --noEmit` deja `tsconfig.tsbuildinfo` que confunde al watch de Nest — si `dist/` queda incompleto: `rm -rf dist tsconfig.tsbuildinfo` y reiniciar.
 - Smoke RBAC/params reproducible: `node apps/api/scripts/smoke-rbac-params.cjs` (API viva en :4000).
+- **PrismaService único**: los feature modules NO declaran `PrismaService` en providers — importan `PrismaModule` (módulo compartido normal, no @Global). Un solo PrismaClient/pool en runtime; los e2e TestingModule obtienen el provider transitivamente vía el feature module.
+- **RBAC puntual fuera del guard**: cuando un endpoint mezcla "self o staff" (no aplica @RequirePermissions a todo el handler), usar `roleKeysHavePermission(prisma, roleKeys, perms)` de `common/rbac/roles.guard` — mismo catálogo cacheado, nunca roles literales.
+- **Notificaciones best-effort**: `NotificationsService.notifySafe(personId, input)` — nunca try/catch local duplicado ni `@Optional` (los módulos que usan notifications ya importan NotificationsModule).
+- **Secretos en producción**: `secretOrDevFallback(key, dev)` de `src/common/env` — fallback dev solo fuera de prod; en prod falta → fail-fast al arrancar.
