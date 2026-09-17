@@ -371,7 +371,7 @@ export default function DoorConsolePage({
             <circle cx="12" cy="20" r="1" fill="currentColor" />
             <line x1="2" y1="2" x2="22" y2="22" />
           </svg>
-          {tc("error")}
+          {t("offline")}
         </div>
       )}
 

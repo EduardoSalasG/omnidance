@@ -5,7 +5,13 @@
     "loading": "Cargando…",
     "error": "Algo salió mal",
     "login": "Entrar",
-    "logout": "Salir"
+    "logout": "Salir",
+    "retry": "Reintentar",
+    "back": "Volver",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "seeAll": "Ver todo"
   },
   "home": {
     "subtitle": "Nightlife + Academias. Un solo QR para toda la escena.",
@@ -64,7 +70,10 @@
     "loginRequired": "Entra con tu correo para comprar",
     "success": "¡Pago confirmado! Tu entrada está lista.",
     "pending": "Esperando confirmación del pago…",
-    "failed": "El pago no se completó"
+    "failed": "El pago no se completó",
+    "devSimTitle": "Modo dev: simular pago",
+    "devSimApprove": "Simular aprobado",
+    "devSimFail": "Simular fallido"
   },
   "wallet": {
     "title": "Mis entradas",
@@ -73,7 +82,9 @@
     "active": "Activa",
     "used": "Usada",
     "cancelled": "Cancelada",
-    "transferred": "Transferida"
+    "transferred": "Transferida",
+    "loginRequired": "Entra con tu correo para ver tus entradas",
+    "showQrHint": "Muestra tu QR en puerta"
   },
   "sessions": {
     "title": "Bailes de la noche",
@@ -90,7 +101,10 @@
     "ratePrompt": "¿Cómo estuvo el baile?",
     "scanToInvite": "Escanea el QR de tu pareja para invitarla",
     "empty": "Aún no hay bailes. ¡Escanea el QR de alguien!",
-    "cooldown": "Ya bailaron hace poquito — espera un momento"
+    "cooldown": "Ya bailaron hace poquito — espera un momento",
+    "invalidQr": "QR no válido",
+    "myDances": "Mis bailes",
+    "history": "Historial"
   },
   "staff": {
     "title": "Puerta",
@@ -102,7 +116,9 @@
     "manual": "Check-in manual",
     "list": "Asistentes",
     "cameraError": "No pudimos abrir la cámara",
-    "notStaff": "Esta sección es para staff del evento"
+    "notStaff": "Esta sección es para staff del evento",
+    "offline": "Sin conexión — reintentando…",
+    "loginRequired": "Entra con tu correo para operar la puerta"
   },
   "gamification": {
     "streak": "Semanas seguidas",
@@ -115,12 +131,14 @@
     "primeProgress": "{current} de {threshold}",
     "primeUnlocked": "¡Prime Time desbloqueado!",
     "missions": "Misiones",
-    "completed": "Completada"
+    "completed": "Completada",
+    "badgesEmpty": "Baila, confirma y completa misiones para ganar insignias."
   },
   "notifications": {
     "title": "Notificaciones",
     "empty": "Sin notificaciones por ahora.",
-    "markAll": "Marcar todas como leídas"
+    "markAll": "Marcar todas como leídas",
+    "loginRequired": "Entra con tu correo para ver tus notificaciones"
   },
   "academy": {
     "title": "Mi academia",
@@ -131,12 +149,108 @@
     "newPlan": "Nuevo plan",
     "newEnrollment": "Nueva inscripción",
     "attendance": "Asistencia",
+    "markPresent": "Presente",
+    "planName": "Nombre del plan",
+    "planPrice": "Precio",
+    "planClasses": "Clases por período",
+    "personId": "ID de persona",
+    "empty": "Aún no tienes academia registrada.",
+    "create": "Crear academia",
+    "academyName": "Nombre de la academia",
+    "loginRequired": "Entra con tu correo para administrar tu academia",
+    "stats": {
+      "active": "Activos",
+      "trial": "En prueba",
+      "paused": "Pausados",
+      "frozen": "Congelados",
+      "online": "Online"
+    },
     "status": {
       "ACTIVE": "Activo",
       "PAUSED": "Pausado",
       "TRIAL": "Prueba",
       "FROZEN": "Congelado",
+      "ONLINE": "Online",
       "CANCELLED": "Cancelado"
+    },
+    "weekday": {
+      "0": "Domingo",
+      "1": "Lunes",
+      "2": "Martes",
+      "3": "Miércoles",
+      "4": "Jueves",
+      "5": "Viernes",
+      "6": "Sábado"
+    }
+  },
+  "rsvp": {
+    "going": "Voy",
+    "interested": "Me interesa",
+    "notGoing": "Ya no voy",
+    "attendees": "Asistentes",
+    "goingCount": "{count} van",
+    "interestedCount": "{count} interesados",
+    "waitlist": "Lista de espera",
+    "joinWaitlist": "Anotarme en lista de espera",
+    "waitlistPosition": "Tu posición: {position}",
+    "promoted": "¡Te liberaron un cupo!",
+    "loginRequired": "Entra con tu correo para confirmar asistencia"
+  },
+  "practices": {
+    "title": "Prácticas",
+    "empty": "No hay prácticas publicadas.",
+    "create": "Crear práctica",
+    "name": "Nombre de la práctica",
+    "city": "Ciudad",
+    "venue": "Lugar",
+    "startsAt": "Fecha y hora",
+    "host": "Anfitrión",
+    "created": "¡Práctica creada!"
+  },
+  "trips": {
+    "title": "Mis viajes",
+    "empty": "Aún no has anunciado viajes.",
+    "add": "Anunciar viaje",
+    "destination": "Destino",
+    "loginRequired": "Entra con tu correo para ver tus viajes"
+  },
+  "admin": {
+    "title": "Administración",
+    "roleRequests": "Solicitudes de rol",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "empty": "No hay solicitudes pendientes.",
+    "notAdmin": "Esta sección es para administradores",
+    "status": {
+      "PENDING": "Pendiente",
+      "SANDBOX": "Sandbox",
+      "APPROVED": "Aprobado"
+    }
+  },
+  "producer": {
+    "title": "Productor",
+    "discountCodes": "Códigos de descuento",
+    "newCode": "Nuevo código",
+    "code": "Código",
+    "type": "Tipo",
+    "percentOff": "% descuento",
+    "amountOff": "Monto fijo (CLP)",
+    "maxUses": "Usos máximos",
+    "expiresAt": "Expira",
+    "usedCount": "Usos",
+    "empty": "No hay códigos creados.",
+    "guestLists": "Listas de invitados",
+    "newList": "Nueva lista",
+    "listName": "Nombre de la lista",
+    "addPerson": "Agregar persona",
+    "notProducer": "Esta sección es para productores",
+    "types": {
+      "CUMPLEANOS": "Cumpleaños",
+      "CORTESIA": "Cortesía",
+      "CASO_BORDE_PUERTA": "Caso borde puerta",
+      "CAMPAIGN": "Campaña",
+      "WINBACK": "Winback",
+      "STAFF_COMP": "Compensación staff"
     }
   },
   "profile": {
@@ -144,6 +258,17 @@
     "roles": "Roles",
     "requestRole": "Solicitar rol",
     "rolePending": "En revisión",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "loginRequired": "Entra con tu correo para ver tu perfil",
+    "roleLabels": {
+      "DANCER": "Bailarín",
+      "DJ": "DJ",
+      "PRODUCER": "Productor",
+      "STAFF": "Staff",
+      "VENUE_MANAGER": "Dueño de local",
+      "ACADEMY_OWNER": "Dueño de academia",
+      "INSTRUCTOR": "Instructor",
+      "ADMIN": "Administrador"
+    }
   }
 }

@@ -101,7 +101,7 @@ export default function StaffPage() {
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("error")}
+            ↻ {tc("retry")}
           </Button>
         </div>
       )}

@@ -19,9 +19,7 @@ type Streak = {
 };
 
 type BadgeItem = {
-  key: string;
-  name: string;
-  category: string;
+  badge: { key: string; name: string; category: string };
   awardedAt?: string;
 };
 
@@ -36,24 +34,18 @@ const REQUESTABLE_ROLES = [
   "INSTRUCTOR",
 ] as const;
 
-// i18n: claves pendientes en el catálogo (reportadas al coordinador) —
-// etiquetas legibles de roles y mensaje de insignias vacío.
-const ROLE_LABELS: Record<string, string> = {
-  DANCER: "Bailarín/a",
-  DJ: "DJ",
-  PRODUCER: "Productor/a",
-  STAFF: "Staff",
-  VENUE_MANAGER: "Venue Manager",
-  ACADEMY_OWNER: "Dueño/a de academia",
-  INSTRUCTOR: "Instructor/a",
-};
-
-const BADGES_EMPTY_FALLBACK =
-  "Aún no tienes insignias — sal a bailar esta semana y gana la primera.";
-
-function roleLabel(role: string): string {
-  return ROLE_LABELS[role] ?? role;
-}
+// Etiquetas legibles de roles — las claves viven en profile.roleLabels.*;
+// un rol desconocido se muestra tal cual.
+const KNOWN_ROLES = [
+  "DANCER",
+  "DJ",
+  "PRODUCER",
+  "STAFF",
+  "VENUE_MANAGER",
+  "ACADEMY_OWNER",
+  "INSTRUCTOR",
+  "ADMIN",
+] as const;
 
 export default function PerfilPage() {
   const t = useTranslations("profile");
@@ -66,6 +58,12 @@ export default function PerfilPage() {
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   const [pendingRoles, setPendingRoles] = useState<Set<string>>(new Set());
   const [requesting, setRequesting] = useState<string | null>(null);
+
+  function roleLabel(role: string): string {
+    return (KNOWN_ROLES as readonly string[]).includes(role)
+      ? t(`roleLabels.${role}`)
+      : role;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -226,17 +224,17 @@ export default function PerfilPage() {
           {tg("badges")}
         </h2>
         {badges.length === 0 ? (
-          <p className="mt-3 text-sm text-white/60">{BADGES_EMPTY_FALLBACK}</p>
+          <p className="mt-3 text-sm text-white/60">{tg("badgesEmpty")}</p>
         ) : (
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {badges.map((b) => (
               <li
-                key={b.key}
+                key={b.badge.key}
                 className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 p-3"
               >
-                <span className="font-medium leading-tight">{b.name}</span>
+                <span className="font-medium leading-tight">{b.badge.name}</span>
                 <Badge variant="muted" className="w-fit">
-                  {b.category}
+                  {b.badge.category}
                 </Badge>
               </li>
             ))}

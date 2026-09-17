@@ -137,10 +137,12 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     if (phase.kind !== "awaiting") return;
     setSimulating(true);
     try {
+      // El webhook resuelve el pago por refId (= order ref embebido en stub://pay/<refId>)
+      const refId = phase.paymentUrl.replace(/^stub:\/\/pay\//, "");
       await apiFetch("/payments/webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refId: phase.paymentId, status }),
+        body: JSON.stringify({ refId, status }),
       });
     } catch {
       // El polling refleja el resultado real del pago
@@ -286,9 +288,8 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             <p className="animate-pulse text-white/70">{t("pending")}</p>
             {isStub && (
               <div className="flex w-full flex-col gap-3 border-t border-night-700 pt-4">
-                {/* FIXME i18n: faltan checkout.devSim* en el catálogo */}
                 <p className="text-xs uppercase tracking-wide text-white/40">
-                  Modo dev: simular pago
+                  {t("devSimTitle")}
                 </p>
                 <div className="flex gap-3">
                   <Button
@@ -297,7 +298,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                     disabled={simulating}
                     onClick={() => void simulate("PAID")}
                   >
-                    Simular aprobado
+                    {t("devSimApprove")}
                   </Button>
                   <Button
                     type="button"
@@ -306,7 +307,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                     disabled={simulating}
                     onClick={() => void simulate("FAILED")}
                   >
-                    Simular fallido
+                    {t("devSimFail")}
                   </Button>
                 </div>
               </div>

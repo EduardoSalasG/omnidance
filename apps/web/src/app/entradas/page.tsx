@@ -99,10 +99,7 @@ export default function EntradasPage() {
 
       {state === "unauth" && (
         <Card className="flex flex-col items-center gap-4 text-center">
-          {/* FIXME i18n: falta wallet.loginRequired en el catálogo */}
-          <p className="text-white/70">
-            Entra con tu correo para ver tus entradas
-          </p>
+          <p className="text-white/70">{t("loginRequired")}</p>
           <Button href="/login">{tc("login")}</Button>
         </Card>
       )}
@@ -160,8 +157,7 @@ export default function EntradasPage() {
                     href="/qr"
                     className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
                   >
-                    {/* FIXME i18n: falta wallet.showQrHint en el catálogo */}
-                    <span>Muestra tu QR en puerta</span>
+                    <span>{t("showQrHint")}</span>
                     <span aria-hidden="true">→</span>
                   </Link>
                 )}
