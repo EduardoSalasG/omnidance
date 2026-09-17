@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import messages from "../../../../messages/es-CL.json";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,9 @@ export default async function EventoDetailPage({
         </div>
       </header>
 
+      {/* Prime Time — solo cuando el evento está en vivo */}
+      {event.status === "LIVE" && <PrimeTimeWidget eventId={event.id} />}
+
       {/* Precios */}
       <Card>
         {event.presalePrice == null && event.doorPrice == null ? (
@@ -209,6 +213,12 @@ export default async function EventoDetailPage({
             ) : (
               <span className="text-lg font-semibold text-neon">{t.free}</span>
             )}
+            <Link
+              href={`/bailes?event=${event.id}`}
+              className="inline-flex min-h-11 items-center text-xs text-white/50 underline-offset-4 hover:text-neon"
+            >
+              {messages.sessions.title} →
+            </Link>
           </div>
           <Button
             href={`/eventos/${event.id}/checkout`}
