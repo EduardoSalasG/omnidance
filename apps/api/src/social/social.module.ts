@@ -1,8 +1,10 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { NotificationsModule } from "../notifications/notifications.module";
-import { PrismaService } from "../prisma.service";
+import { PrismaModule } from "../prisma.module";
 import { AvailabilityController } from "./infrastructure/availability.controller";
+import { BlocksController } from "./infrastructure/blocks.controller";
+import { FriendsController } from "./infrastructure/friends.controller";
 import {
   EventGuestListsController,
   GuestListsController,
@@ -20,7 +22,7 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
 
 /** Social: RSVP, guest lists, waitlist, prácticas, trips, venues, matchmaking y disponibilidad. */
 @Module({
-  imports: [AuthModule, NotificationsModule],
+  imports: [AuthModule, NotificationsModule, PrismaModule],
   controllers: [
     RsvpController,
     MeRsvpController,
@@ -33,7 +35,8 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
     VenuesController,
     PartnerRequestsController,
     AvailabilityController,
+    BlocksController,
+    FriendsController,
   ],
-  providers: [PrismaService],
 })
 export class SocialModule {}

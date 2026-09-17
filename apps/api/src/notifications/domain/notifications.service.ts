@@ -74,6 +74,18 @@ export class NotificationsService {
     });
   }
 
+  /**
+   * Notificación best-effort: un fallo del centro nunca rompe el flujo de
+   * dominio del caller (webhook de pago, sesiones, waitlist, friends).
+   */
+  async notifySafe(personId: string, input: NotifyInput): Promise<void> {
+    try {
+      await this.notify(personId, input);
+    } catch {
+      /* notificación no crítica */
+    }
+  }
+
   async listForPerson(
     personId: string,
     opts: ListNotificationsOptions,

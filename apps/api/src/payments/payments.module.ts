@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { PrismaService } from "../prisma.service";
 import { AuthModule } from "../auth/auth.module";
+import { PrismaModule } from "../prisma.module";
 import { ParamsModule } from "../params/params.module";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "./domain/ports";
 import { PricingService } from "./domain/pricing.service";
@@ -14,10 +14,9 @@ import { PaymentsController } from "./infrastructure/webhook.controller";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
-  imports: [AuthModule, ParamsModule, NotificationsModule],
+  imports: [AuthModule, ParamsModule, NotificationsModule, PrismaModule],
   controllers: [CheckoutController, TicketsController, PaymentsController],
   providers: [
-    PrismaService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
       provide: PAYMENT_GATEWAY,
@@ -32,6 +31,12 @@ import { NotificationsModule } from "../notifications/notifications.module";
             secret,
             process.env.FLOW_BASE_URL ?? "https://www.flow.cl/api",
             `${apiUrl}/api/payments/webhook`,
+          );
+        }
+        // Fail-close: el stub acepta webhooks sin firma — jamás en producción.
+        if (process.env.NODE_ENV === "production") {
+          throw new Error(
+            "PAYMENT_GATEWAY=flow con FLOW_API_KEY/FLOW_SECRET es requerido en producción (StubGateway deshabilitado)",
           );
         }
         return new StubGateway();

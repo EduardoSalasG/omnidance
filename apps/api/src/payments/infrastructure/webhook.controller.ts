@@ -6,7 +6,6 @@ import {
   HttpCode,
   Inject,
   NotFoundException,
-  Optional,
   Param,
   Post,
   Req,
@@ -20,10 +19,7 @@ import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import { decodeTicketOrderRef } from "../domain/order-ref";
 import { ParamsService } from "../../params/params.service";
-import {
-  NotificationsService,
-  type NotifyInput,
-} from "../../notifications/domain/notifications.service";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { SERVICE_FEE } from "@omnidance/shared";
 
 class WebhookDto {
@@ -47,14 +43,12 @@ class WebhookDto {
 
 @Controller("payments")
 export class PaymentsController {
-  // NotificationsService es @Optional: PaymentsModule aún no importa
-  // NotificationsModule (pendiente de wiring — ver handoff).
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly pricing: PricingService,
     private readonly params: ParamsService,
-    @Optional() private readonly notifications?: NotificationsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -84,7 +78,7 @@ export class PaymentsController {
         where: { id: payment.id },
         data: { status: "FAILED" },
       });
-      await this.safeNotify(payment.personId, {
+      await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.failed",
         title: "Tu pago no pudo procesarse",
@@ -93,10 +87,21 @@ export class PaymentsController {
       return { ok: true, status: "FAILED" };
     }
 
-    const order = decodeTicketOrderRef(payment.refId);
+    // El contexto de la compra vive en columnas (Payment.eventId/
+    // discountCodeId); refId queda solo como correlación con la pasarela.
+    // Fallback al decode para pagos legacy sin las columnas.
+    const order = payment.eventId
+      ? { eventId: payment.eventId, codeId: payment.discountCodeId }
+      : decodeTicketOrderRef(payment.refId);
     if (!order) {
-      throw new BadRequestException("refId sin formato de orden ticket");
+      throw new BadRequestException("pago sin contexto de orden ticket");
     }
+
+    // fee parametrizable: se lee ANTES de abrir la tx (usa this.prisma, no tx)
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.presale_clp",
+      Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
+    );
 
     // la notificación solo sale si esta llamada fue la que marcó PAID
     // (no en re-notificaciones ni carreras perdidas dentro de la tx)
@@ -125,10 +130,7 @@ export class PaymentsController {
         : null;
       const quote = this.pricing.quote({
         listPrice: event?.presalePrice ?? payment.amount,
-        serviceFeeClp: await this.params.getNumber(
-          "service_fee.presale_clp",
-          Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
-        ),
+        serviceFeeClp,
         discount: code,
       });
 
@@ -160,7 +162,7 @@ export class PaymentsController {
     });
 
     if (paidNow) {
-      await this.safeNotify(payment.personId, {
+      await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.paid",
         title: "Pago confirmado — tu ticket está listo",
@@ -186,21 +188,5 @@ export class PaymentsController {
       amount: payment.amount,
       createdAt: payment.createdAt,
     };
-  }
-
-  /**
-   * Notificación best-effort: un fallo del centro de notificaciones (o la
-   * ausencia del provider mientras el módulo no esté wireado) nunca rompe el
-   * webhook — la pasarela debe recibir 200 igual.
-   */
-  private async safeNotify(
-    personId: string,
-    input: NotifyInput,
-  ): Promise<void> {
-    try {
-      await this.notifications?.notify(personId, input);
-    } catch {
-      /* notificación no crítica */
-    }
   }
 }

@@ -28,6 +28,58 @@ export function invalidateRoleCatalog(roleKey?: string): void {
 }
 
 /**
+ * Resuelve roles→permisos contra el catálogo DB (cache 30s + isSuperuser).
+ * Exportado para checks puntuales fuera del guard (p.ej. "self o staff" en
+ * un endpoint donde @RequirePermissions no aplica a todo el handler).
+ */
+export async function roleKeysHavePermission(
+  prisma: PrismaService,
+  roleKeys: string[],
+  requiredPerms: string[],
+): Promise<boolean> {
+  if (!roleKeys.length) return false;
+  const missing = roleKeys.filter((k) => {
+    const hit = catalogCache.get(k);
+    return !hit || Date.now() - hit.at > CATALOG_TTL_MS;
+  });
+
+  if (missing.length) {
+    const rows = await prisma.role.findMany({
+      where: { key: { in: missing } },
+      select: {
+        key: true,
+        isSuperuser: true,
+        permissions: { select: { permissionKey: true } },
+      },
+    });
+    for (const r of rows) {
+      catalogCache.set(r.key, {
+        isSuperuser: r.isSuperuser,
+        permissions: new Set(r.permissions.map((p) => p.permissionKey)),
+        at: Date.now(),
+      });
+    }
+    // roles inexistentes en catálogo → cachear como vacío
+    for (const k of missing) {
+      if (!catalogCache.has(k)) {
+        catalogCache.set(k, {
+          isSuperuser: false,
+          permissions: new Set(),
+          at: Date.now(),
+        });
+      }
+    }
+  }
+
+  return roleKeys.some((k) => {
+    const r = catalogCache.get(k);
+    if (!r) return false;
+    if (r.isSuperuser) return true;
+    return requiredPerms.some((p) => r.permissions.has(p));
+  });
+}
+
+/**
  * RBAC global, todo DB-driven. Uso:
  *   `@UseGuards(SessionGuard, RolesGuard)` +
  *   `@RequirePermissions("checkins.write")` (OR lógico) — preferido;
@@ -88,49 +140,10 @@ export class RolesGuard implements CanActivate {
     throw new ForbiddenException(`requiere ${what}`);
   }
 
-  private async hasPermission(
+  private hasPermission(
     roleKeys: string[],
     requiredPerms: string[],
   ): Promise<boolean> {
-    if (!roleKeys.length) return false;
-    const missing = roleKeys.filter((k) => {
-      const hit = catalogCache.get(k);
-      return !hit || Date.now() - hit.at > CATALOG_TTL_MS;
-    });
-
-    if (missing.length) {
-      const rows = await this.prisma.role.findMany({
-        where: { key: { in: missing } },
-        select: {
-          key: true,
-          isSuperuser: true,
-          permissions: { select: { permissionKey: true } },
-        },
-      });
-      for (const r of rows) {
-        catalogCache.set(r.key, {
-          isSuperuser: r.isSuperuser,
-          permissions: new Set(r.permissions.map((p) => p.permissionKey)),
-          at: Date.now(),
-        });
-      }
-      // roles inexistentes en catálogo → cachear como vacío
-      for (const k of missing) {
-        if (!catalogCache.has(k)) {
-          catalogCache.set(k, {
-            isSuperuser: false,
-            permissions: new Set(),
-            at: Date.now(),
-          });
-        }
-      }
-    }
-
-    return roleKeys.some((k) => {
-      const r = catalogCache.get(k);
-      if (!r) return false;
-      if (r.isSuperuser) return true;
-      return requiredPerms.some((p) => r.permissions.has(p));
-    });
+    return roleKeysHavePermission(this.prisma, roleKeys, requiredPerms);
   }
 }

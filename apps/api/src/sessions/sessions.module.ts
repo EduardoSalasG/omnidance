@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { PrismaService } from "../prisma.service";
 import { AuthModule } from "../auth/auth.module";
+import { PrismaModule } from "../prisma.module";
 import { QrModule } from "../qr/qr.module";
 import { ParamsModule } from "../params/params.module";
 import { NotificationsModule } from "../notifications/notifications.module";
@@ -11,6 +11,7 @@ import { SessionsController } from "./infrastructure/sessions.controller";
 @Module({
   imports: [
     AuthModule,
+    PrismaModule,
     QrModule,
     ParamsModule,
     NotificationsModule,
@@ -18,7 +19,6 @@ import { SessionsController } from "./infrastructure/sessions.controller";
   ],
   controllers: [SessionsController],
   providers: [
-    PrismaService,
     { provide: SessionsService, useFactory: () => new SessionsService() },
   ],
 })

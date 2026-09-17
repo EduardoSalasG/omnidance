@@ -58,12 +58,17 @@ export const PARAM_DEFAULTS: Array<{
   { key: "qr.rotation_seconds", value: 60, description: "Segundos de vigencia del QR personal rotativo" },
   { key: "prime_time.window_minutes", value: 30, description: "Minutos de la ventana Prime Time" },
   { key: "prime_time.threshold_pct", value: 0.2, description: "Umbral Prime Time como fracción del aforo" },
+  { key: "early_checkin.cutoff_minutes", value: 1380, description: "Minutos desde medianoche — check-in antes de esta hora (23:00) cuenta como temprano (badge madrugador + puntos early_checkin)" },
 ];
 
 /** Catálogo de badges — las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
 export const BADGE_CATALOG = [
   { key: "primera_bachata", name: "Primera bachata", category: "MILESTONE" },
   { key: "bailarin_constante", name: "Bailarín constante", category: "MILESTONE" },
+  { key: "madrugador", name: "Madrugador", category: "CONDUCT" },
+  { key: "maratonista", name: "Maratonista", category: "CONDUCT" },
+  { key: "mariposa_social", name: "Mariposa social", category: "CONDUCT" },
+  { key: "prime_time_crown", name: "Corona Prime Time", category: "TEMPORARY_STATUS" },
 ] as const;
 
 /** Crea o confirma una persona con sus roles. Idempotente por email. */

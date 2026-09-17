@@ -17,6 +17,7 @@ import {
 } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { EVENT_RECENT_LOOKBACK_MS } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import {
   SocialDomainError,
@@ -131,7 +132,7 @@ export class PracticesController {
       where: {
         type: "PRACTICA",
         status: { in: ["PUBLISHED", "LIVE"] },
-        startsAt: { gte: new Date(Date.now() - 12 * 60 * 60 * 1000) },
+        startsAt: { gte: new Date(Date.now() - EVENT_RECENT_LOOKBACK_MS) },
       },
       orderBy: { startsAt: "asc" },
       select: {

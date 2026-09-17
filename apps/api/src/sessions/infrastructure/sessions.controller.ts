@@ -7,7 +7,6 @@ import {
   Get,
   HttpCode,
   NotFoundException,
-  Optional,
   Param,
   Post,
   Query,
@@ -26,10 +25,7 @@ import {
   SessionsService,
   type SessionAction,
 } from "../domain/sessions.service";
-import {
-  NotificationsService,
-  type NotifyInput,
-} from "../../notifications/domain/notifications.service";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { GamificationService } from "../../gamification/domain/gamification.service";
 
 class InviteDto {
@@ -38,6 +34,14 @@ class InviteDto {
 
   @IsString()
   eventId!: string;
+}
+
+class DeclareDto {
+  @IsString()
+  eventId!: string;
+
+  @IsString()
+  personId!: string;
 }
 
 class RateDto {
@@ -68,17 +72,13 @@ class RateDto {
 @Controller("sessions")
 @UseGuards(SessionGuard)
 export class SessionsController {
-  // NotificationsService y GamificationService son @Optional: SessionsModule
-  // aún no importa NotificationsModule/GamificationModule (pendiente de wiring
-  // — ver handoff). Una vez importados se resuelven solos; sin ellos los hooks
-  // son no-op y el flujo de dominio no se rompe.
   constructor(
     private readonly prisma: PrismaService,
     private readonly qr: QrService,
     private readonly sessions: SessionsService,
     private readonly params: ParamsService,
-    @Optional() private readonly notifications?: NotificationsService,
-    @Optional() private readonly gamification?: GamificationService,
+    private readonly notifications: NotificationsService,
+    private readonly gamification: GamificationService,
   ) {}
 
   @Post("invite")
@@ -92,11 +92,48 @@ export class SessionsController {
       throw new BadRequestException("qrToken inválido o expirado");
     }
 
+    return this.createSessionInvite(inviterId, inviteeId, dto.eventId, false);
+  }
+
+  /**
+   * Declaración retroactiva (spec-gap-closure: sessions/retro-declared):
+   * mismo flujo que invite pero sin QR — la persona se elige manualmente.
+   * Cuenta para perfil/historial/streaks, nunca para Prime Time
+   * (retroDeclared:true — el repo de gamificación lo filtra).
+   */
+  @Post("declare")
+  async declare(@Req() req: Request, @Body() dto: DeclareDto) {
+    const inviterId = req.person!.id;
+
+    const invitee = await this.prisma.person.findUnique({
+      where: { id: dto.personId },
+      select: { id: true },
+    });
+    if (!invitee) throw new NotFoundException("persona no encontrada");
+
+    return this.createSessionInvite(inviterId, dto.personId, dto.eventId, true);
+  }
+
+  /**
+   * Flujo compartido invite/declare: valida evento, enforcement de bloqueos
+   * (silencioso — spec §4), cooldown del par, estilo por bloque horario,
+   * creación INVITED y notificación a la contraparte.
+   */
+  private async createSessionInvite(
+    inviterId: string,
+    inviteeId: string,
+    eventId: string,
+    retroDeclared: boolean,
+  ) {
     const event = await this.prisma.event.findUnique({
-      where: { id: dto.eventId },
+      where: { id: eventId },
       select: { id: true },
     });
     if (!event) throw new NotFoundException("evento no encontrado");
+
+    // Enforcement de bloqueos: si el invitee bloqueó al inviter se rechaza
+    // con un error genérico — NUNCA revelar la existencia del bloqueo.
+    await this.assertNotBlocked(inviterId, inviteeId);
 
     // última sesión "viva" del par (INVITED/CONFIRMED), en cualquier dirección
     const lastPair = await this.prisma.danceSession.findFirst({
@@ -131,7 +168,7 @@ export class SessionsController {
     const now = new Date();
     const block = await this.prisma.scheduleBlock.findFirst({
       where: {
-        eventId: dto.eventId,
+        eventId,
         styleId: { not: null },
         startsAt: { lte: now },
         endsAt: { gte: now },
@@ -141,10 +178,11 @@ export class SessionsController {
 
     const session = await this.prisma.danceSession.create({
       data: {
-        eventId: dto.eventId,
+        eventId,
         inviterId,
         inviteeId,
         styleId: block?.styleId ?? null,
+        retroDeclared,
       },
     });
 
@@ -154,7 +192,7 @@ export class SessionsController {
       select: { name: true, photoUrl: true },
     });
 
-    await this.safeNotify(inviteeId, {
+    await this.notifications.notifySafe(inviteeId, {
       category: "SOCIAL",
       type: "session.invite",
       title: `${inviter?.name ?? "Alguien"} te invitó a bailar`,
@@ -265,6 +303,7 @@ export class SessionsController {
           : session.inviterId;
       await this.safeEvaluateBadges(raterId);
       await this.safeEvaluateBadges(ratedId);
+      await this.safeAccrue(raterId, "rating_closed", "session", id);
 
       return rating;
     } catch (e) {
@@ -297,7 +336,7 @@ export class SessionsController {
           select: { name: true },
         });
         const actorName = actor?.name ?? "Tu pareja de baile";
-        await this.safeNotify(session.inviterId, {
+        await this.notifications.notifySafe(session.inviterId, {
           category: "SOCIAL",
           type:
             action === "confirm" ? "session.confirmed" : "session.declined",
@@ -309,9 +348,23 @@ export class SessionsController {
         });
       }
       if (action === "confirm") {
-        // La sesión ya cuenta como actividad confirmada: evalúa badges de ambos.
+        // La sesión ya cuenta como actividad confirmada: evalúa badges de
+        // ambos y acredita los puntos de temporada (retro-declaradas también
+        // suman — solo Prime Time las excluye).
         await this.safeEvaluateBadges(session.inviterId);
         await this.safeEvaluateBadges(session.inviteeId);
+        await this.safeAccrue(
+          session.inviterId,
+          "session_confirmed",
+          "session",
+          id,
+        );
+        await this.safeAccrue(
+          session.inviteeId,
+          "session_confirmed",
+          "session",
+          id,
+        );
       }
 
       return updated;
@@ -321,25 +374,41 @@ export class SessionsController {
   }
 
   /**
-   * Notificación best-effort: un fallo del centro de notificaciones (o la
-   * ausencia del provider mientras el módulo no esté wireado) nunca rompe el
-   * flujo de dominio.
+   * Enforcement de user-blocks (spec-gap-closure: safety/user-blocks):
+   * si el invitee bloqueó al inviter → 403 genérico. La dirección importa:
+   * el bloqueo solo impide invitar a quien te bloqueó, no al revés.
    */
-  private async safeNotify(
-    personId: string,
-    input: NotifyInput,
+  private async assertNotBlocked(
+    inviterId: string,
+    inviteeId: string,
   ): Promise<void> {
-    try {
-      await this.notifications?.notify(personId, input);
-    } catch {
-      /* notificación no crítica */
+    const blocked = await this.prisma.userBlock.findFirst({
+      where: { blockerId: inviteeId, blockedId: inviterId },
+      select: { id: true },
+    });
+    if (blocked) {
+      throw new ForbiddenException("no se puede enviar la invitación");
     }
   }
 
   /** Hook de gamificación best-effort (evalúa y otorga badges pendientes). */
   private async safeEvaluateBadges(personId: string): Promise<void> {
     try {
-      await this.gamification?.evaluateBadgesFor(personId);
+      await this.gamification.evaluateBadgesFor(personId);
+    } catch {
+      /* gamificación no crítica */
+    }
+  }
+
+  /** Acredita puntos de temporada best-effort (idempotente por refType/refId). */
+  private async safeAccrue(
+    personId: string,
+    reason: "session_confirmed" | "rating_closed",
+    refType: string,
+    refId: string,
+  ): Promise<void> {
+    try {
+      await this.gamification.accruePoints(personId, reason, refType, refId);
     } catch {
       /* gamificación no crítica */
     }

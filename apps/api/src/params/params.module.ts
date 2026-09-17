@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
-import { PrismaService } from "../prisma.service";
+import { PrismaModule } from "../prisma.module";
 import {
   AdminParamsController,
   PublicParamsController,
@@ -8,9 +8,9 @@ import {
 import { ParamsService } from "./params.service";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, PrismaModule],
   controllers: [PublicParamsController, AdminParamsController],
-  providers: [PrismaService, ParamsService],
+  providers: [ParamsService],
   exports: [ParamsService],
 })
 export class ParamsModule {}

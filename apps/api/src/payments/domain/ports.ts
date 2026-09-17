@@ -2,6 +2,9 @@
 export const PAYMENT_GATEWAY = "PAYMENT_GATEWAY";
 
 export interface PaymentGateway {
+  /** Identificador persistido en Payment.gateway (STUB | FLOW). */
+  readonly name: string;
+
   createOrder(p: {
     refId: string;
     amount: number;

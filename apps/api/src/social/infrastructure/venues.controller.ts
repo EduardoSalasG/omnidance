@@ -12,11 +12,13 @@ export class VenuesController {
 
   /** GET /api/venues → [{ id, name, address, capacity }] active, por nombre. */
   @Get()
-  list() {
-    return this.prisma.venue.findMany({
+  async list() {
+    const venues = await this.prisma.venue.findMany({
       where: { active: true },
-      orderBy: { name: "asc" },
       select: { id: true, name: true, address: true, capacity: true },
     });
+    // Orden en JS (localeCompare) — Postgres collation y JS difieren en
+    // espacios/mayúsculas y el contrato del endpoint es orden por nombre.
+    return venues.sort((a, b) => a.name.localeCompare(b.name));
   }
 }
