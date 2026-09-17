@@ -1,0 +1,970 @@
+// Omni-Dance — modelo de datos completo (spec: omni-dance.md §12)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════ IDENTIDAD ═══════════════════
+
+enum UserRole {
+  DANCER
+  DJ
+  PRODUCER
+  STAFF
+  VENUE_MANAGER
+  ACADEMY_OWNER
+  INSTRUCTOR
+  ADMIN
+  SUPPORT
+}
+
+enum RoleStatus {
+  PENDING
+  SANDBOX
+  APPROVED
+}
+
+enum EntityType {
+  PERSONA
+  EMPRESA
+}
+
+model Person {
+  id            String   @id @default(cuid())
+  email         String?  @unique
+  phone         String?  @unique
+  name          String
+  photoUrl      String?
+  qrSecret      String   @default(cuid()) // semilla del QR rotativo (TOTP-like)
+  isLightAccount Boolean @default(false) // cuenta creada en puerta (nombre+teléfono)
+  verifiedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  roles          PersonRole[]
+  fiscalProfile  FiscalProfile?
+  styleRoles     PersonStyleRole[]
+  notifications  Notification[]
+  pushTokens     PushToken[]
+}
+
+model PersonRole {
+  id        String     @id @default(cuid())
+  person    Person     @relation(fields: [personId], references: [id])
+  personId  String
+  role      UserRole
+  status    RoleStatus @default(PENDING) // sandbox/demo hasta aprobación admin
+  createdAt DateTime   @default(now())
+
+  @@unique([personId, role])
+}
+
+// RUT/razón social — requerido en roles que reciben liquidaciones o emiten documentos
+model FiscalProfile {
+  id         String     @id @default(cuid())
+  person     Person     @relation(fields: [personId], references: [id])
+  personId   String     @unique
+  rut        String
+  legalName  String // razón social
+  entityType EntityType
+  giro       String?
+  createdAt  DateTime   @default(now())
+}
+
+// ═══════════════════ ESTILOS / BAILE ═══════════════════
+
+enum Genre {
+  SALSA
+  BACHATA
+  CUBANO
+  OTHER
+}
+
+enum DanceRole {
+  LEADER
+  FOLLOWER
+  SWITCH
+}
+
+model Style {
+  id       String  @id @default(cuid())
+  name     String // "cubana", "on2", "sensual", "dominicana", "casino"…
+  genre    Genre
+  parent   Style?  @relation("StyleHierarchy", fields: [parentId], references: [id])
+  parentId String?
+  children Style[] @relation("StyleHierarchy")
+
+  personStyleRoles PersonStyleRole[]
+  scheduleBlocks   ScheduleBlock[]
+}
+
+model PersonStyleRole {
+  id       String    @id @default(cuid())
+  person   Person    @relation(fields: [personId], references: [id])
+  personId String
+  style    Style     @relation(fields: [styleId], references: [id])
+  styleId  String
+  role     DanceRole
+  level    String? // autodeclarado: principiante/intermedio/avanzado
+
+  @@unique([personId, styleId, role])
+}
+
+// ═══════════════════ SOCIAL ═══════════════════
+
+model Friendship {
+  id        String   @id @default(cuid())
+  aId       String
+  bId       String
+  status    String   @default("PENDING") // PENDING | ACCEPTED
+  createdAt DateTime @default(now())
+
+  @@unique([aId, bId])
+}
+
+model Rsvp {
+  id        String   @id @default(cuid())
+  event     Event    @relation(fields: [eventId], references: [id])
+  eventId   String
+  personId  String
+  status    String   @default("GOING") // GOING | INTERESTED
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, personId])
+}
+
+// ═══════════════════ VENUES / EVENTOS ═══════════════════
+
+model Venue {
+  id       String  @id @default(cuid())
+  name     String
+  address  String?
+  capacity Int?
+  lat      Float?
+  lng      Float?
+  active   Boolean @default(true)
+
+  events       Event[]
+  series       EventSeries[]
+  menus        VenueMenu[]
+  rentals      VenueRental[]
+}
+
+enum EventType {
+  SOCIAL
+  PRACTICA
+  GALA
+  CONGRESS
+  COMPETITION
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  LIVE
+  CLOSED
+  CANCELLED
+}
+
+model EventSeries {
+  id          String  @id @default(cuid())
+  name        String // "La Gozadera", "Bachatamanía"
+  producerId  String
+  venue       Venue   @relation(fields: [venueId], references: [id])
+  venueId     String
+  recurrence  String? // "weekly:wed", "3x/month:fri" — descriptor humano en v1
+  active      Boolean @default(true)
+
+  events     Event[]
+  seriesPass SeriesPass[]
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  series      EventSeries? @relation(fields: [seriesId], references: [id])
+  seriesId    String?     // null = standalone (galas de academia)
+  venue       Venue       @relation(fields: [venueId], references: [id])
+  venueId     String
+  producerId  String?
+  hostId      String?     // host de práctica (creador bailarín)
+  academyId   String?
+  type        EventType   @default(SOCIAL)
+  status      EventStatus @default(DRAFT)
+  name        String
+  startsAt    DateTime
+  endsAt      DateTime
+  capacity    Int?
+  presalePrice Int?       // CLP
+  doorPrice    Int?
+  presaleCap  Int?
+  doorCap     Int?
+  // Prime Time
+  primeThreshold Int?     // null → ~20% del aforo esperado
+  happyHourMinutes Int @default(30)
+  photosUrl   String?     // Drive del fotógrafo
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  days           EventDay[]
+  scheduleBlocks ScheduleBlock[]
+  djs            EventDj[]
+  rsvps          Rsvp[]
+  shows          Show[]
+}
+
+model EventDay {
+  id      String   @id @default(cuid())
+  event   Event    @relation(fields: [eventId], references: [id])
+  eventId String
+  date    DateTime
+  label   String? // "Día 1 — workshops", "Noche de fiesta"
+}
+
+model ScheduleBlock {
+  id       String   @id @default(cuid())
+  event    Event    @relation(fields: [eventId], references: [id])
+  eventId  String
+  startsAt DateTime
+  endsAt   DateTime
+  style    Style?   @relation(fields: [styleId], references: [id])
+  styleId  String? // género del bloque → inferencia de estilo de sesión
+  djId     String?
+}
+
+model EventDj {
+  id       String @id @default(cuid())
+  event    Event  @relation(fields: [eventId], references: [id])
+  eventId  String
+  personId String
+  slotNote String?
+
+  @@unique([eventId, personId])
+}
+
+// ═══════════════════ PASES / TICKETS / PUERTA ═══════════════════
+
+enum PassType {
+  PAID
+  ARTIST
+  STAFF
+  COMP
+  LIST
+  FREE_WINDOW
+}
+
+model EntryPass {
+  id          String    @id @default(cuid())
+  eventId     String
+  personId    String
+  type        PassType
+  price       Int       @default(0)
+  validUntil  DateTime? // ventana horaria (ej. liberada hasta 23:30)
+  status      String    @default("ACTIVE") // ACTIVE | USED | CANCELLED
+  createdAt   DateTime  @default(now())
+}
+
+enum TicketStatus {
+  ACTIVE
+  USED
+  TRANSFERRED
+  CANCELLED
+}
+
+model Ticket {
+  id           String       @id @default(cuid())
+  eventId      String
+  eventDayId   String?      // pass por jornada (congresos)
+  ownerId      String
+  buyerId      String       // comprador ≠ dueño (gift tickets)
+  listPrice    Int
+  serviceFee   Int
+  status       TicketStatus @default(ACTIVE)
+  giftedFromId String?
+  discountCodeId String?
+  createdAt    DateTime     @default(now())
+}
+
+model Checkin {
+  id         String    @id @default(cuid())
+  eventId    String
+  personId   String
+  passId     String?
+  staffId    String?
+  method     String    @default("SCAN") // SCAN | MANUAL
+  inAt       DateTime  @default(now())
+  outAt      DateTime?
+  syncedAt   DateTime? // cuándo llegó al server (offline-first)
+  voidedAt   DateTime?
+  voidReason String?
+}
+
+model StaffAssignment {
+  id       String   @id @default(cuid())
+  eventId  String
+  personId String
+  role     String   @default("DOOR") // DOOR | DOOR_SALES
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, personId])
+}
+
+model GuestList {
+  id           String  @id @default(cuid())
+  eventId      String
+  ownerId      String // dueño de la lista (ej. cumpleañero)
+  label        String? // "Cumpleaños de X"
+  specialPrice Int?
+  entries      GuestListEntry[]
+}
+
+model GuestListEntry {
+  id          String    @id @default(cuid())
+  guestList   GuestList @relation(fields: [guestListId], references: [id])
+  guestListId String
+  personId    String
+  status      String    @default("PENDING") // PENDING | ARRIVED
+
+  @@unique([guestListId, personId])
+}
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  eventId   String
+  personId  String
+  position  Int
+  status    String   @default("WAITING") // WAITING | PROMOTED | EXPIRED
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, personId])
+}
+
+model SeriesPass {
+  id       String      @id @default(cuid())
+  series   EventSeries @relation(fields: [seriesId], references: [id])
+  seriesId String
+  personId String
+  month    String // "2026-09"
+  price    Int
+
+  @@unique([seriesId, personId, month])
+}
+
+model TableReservation {
+  id        String   @id @default(cuid())
+  eventId   String
+  personId  String // solicitante
+  partySize Int
+  tableNo   String?
+  status    String   @default("REQUESTED") // REQUESTED | CONFIRMED | CANCELLED
+  createdAt DateTime @default(now())
+}
+
+model VenueMenu {
+  id      String @id @default(cuid())
+  venue   Venue  @relation(fields: [venueId], references: [id])
+  venueId String
+  pdfUrl  String
+  version Int    @default(1)
+}
+
+model SongSuggestion {
+  id       String   @id @default(cuid())
+  eventId  String
+  personId String
+  title    String
+  artist   String?
+  createdAt DateTime @default(now())
+}
+
+// ═══════════════════ SESIONES / EVALUACIONES ═══════════════════
+
+enum SessionStatus {
+  INVITED
+  CONFIRMED
+  DECLINED
+  DISCARDED
+  EXPIRED
+  RATED
+  CLOSED
+}
+
+model DanceSession {
+  id             String        @id @default(cuid())
+  eventId        String
+  inviterId      String // quien escaneó
+  inviteeId      String // quien fue escaneado
+  scannedAt      DateTime      @default(now()) // timestamp del escaneo → género inferido
+  confirmedAt    DateTime?
+  status         SessionStatus @default(INVITED)
+  styleId        String?       // inferido por bloque horario, corregible
+  retroDeclared  Boolean       @default(false) // baile declarado sin escaneo
+  createdAt      DateTime      @default(now())
+
+  ratings SessionRating[]
+
+  @@index([eventId, status])
+  @@index([inviterId, inviteeId, scannedAt])
+}
+
+model SessionRating {
+  id         String       @id @default(cuid())
+  session    DanceSession @relation(fields: [sessionId], references: [id])
+  sessionId  String
+  raterId    String
+  global     Int          // 1-5, obligatorio
+  connection Int?
+  comfort    Int?
+  musicality Int?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([sessionId, raterId])
+}
+
+// Evaluación del evento — cada dimensión alimenta el ranking del actor responsable
+model EventRating {
+  id            String   @id @default(cuid())
+  eventId       String
+  raterId       String
+  music         Int?     // → DJ
+  occupation    Int?     // → productor
+  organization  Int?     // → productor
+  floorComfort  Int?     // → venue
+  temperature   Int?     // → venue
+  lightingSound Int?     // → venue
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([eventId, raterId])
+}
+
+// ═══════════════════ GAMIFICACIÓN ═══════════════════
+
+model MissionTemplate {
+  id           String  @id @default(cuid())
+  key          String  @unique // "madrugador", "baila_diverso"…
+  name         String
+  description  String
+  defaultReward Json?
+  isPlatform   Boolean @default(false) // automática vs. elegida por productor
+
+  missions Mission[]
+}
+
+model Mission {
+  id          String          @id @default(cuid())
+  eventId     String?
+  template    MissionTemplate @relation(fields: [templateId], references: [id])
+  templateId  String
+  config      Json?
+  reward      Json?
+  progress    MissionProgress[]
+}
+
+model MissionProgress {
+  id          String    @id @default(cuid())
+  mission     Mission   @relation(fields: [missionId], references: [id])
+  missionId   String
+  personId    String
+  progress    Int       @default(0)
+  completedAt DateTime?
+
+  @@unique([missionId, personId])
+}
+
+model Badge {
+  id       String @id @default(cuid())
+  key      String @unique
+  name     String
+  category String // PASSPORT | MILESTONE | CONDUCT | ROLE_STYLE | SOCIAL | SPECIAL_EVENT | NEWBIE_PADRINO | CONTRIBUTION | TEMPORARY_STATUS
+  rarity   String @default("COMMON") // COMMON | SCARCE
+}
+
+model PersonBadge {
+  id        String   @id @default(cuid())
+  personId  String
+  badgeId   String
+  awardedAt DateTime @default(now())
+  featured  Boolean  @default(false) // badge destacado visible al ser escaneado
+  expiresAt DateTime? // status temporal: corona Prime Time (1 semana)
+
+  @@unique([personId, badgeId])
+}
+
+model Streak {
+  id         String    @id @default(cuid())
+  personId   String
+  type       String // SERIES | PRODUCER | VENUE | WEEKLY_OUT | MONTHLY_OUT | WITH_FRIEND | STYLE | CLASS | CONTRIBUTION
+  targetId   String? // seriesId / producerId / venueId según tipo
+  count      Int       @default(0)
+  lastAt     DateTime?
+
+  @@unique([personId, type, targetId])
+}
+
+model StreakFreeze {
+  id       String   @id @default(cuid())
+  personId String
+  usedAt   DateTime @default(now())
+  month    String // una por mes: "2026-09"
+
+  @@unique([personId, month])
+}
+
+model Season {
+  id       String   @id @default(cuid())
+  name     String
+  startsAt DateTime
+  endsAt   DateTime
+}
+
+model PointLedger {
+  id       String   @id @default(cuid())
+  personId String
+  seasonId String?
+  points   Int // no gastables — solo posición de temporada
+  reason   String
+  refType  String?
+  refId    String?
+  createdAt DateTime @default(now())
+}
+
+model FriendChallenge {
+  id          String   @id @default(cuid())
+  fromId      String
+  toId        String
+  description String
+  status      String   @default("PENDING") // PENDING | ACCEPTED | DONE | FAILED
+  createdAt   DateTime @default(now())
+}
+
+model PrizeDraw {
+  id      String    @id @default(cuid())
+  eventId String
+  type    String // PRIME_TIME | ROULETTE | GOLDEN_SCAN | RAFFLE
+  payload Json?
+  drawnAt DateTime?
+}
+
+model NightSummary {
+  id       String   @id @default(cuid())
+  personId String
+  eventId  String
+  payload  Json // bailes, parejas únicas, estilos, horas en pista
+  createdAt DateTime @default(now())
+
+  @@unique([personId, eventId])
+}
+
+model HappyHourWindow {
+  id       String   @id @default(cuid())
+  eventId  String
+  startsAt DateTime
+  endsAt   DateTime
+  multiplier Int    @default(2) // sesiones cuentan doble para el contador
+}
+
+// ═══════════════════ ACADEMIAS ═══════════════════
+
+model Academy {
+  id        String  @id @default(cuid())
+  name      String
+  ownerId   String // personId del academy_owner
+  active    Boolean @default(true)
+  createdAt DateTime @default(now())
+
+  instructors  AcademyInstructor[]
+  plans        MembershipPlan[]
+  classSlots   ClassSlot[]
+  enrollments  Enrollment[]
+}
+
+model AcademyInstructor {
+  id        String  @id @default(cuid())
+  academy   Academy @relation(fields: [academyId], references: [id])
+  academyId String
+  personId  String // instructor puede estar en N academias
+  createdAt DateTime @default(now())
+
+  @@unique([academyId, personId])
+}
+
+enum PlanType {
+  MONTHLY
+  CLASS_PACK
+  PERIOD
+  TRIAL
+}
+
+model MembershipPlan {
+  id         String   @id @default(cuid())
+  academy    Academy  @relation(fields: [academyId], references: [id])
+  academyId  String
+  name       String
+  type       PlanType
+  price      Int
+  classCount Int? // para CLASS_PACK
+  periodDays Int? // para PERIOD
+  active     Boolean  @default(true)
+
+  enrollments Enrollment[]
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  PAUSED
+  TRIAL
+  FROZEN
+  ONLINE
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  academy   Academy          @relation(fields: [academyId], references: [id])
+  academyId String
+  personId  String
+  plan      MembershipPlan?  @relation(fields: [planId], references: [id])
+  planId    String?
+  status    EnrollmentStatus @default(ACTIVE)
+  startedAt DateTime         @default(now())
+  pausedAt  DateTime?
+  createdAt DateTime         @default(now())
+}
+
+model ClassSlot {
+  id           String   @id @default(cuid())
+  academy      Academy  @relation(fields: [academyId], references: [id])
+  academyId    String
+  instructorId String?
+  weekday      Int // 0-6
+  startTime    String // "19:00"
+  endTime      String
+  capacity     Int
+  styleId      String?
+  classes      Class[]
+}
+
+model Class {
+  id          String    @id @default(cuid())
+  slot        ClassSlot @relation(fields: [classSlotId], references: [id])
+  classSlotId String
+  date        DateTime
+  instructorId String?
+  cancelled   Boolean   @default(false)
+
+  attendances Attendance[]
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  class     Class    @relation(fields: [classId], references: [id])
+  classId   String
+  personId  String
+  checkedAt DateTime @default(now())
+
+  @@unique([classId, personId])
+}
+
+model PrivateLesson {
+  id           String   @id @default(cuid())
+  academyId    String
+  instructorId String
+  personId     String // alumno
+  scheduledAt  DateTime
+  price        Int
+  commissionPct Int    @default(0) // comisión de la academia
+  status       String   @default("REQUESTED") // REQUESTED | CONFIRMED | DONE | CANCELLED
+  createdAt    DateTime @default(now())
+}
+
+model Video {
+  id                   String  @id @default(cuid())
+  academyId            String
+  classId              String?
+  url                  String // YouTube/Vimeo privado — nunca self-host
+  title                String
+  restrictedToAttended Boolean @default(true)
+  createdAt            DateTime @default(now())
+}
+
+model AcademySubscription {
+  id        String   @id @default(cuid())
+  academyId String
+  personId  String
+  planId    String
+  status    String   @default("ACTIVE") // ACTIVE | PAST_DUE | CANCELLED
+  createdAt DateTime @default(now())
+}
+
+// ═══════════════════ ECOSISTEMA ═══════════════════
+
+model PracticePartnerRequest {
+  id        String   @id @default(cuid())
+  personId  String
+  styleId   String?
+  role      DanceRole?
+  level     String?
+  location  String? // comuna / zona
+  note      String?
+  status    String   @default("OPEN") // OPEN | MATCHED | CLOSED
+  createdAt DateTime @default(now())
+}
+
+model VenueRental {
+  id        String   @id @default(cuid())
+  venue     Venue    @relation(fields: [venueId], references: [id])
+  venueId   String
+  academyId String?
+  eventId   String?
+  date      DateTime
+  price     Int?
+  status    String   @default("REQUESTED") // REQUESTED | CONFIRMED | CANCELLED
+  createdAt DateTime @default(now())
+}
+
+model AvailabilityToggle {
+  id        String    @id @default(cuid())
+  personId  String    @unique
+  available Boolean   @default(false) // "disponible para bailar"
+  until     DateTime?
+  location  String?
+  updatedAt DateTime  @updatedAt
+}
+
+model Trip {
+  id          String   @id @default(cuid())
+  personId    String
+  destination String // ciudad / congreso
+  eventId     String? // si el viaje es a un congreso registrado
+  startsAt    DateTime
+  endsAt      DateTime
+  createdAt   DateTime @default(now())
+}
+
+model UserVerification {
+  id        String    @id @default(cuid())
+  personId  String
+  method    String // PHOTO_ID | SOCIAL | ADMIN
+  status    String   @default("PENDING") // PENDING | VERIFIED | REJECTED
+  verifiedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  targetType String // PERSON | PRACTICE | EVENT
+  targetId   String
+  reason     String
+  status     String   @default("OPEN") // OPEN | REVIEWING | RESOLVED | DISMISSED
+  createdAt  DateTime @default(now())
+}
+
+model Show {
+  id       String   @id @default(cuid())
+  event    Event    @relation(fields: [eventId], references: [id])
+  eventId  String
+  academyId String?
+  name     String
+  slotAt   DateTime? // ~00:30
+  performers ShowPerformer[]
+}
+
+model ShowPerformer {
+  id       String @id @default(cuid())
+  show     Show   @relation(fields: [showId], references: [id])
+  showId   String
+  personId String // artista — pase ARTIST, no paga entrada
+
+  @@unique([showId, personId])
+}
+
+// ═══════════════════ DINERO ═══════════════════
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  orderType String // TICKET | SERIES_PASS | MEMBERSHIP | PRIVATE_LESSON | WORKSHOP
+  refId     String
+  personId  String
+  amount    Int // total cobrado (lista + cargo)
+  fee       Int // costo pasarela
+  net       Int
+  gateway   String        @default("FLOW")
+  gatewayRef String?
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+}
+
+enum PayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+}
+
+model Payout {
+  id          String       @id @default(cuid())
+  actorType   String // PRODUCER | ACADEMY | VENUE
+  actorId     String
+  periodStart DateTime
+  periodEnd   DateTime
+  gross       Int
+  net         Int
+  status      PayoutStatus @default(PENDING)
+  evidenceUrl String? // comprobante de transferencia
+  paidAt      DateTime?
+  createdAt   DateTime     @default(now())
+}
+
+enum DiscountCodeType {
+  CUMPLEANOS
+  CORTESIA
+  CASO_BORDE_PUERTA
+  CAMPAIGN
+  WINBACK
+  STAFF_COMP
+}
+
+model DiscountCode {
+  id         String           @id @default(cuid())
+  code       String           @unique
+  type       DiscountCodeType
+  eventId    String?
+  seriesId   String?
+  percentOff Int?
+  amountOff  Int? // CLP
+  maxUses    Int?
+  usedCount  Int              @default(0)
+  createdById String
+  expiresAt  DateTime?
+  createdAt  DateTime         @default(now())
+
+  redemptions DiscountRedemption[]
+}
+
+model DiscountRedemption {
+  id             String       @id @default(cuid())
+  code           DiscountCode @relation(fields: [codeId], references: [id])
+  codeId         String
+  personId       String
+  paymentId      String?
+  redeemedAt     DateTime     @default(now())
+}
+
+// ═══════════════════ CRM TRANSVERSAL ═══════════════════
+
+model RelationshipScore {
+  id        String   @id @default(cuid())
+  actorType String // ACADEMY | PRODUCER | VENUE | DJ | INSTRUCTOR
+  actorId   String
+  personId  String
+  score     Float // RFM + engagement — privado por actor
+  segment   String? // CORE | AT_RISK | NEW | BRINGS_PEOPLE
+  computedAt DateTime @default(now())
+
+  @@unique([actorType, actorId, personId])
+}
+
+model Campaign {
+  id        String   @id @default(cuid())
+  actorType String
+  actorId   String
+  name      String
+  segment   Json // definición del segmento target
+  action    Json // push / discount_code
+  status    String   @default("DRAFT") // DRAFT | SENT | DONE
+  result    Json?
+  createdAt DateTime @default(now())
+}
+
+model ActorTag {
+  id        String   @id @default(cuid())
+  actorType String
+  actorId   String
+  personId  String
+  tag       String // "VIP", "amigo del DJ"…
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model Referral {
+  id         String   @id @default(cuid())
+  referrerId String
+  referredId String
+  source     String // GIFT_TICKET | INVITE | LINK
+  createdAt  DateTime @default(now())
+}
+
+model CrmTrigger {
+  id        String  @id @default(cuid())
+  actorType String
+  actorId   String
+  key       String // WINBACK | TRIAL_EXPIRING | REGULAR_NO_PRESALE | ATTENDANCE_DROP
+  config    Json?
+  active    Boolean @default(true)
+}
+
+// ═══════════════════ SISTEMA ═══════════════════
+
+model Notification {
+  id        String    @id @default(cuid())
+  person    Person    @relation(fields: [personId], references: [id])
+  personId  String
+  category  String // SOCIAL | TRANSACTIONAL | MARKETING | OPERATIONAL
+  type      String
+  title     String
+  body      String?
+  data      Json?
+  channel   String    @default("IN_APP") // IN_APP | PUSH | EMAIL
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model PushToken {
+  id        String   @id @default(cuid())
+  person    Person   @relation(fields: [personId], references: [id])
+  personId  String
+  token     String   @unique // Web Push subscription endpoint
+  payload   Json // keys p256dh/auth
+  createdAt DateTime @default(now())
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  personId  String?
+  type      String // append-only: page_view, checkout_start, checkin…
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String? // quién hizo la acción (staff/admin/soporte)
+  action    String // VOID_CHECKIN | REFUND | OVERRIDE…
+  targetType String?
+  targetId  String?
+  payload   Json?
+  createdAt DateTime @default(now())
+}

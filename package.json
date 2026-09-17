@@ -2,6 +2,15 @@
   "name": "omnidance",
   "private": true,
   "packageManager": "pnpm@10.12.1",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@prisma/client",
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  },
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "dev:web": "pnpm --filter @omnidance/web dev",
@@ -14,5 +23,8 @@
     "db:seed": "pnpm --filter @omnidance/api prisma db seed",
     "db:studio": "pnpm --filter @omnidance/api prisma studio",
     "test": "pnpm -r run test"
+  },
+  "dependencies": {
+    "pg": "^8.23.0"
   }
 }
