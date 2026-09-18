@@ -212,6 +212,32 @@ class AddStaffDto {
 export class EventsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Eventos del productor autenticado — todos los estados, para la consola.
+   * Debe declararse antes de @Get(":id") para que "mine" no matchee :id.
+   */
+  @Get("mine")
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequirePermissions("events.manage")
+  mine(@Req() req: Request) {
+    return this.prisma.event.findMany({
+      where: { producerId: req.person!.id },
+      orderBy: { startsAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        status: true,
+        startsAt: true,
+        endsAt: true,
+        presalePrice: true,
+        doorPrice: true,
+        series: { select: { id: true, name: true } },
+        venue: { select: { name: true, address: true } },
+      },
+    });
+  }
+
   @Get()
   list() {
     return this.prisma.event.findMany({
@@ -229,7 +255,7 @@ export class EventsController {
         endsAt: true,
         presalePrice: true,
         doorPrice: true,
-        series: { select: { name: true } },
+        series: { select: { id: true, name: true } },
         venue: { select: { name: true, address: true } },
       },
     });
@@ -249,13 +275,19 @@ export class EventsController {
         capacity: true,
         presalePrice: true,
         doorPrice: true,
+        presaleCap: true,
+        doorCap: true,
         primeThreshold: true,
-        series: { select: { name: true } },
+        happyHourMinutes: true,
+        producerId: true,
+        venueId: true,
+        academyId: true,
+        series: { select: { id: true, name: true } },
         venue: { select: { name: true, address: true, capacity: true } },
         djs: {
           select: {
             slotNote: true,
-            person: { select: { name: true, photoUrl: true } },
+            person: { select: { id: true, name: true, photoUrl: true } },
           },
         },
         scheduleBlocks: {
@@ -263,7 +295,8 @@ export class EventsController {
           select: {
             startsAt: true,
             endsAt: true,
-            style: { select: { name: true } },
+            djId: true,
+            style: { select: { id: true, name: true } },
           },
         },
       },

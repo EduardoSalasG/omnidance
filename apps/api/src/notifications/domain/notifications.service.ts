@@ -158,12 +158,14 @@ export class NotificationsService {
 
   /**
    * Registra/actualiza el push token del dispositivo.
-   * Schema v1: no hay columna `platform` — se guarda dentro de `payload`.
+   * Schema v1: no hay columna `platform` — se guarda dentro de `payload`
+   * junto a las claves VAPID del navegador ({ p256dh, auth }) cuando vienen.
    */
   async registerPushToken(
     personId: string,
     token: string,
     platform: PushPlatform,
+    keys?: { p256dh: string; auth: string },
   ): Promise<PushToken> {
     if (!PUSH_PLATFORMS.includes(platform)) {
       throw new NotificationDomainError(
@@ -171,7 +173,10 @@ export class NotificationsService {
         `platform inválida: ${platform}`,
       );
     }
-    return this.repo.upsertPushToken(personId, token, { platform });
+    return this.repo.upsertPushToken(personId, token, {
+      platform,
+      ...(keys ?? {}),
+    });
   }
 
   /**

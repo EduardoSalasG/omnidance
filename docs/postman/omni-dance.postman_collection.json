@@ -905,6 +905,24 @@
           }
         },
         {
+          "name": "GET /api/events/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/events",
           "request": {
             "method": "GET",
@@ -1256,6 +1274,33 @@
                 "events",
                 "{id}",
                 "table-reservations"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/{id}/table-reservations/manage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/table-reservations/manage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "table-reservations",
+                "manage"
               ],
               "variable": [
                 {

@@ -262,6 +262,17 @@
         }
       }
     },
+    "/api/events/mine": {
+      "get": {
+        "operationId": "EventsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events": {
       "get": {
         "operationId": "EventsController_list",
@@ -509,6 +520,26 @@
       },
       "get": {
         "operationId": "TableReservationsController_listForEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/table-reservations/manage": {
+      "get": {
+        "operationId": "TableReservationsController_listForManage",
         "parameters": [
           {
             "name": "id",

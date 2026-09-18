@@ -16,6 +16,7 @@ import { IsIn, IsInt, IsOptional, IsString, Min } from "class-validator";
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 
 class RequestReservationDto {
   @IsInt()
@@ -108,6 +109,39 @@ export class TableReservationsController {
     }));
   }
 
+  /**
+   * Vista de gestión para el productor: TODAS las reservas con id/status
+   * (el listado público solo expone CONFIRMED, sin ids — privacidad).
+   */
+  @Get("events/:id/table-reservations/manage")
+  @UseGuards(SessionGuard)
+  async listForManage(@Param("id") eventId: string, @Req() req: Request) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { producerId: true },
+    });
+    if (!event) throw new NotFoundException("evento no encontrado");
+    await this.assertProducerOrAdmin(event, req.person!);
+
+    const reservations = await this.prisma.tableReservation.findMany({
+      where: { eventId },
+      orderBy: { createdAt: "asc" },
+    });
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: reservations.map((r) => r.personId) } },
+      select: { id: true, name: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return reservations.map((r) => ({
+      id: r.id,
+      status: r.status,
+      partySize: r.partySize,
+      tableNo: r.tableNo,
+      createdAt: r.createdAt,
+      person: { name: byId.get(r.personId)?.name ?? "?" },
+    }));
+  }
+
   /** Confirmar/cancelar (y asignar mesa) — productor del evento o admin. */
   @Patch("table-reservations/:id")
   @UseGuards(SessionGuard)
@@ -125,7 +159,7 @@ export class TableReservationsController {
       where: { id: reservation.eventId },
       select: { producerId: true },
     });
-    this.assertProducerOrAdmin(
+    await this.assertProducerOrAdmin(
       event ?? { producerId: null },
       req.person!,
     );
@@ -182,13 +216,17 @@ export class TableReservationsController {
     }));
   }
 
-  /** productor del evento o ADMIN de plataforma. */
-  private assertProducerOrAdmin(
+  /** productor del evento o admin.access — permiso desde DB, nunca rol literal. */
+  private async assertProducerOrAdmin(
     event: { producerId: string | null },
     person: PersonCtx,
-  ): void {
-    if (person.roles.includes("ADMIN")) return;
+  ): Promise<void> {
     if (event.producerId === person.id) return;
+    if (
+      await roleKeysHavePermission(this.prisma, person.roles, ["admin.access"])
+    ) {
+      return;
+    }
     throw new ForbiddenException(
       "solo el productor del evento o un admin puede gestionar reservas",
     );
