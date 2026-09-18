@@ -3161,19 +3161,18 @@
       "name": "academies",
       "item": [
         {
-          "name": "GET /api/academies/mine",
+          "name": "GET /api/academies",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/academies/mine",
+              "raw": "{{baseUrl}}/api/academies",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "academies",
-                "mine"
+                "academies"
               ]
             }
           }
@@ -3206,6 +3205,24 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "mine"
+              ]
             }
           }
         },

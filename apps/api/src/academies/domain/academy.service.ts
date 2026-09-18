@@ -7,6 +7,8 @@ import type { EnrollmentStatus } from "@prisma/client";
 export interface PersonContext {
   id: string;
   roles: string[];
+  /** Resuelto por infraestructura vía roleKeysHavePermission (admin.access). */
+  isAdmin?: boolean;
 }
 
 export interface AcademyContext {
@@ -32,7 +34,7 @@ export function canManageAcademy(
   person: PersonContext,
   academy: AcademyContext,
 ): boolean {
-  if (person.roles.includes("ADMIN")) return true;
+  if (person.isAdmin) return true;
   if (academy.ownerId === person.id) return true;
   return academy.instructorIds.includes(person.id);
 }
@@ -45,7 +47,7 @@ export function canAdministerAcademy(
   person: PersonContext,
   academy: AcademyContext,
 ): boolean {
-  if (person.roles.includes("ADMIN")) return true;
+  if (person.isAdmin) return true;
   return academy.ownerId === person.id;
 }
 
