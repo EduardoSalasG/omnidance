@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, EventDate } from "@/components/ui";
+import { TripMatches } from "@/components/social/trip-matches";
 
 // Shape de Trip según trips.controller (prisma.trip)
 type Trip = {
@@ -193,6 +194,9 @@ export default function ViajesPage() {
             ))}
           </ul>
         ))}
+
+      {/* Coincidencias: carga y errores independientes del resto de la página */}
+      {state === "ready" && <TripMatches trips={trips} />}
     </main>
   );
 }

@@ -1,0 +1,53 @@
+{
+  "academyExtras": {
+    "lessons": {
+      "title": "Clases particulares",
+      "mineTitle": "Mis solicitudes",
+      "requestTitle": "Solicitar clase particular",
+      "academy": "Academia",
+      "instructor": "Instructor/a",
+      "instructorFallback": "Instructor {id}",
+      "scheduledAt": "Fecha y hora",
+      "newDate": "Nueva fecha y hora",
+      "priceOptional": "Precio sugerido (opcional)",
+      "submit": "Enviar solicitud",
+      "student": "Alumno/a",
+      "empty": "Sin clases particulares en esta academia.",
+      "emptyMine": "Aún no has solicitado clases particulares.",
+      "noAcademies": "No hay academias disponibles para solicitar una clase particular.",
+      "status": {
+        "REQUESTED": "Solicitada",
+        "CONFIRMED": "Confirmada",
+        "DONE": "Realizada",
+        "CANCELLED": "Cancelada"
+      },
+      "confirm": "Confirmar",
+      "cancel": "Cancelar clase",
+      "done": "Marcar realizada",
+      "reschedule": "Reagendar",
+      "saveReschedule": "Guardar nueva fecha",
+      "confirmCancel": "¿Cancelar esta clase particular?",
+      "requested": "Solicitud enviada.",
+      "updated": "Clase actualizada."
+    },
+    "videos": {
+      "title": "Videos",
+      "empty": "Aún no hay videos en esta academia.",
+      "watch": "Ver video",
+      "unlocked": "Disponible",
+      "locked": "Bloqueado",
+      "lockedHint": "Disponible al asistir a la clase o con membresía activa.",
+      "restricted": "Restringido",
+      "classBadge": "Clase",
+      "addTitle": "Agregar video",
+      "videoTitle": "Título",
+      "videoUrl": "URL (YouTube, Vimeo o Drive)",
+      "classId": "ID de clase (opcional)",
+      "restrictedLabel": "Solo para quienes asistieron a la clase o con membresía activa",
+      "delete": "Eliminar",
+      "confirmDelete": "¿Eliminar este video?",
+      "added": "Video agregado.",
+      "deleted": "Video eliminado."
+    }
+  }
+}

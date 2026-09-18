@@ -1,0 +1,16 @@
+{
+  "realtime": {
+    "toast": {
+      "open": "Ver notificación",
+      "close": "Descartar"
+    },
+    "push": {
+      "title": "Activa las notificaciones",
+      "description": "Te avisamos al momento cuando te invitan a bailar, se confirma una entrada o hay novedades de la escena.",
+      "enable": "Activar notificaciones",
+      "later": "Ahora no",
+      "enabled": "Listo — notificaciones activadas",
+      "error": "No se pudieron activar. Inténtalo de nuevo."
+    }
+  }
+}

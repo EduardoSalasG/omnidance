@@ -1,0 +1,18 @@
+{
+  "tripMatches": {
+    "title": "Coincidencias",
+    "empty": "Cuando otra persona publique un viaje que coincida con los tuyos, aparecerá aquí.",
+    "overlapDay": "1 día en común",
+    "overlapDays": "{days} días en común",
+    "traveler": "Bailarín de la escena",
+    "connect": "Conectar",
+    "requestSent": "Solicitud enviada"
+  },
+  "seriesPass": {
+    "title": "Pase de serie",
+    "desc": "Entrada a todos los eventos de {series} durante el mes.",
+    "cta": "Comprar pase",
+    "alreadyOwned": "Ya tienes el pase de este mes.",
+    "unavailable": "El pase de esta serie no está disponible por ahora."
+  }
+}
