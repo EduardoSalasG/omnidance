@@ -326,7 +326,9 @@ export class GamificationService {
     );
     if (existing) return false;
     const season = await this.repo.activeSeason(new Date());
-    await this.repo.createLedgerEntry({
+    // El repo retorna null si el unique rechazó un duplicado concurrente —
+    // el find de arriba es solo el fast-path; la constraint es la verdad.
+    const created = await this.repo.createLedgerEntry({
       personId,
       seasonId: season?.id ?? null,
       points,
@@ -334,7 +336,7 @@ export class GamificationService {
       refType: refType ?? null,
       refId: refId ?? null,
     });
-    return true;
+    return created !== null;
   }
 
   /**

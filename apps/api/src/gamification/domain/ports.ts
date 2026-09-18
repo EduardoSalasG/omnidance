@@ -126,7 +126,11 @@ export interface GamificationRepo {
     refId: string | null,
   ): Promise<PointLedger | null>;
 
-  createLedgerEntry(entry: NewLedgerEntry): Promise<PointLedger>;
+  /**
+   * Crea la entrada; retorna null si ya existía una con la misma referencia
+   * (conflicto del unique compuesto — race de doble accrual).
+   */
+  createLedgerEntry(entry: NewLedgerEntry): Promise<PointLedger | null>;
 
   /**
    * Entradas del ledger de la persona; `seasonId` undefined = todas,

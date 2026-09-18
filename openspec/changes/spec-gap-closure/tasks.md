@@ -38,9 +38,12 @@ Orden por slice; cada tarea lleva verificación propia (TDD donde aplique).
 - [x] Reporte de violaciones SOLID/clean en `apps/api/src` (fat controllers, dominio acoplado a Nest/Prisma, duplicación, N+1, manejo de errores, magic numbers).
 - [x] Implementar fixes de mayor impacto sin cambiar contratos: PrismaModule único (14 pools→1), notifySafe centralizado, `roleKeysHavePermission` reutilizable, stub-gateway fail-close en prod, cap PENDING con TTL 30min por `Payment.eventId`, `isRedeemable` compartido, `Payment.refId @unique`, `EventStatus` en check-in/door-sale, N+1 `missionsFor`, CORS allowlist, secretos fail-fast en prod.
 
+### Correcciones post-auditoría (hechas)
+
+- [x] `accruePoints` race → `@@unique([personId, reason, refType, refId])` en `PointLedger` + repo retorna null en P2002 (constraint = verdad, find = fast-path).
+- [x] `checkout.controller` grande → extraído a `payments/application/checkout.service.ts` con errores de dominio (`EventNotFoundError`, `PresaleUnavailableError`, `PresaleSoldOutError`, `InvalidDiscountError`); `TicketsController` a `tickets.controller.ts`.
+- [x] `PrismaCheckinsRepo` instanciaba `ParamsService` manual → DI vía `ParamsModule` en `CheckinsModule`.
+
 ### Pendientes conocidos (próximas iteraciones)
 
-- `accruePoints` check-then-create sin unique en `(refType, refId)` — agregar constraint compuesto + upsert para race real.
-- `checkout.controller` sigue grande — extraer a application service.
-- `PrismaCheckinsRepo` instancia `ParamsService` manualmente — migrar a DI vía `ParamsModule`.
 - Backlog spec §16: entry-passes desde guest lists, payouts, series-pass, trip matching, CRM, academia avanzada, producer event CRUD, WebSockets/BullMQ/Web Push.
