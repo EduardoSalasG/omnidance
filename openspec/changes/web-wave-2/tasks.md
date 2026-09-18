@@ -28,11 +28,17 @@
 
 ## Pendiente conocido
 
-- Web Push activo requiere `WEB_PUSH_VAPID_*` (backend) y
-  `NEXT_PUBLIC_VAPID_PUBLIC_KEY` (frontend) en env.
-- `/checkout/return` no existe aún — el `returnUrl` del gateway apunta ahí
-  (gap preexistente del flujo de pago real).
-- BottomNav no tiene tab de notificaciones; el entry point es el tile de
-  HomeHub — el CustomEvent `omnidance:notification` queda listo para badge.
-- Sin endpoint público de academias/instructores: el form de clase
-  particular solo aparece en vista staff (decisión de producto pendiente).
+- Web Push: keys VAPID de dev generadas y en `apps/api/.env` +
+  `apps/web/.env.local` (gitignored); `.env.example` documenta cómo
+  generarlas. Sender armado (sin warning en boot). Push real solo llega si
+  el navegador concede permiso — el opt-in ya pide `Notification.permission`.
+- [x] `/checkout/return` implementado — polling `/payments/:id` con estados
+  verifying/paid/failed/stillPending/unauth/error (cierra el flujo Flow).
+- [x] Badge de no-leídas en el tile `/notificaciones` de HomeHub
+  (unreadCount inicial + `omnidance:notification` incrementa en vivo).
+- [x] `GET /academies` — directorio autenticado (id+nombre+instructores con
+  nombre); el form de clase particular ahora funciona para alumnos puros.
+- [x] RBAC: todos los `roles.includes("ADMIN")` literales migrados a
+  `roleKeysHavePermission` (academies, private-lessons, event-ratings,
+  song-suggestions, table-reservations) — dominio recibe `isAdmin` flag.
+- BottomNav sigue sin tab de notificaciones (el badge vive en HomeHub).
