@@ -50,13 +50,17 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
   return (
     <Card className={data.unlocked ? "border-neon/60" : undefined}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2
+          id="prime-time-heading"
+          className="text-sm font-semibold uppercase tracking-wide text-white/50"
+        >
           {t("primeTime")}
         </h2>
         {data.unlocked && <Badge variant="neon">{t("primeUnlocked")}</Badge>}
       </div>
       <div
         role="progressbar"
+        aria-labelledby="prime-time-heading"
         aria-valuenow={data.current}
         aria-valuemin={0}
         aria-valuemax={data.threshold}

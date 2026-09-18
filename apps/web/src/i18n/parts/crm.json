@@ -108,7 +108,8 @@
         "TRIAL_EXPIRING": "Avisa a alumnos en periodo de prueba que cumplen el mínimo de días (solo academias).",
         "REGULAR_NO_PRESALE": "Avisa a asistentes frecuentes sin preventa para el próximo evento (solo productores).",
         "ATTENDANCE_DROP": "Avisa a personas que recién empiezan a caer en inactividad."
-      }
+      },
+      "cooldownShort": "Cooldown {days} d"
     }
   }
 }

@@ -110,7 +110,7 @@ function CheckoutReturn() {
           </Button>
           <Link
             href="/eventos"
-            className="min-h-11 text-sm text-white/60 underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center text-sm text-white/60 underline-offset-4 hover:underline"
           >
             {t("returnToEvents")}
           </Link>

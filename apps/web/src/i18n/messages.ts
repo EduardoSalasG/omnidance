@@ -1,5 +1,7 @@
 import base from "../../messages/es-CL.json";
 import academyExtras from "./parts/academyExtras.json";
+import admin from "./parts/admin.json";
+import common from "./parts/common.json";
 import consumer from "./parts/consumer.json";
 import crm from "./parts/crm.json";
 import landing from "./parts/landing.json";
@@ -31,6 +33,8 @@ function merge(a: Dict, b: Dict): Dict {
 
 const parts = [
   academyExtras,
+  admin,
+  common,
   consumer,
   crm,
   landing,

@@ -110,7 +110,7 @@ function Bailes() {
           <Button
             variant="ghost"
             size="sm"
-            aria-label={t("title")}
+            aria-label={t("refresh")}
             onClick={() => void fetchSessions()}
           >
             ↻
@@ -130,20 +130,27 @@ function Bailes() {
         </div>
       ) : phase === "error" ? (
         <div className="flex flex-col items-center gap-6 py-10 text-center">
-          <p className="text-lg font-semibold">{tCommon("error")}</p>
+          <p role="alert" className="text-lg font-semibold">
+            {tCommon("error")}
+          </p>
           <Button
             variant="secondary"
             size="lg"
+            aria-label={tCommon("retry")}
             onClick={() => void fetchSessions()}
           >
             ↻
           </Button>
         </div>
       ) : phase === "loading" ? (
-        <p className="text-white/50">{tCommon("loading")}</p>
+        <p role="status" className="text-white/50">
+          {tCommon("loading")}
+        </p>
       ) : sessions.length === 0 ? (
         <div className="flex flex-col items-center gap-6 py-16 text-center">
-          <p className="text-lg font-semibold">{t("empty")}</p>
+          <p role="status" className="text-lg font-semibold">
+            {t("empty")}
+          </p>
           <Button href={scanHref} size="lg">
             {tStaff("scan")}
           </Button>

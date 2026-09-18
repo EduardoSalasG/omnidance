@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { useDialogFocus } from "@/lib/useDialogFocus";
+import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import { EventForm } from "@/components/producer/event-form";
 import { StaffSection } from "@/components/producer/staff-section";
 import { PassesSection } from "@/components/producer/passes-section";
@@ -54,6 +55,9 @@ export default function ProducerEventDetailPage({
   const [actionBusy, setActionBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Focus trap + restauración del diálogo de confirmación
+  const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel);
 
   const loadEvent = useCallback(async () => {
     const res = await apiFetch(`/events/${eventId}`);
@@ -220,7 +224,11 @@ export default function ProducerEventDetailPage({
         ← {t("myEvents")}
       </Link>
 
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+      {gate === "loading" && (
+        <p role="status" className="text-white/60">
+          {tc("loading")}
+        </p>
+      )}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -248,7 +256,9 @@ export default function ProducerEventDetailPage({
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{tc("error")}</p>
+          <p role="alert" className="text-white/70">
+            {tc("error")}
+          </p>
           <Button variant="secondary" onClick={() => void boot()}>
             ↻ {tc("retry")}
           </Button>
@@ -283,6 +293,14 @@ export default function ProducerEventDetailPage({
               </span>
               {event.series?.name && <span>{event.series.name}</span>}
             </div>
+
+            {/* Override admin del cargo por servicio (read-only; null → fee global). */}
+            {event.serviceFeeClp != null && (
+              <p className="text-sm text-white/60">
+                {t("negotiatedFee")}:{" "}
+                <PriceTag amount={event.serviceFeeClp} />
+              </p>
+            )}
 
             {canManage && (
               <div className="flex flex-wrap gap-2">
@@ -363,6 +381,7 @@ export default function ProducerEventDetailPage({
           modal de transferencia en /entradas). */}
       {confirmCancel && event && (
         <div
+          ref={cancelDialogRef}
           role="presentation"
           className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setConfirmCancel(false)}

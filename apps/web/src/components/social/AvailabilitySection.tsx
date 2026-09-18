@@ -162,15 +162,21 @@ export function AvailabilitySection({ me }: AvailabilitySectionProps) {
 
       {/* Feed público */}
       {feedState === "loading" && (
-        <p className="text-white/50">{tc("loading")}</p>
+        <p role="status" className="text-white/50">
+          {tc("loading")}
+        </p>
       )}
       {feedState === "error" && (
-        <p className="text-white/60">{tc("error")}</p>
+        <p role="alert" className="text-white/60">
+          {tc("error")}
+        </p>
       )}
       {feedState === "ready" &&
         (entries.length === 0 ? (
           <Card>
-            <p className="text-white/60">{t("feedEmpty")}</p>
+            <p role="status" className="text-white/60">
+              {t("feedEmpty")}
+            </p>
           </Card>
         ) : (
           <ul className="flex flex-col gap-3">

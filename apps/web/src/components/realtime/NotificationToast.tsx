@@ -155,7 +155,7 @@ export function NotificationToast() {
           type="button"
           onClick={dismiss}
           aria-label={t("close")}
-          className="-m-1 shrink-0 rounded-lg p-1.5 text-white/50 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-white/50 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
         >
           <svg
             aria-hidden

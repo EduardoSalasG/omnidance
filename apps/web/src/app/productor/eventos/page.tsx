@@ -185,7 +185,9 @@ export default function ProducerEventsPage() {
 
           {eventsError && (
             <div className="flex items-center gap-3">
-              <p className="text-sm text-red-400">{tc("error")}</p>
+              <p role="alert" className="text-sm text-red-400">
+                {tc("error")}
+              </p>
               <Button size="sm" variant="ghost" onClick={() => void boot()}>
                 ↻ {tc("retry")}
               </Button>
@@ -194,7 +196,9 @@ export default function ProducerEventsPage() {
 
           {!eventsError && mine.length === 0 && (
             <Card className="flex flex-col items-center gap-4 py-10 text-center">
-              <p className="text-white/70">{t("emptyEvents")}</p>
+              <p role="status" className="text-white/70">
+                {t("emptyEvents")}
+              </p>
               <Button onClick={() => setShowForm(true)}>
                 {t("emptyEventsCta")}
               </Button>

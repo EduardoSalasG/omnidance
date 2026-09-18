@@ -44,16 +44,35 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("emailPlaceholder")}
+              aria-invalid={error || undefined}
+              aria-describedby={error ? "login-email-error" : undefined}
               className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
             />
           </label>
           {error && (
-            <p role="alert" className="text-sm text-red-400">
+            <p
+              id="login-email-error"
+              role="alert"
+              className="text-sm text-red-400"
+            >
               {t("invalidEmail")}
             </p>
           )}
-          <Button type="submit" size="lg" disabled={loading} className="w-full">
-            {loading ? "…" : t("submit")}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={loading}
+            aria-busy={loading}
+            className="w-full"
+          >
+            {loading ? (
+              <>
+                <span aria-hidden="true">…</span>
+                <span className="sr-only">{t("sending")}</span>
+              </>
+            ) : (
+              t("submit")
+            )}
           </Button>
         </form>
       )}

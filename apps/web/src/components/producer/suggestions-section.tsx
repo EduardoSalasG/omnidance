@@ -44,18 +44,24 @@ export function SuggestionsSection({ eventId }: Props) {
       </h2>
 
       {items === null && !error && (
-        <p className="text-sm text-white/60">{tc("loading")}</p>
+        <p role="status" className="text-sm text-white/60">
+          {tc("loading")}
+        </p>
       )}
       {error && (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-red-400">{tc("error")}</p>
+          <p role="alert" className="text-sm text-red-400">
+            {tc("error")}
+          </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
             ↻ {tc("retry")}
           </Button>
         </div>
       )}
       {items !== null && items.length === 0 && (
-        <p className="text-sm text-white/50">{t("suggestions.empty")}</p>
+        <p role="status" className="text-sm text-white/50">
+          {t("suggestions.empty")}
+        </p>
       )}
       {items !== null && items.length > 0 && (
         <ol className="flex flex-col gap-1.5">

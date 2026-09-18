@@ -19,6 +19,7 @@
     "cancelConfirmTitle": "¿Cancelar el evento?",
     "cancelConfirmDesc": "Esta acción no se puede deshacer.",
     "confirmCancel": "Sí, cancelar",
+    "negotiatedFee": "Comisión negociada",
     "status": {
       "DRAFT": "Borrador",
       "PUBLISHED": "Publicado",

@@ -44,21 +44,33 @@ export function PassesSection({ eventId }: Props) {
       </h2>
 
       {passes === null && !error && (
-        <p className="text-sm text-white/60">{tc("loading")}</p>
+        <p role="status" className="text-sm text-white/60">
+          {tc("loading")}
+        </p>
       )}
       {error && (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-red-400">{tc("error")}</p>
+          <p role="alert" className="text-sm text-red-400">
+            {tc("error")}
+          </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
             ↻ {tc("retry")}
           </Button>
         </div>
       )}
       {passes !== null && passes.length === 0 && (
-        <p className="text-sm text-white/50">{t("passes.empty")}</p>
+        <p role="status" className="text-sm text-white/50">
+          {t("passes.empty")}
+        </p>
       )}
       {passes !== null && passes.length > 0 && (
-        <Card padded className="overflow-x-auto p-0">
+        <Card
+          padded
+          className="overflow-x-auto p-0"
+          role="region"
+          tabIndex={0}
+          aria-label={t("sections.passes")}
+        >
           <table className="w-full min-w-[32rem] text-left text-sm">
             <thead>
               <tr className="border-b border-night-700 text-xs uppercase tracking-wide text-white/50">

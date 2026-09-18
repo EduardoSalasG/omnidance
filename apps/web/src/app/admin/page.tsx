@@ -295,7 +295,11 @@ export default function AdminPage() {
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6 pb-24">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+      {gate === "loading" && (
+        <p role="status" className="text-white/60">
+          {tc("loading")}
+        </p>
+      )}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -314,7 +318,9 @@ export default function AdminPage() {
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{tc("error")}</p>
+          <p role="alert" className="text-white/70">
+            {tc("error")}
+          </p>
           <Button variant="secondary" onClick={() => void boot()}>
             ↻ {tc("retry")}
           </Button>
@@ -328,6 +334,7 @@ export default function AdminPage() {
               <button
                 key={k}
                 onClick={() => void switchTab(k)}
+                aria-current={tab === k || undefined}
                 className={`min-h-[44px] shrink-0 rounded-full px-4 text-sm font-semibold transition ${
                   tab === k
                     ? "bg-neon text-black"
@@ -348,7 +355,9 @@ export default function AdminPage() {
           {tab === "requests" && (
             <section className="flex flex-col gap-4">
               {requests.length === 0 ? (
-                <p className="text-white/60">{t("empty")}</p>
+                <p role="status" className="text-white/60">
+                  {t("empty")}
+                </p>
               ) : (
                 <ul className="flex flex-col gap-3">
                   {requests.map((r) => (
@@ -416,13 +425,17 @@ export default function AdminPage() {
                         </span>
                         <span className="font-semibold">{r.label}</span>
                         {r.isSuperuser && (
-                          <Badge variant="neon">superuser</Badge>
+                          <Badge variant="neon">{t("roles.superuser")}</Badge>
                         )}
                         {r.requestable && (
-                          <Badge variant="outline">requestable</Badge>
+                          <Badge variant="outline">
+                            {t("roles.requestable")}
+                          </Badge>
                         )}
                         <span className="ml-auto text-xs text-white/50">
-                          {r._count.personRoles} personas
+                          {t("roles.peopleCount", {
+                            count: r._count.personRoles,
+                          })}
                         </span>
                       </div>
                       {r.description && (
@@ -438,6 +451,7 @@ export default function AdminPage() {
                               <button
                                 key={p.key}
                                 disabled={acting !== null}
+                                aria-pressed={granted}
                                 onClick={() =>
                                   void togglePermission(
                                     r.key,
@@ -525,6 +539,7 @@ export default function AdminPage() {
                   value={userQuery}
                   onChange={(e) => setUserQuery(e.target.value)}
                   placeholder={t("users.search")}
+                  aria-label={t("users.search")}
                   className="min-h-[44px] w-full rounded-lg border border-white/15 bg-black/40 px-3 text-sm"
                 />
               </form>
@@ -559,7 +574,9 @@ export default function AdminPage() {
                                   void setUserRole(u.id, r.role, e.target.value)
                                 }
                                 className="min-h-[44px] rounded-lg border border-white/15 bg-black/40 px-2 text-sm"
-                                aria-label={`${r.role} status`}
+                                aria-label={t("users.roleStatus", {
+                                  role: roleLabel(r.role),
+                                })}
                               >
                                 {STATUSES.map((s) => (
                                   <option key={s} value={s}>
@@ -602,11 +619,12 @@ export default function AdminPage() {
                           size="sm"
                           variant="secondary"
                           disabled={acting !== null}
-                          onClick={(e) => {
-                            const sel = (
-                              e.target as HTMLElement
-                            ).parentElement?.querySelector("select");
-                            const role = (sel as HTMLSelectElement)?.value;
+                          aria-label={t("users.addRole")}
+                          onClick={() => {
+                            const sel = document.getElementById(
+                              `add-${u.id}`,
+                            ) as HTMLSelectElement | null;
+                            const role = sel?.value;
                             if (role) void setUserRole(u.id, role, "PENDING");
                           }}
                         >
@@ -623,7 +641,9 @@ export default function AdminPage() {
           {tab === "audit" && (
             <section className="flex flex-col gap-3">
               {audit.length === 0 ? (
-                <p className="text-white/60">{t("audit.empty")}</p>
+                <p role="status" className="text-white/60">
+                  {t("audit.empty")}
+                </p>
               ) : (
                 <ul className="flex flex-col gap-2">
                   {audit.map((a) => (
