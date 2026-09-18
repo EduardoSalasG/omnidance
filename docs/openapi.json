@@ -2879,6 +2879,17 @@
           }
         }
       }
+    },
+    "/api/crm/triggers/evaluate-all": {
+      "post": {
+        "operationId": "CrmController_evaluateAllTriggers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
     }
   },
   "info": {

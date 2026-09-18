@@ -71,12 +71,20 @@ class PayPayoutDto {
  * un período, lo aprueba y lo marca pagado con evidencia. Todo queda en
  * AuditLog (PAYOUT_GENERATE / PAYOUT_APPROVE / PAYOUT_PAY).
  *
- * Cálculo v1 — solo PRODUCER devenga:
- * - Tickets: payments PAID con orderType TICKET cuyo eventId apunta a un
- *   Event del productor.
- * - Pases de serie: payments PAID con orderType SERIES_PASS cuyo refId
- *   (sp_<seriesId>_<month>_<uuid>) decodifica a una EventSeries del
- *   productor — no hay columna de serie en Payment, el refId es la fuente.
+ * Cálculo v1:
+ * - PRODUCER: tickets de sus eventos + pases de sus series.
+ *   · Tickets: payments PAID con orderType TICKET cuyo eventId apunta a un
+ *     Event del productor.
+ *   · Pases de serie: payments PAID con orderType SERIES_PASS cuyo refId
+ *     (sp_<seriesId>_<month>_<uuid>) decodifica a una EventSeries del
+ *     productor — no hay columna de serie en Payment, el refId es la fuente.
+ * - ACADEMY: Σ Payment.amount de payments PAID con orderType TICKET cuyo
+ *   eventId apunta a un Event con academyId = actorId AND producerId = null
+ *   (eventos producidos directamente por la academia — si hay productor,
+ *   el productor ya devenga).
+ * - VENUE: mismo patrón con venueId = actorId AND producerId = null.
+ * - SERIES_PASS nunca aplica a ACADEMY/VENUE (EventSeries.producerId es
+ *   required — siempre hay productor que devenga).
  * gross = Σ amount; net = gross − Σ fee (costo pasarela).
  */
 @Controller("admin/payouts")
@@ -199,9 +207,12 @@ export class AdminPayoutsController {
   }
 
   /**
-   * Devengado del actor en el período. PRODUCER: Σ Payment.amount de tickets
-   * de sus eventos + pases de sus series; net = gross − Σ fee.
-   * ACADEMY/VENUE quedan en 0 en v1 (su reparto no está definido aún).
+   * Devengado del actor en el período (regla v1 del JSDoc de clase).
+   * PRODUCER: Σ Payment.amount de tickets de sus eventos + pases de sus
+   * series; ACADEMY/VENUE: tickets de sus eventos sin productor
+   * (producerId = null — si hay productor, él ya devenga). SERIES_PASS no
+   * aplica a ACADEMY/VENUE porque EventSeries.producerId es required.
+   * net = gross − Σ fee.
    */
   private async computeSettlement(
     actorType: string,
@@ -209,6 +220,27 @@ export class AdminPayoutsController {
     periodStart: Date,
     periodEnd: Date,
   ): Promise<{ gross: number; net: number }> {
+    if (actorType === "ACADEMY" || actorType === "VENUE") {
+      const events = await this.prisma.event.findMany({
+        where:
+          actorType === "ACADEMY"
+            ? { academyId: actorId, producerId: null }
+            : { venueId: actorId, producerId: null },
+        select: { id: true },
+      });
+      if (!events.length) return { gross: 0, net: 0 };
+      const agg = await this.prisma.payment.aggregate({
+        where: {
+          orderType: "TICKET",
+          status: "PAID",
+          eventId: { in: events.map((e) => e.id) },
+          createdAt: { gte: periodStart, lte: periodEnd },
+        },
+        _sum: { amount: true, fee: true },
+      });
+      const gross = agg._sum.amount ?? 0;
+      return { gross, net: gross - (agg._sum.fee ?? 0) };
+    }
     if (actorType !== "PRODUCER") {
       return { gross: 0, net: 0 };
     }
@@ -275,9 +307,11 @@ export class AdminPayoutsController {
 
 /**
  * Payouts del actor autenticado. El productor ES la persona: sus
- * liquidaciones son actorType PRODUCER + actorId = su personId.
- * Requiere crm.manage (grant del rol PRODUCER); payouts de
- * academias/venues quedan fuera de v1.
+ * liquidaciones son actorType PRODUCER + actorId = su personId. Además se
+ * incluyen los payouts ACADEMY de las academias que posee
+ * (Academy.ownerId = personId). Venue no tiene ownerId — sus payouts
+ * quedan solo en la consola admin.
+ * Requiere crm.manage (grant del rol PRODUCER).
  */
 @Controller("me/payouts")
 @UseGuards(SessionGuard, RolesGuard)
@@ -286,9 +320,25 @@ export class MePayoutsController {
 
   @Get()
   @RequirePermissions("crm.manage")
-  mine(@Req() req: Request) {
+  async mine(@Req() req: Request) {
+    const personId = req.person!.id;
+    const academies = await this.prisma.academy.findMany({
+      where: { ownerId: personId },
+      select: { id: true },
+    });
+    const where: Prisma.PayoutWhereInput = academies.length
+      ? {
+          OR: [
+            { actorType: "PRODUCER", actorId: personId },
+            {
+              actorType: "ACADEMY",
+              actorId: { in: academies.map((a) => a.id) },
+            },
+          ],
+        }
+      : { actorType: "PRODUCER", actorId: personId };
     return this.prisma.payout.findMany({
-      where: { actorType: "PRODUCER", actorId: req.person!.id },
+      where,
       orderBy: { createdAt: "desc" },
     });
   }

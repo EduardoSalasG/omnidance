@@ -56,6 +56,11 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     otherProducerId: "",
     otherSeriesId: "",
     otherEventId: "",
+    academyId: "", // academia del payoutProducer (me/payouts + ACADEMY)
+    academyEventId: "", // evento de la academia SIN productor → devenga ACADEMY
+    academyProducedEventId: "", // evento de la academia CON productor → no devenga
+    venueEventId: "", // evento del venue SIN productor → devenga VENUE
+    venueProducedEventId: "", // evento del venue CON productor → no devenga
     payoutIds: [] as string[],
     checkinIds: [] as string[],
   };
@@ -215,6 +220,61 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       },
     });
     ids.otherEventId = otherEvent.id;
+
+    // ─── academia + eventos para payouts ACADEMY/VENUE ───
+    const academy = await prisma.academy.create({
+      data: {
+        name: `Academia Payout ${suffix}`,
+        ownerId: payoutProducer.id,
+      },
+    });
+    ids.academyId = academy.id;
+
+    // Eventos de la academia SIN venue propio (venueId null para aislar el
+    // settlement del venue): el sin-productor devenga a ACADEMY, el que
+    // tiene productor no (el productor ya devenga).
+    const academyEvent = await prisma.event.create({
+      data: {
+        ...base,
+        venueId: null,
+        name: `Gala Academia ${suffix}`,
+        academyId: academy.id,
+        producerId: null,
+      },
+    });
+    ids.academyEventId = academyEvent.id;
+
+    const academyProducedEvent = await prisma.event.create({
+      data: {
+        ...base,
+        venueId: null,
+        name: `Gala Academia Producida ${suffix}`,
+        academyId: academy.id,
+        producerId: otherProducer.id,
+      },
+    });
+    ids.academyProducedEventId = academyProducedEvent.id;
+
+    // Eventos del venue: el sin-productor devenga a VENUE; el que tiene
+    // productor no. Los eventos ya creados (series/payout/other) tienen
+    // venueId + producerId → quedan excluidos por la regla producerId=null.
+    const venueEvent = await prisma.event.create({
+      data: {
+        ...base,
+        name: `Social del Venue ${suffix}`,
+        producerId: null,
+      },
+    });
+    ids.venueEventId = venueEvent.id;
+
+    const venueProducedEvent = await prisma.event.create({
+      data: {
+        ...base,
+        name: `Social Venue Producido ${suffix}`,
+        producerId: otherProducer.id,
+      },
+    });
+    ids.venueProducedEventId = venueProducedEvent.id;
   });
 
   afterAll(async () => {
@@ -235,6 +295,10 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       ids.seriesEventId,
       ids.payoutEventId,
       ids.otherEventId,
+      ids.academyEventId,
+      ids.academyProducedEventId,
+      ids.venueEventId,
+      ids.venueProducedEventId,
     ];
 
     await prisma.notification.deleteMany({
@@ -245,7 +309,14 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     });
     await prisma.payout.deleteMany({
       where: {
-        actorId: { in: [ids.producerId, ids.payoutProducerId] },
+        actorId: {
+          in: [
+            ids.producerId,
+            ids.payoutProducerId,
+            ids.academyId,
+            ids.venueId,
+          ],
+        },
       },
     });
     await prisma.auditLog.deleteMany({
@@ -278,6 +349,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     });
     await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
     await prisma.eventSeries.deleteMany({ where: { id: { in: seriesIds } } });
+    await prisma.academy.deleteMany({ where: { id: ids.academyId } });
     await prisma.personRole.deleteMany({
       where: { personId: { in: personIds } },
     });
@@ -789,6 +861,186 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     it("me/payouts sin crm.manage → 403; sin sesión → 401", async () => {
       expect((await get("/api/me/payouts", dancerSession)).status).toBe(403);
       expect((await get("/api/me/payouts")).status).toBe(401);
+    });
+  });
+
+  // ────────────────────────────────────────────────────────────────────
+  describe("payouts ACADEMY / VENUE", () => {
+    const periodStart = new Date(Date.now() - 24 * 3600 * 1000);
+    const periodEnd = new Date(Date.now() + 24 * 3600 * 1000);
+    let academyPayoutId: string;
+    let venuePayoutId: string;
+
+    beforeAll(async () => {
+      await prisma.payment.createMany({
+        data: [
+          {
+            // ticket PAID del evento de la academia sin productor → devenga
+            orderType: "TICKET",
+            refId: `tkt_acad_${randomUUID()}`,
+            personId: buyerId,
+            eventId: ids.academyEventId,
+            amount: 7000,
+            fee: 100,
+            net: 6900,
+            gateway: "STUB",
+            status: "PAID",
+          },
+          {
+            // evento de la academia CON productor → no devenga a ACADEMY
+            orderType: "TICKET",
+            refId: `tkt_acadprod_${randomUUID()}`,
+            personId: buyerId,
+            eventId: ids.academyProducedEventId,
+            amount: 9999,
+            fee: 0,
+            net: 9999,
+            gateway: "STUB",
+            status: "PAID",
+          },
+          {
+            // PENDING sobre el evento de la academia → no cuenta
+            orderType: "TICKET",
+            refId: `tkt_acad_pend_${randomUUID()}`,
+            personId: buyerId,
+            eventId: ids.academyEventId,
+            amount: 5555,
+            fee: 0,
+            net: 5555,
+            gateway: "STUB",
+            status: "PENDING",
+          },
+          {
+            // orderType no-TICKET sobre el evento → no cuenta
+            orderType: "SERIES_PASS",
+            refId: `sp_acad_${randomUUID()}`,
+            personId: buyerId,
+            eventId: ids.academyEventId,
+            amount: 4444,
+            fee: 0,
+            net: 4444,
+            gateway: "STUB",
+            status: "PAID",
+          },
+          {
+            // ticket PAID del evento del venue sin productor → devenga
+            orderType: "TICKET",
+            refId: `tkt_venue_${randomUUID()}`,
+            personId: buyerId,
+            eventId: ids.venueEventId,
+            amount: 4000,
+            fee: 50,
+            net: 3950,
+            gateway: "STUB",
+            status: "PAID",
+          },
+          {
+            // evento del venue CON productor → no devenga a VENUE
+            orderType: "TICKET",
+            refId: `tkt_venueprod_${randomUUID()}`,
+            personId: buyerId,
+            eventId: ids.venueProducedEventId,
+            amount: 8888,
+            fee: 0,
+            net: 8888,
+            gateway: "STUB",
+            status: "PAID",
+          },
+        ],
+      });
+    });
+
+    it("generate ACADEMY → solo tickets de eventos academyId + producerId null", async () => {
+      const res = await post(
+        "/api/admin/payouts/generate",
+        {
+          actorType: "ACADEMY",
+          actorId: ids.academyId,
+          periodStart: periodStart.toISOString(),
+          periodEnd: periodEnd.toISOString(),
+        },
+        adminSession,
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      academyPayoutId = body.id;
+      ids.payoutIds.push(academyPayoutId);
+
+      expect(body.actorType).toBe("ACADEMY");
+      expect(body.actorId).toBe(ids.academyId);
+      // solo el ticket de 7000 (fee 100): excluye evento con productor,
+      // PENDING y orderType != TICKET
+      expect(body.gross).toBe(7000);
+      expect(body.net).toBe(6900);
+    });
+
+    it("generate VENUE → mismo patrón con venueId + producerId null", async () => {
+      const res = await post(
+        "/api/admin/payouts/generate",
+        {
+          actorType: "VENUE",
+          actorId: ids.venueId,
+          periodStart: periodStart.toISOString(),
+          periodEnd: periodEnd.toISOString(),
+        },
+        adminSession,
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      venuePayoutId = body.id;
+      ids.payoutIds.push(venuePayoutId);
+
+      expect(body.actorType).toBe("VENUE");
+      expect(body.actorId).toBe(ids.venueId);
+      // solo el ticket de 4000 (fee 50): los demás eventos del venue
+      // tienen productor y quedan excluidos
+      expect(body.gross).toBe(4000);
+      expect(body.net).toBe(3950);
+    });
+
+    it("me/payouts del owner incluye los payouts ACADEMY de sus academias", async () => {
+      const res = await get("/api/me/payouts", payoutProducerSession);
+      expect(res.status).toBe(200);
+      const list = await res.json();
+
+      const academyPayout = list.find(
+        (p: { id: string }) => p.id === academyPayoutId,
+      );
+      expect(academyPayout).toBeTruthy();
+      expect(academyPayout.actorType).toBe("ACADEMY");
+      expect(academyPayout.actorId).toBe(ids.academyId);
+
+      // sus payouts PRODUCER siguen apareciendo
+      expect(
+        list.some(
+          (p: { actorType: string; actorId: string }) =>
+            p.actorType === "PRODUCER" &&
+            p.actorId === ids.payoutProducerId,
+        ),
+      ).toBe(true);
+
+      // todo lo listado es suyo: PRODUCER propio o ACADEMY de su academia
+      expect(
+        list.every(
+          (p: { actorType: string; actorId: string }) =>
+            (p.actorType === "PRODUCER" &&
+              p.actorId === ids.payoutProducerId) ||
+            (p.actorType === "ACADEMY" && p.actorId === ids.academyId),
+        ),
+      ).toBe(true);
+    });
+
+    it("me/payouts de otro productor NO incluye el payout de la academia", async () => {
+      const otherSession = await auth.issueSession(ids.producerId);
+      const res = await get("/api/me/payouts", otherSession);
+      expect(res.status).toBe(200);
+      const list = await res.json();
+      expect(
+        list.some((p: { id: string }) => p.id === academyPayoutId),
+      ).toBe(false);
+      expect(
+        list.some((p: { id: string }) => p.id === venuePayoutId),
+      ).toBe(false);
     });
   });
 });

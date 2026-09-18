@@ -109,11 +109,19 @@ export class PaymentsController {
       throw new BadRequestException("pago sin contexto de orden ticket");
     }
 
-    // fee parametrizable: se lee ANTES de abrir la tx (usa this.prisma, no tx)
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.presale_clp",
-      Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
-    );
+    // fee parametrizable: se lee ANTES de abrir la tx (usa this.prisma, no
+    // tx). Override admin del evento → PlatformParam → env → default shared.
+    // El evento también se reutiliza dentro de la tx para el quote/ticket.
+    const event = await this.prisma.event.findUnique({
+      where: { id: order.eventId },
+      select: { presalePrice: true, serviceFeeClp: true },
+    });
+    const serviceFeeClp =
+      event?.serviceFeeClp ??
+      (await this.params.getNumber(
+        "service_fee.presale_clp",
+        Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
+      ));
 
     // la notificación solo sale si esta llamada fue la que marcó PAID
     // (no en re-notificaciones ni carreras perdidas dentro de la tx)
@@ -133,10 +141,7 @@ export class PaymentsController {
       paidNow = true;
 
       // el ticket SOLO se emite cuando el pago queda PAID
-      const event = await tx.event.findUnique({
-        where: { id: order.eventId },
-        select: { presalePrice: true },
-      });
+      // (event ya cargado antes de la tx: presalePrice + serviceFeeClp)
       const code = order.codeId
         ? await tx.discountCode.findUnique({ where: { id: order.codeId } })
         : null;

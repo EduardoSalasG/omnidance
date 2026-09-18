@@ -128,6 +128,7 @@ describe("WebPushSender", () => {
   const ENV_KEYS = [
     "WEB_PUSH_VAPID_PUBLIC_KEY",
     "WEB_PUSH_VAPID_PRIVATE_KEY",
+    "WEB_PUSH_VAPID_SUBJECT",
     "WEB_PUSH_SUBJECT",
   ] as const;
   const savedEnv: Record<string, string | undefined> = {};
@@ -216,6 +217,19 @@ describe("WebPushSender", () => {
     new WebPushSender(fakePrisma()).onModuleInit();
     expect(mockVapid).toHaveBeenCalledWith(
       "mailto:ops@omnidance.cl",
+      "PUB",
+      "PRIV",
+    );
+  });
+
+  it("WEB_PUSH_VAPID_SUBJECT tiene precedencia sobre WEB_PUSH_SUBJECT", () => {
+    process.env.WEB_PUSH_VAPID_PUBLIC_KEY = "PUB";
+    process.env.WEB_PUSH_VAPID_PRIVATE_KEY = "PRIV";
+    process.env.WEB_PUSH_VAPID_SUBJECT = "mailto:soporte@omnidance.cl";
+    process.env.WEB_PUSH_SUBJECT = "mailto:ops@omnidance.cl";
+    new WebPushSender(fakePrisma()).onModuleInit();
+    expect(mockVapid).toHaveBeenCalledWith(
+      "mailto:soporte@omnidance.cl",
       "PUB",
       "PRIV",
     );

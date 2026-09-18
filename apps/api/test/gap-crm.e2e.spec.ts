@@ -709,6 +709,60 @@ describe("gap-closure: CRM transversal e2e", () => {
       expect((await res2.json()).WINBACK.notified).toBe(0);
     });
 
+    it("evaluate-all: sin sesión → 401; sin crm.manage o sin admin.access → 403", async () => {
+      const noSession = await req("POST", "/api/crm/triggers/evaluate-all", {});
+      expect(noSession.status).toBe(401);
+
+      const dancer = await req(
+        "POST",
+        "/api/crm/triggers/evaluate-all",
+        {},
+        sessionDancer,
+      );
+      expect(dancer.status).toBe(403);
+
+      // productor con crm.manage pero sin admin.access → 403
+      const producer = await req(
+        "POST",
+        "/api/crm/triggers/evaluate-all",
+        {},
+        sessionProducer,
+      );
+      expect(producer.status).toBe(403);
+    });
+
+    it("evaluate-all con admin → 200: evalúa triggers activos de todos los actores y respeta cooldown", async () => {
+      // trigger activo de un segundo actor (sin universo → 0/0)
+      const create = await req(
+        "POST",
+        "/api/crm/triggers",
+        {
+          actorType: "PRODUCER",
+          actorId: ids.producer2Id,
+          key: "WINBACK",
+        },
+        sessionProducer2,
+      );
+      expect(create.status).toBe(201);
+
+      const res = await req(
+        "POST",
+        "/api/crm/triggers/evaluate-all",
+        {},
+        sessionAdmin,
+      );
+      expect(res.status).toBe(200);
+      const out = await res.json();
+
+      // productor: cooldown del test anterior → notified 0
+      const k1 = `PRODUCER:${ids.producerId}`;
+      expect(out[k1].WINBACK.evaluated).toBe(4);
+      expect(out[k1].WINBACK.notified).toBe(0);
+
+      const k2 = `PRODUCER:${ids.producer2Id}`;
+      expect(out[k2].WINBACK).toEqual({ evaluated: 0, notified: 0 });
+    });
+
     it("PATCH /crm/triggers/:id desactiva → evaluate no lo corre", async () => {
       const res = await req(
         "PATCH",

@@ -226,6 +226,7 @@ model Event {
   doorPrice    Int?
   presaleCap  Int?
   doorCap     Int?
+  serviceFeeClp Int?      // override admin del cargo por servicio de preventa; null → param global
   // Prime Time
   primeThreshold Int?     // null → ~20% del aforo esperado
   happyHourMinutes Int @default(30)

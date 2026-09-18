@@ -256,6 +256,28 @@ export class CrmController {
     return this.crm.evaluateTriggers(dto.actorType, dto.actorId);
   }
 
+  /**
+   * Evaluación manual de TODOS los triggers activos de la plataforma —
+   * la misma corrida del cron diario (CrmTriggersScheduler 09:00).
+   * No hay actor que scopear con assertActorAccess: además del
+   * crm.manage del guard de clase exige admin.access.
+   */
+  @Post("triggers/evaluate-all")
+  @HttpCode(200)
+  async evaluateAllTriggers(@Req() req: Request) {
+    const caller = req.person!;
+    if (
+      !(await roleKeysHavePermission(this.prisma, caller.roles, [
+        "admin.access",
+      ]))
+    ) {
+      throw new ForbiddenException(
+        "evaluate-all es una operación de plataforma — requiere admin.access",
+      );
+    }
+    return this.crm.evaluateAllActiveTriggers();
+  }
+
   // ─── Autorización por actor ───
 
   /**

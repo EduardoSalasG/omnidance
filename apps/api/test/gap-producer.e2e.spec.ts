@@ -137,7 +137,11 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
       ids.djId,
     ];
     const events = await prisma.event.findMany({
-      where: { producerId: { in: [ids.producerId, ids.producer2Id] } },
+      where: {
+        producerId: {
+          in: [ids.producerId, ids.producer2Id, ids.adminId],
+        },
+      },
       select: { id: true },
     });
     const eventIds = events.map((e) => e.id);
@@ -577,6 +581,139 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
       );
       expect(res.status).toBe(200);
       expect(await res.json()).toHaveLength(1);
+    });
+  });
+
+  // ═══════════════ serviceFeeClp (override admin-only) ═══════════════
+  describe("serviceFeeClp (override admin del cargo por servicio)", () => {
+    let adminEventId = "";
+    let producerEventId = "";
+
+    beforeAll(async () => {
+      // evento propio del producer (sin fee) para probar el PATCH no-admin
+      const res = await req(
+        "POST",
+        "/api/events",
+        {
+          name: `GP Fee Owner ${suffix}`,
+          startsAt: future(96),
+          endsAt: future(100),
+          presalePrice: 10000,
+        },
+        sessions.producer,
+      );
+      producerEventId = (await res.json()).id;
+    });
+
+    it("POST con serviceFeeClp sin admin.access → 403", async () => {
+      const res = await req(
+        "POST",
+        "/api/events",
+        {
+          name: `GP Fee NoAdmin ${suffix}`,
+          startsAt: future(96),
+          endsAt: future(100),
+          serviceFeeClp: 900,
+        },
+        sessions.producer,
+      );
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.message).toContain(
+        "solo admin puede fijar la comisión del evento",
+      );
+    });
+
+    it("POST con serviceFeeClp por admin → 201 y persiste el campo", async () => {
+      const res = await req(
+        "POST",
+        "/api/events",
+        {
+          name: `GP Fee Admin ${suffix}`,
+          startsAt: future(96),
+          endsAt: future(100),
+          presalePrice: 10000,
+          serviceFeeClp: 900,
+        },
+        sessions.admin,
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.serviceFeeClp).toBe(900);
+      adminEventId = body.id;
+    });
+
+    it("GET /events/:id expone serviceFeeClp", async () => {
+      const res = await req("GET", `/api/events/${adminEventId}`);
+      expect(res.status).toBe(200);
+      expect((await res.json()).serviceFeeClp).toBe(900);
+    });
+
+    it("PATCH serviceFeeClp por el owner sin admin → 403", async () => {
+      const res = await req(
+        "PATCH",
+        `/api/events/${producerEventId}`,
+        { serviceFeeClp: 700 },
+        sessions.producer,
+      );
+      expect(res.status).toBe(403);
+      // el campo quedó intacto
+      const event = await prisma.event.findUniqueOrThrow({
+        where: { id: producerEventId },
+        select: { serviceFeeClp: true },
+      });
+      expect(event.serviceFeeClp).toBeNull();
+    });
+
+    it("PATCH serviceFeeClp negativo → 400", async () => {
+      const res = await req(
+        "PATCH",
+        `/api/events/${adminEventId}`,
+        { serviceFeeClp: -5 },
+        sessions.admin,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("admin publica y edita serviceFeeClp en PUBLISHED → 200", async () => {
+      const pub = await req(
+        "POST",
+        `/api/events/${adminEventId}/publish`,
+        undefined,
+        sessions.admin,
+      );
+      expect(pub.status).toBe(200);
+
+      const res = await req(
+        "PATCH",
+        `/api/events/${adminEventId}`,
+        { serviceFeeClp: 1200 },
+        sessions.admin,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).serviceFeeClp).toBe(1200);
+    });
+
+    it("GET /events lista el serviceFeeClp del evento PUBLISHED", async () => {
+      const res = await req("GET", "/api/events");
+      expect(res.status).toBe(200);
+      const list = await res.json();
+      const mine = list.find(
+        (e: { id: string }) => e.id === adminEventId,
+      );
+      expect(mine).toBeTruthy();
+      expect(mine.serviceFeeClp).toBe(1200);
+    });
+
+    it("admin limpia el override con null → serviceFeeClp null", async () => {
+      const res = await req(
+        "PATCH",
+        `/api/events/${adminEventId}`,
+        { serviceFeeClp: null },
+        sessions.admin,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).serviceFeeClp).toBeNull();
     });
   });
 });
