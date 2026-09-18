@@ -5,6 +5,7 @@ import messages from "../../../../messages/es-CL.json";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { RsvpControls } from "@/components/rsvp/RsvpControls";
+import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,9 @@ type EventDetail = {
   presalePrice: number | null;
   doorPrice: number | null;
   primeThreshold: number | null;
-  series: { name: string } | null;
+  /** FK escalar — hoy GET /events/:id no la selecciona (ver nota en el render). */
+  seriesId?: string | null;
+  series: { id?: string; name: string } | null;
   venue: { name: string; address: string | null; capacity: number | null };
   djs: {
     slotNote: string | null;
@@ -107,6 +110,16 @@ export default async function EventoDetailPage({
         : t.free;
   const capacity = event.capacity ?? event.venue.capacity;
 
+  // Pase de serie: el endpoint hoy devuelve solo series.name — el CTA se
+  // muestra cuando el id llega (seriesId escalar o series.id). POST
+  // /checkout/series-pass exige month "YYYY-MM" = mes del evento (mismo
+  // criterio local que currentMonth() en checkins).
+  const seriesId = event.seriesId ?? event.series?.id ?? null;
+  const eventMonth = (() => {
+    const d = new Date(event.startsAt);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-44 pt-6 sm:px-6">
       <Link
@@ -171,6 +184,15 @@ export default async function EventoDetailPage({
           </dl>
         )}
       </Card>
+
+      {/* Pase de serie — solo si el evento pertenece a una serie con id */}
+      {seriesId && (
+        <SeriesPassCta
+          seriesId={seriesId}
+          month={eventMonth}
+          seriesName={event.series?.name ?? ""}
+        />
+      )}
 
       {/* RSVP social */}
       <RsvpControls eventId={event.id} />

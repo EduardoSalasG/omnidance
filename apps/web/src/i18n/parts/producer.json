@@ -1,0 +1,144 @@
+{
+  "producer": {
+    "myEvents": "Mis eventos",
+    "payouts": "Mis pagos",
+    "crm": "CRM",
+    "navEventsDesc": "Crea y administra tus eventos",
+    "navPayoutsDesc": "Liquidaciones y transferencias",
+    "navCrmDesc": "Relación con tus bailarines",
+    "createEvent": "Crear evento",
+    "editEvent": "Editar evento",
+    "emptyEvents": "Aún no tienes eventos.",
+    "emptyEventsCta": "Crea tu primer evento",
+    "created": "Evento creado como borrador.",
+    "updated": "Evento actualizado.",
+    "published": "Evento publicado.",
+    "cancelled": "Evento cancelado.",
+    "publish": "Publicar",
+    "cancelEvent": "Cancelar evento",
+    "cancelConfirmTitle": "¿Cancelar el evento?",
+    "cancelConfirmDesc": "Esta acción no se puede deshacer.",
+    "confirmCancel": "Sí, cancelar",
+    "status": {
+      "DRAFT": "Borrador",
+      "PUBLISHED": "Publicado",
+      "LIVE": "En vivo",
+      "CLOSED": "Cerrado",
+      "CANCELLED": "Cancelado"
+    },
+    "form": {
+      "name": "Nombre",
+      "startsAt": "Inicio",
+      "endsAt": "Término",
+      "venue": "Local",
+      "noVenue": "Sin local (parque/plaza)",
+      "series": "Serie",
+      "noSeries": "Sin serie",
+      "type": "Tipo de evento",
+      "capacity": "Aforo",
+      "presalePrice": "Precio preventa (CLP)",
+      "doorPrice": "Precio en puerta (CLP)",
+      "presaleCap": "Tope preventa",
+      "doorCap": "Tope puerta",
+      "primeThreshold": "Umbral Prime Time",
+      "happyHourMinutes": "Minutos happy hour",
+      "schedule": "Bloques horarios",
+      "addBlock": "Agregar bloque horario",
+      "removeBlock": "Quitar bloque",
+      "blockStart": "Inicio del bloque",
+      "blockEnd": "Fin del bloque",
+      "blockStyle": "Estilo",
+      "blockDj": "DJ (ID de persona)",
+      "djs": "DJs (IDs de persona)",
+      "djsHelp": "IDs separados por coma o espacio. Al editar, la lista nueva reemplaza la actual.",
+      "currentDjs": "DJs actuales",
+      "optional": "opcional",
+      "datesInvalid": "Revisa las fechas: el término debe ser después del inicio."
+    },
+    "sections": {
+      "staff": "Staff de puerta",
+      "passes": "Pases de entrada",
+      "suggestions": "Sugerencias para el DJ",
+      "reservations": "Reservas de mesa",
+      "ratings": "Evaluación del evento"
+    },
+    "staffSection": {
+      "add": "Agregar staff",
+      "personId": "ID de persona",
+      "role": "Rol",
+      "empty": "Sin staff asignado.",
+      "roles": {
+        "DOOR": "Puerta",
+        "DOOR_SALES": "Puerta + ventas"
+      }
+    },
+    "passes": {
+      "person": "Persona",
+      "type": "Tipo",
+      "price": "Precio",
+      "status": "Estado",
+      "validUntil": "Válido hasta",
+      "empty": "Sin pases emitidos.",
+      "types": {
+        "PAID": "Pagado",
+        "ARTIST": "Artista",
+        "STAFF": "Staff",
+        "COMP": "Cortesía",
+        "LIST": "Lista",
+        "FREE_WINDOW": "Ventana gratis"
+      },
+      "statuses": {
+        "ACTIVE": "Activo",
+        "USED": "Usado",
+        "CANCELLED": "Cancelado"
+      }
+    },
+    "suggestions": {
+      "empty": "Aún no hay sugerencias."
+    },
+    "reservations": {
+      "empty": "Sin reservas.",
+      "partySize": "{count} personas",
+      "table": "Mesa",
+      "assignTable": "Nº de mesa",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "statuses": {
+        "REQUESTED": "Solicitada",
+        "CONFIRMED": "Confirmada",
+        "CANCELLED": "Cancelada"
+      }
+    },
+    "ratings": {
+      "notEnough": "Aún no hay suficientes evaluaciones para mostrar ({count}/3).",
+      "ratingsCount": "{count} evaluaciones",
+      "actors": {
+        "dj": "DJ",
+        "producer": "Producción",
+        "venue": "Local"
+      },
+      "dims": {
+        "music": "Música",
+        "occupation": "Ocupación",
+        "organization": "Organización",
+        "floorComfort": "Comodidad de pista",
+        "temperature": "Temperatura",
+        "lightingSound": "Luces y sonido"
+      }
+    },
+    "payoutsPage": {
+      "title": "Mis pagos",
+      "empty": "Aún no tienes liquidaciones.",
+      "period": "Período",
+      "gross": "Bruto",
+      "net": "Neto",
+      "paidAt": "Pagado",
+      "evidence": "Ver comprobante",
+      "status": {
+        "PENDING": "Pendiente",
+        "APPROVED": "Aprobado",
+        "PAID": "Pagado"
+      }
+    }
+  }
+}

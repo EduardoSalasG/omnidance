@@ -1,6 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import messages from "../../../messages/es-CL.json";
 import { Badge, Card, EventDate, PriceTag } from "@/components/ui";
+
+export const metadata: Metadata = {
+  title: "Eventos de salsa y bachata esta semana",
+  alternates: { canonical: "/eventos" },
+};
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 

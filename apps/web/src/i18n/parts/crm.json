@@ -1,0 +1,114 @@
+{
+  "crm": {
+    "title": "CRM",
+    "forbidden": "Necesitas rol de productor, dueño de academia o administrador para ver el CRM.",
+    "noActor": "Tu cuenta no tiene un actor CRM disponible (productor o academia propia).",
+    "pickActor": "Elige el actor CRM que quieres gestionar.",
+    "nav": {
+      "people": "Personas",
+      "campaigns": "Campañas",
+      "triggers": "Triggers"
+    },
+    "actor": {
+      "label": "Actor",
+      "producer": "Productor",
+      "academy": "Academia",
+      "manual": "Otro actor (admin)",
+      "type": "Tipo de actor",
+      "id": "ID del actor",
+      "apply": "Cargar actor"
+    },
+    "segments": {
+      "NEW": "Nuevo",
+      "AT_RISK": "En riesgo",
+      "BRINGS_PEOPLE": "Trae gente",
+      "CORE": "Núcleo",
+      "NONE": "Sin segmento"
+    },
+    "people": {
+      "total": "{count, plural, one {# persona} other {# personas}}",
+      "recompute": "Recalcular scores",
+      "recomputing": "Recalculando…",
+      "recomputed": "{count} scores actualizados",
+      "search": "Buscar por nombre o tag",
+      "segmentFilter": "Segmento",
+      "tagFilter": "Tag",
+      "all": "Todos",
+      "score": "Score",
+      "updatedAt": "Actualizado {date}",
+      "noScore": "Sin score",
+      "empty": "Aún no hay personas en este CRM — recalcula los scores para poblarlo.",
+      "emptyFiltered": "Sin resultados para estos filtros.",
+      "addTag": "Agregar tag",
+      "tagPlaceholder": "Ej. VIP, amigo del DJ",
+      "deleteTag": "Quitar tag {tag}",
+      "prev": "← Anterior",
+      "next": "Siguiente →",
+      "page": "Página {page} de {pages}"
+    },
+    "campaigns": {
+      "title": "Campañas",
+      "new": "Nueva campaña",
+      "name": "Nombre",
+      "namePlaceholder": "Ej. Volvamos a bailar — octubre",
+      "actionType": "Tipo de acción",
+      "notifyTitle": "Título de la notificación",
+      "notifyBody": "Cuerpo del mensaje",
+      "percentOff": "% de descuento",
+      "amountOff": "Monto fijo (CLP)",
+      "maxUses": "Usos máximos",
+      "expiresAt": "Expira",
+      "audience": "Audiencia",
+      "audienceSegment": "Por segmento",
+      "audienceTags": "Por tags",
+      "noTags": "Sin tags en este actor todavía.",
+      "noCriterion": "Sin criterio de audiencia: la campaña no llegará a nadie.",
+      "audienceAll": "Toda la base",
+      "send": "Enviar",
+      "sending": "Enviando…",
+      "sendConfirm": "¿Enviar \"{name}\" a su audiencia? Es una acción masiva y no se puede deshacer.",
+      "sentResult": "Enviada a {count} personas",
+      "withCode": "Código creado: {code}",
+      "created": "Campaña creada como borrador.",
+      "empty": "Sin campañas todavía — crea la primera.",
+      "types": {
+        "NOTIFY": "Notificación",
+        "DISCOUNT_CODE": "Código de descuento"
+      },
+      "status": {
+        "DRAFT": "Borrador",
+        "SENT": "Enviada",
+        "DONE": "Terminada",
+        "CANCELLED": "Cancelada"
+      }
+    },
+    "triggers": {
+      "title": "Triggers automáticos",
+      "new": "Nuevo trigger",
+      "key": "Tipo de trigger",
+      "days": "Umbral (días)",
+      "daysHint": "Vacío = usa el parámetro global de la plataforma.",
+      "cooldownDays": "Cooldown anti-spam (días)",
+      "active": "Activo",
+      "inactive": "Pausado",
+      "edit": "Editar",
+      "evaluate": "Evaluar ahora",
+      "evaluating": "Evaluando…",
+      "evalResult": "{key}: {evaluated} evaluadas, {notified} notificadas",
+      "allCreated": "Ya existe un trigger de cada tipo.",
+      "empty": "Sin triggers configurados — crea el primero.",
+      "keys": {
+        "WINBACK": "Recuperar inactivos",
+        "TRIAL_EXPIRING": "Prueba por vencer",
+        "REGULAR_NO_PRESALE": "Regular sin preventa",
+        "ATTENDANCE_DROP": "Caída de asistencia"
+      },
+      "desc": {
+        "WINBACK": "Avisa a personas cuya última actividad supera el umbral de días.",
+        "TRIAL_EXPIRING": "Avisa a alumnos en periodo de prueba que cumplen el mínimo de días (solo academias).",
+        "REGULAR_NO_PRESALE": "Avisa a asistentes frecuentes sin preventa para el próximo evento (solo productores).",
+        "ATTENDANCE_DROP": "Avisa a personas que recién empiezan a caer en inactividad."
+      }
+    }
+  }
+}

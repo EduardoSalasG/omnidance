@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
@@ -317,6 +318,31 @@ export default function ProducerPage() {
 
       {gate === "ready" && (
         <>
+          {/* ---------- Navegación consola ---------- */}
+          <nav aria-label={t("title")} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Link
+              href="/productor/eventos"
+              className="flex min-h-11 flex-col justify-center gap-1 rounded-2xl border border-night-700 bg-night-900 p-4 transition-colors hover:border-neon/60"
+            >
+              <span className="font-semibold">{t("myEvents")}</span>
+              <span className="text-xs text-white/50">{t("navEventsDesc")}</span>
+            </Link>
+            <Link
+              href="/productor/pagos"
+              className="flex min-h-11 flex-col justify-center gap-1 rounded-2xl border border-night-700 bg-night-900 p-4 transition-colors hover:border-neon/60"
+            >
+              <span className="font-semibold">{t("payouts")}</span>
+              <span className="text-xs text-white/50">{t("navPayoutsDesc")}</span>
+            </Link>
+            <Link
+              href="/crm"
+              className="flex min-h-11 flex-col justify-center gap-1 rounded-2xl border border-night-700 bg-night-900 p-4 transition-colors hover:border-neon/60"
+            >
+              <span className="font-semibold">{t("crm")}</span>
+              <span className="text-xs text-white/50">{t("navCrmDesc")}</span>
+            </Link>
+          </nav>
+
           {/* ---------- Códigos de descuento ---------- */}
           <section className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3">

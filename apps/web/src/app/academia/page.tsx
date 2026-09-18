@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
 import { AcademyConsole } from "@/components/academy/academy-console";
+import { PrivateLessons } from "@/components/academy/private-lessons";
+import { Videos } from "@/components/academy/videos";
 import { inputCls, readError, type Academy } from "@/components/academy/shared";
 
 type Gate = "loading" | "unauth" | "empty" | "ready" | "error";
@@ -135,6 +137,9 @@ export default function AcademiaPage() {
               </div>
             </form>
           </Card>
+          {/* Vista alumno: sin academias propias aún puede tener
+              solicitudes de clases particulares (/private-lessons/mine). */}
+          <PrivateLessons academies={academies} />
         </div>
       )}
 
@@ -157,10 +162,25 @@ export default function AcademiaPage() {
             </label>
           )}
           {selectedId && (
-            <AcademyConsole
-              key={selectedId}
-              academy={academies.find((a) => a.id === selectedId)!}
-            />
+            <>
+              <AcademyConsole
+                key={selectedId}
+                academy={academies.find((a) => a.id === selectedId)!}
+              />
+              {/* Vista staff: solicitudes y videos de la academia
+                  seleccionada; adentro también va "Mis solicitudes"
+                  (vista alumno) con form de request sobre las academias
+                  ya cargadas. */}
+              <PrivateLessons
+                key={`lessons-${selectedId}`}
+                academy={academies.find((a) => a.id === selectedId)!}
+                academies={academies}
+              />
+              <Videos
+                key={`videos-${selectedId}`}
+                academy={academies.find((a) => a.id === selectedId)!}
+              />
+            </>
           )}
         </>
       )}
