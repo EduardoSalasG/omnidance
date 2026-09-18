@@ -558,6 +558,11 @@ model PointLedger {
   refType  String?
   refId    String?
   createdAt DateTime @default(now())
+
+  // Idempotencia de accrual: una referencia (refType+refId) otorga puntos
+  // una sola vez por persona+motivo. Postgres trata NULLs como distintos,
+  // por eso los callers siempre pasan refType+refId.
+  @@unique([personId, reason, refType, refId])
 }
 
 model FriendChallenge {

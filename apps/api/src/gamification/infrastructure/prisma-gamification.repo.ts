@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import type { GamificationRepo, NewLedgerEntry } from "../domain/ports";
 
@@ -214,8 +215,20 @@ export class PrismaGamificationRepo implements GamificationRepo {
     });
   }
 
-  createLedgerEntry(entry: NewLedgerEntry) {
-    return this.prisma.pointLedger.create({ data: entry });
+  async createLedgerEntry(entry: NewLedgerEntry) {
+    try {
+      return await this.prisma.pointLedger.create({ data: entry });
+    } catch (e) {
+      // P2002: el unique (personId, reason, refType, refId) rechaza el
+      // duplicado — es el path de la race, no un error real.
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        return null;
+      }
+      throw e;
+    }
   }
 
   ledgerForPerson(personId: string, seasonId?: string) {

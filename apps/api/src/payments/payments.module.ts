@@ -6,17 +6,17 @@ import { PAYMENT_GATEWAY, type PaymentGateway } from "./domain/ports";
 import { PricingService } from "./domain/pricing.service";
 import { StubGateway } from "./infrastructure/stub.gateway";
 import { FlowGateway } from "./infrastructure/flow.gateway";
-import {
-  CheckoutController,
-  TicketsController,
-} from "./infrastructure/checkout.controller";
+import { CheckoutController } from "./infrastructure/checkout.controller";
+import { TicketsController } from "./infrastructure/tickets.controller";
 import { PaymentsController } from "./infrastructure/webhook.controller";
+import { CheckoutService } from "./application/checkout.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
   imports: [AuthModule, ParamsModule, NotificationsModule, PrismaModule],
   controllers: [CheckoutController, TicketsController, PaymentsController],
   providers: [
+    CheckoutService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
       provide: PAYMENT_GATEWAY,

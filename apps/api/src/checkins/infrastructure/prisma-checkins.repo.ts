@@ -12,13 +12,10 @@ import type {
 
 @Injectable()
 export class PrismaCheckinsRepo implements CheckinsRepo {
-  // ParamsService instanciado directo (misma lógica + cache 30s) — evita
-  // exigir ParamsModule en CheckinsModule solo para fees de puerta.
-  private readonly params: ParamsService;
-
-  constructor(private readonly prisma: PrismaService) {
-    this.params = new ParamsService(prisma);
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly params: ParamsService,
+  ) {}
 
   findEventById(id: string) {
     return this.prisma.event.findUnique({
