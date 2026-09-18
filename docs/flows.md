@@ -308,3 +308,99 @@ sequenceDiagram
     P->>API: POST /checkins/:id/void {reason} — staff asignado o admin
     API->>DB: tx: voidedAt+reason, pase USED→ACTIVE, AuditLog CHECKIN_VOID
 ```
+
+## Productor — ciclo de vida del evento
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT: POST /events (events.manage)<br/>+ scheduleBlocks + DJs en la misma tx
+    DRAFT --> PUBLISHED: POST /events/:id/publish (owner|admin)
+    PUBLISHED --> LIVE: staff activa (manual)
+    DRAFT --> CANCELLED: POST /events/:id/cancel
+    PUBLISHED --> CANCELLED: POST /events/:id/cancel
+    LIVE --> CANCELLED: POST /events/:id/cancel
+    LIVE --> CLOSED: fin del evento
+    note right of DRAFT: PATCH solo editable en DRAFT/PUBLISHED<br/>scheduleBlocks/djIds reemplazan en tx
+    note right of PUBLISHED: check-ins y door-sale<br/>solo PUBLISHED|LIVE
+```
+
+## Pase de serie — compra → webhook → check-in
+
+```mermaid
+sequenceDiagram
+    actor U as Bailarín
+    participant API as CheckoutService
+    participant GW as Pasarela
+    participant WH as WebhookController
+    participant DB as Postgres
+    participant CK as CheckinsService
+
+    U->>API: POST /checkout/series-pass {seriesId, month:"YYYY-MM"}
+    API->>DB: serie activa + ¿ya tiene pase? (409)
+    API->>DB: params series_pass.price_clp + service_fee
+    API->>GW: createOrder (refId sp_<series>_<mes>_<uuid>)
+    API-->>U: {paymentUrl, paymentId}
+    GW->>WH: POST /payments/webhook PAID
+    WH->>DB: tx: paidNow + SeriesPass.upsert(@@unique serie+persona+mes)
+    WH->>DB: notifySafe payment.series_pass
+    Note over U,CK: la noche del evento de la serie…
+    U->>CK: POST /checkins (scan QR)
+    CK->>DB: ticket? → entryPass? → SeriesPass(event.seriesId, mes actual)
+    Note over CK: passType SERIES_PASS — NO se marca USED<br/>(mensual reutilizable)
+```
+
+## Payouts — liquidación del productor
+
+```mermaid
+sequenceDiagram
+    actor Ad as Admin
+    actor Pr as Productor
+    participant API as AdminPayouts/MePayouts
+    participant DB as Postgres
+
+    Ad->>API: POST /admin/payouts/generate {actorType:PRODUCER, actorId, periodo}
+    API->>DB: Σ Payment PAID (TICKET por eventId del producer<br/>+ SERIES_PASS por refId→serie del producer)
+    API->>DB: Payout PENDING (idempotente actor+período) + AuditLog
+    Ad->>API: POST /admin/payouts/:id/approve → APPROVED
+    Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
+    Pr->>API: GET /me/payouts (crm.manage) → solo los suyos
+```
+
+## CRM — score → segmento → campaña/trigger
+
+```mermaid
+sequenceDiagram
+    actor P as Productor/Academia
+    participant API as CrmController/Service
+    participant DB as Postgres
+    participant CRON as CrmTriggersScheduler
+
+    P->>API: POST /crm/scores/recompute {actorType, actorId}
+    API->>DB: universo (checkins+payments del actor) → upsert RelationshipScore
+    Note over API: score=min(100, att*10+spend/1000+ref*15)<br/>segment NEW|AT_RISK|BRINGS_PEOPLE|CORE
+    P->>API: POST /crm/people/tags + campañas DRAFT
+    P->>API: POST /crm/campaigns/:id/send
+    API->>DB: resuelve segmento (tags|segment|personIds)<br/>→ notifySafe ×N (+DiscountCode CAMPAIGN si aplica)
+    CRON->>API: diario 09:00 → evaluateAllActiveTriggers
+    API->>DB: WINBACK: inactivos > crm.winback_days → notify<br/>(cooldown anti-spam 7d)
+```
+
+## Notificaciones — fan-out tiempo real
+
+```mermaid
+sequenceDiagram
+    participant Dom as Cualquier dominio
+    participant NS as NotificationsService
+    participant DB as Postgres
+    participant WS as NotificationsGateway
+    participant WP as WebPushSender
+    actor U as App del usuario
+
+    Dom->>NS: notify(personId, input) / notifySafe
+    NS->>DB: create Notification (IN_APP)
+    NS->>WS: emitToPerson → room person:{id}
+    WS-->>U: event "notification" (socket.io,<br/>auth por cookie de sesión en handshake)
+    NS->>WP: sendToPerson (PushTokens de la persona)
+    WP-->>U: Web Push (VAPID; no-op seguro sin keys,<br/>404/410 limpia el token muerto)
+    Note over NS: ambos best-effort — un fallo de WS/push<br/>nunca rompe el notify ni el dominio origen
+```

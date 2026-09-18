@@ -4,10 +4,12 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
 import { IsDateString, IsOptional, IsString } from "class-validator";
+import type { Prisma } from "@prisma/client";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
@@ -83,5 +85,71 @@ export class TripsController {
       where: { personId: req.person!.id },
       orderBy: { startsAt: "asc" },
     });
+  }
+
+  /**
+   * Matching de viajes (spec omni-dance.md §8): trips de OTRAS personas que
+   * coinciden por destination (contains, case-insensitive) o eventId. Con
+   * from/to solo trips cuyo rango [startsAt,endsAt] solape [from,to].
+   * Requiere al menos destination o eventId. Límite 50.
+   */
+  @Get("matches")
+  async matches(
+    @Req() req: Request,
+    @Query("destination") destination?: string,
+    @Query("eventId") eventId?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+  ) {
+    if (!destination?.trim() && !eventId) {
+      throw new BadRequestException("requiere destination o eventId");
+    }
+
+    const fromDate = from ? new Date(from) : undefined;
+    if (fromDate && Number.isNaN(fromDate.getTime())) {
+      throw new BadRequestException("from inválido");
+    }
+    const toDate = to ? new Date(to) : undefined;
+    if (toDate && Number.isNaN(toDate.getTime())) {
+      throw new BadRequestException("to inválido");
+    }
+
+    const matchOr: Prisma.TripWhereInput[] = [];
+    if (destination?.trim()) {
+      matchOr.push({
+        destination: { contains: destination.trim(), mode: "insensitive" },
+      });
+    }
+    if (eventId) matchOr.push({ eventId });
+
+    const where: Prisma.TripWhereInput = {
+      personId: { not: req.person!.id },
+      OR: matchOr,
+    };
+    // Solape de rangos: [startsAt,endsAt] ∩ [from,to] ≠ ∅
+    if (fromDate) where.endsAt = { gte: fromDate };
+    if (toDate) where.startsAt = { lte: toDate };
+
+    const trips = await this.prisma.trip.findMany({
+      where,
+      orderBy: { startsAt: "asc" },
+      take: 50,
+    });
+
+    // Trip.personId es escalar → join manual
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: [...new Set(trips.map((t) => t.personId))] } },
+      select: { id: true, name: true, photoUrl: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+
+    return trips.map((t) => ({
+      id: t.id,
+      destination: t.destination,
+      eventId: t.eventId,
+      startsAt: t.startsAt,
+      endsAt: t.endsAt,
+      person: byId.get(t.personId) ?? null,
+    }));
   }
 }

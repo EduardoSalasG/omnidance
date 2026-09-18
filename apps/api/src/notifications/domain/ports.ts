@@ -38,3 +38,32 @@ export interface NotificationsRepo {
   findPushTokenByToken(token: string): Promise<PushToken | null>;
   deletePushToken(id: string): Promise<void>;
 }
+
+// ─── Puertos de fan-out (opcionales) ───
+// Los implementa la infraestructura (gateway WS / sender web-push). El dominio
+// los invoca best-effort tras persistir la notificación; si no hay provider
+// registrado el servicio funciona igual (inyección @Optional).
+
+export const REALTIME_PORT = "REALTIME_PORT";
+
+/** Emisión en tiempo real (WebSocket) hacia la room `person:{personId}`. */
+export interface RealtimePort {
+  emitToPerson(personId: string, event: string, payload: unknown): void;
+}
+
+export const PUSH_PORT = "PUSH_PORT";
+
+export interface PushNotificationPayload {
+  type: string;
+  title?: string | null;
+  body?: string | null;
+  data?: unknown;
+}
+
+/** Web Push best-effort — el adaptador es no-op sin VAPID keys configuradas. */
+export interface PushPort {
+  sendToPerson(
+    personId: string,
+    notification: PushNotificationPayload,
+  ): Promise<void>;
+}

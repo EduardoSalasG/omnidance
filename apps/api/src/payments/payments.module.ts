@@ -9,12 +9,22 @@ import { FlowGateway } from "./infrastructure/flow.gateway";
 import { CheckoutController } from "./infrastructure/checkout.controller";
 import { TicketsController } from "./infrastructure/tickets.controller";
 import { PaymentsController } from "./infrastructure/webhook.controller";
+import {
+  AdminPayoutsController,
+  MePayoutsController,
+} from "./infrastructure/payouts.controller";
 import { CheckoutService } from "./application/checkout.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
   imports: [AuthModule, ParamsModule, NotificationsModule, PrismaModule],
-  controllers: [CheckoutController, TicketsController, PaymentsController],
+  controllers: [
+    CheckoutController,
+    TicketsController,
+    PaymentsController,
+    AdminPayoutsController,
+    MePayoutsController,
+  ],
   providers: [
     CheckoutService,
     { provide: PricingService, useFactory: () => new PricingService() },

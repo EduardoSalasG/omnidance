@@ -1,7 +1,8 @@
-import type { Checkin, EventStatus, PassType, Ticket } from "@prisma/client";
+import type { Checkin, EventStatus, Ticket } from "@prisma/client";
 import { SERVICE_FEE } from "@omnidance/shared";
 import type {
   CheckinMethod,
+  CheckinPassType,
   CheckinsRepo,
   DoorSaleChannel,
   ListedCheckin,
@@ -86,8 +87,12 @@ export interface CheckinResult {
   checkin: Checkin;
   person: { name: string; photoUrl: string | null };
   ticket: { id: string; status: string } | null;
-  /** Tipo del EntryPass resuelto (COMP/LIST/…) — null si fue ticket o sin pase. */
-  passType: PassType | null;
+  /**
+   * Tipo del pase resuelto: PassType del EntryPass (COMP/LIST/…) o
+   * "SERIES_PASS" si entró con el pase mensual de la serie — null si fue
+   * ticket o sin pase.
+   */
+  passType: CheckinPassType | null;
 }
 
 /** Actor autenticado (SessionGuard) — el id basta: roles se leen en DB. */
@@ -115,6 +120,12 @@ const PARAM_DOOR_APP_FEE = "service_fee.door_app_clp";
 
 // Estados en que la puerta opera: publicado (pre-venta activa) o en vivo.
 const CHECKIN_OPEN_STATUSES: readonly EventStatus[] = ["PUBLISHED", "LIVE"];
+
+/** Mes calendario local "YYYY-MM" — clave de vigencia del SeriesPass. */
+function currentMonth(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
 
 /**
  * Reglas de check-in de puerta (spec omni-dance.md — staff offline-first):
@@ -147,11 +158,25 @@ export class CheckinsService {
       ? null
       : await this.repo.findActiveEntryPass(input.eventId, input.personId);
 
+    // Fallback: pase mensual de la serie del evento (spec series-pass).
+    // Vigencia = mes calendario local "YYYY-MM"; no se consume al hacer
+    // check-in — cubre todos los eventos de la serie en el mes.
+    const seriesPass =
+      ticket || entryPass || !event.seriesId
+        ? null
+        : ((await this.repo.findActiveSeriesPass?.(
+            event.seriesId,
+            input.personId,
+            currentMonth(),
+          )) ?? null);
+
     const pass: ResolvedPass | null = ticket
       ? { kind: "TICKET", id: ticket.id }
       : entryPass
         ? { kind: "ENTRY_PASS", id: entryPass.id }
-        : null;
+        : seriesPass
+          ? { kind: "SERIES_PASS", id: seriesPass.id }
+          : null;
 
     const checkin = await this.repo.createCheckin(
       {
@@ -169,7 +194,7 @@ export class CheckinsService {
       checkin,
       person: { name: person.name, photoUrl: person.photoUrl },
       ticket: ticket ? { id: ticket.id, status: "USED" } : null,
-      passType: entryPass?.type ?? null,
+      passType: entryPass?.type ?? (seriesPass ? "SERIES_PASS" : null),
     };
   }
 

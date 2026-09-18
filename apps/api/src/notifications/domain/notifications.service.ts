@@ -1,7 +1,12 @@
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import type { Notification, Prisma, PushToken } from "@prisma/client";
-import type {
-  ListNotificationsOptions,
-  NotificationsRepo,
+import {
+  PUSH_PORT,
+  REALTIME_PORT,
+  type ListNotificationsOptions,
+  type NotificationsRepo,
+  type PushPort,
+  type RealtimePort,
 } from "./ports";
 
 // Centro de notificaciones (omni-dance.md — sistema) — servicio de dominio puro.
@@ -49,13 +54,24 @@ export interface NotificationsPage {
   unreadCount: number;
 }
 
+@Injectable()
 export class NotificationsService {
-  constructor(private readonly repo: NotificationsRepo) {}
+  constructor(
+    private readonly repo: NotificationsRepo,
+    @Optional()
+    @Inject(REALTIME_PORT)
+    private readonly realtime?: RealtimePort,
+    @Optional()
+    @Inject(PUSH_PORT)
+    private readonly push?: PushPort,
+  ) {}
 
   /**
    * Crea una notificación in-app para `personId`.
    * `type` es libre ("session_invite", "ticket_paid", "prime_unlocked"…);
    * `category` debe ser una de las 4 del schema.
+   * Tras persistir dispara fan-out realtime (WS) y web push — ambos
+   * best-effort: un fallo del socket o de push nunca rompe notify().
    */
   async notify(personId: string, input: NotifyInput): Promise<Notification> {
     if (!NOTIFICATION_CATEGORIES.includes(input.category)) {
@@ -64,7 +80,7 @@ export class NotificationsService {
         `category inválida: ${input.category}`,
       );
     }
-    return this.repo.createNotification({
+    const notification = await this.repo.createNotification({
       personId,
       category: input.category,
       type: input.type,
@@ -72,6 +88,17 @@ export class NotificationsService {
       body: input.body,
       data: input.data,
     });
+    try {
+      this.realtime?.emitToPerson(personId, "notification", notification);
+    } catch {
+      /* gateway ausente o socket caído — la notificación ya quedó persistida */
+    }
+    try {
+      await this.push?.sendToPerson(personId, notification);
+    } catch {
+      /* web push opcional — nunca propaga */
+    }
+    return notification;
   }
 
   /**

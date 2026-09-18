@@ -26,6 +26,7 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
         doorPrice: true,
         doorCap: true,
         producerId: true,
+        seriesId: true,
       },
     });
   }
@@ -58,7 +59,18 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
     });
   }
 
-  /** Crea el check-in y marca USED el pase resuelto en la misma transacción. */
+  /** Pase mensual de serie vigente: @@unique([seriesId,personId,month]). */
+  findActiveSeriesPass(seriesId: string, personId: string, month: string) {
+    return this.prisma.seriesPass.findUnique({
+      where: { seriesId_personId_month: { seriesId, personId, month } },
+    });
+  }
+
+  /**
+   * Crea el check-in y marca USED el pase resuelto en la misma transacción.
+   * SERIES_PASS no se marca USED: es un pase mensual reutilizable — solo
+   * queda referenciado en Checkin.passId para auditoría/reporting.
+   */
   createCheckin(data: CreateCheckinData, pass: ResolvedPass | null) {
     return this.prisma.$transaction(async (tx) => {
       const checkin = await tx.checkin.create({

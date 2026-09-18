@@ -2,16 +2,23 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
   Post,
+  Req,
+  Res,
   UseGuards,
 } from "@nestjs/common";
 import { IsInt, IsOptional, IsString, Min } from "class-validator";
+import type { Request, Response } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
-import { RolesGuard } from "../../common/rbac/roles.guard";
+import {
+  RolesGuard,
+  roleKeysHavePermission,
+} from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 
 class CreateGuestListDto {
@@ -139,5 +146,75 @@ export class GuestListsController {
       data: { guestListId: id, personId: dto.personId },
     });
     return { ...entry, person };
+  }
+
+  /**
+   * Emite el EntryPass LIST de una entrada de la lista. Autorización mixta
+   * (sin @RequirePermissions): dueño de la lista, productor del evento o
+   * staff con `social.manage`. Idempotente — un EntryPass ACTIVE tipo LIST
+   * por (eventId, personId): 201 al crear, 200 si ya existía. Emitir el pase
+   * NO marca la entrada como ARRIVED.
+   */
+  @Post(":listId/entries/:entryId/pass")
+  @UseGuards(SessionGuard)
+  async issuePass(
+    @Param("listId") listId: string,
+    @Param("entryId") entryId: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const list = await this.prisma.guestList.findUnique({
+      where: { id: listId },
+    });
+    if (!list) throw new NotFoundException("guest list no encontrada");
+
+    const entry = await this.prisma.guestListEntry.findUnique({
+      where: { id: entryId },
+    });
+    if (!entry || entry.guestListId !== list.id) {
+      throw new NotFoundException("entrada no encontrada en esta lista");
+    }
+
+    const me = req.person!;
+    const [event, hasManagePerm] = await Promise.all([
+      this.prisma.event.findUnique({
+        where: { id: list.eventId },
+        select: { producerId: true },
+      }),
+      roleKeysHavePermission(this.prisma, me.roles, ["social.manage"]),
+    ]);
+    const allowed =
+      list.ownerId === me.id ||
+      event?.producerId === me.id ||
+      hasManagePerm;
+    if (!allowed) {
+      throw new ForbiddenException(
+        "requiere dueño de la lista, productor del evento o staff",
+      );
+    }
+
+    const existing = await this.prisma.entryPass.findFirst({
+      where: {
+        eventId: list.eventId,
+        personId: entry.personId,
+        type: "LIST",
+        status: "ACTIVE",
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    if (existing) {
+      res.status(200);
+      return existing;
+    }
+
+    return this.prisma.entryPass.create({
+      data: {
+        eventId: list.eventId,
+        personId: entry.personId,
+        type: "LIST",
+        price: list.specialPrice ?? 0,
+        status: "ACTIVE",
+      },
+    });
   }
 }
