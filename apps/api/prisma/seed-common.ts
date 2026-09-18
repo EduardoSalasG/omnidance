@@ -24,12 +24,14 @@ export const PERMISSION_CATALOG = [
   { key: "discounts.manage", description: "Crear y gestionar códigos de descuento" },
   { key: "social.manage", description: "Gestionar guest lists y waitlists" },
   { key: "academies.create", description: "Crear academia propia" },
+  { key: "events.manage", description: "Crear y gestionar eventos propios (productor)" },
+  { key: "crm.manage", description: "CRM del actor: scores, tags, campañas, triggers, payouts propios" },
 ] as const;
 
 export const ROLE_GRANTS: Record<string, string[]> = {
   STAFF: ["checkins.write", "social.manage"],
-  PRODUCER: ["discounts.manage", "social.manage"],
-  ACADEMY_OWNER: ["academies.create"],
+  PRODUCER: ["discounts.manage", "social.manage", "events.manage", "crm.manage"],
+  ACADEMY_OWNER: ["academies.create", "crm.manage"],
   // ADMIN: isSuperuser — pasa todo sin grants explícitos
 };
 
@@ -59,6 +61,9 @@ export const PARAM_DEFAULTS: Array<{
   { key: "prime_time.window_minutes", value: 30, description: "Minutos de la ventana Prime Time" },
   { key: "prime_time.threshold_pct", value: 0.2, description: "Umbral Prime Time como fracción del aforo" },
   { key: "early_checkin.cutoff_minutes", value: 1380, description: "Minutos desde medianoche — check-in antes de esta hora (23:00) cuenta como temprano (badge madrugador + puntos early_checkin)" },
+  { key: "series_pass.price_clp", value: 25000, description: "Precio mensual del pase de serie (CLP) — fallback si la serie no define precio propio" },
+  { key: "service_fee.series_pass_clp", value: 500, description: "Cargo por servicio del pase de serie (CLP)" },
+  { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
 ];
 
 /** Catálogo de badges — las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
