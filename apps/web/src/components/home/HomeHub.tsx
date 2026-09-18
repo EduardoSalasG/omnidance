@@ -35,6 +35,20 @@ function TileLink({ href, label, desc, badge }: Tile) {
   );
 }
 
+// Hero por rol: la acción principal del usuario según su rol de gestión
+// "más alto" (ADMIN > PRODUCER > ACADEMY > STAFF); sin rol de gestión el
+// hero es el consumo de la noche (/eventos + QR).
+type HeroKind = "admin" | "producer" | "academy" | "staff" | "dancer";
+
+type Hero = {
+  kind: HeroKind;
+  href: string;
+  title: string;
+  desc: string;
+  cta: string;
+  secondary?: { href: string; label: string };
+};
+
 export function HomeHub() {
   const t = useTranslations("home");
   const tc = useTranslations("common");
@@ -118,25 +132,81 @@ export function HomeHub() {
   const isProducer = roles.has("PRODUCER") || roles.has("ADMIN");
   const isAdmin = roles.has("ADMIN");
 
-  const tonight: Tile[] = [
-    { href: "/eventos", label: te("title") },
+  // Multi-rol: gana el rol de gestión más alto; los demás módulos quedan
+  // en la sección "Gestión". El escáner de invitaciones ya no es tile —
+  // vive como segmento dentro de /qr (por eso el QR apunta a /qr).
+  const hero: Hero = isAdmin
+    ? {
+        kind: "admin",
+        href: "/admin",
+        title: tad("title"),
+        desc: t("adminHeroDesc"),
+        cta: t("adminHeroCta"),
+      }
+    : isProducer
+      ? {
+          kind: "producer",
+          href: "/productor/eventos",
+          title: tpr("myEvents"),
+          desc: tpr("navEventsDesc"),
+          cta: t("producerHeroCta"),
+          // "Crear evento" es un form inline en /productor/eventos — el
+          // CTA secundario apunta a la misma página donde se despliega.
+          secondary: { href: "/productor/eventos", label: tpr("createEvent") },
+        }
+      : isAcademy
+        ? {
+            kind: "academy",
+            href: "/academia",
+            title: ta("title"),
+            desc: t("academyHeroDesc"),
+            cta: t("academyHeroCta"),
+          }
+        : isStaff
+          ? {
+              kind: "staff",
+              href: "/staff",
+              title: tst("title"),
+              desc: t("staffHeroDesc"),
+              cta: t("staffHeroCta"),
+            }
+          : {
+              kind: "dancer",
+              href: "/eventos",
+              title: t("tonight"),
+              desc: t("dancerHeroDesc"),
+              cta: t("seeEvents"),
+              secondary: { href: "/qr", label: tq("title") },
+            };
+
+  // /eventos solo aparece como tile cuando no es el hero (staff/productor/
+  // academia/admin siguen necesitando llegar al listado público).
+  const forYou: Tile[] = [
+    ...(hero.kind !== "dancer"
+      ? [{ href: "/eventos", label: te("title") }]
+      : []),
     { href: "/qr", label: tq("title"), desc: tq("subtitle") },
-    { href: "/escanear", label: ts("scanToInvite") },
     { href: "/bailes", label: ts("title") },
     { href: "/entradas", label: tw("title") },
-  ];
-
-  const social: Tile[] = [
     { href: "/practicas", label: tp("title") },
     { href: "/viajes", label: tt("title") },
     { href: "/notificaciones", label: tn("title"), badge: unread },
   ];
 
+  // Módulos de gestión que no ganaron el hero.
   const management: Tile[] = [
-    ...(isStaff ? [{ href: "/staff", label: tst("title") }] : []),
-    ...(isAcademy ? [{ href: "/academia", label: ta("title") }] : []),
-    ...(isProducer ? [{ href: "/productor", label: tpr("title") }] : []),
-    ...(isAdmin ? [{ href: "/admin", label: tad("title") }] : []),
+    ...(isStaff && hero.kind !== "staff"
+      ? [{ href: "/staff", label: tst("title") }]
+      : []),
+    ...(isAcademy && hero.kind !== "academy"
+      ? [{ href: "/academia", label: ta("title") }]
+      : []),
+    ...(isProducer && hero.kind !== "producer"
+      ? [{ href: "/productor", label: tpr("title") }]
+      : []),
+    ...(isAdmin && hero.kind !== "admin"
+      ? [{ href: "/admin", label: tad("title") }]
+      : []),
   ];
 
   return (
@@ -151,23 +221,35 @@ export function HomeHub() {
         </p>
       </header>
 
-      <section aria-label={t("tonight")}>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-          {t("tonight")}
-        </h2>
-        <ul className="grid grid-cols-2 gap-3">
-          {tonight.map((tile) => (
-            <TileLink key={tile.href} {...tile} />
-          ))}
-        </ul>
+      <section aria-label={hero.title}>
+        <Link
+          href={hero.href}
+          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+        >
+          <span className="text-xl font-bold leading-tight">{hero.title}</span>
+          <span className="text-sm text-white/60">{hero.desc}</span>
+          <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+            {hero.cta}
+            <span aria-hidden>→</span>
+          </span>
+        </Link>
+        {hero.secondary && (
+          <Button
+            href={hero.secondary.href}
+            variant="secondary"
+            className="mt-3 w-full"
+          >
+            {hero.secondary.label}
+          </Button>
+        )}
       </section>
 
-      <section aria-label={t("social")}>
+      <section aria-label={t("forYou")}>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-          {t("social")}
+          {t("forYou")}
         </h2>
         <ul className="grid grid-cols-2 gap-3">
-          {social.map((tile) => (
+          {forYou.map((tile) => (
             <TileLink key={tile.href} {...tile} />
           ))}
         </ul>
