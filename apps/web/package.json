@@ -15,7 +15,8 @@
     "next-intl": "^4.14.5",
     "qrcode": "^1.5.4",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0"
+    "react-dom": "^18.3.0",
+    "socket.io-client": "4.8.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
