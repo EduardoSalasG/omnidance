@@ -404,3 +404,38 @@ sequenceDiagram
     WP-->>U: Web Push (VAPID; no-op seguro sin keys,<br/>404/410 limpia el token muerto)
     Note over NS: ambos best-effort — un fallo de WS/push<br/>nunca rompe el notify ni el dominio origen
 ```
+
+## Liquidaciones — payouts por actor
+
+```mermaid
+sequenceDiagram
+    actor Ad as Admin
+    participant API as AdminPayoutsController
+    participant DB as Postgres
+    actor Ow as Productor/Dueño academia/venue
+
+    Ad->>API: POST /admin/payouts/generate {actorType, actorId, período}
+    API->>DB: idempotente: payout existente → devuelve sin recalcular
+    Note over API,DB: PRODUCER: tickets de sus eventos + series-pass de sus series<br/>ACADEMY/VENUE: tickets PAID de eventos con<br/>academyId|venueId=actorId AND producerId=null<br/>(entidad produjo directo — con productor, éste devenga)<br/>gross = Σ amount · net = gross − Σ fee
+    API->>DB: create Payout PENDING + AuditLog PAYOUT_GENERATE
+    Ad->>API: POST /admin/payouts/:id/approve → APPROVED
+    Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
+    Ow->>API: GET /me/payouts (crm.manage)
+    API->>DB: PRODUCER por personId + ACADEMY por Academy.ownerId<br/>+ VENUE por Venue.ownerId → unión
+```
+
+## Comisión parametrizable — cadena de resolución
+
+```mermaid
+flowchart TD
+    A[checkout ticket / webhook PAID] --> B{event.serviceFeeClp != null?}
+    B -->|sí| C[fee = event.serviceFeeClp<br/>override admin por evento]
+    B -->|no| D[fee = param service_fee.presale_clp]
+    D --> E[→ env SERVICE_FEE_CLP → default shared]
+    C --> F[quote = listPrice + fee − descuento]
+    E --> F
+    F --> G[Payment.amount / Payment.fee]
+    H[POST/PATCH /events con serviceFeeClp] --> I{admin.access?}
+    I -->|sí| J[persiste override · null limpia]
+    I -->|no| K[403 — solo admin fija comisión]
+```

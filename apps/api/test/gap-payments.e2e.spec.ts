@@ -143,8 +143,13 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     ids.otherProducerId = otherProducer.id;
 
     // ─── venues / series / eventos ───
+    // ownerId = payoutProducer → además de sus payouts PRODUCER y los
+    // ACADEMY de su academia, ve los VENUE de su venue en me/payouts.
     const venue = await prisma.venue.create({
-      data: { name: `Venue Gap Payments ${suffix}` },
+      data: {
+        name: `Venue Gap Payments ${suffix}`,
+        ownerId: payoutProducer.id,
+      },
     });
     ids.venueId = venue.id;
 
@@ -1019,18 +1024,33 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
         ),
       ).toBe(true);
 
-      // todo lo listado es suyo: PRODUCER propio o ACADEMY de su academia
+      // todo lo listado es suyo: PRODUCER propio, ACADEMY de su academia
+      // o VENUE de su venue
       expect(
         list.every(
           (p: { actorType: string; actorId: string }) =>
             (p.actorType === "PRODUCER" &&
               p.actorId === ids.payoutProducerId) ||
-            (p.actorType === "ACADEMY" && p.actorId === ids.academyId),
+            (p.actorType === "ACADEMY" && p.actorId === ids.academyId) ||
+            (p.actorType === "VENUE" && p.actorId === ids.venueId),
         ),
       ).toBe(true);
     });
 
-    it("me/payouts de otro productor NO incluye el payout de la academia", async () => {
+    it("me/payouts del owner incluye el payout VENUE de su venue", async () => {
+      const res = await get("/api/me/payouts", payoutProducerSession);
+      expect(res.status).toBe(200);
+      const list = await res.json();
+
+      const venuePayout = list.find(
+        (p: { id: string }) => p.id === venuePayoutId,
+      );
+      expect(venuePayout).toBeTruthy();
+      expect(venuePayout.actorType).toBe("VENUE");
+      expect(venuePayout.actorId).toBe(ids.venueId);
+    });
+
+    it("me/payouts de un productor sin academias ni venues NO incluye payouts ACADEMY/VENUE ajenos", async () => {
       const otherSession = await auth.issueSession(ids.producerId);
       const res = await get("/api/me/payouts", otherSession);
       expect(res.status).toBe(200);
@@ -1040,6 +1060,10 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       ).toBe(false);
       expect(
         list.some((p: { id: string }) => p.id === venuePayoutId),
+      ).toBe(false);
+      // no posee venues → ningún payout VENUE puede aparecer en su lista
+      expect(
+        list.some((p: { actorType: string }) => p.actorType === "VENUE"),
       ).toBe(false);
     });
   });
