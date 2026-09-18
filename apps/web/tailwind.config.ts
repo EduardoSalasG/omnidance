@@ -14,8 +14,8 @@ const config: Config = {
           700: "#2a2a3a",
         },
         neon: {
-          DEFAULT: "#e040fb", // accent — dance floor
-          soft: "#ab47bc",
+          DEFAULT: "#a3e635", // accent — marca (icon.svg, og-image, icons PWA)
+          soft: "#baf360",
         },
       },
     },

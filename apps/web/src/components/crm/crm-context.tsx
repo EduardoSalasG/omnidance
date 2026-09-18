@@ -165,7 +165,7 @@ export function CrmGateScreen({
     return (
       <div className="flex flex-col items-start gap-4">
         <p className="text-white/70">{t("forbidden")}</p>
-        <Button href="/" variant="secondary">
+        <Button href="/inicio" variant="secondary">
           {tc("appName")}
         </Button>
       </div>

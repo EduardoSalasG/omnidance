@@ -59,7 +59,17 @@
     "dances": "Bailes",
     "scan": "Escanear",
     "tickets": "Entradas",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "more": "Más",
+    "moreMenu": "Más secciones",
+    "qr": "Mi QR",
+    "practices": "Prácticas",
+    "trips": "Viajes",
+    "staff": "Staff",
+    "academy": "Academia",
+    "producer": "Productor",
+    "crm": "CRM",
+    "admin": "Admin"
   },
   "login": {
     "title": "Entra a Omnidance",

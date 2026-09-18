@@ -20,13 +20,10 @@ import { Button, Card } from "@/components/ui";
  *   → pushManager.subscribe({ userVisibleOnly, applicationServerKey })
  *   → POST /api/push-tokens
  *
- * Contrato verificado en apps/api (RegisterPushTokenDto +
- * ValidationPipe whitelist): el body aceptado es `{ token, platform }` —
- * `token` = endpoint de la suscripción, platform ∈ WEB|IOS|ANDROID.
- * Enviamos además `keys` {p256dh, auth}: hoy el pipe las descarta (el DTO
- * aún no las declara ni el servicio las guarda en payload — gap del
- * backend), pero cuando se habilite la persistencia el cliente ya las
- * entrega en el formato que WebPushSender espera en payload.
+ * Contrato verificado en apps/api: POST /api/push-tokens acepta
+ * `{ token, platform, keys? }` — `token` = endpoint de la suscripción,
+ * platform ∈ WEB|IOS|ANDROID, y `keys` {p256dh, auth} se persisten en
+ * payload (formato que WebPushSender espera).
  *
  * La VAPID public key sale de env porque el backend no expone endpoint
  * público para obtenerla (PushTokensController solo tiene POST/DELETE y
@@ -72,6 +69,7 @@ type Phase = "hidden" | "prompt" | "busy" | "done" | "error";
 export function PushOptIn() {
   const t = useTranslations("realtime.push");
   const [phase, setPhase] = useState<Phase>("hidden");
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
   useEffect(() => {
     const supported =
@@ -100,6 +98,7 @@ export function PushOptIn() {
   async function enable() {
     if (!VAPID_PUBLIC_KEY) return;
     setPhase("busy");
+    setErrorDetail(null);
     try {
       const permission = await Notification.requestPermission();
       // "denied" → nada visible (queda a configuración manual del navegador).
@@ -110,10 +109,25 @@ export function PushOptIn() {
       const registration = await navigator.serviceWorker.register("/sw.js");
       // Esperar a que el SW quede activo antes de suscribir.
       await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
+      // iOS: si ya existe suscripción (p. ej. de un intento que falló en el
+      // POST, o de otra sesión), reusarla — subscribe() repetido puede
+      // lanzar AbortError aunque la suscripción anterior sea válida.
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        const subscribe = () =>
+          registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          });
+        try {
+          subscription = await subscribe();
+        } catch (firstErr) {
+          // Apple Push (iOS) devuelve AbortError transitorio con cierta
+          // frecuencia — un retry inmediato suele completar.
+          console.warn("[PushOptIn] subscribe falló, reintentando:", firstErr);
+          subscription = await subscribe();
+        }
+      }
       const keys = {
         p256dh: bufferToBase64Url(subscription.getKey("p256dh")),
         auth: bufferToBase64Url(subscription.getKey("auth")),
@@ -130,7 +144,12 @@ export function PushOptIn() {
       if (!res.ok) throw new Error(`push-tokens ${res.status}`);
       setPhase("done");
       window.setTimeout(() => setPhase("hidden"), 3000);
-    } catch {
+    } catch (err) {
+      // El detalle queda en consola y visible bajo el mensaje — iOS falla
+      // por causas variadas (versión <16.4, push service, suscripción
+      // corrupta) y el error real es la única forma de diagnosticarlas.
+      console.error("[PushOptIn] enable falló:", err);
+      setErrorDetail(err instanceof Error ? err.message : String(err));
       setPhase("error");
     }
   }
@@ -171,6 +190,11 @@ export function PushOptIn() {
             {phase === "error" && (
               <p role="alert" className="text-xs text-red-400">
                 {t("error")}
+                {errorDetail && (
+                  <span className="mt-1 block break-words text-red-400/70">
+                    {errorDetail}
+                  </span>
+                )}
               </p>
             )}
           </div>

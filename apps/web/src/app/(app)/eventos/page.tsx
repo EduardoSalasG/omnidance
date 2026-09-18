@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import messages from "../../../messages/es-CL.json";
+import messages from "../../../../messages/es-CL.json";
 import { Badge, Card, EventDate, PriceTag } from "@/components/ui";
 
 export const metadata: Metadata = {

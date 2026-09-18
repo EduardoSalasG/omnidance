@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import messages from "../../../../messages/es-CL.json";
+import messages from "../../../../../messages/es-CL.json";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { RsvpControls } from "@/components/rsvp/RsvpControls";

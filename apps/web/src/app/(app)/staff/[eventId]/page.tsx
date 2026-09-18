@@ -401,7 +401,7 @@ export default function DoorConsolePage({
       {gate === "notStaff" && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
           <p className="text-white/70">{t("notStaff")}</p>
-          <Button href="/" variant="secondary">
+          <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
         </div>

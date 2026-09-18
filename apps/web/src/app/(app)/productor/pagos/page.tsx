@@ -85,7 +85,7 @@ export default function ProducerPayoutsPage() {
       {gate === "notProducer" && (
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{t("notProducer")}</p>
-          <Button href="/" variant="secondary">
+          <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
         </div>
