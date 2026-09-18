@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import {
+  setActiveRole,
+  useActiveRole,
+  type AppRole,
+} from "@/lib/active-role";
 import { Badge, Button, Card } from "@/components/ui";
 
 type Me = {
@@ -31,6 +36,19 @@ type PageState = "loading" | "ready" | "unauth" | "error";
 // El catálogo de roles solicitables vive en DB (GET /roles/catalog);
 // las etiquetas i18n son fallback para keys sin label de catálogo.
 
+// Orden canónico para el switcher "Interactuar como" — DANCER primero
+// (lente consumidor) y luego los roles de gestión/operación.
+const ACT_AS_ORDER: AppRole[] = [
+  "DANCER",
+  "STAFF",
+  "PRODUCER",
+  "ACADEMY_OWNER",
+  "INSTRUCTOR",
+  "DJ",
+  "VENUE_MANAGER",
+  "ADMIN",
+];
+
 export default function PerfilPage() {
   const t = useTranslations("profile");
   const tg = useTranslations("gamification");
@@ -43,6 +61,10 @@ export default function PerfilPage() {
   const [pendingRoles, setPendingRoles] = useState<Set<string>>(new Set());
   const [requesting, setRequesting] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
+  const activeRole = useActiveRole(me?.roles);
+  // Override local para feedback inmediato al cambiar de lente; el hook
+  // converge al mismo valor cuando el evento de rol se propaga.
+  const [picked, setPicked] = useState<AppRole | null>(null);
 
   function roleLabel(role: string): string {
     const fromCatalog = catalog.find((r) => r.key === role)?.label;
@@ -166,6 +188,20 @@ export default function PerfilPage() {
     .map((r) => r.key)
     .filter((r) => !heldRoles.has(r));
 
+  // "Interactuar como": roles aprobados del usuario + DANCER siempre
+  // (lente consumidor — no se duplica si ya viene aprobado).
+  const approvedRoles = new Set(
+    (
+      me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" }))
+    )
+      .filter((r) => r.status === "APPROVED")
+      .map((r) => r.role),
+  );
+  const actAsOptions = ACT_AS_ORDER.filter(
+    (r) => r === "DANCER" || approvedRoles.has(r),
+  );
+  const currentActAs = picked ?? activeRole;
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
@@ -215,6 +251,45 @@ export default function PerfilPage() {
           )}
         </div>
       </Card>
+
+      {/* Interactuar como — cambia el lente de toda la app (nav + home).
+          Radiogroup nativo: un tab stop, flechas cambian de opción (mismo
+          patrón que el segmented del hub /qr). Se oculta si solo hay una
+          opción (DANCER puro): sin opciones no hay decisión. */}
+      {actAsOptions.length > 1 && (
+        <Card>
+          <h2
+            id="act-as-title"
+            className="text-sm font-semibold uppercase tracking-wide text-white/50"
+          >
+            {t("actAs")}
+          </h2>
+          <div
+            role="radiogroup"
+            aria-labelledby="act-as-title"
+            className="mt-3 flex flex-wrap gap-2"
+          >
+            {actAsOptions.map((role) => (
+              <label key={role} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="act-as-role"
+                  value={role}
+                  checked={currentActAs === role}
+                  onChange={() => {
+                    setPicked(role);
+                    setActiveRole(role);
+                  }}
+                  className="peer sr-only"
+                />
+                <span className="flex min-h-11 select-none items-center rounded-full border border-night-700 bg-night-800 px-4 text-sm font-semibold text-white/70 transition-colors peer-checked:border-neon peer-checked:bg-neon peer-checked:text-night-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-white active:scale-[0.98] motion-reduce:active:scale-100">
+                  {roleLabel(role)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Racha — orgullo, grande */}
       <Card>

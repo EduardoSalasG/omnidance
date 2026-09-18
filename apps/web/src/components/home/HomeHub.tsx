@@ -4,10 +4,16 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useActiveRole } from "@/lib/active-role";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
-type Me = { id: string; name: string; roles: string[] };
+type Me = {
+  id: string;
+  name: string;
+  roles: string[];
+  roleStates?: { role: string; status: string }[];
+};
 
 type Tile = { href: string; label: string; desc?: string; badge?: number };
 
@@ -35,13 +41,11 @@ function TileLink({ href, label, desc, badge }: Tile) {
   );
 }
 
-// Hero por rol: la acción principal del usuario según su rol de gestión
-// "más alto" (ADMIN > PRODUCER > ACADEMY > STAFF); sin rol de gestión el
-// hero es el consumo de la noche (/eventos + QR).
-type HeroKind = "admin" | "producer" | "academy" | "staff" | "dancer";
-
+// Hero y tiles por rol ACTIVO (useActiveRole: storage válido o prioridad
+// del contrato). El usuario cambia de lente desde Perfil ("Interactuar
+// como"); el hub solo refleja la elección — por eso ya no hay sección
+// "Gestión" con módulos de otros roles.
 type Hero = {
-  kind: HeroKind;
   href: string;
   title: string;
   desc: string;
@@ -67,6 +71,7 @@ export function HomeHub() {
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
   const [unread, setUnread] = useState(0);
+  const activeRole = useActiveRole(me?.roles);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,27 +130,20 @@ export function HomeHub() {
     );
   }
 
-  const roles = new Set(me.roles);
-  const isStaff = roles.has("STAFF") || roles.has("ADMIN");
-  const isAcademy =
-    roles.has("ACADEMY_OWNER") || roles.has("INSTRUCTOR") || roles.has("ADMIN");
-  const isProducer = roles.has("PRODUCER") || roles.has("ADMIN");
-  const isAdmin = roles.has("ADMIN");
-
-  // Multi-rol: gana el rol de gestión más alto; los demás módulos quedan
-  // en la sección "Gestión". El escáner de invitaciones ya no es tile —
-  // vive como segmento dentro de /qr (por eso el QR apunta a /qr).
-  const hero: Hero = isAdmin
-    ? {
-        kind: "admin",
-        href: "/admin",
-        title: tad("title"),
-        desc: t("adminHeroDesc"),
-        cta: t("adminHeroCta"),
-      }
-    : isProducer
-      ? {
-          kind: "producer",
+  // Hero = la acción principal del rol activo. DANCER/DJ/VENUE_MANAGER
+  // comparten el hero de consumo ("Esta noche" → /eventos), pero el
+  // QR personal solo aplica al bailarín — DJ y venue no lo llevan.
+  const hero: Hero = (() => {
+    switch (activeRole) {
+      case "ADMIN":
+        return {
+          href: "/admin",
+          title: tad("title"),
+          desc: t("adminHeroDesc"),
+          cta: t("adminHeroCta"),
+        };
+      case "PRODUCER":
+        return {
           href: "/productor/eventos",
           title: tpr("myEvents"),
           desc: tpr("navEventsDesc"),
@@ -153,61 +151,94 @@ export function HomeHub() {
           // "Crear evento" es un form inline en /productor/eventos — el
           // CTA secundario apunta a la misma página donde se despliega.
           secondary: { href: "/productor/eventos", label: tpr("createEvent") },
-        }
-      : isAcademy
-        ? {
-            kind: "academy",
-            href: "/academia",
-            title: ta("title"),
-            desc: t("academyHeroDesc"),
-            cta: t("academyHeroCta"),
-          }
-        : isStaff
-          ? {
-              kind: "staff",
-              href: "/staff",
-              title: tst("title"),
-              desc: t("staffHeroDesc"),
-              cta: t("staffHeroCta"),
-            }
-          : {
-              kind: "dancer",
-              href: "/eventos",
-              title: t("tonight"),
-              desc: t("dancerHeroDesc"),
-              cta: t("seeEvents"),
-              secondary: { href: "/qr", label: tq("title") },
-            };
+        };
+      case "ACADEMY_OWNER":
+      case "INSTRUCTOR":
+        return {
+          href: "/academia",
+          title: ta("title"),
+          desc: t("academyHeroDesc"),
+          cta: t("academyHeroCta"),
+        };
+      case "STAFF":
+        return {
+          href: "/staff",
+          title: tst("title"),
+          desc: t("staffHeroDesc"),
+          cta: t("staffHeroCta"),
+        };
+      case "DANCER":
+        return {
+          href: "/eventos",
+          title: t("tonight"),
+          desc: t("dancerHeroDesc"),
+          cta: t("seeEvents"),
+          secondary: { href: "/qr", label: tq("title") },
+        };
+      default:
+        // DJ | VENUE_MANAGER
+        return {
+          href: "/eventos",
+          title: t("tonight"),
+          desc: t("dancerHeroDesc"),
+          cta: t("seeEvents"),
+        };
+    }
+  })();
 
-  // /eventos solo aparece como tile cuando no es el hero (staff/productor/
-  // academia/admin siguen necesitando llegar al listado público).
-  const forYou: Tile[] = [
-    ...(hero.kind !== "dancer"
-      ? [{ href: "/eventos", label: te("title") }]
-      : []),
-    { href: "/qr", label: tq("title"), desc: tq("subtitle") },
-    { href: "/bailes", label: ts("title") },
-    { href: "/entradas", label: tw("title") },
-    { href: "/practicas", label: tp("title") },
-    { href: "/viajes", label: tt("title") },
-    { href: "/notificaciones", label: tn("title"), badge: unread },
-  ];
+  const notificationsTile: Tile = {
+    href: "/notificaciones",
+    label: tn("title"),
+    badge: unread,
+  };
 
-  // Módulos de gestión que no ganaron el hero.
-  const management: Tile[] = [
-    ...(isStaff && hero.kind !== "staff"
-      ? [{ href: "/staff", label: tst("title") }]
-      : []),
-    ...(isAcademy && hero.kind !== "academy"
-      ? [{ href: "/academia", label: ta("title") }]
-      : []),
-    ...(isProducer && hero.kind !== "producer"
-      ? [{ href: "/productor", label: tpr("title") }]
-      : []),
-    ...(isAdmin && hero.kind !== "admin"
-      ? [{ href: "/admin", label: tad("title") }]
-      : []),
-  ];
+  // "Para ti" muestra solo los atajos del rol activo — el resto de los
+  // módulos se alcanzan cambiando de lente (ver card de abajo).
+  const forYou: Tile[] = (() => {
+    switch (activeRole) {
+      case "STAFF":
+        return [
+          { href: "/qr", label: tq("title"), desc: tq("subtitle") },
+          notificationsTile,
+        ];
+      case "PRODUCER":
+        return [
+          { href: "/eventos", label: te("title") },
+          { href: "/productor/pagos", label: tpr("payouts") },
+          { href: "/crm", label: tpr("crm") },
+          notificationsTile,
+        ];
+      case "ACADEMY_OWNER":
+      case "INSTRUCTOR":
+        return [notificationsTile];
+      case "ADMIN":
+        return [
+          { href: "/eventos", label: te("title") },
+          { href: "/crm", label: tpr("crm") },
+          { href: "/staff", label: tst("title") },
+          notificationsTile,
+        ];
+      case "DJ":
+      case "VENUE_MANAGER":
+        return [{ href: "/eventos", label: te("title") }, notificationsTile];
+      default:
+        // DANCER
+        return [
+          { href: "/qr", label: tq("title"), desc: tq("subtitle") },
+          { href: "/bailes", label: ts("title") },
+          { href: "/entradas", label: tw("title") },
+          { href: "/practicas", label: tp("title") },
+          { href: "/viajes", label: tt("title") },
+          notificationsTile,
+        ];
+    }
+  })();
+
+  // Multi-rol: en vez de mezclar módulos, se sugiere cambiar de lente.
+  const approvedCount = (
+    me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" }))
+  ).filter((s) => s.status === "APPROVED").length;
+  const multiRole = me.roles.length > 1 || approvedCount > 1;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
@@ -255,17 +286,16 @@ export function HomeHub() {
         </ul>
       </section>
 
-      {management.length > 0 && (
-        <section aria-label={t("management")}>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-            {t("management")}
-          </h2>
-          <ul className="grid grid-cols-2 gap-3">
-            {management.map((tile) => (
-              <TileLink key={tile.href} {...tile} />
-            ))}
-          </ul>
-        </section>
+      {multiRole && (
+        <Link
+          href="/perfil"
+          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-sm text-white/55 transition-colors hover:border-neon/40 hover:text-white/80"
+        >
+          <span>{t("switchRoleHint")}</span>
+          <span aria-hidden className="text-neon">
+            →
+          </span>
+        </Link>
       )}
     </main>
   );
