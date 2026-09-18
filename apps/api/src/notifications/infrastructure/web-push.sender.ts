@@ -30,7 +30,9 @@ export class WebPushSender implements PushPort, OnModuleInit {
       return;
     }
     setVapidDetails(
-      process.env.WEB_PUSH_SUBJECT ?? "mailto:admin@omnidance.cl",
+      process.env.WEB_PUSH_VAPID_SUBJECT ??
+        process.env.WEB_PUSH_SUBJECT ??
+        "mailto:admin@omnidance.cl",
       publicKey,
       privateKey,
     );
