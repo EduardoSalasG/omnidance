@@ -8,10 +8,12 @@ import { apiFetch } from "@/lib/api";
 import { MoreSheet, type MoreSheetItem } from "./MoreSheet";
 
 // Tab bar inferior — el pulgar manda en la pista. Se oculta en contextos
-// de pantalla completa (escáneres, consola staff) donde estorba. Login ya
-// no comparte layout: vive en (marketing) sin BottomNav. 5 tabs fijos:
-// el quinto ("Más") es un botón que abre una hoja con el resto de secciones.
-const HIDDEN_PREFIXES = ["/escanear", "/staff/"];
+// de pantalla completa (consola staff) donde estorba. Login ya no comparte
+// layout: vive en (marketing) sin BottomNav. /qr sí muestra el nav — el
+// escáner de invitación ocupa el área de contenido, no fullscreen.
+// 5 tabs fijos: el quinto ("Más") es un botón que abre una hoja con el
+// resto de secciones.
+const HIDDEN_PREFIXES = ["/staff/"];
 
 // Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
 const NOTIFICATION_EVENT = "omnidance:notification";
@@ -88,7 +90,7 @@ const ICONS = {
 const TABS: Tab[] = [
   { href: "/inicio", key: "home", icon: icon(ICONS.home) },
   { href: "/eventos", key: "events", icon: icon(ICONS.events) },
-  { href: "/escanear", key: "scan", icon: icon(ICONS.scan), center: true },
+  { href: "/qr", key: "scan", icon: icon(ICONS.scan), center: true },
   {
     href: "/notificaciones",
     key: "notifications",

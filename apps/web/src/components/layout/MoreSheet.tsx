@@ -12,6 +12,17 @@ export type MoreSheetItem = {
   active: boolean;
 };
 
+// Los items llegan planos desde BottomNav (el contrato no cambia): la
+// hoja los agrupa por heurística de href en "Personal" vs "Gestión".
+const PERSONAL_HREFS = new Set([
+  "/perfil",
+  "/qr",
+  "/bailes",
+  "/entradas",
+  "/practicas",
+  "/viajes",
+]);
+
 /**
  * Bottom sheet "Más" — menú secundario del BottomNav con las secciones
  * que no caben en los 5 tabs (filtradas por rol en BottomNav).
@@ -61,6 +72,46 @@ export function MoreSheet({
 
   if (!open) return null;
 
+  // "/qr" se omite: el tab central del BottomNav ya abre el hub QR, así
+  // que el item sería redundante (la lista plana sigue llegando desde
+  // BottomNav — se filtra aquí para no tocar el contrato).
+  const visible = items.filter((i) => i.href !== "/qr");
+  const personal = visible.filter((i) => PERSONAL_HREFS.has(i.href));
+  const management = visible.filter((i) => !PERSONAL_HREFS.has(i.href));
+
+  const renderItem = (item: MoreSheetItem) => (
+    <li key={item.href}>
+      <Link
+        href={item.href}
+        aria-current={item.active ? "page" : undefined}
+        onClick={onClose}
+        className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
+          item.active
+            ? "bg-neon/10 text-neon"
+            : "text-white/80 hover:bg-night-800 hover:text-white"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={item.active ? "text-neon" : "text-white/50"}
+        >
+          {item.icon}
+        </span>
+        {item.label}
+      </Link>
+    </li>
+  );
+
+  const renderGroup = (label: string, group: MoreSheetItem[]) =>
+    group.length > 0 && (
+      <li>
+        <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-white/40">
+          {label}
+        </h3>
+        <ul className="flex flex-col">{group.map(renderItem)}</ul>
+      </li>
+    );
+
   return (
     <div
       role="presentation"
@@ -85,29 +136,9 @@ export function MoreSheet({
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-white/50">
           {t("moreMenu")}
         </h2>
-        <ul className="flex flex-col">
-          {items.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={item.active ? "page" : undefined}
-                onClick={onClose}
-                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
-                  item.active
-                    ? "bg-neon/10 text-neon"
-                    : "text-white/80 hover:bg-night-800 hover:text-white"
-                }`}
-              >
-                <span
-                  aria-hidden
-                  className={item.active ? "text-neon" : "text-white/50"}
-                >
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            </li>
-          ))}
+        <ul className="flex flex-col gap-4">
+          {renderGroup(t("personal"), personal)}
+          {renderGroup(t("management"), management)}
         </ul>
       </div>
     </div>

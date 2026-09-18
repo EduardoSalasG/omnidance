@@ -94,7 +94,7 @@ function Bailes() {
     await fetchSessions();
   }
 
-  const scanHref = `/escanear${eventId ? `?event=${eventId}` : ""}`;
+  const scanHref = `/qr?modo=escanear${eventId ? `&event=${eventId}` : ""}`;
 
   // Invitaciones entrantes primero (accionables), luego salientes pendientes.
   const pending = sessions.filter((s) => s.status === "INVITED");
