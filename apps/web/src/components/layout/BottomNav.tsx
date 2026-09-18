@@ -5,14 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { MoreSheet, type MoreSheetItem } from "./MoreSheet";
 
 // Tab bar inferior — el pulgar manda en la pista. Se oculta en contextos
 // de pantalla completa (consola staff) donde estorba. Login ya no comparte
 // layout: vive en (marketing) sin BottomNav. /qr sí muestra el nav — el
 // escáner de invitación ocupa el área de contenido, no fullscreen.
-// 5 tabs fijos: el quinto ("Más") es un botón que abre una hoja con el
-// resto de secciones.
+// Los tabs dependen del rol activo (ver lib/active-role.ts): máximo 5
+// slots, el último es siempre el botón "Más" que abre la hoja con el
+// resto de secciones del rol.
 const HIDDEN_PREFIXES = ["/staff/"];
 
 // Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
@@ -20,26 +22,25 @@ const NOTIFICATION_EVENT = "omnidance:notification";
 
 type Me = { id: string; name: string; roles: string[] };
 
+// key = clave nav.* del label; "create" es especial: su label viene del
+// namespace producer (producer.createEvent), no de nav.
+type TabKey =
+  | "home"
+  | "events"
+  | "scan"
+  | "notifications"
+  | "staff"
+  | "academy"
+  | "admin"
+  | "crm"
+  | "create";
+
 type Tab = {
   href: string;
-  key: "home" | "events" | "scan" | "notifications";
+  key: TabKey;
   icon: (active: boolean) => React.ReactNode;
   center?: boolean;
 };
-
-// Claves nav.* de los ítems de la hoja "Más".
-type MoreItemKey =
-  | "profile"
-  | "qr"
-  | "dances"
-  | "tickets"
-  | "practices"
-  | "trips"
-  | "staff"
-  | "producer"
-  | "crm"
-  | "academy"
-  | "admin";
 
 function icon(path: string) {
   return (active: boolean) => (
@@ -85,18 +86,134 @@ const ICONS = {
   academy: "M22 10 12 5 2 10l10 5 10-5zM6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5M22 10v6",
   admin:
     "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zm-11 7 2 2 4-4",
+  // Plus — tab central "crear" del productor.
+  plus: "M12 5v14M5 12h14",
 };
 
-const TABS: Tab[] = [
-  { href: "/inicio", key: "home", icon: icon(ICONS.home) },
-  { href: "/eventos", key: "events", icon: icon(ICONS.events) },
-  { href: "/qr", key: "scan", icon: icon(ICONS.scan), center: true },
-  {
-    href: "/notificaciones",
-    key: "notifications",
-    icon: icon(ICONS.notifications),
-  },
-];
+const HOME_TAB: Tab = { href: "/inicio", key: "home", icon: icon(ICONS.home) };
+const EVENTS_TAB: Tab = {
+  href: "/eventos",
+  key: "events",
+  icon: icon(ICONS.events),
+};
+const QR_TAB: Tab = {
+  href: "/qr",
+  key: "scan",
+  icon: icon(ICONS.scan),
+  center: true,
+};
+const NOTIFICATIONS_TAB: Tab = {
+  href: "/notificaciones",
+  key: "notifications",
+  icon: icon(ICONS.notifications),
+};
+
+// Tabs por rol activo — sin el botón "Más", que siempre ocupa el quinto
+// slot del nav aunque el rol tenga menos de 4 tabs. El tab central
+// (center) del productor apunta a /productor/eventos, donde vive el
+// formulario de creación inline.
+const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
+  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, NOTIFICATIONS_TAB],
+  STAFF: [
+    HOME_TAB,
+    { href: "/staff", key: "staff", icon: icon(ICONS.staff) },
+    QR_TAB,
+    NOTIFICATIONS_TAB,
+  ],
+  PRODUCER: [
+    HOME_TAB,
+    { href: "/productor/eventos", key: "events", icon: icon(ICONS.events) },
+    {
+      href: "/productor/eventos?crear=1",
+      key: "create",
+      icon: icon(ICONS.plus),
+      center: true,
+    },
+    NOTIFICATIONS_TAB,
+  ],
+  ACADEMY_OWNER: [
+    HOME_TAB,
+    {
+      href: "/academia",
+      key: "academy",
+      icon: icon(ICONS.academy),
+      center: true,
+    },
+    NOTIFICATIONS_TAB,
+  ],
+  INSTRUCTOR: [
+    HOME_TAB,
+    {
+      href: "/academia",
+      key: "academy",
+      icon: icon(ICONS.academy),
+      center: true,
+    },
+    NOTIFICATIONS_TAB,
+  ],
+  DJ: [HOME_TAB, EVENTS_TAB, NOTIFICATIONS_TAB],
+  VENUE_MANAGER: [HOME_TAB, EVENTS_TAB, NOTIFICATIONS_TAB],
+  ADMIN: [
+    HOME_TAB,
+    { href: "/admin", key: "admin", icon: icon(ICONS.admin), center: true },
+    { href: "/crm", key: "crm", icon: icon(ICONS.crm) },
+    NOTIFICATIONS_TAB,
+  ],
+};
+
+// Spec de los ítems de la hoja "Más" por rol — cada rol ve solo sus
+// funciones (el cambio de lente vive en Perfil). ns = namespace de la
+// clave i18n del label.
+type MoreSpec = {
+  href: string;
+  ns: "nav" | "producer" | "events";
+  key: string;
+  icon: string;
+};
+
+const PROFILE_ITEM: MoreSpec = {
+  href: "/perfil",
+  ns: "nav",
+  key: "profile",
+  icon: ICONS.profile,
+};
+
+const MORE_ITEMS_BY_ROLE: Record<AppRole, MoreSpec[]> = {
+  DANCER: [
+    { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
+    { href: "/entradas", ns: "nav", key: "tickets", icon: ICONS.tickets },
+    {
+      href: "/practicas",
+      ns: "nav",
+      key: "practices",
+      icon: ICONS.practices,
+    },
+    { href: "/viajes", ns: "nav", key: "trips", icon: ICONS.trips },
+    PROFILE_ITEM,
+  ],
+  STAFF: [PROFILE_ITEM],
+  PRODUCER: [
+    {
+      href: "/productor/pagos",
+      ns: "producer",
+      key: "payouts",
+      icon: ICONS.producer,
+    },
+    { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
+    // Explorar el listado público de eventos — label events.title.
+    { href: "/eventos", ns: "events", key: "title", icon: ICONS.events },
+    PROFILE_ITEM,
+  ],
+  ACADEMY_OWNER: [PROFILE_ITEM],
+  INSTRUCTOR: [PROFILE_ITEM],
+  DJ: [PROFILE_ITEM],
+  VENUE_MANAGER: [PROFILE_ITEM],
+  ADMIN: [
+    { href: "/eventos", ns: "events", key: "title", icon: ICONS.events },
+    { href: "/staff", ns: "nav", key: "staff", icon: ICONS.staff },
+    PROFILE_ITEM,
+  ],
+};
 
 /** unreadCount acotado para el badge — 99+ como en el home hub. */
 function badgeText(count: number): string {
@@ -106,11 +223,17 @@ function badgeText(count: number): string {
 export function BottomNav() {
   const pathname = usePathname();
   const t = useTranslations("nav");
+  // Labels fuera de nav.*: "create" (producer.createEvent) e ítems de la
+  // hoja que reutilizan producer.payouts / events.title.
+  const tp = useTranslations("producer");
+  const te = useTranslations("events");
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → la hoja "Más" muestra solo Perfil.
   const [me, setMe] = useState<Me | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  // Lente activa — cambia cuando Perfil dispara setActiveRole.
+  const activeRole = useActiveRole(me?.roles);
 
   // Baseline de no-leídas: solo si hay sesión. Un 401 deja unread en null
   // (mismo patrón de catch silencioso que apiFetch("/me") en HomeHub).
@@ -162,48 +285,30 @@ export function BottomNav() {
 
   const badge = unread != null && unread > 0 ? unread : 0;
 
-  // Gating por rol — mismo criterio que HomeHub (ADMIN ve todo).
-  const roles = new Set(me?.roles ?? []);
-  const isStaff = roles.has("STAFF") || roles.has("ADMIN");
-  const isProducer = roles.has("PRODUCER") || roles.has("ADMIN");
-  const isAcademy =
-    roles.has("ACADEMY_OWNER") || roles.has("INSTRUCTOR") || roles.has("ADMIN");
-  const isAdmin = roles.has("ADMIN");
+  const tabs = TABS_BY_ROLE[activeRole];
+  const tabHrefs = new Set(tabs.map((tab) => tab.href));
+
+  const labelFor = (spec: MoreSpec): string =>
+    spec.ns === "nav" ? t(spec.key) : spec.ns === "producer" ? tp(spec.key) : te(spec.key);
 
   const sheetItem = (
     href: string,
-    key: MoreItemKey,
+    label: string,
     path: string,
   ): MoreSheetItem => {
-    const active = pathname.startsWith(href);
-    return { href, label: t(key), icon: icon(path)(active), active };
+    // Si el href ya es un tab, gana el tab: el ítem de la hoja no marca
+    // activo (evita que "Más" se ilumine por una ruta que tiene tab).
+    const active = !tabHrefs.has(href) && pathname.startsWith(href);
+    return { href, label, icon: icon(path)(active), active };
   };
 
-  // Sin sesión la hoja muestra solo Perfil; con sesión se agregan los
-  // módulos de consumo y, según rol, los de gestión.
-  const moreItems: MoreSheetItem[] = [
-    sheetItem("/perfil", "profile", ICONS.profile),
-    ...(me
-      ? [
-          sheetItem("/qr", "qr", ICONS.qr),
-          sheetItem("/bailes", "dances", ICONS.dances),
-          sheetItem("/entradas", "tickets", ICONS.tickets),
-          sheetItem("/practicas", "practices", ICONS.practices),
-          sheetItem("/viajes", "trips", ICONS.trips),
-          ...(isStaff ? [sheetItem("/staff", "staff", ICONS.staff)] : []),
-          ...(isProducer
-            ? [
-                sheetItem("/productor", "producer", ICONS.producer),
-                sheetItem("/crm", "crm", ICONS.crm),
-              ]
-            : []),
-          ...(isAcademy
-            ? [sheetItem("/academia", "academy", ICONS.academy)]
-            : []),
-          ...(isAdmin ? [sheetItem("/admin", "admin", ICONS.admin)] : []),
-        ]
-      : []),
-  ];
+  // Sin sesión la hoja muestra solo Perfil; con sesión, los ítems del rol
+  // activo (cada lente ve solo sus funciones — el switch vive en Perfil).
+  const moreItems: MoreSheetItem[] = !me
+    ? [sheetItem("/perfil", t("profile"), ICONS.profile)]
+    : MORE_ITEMS_BY_ROLE[activeRole].map((spec) =>
+        sheetItem(spec.href, labelFor(spec), spec.icon),
+      );
 
   // El tab "Más" se marca activo si la hoja está abierta o si la ruta
   // actual pertenece a un ítem de la hoja.
@@ -217,8 +322,14 @@ export function BottomNav() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
       >
         <ul className="mx-auto flex h-16 max-w-lg items-stretch justify-between">
-          {TABS.map((tab) => {
-            const active = pathname.startsWith(tab.href);
+          {tabs.map((tab) => {
+            // /inicio es match exacto (prefijo "/" marcaría todo); el resto
+            // por prefijo — /productor/eventos solo se activa con ese
+            // prefijo, no con /productor ni /productor/pagos.
+            const active =
+              tab.href === "/inicio"
+                ? pathname === "/inicio"
+                : pathname.startsWith(tab.href);
             const isNotifications = tab.key === "notifications";
             const showBadge = isNotifications && badge > 0;
             return (
@@ -266,7 +377,7 @@ export function BottomNav() {
                   ) : (
                     tab.icon(active)
                   )}
-                  {t(tab.key)}
+                  {tab.key === "create" ? tp("createEvent") : t(tab.key)}
                 </Link>
               </li>
             );

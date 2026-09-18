@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
@@ -22,7 +23,7 @@ type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
  * /productor/eventos — lista de mis eventos + formulario de creación.
  * GET /events/mine devuelve todos los estados del productor autenticado.
  */
-export default function ProducerEventsPage() {
+function ProducerEvents() {
   const t = useTranslations("producer");
   const te = useTranslations("events");
   const tc = useTranslations("common");
@@ -34,6 +35,11 @@ export default function ProducerEventsPage() {
   const [styles, setStyles] = useState<Style[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Deep-link del tab central "Crear" del productor (/productor/eventos?crear=1).
+  const crearParam = useSearchParams().get("crear");
+  useEffect(() => {
+    if (crearParam) setShowForm(true);
+  }, [crearParam]);
 
   const boot = useCallback(async () => {
     setGate("loading");
@@ -248,5 +254,15 @@ export default function ProducerEventsPage() {
         </>
       )}
     </main>
+  );
+}
+
+export default function ProducerEventsPage() {
+  return (
+    <Suspense
+      fallback={<main className="min-h-dvh bg-night-950" aria-hidden="true" />}
+    >
+      <ProducerEvents />
+    </Suspense>
   );
 }
