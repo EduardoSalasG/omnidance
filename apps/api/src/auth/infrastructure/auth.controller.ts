@@ -54,8 +54,16 @@ export class AuthController {
       res
         .cookie(SESSION_COOKIE, session, {
           httpOnly: true,
-          sameSite: "lax",
-          secure: process.env.NODE_ENV === "production",
+          // SESSION_SAMESITE=none + secure para acceso cross-site (p.ej.
+          // dev tunnels: web y API en hosts distintos).
+          sameSite: (process.env.SESSION_SAMESITE ?? "lax") as
+            | "lax"
+            | "strict"
+            | "none",
+          secure:
+            process.env.SESSION_SAMESITE === "none" ||
+            process.env.SESSION_SECURE === "true" ||
+            process.env.NODE_ENV === "production",
           maxAge: 30 * 24 * 60 * 60 * 1000,
         })
         .redirect(webUrl);
