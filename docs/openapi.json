@@ -1938,18 +1938,16 @@
         }
       }
     },
-    "/api/academies/mine": {
+    "/api/academies": {
       "get": {
-        "operationId": "AcademiesController_mine",
+        "operationId": "AcademiesController_directory",
         "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         }
-      }
-    },
-    "/api/academies": {
+      },
       "post": {
         "operationId": "AcademiesController_create",
         "parameters": [],
@@ -1965,6 +1963,17 @@
         },
         "responses": {
           "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/mine": {
+      "get": {
+        "operationId": "AcademiesController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
             "description": ""
           }
         }

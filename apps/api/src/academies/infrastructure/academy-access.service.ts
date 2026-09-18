@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import type { Academy } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
+import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import {
   canAdministerAcademy,
   canManageAcademy,
@@ -37,13 +38,21 @@ export class AcademyAccess {
     };
   }
 
+  /** Resuelve admin.access desde el catálogo DB (cacheado por el guard). */
+  private async withAdmin(person: PersonContext): Promise<PersonContext> {
+    const isAdmin = await roleKeysHavePermission(this.prisma, person.roles, [
+      "admin.access",
+    ]);
+    return { ...person, isAdmin };
+  }
+
   /** owner / instructor / ADMIN — detalle y registro de asistencia. */
   async requireManage(
     academyId: string,
     person: PersonContext,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const loaded = await this.loadContext(academyId);
-    if (!canManageAcademy(person, loaded.ctx)) {
+    if (!canManageAcademy(await this.withAdmin(person), loaded.ctx)) {
       throw new ForbiddenException("sin acceso a esta academia");
     }
     return loaded;
@@ -55,7 +64,7 @@ export class AcademyAccess {
     person: PersonContext,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const loaded = await this.loadContext(academyId);
-    if (!canAdministerAcademy(person, loaded.ctx)) {
+    if (!canAdministerAcademy(await this.withAdmin(person), loaded.ctx)) {
       throw new ForbiddenException("requiere ser owner o ADMIN");
     }
     return loaded;

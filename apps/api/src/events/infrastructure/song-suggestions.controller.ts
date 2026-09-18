@@ -10,6 +10,7 @@ import {
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 
 const TOP_N = 20;
 
@@ -36,8 +37,11 @@ export class SongSuggestionsController {
     if (!event) throw new NotFoundException("evento no encontrado");
 
     const me = req.person!;
+    const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
+      "admin.access",
+    ]);
     const allowed =
-      me.roles.includes("ADMIN") ||
+      isAdmin ||
       event.producerId === me.id ||
       event.djs.some((d) => d.personId === me.id);
     if (!allowed) {

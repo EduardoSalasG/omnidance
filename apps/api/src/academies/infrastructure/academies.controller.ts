@@ -136,6 +136,44 @@ export class AcademiesController {
     private readonly access: AcademyAccess,
   ) {}
 
+  /**
+   * Directorio de academias activas para alumnos autenticados: id + nombre
+   * + instructores (para el form de clase particular). Datos públicos de
+   * negocio — sin métricas ni datos de alumnos.
+   */
+  @Get()
+  @UseGuards(SessionGuard)
+  async directory() {
+    const academies = await this.prisma.academy.findMany({
+      where: { active: true },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        instructors: { select: { id: true, personId: true } },
+      },
+    });
+    const instructorIds = [
+      ...new Set(
+        academies.flatMap((a) => a.instructors.map((i) => i.personId)),
+      ),
+    ];
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: instructorIds } },
+      select: { id: true, name: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return academies.map((a) => ({
+      id: a.id,
+      name: a.name,
+      instructors: a.instructors.map((i) => ({
+        id: i.id,
+        personId: i.personId,
+        name: byId.get(i.personId)?.name ?? null,
+      })),
+    }));
+  }
+
   @Get("mine")
   @UseGuards(SessionGuard)
   mine(@Req() req: Request) {

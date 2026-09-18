@@ -15,9 +15,14 @@ const academy = (over: Partial<AcademyContext> = {}): AcademyContext => ({
   ...over,
 });
 
-const person = (id: string, roles: string[] = []): PersonContext => ({
+const person = (
+  id: string,
+  roles: string[] = [],
+  isAdmin = false,
+): PersonContext => ({
   id,
   roles,
+  isAdmin,
 });
 
 describe("canManageAcademy", () => {
@@ -31,7 +36,7 @@ describe("canManageAcademy", () => {
 
   it("ADMIN puede gestionar cualquier academia", () => {
     expect(
-      canManageAcademy(person("admin-9", ["ADMIN"]), academy()),
+      canManageAcademy(person("admin-9", ["ADMIN"], true), academy()),
     ).toBe(true);
   });
 
@@ -56,7 +61,7 @@ describe("canAdministerAcademy", () => {
   it("owner y admin administran", () => {
     expect(canAdministerAcademy(person("owner-1"), academy())).toBe(true);
     expect(
-      canAdministerAcademy(person("admin", ["ADMIN"]), academy()),
+      canAdministerAcademy(person("admin", ["ADMIN"], true), academy()),
     ).toBe(true);
   });
 

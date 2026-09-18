@@ -15,6 +15,7 @@ import { IsInt, IsOptional, Max, Min } from "class-validator";
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 
 // Ventana post-evento para evaluar: hasta ~24h después de endsAt (spec §5).
 const RATING_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -140,7 +141,7 @@ export class EventRatingsController {
       select: { id: true, producerId: true },
     });
     if (!event) throw new NotFoundException("evento no encontrado");
-    this.assertProducerOrAdmin(event, req.person!);
+    await this.assertProducerOrAdmin(event, req.person!);
 
     const ratings = await this.prisma.eventRating.findMany({
       where: { eventId },
@@ -189,13 +190,17 @@ export class EventRatingsController {
     };
   }
 
-  /** productor del evento o ADMIN de plataforma. */
-  private assertProducerOrAdmin(
+  /** productor del evento o admin.access — permiso desde DB, nunca rol literal. */
+  private async assertProducerOrAdmin(
     event: { producerId: string | null },
     person: PersonCtx,
-  ): void {
-    if (person.roles.includes("ADMIN")) return;
+  ): Promise<void> {
     if (event.producerId === person.id) return;
+    if (
+      await roleKeysHavePermission(this.prisma, person.roles, ["admin.access"])
+    ) {
+      return;
+    }
     throw new ForbiddenException(
       "solo el productor del evento o un admin puede ver el resumen",
     );

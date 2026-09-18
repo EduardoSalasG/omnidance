@@ -25,6 +25,7 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
+import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 
 const LESSON_ACTIONS = ["confirm", "cancel", "done", "reschedule"] as const;
 type LessonAction = (typeof LESSON_ACTIONS)[number];
@@ -162,7 +163,10 @@ export class PrivateLessonsController {
       select: { ownerId: true },
     });
     const me = req.person!;
-    const isOwner = me.roles.includes("ADMIN") || academy?.ownerId === me.id;
+    const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
+      "admin.access",
+    ]);
+    const isOwner = isAdmin || academy?.ownerId === me.id;
     const isInstructor = lesson.instructorId === me.id;
     const isStudent = lesson.personId === me.id;
     if (!isOwner && !isInstructor && !isStudent) {
