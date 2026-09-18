@@ -186,7 +186,9 @@ export function TriggerList({
                     )}
                     {cfg.cooldownDays != null && (
                       <Badge variant="outline">
-                        cooldown {String(cfg.cooldownDays)}d
+                        {t("triggers.cooldownShort", {
+                          days: String(cfg.cooldownDays),
+                        })}
                       </Badge>
                     )}
                   </div>

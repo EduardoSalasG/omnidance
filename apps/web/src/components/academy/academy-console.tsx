@@ -84,7 +84,9 @@ export function AcademyConsole({ academy }: { academy: Academy }) {
       <section aria-label={t("dashboard")}>
         {dashError ? (
           <div className="flex items-center gap-3">
-            <p className="text-sm text-white/60">{tc("error")}</p>
+            <p role="alert" className="text-sm text-white/60">
+              {tc("error")}
+            </p>
             <Button variant="secondary" size="sm" onClick={() => void refresh()}>
               ↻ {tc("retry")}
             </Button>
@@ -107,19 +109,30 @@ export function AcademyConsole({ academy }: { academy: Academy }) {
         )}
       </section>
 
-      {/* Tabs de operación diaria */}
+      {/* Tabs de operación diaria — APG: tablist/tab/tabpanel + ←→ */}
       <div
         role="tablist"
         aria-label={t("title")}
         className="flex gap-1 overflow-x-auto rounded-2xl border border-night-700 bg-night-900 p-1"
       >
-        {TABS.map((key) => (
+        {TABS.map((key, i) => (
           <button
             key={key}
             type="button"
             role="tab"
+            id={`academy-tab-${key}`}
             aria-selected={tab === key}
+            aria-controls="academy-panel"
             onClick={() => setTab(key)}
+            onKeyDown={(e) => {
+              if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+              e.preventDefault();
+              const next =
+                (i + (e.key === "ArrowRight" ? 1 : -1) + TABS.length) %
+                TABS.length;
+              setTab(TABS[next]);
+              document.getElementById(`academy-tab-${TABS[next]}`)?.focus();
+            }}
             className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
               tab === key
                 ? "bg-neon text-night-950"
@@ -132,16 +145,24 @@ export function AcademyConsole({ academy }: { academy: Academy }) {
       </div>
 
       {listsLoading ? (
-        <p className="text-sm text-white/60">{tc("loading")}</p>
+        <p role="status" className="text-sm text-white/60">
+          {tc("loading")}
+        </p>
       ) : listsError ? (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-white/60">{tc("error")}</p>
+          <p role="alert" className="text-sm text-white/60">
+            {tc("error")}
+          </p>
           <Button variant="secondary" size="sm" onClick={() => void refresh()}>
             ↻ {tc("retry")}
           </Button>
         </div>
       ) : (
-        <>
+        <div
+          role="tabpanel"
+          id="academy-panel"
+          aria-labelledby={`academy-tab-${tab}`}
+        >
           {tab === "plans" && (
             <PlansSection
               academyId={academy.id}
@@ -170,7 +191,7 @@ export function AcademyConsole({ academy }: { academy: Academy }) {
               onChanged={refresh}
             />
           )}
-        </>
+        </div>
       )}
     </div>
   );

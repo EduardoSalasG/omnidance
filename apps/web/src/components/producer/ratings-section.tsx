@@ -94,11 +94,15 @@ export function RatingsSection({ eventId }: Props) {
       </h2>
 
       {state === "loading" && (
-        <p className="text-sm text-white/60">{tc("loading")}</p>
+        <p role="status" className="text-sm text-white/60">
+          {tc("loading")}
+        </p>
       )}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-red-400">{tc("error")}</p>
+          <p role="alert" className="text-sm text-red-400">
+            {tc("error")}
+          </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
             ↻ {tc("retry")}
           </Button>
@@ -106,7 +110,7 @@ export function RatingsSection({ eventId }: Props) {
       )}
 
       {state === "ready" && summary && !summary.exposed && (
-        <p className="text-sm text-white/50">
+        <p role="status" className="text-sm text-white/50">
           {t("ratings.notEnough", { count: summary.count })}
         </p>
       )}

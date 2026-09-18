@@ -1,4 +1,9 @@
 {
+  "nav": {
+    "notifications": "Alertas",
+    "notificationsFull": "Notificaciones",
+    "notificationsUnread": "Notificaciones, {count} sin leer"
+  },
   "realtime": {
     "toast": {
       "open": "Ver notificación",

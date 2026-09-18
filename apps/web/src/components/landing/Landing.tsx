@@ -60,7 +60,7 @@ export async function Landing() {
           </Link>
           <Link
             href="/eventos"
-            className="mt-4 text-sm font-medium text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
+            className="mt-4 inline-flex min-h-11 items-center text-sm font-medium text-white/60 underline-offset-4 transition-colors hover:text-white hover:underline"
           >
             {t.ctaSeeWeekEvents}
           </Link>
@@ -81,7 +81,7 @@ export async function Landing() {
               </h2>
               <Link
                 href="/eventos"
-                className="shrink-0 text-xs font-medium text-white/50 underline-offset-4 hover:text-white/80 hover:underline"
+                className="inline-flex min-h-11 shrink-0 items-center text-xs font-medium text-white/50 underline-offset-4 hover:text-white/80 hover:underline"
               >
                 {messages.common.seeAll}
               </Link>
@@ -180,7 +180,7 @@ export async function Landing() {
         </p>
         <Link
           href="/eventos"
-          className="mt-3 inline-block text-xs text-white/50 underline-offset-4 hover:text-white/80 hover:underline"
+          className="mt-3 inline-flex min-h-11 items-center text-xs text-white/50 underline-offset-4 hover:text-white/80 hover:underline"
         >
           {messages.events.title}
         </Link>

@@ -149,7 +149,10 @@ export default function PerfilPage() {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-6">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-white/50">
+        <p
+          role={state === "error" ? "alert" : "status"}
+          className="text-white/50"
+        >
           {state === "error" ? tc("error") : tc("loading")}
         </p>
       </main>
@@ -173,7 +176,7 @@ export default function PerfilPage() {
           // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
           <img
             src={me.photoUrl}
-            alt={me.name}
+            alt=""
             className="h-16 w-16 shrink-0 rounded-full border border-night-700 object-cover"
           />
         ) : (
@@ -200,7 +203,10 @@ export default function PerfilPage() {
                   {roleLabel(rs.role)}
                   {rs.status !== "APPROVED" && (
                     <span className="ml-1 text-white/50">
-                      · {rs.status === "SANDBOX" ? "demo" : t("rolePending")}
+                      ·{" "}
+                      {rs.status === "SANDBOX"
+                        ? t("roleSandbox")
+                        : t("rolePending")}
                     </span>
                   )}
                 </Badge>

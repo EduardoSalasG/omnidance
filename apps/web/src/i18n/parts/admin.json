@@ -1,0 +1,12 @@
+{
+  "admin": {
+    "users": {
+      "roleStatus": "Estado de {role}"
+    },
+    "roles": {
+      "superuser": "Superusuario",
+      "requestable": "Solicitable",
+      "peopleCount": "{count, plural, one {# persona} other {# personas}}"
+    }
+  }
+}

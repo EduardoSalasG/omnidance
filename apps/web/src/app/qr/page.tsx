@@ -53,9 +53,12 @@ export default function QrPage() {
         </Link>
       ) : (
         <div className="rounded-2xl border border-night-700 bg-night-900 p-6">
-          <canvas ref={canvasRef} aria-label={t("title")} />
+          <canvas ref={canvasRef} role="img" aria-label={t("title")} />
           {state === "loading" && (
-            <p className="mt-3 text-center text-sm text-white/50">
+            <p
+              role="status"
+              className="mt-3 text-center text-sm text-white/50"
+            >
               {t("refreshIn")}
             </p>
           )}

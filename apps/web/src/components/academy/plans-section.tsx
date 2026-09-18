@@ -84,7 +84,11 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">{p.type}</Badge>
+                  <Badge variant="outline">
+                    {t.has(`planTypes.${p.type}`)
+                      ? t(`planTypes.${p.type}`)
+                      : p.type}
+                  </Badge>
                   {p.active && (
                     <Badge variant="neon">{t("status.ACTIVE")}</Badge>
                   )}
@@ -122,7 +126,7 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
             >
               {PLAN_TYPES.map((pt) => (
                 <option key={pt} value={pt}>
-                  {pt}
+                  {t.has(`planTypes.${pt}`) ? t(`planTypes.${pt}`) : pt}
                 </option>
               ))}
             </select>

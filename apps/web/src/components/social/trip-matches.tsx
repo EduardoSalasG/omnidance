@@ -145,13 +145,23 @@ export function TripMatches({ trips }: { trips: TripRange[] }) {
         {tm.title}
       </h2>
 
-      {state === "loading" && <p className="text-white/50">{tc("loading")}</p>}
-      {state === "error" && <p className="text-white/60">{tc("error")}</p>}
+      {state === "loading" && (
+        <p role="status" className="text-white/50">
+          {tc("loading")}
+        </p>
+      )}
+      {state === "error" && (
+        <p role="alert" className="text-white/60">
+          {tc("error")}
+        </p>
+      )}
 
       {state === "ready" &&
         (entries.length === 0 ? (
           <Card>
-            <p className="text-white/60">{tm.empty}</p>
+            <p role="status" className="text-white/60">
+              {tm.empty}
+            </p>
           </Card>
         ) : (
           <ul className="flex flex-col gap-3">

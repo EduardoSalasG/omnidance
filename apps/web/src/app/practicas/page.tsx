@@ -173,7 +173,7 @@ export default function PracticasPage() {
                 list="practice-venues"
                 value={venueId}
                 onChange={(e) => setVenueId(e.target.value)}
-                placeholder="venueId"
+                placeholder={t("venuePlaceholder")}
                 className={inputCls}
               />
               <datalist id="practice-venues">
@@ -216,12 +216,22 @@ export default function PracticasPage() {
       )}
 
       {/* Lista */}
-      {state === "loading" && <p className="text-white/50">{tc("loading")}</p>}
-      {state === "error" && <p className="text-white/60">{tc("error")}</p>}
+      {state === "loading" && (
+        <p role="status" className="text-white/50">
+          {tc("loading")}
+        </p>
+      )}
+      {state === "error" && (
+        <p role="alert" className="text-white/60">
+          {tc("error")}
+        </p>
+      )}
       {state === "ready" &&
         (practices.length === 0 ? (
           <Card>
-            <p className="text-white/60">{t("empty")}</p>
+            <p role="status" className="text-white/60">
+              {t("empty")}
+            </p>
           </Card>
         ) : (
           <ul className="flex flex-col gap-4">

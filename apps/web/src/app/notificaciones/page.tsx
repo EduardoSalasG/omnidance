@@ -126,14 +126,22 @@ export default function NotificacionesPage() {
       </header>
 
       {state === "loading" && (
-        <p className="text-white/50">{tc("loading")}</p>
+        <p role="status" className="text-white/50">
+          {tc("loading")}
+        </p>
       )}
-      {state === "error" && <p className="text-white/50">{tc("error")}</p>}
+      {state === "error" && (
+        <p role="alert" className="text-white/50">
+          {tc("error")}
+        </p>
+      )}
 
       {state === "ready" &&
         (items.length === 0 ? (
           <Card className="py-12 text-center">
-            <p className="text-white/60">{t("empty")}</p>
+            <p role="status" className="text-white/60">
+              {t("empty")}
+            </p>
           </Card>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -156,6 +164,9 @@ export default function NotificacionesPage() {
                         unread ? "bg-neon" : "bg-night-700"
                       }`}
                     />
+                    {unread && (
+                      <span className="sr-only">{t("unread")}</span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <span
                         className={`block ${

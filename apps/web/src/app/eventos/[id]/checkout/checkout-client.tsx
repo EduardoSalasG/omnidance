@@ -236,13 +236,21 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             placeholder={t("discountPlaceholder")}
             disabled={busy}
             autoComplete="off"
+            aria-invalid={error === "invalidCode" || undefined}
+            aria-describedby={
+              error === "invalidCode" ? "checkout-discount-error" : undefined
+            }
             className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 uppercase text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
           />
         </label>
 
         {/* Errores del contrato */}
         {error === "invalidCode" && (
-          <p role="alert" className="text-sm text-red-400">
+          <p
+            id="checkout-discount-error"
+            role="alert"
+            className="text-sm text-red-400"
+          >
             {t("invalidCode")}
           </p>
         )}

@@ -18,7 +18,7 @@ export function PartnerAvatar({
       // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
       <img
         src={photoUrl}
-        alt={name}
+        alt=""
         className={`${dims} shrink-0 rounded-full border border-night-700 object-cover`}
       />
     );

@@ -24,5 +24,20 @@
     "returnPendingTitle": "Tu pago está en proceso",
     "returnPendingDesc": "El banco está confirmando — te avisaremos cuando quede listo.",
     "returnErrorTitle": "No pudimos verificar el pago"
+  },
+  "sessions": {
+    "refresh": "Actualizar"
+  },
+  "notifications": {
+    "unread": "Sin leer"
+  },
+  "practices": {
+    "venuePlaceholder": "Elige o escribe el lugar"
+  },
+  "profile": {
+    "roleSandbox": "de prueba"
+  },
+  "login": {
+    "sending": "Enviando…"
   }
 }

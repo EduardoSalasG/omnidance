@@ -70,7 +70,11 @@ export default function ProducerPayoutsPage() {
 
       <h1 className="text-2xl font-bold">{t("payoutsPage.title")}</h1>
 
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+      {gate === "loading" && (
+        <p role="status" className="text-white/60">
+          {tc("loading")}
+        </p>
+      )}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -89,7 +93,9 @@ export default function ProducerPayoutsPage() {
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{tc("error")}</p>
+          <p role="alert" className="text-white/70">
+            {tc("error")}
+          </p>
           <Button variant="secondary" onClick={() => void boot()}>
             ↻ {tc("retry")}
           </Button>
@@ -98,7 +104,9 @@ export default function ProducerPayoutsPage() {
 
       {gate === "ready" && listError && (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-red-400">{tc("error")}</p>
+          <p role="alert" className="text-sm text-red-400">
+            {tc("error")}
+          </p>
           <Button size="sm" variant="ghost" onClick={() => void boot()}>
             ↻ {tc("retry")}
           </Button>
@@ -107,7 +115,9 @@ export default function ProducerPayoutsPage() {
 
       {gate === "ready" && !listError && payouts.length === 0 && (
         <Card className="flex flex-col items-center gap-4 py-10 text-center">
-          <p className="text-white/70">{t("payoutsPage.empty")}</p>
+          <p role="status" className="text-white/70">
+            {t("payoutsPage.empty")}
+          </p>
         </Card>
       )}
 
@@ -168,6 +178,7 @@ export default function ProducerPayoutsPage() {
                       className="text-neon underline-offset-2 hover:underline"
                     >
                       {t("payoutsPage.evidence")} ↗
+                      <span className="sr-only"> {tc("newTab")}</span>
                     </a>
                   )}
                 </div>

@@ -150,10 +150,13 @@ function Escanear() {
   if (phase === "error") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-night-950 p-6 text-center">
-        <p className="text-lg font-semibold">{tCommon("error")}</p>
+        <p role="alert" className="text-lg font-semibold">
+          {tCommon("error")}
+        </p>
         <Button
           variant="secondary"
           size="lg"
+          aria-label={tCommon("retry")}
           onClick={() => window.location.reload()}
         >
           ↻
@@ -168,7 +171,9 @@ function Escanear() {
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 p-6">
         <h1 className="text-2xl font-bold">{tEvents("title")}</h1>
         {events.length === 0 ? (
-          <p className="text-white/60">{tEvents("empty")}</p>
+          <p role="status" className="text-white/60">
+            {tEvents("empty")}
+          </p>
         ) : (
           <ul className="flex flex-col gap-4">
             {events.map((e) => (
@@ -213,7 +218,9 @@ function Escanear() {
       <div className="relative flex-1 overflow-hidden">
         {phase === "checking" ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-white/50">{tCommon("loading")}</p>
+            <p role="status" className="text-white/50">
+              {tCommon("loading")}
+            </p>
           </div>
         ) : phase === "scan" ? (
           <QrScanner
@@ -224,7 +231,9 @@ function Escanear() {
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-6 p-6 text-center">
-            <p className="text-lg font-semibold">{tStaff("cameraError")}</p>
+            <p role="alert" className="text-lg font-semibold">
+              {tStaff("cameraError")}
+            </p>
             <Button
               size="lg"
               onClick={() => {
@@ -241,6 +250,7 @@ function Escanear() {
         {feedback && (
           <div className="absolute inset-x-4 bottom-6">
             <Card
+              role={feedback.kind === "sent" ? "status" : "alert"}
               className={`border-2 py-4 text-center ${
                 feedback.kind === "sent"
                   ? "border-neon text-neon"

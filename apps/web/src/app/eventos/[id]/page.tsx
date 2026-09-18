@@ -274,7 +274,7 @@ export default async function EventoDetailPage({
                   // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
                   <img
                     src={dj.person.photoUrl}
-                    alt={dj.person.name}
+                    alt=""
                     className="h-11 w-11 shrink-0 rounded-full border border-night-700 object-cover"
                   />
                 ) : (

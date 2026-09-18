@@ -1,4 +1,13 @@
 {
+  "academy": {
+    "planTypes": {
+      "MONTHLY": "Mensual",
+      "CLASS_PACK": "Pack de clases",
+      "PERIOD": "Por periodo",
+      "TRIAL": "De prueba"
+    },
+    "studentStatus": "Estado de {name}"
+  },
   "academyExtras": {
     "lessons": {
       "title": "Clases particulares",

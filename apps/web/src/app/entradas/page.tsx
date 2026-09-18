@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { TicketStatus } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 
@@ -49,6 +50,11 @@ export default function EntradasPage() {
   const [transferring, setTransferring] = useState(false);
   const [transferError, setTransferError] = useState(false);
   const [transferSuccess, setTransferSuccess] = useState(false);
+
+  // Focus trap + restauración del modal de transferencia
+  const transferDialogRef = useDialogFocus<HTMLDivElement>(
+    transferFor !== null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -163,7 +169,9 @@ export default function EntradasPage() {
       )}
 
       {state === "loading" && (
-        <p className="text-white/60">{tc("loading")}</p>
+        <p role="status" className="text-white/60">
+          {tc("loading")}
+        </p>
       )}
 
       {state === "unauth" && (
@@ -175,13 +183,17 @@ export default function EntradasPage() {
 
       {state === "error" && (
         <Card className="flex flex-col items-center gap-4 text-center">
-          <p className="text-white/70">{tc("error")}</p>
+          <p role="alert" className="text-white/70">
+            {tc("error")}
+          </p>
         </Card>
       )}
 
       {state === "ready" && sorted.length === 0 && (
         <Card className="flex flex-col items-center gap-4 py-10 text-center">
-          <p className="text-white/70">{t("empty")}</p>
+          <p role="status" className="text-white/70">
+            {t("empty")}
+          </p>
           <Button href="/eventos">{t("emptyCta")}</Button>
         </Card>
       )}
@@ -251,6 +263,7 @@ export default function EntradasPage() {
           Se cierra con Escape o clic en el backdrop. */}
       {transferFor && (
         <div
+          ref={transferDialogRef}
           role="presentation"
           className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={closeTransfer}
@@ -281,11 +294,19 @@ export default function EntradasPage() {
                   value={transferEmail}
                   onChange={(e) => setTransferEmail(e.target.value)}
                   placeholder={t("transferEmail")}
+                  aria-invalid={transferError || undefined}
+                  aria-describedby={
+                    transferError ? "transfer-email-error" : undefined
+                  }
                   className={inputCls}
                 />
               </label>
               {transferError && (
-                <p role="alert" className="text-sm text-red-400">
+                <p
+                  id="transfer-email-error"
+                  role="alert"
+                  className="text-sm text-red-400"
+                >
                   {t("transferError")}
                 </p>
               )}
