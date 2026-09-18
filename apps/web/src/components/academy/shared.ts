@@ -101,5 +101,5 @@ export async function readError(res: Response): Promise<string | null> {
 // Inputs compactos dark-first; min-h-11 = touch target 44px.
 export const inputCls =
   "min-h-11 w-full rounded-xl border border-night-700 bg-night-800 px-3 " +
-  "text-sm text-white placeholder:text-white/40 " +
+  "text-sm text-white placeholder:text-white/50 " +
   "focus:border-neon/60 focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50";

@@ -102,7 +102,10 @@ export function SlotsSection({ academyId, slots, onChanged }: Props) {
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{tp("startsAt")}</span>
+              <span className="text-xs text-white/50">
+                {tp("startsAt")}
+                <span aria-hidden="true" className="text-neon"> *</span>
+              </span>
               <input
                 className={inputCls}
                 type="time"
@@ -114,6 +117,7 @@ export function SlotsSection({ academyId, slots, onChanged }: Props) {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-white/50">
                 {tprod("expiresAt")}
+                <span aria-hidden="true" className="text-neon"> *</span>
               </span>
               <input
                 className={inputCls}
@@ -126,6 +130,7 @@ export function SlotsSection({ academyId, slots, onChanged }: Props) {
             <label className="col-span-2 flex flex-col gap-1 sm:col-span-1">
               <span className="text-xs text-white/50">
                 {te("capacity", { count: Number.parseInt(capacity, 10) || 0 })}
+                <span aria-hidden="true" className="text-neon"> *</span>
               </span>
               <input
                 className={inputCls}

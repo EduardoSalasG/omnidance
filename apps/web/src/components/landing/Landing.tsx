@@ -40,7 +40,7 @@ export async function Landing() {
   return (
     <>
       <JsonLd events={events} />
-      <main className="flex min-h-screen flex-col">
+      <main className="flex min-h-dvh flex-col">
         {/* ─── Hero: una promesa + un CTA dominante above-the-fold ─── */}
         <section className="glow-neon relative flex flex-col items-center px-6 pb-16 pt-16 text-center sm:pt-24">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neon">

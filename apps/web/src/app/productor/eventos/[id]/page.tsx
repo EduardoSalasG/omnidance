@@ -216,7 +216,7 @@ export default function ProducerEventDetailPage({
   })();
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-8 p-6">
       <Link
         href="/productor/eventos"
         className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"

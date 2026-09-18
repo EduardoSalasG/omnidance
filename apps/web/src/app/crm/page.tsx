@@ -15,7 +15,7 @@ export default function CrmPage() {
   const ctx = useCrmContext();
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
       <CrmNav active="people" />
 

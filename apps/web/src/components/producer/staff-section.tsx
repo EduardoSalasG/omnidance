@@ -131,6 +131,7 @@ export function StaffSection({ eventId }: Props) {
         <label className="flex flex-col gap-1.5">
           <span className="text-xs text-white/50">
             {t("staffSection.personId")}
+            <span aria-hidden="true" className="text-neon"> *</span>
           </span>
           <input
             type="text"

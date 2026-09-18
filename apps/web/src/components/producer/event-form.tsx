@@ -244,7 +244,10 @@ export function EventForm({
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <label className="flex flex-col gap-2">
-        <span className="text-sm text-white/70">{t("form.name")}</span>
+        <span className="text-sm text-white/70">
+          {t("form.name")}
+          <span aria-hidden="true" className="text-neon"> *</span>
+        </span>
         <input
           type="text"
           required
@@ -257,7 +260,10 @@ export function EventForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.startsAt")}</span>
+          <span className="text-sm text-white/70">
+            {t("form.startsAt")}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
           <input
             type="datetime-local"
             required
@@ -267,7 +273,10 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.endsAt")}</span>
+          <span className="text-sm text-white/70">
+            {t("form.endsAt")}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
           <input
             type="datetime-local"
             required

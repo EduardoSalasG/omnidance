@@ -27,7 +27,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
       {sent ? (
         <p aria-live="polite" className="max-w-sm text-center text-white/70">
@@ -36,7 +36,10 @@ export default function LoginPage() {
       ) : (
         <form onSubmit={submit} className="flex w-full max-w-sm flex-col gap-4">
           <label className="flex flex-col gap-2">
-            <span className="text-sm text-white/70">{t("emailLabel")}</span>
+            <span className="text-sm text-white/70">
+              {t("emailLabel")}
+              <span aria-hidden="true" className="text-neon"> *</span>
+            </span>
             <input
               type="email"
               required

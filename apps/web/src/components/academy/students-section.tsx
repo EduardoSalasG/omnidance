@@ -208,7 +208,10 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
           className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
         >
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("personId")}</span>
+            <span className="text-xs text-white/50">
+              {t("personId")}
+              <span aria-hidden="true" className="text-neon"> *</span>
+            </span>
             <input
               className={inputCls}
               value={personId}
@@ -217,7 +220,10 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("plans")}</span>
+            <span className="text-xs text-white/50">
+              {t("plans")}
+              <span aria-hidden="true" className="text-neon"> *</span>
+            </span>
             <select
               className={inputCls}
               value={planId}

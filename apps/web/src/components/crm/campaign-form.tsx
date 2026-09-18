@@ -128,7 +128,10 @@ export function CampaignForm({
     <Card>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("campaigns.name")}</span>
+          <span className="text-sm text-white/70">
+            {t("campaigns.name")}
+            <span aria-hidden="true" className="text-neon"> *</span>
+          </span>
           <input
             type="text"
             required
@@ -163,6 +166,7 @@ export function CampaignForm({
             <label className="flex flex-col gap-2">
               <span className="text-sm text-white/70">
                 {t("campaigns.notifyTitle")}
+                <span aria-hidden="true" className="text-neon"> *</span>
               </span>
               <input
                 type="text"

@@ -34,7 +34,7 @@ type ListState = "loading" | "ready" | "error";
 
 const inputCls =
   "min-h-11 w-full rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
-  "text-white placeholder:text-white/40 " +
+  "text-white placeholder:text-white/50 " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
 /** Duración por defecto de una práctica (el DTO exige endsAt; sin input propio). */
@@ -127,7 +127,7 @@ export default function PracticasPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         {authed && !formOpen && (
@@ -156,7 +156,10 @@ export default function PracticasPage() {
         <Card>
           <form onSubmit={createPractice} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("name")}</span>
+              <span className="text-white/70">
+                {t("name")}
+                <span aria-hidden="true" className="text-neon"> *</span>
+              </span>
               <input
                 required
                 value={name}
@@ -167,7 +170,10 @@ export default function PracticasPage() {
             {/* Datalist con GET /venues (value=id, label=nombre). Si la API
                 falla el input sigue aceptando texto libre como fallback. */}
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("venue")}</span>
+              <span className="text-white/70">
+                {t("venue")}
+                <span aria-hidden="true" className="text-neon"> *</span>
+              </span>
               <input
                 required
                 list="practice-venues"
@@ -185,7 +191,10 @@ export default function PracticasPage() {
               </datalist>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("startsAt")}</span>
+              <span className="text-white/70">
+                {t("startsAt")}
+                <span aria-hidden="true" className="text-neon"> *</span>
+              </span>
               <input
                 required
                 type="datetime-local"

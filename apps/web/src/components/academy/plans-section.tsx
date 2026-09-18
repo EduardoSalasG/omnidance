@@ -109,7 +109,10 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
           className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
         >
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("planName")}</span>
+            <span className="text-xs text-white/50">
+              {t("planName")}
+              <span aria-hidden="true" className="text-neon"> *</span>
+            </span>
             <input
               className={inputCls}
               value={name}
@@ -132,7 +135,10 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("planPrice")}</span>
+            <span className="text-xs text-white/50">
+              {t("planPrice")}
+              <span aria-hidden="true" className="text-neon"> *</span>
+            </span>
             <input
               className={inputCls}
               type="number"

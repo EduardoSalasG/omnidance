@@ -92,7 +92,7 @@ export function HomeHub() {
 
   if (!checked) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
+      <main className="flex min-h-dvh items-center justify-center">
         <p className="text-sm text-white/50">{tc("loading")}</p>
       </main>
     );
@@ -101,7 +101,7 @@ export function HomeHub() {
   // Cookie presente pero sesión expirada — CTA de re-login.
   if (!me) {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col justify-center gap-6 p-6">
+      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <Button href="/login" size="lg" className="w-full">
             {tc("login")}
@@ -140,7 +140,7 @@ export function HomeHub() {
   ];
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-lg flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
       <header className="pt-4">
         <h1 className="text-display text-3xl font-bold">
           Omni<span className="text-neon">dance</span>

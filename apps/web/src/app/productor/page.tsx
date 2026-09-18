@@ -287,7 +287,7 @@ export default function ProducerPage() {
     id ? (events.find((e) => e.id === id)?.name ?? null) : null;
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-8 p-6">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
       {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
@@ -362,7 +362,10 @@ export default function ProducerPage() {
               <Card>
                 <form onSubmit={submitCode} className="flex flex-col gap-4">
                   <label className="flex flex-col gap-2">
-                    <span className="text-sm text-white/70">{t("code")}</span>
+                    <span className="text-sm text-white/70">
+                      {t("code")}
+                      <span aria-hidden="true" className="text-neon"> *</span>
+                    </span>
                     <input
                       type="text"
                       required
@@ -616,6 +619,7 @@ export default function ProducerPage() {
                       <label className="flex flex-col gap-2">
                         <span className="text-sm text-white/70">
                           {t("listName")}
+                          <span aria-hidden="true" className="text-neon"> *</span>
                         </span>
                         <input
                           type="text"

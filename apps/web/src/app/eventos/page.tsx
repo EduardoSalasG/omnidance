@@ -29,7 +29,7 @@ export default async function EventosPage() {
   const events: EventListItem[] = res.ok ? await res.json() : [];
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
       <h1 className="text-2xl font-bold">{t.title}</h1>
       {events.length === 0 ? (
         <p className="text-white/60">{t.empty}</p>
