@@ -85,7 +85,7 @@ export default async function EventoDetailPage({
 
   if (event === "error") {
     return (
-      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
+      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
         <p className="text-white/60">{t.loadError}</p>
         <Button href="/eventos" variant="secondary">
           {t.backToList}

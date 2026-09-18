@@ -20,7 +20,7 @@ type PageState = "loading" | "ready" | "unauth" | "error";
 
 const inputCls =
   "min-h-11 w-full rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
-  "text-white placeholder:text-white/40 " +
+  "text-white placeholder:text-white/50 " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
 export default function ViajesPage() {
@@ -97,7 +97,7 @@ export default function ViajesPage() {
 
   if (state === "unauth") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-white/60">{t("loginRequired")}</p>
         <Button href="/login">{tc("login")}</Button>
@@ -106,7 +106,7 @@ export default function ViajesPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         {state === "ready" && !formOpen && (
@@ -120,7 +120,10 @@ export default function ViajesPage() {
         <Card>
           <form onSubmit={addTrip} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("destination")}</span>
+              <span className="text-white/70">
+                {t("destination")}
+                <span aria-hidden="true" className="text-neon"> *</span>
+              </span>
               <input
                 required
                 value={city}
@@ -130,7 +133,10 @@ export default function ViajesPage() {
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="text-white/70">{t("from")}</span>
+                <span className="text-white/70">
+                  {t("from")}
+                  <span aria-hidden="true" className="text-neon"> *</span>
+                </span>
                 <input
                   required
                   type="date"
@@ -140,7 +146,10 @@ export default function ViajesPage() {
                 />
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
-                <span className="text-white/70">{t("until")}</span>
+                <span className="text-white/70">
+                  {t("until")}
+                  <span aria-hidden="true" className="text-neon"> *</span>
+                </span>
                 <input
                   required
                   type="date"

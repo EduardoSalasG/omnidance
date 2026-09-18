@@ -227,7 +227,10 @@ export function Videos({ academy }: { academy: Academy }) {
             className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t.videoTitle}</span>
+              <span className="text-xs text-white/50">
+                {t.videoTitle}
+                <span aria-hidden="true" className="text-neon"> *</span>
+              </span>
               <input
                 className={inputCls}
                 value={title}
@@ -236,7 +239,10 @@ export function Videos({ academy }: { academy: Academy }) {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t.videoUrl}</span>
+              <span className="text-xs text-white/50">
+                {t.videoUrl}
+                <span aria-hidden="true" className="text-neon"> *</span>
+              </span>
               <input
                 className={inputCls}
                 type="url"

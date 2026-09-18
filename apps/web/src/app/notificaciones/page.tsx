@@ -104,7 +104,7 @@ export default function NotificacionesPage() {
 
   if (state === "unauth") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <Button href="/login">{tc("login")}</Button>
       </main>
@@ -112,7 +112,7 @@ export default function NotificacionesPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
       <header className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-bold">{t("title")}</h1>

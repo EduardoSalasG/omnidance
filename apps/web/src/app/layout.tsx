@@ -61,7 +61,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es-CL" className="dark">
-      <body className="bg-night-950 text-white min-h-screen pb-[calc(4rem+env(safe-area-inset-bottom))] antialiased">
+      <body className="bg-night-950 text-white min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] antialiased">
         <NextIntlClientProvider locale="es-CL" messages={messages}>
           <RealtimeProvider>
             <a

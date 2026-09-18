@@ -87,7 +87,7 @@ function CheckoutReturn() {
   return (
     <main
       aria-live="polite"
-      className="mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center"
+      className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-6 p-6 text-center"
     >
       {phase.kind === "verifying" && (
         <>

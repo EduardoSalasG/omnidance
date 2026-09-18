@@ -26,7 +26,8 @@
     "returnErrorTitle": "No pudimos verificar el pago"
   },
   "sessions": {
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "rating": "Puntuación: {value} de 5"
   },
   "notifications": {
     "unread": "Sin leer"
