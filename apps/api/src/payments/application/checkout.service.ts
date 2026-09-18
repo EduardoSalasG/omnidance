@@ -116,6 +116,7 @@ export class CheckoutService {
         presalePrice: true,
         presaleCap: true,
         seriesId: true,
+        serviceFeeClp: true,
       },
     });
     if (!event) throw new EventNotFoundError();
@@ -167,11 +168,14 @@ export class CheckoutService {
       if (!check.ok) throw new InvalidDiscountError(check.reason);
     }
 
-    // fee parametrizable: PlatformParam → env → default del shared
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.presale_clp",
-      Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
-    );
+    // fee parametrizable: override admin del evento → PlatformParam →
+    // env → default del shared
+    const serviceFeeClp =
+      event.serviceFeeClp ??
+      (await this.params.getNumber(
+        "service_fee.presale_clp",
+        Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
+      ));
     const quote = this.pricing.quote({
       listPrice: event.presalePrice,
       serviceFeeClp,

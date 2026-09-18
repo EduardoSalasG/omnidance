@@ -27,6 +27,8 @@ describe("checkout + payments e2e", () => {
     noPresaleId: "", // PUBLISHED sin presalePrice
     cappedId: "", // PUBLISHED presaleCap agotado
     otherEventId: "", // para código con scope de otro evento
+    feeEventId: "", // PUBLISHED con serviceFeeClp=900 (override admin)
+    zeroFeeEventId: "", // PUBLISHED con serviceFeeClp=0 (override a cero)
   };
   const codeIds: string[] = [];
 
@@ -69,7 +71,8 @@ describe("checkout + payments e2e", () => {
       startsAt: new Date(Date.now() + 24 * 3600 * 1000),
       endsAt: new Date(Date.now() + 28 * 3600 * 1000),
     };
-    const [event, draft, noPresale, capped, otherEvent] = await Promise.all([
+    const [event, draft, noPresale, capped, otherEvent, feeEvent, zeroFeeEvent] =
+      await Promise.all([
       prisma.event.create({
         data: {
           ...base,
@@ -107,12 +110,32 @@ describe("checkout + payments e2e", () => {
           presalePrice: 8000,
         },
       }),
+      prisma.event.create({
+        data: {
+          ...base,
+          name: `Fee Override ${suffix}`,
+          status: "PUBLISHED",
+          presalePrice: 10000,
+          serviceFeeClp: 900,
+        },
+      }),
+      prisma.event.create({
+        data: {
+          ...base,
+          name: `Fee Cero ${suffix}`,
+          status: "PUBLISHED",
+          presalePrice: 10000,
+          serviceFeeClp: 0,
+        },
+      }),
     ]);
     ids.eventId = event.id;
     ids.draftId = draft.id;
     ids.noPresaleId = noPresale.id;
     ids.cappedId = capped.id;
     ids.otherEventId = otherEvent.id;
+    ids.feeEventId = feeEvent.id;
+    ids.zeroFeeEventId = zeroFeeEvent.id;
 
     // cap agotado: ya hay un ticket emitido
     await prisma.ticket.create({
@@ -159,6 +182,8 @@ describe("checkout + payments e2e", () => {
             ids.noPresaleId,
             ids.cappedId,
             ids.otherEventId,
+            ids.feeEventId,
+            ids.zeroFeeEventId,
           ],
         },
       },
@@ -175,6 +200,8 @@ describe("checkout + payments e2e", () => {
             ids.noPresaleId,
             ids.cappedId,
             ids.otherEventId,
+            ids.feeEventId,
+            ids.zeroFeeEventId,
           ],
         },
       },
@@ -470,6 +497,67 @@ describe("checkout + payments e2e", () => {
     });
   });
 
+  describe("serviceFeeClp por evento (override admin)", () => {
+    let feePaymentId: string;
+    let feeRefId: string;
+
+    it("checkout usa el override del evento → serviceFee 900 y amount 10900", async () => {
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.feeEventId },
+        buyerSession,
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.quote).toEqual({
+        listPrice: 10000,
+        discount: 0,
+        serviceFee: 900, // override del evento, no el param global (500)
+        total: 10900,
+      });
+      feePaymentId = body.paymentId;
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: feePaymentId },
+      });
+      expect(payment.amount).toBe(10900);
+      feeRefId = payment.refId;
+    });
+
+    it("webhook PAID emite el ticket con el serviceFee del override", async () => {
+      const res = await post("/api/payments/webhook", {
+        refId: feeRefId,
+        status: "PAID",
+      });
+      expect(res.status).toBe(200);
+
+      const ticket = await prisma.ticket.findFirstOrThrow({
+        where: { eventId: ids.feeEventId, ownerId: buyerId },
+      });
+      expect(ticket.serviceFee).toBe(900);
+      expect(ticket.listPrice).toBe(10000);
+    });
+
+    it("override 0 → sin cargo de servicio (serviceFee 0, total = lista)", async () => {
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.zeroFeeEventId },
+        buyerSession,
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.quote).toEqual({
+        listPrice: 10000,
+        discount: 0,
+        serviceFee: 0,
+        total: 10000,
+      });
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: body.paymentId },
+      });
+      expect(payment.amount).toBe(10000);
+    });
+  });
+
   describe("GET /api/tickets/mine", () => {
     it("sin sesión → 401", async () => {
       const res = await get("/api/tickets/mine");
@@ -511,7 +599,7 @@ describe("checkout + payments e2e", () => {
 
     it("dueño consulta su pago → estado", async () => {
       const payment = await prisma.payment.findFirstOrThrow({
-        where: { personId: buyerId, status: "PAID" },
+        where: { personId: buyerId, status: "PAID", eventId: ids.eventId },
       });
       const res = await get(`/api/payments/${payment.id}`, buyerSession);
       expect(res.status).toBe(200);

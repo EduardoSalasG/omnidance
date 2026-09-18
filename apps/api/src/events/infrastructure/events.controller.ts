@@ -20,6 +20,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Min,
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
@@ -107,6 +108,15 @@ class CreateEventDto {
   @IsInt()
   doorCap?: number;
 
+  /**
+   * Override admin del cargo por servicio de preventa (null → param global).
+   * Solo seteable por admin.access — el handler lo valida.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  serviceFeeClp?: number | null;
+
   @IsOptional()
   @IsInt()
   primeThreshold?: number;
@@ -173,6 +183,12 @@ class UpdateEventDto {
   @IsOptional()
   @IsInt()
   doorCap?: number;
+
+  /** Override admin del cargo por servicio — null limpia el override. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  serviceFeeClp?: number | null;
 
   @IsOptional()
   @IsInt()
@@ -255,6 +271,7 @@ export class EventsController {
         endsAt: true,
         presalePrice: true,
         doorPrice: true,
+        serviceFeeClp: true,
         series: { select: { id: true, name: true } },
         venue: { select: { name: true, address: true } },
       },
@@ -277,6 +294,7 @@ export class EventsController {
         doorPrice: true,
         presaleCap: true,
         doorCap: true,
+        serviceFeeClp: true,
         primeThreshold: true,
         happyHourMinutes: true,
         producerId: true,
@@ -315,6 +333,9 @@ export class EventsController {
   @RequirePermissions("events.manage")
   async create(@Body() dto: CreateEventDto, @Req() req: Request) {
     const me = req.person!;
+    if (dto.serviceFeeClp !== undefined) {
+      await this.assertAdminFeeOverride(me);
+    }
     if (dto.seriesId) {
       await this.assertOwnSeries(dto.seriesId, me.id);
     }
@@ -334,6 +355,7 @@ export class EventsController {
         doorPrice: dto.doorPrice ?? null,
         presaleCap: dto.presaleCap ?? null,
         doorCap: dto.doorCap ?? null,
+        serviceFeeClp: dto.serviceFeeClp ?? null,
         primeThreshold: dto.primeThreshold ?? null,
         ...(dto.happyHourMinutes !== undefined
           ? { happyHourMinutes: dto.happyHourMinutes }
@@ -392,6 +414,11 @@ export class EventsController {
     if (dto.doorPrice !== undefined) data.doorPrice = dto.doorPrice;
     if (dto.presaleCap !== undefined) data.presaleCap = dto.presaleCap;
     if (dto.doorCap !== undefined) data.doorCap = dto.doorCap;
+    if (dto.serviceFeeClp !== undefined) {
+      // campo operativo (no contenido): solo admin.access lo fija/limpia.
+      await this.assertAdminFeeOverride(me);
+      data.serviceFeeClp = dto.serviceFeeClp;
+    }
     if (dto.primeThreshold !== undefined)
       data.primeThreshold = dto.primeThreshold;
     if (dto.happyHourMinutes !== undefined)
@@ -548,6 +575,25 @@ export class EventsController {
       return;
     }
     throw new ForbiddenException("solo el productor del evento o un admin");
+  }
+
+  /**
+   * serviceFeeClp es un campo operativo admin-only: cualquier actor que lo
+   * envíe en POST/PATCH sin admin.access → 403 (aunque sea el owner).
+   */
+  private async assertAdminFeeOverride(person: {
+    id: string;
+    roles: string[];
+  }): Promise<void> {
+    if (
+      !(await roleKeysHavePermission(this.prisma, person.roles, [
+        "admin.access",
+      ]))
+    ) {
+      throw new ForbiddenException(
+        "solo admin puede fijar la comisión del evento",
+      );
+    }
   }
 
   private async assertOwnSeries(
