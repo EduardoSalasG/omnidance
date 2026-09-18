@@ -22,8 +22,11 @@ import type { Socket } from "socket.io-client";
  * socket.io-client es dinámico para no inflar el bundle del primer render.
  */
 
-// Mismo origen que lib/api.ts (apiFetch) — duplicado porque api.ts no lo exporta.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+// Mismo origen que lib/api.ts (apiFetch) — duplicado porque api.ts no lo
+// exporta. Vacío → io() conecta al mismo origen y el rewrite /socket.io/*
+// de next.config.mjs lo proxea (queda en polling, el upgrade ws no pasa
+// el proxy — suficiente para el fan-out de notificaciones).
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /** Shape del payload del evento `notification` (model Notification de Prisma). */
 export type RealtimeNotification = {
@@ -60,7 +63,7 @@ export function connectRealtime(): Promise<Socket | null> {
   connecting = (async () => {
     try {
       const { io } = await import("socket.io-client");
-      const s = io(API_URL, {
+      const s = io(API_URL || undefined, {
         withCredentials: true,
         // Reconnect automático de socket.io ante caídas de transporte/red.
         // El "io server disconnect" (auth) no dispara reconnect — ver handler.
