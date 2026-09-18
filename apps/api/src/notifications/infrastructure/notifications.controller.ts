@@ -13,7 +13,8 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsIn, IsString } from "class-validator";
+import { IsIn, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
+import { Type } from "class-transformer";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
@@ -23,12 +24,28 @@ import {
   type PushPlatform,
 } from "../domain/notifications.service";
 
+class PushKeysDto {
+  @IsString()
+  @IsNotEmpty()
+  p256dh!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  auth!: string;
+}
+
 class RegisterPushTokenDto {
   @IsString()
   token!: string;
 
   @IsIn(PUSH_PLATFORMS)
   platform!: PushPlatform;
+
+  /** Claves VAPID del navegador (solo WEB) — el sender las consume desde payload. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PushKeysDto)
+  keys?: PushKeysDto;
 }
 
 function mapDomainError(e: unknown): never {
@@ -101,6 +118,7 @@ export class PushTokensController {
         req.person!.id,
         dto.token,
         dto.platform,
+        dto.keys,
       );
     } catch (e) {
       mapDomainError(e);
