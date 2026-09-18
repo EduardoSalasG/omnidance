@@ -39,6 +39,13 @@ type Me = { id: string; name: string | null; roles: string[] };
 /** GET /academies/:id (requireManage) incluye instructors:[{personId}]. */
 type AcademyDetail = Academy & { instructors?: { personId: string }[] };
 
+/** GET /academies (directorio autenticado): incluye instructores con nombre. */
+type DirectoryAcademy = {
+  id: string;
+  name: string;
+  instructors: { id: string; personId: string; name: string | null }[];
+};
+
 type LessonAction = "confirm" | "cancel" | "done" | "reschedule";
 
 type Props = {
@@ -81,9 +88,10 @@ function shortId(id: string) {
  *   no cancela, igual que el controller).
  * - alumno: GET /private-lessons/mine + cancel propia (REQUESTED/CONFIRMED)
  *   + form POST /academies/:id/private-lessons {instructorId, scheduledAt,
- *   price?}. La API no expone un directorio público de academias ni
- *   instructores: el form solo ofrece las academias ya cargadas en la
- *   página (donde GET /academies/:id alcanza para listar instructores).
+ *   price?}. El select de academia/instructor se alimenta de GET /academies
+ *   (directorio autenticado con nombres de instructor); las academias staff
+ *   que no estén en el directorio resuelven instructores vía GET
+ *   /academies/:id (requireManage).
  */
 export function PrivateLessons({ academy, academies = [] }: Props) {
   const tc = useTranslations("common");
@@ -105,7 +113,10 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
 
   // ─── formulario de solicitud ───
   const [reqAcademyId, setReqAcademyId] = useState("");
-  const [instructors, setInstructors] = useState<{ personId: string }[]>([]);
+  const [directory, setDirectory] = useState<DirectoryAcademy[]>([]);
+  const [instructors, setInstructors] = useState<
+    { personId: string; name?: string | null }[]
+  >([]);
   const [instrLoading, setInstrLoading] = useState(false);
   const [reqInstructorId, setReqInstructorId] = useState("");
   const [reqWhen, setReqWhen] = useState("");
@@ -118,6 +129,12 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       .then(async (res) => (res.ok ? ((await res.json()) as Me) : null))
       .then(setMe)
       .catch(() => {});
+    apiFetch("/academies")
+      .then(async (res) =>
+        res.ok ? ((await res.json()) as DirectoryAcademy[]) : [],
+      )
+      .then(setDirectory)
+      .catch(() => setDirectory([]));
   }, []);
 
   const loadMine = useCallback(async () => {
@@ -172,17 +189,29 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
 
   const academyNames = useMemo(() => {
     const map = new Map<string, string>();
+    for (const a of directory) map.set(a.id, a.name);
     for (const a of academies) map.set(a.id, a.name);
     if (academy) map.set(academy.id, academy.name);
     return map;
-  }, [academies, academy]);
+  }, [directory, academies, academy]);
 
-  // Instructores de la academia elegida en el form (GET /academies/:id,
-  // disponible porque las academias cargadas son las que el usuario opera).
+  // Academias del form: el directorio (todas las activas) cuando cargó;
+  // si falla, las academias prop de la página (contexto staff).
+  const formAcademies = directory.length
+    ? directory
+    : academies.map((a) => ({ id: a.id, name: a.name, instructors: [] }));
+
+  // Instructores de la academia elegida: del directorio si está (ya trae
+  // nombres); si no, GET /academies/:id (contexto staff — requireManage).
   useEffect(() => {
     setInstructors([]);
     setReqInstructorId("");
     if (!reqAcademyId) return;
+    const dir = directory.find((a) => a.id === reqAcademyId);
+    if (dir) {
+      setInstructors(dir.instructors);
+      return;
+    }
     let cancelled = false;
     setInstrLoading(true);
     apiFetch(`/academies/${reqAcademyId}`)
@@ -200,7 +229,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [reqAcademyId]);
+  }, [reqAcademyId, directory]);
 
   async function act(
     id: string,
@@ -496,7 +525,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
             </ul>
           ))}
 
-        {academies.length > 0 ? (
+        {formAcademies.length > 0 ? (
           <Card>
             <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
               {t.requestTitle}
@@ -516,7 +545,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                   <option value="" disabled>
                     —
                   </option>
-                  {academies.map((a) => (
+                  {formAcademies.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.name}
                     </option>
@@ -539,7 +568,8 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                   </option>
                   {instructors.map((i) => (
                     <option key={i.personId} value={i.personId}>
-                      {instructorNames.get(i.personId) ??
+                      {i.name ??
+                        instructorNames.get(i.personId) ??
                         t.instructorFallback.replace(
                           "{id}",
                           shortId(i.personId),

@@ -14,5 +14,15 @@
     "cta": "Comprar pase",
     "alreadyOwned": "Ya tienes el pase de este mes.",
     "unavailable": "El pase de esta serie no está disponible por ahora."
+  },
+  "checkout": {
+    "returnVerifying": "Confirmando tu pago…",
+    "returnPaidTitle": "¡Listo! Tu compra quedó confirmada",
+    "returnToEvents": "Volver a eventos",
+    "returnFailedTitle": "El pago no se completó",
+    "returnFailedDesc": "No te cobramos nada. Puedes intentarlo de nuevo.",
+    "returnPendingTitle": "Tu pago está en proceso",
+    "returnPendingDesc": "El banco está confirmando — te avisaremos cuando quede listo.",
+    "returnErrorTitle": "No pudimos verificar el pago"
   }
 }

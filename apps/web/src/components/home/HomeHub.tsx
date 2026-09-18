@@ -9,16 +9,26 @@ import { Button } from "@/components/ui/Button";
 
 type Me = { id: string; name: string; roles: string[] };
 
-type Tile = { href: string; label: string; desc?: string };
+type Tile = { href: string; label: string; desc?: string; badge?: number };
 
-function TileLink({ href, label, desc }: Tile) {
+function TileLink({ href, label, desc, badge }: Tile) {
   return (
     <li>
       <Link
         href={href}
-        className="flex min-h-11 flex-col justify-center gap-0.5 rounded-xl border border-night-700 bg-night-800/60 px-4 py-3 transition-colors transition-transform hover:border-neon/50 active:scale-[0.98]"
+        className="relative flex min-h-11 flex-col justify-center gap-0.5 rounded-xl border border-night-700 bg-night-800/60 px-4 py-3 transition-colors transition-transform hover:border-neon/50 active:scale-[0.98]"
       >
-        <span className="font-medium leading-tight">{label}</span>
+        <span className="font-medium leading-tight">
+          {label}
+          {badge != null && badge > 0 && (
+            <span
+              aria-label={`${badge}`}
+              className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-neon px-1.5 py-0.5 text-[11px] font-bold leading-none text-night-950"
+            >
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
+        </span>
         {desc && <span className="text-xs text-white/50">{desc}</span>}
       </Link>
     </li>
@@ -42,6 +52,7 @@ export function HomeHub() {
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +69,26 @@ export function HomeHub() {
       cancelled = true;
     };
   }, []);
+
+  // Conteo inicial de no-leídas + incremento en vivo vía CustomEvent
+  // (RealTimeProvider despacha "omnidance:notification" al recibir una).
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false;
+    apiFetch("/notifications?limit=1")
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        const data = (await res.json()) as { unreadCount?: number };
+        setUnread(data.unreadCount ?? 0);
+      })
+      .catch(() => {});
+    const onNotify = () => setUnread((u) => u + 1);
+    window.addEventListener("omnidance:notification", onNotify);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("omnidance:notification", onNotify);
+    };
+  }, [me]);
 
   if (!checked) {
     return (
@@ -98,7 +129,7 @@ export function HomeHub() {
   const social: Tile[] = [
     { href: "/practicas", label: tp("title") },
     { href: "/viajes", label: tt("title") },
-    { href: "/notificaciones", label: tn("title") },
+    { href: "/notificaciones", label: tn("title"), badge: unread },
   ];
 
   const management: Tile[] = [
