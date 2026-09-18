@@ -25,12 +25,12 @@
 
 ## 4. Landing three.js
 
-- [ ] Escena minimalista (dynamic ssr:false, reduced-motion estático, DPR cap, dispose)
-- [ ] Restyle conversion-first (1 promesa, 1 CTA, aire)
-- [ ] three agregado a apps/web (versión estable >7 días)
+- [x] Escena minimalista (dynamic ssr:false, reduced-motion estático, DPR cap, dispose)
+- [x] Restyle conversion-first (1 promesa, 1 CTA, aire)
+- [x] three agregado a apps/web (versión estable >7 días)
 - [ ] Verificación: typecheck + smoke visual
 
 ## 5. Cierre
 
 - [ ] tsc limpio web · build verde · smoke páginas clave
-- [ ] Commit(s) por scope
+- [x] Commit(s) por scope
