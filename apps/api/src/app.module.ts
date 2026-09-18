@@ -14,6 +14,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { SocialModule } from "./social/social.module";
 import { AcademiesModule } from "./academies/academies.module";
 import { AdminModule } from "./admin/admin.module";
+import { CrmModule } from "./crm/crm.module";
 import { GamificationModule } from "./gamification/gamification.module";
 import { ParamsModule } from "./params/params.module";
 
@@ -35,6 +36,7 @@ import { ParamsModule } from "./params/params.module";
     AdminModule,
     GamificationModule,
     ParamsModule,
+    CrmModule,
   ],
   controllers: [HealthController],
 })

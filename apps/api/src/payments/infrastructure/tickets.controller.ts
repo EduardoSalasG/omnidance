@@ -88,9 +88,36 @@ export class TicketsController {
       );
     }
 
-    return this.prisma.ticket.update({
+    const updated = await this.prisma.ticket.update({
       where: { id },
       data: { ownerId: target.id, giftedFromId: ticket.ownerId },
     });
+
+    // Referral GIFT_TICKET (CRM) — best-effort, nunca bloquea el transfer.
+    // Sin @@unique en schema: guard findFirst para no duplicar
+    // referrerId+referredId+source si se repite el transfer al mismo target.
+    try {
+      const existing = await this.prisma.referral.findFirst({
+        where: {
+          referrerId: ticket.ownerId,
+          referredId: target.id,
+          source: "GIFT_TICKET",
+        },
+        select: { id: true },
+      });
+      if (!existing) {
+        await this.prisma.referral.create({
+          data: {
+            referrerId: ticket.ownerId,
+            referredId: target.id,
+            source: "GIFT_TICKET",
+          },
+        });
+      }
+    } catch {
+      /* referral no crítico */
+    }
+
+    return updated;
   }
 }

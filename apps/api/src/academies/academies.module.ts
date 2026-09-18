@@ -7,6 +7,8 @@ import {
   EnrollmentsController,
 } from "./infrastructure/academies.controller";
 import { AttendanceController } from "./infrastructure/attendance.controller";
+import { PrivateLessonsController } from "./infrastructure/private-lessons.controller";
+import { VideosController } from "./infrastructure/videos.controller";
 
 @Module({
   imports: [AuthModule, PrismaModule],
@@ -14,6 +16,8 @@ import { AttendanceController } from "./infrastructure/attendance.controller";
     AcademiesController,
     EnrollmentsController,
     AttendanceController,
+    PrivateLessonsController,
+    VideosController,
   ],
   providers: [AcademyAccess],
 })

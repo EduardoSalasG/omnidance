@@ -4,6 +4,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { PrismaModule } from "../prisma.module";
 import { AvailabilityController } from "./infrastructure/availability.controller";
 import { BlocksController } from "./infrastructure/blocks.controller";
+import { EventEntryPassesController } from "./infrastructure/entry-passes.controller";
 import { FriendsController } from "./infrastructure/friends.controller";
 import {
   EventGuestListsController,
@@ -37,6 +38,7 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
     AvailabilityController,
     BlocksController,
     FriendsController,
+    EventEntryPassesController,
   ],
 })
 export class SocialModule {}

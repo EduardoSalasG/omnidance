@@ -2,6 +2,7 @@ import type {
   Checkin,
   EntryPass,
   EventStatus,
+  SeriesPass,
   Ticket,
 } from "@prisma/client";
 
@@ -10,8 +11,20 @@ export const CHECKINS_REPO = "CHECKINS_REPO";
 export type CheckinMethod = "SCAN" | "MANUAL";
 export type DoorSaleChannel = "CASH" | "APP";
 
-/** Pase resuelto al momento del check-in (ticket comprado o entry_pass de lista/cortesía). */
-export type ResolvedPass = { kind: "TICKET" | "ENTRY_PASS"; id: string };
+/** Tipo de pase expuesto en CheckinResult.passType. PassType cubre los
+ * EntryPass de lista/cortesía; "SERIES_PASS" es el pase mensual de la serie
+ * (no es un PassType del schema — vive en SeriesPass). */
+export type CheckinPassType = import("@prisma/client").PassType | "SERIES_PASS";
+
+/**
+ * Pase resuelto al momento del check-in (ticket comprado, entry_pass de
+ * lista/cortesía o pase mensual de serie). SERIES_PASS no se consume:
+ * es vigente todo el mes — el check-in solo lo referencia en passId.
+ */
+export type ResolvedPass = {
+  kind: "TICKET" | "ENTRY_PASS" | "SERIES_PASS";
+  id: string;
+};
 
 export interface CreateCheckinData {
   eventId: string;
@@ -34,6 +47,8 @@ export interface EventDoorInfo {
   doorPrice: number | null;
   doorCap: number | null;
   producerId: string | null;
+  /** Serie a la que pertenece (para resolver SeriesPass en check-in). */
+  seriesId?: string | null;
 }
 
 export interface VoidCheckinInput {
@@ -69,6 +84,15 @@ export interface CheckinsRepo {
     eventId: string,
     personId: string,
   ): Promise<EntryPass | null>;
+  /**
+   * SeriesPass vigente de la persona para la serie en el mes dado ("YYYY-MM").
+   * Opcional en el puerto para no romper implementaciones de test legadas.
+   */
+  findActiveSeriesPass?(
+    seriesId: string,
+    personId: string,
+    month: string,
+  ): Promise<SeriesPass | null>;
   /** Crea el check-in y marca USED el pase resuelto en la misma transacción. */
   createCheckin(
     data: CreateCheckinData,

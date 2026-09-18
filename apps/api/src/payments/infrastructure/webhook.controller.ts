@@ -13,11 +13,15 @@ import {
 } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
 import type { Request } from "express";
+import type { Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
-import { decodeTicketOrderRef } from "../domain/order-ref";
+import {
+  decodeSeriesPassRef,
+  decodeTicketOrderRef,
+} from "../domain/order-ref";
 import { ParamsService } from "../../params/params.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { SERVICE_FEE } from "@omnidance/shared";
@@ -85,6 +89,14 @@ export class PaymentsController {
         data: { paymentId: payment.id, refId: payment.refId },
       });
       return { ok: true, status: "FAILED" };
+    }
+
+    // SERIES_PASS: rama separada del flujo ticket. A diferencia del ticket,
+    // la orden no tiene contexto en columnas (Payment.eventId es null por
+    // diseño — el pase es de la serie, no de un evento): el (seriesId, month)
+    // viaja codificado en el refId y se decodifica como fuente primaria.
+    if (payment.orderType === "SERIES_PASS") {
+      return this.settleSeriesPass(payment);
     }
 
     // El contexto de la compra vive en columnas (Payment.eventId/
@@ -167,6 +179,70 @@ export class PaymentsController {
         type: "payment.paid",
         title: "Pago confirmado — tu ticket está listo",
         data: { paymentId: payment.id, refId: payment.refId },
+      });
+    }
+
+    return { ok: true, status: "PAID" };
+  }
+
+  /**
+   * Liquidación del pase de serie al PAID: marca el Payment y hace upsert del
+   * SeriesPass por @@unique([seriesId,personId,month]) — re-pago del mismo mes
+   * solo refresca el precio, nunca duplica. Idempotente: re-notificación PAID
+   * sale antes (ramal "duplicated") y el re-check dentro de la tx cubre
+   * carreras; la notificación solo sale cuando esta llamada marcó PAID.
+   */
+  private async settleSeriesPass(payment: Payment) {
+    const order = decodeSeriesPassRef(payment.refId);
+    if (!order) {
+      throw new BadRequestException("pago sin contexto de orden series pass");
+    }
+
+    let paidNow = false;
+    await this.prisma.$transaction(async (tx) => {
+      // re-check dentro de la tx: doble webhook concurrente no duplica
+      const fresh = await tx.payment.findUnique({
+        where: { id: payment.id },
+        select: { status: true },
+      });
+      if (!fresh || fresh.status === "PAID") return;
+
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: "PAID" },
+      });
+      paidNow = true;
+
+      // el SeriesPass SOLO se emite cuando el pago queda PAID
+      await tx.seriesPass.upsert({
+        where: {
+          seriesId_personId_month: {
+            seriesId: order.seriesId,
+            personId: payment.personId,
+            month: order.month,
+          },
+        },
+        update: { price: payment.amount },
+        create: {
+          seriesId: order.seriesId,
+          personId: payment.personId,
+          month: order.month,
+          price: payment.amount,
+        },
+      });
+    });
+
+    if (paidNow) {
+      await this.notifications.notifySafe(payment.personId, {
+        category: "TRANSACTIONAL",
+        type: "payment.series_pass",
+        title: "Pago confirmado — tu pase de serie está activo",
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          seriesId: order.seriesId,
+          month: order.month,
+        },
       });
     }
 
