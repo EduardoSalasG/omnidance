@@ -171,6 +171,7 @@ model Venue {
   lat      Float?
   lng      Float?
   active   Boolean @default(true)
+  ownerId  String? // personId del venue_owner — se fija por admin/seed
 
   events       Event[]
   series       EventSeries[]

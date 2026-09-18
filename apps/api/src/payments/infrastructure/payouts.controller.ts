@@ -309,8 +309,8 @@ export class AdminPayoutsController {
  * Payouts del actor autenticado. El productor ES la persona: sus
  * liquidaciones son actorType PRODUCER + actorId = su personId. Además se
  * incluyen los payouts ACADEMY de las academias que posee
- * (Academy.ownerId = personId). Venue no tiene ownerId — sus payouts
- * quedan solo en la consola admin.
+ * (Academy.ownerId = personId) y los payouts VENUE de los venues que
+ * posee (Venue.ownerId = personId, fijado por admin/seed).
  * Requiere crm.manage (grant del rol PRODUCER).
  */
 @Controller("me/payouts")
@@ -322,21 +322,32 @@ export class MePayoutsController {
   @RequirePermissions("crm.manage")
   async mine(@Req() req: Request) {
     const personId = req.person!.id;
-    const academies = await this.prisma.academy.findMany({
-      where: { ownerId: personId },
-      select: { id: true },
-    });
-    const where: Prisma.PayoutWhereInput = academies.length
-      ? {
-          OR: [
-            { actorType: "PRODUCER", actorId: personId },
-            {
-              actorType: "ACADEMY",
-              actorId: { in: academies.map((a) => a.id) },
-            },
-          ],
-        }
-      : { actorType: "PRODUCER", actorId: personId };
+    const [academies, venues] = await Promise.all([
+      this.prisma.academy.findMany({
+        where: { ownerId: personId },
+        select: { id: true },
+      }),
+      this.prisma.venue.findMany({
+        where: { ownerId: personId },
+        select: { id: true },
+      }),
+    ]);
+    const or: Prisma.PayoutWhereInput[] = [
+      { actorType: "PRODUCER", actorId: personId },
+    ];
+    if (academies.length) {
+      or.push({
+        actorType: "ACADEMY",
+        actorId: { in: academies.map((a) => a.id) },
+      });
+    }
+    if (venues.length) {
+      or.push({
+        actorType: "VENUE",
+        actorId: { in: venues.map((v) => v.id) },
+      });
+    }
+    const where: Prisma.PayoutWhereInput = or.length > 1 ? { OR: or } : or[0];
     return this.prisma.payout.findMany({
       where,
       orderBy: { createdAt: "desc" },
