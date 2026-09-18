@@ -126,6 +126,8 @@ for (const [name, size, maskable] of [
   ["icon-192.png", 192, false],
   ["icon-512.png", 512, false],
   ["icon-512-maskable.png", 512, true],
+  // apple-touch-icon: iOS no recorta ni usa el manifest — fondo full-bleed.
+  ["apple-touch-icon.png", 180, true],
 ]) {
   const file = join(OUT, name);
   writeFileSync(file, png(size, render(size, { maskable })));

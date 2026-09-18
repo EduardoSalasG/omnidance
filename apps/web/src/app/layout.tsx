@@ -43,6 +43,14 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
   alternates: { canonical: "/" },
   manifest: "/manifest.json",
+  // iOS "Añadir a pantalla de inicio": icono dedicado (iOS ignora el
+  // manifest) + launch standalone sin chrome de Safari.
+  icons: { apple: "/apple-touch-icon.png" },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Omnidance",
+  },
 };
 
 export const viewport: Viewport = {
