@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import messages from "../../../../../messages/es-CL.json";
+import messages from "../../../../../../messages/es-CL.json";
 import { Button } from "@/components/ui";
 import { CheckoutClient } from "./checkout-client";
 

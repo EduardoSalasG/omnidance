@@ -21,7 +21,7 @@ body {
 /* ─── Foco por teclado consistente: anillo neon en todo elemento
    interactivo que no declare su propio focus-visible. ─── */
 :focus-visible {
-  outline: 2px solid #e040fb;
+  outline: 2px solid #a3e635;
   outline-offset: 2px;
 }
 
@@ -77,7 +77,7 @@ body {
   .glow-neon {
     background: radial-gradient(
       ellipse 80% 50% at 50% 0%,
-      rgba(224, 64, 251, 0.14),
+      rgba(163, 230, 53, 0.14),
       transparent 70%
     );
   }

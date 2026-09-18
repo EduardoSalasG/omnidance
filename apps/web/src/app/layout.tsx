@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { messages } from "@/i18n/messages";
-import baseMessages from "../../messages/es-CL.json";
-import { BottomNav } from "@/components/layout/BottomNav";
-import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import "./globals.css";
 
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
@@ -69,20 +66,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es-CL" className="dark">
-      <body className="bg-night-950 text-white min-h-dvh pb-[calc(4rem+env(safe-area-inset-bottom))] antialiased">
+      <body className="bg-night-950 text-white min-h-dvh antialiased">
         <NextIntlClientProvider locale="es-CL" messages={messages}>
-          <RealtimeProvider>
-            <a
-              href="#contenido"
-              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-neon focus:px-4 focus:py-2 focus:font-semibold focus:text-night-950"
-            >
-              {baseMessages.common.skipToContent}
-            </a>
-            <div id="contenido" tabIndex={-1} className="outline-none">
-              {children}
-            </div>
-            <BottomNav />
-          </RealtimeProvider>
+          {children}
         </NextIntlClientProvider>
       </body>
     </html>

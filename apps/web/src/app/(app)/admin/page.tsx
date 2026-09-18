@@ -310,7 +310,7 @@ export default function AdminPage() {
       {gate === "notAdmin" && (
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{t("notAdmin")}</p>
-          <Button href="/" variant="secondary">
+          <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
         </div>
