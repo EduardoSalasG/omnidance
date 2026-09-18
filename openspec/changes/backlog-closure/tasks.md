@@ -37,19 +37,32 @@
       scrolleables con teclado, i18n hardcodeado, labels por fila,
       `target="_blank"` anunciado.
 
+## Cierre de diferidos
+
+- [x] Contraste medido (script `apps/web/scripts/contrast-check.cjs`):
+      `text-white/50+` ya cumple AA en todos los fondos night; solo
+      `text-white/40` fallaba (3.5-3.8:1) → subido a `/50` en placeholders
+      (3 archivos). Glifo ☆ de StarRating queda (UI non-text, pasa 3:1).
+- [x] `min-h-screen` → `min-h-dvh` unificado (37 ocurrencias, 25 archivos).
+- [x] Indicador `*` visual en los 32 inputs `required` (15 archivos);
+      label sr-only de transferencia convertido a visible.
+- [x] StarRating: APG radiogroup (roving tabindex, flechas, Home/End) en
+      modo interactivo; `role="img"` + label localizado en display.
+- [x] `Venue.ownerId` → `me/payouts` incluye payouts VENUE del owner
+      (venue se fija por admin/seed — no hay CRUD de venues en v1).
+
 ## Verificación
 
-- [x] Suite API completa: 793 tests (3 fallos corregidos: fixture
-      determinista en checkout + precedencia VAPID_SUBJECT en spec).
+- [x] Suite API completa: **795/795 tests (34 archivos)**.
 - [x] `tsc --noEmit` limpio api + web.
-- [x] prisma db push + generate aplicados (`Event.serviceFeeClp` en DB).
+- [x] prisma db push + generate aplicados (`serviceFeeClp`, `Venue.ownerId`).
 - [x] OpenAPI + Postman regenerados: 124 paths.
+- [x] Build web verde: 30 rutas.
 
 ## Pendiente conocido
 
-- BullMQ/Redis sigue diferido — node-cron in-process.
-- Contraste de color (ratios exactos), asteriscos visuales en `required`,
-  `min-h-screen` vs `min-h-dvh` inconsistente, StarRating sin radio
-  semantics — decisiones de diseño diferidas, documentadas por la auditoría.
-- Venue payouts: visibles solo para admin (Venue no tiene ownerId).
+- BullMQ/Redis sigue diferido por diseño — node-cron in-process cubre el
+  volumen v1 (un dev, infra mínima); Redis disponible en docker-compose.
+- Sin migraciones versionadas (`prisma/migrations/` no existe — el repo
+  usa `db push`); crear la baseline es decisión aparte.
 - Web Push en producción requiere keys VAPID propias por entorno.
