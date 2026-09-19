@@ -22,7 +22,7 @@ export default function AppLayout({
       <div
         id="contenido"
         tabIndex={-1}
-        className="pb-[calc(4rem+env(safe-area-inset-bottom))] outline-none"
+        className="pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] outline-none"
       >
         {children}
       </div>
