@@ -132,7 +132,10 @@
     "payouts": "Pagos",
     "attendance": "Asistencia",
     "analytics": "Analítica",
-    "notifications": "Notificaciones"
+    "notifications": "Notificaciones",
+    "venue": "Venue",
+    "dj": "DJ",
+    "support": "Soporte"
   },
   "login": {
     "title": "Entra a Omnidance",

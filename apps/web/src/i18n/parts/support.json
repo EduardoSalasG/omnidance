@@ -1,0 +1,47 @@
+{
+  "nav": {
+    "support": "Soporte"
+  },
+  "support": {
+    "search": "Buscar usuarios",
+    "searchPlaceholder": "Nombre o correo",
+    "minChars": "Escribe al menos 2 letras",
+    "initialHint": "Busca un usuario por nombre o correo",
+    "noResults": "Sin resultados",
+    "searchError": "No se pudo buscar",
+    "forbidden": "Esta consola requiere rol de soporte",
+    "backToResults": "Volver a los resultados",
+    "memberSince": "Miembro desde",
+    "sections": {
+      "person": "Datos",
+      "roles": "Roles",
+      "tickets": "Últimas entradas",
+      "payments": "Últimos pagos",
+      "activity": "Actividad"
+    },
+    "noRoles": "Sin roles",
+    "noTickets": "Sin entradas",
+    "noPayments": "Sin pagos",
+    "roleSince": "desde {date}",
+    "checkins": "Check-ins",
+    "friends": "Amigos",
+    "roleStatus": {
+      "PENDING": "Pendiente",
+      "SANDBOX": "Sandbox",
+      "APPROVED": "Aprobado",
+      "REJECTED": "Rechazado"
+    },
+    "ticketStatus": {
+      "ACTIVE": "Activa",
+      "USED": "Usada",
+      "TRANSFERRED": "Transferida",
+      "CANCELLED": "Cancelada"
+    },
+    "paymentStatus": {
+      "PENDING": "Pendiente",
+      "PAID": "Pagado",
+      "FAILED": "Fallido",
+      "REFUNDED": "Reembolsado"
+    }
+  }
+}

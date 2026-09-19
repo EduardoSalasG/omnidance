@@ -7,6 +7,7 @@ import { EventRatingsController } from "./infrastructure/event-ratings.controlle
 import { ProducerController } from "./infrastructure/producer.controller";
 import { TableReservationsController } from "./infrastructure/table-reservations.controller";
 import { SongSuggestionsController } from "./infrastructure/song-suggestions.controller";
+import { DjController } from "./infrastructure/dj.controller";
 
 @Module({
   imports: [AuthModule, PrismaModule, ParamsModule],
@@ -16,6 +17,7 @@ import { SongSuggestionsController } from "./infrastructure/song-suggestions.con
     ProducerController,
     TableReservationsController,
     SongSuggestionsController,
+    DjController,
   ],
 })
 export class EventsModule {}

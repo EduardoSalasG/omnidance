@@ -19,6 +19,7 @@ import {
 } from "./infrastructure/rsvp.controller";
 import { StylesController } from "./infrastructure/styles.controller";
 import { TripsController } from "./infrastructure/trips.controller";
+import { VenueConsoleController } from "./infrastructure/venue-console.controller";
 import { VenuesController } from "./infrastructure/venues.controller";
 import { WaitlistController } from "./infrastructure/waitlist.controller";
 
@@ -35,6 +36,7 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
     StylesController,
     TripsController,
     VenuesController,
+    VenueConsoleController,
     PartnerRequestsController,
     AvailabilityController,
     BlocksController,

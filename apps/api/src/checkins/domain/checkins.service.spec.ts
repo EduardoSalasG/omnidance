@@ -37,6 +37,15 @@ class FakeCheckinsRepo implements CheckinsRepo {
   superusers = new Set<string>();
   staffAssignments = new Set<string>(); // `${eventId}:${personId}`
   params = new Map<string, number>();
+  producerParams = new Map<
+    string,
+    {
+      serviceFeeClp: number | null;
+      doorAppFeeClp: number | null;
+      doorCashFeeClp: number | null;
+      platformFeePct: number | null;
+    }
+  >();
 
   addEvent(id: string, over: Partial<EventDoorInfo> = {}) {
     this.events.set(id, {
@@ -160,6 +169,10 @@ class FakeCheckinsRepo implements CheckinsRepo {
 
   async getParamNumber(key: string, fallback: number) {
     return this.params.get(key) ?? fallback;
+  }
+
+  async getProducerParams(producerId: string | null) {
+    return producerId ? (this.producerParams.get(producerId) ?? null) : null;
   }
 
   async findOpenCheckin(eventId: string, personId: string) {
@@ -679,5 +692,94 @@ describe("CheckinsService.doorSale", () => {
         { id: "admin-1" },
       ),
     ).rejects.toBeInstanceOf(EventNotFoundError);
+  });
+});
+
+// Cadena de resolución del fee de puerta (checkins.service.doorSale):
+// override del evento (doorAppFeeClp/doorCashFeeClp) → default del
+// productor (ProducerParams) → PlatformParam → default del shared.
+describe("CheckinsService.doorSale — resolución de fee", () => {
+  let repo: FakeCheckinsRepo;
+  let svc: CheckinsService;
+
+  const sale = (channel: "CASH" | "APP", phone: string) =>
+    svc.doorSale(
+      { eventId: "evt-1", channel, name: "N", phone },
+      { id: "admin-1" },
+    );
+
+  beforeEach(() => {
+    repo = new FakeCheckinsRepo();
+    repo.addEvent("evt-1", { doorPrice: 10000, producerId: "prod-1" });
+    repo.superusers.add("admin-1");
+    svc = new CheckinsService(repo);
+  });
+
+  it("APP: override del evento gana a ProducerParams y al param global", async () => {
+    repo.events.get("evt-1")!.doorAppFeeClp = 100;
+    repo.producerParams.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: 300,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+    });
+    repo.params.set("service_fee.door_app_clp", 700);
+    const res = await sale("APP", "010-app-1");
+    expect(res.ticket.serviceFee).toBe(100);
+  });
+
+  it("APP: sin override del evento gana ProducerParams.doorAppFeeClp", async () => {
+    repo.producerParams.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: 300,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+    });
+    repo.params.set("service_fee.door_app_clp", 700);
+    const res = await sale("APP", "010-app-2");
+    expect(res.ticket.serviceFee).toBe(300);
+  });
+
+  it("APP: sin evento ni productor cae al param service_fee.door_app_clp", async () => {
+    repo.params.set("service_fee.door_app_clp", 950);
+    const res = await sale("APP", "010-app-3");
+    expect(res.ticket.serviceFee).toBe(950);
+  });
+
+  it("APP: sin nada configurado cae al default del shared (700)", async () => {
+    const res = await sale("APP", "010-app-4");
+    expect(res.ticket.serviceFee).toBe(700);
+  });
+
+  it("CASH: override del evento (doorCashFeeClp) gana a productor y global", async () => {
+    repo.events.get("evt-1")!.doorCashFeeClp = 250;
+    repo.producerParams.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: null,
+      doorCashFeeClp: 100,
+      platformFeePct: null,
+    });
+    repo.params.set("service_fee.door_cash_clp", 0);
+    const res = await sale("CASH", "010-cash-1");
+    expect(res.ticket.serviceFee).toBe(250);
+  });
+
+  it("CASH: ProducerParams.doorCashFeeClp gana al param global", async () => {
+    repo.producerParams.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: null,
+      doorCashFeeClp: 100,
+      platformFeePct: null,
+    });
+    repo.params.set("service_fee.door_cash_clp", 0);
+    const res = await sale("CASH", "010-cash-2");
+    expect(res.ticket.serviceFee).toBe(100);
+  });
+
+  it("evento sin productor: no consulta ProducerParams y usa el param global", async () => {
+    repo.addEvent("evt-1", { doorPrice: 10000, producerId: null });
+    repo.params.set("service_fee.door_app_clp", 400);
+    const res = await sale("APP", "010-app-5");
+    expect(res.ticket.serviceFee).toBe(400);
   });
 });

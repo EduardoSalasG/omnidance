@@ -46,6 +46,7 @@ const ACT_AS_ORDER: AppRole[] = [
   "INSTRUCTOR",
   "DJ",
   "VENUE_MANAGER",
+  "SUPPORT",
   "ADMIN",
 ];
 

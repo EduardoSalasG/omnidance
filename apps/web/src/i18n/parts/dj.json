@@ -1,0 +1,18 @@
+{
+  "dj": {
+    "upcoming": "Próximos gigs",
+    "emptyUpcoming": "No tienes gigs próximos.",
+    "forbidden": "Tu cuenta no tiene gigs asignados como DJ.",
+    "loadError": "No pudimos cargar tus gigs.",
+    "history": "Historial",
+    "suggestions": {
+      "title": "Sugerencias del público",
+      "show": "Ver sugerencias del público",
+      "hide": "Ocultar sugerencias",
+      "empty": "Aún no hay sugerencias.",
+      "error": "No pudimos cargar las sugerencias.",
+      "forbidden": "No tienes acceso a las sugerencias de este evento.",
+      "total": "{count, plural, one {# sugerencia del público} other {# sugerencias del público}}"
+    }
+  }
+}

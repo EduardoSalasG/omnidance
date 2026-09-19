@@ -1,9 +1,31 @@
 // Auditoría de claves i18n: extrae t("...") por namespace y compara con messages/es-CL.json
 const fs = require("fs");
 const path = require("path");
-const msgs = JSON.parse(
+// Base + parts: mismo merge nivel-por-nivel que src/i18n/messages.ts,
+// para que claves vivas solo en parts/* no reporten falso faltante.
+const merge = (a, b) => {
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b)) {
+    const prev = out[k];
+    out[k] =
+      v && typeof v === "object" && !Array.isArray(v) && prev && typeof prev === "object" && !Array.isArray(prev)
+        ? merge(prev, v)
+        : v;
+  }
+  return out;
+};
+const base = JSON.parse(
   fs.readFileSync(path.join(__dirname, "../messages/es-CL.json"), "utf8"),
 );
+const partsDir = path.join(__dirname, "../src/i18n/parts");
+const msgs = fs
+  .readdirSync(partsDir)
+  .filter((f) => f.endsWith(".json"))
+  .reduce(
+    (acc, f) =>
+      merge(acc, JSON.parse(fs.readFileSync(path.join(partsDir, f), "utf8"))),
+    base,
+  );
 const files = [];
 const walk = (d) => {
   for (const f of fs.readdirSync(d)) {

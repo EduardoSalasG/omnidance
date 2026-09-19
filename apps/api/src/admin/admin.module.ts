@@ -6,6 +6,7 @@ import { AdminController } from "./infrastructure/admin.controller";
 import { CatalogsController } from "./infrastructure/catalogs.controller";
 import { AdminProducerParamsController } from "./infrastructure/producer-params.controller";
 import { RolesController } from "./infrastructure/roles.controller";
+import { SupportController } from "./infrastructure/support.controller";
 
 @Module({
   imports: [AuthModule, PrismaModule, ParamsModule],
@@ -14,6 +15,7 @@ import { RolesController } from "./infrastructure/roles.controller";
     CatalogsController,
     AdminProducerParamsController,
     RolesController,
+    SupportController,
   ],
 })
 export class AdminModule {}

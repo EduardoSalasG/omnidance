@@ -28,6 +28,7 @@ import { Type } from "class-transformer";
 import type { Request } from "express";
 import type { Prisma } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
 
@@ -90,6 +91,36 @@ class CreateSeriesDto {
   slots!: SeriesSlotDto[];
 }
 
+/**
+ * Slot extra para PATCH addSlots — mismo contrato que SeriesSlotDto pero
+ * capacity opcional: si falta se usa la capacidad del primer slot de la
+ * serie (ClassSeries no tiene columna capacity propia) o 20 como último
+ * recurso.
+ */
+class AddSeriesSlotDto {
+  @IsInt()
+  @Min(0)
+  @Max(6)
+  weekday!: number;
+
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/, { message: "startTime formato HH:MM" })
+  startTime!: string;
+
+  @IsString()
+  @Matches(/^\d{2}:\d{2}$/, { message: "endTime formato HH:MM" })
+  endTime!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  capacity?: number;
+
+  @IsOptional()
+  @IsString()
+  instructorId?: string;
+}
+
 class UpdateSeriesDto {
   @IsOptional()
   @IsString()
@@ -119,6 +150,12 @@ class UpdateSeriesDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AddSeriesSlotDto)
+  addSlots?: AddSeriesSlotDto[];
 }
 
 const SERIES_INCLUDE: Prisma.ClassSeriesInclude = {
@@ -140,6 +177,7 @@ export class ClassSeriesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AcademyAccess,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /** Lista las series de la academia (gestión). */
@@ -220,9 +258,15 @@ export class ClassSeriesController {
   }
 
   /**
-   * Edita metadatos de la serie (no toca slots). Si active pasa a true
-   * sobre una serie inactiva, rematerializa las clases futuras del mes:
-   * descancela las que existen y crea las que falten (sin duplicar).
+   * Edita metadatos de la serie. Si active pasa a true sobre una serie
+   * inactiva, rematerializa las clases futuras del mes (descancela las que
+   * existen y crea las que falten, sin duplicar) y avisa a los alumnos con
+   * enrollment ACTIVE vía notificación class.series.resumed.
+   *
+   * addSlots agrega horarios a la serie: por cada uno crea el ClassSlot
+   * (o reutiliza uno idéntico weekday+startTime+endTime para no duplicar
+   * ante reintentos) y materializa solo las fechas restantes del mes de la
+   * serie (date >= hoy UTC) que caigan en ese weekday.
    */
   @Patch(":id/series/:seriesId")
   async update(
@@ -233,8 +277,9 @@ export class ClassSeriesController {
   ) {
     await this.access.requireAdminister(id, req.person!);
     const prev = await this.findSeriesOr404(id, seriesId);
+    const reactivated = dto.active === true && !prev.active;
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.typeIds) {
         await tx.classSeriesType.deleteMany({ where: { seriesId } });
         if (dto.typeIds.length) {
@@ -256,44 +301,142 @@ export class ClassSeriesController {
         include: SERIES_INCLUDE,
       });
 
-      if (dto.active === true && !prev.active) {
-        const now = new Date();
-        const futureDates = monthDates(prev.month).filter(
-          (d) => d >= new Date(now.toISOString().slice(0, 10)),
-        );
-        for (const slot of series.slots) {
-          const wanted = futureDates.filter(
-            (d) => d.getUTCDay() === slot.weekday,
-          );
-          const existing = await tx.class.findMany({
-            where: { classSlotId: slot.id, date: { in: wanted } },
-            select: { id: true, date: true, cancelled: true },
-          });
-          const byTime = new Map(
-            existing.map((c) => [c.date.getTime(), c]),
-          );
-          const toRevive = existing.filter((c) => c.cancelled).map((c) => c.id);
-          if (toRevive.length) {
-            await tx.class.updateMany({
-              where: { id: { in: toRevive } },
-              data: { cancelled: false },
-            });
+      // Fechas restantes del mes de la serie (medianoche UTC, como create).
+      const now = new Date();
+      const futureDates = monthDates(prev.month).filter(
+        (d) => d >= new Date(now.toISOString().slice(0, 10)),
+      );
+
+      if (dto.addSlots?.length) {
+        // Copia mutable para dedup contra slots recién creados en este PATCH.
+        const known = [...series.slots];
+        for (const s of dto.addSlots) {
+          if (s.startTime >= s.endTime) {
+            throw new BadRequestException(
+              "startTime debe ser menor que endTime",
+            );
           }
-          const missing = wanted.filter((d) => !byTime.has(d.getTime()));
-          if (missing.length) {
-            await tx.class.createMany({
-              data: missing.map((date) => ({
-                classSlotId: slot.id,
-                date,
-                instructorId: slot.instructorId,
-              })),
+          const key = (x: {
+            weekday: number;
+            startTime: string;
+            endTime: string;
+          }) => `${x.weekday}|${x.startTime}|${x.endTime}`;
+          let slot = known.find((x) => key(x) === key(s)) ?? null;
+          if (!slot) {
+            slot = await tx.classSlot.create({
+              data: {
+                academyId: id,
+                seriesId,
+                weekday: s.weekday,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                capacity: s.capacity ?? known[0]?.capacity ?? 20,
+                styleId: series.styleId,
+                instructorId:
+                  s.instructorId ?? series.instructorId ?? null,
+              },
             });
+            known.push(slot);
           }
+          await this.materializeSlot(tx, slot, futureDates);
         }
       }
 
-      return series;
+      if (reactivated) {
+        for (const slot of series.slots) {
+          await this.materializeSlot(tx, slot, futureDates);
+        }
+      }
+
+      // Re-fetch: si addSlots agregó horarios, `series.slots` quedó stale.
+      return tx.classSeries.findUniqueOrThrow({
+        where: { id: seriesId },
+        include: SERIES_INCLUDE,
+      });
     });
+
+    if (reactivated) {
+      // Best-effort post-commit: un fallo del centro no revierte la serie.
+      await this.notifySeriesResumed(id, updated);
+    }
+    return updated;
+  }
+
+  /**
+   * Materializa instancias Class de un slot para las fechas dadas:
+   * descancela las existentes y crea solo las faltantes (sin duplicar
+   * slot+date). getUTCDay — las fechas vienen a medianoche UTC.
+   */
+  private async materializeSlot(
+    tx: Prisma.TransactionClient,
+    slot: { id: string; weekday: number; instructorId: string | null },
+    dates: Date[],
+  ): Promise<void> {
+    const wanted = dates.filter((d) => d.getUTCDay() === slot.weekday);
+    if (!wanted.length) return;
+    const existing = await tx.class.findMany({
+      where: { classSlotId: slot.id, date: { in: wanted } },
+      select: { id: true, date: true, cancelled: true },
+    });
+    const byTime = new Map(existing.map((c) => [c.date.getTime(), c]));
+    const toRevive = existing.filter((c) => c.cancelled).map((c) => c.id);
+    if (toRevive.length) {
+      await tx.class.updateMany({
+        where: { id: { in: toRevive } },
+        data: { cancelled: false },
+      });
+    }
+    const missing = wanted.filter((d) => !byTime.has(d.getTime()));
+    if (missing.length) {
+      await tx.class.createMany({
+        data: missing.map((date) => ({
+          classSlotId: slot.id,
+          date,
+          instructorId: slot.instructorId,
+        })),
+      });
+    }
+  }
+
+  /**
+   * Avisa a cada Person con enrollment ACTIVE que la serie retomó sus
+   * clases. Dedup: se salta quienes ya tienen una notificación no leída
+   * class.series.resumed de esta misma serie (reactivaciones repetidas).
+   */
+  private async notifySeriesResumed(
+    academyId: string,
+    series: { id: string; name: string },
+  ): Promise<void> {
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { academyId, status: "ACTIVE" },
+      select: { personId: true },
+    });
+    const personIds = [...new Set(enrollments.map((e) => e.personId))];
+    if (!personIds.length) return;
+
+    const already = await this.prisma.notification.findMany({
+      where: {
+        personId: { in: personIds },
+        type: "class.series.resumed",
+        readAt: null,
+        data: { path: ["seriesId"], equals: series.id },
+      },
+      select: { personId: true },
+    });
+    const skip = new Set(already.map((n) => n.personId));
+
+    await Promise.all(
+      personIds
+        .filter((p) => !skip.has(p))
+        .map((personId) =>
+          this.notifications.notifySafe(personId, {
+            category: "SOCIAL",
+            type: "class.series.resumed",
+            title: `${series.name} retomó sus clases`,
+            data: { seriesId: series.id, academyId, seriesName: series.name },
+          }),
+        ),
+    );
   }
 
   /**
