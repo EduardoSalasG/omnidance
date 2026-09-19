@@ -13,6 +13,7 @@ export type AppRole =
   | "INSTRUCTOR"
   | "DJ"
   | "VENUE_MANAGER"
+  | "SUPPORT"
   | "ADMIN";
 
 // Evento de ventana emitido por setActiveRole: los hooks lo escuchan para
@@ -25,6 +26,7 @@ const STORAGE_KEY = "omnidance:active-role";
 // "gestora" que tenga la persona (un ADMIN que nunca eligió entra como admin).
 const ROLE_PRIORITY: AppRole[] = [
   "ADMIN",
+  "SUPPORT",
   "PRODUCER",
   "ACADEMY_OWNER",
   "INSTRUCTOR",

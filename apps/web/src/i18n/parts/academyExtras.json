@@ -8,6 +8,11 @@
     },
     "studentStatus": "Estado de {name}"
   },
+  "academySeries": {
+    "capacityOptional": "default",
+    "addSlotHint": "Se crean las clases que quedan del mes en ese día.",
+    "slotAdded": "Horario agregado"
+  },
   "academyExtras": {
     "lessons": {
       "title": "Clases particulares",

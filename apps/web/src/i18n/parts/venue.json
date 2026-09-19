@@ -1,0 +1,41 @@
+{
+  "nav": {
+    "venue": "Venue"
+  },
+  "venue": {
+    "loginRequired": "Inicia sesión para gestionar tus venues.",
+    "forbidden": "No tienes venues asignados a tu cuenta.",
+    "empty": "No tienes venues asignados. Si administras un local, pide al equipo de Omnidance que lo vincule a tu cuenta.",
+    "error": "No se pudo cargar la consola del venue.",
+    "pickVenue": "Elige un venue",
+    "capacity": "Capacidad: {count} personas",
+    "kpi": {
+      "upcoming": "Próximos",
+      "events30d": "Eventos 30d",
+      "checkins30d": "Check-ins 30d"
+    },
+    "sections": {
+      "upcoming": "Próximos eventos",
+      "rentals": "Arriendos",
+      "menus": "Cartas y menús"
+    },
+    "emptyUpcoming": "Sin eventos próximos agendados.",
+    "emptyRentals": "Sin solicitudes de arriendo.",
+    "emptyMenus": "Sin cartas cargadas.",
+    "rentals": {
+      "confirm": "Confirmar",
+      "confirmAsk": "¿Confirmar esta solicitud de arriendo?",
+      "cancelAsk": "¿Cancelar esta solicitud de arriendo?",
+      "yesConfirm": "Sí, confirmar",
+      "yesCancel": "Sí, cancelar",
+      "statuses": {
+        "REQUESTED": "Solicitado",
+        "CONFIRMED": "Confirmado",
+        "CANCELLED": "Cancelado"
+      }
+    },
+    "menus": {
+      "item": "Carta v{version}"
+    }
+  }
+}

@@ -13,6 +13,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
+import type { Prisma } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
@@ -43,6 +44,13 @@ export class ClassesController {
    * Clases futuras no canceladas con info de serie/academia/instructor.
    * Cada item incluye capacity, bookedCount, spotsLeft y myBooking
    * (status de mi reserva si existe).
+   *
+   * Incluye dos orígenes: (a) clases de series activas y (b) clases de
+   * slots "legacy" sin serie (ClassSlot.seriesId null, materializadas al
+   * registrar asistencia) de academias activas — estas responden con
+   * `series: null`. Los slots legacy no tienen levelId ni serie, así que
+   * con filtro levelId quedan excluidos; con styleId filtran por su
+   * propio slot.styleId.
    */
   @Get("browse")
   async browse(
@@ -57,17 +65,34 @@ export class ClassesController {
     const horizon = Math.min(Math.max(Number(days) || 14, 1), 60);
     const until = new Date(Date.now() + horizon * 86_400_000);
 
+    const slotBranches: Prisma.ClassSlotWhereInput[] = [
+      {
+        ...(styleId
+          ? { OR: [{ styleId }, { series: { styleId } }] }
+          : {}),
+        series: {
+          active: true,
+          ...(levelId ? { levelId } : {}),
+        },
+      },
+    ];
+    // Legacy: slots sueltos sin serie. Sin nivel propio → no aplican
+    // cuando el usuario filtra por levelId.
+    if (!levelId) {
+      slotBranches.push({
+        seriesId: null,
+        academy: { active: true },
+        ...(styleId ? { styleId } : {}),
+      });
+    }
+
     const classes = await this.prisma.class.findMany({
       where: {
         cancelled: false,
         date: { gte: new Date(), lte: until },
         slot: {
           ...(academyId ? { academyId } : {}),
-          ...(styleId ? { OR: [{ styleId }, { series: { styleId } }] } : {}),
-          series: {
-            active: true,
-            ...(levelId ? { levelId } : {}),
-          },
+          OR: slotBranches,
         },
       },
       orderBy: { date: "asc" },

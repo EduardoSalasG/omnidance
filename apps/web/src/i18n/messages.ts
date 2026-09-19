@@ -7,6 +7,10 @@ import crm from "./parts/crm.json";
 import landing from "./parts/landing.json";
 import producer from "./parts/producer.json";
 import realtime from "./parts/realtime.json";
+import seo from "./parts/seo.json";
+import dj from "./parts/dj.json";
+import venue from "./parts/venue.json";
+import support from "./parts/support.json";
 
 type Dict = Record<string, unknown>;
 
@@ -40,6 +44,10 @@ const parts = [
   landing,
   producer,
   realtime,
+  seo,
+  dj,
+  venue,
+  support,
 ] as Dict[];
 
 /** Diccionario completo: base + parts. Compartido por request.ts y layout. */

@@ -109,6 +109,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const [month, setMonth] = useState(currentMonth);
   const [slots, setSlots] = useState<SlotDraft[]>([emptySlot()]);
 
+  // ─── mini-form "agregar horario" por serie activa (PATCH addSlots) ───
+  const [slotFormFor, setSlotFormFor] = useState<string | null>(null);
+  const [nsWeekday, setNsWeekday] = useState(1);
+  const [nsStart, setNsStart] = useState("19:00");
+  const [nsEnd, setNsEnd] = useState("20:00");
+  const [nsCapacity, setNsCapacity] = useState("");
+  const [nsInstructor, setNsInstructor] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -347,6 +355,52 @@ function SeriesModule({ academyId }: { academyId: string }) {
         return;
       }
       setFeedback(t("updated"));
+      await reload();
+    } catch {
+      setActionError(t("error"));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // PATCH {addSlots:[…]} — agrega un horario a la serie y materializa las
+  // clases que quedan del mes en ese día. Cupo/instructor opcionales: el
+  // backend hereda los defaults de la serie.
+  async function addSlot(s: Series): Promise<void> {
+    if (!nsStart || !nsEnd || nsStart >= nsEnd) {
+      setActionError(t("error"));
+      return;
+    }
+    setBusyId(s.id);
+    setActionError(null);
+    setFeedback(null);
+    try {
+      const res = await apiFetch(
+        `/academies/${academyId}/series/${s.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            addSlots: [
+              {
+                weekday: nsWeekday,
+                startTime: nsStart,
+                endTime: nsEnd,
+                ...(nsCapacity
+                  ? { capacity: Number.parseInt(nsCapacity, 10) || 1 }
+                  : {}),
+                ...(nsInstructor ? { instructorId: nsInstructor } : {}),
+              },
+            ],
+          }),
+        },
+      );
+      if (!res.ok) {
+        setActionError((await readError(res)) ?? t("error"));
+        return;
+      }
+      setFeedback(t("slotAdded"));
+      setSlotFormFor(null);
       await reload();
     } catch {
       setActionError(t("error"));
@@ -724,6 +778,126 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       </li>
                     ))}
                   </ul>
+                )}
+                {s.active && slotFormFor !== s.id && (
+                  <div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setSlotFormFor(s.id);
+                        setNsWeekday(1);
+                        setNsStart("19:00");
+                        setNsEnd("20:00");
+                        setNsCapacity("");
+                        setNsInstructor("");
+                        setActionError(null);
+                      }}
+                    >
+                      + {t("addSlot")}
+                    </Button>
+                  </div>
+                )}
+                {s.active && slotFormFor === s.id && (
+                  <form
+                    className="flex flex-wrap items-end gap-2 rounded-xl border border-night-700 bg-night-800 p-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void addSlot(s);
+                    }}
+                  >
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-white/50">
+                        {t("weekday")}
+                      </span>
+                      <select
+                        className={inputCls}
+                        value={nsWeekday}
+                        onChange={(e) => setNsWeekday(Number(e.target.value))}
+                      >
+                        {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                          <option key={d} value={d}>
+                            {ta(`weekday.${d}`)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-white/50">
+                        {t("start")}
+                      </span>
+                      <input
+                        type="time"
+                        className={inputCls}
+                        value={nsStart}
+                        onChange={(e) => setNsStart(e.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-white/50">{t("end")}</span>
+                      <input
+                        type="time"
+                        className={inputCls}
+                        value={nsEnd}
+                        onChange={(e) => setNsEnd(e.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="flex w-24 flex-col gap-1">
+                      <span className="text-xs text-white/50">
+                        {t("capacity")}
+                      </span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        step={1}
+                        className={inputCls}
+                        value={nsCapacity}
+                        onChange={(e) => setNsCapacity(e.target.value)}
+                        placeholder={t("capacityOptional")}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-white/50">
+                        {t("instructor")}
+                      </span>
+                      <select
+                        className={inputCls}
+                        value={nsInstructor}
+                        onChange={(e) => setNsInstructor(e.target.value)}
+                      >
+                        <option value="">—</option>
+                        {instructors.map((i) => (
+                          <option key={i.personId} value={i.personId}>
+                            {i.name ?? i.personId.slice(0, 8)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={busyId === s.id}
+                      >
+                        {busyId === s.id ? tc("loading") : t("addSlot")}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSlotFormFor(null)}
+                      >
+                        {tc("cancel")}
+                      </Button>
+                    </div>
+                    <p className="w-full text-xs text-white/40">
+                      {t("addSlotHint")}
+                    </p>
+                  </form>
                 )}
                 <div className="flex flex-wrap gap-2">
                   <Button

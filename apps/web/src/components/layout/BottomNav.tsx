@@ -42,7 +42,10 @@ type TabKey =
   | "practices"
   | "payouts"
   | "attendance"
-  | "analytics";
+  | "analytics"
+  | "venue"
+  | "dj"
+  | "support";
 
 type Tab = {
   href: string;
@@ -105,6 +108,14 @@ const ICONS = {
   play: "M5 3l14 9-14 9z",
   slider:
     "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
+  // Pin de mapa — consola del venue.
+  pin: "M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11zM12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6",
+  // Nota musical — consola del DJ.
+  music:
+    "M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z",
+  // Audífonos — consola de soporte.
+  headset:
+    "M4 13a8 8 0 0 1 16 0M4 13v4a2 2 0 0 0 2 2h1a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4zM20 13v4a2 2 0 0 1-2 2h-1a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3z",
 };
 
 const HOME_TAB: Tab = { href: "/inicio", key: "home", icon: icon(ICONS.home) };
@@ -153,6 +164,24 @@ const ANALYTICS_TAB: Tab = {
   href: "/analitica",
   key: "analytics",
   icon: icon(ICONS.slider),
+};
+const VENUE_TAB: Tab = {
+  href: "/venue",
+  key: "venue",
+  icon: icon(ICONS.pin),
+  center: true,
+};
+const DJ_TAB: Tab = {
+  href: "/dj",
+  key: "dj",
+  icon: icon(ICONS.music),
+  center: true,
+};
+const SUPPORT_TAB: Tab = {
+  href: "/soporte",
+  key: "support",
+  icon: icon(ICONS.headset),
+  center: true,
 };
 
 // DANCER en modo Academia: Eventos se reemplaza por el directorio de
@@ -209,8 +238,9 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
     },
     ATTENDANCE_TAB,
   ],
-  DJ: [HOME_TAB, EVENTS_TAB, QR_TAB],
-  VENUE_MANAGER: [HOME_TAB, EVENTS_TAB, ANALYTICS_TAB],
+  DJ: [HOME_TAB, DJ_TAB, EVENTS_TAB, QR_TAB],
+  VENUE_MANAGER: [HOME_TAB, VENUE_TAB, EVENTS_TAB, ANALYTICS_TAB],
+  SUPPORT: [HOME_TAB, SUPPORT_TAB, EVENTS_TAB],
   ADMIN: [
     HOME_TAB,
     { href: "/admin", key: "admin", icon: icon(ICONS.admin), center: true },
@@ -420,7 +450,25 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       ],
     },
   ],
-  DJ: [],
+  // El DJ también es parte de la escena: su consola es tab central y el
+  // drawer le deja lo social (amigos, bailes, prácticas).
+  DJ: [
+    {
+      labelNs: "nav",
+      labelKey: "socialSection",
+      items: [
+        { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
+        { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
+        {
+          href: "/practicas",
+          ns: "nav",
+          key: "practices",
+          icon: ICONS.practices,
+        },
+      ],
+    },
+  ],
+  SUPPORT: [],
   VENUE_MANAGER: [
     {
       labelNs: "nav",

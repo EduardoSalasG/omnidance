@@ -8,6 +8,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PrismaModule } from "../src/prisma.module";
 import { PrismaService } from "../src/prisma.service";
+import { ParamsModule } from "../src/params/params.module";
 import { QrService } from "../src/qr/domain/qr.service";
 import { encodeSeriesPassRef } from "../src/payments/domain/order-ref";
 // Los controllers de payouts se declaran a nivel del TestingModule hasta que
@@ -82,7 +83,15 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [PaymentsModule, CheckinsModule, AuthModule, PrismaModule],
+      imports: [
+        PaymentsModule,
+        CheckinsModule,
+        AuthModule,
+        PrismaModule,
+        // ParamsModule exporta ParamsService — dependencia de
+        // AdminPayoutsController (declarado a nivel del TestingModule).
+        ParamsModule,
+      ],
       controllers: [AdminPayoutsController, MePayoutsController],
     }).compile();
     app = moduleRef.createNestApplication();
