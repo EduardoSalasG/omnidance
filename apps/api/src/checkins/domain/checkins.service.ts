@@ -295,12 +295,25 @@ export class CheckinsService {
     const open = await this.repo.findOpenCheckin(input.eventId, person.id);
     if (open) throw new DuplicateCheckinError(open);
 
-    const serviceFee = await this.repo.getParamNumber(
-      input.channel === "CASH" ? PARAM_DOOR_CASH_FEE : PARAM_DOOR_APP_FEE,
+    // fee de puerta: override del evento → default del productor → param
+    // global → default del shared.
+    const producerParams =
+      (await this.repo.getProducerParams?.(event.producerId)) ?? null;
+    const eventOverride =
+      input.channel === "CASH" ? event.doorCashFeeClp : event.doorAppFeeClp;
+    const producerDefault =
       input.channel === "CASH"
-        ? SERVICE_FEE.DOOR_CASH_REGISTRATION_CLP
-        : SERVICE_FEE.DOOR_APP_CLP,
-    );
+        ? producerParams?.doorCashFeeClp
+        : producerParams?.doorAppFeeClp;
+    const serviceFee =
+      eventOverride ??
+      producerDefault ??
+      (await this.repo.getParamNumber(
+        input.channel === "CASH" ? PARAM_DOOR_CASH_FEE : PARAM_DOOR_APP_FEE,
+        input.channel === "CASH"
+          ? SERVICE_FEE.DOOR_CASH_REGISTRATION_CLP
+          : SERVICE_FEE.DOOR_APP_CLP,
+      ));
 
     const { ticket, checkin } = await this.repo.createDoorSale({
       eventId: input.eventId,

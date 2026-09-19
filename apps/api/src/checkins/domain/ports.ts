@@ -47,6 +47,9 @@ export interface EventDoorInfo {
   doorPrice: number | null;
   doorCap: number | null;
   producerId: string | null;
+  /** Overrides admin de fees de puerta (null → default productor → global). */
+  doorAppFeeClp?: number | null;
+  doorCashFeeClp?: number | null;
   /** Serie a la que pertenece (para resolver SeriesPass en check-in). */
   seriesId?: string | null;
 }
@@ -129,4 +132,15 @@ export interface CheckinsRepo {
   createDoorSale(input: DoorSaleTxInput): Promise<DoorSaleTxResult>;
   /** PlatformParam numérico — delega en ParamsService (cache 30s). */
   getParamNumber(key: string, fallback: number): Promise<number>;
+  /**
+   * Defaults de fees del productor (ProducerParams). Opcional para no
+   * romper implementaciones de test legadas — null equivale a "sin
+   * defaults" y el caller cae al param global.
+   */
+  getProducerParams?(producerId: string | null): Promise<{
+    serviceFeeClp: number | null;
+    doorAppFeeClp: number | null;
+    doorCashFeeClp: number | null;
+    platformFeePct: number | null;
+  } | null>;
 }

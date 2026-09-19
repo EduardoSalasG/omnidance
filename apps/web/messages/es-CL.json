@@ -629,7 +629,9 @@
       "codes": "Códigos de descuento",
       "codesDesc": "Promociones y cortesías por código",
       "lists": "Listas de invitados",
-      "listsDesc": "Listas de puerta por evento"
+      "listsDesc": "Listas de puerta por evento",
+      "params": "Comisiones y fees",
+      "paramsDesc": "Tus valores base por evento (solo lectura)"
     },
     "status": {
       "DRAFT": "Borrador",
@@ -654,6 +656,19 @@
         "temperature": "Temperatura",
         "lightingSound": "Luces y sonido"
       }
+    },
+    "fees": {
+      "title": "Comisiones del evento",
+      "serviceFee": "Cargo preventa",
+      "doorApp": "Cargo puerta app",
+      "doorCash": "Cargo puerta efectivo",
+      "platformPct": "Comisión plataforma %",
+      "adminOnly": "Solo el admin puede editar las comisiones",
+      "inherit": "Hereda de tus defaults",
+      "override": "Valor propio del evento",
+      "save": "Guardar comisiones",
+      "saved": "Comisiones guardadas",
+      "error": "No se pudieron guardar"
     }
   },
   "profile": {
@@ -901,6 +916,72 @@
       "BACHATA": "Bachata",
       "CUBANO": "Cubano",
       "OTHER": "Otro"
+    }
+  },
+  "producerParams": {
+    "title": "Comisiones y fees",
+    "hint": "Valores base que heredan tus eventos. Solo el admin puede modificarlos.",
+    "serviceFee": "Cargo por servicio de preventa",
+    "doorAppFee": "Cargo venta en puerta por app",
+    "doorCashFee": "Cargo registro en efectivo",
+    "platformFeePct": "Comisión plataforma (%)",
+    "custom": "Personalizado",
+    "inherits": "Hereda global",
+    "effective": "Cobro efectivo",
+    "readOnly": "Solo el admin puede modificar estos valores",
+    "perEvent": "Cada evento puede tener un valor distinto (lo define el admin)",
+    "adminSection": "Defaults por productor",
+    "adminHint": "Valores base para los eventos del productor — cada evento puede sobreescribirlos. Vacío = hereda el global.",
+    "selectProducer": "Productor",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "error": "No se pudo guardar"
+  },
+  "analytics": {
+    "title": "Analítica",
+    "period": "Últimos 30 días",
+    "lens": "Viendo como",
+    "empty": "Sin datos en el período",
+    "error": "No se pudieron cargar las métricas",
+    "forbidden": "Tu rol no tiene analítica disponible",
+    "kpi": {
+      "gmv": "Ventas brutas",
+      "payments": "Pagos",
+      "tickets": "Tickets emitidos",
+      "checkins": "Check-ins",
+      "newPeople": "Usuarios nuevos",
+      "platformFeeAccrued": "Comisión plataforma",
+      "gross": "Ventas brutas",
+      "sold": "Tickets vendidos",
+      "events": "Eventos",
+      "students": "Alumnos activos",
+      "attendance": "Asistencias",
+      "classes": "Clases",
+      "academies": "Academias",
+      "upcoming": "Próximos eventos",
+      "venues": "Venues"
+    },
+    "sections": {
+      "eventsByStatus": "Eventos por estado",
+      "payouts": "Liquidaciones históricas",
+      "topProducers": "Top productores por ventas",
+      "events": "Por evento",
+      "academies": "Por academia",
+      "venues": "Por venue"
+    },
+    "cols": {
+      "sold": "Vendidos",
+      "gross": "Bruto",
+      "checkins": "Check-ins",
+      "occupancy": "Ocupación",
+      "status": "Estado",
+      "date": "Fecha",
+      "students": "Alumnos",
+      "attendance": "Asistencias",
+      "classes": "Clases",
+      "series": "Series activas",
+      "upcoming": "Próximos",
+      "events": "Eventos 30d"
     }
   }
 }

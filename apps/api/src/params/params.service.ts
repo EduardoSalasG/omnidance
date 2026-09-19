@@ -6,6 +6,14 @@ import { PrismaService } from "../prisma.service";
 // y cambian solo por /admin — 30s de TTL es tolerancia sobrada.
 const CACHE_TTL_MS = 30_000;
 
+/** Defaults de fees configurables por productor (null = hereda global). */
+export interface ProducerFeeDefaults {
+  serviceFeeClp: number | null;
+  doorAppFeeClp: number | null;
+  doorCashFeeClp: number | null;
+  platformFeePct: number | null;
+}
+
 @Injectable()
 export class ParamsService {
   private readonly cache = new Map<string, { value: unknown; at: number }>();
@@ -29,6 +37,42 @@ export class ParamsService {
     const v = await this.get(key);
     const n = typeof v === "number" ? v : Number(v);
     return Number.isFinite(n) ? n : fallback;
+  }
+
+  /**
+   * Defaults de fees del productor (ProducerParams). null si no tiene fila —
+   * los consumidores encadenan: campo del evento → esto → param global.
+   * Cache propio (30s) porque se lee en checkout/puerta.
+   */
+  private readonly producerCache = new Map<
+    string,
+    { value: ProducerFeeDefaults | null; at: number }
+  >();
+
+  async getProducerParams(
+    producerId: string | null | undefined,
+  ): Promise<ProducerFeeDefaults | null> {
+    if (!producerId) return null;
+    const hit = this.producerCache.get(producerId);
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value;
+
+    const row = await this.prisma.producerParams.findUnique({
+      where: { producerId },
+    });
+    const value: ProducerFeeDefaults | null = row
+      ? {
+          serviceFeeClp: row.serviceFeeClp,
+          doorAppFeeClp: row.doorAppFeeClp,
+          doorCashFeeClp: row.doorCashFeeClp,
+          platformFeePct: row.platformFeePct,
+        }
+      : null;
+    this.producerCache.set(producerId, { value, at: Date.now() });
+    return value;
+  }
+
+  invalidateProducer(producerId: string): void {
+    this.producerCache.delete(producerId);
   }
 
   async list() {

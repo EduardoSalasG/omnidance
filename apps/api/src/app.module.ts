@@ -17,6 +17,7 @@ import { AdminModule } from "./admin/admin.module";
 import { CrmModule } from "./crm/crm.module";
 import { GamificationModule } from "./gamification/gamification.module";
 import { ParamsModule } from "./params/params.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { HomeModule } from "./home/home.module";
 
 @Module({
@@ -39,6 +40,7 @@ import { HomeModule } from "./home/home.module";
     ParamsModule,
     CrmModule,
     HomeModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
 })

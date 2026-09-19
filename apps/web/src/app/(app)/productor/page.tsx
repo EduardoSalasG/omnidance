@@ -39,6 +39,11 @@ export default function ProducerPage() {
             desc={t("navPayoutsDesc")}
           />
           <ModuleCard
+            href="/productor/parametros"
+            title={t("modules.params")}
+            desc={t("modules.paramsDesc")}
+          />
+          <ModuleCard
             href="/crm"
             title={t("crm")}
             desc={t("navCrmDesc")}

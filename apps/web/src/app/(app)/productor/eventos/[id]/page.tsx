@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { EventForm } from "@/components/producer/event-form";
+import { EventFeesSection } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
 import { PassesSection } from "@/components/producer/passes-section";
 import { SuggestionsSection } from "@/components/producer/suggestions-section";
@@ -44,6 +45,7 @@ export default function ProducerEventDetailPage({
 
   const [gate, setGate] = useState<Gate>("loading");
   const [meId, setMeId] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [styles, setStyles] = useState<Style[]>([]);
@@ -90,6 +92,7 @@ export default function ProducerEventDetailPage({
         return;
       }
       setMeId(data.id);
+      setIsAdmin(data.roles.includes("ADMIN"));
 
       const [evRes, vRes, sRes, listRes] = await Promise.all([
         apiFetch(`/events/${eventId}`),
@@ -294,14 +297,6 @@ export default function ProducerEventDetailPage({
               {event.series?.name && <span>{event.series.name}</span>}
             </div>
 
-            {/* Override admin del cargo por servicio (read-only; null → fee global). */}
-            {event.serviceFeeClp != null && (
-              <p className="text-sm text-white/60">
-                {t("negotiatedFee")}:{" "}
-                <PriceTag amount={event.serviceFeeClp} />
-              </p>
-            )}
-
             {canManage && (
               <div className="flex flex-wrap gap-2">
                 {event.status === "DRAFT" && (
@@ -369,6 +364,11 @@ export default function ProducerEventDetailPage({
             </Card>
           )}
 
+          <EventFeesSection
+            event={event}
+            isAdmin={isAdmin}
+            onSaved={() => void loadEvent()}
+          />
           <StaffSection eventId={eventId} />
           <PassesSection eventId={eventId} />
           <SuggestionsSection eventId={eventId} />
