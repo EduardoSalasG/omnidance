@@ -1,8 +1,8 @@
 {
   "nav": {
-    "notifications": "Alertas",
+    "notifications": "Notificaciones",
     "notificationsFull": "Notificaciones",
-    "notificationsUnread": "Notificaciones, {count} sin leer"
+    "notificationsUnread": "Notificaciones ({count} sin leer)"
   },
   "realtime": {
     "toast": {
