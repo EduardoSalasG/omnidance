@@ -82,7 +82,12 @@
     "producer": "Productor",
     "crm": "CRM",
     "admin": "Admin",
-    "notificationsFull": "Alertas y notificaciones"
+    "notificationsFull": "Alertas y notificaciones",
+    "menu": "Menú",
+    "closeMenu": "Cerrar menú",
+    "socialSection": "Social",
+    "consoleSection": "Consola",
+    "notificationsUnread": "Alertas ({count} sin leer)"
   },
   "login": {
     "title": "Entra a Omnidance",
