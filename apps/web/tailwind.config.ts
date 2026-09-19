@@ -14,8 +14,11 @@ const config: Config = {
           700: "#2a2a3a",
         },
         neon: {
-          DEFAULT: "#a3e635", // accent — marca (icon.svg, og-image, icons PWA)
-          soft: "#baf360",
+          // CSS vars — swappean por modo de vista (data-mode en <html>):
+          // Social = lime, Academia = violeta. Marca lime vive en
+          // icon.svg/OG/PWA (estáticos, fuera del theming).
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          soft: "rgb(var(--accent-soft) / <alpha-value>)",
         },
       },
     },

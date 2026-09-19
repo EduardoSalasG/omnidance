@@ -31,7 +31,44 @@
     "academyHeroDesc": "Alumnos, planes y asistencia",
     "academyHeroCta": "Ir al panel",
     "adminHeroDesc": "Usuarios, roles y parámetros",
-    "adminHeroCta": "Abrir consola"
+    "adminHeroCta": "Abrir consola",
+    "modeLabel": "Vista",
+    "modeSocial": "Social",
+    "modeAcademy": "Academia",
+    "insights": "Tu actividad",
+    "overview": "Resumen",
+    "kpi": {
+      "streak": "Semanas seguidas",
+      "points": "Puntos",
+      "badges": "Insignias",
+      "dances7d": "Bailes (7d)",
+      "enrollments": "Inscripciones",
+      "attendance30d": "Asistencias (30d)",
+      "classes7d": "Clases (7d)",
+      "activeEvents": "Eventos activos",
+      "ticketsSold": "Entradas vendidas",
+      "pendingPayouts": "Liquidaciones pendientes",
+      "pendingPayoutNet": "Por liquidar",
+      "pendingRoles": "Solicitudes pendientes",
+      "users": "Usuarios",
+      "academies": "Academias",
+      "students": "Alumnos activos",
+      "attendance7d": "Asistencias (7d)",
+      "mySlots": "Mis horarios",
+      "upcomingAtVenue": "Eventos próximos",
+      "upcomingGigs": "Gigs próximos",
+      "upcomingShifts": "Turnos próximos"
+    },
+    "hasTicketTonight": "Tienes entrada — muestra tu QR en puerta",
+    "buyPresale": "Comprar preventa",
+    "viewEvent": "Ver evento",
+    "noEventTonight": "Nada publicado para hoy — mira qué viene",
+    "nextClass": "Próxima clase",
+    "nextGig": "Próximo gig",
+    "nextShift": "Próximo turno",
+    "findAcademy": "Explorar academias",
+    "academyEmpty": "Aún no estás en una academia — explora y pide tu primera clase",
+    "keepDancing": "Sigue bailando — cada noche suma a tu racha"
   },
   "landing": {
     "eyebrow": "Salsa · Bachata · Cubano — Santiago",
@@ -87,6 +124,8 @@
     "closeMenu": "Cerrar menú",
     "socialSection": "Social",
     "consoleSection": "Consola",
+    "academies": "Academias",
+    "lessons": "Particulares",
     "notificationsUnread": "Alertas ({count} sin leer)"
   },
   "login": {
@@ -212,7 +251,8 @@
     "invalidQr": "QR no válido",
     "myDances": "Mis bailes",
     "history": "Historial",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "rating": "{value, plural, one {# estrella} other {# estrellas}}"
   },
   "staff": {
     "title": "Puerta",
@@ -265,6 +305,9 @@
     "planClasses": "Clases por período",
     "personId": "ID de persona",
     "empty": "Aún no tienes academia registrada.",
+    "directoryTitle": "Directorio de academias",
+    "directoryEmpty": "Aún no hay academias activas.",
+    "instructorsLabel": "Instructores",
     "create": "Crear academia",
     "academyName": "Nombre de la academia",
     "loginRequired": "Entra con tu correo para administrar tu academia",
@@ -306,7 +349,14 @@
       "lessonsDesc": "Solicitudes 1:1 con instructores",
       "videos": "Videos",
       "videosDesc": "Material por clase, control de acceso"
-    }
+    },
+    "planTypes": {
+      "MONTHLY": "Mensual",
+      "CLASS_PACK": "Pack de clases",
+      "PERIOD": "Período",
+      "TRIAL": "Trial"
+    },
+    "studentStatus": "Estado de {name}"
   },
   "rsvp": {
     "going": "Voy",
@@ -393,7 +443,8 @@
       "search": "Buscar por nombre o email…",
       "addRole": "Agregar rol",
       "revoke": "Revocar",
-      "noRoles": "Sin roles"
+      "noRoles": "Sin roles",
+      "roleStatus": "Estado del rol {role}"
     },
     "audit": {
       "empty": "Sin eventos registrados."
@@ -408,7 +459,8 @@
       "title": "Catálogo de roles",
       "perms": "Permisos",
       "requestable": "Solicitable",
-      "superuser": "Superusuario"
+      "superuser": "Superusuario",
+      "peopleCount": "{count, plural, one {# persona} other {# personas}}"
     },
     "hubDesc": "Panel de administración de la plataforma",
     "modules": {
@@ -476,7 +528,12 @@
       "net": "Neto",
       "paidAt": "Pagado",
       "evidence": "Comprobante",
-      "empty": "Sin liquidaciones aún"
+      "empty": "Sin liquidaciones aún",
+      "status": {
+        "PENDING": "Pendiente",
+        "APPROVED": "Aprobada",
+        "PAID": "Pagada"
+      }
     },
     "sections": {
       "staff": "Staff del evento",
@@ -489,7 +546,11 @@
       "add": "Agregar staff",
       "empty": "Sin staff asignado",
       "personId": "ID de persona",
-      "role": "Rol"
+      "role": "Rol",
+      "roles": {
+        "DOOR": "Puerta",
+        "DOOR_SALES": "Puerta + ventas"
+      }
     },
     "passes": {
       "person": "Persona",
@@ -497,14 +558,33 @@
       "price": "Precio",
       "status": "Estado",
       "validUntil": "Válido hasta",
-      "empty": "Sin pases emitidos"
+      "empty": "Sin pases emitidos",
+      "types": {
+        "PAID": "Pagado",
+        "ARTIST": "Artista",
+        "STAFF": "Staff",
+        "COMP": "Cortesía",
+        "LIST": "Lista",
+        "FREE_WINDOW": "Ventana gratis"
+      },
+      "statuses": {
+        "ACTIVE": "Activo",
+        "USED": "Usado",
+        "CANCELLED": "Cancelado"
+      }
     },
     "reservations": {
       "table": "Mesa",
       "assignTable": "Asignar mesa",
       "confirm": "Confirmar",
       "cancel": "Cancelar",
-      "empty": "Sin reservas"
+      "empty": "Sin reservas",
+      "partySize": "{count, plural, one {# persona} other {# personas}}",
+      "statuses": {
+        "REQUESTED": "Solicitada",
+        "CONFIRMED": "Confirmada",
+        "CANCELLED": "Cancelada"
+      }
     },
     "suggestions": {
       "empty": "Sin sugerencias"
@@ -544,6 +624,30 @@
       "codesDesc": "Promociones y cortesías por código",
       "lists": "Listas de invitados",
       "listsDesc": "Listas de puerta por evento"
+    },
+    "status": {
+      "DRAFT": "Borrador",
+      "PUBLISHED": "Publicado",
+      "LIVE": "En vivo",
+      "CLOSED": "Cerrado",
+      "CANCELLED": "Cancelado"
+    },
+    "ratings": {
+      "notEnough": "Aún no hay suficientes valoraciones ({count})",
+      "ratingsCount": "{count, plural, one {# valoración} other {# valoraciones}}",
+      "actors": {
+        "dj": "DJ",
+        "producer": "Productor/a",
+        "venue": "Venue"
+      },
+      "dims": {
+        "music": "Música",
+        "occupation": "Ocupación de pista",
+        "organization": "Organización",
+        "floorComfort": "Comodidad de la pista",
+        "temperature": "Temperatura",
+        "lightingSound": "Luces y sonido"
+      }
     }
   },
   "profile": {
@@ -595,7 +699,12 @@
       "addTag": "Agregar tag",
       "noScore": "Sin score",
       "prev": "Anterior",
-      "next": "Siguiente"
+      "next": "Siguiente",
+      "recomputed": "Scores recalculados para {count} personas",
+      "total": "{count, plural, one {# persona} other {# personas}}",
+      "updatedAt": "Actualizado {date}",
+      "page": "Página {page} de {pages}",
+      "deleteTag": "Quitar etiqueta {tag}"
     },
     "segments": {
       "NONE": "Sin segmento"
@@ -625,7 +734,14 @@
       "noTags": "Sin tags",
       "send": "Enviar",
       "sending": "Enviando…",
-      "empty": "Sin campañas"
+      "empty": "Sin campañas",
+      "sendConfirm": "¿Enviar la campaña «{name}» ahora?",
+      "sentResult": "{count, plural, one {# enviada} other {# enviadas}}",
+      "withCode": "código {code}",
+      "status": {
+        "DRAFT": "Borrador",
+        "SENT": "Enviada"
+      }
     },
     "triggers": {
       "title": "Triggers automáticos",
@@ -640,7 +756,40 @@
       "edit": "Editar",
       "evaluate": "Evaluar ahora",
       "evaluating": "Evaluando…",
-      "empty": "Sin triggers"
+      "empty": "Sin triggers",
+      "keys": {
+        "WINBACK": "Recuperación de inactivos",
+        "TRIAL_EXPIRING": "Trial por vencer",
+        "REGULAR_NO_PRESALE": "Habitual sin preventa",
+        "ATTENDANCE_DROP": "Caída de asistencia"
+      },
+      "desc": {
+        "WINBACK": "Avisa a personas que dejaron de venir hace N días.",
+        "TRIAL_EXPIRING": "Avisa cuando una membresía de prueba está por vencer.",
+        "REGULAR_NO_PRESALE": "Avisa a asistentes habituales que aún no compran preventa.",
+        "ATTENDANCE_DROP": "Detecta bajas de asistencia vs. su ritmo habitual."
+      },
+      "evalResult": "{key}: {evaluated} evaluadas, {notified} notificadas",
+      "cooldownShort": "Cooldown {days}d"
+    },
+    "nav": {
+      "people": "Personas",
+      "campaigns": "Campañas",
+      "triggers": "Triggers"
+    }
+  },
+  "realtime": {
+    "toast": {
+      "open": "Abrir notificación",
+      "close": "Cerrar aviso"
+    },
+    "push": {
+      "title": "Notificaciones push",
+      "enabled": "Push activadas",
+      "description": "Recibe avisos de eventos, check-ins y solicitudes aunque la app esté cerrada.",
+      "enable": "Activar",
+      "later": "Ahora no",
+      "error": "No se pudo activar el push en este dispositivo."
     }
   }
 }
