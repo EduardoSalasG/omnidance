@@ -4,15 +4,22 @@
 
 :root {
   color-scheme: dark;
-  /* Acento por modo de vista: lime = Social (nightlife), violeta =
-     Academia (Mi Aprendizaje). Se setea data-mode en <html>. */
+  /* Acento de marca: lime. Es el default fuera de la app (landing,
+     marketing) y el fallback si no hay data-mode. Dentro de la app el
+     chrome siempre setea data-mode: morado = Social (nightlife),
+     verde = Academia (Mi Aprendizaje). */
   --accent: 163 230 53; /* #a3e635 */
   --accent-soft: 186 243 96; /* #baf360 */
 }
 
-[data-mode="academy"] {
+[data-mode="social"] {
   --accent: 167 139 250; /* #a78bfa */
   --accent-soft: 196 181 253; /* #c4b5fd */
+}
+
+[data-mode="academy"] {
+  --accent: 52 211 153; /* #34d399 */
+  --accent-soft: 110 231 183; /* #6ee7b7 */
 }
 
 /* ─── Base táctil: el flash gris de iOS compite con nuestro feedback

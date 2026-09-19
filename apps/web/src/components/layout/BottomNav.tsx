@@ -175,7 +175,6 @@ const DJ_TAB: Tab = {
   href: "/dj",
   key: "dj",
   icon: icon(ICONS.music),
-  center: true,
 };
 const SUPPORT_TAB: Tab = {
   href: "/soporte",
@@ -186,13 +185,14 @@ const SUPPORT_TAB: Tab = {
 
 // DANCER en modo Academia: Eventos se reemplaza por el directorio de
 // academias y Clases (explorar + mis reservas) es tab propio. QR se
-// mantiene — sirve para check-in de clases igual que en puerta.
+// mantiene — sirve para check-in de clases igual que en puerta — y va
+// siempre en el centro del bottom bar (regla global del QR).
 // Prácticas queda en el drawer (máximo 5 ítems en el bottom bar).
 const DANCER_ACADEMY_TABS: Tab[] = [
   HOME_TAB,
-  ACADEMIAS_TAB,
   CLASSES_TAB,
   QR_TAB,
+  ACADEMIAS_TAB,
 ];
 
 // Tabs por rol activo — máximo 4 slots funcionales + Perfil = 5 ítems
@@ -238,7 +238,7 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
     },
     ATTENDANCE_TAB,
   ],
-  DJ: [HOME_TAB, DJ_TAB, EVENTS_TAB, QR_TAB],
+  DJ: [HOME_TAB, EVENTS_TAB, QR_TAB, DJ_TAB],
   VENUE_MANAGER: [HOME_TAB, VENUE_TAB, EVENTS_TAB, ANALYTICS_TAB],
   SUPPORT: [HOME_TAB, SUPPORT_TAB, EVENTS_TAB],
   ADMIN: [
