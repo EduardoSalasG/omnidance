@@ -1,4 +1,4 @@
-import { BottomNav } from "@/components/layout/BottomNav";
+import { ChromeShell } from "@/components/layout/ChromeShell";
 import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import baseMessages from "../../../messages/es-CL.json";
 
@@ -19,14 +19,7 @@ export default function AppLayout({
       >
         {baseMessages.common.skipToContent}
       </a>
-      <div
-        id="contenido"
-        tabIndex={-1}
-        className="pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(4.25rem+env(safe-area-inset-top))] outline-none"
-      >
-        {children}
-      </div>
-      <BottomNav />
+      <ChromeShell>{children}</ChromeShell>
     </RealtimeProvider>
   );
 }

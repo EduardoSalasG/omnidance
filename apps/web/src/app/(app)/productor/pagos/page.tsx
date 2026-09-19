@@ -68,8 +68,6 @@ export default function ProducerPayoutsPage() {
         ← {t("title")}
       </Link>
 
-      <h1 className="text-2xl font-bold">{t("payoutsPage.title")}</h1>
-
       {gate === "loading" && (
         <p role="status" className="text-white/60">
           {tc("loading")}

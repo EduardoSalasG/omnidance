@@ -128,8 +128,7 @@ export default function PracticasPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <div className="flex items-center justify-end gap-4">
         {authed && !formOpen && (
           <Button size="sm" onClick={() => setFormOpen(true)}>
             {t("create")}

@@ -243,9 +243,11 @@ export function HomeHub() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
       <header className="pt-4">
-        <h1 className="text-display text-3xl font-bold">
+        {/* Wordmark de marca (no es h1 — el título de sección "Inicio" lo
+            lleva el large title del chrome). */}
+        <p className="text-display text-3xl font-bold">
           Omni<span className="text-neon">dance</span>
-        </h1>
+        </p>
         <p className="mt-1 text-sm text-white/60">{t("subtitle")}</p>
         <p className="mt-3 text-lg font-medium">
           {t("hi", { name: me.name.split(" ")[0] })}

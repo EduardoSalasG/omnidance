@@ -104,8 +104,7 @@ function Bailes() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <header className="flex items-center justify-end gap-3">
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"

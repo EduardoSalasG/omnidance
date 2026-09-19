@@ -160,8 +160,6 @@ export default function EntradasPage() {
         ← {te("backToList")}
       </Link>
 
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-
       {transferSuccess && (
         <p role="status" className="text-sm font-medium text-neon">
           {t("transferSuccess")}

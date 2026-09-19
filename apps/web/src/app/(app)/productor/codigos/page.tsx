@@ -160,7 +160,6 @@ function DiscountCodes() {
       <ConsoleHeader
         backHref="/productor"
         backLabel={t("title")}
-        title={t("discountCodes")}
         actions={
           <Button
             size="sm"

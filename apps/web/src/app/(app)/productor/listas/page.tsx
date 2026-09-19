@@ -159,11 +159,7 @@ function GuestLists() {
 
   return (
     <>
-      <ConsoleHeader
-        backHref="/productor"
-        backLabel={t("title")}
-        title={t("guestLists")}
-      />
+      <ConsoleHeader backHref="/productor" backLabel={t("title")} />
 
       <section className="flex flex-col gap-4">
         {events === null ? (
