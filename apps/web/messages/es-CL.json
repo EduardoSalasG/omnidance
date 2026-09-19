@@ -12,7 +12,8 @@
     "cancel": "Cancelar",
     "create": "Crear",
     "seeAll": "Ver todo",
-    "skipToContent": "Saltar al contenido"
+    "skipToContent": "Saltar al contenido",
+    "newTab": "Abrir en pestaña nueva"
   },
   "home": {
     "subtitle": "Nightlife + Academias. Un solo QR para toda la escena.",
@@ -80,7 +81,8 @@
     "academy": "Academia",
     "producer": "Productor",
     "crm": "CRM",
-    "admin": "Admin"
+    "admin": "Admin",
+    "notificationsFull": "Alertas y notificaciones"
   },
   "login": {
     "title": "Entra a Omnidance",
@@ -158,7 +160,15 @@
     "failed": "El pago no se completó",
     "devSimTitle": "Modo dev: simular pago",
     "devSimApprove": "Simular aprobado",
-    "devSimFail": "Simular fallido"
+    "devSimFail": "Simular fallido",
+    "returnVerifying": "Verificando tu pago…",
+    "returnPaidTitle": "¡Pago confirmado!",
+    "returnPendingTitle": "Pago en revisión",
+    "returnPendingDesc": "El pago está siendo confirmado. Te avisaremos cuando quede lista tu entrada.",
+    "returnFailedTitle": "El pago no se completó",
+    "returnFailedDesc": "No se realizó ningún cargo. Puedes intentarlo de nuevo.",
+    "returnErrorTitle": "No pudimos verificar el pago",
+    "returnToEvents": "Volver a eventos"
   },
   "wallet": {
     "title": "Mis entradas",
@@ -196,7 +206,8 @@
     "cooldown": "Ya bailaron hace poquito — espera un momento",
     "invalidQr": "QR no válido",
     "myDances": "Mis bailes",
-    "history": "Historial"
+    "history": "Historial",
+    "refresh": "Actualizar"
   },
   "staff": {
     "title": "Puerta",
@@ -231,7 +242,8 @@
     "title": "Notificaciones",
     "empty": "Sin notificaciones por ahora.",
     "markAll": "Marcar todas como leídas",
-    "loginRequired": "Entra con tu correo para ver tus notificaciones"
+    "loginRequired": "Entra con tu correo para ver tus notificaciones",
+    "unread": "Sin leer"
   },
   "academy": {
     "title": "Mi academia",
@@ -298,7 +310,8 @@
     "venue": "Lugar",
     "startsAt": "Fecha y hora",
     "host": "Anfitrión",
-    "created": "¡Práctica creada!"
+    "created": "¡Práctica creada!",
+    "venuePlaceholder": "Nombre del lugar"
   },
   "availability": {
     "toggle": "Disponible para bailar",
@@ -373,7 +386,9 @@
     },
     "roles": {
       "title": "Catálogo de roles",
-      "perms": "Permisos"
+      "perms": "Permisos",
+      "requestable": "Solicitable",
+      "superuser": "Superusuario"
     }
   },
   "producer": {
@@ -400,6 +415,95 @@
       "CAMPAIGN": "Campaña",
       "WINBACK": "Winback",
       "STAFF_COMP": "Compensación staff"
+    },
+    "myEvents": "Mis eventos",
+    "createEvent": "Crear evento",
+    "emptyEvents": "Aún no tienes eventos.",
+    "emptyEventsCta": "Crear mi primer evento",
+    "created": "Evento creado",
+    "updated": "Evento actualizado",
+    "publish": "Publicar",
+    "published": "Evento publicado",
+    "cancelEvent": "Cancelar evento",
+    "cancelled": "Evento cancelado",
+    "confirmCancel": "Confirmar cancelación",
+    "cancelConfirmTitle": "¿Cancelar este evento?",
+    "cancelConfirmDesc": "Los asistentes serán notificados. Esta acción no se puede deshacer.",
+    "negotiatedFee": "Comisión negociada (%)",
+    "editEvent": "Editar evento",
+    "payouts": "Pagos",
+    "crm": "CRM",
+    "navEventsDesc": "Crea y administra tus eventos",
+    "navPayoutsDesc": "Liquidaciones y cobros",
+    "navCrmDesc": "Audiencia y campañas",
+    "payoutsPage": {
+      "title": "Pagos y liquidaciones",
+      "period": "Período",
+      "gross": "Bruto",
+      "net": "Neto",
+      "paidAt": "Pagado",
+      "evidence": "Comprobante",
+      "empty": "Sin liquidaciones aún"
+    },
+    "sections": {
+      "staff": "Staff del evento",
+      "passes": "Pases y cortesías",
+      "reservations": "Reservas de mesa",
+      "ratings": "Ratings de la noche",
+      "suggestions": "Sugerencias de lineup"
+    },
+    "staffSection": {
+      "add": "Agregar staff",
+      "empty": "Sin staff asignado",
+      "personId": "ID de persona",
+      "role": "Rol"
+    },
+    "passes": {
+      "person": "Persona",
+      "type": "Tipo",
+      "price": "Precio",
+      "status": "Estado",
+      "validUntil": "Válido hasta",
+      "empty": "Sin pases emitidos"
+    },
+    "reservations": {
+      "table": "Mesa",
+      "assignTable": "Asignar mesa",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "empty": "Sin reservas"
+    },
+    "suggestions": {
+      "empty": "Sin sugerencias"
+    },
+    "form": {
+      "name": "Nombre del evento",
+      "type": "Tipo",
+      "venue": "Recinto",
+      "noVenue": "Sin recinto (se define después)",
+      "startsAt": "Inicio",
+      "endsAt": "Término",
+      "presalePrice": "Precio preventa",
+      "doorPrice": "Precio en puerta",
+      "presaleCap": "Aforo preventa",
+      "doorCap": "Aforo puerta",
+      "capacity": "Aforo",
+      "happyHourMinutes": "Happy hour (min)",
+      "primeThreshold": "Umbral prime time",
+      "djs": "DJs",
+      "djsHelp": "Selecciona los DJs del lineup",
+      "currentDjs": "DJs seleccionados",
+      "schedule": "Timeline de la noche",
+      "addBlock": "Agregar bloque",
+      "removeBlock": "Quitar",
+      "blockStyle": "Estilo",
+      "blockStart": "Desde",
+      "blockEnd": "Hasta",
+      "blockDj": "DJ",
+      "series": "Serie",
+      "noSeries": "Evento único (sin serie)",
+      "datesInvalid": "Revisa las fechas",
+      "optional": "opcional"
     }
   },
   "profile": {
@@ -420,6 +524,83 @@
       "INSTRUCTOR": "Instructor/a",
       "ADMIN": "Administrador",
       "SUPPORT": "Soporte"
+    },
+    "roleSandbox": "En prueba (sandbox)"
+  },
+  "crm": {
+    "title": "CRM",
+    "pickActor": "Elige el actor (productor o academia)",
+    "noActor": "Sin contexto de actor",
+    "forbidden": "No tienes permisos de CRM para este actor",
+    "actor": {
+      "label": "Actuar como",
+      "type": "Tipo",
+      "id": "ID",
+      "producer": "Productor",
+      "academy": "Academia",
+      "manual": "Ingresar ID manual",
+      "apply": "Aplicar"
+    },
+    "people": {
+      "score": "Score",
+      "all": "Todos",
+      "segmentFilter": "Segmento",
+      "tagFilter": "Tag",
+      "tagPlaceholder": "vip, instructor…",
+      "search": "Buscar",
+      "empty": "Sin personas",
+      "emptyFiltered": "Sin resultados para ese filtro",
+      "recompute": "Recalcular scores",
+      "recomputing": "Recalculando…",
+      "addTag": "Agregar tag",
+      "noScore": "Sin score",
+      "prev": "Anterior",
+      "next": "Siguiente"
+    },
+    "segments": {
+      "NONE": "Sin segmento"
+    },
+    "campaigns": {
+      "title": "Campañas",
+      "new": "Nueva campaña",
+      "created": "Campaña creada",
+      "name": "Nombre",
+      "namePlaceholder": "Ej: Reactivación de inactivos",
+      "actionType": "Acción",
+      "types": {
+        "NOTIFY": "Notificación",
+        "DISCOUNT_CODE": "Código de descuento"
+      },
+      "notifyTitle": "Título de la notificación",
+      "notifyBody": "Mensaje",
+      "percentOff": "% de descuento",
+      "amountOff": "$ de descuento",
+      "maxUses": "Usos máximos",
+      "expiresAt": "Expira",
+      "audience": "Audiencia",
+      "audienceAll": "Toda la base",
+      "audienceSegment": "Por segmento",
+      "audienceTags": "Por tags",
+      "noCriterion": "Sin criterio — toda la base",
+      "noTags": "Sin tags",
+      "send": "Enviar",
+      "sending": "Enviando…",
+      "empty": "Sin campañas"
+    },
+    "triggers": {
+      "title": "Triggers automáticos",
+      "new": "Nuevo trigger",
+      "allCreated": "Todos los triggers creados",
+      "key": "Clave",
+      "days": "Días",
+      "daysHint": "Días de inactividad para disparar",
+      "cooldownDays": "Cooldown (días)",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "edit": "Editar",
+      "evaluate": "Evaluar ahora",
+      "evaluating": "Evaluando…",
+      "empty": "Sin triggers"
     }
   }
 }
