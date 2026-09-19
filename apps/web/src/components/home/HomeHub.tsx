@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useActiveRole } from "@/lib/active-role";
+import { useViewMode, setViewMode, type ViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -16,6 +17,43 @@ type Me = {
 };
 
 type Tile = { href: string; label: string; desc?: string; badge?: number };
+
+type Kpi = { key: string; value: number; format?: "clp" };
+type NextItem = { id: string; name: string; when: string; place: string | null };
+type HomeStats = {
+  kpis: Kpi[];
+  tonight?: {
+    id: string;
+    name: string;
+    startsAt: string;
+    venueName: string | null;
+    presalePrice: number | null;
+    hasTicket: boolean;
+  } | null;
+  nextClass?: NextItem | null;
+  nextGig?: NextItem | null;
+  nextShift?: NextItem | null;
+  needsAcademy?: boolean;
+};
+
+// KPIs que representan trabajo pendiente — se destacan con borde de
+// acento para que el dashboard "grite" lo accionable.
+const ATTENTION_KEYS = new Set(["pendingRoles", "pendingPayouts"]);
+
+const clp = new Intl.NumberFormat("es-CL", {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
+const timeFmt = new Intl.DateTimeFormat("es-CL", {
+  hour: "numeric",
+  minute: "2-digit",
+});
+const dayFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
 
 function TileLink({ href, label, desc, badge }: Tile) {
   return (
@@ -41,10 +79,89 @@ function TileLink({ href, label, desc, badge }: Tile) {
   );
 }
 
-// Hero y tiles por rol ACTIVO (useActiveRole: storage válido o prioridad
-// del contrato). El usuario cambia de lente desde Perfil ("Interactuar
-// como"); el hub solo refleja la elección — por eso ya no hay sección
-// "Gestión" con módulos de otros roles.
+// Switch Social/Academia del lens consumer — radiogroup nativo (mismo
+// patrón APG del hub QR): un tab stop, flechas cambian opción, indicador
+// deslizante con transform puro y reduced-motion instantáneo.
+function ModeToggle() {
+  const t = useTranslations("home");
+  const mode = useViewMode();
+  const options: { value: ViewMode; label: string }[] = [
+    { value: "social", label: t("modeSocial") },
+    { value: "academy", label: t("modeAcademy") },
+  ];
+  return (
+    <div
+      role="radiogroup"
+      aria-label={t("modeLabel")}
+      className="relative grid grid-cols-2 rounded-full border border-night-700 bg-night-800 p-1"
+    >
+      <span
+        aria-hidden
+        className={`absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-full bg-neon transition-transform duration-200 ease-out motion-reduce:transition-none ${
+          mode === "academy" ? "translate-x-full" : "translate-x-0"
+        }`}
+      />
+      {options.map((opt) => (
+        <label
+          key={opt.value}
+          className="relative z-10 cursor-pointer"
+        >
+          <input
+            type="radio"
+            name="view-mode"
+            value={opt.value}
+            checked={mode === opt.value}
+            onChange={() => setViewMode(opt.value)}
+            className="peer sr-only"
+          />
+          <span
+            className={`flex min-h-9 items-center justify-center rounded-full text-sm font-medium transition-colors peer-checked:text-night-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-neon ${
+              mode === opt.value ? "font-semibold" : "text-white/60"
+            }`}
+          >
+            {opt.label}
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function KpiGrid({
+  kpis,
+  label,
+}: {
+  kpis: Kpi[];
+  label: string;
+}) {
+  const t = useTranslations("home");
+  if (kpis.length === 0) return null;
+  return (
+    <section aria-label={label}>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+        {label}
+      </h2>
+      <ul className="grid grid-cols-2 gap-3">
+        {kpis.map((k) => (
+          <li
+            key={k.key}
+            className={`rounded-xl border bg-night-800/60 px-4 py-3 ${
+              ATTENTION_KEYS.has(k.key) && k.value > 0
+                ? "border-neon/60"
+                : "border-night-700"
+            }`}
+          >
+            <span className="block text-2xl font-bold tabular-nums">
+              {k.format === "clp" ? clp.format(k.value) : k.value}
+            </span>
+            <span className="text-xs text-white/50">{t(`kpi.${k.key}`)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 type Hero = {
   href: string;
   title: string;
@@ -67,11 +184,15 @@ export function HomeHub() {
   const ta = useTranslations("academy");
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
+  const tnav = useTranslations("nav");
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [stats, setStats] = useState<HomeStats | null>(null);
   const activeRole = useActiveRole(me?.roles);
+  const viewMode = useViewMode();
+  const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +209,22 @@ export function HomeHub() {
       cancelled = true;
     };
   }, []);
+
+  // KPIs del home: un solo request agregado por lente (+ modo consumer).
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false;
+    setStats(null);
+    apiFetch(`/home/stats?role=${activeRole}&mode=${viewMode}`)
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        setStats((await res.json()) as HomeStats);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [me, activeRole, viewMode]);
 
   // Conteo inicial de no-leídas + incremento en vivo vía CustomEvent
   // (RealTimeProvider despacha "omnidance:notification" al recibir una).
@@ -130,10 +267,61 @@ export function HomeHub() {
     );
   }
 
-  // Hero = la acción principal del rol activo. DANCER/DJ/VENUE_MANAGER
-  // comparten el hero de consumo ("Esta noche" → /eventos), pero el
-  // QR personal solo aplica al bailarín — DJ y venue no lo llevan.
+  const notificationsTile: Tile = {
+    href: "/notificaciones",
+    label: tn("title"),
+    badge: unread,
+  };
+
+  // Hero = acción principal. DANCER: "Esta noche" real (stats.tonight) o
+  // próxima clase en modo Academia; management: su consola. DJ/VENUE
+  // comparten el hero de consumo sin el QR personal.
   const hero: Hero = (() => {
+    if (activeRole === "DANCER") {
+      if (dancerAcademy) {
+        if (stats?.needsAcademy || stats?.kpis.length === 0) {
+          return {
+            href: "/academias",
+            title: t("modeAcademy"),
+            desc: t("academyEmpty"),
+            cta: t("findAcademy"),
+          };
+        }
+        const nc = stats?.nextClass;
+        return nc
+          ? {
+              href: "/academia",
+              title: nc.name,
+              desc: `${t("nextClass")} — ${dayFmt.format(new Date(nc.when))}${nc.place ? ` · ${nc.place}` : ""}`,
+              cta: t("academyHeroCta"),
+            }
+          : {
+              href: "/academias",
+              title: t("modeAcademy"),
+              desc: t("academyHeroDesc"),
+              cta: t("findAcademy"),
+            };
+      }
+      const tonight = stats?.tonight;
+      if (tonight) {
+        return {
+          href: `/eventos/${tonight.id}`,
+          title: tonight.name,
+          desc: `${t("tonight")} · ${timeFmt.format(new Date(tonight.startsAt))}${tonight.venueName ? ` · ${tonight.venueName}` : ""}${tonight.hasTicket ? ` — ${t("hasTicketTonight")}` : ""}`,
+          cta: tonight.hasTicket ? t("myQr") : t("buyPresale"),
+          secondary: tonight.hasTicket
+            ? { href: `/eventos/${tonight.id}`, label: t("viewEvent") }
+            : undefined,
+        };
+      }
+      return {
+        href: "/eventos",
+        title: t("tonight"),
+        desc: stats ? t("noEventTonight") : t("dancerHeroDesc"),
+        cta: t("seeEvents"),
+        secondary: { href: "/qr", label: tq("title") },
+      };
+    }
     switch (activeRole) {
       case "ADMIN":
         return {
@@ -148,9 +336,7 @@ export function HomeHub() {
           title: tpr("myEvents"),
           desc: tpr("navEventsDesc"),
           cta: t("producerHeroCta"),
-          // "Crear evento" es un form inline en /productor/eventos — el
-          // CTA secundario apunta a la misma página donde se despliega.
-          secondary: { href: "/productor/eventos", label: tpr("createEvent") },
+          secondary: { href: "/productor/eventos?crear=1", label: tpr("createEvent") },
         };
       case "ACADEMY_OWNER":
       case "INSTRUCTOR":
@@ -160,40 +346,38 @@ export function HomeHub() {
           desc: t("academyHeroDesc"),
           cta: t("academyHeroCta"),
         };
-      case "STAFF":
+      case "STAFF": {
+        const shift = stats?.nextShift;
         return {
-          href: "/staff",
-          title: tst("title"),
-          desc: t("staffHeroDesc"),
+          href: shift ? `/staff/${shift.id}` : "/staff",
+          title: shift ? shift.name : tst("title"),
+          desc: shift
+            ? `${t("nextShift")} — ${dayFmt.format(new Date(shift.when))}${shift.place ? ` · ${shift.place}` : ""}`
+            : t("staffHeroDesc"),
           cta: t("staffHeroCta"),
         };
-      case "DANCER":
-        return {
-          href: "/eventos",
-          title: t("tonight"),
-          desc: t("dancerHeroDesc"),
-          cta: t("seeEvents"),
-          secondary: { href: "/qr", label: tq("title") },
-        };
-      default:
+      }
+      default: {
         // DJ | VENUE_MANAGER
-        return {
-          href: "/eventos",
-          title: t("tonight"),
-          desc: t("dancerHeroDesc"),
-          cta: t("seeEvents"),
-        };
+        const gig = stats?.nextGig;
+        return gig
+          ? {
+              href: `/eventos/${gig.id}`,
+              title: gig.name,
+              desc: `${t("nextGig")} — ${dayFmt.format(new Date(gig.when))}${gig.place ? ` · ${gig.place}` : ""}`,
+              cta: t("viewEvent"),
+            }
+          : {
+              href: "/eventos",
+              title: t("tonight"),
+              desc: t("dancerHeroDesc"),
+              cta: t("seeEvents"),
+            };
+      }
     }
   })();
 
-  const notificationsTile: Tile = {
-    href: "/notificaciones",
-    label: tn("title"),
-    badge: unread,
-  };
-
-  // "Para ti" muestra solo los atajos del rol activo — el resto de los
-  // módulos se alcanzan cambiando de lente (ver card de abajo).
+  // "Para ti" = atajos del rol activo (+ modo, para el bailarín).
   const forYou: Tile[] = (() => {
     switch (activeRole) {
       case "STAFF":
@@ -222,15 +406,21 @@ export function HomeHub() {
       case "VENUE_MANAGER":
         return [{ href: "/eventos", label: te("title") }, notificationsTile];
       default:
-        // DANCER
-        return [
-          { href: "/qr", label: tq("title"), desc: tq("subtitle") },
-          { href: "/bailes", label: ts("title") },
-          { href: "/entradas", label: tw("title") },
-          { href: "/practicas", label: tp("title") },
-          { href: "/viajes", label: tt("title") },
-          notificationsTile,
-        ];
+        // DANCER — los atajos siguen el modo de vista activo.
+        return dancerAcademy
+          ? [
+              { href: "/academias", label: tnav("academies") },
+              { href: "/academia", label: ta("title") },
+              { href: "/practicas", label: tp("title") },
+              notificationsTile,
+            ]
+          : [
+              { href: "/qr", label: tq("title"), desc: tq("subtitle") },
+              { href: "/bailes", label: ts("title") },
+              { href: "/entradas", label: tw("title") },
+              { href: "/viajes", label: tt("title") },
+              notificationsTile,
+            ];
     }
   })();
 
@@ -240,19 +430,26 @@ export function HomeHub() {
   ).filter((s) => s.status === "APPROVED").length;
   const multiRole = me.roles.length > 1 || approvedCount > 1;
 
+  const kpiLabel = activeRole === "DANCER" ? t("insights") : t("overview");
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
-      <header className="pt-4">
+      <header className="flex flex-col gap-3 pt-4">
         {/* Wordmark de marca (no es h1 — el título de sección "Inicio" lo
             lleva el large title del chrome). */}
         <p className="text-display text-3xl font-bold">
           Omni<span className="text-neon">dance</span>
         </p>
-        <p className="mt-1 text-sm text-white/60">{t("subtitle")}</p>
-        <p className="mt-3 text-lg font-medium">
+        <p className="text-sm text-white/60">{t("subtitle")}</p>
+        <p className="text-lg font-medium">
           {t("hi", { name: me.name.split(" ")[0] })}
         </p>
+        {activeRole === "DANCER" && <ModeToggle />}
       </header>
+
+      {stats && stats.kpis.length > 0 && (
+        <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+      )}
 
       <section aria-label={hero.title}>
         <Link

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
+import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
 
 // Chrome de app: hamburguesa flotante (→ drawer lateral con los módulos
@@ -33,7 +34,8 @@ type TabKey =
   | "admin"
   | "crm"
   | "profile"
-  | "create";
+  | "create"
+  | "academies";
 
 type Tab = {
   href: string;
@@ -120,6 +122,21 @@ const PROFILE_TAB: Tab = {
   key: "profile",
   icon: icon(ICONS.profile),
 };
+const ACADEMIAS_TAB: Tab = {
+  href: "/academias",
+  key: "academies",
+  icon: icon(ICONS.academy),
+};
+
+// DANCER en modo Academia: el tab de Eventos se reemplaza por el
+// directorio de academias (Mi Aprendizaje). QR se mantiene — sirve para
+// check-in de clases igual que en puerta.
+const DANCER_ACADEMY_TABS: Tab[] = [
+  HOME_TAB,
+  ACADEMIAS_TAB,
+  QR_TAB,
+  NOTIFICATIONS_TAB,
+];
 
 // Tabs por rol activo — máximo 4 slots funcionales; el quinto es siempre
 // Perfil (común a todos los roles, junto a Alertas).
@@ -388,6 +405,25 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   ],
 };
 
+// Drawer del DANCER en modo Academia — el dominio nightlife (bailes,
+// entradas, viajes) se reemplaza por el de aprendizaje. Prácticas queda
+// en ambos: es el puente entre clase y pista.
+const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [
+  {
+    labelNs: "academy",
+    labelKey: "title",
+    items: [
+      { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
+      {
+        href: "/practicas",
+        ns: "nav",
+        key: "practices",
+        icon: ICONS.practices,
+      },
+    ],
+  },
+];
+
 /** unreadCount acotado para el badge — 99+ como en el home hub. */
 function badgeText(count: number): string {
   return count > 99 ? "99+" : String(count);
@@ -410,6 +446,9 @@ export function BottomNav() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Lente activa — cambia cuando Perfil dispara setActiveRole.
   const activeRole = useActiveRole(me?.roles);
+  // Modo consumer (solo aplica a DANCER): social ↔ academy.
+  const viewMode = useViewMode();
+  const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
 
   // Baseline de no-leídas: solo si hay sesión. Un 401 deja unread en null
   // (mismo patrón de catch silencioso que apiFetch("/me") en HomeHub).
@@ -473,8 +512,15 @@ export function BottomNav() {
             ? tad(key)
             : te(key);
 
+  const roleTabs = dancerAcademy
+    ? DANCER_ACADEMY_TABS
+    : TABS_BY_ROLE[activeRole];
+  const roleDrawer = dancerAcademy
+    ? DANCER_ACADEMY_DRAWER
+    : DRAWER_BY_ROLE[activeRole];
+
   const tabHrefs = new Set(
-    [...TABS_BY_ROLE[activeRole], PROFILE_TAB].map((tab) => tab.href),
+    [...roleTabs, PROFILE_TAB].map((tab) => tab.href),
   );
 
   // Sin sesión el drawer muestra solo Perfil; con sesión, los grupos del
@@ -493,7 +539,7 @@ export function BottomNav() {
           ],
         },
       ]
-    : DRAWER_BY_ROLE[activeRole].map((g) => ({
+    : roleDrawer.map((g) => ({
         label: labelFor(g.labelNs, g.labelKey),
         items: g.items.map((spec) => ({
           href: spec.href,
@@ -508,7 +554,7 @@ export function BottomNav() {
   const hasDrawerItems = drawerGroups.some((g) => g.items.length > 0);
   const roleLabel = tpr(`roleLabels.${activeRole}`);
 
-  const allTabs = [...TABS_BY_ROLE[activeRole], PROFILE_TAB];
+  const allTabs = [...roleTabs, PROFILE_TAB];
 
   const tabLabel = (tab: Tab) =>
     tab.key === "create" ? tp("createEvent") : t(tab.key);
@@ -520,11 +566,19 @@ export function BottomNav() {
   const pageLabel = (() => {
     const entries: [string, string][] = [
       ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
+      ...DANCER_ACADEMY_TABS.map(
+        (tab) => [tab.href, tabLabel(tab)] as [string, string],
+      ),
       ...Object.values(DRAWER_BY_ROLE).flatMap((groups) =>
         groups.flatMap((g) =>
           g.items.map(
             (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
           ),
+        ),
+      ),
+      ...DANCER_ACADEMY_DRAWER.flatMap((g) =>
+        g.items.map(
+          (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
         ),
       ),
     ];
