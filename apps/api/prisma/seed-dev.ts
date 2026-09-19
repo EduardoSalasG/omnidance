@@ -1,10 +1,15 @@
 // Dataset demo de la escena SBK Santiago (spec: omni-dance.md §2).
 // Idempotente: personas/venues/series/eventos se resuelven por clave natural
 // y las fechas se refrescan en cada corrida para que la demo no envejezca.
+import { randomBytes, scryptSync } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import { ensurePerson, seedCommon } from "./seed-common";
 
 const DEV_DOMAIN = "omnidance.dev";
+
+// Password dev para todas las cuentas @omnidance.dev — permite probar el
+// login por contraseña además del magic link. Nunca en seed-prod.
+export const DEV_PASSWORD = "omnidance123";
 
 const nextDay = (weekday: number, hour = 22) => {
   // próximo <weekday> (0=dom … 6=sáb) a las <hour>h
@@ -250,9 +255,19 @@ export async function seedDev(prisma: PrismaClient) {
     );
   }
 
+  // Password dev: mismo formato scrypt$N$r$p$salt$hash que AuthService.
+  const salt = randomBytes(16);
+  const key = scryptSync(DEV_PASSWORD, salt, 64, { N: 16384, r: 8, p: 1 });
+  const passwordHash = `scrypt$16384$8$1$${salt.toString("hex")}$${key.toString("hex")}`;
+  await prisma.person.updateMany({
+    where: { email: { endsWith: `@${DEV_DOMAIN}` } },
+    data: { passwordHash },
+  });
+
   console.log("Seed dev listo:", {
     admin: admin.email,
     academias: [muvet.name],
     loginDemo: `cualquier *@${DEV_DOMAIN} por magic link`,
+    password: `${DEV_PASSWORD} (todas las cuentas @${DEV_DOMAIN})`,
   });
 }

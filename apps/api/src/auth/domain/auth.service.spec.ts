@@ -32,4 +32,25 @@ describe("AuthService", () => {
     const session = await svc.issueSession("p1");
     await expect(svc.verifyMagicToken(session)).rejects.toThrow();
   });
+
+  it("hashPassword/verifyPassword: round-trip válido y rechaza password incorrecto", async () => {
+    const hash = await svc.hashPassword("clave-secreta-123");
+    expect(hash.startsWith("scrypt$")).toBe(true);
+    expect(await svc.verifyPassword("clave-secreta-123", hash)).toBe(true);
+    expect(await svc.verifyPassword("otra-clave", hash)).toBe(false);
+  });
+
+  it("verifyPassword tolera hashes malformados sin lanzar", async () => {
+    expect(await svc.verifyPassword("x", "no-es-un-hash")).toBe(false);
+    expect(await svc.verifyPassword("x", "scrypt$abc$8$1$zz$")).toBe(false);
+    expect(await svc.verifyPassword("x", "")).toBe(false);
+  });
+
+  it("hashPassword produce salts distintos para el mismo password", async () => {
+    const [a, b] = await Promise.all([
+      svc.hashPassword("misma"),
+      svc.hashPassword("misma"),
+    ]);
+    expect(a).not.toBe(b);
+  });
 });

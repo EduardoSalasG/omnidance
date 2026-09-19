@@ -19,6 +19,28 @@ export class PrismaAuthRepo implements AuthRepo {
     });
   }
 
+  findByEmail(email: string) {
+    return this.prisma.person.findUnique({ where: { email } });
+  }
+
+  createWithPassword(email: string, name: string, passwordHash: string) {
+    return this.prisma.person.create({
+      data: {
+        email,
+        name,
+        passwordHash,
+        roles: { create: { role: "DANCER", status: "APPROVED" } },
+      },
+    });
+  }
+
+  async setPassword(personId: string, passwordHash: string) {
+    await this.prisma.person.update({
+      where: { id: personId },
+      data: { passwordHash },
+    });
+  }
+
   findById(id: string) {
     return this.prisma.person.findUnique({
       where: { id },
