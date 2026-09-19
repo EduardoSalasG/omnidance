@@ -13,11 +13,7 @@ export default function RolesPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
-      <ConsoleHeader
-        backHref="/admin"
-        backLabel={t("title")}
-        title={t("tabs.roles")}
-      />
+      <ConsoleHeader backHref="/admin" backLabel={t("title")} />
       <AdminGate>
         <RolesPanel />
       </AdminGate>

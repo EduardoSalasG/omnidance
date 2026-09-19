@@ -19,11 +19,7 @@ export default function AcademiaPlanesPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <ConsoleHeader
-        backHref="/academia"
-        backLabel={t("title")}
-        title={t("plans")}
-      />
+      <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
           <PlansModule key={academy.id} academyId={academy.id} />

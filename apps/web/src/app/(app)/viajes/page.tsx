@@ -98,7 +98,6 @@ export default function ViajesPage() {
   if (state === "unauth") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-white/60">{t("loginRequired")}</p>
         <Button href="/login">{tc("login")}</Button>
       </main>
@@ -107,8 +106,7 @@ export default function ViajesPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <div className="flex items-center justify-end gap-4">
         {state === "ready" && !formOpen && (
           <Button size="sm" onClick={() => setFormOpen(true)}>
             {t("add")}

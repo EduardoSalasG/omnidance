@@ -8,13 +8,13 @@ import { apiFetch } from "@/lib/api";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
 
-// Chrome de app: AppBar superior (marca + hamburguesa → drawer lateral con
-// los módulos del rol agrupados por dominio) y tab bar inferior con las
-// funciones primarias del rol + Perfil como quinto slot. Ambos se ocultan
-// en contextos de pantalla completa (consola staff de puerta).
-// Login vive en (marketing) sin este chrome. /qr sí muestra el nav — el
-// escáner de invitación ocupa el área de contenido, no fullscreen.
-const HIDDEN_PREFIXES = ["/staff/"];
+// Chrome de app: hamburguesa flotante (→ drawer lateral con los módulos
+// del rol agrupados por dominio) + large title iOS con la sección activa
+// + tab bar inferior con las funciones primarias del rol y Perfil como
+// quinto slot. Todo se oculta en contextos de pantalla completa
+// (consola staff de puerta). Login vive en (marketing) sin este chrome.
+// /qr sí muestra el nav — el escáner ocupa el área de contenido.
+export const CHROME_HIDDEN_PREFIXES = ["/staff/"];
 
 // Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
 const NOTIFICATION_EVENT = "omnidance:notification";
@@ -457,7 +457,8 @@ export function BottomNav() {
     setDrawerOpen(false);
   }, [pathname]);
 
-  if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
+  if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)))
+    return null;
 
   const badge = unread != null && unread > 0 ? unread : 0;
 
@@ -622,15 +623,14 @@ export function BottomNav() {
         </button>
       )}
 
-      {/* Título de la sección activa — aria-hidden porque el h1 de la
-          página y aria-current del nav ya lo comunican a lectores. */}
-      {hasDrawerItems && pageLabel && (
-        <span
-          aria-hidden
-          className="pointer-events-none fixed left-[4.25rem] top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center rounded-full border border-night-700 bg-night-900/80 px-4 text-sm font-semibold text-white/90 backdrop-blur"
-        >
+      {/* Large title estilo iOS: es el h1 de la página, vive en el
+          chrome debajo de la hamburguesa — las páginas no repiten el
+          título de sección (solo títulos de contenido: detalle de
+          evento, estados de checkout). */}
+      {pageLabel && (
+        <h1 className="pointer-events-none fixed inset-x-6 top-[calc(4rem+env(safe-area-inset-top))] z-40 truncate text-3xl font-bold tracking-tight text-white">
           {pageLabel}
-        </span>
+        </h1>
       )}
 
       <nav

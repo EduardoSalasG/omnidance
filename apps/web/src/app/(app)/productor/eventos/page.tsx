@@ -127,8 +127,7 @@ function ProducerEvents() {
         ← {t("title")}
       </Link>
 
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{t("myEvents")}</h1>
+      <div className="flex items-center justify-end gap-3">
         {gate === "ready" && (
           <Button
             size="sm"

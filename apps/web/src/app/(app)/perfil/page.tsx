@@ -161,7 +161,6 @@ export default function PerfilPage() {
   if (state === "unauth") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
         <Button href="/login">{tc("login")}</Button>
       </main>
     );
@@ -170,7 +169,6 @@ export default function PerfilPage() {
   if (state === "loading" || state === "error" || !me) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p
           role={state === "error" ? "alert" : "status"}
           className="text-white/50"
@@ -204,8 +202,6 @@ export default function PerfilPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-
       {/* Identidad */}
       <Card className="flex items-center gap-4">
         {me.photoUrl ? (

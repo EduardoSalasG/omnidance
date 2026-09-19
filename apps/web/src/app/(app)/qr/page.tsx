@@ -77,9 +77,11 @@ function QrHub() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 pt-6 sm:px-6">
       <header className="flex flex-col gap-4">
-        <h1 id="qr-hub-title" className="text-2xl font-bold">
+        {/* sr-only: el h1 visible es el large title del chrome; este span
+            conserva el accessible name del radiogroup y el modo activo. */}
+        <span id="qr-hub-title" className="sr-only">
           {mode === "escanear" ? tStaff("scan") : tQr("title")}
-        </h1>
+        </span>
 
         {/* Segmented control — radiogroup nativo: un solo tab stop, flechas
             cambian de opción gratis (patrón APG más simple para switch de
