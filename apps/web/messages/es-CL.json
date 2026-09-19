@@ -286,6 +286,21 @@
       "4": "Jueves",
       "5": "Viernes",
       "6": "Sábado"
+    },
+    "hubDesc": "Tu consola de academia",
+    "modules": {
+      "plans": "Planes",
+      "plansDesc": "Membresías y precios",
+      "students": "Alumnos",
+      "studentsDesc": "Enrollments y estados",
+      "slots": "Horarios",
+      "slotsDesc": "Bloques de clases semanales",
+      "attendance": "Asistencia",
+      "attendanceDesc": "Marcar presente por clase",
+      "lessons": "Clases particulares",
+      "lessonsDesc": "Solicitudes 1:1 con instructores",
+      "videos": "Videos",
+      "videosDesc": "Material por clase, control de acceso"
     }
   },
   "rsvp": {
@@ -389,6 +404,19 @@
       "perms": "Permisos",
       "requestable": "Solicitable",
       "superuser": "Superusuario"
+    },
+    "hubDesc": "Panel de administración de la plataforma",
+    "modules": {
+      "requests": "Solicitudes de rol",
+      "requestsDesc": "Aprueba o rechaza roles pendientes",
+      "roles": "Roles y permisos",
+      "rolesDesc": "Catálogo RBAC, permisos por rol",
+      "params": "Parámetros",
+      "paramsDesc": "Comisiones, cooldowns y límites",
+      "users": "Usuarios",
+      "usersDesc": "Buscar personas, asignar roles",
+      "audit": "Auditoría",
+      "auditDesc": "Registro de acciones administrativas"
     }
   },
   "producer": {
@@ -504,6 +532,13 @@
       "noSeries": "Evento único (sin serie)",
       "datesInvalid": "Revisa las fechas",
       "optional": "opcional"
+    },
+    "hubDesc": "Tu consola de producción",
+    "modules": {
+      "codes": "Códigos de descuento",
+      "codesDesc": "Promociones y cortesías por código",
+      "lists": "Listas de invitados",
+      "listsDesc": "Listas de puerta por evento"
     }
   },
   "profile": {

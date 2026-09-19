@@ -12,8 +12,8 @@ import type { BadgeVariant } from "@/components/ui";
 
 export { readError } from "../academy/shared";
 
-// Roles que habilitan la consola (espejo de ProducerGuard — mismo set que
-// src/app/(app)/productor/page.tsx).
+// Roles que habilitan la consola (espejo de ProducerGuard — usado por
+// producer-gate.tsx y los gates inline de eventos/pagos).
 export const PRODUCER_ROLES = new Set(["PRODUCER", "ADMIN"]);
 
 // Enum EventType del schema (PRACTICA, no PRACTICE).
