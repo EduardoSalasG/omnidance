@@ -509,6 +509,31 @@ export function BottomNav() {
 
   const allTabs = [...TABS_BY_ROLE[activeRole], PROFILE_TAB];
 
+  const tabLabel = (tab: Tab) =>
+    tab.key === "create" ? tp("createEvent") : t(tab.key);
+
+  // Título contextual junto a la hamburguesa: longest-prefix match sobre
+  // tabs + ítems del drawer de todos los roles (solo resuelve el nombre
+  // de la ruta actual — /admin/usuarios → "Usuarios", /eventos/1 →
+  // "Eventos"). Sin match (p.ej. /checkout) no se muestra nada.
+  const pageLabel = (() => {
+    const entries: [string, string][] = [
+      ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
+      ...Object.values(DRAWER_BY_ROLE).flatMap((groups) =>
+        groups.flatMap((g) =>
+          g.items.map(
+            (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
+          ),
+        ),
+      ),
+    ];
+    entries.sort((a, b) => b[0].length - a[0].length);
+    const hit = entries.find(
+      ([href]) => pathname === href || pathname.startsWith(`${href}/`),
+    );
+    return hit?.[1] ?? null;
+  })();
+
   const renderTab = (tab: Tab) => {
     // /inicio es match exacto (prefijo "/" marcaría todo); el resto
     // por prefijo — /productor/eventos solo se activa con ese
@@ -564,7 +589,7 @@ export function BottomNav() {
           ) : (
             tab.icon(active)
           )}
-          {tab.key === "create" ? tp("createEvent") : t(tab.key)}
+          {tabLabel(tab)}
         </Link>
       </li>
     );
@@ -595,6 +620,17 @@ export function BottomNav() {
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
+      )}
+
+      {/* Título de la sección activa — aria-hidden porque el h1 de la
+          página y aria-current del nav ya lo comunican a lectores. */}
+      {hasDrawerItems && pageLabel && (
+        <span
+          aria-hidden
+          className="pointer-events-none fixed left-[4.25rem] top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center rounded-full border border-night-700 bg-night-900/80 px-4 text-sm font-semibold text-white/90 backdrop-blur"
+        >
+          {pageLabel}
+        </span>
       )}
 
       <nav
