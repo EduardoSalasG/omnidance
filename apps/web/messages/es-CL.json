@@ -119,16 +119,20 @@
     "producer": "Productor",
     "crm": "CRM",
     "admin": "Admin",
-    "notificationsFull": "Alertas y notificaciones",
+    "notificationsFull": "Notificaciones",
     "menu": "Menú",
     "closeMenu": "Cerrar menú",
     "socialSection": "Social",
     "consoleSection": "Consola",
     "academies": "Academias",
     "lessons": "Particulares",
-    "notificationsUnread": "Alertas ({count} sin leer)",
+    "notificationsUnread": "Notificaciones ({count} sin leer)",
     "friends": "Amigos",
-    "classes": "Clases"
+    "classes": "Clases",
+    "payouts": "Pagos",
+    "attendance": "Asistencia",
+    "analytics": "Analítica",
+    "notifications": "Notificaciones"
   },
   "login": {
     "title": "Entra a Omnidance",

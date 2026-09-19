@@ -29,7 +29,6 @@ type TabKey =
   | "home"
   | "events"
   | "scan"
-  | "notifications"
   | "staff"
   | "academy"
   | "admin"
@@ -38,7 +37,12 @@ type TabKey =
   | "create"
   | "academies"
   | "friends"
-  | "classes";
+  | "classes"
+  | "tickets"
+  | "practices"
+  | "payouts"
+  | "attendance"
+  | "analytics";
 
 type Tab = {
   href: string;
@@ -115,11 +119,6 @@ const QR_TAB: Tab = {
   icon: icon(ICONS.scan),
   center: true,
 };
-const NOTIFICATIONS_TAB: Tab = {
-  href: "/notificaciones",
-  key: "notifications",
-  icon: icon(ICONS.notifications),
-};
 const PROFILE_TAB: Tab = {
   href: "/perfil",
   key: "profile",
@@ -140,27 +139,55 @@ const CLASSES_TAB: Tab = {
   key: "classes",
   icon: icon(ICONS.clock),
 };
+const TICKETS_TAB: Tab = {
+  href: "/entradas",
+  key: "tickets",
+  icon: icon(ICONS.tickets),
+};
+const PRACTICES_TAB: Tab = {
+  href: "/practicas",
+  key: "practices",
+  icon: icon(ICONS.practices),
+};
+const PAYOUTS_TAB: Tab = {
+  href: "/productor/pagos",
+  key: "payouts",
+  icon: icon(ICONS.card),
+};
+const ATTENDANCE_TAB: Tab = {
+  href: "/academia/asistencia",
+  key: "attendance",
+  icon: icon(ICONS.staff),
+};
+const ANALYTICS_TAB: Tab = {
+  href: "/analitica",
+  key: "analytics",
+  icon: icon(ICONS.slider),
+};
 
 // DANCER en modo Academia: Eventos se reemplaza por el directorio de
-// academias y Clases (explorar + mis reservas) entra como tab propio.
-// QR se mantiene — sirve para check-in de clases igual que en puerta.
+// academias, Clases (explorar + mis reservas) es tab propio y el slot
+// libre lo ocupa Prácticas. QR se mantiene — sirve para check-in de
+// clases igual que en puerta.
 const DANCER_ACADEMY_TABS: Tab[] = [
   HOME_TAB,
   ACADEMIAS_TAB,
   CLASSES_TAB,
   QR_TAB,
-  NOTIFICATIONS_TAB,
+  PRACTICES_TAB,
 ];
 
 // Tabs por rol activo — máximo 4 slots funcionales; el quinto es siempre
-// Perfil (común a todos los roles, junto a Alertas).
+// Perfil (común a todos los roles). Las notificaciones viven en el
+// appbar (campana con badge), no en el bottom nav: el slot que liberan
+// lo ocupa la función más usada de cada rol.
 const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
-  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, FRIENDS_TAB, NOTIFICATIONS_TAB],
+  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, FRIENDS_TAB, TICKETS_TAB],
   STAFF: [
     HOME_TAB,
     { href: "/staff", key: "staff", icon: icon(ICONS.staff) },
     QR_TAB,
-    NOTIFICATIONS_TAB,
+    EVENTS_TAB,
   ],
   PRODUCER: [
     HOME_TAB,
@@ -171,7 +198,7 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
       icon: icon(ICONS.plus),
       center: true,
     },
-    NOTIFICATIONS_TAB,
+    PAYOUTS_TAB,
   ],
   ACADEMY_OWNER: [
     HOME_TAB,
@@ -181,7 +208,7 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
       icon: icon(ICONS.academy),
       center: true,
     },
-    NOTIFICATIONS_TAB,
+    ATTENDANCE_TAB,
   ],
   INSTRUCTOR: [
     HOME_TAB,
@@ -191,15 +218,15 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
       icon: icon(ICONS.academy),
       center: true,
     },
-    NOTIFICATIONS_TAB,
+    ATTENDANCE_TAB,
   ],
-  DJ: [HOME_TAB, EVENTS_TAB, NOTIFICATIONS_TAB],
-  VENUE_MANAGER: [HOME_TAB, EVENTS_TAB, NOTIFICATIONS_TAB],
+  DJ: [HOME_TAB, EVENTS_TAB, QR_TAB],
+  VENUE_MANAGER: [HOME_TAB, EVENTS_TAB, ANALYTICS_TAB],
   ADMIN: [
     HOME_TAB,
     { href: "/admin", key: "admin", icon: icon(ICONS.admin), center: true },
     { href: "/crm", key: "crm", icon: icon(ICONS.crm) },
-    NOTIFICATIONS_TAB,
+    ANALYTICS_TAB,
   ],
 };
 
@@ -573,8 +600,8 @@ export function BottomNav() {
   }, []);
 
   // La página /notificaciones marca leídas por ítem sin emitir evento:
-  // al entrar al tab el badge se resetea (el socket lo vuelve a subir si
-  // llega una nueva).
+  // al entrar el badge se resetea (el socket lo vuelve a subir si llega
+  // una nueva).
   useEffect(() => {
     if (pathname.startsWith("/notificaciones")) setUnread(0);
   }, [pathname]);
@@ -645,6 +672,9 @@ export function BottomNav() {
   // "Eventos"). Sin match (p.ej. /checkout) no se muestra nada.
   const pageLabel = (() => {
     const entries: [string, string][] = [
+      // /notificaciones ya no es tab: vive en la campana del appbar,
+      // pero el título contextual sigue resolviendo la ruta.
+      ["/notificaciones", t("notifications")],
       ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
       ...DANCER_ACADEMY_TABS.map(
         (tab) => [tab.href, tabLabel(tab)] as [string, string],
@@ -677,20 +707,11 @@ export function BottomNav() {
       tab.href === "/inicio"
         ? pathname === "/inicio"
         : pathname.startsWith(tab.href);
-    const isNotifications = tab.key === "notifications";
-    const showBadge = isNotifications && badge > 0;
     return (
       <li key={tab.key} className="flex-1">
         <Link
           href={tab.href}
           aria-current={active ? "page" : undefined}
-          aria-label={
-            isNotifications
-              ? showBadge
-                ? t("notificationsUnread", { count: badge })
-                : t("notificationsFull")
-              : undefined
-          }
           className={`flex h-full min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors active:scale-95 ${
             tab.center
               ? "text-neon"
@@ -699,19 +720,7 @@ export function BottomNav() {
                 : "text-white/50 hover:text-white/80"
           }`}
         >
-          {isNotifications ? (
-            <span className="relative">
-              {tab.icon(active)}
-              {showBadge && (
-                <span
-                  aria-hidden
-                  className="absolute -right-2.5 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-night-950"
-                >
-                  {badgeText(badge)}
-                </span>
-              )}
-            </span>
-          ) : tab.center ? (
+          {tab.center ? (
             <span
               className={`flex h-10 w-10 items-center justify-center rounded-full border ${
                 active
@@ -777,6 +786,40 @@ export function BottomNav() {
             {pageLabel}
           </h1>
         )
+      )}
+
+      {/* Campana de notificaciones — appbar derecha, espejo de la
+          hamburguesa. Mismo badge con tope 99+; el aria-label anuncia
+          el conteo. Solo con sesión (un 401 deja me en null). */}
+      {me && (
+        <Link
+          href="/notificaciones"
+          aria-label={
+            badge > 0
+              ? t("notificationsUnread", { count: badge })
+              : t("notificationsFull")
+          }
+          aria-current={
+            pathname.startsWith("/notificaciones") ? "page" : undefined
+          }
+          className={`fixed right-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-night-700 bg-night-900/80 shadow-lg shadow-black/40 backdrop-blur transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+            pathname.startsWith("/notificaciones")
+              ? "text-neon"
+              : "text-white/80 hover:text-white"
+          }`}
+        >
+          <span className="relative">
+            {icon(ICONS.notifications)(false)}
+            {badge > 0 && (
+              <span
+                aria-hidden
+                className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-night-950"
+              >
+                {badgeText(badge)}
+              </span>
+            )}
+          </span>
+        </Link>
       )}
 
       <nav
