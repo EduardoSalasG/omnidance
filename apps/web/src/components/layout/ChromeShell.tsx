@@ -27,7 +27,7 @@ export function ChromeShell({ children }: { children: React.ReactNode }) {
         className={`outline-none ${
           hidden
             ? ""
-            : "pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(6.75rem+env(safe-area-inset-top))]"
+            : "pb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(4.25rem+env(safe-area-inset-top))]"
         }`}
       >
         {children}
