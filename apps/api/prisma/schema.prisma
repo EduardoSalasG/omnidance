@@ -229,7 +229,10 @@ model Event {
   doorPrice    Int?
   presaleCap  Int?
   doorCap     Int?
-  serviceFeeClp Int?      // override admin del cargo por servicio de preventa; null → param global
+  serviceFeeClp Int?      // override admin del cargo por servicio de preventa; null → default del productor → param global
+  doorAppFeeClp Int?      // override fee venta en puerta por app; misma cadena
+  doorCashFeeClp Int?     // override fee registro en efectivo en puerta
+  platformFeePct Float?   // override % comisión plataforma sobre ventas del evento
   // Prime Time
   primeThreshold Int?     // null → ~20% del aforo esperado
   happyHourMinutes Int @default(30)
@@ -922,6 +925,7 @@ model Payout {
   periodStart DateTime
   periodEnd   DateTime
   gross       Int
+  platformFee Int         @default(0) // comisión plataforma descontada en esta liquidación
   net         Int
   status      PayoutStatus @default(PENDING)
   evidenceUrl String? // comprobante de transferencia
@@ -1072,6 +1076,19 @@ model AuditLog {
 }
 
 // ═══════════════════ CONFIGURACIÓN DE PLATAFORMA ═══════════════════
+
+// Defaults de fees/comisiones por productor — editables solo por admin.
+// Cada campo null hereda el PlatformParam global; un evento puede
+// sobreescribir a su vez (cadena: evento → productor → global).
+model ProducerParams {
+  producerId     String   @id
+  serviceFeeClp  Int?
+  doorAppFeeClp  Int?
+  doorCashFeeClp Int?
+  platformFeePct Float?
+  updatedById    String?
+  updatedAt      DateTime @updatedAt
+}
 
 // Parámetros operativos editables desde /admin (fees, ventanas, thresholds).
 // Defaults documentados en @omnidance/shared; este modelo es la fuente viva.

@@ -18,8 +18,10 @@ import {
   IsInt,
   IsISO8601,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
+  Max,
   Min,
   ValidateNested,
 } from "class-validator";
@@ -109,13 +111,32 @@ class CreateEventDto {
   doorCap?: number;
 
   /**
-   * Override admin del cargo por servicio de preventa (null → param global).
-   * Solo seteable por admin.access — el handler lo valida.
+   * Override admin del cargo por servicio de preventa (null → default del
+   * productor → param global). Solo seteable por admin.access.
    */
   @IsOptional()
   @IsInt()
   @Min(0)
   serviceFeeClp?: number | null;
+
+  /** Override admin del fee de venta en puerta por app. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  doorAppFeeClp?: number | null;
+
+  /** Override admin del fee de registro en efectivo en puerta. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  doorCashFeeClp?: number | null;
+
+  /** Override admin del % comisión plataforma (0–100). */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  platformFeePct?: number | null;
 
   @IsOptional()
   @IsInt()
@@ -189,6 +210,25 @@ class UpdateEventDto {
   @IsInt()
   @Min(0)
   serviceFeeClp?: number | null;
+
+  /** Override admin del fee de puerta app — null limpia el override. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  doorAppFeeClp?: number | null;
+
+  /** Override admin del fee de puerta efectivo — null limpia el override. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  doorCashFeeClp?: number | null;
+
+  /** Override admin del % comisión plataforma — null limpia el override. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  platformFeePct?: number | null;
 
   @IsOptional()
   @IsInt()
@@ -272,6 +312,9 @@ export class EventsController {
         presalePrice: true,
         doorPrice: true,
         serviceFeeClp: true,
+        doorAppFeeClp: true,
+        doorCashFeeClp: true,
+        platformFeePct: true,
         series: { select: { id: true, name: true } },
         venue: { select: { name: true, address: true } },
       },
@@ -295,6 +338,9 @@ export class EventsController {
         presaleCap: true,
         doorCap: true,
         serviceFeeClp: true,
+        doorAppFeeClp: true,
+        doorCashFeeClp: true,
+        platformFeePct: true,
         primeThreshold: true,
         happyHourMinutes: true,
         producerId: true,
@@ -333,7 +379,12 @@ export class EventsController {
   @RequirePermissions("events.manage")
   async create(@Body() dto: CreateEventDto, @Req() req: Request) {
     const me = req.person!;
-    if (dto.serviceFeeClp !== undefined) {
+    if (
+      dto.serviceFeeClp !== undefined ||
+      dto.doorAppFeeClp !== undefined ||
+      dto.doorCashFeeClp !== undefined ||
+      dto.platformFeePct !== undefined
+    ) {
       await this.assertAdminFeeOverride(me);
     }
     if (dto.seriesId) {
@@ -356,6 +407,9 @@ export class EventsController {
         presaleCap: dto.presaleCap ?? null,
         doorCap: dto.doorCap ?? null,
         serviceFeeClp: dto.serviceFeeClp ?? null,
+        doorAppFeeClp: dto.doorAppFeeClp ?? null,
+        doorCashFeeClp: dto.doorCashFeeClp ?? null,
+        platformFeePct: dto.platformFeePct ?? null,
         primeThreshold: dto.primeThreshold ?? null,
         ...(dto.happyHourMinutes !== undefined
           ? { happyHourMinutes: dto.happyHourMinutes }
@@ -418,6 +472,18 @@ export class EventsController {
       // campo operativo (no contenido): solo admin.access lo fija/limpia.
       await this.assertAdminFeeOverride(me);
       data.serviceFeeClp = dto.serviceFeeClp;
+    }
+    if (dto.doorAppFeeClp !== undefined) {
+      await this.assertAdminFeeOverride(me);
+      data.doorAppFeeClp = dto.doorAppFeeClp;
+    }
+    if (dto.doorCashFeeClp !== undefined) {
+      await this.assertAdminFeeOverride(me);
+      data.doorCashFeeClp = dto.doorCashFeeClp;
+    }
+    if (dto.platformFeePct !== undefined) {
+      await this.assertAdminFeeOverride(me);
+      data.platformFeePct = dto.platformFeePct;
     }
     if (dto.primeThreshold !== undefined)
       data.primeThreshold = dto.primeThreshold;

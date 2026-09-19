@@ -217,7 +217,9 @@ type DrawerSpec = {
     | "friends"
     | "classes"
     | "academySeries"
-    | "adminCatalogs";
+    | "adminCatalogs"
+    | "producerParams"
+    | "analytics";
   key: string;
   icon: string;
 };
@@ -285,6 +287,18 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "payouts",
           icon: ICONS.card,
         },
+        {
+          href: "/productor/parametros",
+          ns: "producerParams",
+          key: "title",
+          icon: ICONS.slider,
+        },
+        {
+          href: "/analitica",
+          ns: "analytics",
+          key: "title",
+          icon: ICONS.slider,
+        },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
@@ -343,6 +357,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.videos",
           icon: ICONS.play,
         },
+        {
+          href: "/analitica",
+          ns: "analytics",
+          key: "title",
+          icon: ICONS.slider,
+        },
       ],
     },
   ],
@@ -385,7 +405,20 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
   ],
   DJ: [],
-  VENUE_MANAGER: [],
+  VENUE_MANAGER: [
+    {
+      labelNs: "nav",
+      labelKey: "consoleSection",
+      items: [
+        {
+          href: "/analitica",
+          ns: "analytics",
+          key: "title",
+          icon: ICONS.slider,
+        },
+      ],
+    },
+  ],
   ADMIN: [
     {
       labelNs: "admin",
@@ -426,6 +459,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "adminCatalogs",
           key: "title",
           icon: ICONS.tag,
+        },
+        {
+          href: "/analitica",
+          ns: "analytics",
+          key: "title",
+          icon: ICONS.slider,
         },
       ],
     },
@@ -485,6 +524,8 @@ export function BottomNav() {
     classes: useTranslations("classes"),
     academySeries: useTranslations("academySeries"),
     adminCatalogs: useTranslations("adminCatalogs"),
+    producerParams: useTranslations("producerParams"),
+    analytics: useTranslations("analytics"),
   } as const;
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);

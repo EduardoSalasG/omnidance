@@ -110,8 +110,11 @@ export type EventDetail = {
   presalePrice: number | null;
   doorPrice: number | null;
   primeThreshold: number | null;
-  /** Override admin del cargo por servicio; null → fee global de plataforma. */
+  /** Overrides de fees (solo admin los fija); null → default del productor → global. */
   serviceFeeClp?: number | null;
+  doorAppFeeClp?: number | null;
+  doorCashFeeClp?: number | null;
+  platformFeePct?: number | null;
   // No seleccionados por el endpoint hoy; quedan para pre-cargar el form
   // si el contrato los agrega.
   presaleCap?: number | null;

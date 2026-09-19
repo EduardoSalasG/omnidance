@@ -26,6 +26,8 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
         doorPrice: true,
         doorCap: true,
         producerId: true,
+        doorAppFeeClp: true,
+        doorCashFeeClp: true,
         seriesId: true,
       },
     });
@@ -256,5 +258,9 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
 
   getParamNumber(key: string, fallback: number) {
     return this.params.getNumber(key, fallback);
+  }
+
+  getProducerParams(producerId: string | null | undefined) {
+    return this.params.getProducerParams(producerId);
   }
 }

@@ -117,6 +117,7 @@ export class CheckoutService {
         presaleCap: true,
         seriesId: true,
         serviceFeeClp: true,
+        producerId: true,
       },
     });
     if (!event) throw new EventNotFoundError();
@@ -168,10 +169,14 @@ export class CheckoutService {
       if (!check.ok) throw new InvalidDiscountError(check.reason);
     }
 
-    // fee parametrizable: override admin del evento → PlatformParam →
-    // env → default del shared
+    // fee parametrizable: override del evento → default del productor →
+    // PlatformParam → env → default del shared
+    const producerParams = await this.params.getProducerParams(
+      event.producerId,
+    );
     const serviceFeeClp =
       event.serviceFeeClp ??
+      producerParams?.serviceFeeClp ??
       (await this.params.getNumber(
         "service_fee.presale_clp",
         Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
@@ -247,7 +252,7 @@ export class CheckoutService {
   ): Promise<PurchaseTicketResult> {
     const series = await this.prisma.eventSeries.findUnique({
       where: { id: input.seriesId },
-      select: { id: true, active: true },
+      select: { id: true, active: true, producerId: true },
     });
     if (!series) throw new SeriesNotFoundError();
     if (!series.active) throw new SeriesInactiveError();
@@ -266,15 +271,18 @@ export class CheckoutService {
     });
     if (owned) throw new SeriesPassAlreadyOwnedError();
 
-    // Precio/cargo parametrizables (PlatformParam); sin descuentos en v1.
+    // Precio/cargo parametrizables: default del productor → PlatformParam;
+    // sin descuentos ni override por serie en v1.
     const listPrice = await this.params.getNumber(
       "series_pass.price_clp",
       25000,
     );
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.series_pass_clp",
-      500,
+    const producerParams = await this.params.getProducerParams(
+      series.producerId,
     );
+    const serviceFeeClp =
+      producerParams?.serviceFeeClp ??
+      (await this.params.getNumber("service_fee.series_pass_clp", 500));
     const quote = this.pricing.quote({
       listPrice,
       serviceFeeClp,

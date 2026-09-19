@@ -25,6 +25,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { ParamsService } from "../../params/params.service";
 import { decodeSeriesPassRef } from "../domain/order-ref";
 
 const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"] as const;
@@ -91,7 +92,10 @@ class PayPayoutDto {
 @UseGuards(SessionGuard, RolesGuard)
 @RequirePermissions("admin.access")
 export class AdminPayoutsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly params: ParamsService,
+  ) {}
 
   /**
    * Genera la liquidación del actor para el período. Idempotente: si ya
@@ -116,7 +120,7 @@ export class AdminPayoutsController {
     });
     if (existing) return existing;
 
-    const { gross, net } = await this.computeSettlement(
+    const { gross, net, platformFee } = await this.computeSettlement(
       dto.actorType,
       dto.actorId,
       periodStart,
@@ -130,6 +134,7 @@ export class AdminPayoutsController {
         periodStart,
         periodEnd,
         gross,
+        platformFee,
         net,
       },
     });
@@ -137,6 +142,7 @@ export class AdminPayoutsController {
       actorType: dto.actorType,
       actorId: dto.actorId,
       gross,
+      platformFee,
       net,
     });
     return payout;
@@ -219,44 +225,71 @@ export class AdminPayoutsController {
     actorId: string,
     periodStart: Date,
     periodEnd: Date,
-  ): Promise<{ gross: number; net: number }> {
+  ): Promise<{ gross: number; net: number; platformFee: number }> {
     if (actorType === "ACADEMY" || actorType === "VENUE") {
       const events = await this.prisma.event.findMany({
         where:
           actorType === "ACADEMY"
             ? { academyId: actorId, producerId: null }
             : { venueId: actorId, producerId: null },
-        select: { id: true },
+        select: { id: true, platformFeePct: true },
       });
-      if (!events.length) return { gross: 0, net: 0 };
-      const agg = await this.prisma.payment.aggregate({
+      if (!events.length) return { gross: 0, net: 0, platformFee: 0 };
+      const globalPct = await this.params.getNumber(
+        "platform_fee.default_pct",
+        0,
+      );
+      const pctByEvent = new Map(
+        events.map((e) => [e.id, e.platformFeePct ?? globalPct]),
+      );
+      const payments = await this.prisma.payment.findMany({
         where: {
           orderType: "TICKET",
           status: "PAID",
           eventId: { in: events.map((e) => e.id) },
           createdAt: { gte: periodStart, lte: periodEnd },
         },
-        _sum: { amount: true, fee: true },
+        select: { eventId: true, amount: true, fee: true },
       });
-      const gross = agg._sum.amount ?? 0;
-      return { gross, net: gross - (agg._sum.fee ?? 0) };
+      let gross = 0;
+      let fees = 0;
+      let platformFee = 0;
+      for (const p of payments) {
+        gross += p.amount;
+        fees += p.fee;
+        platformFee += Math.round(
+          (p.amount * (pctByEvent.get(p.eventId ?? "") ?? 0)) / 100,
+        );
+      }
+      return { gross, net: gross - fees - platformFee, platformFee };
     }
     if (actorType !== "PRODUCER") {
-      return { gross: 0, net: 0 };
+      return { gross: 0, net: 0, platformFee: 0 };
     }
 
-    const [events, series] = await Promise.all([
+    const [events, series, producerParams, globalPct] = await Promise.all([
       this.prisma.event.findMany({
         where: { producerId: actorId },
-        select: { id: true },
+        select: { id: true, platformFeePct: true },
       }),
       this.prisma.eventSeries.findMany({
         where: { producerId: actorId },
         select: { id: true },
       }),
+      this.params.getProducerParams(actorId),
+      this.params.getNumber("platform_fee.default_pct", 0),
     ]);
     const eventIds = new Set(events.map((e) => e.id));
     const seriesIds = new Set(series.map((s) => s.id));
+    // % efectivo por evento: override del evento → default del productor →
+    // param global. Los pases de serie usan el default del productor.
+    const pctByEvent = new Map(
+      events.map((e) => [
+        e.id,
+        e.platformFeePct ?? producerParams?.platformFeePct ?? globalPct,
+      ]),
+    );
+    const passPct = producerParams?.platformFeePct ?? globalPct;
 
     const payments = await this.prisma.payment.findMany({
       where: {
@@ -275,16 +308,21 @@ export class AdminPayoutsController {
 
     let gross = 0;
     let fees = 0;
+    let platformFee = 0;
     for (const p of payments) {
-      const belongs =
-        p.orderType === "TICKET"
-          ? p.eventId != null && eventIds.has(p.eventId)
-          : seriesIds.has(decodeSeriesPassRef(p.refId)?.seriesId ?? "");
+      const isTicket = p.orderType === "TICKET";
+      const belongs = isTicket
+        ? p.eventId != null && eventIds.has(p.eventId)
+        : seriesIds.has(decodeSeriesPassRef(p.refId)?.seriesId ?? "");
       if (!belongs) continue;
       gross += p.amount;
       fees += p.fee;
+      const pct = isTicket
+        ? (pctByEvent.get(p.eventId ?? "") ?? 0)
+        : passPct;
+      platformFee += Math.round((p.amount * pct) / 100);
     }
-    return { gross, net: gross - fees };
+    return { gross, net: gross - fees - platformFee, platformFee };
   }
 
   private audit(

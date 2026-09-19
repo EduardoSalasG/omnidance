@@ -79,6 +79,7 @@ export const PARAM_DEFAULTS: Array<{
   { key: "early_checkin.cutoff_minutes", value: 1380, description: "Minutos desde medianoche — check-in antes de esta hora (23:00) cuenta como temprano (badge madrugador + puntos early_checkin)" },
   { key: "series_pass.price_clp", value: 25000, description: "Precio mensual del pase de serie (CLP) — fallback si la serie no define precio propio" },
   { key: "service_fee.series_pass_clp", value: 500, description: "Cargo por servicio del pase de serie (CLP)" },
+  { key: "platform_fee.default_pct", value: 0, description: "Comisión de plataforma sobre ventas (%) — se descuenta del gross al liquidar; override por productor y por evento" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
 ];
 
