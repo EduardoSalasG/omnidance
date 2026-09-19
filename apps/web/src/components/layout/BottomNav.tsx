@@ -677,12 +677,12 @@ export function BottomNav() {
         </button>
       )}
 
-      {/* Large title estilo iOS: es el h1 de la página, vive en el
-          chrome debajo de la hamburguesa — las páginas no repiten el
-          título de sección (solo títulos de contenido: detalle de
-          evento, estados de checkout). */}
+      {/* Título de sección estilo nav bar iOS: h1 centrado a la misma
+          altura que la hamburguesa — las páginas no repiten el título
+          de sección (solo títulos de contenido: detalle de evento,
+          estados de checkout). px-16 despeja el botón flotante. */}
       {pageLabel && (
-        <h1 className="pointer-events-none fixed inset-x-6 top-[calc(4rem+env(safe-area-inset-top))] z-40 truncate text-3xl font-bold tracking-tight text-white">
+        <h1 className="pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center justify-center truncate px-16 text-center text-lg font-semibold tracking-tight text-white">
           {pageLabel}
         </h1>
       )}
