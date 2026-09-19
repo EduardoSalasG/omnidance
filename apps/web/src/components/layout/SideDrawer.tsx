@@ -75,8 +75,8 @@ export function SideDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={t("menu")}
-        className={`fixed inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col border-l border-night-700 bg-night-900 shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
-          entered ? "translate-x-0" : "translate-x-full"
+        className={`fixed inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-night-700 bg-night-900 shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
+          entered ? "translate-x-0" : "-translate-x-full"
         }`}
         onClick={(e) => e.stopPropagation()}
       >

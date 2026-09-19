@@ -572,40 +572,30 @@ export function BottomNav() {
 
   return (
     <>
-      {/* AppBar: marca + hamburguesa (solo si el rol tiene drawer) */}
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-night-700 bg-night-950/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
-          <Link
-            href="/inicio"
-            className="flex min-h-11 items-center text-base font-bold tracking-tight text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+      {/* Hamburguesa flotante — solo si el rol tiene módulos en el drawer */}
+      {hasDrawerItems && (
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={drawerOpen}
+          aria-controls="app-side-drawer"
+          aria-label={t("menu")}
+          onClick={() => setDrawerOpen((o) => !o)}
+          className="fixed left-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-night-700 bg-night-900/80 text-white/80 shadow-lg shadow-black/40 backdrop-blur transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        >
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            className="h-6 w-6"
           >
-            Omnidance
-          </Link>
-          {hasDrawerItems && (
-            <button
-              type="button"
-              aria-haspopup="dialog"
-              aria-expanded={drawerOpen}
-              aria-controls="app-side-drawer"
-              aria-label={t("menu")}
-              onClick={() => setDrawerOpen((o) => !o)}
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-white/70 transition-colors hover:bg-night-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-            >
-              <svg
-                aria-hidden
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                className="h-6 w-6"
-              >
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </header>
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
 
       <nav
         aria-label={t("main")}
