@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useActiveRole } from "@/lib/active-role";
-import { useViewMode, setViewMode, type ViewMode } from "@/lib/view-mode";
+import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -15,8 +15,6 @@ type Me = {
   roles: string[];
   roleStates?: { role: string; status: string }[];
 };
-
-type Tile = { href: string; label: string; desc?: string; badge?: number };
 
 type Kpi = { key: string; value: number; format?: "clp" };
 type NextItem = { id: string; name: string; when: string; place: string | null };
@@ -55,85 +53,7 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   month: "short",
 });
 
-function TileLink({ href, label, desc, badge }: Tile) {
-  return (
-    <li>
-      <Link
-        href={href}
-        className="relative flex min-h-11 flex-col justify-center gap-0.5 rounded-xl border border-night-700 bg-night-800/60 px-4 py-3 transition-colors transition-transform hover:border-neon/50 active:scale-[0.98]"
-      >
-        <span className="font-medium leading-tight">
-          {label}
-          {badge != null && badge > 0 && (
-            <span
-              aria-label={`${badge}`}
-              className="ml-2 inline-flex min-w-5 items-center justify-center rounded-full bg-neon px-1.5 py-0.5 text-[11px] font-bold leading-none text-night-950"
-            >
-              {badge > 99 ? "99+" : badge}
-            </span>
-          )}
-        </span>
-        {desc && <span className="text-xs text-white/50">{desc}</span>}
-      </Link>
-    </li>
-  );
-}
-
-// Switch Social/Academia del lens consumer — radiogroup nativo (mismo
-// patrón APG del hub QR): un tab stop, flechas cambian opción, indicador
-// deslizante con transform puro y reduced-motion instantáneo.
-function ModeToggle() {
-  const t = useTranslations("home");
-  const mode = useViewMode();
-  const options: { value: ViewMode; label: string }[] = [
-    { value: "social", label: t("modeSocial") },
-    { value: "academy", label: t("modeAcademy") },
-  ];
-  return (
-    <div
-      role="radiogroup"
-      aria-label={t("modeLabel")}
-      className="relative grid grid-cols-2 rounded-full border border-night-700 bg-night-800 p-1"
-    >
-      <span
-        aria-hidden
-        className={`absolute bottom-1 left-1 top-1 w-[calc(50%-0.25rem)] rounded-full bg-neon transition-transform duration-200 ease-out motion-reduce:transition-none ${
-          mode === "academy" ? "translate-x-full" : "translate-x-0"
-        }`}
-      />
-      {options.map((opt) => (
-        <label
-          key={opt.value}
-          className="relative z-10 cursor-pointer"
-        >
-          <input
-            type="radio"
-            name="view-mode"
-            value={opt.value}
-            checked={mode === opt.value}
-            onChange={() => setViewMode(opt.value)}
-            className="peer sr-only"
-          />
-          <span
-            className={`flex min-h-9 items-center justify-center rounded-full text-sm font-medium transition-colors peer-checked:text-night-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-neon ${
-              mode === opt.value ? "font-semibold" : "text-white/60"
-            }`}
-          >
-            {opt.label}
-          </span>
-        </label>
-      ))}
-    </div>
-  );
-}
-
-function KpiGrid({
-  kpis,
-  label,
-}: {
-  kpis: Kpi[];
-  label: string;
-}) {
+function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
   const t = useTranslations("home");
   if (kpis.length === 0) return null;
   return (
@@ -174,21 +94,14 @@ export function HomeHub() {
   const t = useTranslations("home");
   const tc = useTranslations("common");
   const te = useTranslations("events");
-  const ts = useTranslations("sessions");
   const tq = useTranslations("qr");
-  const tw = useTranslations("wallet");
-  const tp = useTranslations("practices");
-  const tt = useTranslations("trips");
-  const tn = useTranslations("notifications");
   const tst = useTranslations("staff");
   const ta = useTranslations("academy");
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
-  const tnav = useTranslations("nav");
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
-  const [unread, setUnread] = useState(0);
   const [stats, setStats] = useState<HomeStats | null>(null);
   const activeRole = useActiveRole(me?.roles);
   const viewMode = useViewMode();
@@ -226,26 +139,6 @@ export function HomeHub() {
     };
   }, [me, activeRole, viewMode]);
 
-  // Conteo inicial de no-leídas + incremento en vivo vía CustomEvent
-  // (RealTimeProvider despacha "omnidance:notification" al recibir una).
-  useEffect(() => {
-    if (!me) return;
-    let cancelled = false;
-    apiFetch("/notifications?limit=1")
-      .then(async (res) => {
-        if (cancelled || !res.ok) return;
-        const data = (await res.json()) as { unreadCount?: number };
-        setUnread(data.unreadCount ?? 0);
-      })
-      .catch(() => {});
-    const onNotify = () => setUnread((u) => u + 1);
-    window.addEventListener("omnidance:notification", onNotify);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("omnidance:notification", onNotify);
-    };
-  }, [me]);
-
   if (!checked) {
     return (
       <main className="flex min-h-dvh items-center justify-center">
@@ -266,12 +159,6 @@ export function HomeHub() {
       </main>
     );
   }
-
-  const notificationsTile: Tile = {
-    href: "/notificaciones",
-    label: tn("title"),
-    badge: unread,
-  };
 
   // Hero = acción principal. DANCER: "Esta noche" real (stats.tonight) o
   // próxima clase en modo Academia; management: su consola. DJ/VENUE
@@ -305,7 +192,7 @@ export function HomeHub() {
       const tonight = stats?.tonight;
       if (tonight) {
         return {
-          href: `/eventos/${tonight.id}`,
+          href: tonight.hasTicket ? "/qr" : `/eventos/${tonight.id}`,
           title: tonight.name,
           desc: `${t("tonight")} · ${timeFmt.format(new Date(tonight.startsAt))}${tonight.venueName ? ` · ${tonight.venueName}` : ""}${tonight.hasTicket ? ` — ${t("hasTicketTonight")}` : ""}`,
           cta: tonight.hasTicket ? t("myQr") : t("buyPresale"),
@@ -336,7 +223,10 @@ export function HomeHub() {
           title: tpr("myEvents"),
           desc: tpr("navEventsDesc"),
           cta: t("producerHeroCta"),
-          secondary: { href: "/productor/eventos?crear=1", label: tpr("createEvent") },
+          secondary: {
+            href: "/productor/eventos?crear=1",
+            label: tpr("createEvent"),
+          },
         };
       case "ACADEMY_OWNER":
       case "INSTRUCTOR":
@@ -369,58 +259,11 @@ export function HomeHub() {
             }
           : {
               href: "/eventos",
-              title: t("tonight"),
+              title: te("title"),
               desc: t("dancerHeroDesc"),
               cta: t("seeEvents"),
             };
       }
-    }
-  })();
-
-  // "Para ti" = atajos del rol activo (+ modo, para el bailarín).
-  const forYou: Tile[] = (() => {
-    switch (activeRole) {
-      case "STAFF":
-        return [
-          { href: "/qr", label: tq("title"), desc: tq("subtitle") },
-          notificationsTile,
-        ];
-      case "PRODUCER":
-        return [
-          { href: "/eventos", label: te("title") },
-          { href: "/productor/pagos", label: tpr("payouts") },
-          { href: "/crm", label: tpr("crm") },
-          notificationsTile,
-        ];
-      case "ACADEMY_OWNER":
-      case "INSTRUCTOR":
-        return [notificationsTile];
-      case "ADMIN":
-        return [
-          { href: "/eventos", label: te("title") },
-          { href: "/crm", label: tpr("crm") },
-          { href: "/staff", label: tst("title") },
-          notificationsTile,
-        ];
-      case "DJ":
-      case "VENUE_MANAGER":
-        return [{ href: "/eventos", label: te("title") }, notificationsTile];
-      default:
-        // DANCER — los atajos siguen el modo de vista activo.
-        return dancerAcademy
-          ? [
-              { href: "/academias", label: tnav("academies") },
-              { href: "/academia", label: ta("title") },
-              { href: "/practicas", label: tp("title") },
-              notificationsTile,
-            ]
-          : [
-              { href: "/qr", label: tq("title"), desc: tq("subtitle") },
-              { href: "/bailes", label: ts("title") },
-              { href: "/entradas", label: tw("title") },
-              { href: "/viajes", label: tt("title") },
-              notificationsTile,
-            ];
     }
   })();
 
@@ -435,16 +278,9 @@ export function HomeHub() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
       <header className="flex flex-col gap-3 pt-4">
-        {/* Wordmark de marca (no es h1 — el título de sección "Inicio" lo
-            lleva el large title del chrome). */}
-        <p className="text-display text-3xl font-bold">
-          Omni<span className="text-neon">dance</span>
-        </p>
-        <p className="text-sm text-white/60">{t("subtitle")}</p>
-        <p className="text-lg font-medium">
+        <h2 className="text-lg font-medium">
           {t("hi", { name: me.name.split(" ")[0] })}
-        </p>
-        {activeRole === "DANCER" && <ModeToggle />}
+        </h2>
       </header>
 
       {stats && stats.kpis.length > 0 && (
@@ -472,17 +308,6 @@ export function HomeHub() {
             {hero.secondary.label}
           </Button>
         )}
-      </section>
-
-      <section aria-label={t("forYou")}>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-          {t("forYou")}
-        </h2>
-        <ul className="grid grid-cols-2 gap-3">
-          {forYou.map((tile) => (
-            <TileLink key={tile.href} {...tile} />
-          ))}
-        </ul>
       </section>
 
       {multiRole && (
