@@ -125,6 +125,7 @@ model Style {
 
   personStyleRoles PersonStyleRole[]
   scheduleBlocks   ScheduleBlock[]
+  classSeries      ClassSeries[]
 }
 
 model PersonStyleRole {
@@ -615,6 +616,7 @@ model Academy {
   instructors  AcademyInstructor[]
   plans        MembershipPlan[]
   classSlots   ClassSlot[]
+  classSeries  ClassSeries[]
   enrollments  Enrollment[]
 }
 
@@ -670,10 +672,60 @@ model Enrollment {
   createdAt DateTime         @default(now())
 }
 
+// Catálogos mantenibles por admin — los valores los edita el negocio,
+// no el código (mantenedor en /admin/catalogos).
+model ClassLevel {
+  id     String @id @default(cuid())
+  name   String @unique // Iniciación | Básico | Intermedio | Avanzado
+  order  Int    @default(0)
+
+  series ClassSeries[]
+}
+
+model ClassType {
+  id   String @id @default(cuid())
+  name String @unique // Pareja | Shines | Corporalidad
+
+  series ClassSeriesType[]
+}
+
+// Curso recurrente mensual: agrupa 1+ horarios semanales (ClassSlot) con
+// metadatos pedagógicos. month "YYYY-MM" delimita la vigencia — al crear
+// la serie se materializan los Class de ese mes.
+model ClassSeries {
+  id           String      @id @default(cuid())
+  academy      Academy     @relation(fields: [academyId], references: [id])
+  academyId    String
+  name         String // "Bachata Sensual — Intermedio"
+  description  String?
+  style        Style?      @relation(fields: [styleId], references: [id])
+  styleId      String?
+  level        ClassLevel? @relation(fields: [levelId], references: [id])
+  levelId      String?
+  instructorId String? // profesor por defecto de la serie
+  month        String // "2026-09"
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+
+  types ClassSeriesType[]
+  slots ClassSlot[]
+}
+
+model ClassSeriesType {
+  series   ClassSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seriesId String
+  type     ClassType   @relation(fields: [typeId], references: [id])
+  typeId   String
+
+  @@id([seriesId, typeId])
+}
+
 model ClassSlot {
   id           String   @id @default(cuid())
   academy      Academy  @relation(fields: [academyId], references: [id])
   academyId    String
+  series       ClassSeries? @relation(fields: [seriesId], references: [id])
+  seriesId     String?
   instructorId String?
   weekday      Int // 0-6
   startTime    String // "19:00"
@@ -692,6 +744,20 @@ model Class {
   cancelled   Boolean   @default(false)
 
   attendances Attendance[]
+  bookings    ClassBooking[]
+}
+
+// Reserva de cupo con lista de espera: BOOKED ocupa cupo; si la clase se
+// llena entra como WAITLIST (orden = createdAt) y se promueve al liberarse.
+model ClassBooking {
+  id        String   @id @default(cuid())
+  class     Class    @relation(fields: [classId], references: [id])
+  classId   String
+  personId  String
+  status    String   @default("BOOKED") // BOOKED | WAITLIST | CANCELLED
+  createdAt DateTime @default(now())
+
+  @@unique([classId, personId])
 }
 
 model Attendance {

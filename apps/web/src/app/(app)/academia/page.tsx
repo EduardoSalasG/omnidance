@@ -10,6 +10,7 @@ const MODULES = [
   { href: "/academia/planes", key: "plans" },
   { href: "/academia/alumnos", key: "students" },
   { href: "/academia/horarios", key: "slots" },
+  { href: "/academia/series", key: "series" },
   { href: "/academia/asistencia", key: "attendance" },
   { href: "/academia/particulares", key: "lessons" },
   { href: "/academia/videos", key: "videos" },
