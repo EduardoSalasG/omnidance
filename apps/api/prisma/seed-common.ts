@@ -45,6 +45,22 @@ export const STYLE_CATALOG = [
   { name: "Bachata tradicional", genre: Genre.BACHATA },
   { name: "Rueda de casino", genre: Genre.CUBANO },
   { name: "Timba", genre: Genre.CUBANO },
+  { name: "Mambo on2", genre: Genre.SALSA },
+  { name: "Fusión", genre: Genre.OTHER },
+] as const;
+
+// Catálogos de clases de academia — mantenibles desde /admin/catalogos.
+export const CLASS_LEVEL_CATALOG = [
+  { name: "Iniciación", order: 0 },
+  { name: "Básico", order: 1 },
+  { name: "Intermedio", order: 2 },
+  { name: "Avanzado", order: 3 },
+] as const;
+
+export const CLASS_TYPE_CATALOG = [
+  { name: "Pareja" },
+  { name: "Shines" },
+  { name: "Corporalidad" },
 ] as const;
 
 // Defaults operativos — update:{} no pisa valores editados desde /admin.
@@ -146,6 +162,22 @@ export async function seedCommon(prisma: PrismaClient) {
     } else {
       await prisma.style.create({ data: s });
     }
+  }
+
+  // ─── Catálogos de clases (nivel/tipo) — upsert por nombre unique ───
+  for (const l of CLASS_LEVEL_CATALOG) {
+    await prisma.classLevel.upsert({
+      where: { name: l.name },
+      update: { order: l.order },
+      create: l,
+    });
+  }
+  for (const ct of CLASS_TYPE_CATALOG) {
+    await prisma.classType.upsert({
+      where: { name: ct.name },
+      update: {},
+      create: ct,
+    });
   }
 
   // ─── Badges — catálogo para que BadgeAwarder pueda otorgar ───

@@ -38,6 +38,11 @@ export default function AdminPage() {
             title={t("modules.audit")}
             desc={t("modules.auditDesc")}
           />
+          <ModuleCard
+            href="/admin/catalogos"
+            title={t("modules.catalogs")}
+            desc={t("modules.catalogsDesc")}
+          />
         </ModuleGrid>
       </AdminGate>
     </main>

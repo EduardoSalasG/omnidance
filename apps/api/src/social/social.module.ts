@@ -11,6 +11,7 @@ import {
   GuestListsController,
 } from "./infrastructure/guest-lists.controller";
 import { PartnerRequestsController } from "./infrastructure/partner-requests.controller";
+import { PeopleController } from "./infrastructure/people.controller";
 import { PracticesController } from "./infrastructure/practices.controller";
 import {
   MeRsvpController,
@@ -38,6 +39,7 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
     AvailabilityController,
     BlocksController,
     FriendsController,
+    PeopleController,
     EventEntryPassesController,
   ],
 })

@@ -36,7 +36,9 @@ type TabKey =
   | "crm"
   | "profile"
   | "create"
-  | "academies";
+  | "academies"
+  | "friends"
+  | "classes";
 
 type Tab = {
   href: string;
@@ -128,13 +130,24 @@ const ACADEMIAS_TAB: Tab = {
   key: "academies",
   icon: icon(ICONS.academy),
 };
+const FRIENDS_TAB: Tab = {
+  href: "/amigos",
+  key: "friends",
+  icon: icon(ICONS.users),
+};
+const CLASSES_TAB: Tab = {
+  href: "/clases",
+  key: "classes",
+  icon: icon(ICONS.clock),
+};
 
-// DANCER en modo Academia: el tab de Eventos se reemplaza por el
-// directorio de academias (Mi Aprendizaje). QR se mantiene — sirve para
-// check-in de clases igual que en puerta.
+// DANCER en modo Academia: Eventos se reemplaza por el directorio de
+// academias y Clases (explorar + mis reservas) entra como tab propio.
+// QR se mantiene — sirve para check-in de clases igual que en puerta.
 const DANCER_ACADEMY_TABS: Tab[] = [
   HOME_TAB,
   ACADEMIAS_TAB,
+  CLASSES_TAB,
   QR_TAB,
   NOTIFICATIONS_TAB,
 ];
@@ -142,7 +155,7 @@ const DANCER_ACADEMY_TABS: Tab[] = [
 // Tabs por rol activo — máximo 4 slots funcionales; el quinto es siempre
 // Perfil (común a todos los roles, junto a Alertas).
 const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
-  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, NOTIFICATIONS_TAB],
+  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, FRIENDS_TAB, NOTIFICATIONS_TAB],
   STAFF: [
     HOME_TAB,
     { href: "/staff", key: "staff", icon: icon(ICONS.staff) },
@@ -195,7 +208,16 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
 // claves modules.* de cada dominio.
 type DrawerSpec = {
   href: string;
-  ns: "nav" | "producer" | "academy" | "admin" | "events";
+  ns:
+    | "nav"
+    | "producer"
+    | "academy"
+    | "admin"
+    | "events"
+    | "friends"
+    | "classes"
+    | "academySeries"
+    | "adminCatalogs";
   key: string;
   icon: string;
 };
@@ -298,6 +320,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.clock,
         },
         {
+          href: "/academia/series",
+          ns: "academySeries",
+          key: "title",
+          icon: ICONS.events,
+        },
+        {
           href: "/academia/asistencia",
           ns: "academy",
           key: "modules.attendance",
@@ -393,6 +421,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.audit",
           icon: ICONS.list,
         },
+        {
+          href: "/admin/catalogos",
+          ns: "adminCatalogs",
+          key: "title",
+          icon: ICONS.tag,
+        },
       ],
     },
     {
@@ -421,6 +455,7 @@ const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [
         key: "practices",
         icon: ICONS.practices,
       },
+      { href: "/academias", ns: "nav", key: "academies", icon: ICONS.academy },
     ],
   },
 ];
@@ -440,6 +475,17 @@ export function BottomNav() {
   const tac = useTranslations("academy");
   const tad = useTranslations("admin");
   const tpr = useTranslations("profile");
+  const nsT = {
+    nav: t,
+    producer: tp,
+    events: te,
+    academy: tac,
+    admin: tad,
+    friends: useTranslations("friends"),
+    classes: useTranslations("classes"),
+    academySeries: useTranslations("academySeries"),
+    adminCatalogs: useTranslations("adminCatalogs"),
+  } as const;
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
@@ -503,15 +549,7 @@ export function BottomNav() {
   const badge = unread != null && unread > 0 ? unread : 0;
 
   const labelFor = (ns: DrawerSpec["ns"], key: string): string =>
-    ns === "nav"
-      ? t(key)
-      : ns === "producer"
-        ? tp(key)
-        : ns === "academy"
-          ? tac(key)
-          : ns === "admin"
-            ? tad(key)
-            : te(key);
+    nsT[ns](key);
 
   const roleTabs = dancerAcademy
     ? DANCER_ACADEMY_TABS
