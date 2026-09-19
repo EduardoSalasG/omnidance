@@ -129,11 +129,6 @@ const ACADEMIAS_TAB: Tab = {
   key: "academies",
   icon: icon(ICONS.academy),
 };
-const FRIENDS_TAB: Tab = {
-  href: "/amigos",
-  key: "friends",
-  icon: icon(ICONS.users),
-};
 const CLASSES_TAB: Tab = {
   href: "/clases",
   key: "classes",
@@ -143,11 +138,6 @@ const TICKETS_TAB: Tab = {
   href: "/entradas",
   key: "tickets",
   icon: icon(ICONS.tickets),
-};
-const PRACTICES_TAB: Tab = {
-  href: "/practicas",
-  key: "practices",
-  icon: icon(ICONS.practices),
 };
 const PAYOUTS_TAB: Tab = {
   href: "/productor/pagos",
@@ -166,23 +156,22 @@ const ANALYTICS_TAB: Tab = {
 };
 
 // DANCER en modo Academia: Eventos se reemplaza por el directorio de
-// academias, Clases (explorar + mis reservas) es tab propio y el slot
-// libre lo ocupa Prácticas. QR se mantiene — sirve para check-in de
-// clases igual que en puerta.
+// academias y Clases (explorar + mis reservas) es tab propio. QR se
+// mantiene — sirve para check-in de clases igual que en puerta.
+// Prácticas queda en el drawer (máximo 5 ítems en el bottom bar).
 const DANCER_ACADEMY_TABS: Tab[] = [
   HOME_TAB,
   ACADEMIAS_TAB,
   CLASSES_TAB,
   QR_TAB,
-  PRACTICES_TAB,
 ];
 
-// Tabs por rol activo — máximo 4 slots funcionales; el quinto es siempre
-// Perfil (común a todos los roles). Las notificaciones viven en el
-// appbar (campana con badge), no en el bottom nav: el slot que liberan
-// lo ocupa la función más usada de cada rol.
+// Tabs por rol activo — máximo 4 slots funcionales + Perfil = 5 ítems
+// (el tope visual del bottom bar). Las notificaciones viven en el
+// appbar (campana con badge), no en el bottom nav: los slots que
+// liberan los ocupa la función más usada de cada rol.
 const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
-  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, FRIENDS_TAB, TICKETS_TAB],
+  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, TICKETS_TAB],
   STAFF: [
     HOME_TAB,
     { href: "/staff", key: "staff", icon: icon(ICONS.staff) },
@@ -264,8 +253,8 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelNs: "nav",
       labelKey: "socialSection",
       items: [
+        { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
         { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
-        { href: "/entradas", ns: "nav", key: "tickets", icon: ICONS.tickets },
         {
           href: "/practicas",
           ns: "nav",
@@ -522,6 +511,16 @@ const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [
         icon: ICONS.practices,
       },
       { href: "/academias", ns: "nav", key: "academies", icon: ICONS.academy },
+    ],
+  },
+  // En modo Academia el social no desaparece: eventos y amigos siguen a
+  // un toque en el drawer.
+  {
+    labelNs: "nav",
+    labelKey: "socialSection",
+    items: [
+      { href: "/eventos", ns: "nav", key: "events", icon: ICONS.events },
+      { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
     ],
   },
 ];
