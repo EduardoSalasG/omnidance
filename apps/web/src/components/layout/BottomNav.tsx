@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
+import { ModeToggle } from "./ModeToggle";
 
 // Chrome de app: hamburguesa flotante (→ drawer lateral con los módulos
 // del rol agrupados por dominio) + large title iOS con la sección activa
@@ -680,11 +681,23 @@ export function BottomNav() {
       {/* Título de sección estilo nav bar iOS: h1 centrado a la misma
           altura que la hamburguesa — las páginas no repiten el título
           de sección (solo títulos de contenido: detalle de evento,
-          estados de checkout). px-16 despeja el botón flotante. */}
-      {pageLabel && (
-        <h1 className="pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center justify-center truncate px-16 text-center text-lg font-semibold tracking-tight text-white">
-          {pageLabel}
-        </h1>
+          estados de checkout). px-16 despeja el botón flotante.
+          Excepción: en /inicio con lente DANCER el slot lo ocupa el
+          switch Social/Academia; el h1 queda sr-only para no perder el
+          encabezado de la página. */}
+      {pathname === "/inicio" && activeRole === "DANCER" ? (
+        <>
+          {pageLabel && <h1 className="sr-only">{pageLabel}</h1>}
+          <div className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center px-16">
+            <ModeToggle />
+          </div>
+        </>
+      ) : (
+        pageLabel && (
+          <h1 className="pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center justify-center truncate px-16 text-center text-lg font-semibold tracking-tight text-white">
+            {pageLabel}
+          </h1>
+        )
       )}
 
       <nav
