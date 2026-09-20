@@ -22,6 +22,9 @@ export type Academy = {
   ownerId: string;
   active: boolean;
   createdAt: string;
+  // Quórum default de la academia (PATCH /academies/:id/settings).
+  // Opcional hasta que el backend exponga la columna en GET /academies/mine.
+  defaultQuorum?: number | null;
 };
 
 export type AcademyDashboard = {
@@ -74,6 +77,79 @@ export type AttendanceItem = {
   checkedAt: string;
   class: { id: string; date: string; classSlotId: string };
 };
+
+// ─── consola de instructor + quórum (contratos nuevos) ───
+
+// GET /classes/teaching — clases asignadas al instructor (próximas ~30d),
+// cross-academia: por eso el ítem trae academyName y no se filtra por la
+// academia seleccionada del gate.
+export type TeachingClass = {
+  id: string;
+  date: string; // ISO — medianoche UTC (mismo manejo que /clases)
+  startTime: string; // "19:00"
+  endTime: string;
+  academyName: string;
+  seriesName: string | null;
+  styleName: string | null;
+  levelName: string | null;
+  instructorName: string | null;
+  quorum: number;
+  bookedCount: number;
+  waitlistCount: number;
+};
+
+// GET /classes/:id/roster — detalle de la clase + reservas y espera.
+export type ClassRoster = {
+  class: {
+    id: string;
+    date: string; // ISO — medianoche UTC
+    startTime: string;
+    endTime: string;
+    seriesName: string | null;
+    styleName: string | null;
+    levelName: string | null;
+    instructor: { id: string; name: string | null } | null;
+  };
+  quorum: number;
+  booked: { personId: string; name: string | null; createdAt: string }[];
+  waitlist: { personId: string; name: string | null; createdAt: string }[];
+};
+
+// GET /academies/:id/students/:personId — perfil del alumno con historial.
+// status es string libre del server: attended|booked|cancelled en history,
+// BOOKED|WAITLIST en upcoming (casing distinto en cada lista, por contrato).
+export type StudentProfile = {
+  person: { id: string; name: string | null };
+  plan: { name: string } | null;
+  enrollmentStatus: string;
+  history: {
+    classId: string;
+    date: string;
+    seriesName: string | null;
+    styleName: string | null;
+    status: string;
+  }[];
+  upcoming: {
+    classId: string;
+    date: string;
+    seriesName: string | null;
+    status: string;
+  }[];
+};
+
+// Día calendario de una Class (date llega a medianoche UTC — formatear en
+// UTC para que el día no se corra en zonas negativas; mismo fmt que /clases).
+export const classDayFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+
+// Fallback visible cuando el API no entrega nombre (personId crudo).
+export function shortId(id: string): string {
+  return id.slice(0, 8);
+}
 
 /**
  * Extrae `message` de una respuesta de error de NestJS

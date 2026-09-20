@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, type BadgeVariant } from "@/components/ui";
@@ -17,6 +18,8 @@ type Props = {
   academyId: string;
   plans: MembershipPlan[];
   onChanged: () => Promise<void>;
+  /** Instructor: ve la lista y fichas, pero no crea enrollments ni cambia status. */
+  readOnly?: boolean;
 };
 
 const STATUS_VARIANT: Record<EnrollmentStatus, BadgeVariant> = {
@@ -32,7 +35,12 @@ const STATUS_VARIANT: Record<EnrollmentStatus, BadgeVariant> = {
  * PATCH /enrollments/:id {status} inline; las transiciones válidas las
  * valida el server (400 → se muestra su message y el select vuelve al valor real).
  */
-export function StudentsSection({ academyId, plans, onChanged }: Props) {
+export function StudentsSection({
+  academyId,
+  plans,
+  onChanged,
+  readOnly = false,
+}: Props) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
   const tp = useTranslations("practices");
@@ -156,9 +164,16 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
             <li key={s.id}>
               <Card className="flex flex-col gap-2 p-4">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <p className="min-w-0 flex-1 truncate font-medium">
+                  {/* Perfil del alumno: historial + próximas reservas. */}
+                  <Link
+                    href={`/academia/alumnos/${s.person.id}`}
+                    aria-label={t("studentProfile.viewProfile", {
+                      name: s.person.name ?? s.person.email ?? s.person.id,
+                    })}
+                    className="min-w-0 flex-1 truncate font-medium underline-offset-4 transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  >
                     {s.person.name ?? s.person.email ?? s.person.id}
-                  </p>
+                  </Link>
                   <Badge variant={STATUS_VARIANT[s.status]}>
                     {t(`status.${s.status}`)}
                   </Badge>
@@ -166,6 +181,7 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-white/50">
                   <span className="truncate">{s.plan?.name ?? "—"}</span>
                   {s.startsAt && <EventDate start={s.startsAt} />}
+                  {!readOnly && (
                   <select
                     aria-label={t("studentStatus", {
                       name:
@@ -187,6 +203,7 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
                       </option>
                     ))}
                   </select>
+                  )}
                 </div>
                 {rowErrors[s.id] && (
                   <p role="alert" className="text-sm text-red-400">
@@ -199,6 +216,7 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
         </ul>
       )}
 
+      {!readOnly && (
       <Card>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
           {t("newEnrollment")}
@@ -275,6 +293,7 @@ export function StudentsSection({ academyId, plans, onChanged }: Props) {
           </div>
         </form>
       </Card>
+      )}
     </div>
   );
 }

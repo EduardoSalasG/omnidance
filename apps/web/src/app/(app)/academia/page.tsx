@@ -3,10 +3,14 @@
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
+import { AcademySettings } from "@/components/academy/academy-settings";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 
 // Módulos de la consola — keys de academy.modules.* en es-CL.json.
+// "myClasses" primero: es la vista diaria del instructor (la consola se
+// comparte con owner; si no imparte clases la lista sale vacía).
 const MODULES = [
+  { href: "/academia/clases", key: "myClasses" },
   { href: "/academia/planes", key: "plans" },
   { href: "/academia/alumnos", key: "students" },
   { href: "/academia/horarios", key: "slots" },
@@ -33,6 +37,9 @@ export default function AcademiaPage() {
           <>
             {/* key por id: cambiar de academia remonta el resumen. */}
             <AcademyDashboard key={academy.id} academy={academy} />
+            {/* Settings (quórum default) — solo owner/ADMIN; instructores
+                no ven el card (canAdminister interno vía GET /me). */}
+            <AcademySettings academy={academy} />
             <ModuleGrid>
               {MODULES.map((m) => (
                 <ModuleCard

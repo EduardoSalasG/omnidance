@@ -46,9 +46,11 @@ class SeriesSlotDto {
   @Matches(/^\d{2}:\d{2}$/, { message: "endTime formato HH:MM" })
   endTime!: string;
 
+  /** Opcional: null/omitido = el slot hereda el quórum de serie/academia. */
+  @IsOptional()
   @IsInt()
   @Min(1)
-  capacity!: number;
+  capacity?: number;
 
   @IsOptional()
   @IsString()
@@ -80,6 +82,12 @@ class CreateSeriesDto {
   @IsString()
   instructorId?: string;
 
+  /** Cupos por defecto de la serie (null/omitido = hereda la academia). */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quorum?: number;
+
   @IsString()
   @Matches(/^\d{4}-\d{2}$/, { message: "month formato YYYY-MM" })
   month!: string;
@@ -92,10 +100,9 @@ class CreateSeriesDto {
 }
 
 /**
- * Slot extra para PATCH addSlots — mismo contrato que SeriesSlotDto pero
- * capacity opcional: si falta se usa la capacidad del primer slot de la
- * serie (ClassSeries no tiene columna capacity propia) o 20 como último
- * recurso.
+ * Slot extra para PATCH addSlots — mismo contrato que SeriesSlotDto;
+ * capacity opcional: si falta queda null y el slot hereda el quórum
+ * efectivo (series.quorum → academy.defaultQuorum → 20).
  */
 class AddSeriesSlotDto {
   @IsInt()
@@ -146,6 +153,11 @@ class UpdateSeriesDto {
   @IsOptional()
   @IsString()
   instructorId?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quorum?: number;
 
   @IsOptional()
   @IsBoolean()
@@ -216,6 +228,7 @@ export class ClassSeriesController {
           styleId: dto.styleId ?? null,
           levelId: dto.levelId ?? null,
           instructorId: dto.instructorId ?? null,
+          quorum: dto.quorum ?? null,
           month: dto.month,
           types: dto.typeIds?.length
             ? { create: dto.typeIds.map((typeId) => ({ typeId })) }
@@ -231,7 +244,7 @@ export class ClassSeriesController {
             weekday: s.weekday,
             startTime: s.startTime,
             endTime: s.endTime,
-            capacity: s.capacity,
+            capacity: s.capacity ?? null, // null = hereda serie/academia
             styleId: dto.styleId ?? null,
             instructorId: s.instructorId ?? dto.instructorId ?? null,
           },
@@ -296,6 +309,7 @@ export class ClassSeriesController {
           styleId: dto.styleId,
           levelId: dto.levelId,
           instructorId: dto.instructorId,
+          quorum: dto.quorum,
           active: dto.active,
         },
         include: SERIES_INCLUDE,
@@ -330,7 +344,7 @@ export class ClassSeriesController {
                 weekday: s.weekday,
                 startTime: s.startTime,
                 endTime: s.endTime,
-                capacity: s.capacity ?? known[0]?.capacity ?? 20,
+                capacity: s.capacity ?? null, // null = hereda serie/academia
                 styleId: series.styleId,
                 instructorId:
                   s.instructorId ?? series.instructorId ?? null,

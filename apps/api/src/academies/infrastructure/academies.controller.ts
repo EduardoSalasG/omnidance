@@ -125,8 +125,19 @@ class CreateSlotDto {
   @IsString()
   instructorId?: string;
 
+  /** null/omitido = hereda el quórum de la serie/academia. */
+  @IsOptional()
   @IsInt()
-  capacity!: number;
+  @Min(1)
+  capacity?: number;
+}
+
+class UpdateAcademySettingsDto {
+  /** null explícito limpia el override → vuelve al default (20). */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  defaultQuorum?: number | null;
 }
 
 @Controller("academies")
@@ -215,6 +226,25 @@ export class AcademiesController {
     return { ...academy, stats: { activeStudents, plansCount, slotsCount } };
   }
 
+  /**
+   * Settings de la academia (solo owner/ADMIN). defaultQuorum es el piso
+   * de la cadena de quórum efectivo de las clases; null lo limpia.
+   */
+  @Patch(":id/settings")
+  @UseGuards(SessionGuard)
+  async updateSettings(
+    @Param("id") id: string,
+    @Body() dto: UpdateAcademySettingsDto,
+    @Req() req: Request,
+  ) {
+    await this.access.requireAdminister(id, req.person!);
+    return this.prisma.academy.update({
+      where: { id },
+      // undefined = no enviado → no toca; null explícito limpia el override.
+      data: { defaultQuorum: dto.defaultQuorum },
+    });
+  }
+
   // ─── planes ───
 
   @Post(":id/plans")
@@ -290,10 +320,12 @@ export class AcademiesController {
     });
   }
 
+  // Listado de alumnos — requireManage: el instructor también lo ve
+  // (necesita conocer a sus alumnos), no solo el owner.
   @Get(":id/students")
   @UseGuards(SessionGuard)
   async listStudents(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireManage(id, req.person!);
     const enrollments = await this.prisma.enrollment.findMany({
       where: { academyId: id },
       orderBy: { createdAt: "desc" },
@@ -320,6 +352,140 @@ export class AcademiesController {
     }));
   }
 
+  /**
+   * Ficha del alumno dentro de la academia: plan/enrollment vigente,
+   * historial (asistencias + reservas pasadas, últimas 50 — la asistencia
+   * prevalece sobre la reserva de la misma clase) y reservas futuras.
+   * requireManage: también lo ve el instructor, no solo el owner.
+   */
+  @Get(":id/students/:personId")
+  @UseGuards(SessionGuard)
+  async studentDetail(
+    @Param("id") id: string,
+    @Param("personId") personId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireManage(id, req.person!);
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true, name: true },
+    });
+    if (!person) throw new NotFoundException("persona no encontrada");
+
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: { academyId: id, personId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        status: true,
+        plan: { select: { id: true, name: true, type: true, price: true } },
+      },
+    });
+
+    const classSelect = {
+      date: true,
+      slot: {
+        select: {
+          styleId: true,
+          series: {
+            select: {
+              name: true,
+              style: { select: { name: true } },
+            },
+          },
+        },
+      },
+    } as const;
+    const now = new Date();
+    const [attendances, bookings] = await Promise.all([
+      this.prisma.attendance.findMany({
+        where: { personId, class: { slot: { academyId: id } } },
+        select: { classId: true, checkedAt: true, class: { select: classSelect } },
+      }),
+      this.prisma.classBooking.findMany({
+        where: { personId, class: { slot: { academyId: id } } },
+        select: {
+          classId: true,
+          status: true,
+          createdAt: true,
+          class: { select: classSelect },
+        },
+      }),
+    ]);
+
+    // styleId del slot es FK plana (sin relación) — join manual para
+    // slots legacy sin serie.
+    const styleIds = [
+      ...new Set(
+        [...attendances, ...bookings]
+          .map((r) => r.class.slot.styleId)
+          .filter((x): x is string => !!x),
+      ),
+    ];
+    const styles = styleIds.length
+      ? await this.prisma.style.findMany({
+          where: { id: { in: styleIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const styleName = new Map(styles.map((s) => [s.id, s.name]));
+    const meta = (c: { date: Date; slot: { styleId: string | null; series: { name: string; style: { name: string } | null } | null } }) => ({
+      date: c.date,
+      seriesName: c.slot.series?.name ?? null,
+      styleName:
+        c.slot.series?.style?.name ??
+        (c.slot.styleId ? (styleName.get(c.slot.styleId) ?? null) : null),
+    });
+
+    // Historial: reservas en clases pasadas + asistencias (estas ganan el
+    // dedup por classId). BOOKED → "booked"; WAITLIST/CANCELLED → "cancelled".
+    const past = new Map<
+      string,
+      {
+        classId: string;
+        date: Date;
+        seriesName: string | null;
+        styleName: string | null;
+        status: "attended" | "booked" | "cancelled";
+      }
+    >();
+    for (const b of bookings) {
+      if (b.class.date >= now) continue;
+      past.set(b.classId, {
+        classId: b.classId,
+        ...meta(b.class),
+        status: b.status === "BOOKED" ? "booked" : "cancelled",
+      });
+    }
+    for (const a of attendances) {
+      past.set(a.classId, {
+        classId: a.classId,
+        ...meta(a.class),
+        status: "attended",
+      });
+    }
+    const history = [...past.values()]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 50);
+
+    const upcoming = bookings
+      .filter((b) => b.class.date >= now && b.status !== "CANCELLED")
+      .sort((a, b) => a.class.date.getTime() - b.class.date.getTime())
+      .map((b) => ({
+        classId: b.classId,
+        date: b.class.date,
+        seriesName: b.class.slot.series?.name ?? null,
+        status: b.status,
+      }));
+
+    return {
+      person,
+      plan: enrollment?.plan ?? null,
+      enrollmentStatus: enrollment?.status ?? null,
+      history,
+      upcoming,
+    };
+  }
+
   // ─── slots ───
 
   @Post(":id/slots")
@@ -342,7 +508,7 @@ export class AcademiesController {
         endTime: dto.endTime,
         styleId: dto.styleId ?? null,
         instructorId: dto.instructorId ?? null,
-        capacity: dto.capacity,
+        capacity: dto.capacity ?? null, // null = hereda serie/academia
       },
     });
   }

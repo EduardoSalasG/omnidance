@@ -22,19 +22,51 @@ export default function AcademiaAlumnosPage() {
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <StudentsModule key={academy.id} academyId={academy.id} />
+          <StudentsModule
+            key={academy.id}
+            academyId={academy.id}
+            ownerId={academy.ownerId}
+          />
         )}
       </AcademyGate>
     </main>
   );
 }
 
-function StudentsModule({ academyId }: { academyId: string }) {
+function StudentsModule({
+  academyId,
+  ownerId,
+}: {
+  academyId: string;
+  ownerId: string;
+}) {
   const tc = useTranslations("common");
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [error, setError] = useState(false);
+  const [canAdminister, setCanAdminister] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    apiFetch("/me")
+      .then(async (res) =>
+        res.ok ? ((await res.json()) as { id: string; roles: string[] }) : null,
+      )
+      .then((me) =>
+        setCanAdminister(
+          !!me && (me.roles.includes("ADMIN") || me.id === ownerId),
+        ),
+      )
+      .catch(() => setCanAdminister(false));
+  }, [ownerId]);
 
   const reload = useCallback(async () => {
+    // Los planes solo se usan en el form de alta (owner/admin); el
+    // endpoint es requireAdminister → el instructor recibiría 403.
+    // null = /me aún no responde → seguimos en loading.
+    if (canAdminister === null) return;
+    if (canAdminister === false) {
+      setPlans([]);
+      return;
+    }
     setError(false);
     try {
       const res = await apiFetch(`/academies/${academyId}/plans`);
@@ -46,7 +78,7 @@ function StudentsModule({ academyId }: { academyId: string }) {
     } catch {
       setError(true);
     }
-  }, [academyId]);
+  }, [academyId, canAdminister]);
 
   useEffect(() => {
     void reload();
@@ -72,6 +104,11 @@ function StudentsModule({ academyId }: { academyId: string }) {
     );
   }
   return (
-    <StudentsSection academyId={academyId} plans={plans} onChanged={reload} />
+    <StudentsSection
+      academyId={academyId}
+      plans={plans}
+      onChanged={reload}
+      readOnly={canAdminister !== true}
+    />
   );
 }

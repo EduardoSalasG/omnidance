@@ -6,12 +6,59 @@
       "PERIOD": "Por periodo",
       "TRIAL": "De prueba"
     },
-    "studentStatus": "Estado de {name}"
+    "studentStatus": "Estado de {name}",
+    "modules": {
+      "myClasses": "Mis clases",
+      "myClassesDesc": "Clases que impartes, roster y quórum"
+    },
+    "settings": {
+      "title": "Configuración",
+      "defaultQuorum": "Quórum por defecto",
+      "defaultQuorumHint": "Vacío = 20 por defecto. Las series sin quórum propio heredan este valor.",
+      "defaultQuorumCurrent": "Actual: {value}",
+      "saved": "Configuración guardada.",
+      "saveError": "No se pudo guardar la configuración"
+    },
+    "studentProfile": {
+      "plan": "Plan",
+      "enrollmentStatus": "Estado de inscripción",
+      "history": "Historial de clases",
+      "upcoming": "Próximas clases reservadas",
+      "emptyHistory": "Sin clases registradas.",
+      "emptyUpcoming": "Sin próximas reservas.",
+      "forbidden": "No tienes acceso a este perfil.",
+      "historyStatus": {
+        "attended": "Asistió",
+        "booked": "Reservada",
+        "cancelled": "Cancelada"
+      },
+      "viewProfile": "Ver perfil de {name}"
+    }
   },
   "academySeries": {
     "capacityOptional": "default",
     "addSlotHint": "Se crean las clases que quedan del mes en ese día.",
-    "slotAdded": "Horario agregado"
+    "slotAdded": "Horario agregado",
+    "quorum": "Quórum",
+    "quorumHint": "Opcional — vacío hereda el quórum por defecto de la academia.",
+    "quorumValue": "Quórum {value}"
+  },
+  "instructor": {
+    "title": "Mis clases",
+    "empty": "No tienes clases asignadas en los próximos 30 días.",
+    "forbidden": "Esta vista es para instructores de academia.",
+    "loginRequired": "Entra con tu correo para ver tus clases",
+    "notFound": "Clase no encontrada o sin acceso.",
+    "quorum": "Quórum",
+    "quorumLine": "{booked}/{quorum}",
+    "waitlist": "{count, plural, one {# en espera} other {# en espera}}",
+    "booked": "Reservados",
+    "waitlistTitle": "Lista de espera",
+    "emptyBooked": "Sin reservas aún.",
+    "emptyWaitlist": "Sin alumnos en espera.",
+    "taughtBy": "Profesor",
+    "personFallback": "Alumno {id}",
+    "classFallback": "Clase sin serie"
   },
   "academyExtras": {
     "lessons": {
