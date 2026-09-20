@@ -614,6 +614,7 @@ model Academy {
   name      String
   ownerId   String // personId del academy_owner
   active    Boolean @default(true)
+  defaultQuorum Int? // quórum por defecto de las clases (null → 20)
   createdAt DateTime @default(now())
 
   instructors  AcademyInstructor[]
@@ -706,6 +707,7 @@ model ClassSeries {
   level        ClassLevel? @relation(fields: [levelId], references: [id])
   levelId      String?
   instructorId String? // profesor por defecto de la serie
+  quorum       Int? // cupos por defecto de la serie (null → hereda academy/default)
   month        String // "2026-09"
   active       Boolean     @default(true)
   createdAt    DateTime    @default(now())
@@ -733,7 +735,7 @@ model ClassSlot {
   weekday      Int // 0-6
   startTime    String // "19:00"
   endTime      String
-  capacity     Int
+  capacity     Int? // null = hereda el quórum de la serie/academia
   styleId      String?
   classes      Class[]
 }
@@ -744,6 +746,7 @@ model Class {
   classSlotId String
   date        DateTime
   instructorId String?
+  capacity    Int? // override puntual de cupos para esta instancia
   cancelled   Boolean   @default(false)
 
   attendances Attendance[]

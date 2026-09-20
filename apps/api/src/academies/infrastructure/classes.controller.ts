@@ -3,6 +3,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   NotFoundException,
@@ -17,6 +18,9 @@ import type { Prisma } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
+import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import { effectiveCapacity } from "../domain/academy.service";
+import { AcademyAccess } from "./academy-access.service";
 
 /**
  * Vista alumno: explorar clases próximas (por día/estilo/nivel/academia)
@@ -29,6 +33,7 @@ export class ClassesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly access: AcademyAccess,
   ) {}
 
   /** Catálogos públicos para los filtros del explorador (lectura). */
@@ -101,17 +106,21 @@ export class ClassesController {
         id: true,
         date: true,
         instructorId: true,
+        capacity: true,
         slot: {
           select: {
             weekday: true,
             startTime: true,
             endTime: true,
             capacity: true,
-            academy: { select: { id: true, name: true } },
+            academy: {
+              select: { id: true, name: true, defaultQuorum: true },
+            },
             series: {
               select: {
                 id: true,
                 name: true,
+                quorum: true,
                 level: { select: { id: true, name: true } },
                 style: { select: { id: true, name: true } },
                 types: {
@@ -146,15 +155,22 @@ export class ClassesController {
       .map((c) => {
         const booked = c.bookings.filter((b) => b.status === "BOOKED").length;
         const mine = c.bookings.find((b) => b.personId === me);
+        // Quórum efectivo ya resuelto: class → slot → serie → academia → 20.
+        const capacity = effectiveCapacity({
+          classCapacity: c.capacity,
+          slotCapacity: c.slot.capacity,
+          seriesQuorum: c.slot.series?.quorum,
+          academyDefaultQuorum: c.slot.academy.defaultQuorum,
+        });
         return {
           id: c.id,
           date: c.date,
           startTime: c.slot.startTime,
           endTime: c.slot.endTime,
           weekday: c.slot.weekday,
-          capacity: c.slot.capacity,
+          capacity,
           bookedCount: booked,
-          spotsLeft: Math.max(c.slot.capacity - booked, 0),
+          spotsLeft: Math.max(capacity - booked, 0),
           waitlistCount: c.bookings.filter((b) => b.status === "WAITLIST")
             .length,
           myBooking: mine?.status ?? null,
@@ -223,6 +239,235 @@ export class ClassesController {
   }
 
   /**
+   * Consola del instructor: clases futuras (~30 días) donde es profesor —
+   * por override de la instancia (class.instructorId), del slot o de la
+   * serie. Requiere rol INSTRUCTOR aprobado, membresía AcademyInstructor
+   * o admin.access.
+   */
+  @Get("teaching")
+  async teaching(@Req() req: Request) {
+    const me = req.person!;
+    const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
+      "admin.access",
+    ]);
+    const membership = me.roles.includes("INSTRUCTOR")
+      ? true
+      : !!(await this.prisma.academyInstructor.findFirst({
+          where: { personId: me.id },
+          select: { id: true },
+        }));
+    if (!isAdmin && !membership) {
+      throw new ForbiddenException(
+        "requiere rol INSTRUCTOR o ser instructor de una academia",
+      );
+    }
+
+    const until = new Date(Date.now() + 30 * 86_400_000);
+    const classes = await this.prisma.class.findMany({
+      where: {
+        cancelled: false,
+        date: { gte: new Date(), lte: until },
+        OR: [
+          { instructorId: me.id },
+          { slot: { instructorId: me.id } },
+          { slot: { series: { instructorId: me.id } } },
+        ],
+      },
+      orderBy: { date: "asc" },
+      take: 200,
+      select: {
+        id: true,
+        date: true,
+        instructorId: true,
+        capacity: true,
+        slot: {
+          select: {
+            startTime: true,
+            endTime: true,
+            capacity: true,
+            instructorId: true,
+            styleId: true,
+            academy: {
+              select: { name: true, defaultQuorum: true },
+            },
+            series: {
+              select: {
+                name: true,
+                quorum: true,
+                instructorId: true,
+                styleId: true,
+                style: { select: { name: true } },
+                level: { select: { name: true } },
+              },
+            },
+          },
+        },
+        bookings: {
+          where: { status: { in: ["BOOKED", "WAITLIST"] } },
+          select: { status: true },
+        },
+      },
+    });
+
+    // instructorId/styleId son FKs planas en slot/series — join manual.
+    const instructorIds = [
+      ...new Set(
+        classes
+          .map(
+            (c) =>
+              c.instructorId ??
+              c.slot.instructorId ??
+              c.slot.series?.instructorId,
+          )
+          .filter((x): x is string => !!x),
+      ),
+    ];
+    const styleIds = [
+      ...new Set(
+        classes
+          .map((c) => c.slot.series?.styleId ?? c.slot.styleId)
+          .filter((x): x is string => !!x),
+      ),
+    ];
+    const [people, styles] = await Promise.all([
+      instructorIds.length
+        ? this.prisma.person.findMany({
+            where: { id: { in: instructorIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+      styleIds.length
+        ? this.prisma.style.findMany({
+            where: { id: { in: styleIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+    ]);
+    const personName = new Map(people.map((p) => [p.id, p.name]));
+    const styleName = new Map(styles.map((s) => [s.id, s.name]));
+
+    return classes.map((c) => {
+      const instructorId =
+        c.instructorId ?? c.slot.instructorId ?? c.slot.series?.instructorId;
+      const styleId = c.slot.series?.styleId ?? c.slot.styleId;
+      return {
+        id: c.id,
+        date: c.date,
+        startTime: c.slot.startTime,
+        endTime: c.slot.endTime,
+        academyName: c.slot.academy.name,
+        seriesName: c.slot.series?.name ?? null,
+        styleName:
+          c.slot.series?.style?.name ??
+          (styleId ? (styleName.get(styleId) ?? null) : null),
+        levelName: c.slot.series?.level?.name ?? null,
+        instructorName: instructorId
+          ? (personName.get(instructorId) ?? null)
+          : null,
+        quorum: effectiveCapacity({
+          classCapacity: c.capacity,
+          slotCapacity: c.slot.capacity,
+          seriesQuorum: c.slot.series?.quorum,
+          academyDefaultQuorum: c.slot.academy.defaultQuorum,
+        }),
+        bookedCount: c.bookings.filter((b) => b.status === "BOOKED").length,
+        waitlistCount: c.bookings.filter((b) => b.status === "WAITLIST")
+          .length,
+      };
+    });
+  }
+
+  /**
+   * Roster de una clase: detalle + reservas BOOKED/WAITLIST con el nombre
+   * del alumno. Gestión de la academia dueña del slot (requireManage:
+   * owner / instructor / ADMIN).
+   */
+  @Get(":id/roster")
+  async roster(@Param("id") classId: string, @Req() req: Request) {
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        date: true,
+        instructorId: true,
+        capacity: true,
+        slot: {
+          select: {
+            academyId: true,
+            startTime: true,
+            endTime: true,
+            capacity: true,
+            instructorId: true,
+            academy: { select: { defaultQuorum: true } },
+            series: {
+              select: {
+                name: true,
+                quorum: true,
+                instructorId: true,
+                style: { select: { name: true } },
+                level: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!cls) throw new NotFoundException("clase no encontrada");
+    await this.access.requireManage(cls.slot.academyId, req.person!);
+
+    const bookings = await this.prisma.classBooking.findMany({
+      where: { classId, status: { in: ["BOOKED", "WAITLIST"] } },
+      orderBy: { createdAt: "asc" },
+      select: { personId: true, status: true, createdAt: true },
+    });
+    // ClassBooking.personId es FK plana — join manual (mismo patrón que
+    // GET /academies/:id/students).
+    const instructorId =
+      cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series?.instructorId;
+    const personIds = [
+      ...new Set([
+        ...bookings.map((b) => b.personId),
+        ...(instructorId ? [instructorId] : []),
+      ]),
+    ];
+    const people = personIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: personIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const personName = new Map(people.map((p) => [p.id, p.name]));
+
+    const toRow = (b: (typeof bookings)[number]) => ({
+      personId: b.personId,
+      name: personName.get(b.personId) ?? null,
+      createdAt: b.createdAt,
+    });
+    return {
+      class: {
+        id: cls.id,
+        date: cls.date,
+        startTime: cls.slot.startTime,
+        endTime: cls.slot.endTime,
+        seriesName: cls.slot.series?.name ?? null,
+        styleName: cls.slot.series?.style?.name ?? null,
+        levelName: cls.slot.series?.level?.name ?? null,
+        instructor: instructorId
+          ? { id: instructorId, name: personName.get(instructorId) ?? null }
+          : null,
+      },
+      quorum: effectiveCapacity({
+        classCapacity: cls.capacity,
+        slotCapacity: cls.slot.capacity,
+        seriesQuorum: cls.slot.series?.quorum,
+        academyDefaultQuorum: cls.slot.academy.defaultQuorum,
+      }),
+      booked: bookings.filter((b) => b.status === "BOOKED").map(toRow),
+      waitlist: bookings.filter((b) => b.status === "WAITLIST").map(toRow),
+    };
+  }
+
+  /**
    * Reservar: cupo libre → BOOKED; lleno → WAITLIST (orden de llegada).
    * Re-reservar una reserva cancelada reactiva la misma fila.
    */
@@ -235,7 +480,14 @@ export class ClassesController {
         id: true,
         date: true,
         cancelled: true,
-        slot: { select: { capacity: true } },
+        capacity: true,
+        slot: {
+          select: {
+            capacity: true,
+            series: { select: { quorum: true } },
+            academy: { select: { defaultQuorum: true } },
+          },
+        },
       },
     });
     if (!cls) throw new NotFoundException("clase no encontrada");
@@ -255,7 +507,13 @@ export class ClassesController {
       const booked = await tx.classBooking.count({
         where: { classId, status: "BOOKED" },
       });
-      const status = booked < cls.slot.capacity ? "BOOKED" : "WAITLIST";
+      const quorum = effectiveCapacity({
+        classCapacity: cls.capacity,
+        slotCapacity: cls.slot.capacity,
+        seriesQuorum: cls.slot.series?.quorum,
+        academyDefaultQuorum: cls.slot.academy.defaultQuorum,
+      });
+      const status = booked < quorum ? "BOOKED" : "WAITLIST";
 
       if (existing) {
         return tx.classBooking.update({

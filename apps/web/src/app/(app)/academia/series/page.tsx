@@ -30,6 +30,9 @@ type Series = {
   month: string; // "YYYY-MM"
   active: boolean;
   instructorId: string | null;
+  // Override de quórum por serie (PATCH acepta quorum; null = hereda el
+  // defaultQuorum de la academia). Opcional hasta que el backend lo exponga.
+  quorum?: number | null;
   style: NamedRef | null;
   level: NamedRef | null;
   types: { type: NamedRef }[];
@@ -106,6 +109,9 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const [levelId, setLevelId] = useState("");
   const [typeIds, setTypeIds] = useState<string[]>([]);
   const [instructorId, setInstructorId] = useState("");
+  // Quórum opcional (override de serie) — string para el input controlado;
+  // vacío = null = hereda el defaultQuorum de la academia.
+  const [quorum, setQuorum] = useState("");
   const [month, setMonth] = useState(currentMonth);
   const [slots, setSlots] = useState<SlotDraft[]>([emptySlot()]);
 
@@ -216,6 +222,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     setLevelId("");
     setTypeIds([]);
     setInstructorId("");
+    setQuorum("");
     setMonth(currentMonth());
     setSlots([emptySlot()]);
     setFormError(null);
@@ -236,6 +243,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     setLevelId(s.level?.id ?? "");
     setTypeIds(s.types.map((x) => x.type.id));
     setInstructorId(s.instructorId ?? "");
+    setQuorum(s.quorum != null ? String(s.quorum) : "");
     setMonth(s.month);
     setSlots([emptySlot()]);
     setFormError(null);
@@ -252,11 +260,21 @@ function SeriesModule({ academyId }: { academyId: string }) {
     setSlots((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   }
 
+  // Quórum del form: "" → null (PATCH limpia el override → hereda el
+  // default de la academia); número inválido → null también.
+  function parsedQuorum(): number | null {
+    const v = quorum.trim();
+    if (!v) return null;
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
     if (!editing && (!month || slots.length === 0)) return;
+    const q = parsedQuorum();
     setBusy(true);
     setFormError(null);
     setFeedback(null);
@@ -272,6 +290,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
               levelId: levelId || null,
               typeIds,
               instructorId: instructorId || null,
+              quorum: q,
             }),
           })
         : await apiFetch(`/academies/${academyId}/series`, {
@@ -286,6 +305,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
               ...(levelId ? { levelId } : {}),
               ...(typeIds.length ? { typeIds } : {}),
               ...(instructorId ? { instructorId } : {}),
+              ...(q !== null ? { quorum: q } : {}),
               month,
               slots: slots.map((s) => ({
                 weekday: s.weekday,
@@ -545,6 +565,20 @@ function SeriesModule({ academyId }: { academyId: string }) {
               </select>
             </label>
 
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-white/50">{t("quorum")}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                className={inputCls}
+                value={quorum}
+                onChange={(e) => setQuorum(e.target.value)}
+              />
+              <span className="text-xs text-white/40">{t("quorumHint")}</span>
+            </label>
+
             {!editing && (
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-white/50">
@@ -739,10 +773,15 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 {s.description && (
                   <p className="text-sm text-white/60">{s.description}</p>
                 )}
-                {(s.style || s.level || s.types.length > 0) && (
+                {(s.style || s.level || s.types.length > 0 || s.quorum != null) && (
                   <div className="flex flex-wrap gap-1.5">
                     {s.style && <Badge variant="neon">{s.style.name}</Badge>}
                     {s.level && <Badge variant="muted">{s.level.name}</Badge>}
+                    {s.quorum != null && (
+                      <Badge variant="outline">
+                        {t("quorumValue", { value: s.quorum })}
+                      </Badge>
+                    )}
                     {s.types.map((x) => (
                       <Badge key={x.type.id} variant="outline">
                         {x.type.name}

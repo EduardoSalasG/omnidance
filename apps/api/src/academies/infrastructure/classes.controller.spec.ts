@@ -7,6 +7,7 @@ import {
 import type { Request } from "express";
 import type { PrismaService } from "../../prisma.service";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
+import type { AcademyAccess } from "./academy-access.service";
 // Ciclo session.guard ⇄ auth.controller (SESSION_COOKIE): si session.guard
 // entra primero, los @UseGuards de auth.controller evalúan con SessionGuard
 // undefined. Cargar auth.controller antes rompe el ciclo a favor del test.
@@ -167,6 +168,7 @@ describe("ClassesController.book", () => {
     ctrl = new ClassesController(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
+      {} as AcademyAccess, // book/cancel no lo usan
     );
     prisma.addClass("cls-1");
   });
@@ -237,6 +239,7 @@ describe("ClassesController.cancel", () => {
     ctrl = new ClassesController(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
+      {} as AcademyAccess, // book/cancel no lo usan
     );
     prisma.addClass("cls-1"); // capacity 1
   });

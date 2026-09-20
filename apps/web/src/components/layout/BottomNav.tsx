@@ -175,6 +175,7 @@ const DJ_TAB: Tab = {
   href: "/dj",
   key: "dj",
   icon: icon(ICONS.music),
+  center: true,
 };
 const SUPPORT_TAB: Tab = {
   href: "/soporte",
@@ -238,7 +239,7 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
     },
     ATTENDANCE_TAB,
   ],
-  DJ: [HOME_TAB, EVENTS_TAB, QR_TAB, DJ_TAB],
+  DJ: [HOME_TAB, EVENTS_TAB, DJ_TAB],
   VENUE_MANAGER: [HOME_TAB, VENUE_TAB, EVENTS_TAB, ANALYTICS_TAB],
   SUPPORT: [HOME_TAB, SUPPORT_TAB, EVENTS_TAB],
   ADMIN: [
@@ -362,6 +363,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelKey: "title",
       items: [
         {
+          href: "/academia/clases",
+          ns: "academy",
+          key: "modules.myClasses",
+          icon: ICONS.list,
+        },
+        {
           href: "/academia/planes",
           ns: "academy",
           key: "modules.plans",
@@ -417,6 +424,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelNs: "academy",
       labelKey: "title",
       items: [
+        {
+          href: "/academia/clases",
+          ns: "academy",
+          key: "modules.myClasses",
+          icon: ICONS.list,
+        },
         {
           href: "/academia/alumnos",
           ns: "academy",

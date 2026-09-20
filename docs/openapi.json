@@ -2224,6 +2224,36 @@
         }
       }
     },
+    "/api/academies/{id}/settings": {
+      "patch": {
+        "operationId": "AcademiesController_updateSettings",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAcademySettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/academies/{id}/plans": {
       "post": {
         "operationId": "AcademiesController_createPlan",
@@ -2308,6 +2338,34 @@
         "parameters": [
           {
             "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/students/{personId}": {
+      "get": {
+        "operationId": "AcademiesController_studentDetail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
             "required": true,
             "in": "path",
             "schema": {
@@ -2551,6 +2609,37 @@
       "get": {
         "operationId": "ClassesController_mine",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/classes/teaching": {
+      "get": {
+        "operationId": "ClassesController_teaching",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/classes/{id}/roster": {
+      "get": {
+        "operationId": "ClassesController_roster",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -3906,6 +3995,10 @@
         "properties": {}
       },
       "CreateAcademyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateAcademySettingsDto": {
         "type": "object",
         "properties": {}
       },

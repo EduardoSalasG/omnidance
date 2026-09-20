@@ -16,6 +16,28 @@ export interface AcademyContext {
   instructorIds: string[];
 }
 
+/** Cupos por defecto cuando ningún nivel de la cadena declara quórum. */
+export const DEFAULT_CLASS_QUORUM = 20;
+
+/**
+ * Quórum efectivo de una clase (cupos). Cadena de herencia:
+ * class.capacity → slot.capacity → series.quorum → academy.defaultQuorum → 20.
+ */
+export function effectiveCapacity(input: {
+  classCapacity?: number | null;
+  slotCapacity?: number | null;
+  seriesQuorum?: number | null;
+  academyDefaultQuorum?: number | null;
+}): number {
+  return (
+    input.classCapacity ??
+    input.slotCapacity ??
+    input.seriesQuorum ??
+    input.academyDefaultQuorum ??
+    DEFAULT_CLASS_QUORUM
+  );
+}
+
 export class InvalidEnrollmentTransitionError extends Error {
   constructor(
     public readonly from: EnrollmentStatus,

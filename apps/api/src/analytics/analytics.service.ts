@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
+import { effectiveCapacity } from "../academies/domain/academy.service";
 
 const DAY_MS = 86_400_000;
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS);
@@ -321,10 +322,30 @@ export class AnalyticsService {
   ): Promise<number | null> {
     const classes = await this.prisma.class.findMany({
       where: { slot: { academyId }, date: { gte: since } },
-      select: { id: true, slot: { select: { capacity: true } } },
+      select: {
+        id: true,
+        capacity: true,
+        slot: {
+          select: {
+            capacity: true,
+            series: { select: { quorum: true } },
+            academy: { select: { defaultQuorum: true } },
+          },
+        },
+      },
       take: 200,
     });
-    const cap = classes.reduce((a, c) => a + c.slot.capacity, 0);
+    const cap = classes.reduce(
+      (a, c) =>
+        a +
+        effectiveCapacity({
+          classCapacity: c.capacity,
+          slotCapacity: c.slot.capacity,
+          seriesQuorum: c.slot.series?.quorum,
+          academyDefaultQuorum: c.slot.academy.defaultQuorum,
+        }),
+      0,
+    );
     if (!cap) return null;
     const booked = await this.prisma.classBooking.count({
       where: { classId: { in: classes.map((c) => c.id) }, status: "BOOKED" },
