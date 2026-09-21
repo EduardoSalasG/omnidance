@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import consumer from "@/i18n/parts/consumer.json";
 
@@ -145,11 +146,7 @@ export function TripMatches({ trips }: { trips: TripRange[] }) {
         {tm.title}
       </h2>
 
-      {state === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <Spinner size="sm" />}
       {state === "error" && (
         <p role="alert" className="text-white/60">
           {tc("error")}

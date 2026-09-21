@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import academyExtras from "@/i18n/parts/academyExtras.json";
 import { inputCls, readError, type Academy } from "./shared";
 
@@ -147,9 +148,7 @@ export function Videos({ academy }: { academy: Academy }) {
     <section aria-label={t.title} className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold">{t.title}</h2>
 
-      {state === "loading" && (
-        <p className="text-sm text-white/60">{tc("loading")}</p>
-      )}
+      {state === "loading" && <Spinner size="sm" />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p className="text-sm text-white/60">{tc("error")}</p>

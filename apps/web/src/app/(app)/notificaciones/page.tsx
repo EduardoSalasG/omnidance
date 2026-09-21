@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 type NotificationItem = {
   id: string;
@@ -121,11 +122,7 @@ export default function NotificacionesPage() {
         )}
       </header>
 
-      {state === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <PageLoading />}
       {state === "error" && (
         <p role="alert" className="text-white/50">
           {tc("error")}

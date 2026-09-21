@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
@@ -91,11 +92,7 @@ export default function ProducerParamsPage() {
         ← {t("title")}
       </Link>
 
-      {gate === "loading" && (
-        <p role="status" className="text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {gate === "loading" && <PageLoading />}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">

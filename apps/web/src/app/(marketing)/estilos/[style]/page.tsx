@@ -148,7 +148,7 @@ export default async function StyleLandingPage({
       <main className="relative flex min-h-dvh flex-col overflow-hidden bg-night-950">
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_25%,rgba(163,230,53,0.08),transparent_70%)]"
+          className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_25%,rgba(167,139,250,0.08),transparent_70%)]"
         />
 
         <header className="relative z-10 flex items-center justify-between px-6 py-5 sm:px-10">

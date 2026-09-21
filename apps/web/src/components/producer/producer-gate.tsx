@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { PRODUCER_ROLES } from "./shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
@@ -47,7 +48,7 @@ export function ProducerGate({ children }: { children: React.ReactNode }) {
   }, [boot]);
 
   if (gate === "loading") {
-    return <p className="text-white/60">{tc("loading")}</p>;
+    return <PageLoading />;
   }
 
   if (gate === "unauth") {

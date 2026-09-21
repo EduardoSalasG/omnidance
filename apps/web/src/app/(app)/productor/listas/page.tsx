@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 
@@ -163,7 +164,7 @@ function GuestLists() {
 
       <section className="flex flex-col gap-4">
         {events === null ? (
-          <p className="text-white/60">{tc("loading")}</p>
+          <Spinner size="sm" />
         ) : events.length === 0 ? (
           <p className="text-white/60">{te("empty")}</p>
         ) : (
@@ -223,9 +224,7 @@ function GuestLists() {
               </Card>
             )}
 
-            {listsLoading && (
-              <p className="text-white/60">{tc("loading")}</p>
-            )}
+            {listsLoading && <Spinner size="sm" />}
             {listsError && (
               <div className="flex items-center gap-3">
                 <p className="text-sm text-red-400">{tc("error")}</p>

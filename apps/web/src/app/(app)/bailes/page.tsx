@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { isInvitee } from "@/components/sessions/types";
 import type { DanceSession, SessionAction } from "@/components/sessions/types";
@@ -142,9 +143,7 @@ function Bailes() {
           </Button>
         </div>
       ) : phase === "loading" ? (
-        <p role="status" className="text-white/50">
-          {tCommon("loading")}
-        </p>
+        <PageLoading />
       ) : sessions.length === 0 ? (
         <div className="flex flex-col items-center gap-6 py-16 text-center">
           <p role="status" className="text-lg font-semibold">

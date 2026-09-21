@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { StudentsSection } from "@/components/academy/students-section";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -97,11 +98,7 @@ function StudentsModule({
     );
   }
   if (plans === null) {
-    return (
-      <p role="status" className="text-sm text-white/60">
-        {tc("loading")}
-      </p>
-    );
+    return <PageLoading />;
   }
   return (
     <StudentsSection

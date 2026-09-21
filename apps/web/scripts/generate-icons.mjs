@@ -1,6 +1,6 @@
 // Genera los íconos raster del PWA (public/icon-192.png, icon-512.png,
 // icon-512-maskable.png) reproduciendo src/app/icon.svg — rect redondeado
-// #0a0a0f con la "O" neon #a3e635 — sin depender de sharp ni ImageMagick.
+// #0a0a0f con la "O" neon #a78bfa — sin depender de sharp ni ImageMagick.
 //
 //   node scripts/generate-icons.mjs
 //

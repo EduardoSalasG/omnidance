@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { QuorumBar } from "@/components/academy/quorum-bar";
 import {
@@ -74,11 +75,7 @@ export default function AcademiaClaseRosterPage({
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <ConsoleHeader backHref="/academia/clases" backLabel={t("title")} />
 
-      {state === "loading" && (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <PageLoading />}
       {state === "unauth" && (
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{t("loginRequired")}</p>

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import academyExtras from "@/i18n/parts/academyExtras.json";
 import { inputCls, readError, type Academy } from "./shared";
 
@@ -335,9 +336,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       {academy && (
         <section aria-label={t.title} className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t.title}</h2>
-          {staffState === "loading" && (
-            <p className="text-sm text-white/60">{tc("loading")}</p>
-          )}
+          {staffState === "loading" && <Spinner size="sm" />}
           {staffState === "error" && (
             <div className="flex items-center gap-3">
               <p className="text-sm text-white/60">{tc("error")}</p>
@@ -464,9 +463,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
 
       <section aria-label={t.mineTitle} className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t.mineTitle}</h2>
-        {mineState === "loading" && (
-          <p className="text-sm text-white/60">{tc("loading")}</p>
-        )}
+        {mineState === "loading" && <Spinner size="sm" />}
         {mineState === "error" && (
           <div className="flex items-center gap-3">
             <p className="text-sm text-white/60">{tc("error")}</p>
