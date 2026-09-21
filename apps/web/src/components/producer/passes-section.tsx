@@ -44,7 +44,7 @@ export function PassesSection({ eventId }: Props) {
         {t("sections.passes")}
       </h2>
 
-      {passes === null && !error && <Spinner size="sm" />}
+      {passes === null && !error && <Spinner size="sm" className="page-loading" />}
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

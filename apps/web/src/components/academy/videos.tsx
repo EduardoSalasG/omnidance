@@ -148,7 +148,7 @@ export function Videos({ academy }: { academy: Academy }) {
     <section aria-label={t.title} className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold">{t.title}</h2>
 
-      {state === "loading" && <Spinner size="sm" />}
+      {state === "loading" && <Spinner size="sm" className="page-loading" />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p className="text-sm text-white/60">{tc("error")}</p>

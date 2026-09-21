@@ -164,7 +164,7 @@ function GuestLists() {
 
       <section className="flex flex-col gap-4">
         {events === null ? (
-          <Spinner size="sm" />
+          <Spinner size="sm" className="page-loading" />
         ) : events.length === 0 ? (
           <p className="text-white/60">{te("empty")}</p>
         ) : (
@@ -224,7 +224,7 @@ function GuestLists() {
               </Card>
             )}
 
-            {listsLoading && <Spinner size="sm" />}
+            {listsLoading && <Spinner size="sm" className="page-loading" />}
             {listsError && (
               <div className="flex items-center gap-3">
                 <p className="text-sm text-red-400">{tc("error")}</p>

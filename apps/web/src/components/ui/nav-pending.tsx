@@ -93,8 +93,12 @@ export function NavPendingOverlay({ children }: { children: ReactNode }) {
           return;
         }
         const anchor = (e.target as HTMLElement).closest?.("a[href]");
-        const href = anchor?.getAttribute("href");
+        if (!anchor) return;
+        const href = anchor.getAttribute("href");
         if (!href?.startsWith("/")) return;
+        if (anchor.getAttribute("target") === "_blank" || anchor.hasAttribute("download")) {
+          return;
+        }
         const current = `${window.location.pathname}${window.location.search}`;
         if (href === current) return;
         arm();
@@ -105,7 +109,13 @@ export function NavPendingOverlay({ children }: { children: ReactNode }) {
         <NavWatcher onNavigate={settle} />
       </Suspense>
       {visible && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-night-950/60 backdrop-blur-[2px]">
+        // Tap en el overlay lo cierra — si la navegación se abortó el
+        // usuario no queda bloqueado esperando el hard-clear.
+        <div
+          role="presentation"
+          onClick={hide}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-night-950/60 backdrop-blur-[2px]"
+        >
           <Spinner size="lg" />
         </div>
       )}

@@ -286,7 +286,7 @@ export default function AmigosPage() {
         {trimmed.length > 0 && trimmed.length < MIN_CHARS && (
           <p className="text-sm text-white/50">{t("minChars")}</p>
         )}
-        {searching && <Spinner size="sm" />}
+        {searching && <Spinner size="sm" className="page-loading" />}
         {!searching && results !== null && results.length === 0 && (
           <p role="status" className="text-sm text-white/50">
             {t("noResults")}
