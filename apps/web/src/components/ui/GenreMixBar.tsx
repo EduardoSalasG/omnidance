@@ -10,7 +10,7 @@
 export type GenreMixBlock = { genre: string; songs: number };
 
 const MIX_COLOR: Record<string, string> = {
-  SALSA: "bg-neon",
+  SALSA: "bg-orange-500",
   BACHATA: "bg-fuchsia-400",
   CUBANO: "bg-amber-400",
 };
