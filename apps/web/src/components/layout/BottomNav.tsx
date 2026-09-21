@@ -323,12 +323,6 @@ const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
 ];
 const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [
   { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
-  {
-    href: "/practicas",
-    ns: "nav",
-    key: "practices",
-    icon: ICONS.practices,
-  },
   { href: "/eventos", ns: "events", key: "title", icon: ICONS.events },
   {
     href: "/notificaciones",
