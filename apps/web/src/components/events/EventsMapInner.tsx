@@ -6,10 +6,14 @@ import { useRouter } from "next/navigation";
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import type { MapVenue } from "./EventsMap";
 
-const TILES_URL =
-  "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+// Esri Dark Gray Canvas — raster dark gratuito sin API key (CARTO ya la
+// exige y sirve tiles "API key required"). Dos capas: base + labels.
+const TILES_BASE =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
+const TILES_LABELS =
+  "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
 const TILES_ATTR =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+  'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ';
 
 /**
  * Mapa dark-first de locales con eventos. Pins circulares SVG (sin
@@ -36,7 +40,8 @@ export default function EventsMapInner({ venues }: { venues: MapVenue[] }) {
       className="h-full w-full"
       scrollWheelZoom
     >
-      <TileLayer url={TILES_URL} attribution={TILES_ATTR} />
+      <TileLayer url={TILES_BASE} attribution={TILES_ATTR} />
+      <TileLayer url={TILES_LABELS} />
       {venues.map((v) => (
         <CircleMarker
           key={v.id}
