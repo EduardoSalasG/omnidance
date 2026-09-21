@@ -17,9 +17,6 @@ export class SocialDomainError extends Error {
   }
 }
 
-export const RSVP_STATUSES = ["GOING", "INTERESTED"] as const;
-export type RsvpStatus = (typeof RSVP_STATUSES)[number];
-
 export type WaitlistStatus = "WAITING" | "PROMOTED" | "EXPIRED";
 
 /** Posición de una entrada nueva en la waitlist: max(posiciones) + 1 (parte en 1). */

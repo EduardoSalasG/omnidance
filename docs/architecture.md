@@ -10,7 +10,7 @@ Plataforma unificada para la escena SBK de Santiago: bailarines, eventos sociale
 graph TB
     subgraph Client["apps/web — Next.js PWA (mobile-first, es-CL)"]
         Landing["/ landing SSR"]
-        Consumer["Consumidor: /eventos /entradas /bailes /qr /perfil"]
+        Consumer["Consumidor: /eventos /amigos /bailes /practicas /qr /perfil"]
         Ops["Consolas: /staff /productor /academia /admin"]
     end
 
@@ -64,7 +64,7 @@ src/<dominio>/
 | payments | `/api/checkout`, `/api/tickets`, `/api/payments/webhook` | mixto |
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
 | notifications | `/api/notifications`, `/api/push-tokens` | SessionGuard |
-| social | `/api/events/:id/rsvp|waitlist`, `/practices`, `/trips`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists` | mixto `social.manage` |
+| social | `/api/events/:id/waitlist`, `/practices`, `/trips`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id` | mixto `social.manage` |
 | academies | `/api/academies/*` planes, enrollments, asistencia | `academies.create` / owner |
 | gamification | `/api/gamification/*` streaks, badges, leaderboard, misiones | SessionGuard |
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |
@@ -90,11 +90,17 @@ src/<dominio>/
 
 ## Hub de eventos (`/eventos` autenticado)
 
-- Vistas por query (`?view=`): `list` (default: Esta semana por día + Más adelante), `calendar` (`&week=YYYY-MM-DD` — cualquier fecha resuelve al lunes de su semana; franja de 7 días con puntos por género y nav prev/next semana; `&day=YYYY-MM-DD` lista los eventos del día bajo la franja) y `saved` (mis eventos con RSVP). El switcher es icon-only (toggle ≡/📅 + bookmark aparte). Todo SSR con links que preservan los demás params — compartibles y sin JS.
-- Filtros combinables: `?genre=` **multiselect CSV** (`SALSA,BACHATA` → unión; API con `hasSome` propio o heredado), `?venue=<id>` como dropdown tipo chip (`<details>` + overlay de cierre en CSS — sin JS; el `<summary>` muestra el local activo), `?near=<lat>,<lng>` (ordena por distancia haversine y muestra "a X km"; venues sin coords al final) dentro del mismo dropdown. La posición la pide el usuario vía `NearMeButton` (geolocalización opt-in); el orden se resuelve en SSR.
-- "Guardados" reutiliza `Rsvp` — no hay modelo aparte: `PUT/DELETE /api/events/:id/rsvp` (INTERESTED) con toggle optimista desde el bookmark de cada card y del header del detalle (`SaveEventButton`, sibling absoluto del Link — sin anidar interactivos); `GET /api/me/rsvp` alimenta el estado inicial y la vista saved. El bloque Voy/Me interesa/waitlist se retiró del detalle — el guardado se hace con el bookmark.
-- `GET /api/events` expone `venue.lat/lng` (dato público del local) para el sort por distancia.
+- Vistas por query (`?view=`): `list` (default: Esta semana por día + Más adelante), `calendar` (`&week=YYYY-MM-DD` — cualquier fecha resuelve al lunes de su semana; franja de 7 días con puntos por género y nav prev/next semana; `&day=YYYY-MM-DD` lista los eventos del día bajo la franja) y `mios` (agenda propia: eventos futuros con `Ticket` ACTIVE del usuario). El switcher es icon-only (toggle ≡/📅 + ticket aparte). Todo SSR con links que preservan los demás params — compartibles y sin JS.
+- Filtros combinables: `?genre=` **multiselect CSV** (`SALSA,BACHATA` → unión; API con `hasSome` propio o heredado), `?venue=<id>` como dropdown tipo chip (`<details>` + overlay de cierre en CSS — sin JS; el `<summary>` muestra el local activo).
+- Asistencia = compra real: `Ticket` ACTIVE es la fuente de "voy" — el modelo `Rsvp` fue eliminado (GOING/INTERESTED no reflejaban asistencia real) junto a `PUT/DELETE /api/events/:id/rsvp` y `GET /api/me/rsvp`. La agenda de Mis eventos se construye con `GET /api/tickets/mine` (cookie forward en SSR); la entrada real es el QR personal — `/entradas` queda fuera del nav como página de gestión (transferencia de tickets), enlazada desde la vista `mios` y desde el post-checkout.
 - Limitación conocida: claves de día/semana usan la TZ del runtime (dev = TZ del host); el producto target es America/Santiago.
+
+## Nav del bailarín y módulos sociales
+
+- Bottom bar DANCER: `[Inicio] [Eventos] [+] [Amigos] [Perfil]`. El "+" central (`ACTIONS_TAB`, `sheet: true` — botón, no Link) abre `DancerActionsSheet`: bottom sheet con el QR personal destacado (`MyQr compact`) + grid de módulos secundarios (Bailes, Prácticas, Viajes, Notificaciones; en lente academia: Academia, Prácticas, Eventos, Notificaciones). `role="dialog"` + focus trap (`useDialogFocus`) + Escape/backdrop/ruta cierran; motion-reduce instantáneo.
+- El drawer lateral (`SideDrawer`) ya no aplica al rol DANCER en ninguna lente — los demás roles lo conservan.
+- `/bailes` solo muestra sesiones de baile escaneadas por QR (DanceSession + SessionRating). "Disponibles ahora" (`AvailabilitySection`) y "Busco pareja" (`PartnerRequests`) se movieron a `/practicas`, que es el hub de encontrar con quién practicar junto al listado de prácticas publicadas.
+- Amigos: `/amigos` incluye "Tus amigos van a" (`GET /api/friends/upcoming-events` — eventos futuros con ≥1 amigo confirmado con ticket ACTIVE, con stack de avatares); `/amigos/[id]` muestra "Próximos eventos" del perfil solo si la amistad está ACCEPTED (`GET /api/people/:id` incluye `upcomingEvents` condicional — ausente para no-amigos). `Ticket.eventId` es escalar → los joins son manuales en el controller.
 
 ## RBAC — todo DB-driven
 

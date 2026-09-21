@@ -13,22 +13,16 @@ import {
 import { PartnerRequestsController } from "./infrastructure/partner-requests.controller";
 import { PeopleController } from "./infrastructure/people.controller";
 import { PracticesController } from "./infrastructure/practices.controller";
-import {
-  MeRsvpController,
-  RsvpController,
-} from "./infrastructure/rsvp.controller";
 import { StylesController } from "./infrastructure/styles.controller";
 import { TripsController } from "./infrastructure/trips.controller";
 import { VenueConsoleController } from "./infrastructure/venue-console.controller";
 import { VenuesController } from "./infrastructure/venues.controller";
 import { WaitlistController } from "./infrastructure/waitlist.controller";
 
-/** Social: RSVP, guest lists, waitlist, prácticas, trips, venues, matchmaking y disponibilidad. */
+/** Social: guest lists, waitlist, prácticas, trips, venues, matchmaking y disponibilidad. */
 @Module({
   imports: [AuthModule, NotificationsModule, PrismaModule],
   controllers: [
-    RsvpController,
-    MeRsvpController,
     EventGuestListsController,
     GuestListsController,
     WaitlistController,

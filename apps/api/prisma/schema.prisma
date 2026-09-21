@@ -154,17 +154,6 @@ model Friendship {
   @@unique([aId, bId])
 }
 
-model Rsvp {
-  id        String   @id @default(cuid())
-  event     Event    @relation(fields: [eventId], references: [id])
-  eventId   String
-  personId  String
-  status    String   @default("GOING") // GOING | INTERESTED
-  createdAt DateTime @default(now())
-
-  @@unique([eventId, personId])
-}
-
 // ═══════════════════ VENUES / EVENTOS ═══════════════════
 
 model Venue {
@@ -247,7 +236,6 @@ model Event {
   days           EventDay[]
   scheduleBlocks ScheduleBlock[]
   djs            EventDj[]
-  rsvps          Rsvp[]
   shows          Show[]
 }
 

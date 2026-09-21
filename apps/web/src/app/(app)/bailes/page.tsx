@@ -9,9 +9,6 @@ import { PageLoading } from "@/components/ui/spinner";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { isInvitee } from "@/components/sessions/types";
 import type { DanceSession, SessionAction } from "@/components/sessions/types";
-import { AvailabilitySection } from "@/components/social/AvailabilitySection";
-import { PartnerRequests } from "@/components/social/PartnerRequests";
-import type { Me } from "@/components/social/types";
 
 type Phase = "loading" | "unauth" | "ready" | "error";
 
@@ -25,8 +22,6 @@ function Bailes() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [sessions, setSessions] = useState<DanceSession[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  // undefined = cargando; null = sin sesión. Alimenta las secciones sociales.
-  const [me, setMe] = useState<Me | null | undefined>(undefined);
 
   const fetchSessions = useCallback(async () => {
     const res = await apiFetch(
@@ -51,10 +46,6 @@ function Bailes() {
   // Refetch al volver a la pestaña — el usuario alterna entre bailar y el teléfono.
   useEffect(() => {
     void fetchSessions();
-    // /me alimenta las secciones sociales (toggle, ownership de solicitudes).
-    apiFetch("/me")
-      .then(async (res) => setMe(res.ok ? ((await res.json()) as Me) : null))
-      .catch(() => setMe(null));
     const onVisible = () => {
       if (document.visibilityState === "visible") void fetchSessions();
     };
@@ -196,10 +187,6 @@ function Bailes() {
           )}
         </>
       )}
-
-      {/* Discovery social — feeds públicos; acciones requieren sesión */}
-      <AvailabilitySection me={me} />
-      <PartnerRequests me={me} />
     </main>
   );
 }

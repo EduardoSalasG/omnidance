@@ -119,6 +119,39 @@ export class PeopleController {
       this.prisma.personBadge.count({ where: { personId: id } }),
       this.friendshipMap(me, [id]),
     ]);
+    const friendship = fmap.get(id) ?? { id: null, status: "none" };
+
+    // Próximos eventos (ticket ACTIVE) — solo entre amigos confirmados:
+    // la agenda de un no-amigo no se expone. Ticket.eventId es escalar →
+    // join manual.
+    let upcomingEvents:
+      | { id: string; name: string; startsAt: Date; venue: { name: string } | null }[]
+      | undefined;
+    if (friendship.status === "friends") {
+      const tickets = await this.prisma.ticket.findMany({
+        where: { ownerId: id, status: "ACTIVE" },
+        select: { eventId: true },
+      });
+      if (tickets.length > 0) {
+        upcomingEvents = await this.prisma.event.findMany({
+          where: {
+            id: { in: tickets.map((t) => t.eventId) },
+            startsAt: { gt: new Date() },
+            status: { in: ["PUBLISHED", "LIVE"] },
+          },
+          orderBy: { startsAt: "asc" },
+          take: 10,
+          select: {
+            id: true,
+            name: true,
+            startsAt: true,
+            venue: { select: { name: true } },
+          },
+        });
+      } else {
+        upcomingEvents = [];
+      }
+    }
 
     return {
       id: person.id,
@@ -126,8 +159,9 @@ export class PeopleController {
       photoUrl: person.photoUrl,
       styleRoles: person.styleRoles,
       badgeCount: badges,
-      friendship: fmap.get(id) ?? { id: null, status: "none" },
+      friendship,
       isMe: me === id,
+      ...(upcomingEvents ? { upcomingEvents } : {}),
     };
   }
 }

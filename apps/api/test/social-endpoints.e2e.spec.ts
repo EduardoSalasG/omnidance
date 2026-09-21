@@ -8,7 +8,6 @@ import { PaymentsModule } from "../src/payments/payments.module";
 import { PrismaService } from "../src/prisma.service";
 // Controllers nuevos aún no registrados en SocialModule (wiring pendiente):
 // se montan directo en el test module para cubrir el contrato HTTP.
-import { MeRsvpController } from "../src/social/infrastructure/rsvp.controller";
 import { VenuesController } from "../src/social/infrastructure/venues.controller";
 import { PartnerRequestsController } from "../src/social/infrastructure/partner-requests.controller";
 import { AvailabilityController } from "../src/social/infrastructure/availability.controller";
@@ -64,7 +63,6 @@ describe("social endpoints e2e", () => {
     const moduleRef = await Test.createTestingModule({
       imports: [SocialModule, PaymentsModule, AuthModule],
       controllers: [
-        MeRsvpController,
         VenuesController,
         PartnerRequestsController,
         AvailabilityController,
@@ -144,14 +142,6 @@ describe("social endpoints e2e", () => {
     });
     ids.styleId = style.id;
 
-    // RSVP de A y B en el evento
-    await prisma.rsvp.create({
-      data: { eventId: event.id, personId: a.id, status: "GOING" },
-    });
-    await prisma.rsvp.create({
-      data: { eventId: event.id, personId: b.id, status: "INTERESTED" },
-    });
-
     // Partner requests: A y B OPEN (createdAt controlado), C CLOSED
     const pr1 = await prisma.practicePartnerRequest.create({
       data: {
@@ -230,7 +220,6 @@ describe("social endpoints e2e", () => {
     await prisma.availabilityToggle.deleteMany({
       where: { personId: { in: peopleIds } },
     });
-    await prisma.rsvp.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.ticket.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.event.delete({ where: { id: ids.eventId } });
     await prisma.style.delete({ where: { id: ids.styleId } });
@@ -242,36 +231,6 @@ describe("social endpoints e2e", () => {
     });
     await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
     await app.close();
-  });
-
-  // ═══════════════════════ GET /api/me/rsvp ═══════════════════════
-  describe("GET /api/me/rsvp", () => {
-    it("sin sesión → 401", async () => {
-      const res = await fetch(`${baseUrl}/api/me/rsvp`);
-      expect(res.status).toBe(401);
-    });
-
-    it("devuelve solo mis RSVP con {eventId,status,createdAt}", async () => {
-      const res = await fetch(`${baseUrl}/api/me/rsvp`, {
-        headers: { cookie: `omnidance_session=${sessionA}` },
-      });
-      expect(res.status).toBe(200);
-      const list = await res.json();
-      expect(list).toHaveLength(1);
-      expect(list[0].eventId).toBe(ids.eventId);
-      expect(list[0].status).toBe("GOING");
-      expect(list[0]).toHaveProperty("createdAt");
-      expect(list[0]).not.toHaveProperty("personId");
-    });
-
-    it("otro usuario ve su propio RSVP (INTERESTED)", async () => {
-      const res = await fetch(`${baseUrl}/api/me/rsvp`, {
-        headers: { cookie: `omnidance_session=${sessionB}` },
-      });
-      const list = await res.json();
-      expect(list).toHaveLength(1);
-      expect(list[0].status).toBe("INTERESTED");
-    });
   });
 
   // ═══════════════════════ GET /api/venues ═══════════════════════
