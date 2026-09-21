@@ -1,0 +1,12 @@
+{
+  "venuePublic": {
+    "back": "Volver a eventos",
+    "address": "Dirección",
+    "hours": "Horarios",
+    "capacity": "Aforo {count}",
+    "upcoming": "Próximos eventos",
+    "noUpcoming": "Sin eventos publicados en las próximas semanas.",
+    "free": "Gratis",
+    "presale": "Preventa"
+  }
+}

@@ -14,7 +14,13 @@ const PUBLIC_PATHS = new Set([
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+  // /locales/:id es prefijo (ruta dinámica): el perfil del local solo
+  // expone datos ya públicos (nombre, dirección, horarios, cartelera).
+  if (
+    PUBLIC_PATHS.has(pathname) ||
+    pathname.startsWith("/locales/")
+  )
+    return NextResponse.next();
   if (req.cookies.has("omnidance_session")) return NextResponse.next();
 
   const login = req.nextUrl.clone();

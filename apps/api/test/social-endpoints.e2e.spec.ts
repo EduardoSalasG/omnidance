@@ -253,10 +253,20 @@ describe("social endpoints e2e", () => {
 
       const names = venues.map((v: { name: string }) => v.name);
       expect([...names].sort((a, b) => a.localeCompare(b))).toEqual(names);
-      // shape contract: solo id/name/address/capacity
+      // shape contract: datos públicos del local — alimentan selects,
+      // el mapa de /eventos y el perfil público /locales/:id.
       for (const v of venues) {
         expect(Object.keys(v).sort()).toEqual(
-          ["address", "capacity", "id", "name"].sort(),
+          [
+            "address",
+            "capacity",
+            "hours",
+            "id",
+            "lat",
+            "lng",
+            "logoUrl",
+            "name",
+          ].sort(),
         );
       }
     });

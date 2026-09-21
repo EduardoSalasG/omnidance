@@ -163,6 +163,10 @@ model Venue {
   capacity Int?
   lat      Float?
   lng      Float?
+  logoUrl  String?
+  // Horario de atención en texto libre ("Mar–Sáb desde 22:00") — los
+  // sociales no tienen horario semanal fijo, varía por noche/marca.
+  hours    String?
   active   Boolean @default(true)
   ownerId  String? // personId del venue_owner — se fija por admin/seed
 
