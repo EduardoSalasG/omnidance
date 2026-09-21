@@ -1,7 +1,7 @@
 {
   "common": {
     "appName": "Omnidance",
-    "tagline": "La plataforma de la escena SBK",
+    "tagline": "La plataforma de la comunidad salsera y bachatera",
     "loading": "Cargando…",
     "error": "Algo salió mal",
     "login": "Entrar",
@@ -69,35 +69,6 @@
     "findAcademy": "Explorar academias",
     "academyEmpty": "Aún no estás en una academia — explora y pide tu primera clase",
     "keepDancing": "Sigue bailando — cada noche suma a tu racha"
-  },
-  "landing": {
-    "eyebrow": "Salsa · Bachata · Cubano — Santiago",
-    "heroTitle": "Toda la escena, en un solo QR",
-    "heroSubtitle": "Eventos, entradas, prácticas y academias. Registra tus bailes, sube de nivel y conecta con la comunidad SBK.",
-    "ctaEvents": "Explorar eventos",
-    "ctaJoin": "Crear cuenta",
-    "liveTitle": "Esta semana en la escena",
-    "howTitle": "Cómo funciona",
-    "how": {
-      "step1Title": "Muestra tu QR",
-      "step1Desc": "Tu entrada y tu identidad de bailarín en un código que rota cada minuto. Nadie puede capturarlo.",
-      "step2Title": "Invita a bailar",
-      "step2Desc": "Escanea el QR de tu pareja, invita, baila. La sesión se registra y el cooldown evita el acoso.",
-      "step3Title": "Construye tu reputación",
-      "step3Desc": "Rachas, insignias y Prime Time. Tu nivel de baile crece con cada noche — privado y justo."
-    },
-    "forTitle": "Para toda la escena",
-    "for": {
-      "dancersTitle": "Bailarines",
-      "dancersDesc": "Entradas en el teléfono, prácticas cerca de ti, y tu progreso noche a noche.",
-      "producersTitle": "Productores",
-      "producersDesc": "Venta online, códigos de descuento, puerta con escáner y liquidación clara.",
-      "academiesTitle": "Academias",
-      "academiesDesc": "Planes, horarios y asistencia. Instructores independientes incluidos."
-    },
-    "finalCta": "¿Bailamos?",
-    "finalCtaDesc": "Crea tu cuenta con solo tu correo. Sin contraseñas.",
-    "footer": "Hecho para la escena SBK de Santiago"
   },
   "nav": {
     "main": "Navegación principal",
