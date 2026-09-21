@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import type { GenreMixBlock } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
+import { TicketWallet } from "@/components/tickets/TicketWallet";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import toursI18n from "@/i18n/parts/tours.json";
 
@@ -41,7 +42,13 @@ type EventListItem = {
   } | null;
 };
 
-type MyTicket = { status: string; event: { id: string } };
+type MyTicket = {
+  id: string;
+  status: string;
+  listPrice: number;
+  serviceFee: number;
+  event: { id: string; name: string; startsAt: string; venue: { name: string } };
+};
 type VenueRow = {
   id: string;
   name: string;
@@ -115,17 +122,14 @@ function groupByDay(events: EventListItem[]) {
     .map(([key, items]) => ({ key, label: items[0].startsAt, items }));
 }
 
-/** Eventos donde el usuario tiene ticket ACTIVE — cookie forward. */
-async function getMyTicketEventIds(): Promise<Set<string>> {
+/** Tickets del usuario — cookie forward; la vista mios los muestra. */
+async function getMyTickets(): Promise<MyTicket[]> {
   const res = await fetch(`${API_URL}/api/tickets/mine`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
-  if (!res?.ok) return new Set();
-  const rows = (await res.json()) as MyTicket[];
-  return new Set(
-    rows.filter((t) => t.status === "ACTIVE").map((t) => t.event.id),
-  );
+  if (!res?.ok) return [];
+  return (await res.json()) as MyTicket[];
 }
 
 /** "YYYY-MM-DD" validado; null si no matchea. */
@@ -171,9 +175,9 @@ export default async function EventosPage({
   const t = messages.events;
   // El middleware exige sesión para esta ruta — todo visitante está
   // autenticado (no hay ramas anónimas).
-  const [res, myTicketEventIds] = await Promise.all([
+  const [res, myTickets] = await Promise.all([
     fetch(`${API_URL}/api/events`, { cache: "no-store" }),
-    getMyTicketEventIds(),
+    getMyTickets(),
   ]);
   const all: EventListItem[] = res.ok ? await res.json() : [];
 
@@ -256,12 +260,6 @@ export default async function EventosPage({
   );
   const hasLater = filtered.some(
     (e) => new Date(e.startsAt).getTime() > horizon,
-  );
-
-  // "Mis eventos": agenda — eventos futuros con ticket ACTIVE propio.
-  const mios = filtered.filter(
-    (e) =>
-      myTicketEventIds.has(e.id) && new Date(e.startsAt).getTime() > now,
   );
 
   // ─── Calendario semanal (?week=<cualquier día> → su lunes) ───
@@ -400,11 +398,6 @@ export default async function EventosPage({
                 labels={t.genre as Record<string, string>}
                 className="mt-1.5"
               />
-            )}
-            {view === "mios" && (
-              <p className="mt-1.5 text-xs font-medium text-neon">
-                {t.miosQrHint}
-              </p>
             )}
           </div>
           {/* Col 3: precio */}
@@ -737,24 +730,9 @@ export default async function EventosPage({
           )}
         </section>
       ) : view === "mios" ? (
-        <div className="flex flex-col gap-8">
-          {mios.length === 0 ? (
-            <p className="text-white/60">{t.miosEmpty}</p>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-white/60">{t.miosHint}</p>
-                <Link
-                  href="/entradas"
-                  className="shrink-0 text-sm font-medium text-neon hover:underline"
-                >
-                  {t.miosManage} →
-                </Link>
-              </div>
-              {groupByDay(mios).map(renderDayGroup)}
-            </>
-          )}
-        </div>
+        /* "Mis entradas" fusionada con /entradas: gestión completa
+           (estado, precio, QR, regalar) en la misma vista. */
+        <TicketWallet tickets={myTickets} />
       ) : filtered.length === 0 ? (
         <p className="text-white/60">
           {genreSet.size || venueId ? t.emptyFiltered : t.empty}
