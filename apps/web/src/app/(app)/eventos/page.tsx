@@ -167,11 +167,11 @@ export default async function EventosPage({
   };
 }) {
   const t = messages.events;
-  const isAuthed = cookies().has("omnidance_session");
-
+  // El middleware exige sesión para esta ruta — todo visitante está
+  // autenticado (no hay ramas anónimas).
   const [res, myTicketEventIds] = await Promise.all([
     fetch(`${API_URL}/api/events`, { cache: "no-store" }),
-    isAuthed ? getMyTicketEventIds() : Promise.resolve(new Set<string>()),
+    getMyTicketEventIds(),
   ]);
   const all: EventListItem[] = res.ok ? await res.json() : [];
 
@@ -186,19 +186,12 @@ export default async function EventosPage({
   );
   const venueId = searchParams?.venue;
   const rawView = searchParams?.view;
-  // Las vistas calendar/mios son solo para autenticados.
   const view: View =
-    isAuthed &&
-    (rawView === "calendar" || rawView === "mios" || rawView === "map")
+    rawView === "calendar" || rawView === "mios" || rawView === "map"
       ? rawView
       : "list";
 
-  // Anónimo: solo la semana — el detalle lo pide el middleware vía /login.
-  const pool = isAuthed
-    ? all
-    : all.filter(
-        (e) => new Date(e.startsAt).getTime() <= Date.now() + WEEK_MS,
-      );
+  const pool = all;
 
   const venues = [
     ...new Map(
@@ -428,12 +421,10 @@ export default async function EventosPage({
         </div>
       </Card>
     );
-    return isAuthed ? (
+    return (
       <Link href={`/eventos/${e.id}`} className="block rounded-2xl">
         {inner}
       </Link>
-    ) : (
-      <div>{inner}</div>
     );
   };
 
@@ -466,11 +457,8 @@ export default async function EventosPage({
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">
-            {isAuthed ? t.title : t.publicLead}
-          </h1>
-          {isAuthed && (
-            <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold">{t.title}</h1>
+          <div className="flex items-center gap-2">
               {/* Toggle lista/calendario — íconos, segmented */}
               <div className="flex items-center rounded-full border border-white/15 p-0.5">
                 <Link
@@ -518,7 +506,6 @@ export default async function EventosPage({
                 </svg>
               </Link>
             </div>
-          )}
         </div>
 
         {/* Géneros — multiselect, cada chip togglea en el set.
@@ -744,7 +731,7 @@ export default async function EventosPage({
             </h2>
             <div className="flex flex-col gap-6">
               {groupByDay(thisWeek).map(renderDayGroup)}
-              {thisWeek.length === 0 && isAuthed && (
+              {thisWeek.length === 0 && (
                 <p className="text-sm text-white/60">{t.emptyFiltered}</p>
               )}
             </div>
@@ -769,18 +756,6 @@ export default async function EventosPage({
             </Link>
           )}
         </div>
-      )}
-
-      {!isAuthed && (
-        <section className="mt-2 rounded-2xl border border-neon/30 bg-neon/5 p-6 text-center">
-          <p className="text-sm text-white/70">{t.publicCta}</p>
-          <Link
-            href="/login?next=/eventos"
-            className="mt-4 inline-flex min-h-12 items-center rounded-full bg-neon px-8 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97]"
-          >
-            {t.publicCtaButton}
-          </Link>
-        </section>
       )}
     </main>
   );
