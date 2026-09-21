@@ -159,8 +159,8 @@ export async function seedDev(prisma: PrismaClient) {
   const havana = await venue(
     "Havana",
     200,
-    -33.4205,
-    -70.642,
+    -33.4328,
+    -70.6402,
     "Dominica 142, Recoleta",
     "Vie–Sáb · 22:00–04:00",
   );
