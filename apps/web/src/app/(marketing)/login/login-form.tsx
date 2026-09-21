@@ -40,7 +40,15 @@ function Field({
 
 // initialMode llega del server page (?mode=register desde los CTAs de
 // "crear cuenta" de las landings — que no aterricen en un login).
-export default function LoginForm({ initialMode }: { initialMode?: Mode }) {
+// next: middleware manda ?next=/ruta cuando un anónimo pide un módulo
+// protegido — tras login volvemos ahí en vez de siempre a /inicio.
+export default function LoginForm({
+  initialMode,
+  next,
+}: {
+  initialMode?: Mode;
+  next?: string;
+}) {
   const t = useTranslations("login");
   const [mode, setMode] = useState<Mode>(initialMode ?? "password");
   const [email, setEmail] = useState("");
@@ -96,7 +104,8 @@ export default function LoginForm({ initialMode }: { initialMode?: Mode }) {
       setLoading(false);
       if (res.ok) {
         if (mode === "magic") setSent(true);
-        else go("/inicio");
+        // next solo rutas internas — nunca un open redirect.
+        else go(next?.startsWith("/") && !next.startsWith("//") ? next : "/inicio");
         return;
       }
       if (res.status === 409) setError(t("emailTaken"));

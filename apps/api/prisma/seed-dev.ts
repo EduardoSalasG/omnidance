@@ -2,7 +2,7 @@
 // Idempotente: personas/venues/series/eventos se resuelven por clave natural
 // y las fechas se refrescan en cada corrida para que la demo no envejezca.
 import { randomBytes, scryptSync } from "node:crypto";
-import { PrismaClient } from "@prisma/client";
+import { Genre, PrismaClient } from "@prisma/client";
 import { ensurePerson, seedCommon } from "./seed-common";
 
 const DEV_DOMAIN = "omnidance.dev";
@@ -611,18 +611,19 @@ export async function seedDev(prisma: PrismaClient) {
     door: number,
     weekday: number,
     djIds: string[],
+    genres: Genre[] = [],
   ) => {
     const series = await ensure(
       () =>
         prisma.eventSeries.findFirst({ where: { name, producerId } }),
       () =>
         prisma.eventSeries.create({
-          data: { name, producerId, venueId, recurrence },
+          data: { name, producerId, venueId, recurrence, genres },
         }),
       (s) =>
         prisma.eventSeries.update({
           where: { id: s.id },
-          data: { venueId, recurrence },
+          data: { venueId, recurrence, genres },
         }),
     );
 
@@ -672,12 +673,12 @@ export async function seedDev(prisma: PrismaClient) {
   };
 
   // Orixas
-  const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id]);
-  const juevesCubano = await mkSeries("Baila Cubano con Bachata (Jueves Cubano)", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id]);
-  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id]);
-  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, []);
-  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month", 6000, 8000, 6, [fabian.id]);
-  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month", 6000, 8000, 6, [cesar.id]);
+  const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA]);
+  const juevesCubano = await mkSeries("Baila Cubano con Bachata (Jueves Cubano)", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA]);
+  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], [Genre.CUBANO]);
+  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], [Genre.SALSA]);
+  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month", 6000, 8000, 6, [fabian.id], [Genre.SALSA]);
+  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month", 6000, 8000, 6, [cesar.id], [Genre.CUBANO]);
 
   // Noches standalone (sin serie) — find-or-create por nombre+venue+weekday
   const mkNight = async (
@@ -688,6 +689,7 @@ export async function seedDev(prisma: PrismaClient) {
     door: number,
     capacity: number,
     djIds: string[] = [],
+    genres: Genre[] = [],
   ) => {
     // clave natural: nombre + venue + weekday implícito en la fecha
     const event = await ensure(
@@ -701,6 +703,7 @@ export async function seedDev(prisma: PrismaClient) {
             venueId,
             name,
             status: "PUBLISHED",
+            genres,
             startsAt: nextDay(weekday),
             endsAt: nextDay(weekday, 22 + 6),
             presalePrice: presale,
@@ -712,6 +715,7 @@ export async function seedDev(prisma: PrismaClient) {
         prisma.event.update({
           where: { id: e.id },
           data: {
+            genres,
             startsAt: nextDay(weekday),
             endsAt: nextDay(weekday, 22 + 6),
             presalePrice: presale,
@@ -740,6 +744,8 @@ export async function seedDev(prisma: PrismaClient) {
       5000,
       wd === 2 || wd === 3 ? 4000 : 7000,
       250,
+      [],
+      [Genre.CUBANO],
     );
   }
 
@@ -753,6 +759,7 @@ export async function seedDev(prisma: PrismaClient) {
       7000,
       200,
       [jesus.id],
+      [Genre.CUBANO],
     );
   }
 

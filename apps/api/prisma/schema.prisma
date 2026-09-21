@@ -205,6 +205,7 @@ model EventSeries {
   producerId  String
   venue       Venue   @relation(fields: [venueId], references: [id])
   venueId     String
+  genres      Genre[] @default([]) // estilos de la serie — los eventos los heredan
   recurrence  String? // "weekly:wed", "3x/month:fri" — descriptor humano en v1
   active      Boolean @default(true)
 
@@ -223,6 +224,7 @@ model Event {
   academyId   String?
   type        EventType   @default(SOCIAL)
   status      EventStatus @default(DRAFT)
+  genres      Genre[]     @default([]) // vacío → hereda series.genres; standalone lo declara acá
   name        String
   startsAt    DateTime
   endsAt      DateTime

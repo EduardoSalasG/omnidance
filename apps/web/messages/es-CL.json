@@ -158,7 +158,22 @@
       "GALA": "Gala",
       "CONGRESS": "Congreso",
       "COMPETITION": "Competencia"
-    }
+    },
+    "filterAll": "Todos",
+    "allVenues": "Todos los locales",
+    "genre": {
+      "SALSA": "Salsa",
+      "BACHATA": "Bachata",
+      "CUBANO": "Timba"
+    },
+    "thisWeek": "Esta semana",
+    "upcoming": "Más adelante",
+    "today": "Hoy",
+    "tomorrow": "Mañana",
+    "emptyFiltered": "No hay eventos con estos filtros.",
+    "publicLead": "La cartelera de la comunidad esta semana",
+    "publicCta": "Entra para ver detalles, comprar entrada y guardar tus eventos.",
+    "publicCtaButton": "Entrar a Omnidance"
   },
   "qr": {
     "title": "Mi QR",
