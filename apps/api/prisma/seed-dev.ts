@@ -723,16 +723,19 @@ export async function seedDev(prisma: PrismaClient) {
     djIds: string[] = [],
     genres: Genre[] = [],
     weeksAhead = 0,
+    // N-ésima ocurrencia del nombre+weekday (noches fijas que se
+    // repiten cada semana, p.ej. "Bachata Club" todos los martes).
+    slot = 0,
   ) => {
     const findNight = async () => {
       const candidates = await prisma.event.findMany({
         where: { venueId, seriesId: null, name },
+        orderBy: { startsAt: "asc" },
       });
-      return (
-        candidates.find(
-          (e) => new Date(e.startsAt).getDay() === weekday,
-        ) ?? null
+      const sameWd = candidates.filter(
+        (e) => new Date(e.startsAt).getDay() === weekday,
       );
+      return sameWd[slot] ?? null;
     };
     // clave natural: nombre + venue + weekday implícito en la fecha
     const event = await ensure(
@@ -774,19 +777,33 @@ export async function seedDev(prisma: PrismaClient) {
     }
   };
 
-  // Tierra — mar–sáb; mar/mié liberada hasta 23:30 luego $4.000 en puerta.
-  for (const wd of [2, 3, 4, 5, 6]) {
-    await mkNight(
-      tierraDura.id,
-      "Tierra",
-      wd,
-      5000,
-      wd === 2 || wd === 3 ? 4000 : 7000,
-      250,
-      [],
-      ALL3,
-    );
-  }
+  // Tierra — programación mensual con la rotación real: martes fijo
+  // Bachata Club, miércoles fijo Miércoles Salseros, jueves alterna
+  // Switch/AbraZouk, vie+sáb rotan Exóticas/Bachatazo/Galaxy/BC/Lovers.
+  // mar/mié liberada hasta 23:30 luego $4.000 en puerta.
+  const tierraNights: [string, number, number, Genre[]][] = [
+    // [nombre, weekday, weeksAhead, genres]
+    ["Bachata Club", 2, 0, [Genre.BACHATA]],
+    ["Bachata Club", 2, 1, [Genre.BACHATA]],
+    ["Bachata Club", 2, 2, [Genre.BACHATA]],
+    ["Bachata Club", 2, 3, [Genre.BACHATA]],
+    ["Miércoles Salseros", 3, 0, [Genre.SALSA]],
+    ["Miércoles Salseros", 3, 1, [Genre.SALSA]],
+    ["Miércoles Salseros", 3, 2, [Genre.SALSA]],
+    ["Miércoles Salseros", 3, 3, [Genre.SALSA]],
+    ["Switch", 4, 0, [Genre.BACHATA]],
+    ["AbraZouk", 4, 1, []], // zouk — sin género en el catálogo
+    ["Switch", 4, 2, [Genre.BACHATA]],
+    ["AbraZouk", 4, 3, []],
+    ["Exóticas", 5, 0, [Genre.BACHATA]],
+    ["Galaxy", 5, 1, [Genre.BACHATA, Genre.SALSA]], // 5 bachatas × 2 salsas
+    ["Bachata Club", 5, 2, [Genre.BACHATA]],
+    ["Bachatazo", 5, 3, [Genre.BACHATA]],
+    ["Bachatazo", 6, 0, [Genre.BACHATA]],
+    ["Lovers", 6, 1, [Genre.BACHATA]], // pura bachata
+    ["Exóticas", 6, 2, [Genre.BACHATA]],
+    ["Galaxy", 6, 3, [Genre.BACHATA, Genre.SALSA]],
+  ];
 
   // Havana — programación mensual: cada viernes y sábado tiene su
   // propia marca (como en la vida real, el flyer anuncia el nombre
@@ -804,11 +821,10 @@ export async function seedDev(prisma: PrismaClient) {
   ];
 
   // Limpieza de noches standalone obsoletas o duplicadas ANTES del
-  // find-or-create: nombres fuera del set actual ("Havana — noche sáb",
-  // "Havana") y duplicados nombre+weekday. Clave nombre+weekday para
-  // no borrar las 5 "Tierra" legítimas (una por weekday).
+  // find-or-create: nombres fuera del set actual ("Tierra", "Havana
+  // — noche sáb") y duplicados nombre+fecha (misma noche, mismo día).
   const nightNames = new Set([
-    "Tierra",
+    ...tierraNights.map(([n]) => n),
     ...havanaNights.map(([n]) => n),
   ]);
   const standalone = await prisma.event.findMany({
@@ -821,7 +837,7 @@ export async function seedDev(prisma: PrismaClient) {
   const seenNight = new Set<string>();
   const staleIds = standalone
     .filter((e) => {
-      const key = `${e.name}|${new Date(e.startsAt).getDay()}`;
+      const key = `${e.name}|${e.startsAt.toISOString().slice(0, 10)}`;
       if (!nightNames.has(e.name) || seenNight.has(key)) return true;
       seenNight.add(key);
       return false;
@@ -835,6 +851,27 @@ export async function seedDev(prisma: PrismaClient) {
     });
     await prisma.show.deleteMany({ where: { eventId: { in: staleIds } } });
     await prisma.event.deleteMany({ where: { id: { in: staleIds } } });
+  }
+
+  // slot = n-ésima ocurrencia del nombre+weekday (noches fijas que se
+  // repiten semana a semana con el mismo nombre).
+  const tierraSlots = new Map<string, number>();
+  for (const [name, wd, wk, g] of tierraNights) {
+    const k = `${name}|${wd}`;
+    const slot = tierraSlots.get(k) ?? 0;
+    tierraSlots.set(k, slot + 1);
+    await mkNight(
+      tierraDura.id,
+      name,
+      wd,
+      5000,
+      wd <= 3 ? 4000 : 7000,
+      250,
+      [],
+      g,
+      wk,
+      slot,
+    );
   }
 
   for (const [name, wd, wk] of havanaNights) {
