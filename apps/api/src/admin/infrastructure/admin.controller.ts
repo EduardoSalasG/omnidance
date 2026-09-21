@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Body,
   Controller,
   Delete,
@@ -22,7 +23,11 @@ import {
 } from "class-validator";
 import type { Request } from "express";
 import type { Prisma, RoleStatus } from "@prisma/client";
+import { Inject } from "@nestjs/common";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { AuthService } from "../../auth/domain/auth.service";
+import { MAILER, type Mailer } from "../../auth/domain/ports";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { PrismaService } from "../../prisma.service";
 import {
   invalidateRoleCatalog,
@@ -92,7 +97,12 @@ class UsersQueryDto {
 @UseGuards(SessionGuard, RolesGuard)
 @RequirePermissions("admin.access")
 export class AdminController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auth: AuthService,
+    @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // ── Usuarios ──────────────────────────────────────────────────────────
 
@@ -297,6 +307,108 @@ export class AdminController {
       grant: dto.grant,
     });
     return { ok: true };
+  }
+
+  // ── Leads (/pro) ──────────────────────────────────────────────────────
+
+  /**
+   * Convierte un lead en usuario: crea la Person si no existe (o usa la
+   * cuenta demo ligada), la deja con pendingProfileAt + isDemoAccount
+   * (solo lectura hasta completar), le envía magic link por email +
+   * notificación in-app pidiendo completar sus datos. El cierre ocurre
+   * en POST /me/complete-profile → isDemoAccount off + lead CONVERTED.
+   * Si el email ya es una cuenta real → enlaza y CONVERTED directo.
+   */
+  @Post("leads/:id/convert")
+  @HttpCode(200)
+  async convertLead(@Param("id") id: string, @Req() req: Request) {
+    const lead = await this.prisma.lead.findUnique({ where: { id } });
+    if (!lead) throw new NotFoundException("lead no encontrado");
+
+    let person = lead.personId
+      ? await this.prisma.person.findUnique({ where: { id: lead.personId } })
+      : await this.prisma.person.findUnique({ where: { email: lead.email } });
+
+    // Email ya registrado como cuenta real — el lead se resuelve solo.
+    if (person && !person.isDemoAccount) {
+      await this.prisma.lead.update({
+        where: { id: lead.id },
+        data: { personId: person.id, status: "CONVERTED" },
+      });
+      await this.audit(req, "LEAD_CONVERT", "Lead", lead.id, {
+        alreadyReal: true,
+        personId: person.id,
+      });
+      return { ok: true, alreadyReal: true };
+    }
+
+    if (!person) {
+      // Solo roles que existen en el catálogo — mismo criterio que el
+      // acceso demo.
+      const known = await this.prisma.role.findMany({
+        where: { key: { in: lead.roles } },
+        select: { key: true },
+      });
+      // Person.phone es unique — si el teléfono del lead ya pertenece a
+      // otra cuenta, el create explotaría en 500. 409 para que el admin
+      // resuelva el choque manualmente (no auto-fusionamos identidades).
+      const phoneTaken = await this.prisma.person.findUnique({
+        where: { phone: lead.phone },
+        select: { id: true },
+      });
+      if (phoneTaken) {
+        throw new ConflictException("phone_exists");
+      }
+      person = await this.prisma.person.create({
+        data: {
+          name: lead.name,
+          email: lead.email,
+          phone: lead.phone,
+          isDemoAccount: true,
+          pendingProfileAt: new Date(),
+          roles: {
+            create: known.map((r) => ({ role: r.key, status: "APPROVED" })),
+          },
+        },
+      });
+    } else {
+      person = await this.prisma.person.update({
+        where: { id: person.id },
+        data: { pendingProfileAt: new Date() },
+      });
+    }
+
+    await this.prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        personId: person.id,
+        status: lead.status === "CONVERTED" ? "CONVERTED" : "CONTACTED",
+      },
+    });
+
+    // Invitación por email (magic link = verificación de correo) +
+    // notificación in-app para cuando ya tenga la sesión demo activa.
+    const token = await this.auth.createMagicToken(lead.email);
+    const apiUrl = process.env.API_URL ?? "http://localhost:4000";
+    const link = `${apiUrl}/api/auth/verify?token=${token}`;
+    await this.mailer.send(
+      lead.email,
+      "Tu cuenta Omnidance está lista",
+      `<p>Hola ${lead.name.split(" ")[0]}, tu cuenta está lista.</p><p>Entra con este link y completa tus datos para empezar a usar la app:</p><p><a href="${link}">${link}</a></p>`,
+    );
+    await this.notifications.notifySafe(person.id, {
+      category: "OPERATIONAL",
+      type: "account.complete_profile",
+      title: "Completa tu perfil",
+      body: "Faltan algunos datos para activar tu cuenta — tócalos en tu perfil para continuar.",
+      data: { path: "/perfil/completar" },
+    });
+
+    await this.audit(req, "LEAD_CONVERT", "Lead", lead.id, {
+      personId: person.id,
+      roles: lead.roles,
+    });
+    return { ok: true, alreadyReal: false };
   }
 
   // ── Auditoría ─────────────────────────────────────────────────────────

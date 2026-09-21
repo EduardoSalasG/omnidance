@@ -194,6 +194,15 @@ export class LeadsController {
       if (existing) {
         throw new ConflictException("account_exists");
       }
+      // Person.phone es unique: si el teléfono ya está en otra cuenta,
+      // crear la demo tiraría un 500 de unique constraint. 409 explícito.
+      const phoneTaken = await this.prisma.person.findUnique({
+        where: { phone: lead.phone },
+        select: { id: true },
+      });
+      if (phoneTaken) {
+        throw new ConflictException("phone_exists");
+      }
       // Solo roles que existen en el catálogo — evita FK roto si el
       // seed aún no corre.
       const known = await this.prisma.role.findMany({
