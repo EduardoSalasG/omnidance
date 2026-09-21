@@ -710,9 +710,9 @@ export async function seedDev(prisma: PrismaClient) {
   type MixBlock = { genre: Genre; songs: number };
   const mix = (...blocks: [Genre, number][]): MixBlock[] =>
     blocks.map(([genre, songs]) => ({ genre, songs }));
-  // Los de Havana y La Gozadera: 2 bachatas, 2 salsas, 2 bachatas,
-  // 2 timbas en ciclo → 50/25/25.
-  const HAVANA_MIX = mix(
+  // Ciclo parejo de a 2: 2 bachatas, 2 salsas, 2 bachatas, 2 timbas →
+  // 50/25/25. Lo usan Havana, La Gozadera y Desafío de Tronos.
+  const MIX_2X2 = mix(
     [Genre.BACHATA, 2],
     [Genre.SALSA, 2],
     [Genre.BACHATA, 2],
@@ -728,10 +728,8 @@ export async function seedDev(prisma: PrismaClient) {
   const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"], 0,
     // 4 timbas, 2 bachatas → 67/33
     mix([Genre.CUBANO, 4], [Genre.BACHATA, 2]));
-  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3, [], 0, HAVANA_MIX);
-  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1,
-    // Competencia — tercios parejos
-    mix([Genre.SALSA, 2], [Genre.BACHATA, 2], [Genre.CUBANO, 2]));
+  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3, [], 0, MIX_2X2);
+  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1, MIX_2X2);
   await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3, [], 0,
     // 4 salsas, 2 bachatas, 2 salsas, 2 timbas, 2 bachatas → 50/33/17
     mix([Genre.SALSA, 4], [Genre.BACHATA, 2], [Genre.SALSA, 2], [Genre.CUBANO, 2], [Genre.BACHATA, 2]));
@@ -926,7 +924,7 @@ export async function seedDev(prisma: PrismaClient) {
       0,
       // Todas las noches Havana: 2 bachatas, 2 salsas, 2 bachatas,
       // 2 timbas en ciclo.
-      HAVANA_MIX,
+      MIX_2X2,
     );
   }
 
