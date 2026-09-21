@@ -1,13 +1,4 @@
 // Tipos compartidos de las vistas del panel /admin — payloads del API admin.
-export type RoleRequest = {
-  id: string;
-  personId: string;
-  role: string;
-  status: string;
-  createdAt: string;
-  person: { id: string; name: string; email: string | null };
-};
-
 export type Param = {
   key: string;
   value: unknown;

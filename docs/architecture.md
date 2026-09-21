@@ -68,7 +68,7 @@ src/<dominio>/
 | academies | `/api/academies/*` planes, enrollments, asistencia | `academies.create` / owner |
 | gamification | `/api/gamification/*` streaks, badges, leaderboard, misiones | SessionGuard |
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |
-| admin | `/api/admin/*` solicitudes, usuarios, roles, permisos, audit | `admin.access` |
+| admin | `/api/admin/*` usuarios, asignación de roles, roles, permisos, audit | `admin.access` |
 
 ## RBAC — todo DB-driven
 
@@ -91,9 +91,9 @@ flowchart LR
 ```
 
 - **Nada hardcodeado en runtime**: roles, permisos, grants y estados viven en `Role`, `Permission`, `RolePermission`, `PersonRole`.
-- `PersonRole.status`: `PENDING` (solicitado, sin acceso) → `APPROVED` (acceso) | `REJECTED` (rechazado, fila preservada) | `SANDBOX` (acceso limitado donde `@AllowSandbox`).
+- `PersonRole.status`: `PENDING` (sin acceso) → `APPROVED` (acceso) | `REJECTED` (fila preservada) | `SANDBOX` (acceso limitado donde `@AllowSandbox`). El admin fija el status directo con `POST /admin/users/:personId/roles`.
 - `ADMIN` es `isSuperuser` — bypass total, solo seteable por seed (no vía API admin).
-- Catálogo público para UI: `GET /api/roles/catalog` (solo `requestable`).
+- Los roles **no son auto-solicitables**: la única vía es la asignación admin desde `/admin/usuarios` (`Role.requestable` quedó inerte en el schema).
 - `@RequireRoles` existe como escape hatch pero ningún controller lo usa — todo es `@RequirePermissions`.
 
 ## Parámetros de plataforma

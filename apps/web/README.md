@@ -79,7 +79,7 @@ registrar ahí cada part nuevo. Auditoría: `node scripts/i18n-audit.cjs`
 | `DJ` | `/dj` — gigs próximos + ranking de sugerencias |
 | `VENUE_MANAGER` | `/venue` — KPIs + arriendos del local |
 | `SUPPORT` | `/soporte` — buscador de usuarios + ficha read-only |
-| `ADMIN` | `/admin` — usuarios, roles/RBAC, solicitudes, params, catálogos, auditoría |
+| `ADMIN` | `/admin` — usuarios (asigna/revoca roles), roles/RBAC, params, catálogos, auditoría |
 | Varios | `/analitica` — KPIs por lente (admin/productor/academia/venue) · `/crm` + campañas/triggers |
 
 ## Testing y calidad
