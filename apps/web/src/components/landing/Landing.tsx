@@ -150,6 +150,13 @@ export function Landing({
             >
               {t.featuresTitle}
             </h2>
+            {/* Solo dancer: "la app de la comunidad…" baja del hero — el
+                heroPromise ya comunica pertenencia por sí solo. */}
+            {!isPro && (
+              <p className="mx-auto mt-3 max-w-md text-center text-sm text-white/50">
+                {t.featuresLead}
+              </p>
+            )}
             <ul className="mt-10 grid gap-4 sm:grid-cols-3">
               {features.map((feature) => (
                 <li
