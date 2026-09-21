@@ -22,7 +22,14 @@ export const CHROME_HIDDEN_PREFIXES = ["/staff/"];
 // Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
 const NOTIFICATION_EVENT = "omnidance:notification";
 
-type Me = { id: string; name: string; roles: string[] };
+type Me = {
+  id: string;
+  name: string;
+  roles: string[];
+  // Cuenta demo de lead /pro pendiente de activación — el banner pide
+  // completar el perfil (POST /me/complete-profile la vuelve real).
+  pendingProfile?: boolean;
+};
 
 // key = clave nav.* del label; "create" es especial: su label viene del
 // namespace producer (producer.createEvent), no de nav.
@@ -962,6 +969,21 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           </div>
         </div>
       </header>
+
+      {/* Perfil pendiente (lead convertido por admin): banner persistente
+          hasta que complete sus datos — las escrituras ya están
+          bloqueadas server-side por la barrera demo. */}
+      {me?.pendingProfile && !pathname.startsWith("/perfil/completar") && (
+        <Link
+          href="/perfil/completar"
+          className="mx-auto flex max-w-lg items-center justify-between gap-3 border-b border-neon/30 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon transition-colors hover:bg-neon/15"
+        >
+          <span className="truncate">{tpr("pendingBanner")}</span>
+          <span className="shrink-0 font-semibold">
+            {tpr("pendingBannerCta")} →
+          </span>
+        </Link>
+      )}
 
       {children}
 

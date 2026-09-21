@@ -545,7 +545,7 @@ export class BrowseController {
     const status = whitelist(q.status, LEAD_STATUSES, "status");
     const intent = whitelist(q.intent, LEAD_INTENTS, "intent");
     const term = q.q?.trim() ?? "";
-    return this.prisma.lead.findMany({
+    const leads = await this.prisma.lead.findMany({
       where: {
         ...(term.length >= 2
           ? {
@@ -581,6 +581,20 @@ export class BrowseController {
         createdAt: true,
       },
     });
+    // demoPending = la persona ligada sigue en modo demo — habilita el
+    // botón "Convertir a usuario real" en la UI admin.
+    const personIds = leads.map((l) => l.personId).filter((x): x is string => !!x);
+    const persons = personIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: personIds } },
+          select: { id: true, isDemoAccount: true },
+        })
+      : [];
+    const demoById = new Map(persons.map((p) => [p.id, p.isDemoAccount]));
+    return leads.map((l) => ({
+      ...l,
+      demoPending: l.personId ? (demoById.get(l.personId) ?? false) : false,
+    }));
   }
 
   // ── helpers ─────────────────────────────────────────────────────────
