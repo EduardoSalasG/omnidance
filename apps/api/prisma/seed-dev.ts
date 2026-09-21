@@ -11,10 +11,12 @@ const DEV_DOMAIN = "omnidance.dev";
 // login por contraseña además del magic link. Nunca en seed-prod.
 export const DEV_PASSWORD = "omnidance123";
 
-const nextDay = (weekday: number, hour = 22) => {
-  // próximo <weekday> (0=dom … 6=sáb) a las <hour>h
+const nextDay = (weekday: number, hour = 22, weeksAhead = 0) => {
+  // próximo <weekday> (0=dom … 6=sáb) a las <hour>h (+N semanas)
   const d = new Date();
-  d.setDate(d.getDate() + ((weekday - d.getDay() + 7) % 7 || 7));
+  d.setDate(
+    d.getDate() + ((weekday - d.getDay() + 7) % 7 || 7) + weeksAhead * 7,
+  );
   d.setHours(hour, 0, 0, 0);
   return d;
 };
@@ -680,19 +682,22 @@ export async function seedDev(prisma: PrismaClient) {
     return event;
   };
 
-  // Orixas
-  const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA]);
-  const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"]);
-  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], [Genre.CUBANO]);
-  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], [Genre.SALSA]);
-  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month", 6000, 8000, 6, [fabian.id], [Genre.SALSA]);
-  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month", 6000, 8000, 6, [cesar.id], [Genre.CUBANO]);
+  // Casi todos los eventos mezclan salsa + bachata + timba; las
+  // excepciones son la identidad de marca (Bachatamanía = salsa,
+  // Baila Cubano con Bachata = timba + bachata).
+  const ALL3 = [Genre.SALSA, Genre.BACHATA, Genre.CUBANO];
 
-  // Noches standalone (sin serie) — el nombre es solo la marca del
-  // venue ("Tierra Dura"); las noches homónimas se distinguen por el
-  // weekday de su startsAt, que persiste entre reseeds. El alias legacy
-  // ("— noche <día>") migra las filas ya sembradas sin duplicar.
-  const wdName = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  // Orixas
+  const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.SALSA]);
+  const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"]);
+  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3);
+  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3);
+  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month", 6000, 8000, 6, [fabian.id], ALL3);
+  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month", 6000, 8000, 6, [cesar.id], ALL3);
+
+  // Noches standalone (sin serie) — nombre = marca de la noche. Las
+  // homónimas ("Tierra Dura" ×5) se distinguen por el weekday de su
+  // startsAt, que persiste entre reseeds.
   const mkNight = async (
     venueId: string,
     name: string,
@@ -702,14 +707,11 @@ export async function seedDev(prisma: PrismaClient) {
     capacity: number,
     djIds: string[] = [],
     genres: Genre[] = [],
+    weeksAhead = 0,
   ) => {
     const findNight = async () => {
       const candidates = await prisma.event.findMany({
-        where: {
-          venueId,
-          seriesId: null,
-          name: { in: [name, `${name} — noche ${wdName[weekday]}`] },
-        },
+        where: { venueId, seriesId: null, name },
       });
       return (
         candidates.find(
@@ -727,8 +729,8 @@ export async function seedDev(prisma: PrismaClient) {
             name,
             status: "PUBLISHED",
             genres,
-            startsAt: nextDay(weekday),
-            endsAt: nextDay(weekday, 22 + 6),
+            startsAt: nextDay(weekday, 22, weeksAhead),
+            endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,
             doorPrice: door,
             capacity,
@@ -740,8 +742,8 @@ export async function seedDev(prisma: PrismaClient) {
           data: {
             name,
             genres,
-            startsAt: nextDay(weekday),
-            endsAt: nextDay(weekday, 22 + 6),
+            startsAt: nextDay(weekday, 22, weeksAhead),
+            endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,
             doorPrice: door,
             status: "PUBLISHED",
@@ -767,21 +769,70 @@ export async function seedDev(prisma: PrismaClient) {
       wd === 2 || wd === 3 ? 4000 : 7000,
       250,
       [],
-      [Genre.CUBANO],
+      ALL3,
     );
   }
 
-  // Havana — sáb y dom, DJ Jesús
-  for (const wd of [6, 0]) {
+  // Havana — programación mensual: cada viernes y sábado tiene su
+  // propia marca (como en la vida real, el flyer anuncia el nombre
+  // de la noche, no el local).
+  const havanaNights: [string, number, number][] = [
+    // [nombre, weekday, weeksAhead]
+    ["Viernes Sabroso", 5, 0],
+    ["Zona Salsera", 5, 1],
+    ["Estrellas de la rumba", 5, 2],
+    ["Reyes de la Gozadera", 5, 3],
+    ["Sábado con Sabrosura", 6, 0],
+    ["Salseo Night", 6, 1],
+    ["Salsa City", 6, 2],
+    ["Salsa con Clase", 6, 3],
+  ];
+
+  // Limpieza de noches standalone obsoletas o duplicadas ANTES del
+  // find-or-create: nombres fuera del set actual ("Havana — noche sáb",
+  // "Havana") y duplicados nombre+weekday. Clave nombre+weekday para
+  // no borrar las 5 "Tierra Dura" legítimas (una por weekday).
+  const nightNames = new Set([
+    "Tierra Dura",
+    ...havanaNights.map(([n]) => n),
+  ]);
+  const standalone = await prisma.event.findMany({
+    where: {
+      seriesId: null,
+      venueId: { in: [tierraDura.id, havana.id] },
+    },
+    select: { id: true, name: true, startsAt: true },
+  });
+  const seenNight = new Set<string>();
+  const staleIds = standalone
+    .filter((e) => {
+      const key = `${e.name}|${new Date(e.startsAt).getDay()}`;
+      if (!nightNames.has(e.name) || seenNight.has(key)) return true;
+      seenNight.add(key);
+      return false;
+    })
+    .map((e) => e.id);
+  if (staleIds.length > 0) {
+    await prisma.eventDj.deleteMany({ where: { eventId: { in: staleIds } } });
+    await prisma.eventDay.deleteMany({ where: { eventId: { in: staleIds } } });
+    await prisma.scheduleBlock.deleteMany({
+      where: { eventId: { in: staleIds } },
+    });
+    await prisma.show.deleteMany({ where: { eventId: { in: staleIds } } });
+    await prisma.event.deleteMany({ where: { id: { in: staleIds } } });
+  }
+
+  for (const [name, wd, wk] of havanaNights) {
     await mkNight(
       havana.id,
-      "Havana",
+      name,
       wd,
       5000,
       7000,
       200,
       [jesus.id],
-      [Genre.CUBANO],
+      ALL3,
+      wk,
     );
   }
 
