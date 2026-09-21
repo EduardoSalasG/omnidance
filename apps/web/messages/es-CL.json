@@ -185,6 +185,7 @@
     "prevMonth": "Mes anterior",
     "nextMonth": "Mes siguiente",
     "more": "+{count} más",
+    "noEventsDay": "Sin eventos este día",
     "save": "Guardar evento",
     "saved": "Quitar de guardados"
   },

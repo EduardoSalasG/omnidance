@@ -9,7 +9,14 @@ import { useTranslations } from "next-intl";
  * /eventos?near=lat,lng preservando los filtros activos. El sort por
  * distancia lo hace el SSR — este componente solo obtiene la posición.
  */
-export function NearMeButton({ className = "" }: { className?: string }) {
+export function NearMeButton({
+  className = "",
+  row = false,
+}: {
+  className?: string;
+  /** row=true: se ve como fila de lista (dentro del dropdown de locales). */
+  row?: boolean;
+}) {
   const t = useTranslations("events");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,7 +48,11 @@ export function NearMeButton({ className = "" }: { className?: string }) {
         type="button"
         onClick={locate}
         disabled={state === "pending"}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 px-4 text-sm font-medium text-white/60 transition-colors hover:border-white/30 hover:text-white active:scale-[0.97] disabled:opacity-50"
+        className={
+          row
+            ? "flex min-h-11 w-full items-center gap-1.5 rounded-lg px-3 text-sm text-white/80 transition-colors hover:bg-white/5 disabled:opacity-50"
+            : "inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/15 px-4 text-sm font-medium text-white/60 transition-colors hover:border-white/30 hover:text-white active:scale-[0.97] disabled:opacity-50"
+        }
       >
         <svg
           aria-hidden="true"

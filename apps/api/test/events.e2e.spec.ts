@@ -102,6 +102,23 @@ describe("GET /api/events", () => {
     expect(events.every((e: { genres: string[] }) => e.genres.includes("SALSA"))).toBe(true);
   });
 
+  it("?genre= acepta lista CSV (unión de géneros)", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=SALSA,BACHATA`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    expect(events.length).toBeGreaterThan(0);
+    expect(
+      events.every((e: { genres: string[] }) =>
+        e.genres.some((g) => ["SALSA", "BACHATA"].includes(g)),
+      ),
+    ).toBe(true);
+  });
+
+  it("?genre= CSV con miembro inválido → 400", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=SALSA,HACK`);
+    expect(res.status).toBe(400);
+  });
+
   it("?genre= inválido → 400", async () => {
     const res = await fetch(`${baseUrl}/api/events?genre=HACK`);
     expect(res.status).toBe(400);
