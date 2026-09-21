@@ -360,7 +360,32 @@
     "/api/events": {
       "get": {
         "operationId": "EventsController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "genre",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "venue",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "week",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""

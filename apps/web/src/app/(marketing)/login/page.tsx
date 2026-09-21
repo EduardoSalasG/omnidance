@@ -5,11 +5,12 @@ import LoginForm from "./login-form";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams?: { mode?: string };
+  searchParams?: { mode?: string; next?: string };
 }) {
   return (
     <LoginForm
       initialMode={searchParams?.mode === "register" ? "register" : undefined}
+      next={searchParams?.next}
     />
   );
 }

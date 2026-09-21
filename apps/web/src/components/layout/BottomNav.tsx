@@ -699,6 +699,13 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       : "social";
   }, [academyLens]);
 
+  // data-anon en <html>: sin sesión ChromeShell no debe reservar el
+  // padding de la tab bar (la barra no se renderiza para anónimos).
+  useEffect(() => {
+    if (meChecked && !me) document.documentElement.dataset.anon = "true";
+    else delete document.documentElement.dataset.anon;
+  }, [meChecked, me]);
+
   // La página /notificaciones marca leídas por ítem sin emitir evento:
   // al entrar el badge se resetea (el socket lo vuelve a subir si llega
   // una nueva).
@@ -739,6 +746,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Contexto fullscreen (consola staff): solo el contenido, sin chrome.
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)))
     return <>{children}</>;
+
+  // Anónimo confirmado (me resolvió y no hay sesión): sin appbar ni tab
+  // bar — la única ruta que llega acá es la cartelera pública /eventos;
+  // el resto de módulos los corta middleware.ts hacia /login.
+  if (meChecked && !me) return <>{children}</>;
 
   const badge = unread != null && unread > 0 ? unread : 0;
 

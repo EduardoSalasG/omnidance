@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -9,6 +10,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -27,7 +29,7 @@ import {
 } from "class-validator";
 import { Type } from "class-transformer";
 import type { Request } from "express";
-import type { EventStatus, EventType, Prisma } from "@prisma/client";
+import type { EventStatus, EventType, Genre, Prisma } from "@prisma/client";
 import { EVENT_RECENT_LOOKBACK_MS } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
@@ -294,13 +296,49 @@ export class EventsController {
     });
   }
 
+  /**
+   * Cartelera pública (PUBLISHED/LIVE, ventana reciente). Filtros por
+   * query: `genre` (SALSA|BACHATA|CUBANO — propio del evento o heredado
+   * de la serie), `venue` (venueId) y `week=this` (próximos 7 días).
+   * El género expuesto en la respuesta es el resuelto: event.genres si
+   * tiene, si no series.genres.
+   */
   @Get()
-  list() {
-    return this.prisma.event.findMany({
-      where: {
-        status: { in: ["PUBLISHED", "LIVE"] },
-        startsAt: { gte: new Date(Date.now() - EVENT_RECENT_LOOKBACK_MS) },
+  async list(
+    @Query("genre") genre?: string,
+    @Query("venue") venue?: string,
+    @Query("week") week?: string,
+  ) {
+    const GENRES: Genre[] = ["SALSA", "BACHATA", "CUBANO"];
+    if (genre && !GENRES.includes(genre.toUpperCase() as Genre)) {
+      throw new BadRequestException("genre inválido");
+    }
+    if (week && week !== "this") {
+      throw new BadRequestException("week inválido");
+    }
+    const g = genre?.toUpperCase() as Genre | undefined;
+
+    const where: Prisma.EventWhereInput = {
+      status: { in: ["PUBLISHED", "LIVE"] },
+      startsAt: {
+        gte: new Date(Date.now() - EVENT_RECENT_LOOKBACK_MS),
+        ...(week === "this"
+          ? { lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) }
+          : {}),
       },
+      ...(venue ? { venueId: venue } : {}),
+      ...(g
+        ? {
+            OR: [
+              { genres: { has: g } },
+              { genres: { isEmpty: true }, series: { genres: { has: g } } },
+            ],
+          }
+        : {}),
+    };
+
+    const rows = await this.prisma.event.findMany({
+      where,
       orderBy: { startsAt: "asc" },
       select: {
         id: true,
@@ -311,14 +349,21 @@ export class EventsController {
         endsAt: true,
         presalePrice: true,
         doorPrice: true,
+        genres: true,
         serviceFeeClp: true,
         doorAppFeeClp: true,
         doorCashFeeClp: true,
         platformFeePct: true,
-        series: { select: { id: true, name: true } },
-        venue: { select: { name: true, address: true } },
+        series: { select: { id: true, name: true, genres: true } },
+        venue: { select: { id: true, name: true, address: true } },
       },
     });
+
+    return rows.map(({ series, genres, ...e }) => ({
+      ...e,
+      genres: genres.length > 0 ? genres : (series?.genres ?? []),
+      series: series ? { id: series.id, name: series.name } : null,
+    }));
   }
 
   @Get(":id")

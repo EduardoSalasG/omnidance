@@ -1544,6 +1544,24 @@
               "path": [
                 "api",
                 "events"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "genre",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "venue",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "week",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
