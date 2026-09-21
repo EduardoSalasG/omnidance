@@ -21,6 +21,25 @@ import { SessionGuard } from "./session.guard";
 
 export const SESSION_COOKIE = "omnidance_session";
 
+// Cookie de sesión compartida: la usa este controller (login/register) y
+// el acceso demo de leads (POST /leads/:id/demo). Misma config siempre.
+export function setSessionCookie(res: Response, token: string): void {
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true,
+    // SESSION_SAMESITE=none + secure para acceso cross-site (p.ej.
+    // dev tunnels: web y API en hosts distintos).
+    sameSite: (process.env.SESSION_SAMESITE ?? "lax") as
+      | "lax"
+      | "strict"
+      | "none",
+    secure:
+      process.env.SESSION_SAMESITE === "none" ||
+      process.env.SESSION_SECURE === "true" ||
+      process.env.NODE_ENV === "production",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+}
+
 class MagicLinkDto {
   @IsEmail()
   email!: string;
@@ -163,7 +182,8 @@ export class AuthController {
       const person = await this.repo.upsertByEmail(email);
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-      this.setSessionCookie(res, session).redirect(webUrl);
+      this.setSessionCookie(res, session);
+      res.redirect(webUrl);
     } catch {
       throw new UnauthorizedException("Link inválido o expirado");
     }
@@ -176,20 +196,7 @@ export class AuthController {
     return { ok: true };
   }
 
-  private setSessionCookie(res: Response, session: string): Response {
-    return res.cookie(SESSION_COOKIE, session, {
-      httpOnly: true,
-      // SESSION_SAMESITE=none + secure para acceso cross-site (p.ej.
-      // dev tunnels: web y API en hosts distintos).
-      sameSite: (process.env.SESSION_SAMESITE ?? "lax") as
-        | "lax"
-        | "strict"
-        | "none",
-      secure:
-        process.env.SESSION_SAMESITE === "none" ||
-        process.env.SESSION_SECURE === "true" ||
-        process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+  private setSessionCookie(res: Response, session: string): void {
+    setSessionCookie(res, session);
   }
 }

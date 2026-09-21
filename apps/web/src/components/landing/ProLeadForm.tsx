@@ -16,23 +16,37 @@ const ROLE_OPTIONS = [
 ] as const;
 
 type Intent = "CONTACT" | "DEMO";
+// Campos obligatorios validados en cliente antes de pegarle al API —
+// el backend revalida igual (el endpoint es público).
+type Missing = "name" | "email" | "phone" | "roles";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const inputClass =
   "min-h-12 w-full rounded-xl border border-white/10 bg-night-900/60 px-4 text-base text-white placeholder:text-white/30 outline-none transition-colors focus:border-neon/60";
+const inputErrorClass =
+  "min-h-12 w-full rounded-xl border border-red-400/70 bg-night-900/60 px-4 text-base text-white placeholder:text-white/30 outline-none transition-colors focus:border-red-400";
 
 /**
  * Formulario de lead de la landing /pro: captura nombre, correo, teléfono y
- * roles declarados antes de los dos intents (contacto / demo). Éxito →
- * reemplaza el formulario por la confirmación.
+ * roles declarados antes de los dos intents (contacto / demo). Tras el
+ * éxito ofrece "ingresa acá": crea la cuenta demo con esos roles y entra
+ * directo a /inicio con sesión.
  */
 export function ProLeadForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [roles, setRoles] = useState<string[]>([]);
+  const [missing, setMissing] = useState<Missing[]>([]);
   const [pending, setPending] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [leadId, setLeadId] = useState<string | null>(null);
+  const [demoToken, setDemoToken] = useState<string | null>(null);
   const [done, setDone] = useState<Intent | null>(null);
+  const [demoPhase, setDemoPhase] = useState<
+    "idle" | "loading" | "exists" | "error"
+  >("idle");
 
   const toggleRole = (value: string) =>
     setRoles((prev) =>
@@ -41,10 +55,33 @@ export function ProLeadForm() {
         : [...prev, value],
     );
 
+  function validate(): Missing[] {
+    const miss: Missing[] = [];
+    if (name.trim().length < 2) miss.push("name");
+    if (!EMAIL_RE.test(email.trim())) miss.push("email");
+    if (!phone.trim()) miss.push("phone");
+    if (roles.length === 0) miss.push("roles");
+    return miss;
+  }
+
+  const FIELD_LABEL: Record<Missing, string> = {
+    name: t.fieldName,
+    email: t.fieldEmail,
+    phone: t.fieldPhone,
+    roles: t.fieldRoles,
+  };
+
   async function submit(intent: Intent) {
     setError(null);
-    if (roles.length === 0) {
-      setError(t.errorRoles);
+    const miss = validate();
+    setMissing(miss);
+    if (miss.length > 0) {
+      setError(
+        t.errorMissing.replace(
+          "{fields}",
+          miss.map((m) => FIELD_LABEL[m].replace(" (opcional)", "")).join(", "),
+        ),
+      );
       return;
     }
     setPending(intent);
@@ -52,14 +89,49 @@ export function ProLeadForm() {
       const res = await apiFetch("/leads", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, email, phone, roles, intent }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          roles,
+          intent,
+        }),
       });
       if (!res.ok) throw new Error();
+      const data = (await res.json()) as {
+        id: string;
+        demoToken: string | null;
+        accountExists: boolean;
+      };
+      setLeadId(data.id);
+      setDemoToken(data.demoToken);
+      // El correo ya tiene cuenta real → no hay demo; el CTA manda a login.
+      if (data.accountExists) setDemoPhase("exists");
       setDone(intent);
     } catch {
       setError(t.errorGeneric);
     } finally {
       setPending(null);
+    }
+  }
+
+  async function enterDemo() {
+    if (!leadId || !demoToken) return;
+    setDemoPhase("loading");
+    try {
+      const res = await apiFetch(`/leads/${leadId}/demo`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: demoToken }),
+      });
+      if (res.status === 409) {
+        setDemoPhase("exists");
+        return;
+      }
+      if (!res.ok) throw new Error();
+      window.location.href = "/inicio";
+    } catch {
+      setDemoPhase("error");
     }
   }
 
@@ -75,6 +147,30 @@ export function ProLeadForm() {
         <p className="mt-2 text-sm text-white/60">
           {done === "DEMO" ? t.successDemo : t.successContact}
         </p>
+
+        {demoPhase === "exists" ? (
+          <a
+            href="/login"
+            className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white/80 transition-colors hover:border-white/30 hover:text-white"
+          >
+            {t.demoExists} →
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void enterDemo()}
+            disabled={demoPhase === "loading"}
+            className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-neon px-6 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
+          >
+            {demoPhase === "loading" && <Spinner size="sm" />}
+            {t.demoCta} →
+          </button>
+        )}
+        {demoPhase === "error" && (
+          <p role="alert" className="mt-3 text-sm font-medium text-red-400">
+            {t.demoError}
+          </p>
+        )}
       </div>
     );
   }
@@ -98,7 +194,8 @@ export function ProLeadForm() {
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={inputClass}
+            aria-invalid={missing.includes("name")}
+            className={missing.includes("name") ? inputErrorClass : inputClass}
           />
         </label>
         <label className="flex flex-col gap-1.5">
@@ -106,11 +203,13 @@ export function ProLeadForm() {
             {t.fieldPhone}
           </span>
           <input
+            required
             type="tel"
             autoComplete="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className={inputClass}
+            aria-invalid={missing.includes("phone")}
+            className={missing.includes("phone") ? inputErrorClass : inputClass}
           />
         </label>
       </div>
@@ -124,15 +223,23 @@ export function ProLeadForm() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClass}
+          aria-invalid={missing.includes("email")}
+          className={missing.includes("email") ? inputErrorClass : inputClass}
         />
       </label>
 
       <fieldset>
         <legend className="text-xs font-medium text-white/60">
-          {t.fieldRoles}
+          {t.fieldRoles}{" "}
+          <span className="text-white/35">— {t.fieldRolesHint}</span>
         </legend>
-        <div className="mt-2 flex flex-wrap justify-center gap-2 sm:justify-start">
+        <div
+          className={`mt-2 flex flex-wrap justify-center gap-2 rounded-xl sm:justify-start ${
+            missing.includes("roles")
+              ? "border border-red-400/70 p-2"
+              : ""
+          }`}
+        >
           {ROLE_OPTIONS.map((option) => {
             const active = roles.includes(option.value);
             return (
