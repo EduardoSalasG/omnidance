@@ -77,17 +77,17 @@ sequenceDiagram
 
     U->>W: POST /checkout/quote {eventId, code?}
     W->>API: quote → {amount, discount, fee(flat), total}
-    U->>API: POST /checkout {eventId, code?}
-    API->>API: PricingService + valida DiscountCode<br/>(vigencia, usos, XOR %/monto)
-    API->>DB: Payment(PENDING, refId=tkt_…,<br/>eventId, discountCodeId)
+    U->>API: POST /checkout {eventId, quantity?, recipientIds?, code?}
+    API->>API: PricingService + valida DiscountCode<br/>(vigencia, usos, XOR %/monto)<br/>+ recipients: existen, amigos ACCEPTED, sin ACTIVE<br/>+ recipientIds.length ≤ quantity-1
+    API->>DB: Payment(PENDING, refId=tkt_…,<br/>quantity, recipients, eventId, discountCodeId)
     API->>GW: createPayment → redirectUrl
     API-->>W: {paymentId, redirectUrl}
     W->>GW: redirect
     GW->>WH: POST /payments/webhook {refId, status, signature}
     WH->>WH: verifica HMAC (Flow) / stub
     alt PAID (1ª vez — flag paidNow en tx)
-        WH->>DB: tx: Payment→PAID + Ticket(ACTIVE, qrToken)<br/>+ DiscountRedemption
-        WH->>N: notify payment.paid
+        WH->>DB: tx: Payment→PAID + 1 Ticket comprador<br/>+ 1 por recipientId (giftedFromId=comprador)<br/>+ (quantity-1-R) reclamables (claimToken)<br/>+ DiscountRedemption
+        WH->>N: notify payment.paid + ticket.gifted por recipient
     else PAID duplicado
         WH-->>GW: {duplicated:true} — sin doble ticket
     else FAILED
@@ -172,6 +172,32 @@ stateDiagram-v2
 
 - `buyerId` **no cambia** al transferir (trazabilidad del comprador original).
 - El ticket transferido queda `ACTIVE` — el nuevo dueño lo ve en `/entradas` y su QR.
+
+## Entradas reclamables (claim links)
+
+```mermaid
+sequenceDiagram
+    actor B as Comprador
+    actor R as Reclamante (puede no estar registrado)
+    participant W as Web
+    participant API as API
+
+    Note over B: orden quantity=N, sobrantes sin amigo →<br/>N-1-R tickets ACTIVE con claimToken (owner=comprador)
+    B->>W: wallet / éxito del checkout → botón WhatsApp<br/>https://wa.me/?text=…/reclamar/<claimToken>
+    R->>W: abre /reclamar/<token> (pública)
+    W->>API: GET /tickets/claim/<token> → {buyerName, event} | 404
+    alt sin sesión
+        W-->>R: "Crea tu cuenta y reclama" → /login?mode=register&next=/reclamar/<token>
+    end
+    R->>API: POST /tickets/claim/<token> (sesión)
+    API->>API: updateMany({id, claimToken}) atómico:<br/>ownerId→reclamante, giftedFromId→comprador,<br/>claimedAt=now, claimToken=null
+    API-->>R: 200 {ticketId} | 404 token quemado | 409 self/no-ACTIVE
+    API->>B: notify ticket.claimed
+```
+
+- El `claimToken` (16 bytes hex) vive en `Ticket` — sin tabla extra. Un ticket reclamable es `ACTIVE` con `claimToken != null` y `claimedAt = null`.
+- `paymentId` en cada ticket vincula exacto con la orden que lo emitió (trazabilidad compra→ticket).
+- Transferir manual (`POST /tickets/:id/transfer`) **quema** el claimToken — el link viejo muere.
 
 ## Discovery social
 

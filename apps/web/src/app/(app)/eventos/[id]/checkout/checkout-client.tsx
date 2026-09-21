@@ -18,7 +18,7 @@ type Phase =
   | { kind: "form" }
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string; quote: Quote }
-  | { kind: "success" }
+  | { kind: "success"; paymentId: string }
   | { kind: "failed" };
 
 type FormError = "invalidCode" | "soldOut" | "loginRequired" | "generic" | null;
@@ -27,6 +27,14 @@ type FriendItem = {
   id: string;
   person: { id: string; name: string; photoUrl: string | null } | null;
 };
+
+type OrderTicket = {
+  id: string;
+  claimToken: string | null;
+  ownerId: string;
+};
+
+const MAX_TICKETS = 10;
 
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s
@@ -42,12 +50,16 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   const [discountCode, setDiscountCode] = useState("");
   const [simulating, setSimulating] = useState(false);
 
+  // Cantidad de la orden (1–10): 1 propia + asignadas a amigos +
+  // reclamables (link por WhatsApp para quien no esté en la app).
+  const [quantity, setQuantity] = useState(1);
   // Regalo multi-entrada: amigos ACCEPTED a los que se les puede asignar
   // una entrada. La validación real (existen + amistad + sin entrada) la
   // hace el servidor; la lista solo filtra la UI.
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [giftIds, setGiftIds] = useState<Set<string>>(new Set());
-  const quantity = 1 + giftIds.size;
+  // claimable = entradas sin amigo asignado (se comparten por link)
+  const claimable = quantity - 1 - giftIds.size;
 
   useEffect(() => {
     apiFetch("/friends")
@@ -96,7 +108,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         .then(async (res) => {
           if (!res.ok) return;
           const payment = (await res.json()) as { status: string };
-          if (payment.status === "PAID") setPhase({ kind: "success" });
+          if (payment.status === "PAID") {
+            setPhase({ kind: "success", paymentId });
+          }
           else if (payment.status === "FAILED") setPhase({ kind: "failed" });
         })
         .catch(() => undefined);
@@ -119,6 +133,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId: event.id,
+          quantity,
           ...(discountCode.trim() ? { discountCode: discountCode.trim() } : {}),
           ...(giftIds.size ? { recipientIds: [...giftIds] } : {}),
         }),
@@ -201,18 +216,11 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
 
   if (phase.kind === "success") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-6 p-6 text-center">
-        <Badge variant="neon">{t("success")}</Badge>
-        <h1 className="text-2xl font-bold">{event.name}</h1>
-        {quantity > 1 && (
-          <p className="text-sm text-white/70">
-            {t("giftSuccess", { count: quantity - 1 })}
-          </p>
-        )}
-        <Button href="/entradas" size="lg">
-          {tw("title")}
-        </Button>
-      </main>
+      <CheckoutSuccess
+        eventName={event.name}
+        paymentId={phase.paymentId}
+        giftCount={giftIds.size}
+      />
     );
   }
 
@@ -242,6 +250,51 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       </Card>
 
       <form onSubmit={submit} className="flex flex-col gap-6">
+        {/* Cantidad de la orden: stepper 1–10. Las sobrantes de los
+            amigos marcados quedan como links reclamables (WhatsApp). */}
+        <Card>
+          <h2 className="text-base font-semibold">{t("qtyTitle")}</h2>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-2" role="group" aria-label={t("qtyTitle")}>
+              <button
+                type="button"
+                disabled={busy || quantity <= 1 + giftIds.size}
+                onClick={() => setQuantity((q) => Math.max(1 + giftIds.size, q - 1))}
+                aria-label={t("qtyMinus")}
+                className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+              >
+                −
+              </button>
+              <output
+                aria-live="polite"
+                className="w-10 text-center text-xl font-bold tabular-nums"
+              >
+                {quantity}
+              </output>
+              <button
+                type="button"
+                disabled={busy || quantity >= MAX_TICKETS}
+                onClick={() => setQuantity((q) => Math.min(MAX_TICKETS, q + 1))}
+                aria-label={t("qtyPlus")}
+                className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
+            <p className="max-w-[55%] text-right text-xs text-white/50">
+              {t("qtyHint")}
+            </p>
+          </div>
+          {quantity > 1 && (
+            <p className="mt-3 rounded-xl bg-night-800 px-3 py-2 text-xs text-white/60">
+              {t("qtyBreakdown", {
+                assigned: giftIds.size,
+                claimable,
+              })}
+            </p>
+          )}
+        </Card>
+
         {/* Regalo multi-entrada: checkbox por amigo = +1 entrada */}
         {friends.length > 0 && (
           <Card>
@@ -251,13 +304,21 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               {friends.map((f) => {
                 const pid = f.person!.id;
                 const checked = giftIds.has(pid);
+                // No hay cupos asignables: el resto queda como link
+                const full = claimable <= 0 && !checked;
                 return (
                   <li key={f.id}>
-                    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5">
+                    <label
+                      className={`flex min-h-11 items-center gap-3 rounded-xl px-2 py-2 ${
+                        full
+                          ? "cursor-not-allowed opacity-40"
+                          : "cursor-pointer hover:bg-white/5"
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={checked}
-                        disabled={busy}
+                        disabled={busy || full}
                         onChange={() =>
                           setGiftIds((prev) => {
                             const next = new Set(prev);
@@ -418,6 +479,79 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </Card>
         )}
       </form>
+    </main>
+  );
+}
+
+/**
+ * Éxito del checkout: confirma la compra y, si la orden dejó entradas
+ * reclamables, lista un botón de WhatsApp por cada link (/reclamar/<t>)
+ * — el destinatario no necesita estar registrado ni ser amigo.
+ */
+function CheckoutSuccess({
+  eventName,
+  paymentId,
+  giftCount,
+}: {
+  eventName: string;
+  paymentId: string;
+  giftCount: number;
+}) {
+  const t = useTranslations("checkout");
+  const tw = useTranslations("wallet");
+  const tcClaim = useTranslations("claim");
+
+  const [tickets, setTickets] = useState<OrderTicket[] | null>(null);
+
+  useEffect(() => {
+    apiFetch(`/payments/${paymentId}/tickets`)
+      .then(async (res) => (res.ok ? res.json() : []))
+      .then((data: OrderTicket[]) => setTickets(data))
+      .catch(() => setTickets([]));
+  }, [paymentId]);
+
+  const claimables = (tickets ?? []).filter((tk) => tk.claimToken);
+
+  function waHref(token: string): string {
+    const url = `${window.location.origin}/reclamar/${token}`;
+    const text = tcClaim("waMessage", { event: eventName, url });
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  }
+
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-6 p-6 text-center">
+      <Badge variant="neon">{t("success")}</Badge>
+      <h1 className="text-2xl font-bold">{eventName}</h1>
+      {giftCount > 0 && (
+        <p className="text-sm text-white/70">
+          {t("giftSuccess", { count: giftCount })}
+        </p>
+      )}
+
+      {claimables.length > 0 && (
+        <Card className="flex w-full flex-col gap-3 text-left">
+          <h2 className="text-base font-semibold">{t("shareTitle")}</h2>
+          <p className="text-xs text-white/50">{t("shareHint")}</p>
+          <ul className="flex flex-col gap-2">
+            {claimables.map((tk, i) => (
+              <li key={tk.id}>
+                <a
+                  href={waHref(tk.claimToken!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#25D366]/15 px-4 text-sm font-semibold text-[#25D366] transition-colors hover:bg-[#25D366]/25"
+                >
+                  {t("shareWhatsApp", { index: i + 1 })}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <Button href="/entradas" size="lg">
+        {tw("title")}
+      </Button>
     </main>
   );
 }

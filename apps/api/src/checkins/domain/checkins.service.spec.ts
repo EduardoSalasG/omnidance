@@ -150,6 +150,9 @@ class FakeCheckinsRepo implements CheckinsRepo {
       status: "USED",
       giftedFromId: null,
       discountCodeId: null,
+      claimToken: null,
+      claimedAt: null,
+      paymentId: null,
       createdAt: new Date(),
     };
     this.tickets.push(ticket);
@@ -259,6 +262,9 @@ const mkTicket = (over: Partial<Ticket>): Ticket => ({
   status: "ACTIVE",
   giftedFromId: null,
   discountCodeId: null,
+  claimToken: null,
+  claimedAt: null,
+  paymentId: null,
   createdAt: new Date(),
   ...over,
 });

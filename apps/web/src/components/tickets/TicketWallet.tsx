@@ -14,6 +14,8 @@ export type WalletTicket = {
   status: string;
   listPrice: number;
   serviceFee: number;
+  /** Link reclamable (compra multi-entrada sin asignar) — null tras reclamo */
+  claimToken: string | null;
   event: {
     id: string;
     name: string;
@@ -43,6 +45,7 @@ const inputCls =
 export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
   const t = useTranslations("wallet");
   const tc = useTranslations("common");
+  const tcClaim = useTranslations("claim");
 
   const [items, setItems] = useState(tickets);
 
@@ -109,6 +112,12 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
     }
   }
 
+  function waHref(ticket: WalletTicket): string {
+    const url = `${window.location.origin}/reclamar/${ticket.claimToken}`;
+    const text = tcClaim("waMessage", { event: ticket.event.name, url });
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  }
+
   function statusLabel(status: string): string {
     const key = status.toLowerCase();
     const labels: Record<string, string> = {
@@ -168,10 +177,15 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Badge
                     variant={
-                      STATUS_VARIANT[ticket.status as TicketStatus] ?? "muted"
+                      ticket.claimToken
+                        ? "outline"
+                        : (STATUS_VARIANT[ticket.status as TicketStatus] ??
+                          "muted")
                     }
                   >
-                    {statusLabel(ticket.status)}
+                    {ticket.claimToken
+                      ? t("claimPending")
+                      : statusLabel(ticket.status)}
                   </Badge>
                   <PriceTag
                     amount={ticket.listPrice + ticket.serviceFee}
@@ -179,25 +193,39 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
                   />
                 </div>
               </div>
-              {ticket.status === "ACTIVE" && (
+              {ticket.status === "ACTIVE" && ticket.claimToken && (
                 <>
-                  <Link
-                    href="/qr"
-                    className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
+                  <a
+                    href={waHref(ticket)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-11 items-center justify-between rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-4 text-sm font-medium text-[#25D366] transition-colors hover:bg-[#25D366]/20"
                   >
-                    <span>{t("showQrHint")}</span>
-                    <span aria-hidden="true">→</span>
-                  </Link>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="self-start"
-                    onClick={() => openTransfer(ticket)}
-                  >
-                    {t("transfer")}
-                  </Button>
+                    <span>{t("sendClaimLink")}</span>
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                  <p className="text-xs text-white/50">{t("claimHint")}</p>
                 </>
+              )}
+              {ticket.status === "ACTIVE" && !ticket.claimToken && (
+                <Link
+                  href="/qr"
+                  className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
+                >
+                  <span>{t("showQrHint")}</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              )}
+              {ticket.status === "ACTIVE" && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => openTransfer(ticket)}
+                >
+                  {t("transfer")}
+                </Button>
               )}
             </Card>
           </li>

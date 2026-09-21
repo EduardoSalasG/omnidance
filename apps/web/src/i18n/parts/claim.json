@@ -1,0 +1,23 @@
+{
+  "claim": {
+    "title": "Tienes una entrada esperándote",
+    "giftLine": "{name} te regaló una entrada",
+    "for": "para",
+    "createCta": "Crea tu cuenta y reclama tu entrada",
+    "loginCta": "Ya tengo cuenta",
+    "claimCta": "Reclamar mi entrada",
+    "claiming": "Reclamando…",
+    "claimedTitle": "¡Entrada reclamada!",
+    "claimedDesc": "Ya está en Mis entradas — muestra tu QR en puerta.",
+    "goToTickets": "Ir a Mis entradas",
+    "ownTicket": "Esta entrada ya es tuya",
+    "goneTitle": "Este link ya no es válido",
+    "goneDesc": "La entrada ya fue reclamada o el link expiró.",
+    "errorTitle": "No pudimos cargar la invitación",
+    "claimError": "No pudimos reclamarla — inténtalo de nuevo",
+    "selfError": "No puedes reclamar tu propia invitación",
+    "exploreCta": "Explorar la escena",
+    "waShare": "Enviar por WhatsApp",
+    "waMessage": "¡Te regalé una entrada para {event}! Reclámala acá: {url}"
+  }
+}

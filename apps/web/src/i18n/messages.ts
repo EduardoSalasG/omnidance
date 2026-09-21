@@ -2,6 +2,7 @@ import base from "../../messages/es-CL.json";
 import academyExtras from "./parts/academyExtras.json";
 import admin from "./parts/admin.json";
 import analytics from "./parts/analytics.json";
+import claim from "./parts/claim.json";
 import common from "./parts/common.json";
 import consumer from "./parts/consumer.json";
 import crm from "./parts/crm.json";
@@ -42,6 +43,7 @@ const parts = [
   academyExtras,
   admin,
   analytics,
+  claim,
   common,
   consumer,
   crm,

@@ -318,6 +318,15 @@ model Ticket {
   status       TicketStatus @default(ACTIVE)
   giftedFromId String?
   discountCodeId String?
+  // Entradas "por reclamar" (multi-entrada sin destinatario): el comprador
+  // comparte /reclamar/<claimToken> por WhatsApp; al reclamar, ownerId pasa
+  // al reclamante, giftedFromId=comprador, claimedAt marca el momento y el
+  // token se quema (null). buyerId siempre el pagador — trazabilidad.
+  claimToken   String?      @unique
+  claimedAt    DateTime?
+  // Orden que emitió el ticket — trazabilidad exacta compra→ticket
+  // (vincula con Payment.id; null en tickets históricos/manuales).
+  paymentId    String?
   createdAt    DateTime     @default(now())
 }
 

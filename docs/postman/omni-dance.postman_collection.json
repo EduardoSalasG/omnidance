@@ -2931,6 +2931,58 @@
       "name": "tickets",
       "item": [
         {
+          "name": "GET /api/tickets/claim/{token}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/claim/{token}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "claim",
+                "{token}"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": ":token"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/tickets/claim/{token}",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/claim/{token}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "claim",
+                "{token}"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": ":token"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/tickets/mine",
           "request": {
             "method": "GET",
@@ -3039,6 +3091,32 @@
                 "api",
                 "payments",
                 "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/{id}/tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{id}/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{id}",
+                "tickets"
               ],
               "variable": [
                 {

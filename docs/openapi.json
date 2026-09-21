@@ -1235,6 +1235,44 @@
         }
       }
     },
+    "/api/tickets/claim/{token}": {
+      "get": {
+        "operationId": "TicketsController_claimInfo",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "TicketsController_claim",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/tickets/mine": {
       "get": {
         "operationId": "TicketsController_mine",
@@ -1300,6 +1338,26 @@
     "/api/payments/{id}": {
       "get": {
         "operationId": "PaymentsController_getPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/tickets": {
+      "get": {
+        "operationId": "PaymentsController_paymentTickets",
         "parameters": [
           {
             "name": "id",

@@ -12,9 +12,17 @@ const PUBLIC_PATHS = new Set([
   "/twitter-image",
 ]);
 
+// Prefijos públicos: /reclamar/<token> es la landing de invitación —
+// el destinatario la abre desde WhatsApp sin sesión; el reclamo en sí
+// (POST) exige sesión vía SessionGuard del API.
+const PUBLIC_PREFIXES = ["/reclamar"];
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
   if (req.cookies.has("omnidance_session")) return NextResponse.next();
 
   const login = req.nextUrl.clone();
