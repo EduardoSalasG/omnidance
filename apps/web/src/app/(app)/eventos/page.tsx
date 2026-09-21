@@ -42,6 +42,25 @@ const DOT_COLOR: Record<GenreKey, string> = {
   BACHATA: "bg-fuchsia-400",
   CUBANO: "bg-amber-400",
 };
+// Género como texto coloreado en el card (misma paleta que los dots,
+// variante clara para AA sobre fondo oscuro).
+const GENRE_TEXT: Record<GenreKey, string> = {
+  SALSA: "text-neon",
+  BACHATA: "text-fuchsia-300",
+  CUBANO: "text-amber-300",
+};
+
+// La chip de serie solo informa cuando el nombre del evento no trae la
+// marca ("Edición Aniversario" ← serie "Bachatamania"); si el título ya
+// la contiene, es duplicado.
+const normName = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+const seriesIsDup = (e: EventListItem) =>
+  !!e.series && normName(e.name).includes(normName(e.series.name));
 
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "short",
@@ -253,40 +272,77 @@ export default async function EventosPage({
     }`;
 
   const renderCard = (e: EventListItem) => {
+    // Los cards siempre viven bajo un heading de día (lista, día del
+    // calendario, mios) → solo hora. Venue destacado como chip con pin;
+    // géneros como texto coloreado (menos chrome que chips outline).
     const inner = (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              {e.series && <Badge variant="neon">{e.series.name}</Badge>}
-              {e.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
-              {e.genres.map((g) => (
-                <Badge key={g} variant="outline">
-                  {t.genre[g as keyof typeof t.genre] ?? g}
-                </Badge>
-              ))}
+        <div className="flex items-start gap-3">
+          <span className="w-11 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-white/80">
+            <EventDate start={e.startsAt} variant="time" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-base font-semibold leading-snug">
+                {e.name}
+              </h2>
+              <div className="shrink-0 text-right">
+                {e.presalePrice != null ? (
+                  <>
+                    <span className="block text-xs leading-tight text-white/50">
+                      {t.presale}
+                    </span>
+                    <PriceTag amount={e.presalePrice} />
+                  </>
+                ) : (
+                  <span className="text-sm text-white/60">{t.free}</span>
+                )}
+              </div>
             </div>
-            <h2 className="text-lg font-semibold">{e.name}</h2>
-            <p className="text-sm text-white/60">
-              <EventDate start={e.startsAt} />
-              {e.venue ? ` · ${e.venue.name}` : ""}
-            </p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+              {e.venue && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 font-medium text-white/80">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-3 w-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span className="truncate">{e.venue.name}</span>
+                </span>
+              )}
+              {e.series && !seriesIsDup(e) && (
+                <Badge variant="neon">{e.series.name}</Badge>
+              )}
+              {e.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
+              {e.genres.length > 0 && (
+                <span>
+                  {e.genres.map((g, i) => (
+                    <span key={g}>
+                      {i > 0 && <span className="text-white/30"> · </span>}
+                      <span
+                        className={
+                          GENRE_TEXT[g as GenreKey] ?? "text-white/50"
+                        }
+                      >
+                        {t.genre[g as keyof typeof t.genre] ?? g}
+                      </span>
+                    </span>
+                  ))}
+                </span>
+              )}
+            </div>
             {view === "mios" && (
-              <p className="text-xs font-medium text-neon">
+              <p className="mt-1.5 text-xs font-medium text-neon">
                 {t.miosQrHint}
               </p>
-            )}
-          </div>
-          <div className="shrink-0 text-right">
-            {e.presalePrice != null ? (
-              <>
-                <span className="block text-xs text-white/50">
-                  {t.presale}
-                </span>
-                <PriceTag amount={e.presalePrice} />
-              </>
-            ) : (
-              <span className="text-sm text-white/60">{t.free}</span>
             )}
           </div>
         </div>
