@@ -355,7 +355,7 @@ export class EventsController {
         doorCashFeeClp: true,
         platformFeePct: true,
         series: { select: { id: true, name: true, genres: true } },
-        venue: { select: { id: true, name: true, address: true } },
+        venue: { select: { id: true, name: true, address: true, lat: true, lng: true } },
       },
     });
 
