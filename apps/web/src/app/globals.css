@@ -4,12 +4,13 @@
 
 :root {
   color-scheme: dark;
-  /* Acento de marca: lime. Es el default fuera de la app (landing,
+  /* Acento de marca: morado. Es el default fuera de la app (landing,
      marketing) y el fallback si no hay data-mode. Dentro de la app el
-     chrome siempre setea data-mode: morado = Social (nightlife),
-     verde = Academia (Mi Aprendizaje). */
-  --accent: 163 230 53; /* #a3e635 */
-  --accent-soft: 186 243 96; /* #baf360 */
+     chrome siempre setea data-mode según la lente: morado = Social y
+     todos los roles de gestión, verde = Academia (Mi Aprendizaje del
+     bailarín, ACADEMY_OWNER e INSTRUCTOR). */
+  --accent: 167 139 250; /* #a78bfa */
+  --accent-soft: 196 181 253; /* #c4b5fd */
 }
 
 [data-mode="social"] {
@@ -136,6 +137,14 @@ body {
 
 /* ─── Utilidades de sistema ─── */
 @layer utilities {
+  /* Strips deslizables (PillTabs): scroll táctil sin scrollbar visible */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Display type — tracking óptico: negativo al crecer (WWDC typography) */
   .text-display {
     letter-spacing: -0.025em;

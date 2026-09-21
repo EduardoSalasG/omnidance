@@ -29,6 +29,11 @@ export default function AdminPage() {
             desc={t("modules.usersDesc")}
           />
           <ModuleCard
+            href="/admin/datos"
+            title={t("modules.datos")}
+            desc={t("modules.datosDesc")}
+          />
+          <ModuleCard
             href="/admin/auditoria"
             title={t("modules.audit")}
             desc={t("modules.auditDesc")}
@@ -37,6 +42,11 @@ export default function AdminPage() {
             href="/admin/catalogos"
             title={t("modules.catalogs")}
             desc={t("modules.catalogsDesc")}
+          />
+          <ModuleCard
+            href="/analitica/usuarios"
+            title={t("modules.analyticsUser")}
+            desc={t("modules.analyticsUserDesc")}
           />
         </ModuleGrid>
       </AdminGate>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import type {
   CrmActor,
   CrmTrigger,
@@ -109,7 +110,7 @@ export function TriggerList({
   }
 
   if (items === null && !error) {
-    return <p className="text-white/60">{tc("loading")}</p>;
+    return <PageLoading />;
   }
 
   return (

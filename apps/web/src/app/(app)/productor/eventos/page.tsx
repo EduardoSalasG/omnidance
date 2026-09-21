@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { EventForm } from "@/components/producer/event-form";
 import {
   EVENT_STATUS_VARIANT,
@@ -147,7 +148,7 @@ function ProducerEvents() {
         )}
       </div>
 
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+      {gate === "loading" && <PageLoading />}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">

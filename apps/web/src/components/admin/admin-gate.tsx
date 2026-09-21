@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 type Gate = "loading" | "unauth" | "notAdmin" | "error" | "ready";
 
@@ -35,11 +36,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   }, [boot]);
 
   if (gate === "loading") {
-    return (
-      <p role="status" className="text-white/60">
-        {tc("loading")}
-      </p>
-    );
+    return <PageLoading />;
   }
 
   if (gate === "unauth") {

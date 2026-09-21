@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { PageLoading, Spinner } from "@/components/ui/spinner";
 
 /**
  * /dj — consola del rol DJ. GET /dj/gigs devuelve los gigs donde el DJ
@@ -102,11 +103,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
 
   return (
     <section aria-label={t("suggestions.title")} className="flex flex-col gap-3">
-      {phase === "loading" && (
-        <p role="status" className="text-sm text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {phase === "loading" && <Spinner size="sm" />}
 
       {phase === "error" && (
         <div className="flex items-center gap-3">
@@ -270,7 +267,7 @@ export default function DjPage() {
   if (phase === "loading") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-        <p className="pt-6 text-sm text-white/50">{tc("loading")}</p>
+        <PageLoading />
       </main>
     );
   }

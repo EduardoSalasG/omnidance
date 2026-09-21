@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import {
   PAYOUT_STATUS_VARIANT,
   PRODUCER_ROLES,
@@ -68,11 +69,7 @@ export default function ProducerPayoutsPage() {
         ← {t("title")}
       </Link>
 
-      {gate === "loading" && (
-        <p role="status" className="text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {gate === "loading" && <PageLoading />}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">

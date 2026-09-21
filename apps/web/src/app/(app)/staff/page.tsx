@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 // Roles que habilitan la consola de puerta (espejo de StaffGuard en la API).
 const DOOR_ROLES = new Set(["STAFF", "ADMIN"]);
@@ -78,7 +79,7 @@ export default function StaffPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+      {gate === "loading" && <PageLoading />}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">

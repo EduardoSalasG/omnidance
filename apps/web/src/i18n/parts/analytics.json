@@ -1,0 +1,93 @@
+{
+  "analytics": {
+    "userSearch": {
+      "title": "Analítica por usuario",
+      "subtitle": "Insights de negocio por persona",
+      "search": "Buscar por nombre, email o teléfono…",
+      "searchHint": "Busca una persona para ver su analítica",
+      "minChars": "Escribe al menos 2 letras",
+      "noResults": "Sin resultados"
+    },
+    "statusLabels": {
+      "DRAFT": "Borrador",
+      "PUBLISHED": "Publicado",
+      "LIVE": "En vivo",
+      "CLOSED": "Cerrado",
+      "CANCELLED": "Cancelado",
+      "PENDING": "Pendiente",
+      "PAID": "Pagado",
+      "FAILED": "Fallido",
+      "REFUNDED": "Reembolsado",
+      "ACTIVE": "Activo",
+      "USED": "Usado",
+      "TRANSFERRED": "Transferido",
+      "REQUESTED": "Solicitado",
+      "CONFIRMED": "Confirmado",
+      "SANDBOX": "Sandbox",
+      "APPROVED": "Aprobado",
+      "REJECTED": "Rechazado"
+    },
+    "orderTypes": {
+      "TICKET": "Ticket",
+      "SERIES_PASS": "Pase de serie",
+      "MEMBERSHIP": "Membresía",
+      "PRIVATE_LESSON": "Clase particular",
+      "WORKSHOP": "Workshop"
+    },
+    "user": {
+      "roleLens": "Viendo como",
+      "notFound": "Persona no encontrada",
+      "sections": {
+        "social": "Social",
+        "academy": "Academia",
+        "overview": "Resumen"
+      },
+      "fields": {
+        "totalSpent": "Gastado en entradas (total)",
+        "monthSpent": "Gastado este mes",
+        "monthlyAvg": "Promedio mensual",
+        "lastEvent": "Último evento",
+        "favoriteEvents": "Eventos favoritos",
+        "attendances": "{count} asistencias",
+        "avgCheckinHour": "Hora típica de entrada",
+        "dances": "Bailes",
+        "seasonPoints": "Puntos de temporada",
+        "rank": "Ranking",
+        "badges": "Insignias",
+        "activeEnrollments": "Inscripciones activas",
+        "classesTaken": "Clases tomadas",
+        "classesUpcoming": "Clases próximas",
+        "currentMonthly": "Paga actualmente",
+        "totalPaid": "Pagado en academia (total)",
+        "byAcademy": "Clases por academia",
+        "byStyle": "Clases por estilo",
+        "byGenre": "Clases por género",
+        "eventsTotal": "Eventos producidos",
+        "eventsUpcoming": "Eventos próximos",
+        "grossAll": "Ventas brutas (total)",
+        "grossMonth": "Ventas brutas (mes)",
+        "ticketsSold": "Tickets vendidos",
+        "avgOccupancy": "Ocupación promedio",
+        "topEvents": "Top eventos por ventas",
+        "producers": "Productores",
+        "shifts": "turnos",
+        "eventsWorked": "Eventos trabajados",
+        "upcomingShifts": "Turnos próximos",
+        "academies": "Academias",
+        "classesTaught": "Clases impartidas",
+        "avgFill": "Llenado promedio",
+        "gigsTotal": "Gigs totales",
+        "gigsUpcoming": "Gigs próximos",
+        "gigEvents": "Eventos",
+        "venues": "Venues",
+        "rentalsByStatus": "Arriendos por estado",
+        "students": "Alumnos activos",
+        "attendance30d": "Asistencias 30d",
+        "classes30d": "Clases 30d",
+        "accountAge": "Cuenta creada hace {days} días",
+        "roleHistory": "Historial de roles"
+      },
+      "empty": "Sin actividad registrada en este rol"
+    }
+  }
+}

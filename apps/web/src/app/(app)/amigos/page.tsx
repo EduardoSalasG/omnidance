@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 
 type FriendshipStatus = "none" | "sent" | "received" | "friends";
@@ -266,11 +267,7 @@ export default function AmigosPage() {
         {trimmed.length > 0 && trimmed.length < MIN_CHARS && (
           <p className="text-sm text-white/50">{t("minChars")}</p>
         )}
-        {searching && (
-          <p role="status" className="text-sm text-white/50">
-            {tc("loading")}
-          </p>
-        )}
+        {searching && <Spinner size="sm" />}
         {!searching && results !== null && results.length === 0 && (
           <p role="status" className="text-sm text-white/50">
             {t("noResults")}
@@ -293,11 +290,7 @@ export default function AmigosPage() {
         </p>
       )}
 
-      {state === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <PageLoading />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-white/50">

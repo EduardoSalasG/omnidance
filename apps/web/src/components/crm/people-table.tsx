@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { TagBadges } from "./tag-badges";
 import type { CrmActor, CrmPersonRow, CrmTag } from "./types";
 import { SEGMENTS, actorBody, actorQuery } from "./types";
@@ -266,9 +267,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       </div>
 
       {/* Lista — cards apiladas (mobile-first, estilo admin) */}
-      {rows === null && !error && (
-        <p className="text-white/60">{tc("loading")}</p>
-      )}
+      {rows === null && !error && <Spinner size="sm" />}
       {rows !== null && rows.length === 0 && (
         <Card className="flex flex-col items-start gap-3">
           <p className="text-white/60">{t("people.empty")}</p>

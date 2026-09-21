@@ -1,7 +1,129 @@
 {
   "admin": {
     "users": {
-      "roleStatus": "Estado de {role}"
+      "roleStatus": "Estado de {role}",
+      "searchHint": "Busca por nombre, email o teléfono para ver personas",
+      "minChars": "Escribe al menos 2 letras",
+      "noResults": "Sin resultados",
+      "viewAnalytics": "Ver analítica",
+      "pickRole": "Elige un rol…",
+      "revokeConfirm": "¿Revocar el rol {role}? Queda registrado en auditoría.",
+      "detail": {
+        "personal": "Datos personales",
+        "email": "Email",
+        "phone": "Teléfono",
+        "memberSince": "Miembro desde",
+        "verified": "Verificado",
+        "lightAccount": "Cuenta liviana (creada en puerta)",
+        "roleHistory": "Gestión de roles",
+        "grantedAt": "Asignado el {date}",
+        "roleData": "Actividad por rol",
+        "notFound": "Usuario no encontrado"
+      },
+      "roleData": {
+        "ticketsUpcoming": "Entradas próximas",
+        "ticketsPast": "Entradas pasadas",
+        "dances": "Bailes registrados",
+        "checkins": "Check-ins",
+        "eventsUpcoming": "Eventos próximos",
+        "eventsPast": "Eventos pasados",
+        "assignments": "Turnos como staff",
+        "academies": "Academias",
+        "classesUpcoming": "Clases próximas",
+        "classesPast": "Clases impartidas",
+        "students": "Alumnos",
+        "venues": "Locales",
+        "rentals": "Arriendos",
+        "gigsUpcoming": "Gigs próximos",
+        "gigsPast": "Gigs pasados",
+        "worksFor": "Trabaja para",
+        "empty": "Sin actividad registrada en este rol",
+        "status": {
+          "ticket": {
+            "ACTIVE": "Activa",
+            "USED": "Usada",
+            "TRANSFERRED": "Transferida",
+            "CANCELLED": "Cancelada"
+          },
+          "event": {
+            "DRAFT": "Borrador",
+            "PUBLISHED": "Publicado",
+            "LIVE": "En vivo",
+            "CLOSED": "Cerrado",
+            "CANCELLED": "Cancelado"
+          },
+          "rental": {
+            "REQUESTED": "Solicitado",
+            "CONFIRMED": "Confirmado",
+            "CANCELLED": "Cancelado"
+          }
+        }
+      }
+    },
+    "status": {
+      "REJECTED": "Rechazado"
+    },
+    "datos": {
+      "title": "Datos",
+      "subtitle": "Explora toda la operación por categoría",
+      "entity": {
+        "events": "Eventos",
+        "classes": "Clases",
+        "payments": "Pagos",
+        "tickets": "Tickets",
+        "academies": "Academias",
+        "venues": "Venues",
+        "rentals": "Arriendos",
+        "people": "Personas"
+      },
+      "filters": {
+        "search": "Buscar…",
+        "status": "Estado",
+        "all": "Todos",
+        "from": "Desde",
+        "to": "Hasta",
+        "producer": "Productor",
+        "venue": "Venue",
+        "academy": "Academia",
+        "style": "Estilo",
+        "role": "Rol",
+        "orderType": "Tipo",
+        "event": "Evento",
+        "apply": "Filtrar"
+      },
+      "cols": {
+        "name": "Nombre",
+        "date": "Fecha",
+        "status": "Estado",
+        "producer": "Productor",
+        "venue": "Venue",
+        "academy": "Academia",
+        "style": "Estilo",
+        "instructor": "Instructor",
+        "booked": "Reservas",
+        "capacity": "Capacidad",
+        "amount": "Monto",
+        "net": "Neto",
+        "type": "Tipo",
+        "person": "Persona",
+        "event": "Evento",
+        "owner": "Dueño",
+        "price": "Precio",
+        "sold": "Vendidas",
+        "students": "Alumnos",
+        "series": "Series",
+        "address": "Dirección",
+        "rentals": "Arriendos",
+        "roles": "Roles",
+        "email": "Email"
+      },
+      "empty": "Sin resultados con estos filtros"
+    },
+    "modules": {
+      "datos": "Datos",
+      "datosDesc": "Explora eventos, clases, pagos y más",
+      "analyticsUser": "Analítica por usuario",
+      "analyticsUserDesc": "Insights de negocio por persona y rol"
     },
     "roles": {
       "superuser": "Superusuario",

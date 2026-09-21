@@ -3,12 +3,20 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Landing } from "@/components/landing/Landing";
 import { JsonLd, type JsonLdEvent } from "@/components/landing/JsonLd";
+import landingParts from "@/i18n/parts/landing.json";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const t = landingParts.landing;
 
 export const metadata: Metadata = {
-  title: "Salsa, bachata y cubano en Santiago",
+  title: t.metaTitle,
+  description: t.metaDescription,
   alternates: { canonical: "/" },
+  openGraph: {
+    title: `${t.metaTitle} — Omnidance`,
+    description: t.metaDescription,
+    url: "/",
+  },
 };
 
 // Eventos publicados para el ItemList de DanceEvent del JSON-LD — la

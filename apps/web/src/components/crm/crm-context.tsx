@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import type { ActorType, CrmActor } from "./types";
 import { actorKey } from "./types";
 
@@ -151,7 +152,7 @@ export function CrmGateScreen({
   const t = useTranslations("crm");
   const tc = useTranslations("common");
 
-  if (gate === "loading") return <p className="text-white/60">{tc("loading")}</p>;
+  if (gate === "loading") return <PageLoading />;
 
   if (gate === "unauth") {
     return (

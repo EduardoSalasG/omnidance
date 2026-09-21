@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 // Mismo shape público que GET /events (PracticesController.list)
 type Practice = {
@@ -224,11 +225,7 @@ export default function PracticasPage() {
       )}
 
       {/* Lista */}
-      {state === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <PageLoading />}
       {state === "error" && (
         <p role="alert" className="text-white/60">
           {tc("error")}
