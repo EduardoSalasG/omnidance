@@ -13,6 +13,7 @@ import dj from "./parts/dj.json";
 import locales from "./parts/locales.json";
 import venue from "./parts/venue.json";
 import support from "./parts/support.json";
+import tours from "./parts/tours.json";
 
 type Dict = Record<string, unknown>;
 
@@ -52,6 +53,7 @@ const parts = [
   locales,
   venue,
   support,
+  tours,
 ] as Dict[];
 
 /** Diccionario completo: base + parts. Compartido por request.ts y layout. */

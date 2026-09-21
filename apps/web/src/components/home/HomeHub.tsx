@@ -9,6 +9,10 @@ import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 
 type Me = {
   id: string;
@@ -58,7 +62,7 @@ function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
   const t = useTranslations("home");
   if (kpis.length === 0) return null;
   return (
-    <section aria-label={label}>
+    <section aria-label={label} data-tour="home-stats">
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
         {label}
       </h2>
@@ -100,6 +104,7 @@ export function HomeHub() {
   const ta = useTranslations("academy");
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
+  const tt = useTranslations("tours.home");
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
@@ -359,6 +364,39 @@ export function HomeHub() {
             →
           </span>
         </Link>
+      )}
+
+      {/* Tour de primera visita — solo lente bailarín social (los tabs
+          del nav referenciados son los de esa lente). */}
+      {activeRole === "DANCER" && !dancerAcademy && (
+        <OnboardingRunner
+          tour="home"
+          steps={[
+            {
+              element: "[data-tour='home-stats']",
+              title: tt("s1.title"),
+              description: tt("s1.desc"),
+            },
+            {
+              element: "[data-tour='nav-events']",
+              title: tt("s2.title"),
+              description: tt("s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-more']",
+              title: tt("s3.title"),
+              description: tt("s3.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-profile']",
+              title: tt("s4.title"),
+              description: tt("s4.desc"),
+              side: "top",
+            },
+          ] satisfies TourStep[]}
+        />
       )}
     </main>
   );

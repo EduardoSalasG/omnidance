@@ -11,6 +11,7 @@
   "dependencies": {
     "@omnidance/shared": "workspace:*",
     "@yudiel/react-qr-scanner": "^2.6.0",
+    "driver.js": "^1.8.0",
     "leaflet": "1.9.4",
     "next": "^14.2.0",
     "next-intl": "^4.14.5",
