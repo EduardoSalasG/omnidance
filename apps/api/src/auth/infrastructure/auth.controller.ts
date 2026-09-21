@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Inject,
+  Logger,
   Post,
   Query,
   Req,
@@ -18,6 +19,7 @@ import { AuthService } from "../domain/auth.service";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
+import { welcomeEmailHtml } from "./welcome-email";
 
 export const SESSION_COOKIE = "omnidance_session";
 
@@ -88,11 +90,29 @@ function recordFailure(key: string) {
 
 @Controller("auth")
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly auth: AuthService,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(AUTH_REPO) private readonly repo: AuthRepo,
   ) {}
+
+  /** Bienvenida best-effort: el alta nunca falla por el correo. */
+  private async sendWelcome(email: string, name: string) {
+    try {
+      const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+      await this.mailer.send(
+        email,
+        `Bienvenido a la pista, ${name.split(" ")[0] || name} 🕺`,
+        welcomeEmailHtml(name, webUrl),
+      );
+    } catch (err) {
+      this.logger.warn(
+        `welcome email a ${email} falló: ${(err as Error).message}`,
+      );
+    }
+  }
 
   @Post("magic-link")
   @HttpCode(202)
@@ -158,6 +178,7 @@ export class AuthController {
       dto.name.trim(),
       passwordHash,
     );
+    await this.sendWelcome(email, person.name);
     const session = await this.auth.issueSession(person.id);
     this.setSessionCookie(res, session);
     return { ok: true };
@@ -179,7 +200,10 @@ export class AuthController {
   async verify(@Query("token") token: string, @Res() res: Response) {
     try {
       const { email } = await this.auth.verifyMagicToken(token);
+      // Si el correo no existía, el upsert crea la cuenta → bienvenida.
+      const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
+      if (!existed) await this.sendWelcome(email, person.name);
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
       this.setSessionCookie(res, session);

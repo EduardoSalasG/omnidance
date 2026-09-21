@@ -23,7 +23,12 @@ import { LeadsModule } from "./leads/leads.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Carga .env del paquete primero (gana) y cae al .env raíz del
+    // monorepo para vars compartidas (RESEND_API_KEY, WEB_URL…).
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [".env", "../../.env"],
+    }),
     PrismaModule,
     AuthModule,
     PeopleModule,

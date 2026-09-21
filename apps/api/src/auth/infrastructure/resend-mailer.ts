@@ -5,7 +5,13 @@ import type { Mailer } from "../domain/ports";
 export class ResendMailer implements Mailer {
   private readonly logger = new Logger(ResendMailer.name);
   private readonly apiKey = process.env.RESEND_API_KEY;
-  private readonly from = process.env.MAIL_FROM ?? "Omnidance <hola@omnidance.cl>";
+  // EMAIL_FROM es el nombre documentado en .env.example; MAIL_FROM se
+  // acepta por compatibilidad. Con dominio no verificado en Resend usar
+  // "Omnidance <onboarding@resend.dev>" (solo entrega al dueño de la key).
+  private readonly from =
+    process.env.EMAIL_FROM ??
+    process.env.MAIL_FROM ??
+    "Omnidance <hola@omnidance.cl>";
 
   async send(to: string, subject: string, html: string): Promise<void> {
     if (!this.apiKey) {
