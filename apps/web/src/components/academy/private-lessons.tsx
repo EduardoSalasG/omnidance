@@ -336,7 +336,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       {academy && (
         <section aria-label={t.title} className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t.title}</h2>
-          {staffState === "loading" && <Spinner size="sm" />}
+          {staffState === "loading" && <Spinner size="sm" className="page-loading" />}
           {staffState === "error" && (
             <div className="flex items-center gap-3">
               <p className="text-sm text-white/60">{tc("error")}</p>
@@ -463,7 +463,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
 
       <section aria-label={t.mineTitle} className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t.mineTitle}</h2>
-        {mineState === "loading" && <Spinner size="sm" />}
+        {mineState === "loading" && <Spinner size="sm" className="page-loading" />}
         {mineState === "error" && (
           <div className="flex items-center gap-3">
             <p className="text-sm text-white/60">{tc("error")}</p>

@@ -38,7 +38,7 @@ export default function AcademiasPage() {
       >
         <h2 className="text-lg font-semibold">{t("directoryTitle")}</h2>
         {academies === null ? (
-          <Spinner size="sm" />
+          <Spinner size="sm" className="page-loading" />
         ) : academies.length === 0 ? (
           <p className="text-sm text-white/60">{t("directoryEmpty")}</p>
         ) : (

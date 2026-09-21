@@ -44,7 +44,7 @@ export function SuggestionsSection({ eventId }: Props) {
         {t("sections.suggestions")}
       </h2>
 
-      {items === null && !error && <Spinner size="sm" />}
+      {items === null && !error && <Spinner size="sm" className="page-loading" />}
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

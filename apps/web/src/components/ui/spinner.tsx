@@ -58,10 +58,14 @@ export type PageLoadingProps = {
   label?: string;
 };
 
-/** Estado de carga a nivel página/panel. NO usar min-h-dvh: hay chrome sticky. */
+/** Estado de carga a nivel página/panel. NO usar min-h-dvh: hay chrome
+ * sticky. La clase page-loading difiere la aparición 200ms (estándar
+ * de carga percibida): fetches rápidos nunca muestran el spinner —
+ * cero flash. Para feedback de ACCIÓN (botón presionado, submit) usar
+ * Spinner inline directo: ahí la respuesta debe ser inmediata. */
 export function PageLoading({ label }: PageLoadingProps) {
   return (
-    <div className="flex min-h-[50vh] items-center justify-center">
+    <div className="page-loading flex min-h-[50vh] items-center justify-center">
       <Spinner size="lg" label={label} />
     </div>
   );

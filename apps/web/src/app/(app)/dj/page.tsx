@@ -103,7 +103,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
 
   return (
     <section aria-label={t("suggestions.title")} className="flex flex-col gap-3">
-      {phase === "loading" && <Spinner size="sm" />}
+      {phase === "loading" && <Spinner size="sm" className="page-loading" />}
 
       {phase === "error" && (
         <div className="flex items-center gap-3">

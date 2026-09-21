@@ -135,6 +135,25 @@ body {
   transform: translateY(-100%);
 }
 
+/* ─── Estados de carga (estándar de carga percibida) ───
+   <100ms se siente instantáneo; un spinner que aparece <300ms y
+   desaparece es "flash" y hace la app sentirse más lenta. PageLoading
+   difiere su aparición 200ms: si el contenido llega antes, el usuario
+   nunca ve el spinner. backwards-fill mantiene opacity 0 durante el
+   delay; bajo reduced-motion la duración colapsa pero el delay se
+   conserva (diferir aparición no es movimiento vestibular). */
+@keyframes loading-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.page-loading {
+  animation: loading-fade-in 150ms ease-out 200ms backwards;
+}
+
 /* ─── Utilidades de sistema ─── */
 @layer utilities {
   /* Strips deslizables (PillTabs): scroll táctil sin scrollbar visible */

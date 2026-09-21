@@ -214,7 +214,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       <div className="relative flex-1 overflow-hidden rounded-2xl border border-night-700 bg-night-950">
         {phase === "checking" ? (
           <div className="flex h-full items-center justify-center">
-            <Spinner size="lg" />
+            <Spinner size="lg" className="page-loading" />
           </div>
         ) : phase === "scan" ? (
           <QrScanner

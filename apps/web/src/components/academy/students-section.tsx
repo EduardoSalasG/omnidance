@@ -143,7 +143,7 @@ export function StudentsSection({
   return (
     <div className="flex flex-col gap-4">
       {loading ? (
-        <Spinner size="sm" />
+        <Spinner size="sm" className="page-loading" />
       ) : error ? (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-white/60">

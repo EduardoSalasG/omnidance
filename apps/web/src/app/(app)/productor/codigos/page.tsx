@@ -320,7 +320,7 @@ function DiscountCodes() {
           </Card>
         )}
 
-        {codes === null && !codesError && <Spinner size="sm" />}
+        {codes === null && !codesError && <Spinner size="sm" className="page-loading" />}
         {codesError && (
           <div className="flex items-center gap-3">
             <p className="text-sm text-red-400">{tc("error")}</p>
