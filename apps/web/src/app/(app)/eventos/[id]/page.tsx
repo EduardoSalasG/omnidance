@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import messages from "../../../../../messages/es-CL.json";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
-import { SaveEventButton } from "@/components/rsvp/SaveEventButton";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
 
 export const dynamic = "force-dynamic";
@@ -71,22 +70,6 @@ async function getMissions(eventId: string): Promise<MissionView[] | null> {
   return (await res.json()) as MissionView[];
 }
 
-/** Mi RSVP en este evento (para el bookmark) — 401 → null. */
-async function getMyRsvpStatus(
-  eventId: string,
-): Promise<"GOING" | "INTERESTED" | null> {
-  const res = await fetch(`${API_URL}/api/me/rsvp`, {
-    cache: "no-store",
-    headers: { cookie: cookies().toString() },
-  }).catch(() => null);
-  if (!res?.ok) return null;
-  const rows = (await res.json()) as {
-    eventId: string;
-    status: "GOING" | "INTERESTED";
-  }[];
-  return rows.find((r) => r.eventId === eventId)?.status ?? null;
-}
-
 export default async function EventoDetailPage({
   params,
 }: {
@@ -94,10 +77,9 @@ export default async function EventoDetailPage({
 }) {
   const t = messages.events;
   const tg = messages.gamification;
-  const [event, missions, myRsvp] = await Promise.all([
+  const [event, missions] = await Promise.all([
     getEvent(params.id),
     getMissions(params.id),
-    getMyRsvpStatus(params.id),
   ]);
 
   if (event === "error") {
@@ -148,17 +130,10 @@ export default async function EventoDetailPage({
 
       {/* Hero */}
       <header className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {event.series && <Badge variant="neon">{event.series.name}</Badge>}
-            <Badge variant="outline">{typeLabel}</Badge>
-            {event.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
-          </div>
-          <SaveEventButton
-            eventId={event.id}
-            initialStatus={myRsvp}
-            className="-mr-2 shrink-0"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          {event.series && <Badge variant="neon">{event.series.name}</Badge>}
+          <Badge variant="outline">{typeLabel}</Badge>
+          {event.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
         </div>
         <h1 className="text-3xl font-bold leading-tight">{event.name}</h1>
         <EventDate

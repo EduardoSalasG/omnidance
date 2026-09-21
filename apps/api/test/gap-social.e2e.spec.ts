@@ -11,6 +11,7 @@ import { PrismaService } from "../src/prisma.service";
 // pendiente): se montan directo en el test module para cubrir el contrato.
 import { BlocksController } from "../src/social/infrastructure/blocks.controller";
 import { FriendsController } from "../src/social/infrastructure/friends.controller";
+import { PeopleController } from "../src/social/infrastructure/people.controller";
 
 describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
   let app: INestApplication;
@@ -53,7 +54,7 @@ describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [SessionsModule, AuthModule, NotificationsModule],
-      controllers: [BlocksController, FriendsController],
+      controllers: [BlocksController, FriendsController, PeopleController],
       providers: [PrismaService],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -626,6 +627,108 @@ describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
         sessionA,
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  // ═══ friends/upcoming-events + people/:id agenda (tickets, solo amigos) ═══
+  describe("agenda de amigos (upcoming events)", () => {
+    let evId: string;
+    let vId: string;
+
+    beforeAll(async () => {
+      // B↔D amigos aceptados (D bloqueó a C en tests previos — no sirve);
+      // D tiene ticket ACTIVE a un evento futuro.
+      await prisma.friendship.create({
+        data: { aId: ids.bId, bId: ids.dId, status: "ACCEPTED" },
+      });
+      const venue = await prisma.venue.create({
+        data: { name: "GS Venue", address: "x" },
+      });
+      vId = venue.id;
+      const ev = await prisma.event.create({
+        data: {
+          name: "GS Social",
+          type: "SOCIAL",
+          status: "PUBLISHED",
+          venueId: vId,
+          startsAt: new Date(Date.now() + 3 * 86400000),
+          endsAt: new Date(Date.now() + 3 * 86400000 + 4 * 3600000),
+        },
+      });
+      evId = ev.id;
+      await prisma.ticket.create({
+        data: {
+          eventId: evId,
+          ownerId: ids.dId,
+          buyerId: ids.dId,
+          listPrice: 5000,
+          serviceFee: 500,
+          status: "ACTIVE",
+        },
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.ticket.deleteMany({ where: { eventId: evId } });
+      await prisma.event.deleteMany({ where: { id: evId } });
+      await prisma.venue.deleteMany({ where: { id: vId } });
+      await prisma.friendship.deleteMany({
+        where: { aId: ids.bId, bId: ids.dId },
+      });
+    });
+
+    it("sin sesión → 401", async () => {
+      const res = await req("GET", "/api/friends/upcoming-events");
+      expect(res.status).toBe(401);
+    });
+
+    it("amigo ve el evento con el amigo que va", async () => {
+      const res = await req(
+        "GET",
+        "/api/friends/upcoming-events",
+        undefined,
+        sessionB,
+      );
+      expect(res.status).toBe(200);
+      const list = await res.json();
+      expect(list).toHaveLength(1);
+      expect(list[0].event.id).toBe(evId);
+      expect(list[0].friends.map((f: { id: string }) => f.id)).toContain(
+        ids.dId,
+      );
+    });
+
+    it("sin amigos con tickets → []", async () => {
+      const res = await req(
+        "GET",
+        "/api/friends/upcoming-events",
+        undefined,
+        sessionC,
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual([]);
+    });
+
+    it("people/:id expone upcomingEvents solo a amigos", async () => {
+      const asFriend = await req(
+        "GET",
+        `/api/people/${ids.dId}`,
+        undefined,
+        sessionB,
+      );
+      expect(asFriend.status).toBe(200);
+      const friend = await asFriend.json();
+      expect(friend.upcomingEvents).toHaveLength(1);
+      expect(friend.upcomingEvents[0].id).toBe(evId);
+
+      const asStranger = await req(
+        "GET",
+        `/api/people/${ids.dId}`,
+        undefined,
+        sessionA,
+      );
+      const stranger = await asStranger.json();
+      expect(stranger.upcomingEvents).toBeUndefined();
     });
   });
 });

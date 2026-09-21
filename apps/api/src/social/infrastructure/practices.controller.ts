@@ -112,10 +112,6 @@ export class PracticesController {
           capacity: dto.capacity ?? null,
         },
       });
-      // el host queda con RSVP GOING implícito
-      await tx.rsvp.create({
-        data: { eventId: event.id, personId: hostId, status: "GOING" },
-      });
       if (styleId) {
         await tx.scheduleBlock.create({
           data: { eventId: event.id, startsAt, endsAt, styleId },

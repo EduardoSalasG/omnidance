@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -16,6 +17,13 @@ type StyleRole = {
   style: { id: string; name: string; genre: string | null };
 };
 
+type UpcomingEvent = {
+  id: string;
+  name: string;
+  startsAt: string;
+  venue: { name: string } | null;
+};
+
 type PersonProfile = {
   id: string;
   name: string;
@@ -24,6 +32,8 @@ type PersonProfile = {
   badgeCount: number;
   friendship: { id: string | null; status: FriendshipStatus } | null;
   isMe: boolean;
+  /** Solo presente si el viewer es amigo confirmado (agenda privada). */
+  upcomingEvents?: UpcomingEvent[];
 };
 
 type PageState = "loading" | "ready" | "unauth" | "error";
@@ -229,6 +239,31 @@ export default function AmigoPerfilPage({
                 </div>
               );
             })()}
+
+          {/* Próximos eventos — solo llega en la respuesta si somos
+              amigos (el server decide; ausente = sin acceso a agenda) */}
+          {person.upcomingEvents && person.upcomingEvents.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                {t("upcomingTitle")}
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {person.upcomingEvents.map((e) => (
+                  <li key={e.id}>
+                    <Link href={`/eventos/${e.id}`} className="block">
+                      <Card className="transition-colors hover:border-neon/50">
+                        <p className="font-semibold">{e.name}</p>
+                        <p className="text-sm text-white/60">
+                          <EventDate start={e.startsAt} />
+                          {e.venue ? ` · ${e.venue.name}` : ""}
+                        </p>
+                      </Card>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* Estilos */}
           {person.styleRoles.length > 0 && (

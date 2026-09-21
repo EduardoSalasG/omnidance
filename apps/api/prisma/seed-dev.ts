@@ -897,34 +897,6 @@ export async function seedDev(prisma: PrismaClient) {
     },
   });
 
-  // RSVPs — el evento muestra interés real.
-  for (const [p, st] of [
-    [dancer, "GOING"],
-    [camila, "GOING"],
-    [josefa, "GOING"],
-    [antonia, "INTERESTED"],
-    [diego, "GOING"],
-  ] as const) {
-    await prisma.rsvp.upsert({
-      where: {
-        eventId_personId: { eventId: bachatamania.id, personId: p.id },
-      },
-      update: { status: st },
-      create: { eventId: bachatamania.id, personId: p.id, status: st },
-    });
-  }
-  await prisma.rsvp.upsert({
-    where: {
-      eventId_personId: { eventId: juevesCubano.id, personId: dancer.id },
-    },
-    update: { status: "INTERESTED" },
-    create: {
-      eventId: juevesCubano.id,
-      personId: dancer.id,
-      status: "INTERESTED",
-    },
-  });
-
   // Amistades: una aceptada (lista de amigos), una entrante y una enviada.
   await prisma.friendship.upsert({
     where: { aId_bId: { aId: dancer.id, bId: camila.id } },
