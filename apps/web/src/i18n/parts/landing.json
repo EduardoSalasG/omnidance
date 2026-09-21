@@ -7,7 +7,7 @@
     "metaDescription": "La app de la comunidad salsera, timbera y bachatera de Chile: sociales, entradas, academias y clases. Registro rápido y fácil.",
     "eyebrow": "Salsa · Timba · Bachata en Chile",
     "heroPromise": "Si bailas, ya eres de acá",
-    "heroLead": "La app de la comunidad salsera, timbera y bachatera de Chile.\nSociales, entradas, academias y clases — todo en tu teléfono.",
+    "heroLead": "Sociales, entradas, academias y clases — todo en tu teléfono.",
     "ctaSignup": "Crear cuenta",
     "ctaCreateAccount": "Crear mi cuenta gratis",
     "ctaLogin": "Entrar",
@@ -20,13 +20,14 @@
     "featureQrTitle": "Un solo QR",
     "featureQrDesc": "Una entrada, una invitación, una noche entera:\ntodo nace de tu QR.",
     "featureLearnTitle": "Academy",
-    "featureLearnDesc": "Las academias de la comunidad, sus clases y tu progreso\nen un solo lugar.",
+    "featureLearnDesc": "Las academias de la comunidad, sus clases y tu progreso en un solo lugar.",
     "featureSceneTitle": "Nightlife",
-    "featureSceneDesc": "La cartelera completa de la escena:\nsociales y eventos cada semana, con tu entrada lista.",
+    "featureSceneDesc": "La cartelera completa de la comunidad,\ncon tu entrada siempre lista.",
     "finalCta": "¿Bailamos?",
-    "finalCtaDesc": "Registro rápido y fácil —\ntu gente ya está adentro.",
+    "finalCtaDesc": "Registro rápido y fácil.\nTu gente ya está adentro.",
     "footerTagline": "Hecho para la comunidad salsera, timbera y bachatera de Chile",
-    "footerAlt": "Para negocios"
+    "footerAlt": "Para negocios",
+    "featuresLead": "La app de la comunidad salsera, timbera y bachatera de Chile."
   },
   "landingPro": {
     "metaTitle": "Omnidance para productores, academias y locales",
