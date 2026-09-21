@@ -35,6 +35,7 @@ model Person {
   isDemoAccount  Boolean @default(false) // cuenta demo creada desde un lead de /pro
   pendingProfileAt DateTime? // admin convirtió el lead: debe completar perfil para ser usuario real
   verifiedAt    DateTime?
+  onboarding    Json?   // {tourKey: ISO timestamp} — tours de primera visita ya vistos
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

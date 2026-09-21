@@ -12,6 +12,8 @@ import {
 } from "@/components/ui";
 import type { GenreMixBlock } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
+import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
+import toursI18n from "@/i18n/parts/tours.json";
 
 export const metadata: Metadata = {
   title: "Eventos de salsa y bachata esta semana",
@@ -453,6 +455,36 @@ export default async function EventosPage({
     ? (venues.find(([id]) => id === venueId)?.[1] ?? t.allVenues)
     : t.allVenues;
 
+  // Tour de primera visita — steps cuyo target puede faltar (p.ej.
+  // ev-list sin eventos) se filtran dentro del runner.
+  const tt = toursI18n.tours.eventos;
+  const tourSteps: TourStep[] = [
+    {
+      element: "[data-tour='ev-genres']",
+      title: tt.s1.title,
+      description: tt.s1.desc,
+      side: "bottom",
+    },
+    {
+      element: "[data-tour='ev-venues']",
+      title: tt.s2.title,
+      description: tt.s2.desc,
+      side: "bottom",
+    },
+    {
+      element: "[data-tour='ev-views']",
+      title: tt.s3.title,
+      description: tt.s3.desc,
+      side: "bottom",
+    },
+    {
+      element: "[data-tour='ev-list']",
+      title: tt.s4.title,
+      description: tt.s4.desc,
+      side: "top",
+    },
+  ];
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
       <header className="flex flex-col gap-4">
@@ -460,7 +492,10 @@ export default async function EventosPage({
           <h1 className="text-2xl font-bold">{t.title}</h1>
           <div className="flex items-center gap-2">
               {/* Toggle lista/calendario — íconos, segmented */}
-              <div className="flex items-center rounded-full border border-white/15 p-0.5">
+              <div
+                data-tour="ev-views"
+                className="flex items-center rounded-full border border-white/15 p-0.5"
+              >
                 <Link
                   href={hrefFor({ view: undefined, week: undefined, day: undefined })}
                   aria-label={t.viewList}
@@ -515,6 +550,7 @@ export default async function EventosPage({
           <>
             <nav
               aria-label="Filtrar por estilo"
+              data-tour="ev-genres"
               className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
             >
           <Link
@@ -545,7 +581,7 @@ export default async function EventosPage({
             navegar a otro local el <details> se remonta cerrado —
             el estado open no es controlado por React y sin key
             sobrevive a la navegación client-side. */}
-        <div className="flex items-center">
+        <div className="flex items-center" data-tour="ev-venues">
           <details key={venueId ?? "all"} className="venue-filter relative">
             <summary
               className={`${chipClass(!!venueId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
@@ -725,7 +761,7 @@ export default async function EventosPage({
         </p>
       ) : (
         <div className="flex flex-col gap-8">
-          <section>
+          <section data-tour="ev-list">
             <h2 className="mb-3 text-sm font-semibold text-neon">
               {t.thisWeek}
             </h2>
@@ -756,6 +792,12 @@ export default async function EventosPage({
             </Link>
           )}
         </div>
+      )}
+
+      {/* En mapa los filtros y la lista no existen — el tour espera a
+          la primera visita a lista/calendario para mostrarse completo. */}
+      {view !== "map" && (
+        <OnboardingRunner tour="eventos" steps={tourSteps} />
       )}
     </main>
   );

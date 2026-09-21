@@ -231,6 +231,38 @@
           }
         },
         {
+          "name": "POST /api/me/onboarding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/onboarding",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "onboarding"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "POST /api/me/complete-profile",
           "request": {
             "method": "POST",

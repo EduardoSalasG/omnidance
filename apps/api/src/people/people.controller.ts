@@ -10,7 +10,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsOptional, IsString, MinLength } from "class-validator";
+import { IsOptional, IsString, Matches, MinLength } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { AuthService } from "../auth/domain/auth.service";
@@ -30,6 +30,13 @@ class CompleteProfileDto {
   @IsString()
   @MinLength(8)
   password?: string;
+}
+
+class OnboardingDto {
+  // Clave del tour (p.ej. "home", "eventos", "productor") — slug corto.
+  @IsString()
+  @Matches(/^[a-z0-9-]{1,40}$/)
+  tour!: string;
 }
 
 @Controller()
@@ -59,7 +66,31 @@ export class PeopleController {
       // pendingProfile (admin convirtió el lead — falta completar datos).
       isDemo: person.isDemoAccount,
       pendingProfile: !!person.pendingProfileAt,
+      // Tours de onboarding ya vistos: {tourKey: ISO} — el front corre
+      // el tour de una superficie solo si su clave falta.
+      onboarding: (person.onboarding as Record<string, string> | null) ?? {},
     };
+  }
+
+  /** Marca un tour de primera visita como visto (merge sobre el JSON). */
+  @Post("me/onboarding")
+  @HttpCode(200)
+  @UseGuards(SessionGuard)
+  async completeOnboarding(@Req() req: Request, @Body() dto: OnboardingDto) {
+    const personId = req.person!.id;
+    const person = await this.prisma.person.findUniqueOrThrow({
+      where: { id: personId },
+      select: { onboarding: true },
+    });
+    const current =
+      (person.onboarding as Record<string, string> | null) ?? {};
+    await this.prisma.person.update({
+      where: { id: personId },
+      data: {
+        onboarding: { ...current, [dto.tour]: new Date().toISOString() },
+      },
+    });
+    return { ok: true };
   }
 
   /**

@@ -138,6 +138,27 @@
         }
       }
     },
+    "/api/me/onboarding": {
+      "post": {
+        "operationId": "PeopleController_completeOnboarding",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/me/complete-profile": {
       "post": {
         "operationId": "PeopleController_completeProfile",
@@ -3877,6 +3898,10 @@
         "properties": {}
       },
       "SetPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "OnboardingDto": {
         "type": "object",
         "properties": {}
       },

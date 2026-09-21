@@ -873,6 +873,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         <li key={tab.key} className="relative flex-1">
           <button
             type="button"
+            data-tour={`nav-${tab.key}`}
             aria-haspopup="dialog"
             aria-expanded={sheetOpen}
             aria-label={tabLabel(tab)}
@@ -897,6 +898,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       <li key={tab.key} className="relative flex-1">
         <Link
           href={tab.href}
+          data-tour={`nav-${tab.key}`}
           aria-current={active ? "page" : undefined}
           className={`flex h-full min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors active:scale-95 ${
             tab.center
@@ -949,6 +951,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
             {hasDrawerItems && (
               <button
                 type="button"
+                data-tour="appbar-menu"
                 aria-haspopup="dialog"
                 aria-expanded={drawerOpen}
                 aria-controls="app-side-drawer"

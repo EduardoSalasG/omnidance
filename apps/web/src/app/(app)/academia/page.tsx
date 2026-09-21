@@ -5,6 +5,10 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { AcademySettings } from "@/components/academy/academy-settings";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 
 // Módulos de la consola — keys de academy.modules.* en es-CL.json.
 // "myClasses" primero: es la vista diaria del instructor (la consola se
@@ -27,6 +31,7 @@ const MODULES = [
  */
 export default function AcademiaPage() {
   const t = useTranslations("academy");
+  const tt = useTranslations("tours.academia");
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -50,6 +55,34 @@ export default function AcademiaPage() {
                 />
               ))}
             </ModuleGrid>
+
+            {/* Tour de primera visita — targets del chrome (tabs +
+                menú lateral), presentes una vez pasa el gate. */}
+            <OnboardingRunner
+              tour="academia"
+              steps={
+                [
+                  {
+                    element: "[data-tour='nav-academy']",
+                    title: tt("s1.title"),
+                    description: tt("s1.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='nav-attendance']",
+                    title: tt("s2.title"),
+                    description: tt("s2.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='appbar-menu']",
+                    title: tt("s3.title"),
+                    description: tt("s3.desc"),
+                    side: "bottom",
+                  },
+                ] satisfies TourStep[]
+              }
+            />
           </>
         )}
       </AcademyGate>

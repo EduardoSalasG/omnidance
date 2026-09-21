@@ -1,0 +1,85 @@
+{
+  "tours": {
+    "next": "Siguiente",
+    "prev": "Anterior",
+    "done": "Entendido",
+    "home": {
+      "s1": {
+        "title": "Tu pulso en la escena",
+        "desc": "Bailes, eventos y tu actividad reciente — todo de un vistazo."
+      },
+      "s2": {
+        "title": "La cartelera",
+        "desc": "Todos los sociales de Santiago: filtra por estilo, local o fecha y compra tu entrada."
+      },
+      "s3": {
+        "title": "Tus acciones",
+        "desc": "El botón +: acá vive tu QR (tu entrada en la puerta) y los módulos para invitar a bailar."
+      },
+      "s4": {
+        "title": "Tu perfil",
+        "desc": "Foto, estilos que bailas y tus otras lentes si también eres profe, DJ o productor."
+      }
+    },
+    "eventos": {
+      "s1": {
+        "title": "Filtra por estilo",
+        "desc": "¿Salsa, bachata o timba? Toca un chip para ver solo esas noches."
+      },
+      "s2": {
+        "title": "Por local",
+        "desc": "¿Hinchas de un lugar? Mira solo su programación."
+      },
+      "s3": {
+        "title": "Tres formas de ver",
+        "desc": "Lista, calendario semanal o mapa de locales — elige cómo explorar la escena."
+      },
+      "s4": {
+        "title": "Toca un evento",
+        "desc": "Cada card lleva al detalle: estilos, precios, planificación de la noche y tu entrada."
+      }
+    },
+    "qr": {
+      "s1": {
+        "title": "Tu QR personal",
+        "desc": "Se renueva solo cada 30 segundos. En la puerta es tu entrada; en la pista, invita a bailar."
+      },
+      "s2": {
+        "title": "Modo escáner",
+        "desc": "Cambia a Escanear para sumar un baile con el QR de tu pareja o invitarla a bailar."
+      }
+    },
+    "productor": {
+      "s1": {
+        "title": "El +",
+        "desc": "Crea tu evento: fecha, local, precios, lineup y aforo."
+      },
+      "s2": {
+        "title": "Tus eventos",
+        "desc": "Publicados, borradores y las acciones de cada noche (staff, pases, reservas)."
+      },
+      "s3": {
+        "title": "Liquidaciones",
+        "desc": "Lo recaudado menos fees — lo que te toca transferir."
+      },
+      "s4": {
+        "title": "Todos los módulos",
+        "desc": "Códigos de descuento, listas de puerta, parámetros y analítica viven en este menú."
+      }
+    },
+    "academia": {
+      "s1": {
+        "title": "Tu academia",
+        "desc": "El hub operativo: clases, alumnos, planes y videos en un solo lugar."
+      },
+      "s2": {
+        "title": "Asistencia",
+        "desc": "Marca presente a tus alumnos en cada clase — es tu tab directo."
+      },
+      "s3": {
+        "title": "Todos los módulos",
+        "desc": "Horarios, particulares, series y videos también desde el menú lateral."
+      }
+    }
+  }
+}
