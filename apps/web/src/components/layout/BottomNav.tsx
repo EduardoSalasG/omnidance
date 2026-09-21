@@ -8,6 +8,10 @@ import { apiFetch } from "@/lib/api";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
+import {
+  DancerActionsSheet,
+  type SheetItem,
+} from "./DancerActionsSheet";
 import { ModeToggle } from "./ModeToggle";
 
 // Chrome de app: appbar sticky (hamburguesa → drawer lateral con los
@@ -53,13 +57,16 @@ type TabKey =
   | "analytics"
   | "venue"
   | "dj"
-  | "support";
+  | "support"
+  | "more";
 
 type Tab = {
   href: string;
   key: TabKey;
   icon: (active: boolean) => React.ReactNode;
   center?: boolean;
+  // Tab de acción: abre el sheet del bailarín en vez de navegar.
+  sheet?: boolean;
 };
 
 function icon(path: string) {
@@ -153,10 +160,19 @@ const CLASSES_TAB: Tab = {
   key: "classes",
   icon: icon(ICONS.clock),
 };
-const TICKETS_TAB: Tab = {
-  href: "/entradas",
-  key: "tickets",
-  icon: icon(ICONS.tickets),
+const FRIENDS_TAB: Tab = {
+  href: "/amigos",
+  key: "friends",
+  icon: icon(ICONS.users),
+};
+// "+" central del bailarín — abre el DancerActionsSheet (QR + módulos
+// secundarios). href simbólico: renderTab lo pinta como <button>.
+const ACTIONS_TAB: Tab = {
+  href: "#acciones",
+  key: "more",
+  icon: icon(ICONS.plus),
+  center: true,
+  sheet: true,
 };
 const PAYOUTS_TAB: Tab = {
   href: "/productor/pagos",
@@ -192,15 +208,13 @@ const SUPPORT_TAB: Tab = {
   center: true,
 };
 
-// DANCER en modo Academia: Eventos se reemplaza por el directorio de
-// academias y Clases (explorar + mis reservas) es tab propio. QR se
-// mantiene — sirve para check-in de clases igual que en puerta — y va
-// siempre en el centro del bottom bar (regla global del QR).
-// Prácticas queda en el drawer (máximo 5 ítems en el bottom bar).
+// DANCER en modo Academia: mismo patrón — "+" central abre el sheet
+// (QR + módulos). Eventos se reemplaza por el directorio de academias
+// y Clases (explorar + mis reservas) es tab propio.
 const DANCER_ACADEMY_TABS: Tab[] = [
   HOME_TAB,
   CLASSES_TAB,
-  QR_TAB,
+  ACTIONS_TAB,
   ACADEMIAS_TAB,
 ];
 
@@ -209,7 +223,9 @@ const DANCER_ACADEMY_TABS: Tab[] = [
 // appbar (campana con badge), no en el bottom nav: los slots que
 // liberan los ocupa la función más usada de cada rol.
 const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
-  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, TICKETS_TAB],
+  // Bailarín: [Inicio] [Eventos] [+] [Amigos] [Perfil]. El "+" abre el
+  // sheet con el QR destacado + módulos secundarios — sin drawer lateral.
+  DANCER: [HOME_TAB, EVENTS_TAB, ACTIONS_TAB, FRIENDS_TAB],
   STAFF: [
     HOME_TAB,
     { href: "/staff", key: "staff", icon: icon(ICONS.staff) },
@@ -286,24 +302,45 @@ type DrawerGroupSpec = {
   items: DrawerSpec[];
 };
 
+// Sheet del bailarín — módulos secundarios por lente (social/academia).
+// El QR va destacado dentro del sheet; estos son los ítems del grid.
+// ns/key resuelven vía labelFor como los ítems del drawer.
+const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
+  { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
+  {
+    href: "/practicas",
+    ns: "nav",
+    key: "practices",
+    icon: ICONS.practices,
+  },
+  { href: "/viajes", ns: "nav", key: "trips", icon: ICONS.trips },
+  {
+    href: "/notificaciones",
+    ns: "nav",
+    key: "notifications",
+    icon: ICONS.notifications,
+  },
+];
+const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [
+  { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
+  {
+    href: "/practicas",
+    ns: "nav",
+    key: "practices",
+    icon: ICONS.practices,
+  },
+  { href: "/eventos", ns: "events", key: "title", icon: ICONS.events },
+  {
+    href: "/notificaciones",
+    ns: "nav",
+    key: "notifications",
+    icon: ICONS.notifications,
+  },
+];
+
 const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
-  DANCER: [
-    {
-      labelNs: "nav",
-      labelKey: "socialSection",
-      items: [
-        { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
-        { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
-        {
-          href: "/practicas",
-          ns: "nav",
-          key: "practices",
-          icon: ICONS.practices,
-        },
-        { href: "/viajes", ns: "nav", key: "trips", icon: ICONS.trips },
-      ],
-    },
-  ],
+  // El bailarín no usa drawer: sus módulos viven en el sheet del "+".
+  DANCER: [],
   STAFF: [
     {
       labelNs: "nav",
@@ -570,35 +607,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   ],
 };
 
-// Drawer del DANCER en modo Academia — el dominio nightlife (bailes,
-// entradas, viajes) se reemplaza por el de aprendizaje. Prácticas queda
-// en ambos: es el puente entre clase y pista.
-const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [
-  {
-    labelNs: "academy",
-    labelKey: "title",
-    items: [
-      { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
-      {
-        href: "/practicas",
-        ns: "nav",
-        key: "practices",
-        icon: ICONS.practices,
-      },
-      { href: "/academias", ns: "nav", key: "academies", icon: ICONS.academy },
-    ],
-  },
-  // En modo Academia el social no desaparece: eventos y amigos siguen a
-  // un toque en el drawer.
-  {
-    labelNs: "nav",
-    labelKey: "socialSection",
-    items: [
-      { href: "/eventos", ns: "nav", key: "events", icon: ICONS.events },
-      { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
-    ],
-  },
-];
+// El DANCER no usa drawer en ninguna lente — en modo Academia el sheet
+// del "+" lleva los módulos de aprendizaje (SHEET_ACADEMY_ITEMS).
+const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [];
 
 /** unreadCount acotado para el badge — 99+ como en el home hub. */
 function badgeText(count: number): string {
@@ -637,6 +648,8 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // por unos milisegundos.
   const [meChecked, setMeChecked] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Sheet de acciones del bailarín (botón "+" del tab bar).
+  const [sheetOpen, setSheetOpen] = useState(false);
   // Hide-on-scroll del appbar (patrón iOS).
   const [barHidden, setBarHidden] = useState(false);
   // Lente activa — cambia cuando Perfil dispara setActiveRole.
@@ -713,9 +726,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     if (pathname.startsWith("/notificaciones")) setUnread(0);
   }, [pathname]);
 
-  // Al navegar el drawer se cierra.
+  // Al navegar el drawer y el sheet se cierran.
   useEffect(() => {
     setDrawerOpen(false);
+    setSheetOpen(false);
     setBarHidden(false);
   }, [pathname]);
 
@@ -813,6 +827,14 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       // /notificaciones ya no es tab: vive en la campana del appbar,
       // pero el título contextual sigue resolviendo la ruta.
       ["/notificaciones", t("notifications")],
+      // Módulos del sheet del bailarín (ya no viven en el drawer).
+      ["/bailes", t("dances")],
+      ["/practicas", t("practices")],
+      ["/viajes", t("trips")],
+      ["/academia", tac("title")],
+      // /qr ya no es tab del bailarín (vive embebido en el sheet) —
+      // la ruta sigue existiendo (escáner desde /bailes, /practicas).
+      ["/qr", t("scan")],
       ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
       ...DANCER_ACADEMY_TABS.map(
         (tab) => [tab.href, tabLabel(tab)] as [string, string],
@@ -849,8 +871,46 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // -1 en rutas fuera del tab bar (p.ej. /checkout) → indicador oculto.
   const activeIndex = allTabs.findIndex(isTabActive);
 
+  // Ítems del sheet del bailarín — labels resueltos como en el drawer.
+  const isDancer = activeRole === "DANCER";
+  const sheetItems: SheetItem[] = (
+    dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS
+  ).map((spec) => ({
+    href: spec.href,
+    label: labelFor(spec.ns, spec.key),
+    icon: icon(spec.icon)(pathname.startsWith(spec.href)),
+    active: pathname.startsWith(spec.href),
+  }));
+
   const renderTab = (tab: Tab) => {
     const active = isTabActive(tab);
+    if (tab.sheet) {
+      // Tab de acción: no navega — abre el sheet. Mismo look de botón
+      // central (círculo neon) que los tabs center de otros roles.
+      return (
+        <li key={tab.key} className="relative flex-1">
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={sheetOpen}
+            aria-label={tabLabel(tab)}
+            onClick={() => setSheetOpen((o) => !o)}
+            className="flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium text-neon transition-colors active:scale-95"
+          >
+            <span
+              className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                sheetOpen
+                  ? "border-neon bg-neon text-night-950"
+                  : "border-neon/50 bg-neon/10 text-neon"
+              }`}
+            >
+              {tab.icon(true)}
+            </span>
+            {tabLabel(tab)}
+          </button>
+        </li>
+      );
+    }
     return (
       <li key={tab.key} className="relative flex-1">
         <Link
@@ -1029,6 +1089,16 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         groups={drawerGroups}
         roleLabel={me ? roleLabel : undefined}
       />
+
+      {/* Sheet de acciones — solo la lente bailarín; los demás roles
+          mantienen el drawer lateral. */}
+      {isDancer && (
+        <DancerActionsSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          items={sheetItems}
+        />
+      )}
     </>
   );
 }

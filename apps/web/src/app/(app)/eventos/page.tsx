@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import messages from "../../../../messages/es-CL.json";
 import { Badge, Card, EventDate, PriceTag } from "@/components/ui";
-import { SaveEventButton } from "@/components/rsvp/SaveEventButton";
-import { NearMeButton } from "@/components/events/NearMeButton";
-import { formatKm, haversineKm, parseNear } from "@/lib/geo";
 
 export const metadata: Metadata = {
   title: "Eventos de salsa y bachata esta semana",
@@ -30,13 +26,11 @@ type EventListItem = {
     id: string;
     name: string;
     address: string | null;
-    lat: number | null;
-    lng: number | null;
   } | null;
 };
 
-type MyRsvp = { eventId: string; status: "GOING" | "INTERESTED" };
-type View = "list" | "calendar" | "saved";
+type MyTicket = { status: string; event: { id: string } };
+type View = "list" | "calendar" | "mios";
 type GenreKey = (typeof GENRES)[number];
 
 const GENRES = ["SALSA", "BACHATA", "CUBANO"] as const;
@@ -83,15 +77,17 @@ function groupByDay(events: EventListItem[]) {
     .map(([key, items]) => ({ key, label: items[0].startsAt, items }));
 }
 
-/** RSVP propios del usuario autenticado — cookie forward (401 → vacío). */
-async function getMyRsvps(): Promise<Map<string, MyRsvp["status"]>> {
-  const res = await fetch(`${API_URL}/api/me/rsvp`, {
+/** Eventos donde el usuario tiene ticket ACTIVE — cookie forward. */
+async function getMyTicketEventIds(): Promise<Set<string>> {
+  const res = await fetch(`${API_URL}/api/tickets/mine`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
-  if (!res?.ok) return new Map();
-  const rows = (await res.json()) as MyRsvp[];
-  return new Map(rows.map((r) => [r.eventId, r.status]));
+  if (!res?.ok) return new Set();
+  const rows = (await res.json()) as MyTicket[];
+  return new Set(
+    rows.filter((t) => t.status === "ACTIVE").map((t) => t.event.id),
+  );
 }
 
 /** "YYYY-MM-DD" validado; null si no matchea. */
@@ -131,15 +127,14 @@ export default async function EventosPage({
     view?: string;
     week?: string;
     day?: string;
-    near?: string;
   };
 }) {
   const t = messages.events;
   const isAuthed = cookies().has("omnidance_session");
 
-  const [res, myRsvps] = await Promise.all([
+  const [res, myTicketEventIds] = await Promise.all([
     fetch(`${API_URL}/api/events`, { cache: "no-store" }),
-    isAuthed ? getMyRsvps() : Promise.resolve(new Map()),
+    isAuthed ? getMyTicketEventIds() : Promise.resolve(new Set<string>()),
   ]);
   const all: EventListItem[] = res.ok ? await res.json() : [];
 
@@ -153,11 +148,10 @@ export default async function EventosPage({
       ),
   );
   const venueId = searchParams?.venue;
-  const near = parseNear(searchParams?.near);
   const rawView = searchParams?.view;
-  // Las vistas calendar/saved son solo para autenticados.
+  // Las vistas calendar/mios son solo para autenticados.
   const view: View =
-    isAuthed && (rawView === "calendar" || rawView === "saved")
+    isAuthed && (rawView === "calendar" || rawView === "mios")
       ? rawView
       : "list";
 
@@ -181,26 +175,19 @@ export default async function EventosPage({
       (!venueId || e.venue?.id === venueId),
   );
 
-  // "Cerca de ti": orden por distancia al punto; sin coords → al final.
-  const distOf = (e: EventListItem) =>
-    near && e.venue?.lat != null && e.venue.lng != null
-      ? haversineKm(near.lat, near.lng, e.venue.lat, e.venue.lng)
-      : null;
-  const sorted = near
-    ? [...filtered].sort(
-        (a, b) => (distOf(a) ?? Infinity) - (distOf(b) ?? Infinity),
-      )
-    : filtered;
-
   const now = Date.now();
-  const thisWeek = sorted.filter(
+  const thisWeek = filtered.filter(
     (e) => new Date(e.startsAt).getTime() <= now + WEEK_MS,
   );
-  const later = sorted.filter(
+  const later = filtered.filter(
     (e) => new Date(e.startsAt).getTime() > now + WEEK_MS,
   );
 
-  const saved = filtered.filter((e) => myRsvps.has(e.id));
+  // "Mis eventos": agenda — eventos futuros con ticket ACTIVE propio.
+  const mios = filtered.filter(
+    (e) =>
+      myTicketEventIds.has(e.id) && new Date(e.startsAt).getTime() > now,
+  );
 
   // ─── Calendario semanal (?week=<cualquier día> → su lunes) ───
   const calByDay = new Map<string, EventListItem[]>();
@@ -240,7 +227,6 @@ export default async function EventosPage({
     view?: string;
     week?: string;
     day?: string;
-    near?: string;
   }) => {
     const merged = {
       genre: [...genreSet].join(",") || undefined,
@@ -248,7 +234,6 @@ export default async function EventosPage({
       view: view !== "list" ? view : undefined,
       week: view === "calendar" ? weekKey : undefined,
       day: view === "calendar" ? (selectedDay ?? undefined) : undefined,
-      near: searchParams?.near,
       ...o,
     };
     const params = new URLSearchParams();
@@ -268,7 +253,6 @@ export default async function EventosPage({
     }`;
 
   const renderCard = (e: EventListItem) => {
-    const km = distOf(e);
     const inner = (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
         <div className="flex items-start justify-between gap-4">
@@ -281,18 +265,19 @@ export default async function EventosPage({
                   {t.genre[g as keyof typeof t.genre] ?? g}
                 </Badge>
               ))}
-              {isAuthed && myRsvps.get(e.id) === "GOING" && (
-                <Badge variant="outline">{messages.rsvp.going}</Badge>
-              )}
             </div>
             <h2 className="text-lg font-semibold">{e.name}</h2>
             <p className="text-sm text-white/60">
               <EventDate start={e.startsAt} />
               {e.venue ? ` · ${e.venue.name}` : ""}
-              {km != null && ` · a ${formatKm(km)}`}
             </p>
+            {view === "mios" && (
+              <p className="text-xs font-medium text-neon">
+                {t.miosQrHint}
+              </p>
+            )}
           </div>
-          <div className={`shrink-0 text-right ${isAuthed ? "pt-11" : ""}`}>
+          <div className="shrink-0 text-right">
             {e.presalePrice != null ? (
               <>
                 <span className="block text-xs text-white/50">
@@ -307,18 +292,10 @@ export default async function EventosPage({
         </div>
       </Card>
     );
-    // El bookmark es sibling absoluto del Link — HTML válido, card clickeable.
     return isAuthed ? (
-      <div className="relative">
-        <Link href={`/eventos/${e.id}`} className="block rounded-2xl">
-          {inner}
-        </Link>
-        <SaveEventButton
-          eventId={e.id}
-          initialStatus={myRsvps.get(e.id) ?? null}
-          className="absolute right-3 top-3 z-10"
-        />
-      </div>
+      <Link href={`/eventos/${e.id}`} className="block rounded-2xl">
+        {inner}
+      </Link>
     ) : (
       <div>{inner}</div>
     );
@@ -347,9 +324,7 @@ export default async function EventosPage({
 
   const venueLabel = venueId
     ? (venues.find(([id]) => id === venueId)?.[1] ?? t.allVenues)
-    : near
-      ? t.near
-      : t.allVenues;
+    : t.allVenues;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 p-6">
@@ -384,15 +359,15 @@ export default async function EventosPage({
                   </svg>
                 </Link>
               </div>
-              {/* Guardados — ícono aparte */}
+              {/* Mis eventos — agenda propia (ticket activo), ícono aparte */}
               <Link
-                href={hrefFor({ view: "saved", week: undefined, day: undefined })}
-                aria-label={t.viewSaved}
-                aria-current={view === "saved" ? "true" : undefined}
-                className={`${iconBtn(view === "saved")} border border-white/15`}
+                href={hrefFor({ view: "mios", week: undefined, day: undefined })}
+                aria-label={t.viewMios}
+                aria-current={view === "mios" ? "true" : undefined}
+                className={`${iconBtn(view === "mios")} border border-white/15`}
               >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill={view === "saved" ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 9a3 3 0 0 1 0 6v3a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1zm13-5v2m0 10v2m0-8v2" />
                 </svg>
               </Link>
             </div>
@@ -428,11 +403,11 @@ export default async function EventosPage({
           })}
         </nav>
 
-        {/* Locales + cercanía — dropdown tipo chip (sin JS) */}
+        {/* Locales — dropdown tipo chip (sin JS) */}
         <div className="flex items-center">
           <details className="venue-filter relative">
             <summary
-              className={`${chipClass(!!venueId || !!near)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+              className={`${chipClass(!!venueId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="mr-1.5 inline h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
@@ -443,9 +418,9 @@ export default async function EventosPage({
             <ul className="absolute left-0 z-20 mt-2 flex max-h-72 w-56 flex-col overflow-y-auto rounded-xl border border-night-700 bg-night-900 p-1 shadow-xl shadow-black/40">
               <li>
                 <Link
-                  href={hrefFor({ venue: undefined, near: undefined })}
+                  href={hrefFor({ venue: undefined })}
                   className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
-                    !venueId && !near ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
+                    !venueId ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
                   }`}
                 >
                   {t.allVenues}
@@ -463,20 +438,6 @@ export default async function EventosPage({
                   </Link>
                 </li>
               ))}
-              <li className="mt-1 border-t border-night-700 pt-1">
-                {near ? (
-                  <Link
-                    href={hrefFor({ near: undefined })}
-                    className="flex min-h-11 items-center rounded-lg px-3 text-sm text-white/80 hover:bg-white/5"
-                  >
-                    {t.nearClear}
-                  </Link>
-                ) : (
-                  <Suspense fallback={null}>
-                    <NearMeButton row className="w-full" />
-                  </Suspense>
-                )}
-              </li>
             </ul>
           </details>
         </div>
@@ -579,17 +540,28 @@ export default async function EventosPage({
             </section>
           )}
         </section>
-      ) : view === "saved" ? (
+      ) : view === "mios" ? (
         <div className="flex flex-col gap-8">
-          {saved.length === 0 ? (
-            <p className="text-white/60">{t.savedEmpty}</p>
+          {mios.length === 0 ? (
+            <p className="text-white/60">{t.miosEmpty}</p>
           ) : (
-            groupByDay(saved).map(renderDayGroup)
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-white/60">{t.miosHint}</p>
+                <Link
+                  href="/entradas"
+                  className="shrink-0 text-sm font-medium text-neon hover:underline"
+                >
+                  {t.miosManage} →
+                </Link>
+              </div>
+              {groupByDay(mios).map(renderDayGroup)}
+            </>
           )}
         </div>
-      ) : sorted.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <p className="text-white/60">
-          {genreSet.size || venueId || near ? t.emptyFiltered : t.empty}
+          {genreSet.size || venueId ? t.emptyFiltered : t.empty}
         </p>
       ) : (
         <div className="flex flex-col gap-8">

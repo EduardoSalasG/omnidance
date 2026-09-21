@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 
@@ -36,6 +36,17 @@ type FriendsData = {
   pendingSent: FriendEdge[];
 };
 
+/** GET /friends/upcoming-events — evento + amigos con ticket activo. */
+type FriendEvent = {
+  event: {
+    id: string;
+    name: string;
+    startsAt: string;
+    venue: { name: string } | null;
+  };
+  friends: PersonLite[];
+};
+
 type SearchResult = PersonLite & {
   friendship: { id: string | null; status: FriendshipStatus } | null;
 };
@@ -57,6 +68,8 @@ export default function AmigosPage() {
 
   const [state, setState] = useState<PageState>("loading");
   const [data, setData] = useState<FriendsData>(EMPTY_DATA);
+  // "Tus amigos van a" — agenda social de amigos (tickets activos).
+  const [friendEvents, setFriendEvents] = useState<FriendEvent[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -77,6 +90,12 @@ export default function AmigosPage() {
         return;
       }
       setData((await res.json()) as FriendsData);
+      // Feed "van a" — mejor esfuerzo: si falla queda vacío, no bloquea.
+      apiFetch("/friends/upcoming-events")
+        .then(async (r) => {
+          if (r.ok) setFriendEvents((await r.json()) as FriendEvent[]);
+        })
+        .catch(() => {});
       setState("ready");
     } catch {
       setState("error");
@@ -311,6 +330,59 @@ export default function AmigosPage() {
 
       {state === "ready" && (
         <>
+          {/* Tus amigos van a — eventos con ticket activo de ≥1 amigo */}
+          {friendEvents.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                {t("goingTitle")}
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {friendEvents.map(({ event, friends }) => (
+                  <li key={event.id}>
+                    <Link href={`/eventos/${event.id}`} className="block">
+                      <Card className="flex items-center justify-between gap-3 transition-colors hover:border-neon/50">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold">
+                            {event.name}
+                          </p>
+                          <p className="truncate text-sm text-white/60">
+                            <EventDate start={event.startsAt} />
+                            {event.venue ? ` · ${event.venue.name}` : ""}
+                          </p>
+                        </div>
+                        {/* Stack de avatares/iniciales de los amigos que van */}
+                        <ul
+                          aria-label={t("goingFriends", {
+                            count: friends.length,
+                          })}
+                          className="flex shrink-0 -space-x-2"
+                        >
+                          {friends.slice(0, 4).map((f) => (
+                            <li
+                              key={f.id}
+                              className="rounded-full ring-2 ring-night-800"
+                            >
+                              <PartnerAvatar
+                                name={f.name}
+                                photoUrl={f.photoUrl}
+                                size="sm"
+                              />
+                            </li>
+                          ))}
+                          {friends.length > 4 && (
+                            <li className="flex h-8 w-8 items-center justify-center rounded-full bg-night-700 text-[10px] font-semibold text-white/70 ring-2 ring-night-800">
+                              +{friends.length - 4}
+                            </li>
+                          )}
+                        </ul>
+                      </Card>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {/* Solicitudes recibidas */}
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">

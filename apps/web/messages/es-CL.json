@@ -172,22 +172,19 @@
     "tomorrow": "Mañana",
     "emptyFiltered": "No hay eventos con estos filtros.",
     "publicLead": "La cartelera de la comunidad esta semana",
-    "publicCta": "Entra para ver detalles, comprar entrada y guardar tus eventos.",
+    "publicCta": "Entra para ver detalles y comprar tu entrada.",
     "publicCtaButton": "Entrar a Omnidance",
     "viewList": "Lista",
     "viewCalendar": "Calendario",
-    "viewSaved": "Guardados",
-    "savedEmpty": "No tienes eventos guardados. Usa el bookmark en la lista.",
-    "near": "Cerca de ti",
-    "nearLocating": "Ubicando…",
-    "nearDenied": "No pudimos obtener tu ubicación.",
-    "nearClear": "Quitar orden por cercanía",
+    "viewMios": "Mis eventos",
+    "miosEmpty": "Aún no tienes entradas para próximos eventos.",
+    "miosHint": "Tu QR personal es tu entrada — muéstralo en la puerta.",
+    "miosQrHint": "Tu QR es tu entrada",
     "prevWeek": "Semana anterior",
     "nextWeek": "Semana siguiente",
     "more": "+{count} más",
     "noEventsDay": "Sin eventos este día",
-    "save": "Guardar evento",
-    "saved": "Quitar de guardados"
+    "miosManage": "Gestionar entradas"
   },
   "qr": {
     "title": "Mi QR",
@@ -369,19 +366,6 @@
     },
     "studentStatus": "Estado de {name}"
   },
-  "rsvp": {
-    "going": "Voy",
-    "interested": "Me interesa",
-    "notGoing": "Ya no voy",
-    "attendees": "Asistentes",
-    "goingCount": "{count} van",
-    "interestedCount": "{count} interesados",
-    "waitlist": "Lista de espera",
-    "joinWaitlist": "Anotarme en lista de espera",
-    "waitlistPosition": "Tu posición: {position}",
-    "promoted": "¡Te liberaron un cupo!",
-    "loginRequired": "Entra con tu correo para confirmar asistencia"
-  },
   "practices": {
     "title": "Prácticas",
     "empty": "No hay prácticas publicadas.",
@@ -392,7 +376,8 @@
     "startsAt": "Fecha y hora",
     "host": "Anfitrión",
     "created": "¡Práctica creada!",
-    "venuePlaceholder": "Nombre del lugar"
+    "venuePlaceholder": "Nombre del lugar",
+    "loginRequired": "Entra con tu correo para publicar una práctica"
   },
   "availability": {
     "toggle": "Disponible para bailar",
@@ -829,7 +814,10 @@
     "viewProfile": "Ver perfil",
     "stylesTitle": "Estilos",
     "actionError": "No se pudo completar la acción",
-    "level": "Nivel"
+    "level": "Nivel",
+    "goingTitle": "Tus amigos van a",
+    "goingFriends": "{count, plural, one {# amigo va} other {# amigos van}}",
+    "upcomingTitle": "Próximos eventos"
   },
   "classes": {
     "title": "Clases",
