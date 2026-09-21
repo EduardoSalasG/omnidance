@@ -68,7 +68,18 @@
     "nextShift": "Próximo turno",
     "findAcademy": "Explorar academias",
     "academyEmpty": "Aún no estás en una academia — explora y pide tu primera clase",
-    "keepDancing": "Sigue bailando — cada noche suma a tu racha"
+    "keepDancing": "Sigue bailando — cada noche suma a tu racha",
+    "live": "En vivo ahora",
+    "presaleLabel": "Preventa",
+    "doorLabel": "Puerta",
+    "friendsGoing": "{count, plural, one {# amigo va} other {# amigos van}}",
+    "presaleLeft": "{count, plural, one {Queda # preventa} other {Quedan # preventas}}",
+    "moreTonight": "También esta noche",
+    "upcoming": "Próximos",
+    "statsError": "No pudimos cargar tu actividad",
+    "retry": "Reintentar",
+    "sessionExpired": "Tu sesión expiró",
+    "sessionExpiredDesc": "Entra de nuevo para ver qué hay esta noche."
   },
   "nav": {
     "main": "Navegación principal",

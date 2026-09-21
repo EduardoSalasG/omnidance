@@ -23,9 +23,29 @@ type NextItem = {
   place: string | null;
 };
 
+// Evento de "esta noche" enriquecido para el home del bailarín:
+// lo que decide si sale — género, precio, amigos, escasez de preventa.
+export type TonightEvent = {
+  id: string;
+  name: string;
+  startsAt: string;
+  live: boolean;
+  venueId: string | null;
+  venueName: string | null;
+  genres: string[];
+  presalePrice: number | null;
+  doorPrice: number | null;
+  hasTicket: boolean;
+  friendsGoing: number;
+  // preventas restantes según el mismo criterio del checkout
+  // (tickets no CANCELLED contra presaleCap); null si no hay cap.
+  presaleLeft: number | null;
+};
+
 export type HomeStats = {
   kpis: Kpi[];
   tonight?: Tonight | null;
+  scene?: { events: TonightEvent[]; upcoming: TonightEvent[] } | null;
   nextClass?: NextItem | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
@@ -113,8 +133,135 @@ export class HomeService {
     };
   }
 
+  /**
+   * Escena de "esta noche" para el home del bailarín: eventos PUBLISHED
+   * que empiezan antes del corte (mañana ~mediodía UTC ≈ 8-9am Chile —
+   * cubre sociales que cruzan medianoche) + eventos LIVE aún abiertos.
+   * Cada evento lleva: géneros (evento→serie), precios, si tengo entrada,
+   * cuántos amigos van y preventas restantes.
+   */
+  private async tonightSceneFor(
+    personId: string,
+  ): Promise<{ events: TonightEvent[]; upcoming: TonightEvent[] } | null> {
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setUTCDate(cutoff.getUTCDate() + 1);
+    cutoff.setUTCHours(12, 0, 0, 0);
+
+    const select = {
+      id: true,
+      name: true,
+      startsAt: true,
+      status: true,
+      genres: true,
+      presalePrice: true,
+      doorPrice: true,
+      presaleCap: true,
+      venue: { select: { id: true, name: true } },
+      series: { select: { genres: true } },
+    } as const;
+
+    const soon = await this.prisma.event.findMany({
+      where: {
+        OR: [
+          { status: "LIVE", endsAt: { gte: now } },
+          { status: "PUBLISHED", startsAt: { gte: now, lte: cutoff } },
+        ],
+      },
+      orderBy: { startsAt: "asc" },
+      take: 6,
+      select,
+    });
+
+    // Noche vacía → la invitación concreta es el próximo evento, no
+    // un callejón "nada publicado": próximos 3 publicados.
+    const next =
+      soon.length === 0
+        ? await this.prisma.event.findMany({
+            where: { status: "PUBLISHED", startsAt: { gt: now } },
+            orderBy: { startsAt: "asc" },
+            take: 3,
+            select,
+          })
+        : [];
+
+    const all = [...soon, ...next];
+    if (all.length === 0) return null;
+
+    const ids = all.map((e) => e.id);
+    const [mine, friendships, sold] = await Promise.all([
+      this.prisma.ticket.findMany({
+        where: { ownerId: personId, status: "ACTIVE", eventId: { in: ids } },
+        select: { eventId: true },
+      }),
+      this.prisma.friendship.findMany({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ aId: personId }, { bId: personId }],
+        },
+        select: { aId: true, bId: true },
+      }),
+      this.prisma.ticket.groupBy({
+        by: ["eventId"],
+        where: { eventId: { in: ids }, status: { not: "CANCELLED" } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    // Amigos = la otra punta de la amistad aceptada (a↔b).
+    const friendIds = friendships.map((f) =>
+      f.aId === personId ? f.bId : f.aId,
+    );
+    const friendTickets = friendIds.length
+      ? await this.prisma.ticket.groupBy({
+          by: ["eventId"],
+          where: {
+            eventId: { in: ids },
+            status: "ACTIVE",
+            ownerId: { in: friendIds },
+          },
+          _count: { _all: true },
+        })
+      : [];
+
+    const withTicket = new Set(mine.map((t) => t.eventId));
+    const soldBy = new Map(sold.map((s) => [s.eventId, s._count._all]));
+    const friendsBy = new Map(
+      friendTickets.map((s) => [s.eventId, s._count._all]),
+    );
+
+    const enrich = (
+      list: typeof all,
+    ): TonightEvent[] =>
+      list
+        .map((e) => ({
+          id: e.id,
+          name: e.name,
+          startsAt: e.startsAt.toISOString(),
+          live: e.status === "LIVE",
+          venueId: e.venue?.id ?? null,
+          venueName: e.venue?.name ?? null,
+          genres:
+            e.genres.length > 0
+              ? e.genres
+              : (e.series?.genres ?? []),
+          presalePrice: e.presalePrice,
+          doorPrice: e.doorPrice,
+          hasTicket: withTicket.has(e.id),
+          friendsGoing: friendsBy.get(e.id) ?? 0,
+          presaleLeft:
+            e.presaleCap != null && e.presalePrice != null
+              ? Math.max(0, e.presaleCap - (soldBy.get(e.id) ?? 0))
+              : null,
+        }))
+        // El evento donde ya tengo entrada encabeza la escena.
+        .sort((a, b) => Number(b.hasTicket) - Number(a.hasTicket));
+
+    return { events: enrich(soon), upcoming: enrich(next) };
+  }
+
   private async dancerSocialStats(personId: string): Promise<HomeStats> {
-    const [streak, points, badges, dances7d, tonight] = await Promise.all([
+    const [streak, points, badges, dances7d, scene] = await Promise.all([
       this.prisma.streak.findFirst({
         where: { personId, type: "WEEKLY_OUT" },
         select: { count: true },
@@ -131,7 +278,7 @@ export class HomeService {
           scannedAt: { gte: daysAgo(7) },
         },
       }),
-      this.tonightFor(personId),
+      this.tonightSceneFor(personId),
     ]);
     return {
       kpis: [
@@ -140,7 +287,7 @@ export class HomeService {
         { key: "badges", value: badges },
         { key: "dances7d", value: dances7d },
       ],
-      tonight,
+      scene,
     };
   }
 
