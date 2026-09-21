@@ -289,55 +289,41 @@ export default async function EventosPage({
 
   const renderCard = (e: EventListItem) => {
     // Los cards siempre viven bajo un heading de día (lista, día del
-    // calendario, mios) → solo hora. Venue destacado como chip con pin;
-    // géneros como texto coloreado (menos chrome que chips outline).
+    // 3 columnas: [hora + chip venue] [título + estilos] [precio].
+    // Los cards viven bajo heading de día → solo hora.
     const inner = (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
-        <div className="flex items-start gap-2">
-          <span className="w-10 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-white/80">
-            <EventDate start={e.startsAt} variant="time" />
-          </span>
+        <div className="flex items-start gap-3">
+          {/* Col 1: hora + venue (chip trunca nombres largos) */}
+          <div className="flex w-24 shrink-0 flex-col items-start gap-1.5">
+            <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
+              <EventDate start={e.startsAt} variant="time" />
+            </span>
+            {e.venue && (
+              <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs font-medium text-white/80">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className="h-3 w-3 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                <span className="truncate">{e.venue.name}</span>
+              </span>
+            )}
+          </div>
+          {/* Col 2: título + estilos debajo */}
           <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="text-base font-semibold leading-snug">
-                {e.name}
-              </h2>
-              <div className="shrink-0 text-right">
-                {e.presalePrice != null ? (
-                  <>
-                    <span className="block text-xs leading-tight text-white/50">
-                      {t.presale}
-                    </span>
-                    <PriceTag amount={e.presalePrice} />
-                  </>
-                ) : (
-                  <span className="text-sm text-white/60">{t.free}</span>
-                )}
-              </div>
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-              {e.venue && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 font-medium text-white/80">
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="h-3 w-3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <span className="truncate">{e.venue.name}</span>
-                </span>
-              )}
-              {e.series && !seriesIsDup(e) && (
-                <Badge variant="neon">{e.series.name}</Badge>
-              )}
-              {e.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
+            <h2 className="text-base font-semibold leading-snug">
+              {e.name}
+            </h2>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               {e.genres.length > 0 && (
                 <span>
                   {e.genres.map((g, i) => (
@@ -354,11 +340,28 @@ export default async function EventosPage({
                   ))}
                 </span>
               )}
+              {e.series && !seriesIsDup(e) && (
+                <Badge variant="neon">{e.series.name}</Badge>
+              )}
+              {e.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
             </div>
             {view === "mios" && (
               <p className="mt-1.5 text-xs font-medium text-neon">
                 {t.miosQrHint}
               </p>
+            )}
+          </div>
+          {/* Col 3: precio */}
+          <div className="shrink-0 pt-0.5 text-right">
+            {e.presalePrice != null ? (
+              <>
+                <span className="block text-xs leading-tight text-white/50">
+                  {t.presale}
+                </span>
+                <PriceTag amount={e.presalePrice} />
+              </>
+            ) : (
+              <span className="text-sm text-white/60">{t.free}</span>
             )}
           </div>
         </div>
