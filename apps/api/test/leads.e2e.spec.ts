@@ -263,6 +263,64 @@ describe("leads /pro e2e", () => {
     });
   });
 
+  describe("sandbox de cuentas demo", () => {
+    let demoSession: string;
+
+    it("la sesión demo lee la app normalmente (GET → 200)", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      demoSession = await auth.issueSession(lead.personId!);
+      const res = await get("/api/notifications", demoSession);
+      expect(res.status).toBe(200);
+    });
+
+    it("escritura de negocio → 403 demo_mode (barrera en SessionGuard)", async () => {
+      // El demo tiene PRODUCER APPROVED — sin la barrera esto llegaría a
+      // RolesGuard. El mensaje demo_mode prueba que bloqueó el guard.
+      const res = await post(
+        `/api/admin/users/x/roles`,
+        { role: "DJ", status: "APPROVED" },
+        demoSession,
+      );
+      expect(res.status).toBe(403);
+      expect((await res.json()).message).toContain("demo_mode");
+    });
+
+    it("whitelist self-scoped: logout y marcar leídas pasan", async () => {
+      const readAll = await post(
+        "/api/notifications/read-all",
+        {},
+        demoSession,
+      );
+      expect(readAll.status).not.toBe(403);
+      const logout = await post("/api/auth/logout", {}, demoSession);
+      expect(logout.status).toBe(200);
+    });
+
+    it("magic link promueve la cuenta demo a real (verifiedAt + isDemoAccount off)", async () => {
+      const token = await auth.createMagicToken("lead-e2e-1@test.cl");
+      const res = await fetch(`${baseUrl}/api/auth/verify?token=${token}`, {
+        redirect: "manual",
+      });
+      expect([200, 302]).toContain(res.status);
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      expect(person.isDemoAccount).toBe(false);
+      expect(person.verifiedAt).not.toBeNull();
+      // Tras promoverse, la cuenta ya puede escribir como cualquier usuario.
+      const session = await auth.issueSession(person.id);
+      const blocked = await post(
+        `/api/admin/users/x/roles`,
+        { role: "DJ", status: "APPROVED" },
+        session,
+      );
+      // Ya no es demo_mode — ahora bloquea RBAC por permiso, no la barrera.
+      expect((await blocked.json()).message ?? "").not.toContain("demo_mode");
+    });
+  });
+
   describe("GET /api/admin/browse/leads", () => {
     it("sin sesión → 401", async () => {
       const res = await get("/api/admin/browse/leads");

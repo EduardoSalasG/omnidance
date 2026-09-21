@@ -120,7 +120,8 @@
         "email": "Email"
       },
       "empty": "Sin resultados con estos filtros",
-      "leadConverted": "✓ cuenta demo creada"
+      "leadConverted": "✓ cuenta demo creada",
+      "demoBadge": "demo"
     },
     "modules": {
       "datos": "Datos",

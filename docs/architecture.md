@@ -71,6 +71,13 @@ src/<dominio>/
 | leads | `POST /api/leads` (upsert por email, devuelve `demoToken`, notifica a ADMIN) + `POST /api/leads/:id/demo` (token en body → crea `Person` `isDemoAccount` con los roles del lead en APPROVED, enlaza `lead.personId`, emite sesión; email ya registrado → 409) | público, rate-limited por IP |
 | admin | `/api/admin/*` usuarios (búsqueda, ficha 360°, asignación de roles), analítica por usuario, explorador `/admin/browse/:entity`, roles, permisos, audit | `admin.access` |
 
+## Cuentas demo (leads /pro)
+
+- `Person.isDemoAccount` marca cuentas creadas por `POST /leads/:id/demo`.
+- **Barrera de escritura en `SessionGuard`**: demo + método mutador → `403 demo_mode`, salvo whitelist self-scoped (`/auth/logout`, `/auth/password`, `/notifications/*`, `/push-tokens`). Los GETs pasan con sus roles APPROVED — el demo navega su consola sin ensuciar data productiva.
+- **Promoción demo→real**: `POST /auth/magic-link` → `GET /auth/verify` hace `upsertByEmail`, que marca `verifiedAt` y apaga `isDemoAccount` (el magic link prueba posesión del correo).
+- El explorador admin muestra badge "demo" en filas de `people`; `demoToken` nunca sale en respuestas.
+
 ## RBAC — todo DB-driven
 
 ```mermaid

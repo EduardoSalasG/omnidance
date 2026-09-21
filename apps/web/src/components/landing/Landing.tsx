@@ -105,7 +105,7 @@ export function Landing({
             <h1 className="text-display mt-6 text-4xl font-extrabold sm:text-6xl lg:text-7xl">
               {t.heroPromise}
             </h1>
-            <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-white/60 sm:text-lg">
+            <p className="mx-auto mt-6 max-w-md whitespace-pre-line text-base leading-relaxed text-white/60 sm:text-lg">
               {t.heroLead}
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -165,7 +165,7 @@ export function Landing({
                   <h3 className="mt-3 text-lg font-semibold">
                     {feature.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/60">
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/60">
                     {feature.desc}
                   </p>
                 </li>
@@ -182,7 +182,7 @@ export function Landing({
           <h2 className="text-display text-3xl font-extrabold sm:text-4xl">
             {t.finalCta}
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-white/60">
+          <p className="mx-auto mt-4 max-w-md whitespace-pre-line text-base leading-relaxed text-white/60">
             {t.finalCtaDesc}
           </p>
           {isPro ? (
