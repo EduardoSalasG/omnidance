@@ -18,3 +18,5 @@ export type { PillTabItem, PillTabsProps } from "./pill-tabs";
 
 export { Spinner, PageLoading } from "./spinner";
 export type { SpinnerProps, PageLoadingProps } from "./spinner";
+
+export { NavPendingOverlay } from "./nav-pending";
