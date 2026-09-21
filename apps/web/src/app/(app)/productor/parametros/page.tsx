@@ -1,10 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { BackLink, Badge, Button, Card, PriceTag } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 
@@ -85,12 +84,7 @@ export default function ProducerParamsPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-      <Link
-        href="/productor"
-        className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"
-      >
-        ← {t("title")}
-      </Link>
+      <BackLink href="/productor">{t("title")}</BackLink>
 
       {gate === "loading" && <PageLoading />}
 

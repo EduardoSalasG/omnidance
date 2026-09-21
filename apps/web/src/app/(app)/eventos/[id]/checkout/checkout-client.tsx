@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { SERVICE_FEE } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import { BackLink, Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import type { CheckoutEvent } from "./page";
 
 type Quote = {
@@ -165,12 +164,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <Link
-        href={`/eventos/${event.id}`}
-        className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"
-      >
-        ← {event.name}
-      </Link>
+      <BackLink href={`/eventos/${event.id}`}>{event.name}</BackLink>
 
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
