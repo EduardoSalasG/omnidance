@@ -2,7 +2,7 @@
 // Idempotente: personas/venues/series/eventos se resuelven por clave natural
 // y las fechas se refrescan en cada corrida para que la demo no envejezca.
 import { randomBytes, scryptSync } from "node:crypto";
-import { Genre, PrismaClient } from "@prisma/client";
+import { Genre, Prisma, PrismaClient } from "@prisma/client";
 import { ensurePerson, seedCommon } from "./seed-common";
 
 const DEV_DOMAIN = "omnidance.dev";
@@ -631,6 +631,7 @@ export async function seedDev(prisma: PrismaClient) {
     genres: Genre[] = [],
     aliases: string[] = [],
     weeksAhead = 0,
+    genreMix: MixBlock[] | null = null,
   ) => {
     const series = await ensure(
       () =>
@@ -639,12 +640,12 @@ export async function seedDev(prisma: PrismaClient) {
         }),
       () =>
         prisma.eventSeries.create({
-          data: { name, producerId, venueId, recurrence, genres },
+          data: { name, producerId, venueId, recurrence, genres, genreMix: genreMix ?? undefined },
         }),
       (s) =>
         prisma.eventSeries.update({
           where: { id: s.id },
-          data: { name, venueId, recurrence, genres },
+          data: { name, venueId, recurrence, genres, genreMix: genreMix ?? Prisma.DbNull },
         }),
     );
 
@@ -703,14 +704,40 @@ export async function seedDev(prisma: PrismaClient) {
   // Baila Cubano con Bachata = timba + bachata).
   const ALL3 = [Genre.SALSA, Genre.BACHATA, Genre.CUBANO];
 
+  // Ciclo de mezcla tal como suena la noche: bloques de canciones por
+  // género que se repiten. El card muestra la proporción agregada
+  // (ej. B15·S2·B15·T2 → 88% bachata). null = sin barra de mezcla.
+  type MixBlock = { genre: Genre; songs: number };
+  const mix = (...blocks: [Genre, number][]): MixBlock[] =>
+    blocks.map(([genre, songs]) => ({ genre, songs }));
+  // Los de Havana y La Gozadera: 2 bachatas, 2 salsas, 2 bachatas,
+  // 2 timbas en ciclo → 50/25/25.
+  const HAVANA_MIX = mix(
+    [Genre.BACHATA, 2],
+    [Genre.SALSA, 2],
+    [Genre.BACHATA, 2],
+    [Genre.CUBANO, 2],
+  );
+
   // Orixas — una noche por día: las marcas del mismo weekday alternan
   // semanas (weeksAhead), como en la programación real del local.
-  const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA]);
-  const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"]);
-  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3);
-  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1);
-  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3);
-  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month:sat", 6000, 8000, 6, [cesar.id], ALL3, [], 1);
+  // El último arg es el ciclo de mezcla (genreMix de la serie).
+  const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA], [], 0,
+    // ~15 bachatas, 2 salsas, 15 bachatas, 2 timbas → 88/6/6
+    mix([Genre.BACHATA, 15], [Genre.SALSA, 2], [Genre.BACHATA, 15], [Genre.CUBANO, 2]));
+  const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"], 0,
+    // 4 timbas, 2 bachatas → 67/33
+    mix([Genre.CUBANO, 4], [Genre.BACHATA, 2]));
+  await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3, [], 0, HAVANA_MIX);
+  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1,
+    // Competencia — tercios parejos
+    mix([Genre.SALSA, 2], [Genre.BACHATA, 2], [Genre.CUBANO, 2]));
+  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3, [], 0,
+    // 4 salsas, 2 bachatas, 2 salsas, 2 timbas, 2 bachatas → 50/33/17
+    mix([Genre.SALSA, 4], [Genre.BACHATA, 2], [Genre.SALSA, 2], [Genre.CUBANO, 2], [Genre.BACHATA, 2]));
+  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month:sat", 6000, 8000, 6, [cesar.id], ALL3, [], 1,
+    // Marca afrocubana — timba al frente
+    mix([Genre.CUBANO, 4], [Genre.SALSA, 2], [Genre.BACHATA, 2]));
 
   // Noches standalone (sin serie) — nombre = marca de la noche. Las
   // homónimas ("Tierra" ×5) se distinguen por el weekday de su
@@ -728,6 +755,9 @@ export async function seedDev(prisma: PrismaClient) {
     // N-ésima ocurrencia del nombre+weekday (noches fijas que se
     // repiten cada semana, p.ej. "Bachata Club" todos los martes).
     slot = 0,
+    // Ciclo de mezcla de la noche → event.genreMix (standalone no
+    // tiene serie de la que heredar).
+    genreMix: MixBlock[] | null = null,
   ) => {
     const findNight = async () => {
       const candidates = await prisma.event.findMany({
@@ -749,6 +779,7 @@ export async function seedDev(prisma: PrismaClient) {
             name,
             status: "PUBLISHED",
             genres,
+            genreMix: genreMix ?? undefined,
             startsAt: nextDay(weekday, 22, weeksAhead),
             endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,
@@ -762,6 +793,7 @@ export async function seedDev(prisma: PrismaClient) {
           data: {
             name,
             genres,
+            genreMix: genreMix ?? Prisma.DbNull,
             startsAt: nextDay(weekday, 22, weeksAhead),
             endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,
@@ -783,28 +815,31 @@ export async function seedDev(prisma: PrismaClient) {
   // Bachata Club, miércoles fijo Miércoles Salseros, jueves alterna
   // Switch/AbraZouk, vie+sáb rotan Exóticas/Bachatazo/Galaxy/BC/Lovers.
   // mar/mié liberada hasta 23:30 luego $4.000 en puerta.
-  const tierraNights: [string, number, number, Genre[]][] = [
-    // [nombre, weekday, weeksAhead, genres]
-    ["Bachata Club", 2, 0, [Genre.BACHATA]],
-    ["Bachata Club", 2, 1, [Genre.BACHATA]],
-    ["Bachata Club", 2, 2, [Genre.BACHATA]],
-    ["Bachata Club", 2, 3, [Genre.BACHATA]],
-    ["Miércoles Salseros", 3, 0, [Genre.SALSA]],
-    ["Miércoles Salseros", 3, 1, [Genre.SALSA]],
-    ["Miércoles Salseros", 3, 2, [Genre.SALSA]],
-    ["Miércoles Salseros", 3, 3, [Genre.SALSA]],
-    ["Switch", 4, 0, [Genre.BACHATA]],
-    ["AbraZouk", 4, 1, []], // zouk — sin género en el catálogo
-    ["Switch", 4, 2, [Genre.BACHATA]],
-    ["AbraZouk", 4, 3, []],
-    ["Exóticas", 5, 0, [Genre.BACHATA]],
-    ["Galaxy", 5, 1, [Genre.BACHATA, Genre.SALSA]], // 5 bachatas × 2 salsas
-    ["Bachata Club", 5, 2, [Genre.BACHATA]],
-    ["Bachatazo", 5, 3, [Genre.BACHATA]],
-    ["Bachatazo", 6, 0, [Genre.BACHATA]],
-    ["Lovers", 6, 1, [Genre.BACHATA]], // pura bachata
-    ["Exóticas", 6, 2, [Genre.BACHATA]],
-    ["Galaxy", 6, 3, [Genre.BACHATA, Genre.SALSA]],
+  const PURE_B = mix([Genre.BACHATA, 1]);
+  const PURE_S = mix([Genre.SALSA, 1]);
+  const GALAXY_MIX = mix([Genre.BACHATA, 5], [Genre.SALSA, 2]); // 5×2
+  const tierraNights: [string, number, number, Genre[], MixBlock[] | null][] = [
+    // [nombre, weekday, weeksAhead, genres, ciclo de mezcla]
+    ["Bachata Club", 2, 0, [Genre.BACHATA], PURE_B],
+    ["Bachata Club", 2, 1, [Genre.BACHATA], PURE_B],
+    ["Bachata Club", 2, 2, [Genre.BACHATA], PURE_B],
+    ["Bachata Club", 2, 3, [Genre.BACHATA], PURE_B],
+    ["Miércoles Salseros", 3, 0, [Genre.SALSA], PURE_S],
+    ["Miércoles Salseros", 3, 1, [Genre.SALSA], PURE_S],
+    ["Miércoles Salseros", 3, 2, [Genre.SALSA], PURE_S],
+    ["Miércoles Salseros", 3, 3, [Genre.SALSA], PURE_S],
+    ["Switch", 4, 0, [Genre.BACHATA], PURE_B],
+    ["AbraZouk", 4, 1, [], null], // zouk — sin género en el catálogo
+    ["Switch", 4, 2, [Genre.BACHATA], PURE_B],
+    ["AbraZouk", 4, 3, [], null],
+    ["Exóticas", 5, 0, [Genre.BACHATA], PURE_B],
+    ["Galaxy", 5, 1, [Genre.BACHATA, Genre.SALSA], GALAXY_MIX],
+    ["Bachata Club", 5, 2, [Genre.BACHATA], PURE_B],
+    ["Bachatazo", 5, 3, [Genre.BACHATA], PURE_B],
+    ["Bachatazo", 6, 0, [Genre.BACHATA], PURE_B],
+    ["Lovers", 6, 1, [Genre.BACHATA], PURE_B], // pura bachata
+    ["Exóticas", 6, 2, [Genre.BACHATA], PURE_B],
+    ["Galaxy", 6, 3, [Genre.BACHATA, Genre.SALSA], GALAXY_MIX],
   ];
 
   // Havana — programación mensual: cada viernes y sábado tiene su
@@ -858,7 +893,7 @@ export async function seedDev(prisma: PrismaClient) {
   // slot = n-ésima ocurrencia del nombre+weekday (noches fijas que se
   // repiten semana a semana con el mismo nombre).
   const tierraSlots = new Map<string, number>();
-  for (const [name, wd, wk, g] of tierraNights) {
+  for (const [name, wd, wk, g, m] of tierraNights) {
     const k = `${name}|${wd}`;
     const slot = tierraSlots.get(k) ?? 0;
     tierraSlots.set(k, slot + 1);
@@ -873,6 +908,7 @@ export async function seedDev(prisma: PrismaClient) {
       g,
       wk,
       slot,
+      m,
     );
   }
 
@@ -887,6 +923,10 @@ export async function seedDev(prisma: PrismaClient) {
       [jesus.id],
       ALL3,
       wk,
+      0,
+      // Todas las noches Havana: 2 bachatas, 2 salsas, 2 bachatas,
+      // 2 timbas en ciclo.
+      HAVANA_MIX,
     );
   }
 
