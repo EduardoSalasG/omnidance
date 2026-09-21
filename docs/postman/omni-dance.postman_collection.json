@@ -5498,6 +5498,28 @@
           }
         }
       ]
+    },
+    {
+      "name": "leads",
+      "item": [
+        {
+          "name": "POST /api/leads",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

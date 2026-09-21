@@ -1,13 +1,13 @@
 {
   "nav": {
-    "venue": "Venue"
+    "venue": "Local"
   },
   "venue": {
-    "loginRequired": "Inicia sesión para gestionar tus venues.",
-    "forbidden": "No tienes venues asignados a tu cuenta.",
+    "loginRequired": "Inicia sesión para gestionar tus locales.",
+    "forbidden": "No tienes locales asignados a tu cuenta.",
     "empty": "No tienes venues asignados. Si administras un local, pide al equipo de Omnidance que lo vincule a tu cuenta.",
-    "error": "No se pudo cargar la consola del venue.",
-    "pickVenue": "Elige un venue",
+    "error": "No se pudo cargar la consola del local.",
+    "pickVenue": "Elige un local",
     "capacity": "Capacidad: {count} personas",
     "kpi": {
       "upcoming": "Próximos",

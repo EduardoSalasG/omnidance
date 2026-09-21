@@ -3808,6 +3808,17 @@
           }
         }
       }
+    },
+    "/api/leads": {
+      "post": {
+        "operationId": "LeadsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
     }
   },
   "info": {

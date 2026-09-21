@@ -66,7 +66,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es-CL" className="dark">
+    <html lang="es-CL" className="dark scroll-smooth motion-reduce:scroll-auto">
       <body className="bg-night-950 text-white min-h-dvh antialiased">
         <NextIntlClientProvider locale="es-CL" messages={messages}>
           {children}
