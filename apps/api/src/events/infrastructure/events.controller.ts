@@ -298,8 +298,9 @@ export class EventsController {
 
   /**
    * Cartelera pública (PUBLISHED/LIVE, ventana reciente). Filtros por
-   * query: `genre` (SALSA|BACHATA|CUBANO — propio del evento o heredado
-   * de la serie), `venue` (venueId) y `week=this` (próximos 7 días).
+   * query: `genre` (CSV de SALSA|BACHATA|CUBANO — propio del evento o
+   * heredado de la serie, unión), `venue` (venueId) y `week=this`
+   * (próximos 7 días).
    * El género expuesto en la respuesta es el resuelto: event.genres si
    * tiene, si no series.genres.
    */
@@ -310,13 +311,17 @@ export class EventsController {
     @Query("week") week?: string,
   ) {
     const GENRES: Genre[] = ["SALSA", "BACHATA", "CUBANO"];
-    if (genre && !GENRES.includes(genre.toUpperCase() as Genre)) {
+    // ?genre= acepta CSV (multiselect): "SALSA,BACHATA" → unión.
+    const gs = genre
+      ?.split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean) as Genre[] | undefined;
+    if (gs?.some((g) => !GENRES.includes(g))) {
       throw new BadRequestException("genre inválido");
     }
     if (week && week !== "this") {
       throw new BadRequestException("week inválido");
     }
-    const g = genre?.toUpperCase() as Genre | undefined;
 
     const where: Prisma.EventWhereInput = {
       status: { in: ["PUBLISHED", "LIVE"] },
@@ -327,11 +332,14 @@ export class EventsController {
           : {}),
       },
       ...(venue ? { venueId: venue } : {}),
-      ...(g
+      ...(gs?.length
         ? {
             OR: [
-              { genres: { has: g } },
-              { genres: { isEmpty: true }, series: { genres: { has: g } } },
+              { genres: { hasSome: gs } },
+              {
+                genres: { isEmpty: true },
+                series: { genres: { hasSome: gs } },
+              },
             ],
           }
         : {}),
