@@ -61,6 +61,11 @@ type EventDetail = {
     slotNote: string | null;
     person: { name: string; photoUrl: string | null };
   }[];
+  shows: {
+    academy: string;
+    teamType: string;
+    name: string;
+  }[];
   scheduleBlocks: {
     startsAt: string;
     endsAt: string;
@@ -432,6 +437,29 @@ export default async function EventoDetailPage({
                     <p className="text-xs text-white/50">{dj.slotNote}</p>
                   )}
                 </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Shows de la noche — academias invitadas con sus teams.
+          0..n (típico 3–5); vacío → sección oculta. */}
+      {event.shows.length > 0 && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
+            {t.shows}
+          </h2>
+          <ul className="flex flex-col gap-4">
+            {event.shows.map((show, i) => (
+              <li key={`${show.academy}-${show.name}-${i}`}>
+                <p className="font-medium">{show.academy}</p>
+                <p className="text-sm text-white/60">
+                  {(t.showTeam as Record<string, string>)[show.teamType] ??
+                    show.teamType}
+                  {" · "}
+                  <span className="text-white/80">{show.name}</span>
+                </p>
               </li>
             ))}
           </ul>
