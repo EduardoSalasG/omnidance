@@ -759,16 +759,22 @@ export function BottomNav() {
     return hit?.[1] ?? null;
   })();
 
+  // /inicio es match exacto (prefijo "/" marcaría todo); el resto
+  // por prefijo — /productor/eventos solo se activa con ese
+  // prefijo, no con /productor ni /productor/pagos.
+  const isTabActive = (tab: Tab) =>
+    tab.href === "/inicio"
+      ? pathname === "/inicio"
+      : pathname.startsWith(tab.href);
+
+  // Índice del tab activo — alimenta la píldora deslizante del nav.
+  // -1 en rutas fuera del tab bar (p.ej. /checkout) → indicador oculto.
+  const activeIndex = allTabs.findIndex(isTabActive);
+
   const renderTab = (tab: Tab) => {
-    // /inicio es match exacto (prefijo "/" marcaría todo); el resto
-    // por prefijo — /productor/eventos solo se activa con ese
-    // prefijo, no con /productor ni /productor/pagos.
-    const active =
-      tab.href === "/inicio"
-        ? pathname === "/inicio"
-        : pathname.startsWith(tab.href);
+    const active = isTabActive(tab);
     return (
-      <li key={tab.key} className="flex-1">
+      <li key={tab.key} className="relative flex-1">
         <Link
           href={tab.href}
           aria-current={active ? "page" : undefined}
@@ -782,7 +788,9 @@ export function BottomNav() {
         >
           {tab.center ? (
             <span
-              className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+              className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                active ? "tab-pop " : ""
+              }${
                 active
                   ? "border-neon bg-neon text-night-950"
                   : "border-neon/50 bg-neon/10 text-neon"
@@ -791,7 +799,11 @@ export function BottomNav() {
               {tab.icon(true)}
             </span>
           ) : (
-            tab.icon(active)
+            // Pop al activarse — key por href para que la animación
+            // se dispare al ganar el estado activo.
+            <span className={active ? "tab-pop" : undefined}>
+              {tab.icon(active)}
+            </span>
           )}
           {tabLabel(tab)}
         </Link>
@@ -886,7 +898,20 @@ export function BottomNav() {
         aria-label={t("main")}
         className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
       >
-        <ul className="mx-auto flex h-16 max-w-lg items-stretch justify-between">
+        <ul className="relative mx-auto flex h-16 max-w-lg items-stretch justify-between">
+          {/* Píldora activa — se desliza al tab con transform puro;
+              se desvanece en rutas fuera del tab bar. */}
+          <span
+            aria-hidden
+            className="tab-indicator"
+            style={
+              {
+                "--tab-count": allTabs.length,
+                "--tab-index": Math.max(activeIndex, 0),
+                opacity: activeIndex < 0 ? 0 : 1,
+              } as React.CSSProperties
+            }
+          />
           {allTabs.map(renderTab)}
         </ul>
       </nav>
