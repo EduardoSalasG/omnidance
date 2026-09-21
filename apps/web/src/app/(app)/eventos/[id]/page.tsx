@@ -26,6 +26,9 @@ export const dynamic = "force-dynamic";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
+/** Fila del cronograma: t = "HH:MM" o "Hasta HH:MM", end cierra el rango. */
+type ProgramItem = { t: string; end?: string; label: string };
+
 type EventDetail = {
   id: string;
   name: string;
@@ -39,6 +42,7 @@ type EventDetail = {
   primeThreshold: number | null;
   genres: string[];
   genreMix: GenreMixBlock[] | null;
+  program: ProgramItem[] | null;
   /** FK escalar — hoy GET /events/:id no la selecciona (ver nota en el render). */
   seriesId?: string | null;
   /** FK escalar del venue — sí viene en el select; se usa para linkear al perfil. */
@@ -48,6 +52,7 @@ type EventDetail = {
     name: string;
     genres?: string[];
     genreMix?: GenreMixBlock[] | null;
+    program?: ProgramItem[] | null;
   } | null;
   venue: { name: string; address: string | null; capacity: number | null };
   djs: {
@@ -139,6 +144,8 @@ export default async function EventoDetailPage({
     ? event.genres
     : (event.series?.genres ?? []);
   const genreMix = event.genreMix ?? event.series?.genreMix ?? null;
+  // Cronograma: misma herencia — el evento manda, si no el de la serie.
+  const program = event.program ?? event.series?.program ?? null;
   const mixSegs = genreMix?.length ? aggregateMix(genreMix) : null;
   const orderedGenres = mixSegs
     ? [...mixSegs].sort((a, b) => b.pct - a.pct).map((s) => s.genre)
@@ -281,6 +288,30 @@ export default async function EventoDetailPage({
           </dl>
         )}
       </Card>
+
+      {/* Planificación de la noche — qué pasa y a qué hora */}
+      {program != null && program.length > 0 && (
+        <Card>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
+            {t.program}
+          </h2>
+          <ol className="relative ml-2 flex flex-col gap-3.5 border-l border-night-700 pl-5">
+            {program.map((p, i) => (
+              <li key={i} className="relative flex items-baseline gap-3">
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-[1.6875rem] top-1.5 h-2.5 w-2.5 rounded-full bg-neon"
+                />
+                <span className="w-24 shrink-0 text-sm tabular-nums text-white/50">
+                  {p.t}
+                  {p.end ? `–${p.end}` : ""}
+                </span>
+                <p className="font-medium">{p.label}</p>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
 
       {/* Pase de serie — solo si el evento pertenece a una serie con id */}
       {seriesId && (
@@ -428,12 +459,6 @@ export default async function EventoDetailPage({
             ) : (
               <span className="text-lg font-semibold text-neon">{t.free}</span>
             )}
-            <Link
-              href={`/bailes?event=${event.id}`}
-              className="inline-flex min-h-11 items-center text-xs text-white/50 underline-offset-4 hover:text-neon"
-            >
-              {messages.sessions.title} →
-            </Link>
           </div>
           <Button
             href={`/eventos/${event.id}/checkout`}
