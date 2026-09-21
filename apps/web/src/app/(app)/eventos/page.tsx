@@ -54,9 +54,9 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
-const monthFmt = new Intl.DateTimeFormat("es-CL", {
-  month: "long",
-  year: "numeric",
+const dayCompactFmt = new Intl.DateTimeFormat("es-CL", {
+  day: "numeric",
+  month: "short",
 });
 const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"] as const;
 
@@ -94,38 +94,32 @@ async function getMyRsvps(): Promise<Map<string, MyRsvp["status"]>> {
   return new Map(rows.map((r) => [r.eventId, r.status]));
 }
 
-/** Mes "YYYY-MM" validado; default = mes local actual. */
-function parseMonth(raw: string | undefined): { y: number; m: number } {
-  const now = new Date();
-  const match = /^(\d{4})-(\d{2})$/.exec(raw ?? "");
-  if (match) {
-    const y = Number(match[1]);
-    const m = Number(match[2]);
-    if (m >= 1 && m <= 12) return { y, m };
-  }
-  return { y: now.getFullYear(), m: now.getMonth() + 1 };
-}
-
 /** "YYYY-MM-DD" validado; null si no matchea. */
 const parseDay = (raw: string | undefined): string | null =>
   raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
 
-/** Celdas de la grilla: null = relleno fuera del mes. Semana parte lunes. */
-function calendarCells(
-  y: number,
-  m: number,
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const localDayKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** Lunes de la semana que contiene `d` (semana parte lunes, es-CL). */
+function weekStart(d: Date): Date {
+  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  return monday;
+}
+
+/** Los 7 días de la semana que empieza en `monday`, con sus eventos. */
+function weekCells(
+  monday: Date,
   byDay: Map<string, EventListItem[]>,
-) {
-  const first = new Date(y, m - 1, 1);
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const offset = (first.getDay() + 6) % 7; // domingo→6 … lunes→0
-  const cells: ({ day: number; key: string; events: EventListItem[] } | null)[] =
-    Array.from({ length: offset }, () => null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    const key = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    cells.push({ day: d, key, events: byDay.get(key) ?? [] });
-  }
-  return cells;
+): { day: number; key: string; events: EventListItem[] }[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday.getTime() + i * DAY_MS);
+    const key = localDayKey(d);
+    return { day: d.getDate(), key, events: byDay.get(key) ?? [] };
+  });
 }
 
 export default async function EventosPage({
@@ -135,7 +129,7 @@ export default async function EventosPage({
     genre?: string;
     venue?: string;
     view?: string;
-    month?: string;
+    week?: string;
     day?: string;
     near?: string;
   };
@@ -208,35 +202,43 @@ export default async function EventosPage({
 
   const saved = filtered.filter((e) => myRsvps.has(e.id));
 
-  // ─── Calendario ───
-  const { y: calY, m: calM } = parseMonth(searchParams?.month);
+  // ─── Calendario semanal (?week=<cualquier día> → su lunes) ───
   const calByDay = new Map<string, EventListItem[]>();
   for (const e of filtered) {
     const key = dayKey(e.startsAt);
     calByDay.set(key, [...(calByDay.get(key) ?? []), e]);
   }
-  const cells = calendarCells(calY, calM, calByDay);
-  const monthParam = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  const prevMonth = new Date(calY, calM - 2, 1);
-  const nextMonth = new Date(calY, calM, 1);
-  const currentMonthKey = `${calY}-${String(calM).padStart(2, "0")}`;
-  const todayKey = dayKey(new Date().toISOString());
-  // Día seleccionado: param si cae en el mes visible; si no, hoy.
+  const weekParam = parseDay(searchParams?.week);
+  const monday = weekStart(
+    weekParam ? new Date(`${weekParam}T12:00:00`) : new Date(),
+  );
+  const weekKey = localDayKey(monday);
+  const sunday = new Date(monday.getTime() + 6 * DAY_MS);
+  const prevWeekKey = localDayKey(
+    new Date(monday.getTime() - 7 * DAY_MS),
+  );
+  const nextWeekKey = localDayKey(
+    new Date(monday.getTime() + 7 * DAY_MS),
+  );
+  const cells = weekCells(monday, calByDay);
+  const weekKeys = new Set(cells.map((c) => c.key));
+  const todayKey = localDayKey(new Date());
+  // Día seleccionado: param si cae en la semana visible; si no, hoy.
   const selectedDay = (() => {
     const d = parseDay(searchParams?.day);
-    if (d?.startsWith(currentMonthKey)) return d;
-    if (todayKey.startsWith(currentMonthKey)) return todayKey;
+    if (d && weekKeys.has(d)) return d;
+    if (weekKeys.has(todayKey)) return todayKey;
     return null;
   })();
   const selectedEvents = selectedDay ? (calByDay.get(selectedDay) ?? []) : [];
+  const weekLabel = `${dayCompactFmt.format(monday)} – ${dayCompactFmt.format(sunday)}`;
 
   // Chips SSR: cada filtro preserva el resto — compartibles y sin JS.
   const hrefFor = (o: {
     genre?: string;
     venue?: string;
     view?: string;
-    month?: string;
+    week?: string;
     day?: string;
     near?: string;
   }) => {
@@ -244,7 +246,7 @@ export default async function EventosPage({
       genre: [...genreSet].join(",") || undefined,
       venue: venueId,
       view: view !== "list" ? view : undefined,
-      month: view === "calendar" ? currentMonthKey : undefined,
+      week: view === "calendar" ? weekKey : undefined,
       day: view === "calendar" ? (selectedDay ?? undefined) : undefined,
       near: searchParams?.near,
       ...o,
@@ -361,7 +363,7 @@ export default async function EventosPage({
               {/* Toggle lista/calendario — íconos, segmented */}
               <div className="flex items-center rounded-full border border-white/15 p-0.5">
                 <Link
-                  href={hrefFor({ view: undefined, month: undefined, day: undefined })}
+                  href={hrefFor({ view: undefined, week: undefined, day: undefined })}
                   aria-label={t.viewList}
                   aria-current={view === "list" ? "true" : undefined}
                   className={iconBtn(view === "list")}
@@ -371,7 +373,7 @@ export default async function EventosPage({
                   </svg>
                 </Link>
                 <Link
-                  href={hrefFor({ view: "calendar", month: undefined, day: undefined })}
+                  href={hrefFor({ view: "calendar", week: undefined, day: undefined })}
                   aria-label={t.viewCalendar}
                   aria-current={view === "calendar" ? "true" : undefined}
                   className={iconBtn(view === "calendar")}
@@ -384,7 +386,7 @@ export default async function EventosPage({
               </div>
               {/* Guardados — ícono aparte */}
               <Link
-                href={hrefFor({ view: "saved", month: undefined, day: undefined })}
+                href={hrefFor({ view: "saved", week: undefined, day: undefined })}
                 aria-label={t.viewSaved}
                 aria-current={view === "saved" ? "true" : undefined}
                 className={`${iconBtn(view === "saved")} border border-white/15`}
@@ -484,77 +486,45 @@ export default async function EventosPage({
         <section>
           <div className="mb-4 flex items-center justify-between">
             <Link
-              href={hrefFor({ month: monthParam(prevMonth), day: undefined })}
+              href={hrefFor({ week: prevWeekKey, day: undefined })}
               className={iconBtn(false)}
-              aria-label={t.prevMonth}
+              aria-label={t.prevWeek}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6" />
               </svg>
             </Link>
             <h2 className="text-base font-semibold capitalize">
-              {monthFmt.format(new Date(calY, calM - 1, 1))}
+              {weekLabel}
             </h2>
             <Link
-              href={hrefFor({ month: monthParam(nextMonth), day: undefined })}
+              href={hrefFor({ week: nextWeekKey, day: undefined })}
               className={iconBtn(false)}
-              aria-label={t.nextMonth}
+              aria-label={t.nextWeek}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 6l6 6-6 6" />
               </svg>
             </Link>
           </div>
+          {/* Franja semanal: letra del día + número + puntos por género */}
           <div role="grid" className="grid grid-cols-7 gap-1" aria-label={t.viewCalendar}>
-            {WEEKDAY_HEADERS.map((d, i) => (
-              <div key={i} className="pb-1 text-center text-xs font-semibold text-white/40">
-                {d}
-              </div>
-            ))}
-            {cells.map((cell, i) =>
-              cell === null ? (
-                <div key={`pad-${i}`} />
-              ) : cell.events.length === 0 ? (
-                <div
-                  key={cell.key}
-                  className={`flex min-h-12 flex-col items-center gap-1 rounded-lg py-1.5 ${
-                    cell.key === selectedDay ? "bg-neon/15" : ""
-                  }`}
-                >
+            {cells.map((cell, i) => {
+              const isToday = cell.key === todayKey;
+              const isSelected = cell.key === selectedDay;
+              const inner = (
+                <>
+                  <span className="text-[10px] font-semibold uppercase text-white/40">
+                    {WEEKDAY_HEADERS[i]}
+                  </span>
                   <span
-                    className={`text-xs font-medium ${
-                      cell.key === todayKey
-                        ? "text-neon"
-                        : cell.key === selectedDay
-                          ? "text-white"
-                          : "text-white/40"
+                    className={`text-sm font-semibold ${
+                      isToday ? "text-neon" : isSelected ? "text-white" : "text-white/70"
                     }`}
                   >
                     {cell.day}
                   </span>
-                </div>
-              ) : (
-                <Link
-                  key={cell.key}
-                  href={hrefFor({ day: cell.key })}
-                  aria-current={cell.key === selectedDay ? "date" : undefined}
-                  aria-label={`${cell.day} — ${cell.events.length}`}
-                  className={`flex min-h-12 flex-col items-center gap-1 rounded-lg py-1.5 transition-colors active:scale-[0.97] ${
-                    cell.key === selectedDay ? "bg-neon/15" : "hover:bg-white/5"
-                  }`}
-                >
-                  <span
-                    className={`text-xs font-medium ${
-                      cell.key === todayKey
-                        ? "text-neon"
-                        : cell.key === selectedDay
-                          ? "text-white"
-                          : "text-white/80"
-                    }`}
-                  >
-                    {cell.day}
-                  </span>
-                  <span className="flex gap-0.5">
+                  <span className="flex h-1.5 items-start gap-0.5">
                     {cell.events.slice(0, 3).map((e) => (
                       <span
                         key={e.id}
@@ -569,9 +539,26 @@ export default async function EventosPage({
                       {t.more.replace("{count}", String(cell.events.length - 3))}
                     </span>
                   )}
+                </>
+              );
+              const cellClass = `flex min-h-14 flex-col items-center gap-0.5 rounded-xl py-2 ${
+                isSelected ? "bg-neon/15" : ""
+              }`;
+              return cell.events.length === 0 ? (
+                <div key={cell.key} className={cellClass}>
+                  {inner}
+                </div>
+              ) : (
+                <Link
+                  key={cell.key}
+                  href={hrefFor({ day: cell.key })}
+                  aria-current={isSelected ? "date" : undefined}
+                  className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
+                >
+                  {inner}
                 </Link>
-              ),
-            )}
+              );
+            })}
           </div>
 
           {/* Eventos del día seleccionado */}
