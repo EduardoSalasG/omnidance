@@ -630,6 +630,7 @@ export async function seedDev(prisma: PrismaClient) {
     djIds: string[],
     genres: Genre[] = [],
     aliases: string[] = [],
+    weeksAhead = 0,
   ) => {
     const series = await ensure(
       () =>
@@ -665,8 +666,8 @@ export async function seedDev(prisma: PrismaClient) {
             producerId,
             name: eventName,
             status: "PUBLISHED",
-            startsAt: nextDay(weekday),
-            endsAt: nextDay(weekday, 22 + 6),
+            startsAt: nextDay(weekday, 22, weeksAhead),
+            endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,
             doorPrice: door,
             capacity: 300,
@@ -678,8 +679,8 @@ export async function seedDev(prisma: PrismaClient) {
           where: { id: e.id },
           data: {
             name: eventName,
-            startsAt: nextDay(weekday),
-            endsAt: nextDay(weekday, 22 + 6),
+            startsAt: nextDay(weekday, 22, weeksAhead),
+            endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,
             doorPrice: door,
             status: "PUBLISHED",
@@ -702,13 +703,14 @@ export async function seedDev(prisma: PrismaClient) {
   // Baila Cubano con Bachata = timba + bachata).
   const ALL3 = [Genre.SALSA, Genre.BACHATA, Genre.CUBANO];
 
-  // Orixas
+  // Orixas — una noche por día: las marcas del mismo weekday alternan
+  // semanas (weeksAhead), como en la programación real del local.
   const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA]);
   const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"]);
   await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3);
-  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3);
-  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month", 6000, 8000, 6, [fabian.id], ALL3);
-  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month", 6000, 8000, 6, [cesar.id], ALL3);
+  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1);
+  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3);
+  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month:sat", 6000, 8000, 6, [cesar.id], ALL3, [], 1);
 
   // Noches standalone (sin serie) — nombre = marca de la noche. Las
   // homónimas ("Tierra" ×5) se distinguen por el weekday de su
