@@ -32,6 +32,7 @@ model Person {
   passwordHash  String?  // scrypt$N$r$p$salt$hash — null = solo magic link
   qrSecret      String   @default(cuid()) // semilla del QR rotativo (TOTP-like)
   isLightAccount Boolean @default(false) // cuenta creada en puerta (nombre+teléfono)
+  isDemoAccount  Boolean @default(false) // cuenta demo creada desde un lead de /pro
   verifiedAt    DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1105,14 +1106,18 @@ model PlatformParam {
 
 // Lead de marketing de /pro — formulario público de contacto/demo.
 // roles: PRODUCER | DJ | ACADEMY_OWNER | VENUE_MANAGER · intent: CONTACT | DEMO.
+// email único: un re-envío actualiza el lead en vez de duplicarlo. personId
+// enlaza la cuenta demo creada vía "ingresa acá" (FK pelado, como otras tablas).
 model Lead {
   id        String   @id @default(cuid())
   name      String
-  email     String
-  phone     String?
+  email     String   @unique
+  phone     String
   roles     String[]
   intent    String
   status    String   @default("NEW") // NEW | CONTACTED | CONVERTED | DISCARDED
+  personId  String?
+  demoToken String? // secreto de activación demo — solo se devuelve en el POST /leads
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
