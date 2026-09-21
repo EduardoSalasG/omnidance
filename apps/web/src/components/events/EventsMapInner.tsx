@@ -6,18 +6,14 @@ import { useRouter } from "next/navigation";
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import type { MapVenue } from "./EventsMap";
 
-// Basemap dark: CARTO Dark Matter con key (NEXT_PUBLIC_CARTO_BASEMAP_KEY —
+// Basemap estándar: CARTO Voyager con key (NEXT_PUBLIC_CARTO_BASEMAP_KEY —
 // gratis hasta ~5M tiles/mes, pedir en carto.com/basemaps/apikey). Sin key
-// cae a Esri Dark Gray, gratuito sin registro — nunca se sirven tiles con
-// el watermark "API key required".
+// cae a OSM estándar — nunca se sirven tiles con watermark.
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY;
 const TILES_ATTR = CARTO_KEY
   ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-  : "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ";
-const ESRI_BASE =
-  "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
-const ESRI_LABELS =
-  "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
+  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const OSM_STD = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 /**
  * Mapa dark-first de locales con eventos. Pins circulares SVG (sin
@@ -46,16 +42,13 @@ export default function EventsMapInner({ venues }: { venues: MapVenue[] }) {
     >
       {CARTO_KEY ? (
         <TileLayer
-          url={`https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`}
+          url={`https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`}
           attribution={TILES_ATTR}
           subdomains="abcd"
           maxZoom={20}
         />
       ) : (
-        <>
-          <TileLayer url={ESRI_BASE} attribution={TILES_ATTR} />
-          <TileLayer url={ESRI_LABELS} />
-        </>
+        <TileLayer url={OSM_STD} attribution={TILES_ATTR} maxZoom={19} />
       )}
       {venues.map((v) => (
         <CircleMarker
@@ -63,8 +56,8 @@ export default function EventsMapInner({ venues }: { venues: MapVenue[] }) {
           center={[v.lat, v.lng]}
           radius={9}
           pathOptions={{
-            color: "#0a0a0f",
-            weight: 2,
+            color: "#ffffff",
+            weight: 2.5,
             fillColor: accent,
             fillOpacity: 1,
           }}
