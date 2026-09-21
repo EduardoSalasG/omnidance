@@ -187,7 +187,8 @@
     "more": "+{count} más",
     "noEventsDay": "Sin eventos este día",
     "miosManage": "Gestionar entradas",
-    "loadLater": "Ver la próxima semana"
+    "loadLater": "Ver la próxima semana",
+    "howToGet": "Cómo llegar"
   },
   "qr": {
     "title": "Mi QR",

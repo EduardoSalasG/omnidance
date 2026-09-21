@@ -222,7 +222,7 @@ export default async function EventosPage({
     }).catch(() => null);
     const rows: VenueRow[] = vres?.ok ? await vres.json() : [];
     const countByVenue = new Map<string, number>();
-    for (const e of filtered) {
+    for (const e of pool) {
       if (e.venue) {
         countByVenue.set(e.venue.id, (countByVenue.get(e.venue.id) ?? 0) + 1);
       }
@@ -495,7 +495,7 @@ export default async function EventosPage({
                   </svg>
                 </Link>
                 <Link
-                  href={hrefFor({ view: "map", week: undefined, day: undefined })}
+                  href={hrefFor({ view: "map", week: undefined, day: undefined, genre: undefined, venue: undefined })}
                   aria-label={t.viewMap}
                   aria-current={view === "map" ? "true" : undefined}
                   className={iconBtn(view === "map")}
@@ -521,11 +521,15 @@ export default async function EventosPage({
           )}
         </div>
 
-        {/* Géneros — multiselect, cada chip togglea en el set */}
-        <nav
-          aria-label="Filtrar por estilo"
-          className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
-        >
+        {/* Géneros — multiselect, cada chip togglea en el set.
+            Ocultos en mapa: el mapa es vista global de locales, los
+            filtros no aplican (mapVenues se arma desde `pool`). */}
+        {view !== "map" && (
+          <>
+            <nav
+              aria-label="Filtrar por estilo"
+              className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
+            >
           <Link
             href={hrefFor({ genre: undefined })}
             className={chipClass(genreSet.size === 0)}
@@ -548,9 +552,9 @@ export default async function EventosPage({
               </Link>
             );
           })}
-        </nav>
+            </nav>
 
-        {/* Locales — dropdown tipo chip (sin JS). key por venue: al
+            {/* Locales — dropdown tipo chip (sin JS). key por venue: al
             navegar a otro local el <details> se remonta cerrado —
             el estado open no es controlado por React y sin key
             sobrevive a la navegación client-side. */}
@@ -591,6 +595,8 @@ export default async function EventosPage({
             </ul>
           </details>
         </div>
+          </>
+        )}
       </header>
 
       {view === "map" ? (

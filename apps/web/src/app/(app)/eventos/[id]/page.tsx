@@ -2,9 +2,25 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import messages from "../../../../../messages/es-CL.json";
-import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import {
+  aggregateMix,
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  GenreMixBar,
+  PriceTag,
+} from "@/components/ui";
+import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
+
+// Misma paleta que la cartelera (eventos/page.tsx).
+const GENRE_TEXT: Record<string, string> = {
+  SALSA: "text-orange-400",
+  BACHATA: "text-fuchsia-300",
+  CUBANO: "text-amber-300",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +37,18 @@ type EventDetail = {
   presalePrice: number | null;
   doorPrice: number | null;
   primeThreshold: number | null;
+  genres: string[];
+  genreMix: GenreMixBlock[] | null;
   /** FK escalar — hoy GET /events/:id no la selecciona (ver nota en el render). */
   seriesId?: string | null;
-  series: { id?: string; name: string } | null;
+  /** FK escalar del venue — sí viene en el select; se usa para linkear al perfil. */
+  venueId?: string | null;
+  series: {
+    id?: string;
+    name: string;
+    genres?: string[];
+    genreMix?: GenreMixBlock[] | null;
+  } | null;
   venue: { name: string; address: string | null; capacity: number | null };
   djs: {
     slotNote: string | null;
@@ -109,6 +134,22 @@ export default async function EventoDetailPage({
         : t.free;
   const capacity = event.capacity ?? event.venue.capacity;
 
+  // Géneros/mix resueltos igual que el listado: el evento manda, si no hereda la serie.
+  const genres = event.genres.length
+    ? event.genres
+    : (event.series?.genres ?? []);
+  const genreMix = event.genreMix ?? event.series?.genreMix ?? null;
+  const mixSegs = genreMix?.length ? aggregateMix(genreMix) : null;
+  const orderedGenres = mixSegs
+    ? [...mixSegs].sort((a, b) => b.pct - a.pct).map((s) => s.genre)
+    : genres;
+
+  // "Cómo llegar": URL universal de Google Maps — sin API key, el SO la
+  // abre en la app de mapas que el usuario tenga.
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+    [event.venue.name, event.venue.address].filter(Boolean).join(" "),
+  )}`;
+
   // Pase de serie: el endpoint hoy devuelve solo series.name — el CTA se
   // muestra cuando el id llega (seriesId escalar o series.id). POST
   // /checkout/series-pass exige month "YYYY-MM" = mes del evento (mismo
@@ -142,16 +183,73 @@ export default async function EventoDetailPage({
           end={event.endsAt}
           className="text-white/70"
         />
-        <div className="text-sm">
-          <p className="font-medium">{event.venue.name}</p>
-          {event.venue.address && (
-            <p className="text-white/50">{event.venue.address}</p>
-          )}
-          {capacity != null && (
-            <p className="mt-1 text-xs text-white/50">
-              {t.capacity.replace("{count}", capacity.toLocaleString("es-CL"))}
+        {/* Estilos: texto coloreado + barra del ciclo del DJ */}
+        {orderedGenres.length > 0 && (
+          <p className="text-sm">
+            {orderedGenres.map((g, i) => (
+              <span key={g}>
+                {i > 0 && <span className="text-white/30"> · </span>}
+                <span className={GENRE_TEXT[g] ?? "text-white/50"}>
+                  {t.genre[g as keyof typeof t.genre] ?? g}
+                </span>
+              </span>
+            ))}
+          </p>
+        )}
+        {mixSegs && (
+          <GenreMixBar
+            mix={genreMix!}
+            labels={t.genre as Record<string, string>}
+            className="max-w-xs"
+          />
+        )}
+        {/* Local: nombre → perfil público; Cómo llegar → app de mapas */}
+        <div className="flex items-center gap-2 text-sm">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-4 w-4 shrink-0 text-white/50"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          <div className="min-w-0">
+            <p className="font-medium">
+              {event.venueId ? (
+                <Link
+                  href={`/locales/${event.venueId}`}
+                  className="underline-offset-4 hover:text-neon hover:underline"
+                >
+                  {event.venue.name}
+                </Link>
+              ) : (
+                event.venue.name
+              )}
             </p>
-          )}
+            <p className="text-white/50">
+              {[
+                event.venue.address,
+                capacity != null
+                  ? t.capacity.replace("{count}", capacity.toLocaleString("es-CL"))
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-0.5 inline-flex min-h-11 items-center text-xs font-medium text-neon hover:underline"
+            >
+              {t.howToGet} →
+            </a>
+          </div>
         </div>
       </header>
 
