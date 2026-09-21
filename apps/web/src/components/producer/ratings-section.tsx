@@ -94,7 +94,7 @@ export function RatingsSection({ eventId }: Props) {
         {t("sections.ratings")}
       </h2>
 
-      {state === "loading" && <Spinner size="sm" />}
+      {state === "loading" && <Spinner size="sm" className="page-loading" />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

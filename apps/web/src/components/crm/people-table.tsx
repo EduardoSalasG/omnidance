@@ -267,7 +267,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       </div>
 
       {/* Lista — cards apiladas (mobile-first, estilo admin) */}
-      {rows === null && !error && <Spinner size="sm" />}
+      {rows === null && !error && <Spinner size="sm" className="page-loading" />}
       {rows !== null && rows.length === 0 && (
         <Card className="flex flex-col items-start gap-3">
           <p className="text-white/60">{t("people.empty")}</p>
