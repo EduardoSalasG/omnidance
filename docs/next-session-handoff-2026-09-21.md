@@ -25,10 +25,18 @@
 - `tsc --noEmit` limpio API + web · `ALL_KEYS_OK` · OpenAPI/Postman regenerados (160 paths).
 - Suite completa API corrida al cierre — ver resultado en la sesión.
 
+## Sandbox de cuentas demo (implementado)
+
+Decisión tomada: **no** ambiente separado — barrera en la cuenta sobre la misma DB.
+
+- `Person.isDemoAccount` + **barrera de escritura en `SessionGuard`**: cualquier mutación → `403 demo_mode`; whitelist self-scoped (logout, password, notifications, push-tokens). Los GETs pasan con roles APPROVED — navega su consola completa, no ensucia data.
+- **Promoción demo→real automática**: `upsertByEmail` (verify de magic link) marca `verifiedAt` y apaga `isDemoAccount` — la misma cuenta se vuelve real sin migración ni acción admin.
+- Badge "demo" en filas `people` del explorador admin.
+
 ## Lo que queda / riesgos conocidos
 
-- **Roles demo en APPROVED** — la cuenta demo puede operar la app real (crear eventos, etc.). `isDemoAccount` permite filtrarlas de analíticas y auditarlas, pero no hay boundary de datos. Si se quiere aislamiento: SANDBOX + `@AllowSandbox()` explícito por ruta, o seed de data demo etiquetada.
-- **Email no verificado en demo** — mitigado: sin `verifiedAt`, y la reclamación vía magic link funciona (`upsertByEmail`). Riesgo residual: un tercero puede crear cuenta demo con email ajeno no registrado → vale monitorear; CAPTCHA/rate-limit más fino si aparece abuso.
+- **Analíticas agregadas** — `isDemoAccount` existe para excluirlas de conteos; falta aplicar el filtro en las queries de analítica de negocio si se quiere data 100% limpia.
+- **Riesgo residual**: un tercero puede crear cuenta demo con email ajeno no registrado (solo lectura, reclamable por magic link) → monitorear; CAPTCHA/rate-limit más fino si aparece abuso.
 - **`demoToken` en claro en DB** — suficiente para el uso actual (solo el submitter lo recibe); si se quiere más, hashearlo como los magic tokens.
 - **Sin flujo admin de leads más allá de lectura** — falta marcar CONTACTED/DISCARDED, notas, asignación y conversión manual a cuenta real. Próximo slice natural: `PATCH /admin/leads/:id` + ficha en `/admin/usuarios` o vista propia.
 - **Sin consentimiento/privacidad explícito** en el form — considerar checkbox o texto legal (Ley 19.628 Chile) antes de producción.

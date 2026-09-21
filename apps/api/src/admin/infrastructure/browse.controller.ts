@@ -529,6 +529,7 @@ export class BrowseController {
         id: true,
         name: true,
         email: true,
+        isDemoAccount: true,
         createdAt: true,
         roles: {
           select: { id: true, role: true, status: true, createdAt: true },
