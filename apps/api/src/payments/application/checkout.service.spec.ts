@@ -17,6 +17,7 @@ import {
   SeriesInactiveError,
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
+  RecipientError,
 } from "./checkout.service";
 
 // CheckoutService — orquestación del checkout de preventa / pase de serie.
@@ -36,9 +37,12 @@ function mkPrisma() {
     [];
   const prisma = {
     event: { findUnique: vi.fn() },
-    ticket: { count: vi.fn(async () => 0) },
+    ticket: {
+      count: vi.fn(async () => 0),
+      findMany: vi.fn(async () => [] as { ownerId: string }[]),
+    },
     payment: {
-      count: vi.fn(
+      aggregate: vi.fn(
         async (args?: {
           where: {
             orderType?: string;
@@ -48,7 +52,7 @@ function mkPrisma() {
           };
         }) => {
           void args;
-          return 0;
+          return { _sum: { quantity: 0 } };
         },
       ),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
@@ -76,6 +80,17 @@ function mkPrisma() {
     },
     person: {
       findUnique: vi.fn(async () => ({ email: "fan@example.cl" })),
+      findMany: vi.fn(
+        async ({
+          where,
+        }: {
+          where: { id: { in: string[] } };
+        }): Promise<{ id: string; name: string }[]> =>
+          where.id.in.map((id) => ({ id, name: `Persona ${id}` })),
+      ),
+    },
+    friendship: {
+      findMany: vi.fn(async () => [] as { aId: string; bId: string }[]),
     },
     songSuggestion: {
       deleteMany: vi.fn(async () => ({ count: 0 })),
@@ -202,16 +217,20 @@ describe("CheckoutService.purchaseTicket", () => {
   it("cap: vendidos + órdenes PENDING en vuelo >= presaleCap → PresaleSoldOutError", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
     fx.prisma.ticket.count.mockResolvedValue(3);
-    fx.prisma.payment.count.mockResolvedValue(2);
+    fx.prisma.payment.aggregate.mockResolvedValue({
+      _sum: { quantity: 2 },
+    });
     await expect(buy()).rejects.toBeInstanceOf(PresaleSoldOutError);
   });
 
   it("cap: el conteo de PENDING solo mira órdenes recientes (TTL 30min) del evento", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
     fx.prisma.ticket.count.mockResolvedValue(3);
-    fx.prisma.payment.count.mockResolvedValue(1); // 3 + 1 < 5 → vende
+    fx.prisma.payment.aggregate.mockResolvedValue({
+      _sum: { quantity: 1 },
+    }); // 3 + 1 < 5 → vende
     await buy();
-    const where = fx.prisma.payment.count.mock.calls[0]![0]!.where;
+    const where = fx.prisma.payment.aggregate.mock.calls[0]![0]!.where;
     expect(where.orderType).toBe("TICKET");
     expect(where.status).toBe("PENDING");
     expect(where.eventId).toBe("evt-1");
@@ -219,6 +238,71 @@ describe("CheckoutService.purchaseTicket", () => {
     const gt = where.createdAt!.gt!.getTime();
     expect(Date.now() - gt).toBeGreaterThanOrEqual(30 * 60 * 1000);
     expect(Date.now() - gt).toBeLessThan(30 * 60 * 1000 + 5000);
+  });
+
+  // ─── Regalo multi-entrada (recipientIds) ───
+
+  it("regalo a amigo: quantity=2, recipients persistidos, amount doble", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    const res = await buy({ recipientIds: ["per-2"] });
+    expect(res.quantity).toBe(2);
+    // unit: 10000 + 500 fee → total de la orden = 21000
+    expect(res.quote.total).toBe(21000);
+    const payment = fx.payments[0]!;
+    expect(payment.quantity).toBe(2);
+    expect(payment.recipients).toEqual(["per-2"]);
+    expect(payment.amount).toBe(21000);
+  });
+
+  it("destinatario inexistente → RecipientError", async () => {
+    fx.prisma.person.findMany.mockResolvedValue([]); // nadie encontrado
+    await expect(buy({ recipientIds: ["ghost-1"] })).rejects.toBeInstanceOf(
+      RecipientError,
+    );
+  });
+
+  it("destinatario no amigo → RecipientError nombrando a la persona", async () => {
+    // friendship.findMany queda [] (default) → no ACCEPTED
+    await expect(buy({ recipientIds: ["per-2"] })).rejects.toBeInstanceOf(
+      RecipientError,
+    );
+    await expect(
+      buy({ recipientIds: ["per-2"] }),
+    ).rejects.toThrow("Persona per-2 no es tu amigo");
+  });
+
+  it("destinatario con entrada ACTIVE ya → RecipientError", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    fx.prisma.ticket.findMany.mockResolvedValue([{ ownerId: "per-2" }]);
+    await expect(
+      buy({ recipientIds: ["per-2"] }),
+    ).rejects.toThrow("ya tiene una entrada");
+  });
+
+  it("recipientIds con duplicados y el propio comprador se normalizan", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    const res = await buy({
+      recipientIds: ["per-1", "per-2", "per-2"],
+    });
+    expect(res.quantity).toBe(2); // self filtrado + dedupe
+    expect(fx.payments[0]!.recipients).toEqual(["per-2"]);
+  });
+
+  it("cap: 4 vendidos + orden de 2 entradas > cap 5 → PresaleSoldOutError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
+    fx.prisma.ticket.count.mockResolvedValue(4);
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    await expect(buy({ recipientIds: ["per-2"] })).rejects.toBeInstanceOf(
+      PresaleSoldOutError,
+    );
   });
 
   // ─── Cadena de resolución del service fee ───

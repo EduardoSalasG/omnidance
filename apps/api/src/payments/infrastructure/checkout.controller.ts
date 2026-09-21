@@ -9,6 +9,8 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsOptional,
   IsString,
   Matches,
@@ -25,6 +27,7 @@ import {
   SeriesInactiveError,
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
+  RecipientError,
 } from "../application/checkout.service";
 
 class CheckoutTicketDto {
@@ -41,6 +44,18 @@ class CheckoutTicketDto {
   @IsString()
   @MaxLength(140)
   songSuggestion?: string;
+
+  /**
+   * Regalo multi-entrada: personIds de amigos (ACCEPTED) que reciben una
+   * entrada cada uno al confirmarse el pago. Máx. 9 → órdenes de hasta 10
+   * tickets. El servidor valida existencia, amistad y que no tengan ya
+   * entrada ACTIVE para el evento.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(9)
+  @IsString({ each: true })
+  recipientIds?: string[];
 }
 
 class CheckoutSeriesPassDto {
@@ -71,7 +86,8 @@ export class CheckoutController {
       }
       if (
         e instanceof PresaleUnavailableError ||
-        e instanceof InvalidDiscountError
+        e instanceof InvalidDiscountError ||
+        e instanceof RecipientError
       ) {
         throw new BadRequestException(e.message);
       }

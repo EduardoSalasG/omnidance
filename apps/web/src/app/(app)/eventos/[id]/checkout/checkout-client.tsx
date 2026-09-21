@@ -23,6 +23,11 @@ type Phase =
 
 type FormError = "invalidCode" | "soldOut" | "loginRequired" | "generic" | null;
 
+type FriendItem = {
+  id: string;
+  person: { id: string; name: string; photoUrl: string | null } | null;
+};
+
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s
 
@@ -33,22 +38,51 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
 
   const [phase, setPhase] = useState<Phase>({ kind: "form" });
   const [error, setError] = useState<FormError>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
   const [simulating, setSimulating] = useState(false);
+
+  // Regalo multi-entrada: amigos ACCEPTED a los que se les puede asignar
+  // una entrada. La validación real (existen + amistad + sin entrada) la
+  // hace el servidor; la lista solo filtra la UI.
+  const [friends, setFriends] = useState<FriendItem[]>([]);
+  const [giftIds, setGiftIds] = useState<Set<string>>(new Set());
+  const quantity = 1 + giftIds.size;
+
+  useEffect(() => {
+    apiFetch("/friends")
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((data: { friends?: FriendItem[] } | null) => {
+        setFriends(
+          (data?.friends ?? []).filter((f) => f.person != null),
+        );
+      })
+      .catch(() => undefined);
+  }, []);
 
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
   const busy = phase.kind === "processing" || phase.kind === "awaiting";
 
-  // Breakdown: estimado local hasta que el POST devuelva el quote real
+  // Breakdown: estimado local hasta que el POST devuelva el quote real.
+  // El quote del API trae montos unitarios + total de la orden; acá cada
+  // línea se multiplica por la cantidad (descuento = una vez por orden).
   const listPrice = event.presalePrice ?? event.doorPrice ?? 0;
   const quote = phase.kind === "awaiting" ? phase.quote : null;
-  const breakdown = quote ?? {
+  const unit = quote ?? {
     listPrice,
     discount: 0,
     serviceFee: listPrice > 0 ? SERVICE_FEE.PRESALE_CLP : 0,
-    total: listPrice > 0 ? listPrice + SERVICE_FEE.PRESALE_CLP : 0,
+    total: 0,
   };
+  const breakdown = quote
+    ? quote // el API ya devuelve el total de la orden completa
+    : {
+        listPrice: unit.listPrice,
+        discount: 0,
+        serviceFee: unit.serviceFee,
+        total: (unit.listPrice + unit.serviceFee) * quantity,
+      };
 
   // Polling del pago mientras esperamos confirmación (stub o retorno del gateway)
   useEffect(() => {
@@ -76,6 +110,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     e.preventDefault();
     if (busy) return;
     setError(null);
+    setServerError(null);
     setPhase({ kind: "processing" });
 
     try {
@@ -85,11 +120,25 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         body: JSON.stringify({
           eventId: event.id,
           ...(discountCode.trim() ? { discountCode: discountCode.trim() } : {}),
+          ...(giftIds.size ? { recipientIds: [...giftIds] } : {}),
         }),
       });
 
       if (res.status === 400) {
-        setError("invalidCode");
+        // 400 agrupa código inválido y errores de destinatario — el
+        // mensaje del servidor distingue: los de descuento empiezan con
+        // "código"; el resto se muestra tal cual (nombra a la persona).
+        const body = (await res.json().catch(() => null)) as {
+          message?: string | string[];
+        } | null;
+        const msg = Array.isArray(body?.message)
+          ? body.message.join(" ")
+          : body?.message;
+        if (typeof msg === "string" && msg.length && !msg.startsWith("código")) {
+          setServerError(msg);
+        } else {
+          setError("invalidCode");
+        }
         setPhase({ kind: "form" });
         return;
       }
@@ -155,6 +204,11 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-6 p-6 text-center">
         <Badge variant="neon">{t("success")}</Badge>
         <h1 className="text-2xl font-bold">{event.name}</h1>
+        {quantity > 1 && (
+          <p className="text-sm text-white/70">
+            {t("giftSuccess", { count: quantity - 1 })}
+          </p>
+        )}
         <Button href="/entradas" size="lg">
           {tw("title")}
         </Button>
@@ -188,13 +242,51 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       </Card>
 
       <form onSubmit={submit} className="flex flex-col gap-6">
+        {/* Regalo multi-entrada: checkbox por amigo = +1 entrada */}
+        {friends.length > 0 && (
+          <Card>
+            <h2 className="text-base font-semibold">{t("giftTitle")}</h2>
+            <p className="mt-1 text-xs text-white/50">{t("giftHint")}</p>
+            <ul className="mt-3 flex flex-col gap-1">
+              {friends.map((f) => {
+                const pid = f.person!.id;
+                const checked = giftIds.has(pid);
+                return (
+                  <li key={f.id}>
+                    <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 py-2 hover:bg-white/5">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={busy}
+                        onChange={() =>
+                          setGiftIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(pid)) next.delete(pid);
+                            else next.add(pid);
+                            return next;
+                          })
+                        }
+                        className="size-5 shrink-0 accent-neon"
+                      />
+                      <span className="text-sm">{f.person!.name}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+        )}
+
         {/* Breakdown de precio */}
         <Card>
           <dl className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <dt className="text-sm text-white/60">{t("price")}</dt>
+              <dt className="text-sm text-white/60">
+                {t("price")}
+                {quantity > 1 && ` ×${quantity}`}
+              </dt>
               <dd>
-                <PriceTag amount={breakdown.listPrice} />
+                <PriceTag amount={breakdown.listPrice * quantity} />
               </dd>
             </div>
             {breakdown.discount > 0 && (
@@ -206,9 +298,12 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               </div>
             )}
             <div className="flex items-center justify-between">
-              <dt className="text-sm text-white/60">{t("serviceFee")}</dt>
+              <dt className="text-sm text-white/60">
+                {t("serviceFee")}
+                {quantity > 1 && ` ×${quantity}`}
+              </dt>
               <dd>
-                <PriceTag amount={breakdown.serviceFee} />
+                <PriceTag amount={breakdown.serviceFee * quantity} />
               </dd>
             </div>
             <div className="mt-1 flex items-center justify-between border-t border-night-700 pt-4">
@@ -251,6 +346,11 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {error === "soldOut" && (
           <p role="alert" className="text-sm text-red-400">
             {t("soldOut")}
+          </p>
+        )}
+        {serverError && (
+          <p role="alert" className="text-sm text-red-400">
+            {serverError}
           </p>
         )}
         {error === "generic" && (
