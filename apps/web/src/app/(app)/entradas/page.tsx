@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import type { TicketStatus } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import { BackLink, Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
@@ -154,12 +154,7 @@ export default function EntradasPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <Link
-        href="/eventos"
-        className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"
-      >
-        ← {te("backToList")}
-      </Link>
+      <BackLink href="/eventos">{te("backToList")}</BackLink>
 
       {transferSuccess && (
         <p role="status" className="text-sm font-medium text-neon">

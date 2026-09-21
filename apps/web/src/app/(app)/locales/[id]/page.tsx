@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { messages } from "@/i18n/messages";
 import {
+  BackLink,
   Card,
   EventDate,
   GenreMixBar,
@@ -86,12 +87,7 @@ export default async function VenueProfilePage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-24 pt-6 sm:px-6">
-      <Link
-        href="/eventos?view=map"
-        className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"
-      >
-        ← {t.back}
-      </Link>
+      <BackLink href="/eventos?view=map">{t.back}</BackLink>
 
       {/* Perfil: logo (o inicial), nombre, dirección y horarios */}
       <header className="flex items-start gap-4">

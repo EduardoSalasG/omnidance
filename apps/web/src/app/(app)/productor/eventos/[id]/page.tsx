@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { BackLink, Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { EventForm } from "@/components/producer/event-form";
 import { EventFeesSection } from "@/components/producer/event-fees-section";
@@ -221,12 +220,7 @@ export default function ProducerEventDetailPage({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-8 p-6">
-      <Link
-        href="/productor/eventos"
-        className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"
-      >
-        ← {t("myEvents")}
-      </Link>
+      <BackLink href="/productor/eventos">{t("myEvents")}</BackLink>
 
       {gate === "loading" && <PageLoading />}
 
@@ -248,9 +242,7 @@ export default function ProducerEventDetailPage({
       {gate === "notFound" && (
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{tc("error")}</p>
-          <Button href="/productor/eventos" variant="secondary">
-            ← {t("myEvents")}
-          </Button>
+          <BackLink href="/productor/eventos">{t("myEvents")}</BackLink>
         </div>
       )}
 

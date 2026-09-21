@@ -7,6 +7,8 @@ export type { CardProps } from "./Card";
 export { Badge } from "./Badge";
 export type { BadgeProps, BadgeVariant } from "./Badge";
 
+export { BackLink } from "./BackLink";
+
 export { PriceTag } from "./PriceTag";
 export type { PriceTagProps } from "./PriceTag";
 
