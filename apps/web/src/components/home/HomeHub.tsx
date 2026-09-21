@@ -8,7 +8,7 @@ import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Spinner } from "@/components/ui/spinner";
+import { PageLoading, Spinner } from "@/components/ui/spinner";
 
 type Me = {
   id: string;
@@ -301,6 +301,17 @@ export function HomeHub() {
 
   const kpiLabel = activeRole === "DANCER" ? t("insights") : t("overview");
 
+  // Mientras los stats de la lente no resuelven, el hub entero espera:
+  // pintar "Hola" primero y el resto después produce carga a pedazos —
+  // la regla es UI final o spinner, nunca progresiva.
+  if (statsPending) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col p-6">
+        <PageLoading />
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
       <header className="flex flex-col gap-3 pt-4">
@@ -309,46 +320,34 @@ export function HomeHub() {
         </h2>
       </header>
 
-      {statsPending ? (
-        <div
-          role="status"
-          aria-label={tc("loading")}
-          className="flex items-center justify-center py-16"
-        >
-          <Spinner size="lg" className="page-loading" />
-        </div>
-      ) : (
-        <>
-          {stats && stats.kpis.length > 0 && (
-            <KpiGrid kpis={stats.kpis} label={kpiLabel} />
-          )}
-
-          <section aria-label={hero.title}>
-            <Link
-              href={hero.href}
-              className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
-            >
-              <span className="text-xl font-bold leading-tight">
-                {hero.title}
-              </span>
-              <span className="text-sm text-white/60">{hero.desc}</span>
-              <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
-                {hero.cta}
-                <span aria-hidden>→</span>
-              </span>
-            </Link>
-            {hero.secondary && (
-              <Button
-                href={hero.secondary.href}
-                variant="secondary"
-                className="mt-3 w-full"
-              >
-                {hero.secondary.label}
-              </Button>
-            )}
-          </section>
-        </>
+      {stats && stats.kpis.length > 0 && (
+        <KpiGrid kpis={stats.kpis} label={kpiLabel} />
       )}
+
+      <section aria-label={hero.title}>
+        <Link
+          href={hero.href}
+          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+        >
+          <span className="text-xl font-bold leading-tight">
+            {hero.title}
+          </span>
+          <span className="text-sm text-white/60">{hero.desc}</span>
+          <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+            {hero.cta}
+            <span aria-hidden>→</span>
+          </span>
+        </Link>
+        {hero.secondary && (
+          <Button
+            href={hero.secondary.href}
+            variant="secondary"
+            className="mt-3 w-full"
+          >
+            {hero.secondary.label}
+          </Button>
+        )}
+      </section>
 
       {multiRole && (
         <Link
