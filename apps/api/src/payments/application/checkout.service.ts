@@ -97,6 +97,8 @@ export interface PurchaseTicketInput {
   songSuggestion?: string;
   /** personIds de amigos a quienes se les regala entrada (máx. 9). */
   recipientIds?: string[];
+  /** Entradas de la orden (1–10; default 1). Sobrantes = reclamables. */
+  quantity?: number;
 }
 
 export interface PurchaseSeriesPassInput {
@@ -215,7 +217,19 @@ export class CheckoutService {
         }
       }
     }
-    const quantity = 1 + recipientIds.length;
+    // Sin quantity explícita el default es 1 + asignados (compat: un
+    // cliente que solo manda recipientIds pide exactamente esas). Con
+    // quantity, los amigos no pueden superar los cupos disponibles.
+    // El DTO valida 1–10; el clamp defensivo cubre llamadas directas.
+    const quantity =
+      input.quantity == null
+        ? 1 + recipientIds.length
+        : Math.min(10, Math.max(1, Math.floor(input.quantity)));
+    if (recipientIds.length > quantity - 1) {
+      throw new RecipientError(
+        "Elegiste más amigos que entradas disponibles — sube la cantidad o desmarca a alguien",
+      );
+    }
 
     if (event.presaleCap != null) {
       // tickets emitidos + órdenes PENDING recientes cuentan contra el cap

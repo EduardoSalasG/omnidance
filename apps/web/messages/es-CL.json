@@ -243,7 +243,15 @@
     "returnFailedTitle": "El pago no se completó",
     "returnFailedDesc": "No se realizó ningún cargo. Puedes intentarlo de nuevo.",
     "returnErrorTitle": "No pudimos verificar el pago",
-    "returnToEvents": "Volver a eventos"
+    "returnToEvents": "Volver a eventos",
+    "qtyTitle": "¿Cuántas entradas?",
+    "qtyMinus": "Una entrada menos",
+    "qtyPlus": "Una entrada más",
+    "qtyHint": "Las que no asignes a un amigo quedan como link para compartir por WhatsApp.",
+    "qtyBreakdown": "{assigned, plural, =0 {Sin amigos asignados} one {# asignada a un amigo} other {# asignadas a amigos}} · {claimable, plural, =0 {sin links} one {# link para compartir} other {# links para compartir}}",
+    "shareTitle": "Comparte los links de invitación",
+    "shareHint": "Cada link es de un solo uso — la persona crea su cuenta y reclama la entrada.",
+    "shareWhatsApp": "Enviar link {index} por WhatsApp"
   },
   "wallet": {
     "title": "Mis entradas",
@@ -261,7 +269,10 @@
     "transferEmail": "correo@de-la-persona.cl",
     "transferSubmit": "Regalar",
     "transferSuccess": "¡Entrada regalada!",
-    "transferError": "No pudimos transferirla — revisa el correo"
+    "transferError": "No pudimos transferirla — revisa el correo",
+    "claimPending": "Por reclamar",
+    "sendClaimLink": "Enviar invitación por WhatsApp",
+    "claimHint": "El link es de un solo uso — cuando la persona lo reclame, la entrada pasa a su nombre."
   },
   "sessions": {
     "title": "Bailes de la noche",

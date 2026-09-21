@@ -315,6 +315,54 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(fx.payments[0]!.recipients).toEqual(["per-2"]);
   });
 
+  // ─── Cantidad de la orden (quantity + reclamables) ───
+
+  it("quantity sin amigos: orden de 3 → 1 propia + 2 reclamables, total ×3", async () => {
+    const res = await buy({ quantity: 3 });
+    expect(res.quantity).toBe(3);
+    expect(res.quote.total).toBe(3 * 10500);
+    const payment = fx.payments[0]!;
+    expect(payment.quantity).toBe(3);
+    expect(payment.recipients).toBeUndefined(); // sin asignados → NULL
+  });
+
+  it("quantity + amigos: 4 entradas, 1 asignada → recipients + sobrantes reclamables", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    const res = await buy({ quantity: 4, recipientIds: ["per-2"] });
+    expect(res.quantity).toBe(4);
+    expect(fx.payments[0]!.recipients).toEqual(["per-2"]);
+    expect(res.quote.total).toBe(4 * 10500);
+  });
+
+  it("más amigos que entradas → RecipientError", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+      { aId: "per-1", bId: "per-3" },
+    ]);
+    await expect(
+      buy({ quantity: 2, recipientIds: ["per-2", "per-3"] }),
+    ).rejects.toThrow("más amigos que entradas");
+  });
+
+  it("quantity > 10 clampea a 10; quantity 0/ausente queda en 1", async () => {
+    const res = await buy({ quantity: 99 });
+    expect(res.quantity).toBe(10);
+    const res2 = await buy({ quantity: 0 });
+    expect(res2.quantity).toBe(1);
+    const res3 = await buy();
+    expect(res3.quantity).toBe(1);
+  });
+
+  it("cap: quantity 3 con 4 vendidos y cap 5 → PresaleSoldOutError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
+    fx.prisma.ticket.count.mockResolvedValue(4);
+    await expect(buy({ quantity: 3 })).rejects.toBeInstanceOf(
+      PresaleSoldOutError,
+    );
+  });
+
   it("cap: 4 vendidos + orden de 2 entradas > cap 5 → PresaleSoldOutError", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
     fx.prisma.ticket.count.mockResolvedValue(4);

@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
+import { randomBytes } from "node:crypto";
 import type { Request } from "express";
 import type { Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
@@ -164,6 +165,7 @@ export class PaymentsController {
           eventId: order.eventId,
           ownerId: payment.personId,
           buyerId: payment.personId,
+          paymentId: payment.id,
           listPrice: event?.presalePrice ?? 0,
           serviceFee: quote.serviceFee,
           discountCodeId: code?.id ?? null,
@@ -176,6 +178,28 @@ export class PaymentsController {
             ownerId,
             buyerId: payment.personId,
             giftedFromId: payment.personId,
+            paymentId: payment.id,
+            listPrice: event?.presalePrice ?? 0,
+            serviceFee: quote.serviceFee,
+          },
+        });
+      }
+
+      // Reclamables: entradas sobrantes de la orden quedan del comprador
+      // con claimToken — el destinatario las reclama en /reclamar/:token
+      // aunque no esté registrado ni sea amigo.
+      const unassigned = Math.max(
+        0,
+        payment.quantity - 1 - recipientIds.length,
+      );
+      for (let i = 0; i < unassigned; i++) {
+        await tx.ticket.create({
+          data: {
+            eventId: order.eventId,
+            ownerId: payment.personId,
+            buyerId: payment.personId,
+            paymentId: payment.id,
+            claimToken: randomBytes(16).toString("hex"),
             listPrice: event?.presalePrice ?? 0,
             serviceFee: quote.serviceFee,
           },
@@ -321,5 +345,29 @@ export class PaymentsController {
       amount: payment.amount,
       createdAt: payment.createdAt,
     };
+  }
+
+  /**
+   * Tickets emitidos por esta orden (solo el dueño del pago) — el éxito
+   * del checkout los necesita para pintar los links de reclamo. Devuelve
+   * id + claimToken; nada más del ticket es necesario ahí.
+   */
+  @Get(":id/tickets")
+  @UseGuards(SessionGuard)
+  async paymentTickets(@Req() req: Request, @Param("id") id: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { id } });
+    if (!payment || payment.personId !== req.person!.id) {
+      throw new NotFoundException("pago no encontrado");
+    }
+    if (payment.orderType !== "TICKET" || payment.status !== "PAID") {
+      return [];
+    }
+    // Ticket.paymentId vincula exacto con la orden que los emitió.
+    const tickets = await this.prisma.ticket.findMany({
+      where: { paymentId: payment.id },
+      select: { id: true, claimToken: true, ownerId: true },
+      orderBy: { createdAt: "asc" },
+    });
+    return tickets;
   }
 }

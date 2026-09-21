@@ -47,6 +47,7 @@ type MyTicket = {
   status: string;
   listPrice: number;
   serviceFee: number;
+  claimToken: string | null;
   event: { id: string; name: string; startsAt: string; venue: { name: string } };
 };
 type VenueRow = {

@@ -1014,7 +1014,9 @@ export async function seedDev(prisma: PrismaClient) {
   // ─── Shows de la noche ───
   // Formato real: academia (texto libre — puede no estar registrada),
   // tipo de team (BOOTCAMP | ALUMNOS | OPEN | PRO | AMATEUR) y nombre de
-  // la coreografía. Promedio 3–5 por noche con shows; algunas no tienen.
+  // la coreografía. TODOS los eventos tienen shows; el volumen crece con
+  // el día: vie/sáb son las noches grandes (6), jueves medio (4), el
+  // resto base (2–3). Determinista por evento — el reseed no varía.
   type ShowSeed = { academy: string; teamType: string; name: string };
   const showRosters: Record<string, ShowSeed[]> = {
     "Social con Estilo": [
@@ -1046,9 +1048,27 @@ export async function seedDev(prisma: PrismaClient) {
       { academy: "Mambo Madness", teamType: "PRO", name: "Mambo Clásico" },
       { academy: "Academia Tumbao", teamType: "BOOTCAMP", name: "Shine On2" },
     ],
-    // Ashe (pura timba) y las noches solo-bachata de Tierra sin roster:
-    // demuestran el caso 0 shows.
   };
+  // Pool genérico: eventos sin roster nombrado rotan de acá (offset
+  // determinista por evento); los rosters cortos también se rellenan
+  // desde acá hasta el cupo del día.
+  const genericShows: ShowSeed[] = [
+    { academy: "Mambo Madness", teamType: "ALUMNOS", name: "Furia Salsera" },
+    { academy: "Academia Tumbao", teamType: "OPEN", name: "Tumbao Urbano" },
+    { academy: "MuéveteOnTour", teamType: "PRO", name: "Proyecto Élite" },
+    { academy: "Son de Cuba", teamType: "AMATEUR", name: "Casino Real" },
+    { academy: "Bachata Studio", teamType: "ALUMNOS", name: "Ola Sensual" },
+    { academy: "Mambo Madness", teamType: "BOOTCAMP", name: "Intensivo On2" },
+    { academy: "Academia Tumbao", teamType: "AMATEUR", name: "Primeras Vueltas" },
+    { academy: "Timba Power", teamType: "OPEN", name: "Despelote Total" },
+    { academy: "MuéveteOnTour", teamType: "ALUMNOS", name: "Generación M" },
+    { academy: "Danza Viva", teamType: "PRO", name: "Acento Caribe" },
+    { academy: "Son de Cuba", teamType: "BOOTCAMP", name: "Rueda Flash" },
+    { academy: "Bachata Studio", teamType: "OPEN", name: "Dominicana" },
+  ];
+  // Cupo por día de semana: vie/sáb son las noches grandes.
+  const showTarget = (weekday: number): number =>
+    weekday === 5 || weekday === 6 ? 6 : weekday === 4 ? 4 : 2;
   // Academias registradas → el show queda vinculado (academyId) para que
   // el perfil de la academia pueda listar sus presentaciones; el resto
   // solo lleva el nombre de texto.
@@ -1058,15 +1078,34 @@ export async function seedDev(prisma: PrismaClient) {
   };
   const pubEvents = await prisma.event.findMany({
     where: { status: "PUBLISHED" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, startsAt: true },
+    orderBy: { startsAt: "asc" },
   });
   // Reseed determinista: se recrea el roster completo en cada corrida.
   await prisma.show.deleteMany({
     where: { eventId: { in: pubEvents.map((e) => e.id) } },
   });
   for (const ev of pubEvents) {
-    const roster = showRosters[ev.name];
-    if (!roster) continue;
+    // Hash estable del id → offset del pool genérico, así cada evento
+    // rota el pool sin depender del orden de las corridas.
+    let hash = 0;
+    for (const ch of ev.id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+    const wd = ev.startsAt.getDay();
+    const target = showTarget(wd) + (hash % 2); // vie/sáb 6–7, jue 4–5
+    const named = showRosters[ev.name] ?? [];
+    const roster: ShowSeed[] = [...named];
+    for (let i = 0; roster.length < target; i++) {
+      const candidate = genericShows[(hash + i) % genericShows.length];
+      // no repetir academia+coreo dentro de la misma noche
+      if (
+        roster.some(
+          (s) => s.academy === candidate.academy && s.name === candidate.name,
+        )
+      ) {
+        continue;
+      }
+      roster.push(candidate);
+    }
     await prisma.show.createMany({
       data: roster.map((s, i) => ({
         ...s,

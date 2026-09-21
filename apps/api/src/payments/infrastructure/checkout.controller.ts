@@ -11,10 +11,13 @@ import {
 import {
   ArrayMaxSize,
   IsArray,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
 } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
@@ -34,6 +37,17 @@ import {
 class CheckoutTicketDto {
   @IsString()
   eventId!: string;
+
+  /**
+   * Cantidad de entradas de la orden (1–10). Cada ticket por sobre el
+   * propio puede asignarse a un amigo (recipientIds) o quedar reclamable
+   * por link — ver spec multi-ticket-claim-links.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  quantity?: number;
 
   @IsOptional()
   @IsString()
