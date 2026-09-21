@@ -25,7 +25,13 @@
       "CONFIRMED": "Confirmado",
       "SANDBOX": "Sandbox",
       "APPROVED": "Aprobado",
-      "REJECTED": "Rechazado"
+      "REJECTED": "Rechazado",
+      "NEW": "Nuevo",
+      "CONTACTED": "Contactado",
+      "CONVERTED": "Convertido",
+      "DISCARDED": "Descartado",
+      "CONTACT": "Quiere contacto",
+      "DEMO": "Pide demo"
     },
     "orderTypes": {
       "TICKET": "Ticket",

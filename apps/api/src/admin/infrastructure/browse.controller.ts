@@ -50,6 +50,8 @@ const ORDER_TYPES = [
   "WORKSHOP",
 ] as const;
 const RENTAL_STATUSES = ["REQUESTED", "CONFIRMED", "CANCELLED"] as const;
+const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "DISCARDED"] as const;
+const LEAD_INTENTS = ["CONTACT", "DEMO"] as const;
 
 class BrowseQueryDto {
   @IsOptional()
@@ -64,6 +66,10 @@ class BrowseQueryDto {
   @IsOptional()
   @IsString()
   orderType?: string;
+
+  @IsOptional()
+  @IsString()
+  intent?: string;
 
   @IsOptional()
   @IsString()
@@ -144,9 +150,11 @@ export class BrowseController {
         return this.rentals(q);
       case "people":
         return this.people(q);
+      case "leads":
+        return this.leads(q);
       default:
         throw new BadRequestException(
-          `entidad inválida: "${entity}" (válidas: events, classes, payments, tickets, academies, venues, rentals, people)`,
+          `entidad inválida: "${entity}" (válidas: events, classes, payments, tickets, academies, venues, rentals, people, leads)`,
         );
     }
   }
@@ -526,6 +534,50 @@ export class BrowseController {
           select: { id: true, role: true, status: true, createdAt: true },
           orderBy: { createdAt: "asc" },
         },
+      },
+    });
+  }
+
+  // ── leads: q,status,intent,from,to — captación del landing /pro ─────
+
+  private async leads(q: BrowseQueryDto) {
+    const status = whitelist(q.status, LEAD_STATUSES, "status");
+    const intent = whitelist(q.intent, LEAD_INTENTS, "intent");
+    const term = q.q?.trim() ?? "";
+    return this.prisma.lead.findMany({
+      where: {
+        ...(term.length >= 2
+          ? {
+              OR: [
+                { name: { contains: term, mode: "insensitive" } },
+                { email: { contains: term, mode: "insensitive" } },
+                { phone: { contains: term, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+        ...(status ? { status } : {}),
+        ...(intent ? { intent } : {}),
+        ...(q.from || q.to
+          ? {
+              createdAt: {
+                ...(q.from ? { gte: new Date(q.from) } : {}),
+                ...(q.to ? { lte: new Date(q.to) } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: TAKE,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        roles: true,
+        intent: true,
+        status: true,
+        personId: true,
+        createdAt: true,
       },
     });
   }

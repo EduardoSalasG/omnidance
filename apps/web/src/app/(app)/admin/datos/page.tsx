@@ -19,7 +19,8 @@ type Entity =
   | "academies"
   | "venues"
   | "rentals"
-  | "people";
+  | "people"
+  | "leads";
 
 const ENTITIES: Entity[] = [
   "events",
@@ -30,6 +31,7 @@ const ENTITIES: Entity[] = [
   "venues",
   "rentals",
   "people",
+  "leads",
 ];
 
 type Ref = { id: string; name: string } | null;
@@ -80,6 +82,17 @@ type PersonRow = {
   createdAt: string;
   roles: { id: string; role: string; status: string; createdAt: string }[];
 };
+type LeadRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  roles: string[];
+  intent: string;
+  status: string;
+  personId: string | null;
+  createdAt: string;
+};
 
 // ── Filtros soportados por entidad (whitelist del controller) ──────────
 
@@ -94,6 +107,8 @@ const ORDER_TYPES = [
 ];
 const TICKET_STATUSES = ["ACTIVE", "USED", "CANCELLED", "TRANSFERRED"];
 const RENTAL_STATUSES = ["REQUESTED", "CONFIRMED", "CANCELLED"];
+const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "DISCARDED"];
+const LEAD_INTENTS = ["CONTACT", "DEMO"];
 
 type Option = { value: string; label: string };
 
@@ -115,6 +130,7 @@ const FILTER_SOURCES: Record<Entity, Partial<Record<string, OptionSource>>> = {
   payments: {},
   academies: {},
   venues: {},
+  leads: {},
 };
 
 const STATIC_OPTIONS: Record<string, string[]> = {
@@ -123,6 +139,8 @@ const STATIC_OPTIONS: Record<string, string[]> = {
   "payments.orderType": ORDER_TYPES,
   "tickets.status": TICKET_STATUSES,
   "rentals.status": RENTAL_STATUSES,
+  "leads.status": LEAD_STATUSES,
+  "leads.intent": LEAD_INTENTS,
 };
 
 // Claves de filtro → param del query string que entiende el controller.
@@ -135,10 +153,11 @@ const ENTITY_PARAMS: Record<Entity, string[]> = {
   venues: ["q"],
   rentals: ["status", "venueId"],
   people: ["q", "role"],
+  leads: ["q", "status", "intent", "from", "to"],
 };
 
-const HAS_Q = new Set<Entity>(["events", "academies", "venues", "people"]);
-const HAS_DATES = new Set<Entity>(["events", "classes", "payments"]);
+const HAS_Q = new Set<Entity>(["events", "academies", "venues", "people", "leads"]);
+const HAS_DATES = new Set<Entity>(["events", "classes", "payments", "leads"]);
 
 const DEBOUNCE_MS = 300;
 
@@ -324,6 +343,7 @@ function DatosPanel() {
       styleId: t("datos.filters.style"),
       eventId: t("datos.filters.event"),
       role: t("datos.filters.role"),
+      intent: t("datos.filters.intent"),
     };
     return map[key] ?? key;
   };
@@ -485,6 +505,25 @@ function DatosPanel() {
               )}
             </Card>
           </li>
+        );
+      }
+      case "leads": {
+        const r = row as LeadRow;
+        return (
+          <RowShell
+            key={r.id}
+            title={r.name}
+            badge={r.status}
+            badgeLabel={statusLabel(r.status)}
+            meta={[
+              r.email,
+              r.phone,
+              r.roles.map(roleLabel).join(", "),
+              statusLabel(r.intent),
+              r.personId ? t("datos.leadConverted") : null,
+            ]}
+            tail={dateTimeFmt.format(new Date(r.createdAt))}
+          />
         );
       }
       default:

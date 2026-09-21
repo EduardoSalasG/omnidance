@@ -74,7 +74,8 @@
         "academies": "Academias",
         "venues": "Locales",
         "rentals": "Arriendos",
-        "people": "Personas"
+        "people": "Personas",
+        "leads": "Leads"
       },
       "filters": {
         "search": "Buscar…",
@@ -89,7 +90,8 @@
         "role": "Rol",
         "orderType": "Tipo",
         "event": "Evento",
-        "apply": "Filtrar"
+        "apply": "Filtrar",
+        "intent": "Interés"
       },
       "cols": {
         "name": "Nombre",
@@ -117,7 +119,8 @@
         "roles": "Roles",
         "email": "Email"
       },
-      "empty": "Sin resultados con estos filtros"
+      "empty": "Sin resultados con estos filtros",
+      "leadConverted": "✓ cuenta demo creada"
     },
     "modules": {
       "datos": "Datos",
