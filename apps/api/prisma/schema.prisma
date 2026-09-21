@@ -1113,7 +1113,7 @@ model Lead {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
-  phone     String
+  phone     String?  // obligatorio solo en intent CONTACT — la demo no lo exige
   roles     String[]
   intent    String
   status    String   @default("NEW") // NEW | CONTACTED | CONVERTED | DISCARDED

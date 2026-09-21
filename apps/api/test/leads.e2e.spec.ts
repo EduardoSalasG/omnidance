@@ -151,6 +151,25 @@ describe("leads /pro e2e", () => {
       expect(res.status).toBe(400);
     });
 
+    it("intent DEMO sin teléfono → 201 y lead.phone null", async () => {
+      leadEmails.push("lead-e2e-nophone@test.cl");
+      const res = await post(
+        "/api/leads",
+        validLead("lead-e2e-nophone@test.cl", {
+          intent: "DEMO",
+          phone: undefined,
+        }),
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.demoToken).toMatch(/^[0-9a-f]{48}$/);
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-nophone@test.cl" },
+      });
+      expect(lead.phone).toBeNull();
+      expect(lead.intent).toBe("DEMO");
+    });
+
     it("re-envío con el mismo email hace upsert (mismo id, datos nuevos)", async () => {
       const res = await post(
         "/api/leads",
@@ -236,6 +255,21 @@ describe("leads /pro e2e", () => {
         "ACADEMY_OWNER:APPROVED",
         "DJ:APPROVED",
       ]);
+    });
+
+    it("lead DEMO sin teléfono activa y la persona queda con phone null", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-nophone@test.cl" },
+      });
+      const res = await post(`/api/leads/${lead.id}/demo`, {
+        token: lead.demoToken,
+      });
+      expect(res.status).toBe(200);
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { email: "lead-e2e-nophone@test.cl" },
+      });
+      expect(person.phone).toBeNull();
+      expect(person.isDemoAccount).toBe(true);
     });
 
     it("re-entrar con el mismo token reemite sesión (no duplica persona)", async () => {
@@ -392,9 +426,16 @@ describe("leads /pro e2e", () => {
 
     it("sin sesión → 401, sin admin → 403", async () => {
       leadEmails.push(convEmail);
-      await post("/api/leads", validLead(convEmail, { roles: ["DJ"] }));
-      const lead = await prisma.lead.findUniqueOrThrow({
-        where: { email: convEmail },
+      // Directo por Prisma: el spec ya consume el rate-limit de POST
+      // /leads (10/hora por IP) con los casos del endpoint público.
+      const lead = await prisma.lead.create({
+        data: {
+          name: "Lead Convert",
+          email: convEmail,
+          phone: `+56900${String(++phoneSeq).padStart(6, "0")}`,
+          roles: ["DJ"],
+          intent: "CONTACT",
+        },
       });
       convLeadId = lead.id;
 
