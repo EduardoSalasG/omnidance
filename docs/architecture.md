@@ -68,6 +68,7 @@ src/<dominio>/
 | academies | `/api/academies/*` planes, enrollments, asistencia | `academies.create` / owner |
 | gamification | `/api/gamification/*` streaks, badges, leaderboard, misiones | SessionGuard |
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |
+| leads | `POST /api/leads` — formulario de contacto/demo de la landing `/pro`, notifica a ADMIN | público |
 | admin | `/api/admin/*` usuarios (búsqueda, ficha 360°, asignación de roles), analítica por usuario, explorador `/admin/browse/:entity`, roles, permisos, audit | `admin.access` |
 
 ## RBAC — todo DB-driven
