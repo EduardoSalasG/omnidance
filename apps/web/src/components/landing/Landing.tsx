@@ -139,6 +139,24 @@ export function Landing({
           </div>
         </section>
 
+        {/* ─── Solo pro: el caos que reemplaza la app (PAS) — los ítems
+            van densos y apagados; la resolución, limpia. ─── */}
+        {isPro && (
+          <section className="border-t border-white/5 px-6 py-12">
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+                {t.painLabel}
+              </p>
+              <p className="mt-4 text-sm leading-loose text-white/50">
+                {t.painItems}
+              </p>
+              <p className="mt-6 text-lg font-semibold text-white">
+                {t.painResolution}
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* ─── Prueba social: eventos reales de la semana → registro ─── */}
         <section className="border-t border-white/5 px-6 py-10">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
