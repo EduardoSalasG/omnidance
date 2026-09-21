@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -18,9 +19,22 @@ declare module "express" {
       roles: string[];
       // estado completo de sus roles (para RBAC y UI "en revisión").
       roleStates: { role: string; status: string }[];
+      // cuenta creada desde un lead de /pro — solo lectura (ver barrera abajo).
+      isDemo?: boolean;
     };
   }
 }
+
+// Cuentas demo: navegan y leen toda la app (GETs pasan con sus roles
+// APPROVED), pero ninguna escritura llega a producción — POST/PUT/PATCH/
+// DELETE → 403 "demo_mode". La whitelist es solo self-scoped y sin valor
+// de negocio: salir, marcar notificaciones leídas, push tokens y
+// reclamar la cuenta con contraseña propia.
+const DEMO_ALLOWED_WRITES = [
+  /^\/api\/auth\/(logout|password)$/,
+  /^\/api\/notifications\//,
+  /^\/api\/push-tokens/,
+];
 
 @Injectable()
 export class SessionGuard implements CanActivate {
@@ -50,7 +64,21 @@ export class SessionGuard implements CanActivate {
         .filter((r) => r.status === "APPROVED")
         .map((r) => r.role),
       roleStates: person.roles,
+      isDemo: person.isDemoAccount,
     };
+
+    // Barrera de escritura para cuentas demo — el único punto de control,
+    // aplica a toda ruta protegida sin flags repartidos por el código.
+    if (
+      person.isDemoAccount &&
+      req.method !== "GET" &&
+      req.method !== "HEAD" &&
+      req.method !== "OPTIONS" &&
+      !DEMO_ALLOWED_WRITES.some((re) => re.test(req.path))
+    ) {
+      throw new ForbiddenException("demo_mode");
+    }
+
     return true;
   }
 

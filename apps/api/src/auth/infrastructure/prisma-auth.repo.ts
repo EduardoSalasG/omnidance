@@ -10,10 +10,13 @@ export class PrismaAuthRepo implements AuthRepo {
   upsertByEmail(email: string): Promise<Person> {
     return this.prisma.person.upsert({
       where: { email },
-      update: {},
+      // El magic link prueba posesión del correo: marca verifiedAt y, si
+      // la cuenta venía de un lead (demo), la promueve a real.
+      update: { verifiedAt: new Date(), isDemoAccount: false },
       create: {
         email,
         name: email.split("@")[0],
+        verifiedAt: new Date(),
         roles: { create: { role: "DANCER", status: "APPROVED" } },
       },
     });
