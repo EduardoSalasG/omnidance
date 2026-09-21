@@ -314,22 +314,10 @@ const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
     icon: ICONS.practices,
   },
   { href: "/viajes", ns: "nav", key: "trips", icon: ICONS.trips },
-  {
-    href: "/notificaciones",
-    ns: "nav",
-    key: "notifications",
-    icon: ICONS.notifications,
-  },
 ];
 const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [
   { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
   { href: "/eventos", ns: "events", key: "title", icon: ICONS.events },
-  {
-    href: "/notificaciones",
-    ns: "nav",
-    key: "notifications",
-    icon: ICONS.notifications,
-  },
 ];
 
 const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
