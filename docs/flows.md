@@ -142,22 +142,22 @@ sequenceDiagram
     U->>API: GET /events/:id/waitlist/me → PROMOTED
 ```
 
-## Ciclo de solicitud de rol
+## Ciclo de asignación de rol
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING: POST /roles/request<br/>(rol requestable del catálogo)
-    PENDING --> APPROVED: admin approve
-    PENDING --> REJECTED: admin reject<br/>(fila preservada — auditable)
-    REJECTED --> PENDING: admin setRole<br/>(POST /admin/users/:id/roles)
+    [*] --> APPROVED: admin setRole<br/>(POST /admin/users/:id/roles)
+    [*] --> PENDING: admin setRole<br/>(sin acceso aún)
+    [*] --> SANDBOX: admin setRole<br/>(acceso limitado @AllowSandbox)
+    PENDING --> APPROVED: admin setRole
+    SANDBOX --> APPROVED: admin setRole<br/>(upgrade de acceso)
+    APPROVED --> REJECTED: admin setRole<br/>(fila preservada — auditable)
     APPROVED --> [*]: admin DELETE /admin/users/:id/roles/:role
-    SANDBOX --> APPROVED: admin approve<br/>(upgrade de acceso)
-    PENDING --> SANDBOX: admin setRole<br/>(acceso limitado @AllowSandbox)
 ```
 
+- No hay auto-solicitud de roles: el admin gestiona todo el ciclo desde `/admin/usuarios` (`role-requests` y `roles/request` fueron eliminados).
 - `PENDING` y `REJECTED`: sin acceso, no aparece en `req.person.roles` (sí en `roleStates` de `/me`).
 - `SANDBOX`: acceso solo a endpoints marcados `@AllowSandbox` (hoy `POST /academies`).
-- Re-solicitud sobre `PENDING`/`APPROVED`/`REJECTED` → 409 `ROLE_ALREADY_EXISTS` (el admin gestiona el ciclo desde la consola).
 
 ## Ticket — estados y transferencia
 

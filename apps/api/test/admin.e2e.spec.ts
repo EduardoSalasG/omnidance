@@ -6,7 +6,7 @@ import { AuthService } from "../src/auth/domain/auth.service";
 import { AdminModule } from "../src/admin/admin.module";
 import { PrismaService } from "../src/prisma.service";
 
-describe("admin role-requests e2e", () => {
+describe("admin role assignment e2e", () => {
   let app: INestApplication;
   let baseUrl: string;
   let prisma: PrismaService;
@@ -17,14 +17,7 @@ describe("admin role-requests e2e", () => {
   let adminSession: string;
   let dancerSession: string;
 
-  const ids = {
-    pendingPersonId: "",
-    sandboxPersonId: "",
-    dancerId: "",
-    pendingRoleId: "",
-    sandboxRoleId: "",
-    requestedRoleId: "",
-  };
+  const ids = { dancerId: "" };
   const createdPersonIds: string[] = [];
 
   const req = (method: string, path: string, body?: unknown, session?: string) =>
@@ -40,6 +33,8 @@ describe("admin role-requests e2e", () => {
     req("GET", path, undefined, session);
   const post = (path: string, body: unknown, session?: string) =>
     req("POST", path, body, session);
+  const del = (path: string, session?: string) =>
+    req("DELETE", path, undefined, session);
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -59,32 +54,9 @@ describe("admin role-requests e2e", () => {
     });
     adminSession = await auth.issueSession(admin.id);
 
-    const pending = await prisma.person.create({
-      data: {
-        name: "Productor Pendiente Test",
-        email: "pending-test@omnidance.cl",
-        roles: { create: [{ role: "PRODUCER", status: "PENDING" }] },
-      },
-      include: { roles: true },
-    });
-    ids.pendingPersonId = pending.id;
-    ids.pendingRoleId = pending.roles[0].id;
-    createdPersonIds.push(pending.id);
-
-    const sandbox = await prisma.person.create({
-      data: {
-        name: "Venue Sandbox Test",
-        roles: { create: [{ role: "VENUE_MANAGER", status: "SANDBOX" }] },
-      },
-      include: { roles: true },
-    });
-    ids.sandboxPersonId = sandbox.id;
-    ids.sandboxRoleId = sandbox.roles[0].id;
-    createdPersonIds.push(sandbox.id);
-
     const dancer = await prisma.person.create({
       data: {
-        name: "Bailarín Solicitante Test",
+        name: "Bailarín Target Test",
         roles: { create: [{ role: "DANCER", status: "APPROVED" }] },
       },
     });
@@ -101,172 +73,131 @@ describe("admin role-requests e2e", () => {
     await app.close();
   });
 
-  describe("GET /api/admin/role-requests", () => {
-    it("sin sesión → 401", async () => {
-      const res = await get("/api/admin/role-requests");
-      expect(res.status).toBe(401);
+  describe("auto-solicitud de roles eliminada", () => {
+    it("POST /api/roles/request → 404 (endpoint removido)", async () => {
+      const res = await post(
+        "/api/roles/request",
+        { role: "INSTRUCTOR" },
+        dancerSession,
+      );
+      expect(res.status).toBe(404);
     });
 
-    it("sin rol ADMIN → 403", async () => {
-      const res = await get("/api/admin/role-requests", dancerSession);
-      expect(res.status).toBe(403);
+    it("GET /api/roles/catalog → 404 (endpoint removido)", async () => {
+      const res = await get("/api/roles/catalog", dancerSession);
+      expect(res.status).toBe(404);
     });
 
-    it("admin → lista PENDING y SANDBOX con person{name,email}", async () => {
+    it("GET /api/admin/role-requests → 404 (cola removida)", async () => {
       const res = await get("/api/admin/role-requests", adminSession);
-      expect(res.status).toBe(200);
-      const list = await res.json();
-      const pending = list.find(
-        (r: { id: string }) => r.id === ids.pendingRoleId,
-      );
-      expect(pending.status).toBe("PENDING");
-      expect(pending.role).toBe("PRODUCER");
-      expect(pending.person.name).toBe("Productor Pendiente Test");
-      expect(pending.person.email).toBe("pending-test@omnidance.cl");
-      const sandbox = list.find(
-        (r: { id: string }) => r.id === ids.sandboxRoleId,
-      );
-      expect(sandbox.status).toBe("SANDBOX");
+      expect(res.status).toBe(404);
     });
   });
 
-  describe("POST /api/admin/role-requests/:id/approve", () => {
+  describe("POST /api/admin/users/:personId/roles", () => {
     it("sin sesión → 401", async () => {
-      const res = await post(
-        `/api/admin/role-requests/${ids.pendingRoleId}/approve`,
-        {},
-      );
+      const res = await post(`/api/admin/users/${ids.dancerId}/roles`, {
+        role: "INSTRUCTOR",
+        status: "APPROVED",
+      });
       expect(res.status).toBe(401);
     });
 
     it("sin rol ADMIN → 403", async () => {
       const res = await post(
-        `/api/admin/role-requests/${ids.pendingRoleId}/approve`,
-        {},
+        `/api/admin/users/${ids.dancerId}/roles`,
+        { role: "INSTRUCTOR", status: "APPROVED" },
         dancerSession,
       );
       expect(res.status).toBe(403);
     });
 
-    it("admin aprueba → status APPROVED", async () => {
+    it("admin asigna rol directamente → status elegido", async () => {
       const res = await post(
-        `/api/admin/role-requests/${ids.pendingRoleId}/approve`,
-        {},
+        `/api/admin/users/${ids.dancerId}/roles`,
+        { role: "INSTRUCTOR", status: "APPROVED" },
         adminSession,
       );
       expect(res.status).toBe(200);
       const body = await res.json();
+      expect(body.role).toBe("INSTRUCTOR");
       expect(body.status).toBe("APPROVED");
       const role = await prisma.personRole.findUniqueOrThrow({
-        where: { id: ids.pendingRoleId },
+        where: {
+          personId_role: { personId: ids.dancerId, role: "INSTRUCTOR" },
+        },
       });
       expect(role.status).toBe("APPROVED");
     });
 
-    it("id inexistente → 404", async () => {
+    it("re-asignación actualiza el status (upsert)", async () => {
       const res = await post(
-        "/api/admin/role-requests/rol-fantasma/approve",
-        {},
-        adminSession,
-      );
-      expect(res.status).toBe(404);
-    });
-  });
-
-  describe("POST /api/admin/role-requests/:id/reject", () => {
-    it("admin rechaza → status REJECTED y el registro se preserva", async () => {
-      const res = await post(
-        `/api/admin/role-requests/${ids.sandboxRoleId}/reject`,
-        {},
+        `/api/admin/users/${ids.dancerId}/roles`,
+        { role: "INSTRUCTOR", status: "SANDBOX" },
         adminSession,
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.status).toBe("REJECTED");
-      const role = await prisma.personRole.findUniqueOrThrow({
-        where: { id: ids.sandboxRoleId },
-      });
-      expect(role.status).toBe("REJECTED");
-      // la solicitud rechazada ya no aparece en la cola
-      const list = await (
-        await get("/api/admin/role-requests", adminSession)
-      ).json();
-      expect(
-        list.find((r: { id: string }) => r.id === ids.sandboxRoleId),
-      ).toBeUndefined();
+      expect(body.status).toBe("SANDBOX");
     });
 
-    it("id inexistente → 404", async () => {
+    it("rol fuera del catálogo → 400", async () => {
       const res = await post(
-        "/api/admin/role-requests/rol-fantasma/reject",
-        {},
+        `/api/admin/users/${ids.dancerId}/roles`,
+        { role: "SUPERVILLAIN", status: "APPROVED" },
+        adminSession,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("status inválido → 400", async () => {
+      const res = await post(
+        `/api/admin/users/${ids.dancerId}/roles`,
+        { role: "DJ", status: "MAYBE" },
+        adminSession,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("persona inexistente → 404", async () => {
+      const res = await post(
+        "/api/admin/users/persona-fantasma/roles",
+        { role: "DJ", status: "APPROVED" },
         adminSession,
       );
       expect(res.status).toBe(404);
     });
   });
 
-  describe("POST /api/roles/request", () => {
-    it("sin sesión → 401", async () => {
-      const res = await post("/api/roles/request", { role: "INSTRUCTOR" });
-      expect(res.status).toBe(401);
-    });
-
-    it("rol inválido → 400", async () => {
-      const res = await post(
-        "/api/roles/request",
-        { role: "SUPERUSER" },
+  describe("DELETE /api/admin/users/:personId/roles/:role", () => {
+    it("sin rol ADMIN → 403", async () => {
+      const res = await del(
+        `/api/admin/users/${ids.dancerId}/roles/INSTRUCTOR`,
         dancerSession,
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(403);
     });
 
-    it("solicitar ADMIN → 400 (nunca se auto-otorga)", async () => {
-      const res = await post(
-        "/api/roles/request",
-        { role: "ADMIN" },
-        dancerSession,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("rol válido → 201 con status SANDBOX (onboarding demo)", async () => {
-      const res = await post(
-        "/api/roles/request",
-        { role: "INSTRUCTOR" },
-        dancerSession,
-      );
-      expect(res.status).toBe(201);
-      const body = await res.json();
-      expect(body.status).toBe("SANDBOX");
-      expect(body.role).toBe("INSTRUCTOR");
-      ids.requestedRoleId = body.id;
-    });
-
-    it("misma solicitud duplicada → 409", async () => {
-      const res = await post(
-        "/api/roles/request",
-        { role: "INSTRUCTOR" },
-        dancerSession,
-      );
-      expect(res.status).toBe(409);
-    });
-
-    it("rechazo preserva la fila → re-solicitud del mismo rol → 409", async () => {
-      const reject = await post(
-        `/api/admin/role-requests/${ids.requestedRoleId}/reject`,
-        {},
+    it("admin revoca el rol → ok y fila eliminada", async () => {
+      const res = await del(
+        `/api/admin/users/${ids.dancerId}/roles/INSTRUCTOR`,
         adminSession,
       );
-      expect(reject.status).toBe(200);
-      const res = await post(
-        "/api/roles/request",
-        { role: "INSTRUCTOR" },
-        dancerSession,
+      expect(res.status).toBe(200);
+      const role = await prisma.personRole.findUnique({
+        where: {
+          personId_role: { personId: ids.dancerId, role: "INSTRUCTOR" },
+        },
+      });
+      expect(role).toBeNull();
+    });
+
+    it("rol que la persona no tiene → 404", async () => {
+      const res = await del(
+        `/api/admin/users/${ids.dancerId}/roles/DJ`,
+        adminSession,
       );
-      expect(res.status).toBe(409);
-      const body = await res.json();
-      expect(body.personRole.status).toBe("REJECTED");
+      expect(res.status).toBe(404);
     });
   });
 });

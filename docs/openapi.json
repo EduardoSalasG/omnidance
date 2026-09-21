@@ -2990,57 +2990,6 @@
         }
       }
     },
-    "/api/admin/role-requests": {
-      "get": {
-        "operationId": "AdminController_listRoleRequests",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/admin/role-requests/{personRoleId}/approve": {
-      "post": {
-        "operationId": "AdminController_approve",
-        "parameters": [
-          {
-            "name": "personRoleId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/admin/role-requests/{personRoleId}/reject": {
-      "post": {
-        "operationId": "AdminController_reject",
-        "parameters": [
-          {
-            "name": "personRoleId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/admin/users": {
       "get": {
         "operationId": "AdminController_users",
@@ -3498,38 +3447,6 @@
         },
         "responses": {
           "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/roles/catalog": {
-      "get": {
-        "operationId": "RolesController_catalog",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/roles/request": {
-      "post": {
-        "operationId": "RolesController_request",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestRoleDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
             "description": ""
           }
         }
@@ -4071,10 +3988,6 @@
         "properties": {}
       },
       "ProducerFeeParamsDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "RequestRoleDto": {
         "type": "object",
         "properties": {}
       },
