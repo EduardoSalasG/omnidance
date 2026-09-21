@@ -94,12 +94,16 @@ export class LeadsController {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new BadRequestException("email inválido");
     }
-    if (!phone) throw new BadRequestException("phone requerido");
-    if (roles.length === 0) {
-      throw new BadRequestException("roles: elige al menos uno");
-    }
     if (!ALLOWED_INTENTS.has(intent)) {
       throw new BadRequestException("intent inválido");
+    }
+    // El teléfono solo es obligatorio cuando pide contacto — para probar
+    // la demo basta el correo (menos fricción en la conversión).
+    if (intent === "CONTACT" && !phone) {
+      throw new BadRequestException("phone requerido");
+    }
+    if (roles.length === 0) {
+      throw new BadRequestException("roles: elige al menos uno");
     }
     const emailTaken = !!(await this.prisma.person.findUnique({
       where: { email },
@@ -119,12 +123,12 @@ export class LeadsController {
       create: {
         name,
         email,
-        phone,
+        phone: phone || null,
         roles,
         intent,
         demoToken: randomBytes(24).toString("hex"),
       },
-      update: { name, phone, roles, intent },
+      update: { name, phone: phone || null, roles, intent },
       select: { id: true, demoToken: true },
     });
 
@@ -196,12 +200,15 @@ export class LeadsController {
       }
       // Person.phone es unique: si el teléfono ya está en otra cuenta,
       // crear la demo tiraría un 500 de unique constraint. 409 explícito.
-      const phoneTaken = await this.prisma.person.findUnique({
-        where: { phone: lead.phone },
-        select: { id: true },
-      });
-      if (phoneTaken) {
-        throw new ConflictException("phone_exists");
+      // (lead.phone puede ser null en intent DEMO.)
+      if (lead.phone) {
+        const phoneTaken = await this.prisma.person.findUnique({
+          where: { phone: lead.phone },
+          select: { id: true },
+        });
+        if (phoneTaken) {
+          throw new ConflictException("phone_exists");
+        }
       }
       // Solo roles que existen en el catálogo — evita FK roto si el
       // seed aún no corre.
