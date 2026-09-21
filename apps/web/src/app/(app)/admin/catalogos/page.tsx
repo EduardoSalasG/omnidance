@@ -231,7 +231,7 @@ function CatalogSection({
         </div>
       )}
 
-      {items === null && !loadError && <Spinner size="sm" />}
+      {items === null && !loadError && <Spinner size="sm" className="page-loading" />}
 
       {items !== null && (
         <>

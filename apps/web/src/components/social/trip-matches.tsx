@@ -146,7 +146,7 @@ export function TripMatches({ trips }: { trips: TripRange[] }) {
         {tm.title}
       </h2>
 
-      {state === "loading" && <Spinner size="sm" />}
+      {state === "loading" && <Spinner size="sm" className="page-loading" />}
       {state === "error" && (
         <p role="alert" className="text-white/60">
           {tc("error")}

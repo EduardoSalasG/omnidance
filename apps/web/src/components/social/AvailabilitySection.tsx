@@ -162,7 +162,7 @@ export function AvailabilitySection({ me }: AvailabilitySectionProps) {
       )}
 
       {/* Feed público */}
-      {feedState === "loading" && <Spinner size="sm" />}
+      {feedState === "loading" && <Spinner size="sm" className="page-loading" />}
       {feedState === "error" && (
         <p role="alert" className="text-white/60">
           {tc("error")}

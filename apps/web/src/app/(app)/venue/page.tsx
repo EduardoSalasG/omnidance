@@ -88,11 +88,11 @@ const rentalDayFmt = new Intl.DateTimeFormat("es-CL", {
 function SkeletonBlocks() {
   return (
     <>
-      <div className="flex flex-col gap-2 pt-4" aria-hidden>
+      <div className="page-loading flex flex-col gap-2 pt-4" aria-hidden>
         <div className="h-6 w-2/3 animate-pulse rounded-lg bg-night-800" />
         <div className="h-4 w-1/2 animate-pulse rounded-lg bg-night-800" />
       </div>
-      <div className="grid grid-cols-3 gap-3" aria-hidden>
+      <div className="page-loading grid grid-cols-3 gap-3" aria-hidden>
         {[0, 1, 2].map((i) => (
           <div
             key={i}
@@ -102,11 +102,11 @@ function SkeletonBlocks() {
       </div>
       <div
         aria-hidden
-        className="h-36 animate-pulse rounded-2xl border border-night-700 bg-night-900"
+        className="page-loading h-36 animate-pulse rounded-2xl border border-night-700 bg-night-900"
       />
       <div
         aria-hidden
-        className="h-36 animate-pulse rounded-2xl border border-night-700 bg-night-900"
+        className="page-loading h-36 animate-pulse rounded-2xl border border-night-700 bg-night-900"
       />
     </>
   );

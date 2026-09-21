@@ -387,7 +387,7 @@ export default function DoorConsolePage({
 
       {gate === "loading" && (
         <div className="flex flex-1 items-center justify-center p-6">
-          <Spinner size="lg" />
+          <Spinner size="lg" className="page-loading" />
         </div>
       )}
 

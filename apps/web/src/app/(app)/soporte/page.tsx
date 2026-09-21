@@ -246,7 +246,7 @@ export default function SoportePage() {
         {trimmed.length > 0 && trimmed.length < MIN_CHARS && (
           <p className="text-sm text-white/50">{t("minChars")}</p>
         )}
-        {searching && <Spinner size="sm" />}
+        {searching && <Spinner size="sm" className="page-loading" />}
         {searchErr && (
           <p role="alert" className="text-sm text-red-400">
             {t("searchError")}

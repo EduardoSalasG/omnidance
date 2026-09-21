@@ -283,7 +283,7 @@ export function PartnerRequests({ me }: PartnerRequestsProps) {
       )}
 
       {/* Feed de solicitudes OPEN — público */}
-      {state === "loading" && <Spinner size="sm" />}
+      {state === "loading" && <Spinner size="sm" className="page-loading" />}
       {state === "error" && <p className="text-white/60">{tc("error")}</p>}
       {state === "ready" &&
         (items.length === 0 ? (

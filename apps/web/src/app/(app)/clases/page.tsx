@@ -212,7 +212,7 @@ export default function ClasesPage() {
       {/* ─── Mis reservas ─── */}
       <section aria-label={t("mine")} className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("mine")}</h2>
-        {mineState === "loading" && <Spinner size="sm" />}
+        {mineState === "loading" && <Spinner size="sm" className="page-loading" />}
         {mineState === "error" && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-white/60">
@@ -327,7 +327,7 @@ export default function ClasesPage() {
           </label>
         </div>
 
-        {browseState === "loading" && <Spinner size="sm" />}
+        {browseState === "loading" && <Spinner size="sm" className="page-loading" />}
         {browseState === "error" && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-white/60">

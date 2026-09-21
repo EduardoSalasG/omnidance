@@ -168,7 +168,7 @@ export function HomeHub() {
   if (!checked) {
     return (
       <main className="flex min-h-dvh items-center justify-center">
-        <Spinner size="lg" />
+        <Spinner size="lg" className="page-loading" />
       </main>
     );
   }
@@ -315,7 +315,7 @@ export function HomeHub() {
           aria-label={tc("loading")}
           className="flex items-center justify-center py-16"
         >
-          <Spinner size="lg" />
+          <Spinner size="lg" className="page-loading" />
         </div>
       ) : (
         <>
