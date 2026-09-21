@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, EventDate } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { TripMatches } from "@/components/social/trip-matches";
 
 // Shape de Trip según trips.controller (prisma.trip)
@@ -179,11 +180,7 @@ export default function ViajesPage() {
         </Card>
       )}
 
-      {state === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <PageLoading />}
       {state === "error" && (
         <p role="alert" className="text-white/60">
           {tc("error")}

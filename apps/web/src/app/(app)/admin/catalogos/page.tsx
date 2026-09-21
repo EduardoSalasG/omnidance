@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
@@ -230,11 +231,7 @@ function CatalogSection({
         </div>
       )}
 
-      {items === null && !loadError && (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {items === null && !loadError && <Spinner size="sm" />}
 
       {items !== null && (
         <>

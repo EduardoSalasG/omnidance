@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, EventDate } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 
 // La cámara solo existe en el cliente — sin SSR.
 const Scanner = dynamic(
@@ -386,7 +387,7 @@ export default function DoorConsolePage({
 
       {gate === "loading" && (
         <div className="flex flex-1 items-center justify-center p-6">
-          <p className="text-white/60">{tc("loading")}</p>
+          <Spinner size="lg" />
         </div>
       )}
 

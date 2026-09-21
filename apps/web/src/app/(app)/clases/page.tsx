@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { inputCls, readError } from "@/components/academy/shared";
 
 // /clases — vista alumno: "Mis reservas" (GET /classes/mine, con cancelar)
@@ -211,11 +212,7 @@ export default function ClasesPage() {
       {/* ─── Mis reservas ─── */}
       <section aria-label={t("mine")} className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{t("mine")}</h2>
-        {mineState === "loading" && (
-          <p role="status" className="text-sm text-white/60">
-            {tc("loading")}
-          </p>
-        )}
+        {mineState === "loading" && <Spinner size="sm" />}
         {mineState === "error" && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-white/60">
@@ -330,11 +327,7 @@ export default function ClasesPage() {
           </label>
         </div>
 
-        {browseState === "loading" && (
-          <p role="status" className="text-sm text-white/60">
-            {tc("loading")}
-          </p>
-        )}
+        {browseState === "loading" && <Spinner size="sm" />}
         {browseState === "error" && (
           <div className="flex items-center gap-3">
             <p role="alert" className="text-sm text-white/60">

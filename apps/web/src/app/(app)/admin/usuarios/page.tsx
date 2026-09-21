@@ -1,14 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Card } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
-import type { RoleRow, UserRow } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
 
-const STATUSES = ["PENDING", "SANDBOX", "APPROVED"];
+// Respuesta de GET /admin/users?q= — liviana, sin detalle por rol.
+type SearchUser = {
+  id: string;
+  name: string;
+  email: string | null;
+  createdAt: string;
+  roles: { role: string; status: string }[];
+};
+
+const MIN_QUERY = 2;
+const DEBOUNCE_MS = 300;
 
 export default function UsuariosPage() {
   const t = useTranslations("admin");
@@ -28,189 +38,112 @@ function UsersPanel() {
   const tp = useTranslations("profile");
   const tc = useTranslations("common");
 
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [roles, setRoles] = useState<RoleRow[]>([]);
-
-  const [acting, setActing] = useState<string | null>(null);
-  const [actionError, setActionError] = useState(false);
   const [userQuery, setUserQuery] = useState("");
+  const [users, setUsers] = useState<SearchUser[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [actionError, setActionError] = useState(false);
 
-  const load = useCallback(
-    async (q = "") => {
-      const res = await apiFetch(
-        `/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`,
-      );
-      if (!res.ok) throw new Error("fetch failed");
-      setUsers((await res.json()) as UserRow[]);
-      // catálogo de roles para el dropdown de asignación
-      if (roles.length === 0) {
-        const rr = await apiFetch("/admin/roles");
-        if (rr.ok) setRoles((await rr.json()) as RoleRow[]);
-      }
-    },
-    [roles.length],
-  );
+  const q = userQuery.trim();
 
+  // Búsqueda con debounce: solo consulta el server con ≥2 caracteres
+  // (el endpoint devuelve [] con menos, nunca lista masiva).
   useEffect(() => {
-    void load().catch(() => setActionError(true));
-  }, [load]);
-
-  async function setUserRole(personId: string, role: string, status: string) {
-    if (acting) return;
-    setActing(personId + role);
-    setActionError(false);
-    try {
-      const res = await apiFetch(`/admin/users/${personId}/roles`, {
-        method: "POST",
-        body: JSON.stringify({ role, status }),
-      });
-      if (!res.ok) return setActionError(true);
-      await load(userQuery);
-    } catch {
-      setActionError(true);
-    } finally {
-      setActing(null);
+    if (q.length < MIN_QUERY) {
+      setUsers([]);
+      setSearched(false);
+      setSearching(false);
+      return;
     }
-  }
-
-  async function revokeRole(personId: string, role: string) {
-    if (acting) return;
-    if (!window.confirm(`${t("users.revoke")}: ${role}`)) return;
-    setActing(personId + role);
-    setActionError(false);
-    try {
-      const res = await apiFetch(`/admin/users/${personId}/roles/${role}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) return setActionError(true);
-      await load(userQuery);
-    } catch {
-      setActionError(true);
-    } finally {
-      setActing(null);
-    }
-  }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      apiFetch(`/admin/users?q=${encodeURIComponent(q)}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error("fetch failed");
+          setUsers((await res.json()) as SearchUser[]);
+          setSearched(true);
+        })
+        .catch(() => setActionError(true))
+        .finally(() => setSearching(false));
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [q]);
 
   const roleLabel = (r: string) =>
-    roles.find((x) => x.key === r)?.label ??
-    (tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r);
+    tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
   const statusLabel = (s: string) =>
     t.has(`status.${s}`) ? t(`status.${s}`) : s;
 
   return (
-    <>
+    <section className="flex flex-col gap-4">
       {actionError && (
         <p role="alert" className="text-sm text-red-400">
           {tc("error")}
         </p>
       )}
 
-      <section className="flex flex-col gap-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void load(userQuery).catch(() => setActionError(true));
-          }}
-        >
-          <input
-            value={userQuery}
-            onChange={(e) => setUserQuery(e.target.value)}
-            placeholder={t("users.search")}
-            aria-label={t("users.search")}
-            className="min-h-[44px] w-full rounded-lg border border-white/15 bg-black/40 px-3 text-sm"
-          />
-        </form>
-        <ul className="flex flex-col gap-3">
-          {users.map((u) => (
-            <li key={u.id}>
-              <Card className="flex flex-col gap-3">
-                <div className="flex flex-col">
-                  <span className="font-semibold">{u.name}</span>
+      <input
+        value={userQuery}
+        onChange={(e) => setUserQuery(e.target.value)}
+        placeholder={t("users.search")}
+        aria-label={t("users.search")}
+        type="search"
+        className="min-h-[44px] w-full rounded-lg border border-white/15 bg-black/40 px-3 text-sm"
+      />
+
+      {q.length === 0 && (
+        <p className="text-sm text-white/50">{t("users.searchHint")}</p>
+      )}
+      {q.length === 1 && (
+        <p className="text-sm text-white/50">{t("users.minChars")}</p>
+      )}
+      {searching && q.length >= MIN_QUERY && (
+        <p role="status" className="text-sm text-white/50">
+          {tc("loading")}
+        </p>
+      )}
+      {!searching && searched && users.length === 0 && (
+        <p className="text-sm text-white/50">{t("users.noResults")}</p>
+      )}
+
+      <ul className="flex flex-col gap-3">
+        {users.map((u) => (
+          <li key={u.id}>
+            <Link
+              href={`/admin/usuarios/${u.id}`}
+              className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <Card className="flex min-h-[44px] flex-col gap-2 transition-colors hover:border-neon/60">
+                <div className="flex min-w-0 flex-col">
+                  <span className="truncate font-semibold">{u.name}</span>
                   {u.email && (
-                    <span className="text-sm text-white/60">{u.email}</span>
+                    <span className="truncate text-sm text-white/60">
+                      {u.email}
+                    </span>
                   )}
                 </div>
-                {u.roles.length === 0 ? (
-                  <span className="text-xs text-white/50">
-                    {t("users.noRoles")}
-                  </span>
-                ) : (
-                  <ul className="flex flex-col gap-2">
+                {u.roles.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5">
                     {u.roles.map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex flex-wrap items-center gap-2"
-                      >
-                        <Badge variant="neon">{roleLabel(r.role)}</Badge>
-                        <select
-                          value={r.status}
-                          disabled={acting !== null}
-                          onChange={(e) =>
-                            void setUserRole(u.id, r.role, e.target.value)
+                      <li key={r.role}>
+                        <Badge
+                          variant={
+                            r.status === "APPROVED" ? "neon" : "outline"
                           }
-                          className="min-h-[44px] rounded-lg border border-white/15 bg-black/40 px-2 text-sm"
-                          aria-label={t("users.roleStatus", {
-                            role: roleLabel(r.role),
-                          })}
                         >
-                          {STATUSES.map((s) => (
-                            <option key={s} value={s}>
-                              {statusLabel(s)}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          disabled={acting !== null}
-                          onClick={() => void revokeRole(u.id, r.role)}
-                          className="min-h-[44px] rounded-lg px-2 text-xs text-red-400"
-                        >
-                          {t("users.revoke")}
-                        </button>
+                          {roleLabel(r.role)}
+                          {r.status !== "APPROVED" &&
+                            ` · ${statusLabel(r.status)}`}
+                        </Badge>
                       </li>
                     ))}
                   </ul>
                 )}
-                <div className="flex gap-2">
-                  <select
-                    id={`add-${u.id}`}
-                    className="min-h-[44px] flex-1 rounded-lg border border-white/15 bg-black/40 px-2 text-sm"
-                    defaultValue=""
-                    aria-label={t("users.addRole")}
-                  >
-                    <option value="" disabled>
-                      {t("users.addRole")}
-                    </option>
-                    {roles
-                      .filter(
-                        (r) => !u.roles.some((ur) => ur.role === r.key),
-                      )
-                      .map((r) => (
-                        <option key={r.key} value={r.key}>
-                          {r.label}
-                        </option>
-                      ))}
-                  </select>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    disabled={acting !== null}
-                    aria-label={t("users.addRole")}
-                    onClick={() => {
-                      const sel = document.getElementById(
-                        `add-${u.id}`,
-                      ) as HTMLSelectElement | null;
-                      const role = sel?.value;
-                      if (role) void setUserRole(u.id, role, "PENDING");
-                    }}
-                  >
-                    +
-                  </Button>
-                </div>
               </Card>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

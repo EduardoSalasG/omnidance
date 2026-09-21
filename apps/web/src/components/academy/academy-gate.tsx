@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { PrivateLessons } from "./private-lessons";
 import { inputCls, readError, type Academy } from "./shared";
 
@@ -121,7 +122,7 @@ export function AcademyGate({
 
   return (
     <>
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+      {gate === "loading" && <PageLoading />}
 
       {gate === "unauth" && (
         <div className="flex flex-col items-start gap-4">

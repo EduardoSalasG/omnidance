@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
+import { Spinner } from "@/components/ui/spinner";
 import { PrivateLessons } from "@/components/academy/private-lessons";
 
 // /academias — directorio para alumnos (vista "Mi Aprendizaje" del modo
@@ -18,7 +19,6 @@ type DirectoryAcademy = {
 
 export default function AcademiasPage() {
   const t = useTranslations("academy");
-  const tc = useTranslations("common");
   const [academies, setAcademies] = useState<DirectoryAcademy[] | null>(null);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function AcademiasPage() {
       >
         <h2 className="text-lg font-semibold">{t("directoryTitle")}</h2>
         {academies === null ? (
-          <p className="text-sm text-white/60">{tc("loading")}</p>
+          <Spinner size="sm" />
         ) : academies.length === 0 ? (
           <p className="text-sm text-white/60">{t("directoryEmpty")}</p>
         ) : (

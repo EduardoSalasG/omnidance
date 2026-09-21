@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
+import { PageLoading, Spinner } from "@/components/ui/spinner";
 import type {
   PaymentStatus,
   RoleStatus,
@@ -245,11 +246,7 @@ export default function SoportePage() {
         {trimmed.length > 0 && trimmed.length < MIN_CHARS && (
           <p className="text-sm text-white/50">{t("minChars")}</p>
         )}
-        {searching && (
-          <p role="status" className="text-sm text-white/50">
-            {tc("loading")}
-          </p>
-        )}
+        {searching && <Spinner size="sm" />}
         {searchErr && (
           <p role="alert" className="text-sm text-red-400">
             {t("searchError")}
@@ -274,11 +271,7 @@ export default function SoportePage() {
             <span aria-hidden="true">‹</span> {t("backToResults")}
           </button>
 
-          {detailPhase === "loading" && (
-            <p role="status" className="text-sm text-white/50">
-              {tc("loading")}
-            </p>
-          )}
+          {detailPhase === "loading" && <PageLoading />}
           {detailPhase === "error" && (
             <Card className="flex flex-col items-center gap-3 py-6 text-center">
               <p role="alert" className="text-sm text-white/70">

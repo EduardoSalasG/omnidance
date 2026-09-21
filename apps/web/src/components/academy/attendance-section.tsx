@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, EventDate } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import {
   inputCls,
   readError,
@@ -163,9 +164,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
       </Card>
 
       {loading ? (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
+        <Spinner size="sm" />
       ) : error ? (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-white/60">

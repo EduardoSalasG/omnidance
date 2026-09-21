@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, EventDate } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import type { AvailabilityEntry, Me } from "./types";
 
@@ -161,11 +162,7 @@ export function AvailabilitySection({ me }: AvailabilitySectionProps) {
       )}
 
       {/* Feed público */}
-      {feedState === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {feedState === "loading" && <Spinner size="sm" />}
       {feedState === "error" && (
         <p role="alert" className="text-white/60">
           {tc("error")}

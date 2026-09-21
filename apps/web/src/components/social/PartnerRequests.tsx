@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import type { Me, PartnerRequest } from "./types";
 
@@ -282,7 +283,7 @@ export function PartnerRequests({ me }: PartnerRequestsProps) {
       )}
 
       {/* Feed de solicitudes OPEN — público */}
-      {state === "loading" && <p className="text-white/50">{tc("loading")}</p>}
+      {state === "loading" && <Spinner size="sm" />}
       {state === "error" && <p className="text-white/60">{tc("error")}</p>}
       {state === "ready" &&
         (items.length === 0 ? (
