@@ -157,6 +157,14 @@
     "from": "desde",
     "backToList": "Volver a eventos",
     "lineup": "Lineup",
+    "shows": "Shows de la noche",
+    "showTeam": {
+      "BOOTCAMP": "Bootcamp",
+      "ALUMNOS": "Team Alumnos",
+      "OPEN": "Team Open",
+      "PRO": "Team Pro",
+      "AMATEUR": "Team Amateur"
+    },
     "program": "Planificación de la noche",
     "schedule": "Bloques por estilo",
     "openFloor": "Pista abierta",

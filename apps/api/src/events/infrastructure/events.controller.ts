@@ -431,6 +431,10 @@ export class EventsController {
             style: { select: { id: true, name: true } },
           },
         },
+        shows: {
+          orderBy: { order: "asc" },
+          select: { academy: true, teamType: true, name: true },
+        },
       },
     });
     if (!event) throw new NotFoundException();

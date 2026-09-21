@@ -877,7 +877,13 @@ model Show {
   event    Event    @relation(fields: [eventId], references: [id])
   eventId  String
   academyId String?
-  name     String
+  // Nombre visible de la academia — texto libre: puede no estar
+  // registrada en la app (academyId la vincula cuando sí lo está).
+  academy  String
+  // BOOTCAMP | ALUMNOS | OPEN | PRO | AMATEUR — tipo de team que presenta
+  teamType String
+  name     String    // nombre de la coreografía
+  order    Int       @default(0) // orden de presentación en la noche
   slotAt   DateTime? // ~00:30
   performers ShowPerformer[]
 }

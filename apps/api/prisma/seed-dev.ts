@@ -1011,6 +1011,72 @@ export async function seedDev(prisma: PrismaClient) {
     );
   }
 
+  // ─── Shows de la noche ───
+  // Formato real: academia (texto libre — puede no estar registrada),
+  // tipo de team (BOOTCAMP | ALUMNOS | OPEN | PRO | AMATEUR) y nombre de
+  // la coreografía. Promedio 3–5 por noche con shows; algunas no tienen.
+  type ShowSeed = { academy: string; teamType: string; name: string };
+  const showRosters: Record<string, ShowSeed[]> = {
+    "Social con Estilo": [
+      { academy: "Mambo Madness", teamType: "ALUMNOS", name: "La Peleona" },
+      { academy: "Mambo Madness", teamType: "OPEN", name: "Rey del Timbal" },
+      { academy: "MuéveteOnTour", teamType: "PRO", name: "Descarga Total" },
+      { academy: "Academia Tumbao", teamType: "AMATEUR", name: "Mi Tumbao" },
+    ],
+    "La Gozadera": [
+      { academy: "Academia Tumbao", teamType: "ALUMNOS", name: "Candela Pura" },
+      { academy: "Mambo Madness", teamType: "BOOTCAMP", name: "Bootcamp On2" },
+      { academy: "MuéveteOnTour", teamType: "OPEN", name: "Rumba Buena" },
+    ],
+    "Desafío de Tronos": [
+      { academy: "MuéveteOnTour", teamType: "PRO", name: "Guaguancó Royal" },
+      { academy: "MuéveteOnTour", teamType: "ALUMNOS", name: "Los Novatos" },
+      { academy: "Academia Tumbao", teamType: "OPEN", name: "Sabor Compartido" },
+    ],
+    "Bachatamanía": [
+      { academy: "Academia Tumbao", teamType: "ALUMNOS", name: "Sensual Night" },
+      { academy: "Mambo Madness", teamType: "OPEN", name: "Bachata Flow" },
+      { academy: "MuéveteOnTour", teamType: "BOOTCAMP", name: "Dominican Power" },
+    ],
+    "Baila Cubano con Bachata": [
+      { academy: "MuéveteOnTour", teamType: "ALUMNOS", name: "Timba y Sandunga" },
+      { academy: "Academia Tumbao", teamType: "AMATEUR", name: "Son de Prueba" },
+    ],
+    "Miércoles Salseros": [
+      { academy: "Mambo Madness", teamType: "PRO", name: "Mambo Clásico" },
+      { academy: "Academia Tumbao", teamType: "BOOTCAMP", name: "Shine On2" },
+    ],
+    // Ashe (pura timba) y las noches solo-bachata de Tierra sin roster:
+    // demuestran el caso 0 shows.
+  };
+  // Academias registradas → el show queda vinculado (academyId) para que
+  // el perfil de la academia pueda listar sus presentaciones; el resto
+  // solo lleva el nombre de texto.
+  const academyIds: Record<string, string> = {
+    MuéveteOnTour: muvet.id,
+    "Academia Tumbao": tumbao.id,
+  };
+  const pubEvents = await prisma.event.findMany({
+    where: { status: "PUBLISHED" },
+    select: { id: true, name: true },
+  });
+  // Reseed determinista: se recrea el roster completo en cada corrida.
+  await prisma.show.deleteMany({
+    where: { eventId: { in: pubEvents.map((e) => e.id) } },
+  });
+  for (const ev of pubEvents) {
+    const roster = showRosters[ev.name];
+    if (!roster) continue;
+    await prisma.show.createMany({
+      data: roster.map((s, i) => ({
+        ...s,
+        academyId: academyIds[s.academy] ?? null,
+        eventId: ev.id,
+        order: i,
+      })),
+    });
+  }
+
   // ─── Fees por productor + override por evento ───
   // Defaults del productor: el admin los edita en /admin/parametros;
   // el productor los ve read-only en /productor/parametros.
