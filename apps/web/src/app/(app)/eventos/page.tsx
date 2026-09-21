@@ -277,8 +277,8 @@ export default async function EventosPage({
     // géneros como texto coloreado (menos chrome que chips outline).
     const inner = (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
-        <div className="flex items-start gap-3">
-          <span className="w-11 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-white/80">
+        <div className="flex items-start gap-2">
+          <span className="w-10 shrink-0 pt-0.5 text-sm font-semibold tabular-nums text-white/80">
             <EventDate start={e.startsAt} variant="time" />
           </span>
           <div className="min-w-0 flex-1">

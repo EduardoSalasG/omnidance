@@ -612,10 +612,13 @@ export async function seedDev(prisma: PrismaClient) {
     weekday: number,
     djIds: string[],
     genres: Genre[] = [],
+    aliases: string[] = [],
   ) => {
     const series = await ensure(
       () =>
-        prisma.eventSeries.findFirst({ where: { name, producerId } }),
+        prisma.eventSeries.findFirst({
+          where: { producerId, name: { in: [name, ...aliases] } },
+        }),
       () =>
         prisma.eventSeries.create({
           data: { name, producerId, venueId, recurrence, genres },
@@ -623,15 +626,19 @@ export async function seedDev(prisma: PrismaClient) {
       (s) =>
         prisma.eventSeries.update({
           where: { id: s.id },
-          data: { venueId, recurrence, genres },
+          data: { name, venueId, recurrence, genres },
         }),
     );
 
-    const eventName = `${name} — edición`;
+    // El evento lleva el nombre de la marca ("Bachatamanía"), sin
+    // sufijos — en la vida real el flyer dice solo eso.
+    const eventName = name;
     const event = await ensure(
       () =>
         prisma.event.findFirst({
-          where: { name: eventName, seriesId: series.id },
+          // PUBLISHED: la serie también tiene ediciones CLOSED
+          // (historial) que no deben absorber este upsert.
+          where: { seriesId: series.id, status: "PUBLISHED" },
         }),
       () =>
         prisma.event.create({
@@ -653,6 +660,7 @@ export async function seedDev(prisma: PrismaClient) {
         prisma.event.update({
           where: { id: e.id },
           data: {
+            name: eventName,
             startsAt: nextDay(weekday),
             endsAt: nextDay(weekday, 22 + 6),
             presalePrice: presale,
@@ -674,13 +682,17 @@ export async function seedDev(prisma: PrismaClient) {
 
   // Orixas
   const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA]);
-  const juevesCubano = await mkSeries("Baila Cubano con Bachata (Jueves Cubano)", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA]);
+  const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"]);
   await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], [Genre.CUBANO]);
   await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], [Genre.SALSA]);
   await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month", 6000, 8000, 6, [fabian.id], [Genre.SALSA]);
   await mkSeries("Ashe", cesar.id, orixas.id, "1x/month", 6000, 8000, 6, [cesar.id], [Genre.CUBANO]);
 
-  // Noches standalone (sin serie) — find-or-create por nombre+venue+weekday
+  // Noches standalone (sin serie) — el nombre es solo la marca del
+  // venue ("Tierra Dura"); las noches homónimas se distinguen por el
+  // weekday de su startsAt, que persiste entre reseeds. El alias legacy
+  // ("— noche <día>") migra las filas ya sembradas sin duplicar.
+  const wdName = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
   const mkNight = async (
     venueId: string,
     name: string,
@@ -691,12 +703,23 @@ export async function seedDev(prisma: PrismaClient) {
     djIds: string[] = [],
     genres: Genre[] = [],
   ) => {
+    const findNight = async () => {
+      const candidates = await prisma.event.findMany({
+        where: {
+          venueId,
+          seriesId: null,
+          name: { in: [name, `${name} — noche ${wdName[weekday]}`] },
+        },
+      });
+      return (
+        candidates.find(
+          (e) => new Date(e.startsAt).getDay() === weekday,
+        ) ?? null
+      );
+    };
     // clave natural: nombre + venue + weekday implícito en la fecha
     const event = await ensure(
-      () =>
-        prisma.event.findFirst({
-          where: { name, venueId, seriesId: null },
-        }),
+      findNight,
       () =>
         prisma.event.create({
           data: {
@@ -715,6 +738,7 @@ export async function seedDev(prisma: PrismaClient) {
         prisma.event.update({
           where: { id: e.id },
           data: {
+            name,
             genres,
             startsAt: nextDay(weekday),
             endsAt: nextDay(weekday, 22 + 6),
@@ -734,12 +758,10 @@ export async function seedDev(prisma: PrismaClient) {
   };
 
   // Tierra Dura — mar–sáb; mar/mié liberada hasta 23:30 luego $4.000 en puerta.
-  // weekday va en el nombre para distinguir las 5 noches homónimas.
-  const wdName = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
   for (const wd of [2, 3, 4, 5, 6]) {
     await mkNight(
       tierraDura.id,
-      `Tierra Dura — noche ${wdName[wd]}`,
+      "Tierra Dura",
       wd,
       5000,
       wd === 2 || wd === 3 ? 4000 : 7000,
@@ -753,7 +775,7 @@ export async function seedDev(prisma: PrismaClient) {
   for (const wd of [6, 0]) {
     await mkNight(
       havana.id,
-      `Havana — noche ${wdName[wd]}`,
+      "Havana",
       wd,
       5000,
       7000,
