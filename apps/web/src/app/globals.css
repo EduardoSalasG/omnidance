@@ -122,6 +122,18 @@ body {
   animation: tab-pop 300ms cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 
+/* ─── Appbar hide-on-scroll (patrón iOS) ───
+   Scroll hacia el contenido → se desliza fuera; scroll de vuelta o
+   fin de página → reaparece. translateY sobre sticky: el espacio en
+   flujo queda reservado, no hay reflow del contenido. */
+.appbar {
+  transition: transform 260ms cubic-bezier(0.3, 0.9, 0.3, 1);
+  will-change: transform;
+}
+.appbar-hidden {
+  transform: translateY(-100%);
+}
+
 /* ─── Utilidades de sistema ─── */
 @layer utilities {
   /* Display type — tracking óptico: negativo al crecer (WWDC typography) */
