@@ -218,6 +218,7 @@
     "price": "Precio",
     "serviceFee": "Cargo por servicio",
     "discount": "Descuento",
+    "presaleCutoff": "La preventa cierra a las 19:00 del día del evento — después solo en puerta.",
     "total": "Total",
     "discountCode": "Código de descuento (opcional)",
     "discountPlaceholder": "CUMPLE20",

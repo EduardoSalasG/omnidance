@@ -35,6 +35,13 @@ export class PresaleSoldOutError extends Error {
   }
 }
 
+export class PresaleClosedError extends Error {
+  constructor() {
+    super("La preventa cerró a las 19:00 — el resto se paga en puerta");
+    this.name = "PresaleClosedError";
+  }
+}
+
 export class InvalidDiscountError extends Error {
   constructor(reason: "EXPIRED" | "EXHAUSTED" | "SCOPE_MISMATCH" | "UNKNOWN") {
     super(
@@ -130,6 +137,7 @@ export class CheckoutService {
       select: {
         id: true,
         status: true,
+        startsAt: true,
         presalePrice: true,
         presaleCap: true,
         seriesId: true,
@@ -141,6 +149,14 @@ export class CheckoutService {
     if (event.status !== "PUBLISHED" || event.presalePrice == null) {
       throw new PresaleUnavailableError();
     }
+
+    // La preventa cierra a las 19:00 del día del evento (hora local del
+    // server — los startsAt del seed también se generan en hora local).
+    // Parametrizable: presale.cutoff_hour.
+    const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
+    const cutoff = new Date(event.startsAt);
+    cutoff.setHours(cutoffHour, 0, 0, 0);
+    if (new Date() >= cutoff) throw new PresaleClosedError();
 
     // Destinatarios de regalo: deben existir, ser amigos ACCEPTED del
     // comprador y no tener ya una entrada ACTIVE para el evento.

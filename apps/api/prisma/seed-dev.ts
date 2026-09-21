@@ -895,7 +895,7 @@ export async function seedDev(prisma: PrismaClient) {
   // Tierra — programación mensual con la rotación real: martes fijo
   // Bachata Club, miércoles fijo Miércoles Salseros, jueves alterna
   // Switch/AbraZouk, vie+sáb rotan Exóticas/Bachatazo/Galaxy/BC/Lovers.
-  // mar/mié liberada hasta 23:30 luego $4.000 en puerta.
+  // Puerta siempre > preventa: mar/mié $6.000, jue a sáb $7.000.
   const PURE_B = mix([Genre.BACHATA, 1]);
   const PURE_S = mix([Genre.SALSA, 1]);
   const GALAXY_MIX = mix([Genre.BACHATA, 5], [Genre.SALSA, 2]); // 5×2
@@ -983,7 +983,7 @@ export async function seedDev(prisma: PrismaClient) {
       name,
       wd,
       5000,
-      wd <= 3 ? 4000 : 7000,
+      wd <= 3 ? 6000 : 7000,
       250,
       [],
       g,

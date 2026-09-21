@@ -18,6 +18,7 @@ import {
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
   RecipientError,
+  PresaleClosedError,
 } from "./checkout.service";
 
 // CheckoutService — orquestación del checkout de preventa / pase de serie.
@@ -153,6 +154,8 @@ type PrismaMock = ReturnType<typeof mkPrisma>["prisma"];
 const mkEvent = (over: Record<string, unknown> = {}) => ({
   id: "evt-1",
   status: "PUBLISHED",
+  // mañana 22:00 — la preventa sigue abierta (corte: 19:00 del día)
+  startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   presalePrice: 10000,
   presaleCap: null,
   seriesId: null,
@@ -212,6 +215,24 @@ describe("CheckoutService.purchaseTicket", () => {
       mkEvent({ presalePrice: null }),
     );
     await expect(buy()).rejects.toBeInstanceOf(PresaleUnavailableError);
+  });
+
+  it("pasado el corte (19:00 del día del evento) → PresaleClosedError", async () => {
+    // startsAt 1h atrás → el corte de las 19:00 de ese día ya pasó
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ startsAt: new Date(Date.now() - 60 * 60 * 1000) }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PresaleClosedError);
+  });
+
+  it("el corte respeta presale.cutoff_hour del PlatformParam", async () => {
+    // evento mañana — cualquier cutoff razonable queda abierto
+    pf.numbers.set("presale.cutoff_hour", 23);
+    await buy(); // no lanza
+    expect(pf.params.getNumber).toHaveBeenCalledWith(
+      "presale.cutoff_hour",
+      19,
+    );
   });
 
   it("cap: vendidos + órdenes PENDING en vuelo >= presaleCap → PresaleSoldOutError", async () => {

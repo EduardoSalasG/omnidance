@@ -313,6 +313,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               </dd>
             </div>
           </dl>
+          <p className="mt-3 text-xs text-white/50">{t("presaleCutoff")}</p>
         </Card>
 
         {/* Código de descuento */}
