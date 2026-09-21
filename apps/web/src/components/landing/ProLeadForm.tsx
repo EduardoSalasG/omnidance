@@ -231,7 +231,7 @@ export function ProLeadForm() {
       <fieldset>
         <legend className="text-xs font-medium text-white/60">
           {t.fieldRoles}{" "}
-          <span className="text-white/35">— {t.fieldRolesHint}</span>
+          <span className="text-white/35">({t.fieldRolesHint})</span>
         </legend>
         <div
           className={`mt-2 flex flex-wrap justify-center gap-2 rounded-xl sm:justify-start ${
