@@ -47,14 +47,14 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Color del punto en calendario por género (el primero del evento).
 const DOT_COLOR: Record<GenreKey, string> = {
-  SALSA: "bg-neon",
+  SALSA: "bg-orange-500",
   BACHATA: "bg-fuchsia-400",
   CUBANO: "bg-amber-400",
 };
 // Género como texto coloreado en el card (misma paleta que los dots,
 // variante clara para AA sobre fondo oscuro).
 const GENRE_TEXT: Record<GenreKey, string> = {
-  SALSA: "text-neon",
+  SALSA: "text-orange-400",
   BACHATA: "text-fuchsia-300",
   CUBANO: "text-amber-300",
 };
