@@ -293,10 +293,10 @@ export default async function EventosPage({
     // Los cards viven bajo heading de día → solo hora.
     const inner = (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2">
           {/* Col 1: hora + venue (pin + texto, sin chrome de chip —
               así nombres de dos palabras caben sin truncar) */}
-          <div className="flex w-24 shrink-0 flex-col items-start gap-1">
+          <div className="flex w-1/4 shrink-0 flex-col items-start gap-1">
             <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
               <EventDate start={e.startsAt} variant="time" />
             </span>
@@ -320,7 +320,7 @@ export default async function EventosPage({
             )}
           </div>
           {/* Col 2: título (1 línea) + estilos debajo */}
-          <div className="min-w-0 flex-1">
+          <div className="w-1/2 min-w-0">
             <h2 className="truncate text-base font-semibold leading-snug">
               {e.name}
             </h2>
@@ -353,7 +353,7 @@ export default async function EventosPage({
             )}
           </div>
           {/* Col 3: precio */}
-          <div className="shrink-0 pt-0.5 text-right">
+          <div className="w-1/4 shrink-0 pt-0.5 text-right">
             {e.presalePrice != null ? (
               <>
                 <span className="block text-xs leading-tight text-white/50">
