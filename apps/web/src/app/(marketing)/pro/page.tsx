@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Landing } from "@/components/landing/Landing";
 import { JsonLd } from "@/components/landing/JsonLd";
 import landingParts from "@/i18n/parts/landing.json";
-import { countThisWeek, fetchPublicEvents } from "@/lib/public-events";
+import { fetchPublicEvents, thisWeek } from "@/lib/public-events";
 
 const t = landingParts.landingPro;
 
@@ -16,6 +16,9 @@ export const metadata: Metadata = {
     title: `${t.metaTitle} — Omnidance`,
     description: t.metaDescription,
     url: "/pro",
+    // El openGraph propio de la página tapa la convención
+    // opengraph-image.tsx — la imagen se declara explícita.
+    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 
@@ -26,7 +29,11 @@ export default async function ProLanding() {
   return (
     <>
       <JsonLd events={events.slice(0, 3)} />
-      <Landing variant="pro" weeklyEvents={countThisWeek(events)} />
+      <Landing
+        variant="pro"
+        weeklyEvents={thisWeek(events).length}
+        weekEvents={thisWeek(events).slice(0, 3)}
+      />
     </>
   );
 }

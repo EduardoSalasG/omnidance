@@ -23,9 +23,9 @@ type Missing = "name" | "email" | "phone" | "roles";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const inputClass =
-  "min-h-12 w-full rounded-xl border border-white/10 bg-night-900/60 px-4 text-base text-white placeholder:text-white/30 outline-none transition-colors focus:border-neon/60";
+  "min-h-12 w-full rounded-xl border border-white/10 bg-night-900/60 px-4 text-base text-white placeholder:text-white/50 outline-none transition-colors focus:border-neon/60";
 const inputErrorClass =
-  "min-h-12 w-full rounded-xl border border-red-400/70 bg-night-900/60 px-4 text-base text-white placeholder:text-white/30 outline-none transition-colors focus:border-red-400";
+  "min-h-12 w-full rounded-xl border border-red-400/70 bg-night-900/60 px-4 text-base text-white placeholder:text-white/50 outline-none transition-colors focus:border-red-400";
 
 /**
  * Formulario de lead de la landing /pro: captura nombre, correo, teléfono y
@@ -55,11 +55,13 @@ export function ProLeadForm() {
         : [...prev, value],
     );
 
-  function validate(): Missing[] {
+  // El teléfono solo es obligatorio si piden contacto — la demo baja la
+  // fricción (nombre, correo y roles bastan para entrar a la app).
+  function validate(intent: Intent): Missing[] {
     const miss: Missing[] = [];
     if (name.trim().length < 2) miss.push("name");
     if (!EMAIL_RE.test(email.trim())) miss.push("email");
-    if (!phone.trim()) miss.push("phone");
+    if (intent === "CONTACT" && !phone.trim()) miss.push("phone");
     if (roles.length === 0) miss.push("roles");
     return miss;
   }
@@ -73,13 +75,13 @@ export function ProLeadForm() {
 
   async function submit(intent: Intent) {
     setError(null);
-    const miss = validate();
+    const miss = validate(intent);
     setMissing(miss);
     if (miss.length > 0) {
       setError(
         t.errorMissing.replace(
           "{fields}",
-          miss.map((m) => FIELD_LABEL[m].replace(" (opcional)", "")).join(", "),
+          miss.map((m) => FIELD_LABEL[m]).join(", "),
         ),
       );
       return;
@@ -92,7 +94,7 @@ export function ProLeadForm() {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          phone: phone.trim(),
+          phone: phone.trim() || null,
           roles,
           intent,
         }),
@@ -195,20 +197,26 @@ export function ProLeadForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-invalid={missing.includes("name")}
+            aria-describedby={
+              missing.includes("name") ? "lead-error" : undefined
+            }
             className={missing.includes("name") ? inputErrorClass : inputClass}
           />
         </label>
         <label className="flex flex-col gap-1.5">
           <span className="text-xs font-medium text-white/60">
-            {t.fieldPhone}
+            {t.fieldPhone}{" "}
+            <span className="text-white/50">({t.fieldPhoneHint})</span>
           </span>
           <input
-            required
             type="tel"
             autoComplete="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             aria-invalid={missing.includes("phone")}
+            aria-describedby={
+              missing.includes("phone") ? "lead-error" : undefined
+            }
             className={missing.includes("phone") ? inputErrorClass : inputClass}
           />
         </label>
@@ -224,6 +232,9 @@ export function ProLeadForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           aria-invalid={missing.includes("email")}
+          aria-describedby={
+            missing.includes("email") ? "lead-error" : undefined
+          }
           className={missing.includes("email") ? inputErrorClass : inputClass}
         />
       </label>
@@ -231,7 +242,7 @@ export function ProLeadForm() {
       <fieldset>
         <legend className="text-xs font-medium text-white/60">
           {t.fieldRoles}{" "}
-          <span className="text-white/35">({t.fieldRolesHint})</span>
+          <span className="text-white/50">({t.fieldRolesHint})</span>
         </legend>
         <div
           className={`mt-2 flex flex-wrap justify-center gap-2 rounded-xl sm:justify-start ${
@@ -262,7 +273,11 @@ export function ProLeadForm() {
       </fieldset>
 
       {error && (
-        <p role="alert" className="text-sm font-medium text-red-400">
+        <p
+          id="lead-error"
+          role="alert"
+          className="text-sm font-medium text-red-400"
+        >
           {error}
         </p>
       )}
@@ -286,6 +301,7 @@ export function ProLeadForm() {
           {t.submitDemo}
         </button>
       </div>
+      <p className="text-center text-xs text-white/50">{t.privacyNote}</p>
     </form>
   );
 }
