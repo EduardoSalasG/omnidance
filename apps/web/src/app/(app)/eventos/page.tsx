@@ -37,9 +37,17 @@ type EventListItem = {
 
 type MyRsvp = { eventId: string; status: "GOING" | "INTERESTED" };
 type View = "list" | "calendar" | "saved";
+type GenreKey = (typeof GENRES)[number];
 
 const GENRES = ["SALSA", "BACHATA", "CUBANO"] as const;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Color del punto en calendario por género (el primero del evento).
+const DOT_COLOR: Record<GenreKey, string> = {
+  SALSA: "bg-neon",
+  BACHATA: "bg-fuchsia-400",
+  CUBANO: "bg-amber-400",
+};
 
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "short",
@@ -75,7 +83,7 @@ function groupByDay(events: EventListItem[]) {
     .map(([key, items]) => ({ key, label: items[0].startsAt, items }));
 }
 
-/** RSVP propios del usuario autenticado — cookie forward (401 → null). */
+/** RSVP propios del usuario autenticado — cookie forward (401 → vacío). */
 async function getMyRsvps(): Promise<Map<string, MyRsvp["status"]>> {
   const res = await fetch(`${API_URL}/api/me/rsvp`, {
     cache: "no-store",
@@ -97,6 +105,10 @@ function parseMonth(raw: string | undefined): { y: number; m: number } {
   }
   return { y: now.getFullYear(), m: now.getMonth() + 1 };
 }
+
+/** "YYYY-MM-DD" validado; null si no matchea. */
+const parseDay = (raw: string | undefined): string | null =>
+  raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
 
 /** Celdas de la grilla: null = relleno fuera del mes. Semana parte lunes. */
 function calendarCells(
@@ -124,6 +136,7 @@ export default async function EventosPage({
     venue?: string;
     view?: string;
     month?: string;
+    day?: string;
     near?: string;
   };
 }) {
@@ -136,7 +149,15 @@ export default async function EventosPage({
   ]);
   const all: EventListItem[] = res.ok ? await res.json() : [];
 
-  const genre = GENRES.find((g) => g === searchParams?.genre?.toUpperCase());
+  // Género multiselect: ?genre=SALSA,BACHATA — unión (cualquiera matchea).
+  const genreSet = new Set(
+    (searchParams?.genre ?? "")
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter((g): g is GenreKey =>
+        (GENRES as readonly string[]).includes(g),
+      ),
+  );
   const venueId = searchParams?.venue;
   const near = parseNear(searchParams?.near);
   const rawView = searchParams?.view;
@@ -161,7 +182,8 @@ export default async function EventosPage({
 
   const filtered = pool.filter(
     (e) =>
-      (!genre || e.genres.includes(genre)) &&
+      (genreSet.size === 0 ||
+        e.genres.some((g) => genreSet.has(g as GenreKey))) &&
       (!venueId || e.venue?.id === venueId),
   );
 
@@ -186,6 +208,7 @@ export default async function EventosPage({
 
   const saved = filtered.filter((e) => myRsvps.has(e.id));
 
+  // ─── Calendario ───
   const { y: calY, m: calM } = parseMonth(searchParams?.month);
   const calByDay = new Map<string, EventListItem[]>();
   for (const e of filtered) {
@@ -193,11 +216,20 @@ export default async function EventosPage({
     calByDay.set(key, [...(calByDay.get(key) ?? []), e]);
   }
   const cells = calendarCells(calY, calM, calByDay);
-  const prevMonth = new Date(calY, calM - 2, 1);
-  const nextMonth = new Date(calY, calM, 1);
   const monthParam = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const prevMonth = new Date(calY, calM - 2, 1);
+  const nextMonth = new Date(calY, calM, 1);
+  const currentMonthKey = `${calY}-${String(calM).padStart(2, "0")}`;
   const todayKey = dayKey(new Date().toISOString());
+  // Día seleccionado: param si cae en el mes visible; si no, hoy.
+  const selectedDay = (() => {
+    const d = parseDay(searchParams?.day);
+    if (d?.startsWith(currentMonthKey)) return d;
+    if (todayKey.startsWith(currentMonthKey)) return todayKey;
+    return null;
+  })();
+  const selectedEvents = selectedDay ? (calByDay.get(selectedDay) ?? []) : [];
 
   // Chips SSR: cada filtro preserva el resto — compartibles y sin JS.
   const hrefFor = (o: {
@@ -205,14 +237,15 @@ export default async function EventosPage({
     venue?: string;
     view?: string;
     month?: string;
+    day?: string;
     near?: string;
   }) => {
     const merged = {
-      genre,
+      genre: [...genreSet].join(",") || undefined,
       venue: venueId,
       view: view !== "list" ? view : undefined,
-      month:
-        view === "calendar" ? monthParam(new Date(calY, calM - 1, 1)) : undefined,
+      month: view === "calendar" ? currentMonthKey : undefined,
+      day: view === "calendar" ? (selectedDay ?? undefined) : undefined,
       near: searchParams?.near,
       ...o,
     };
@@ -226,6 +259,10 @@ export default async function EventosPage({
       active
         ? "border-neon bg-neon/15 text-neon"
         : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+    }`;
+  const iconBtn = (active: boolean) =>
+    `inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
+      active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
 
   const renderCard = (e: EventListItem) => {
@@ -253,9 +290,7 @@ export default async function EventosPage({
               {km != null && ` · a ${formatKm(km)}`}
             </p>
           </div>
-          <div
-            className={`shrink-0 text-right ${isAuthed ? "pt-11" : ""}`}
-          >
+          <div className={`shrink-0 text-right ${isAuthed ? "pt-11" : ""}`}>
             {e.presalePrice != null ? (
               <>
                 <span className="block text-xs text-white/50">
@@ -308,179 +343,254 @@ export default async function EventosPage({
     </section>
   );
 
-  const filterNav = (
-    <>
-      <nav
-        aria-label="Filtrar por estilo"
-        className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
-      >
-        <Link href={hrefFor({ genre: undefined })} className={chipClass(!genre)}>
-          {t.filterAll}
-        </Link>
-        {GENRES.map((g) => (
-          <Link
-            key={g}
-            href={hrefFor({ genre: g })}
-            aria-current={genre === g ? "true" : undefined}
-            className={chipClass(genre === g)}
-          >
-            {t.genre[g]}
-          </Link>
-        ))}
-      </nav>
-
-      {(venues.length > 1 || view === "list") && (
-        <nav
-          aria-label="Filtrar por local"
-          className="no-scrollbar -mx-6 flex items-center gap-2 overflow-x-auto px-6"
-        >
-          {venues.length > 1 && (
-            <>
-              <Link
-                href={hrefFor({ venue: undefined })}
-                className={chipClass(!venueId)}
-              >
-                {t.allVenues}
-              </Link>
-              {venues.map(([id, name]) => (
-                <Link
-                  key={id}
-                  href={hrefFor({ venue: id })}
-                  aria-current={venueId === id ? "true" : undefined}
-                  className={chipClass(venueId === id)}
-                >
-                  {name}
-                </Link>
-              ))}
-            </>
-          )}
-          {view === "list" &&
-            (near ? (
-              <Link
-                href={hrefFor({ near: undefined })}
-                className={chipClass(true)}
-                aria-label={t.nearClear}
-              >
-                {t.near} ✕
-              </Link>
-            ) : (
-              <Suspense fallback={null}>
-                <NearMeButton />
-              </Suspense>
-            ))}
-        </nav>
-      )}
-    </>
-  );
+  const venueLabel = venueId
+    ? (venues.find(([id]) => id === venueId)?.[1] ?? t.allVenues)
+    : near
+      ? t.near
+      : t.allVenues;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 p-6">
       <header className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold">
-          {isAuthed ? t.title : t.publicLead}
-        </h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">
+            {isAuthed ? t.title : t.publicLead}
+          </h1>
+          {isAuthed && (
+            <div className="flex items-center gap-2">
+              {/* Toggle lista/calendario — íconos, segmented */}
+              <div className="flex items-center rounded-full border border-white/15 p-0.5">
+                <Link
+                  href={hrefFor({ view: undefined, month: undefined, day: undefined })}
+                  aria-label={t.viewList}
+                  aria-current={view === "list" ? "true" : undefined}
+                  className={iconBtn(view === "list")}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                    <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+                  </svg>
+                </Link>
+                <Link
+                  href={hrefFor({ view: "calendar", month: undefined, day: undefined })}
+                  aria-label={t.viewCalendar}
+                  aria-current={view === "calendar" ? "true" : undefined}
+                  className={iconBtn(view === "calendar")}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                    <rect x="3" y="4" width="18" height="17" rx="2" />
+                    <path d="M8 2v3M16 2v3M3 9h18" />
+                  </svg>
+                </Link>
+              </div>
+              {/* Guardados — ícono aparte */}
+              <Link
+                href={hrefFor({ view: "saved", month: undefined, day: undefined })}
+                aria-label={t.viewSaved}
+                aria-current={view === "saved" ? "true" : undefined}
+                className={`${iconBtn(view === "saved")} border border-white/15`}
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill={view === "saved" ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
+              </Link>
+            </div>
+          )}
+        </div>
 
-        {isAuthed && (
-          <nav
-            aria-label="Vista de eventos"
-            className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
+        {/* Géneros — multiselect, cada chip togglea en el set */}
+        <nav
+          aria-label="Filtrar por estilo"
+          className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
+        >
+          <Link
+            href={hrefFor({ genre: undefined })}
+            className={chipClass(genreSet.size === 0)}
           >
-            <Link
-              href={hrefFor({ view: undefined, month: undefined })}
-              className={chipClass(view === "list")}
-            >
-              {t.viewList}
-            </Link>
-            <Link
-              href={hrefFor({ view: "calendar", month: undefined })}
-              className={chipClass(view === "calendar")}
-            >
-              {t.viewCalendar}
-            </Link>
-            <Link
-              href={hrefFor({ view: "saved", month: undefined })}
-              className={chipClass(view === "saved")}
-            >
-              {t.viewSaved}
-            </Link>
-          </nav>
-        )}
+            {t.filterAll}
+          </Link>
+          {GENRES.map((g) => {
+            const next = new Set(genreSet);
+            if (next.has(g)) next.delete(g);
+            else next.add(g);
+            const active = genreSet.has(g);
+            return (
+              <Link
+                key={g}
+                href={hrefFor({ genre: [...next].join(",") || undefined })}
+                aria-pressed={active}
+                className={chipClass(active)}
+              >
+                {t.genre[g]}
+              </Link>
+            );
+          })}
+        </nav>
 
-        {filterNav}
+        {/* Locales + cercanía — dropdown tipo chip (sin JS) */}
+        <div className="flex items-center">
+          <details className="venue-filter relative">
+            <summary
+              className={`${chipClass(!!venueId || !!near)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="mr-1.5 inline h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              {venueLabel}
+            </summary>
+            <ul className="absolute left-0 z-20 mt-2 flex max-h-72 w-56 flex-col overflow-y-auto rounded-xl border border-night-700 bg-night-900 p-1 shadow-xl shadow-black/40">
+              <li>
+                <Link
+                  href={hrefFor({ venue: undefined, near: undefined })}
+                  className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
+                    !venueId && !near ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
+                  }`}
+                >
+                  {t.allVenues}
+                </Link>
+              </li>
+              {venues.map(([id, name]) => (
+                <li key={id}>
+                  <Link
+                    href={hrefFor({ venue: id })}
+                    className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
+                      venueId === id ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
+                    }`}
+                  >
+                    {name}
+                  </Link>
+                </li>
+              ))}
+              <li className="mt-1 border-t border-night-700 pt-1">
+                {near ? (
+                  <Link
+                    href={hrefFor({ near: undefined })}
+                    className="flex min-h-11 items-center rounded-lg px-3 text-sm text-white/80 hover:bg-white/5"
+                  >
+                    {t.nearClear}
+                  </Link>
+                ) : (
+                  <Suspense fallback={null}>
+                    <NearMeButton row className="w-full" />
+                  </Suspense>
+                )}
+              </li>
+            </ul>
+          </details>
+        </div>
       </header>
 
       {view === "calendar" ? (
         <section>
           <div className="mb-4 flex items-center justify-between">
             <Link
-              href={hrefFor({ month: monthParam(prevMonth) })}
-              className={chipClass(false)}
+              href={hrefFor({ month: monthParam(prevMonth), day: undefined })}
+              className={iconBtn(false)}
               aria-label={t.prevMonth}
             >
-              ←
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
             </Link>
             <h2 className="text-base font-semibold capitalize">
               {monthFmt.format(new Date(calY, calM - 1, 1))}
             </h2>
             <Link
-              href={hrefFor({ month: monthParam(nextMonth) })}
-              className={chipClass(false)}
+              href={hrefFor({ month: monthParam(nextMonth), day: undefined })}
+              className={iconBtn(false)}
               aria-label={t.nextMonth}
             >
-              →
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
             </Link>
           </div>
-          <div
-            role="grid"
-            className="grid grid-cols-7 gap-1"
-            aria-label={t.viewCalendar}
-          >
+          <div role="grid" className="grid grid-cols-7 gap-1" aria-label={t.viewCalendar}>
             {WEEKDAY_HEADERS.map((d, i) => (
-              <div
-                key={i}
-                className="pb-1 text-center text-xs font-semibold text-white/40"
-              >
+              <div key={i} className="pb-1 text-center text-xs font-semibold text-white/40">
                 {d}
               </div>
             ))}
             {cells.map((cell, i) =>
               cell === null ? (
                 <div key={`pad-${i}`} />
-              ) : (
+              ) : cell.events.length === 0 ? (
                 <div
                   key={cell.key}
-                  className={`flex min-h-16 flex-col gap-1 rounded-lg border p-1.5 ${
-                    cell.key === todayKey
-                      ? "border-neon/60"
-                      : "border-white/10"
-                  } ${cell.events.length ? "bg-night-900" : ""}`}
+                  className={`flex min-h-12 flex-col items-center gap-1 rounded-lg py-1.5 ${
+                    cell.key === selectedDay ? "bg-neon/15" : ""
+                  }`}
                 >
                   <span
                     className={`text-xs font-medium ${
-                      cell.key === todayKey ? "text-neon" : "text-white/60"
+                      cell.key === todayKey
+                        ? "text-neon"
+                        : cell.key === selectedDay
+                          ? "text-white"
+                          : "text-white/40"
                     }`}
                   >
                     {cell.day}
                   </span>
-                  {cell.events.slice(0, 2).map((e) => (
-                    <Link
-                      key={e.id}
-                      href={`/eventos/${e.id}`}
-                      className="truncate rounded bg-neon/10 px-1 py-0.5 text-[11px] leading-tight text-neon hover:bg-neon/20"
-                      title={e.name}
-                    >
-                      {e.name}
-                    </Link>
-                  ))}
-                  {cell.events.length > 2 && (
-                    <span className="px-1 text-[11px] text-white/40">
-                      {t.more.replace("{count}", String(cell.events.length - 2))}
+                </div>
+              ) : (
+                <Link
+                  key={cell.key}
+                  href={hrefFor({ day: cell.key })}
+                  aria-current={cell.key === selectedDay ? "date" : undefined}
+                  aria-label={`${cell.day} — ${cell.events.length}`}
+                  className={`flex min-h-12 flex-col items-center gap-1 rounded-lg py-1.5 transition-colors active:scale-[0.97] ${
+                    cell.key === selectedDay ? "bg-neon/15" : "hover:bg-white/5"
+                  }`}
+                >
+                  <span
+                    className={`text-xs font-medium ${
+                      cell.key === todayKey
+                        ? "text-neon"
+                        : cell.key === selectedDay
+                          ? "text-white"
+                          : "text-white/80"
+                    }`}
+                  >
+                    {cell.day}
+                  </span>
+                  <span className="flex gap-0.5">
+                    {cell.events.slice(0, 3).map((e) => (
+                      <span
+                        key={e.id}
+                        className={`h-1.5 w-1.5 rounded-full ${
+                          DOT_COLOR[e.genres[0] as GenreKey] ?? "bg-white/50"
+                        }`}
+                      />
+                    ))}
+                  </span>
+                  {cell.events.length > 3 && (
+                    <span className="text-[10px] leading-none text-white/40">
+                      {t.more.replace("{count}", String(cell.events.length - 3))}
                     </span>
                   )}
-                </div>
+                </Link>
               ),
             )}
           </div>
+
+          {/* Eventos del día seleccionado */}
+          {selectedDay && (
+            <section className="mt-6">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                {dayLabel(selectedDay, t)}
+              </h3>
+              {selectedEvents.length === 0 ? (
+                <p className="text-sm text-white/50">{t.noEventsDay}</p>
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {selectedEvents.map((e) => (
+                    <li key={e.id}>{renderCard(e)}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </section>
       ) : view === "saved" ? (
         <div className="flex flex-col gap-8">
@@ -492,7 +602,7 @@ export default async function EventosPage({
         </div>
       ) : sorted.length === 0 ? (
         <p className="text-white/60">
-          {genre || venueId || near ? t.emptyFiltered : t.empty}
+          {genreSet.size || venueId || near ? t.emptyFiltered : t.empty}
         </p>
       ) : (
         <div className="flex flex-col gap-8">

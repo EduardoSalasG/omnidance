@@ -90,9 +90,9 @@ src/<dominio>/
 
 ## Hub de eventos (`/eventos` autenticado)
 
-- Vistas por query (`?view=`): `list` (default: Esta semana por día + Más adelante), `calendar` (`&month=YYYY-MM`, grilla lunes-primero con chips por día y prev/next) y `saved` (mis eventos con RSVP). Todo SSR con links que preservan los demás params — compartibles y sin JS.
-- Filtros combinables: `?genre=` (SALSA/BACHATA/CUBANO), `?venue=<id>`, `?near=<lat>,<lng>` (ordena por distancia haversine y muestra "a X km"; venues sin coords al final). La posición la pide el usuario vía `NearMeButton` (geolocalización opt-in); el orden se resuelve en SSR.
-- "Guardados" reutiliza `Rsvp` — no hay modelo aparte: `PUT/DELETE /api/events/:id/rsvp` (INTERESTED) con toggle optimista desde el bookmark de cada card (`SaveEventButton`, sibling absoluto del Link — sin anidar interactivos); `GET /api/me/rsvp` alimenta el estado inicial y la vista saved.
+- Vistas por query (`?view=`): `list` (default: Esta semana por día + Más adelante), `calendar` (`&month=YYYY-MM`, grilla lunes-primero con puntos por género; `&day=YYYY-MM-DD` lista los eventos del día bajo la grilla) y `saved` (mis eventos con RSVP). El switcher es icon-only (toggle ≡/📅 + bookmark aparte). Todo SSR con links que preservan los demás params — compartibles y sin JS.
+- Filtros combinables: `?genre=` **multiselect CSV** (`SALSA,BACHATA` → unión; API con `hasSome` propio o heredado), `?venue=<id>` como dropdown tipo chip (`<details>` + overlay de cierre en CSS — sin JS; el `<summary>` muestra el local activo), `?near=<lat>,<lng>` (ordena por distancia haversine y muestra "a X km"; venues sin coords al final) dentro del mismo dropdown. La posición la pide el usuario vía `NearMeButton` (geolocalización opt-in); el orden se resuelve en SSR.
+- "Guardados" reutiliza `Rsvp` — no hay modelo aparte: `PUT/DELETE /api/events/:id/rsvp` (INTERESTED) con toggle optimista desde el bookmark de cada card y del header del detalle (`SaveEventButton`, sibling absoluto del Link — sin anidar interactivos); `GET /api/me/rsvp` alimenta el estado inicial y la vista saved. El bloque Voy/Me interesa/waitlist se retiró del detalle — el guardado se hace con el bookmark.
 - `GET /api/events` expone `venue.lat/lng` (dato público del local) para el sort por distancia.
 - Limitación conocida: claves de día/mes usan la TZ del runtime (dev = TZ del host); el producto target es America/Santiago.
 
