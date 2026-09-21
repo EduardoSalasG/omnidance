@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, type BadgeVariant } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
@@ -107,11 +108,7 @@ function ProfileModule({
   }, [load]);
 
   if (state === "loading") {
-    return (
-      <p role="status" className="text-sm text-white/60">
-        {tc("loading")}
-      </p>
-    );
+    return <PageLoading />;
   }
   if (state === "forbidden") {
     return (

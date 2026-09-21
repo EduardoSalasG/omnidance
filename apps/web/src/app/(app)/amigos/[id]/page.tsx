@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ConsoleHeader } from "@/components/console/console-header";
 
@@ -117,11 +118,7 @@ export default function AmigoPerfilPage({
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <ConsoleHeader backHref="/amigos" backLabel={t("title")} />
 
-      {state === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <PageLoading />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-white/50">

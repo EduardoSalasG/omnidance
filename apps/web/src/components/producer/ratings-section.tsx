@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import type { RatingAgg, RatingsSummary } from "./shared";
 
 type Props = { eventId: string };
@@ -93,11 +94,7 @@ export function RatingsSection({ eventId }: Props) {
         {t("sections.ratings")}
       </h2>
 
-      {state === "loading" && (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <Spinner size="sm" />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

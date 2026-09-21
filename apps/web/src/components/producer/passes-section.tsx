@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { PASS_STATUS_VARIANT, type EntryPass } from "./shared";
 
 type Props = { eventId: string };
@@ -43,11 +44,7 @@ export function PassesSection({ eventId }: Props) {
         {t("sections.passes")}
       </h2>
 
-      {passes === null && !error && (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {passes === null && !error && <Spinner size="sm" />}
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

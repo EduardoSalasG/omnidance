@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { EventForm } from "@/components/producer/event-form";
 import { EventFeesSection } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
@@ -227,11 +228,7 @@ export default function ProducerEventDetailPage({
         ← {t("myEvents")}
       </Link>
 
-      {gate === "loading" && (
-        <p role="status" className="text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {gate === "loading" && <PageLoading />}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">

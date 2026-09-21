@@ -19,6 +19,8 @@ export function JsonLd({ events }: { events: JsonLdEvent[] }) {
       "@id": `${WEB_URL}/#organization`,
       name: "Omnidance",
       url: WEB_URL,
+      description:
+        "Eventos, entradas y academias de la escena SBK (salsa, bachata y cubano) de Santiago en una sola app.",
       sameAs: [],
     },
     {

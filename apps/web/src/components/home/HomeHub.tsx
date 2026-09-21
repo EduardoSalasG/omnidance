@@ -8,6 +8,7 @@ import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/spinner";
 
 type Me = {
   id: string;
@@ -142,7 +143,7 @@ export function HomeHub() {
   if (!checked) {
     return (
       <main className="flex min-h-dvh items-center justify-center">
-        <p className="text-sm text-white/50">{tc("loading")}</p>
+        <Spinner size="lg" />
       </main>
     );
   }

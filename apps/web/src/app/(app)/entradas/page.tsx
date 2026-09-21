@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 type Ticket = {
   id: string;
@@ -166,11 +167,7 @@ export default function EntradasPage() {
         </p>
       )}
 
-      {state === "loading" && (
-        <p role="status" className="text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {state === "loading" && <PageLoading />}
 
       {state === "unauth" && (
         <Card className="flex flex-col items-center gap-4 text-center">

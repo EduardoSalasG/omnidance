@@ -3159,6 +3159,26 @@
         }
       }
     },
+    "/api/admin/browse/{entity}": {
+      "get": {
+        "operationId": "BrowseController_browse",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/admin/catalogs/styles": {
       "get": {
         "operationId": "CatalogsController_styles",
@@ -3478,6 +3498,46 @@
         "parameters": [
           {
             "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/users/{personId}/detail": {
+      "get": {
+        "operationId": "UserIntelController_detail",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/users/{personId}/analytics": {
+      "get": {
+        "operationId": "UserIntelController_analytics",
+        "parameters": [
+          {
+            "name": "personId",
             "required": true,
             "in": "path",
             "schema": {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import {
   STAFF_ROLES,
   inputCls,
@@ -78,11 +79,7 @@ export function StaffSection({ eventId }: Props) {
         {t("sections.staff")}
       </h2>
 
-      {staff === null && !error && (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {staff === null && !error && <Spinner size="sm" />}
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

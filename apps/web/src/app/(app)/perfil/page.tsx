@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
+  resolveActiveRole,
   setActiveRole,
   useActiveRole,
   type AppRole,
 } from "@/lib/active-role";
 import { Badge, Button, Card } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 type Me = {
   id: string;
@@ -54,6 +56,9 @@ export default function PerfilPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [streak, setStreak] = useState<Streak | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
+  // Gamificación es one-shot y solo para lentes no-ADMIN: si el usuario
+  // cambia de ADMIN a otra lente sin recargar, se trae perezosamente.
+  const [gamifFetched, setGamifFetched] = useState(false);
   const activeRole = useActiveRole(me?.roles);
   // Override local para feedback inmediato al cambiar de lente; el hook
   // converge al mismo valor cuando el evento de rol se propaga.
@@ -78,19 +83,29 @@ export default function PerfilPage() {
           setState("error");
           return;
         }
-        setMe((await meRes.json()) as Me);
+        const meJson = (await meRes.json()) as Me;
+        setMe(meJson);
         setState("ready");
+        // Con lente ADMIN no hay gamificación: ni fetch ni cards. Se
+        // resuelve con los roles reales de /me — el activeRole del primer
+        // render puede ser el default DANCER antes de conocer me.roles.
+        if (resolveActiveRole(meJson.roles) === "ADMIN") return;
       } catch {
         if (!cancelled) setState("error");
         return;
       }
 
+      await loadGamification();
+    }
+
+    async function loadGamification() {
       // Gamificación en paralelo — fallos no bloquean
       try {
         const [streakRes, badgesRes] = await Promise.all([
           apiFetch("/gamification/me/streak"),
           apiFetch("/gamification/me/badges"),
         ]);
+        setGamifFetched(true);
         if (cancelled) return;
         if (streakRes.ok) setStreak((await streakRes.json()) as Streak);
         if (badgesRes.ok) {
@@ -99,6 +114,7 @@ export default function PerfilPage() {
         }
       } catch {
         // Silencioso: widgets muestran valores por defecto
+        setGamifFetched(true);
       }
     }
 
@@ -107,6 +123,31 @@ export default function PerfilPage() {
       cancelled = true;
     };
   }, []);
+
+  // Cambio de lente ADMIN → otra sin recargar: trae la gamificación
+  // que el load inicial omitió (one-shot por gamifFetched).
+  const currentLens = picked ?? activeRole;
+  useEffect(() => {
+    if (!me || gamifFetched || currentLens === "ADMIN") return;
+    let stale = false;
+    void Promise.all([
+      apiFetch("/gamification/me/streak"),
+      apiFetch("/gamification/me/badges"),
+    ])
+      .then(async ([streakRes, badgesRes]) => {
+        setGamifFetched(true);
+        if (stale) return;
+        if (streakRes.ok) setStreak((await streakRes.json()) as Streak);
+        if (badgesRes.ok) {
+          const json: unknown = await badgesRes.json();
+          setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
+        }
+      })
+      .catch(() => setGamifFetched(true));
+    return () => {
+      stale = true;
+    };
+  }, [me, gamifFetched, currentLens]);
 
   async function logout() {
     try {
@@ -137,12 +178,13 @@ export default function PerfilPage() {
   if (state === "loading" || state === "error" || !me) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-        <p
-          role={state === "error" ? "alert" : "status"}
-          className="text-white/50"
-        >
-          {state === "error" ? tc("error") : tc("loading")}
-        </p>
+        {state === "error" ? (
+          <p role="alert" className="text-white/50">
+            {tc("error")}
+          </p>
+        ) : (
+          <PageLoading />
+        )}
       </main>
     );
   }
@@ -248,42 +290,50 @@ export default function PerfilPage() {
         </Card>
       )}
 
-      {/* Racha — orgullo, grande */}
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-          {tg("streak")}
-        </h2>
-        <p className="mt-2 text-6xl font-bold leading-none text-neon">
-          {streak?.currentWeeks ?? 0}
-        </p>
-        <p className="mt-2 text-sm text-white/50">
-          {tg("streakBest")}: {streak?.bestWeeks ?? 0}
-        </p>
-      </Card>
+      {/* Gamificación — solo lente consumidora/operativa; la lente ADMIN
+          es gestión pura (ni Racha ni Insignias, y tampoco se fetchean). */}
+      {currentActAs !== "ADMIN" && (
+        <>
+          {/* Racha — orgullo, grande */}
+          <Card>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              {tg("streak")}
+            </h2>
+            <p className="mt-2 text-6xl font-bold leading-none text-neon">
+              {streak?.currentWeeks ?? 0}
+            </p>
+            <p className="mt-2 text-sm text-white/50">
+              {tg("streakBest")}: {streak?.bestWeeks ?? 0}
+            </p>
+          </Card>
 
-      {/* Insignias */}
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-          {tg("badges")}
-        </h2>
-        {badges.length === 0 ? (
-          <p className="mt-3 text-sm text-white/60">{tg("badgesEmpty")}</p>
-        ) : (
-          <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {badges.map((b) => (
-              <li
-                key={b.badge.key}
-                className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 p-3"
-              >
-                <span className="font-medium leading-tight">{b.badge.name}</span>
-                <Badge variant="muted" className="w-fit">
-                  {b.badge.category}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+          {/* Insignias */}
+          <Card>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              {tg("badges")}
+            </h2>
+            {badges.length === 0 ? (
+              <p className="mt-3 text-sm text-white/60">{tg("badgesEmpty")}</p>
+            ) : (
+              <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {badges.map((b) => (
+                  <li
+                    key={b.badge.key}
+                    className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 p-3"
+                  >
+                    <span className="font-medium leading-tight">
+                      {b.badge.name}
+                    </span>
+                    <Badge variant="muted" className="w-fit">
+                      {b.badge.category}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
 
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}

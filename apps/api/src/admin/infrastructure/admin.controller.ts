@@ -96,18 +96,22 @@ export class AdminController {
 
   // ── Usuarios ──────────────────────────────────────────────────────────
 
+  /**
+   * Buscador de personas — nunca lista masiva: sin `q` de ≥2 chars
+   * responde []. Busca por nombre, email o teléfono.
+   */
   @Get("users")
   async users(@Query() q: UsersQueryDto) {
-    const where = q.q
-      ? {
-          OR: [
-            { name: { contains: q.q, mode: "insensitive" as const } },
-            { email: { contains: q.q, mode: "insensitive" as const } },
-          ],
-        }
-      : {};
+    const term = q.q?.trim() ?? "";
+    if (term.length < 2) return [];
     const people = await this.prisma.person.findMany({
-      where,
+      where: {
+        OR: [
+          { name: { contains: term, mode: "insensitive" } },
+          { email: { contains: term, mode: "insensitive" } },
+          { phone: { contains: term, mode: "insensitive" } },
+        ],
+      },
       orderBy: { createdAt: "desc" },
       take: 100,
       select: {

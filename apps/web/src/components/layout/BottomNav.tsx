@@ -521,6 +521,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.users,
         },
         {
+          href: "/admin/datos",
+          ns: "admin",
+          key: "modules.datos",
+          icon: ICONS.list,
+        },
+        {
           href: "/admin/auditoria",
           ns: "admin",
           key: "modules.audit",
@@ -537,6 +543,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "analytics",
           key: "title",
           icon: ICONS.slider,
+        },
+        {
+          href: "/analitica/usuarios",
+          ns: "admin",
+          key: "modules.analyticsUser",
+          icon: ICONS.users,
         },
       ],
     },
@@ -613,6 +625,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
   const [me, setMe] = useState<Me | null>(null);
+  // true cuando /me ya respondió (200 o 401): hasta entonces no se
+  // renderiza UI dependiente del rol — nada de chrome de otra lente
+  // por unos milisegundos.
+  const [meChecked, setMeChecked] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Hide-on-scroll del appbar (patrón iOS).
   const [barHidden, setBarHidden] = useState(false);
@@ -621,6 +637,15 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Modo consumer (solo aplica a DANCER): social ↔ academy.
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
+  // Acento verde SOLO para la lente academia: Mi Aprendizaje del bailarín
+  // o los roles ACADEMY_OWNER / INSTRUCTOR. Todo lo demás → morado
+  // (marca + social + gestión). Mientras /me no responde queda morado —
+  // el verde nunca flashea donde no corresponde.
+  const academyLens =
+    meChecked &&
+    (activeRole === "ACADEMY_OWNER" ||
+      activeRole === "INSTRUCTOR" ||
+      dancerAcademy);
 
   // Baseline de no-leídas: solo si hay sesión. Un 401 deja unread en null
   // (mismo patrón de catch silencioso que apiFetch("/me") en HomeHub).
@@ -650,11 +675,22 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         if (cancelled || !res.ok) return;
         setMe((await res.json()) as Me);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setMeChecked(true);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // data-mode en <html>: el acento sigue a la LENTE, no solo al toggle
+  // consumer — academy verde solo en lente academia, resto morado.
+  useEffect(() => {
+    document.documentElement.dataset.mode = academyLens
+      ? "academy"
+      : "social";
+  }, [academyLens]);
 
   // La página /notificaciones marca leídas por ítem sin emitir evento:
   // al entrar el badge se resetea (el socket lo vuelve a subir si llega
@@ -875,7 +911,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           </div>
 
           <div className="flex flex-1 items-center justify-center px-2">
-            {pathname === "/inicio" && activeRole === "DANCER" ? (
+            {pathname === "/inicio" && me && activeRole === "DANCER" ? (
               <>
                 {pageLabel && <h1 className="sr-only">{pageLabel}</h1>}
                 <ModeToggle />
@@ -943,11 +979,13 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
               {
                 "--tab-count": allTabs.length,
                 "--tab-index": Math.max(activeIndex, 0),
-                opacity: activeIndex < 0 ? 0 : 1,
+                opacity: !meChecked || activeIndex < 0 ? 0 : 1,
               } as React.CSSProperties
             }
           />
-          {allTabs.map(renderTab)}
+          {/* Sin rol resuelto no se muestran tabs de otra lente — la
+              barra queda vacía un instante y luego monta la correcta. */}
+          {meChecked && allTabs.map(renderTab)}
         </ul>
       </nav>
 

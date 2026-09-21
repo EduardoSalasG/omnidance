@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { Param } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -321,11 +322,7 @@ function ProducerParamsSection() {
         </div>
       )}
 
-      {paramsLoading && (
-        <p role="status" className="text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {paramsLoading && <PageLoading />}
 
       {view && !paramsLoading && (
         <Card className="flex flex-col gap-4">

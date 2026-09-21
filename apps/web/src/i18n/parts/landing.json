@@ -1,11 +1,28 @@
 {
   "landing": {
-    "heroPromise": "La escena SBK de Santiago en una sola app",
-    "heroLead": "Eventos y entradas con solo tu correo.",
+    "skipToContent": "Saltar al contenido",
+    "navPrimary": "Navegación principal",
+    "navFooter": "Enlaces de pie de página",
+    "metaTitle": "Salsa, bachata y cubano en Santiago",
+    "metaDescription": "Eventos, entradas y academias de la escena SBK de Santiago en una sola app. Crea tu cuenta gratis con solo tu correo.",
+    "eyebrow": "Salsa · Bachata · Cubano — Santiago",
+    "heroPromise": "Toda la escena, en un solo QR",
+    "heroLead": "Eventos, entradas y academias de la escena SBK de Santiago. Crea tu cuenta con solo tu correo.",
+    "ctaSignup": "Crear cuenta",
     "ctaCreateAccount": "Crear mi cuenta gratis",
-    "ctaLogin": "Iniciar sesión",
-    "ctaSeeWeekEvents": "Ver eventos de esta semana",
-    "liveSeeDetails": "Ver detalles",
-    "finalCtaRoles": "Para bailarines, productores, DJs, academias y venues."
+    "ctaLogin": "Entrar",
+    "ctaEvents": "Explorar eventos",
+    "featuresTitle": "Todo lo que la escena necesita",
+    "featureQrTitle": "Un solo QR",
+    "featureQrDesc": "Tu entrada, tu check-in en puerta y tu forma de invitar a bailar. El código rota cada minuto: nadie puede capturarlo.",
+    "featureLearnTitle": "Mi Aprendizaje",
+    "featureLearnDesc": "Clases y academias de la escena en un solo lugar. Tu progreso crece con cada noche de baile.",
+    "featureSceneTitle": "Para la escena",
+    "featureSceneDesc": "Productores, academias y venues: venta online, puerta con escáner y números claros.",
+    "finalCta": "¿Bailamos?",
+    "finalCtaDesc": "Crea tu cuenta con solo tu correo. Sin contraseñas.",
+    "footerTagline": "Hecho para la escena SBK de Santiago",
+    "footerEvents": "Eventos",
+    "footerStyles": "Estilos"
   }
 }

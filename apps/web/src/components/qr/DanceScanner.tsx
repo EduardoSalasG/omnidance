@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 
 // Cámara solo en cliente — evita cualquier acceso a window en SSR.
 const QrScanner = dynamic(() => import("@/components/sessions/QrScanner"), {
@@ -213,9 +214,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       <div className="relative flex-1 overflow-hidden rounded-2xl border border-night-700 bg-night-950">
         {phase === "checking" ? (
           <div className="flex h-full items-center justify-center">
-            <p role="status" className="text-white/50">
-              {tCommon("loading")}
-            </p>
+            <Spinner size="lg" />
           </div>
         ) : phase === "scan" ? (
           <QrScanner
