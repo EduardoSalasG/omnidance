@@ -20,7 +20,7 @@ export function JsonLd({ events }: { events: JsonLdEvent[] }) {
       name: "Omnidance",
       url: WEB_URL,
       description:
-        "Sociales, entradas, academias y clases de la comunidad salsera y bachatera de Chile en una sola app.",
+        "Sociales, entradas, academias y clases de la comunidad salsera, timbera y bachatera de Chile en una sola app.",
       sameAs: [],
     },
     {
