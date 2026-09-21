@@ -503,12 +503,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelKey: "title",
       items: [
         {
-          href: "/admin/solicitudes",
-          ns: "admin",
-          key: "modules.requests",
-          icon: ICONS.users,
-        },
-        {
           href: "/admin/roles",
           ns: "admin",
           key: "modules.roles",

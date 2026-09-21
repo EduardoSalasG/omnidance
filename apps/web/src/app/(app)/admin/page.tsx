@@ -14,11 +14,6 @@ export default function AdminPage() {
       <AdminGate>
         <ModuleGrid>
           <ModuleCard
-            href="/admin/solicitudes"
-            title={t("modules.requests")}
-            desc={t("modules.requestsDesc")}
-          />
-          <ModuleCard
             href="/admin/roles"
             title={t("modules.roles")}
             desc={t("modules.rolesDesc")}

@@ -84,84 +84,15 @@ class UsersQueryDto {
 }
 
 /**
- * Consola admin B2B — aprobación de roles, gestión de usuarios, catálogo
- * RBAC (roles/permisos/grants) y auditoría. Todo se resuelve en DB:
- * permiso admin.access vía RolePermission (o Role.isSuperuser).
+ * Consola admin B2B — asignación directa de roles, gestión de usuarios,
+ * catálogo RBAC (roles/permisos/grants) y auditoría. Todo se resuelve en
+ * DB: permiso admin.access vía RolePermission (o Role.isSuperuser).
  */
 @Controller("admin")
 @UseGuards(SessionGuard, RolesGuard)
 @RequirePermissions("admin.access")
 export class AdminController {
   constructor(private readonly prisma: PrismaService) {}
-
-  // ── Solicitudes de rol ────────────────────────────────────────────────
-
-  @Get("role-requests")
-  listRoleRequests() {
-    return this.prisma.personRole.findMany({
-      where: { status: { in: ["PENDING", "SANDBOX"] } },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        personId: true,
-        role: true,
-        status: true,
-        createdAt: true,
-        person: { select: { id: true, name: true, email: true } },
-      },
-    });
-  }
-
-  @Post("role-requests/:personRoleId/approve")
-  @HttpCode(200)
-  async approve(
-    @Param("personRoleId") personRoleId: string,
-    @Req() req: Request,
-  ) {
-    const role = await this.prisma.personRole.findUnique({
-      where: { id: personRoleId },
-    });
-    if (!role) throw new NotFoundException("solicitud de rol no encontrada");
-    const updated = await this.prisma.personRole.update({
-      where: { id: personRoleId },
-      data: { status: "APPROVED" },
-    });
-    await this.audit(req, "ROLE_APPROVE", "PersonRole", personRoleId, {
-      personId: role.personId,
-      role: role.role,
-      prev: role.status,
-      next: "APPROVED",
-    });
-    return updated;
-  }
-
-  /**
-   * Rechazo: marca el PersonRole como REJECTED (registro preservado —
-   * auditable). Una solicitud REJECTED no re-aparece en la cola ni da
-   * acceso; para revertir se usa POST /admin/users/:personId/roles.
-   */
-  @Post("role-requests/:personRoleId/reject")
-  @HttpCode(200)
-  async reject(
-    @Param("personRoleId") personRoleId: string,
-    @Req() req: Request,
-  ) {
-    const role = await this.prisma.personRole.findUnique({
-      where: { id: personRoleId },
-    });
-    if (!role) throw new NotFoundException("solicitud de rol no encontrada");
-    const updated = await this.prisma.personRole.update({
-      where: { id: personRoleId },
-      data: { status: "REJECTED" },
-    });
-    await this.audit(req, "ROLE_REJECT", "PersonRole", personRoleId, {
-      personId: role.personId,
-      role: role.role,
-      prev: role.status,
-      next: "REJECTED",
-    });
-    return updated;
-  }
 
   // ── Usuarios ──────────────────────────────────────────────────────────
 

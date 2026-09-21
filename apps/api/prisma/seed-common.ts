@@ -3,18 +3,19 @@
 // por clave natural; find-or-create donde el schema no tiene unique.
 import { PrismaClient, Genre } from "@prisma/client";
 
-// Catálogo RBAC vivo en DB. requestable: auto-solicitable desde /perfil;
+// Catálogo RBAC vivo en DB. Los roles solo se asignan por admin
+// (POST /admin/users/:personId/roles) — no hay auto-solicitud.
 // isSuperuser: pasa todo check de permisos (solo ADMIN — no editable por API).
 export const ROLE_CATALOG = [
-  { key: "DANCER", label: "Bailarín", requestable: true },
-  { key: "DJ", label: "DJ", requestable: true },
-  { key: "PRODUCER", label: "Productor", requestable: true },
-  { key: "STAFF", label: "Staff", requestable: true },
-  { key: "VENUE_MANAGER", label: "Dueño de local", requestable: true },
-  { key: "ACADEMY_OWNER", label: "Dueño de academia", requestable: true },
-  { key: "INSTRUCTOR", label: "Instructor", requestable: true },
-  { key: "SUPPORT", label: "Soporte", requestable: true },
-  { key: "ADMIN", label: "Administrador", requestable: false, isSuperuser: true },
+  { key: "DANCER", label: "Bailarín" },
+  { key: "DJ", label: "DJ" },
+  { key: "PRODUCER", label: "Productor" },
+  { key: "STAFF", label: "Staff" },
+  { key: "VENUE_MANAGER", label: "Dueño de local" },
+  { key: "ACADEMY_OWNER", label: "Dueño de academia" },
+  { key: "INSTRUCTOR", label: "Instructor" },
+  { key: "SUPPORT", label: "Soporte" },
+  { key: "ADMIN", label: "Administrador", isSuperuser: true },
 ] as const;
 
 // Permisos que las rutas exigen con @RequirePermissions + matriz rol→permiso.
@@ -127,7 +128,7 @@ export async function seedCommon(prisma: PrismaClient) {
       where: { key: r.key },
       update: {
         label: r.label,
-        requestable: r.requestable,
+        requestable: false,
         isSuperuser: "isSuperuser" in r,
       },
       create: { ...r, isSuperuser: "isSuperuser" in r },

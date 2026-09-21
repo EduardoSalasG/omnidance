@@ -433,18 +433,7 @@
   },
   "admin": {
     "title": "Administración",
-    "roleRequests": "Solicitudes de rol",
-    "approve": "Aprobar",
-    "reject": "Rechazar",
-    "empty": "No hay solicitudes pendientes.",
     "notAdmin": "Esta sección es para administradores",
-    "tabs": {
-      "requests": "Solicitudes",
-      "params": "Parámetros",
-      "users": "Usuarios",
-      "audit": "Auditoría",
-      "roles": "Roles"
-    },
     "params": {
       "title": "Parámetros de plataforma",
       "hint": "Los cambios aplican en segundos (cache de 30s)."
@@ -475,8 +464,6 @@
     },
     "hubDesc": "Panel de administración de la plataforma",
     "modules": {
-      "requests": "Solicitudes de rol",
-      "requestsDesc": "Aprueba o rechaza roles pendientes",
       "roles": "Roles y permisos",
       "rolesDesc": "Catálogo RBAC, permisos por rol",
       "params": "Parámetros",
@@ -682,7 +669,6 @@
     "title": "Mi perfil",
     "roles": "Roles",
     "actAs": "Interactuar como",
-    "requestRole": "Solicitar rol",
     "rolePending": "En revisión",
     "logout": "Cerrar sesión",
     "loginRequired": "Entra con tu correo para ver tu perfil",
