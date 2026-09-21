@@ -6,14 +6,18 @@ import { useRouter } from "next/navigation";
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import type { MapVenue } from "./EventsMap";
 
-// Esri Dark Gray Canvas — raster dark gratuito sin API key (CARTO ya la
-// exige y sirve tiles "API key required"). Dos capas: base + labels.
-const TILES_BASE =
+// Basemap dark: CARTO Dark Matter con key (NEXT_PUBLIC_CARTO_BASEMAP_KEY —
+// gratis hasta ~5M tiles/mes, pedir en carto.com/basemaps/apikey). Sin key
+// cae a Esri Dark Gray, gratuito sin registro — nunca se sirven tiles con
+// el watermark "API key required".
+const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY;
+const TILES_ATTR = CARTO_KEY
+  ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  : "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ";
+const ESRI_BASE =
   "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}";
-const TILES_LABELS =
+const ESRI_LABELS =
   "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}";
-const TILES_ATTR =
-  'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ';
 
 /**
  * Mapa dark-first de locales con eventos. Pins circulares SVG (sin
@@ -40,8 +44,19 @@ export default function EventsMapInner({ venues }: { venues: MapVenue[] }) {
       className="h-full w-full"
       scrollWheelZoom
     >
-      <TileLayer url={TILES_BASE} attribution={TILES_ATTR} />
-      <TileLayer url={TILES_LABELS} />
+      {CARTO_KEY ? (
+        <TileLayer
+          url={`https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`}
+          attribution={TILES_ATTR}
+          subdomains="abcd"
+          maxZoom={20}
+        />
+      ) : (
+        <>
+          <TileLayer url={ESRI_BASE} attribution={TILES_ATTR} />
+          <TileLayer url={ESRI_LABELS} />
+        </>
+      )}
       {venues.map((v) => (
         <CircleMarker
           key={v.id}
