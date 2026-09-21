@@ -184,7 +184,8 @@
     "nextWeek": "Semana siguiente",
     "more": "+{count} más",
     "noEventsDay": "Sin eventos este día",
-    "miosManage": "Gestionar entradas"
+    "miosManage": "Gestionar entradas",
+    "loadLater": "Ver la próxima semana"
   },
   "qr": {
     "title": "Mi QR",

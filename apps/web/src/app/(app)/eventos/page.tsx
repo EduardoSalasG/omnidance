@@ -146,6 +146,7 @@ export default async function EventosPage({
     view?: string;
     week?: string;
     day?: string;
+    upto?: string;
   };
 }) {
   const t = messages.events;
@@ -195,11 +196,24 @@ export default async function EventosPage({
   );
 
   const now = Date.now();
-  const thisWeek = filtered.filter(
+  // "Más adelante" bajo demanda: ?upto=N semanas visibles (default 1 =
+  // solo esta semana). El botón incrementa el horizonte una semana.
+  const upto = Math.max(
+    1,
+    Number.parseInt(String(searchParams?.upto ?? "1"), 10) || 1,
+  );
+  const horizon = now + upto * WEEK_MS;
+  const visible = filtered.filter(
+    (e) => new Date(e.startsAt).getTime() <= horizon,
+  );
+  const thisWeek = visible.filter(
     (e) => new Date(e.startsAt).getTime() <= now + WEEK_MS,
   );
-  const later = filtered.filter(
+  const later = visible.filter(
     (e) => new Date(e.startsAt).getTime() > now + WEEK_MS,
+  );
+  const hasLater = filtered.some(
+    (e) => new Date(e.startsAt).getTime() > horizon,
   );
 
   // "Mis eventos": agenda — eventos futuros con ticket ACTIVE propio.
@@ -246,6 +260,7 @@ export default async function EventosPage({
     view?: string;
     week?: string;
     day?: string;
+    upto?: string;
   }) => {
     const merged = {
       genre: [...genreSet].join(",") || undefined,
@@ -253,6 +268,7 @@ export default async function EventosPage({
       view: view !== "list" ? view : undefined,
       week: view === "calendar" ? weekKey : undefined,
       day: view === "calendar" ? (selectedDay ?? undefined) : undefined,
+      upto: upto > 1 ? String(upto) : undefined,
       ...o,
     };
     const params = new URLSearchParams();
@@ -641,6 +657,15 @@ export default async function EventosPage({
                 {groupByDay(later).map(renderDayGroup)}
               </div>
             </section>
+          )}
+          {/* "Más adelante" bajo demanda: cada click revela una semana */}
+          {hasLater && (
+            <Link
+              href={hrefFor({ upto: String(upto + 1) })}
+              className="flex min-h-12 items-center justify-center rounded-full border border-white/15 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.98]"
+            >
+              {t.loadLater} ↓
+            </Link>
           )}
         </div>
       )}
