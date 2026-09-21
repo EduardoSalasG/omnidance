@@ -27,7 +27,12 @@ describe("GET /api/events", () => {
 
     const suffix = Date.now().toString(36);
     const venue = await prisma.venue.create({
-      data: { name: `Venue E2E ${suffix}`, address: "Santiago" },
+      data: {
+        name: `Venue E2E ${suffix}`,
+        address: "Santiago",
+        lat: -33.42,
+        lng: -70.64,
+      },
     });
     venueId = venue.id;
     const event = await prisma.event.create({
@@ -62,6 +67,14 @@ describe("GET /api/events", () => {
     expect(mine).toHaveProperty("startsAt");
     expect(mine.venue).toHaveProperty("name");
     expect(["PUBLISHED", "LIVE"]).toContain(mine.status);
+  });
+
+  it("expone lat/lng del venue para 'cerca de ti'", async () => {
+    const res = await fetch(`${baseUrl}/api/events`);
+    const events = await res.json();
+    const mine = events.find((e: { id: string }) => e.id === eventId);
+    expect(mine.venue.lat).toBeCloseTo(-33.42);
+    expect(mine.venue.lng).toBeCloseTo(-70.64);
   });
 
   it("detalle incluye djs y venue", async () => {

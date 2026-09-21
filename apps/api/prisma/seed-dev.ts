@@ -102,20 +102,20 @@ export async function seedDev(prisma: PrismaClient) {
   const daniela = await alumno("daniela", "Daniela Fuentes");
 
   // ─── Venues ───
-  const venue = (name: string, capacity: number) =>
+  const venue = (name: string, capacity: number, lat: number, lng: number) =>
     ensure(
       () => prisma.venue.findFirst({ where: { name } }),
       () =>
         prisma.venue.create({
-          data: { name, address: "Santiago", capacity },
+          data: { name, address: "Santiago", capacity, lat, lng },
         }),
       (v) =>
-        prisma.venue.update({ where: { id: v.id }, data: { capacity } }),
+        prisma.venue.update({ where: { id: v.id }, data: { capacity, lat, lng } }),
     );
 
-  const orixas = await venue("Orixas", 300);
-  const tierraDura = await venue("Tierra Dura", 250);
-  const havana = await venue("Havana", 200);
+  const orixas = await venue("Orixas", 300, -33.4208, -70.646);
+  const tierraDura = await venue("Tierra Dura", 250, -33.4489, -70.6185);
+  const havana = await venue("Havana", 200, -33.4339, -70.6343);
 
   // Consola /venue — el manager ve KPIs y arriendos de Orixas.
   await prisma.venue.update({

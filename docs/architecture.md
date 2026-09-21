@@ -88,6 +88,14 @@ src/<dominio>/
 - Tras login, `?next=` devuelve a la ruta pedida (solo rutas internas — sin open redirect).
 - Estilos: `EventSeries.genres` + `Event.genres` (Genre[]: SALSA/BACHATA/CUBANO; vacío en evento → hereda la serie). En la UI `CUBANO` se muestra como "Timba" — el nombre que usa la escena.
 
+## Hub de eventos (`/eventos` autenticado)
+
+- Vistas por query (`?view=`): `list` (default: Esta semana por día + Más adelante), `calendar` (`&month=YYYY-MM`, grilla lunes-primero con chips por día y prev/next) y `saved` (mis eventos con RSVP). Todo SSR con links que preservan los demás params — compartibles y sin JS.
+- Filtros combinables: `?genre=` (SALSA/BACHATA/CUBANO), `?venue=<id>`, `?near=<lat>,<lng>` (ordena por distancia haversine y muestra "a X km"; venues sin coords al final). La posición la pide el usuario vía `NearMeButton` (geolocalización opt-in); el orden se resuelve en SSR.
+- "Guardados" reutiliza `Rsvp` — no hay modelo aparte: `PUT/DELETE /api/events/:id/rsvp` (INTERESTED) con toggle optimista desde el bookmark de cada card (`SaveEventButton`, sibling absoluto del Link — sin anidar interactivos); `GET /api/me/rsvp` alimenta el estado inicial y la vista saved.
+- `GET /api/events` expone `venue.lat/lng` (dato público del local) para el sort por distancia.
+- Limitación conocida: claves de día/mes usan la TZ del runtime (dev = TZ del host); el producto target es America/Santiago.
+
 ## RBAC — todo DB-driven
 
 ```mermaid
