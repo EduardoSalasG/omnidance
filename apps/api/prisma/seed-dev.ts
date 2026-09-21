@@ -104,18 +104,35 @@ export async function seedDev(prisma: PrismaClient) {
   const daniela = await alumno("daniela", "Daniela Fuentes");
 
   // ─── Venues ───
-  const venue = (name: string, capacity: number, lat: number, lng: number) =>
+  const venue = (
+    name: string,
+    capacity: number,
+    lat: number,
+    lng: number,
+    address: string,
+    hours: string,
+  ) =>
     ensure(
       () => prisma.venue.findFirst({ where: { name } }),
       () =>
         prisma.venue.create({
-          data: { name, address: "Santiago", capacity, lat, lng },
+          data: { name, address, capacity, lat, lng, hours },
         }),
       (v) =>
-        prisma.venue.update({ where: { id: v.id }, data: { capacity, lat, lng } }),
+        prisma.venue.update({
+          where: { id: v.id },
+          data: { capacity, lat, lng, address, hours },
+        }),
     );
 
-  const orixas = await venue("Orixas", 300, -33.4208, -70.646);
+  const orixas = await venue(
+    "Orixas",
+    300,
+    -33.4208,
+    -70.646,
+    "Recoleta 545, Recoleta",
+    "Mié–Sáb · 21:00–04:00",
+  );
   // Rebrand: "Tierra Dura" → "Tierra" — renombra la fila (mismo id,
   // eventos intactos) y sus noches standalone.
   const tdLegacy = await prisma.venue.findFirst({
@@ -131,8 +148,22 @@ export async function seedDev(prisma: PrismaClient) {
       data: { name: "Tierra" },
     });
   }
-  const tierraDura = await venue("Tierra", 250, -33.4489, -70.6185);
-  const havana = await venue("Havana", 200, -33.4339, -70.6343);
+  const tierraDura = await venue(
+    "Tierra",
+    250,
+    -33.4489,
+    -70.6185,
+    "Tenderini 83, Santiago Centro",
+    "Mar–Sáb · 22:00–04:00",
+  );
+  const havana = await venue(
+    "Havana",
+    200,
+    -33.4339,
+    -70.6343,
+    "Av. Ricardo Cumming 342, Barrio Brasil",
+    "Vie–Sáb · 22:00–04:00",
+  );
 
   // Consola /venue — el manager ve KPIs y arriendos de Orixas.
   await prisma.venue.update({

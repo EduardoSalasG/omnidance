@@ -176,6 +176,8 @@
     "publicCtaButton": "Entrar a Omnidance",
     "viewList": "Lista",
     "viewCalendar": "Calendario",
+    "viewMap": "Mapa",
+    "mapHint": "Toca un local para ver su perfil y próximos eventos",
     "viewMios": "Mis eventos",
     "miosEmpty": "Aún no tienes entradas para próximos eventos.",
     "miosHint": "Tu QR personal es tu entrada — muéstralo en la puerta.",

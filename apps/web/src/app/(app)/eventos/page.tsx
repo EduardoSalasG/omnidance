@@ -11,6 +11,7 @@ import {
   aggregateMix,
 } from "@/components/ui";
 import type { GenreMixBlock } from "@/components/ui";
+import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 
 export const metadata: Metadata = {
   title: "Eventos de salsa y bachata esta semana",
@@ -39,7 +40,14 @@ type EventListItem = {
 };
 
 type MyTicket = { status: string; event: { id: string } };
-type View = "list" | "calendar" | "mios";
+type VenueRow = {
+  id: string;
+  name: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+};
+type View = "list" | "calendar" | "mios" | "map";
 type GenreKey = (typeof GENRES)[number];
 
 const GENRES = ["SALSA", "BACHATA", "CUBANO"] as const;
@@ -180,7 +188,8 @@ export default async function EventosPage({
   const rawView = searchParams?.view;
   // Las vistas calendar/mios son solo para autenticados.
   const view: View =
-    isAuthed && (rawView === "calendar" || rawView === "mios")
+    isAuthed &&
+    (rawView === "calendar" || rawView === "mios" || rawView === "map")
       ? rawView
       : "list";
 
@@ -203,6 +212,35 @@ export default async function EventosPage({
         e.genres.some((g) => genreSet.has(g as GenreKey))) &&
       (!venueId || e.venue?.id === venueId),
   );
+
+  // Vista mapa: el directorio público de venues aporta lat/lng; se
+  // cruza con `filtered` para que los pins respeten género/local.
+  const mapVenues: MapVenue[] = [];
+  if (view === "map") {
+    const vres = await fetch(`${API_URL}/api/venues`, {
+      cache: "no-store",
+    }).catch(() => null);
+    const rows: VenueRow[] = vres?.ok ? await vres.json() : [];
+    const countByVenue = new Map<string, number>();
+    for (const e of filtered) {
+      if (e.venue) {
+        countByVenue.set(e.venue.id, (countByVenue.get(e.venue.id) ?? 0) + 1);
+      }
+    }
+    for (const v of rows) {
+      const n = countByVenue.get(v.id) ?? 0;
+      if (n > 0 && v.lat != null && v.lng != null) {
+        mapVenues.push({
+          id: v.id,
+          name: v.name,
+          address: v.address,
+          lat: v.lat,
+          lng: v.lng,
+          eventCount: n,
+        });
+      }
+    }
+  }
 
   const now = Date.now();
   // "Más adelante" bajo demanda: ?upto=N semanas visibles (default 1 =
@@ -456,6 +494,17 @@ export default async function EventosPage({
                     <path d="M8 2v3M16 2v3M3 9h18" />
                   </svg>
                 </Link>
+                <Link
+                  href={hrefFor({ view: "map", week: undefined, day: undefined })}
+                  aria-label={t.viewMap}
+                  aria-current={view === "map" ? "true" : undefined}
+                  className={iconBtn(view === "map")}
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                    <path d="M8 2v15M16 6v15" />
+                  </svg>
+                </Link>
               </div>
               {/* Mis eventos — agenda propia (ticket activo), ícono aparte */}
               <Link
@@ -544,7 +593,24 @@ export default async function EventosPage({
         </div>
       </header>
 
-      {view === "calendar" ? (
+      {view === "map" ? (
+        <section aria-label={t.viewMap}>
+          {mapVenues.length === 0 ? (
+            <p className="text-white/60">
+              {genreSet.size || venueId ? t.emptyFiltered : t.empty}
+            </p>
+          ) : (
+            <>
+              <div className="h-[62dvh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-night-700">
+                <EventsMap venues={mapVenues} />
+              </div>
+              <p className="mt-3 text-center text-xs text-white/40">
+                {t.mapHint}
+              </p>
+            </>
+          )}
+        </section>
+      ) : view === "calendar" ? (
         <section>
           <div className="mb-4 flex items-center justify-between">
             <Link

@@ -10,6 +10,7 @@ import producer from "./parts/producer.json";
 import profile from "./parts/profile.json";
 import realtime from "./parts/realtime.json";
 import dj from "./parts/dj.json";
+import locales from "./parts/locales.json";
 import venue from "./parts/venue.json";
 import support from "./parts/support.json";
 
@@ -48,6 +49,7 @@ const parts = [
   profile,
   realtime,
   dj,
+  locales,
   venue,
   support,
 ] as Dict[];

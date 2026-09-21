@@ -1456,105 +1456,6 @@
         }
       }
     },
-    "/api/events/{eventId}/rsvp": {
-      "put": {
-        "operationId": "RsvpController_set",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetRsvpDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      },
-      "delete": {
-        "operationId": "RsvpController_remove",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/rsvps": {
-      "get": {
-        "operationId": "RsvpController_counts",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/attendees": {
-      "get": {
-        "operationId": "RsvpController_attendees",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/me/rsvp": {
-      "get": {
-        "operationId": "MeRsvpController_mine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/events/{eventId}/guest-lists": {
       "post": {
         "operationId": "EventGuestListsController_create",
@@ -1869,6 +1770,34 @@
         }
       }
     },
+    "/api/venues/{id}": {
+      "get": {
+        "operationId": "VenuesController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/venues/mine": {
       "get": {
         "operationId": "VenueConsoleController_mine",
@@ -2151,6 +2080,17 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/friends/upcoming-events": {
+      "get": {
+        "operationId": "FriendsController_upcomingEvents",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -4029,10 +3969,6 @@
         "properties": {}
       },
       "CreateDiscountCodeDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "SetRsvpDto": {
         "type": "object",
         "properties": {}
       },

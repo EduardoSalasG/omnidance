@@ -279,24 +279,6 @@
               ]
             }
           }
-        },
-        {
-          "name": "GET /api/me/rsvp",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/me/rsvp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "me",
-                "rsvp"
-              ]
-            }
-          }
         }
       ]
     },
@@ -1992,124 +1974,6 @@
           }
         },
         {
-          "name": "PUT /api/events/{eventId}/rsvp",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/rsvp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "rsvp"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "DELETE /api/events/{eventId}/rsvp",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/rsvp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "rsvp"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "GET /api/events/{eventId}/rsvps",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/rsvps",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "rsvps"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "GET /api/events/{eventId}/attendees",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/attendees",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "attendees"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
           "name": "POST /api/events/{eventId}/guest-lists",
           "request": {
             "method": "POST",
@@ -3542,6 +3406,37 @@
           }
         },
         {
+          "name": "GET /api/venues/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/venues/mine",
           "request": {
             "method": "GET",
@@ -3967,6 +3862,24 @@
                 }
               ],
               "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/friends/upcoming-events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/upcoming-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "upcoming-events"
+              ]
             }
           }
         }
