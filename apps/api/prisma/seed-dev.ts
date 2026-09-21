@@ -663,6 +663,8 @@ export async function seedDev(prisma: PrismaClient) {
     aliases: string[] = [],
     weeksAhead = 0,
     genreMix: MixBlock[] | null = null,
+    // Cronograma de la noche — null deriva de genres (programFor).
+    program: ProgramItem[] | null = null,
   ) => {
     const series = await ensure(
       () =>
@@ -671,12 +673,12 @@ export async function seedDev(prisma: PrismaClient) {
         }),
       () =>
         prisma.eventSeries.create({
-          data: { name, producerId, venueId, recurrence, genres, genreMix: genreMix ?? undefined },
+          data: { name, producerId, venueId, recurrence, genres, genreMix: genreMix ?? undefined, program: program ?? programFor(genres) },
         }),
       (s) =>
         prisma.eventSeries.update({
           where: { id: s.id },
-          data: { name, venueId, recurrence, genres, genreMix: genreMix ?? Prisma.DbNull },
+          data: { name, venueId, recurrence, genres, genreMix: genreMix ?? Prisma.DbNull, program: program ?? programFor(genres) },
         }),
     );
 
@@ -750,12 +752,58 @@ export async function seedDev(prisma: PrismaClient) {
     [Genre.CUBANO, 2],
   );
 
+  // Cronograma de la noche — filas {t: "HH:MM" (o "Hasta HH:MM"),
+  // end?: "HH:MM", label}. Se renderiza en el orden del array: las
+  // horas post-medianoche van al final (00:00 va después de 22:00).
+  type ProgramItem = { t: string; end?: string; label: string };
+
+  // Regla general: con salsa+bachata hay clase de bachata 20–21 y de
+  // salsa 21–22; con un solo estilo, su clase va 21–22; sin clases,
+  // se abre al social. Siempre: shows 00:00, cumpleaños 00:30 y
+  // cierre 03:45.
+  const programFor = (genres: Genre[]): ProgramItem[] => {
+    const items: ProgramItem[] = [];
+    const b = genres.includes(Genre.BACHATA);
+    const s = genres.includes(Genre.SALSA);
+    if (b && s) {
+      items.push({ t: "20:00", end: "21:00", label: "Clase de bachata" });
+      items.push({ t: "21:00", end: "22:00", label: "Clase de salsa" });
+    } else if (b || s) {
+      items.push({
+        t: "21:00",
+        end: "22:00",
+        label: b ? "Clase de bachata" : "Clase de salsa",
+      });
+    }
+    items.push(
+      { t: "22:00", label: "Inicio del social" },
+      { t: "00:00", label: "Shows" },
+      { t: "00:30", label: "Cumpleaños" },
+      { t: "03:45", label: "Cierre del social" },
+    );
+    return items;
+  };
+
+  // Cronograma Maníaco — Bachatamanía corre con formato propio
+  // (happy hour, karaoke y reserva de mesas antes del social).
+  const PROG_MANIACO: ProgramItem[] = [
+    { t: "20:30", label: "Apertura de puertas" },
+    { t: "20:30", end: "22:00", label: "Happy Hour 2x1" },
+    { t: "20:30", end: "21:15", label: "Karaoke Maníaco" },
+    { t: "21:15", label: "Clase de Bachata Parejas" },
+    { t: "Hasta 22:30", label: "Reserva de mesas" },
+    { t: "22:15", label: "¡Inicio del social!" },
+    { t: "00:30", label: "Shows + Cumpleaños" },
+    { t: "02:45", label: "Término del social" },
+  ];
+
   // Orixas — una noche por día: las marcas del mismo weekday alternan
   // semanas (weeksAhead), como en la programación real del local.
   // El último arg es el ciclo de mezcla (genreMix de la serie).
   const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA], [], 0,
     // ~15 bachatas, 2 salsas, 15 bachatas, 2 timbas → 88/6/6
-    mix([Genre.BACHATA, 15], [Genre.SALSA, 2], [Genre.BACHATA, 15], [Genre.CUBANO, 2]));
+    mix([Genre.BACHATA, 15], [Genre.SALSA, 2], [Genre.BACHATA, 15], [Genre.CUBANO, 2]),
+    PROG_MANIACO);
   const juevesCubano = await mkSeries("Baila Cubano con Bachata", ardilla.id, orixas.id, "weekly:thu", 5000, 7000, 4, [steban.id], [Genre.CUBANO, Genre.BACHATA], ["Baila Cubano con Bachata (Jueves Cubano)"], 0,
     // 4 timbas, 2 bachatas → 67/33
     mix([Genre.CUBANO, 4], [Genre.BACHATA, 2]));
@@ -787,6 +835,8 @@ export async function seedDev(prisma: PrismaClient) {
     // Ciclo de mezcla de la noche → event.genreMix (standalone no
     // tiene serie de la que heredar).
     genreMix: MixBlock[] | null = null,
+    // Cronograma → event.program (null deriva de genres).
+    program: ProgramItem[] | null = null,
   ) => {
     const findNight = async () => {
       const candidates = await prisma.event.findMany({
@@ -809,6 +859,7 @@ export async function seedDev(prisma: PrismaClient) {
             status: "PUBLISHED",
             genres,
             genreMix: genreMix ?? undefined,
+            program: program ?? programFor(genres),
             startsAt: nextDay(weekday, 22, weeksAhead),
             endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,
@@ -823,6 +874,7 @@ export async function seedDev(prisma: PrismaClient) {
             name,
             genres,
             genreMix: genreMix ?? Prisma.DbNull,
+            program: program ?? programFor(genres),
             startsAt: nextDay(weekday, 22, weeksAhead),
             endsAt: nextDay(weekday, 22 + 6, weeksAhead),
             presalePrice: presale,

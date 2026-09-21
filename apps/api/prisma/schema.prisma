@@ -200,6 +200,7 @@ model EventSeries {
   venueId     String
   genres      Genre[] @default([]) // estilos de la serie — los eventos los heredan
   genreMix    Json?   // ciclo de mezcla: [{genre, songs}] — ej. [{BACHATA,2},{SALSA,2},{BACHATA,2},{CUBANO,2}]
+  program     Json?   // cronograma de la noche: [{t:"20:30", end?:"22:00", label}] — los eventos lo heredan
   recurrence  String? // "weekly:wed", "3x/month:fri" — descriptor humano en v1
   active      Boolean @default(true)
 
@@ -220,6 +221,7 @@ model Event {
   status      EventStatus @default(DRAFT)
   genres      Genre[]     @default([]) // vacío → hereda series.genres; standalone lo declara acá
   genreMix    Json?       // override del ciclo de la serie; noches standalone lo declaran acá
+  program     Json?       // override del cronograma de la serie; noches standalone lo declaran acá
   name        String
   startsAt    DateTime
   endsAt      DateTime

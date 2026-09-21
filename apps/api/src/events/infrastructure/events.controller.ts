@@ -405,7 +405,16 @@ export class EventsController {
         academyId: true,
         genres: true,
         genreMix: true,
-        series: { select: { id: true, name: true, genres: true, genreMix: true } },
+        program: true,
+        series: {
+          select: {
+            id: true,
+            name: true,
+            genres: true,
+            genreMix: true,
+            program: true,
+          },
+        },
         venue: { select: { name: true, address: true, capacity: true } },
         djs: {
           select: {
