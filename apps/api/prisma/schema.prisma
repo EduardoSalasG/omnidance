@@ -1102,3 +1102,17 @@ model PlatformParam {
   updatedById String?
   updatedAt   DateTime @updatedAt
 }
+
+// Lead de marketing de /pro — formulario público de contacto/demo.
+// roles: PRODUCER | DJ | ACADEMY_OWNER | VENUE_MANAGER · intent: CONTACT | DEMO.
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  roles     String[]
+  intent    String
+  status    String   @default("NEW") // NEW | CONTACTED | CONVERTED | DISCARDED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

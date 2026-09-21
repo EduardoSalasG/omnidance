@@ -4,6 +4,7 @@ import Link from "next/link";
 // (ver src/i18n/parts/). landingPro solo declara overrides: las claves
 // compartidas (nav, CTAs de header, footerTagline) vienen de `landing`.
 import landingParts from "@/i18n/parts/landing.json";
+import { ProLeadForm } from "./ProLeadForm";
 
 // Acento de marca via token `neon` (#a78bfa violeta en :root) — icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
@@ -41,10 +42,17 @@ export function Landing({
     { index: "03", title: t.featureSceneTitle, desc: t.featureSceneDesc },
   ];
 
+  const isPro = variant === "pro";
+
   const weekLabel =
     weeklyEvents > 0
       ? t.weekCount.replace("{count}", String(weeklyEvents))
       : t.weekEmpty;
+
+  // En pro ambos CTAs llevan al formulario (los datos van primero);
+  // en dancer van a la app: registro y catálogo público de eventos.
+  const primaryHref = isPro ? "#contacto" : "/login";
+  const secondaryHref = isPro ? "#contacto" : "/eventos";
 
   return (
     <>
@@ -101,10 +109,10 @@ export function Landing({
               {t.heroLead}
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link href="/login" className={primaryCtaClass}>
+              <Link href={primaryHref} className={primaryCtaClass}>
                 {t.ctaCreateAccount}
               </Link>
-              <Link href="/eventos" className={secondaryCtaClass}>
+              <Link href={secondaryHref} className={secondaryCtaClass}>
                 {t.ctaEvents}
               </Link>
             </div>
@@ -166,33 +174,36 @@ export function Landing({
           </div>
         </section>
 
-        {/* ─── CTA final: una frase + botón grande ─── */}
-        <section className="border-t border-white/5 px-6 py-20 text-center sm:py-24">
+        {/* ─── CTA final: botón (dancer) o formulario de lead (pro) ─── */}
+        <section
+          id={isPro ? "contacto" : undefined}
+          className="border-t border-white/5 px-6 py-20 text-center sm:py-24"
+        >
           <h2 className="text-display text-3xl font-extrabold sm:text-4xl">
             {t.finalCta}
           </h2>
           <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-white/60">
             {t.finalCtaDesc}
           </p>
-          <Link href="/login" className={`${primaryCtaClass} mt-8`}>
-            {t.ctaCreateAccount}
-          </Link>
+          {isPro ? (
+            <div className="mt-10">
+              <ProLeadForm />
+            </div>
+          ) : (
+            <Link href="/login" className={`${primaryCtaClass} mt-8`}>
+              {t.ctaCreateAccount}
+            </Link>
+          )}
         </section>
       </main>
 
-      {/* ─── Footer mínimo: eventos + cruce a la otra audiencia ─── */}
+      {/* ─── Footer mínimo: marca + cruce a la otra audiencia ─── */}
       <footer className="border-t border-white/5 px-6 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
           <p className="text-xs text-white/50">
             Omni<span className="text-neon">dance</span> · {t.footerTagline}
           </p>
           <nav aria-label={t.navFooter} className="flex items-center gap-6">
-            <Link
-              href="/eventos"
-              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
-            >
-              {t.footerEvents}
-            </Link>
             <Link
               href={variant === "pro" ? "/" : "/pro"}
               className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
