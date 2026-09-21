@@ -173,7 +173,20 @@
     "emptyFiltered": "No hay eventos con estos filtros.",
     "publicLead": "La cartelera de la comunidad esta semana",
     "publicCta": "Entra para ver detalles, comprar entrada y guardar tus eventos.",
-    "publicCtaButton": "Entrar a Omnidance"
+    "publicCtaButton": "Entrar a Omnidance",
+    "viewList": "Lista",
+    "viewCalendar": "Calendario",
+    "viewSaved": "Guardados",
+    "savedEmpty": "No tienes eventos guardados. Usa el bookmark en la lista.",
+    "near": "Cerca de ti",
+    "nearLocating": "Ubicando…",
+    "nearDenied": "No pudimos obtener tu ubicación.",
+    "nearClear": "Quitar orden por cercanía",
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "more": "+{count} más",
+    "save": "Guardar evento",
+    "saved": "Quitar de guardados"
   },
   "qr": {
     "title": "Mi QR",
