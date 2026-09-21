@@ -128,9 +128,9 @@ export async function seedDev(prisma: PrismaClient) {
   const orixas = await venue(
     "Orixas",
     300,
-    -33.4208,
-    -70.646,
-    "Recoleta 545, Recoleta",
+    -33.4477,
+    -70.6527,
+    "Tarapacá 755, Santiago Centro",
     "Mié–Sáb · 21:00–04:00",
   );
   // Rebrand: "Tierra Dura" → "Tierra" — renombra la fila (mismo id,
@@ -151,17 +151,17 @@ export async function seedDev(prisma: PrismaClient) {
   const tierraDura = await venue(
     "Tierra",
     250,
-    -33.4489,
-    -70.6185,
-    "Tenderini 83, Santiago Centro",
+    -33.4558,
+    -70.6342,
+    "Av. Vicuña Mackenna 1459, Santiago",
     "Mar–Sáb · 22:00–04:00",
   );
   const havana = await venue(
     "Havana",
     200,
-    -33.4339,
-    -70.6343,
-    "Av. Ricardo Cumming 342, Barrio Brasil",
+    -33.4205,
+    -70.642,
+    "Dominica 142, Recoleta",
     "Vie–Sáb · 22:00–04:00",
   );
 
