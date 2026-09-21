@@ -163,7 +163,7 @@ export function ProLeadForm() {
             className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-neon px-6 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
           >
             {demoPhase === "loading" && <Spinner size="sm" />}
-            {t.demoCta} →
+            <span className="whitespace-pre-line">{t.demoCta}</span> →
           </button>
         )}
         {demoPhase === "error" && (

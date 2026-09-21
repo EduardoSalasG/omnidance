@@ -79,6 +79,7 @@ type PersonRow = {
   id: string;
   name: string;
   email: string | null;
+  isDemoAccount?: boolean;
   createdAt: string;
   roles: { id: string; role: string; status: string; createdAt: string }[];
 };
@@ -485,7 +486,12 @@ function DatosPanel() {
                   {dateFmt.format(new Date(r.createdAt))}
                 </span>
               </div>
-              {r.email && meta(r.email)}
+              <div className="flex items-center gap-2">
+                {r.email && meta(r.email)}
+                {r.isDemoAccount && (
+                  <Badge variant="outline">{t("datos.demoBadge")}</Badge>
+                )}
+              </div>
               {r.roles.length > 0 && (
                 <ul className="flex flex-wrap gap-1.5">
                   {r.roles.map((rol) => (
