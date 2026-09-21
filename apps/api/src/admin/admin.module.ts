@@ -5,7 +5,6 @@ import { ParamsModule } from "../params/params.module";
 import { AdminController } from "./infrastructure/admin.controller";
 import { CatalogsController } from "./infrastructure/catalogs.controller";
 import { AdminProducerParamsController } from "./infrastructure/producer-params.controller";
-import { RolesController } from "./infrastructure/roles.controller";
 import { SupportController } from "./infrastructure/support.controller";
 
 @Module({
@@ -14,7 +13,6 @@ import { SupportController } from "./infrastructure/support.controller";
     AdminController,
     CatalogsController,
     AdminProducerParamsController,
-    RolesController,
     SupportController,
   ],
 })

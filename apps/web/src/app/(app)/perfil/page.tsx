@@ -19,8 +19,6 @@ type Me = {
   roleStates?: { role: string; status: string }[];
 };
 
-type RoleCatalogItem = { key: string; label: string };
-
 type Streak = {
   currentWeeks: number;
   bestWeeks: number;
@@ -32,9 +30,6 @@ type BadgeItem = {
 };
 
 type PageState = "loading" | "ready" | "unauth" | "error";
-
-// El catálogo de roles solicitables vive en DB (GET /roles/catalog);
-// las etiquetas i18n son fallback para keys sin label de catálogo.
 
 // Orden canónico para el switcher "Interactuar como" — DANCER primero
 // (lente consumidor) y luego los roles de gestión/operación.
@@ -59,17 +54,12 @@ export default function PerfilPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [streak, setStreak] = useState<Streak | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
-  const [pendingRoles, setPendingRoles] = useState<Set<string>>(new Set());
-  const [requesting, setRequesting] = useState<string | null>(null);
-  const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
   const activeRole = useActiveRole(me?.roles);
   // Override local para feedback inmediato al cambiar de lente; el hook
   // converge al mismo valor cuando el evento de rol se propaga.
   const [picked, setPicked] = useState<AppRole | null>(null);
 
   function roleLabel(role: string): string {
-    const fromCatalog = catalog.find((r) => r.key === role)?.label;
-    if (fromCatalog) return fromCatalog;
     return t.has(`roleLabels.${role}`) ? t(`roleLabels.${role}`) : role;
   }
 
@@ -95,22 +85,17 @@ export default function PerfilPage() {
         return;
       }
 
-      // Gamificación + catálogo de roles en paralelo — fallos no bloquean
+      // Gamificación en paralelo — fallos no bloquean
       try {
-        const [streakRes, badgesRes, catalogRes] = await Promise.all([
+        const [streakRes, badgesRes] = await Promise.all([
           apiFetch("/gamification/me/streak"),
           apiFetch("/gamification/me/badges"),
-          apiFetch("/roles/catalog"),
         ]);
         if (cancelled) return;
         if (streakRes.ok) setStreak((await streakRes.json()) as Streak);
         if (badgesRes.ok) {
           const json: unknown = await badgesRes.json();
           setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
-        }
-        if (catalogRes.ok) {
-          const json: unknown = await catalogRes.json();
-          setCatalog(Array.isArray(json) ? (json as RoleCatalogItem[]) : []);
         }
       } catch {
         // Silencioso: widgets muestran valores por defecto
@@ -122,24 +107,6 @@ export default function PerfilPage() {
       cancelled = true;
     };
   }, []);
-
-  async function requestRole(role: string) {
-    setRequesting(role);
-    try {
-      const res = await apiFetch("/roles/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
-      if (res.ok) {
-        setPendingRoles((prev) => new Set(prev).add(role));
-      }
-    } catch {
-      // Endpoint en construcción — el usuario puede reintentar
-    } finally {
-      setRequesting(null);
-    }
-  }
 
   async function logout() {
     try {
@@ -179,13 +146,6 @@ export default function PerfilPage() {
       </main>
     );
   }
-
-  const heldRoles = new Set(
-    me.roleStates?.map((r) => r.role) ?? me.roles,
-  );
-  const requestable = catalog
-    .map((r) => r.key)
-    .filter((r) => !heldRoles.has(r));
 
   // "Interactuar como": roles aprobados del usuario + DANCER siempre
   // (lente consumidor — no se duplica si ya viene aprobado).
@@ -324,40 +284,6 @@ export default function PerfilPage() {
           </ul>
         )}
       </Card>
-
-      {/* Solicitar rol */}
-      {requestable.length > 0 && (
-        <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-            {t("requestRole")}
-          </h2>
-          <ul className="mt-3 flex flex-col gap-2">
-            {requestable.map((role) => {
-              const pending = pendingRoles.has(role);
-              return (
-                <li
-                  key={role}
-                  className="flex min-h-11 items-center justify-between gap-3"
-                >
-                  <span className="text-sm font-medium">{roleLabel(role)}</span>
-                  {pending ? (
-                    <Badge variant="outline">{t("rolePending")}</Badge>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={requesting !== null}
-                      onClick={() => requestRole(role)}
-                    >
-                      {t("requestRole")}
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      )}
 
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}
