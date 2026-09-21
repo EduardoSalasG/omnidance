@@ -17,6 +17,7 @@ const fullFmt = new Intl.DateTimeFormat("es-CL", {
 const timeFmt = new Intl.DateTimeFormat("es-CL", {
   hour: "2-digit",
   minute: "2-digit",
+  hourCycle: "h23", // "22:00" — compacto para columnas de hora
 });
 
 export type EventDateVariant = "compact" | "full" | "time";
