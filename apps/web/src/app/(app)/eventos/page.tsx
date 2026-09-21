@@ -294,13 +294,14 @@ export default async function EventosPage({
     const inner = (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
         <div className="flex items-start gap-3">
-          {/* Col 1: hora + venue (chip trunca nombres largos) */}
-          <div className="flex w-24 shrink-0 flex-col items-start gap-1.5">
+          {/* Col 1: hora + venue (pin + texto, sin chrome de chip —
+              así nombres de dos palabras caben sin truncar) */}
+          <div className="flex w-24 shrink-0 flex-col items-start gap-1">
             <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
               <EventDate start={e.startsAt} variant="time" />
             </span>
             {e.venue && (
-              <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-xs font-medium text-white/80">
+              <span className="inline-flex max-w-full items-center gap-1 text-xs text-white/60">
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
@@ -318,9 +319,9 @@ export default async function EventosPage({
               </span>
             )}
           </div>
-          {/* Col 2: título + estilos debajo */}
+          {/* Col 2: título (1 línea) + estilos debajo */}
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold leading-snug">
+            <h2 className="truncate text-base font-semibold leading-snug">
               {e.name}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
