@@ -116,7 +116,22 @@ export async function seedDev(prisma: PrismaClient) {
     );
 
   const orixas = await venue("Orixas", 300, -33.4208, -70.646);
-  const tierraDura = await venue("Tierra Dura", 250, -33.4489, -70.6185);
+  // Rebrand: "Tierra Dura" → "Tierra" — renombra la fila (mismo id,
+  // eventos intactos) y sus noches standalone.
+  const tdLegacy = await prisma.venue.findFirst({
+    where: { name: "Tierra Dura" },
+  });
+  if (tdLegacy) {
+    await prisma.venue.update({
+      where: { id: tdLegacy.id },
+      data: { name: "Tierra" },
+    });
+    await prisma.event.updateMany({
+      where: { venueId: tdLegacy.id, seriesId: null, name: "Tierra Dura" },
+      data: { name: "Tierra" },
+    });
+  }
+  const tierraDura = await venue("Tierra", 250, -33.4489, -70.6185);
   const havana = await venue("Havana", 200, -33.4339, -70.6343);
 
   // Consola /venue — el manager ve KPIs y arriendos de Orixas.
@@ -696,7 +711,7 @@ export async function seedDev(prisma: PrismaClient) {
   await mkSeries("Ashe", cesar.id, orixas.id, "1x/month", 6000, 8000, 6, [cesar.id], ALL3);
 
   // Noches standalone (sin serie) — nombre = marca de la noche. Las
-  // homónimas ("Tierra Dura" ×5) se distinguen por el weekday de su
+  // homónimas ("Tierra" ×5) se distinguen por el weekday de su
   // startsAt, que persiste entre reseeds.
   const mkNight = async (
     venueId: string,
@@ -759,11 +774,11 @@ export async function seedDev(prisma: PrismaClient) {
     }
   };
 
-  // Tierra Dura — mar–sáb; mar/mié liberada hasta 23:30 luego $4.000 en puerta.
+  // Tierra — mar–sáb; mar/mié liberada hasta 23:30 luego $4.000 en puerta.
   for (const wd of [2, 3, 4, 5, 6]) {
     await mkNight(
       tierraDura.id,
-      "Tierra Dura",
+      "Tierra",
       wd,
       5000,
       wd === 2 || wd === 3 ? 4000 : 7000,
@@ -791,9 +806,9 @@ export async function seedDev(prisma: PrismaClient) {
   // Limpieza de noches standalone obsoletas o duplicadas ANTES del
   // find-or-create: nombres fuera del set actual ("Havana — noche sáb",
   // "Havana") y duplicados nombre+weekday. Clave nombre+weekday para
-  // no borrar las 5 "Tierra Dura" legítimas (una por weekday).
+  // no borrar las 5 "Tierra" legítimas (una por weekday).
   const nightNames = new Set([
-    "Tierra Dura",
+    "Tierra",
     ...havanaNights.map(([n]) => n),
   ]);
   const standalone = await prisma.event.findMany({
