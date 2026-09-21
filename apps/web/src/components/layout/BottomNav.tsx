@@ -10,12 +10,13 @@ import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
 import { ModeToggle } from "./ModeToggle";
 
-// Chrome de app: hamburguesa flotante (→ drawer lateral con los módulos
-// del rol agrupados por dominio) + large title iOS con la sección activa
-// + tab bar inferior con las funciones primarias del rol y Perfil como
-// quinto slot. Todo se oculta en contextos de pantalla completa
-// (consola staff de puerta). Login vive en (marketing) sin este chrome.
-// /qr sí muestra el nav — el escáner ocupa el área de contenido.
+// Chrome de app: appbar sticky (hamburguesa → drawer lateral con los
+// módulos del rol agrupados por dominio | título de sección estilo nav
+// bar iOS | campana de notificaciones) + tab bar inferior con las
+// funciones primarias del rol y Perfil como quinto slot. Todo se oculta
+// en contextos de pantalla completa (consola staff de puerta). Login
+// vive en (marketing) sin este chrome. /qr sí muestra el nav — el
+// escáner ocupa el área de contenido.
 export const CHROME_HIDDEN_PREFIXES = ["/staff/"];
 
 // Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
@@ -591,7 +592,7 @@ function badgeText(count: number): string {
   return count > 99 ? "99+" : String(count);
 }
 
-export function BottomNav() {
+export function BottomNav({ children }: { children?: React.ReactNode }) {
   const pathname = usePathname();
   const t = useTranslations("nav");
   // Labels fuera de nav.*: "create" (producer.createEvent) e ítems del
@@ -671,8 +672,9 @@ export function BottomNav() {
     setDrawerOpen(false);
   }, [pathname]);
 
+  // Contexto fullscreen (consola staff): solo el contenido, sin chrome.
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)))
-    return null;
+    return <>{children}</>;
 
   const badge = unread != null && unread > 0 ? unread : 0;
 
@@ -813,86 +815,94 @@ export function BottomNav() {
 
   return (
     <>
-      {/* Hamburguesa flotante — solo si el rol tiene módulos en el drawer */}
-      {hasDrawerItems && (
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={drawerOpen}
-          aria-controls="app-side-drawer"
-          aria-label={t("menu")}
-          onClick={() => setDrawerOpen((o) => !o)}
-          className="fixed left-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-night-700 bg-night-900/80 text-white/80 shadow-lg shadow-black/40 backdrop-blur transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-        >
-          <svg
-            aria-hidden
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            className="h-6 w-6"
-          >
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      )}
-
-      {/* Título de sección estilo nav bar iOS: h1 centrado a la misma
-          altura que la hamburguesa — las páginas no repiten el título
-          de sección (solo títulos de contenido: detalle de evento,
-          estados de checkout). px-16 despeja el botón flotante.
-          Excepción: en /inicio con lente DANCER el slot lo ocupa el
-          switch Social/Academia; el h1 queda sr-only para no perder el
-          encabezado de la página. */}
-      {pathname === "/inicio" && activeRole === "DANCER" ? (
-        <>
-          {pageLabel && <h1 className="sr-only">{pageLabel}</h1>}
-          <div className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center px-16">
-            <ModeToggle />
-          </div>
-        </>
-      ) : (
-        pageLabel && (
-          <h1 className="pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center justify-center truncate px-16 text-center text-lg font-semibold tracking-tight text-white">
-            {pageLabel}
-          </h1>
-        )
-      )}
-
-      {/* Campana de notificaciones — appbar derecha, espejo de la
-          hamburguesa. Mismo badge con tope 99+; el aria-label anuncia
-          el conteo. Solo con sesión (un 401 deja me en null). */}
-      {me && (
-        <Link
-          href="/notificaciones"
-          aria-label={
-            badge > 0
-              ? t("notificationsUnread", { count: badge })
-              : t("notificationsFull")
-          }
-          aria-current={
-            pathname.startsWith("/notificaciones") ? "page" : undefined
-          }
-          className={`fixed right-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-night-700 bg-night-900/80 shadow-lg shadow-black/40 backdrop-blur transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
-            pathname.startsWith("/notificaciones")
-              ? "text-neon"
-              : "text-white/80 hover:text-white"
-          }`}
-        >
-          <span className="relative">
-            {icon(ICONS.notifications)(false)}
-            {badge > 0 && (
-              <span
-                aria-hidden
-                className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-night-950"
+      {/* Appbar sticky — en el flujo del layout, con fondo sólido:
+          nunca se sobrepone al contenido. 3 slots de ancho fijo
+          (hamburguesa | título | campana) para que el título quede
+          centrado aunque falte un botón. En /inicio con lente DANCER
+          el slot central lo ocupa el switch Social/Academia y el h1
+          queda sr-only para conservar el encabezado de página. */}
+      <header className="sticky top-0 z-40 border-b border-night-700 bg-night-950/90 backdrop-blur pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex h-14 max-w-lg items-center px-3">
+          <div className="flex w-10 items-center">
+            {hasDrawerItems && (
+              <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={drawerOpen}
+                aria-controls="app-side-drawer"
+                aria-label={t("menu")}
+                onClick={() => setDrawerOpen((o) => !o)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
-                {badgeText(badge)}
-              </span>
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  className="h-6 w-6"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
             )}
-          </span>
-        </Link>
-      )}
+          </div>
+
+          <div className="flex flex-1 items-center justify-center px-2">
+            {pathname === "/inicio" && activeRole === "DANCER" ? (
+              <>
+                {pageLabel && <h1 className="sr-only">{pageLabel}</h1>}
+                <ModeToggle />
+              </>
+            ) : (
+              pageLabel && (
+                <h1 className="pointer-events-none truncate text-center text-lg font-semibold tracking-tight text-white">
+                  {pageLabel}
+                </h1>
+              )
+            )}
+          </div>
+
+          <div className="flex w-10 items-center justify-end">
+            {/* Campana — badge con tope 99+; solo con sesión. */}
+            {me && (
+              <Link
+                href="/notificaciones"
+                aria-label={
+                  badge > 0
+                    ? t("notificationsUnread", { count: badge })
+                    : t("notificationsFull")
+                }
+                aria-current={
+                  pathname.startsWith("/notificaciones")
+                    ? "page"
+                    : undefined
+                }
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+                  pathname.startsWith("/notificaciones")
+                    ? "text-neon"
+                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span className="relative">
+                  {icon(ICONS.notifications)(false)}
+                  {badge > 0 && (
+                    <span
+                      aria-hidden
+                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-night-950"
+                    >
+                      {badgeText(badge)}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {children}
 
       <nav
         aria-label={t("main")}
