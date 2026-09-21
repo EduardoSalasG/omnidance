@@ -4,10 +4,10 @@
     "navPrimary": "Navegación principal",
     "navFooter": "Enlaces de pie de página",
     "metaTitle": "Salsa, timba y bachata en Chile",
-    "metaDescription": "La app #1 de la comunidad salsera, timbera y bachatera de Chile: sociales, entradas, academias y clases. Registro rápido y fácil.",
+    "metaDescription": "La app de la comunidad salsera, timbera y bachatera de Chile: sociales, entradas, academias y clases. Registro rápido y fácil.",
     "eyebrow": "Salsa · Timba · Bachata en Chile",
     "heroPromise": "Si bailas, ya eres de acá",
-    "heroLead": "La app #1 de la comunidad salsera, timbera y bachatera de Chile. Sociales, entradas, academias y clases — todo en tu teléfono.",
+    "heroLead": "La app de la comunidad salsera, timbera y bachatera de Chile. Sociales, entradas, academias y clases — todo en tu teléfono.",
     "ctaSignup": "Crear cuenta",
     "ctaCreateAccount": "Crear mi cuenta gratis",
     "ctaLogin": "Entrar",
@@ -52,7 +52,7 @@
     "form": {
       "fieldName": "Nombre",
       "fieldEmail": "Correo",
-      "fieldPhone": "Teléfono (opcional)",
+      "fieldPhone": "Teléfono",
       "fieldRoles": "¿Qué eres?",
       "roleProducer": "Soy productor",
       "roleDj": "Soy DJ",
@@ -64,7 +64,13 @@
       "errorGeneric": "No pudimos enviarlo — intenta de nuevo",
       "successTitle": "Listo, {name}",
       "successContact": "Te contactaremos muy pronto.",
-      "successDemo": "Te escribiremos para agendar tu demo."
+      "successDemo": "Te escribiremos para agendar tu demo.",
+      "fieldRolesHint": "puedes escoger varios",
+      "errorMissing": "Te falta: {fields}",
+      "errorEmail": "Revisa el formato de tu correo",
+      "demoCta": "¿Quieres revisar la app con tus roles? Ingresa acá",
+      "demoError": "No pudimos abrir tu sesión — intenta de nuevo",
+      "demoExists": "Ya existe una cuenta con ese correo — inicia sesión"
     }
   }
 }
