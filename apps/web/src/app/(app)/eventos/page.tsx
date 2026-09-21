@@ -479,9 +479,12 @@ export default async function EventosPage({
           })}
         </nav>
 
-        {/* Locales — dropdown tipo chip (sin JS) */}
+        {/* Locales — dropdown tipo chip (sin JS). key por venue: al
+            navegar a otro local el <details> se remonta cerrado —
+            el estado open no es controlado por React y sin key
+            sobrevive a la navegación client-side. */}
         <div className="flex items-center">
-          <details className="venue-filter relative">
+          <details key={venueId ?? "all"} className="venue-filter relative">
             <summary
               className={`${chipClass(!!venueId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
             >
