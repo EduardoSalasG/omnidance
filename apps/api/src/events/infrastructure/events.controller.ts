@@ -358,18 +358,22 @@ export class EventsController {
         presalePrice: true,
         doorPrice: true,
         genres: true,
+        genreMix: true,
         serviceFeeClp: true,
         doorAppFeeClp: true,
         doorCashFeeClp: true,
         platformFeePct: true,
-        series: { select: { id: true, name: true, genres: true } },
+        series: { select: { id: true, name: true, genres: true, genreMix: true } },
         venue: { select: { id: true, name: true, address: true, lat: true, lng: true } },
       },
     });
 
-    return rows.map(({ series, genres, ...e }) => ({
+    // genreMix resuelto igual que genres: el evento manda; si no, hereda
+    // el ciclo de la serie. null → el card no muestra barra de mezcla.
+    return rows.map(({ series, genres, genreMix, ...e }) => ({
       ...e,
       genres: genres.length > 0 ? genres : (series?.genres ?? []),
+      genreMix: genreMix ?? series?.genreMix ?? null,
       series: series ? { id: series.id, name: series.name } : null,
     }));
   }
@@ -399,7 +403,9 @@ export class EventsController {
         producerId: true,
         venueId: true,
         academyId: true,
-        series: { select: { id: true, name: true } },
+        genres: true,
+        genreMix: true,
+        series: { select: { id: true, name: true, genres: true, genreMix: true } },
         venue: { select: { name: true, address: true, capacity: true } },
         djs: {
           select: {

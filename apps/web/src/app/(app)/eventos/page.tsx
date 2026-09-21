@@ -2,7 +2,15 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import messages from "../../../../messages/es-CL.json";
-import { Badge, Card, EventDate, PriceTag } from "@/components/ui";
+import {
+  Badge,
+  Card,
+  EventDate,
+  GenreMixBar,
+  PriceTag,
+  aggregateMix,
+} from "@/components/ui";
+import type { GenreMixBlock } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Eventos de salsa y bachata esta semana",
@@ -21,6 +29,7 @@ type EventListItem = {
   presalePrice: number | null;
   doorPrice: number | null;
   genres: string[];
+  genreMix: GenreMixBlock[] | null;
   series: { name: string } | null;
   venue: {
     id: string;
@@ -288,6 +297,12 @@ export default async function EventosPage({
     }`;
 
   const renderCard = (e: EventListItem) => {
+    // Proporción del ciclo: ordena el texto de géneros de mayor a
+    // menor share y alimenta la mini barra segmentada.
+    const mixSegs = e.genreMix?.length ? aggregateMix(e.genreMix) : null;
+    const orderedGenres = mixSegs
+      ? [...mixSegs].sort((a, b) => b.pct - a.pct).map((s) => s.genre)
+      : e.genres;
     // Los cards siempre viven bajo un heading de día (lista, día del
     // 3 columnas: [hora + chip venue] [título + estilos] [precio].
     // Los cards viven bajo heading de día → solo hora.
@@ -325,9 +340,9 @@ export default async function EventosPage({
               {e.name}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-              {e.genres.length > 0 && (
+              {orderedGenres.length > 0 && (
                 <span>
-                  {e.genres.map((g, i) => (
+                  {orderedGenres.map((g, i) => (
                     <span key={g}>
                       {i > 0 && <span className="text-white/30"> · </span>}
                       <span
@@ -346,6 +361,13 @@ export default async function EventosPage({
               )}
               {e.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
             </div>
+            {mixSegs && (
+              <GenreMixBar
+                mix={e.genreMix!}
+                labels={t.genre as Record<string, string>}
+                className="mt-1.5"
+              />
+            )}
             {view === "mios" && (
               <p className="mt-1.5 text-xs font-medium text-neon">
                 {t.miosQrHint}
