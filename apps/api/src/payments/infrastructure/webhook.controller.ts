@@ -114,7 +114,7 @@ export class PaymentsController {
     // El evento también se reutiliza dentro de la tx para el quote/ticket.
     const event = await this.prisma.event.findUnique({
       where: { id: order.eventId },
-      select: { presalePrice: true, serviceFeeClp: true },
+      select: { presalePrice: true, serviceFeeClp: true, name: true },
     });
     const serviceFeeClp =
       event?.serviceFeeClp ??
@@ -151,6 +151,14 @@ export class PaymentsController {
         discount: code,
       });
 
+      // Multi-entrada: un ticket para el comprador + uno por destinatario
+      // de regalo (ownerId=amigo, giftedFromId=comprador). El descuento se
+      // audita una sola vez — solo el ticket del comprador lo referencia.
+      const recipientIds = Array.isArray(payment.recipients)
+        ? (payment.recipients as string[]).filter(
+            (id): id is string => typeof id === "string",
+          )
+        : [];
       await tx.ticket.create({
         data: {
           eventId: order.eventId,
@@ -161,6 +169,18 @@ export class PaymentsController {
           discountCodeId: code?.id ?? null,
         },
       });
+      for (const ownerId of recipientIds) {
+        await tx.ticket.create({
+          data: {
+            eventId: order.eventId,
+            ownerId,
+            buyerId: payment.personId,
+            giftedFromId: payment.personId,
+            listPrice: event?.presalePrice ?? 0,
+            serviceFee: quote.serviceFee,
+          },
+        });
+      }
 
       if (code) {
         // auditoría de la redemption + consumo del uso
@@ -185,6 +205,38 @@ export class PaymentsController {
         title: "Pago confirmado — tu ticket está listo",
         data: { paymentId: payment.id, refId: payment.refId },
       });
+
+      // Aviso a cada destinatario de regalo: quién la compró + qué evento.
+      const recipientIds = Array.isArray(payment.recipients)
+        ? (payment.recipients as string[]).filter(
+            (id): id is string => typeof id === "string",
+          )
+        : [];
+      if (recipientIds.length) {
+        const buyer = await this.prisma.person.findUnique({
+          where: { id: payment.personId },
+          select: { name: true },
+        });
+        const buyerName = buyer?.name ?? "Un amigo";
+        for (const ownerId of recipientIds) {
+          await this.notifications.notifySafe(ownerId, {
+            category: "TRANSACTIONAL",
+            type: "ticket.gifted",
+            title: `${buyerName} te regaló una entrada`,
+            body: event?.name
+              ? `Para ${event.name} — ya está en Mis entradas`
+              : "Ya está en Mis entradas",
+            data: {
+              paymentId: payment.id,
+              refId: payment.refId,
+              eventId: order.eventId,
+              eventName: event?.name ?? null,
+              buyerId: payment.personId,
+              buyerName,
+            },
+          });
+        }
+      }
     }
 
     return { ok: true, status: "PAID" };

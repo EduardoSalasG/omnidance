@@ -910,6 +910,12 @@ model Payment {
   amount    Int // total cobrado (lista + cargo)
   fee       Int // costo pasarela
   net       Int
+  // Multi-entrada: quantity = tickets totales de la orden (1 comprador +
+  // N regalos); recipients = personIds de los destinatarios de regalo
+  // (validados como amigos ACCEPTED en el checkout). El webhook emite un
+  // ticket por persona al PAID.
+  quantity  Int  @default(1)
+  recipients Json?
   gateway   String        @default("FLOW")
   gatewayRef String?
   status    PaymentStatus @default(PENDING)

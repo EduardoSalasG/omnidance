@@ -71,10 +71,25 @@ export class SeriesPassAlreadyOwnedError extends Error {
   }
 }
 
+/**
+ * Un destinatario de regalo no pasó la validación: no está registrado, no
+ * es amigo ACCEPTED del comprador, es el propio comprador, o ya tiene una
+ * entrada ACTIVE para el evento. El mensaje nombra a la persona para que
+ * el cliente lo muestre tal cual.
+ */
+export class RecipientError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RecipientError";
+  }
+}
+
 export interface PurchaseTicketInput {
   eventId: string;
   discountCode?: string;
   songSuggestion?: string;
+  /** personIds de amigos a quienes se les regala entrada (máx. 9). */
+  recipientIds?: string[];
 }
 
 export interface PurchaseSeriesPassInput {
@@ -87,6 +102,8 @@ export interface PurchaseTicketResult {
   paymentUrl: string;
   paymentId: string;
   quote: Quote;
+  /** Tickets de la orden (1 comprador + N regalos); 1 en series pass. */
+  quantity: number;
 }
 
 /**
@@ -125,13 +142,74 @@ export class CheckoutService {
       throw new PresaleUnavailableError();
     }
 
+    // Destinatarios de regalo: deben existir, ser amigos ACCEPTED del
+    // comprador y no tener ya una entrada ACTIVE para el evento.
+    const recipientIds = [
+      ...new Set(input.recipientIds ?? []).values(),
+    ].filter((id) => id !== personId);
+    const recipients = recipientIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: recipientIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    if (recipientIds.length) {
+      const byId = new Map(recipients.map((r) => [r.id, r]));
+      const missing = recipientIds.find((id) => !byId.has(id));
+      if (missing) {
+        throw new RecipientError(
+          "Una de las personas no está registrada en Omnidance",
+        );
+      }
+      const [friendships, taken] = await Promise.all([
+        this.prisma.friendship.findMany({
+          where: {
+            status: "ACCEPTED",
+            OR: [
+              { aId: personId, bId: { in: recipientIds } },
+              { bId: personId, aId: { in: recipientIds } },
+            ],
+          },
+          select: { aId: true, bId: true },
+        }),
+        this.prisma.ticket.findMany({
+          where: {
+            eventId: event.id,
+            ownerId: { in: recipientIds },
+            status: "ACTIVE",
+          },
+          select: { ownerId: true },
+        }),
+      ]);
+      const friendIds = new Set(
+        friendships.map((f) => (f.aId === personId ? f.bId : f.aId)),
+      );
+      const takenIds = new Set(taken.map((t) => t.ownerId));
+      for (const id of recipientIds) {
+        const name = byId.get(id)?.name ?? "Esa persona";
+        if (!friendIds.has(id)) {
+          throw new RecipientError(
+            `${name} no es tu amigo en Omnidance — agrégalo primero`,
+          );
+        }
+        if (takenIds.has(id)) {
+          throw new RecipientError(
+            `${name} ya tiene una entrada para este evento`,
+          );
+        }
+      }
+    }
+    const quantity = 1 + recipientIds.length;
+
     if (event.presaleCap != null) {
       // tickets emitidos + órdenes PENDING recientes cuentan contra el cap
-      const [sold, inFlight] = await Promise.all([
+      // (quantity, no la orden — una orden multi-entrada reserva N cupos)
+      const [sold, inFlightAgg] = await Promise.all([
         this.prisma.ticket.count({
           where: { eventId: event.id, status: { not: "CANCELLED" } },
         }),
-        this.prisma.payment.count({
+        this.prisma.payment.aggregate({
+          _sum: { quantity: true },
           where: {
             orderType: "TICKET",
             status: "PENDING",
@@ -140,7 +218,8 @@ export class CheckoutService {
           },
         }),
       ]);
-      if (sold + inFlight >= event.presaleCap) {
+      const inFlight = inFlightAgg._sum.quantity ?? 0;
+      if (sold + inFlight + quantity > event.presaleCap) {
         throw new PresaleSoldOutError();
       }
     }
@@ -181,14 +260,20 @@ export class CheckoutService {
         "service_fee.presale_clp",
         Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
       ));
-    const quote = this.pricing.quote({
+    // quote por entrada; el descuento se aplica una vez por orden (no por
+    // ticket) para no multiplicar el beneficio del código.
+    const unit = this.pricing.quote({
       listPrice: event.presalePrice,
       serviceFeeClp,
       discount: code,
     });
+    const orderTotal =
+      (unit.listPrice + unit.serviceFee) * quantity - unit.discount;
+    const quote: Quote = { ...unit, total: orderTotal };
 
     // refId correlaciona con la pasarela y el webhook; eventId/discountCodeId
-    // también quedan desnormalizados en Payment para reporting.
+    // también quedan desnormalizados en Payment para reporting. quantity +
+    // recipients le dicen al webhook cuántos tickets emitir y a quién.
     const refId = encodeTicketOrderRef(event.id, code?.id);
     const person = await this.prisma.person.findUnique({
       where: { id: personId },
@@ -202,9 +287,11 @@ export class CheckoutService {
         personId,
         eventId: event.id,
         discountCodeId: code?.id ?? null,
-        amount: quote.total,
+        amount: orderTotal,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
-        net: quote.total,
+        net: orderTotal,
+        quantity,
+        recipients: recipientIds.length ? recipientIds : undefined,
         gateway: this.gateway.name,
       },
     });
@@ -236,7 +323,12 @@ export class CheckoutService {
       data: { gatewayRef: order.gatewayRef },
     });
 
-    return { paymentUrl: order.paymentUrl, paymentId: payment.id, quote };
+    return {
+      paymentUrl: order.paymentUrl,
+      paymentId: payment.id,
+      quote,
+      quantity,
+    };
   }
 
   /**
@@ -325,6 +417,11 @@ export class CheckoutService {
       data: { gatewayRef: order.gatewayRef },
     });
 
-    return { paymentUrl: order.paymentUrl, paymentId: payment.id, quote };
+    return {
+      paymentUrl: order.paymentUrl,
+      paymentId: payment.id,
+      quote,
+      quantity: 1,
+    };
   }
 }
