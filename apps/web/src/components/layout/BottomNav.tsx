@@ -620,6 +620,8 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // null = sin sesión → el drawer muestra solo Perfil.
   const [me, setMe] = useState<Me | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Hide-on-scroll del appbar (patrón iOS).
+  const [barHidden, setBarHidden] = useState(false);
   // Lente activa — cambia cuando Perfil dispara setActiveRole.
   const activeRole = useActiveRole(me?.roles);
   // Modo consumer (solo aplica a DANCER): social ↔ academy.
@@ -670,7 +672,32 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Al navegar el drawer se cierra.
   useEffect(() => {
     setDrawerOpen(false);
+    setBarHidden(false);
   }, [pathname]);
+
+  // Hide-on-scroll estilo iOS: el appbar se desliza fuera al bajar por
+  // el contenido y reaparece al subir o al llegar al final. Histéresis
+  // de 4px contra flicker; nunca se oculta en el tope (rubber-band de
+  // iOS puede dar y<0) ni con el drawer abierto.
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const atBottom =
+        y + window.innerHeight >=
+        document.documentElement.scrollHeight - 8;
+      if (y <= 0 || atBottom) {
+        setBarHidden(false);
+      } else if (!drawerOpen && y > lastY + 4 && y > 64) {
+        setBarHidden(true);
+      } else if (y < lastY - 4) {
+        setBarHidden(false);
+      }
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [drawerOpen]);
 
   // Contexto fullscreen (consola staff): solo el contenido, sin chrome.
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)))
@@ -821,7 +848,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           centrado aunque falte un botón. En /inicio con lente DANCER
           el slot central lo ocupa el switch Social/Academia y el h1
           queda sr-only para conservar el encabezado de página. */}
-      <header className="sticky top-0 z-40 border-b border-night-700 bg-night-950/90 backdrop-blur pt-[env(safe-area-inset-top)]">
+      <header
+        className={`appbar sticky top-0 z-40 border-b border-night-700 bg-night-950/90 backdrop-blur pt-[env(safe-area-inset-top)]${
+          barHidden ? " appbar-hidden" : ""
+        }`}
+      >
         <div className="mx-auto flex h-14 max-w-lg items-center px-3">
           <div className="flex w-10 items-center">
             {hasDrawerItems && (
