@@ -6,9 +6,9 @@ import "./globals.css";
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
 
 const SITE_DESCRIPTION =
-  "Sociales, entradas, academias y clases de la comunidad salsera y " +
-  "bachatera de Chile en una sola app. Registro rápido y fácil.";
-const SITE_TITLE = "Omnidance — salsa y bachata en Chile";
+  "Sociales, entradas, academias y clases de la comunidad salsera, " +
+  "timbera y bachatera de Chile en una sola app. Registro rápido y fácil.";
+const SITE_TITLE = "Omnidance — salsa, timba y bachata en Chile";
 
 export const metadata: Metadata = {
   metadataBase: new URL(WEB_URL),
@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   keywords: [
     "salsa Chile",
+    "timba Chile",
     "bachata Chile",
     "social de baile",
     "eventos salsa y bachata",
