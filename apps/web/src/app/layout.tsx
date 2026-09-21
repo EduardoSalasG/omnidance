@@ -6,9 +6,9 @@ import "./globals.css";
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
 
 const SITE_DESCRIPTION =
-  "Salsa, bachata y cubano en Santiago: socials, eventos, entradas y " +
-  "academias de la escena SBK en una sola app. Crea tu cuenta gratis.";
-const SITE_TITLE = "Omnidance — la escena SBK de Santiago";
+  "Sociales, entradas, academias y clases de la comunidad salsera y " +
+  "bachatera de Chile en una sola app. Registro rápido y fácil.";
+const SITE_TITLE = "Omnidance — salsa y bachata en Chile";
 
 export const metadata: Metadata = {
   metadataBase: new URL(WEB_URL),
@@ -18,13 +18,13 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   keywords: [
-    "salsa Santiago",
-    "bachata Santiago",
-    "cubano Santiago",
+    "salsa Chile",
+    "bachata Chile",
     "social de baile",
     "eventos salsa y bachata",
-    "academias de baile Santiago",
-    "escena SBK",
+    "academias de baile Chile",
+    "clases de salsa",
+    "clases de bachata",
     "Omnidance",
   ],
   openGraph: {

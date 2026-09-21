@@ -6,28 +6,27 @@ import { JsonLd } from "@/components/landing/JsonLd";
 import landingParts from "@/i18n/parts/landing.json";
 import { countThisWeek, fetchPublicEvents } from "@/lib/public-events";
 
-const t = landingParts.landing;
+const t = landingParts.landingPro;
 
 export const metadata: Metadata = {
   title: t.metaTitle,
   description: t.metaDescription,
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/pro" },
   openGraph: {
     title: `${t.metaTitle} — Omnidance`,
     description: t.metaDescription,
-    url: "/",
+    url: "/pro",
   },
 };
 
-// La decisión anónimo/logueado ocurre en el servidor — la landing llega
-// como HTML real (LCP, SEO) y quien tiene sesión va directo al hub.
-export default async function Home() {
+// Misma landing, audiencia PRO: productores, academias y venues.
+export default async function ProLanding() {
   if (cookies().has("omnidance_session")) redirect("/inicio");
   const events = await fetchPublicEvents();
   return (
     <>
       <JsonLd events={events.slice(0, 3)} />
-      <Landing weeklyEvents={countThisWeek(events)} />
+      <Landing variant="pro" weeklyEvents={countThisWeek(events)} />
     </>
   );
 }
