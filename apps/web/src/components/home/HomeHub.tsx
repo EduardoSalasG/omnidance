@@ -103,10 +103,17 @@ export function HomeHub() {
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
-  const [stats, setStats] = useState<HomeStats | null>(null);
+  // Stats versionados por lente: {key: "ROLE:mode"} — al cambiar de
+  // lente el slot viejo no se muestra nunca (cero flash de KPIs/hero
+  // ajenos); mientras resuelve el fetch de la lente actual → spinner.
+  const [statsSlot, setStatsSlot] = useState<{
+    key: string;
+    data: HomeStats | null;
+  } | null>(null);
   const activeRole = useActiveRole(me?.roles);
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
+  const lensKey = `${activeRole}:${viewMode}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -128,17 +135,35 @@ export function HomeHub() {
   useEffect(() => {
     if (!me) return;
     let cancelled = false;
-    setStats(null);
+    const key = `${activeRole}:${viewMode}`;
     apiFetch(`/home/stats?role=${activeRole}&mode=${viewMode}`)
       .then(async (res) => {
-        if (cancelled || !res.ok) return;
-        setStats((await res.json()) as HomeStats);
+        if (cancelled) return;
+        // Error de red/500 → data null: la lente queda "resuelta" con
+        // fallback (no spinner eterno).
+        setStatsSlot({
+          key,
+          data: res.ok ? ((await res.json()) as HomeStats) : null,
+        });
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setStatsSlot({ key, data: null });
+      });
     return () => {
       cancelled = true;
     };
   }, [me, activeRole, viewMode]);
+
+  // null hasta que el fetch de ESTA lente resuelva — los heroes que
+  // dependen de stats (dancer/staff/dj/venue) nunca ven datos ajenos.
+  const stats = statsSlot?.key === lensKey ? statsSlot.data : null;
+  const statsPending =
+    me !== null &&
+    statsSlot?.key !== lensKey &&
+    (activeRole === "DANCER" ||
+      activeRole === "STAFF" ||
+      activeRole === "DJ" ||
+      activeRole === "VENUE_MANAGER");
 
   if (!checked) {
     return (
@@ -284,32 +309,46 @@ export function HomeHub() {
         </h2>
       </header>
 
-      {stats && stats.kpis.length > 0 && (
-        <KpiGrid kpis={stats.kpis} label={kpiLabel} />
-      )}
-
-      <section aria-label={hero.title}>
-        <Link
-          href={hero.href}
-          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+      {statsPending ? (
+        <div
+          role="status"
+          aria-label={tc("loading")}
+          className="flex items-center justify-center py-16"
         >
-          <span className="text-xl font-bold leading-tight">{hero.title}</span>
-          <span className="text-sm text-white/60">{hero.desc}</span>
-          <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
-            {hero.cta}
-            <span aria-hidden>→</span>
-          </span>
-        </Link>
-        {hero.secondary && (
-          <Button
-            href={hero.secondary.href}
-            variant="secondary"
-            className="mt-3 w-full"
-          >
-            {hero.secondary.label}
-          </Button>
-        )}
-      </section>
+          <Spinner size="lg" />
+        </div>
+      ) : (
+        <>
+          {stats && stats.kpis.length > 0 && (
+            <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+          )}
+
+          <section aria-label={hero.title}>
+            <Link
+              href={hero.href}
+              className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+            >
+              <span className="text-xl font-bold leading-tight">
+                {hero.title}
+              </span>
+              <span className="text-sm text-white/60">{hero.desc}</span>
+              <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+                {hero.cta}
+                <span aria-hidden>→</span>
+              </span>
+            </Link>
+            {hero.secondary && (
+              <Button
+                href={hero.secondary.href}
+                variant="secondary"
+                className="mt-3 w-full"
+              >
+                {hero.secondary.label}
+              </Button>
+            )}
+          </section>
+        </>
+      )}
 
       {multiRole && (
         <Link
