@@ -165,3 +165,13 @@ body {
 html[data-anon="true"] #contenido {
   padding-bottom: 0;
 }
+
+/* Dropdown <details> de filtros: capa invisible fullscreen para cerrar
+   al tocar fuera — sin JS. El <ul> va con z-20 por encima. */
+details.venue-filter[open] > summary::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  cursor: default;
+}
