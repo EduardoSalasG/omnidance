@@ -849,7 +849,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           el slot central lo ocupa el switch Social/Academia y el h1
           queda sr-only para conservar el encabezado de página. */}
       <header
-        className={`appbar sticky top-0 z-40 border-b border-night-700 bg-night-950/90 backdrop-blur pt-[env(safe-area-inset-top)]${
+        className={`appbar sticky top-0 z-40 bg-night-950/90 backdrop-blur pt-[env(safe-area-inset-top)]${
           barHidden ? " appbar-hidden" : ""
         }`}
       >
