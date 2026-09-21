@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card, PillTabs, type BadgeVariant } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
@@ -92,6 +92,7 @@ type LeadRow = {
   intent: string;
   status: string;
   personId: string | null;
+  demoPending?: boolean;
   createdAt: string;
 };
 
@@ -218,6 +219,8 @@ function DatosPanel() {
 
   const [rows, setRows] = useState<unknown[] | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
+  // Lead en conversión — deshabilita su botón mientras el POST corre.
+  const [convertingLead, setConvertingLead] = useState<string | null>(null);
 
   const statusLabel = (s: string) =>
     ta.has(`statusLabels.${s}`) ? ta(`statusLabels.${s}`) : s;
@@ -320,6 +323,20 @@ function DatosPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Convierte el lead en usuario real: crea/enlaza la Person en modo
+  // pendiente y le envía magic link + notificación para completar datos.
+  async function convertLead(leadId: string) {
+    setConvertingLead(leadId);
+    try {
+      const res = await apiFetch(`/admin/leads/${leadId}/convert`, {
+        method: "POST",
+      });
+      if (res.ok) await load();
+    } finally {
+      setConvertingLead(null);
+    }
+  }
 
   function selectEntity(e: string) {
     setEntity(e as Entity);
@@ -515,6 +532,8 @@ function DatosPanel() {
       }
       case "leads": {
         const r = row as LeadRow;
+        // Convertible si aún no tiene cuenta o la ligada sigue en demo.
+        const convertible = !r.personId || r.demoPending;
         return (
           <RowShell
             key={r.id}
@@ -529,6 +548,19 @@ function DatosPanel() {
               r.personId ? t("datos.leadConverted") : null,
             ]}
             tail={dateTimeFmt.format(new Date(r.createdAt))}
+            action={
+              convertible && r.status !== "DISCARDED" ? (
+                <button
+                  type="button"
+                  disabled={convertingLead === r.id}
+                  onClick={() => void convertLead(r.id)}
+                  className="mt-1 inline-flex min-h-9 items-center gap-2 self-start rounded-full border border-neon/40 px-3.5 text-xs font-semibold text-neon transition-colors hover:bg-neon/10 active:scale-[0.97] disabled:opacity-60"
+                >
+                  {convertingLead === r.id && <Spinner size="sm" />}
+                  {t("datos.convertLead")}
+                </button>
+              ) : null
+            }
           />
         );
       }
@@ -665,12 +697,14 @@ function RowShell({
   badgeLabel,
   meta,
   tail,
+  action,
 }: {
   title: string;
   badge?: string;
   badgeLabel?: string;
   meta: (string | null | undefined)[];
   tail?: string;
+  action?: ReactNode;
 }) {
   const metaParts = meta.filter((m): m is string => !!m);
   return (
@@ -694,6 +728,7 @@ function RowShell({
             {tail}
           </p>
         )}
+        {action}
       </Card>
     </li>
   );

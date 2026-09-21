@@ -1,0 +1,17 @@
+{
+  "profile": {
+    "pendingBanner": "Completa tus datos para activar tu cuenta",
+    "pendingBannerCta": "Completar",
+    "complete": {
+      "title": "Completa tu perfil",
+      "subtitle": "Confirma tus datos para activar tu cuenta y empezar a usar la app.",
+      "name": "Nombre",
+      "phone": "Teléfono",
+      "password": "Contraseña (opcional)",
+      "passwordHint": "mínimo 8 caracteres — también puedes entrar siempre por link a tu correo",
+      "submit": "Activar mi cuenta",
+      "success": "Listo — tu cuenta ya está activa",
+      "error": "No pudimos guardar — intenta de nuevo"
+    }
+  }
+}

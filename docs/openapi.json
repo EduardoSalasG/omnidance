@@ -138,6 +138,27 @@
         }
       }
     },
+    "/api/me/complete-profile": {
+      "post": {
+        "operationId": "PeopleController_completeProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/qr/mine": {
       "get": {
         "operationId": "QrController_mine",
@@ -3139,6 +3160,26 @@
         }
       }
     },
+    "/api/admin/leads/{id}/convert": {
+      "post": {
+        "operationId": "AdminController_convertLead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/admin/audit": {
       "get": {
         "operationId": "AdminController_auditLog",
@@ -3871,6 +3912,10 @@
         "properties": {}
       },
       "SetPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CompleteProfileDto": {
         "type": "object",
         "properties": {}
       },

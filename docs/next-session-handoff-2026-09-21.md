@@ -33,12 +33,27 @@ Decisión tomada: **no** ambiente separado — barrera en la cuenta sobre la mis
 - **Promoción demo→real automática**: `upsertByEmail` (verify de magic link) marca `verifiedAt` y apaga `isDemoAccount` — la misma cuenta se vuelve real sin migración ni acción admin.
 - Badge "demo" en filas `people` del explorador admin.
 
+## Conversión admin de lead → usuario real (implementado)
+
+- `POST /api/admin/leads/:id/convert` (`admin.access`, `AuditLog LEAD_CONVERT`): crea la `Person` si no existe (`pendingProfileAt` + `isDemoAccount`) o usa la demo ligada; envía **magic link por email** + notificación in-app `account.complete_profile`; lead → `CONTACTED`. Email ya real → `alreadyReal` + `CONVERTED`. `Person.phone` unique → `409 phone_exists` si el teléfono pertenece a otra cuenta (mismo pre-check en `demo` y `complete-profile` — antes era 500).
+- **Cuenta pendiente**: sigue `isDemoAccount` (solo lectura, barrera SessionGuard) hasta completar. El magic link marca `verifiedAt` pero **no** suelta la barrera si `pendingProfileAt` está set.
+- `POST /api/me/complete-profile` (whitelist en la barrera): name+phone obligatorios, password opcional → limpia `pendingProfileAt`, apaga `isDemoAccount`, lead → `CONVERTED`.
+- Web: `GET /me` expone `isDemo`/`pendingProfile`; banner persistente bajo el appbar → `/perfil/completar` (formulario completo); botón **"Convertir a usuario real"** en filas de leads de `/admin/datos` (solo si `demoPending` o sin cuenta ligada; `browse/leads` expone `demoPending`).
+
+## Verificación (sesión conversión)
+
+- `test/leads.e2e.spec.ts` — **33 tests verde**: ciclo completo convert→pendiente→complete-profile, magic link que no suelta pendientes, `alreadyReal`, `demoPending`, colisión phone → 409.
+- Suite completa API: **907/907** (39 archivos).
+- Smoke en vivo contra :4000: POST /leads → convert → /me pendingProfile:true → write 403 demo_mode → complete-profile → flags off + lead CONVERTED.
+- `tsc --noEmit` limpio API + web · OpenAPI/Postman regenerados (**162 paths**).
+- Fix e2e: `afterAll` también limpia persons huérfanas por email (verify crea person real si el test aborta a mitad) + `Notification` por FK.
+
 ## Lo que queda / riesgos conocidos
 
 - **Analíticas agregadas** — `isDemoAccount` existe para excluirlas de conteos; falta aplicar el filtro en las queries de analítica de negocio si se quiere data 100% limpia.
 - **Riesgo residual**: un tercero puede crear cuenta demo con email ajeno no registrado (solo lectura, reclamable por magic link) → monitorear; CAPTCHA/rate-limit más fino si aparece abuso.
 - **`demoToken` en claro en DB** — suficiente para el uso actual (solo el submitter lo recibe); si se quiere más, hashearlo como los magic tokens.
-- **Sin flujo admin de leads más allá de lectura** — falta marcar CONTACTED/DISCARDED, notas, asignación y conversión manual a cuenta real. Próximo slice natural: `PATCH /admin/leads/:id` + ficha en `/admin/usuarios` o vista propia.
+- **Gestión admin de leads parcial** — ya existe conversión (`POST /admin/leads/:id/convert` + botón en `/admin/datos`); falta marcar DISCARDED, notas/asignación y vista propia de pipeline.
 - **Sin consentimiento/privacidad explícito** en el form — considerar checkbox o texto legal (Ley 19.628 Chile) antes de producción.
 - `tsconfig.tsbuildinfo` residual de `tsc --noEmit` puede confundir el watch de Nest (regla conocida del repo).
 
