@@ -15,6 +15,7 @@ import {
 import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
+import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
 
 // Misma paleta que la cartelera (eventos/page.tsx).
 const GENRE_TEXT: Record<string, string> = {
@@ -101,6 +102,23 @@ async function getMissions(eventId: string): Promise<MissionView[] | null> {
   return (await res.json()) as MissionView[];
 }
 
+/**
+ * GET /tickets/mine (SessionGuard): true si el usuario ya tiene una entrada
+ * ACTIVE para este evento — dispara el popup de confirmación en el CTA.
+ */
+async function hasActiveTicket(eventId: string): Promise<boolean> {
+  const res = await fetch(`${API_URL}/api/tickets/mine`, {
+    cache: "no-store",
+    headers: { cookie: cookies().toString() },
+  }).catch(() => null);
+  if (!res?.ok) return false;
+  const rows = (await res.json()) as {
+    event: { id: string };
+    status: string;
+  }[];
+  return rows.some((r) => r.event.id === eventId && r.status === "ACTIVE");
+}
+
 export default async function EventoDetailPage({
   params,
 }: {
@@ -108,9 +126,10 @@ export default async function EventoDetailPage({
 }) {
   const t = messages.events;
   const tg = messages.gamification;
-  const [event, missions] = await Promise.all([
+  const [event, missions, myTicket] = await Promise.all([
     getEvent(params.id),
     getMissions(params.id),
+    hasActiveTicket(params.id),
   ]);
 
   if (event === "error") {
@@ -456,13 +475,11 @@ export default async function EventoDetailPage({
               <span className="text-lg font-semibold text-neon">{t.free}</span>
             )}
           </div>
-          <Button
+          <BuyTicketCta
             href={`/eventos/${event.id}/checkout`}
-            size="lg"
-            className="shrink-0"
-          >
-            {t.getTicket}
-          </Button>
+            hasTicket={myTicket}
+            label={t.getTicket}
+          />
         </div>
       </div>
     </main>
