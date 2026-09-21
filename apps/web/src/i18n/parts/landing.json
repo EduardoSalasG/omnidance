@@ -30,13 +30,13 @@
     "featuresLead": "La app de la comunidad salsera, timbera y bachatera de Chile."
   },
   "landingPro": {
-    "metaTitle": "Omnidance para productores, academias y locales",
+    "metaTitle": "Para productores, academias y locales",
     "metaDescription": "Los que ordenan primero, crecen primero. Entradas, puerta y números de tu negocio de baile en una sola plataforma.",
-    "eyebrow": "Productores · Academias · Locales",
+    "eyebrow": "Productores · DJs · Academias · Locales",
     "heroPromise": "Primero el orden. Después, el crecimiento.",
     "heroLead": "Vende entradas, controla la puerta y mira tus números\nen una sola plataforma.\nCuando la operación está ordenada, crecer es la consecuencia.",
     "ctaCreateAccount": "Quiero que me contacten",
-    "ctaEvents": "Ver una demo",
+    "ctaEvents": "Probar la app ahora",
     "weekCount": "{count} eventos esta semana ya se ordenan con Omnidance",
     "weekEmpty": "Los eventos de la comunidad ya se ordenan con Omnidance",
     "weekCta": "Quiero estar ahí",
@@ -60,18 +60,19 @@
       "roleAcademy": "Dueño de academia",
       "roleVenue": "Dueño de local",
       "submitContact": "Quiero que me contacten",
-      "submitDemo": "Ver una demo",
-      "errorRoles": "Elige al menos una opción",
+      "submitDemo": "Probar la app ahora",
       "errorGeneric": "No pudimos enviarlo. Intenta de nuevo",
       "successTitle": "Listo, {name}",
-      "successContact": "Te contactaremos muy pronto.",
-      "successDemo": "Te escribiremos para agendar tu demo.",
+      "successContact": "Te contactaremos dentro de 48 horas.",
+      "successDemo": "Tu acceso ya está listo.",
       "fieldRolesHint": "puedes escoger varios",
       "errorMissing": "Te falta: {fields}",
-      "errorEmail": "Revisa el formato de tu correo",
-      "demoCta": "¿Quieres revisar la app con tus roles?\nIngresa acá",
+      "demoCta": "Entra ahora con tus roles",
       "demoError": "No pudimos abrir tu sesión. Intenta de nuevo",
-      "demoExists": "Ya existe una cuenta con ese correo. Inicia sesión"
-    }
+      "demoExists": "Ya existe una cuenta con ese correo. Inicia sesión",
+      "fieldPhoneHint": "obligatorio si quieres que te contactemos",
+      "privacyNote": "Solo te contactaremos por esto. Sin spam."
+    },
+    "heroNote": "Entras con tus roles, sin esperar llamada."
   }
 }

@@ -352,12 +352,15 @@ export class AdminController {
       // Person.phone es unique — si el teléfono del lead ya pertenece a
       // otra cuenta, el create explotaría en 500. 409 para que el admin
       // resuelva el choque manualmente (no auto-fusionamos identidades).
-      const phoneTaken = await this.prisma.person.findUnique({
-        where: { phone: lead.phone },
-        select: { id: true },
-      });
-      if (phoneTaken) {
-        throw new ConflictException("phone_exists");
+      // (lead.phone puede ser null en intent DEMO.)
+      if (lead.phone) {
+        const phoneTaken = await this.prisma.person.findUnique({
+          where: { phone: lead.phone },
+          select: { id: true },
+        });
+        if (phoneTaken) {
+          throw new ConflictException("phone_exists");
+        }
       }
       person = await this.prisma.person.create({
         data: {

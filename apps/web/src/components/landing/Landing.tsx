@@ -5,6 +5,7 @@ import Link from "next/link";
 // compartidas (nav, CTAs de header, footerTagline) vienen de `landing`.
 import landingParts from "@/i18n/parts/landing.json";
 import { ProLeadForm } from "./ProLeadForm";
+import type { JsonLdEvent } from "./JsonLd";
 
 // Acento de marca via token `neon` (#a78bfa violeta en :root) — icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
@@ -27,9 +28,13 @@ export type LandingVariant = "dancer" | "pro";
 export function Landing({
   variant = "dancer",
   weeklyEvents = 0,
+  weekEvents = [],
 }: {
   variant?: LandingVariant;
   weeklyEvents?: number;
+  // Eventos reales de la semana para el strip de prueba social — la
+  // landing muestra la escena en vez de solo afirmarla.
+  weekEvents?: JsonLdEvent[];
 }) {
   const t = {
     ...landingParts.landing,
@@ -51,8 +56,14 @@ export function Landing({
 
   // En pro ambos CTAs llevan al formulario (los datos van primero);
   // en dancer van a la app: registro y catálogo público de eventos.
-  const primaryHref = isPro ? "#contacto" : "/login";
+  // ?mode=register: quien pidió "crear cuenta" no aterriza en un login.
+  const primaryHref = isPro ? "#contacto" : "/login?mode=register";
   const secondaryHref = isPro ? "#contacto" : "/eventos";
+
+  const eventDayFmt = new Intl.DateTimeFormat("es-CL", {
+    weekday: "short",
+    day: "numeric",
+  });
 
   return (
     <>
@@ -84,17 +95,21 @@ export function Landing({
             >
               {t.ctaLogin}
             </Link>
-            <Link
-              href="/login"
-              className="inline-flex min-h-11 items-center rounded-full bg-neon px-4 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97]"
-            >
-              {t.ctaSignup}
-            </Link>
+            {/* En /pro el camino de alta es el lead form (con roles), no el
+                registro genérico — el header solo ofrece Entrar. */}
+            {!isPro && (
+              <Link
+                href="/login?mode=register"
+                className="inline-flex min-h-11 items-center rounded-full bg-neon px-4 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97]"
+              >
+                {t.ctaSignup}
+              </Link>
+            )}
           </nav>
         </div>
       </header>
 
-      <main id="contenido">
+      <main id="contenido" tabIndex={-1}>
         {/* ─── Hero: una promesa + dos CTAs ─── */}
         <section className="relative overflow-hidden px-6 pb-12 pt-16 text-center sm:pb-16 sm:pt-24">
           <div aria-hidden="true" className="glow-neon absolute inset-0" />
@@ -116,21 +131,45 @@ export function Landing({
                 {t.ctaEvents}
               </Link>
             </div>
+            {/* Solo pro: la demo es acceso inmediato, no una llamada de
+                ventas — la promesa va visible en el hero. */}
+            {isPro && (
+              <p className="mt-4 text-xs text-white/50">{t.heroNote}</p>
+            )}
           </div>
         </section>
 
-        {/* ─── Prueba social: eventos de la semana + estilos → registro ─── */}
-        <section
-          aria-label={weekLabel}
-          className="border-t border-white/5 px-6 py-10"
-        >
+        {/* ─── Prueba social: eventos reales de la semana → registro ─── */}
+        <section className="border-t border-white/5 px-6 py-10">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
             <p className="text-sm font-semibold text-white">{weekLabel}</p>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/40">
+            {weekEvents.length > 0 && (
+              <ul className="flex flex-col items-center gap-1">
+                {weekEvents.map((event) => (
+                  <li key={event.id}>
+                    <Link
+                      href={`/eventos/${event.id}`}
+                      className="inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm text-white/60 transition-colors hover:text-white"
+                    >
+                      <span className="font-medium capitalize text-neon">
+                        {eventDayFmt.format(new Date(event.startsAt))}
+                      </span>
+                      <span className="text-white/80">{event.name}</span>
+                      {event.venue?.name && (
+                        <span className="text-white/50">
+                          · {event.venue.name}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs uppercase tracking-[0.2em] text-white/60">
               {t.weekStyles}
             </p>
             <Link
-              href="/login"
+              href={isPro ? "#contacto" : "/login?mode=register"}
               className="mt-1 inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold text-neon transition-colors hover:bg-neon/10"
             >
               {t.weekCta} →

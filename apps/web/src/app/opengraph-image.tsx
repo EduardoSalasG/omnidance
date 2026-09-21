@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Omnidance — la escena SBK de Santiago";
+export const alt = "Omnidance, la escena SBK de Santiago";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

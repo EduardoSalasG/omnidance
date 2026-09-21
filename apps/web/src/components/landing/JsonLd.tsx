@@ -21,7 +21,6 @@ export function JsonLd({ events }: { events: JsonLdEvent[] }) {
       url: WEB_URL,
       description:
         "Sociales, entradas, academias y clases de la comunidad salsera, timbera y bachatera de Chile en una sola app.",
-      sameAs: [],
     },
     {
       "@type": "WebSite",

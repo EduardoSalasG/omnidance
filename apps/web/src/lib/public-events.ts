@@ -16,11 +16,15 @@ export async function fetchPublicEvents(): Promise<JsonLdEvent[]> {
   }
 }
 
-export function countThisWeek(events: JsonLdEvent[]): number {
+export function thisWeek(events: JsonLdEvent[]): JsonLdEvent[] {
   const now = Date.now();
   const weekEnd = now + 7 * 24 * 60 * 60 * 1000;
   return events.filter((e) => {
     const at = new Date(e.startsAt).getTime();
     return at >= now && at <= weekEnd;
-  }).length;
+  });
+}
+
+export function countThisWeek(events: JsonLdEvent[]): number {
+  return thisWeek(events).length;
 }
