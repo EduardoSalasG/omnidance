@@ -22,6 +22,6 @@ export { MAILER, AUTH_REPO };
     { provide: MAILER, useClass: ResendMailer },
     { provide: AUTH_REPO, useClass: PrismaAuthRepo },
   ],
-  exports: [AuthService, AUTH_REPO],
+  exports: [AuthService, AUTH_REPO, MAILER],
 })
 export class AuthModule {}

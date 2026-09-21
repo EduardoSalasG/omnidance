@@ -34,6 +34,9 @@ const DEMO_ALLOWED_WRITES = [
   /^\/api\/auth\/(logout|password)$/,
   /^\/api\/notifications\//,
   /^\/api\/push-tokens/,
+  // Cierre del flujo de conversión de lead — es justamente la escritura
+  // que apaga isDemoAccount.
+  /^\/api\/me\/complete-profile$/,
 ];
 
 @Injectable()

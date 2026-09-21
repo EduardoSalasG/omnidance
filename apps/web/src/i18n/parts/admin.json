@@ -121,7 +121,8 @@
       },
       "empty": "Sin resultados con estos filtros",
       "leadConverted": "✓ cuenta demo creada",
-      "demoBadge": "demo"
+      "demoBadge": "demo",
+      "convertLead": "Convertir a usuario real"
     },
     "modules": {
       "datos": "Datos",
