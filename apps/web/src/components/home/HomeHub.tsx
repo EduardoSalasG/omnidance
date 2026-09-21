@@ -23,16 +23,27 @@ type Me = {
 
 type Kpi = { key: string; value: number; format?: "clp" };
 type NextItem = { id: string; name: string; when: string; place: string | null };
+
+// Evento de la escena nocturna — lo que decide "¿salgo hoy?":
+// género, precio, amigos que van, preventas restantes.
+type TonightEvent = {
+  id: string;
+  name: string;
+  startsAt: string;
+  live: boolean;
+  venueId: string | null;
+  venueName: string | null;
+  genres: string[];
+  presalePrice: number | null;
+  doorPrice: number | null;
+  hasTicket: boolean;
+  friendsGoing: number;
+  presaleLeft: number | null;
+};
+
 type HomeStats = {
   kpis: Kpi[];
-  tonight?: {
-    id: string;
-    name: string;
-    startsAt: string;
-    venueName: string | null;
-    presalePrice: number | null;
-    hasTicket: boolean;
-  } | null;
+  scene?: { events: TonightEvent[]; upcoming: TonightEvent[] } | null;
   nextClass?: NextItem | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
@@ -57,6 +68,18 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
+const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+// Género como texto coloreado — misma paleta que la cartelera.
+const GENRE_TEXT: Record<string, string> = {
+  SALSA: "text-orange-400",
+  BACHATA: "text-fuchsia-300",
+  CUBANO: "text-amber-300",
+};
 
 function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
   const t = useTranslations("home");
@@ -87,6 +110,180 @@ function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
   );
 }
 
+const genreLabel = (g: string) =>
+  g === "OTHER" ? "Otro" : g.charAt(0) + g.slice(1).toLowerCase();
+
+/**
+ * La escena de esta noche para el bailarín: el evento principal (donde
+ * tiene entrada, o el primero de la noche) con lo que decide — género,
+ * precio honesto, amigos que van, preventas restantes — y debajo el
+ * resto de la noche en filas compactas. El hero deja de ser "una card
+ * de texto" y pasa a responder "¿salgo hoy?".
+ */
+function TonightScene({ stats }: { stats: HomeStats | null }) {
+  const t = useTranslations("home");
+  const tq = useTranslations("qr");
+  const tonightEvents = stats?.scene?.events ?? [];
+  const upcoming = stats?.scene?.upcoming ?? [];
+  // La noche primero; si está vacía, el próximo evento es la invitación.
+  const isTonight = tonightEvents.length > 0;
+  const heroEvent = tonightEvents[0] ?? upcoming[0] ?? null;
+  const more = isTonight ? tonightEvents.slice(1) : upcoming.slice(1);
+
+  if (!heroEvent) {
+    return (
+      <section aria-label={t("tonight")}>
+        <Link
+          href="/eventos"
+          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+        >
+          <span className="text-xs font-semibold uppercase tracking-wide text-neon">
+            {t("tonight")}
+          </span>
+          <span className="text-xl font-bold leading-tight">
+            {t("noEventTonight")}
+          </span>
+          <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+            {t("seeEvents")}
+            <span aria-hidden>→</span>
+          </span>
+        </Link>
+        <Button href="/qr" variant="secondary" className="mt-3 w-full">
+          {tq("title")}
+        </Button>
+      </section>
+    );
+  }
+
+  const start = new Date(heroEvent.startsAt);
+  const buyable =
+    !heroEvent.hasTicket &&
+    (heroEvent.presalePrice != null || heroEvent.doorPrice != null);
+
+  return (
+    <section aria-label={heroEvent.name} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5">
+        <span className="text-xs font-semibold uppercase tracking-wide text-neon">
+          {isTonight
+            ? heroEvent.live
+              ? t("live")
+              : t("tonight")
+            : dayFmt.format(start)}
+        </span>
+        <Link
+          href={`/eventos/${heroEvent.id}`}
+          className="flex flex-col gap-2.5 transition-transform active:scale-[0.99]"
+        >
+          <span className="text-xl font-bold leading-tight">
+            {heroEvent.name}
+          </span>
+          <span className="text-sm text-white/60">
+            {timeFmt.format(start)}
+            {heroEvent.venueName ? ` · ${heroEvent.venueName}` : ""}
+          </span>
+          {heroEvent.genres.length > 0 && (
+            <span className="flex flex-wrap gap-x-2 text-xs font-medium">
+              {heroEvent.genres.map((g) => (
+                <span key={g} className={GENRE_TEXT[g] ?? "text-white/50"}>
+                  {genreLabel(g)}
+                </span>
+              ))}
+            </span>
+          )}
+        </Link>
+
+        {heroEvent.hasTicket ? (
+          <p className="text-sm font-medium text-neon">
+            {t("hasTicketTonight")}
+          </p>
+        ) : (
+          buyable && (
+            <p className="text-sm">
+              {heroEvent.presalePrice != null && (
+                <>
+                  <span className="text-white/50">{t("presaleLabel")} </span>
+                  <span className="font-semibold text-neon">
+                    {clp.format(heroEvent.presalePrice)}
+                  </span>
+                </>
+              )}
+              {heroEvent.presalePrice != null &&
+                heroEvent.doorPrice != null && (
+                  <span className="text-white/30"> · </span>
+                )}
+              {heroEvent.doorPrice != null && (
+                <span className="text-white/50">
+                  {t("doorLabel")} {clp.format(heroEvent.doorPrice)}
+                </span>
+              )}
+            </p>
+          )
+        )}
+
+        {heroEvent.friendsGoing > 0 && (
+          <p className="text-sm text-white/70">
+            {t("friendsGoing", { count: heroEvent.friendsGoing })}
+          </p>
+        )}
+
+        {heroEvent.presaleLeft != null &&
+          heroEvent.presaleLeft <= 15 &&
+          !heroEvent.hasTicket && (
+            <p className="text-xs font-semibold text-amber-300">
+              {t("presaleLeft", { count: heroEvent.presaleLeft })}
+            </p>
+          )}
+
+        <Link
+          href={
+            heroEvent.hasTicket ? "/qr" : `/eventos/${heroEvent.id}`
+          }
+          className="mt-1 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon"
+        >
+          {heroEvent.hasTicket ? t("myQr") : t("buyPresale")}
+          <span aria-hidden>→</span>
+        </Link>
+      </div>
+
+      {more.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/45">
+            {isTonight ? t("moreTonight") : t("upcoming")}
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {more.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/eventos/${e.id}`}
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {e.name}
+                    </span>
+                    <span className="block truncate text-xs text-white/50">
+                      {isTonight
+                        ? timeFmt.format(new Date(e.startsAt))
+                        : dayFmt.format(new Date(e.startsAt))}
+                      {e.venueName ? ` · ${e.venueName}` : ""}
+                      {e.friendsGoing > 0
+                        ? ` · ${t("friendsGoing", { count: e.friendsGoing })}`
+                        : ""}
+                    </span>
+                  </span>
+                  <span aria-hidden className="shrink-0 text-white/40">
+                    →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
 type Hero = {
   href: string;
   title: string;
@@ -99,7 +296,6 @@ export function HomeHub() {
   const t = useTranslations("home");
   const tc = useTranslations("common");
   const te = useTranslations("events");
-  const tq = useTranslations("qr");
   const tst = useTranslations("staff");
   const ta = useTranslations("academy");
   const tpr = useTranslations("producer");
@@ -114,7 +310,10 @@ export function HomeHub() {
   const [statsSlot, setStatsSlot] = useState<{
     key: string;
     data: HomeStats | null;
+    error?: boolean;
   } | null>(null);
+  // Contador de reintento: el efecto de stats lo escucha para refetchear.
+  const [statsRetry, setStatsRetry] = useState(0);
   const activeRole = useActiveRole(me?.roles);
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
@@ -144,20 +343,21 @@ export function HomeHub() {
     apiFetch(`/home/stats?role=${activeRole}&mode=${viewMode}`)
       .then(async (res) => {
         if (cancelled) return;
-        // Error de red/500 → data null: la lente queda "resuelta" con
-        // fallback (no spinner eterno).
+        // Error de red/500 → data null + flag: el home muestra aviso con
+        // reintento en vez de disfrazar el fallo de "sin datos".
         setStatsSlot({
           key,
           data: res.ok ? ((await res.json()) as HomeStats) : null,
+          error: !res.ok,
         });
       })
       .catch(() => {
-        if (!cancelled) setStatsSlot({ key, data: null });
+        if (!cancelled) setStatsSlot({ key, data: null, error: true });
       });
     return () => {
       cancelled = true;
     };
-  }, [me, activeRole, viewMode]);
+  }, [me, activeRole, viewMode, statsRetry]);
 
   // null hasta que el fetch de ESTA lente resuelva — los heroes que
   // dependen de stats (dancer/staff/dj/venue) nunca ven datos ajenos.
@@ -178,11 +378,16 @@ export function HomeHub() {
     );
   }
 
-  // Cookie presente pero sesión expirada — CTA de re-login.
+  // Cookie presente pero sesión expirada — contexto + CTA de re-login
+  // (sin appbar en este estado: el h1 vive acá, no en el chrome).
   if (!me) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
+          <h1 className="text-xl font-bold">{t("sessionExpired")}</h1>
+          <p className="text-sm text-white/60">
+            {t("sessionExpiredDesc")}
+          </p>
           <Button href="/login" size="lg" className="w-full">
             {tc("login")}
           </Button>
@@ -191,53 +396,41 @@ export function HomeHub() {
     );
   }
 
-  // Hero = acción principal. DANCER: "Esta noche" real (stats.tonight) o
-  // próxima clase en modo Academia; management: su consola. DJ/VENUE
-  // comparten el hero de consumo sin el QR personal.
+  // Hero = acción principal para lentes de gestión y bailarín-academia.
+  // El bailarín-social no pasa por acá: su superficie es TonightScene
+  // (la escena completa de la noche, no una sola card).
   const hero: Hero = (() => {
-    if (activeRole === "DANCER") {
-      if (dancerAcademy) {
-        if (stats?.needsAcademy || stats?.kpis.length === 0) {
-          return {
-            href: "/academias",
-            title: t("modeAcademy"),
-            desc: t("academyEmpty"),
-            cta: t("findAcademy"),
-          };
-        }
-        const nc = stats?.nextClass;
-        return nc
-          ? {
-              href: "/academia",
-              title: nc.name,
-              desc: `${t("nextClass")} — ${dayFmt.format(new Date(nc.when))}${nc.place ? ` · ${nc.place}` : ""}`,
-              cta: t("academyHeroCta"),
-            }
-          : {
-              href: "/academias",
-              title: t("modeAcademy"),
-              desc: t("academyHeroDesc"),
-              cta: t("findAcademy"),
-            };
-      }
-      const tonight = stats?.tonight;
-      if (tonight) {
+    if (dancerAcademy) {
+      if (stats?.needsAcademy || stats?.kpis.length === 0) {
         return {
-          href: tonight.hasTicket ? "/qr" : `/eventos/${tonight.id}`,
-          title: tonight.name,
-          desc: `${t("tonight")} · ${timeFmt.format(new Date(tonight.startsAt))}${tonight.venueName ? ` · ${tonight.venueName}` : ""}${tonight.hasTicket ? ` — ${t("hasTicketTonight")}` : ""}`,
-          cta: tonight.hasTicket ? t("myQr") : t("buyPresale"),
-          secondary: tonight.hasTicket
-            ? { href: `/eventos/${tonight.id}`, label: t("viewEvent") }
-            : undefined,
+          href: "/academias",
+          title: t("modeAcademy"),
+          desc: t("academyEmpty"),
+          cta: t("findAcademy"),
         };
       }
+      const nc = stats?.nextClass;
+      return nc
+        ? {
+            href: "/academia",
+            title: nc.name,
+            desc: `${t("nextClass")} — ${dayFmt.format(new Date(nc.when))}${nc.place ? ` · ${nc.place}` : ""}`,
+            cta: t("academyHeroCta"),
+          }
+        : {
+            href: "/academias",
+            title: t("modeAcademy"),
+            desc: t("academyHeroDesc"),
+            cta: t("findAcademy"),
+          };
+    }
+    if (activeRole === "DANCER") {
+      // Lente social: no se renderiza (TonightScene la reemplaza).
       return {
         href: "/eventos",
-        title: t("tonight"),
-        desc: stats ? t("noEventTonight") : t("dancerHeroDesc"),
+        title: te("title"),
+        desc: t("dancerHeroDesc"),
         cta: t("seeEvents"),
-        secondary: { href: "/qr", label: tq("title") },
       };
     }
     switch (activeRole) {
@@ -317,42 +510,77 @@ export function HomeHub() {
     );
   }
 
+  const statsError = statsSlot?.key === lensKey && statsSlot.error;
+  const dancerSocial = activeRole === "DANCER" && !dancerAcademy;
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
-      <header className="flex flex-col gap-3 pt-4">
+      <header className="flex flex-col gap-1 pt-4">
         <h2 className="text-lg font-medium">
           {t("hi", { name: me.name.split(" ")[0] })}
         </h2>
+        {dancerSocial && (
+          <p className="text-xs capitalize text-white/45">
+            {fullDayFmt.format(new Date())}
+          </p>
+        )}
       </header>
 
-      {stats && stats.kpis.length > 0 && (
-        <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+      {/* Fallo de stats ≠ "sin datos": aviso honesto con reintento. */}
+      {statsError && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+          {t("statsError")}
+          <button
+            type="button"
+            onClick={() => setStatsRetry((r) => r + 1)}
+            className="min-h-11 shrink-0 rounded-full border border-amber-300/40 px-4 font-semibold transition-colors hover:bg-amber-300/10"
+          >
+            {t("retry")}
+          </button>
+        </div>
       )}
 
-      <section aria-label={hero.title}>
-        <Link
-          href={hero.href}
-          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
-        >
-          <span className="text-xl font-bold leading-tight">
-            {hero.title}
-          </span>
-          <span className="text-sm text-white/60">{hero.desc}</span>
-          <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
-            {hero.cta}
-            <span aria-hidden>→</span>
-          </span>
-        </Link>
-        {hero.secondary && (
-          <Button
-            href={hero.secondary.href}
-            variant="secondary"
-            className="mt-3 w-full"
-          >
+      {dancerSocial ? (
+        <>
+          {/* La noche primero, el espejo después: los KPIs en cero son
+              un valle emocional, no una invitación — se ocultan. */}
+          <TonightScene stats={stats} />
+          {stats && stats.kpis.some((k) => k.value > 0) && (
+            <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+          )}
+        </>
+      ) : (
+        <>
+          {stats && stats.kpis.length > 0 && (
+            <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+          )}
+
+          <section aria-label={hero.title}>
+            <Link
+              href={hero.href}
+              className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+            >
+              <span className="text-xl font-bold leading-tight">
+                {hero.title}
+              </span>
+              <span className="text-sm text-white/60">{hero.desc}</span>
+              <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+                {hero.cta}
+                <span aria-hidden>→</span>
+              </span>
+            </Link>
+            {hero.secondary && (
+              <Button
+                href={hero.secondary.href}
+                variant="secondary"
+                className="mt-3 w-full"
+              >
             {hero.secondary.label}
-          </Button>
-        )}
-      </section>
+              </Button>
+            )}
+          </section>
+        </>
+      )}
 
       {multiRole && (
         <Link
