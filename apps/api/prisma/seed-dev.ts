@@ -735,9 +735,9 @@ export async function seedDev(prisma: PrismaClient) {
   await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3, [], 0,
     // 4 salsas, 2 bachatas, 2 salsas, 2 timbas, 2 bachatas → 50/33/17
     mix([Genre.SALSA, 4], [Genre.BACHATA, 2], [Genre.SALSA, 2], [Genre.CUBANO, 2], [Genre.BACHATA, 2]));
-  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month:sat", 6000, 8000, 6, [cesar.id], ALL3, [], 1,
-    // Marca afrocubana — timba al frente
-    mix([Genre.CUBANO, 4], [Genre.SALSA, 2], [Genre.BACHATA, 2]));
+  await mkSeries("Ashe", cesar.id, orixas.id, "1x/month:sat", 6000, 8000, 6, [cesar.id], [Genre.CUBANO], [], 1,
+    // Pura timba
+    mix([Genre.CUBANO, 1]));
 
   // Noches standalone (sin serie) — nombre = marca de la noche. Las
   // homónimas ("Tierra" ×5) se distinguen por el weekday de su
