@@ -160,3 +160,8 @@ body {
     );
   }
 }
+
+/* Anónimo en /eventos: la tab bar no existe → no reservar su espacio */
+html[data-anon="true"] #contenido {
+  padding-bottom: 0;
+}

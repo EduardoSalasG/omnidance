@@ -12,6 +12,7 @@ describe("GET /api/events", () => {
   let baseUrl: string;
   let prisma: PrismaService;
   let eventId: string;
+  let venueId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -28,11 +29,13 @@ describe("GET /api/events", () => {
     const venue = await prisma.venue.create({
       data: { name: `Venue E2E ${suffix}`, address: "Santiago" },
     });
+    venueId = venue.id;
     const event = await prisma.event.create({
       data: {
         name: `Social E2E ${suffix}`,
         type: "SOCIAL",
         status: "PUBLISHED",
+        genres: ["SALSA"],
         startsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
         endsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000 + 6 * 3600 * 1000),
         venueId: venue.id,
@@ -43,6 +46,7 @@ describe("GET /api/events", () => {
 
   afterAll(async () => {
     await prisma.event.deleteMany({ where: { id: eventId } });
+    await prisma.venue.deleteMany({ where: { id: venueId } });
     await app.close();
   });
 
@@ -72,5 +76,43 @@ describe("GET /api/events", () => {
   it("id inexistente → 404", async () => {
     const res = await fetch(`${baseUrl}/api/events/no-existe`);
     expect(res.status).toBe(404);
+  });
+
+  it("?genre= filtra por género propio o heredado de la serie", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=SALSA`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    const mine = events.find((e: { id: string }) => e.id === eventId);
+    expect(mine).toBeTruthy();
+    expect(mine.genres).toContain("SALSA");
+    // Ningún evento sin salsa en sus géneros resueltos.
+    expect(events.every((e: { genres: string[] }) => e.genres.includes("SALSA"))).toBe(true);
+  });
+
+  it("?genre= inválido → 400", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=HACK`);
+    expect(res.status).toBe(400);
+  });
+
+  it("?venue= filtra por local", async () => {
+    const res = await fetch(`${baseUrl}/api/events?venue=${venueId}`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    expect(events.length).toBeGreaterThan(0);
+    expect(
+      events.every((e: { venue?: { id: string } }) => e.venue?.id === venueId),
+    ).toBe(true);
+  });
+
+  it("?week=this solo devuelve eventos de los próximos 7 días", async () => {
+    const res = await fetch(`${baseUrl}/api/events?week=this`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    const limit = Date.now() + 7 * 24 * 3600 * 1000;
+    expect(
+      events.every(
+        (e: { startsAt: string }) => new Date(e.startsAt).getTime() <= limit,
+      ),
+    ).toBe(true);
   });
 });

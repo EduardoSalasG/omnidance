@@ -57,7 +57,7 @@ src/<dominio>/
 |---|---|---|
 | auth | `/api/auth/*` magic-link, session, logout | — |
 | people | `/api/me` perfil + roleStates | SessionGuard |
-| events | `/api/events*` catálogo público | público / SessionGuard |
+| events | `/api/events*` catálogo público con `?genre=&venue=&week=this`; `genres` resueltos (evento o heredados de serie) | público / SessionGuard |
 | qr | `/api/qr/mine` QR rotativo | SessionGuard |
 | sessions | `/api/sessions/*` invitar/confirmar/puntuar | SessionGuard + wiring notify+badges |
 | checkins | `/api/checkins*` staff door scan/manual | `checkins.write` |
@@ -80,6 +80,13 @@ src/<dominio>/
 - **Cierre del ciclo**: `POST /api/me/complete-profile` (SessionGuard, whitelisted en la barrera) — name/phone (+password opcional) → limpia `pendingProfileAt`, apaga `isDemoAccount`, lead ligado → `CONVERTED`. `/api/me` expone `isDemo` + `pendingProfile`.
 - Web: banner persistente bajo el appbar cuando `pendingProfile` → `/perfil/completar` (form name/phone/password); botón "Convertir a usuario real" en filas de leads de `/admin/datos` (visible solo si `demoPending` o sin cuenta).
 - El explorador admin muestra badge "demo" en filas de `people` y `demoPending` en `leads`; `demoToken` nunca sale en respuestas.
+
+## Frontera anónima (web)
+
+- `apps/web/src/middleware.ts`: sin cookie `omnidance_session`, toda ruta de `(app)` → `/login?next=<ruta>`. Públicas: `/`, `/pro`, `/login`, `/eventos` (solo lista), `opengraph-image`, `twitter-image` — el resto de estáticos queda fuera por el matcher (`api`, `_next`, archivos con extensión).
+- `/eventos` sin sesión: solo eventos de la semana, sin links al detalle, con CTA a login — "ver sin entrar a la app". `BottomNav` no renderiza chrome cuando `/me` resuelve anónimo (`meChecked && !me`) y marca `html[data-anon]` para que `ChromeShell` no reserve el padding de la tab bar.
+- Tras login, `?next=` devuelve a la ruta pedida (solo rutas internas — sin open redirect).
+- Estilos: `EventSeries.genres` + `Event.genres` (Genre[]: SALSA/BACHATA/CUBANO; vacío en evento → hereda la serie). En la UI `CUBANO` se muestra como "Timba" — el nombre que usa la escena.
 
 ## RBAC — todo DB-driven
 
