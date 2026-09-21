@@ -154,6 +154,75 @@ export class FriendsController {
     };
   }
 
+  /**
+   * GET /friends/upcoming-events — eventos futuros donde al menos un amigo
+   * confirmado tiene ticket ACTIVE. [{ event, friends: [{id,name,photoUrl}] }]
+   * ordenado por fecha. La agenda solo se expone entre amigos.
+   */
+  @Get("upcoming-events")
+  async upcomingEvents(@Req() req: Request) {
+    const me = req.person!.id;
+    const friendships = await this.prisma.friendship.findMany({
+      where: { status: "ACCEPTED", OR: [{ aId: me }, { bId: me }] },
+      select: { aId: true, bId: true },
+    });
+    const friendIds = friendships.map((f) => (f.aId === me ? f.bId : f.aId));
+    if (friendIds.length === 0) return [];
+
+    // Ticket.eventId es escalar (sin relación) → join manual.
+    const tickets = await this.prisma.ticket.findMany({
+      where: { ownerId: { in: friendIds }, status: "ACTIVE" },
+      select: { ownerId: true, eventId: true },
+    });
+    if (tickets.length === 0) return [];
+
+    const events = await this.prisma.event.findMany({
+      where: {
+        id: { in: [...new Set(tickets.map((t) => t.eventId))] },
+        startsAt: { gt: new Date() },
+        status: { in: ["PUBLISHED", "LIVE"] },
+      },
+      select: {
+        id: true,
+        name: true,
+        startsAt: true,
+        venue: { select: { name: true } },
+      },
+    });
+    const eventById = new Map(events.map((e) => [e.id, e]));
+
+    const goingIds = [...new Set(tickets.map((t) => t.ownerId))];
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: goingIds } },
+      select: { id: true, name: true, photoUrl: true },
+    });
+    const byPerson = new Map(people.map((p) => [p.id, p]));
+
+    const byEvent = new Map<
+      string,
+      {
+        event: (typeof events)[number];
+        friends: { id: string; name: string; photoUrl: string | null }[];
+      }
+    >();
+    for (const t of tickets) {
+      const event = eventById.get(t.eventId);
+      if (!event) continue;
+      const entry = byEvent.get(event.id) ?? { event, friends: [] };
+      const person = byPerson.get(t.ownerId);
+      if (person && !entry.friends.some((f) => f.id === person.id)) {
+        entry.friends.push(person);
+      }
+      byEvent.set(event.id, entry);
+    }
+
+    return [...byEvent.values()].sort(
+      (a, b) =>
+        new Date(a.event.startsAt).getTime() -
+        new Date(b.event.startsAt).getTime(),
+    );
+  }
+
   // ─── helpers ───
 
   private async findOr404(id: string) {

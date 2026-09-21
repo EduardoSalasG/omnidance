@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api";
  * QR personal rotativo (TOTP ~30s server-side; se re-emite cada 50s).
  * Se monta dentro del hub /qr — sin <main> propio, el hub da el chrome.
  */
-export function MyQr() {
+export function MyQr({ compact = false }: { compact?: boolean }) {
   const t = useTranslations("qr");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "unauth">("loading");
@@ -28,7 +28,7 @@ export function MyQr() {
       const { token } = await res.json();
       if (canvasRef.current) {
         await QRCode.toCanvas(canvasRef.current, token, {
-          width: 280,
+          width: compact ? 200 : 280,
           margin: 2,
           color: { dark: "#ffffff", light: "#0a0a0f" },
         });
@@ -59,9 +59,13 @@ export function MyQr() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 py-4">
-      <p className="text-sm text-white/60">{t("subtitle")}</p>
-      <div className="rounded-2xl border border-night-700 bg-night-900 p-6">
+    <div
+      className={`flex flex-col items-center ${compact ? "gap-3" : "gap-6 py-4"}`}
+    >
+      {!compact && <p className="text-sm text-white/60">{t("subtitle")}</p>}
+      <div
+        className={`rounded-2xl border border-night-700 bg-night-900 ${compact ? "p-3" : "p-6"}`}
+      >
         <canvas ref={canvasRef} role="img" aria-label={t("title")} />
         {state === "loading" && (
           <p role="status" className="mt-3 text-center text-sm text-white/50">

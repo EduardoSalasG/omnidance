@@ -6,6 +6,9 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
+import { AvailabilitySection } from "@/components/social/AvailabilitySection";
+import { PartnerRequests } from "@/components/social/PartnerRequests";
+import type { Me } from "@/components/social/types";
 
 // Mismo shape público que GET /events (PracticesController.list)
 type Practice = {
@@ -44,12 +47,13 @@ const PRACTICE_DURATION_MS = 3 * 60 * 60 * 1000;
 export default function PracticasPage() {
   const t = useTranslations("practices");
   const te = useTranslations("events");
-  const tr = useTranslations("rsvp");
   const tc = useTranslations("common");
 
   const [state, setState] = useState<ListState>("loading");
   const [practices, setPractices] = useState<Practice[]>([]);
-  const [authed, setAuthed] = useState<boolean | null>(null);
+  // undefined = cargando; null = sin sesión. Alimenta el formulario y las
+  // secciones sociales (disponibles / busco pareja).
+  const [me, setMe] = useState<Me | null | undefined>(undefined);
   const [formOpen, setFormOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
@@ -76,10 +80,11 @@ export default function PracticasPage() {
 
   useEffect(() => {
     void load();
-    // Sesión solo para habilitar el formulario de creación (la lista es pública)
+    // Sesión: habilita el formulario de creación y las secciones sociales
+    // (la lista de prácticas es pública).
     apiFetch("/me")
-      .then((res) => setAuthed(res.ok))
-      .catch(() => setAuthed(false));
+      .then(async (res) => setMe(res.ok ? ((await res.json()) as Me) : null))
+      .catch(() => setMe(null));
     // Venues para el datalist (público). Si falla, el input sigue libre.
     apiFetch("/venues")
       .then(async (res) => {
@@ -107,7 +112,7 @@ export default function PracticasPage() {
         }),
       });
       if (res.status === 401) {
-        setAuthed(false);
+        setMe(null);
         return;
       }
       if (!res.ok) {
@@ -130,7 +135,7 @@ export default function PracticasPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
       <div className="flex items-center justify-end gap-4">
-        {authed && !formOpen && (
+        {me && !formOpen && (
           <Button size="sm" onClick={() => setFormOpen(true)}>
             {t("create")}
           </Button>
@@ -144,15 +149,15 @@ export default function PracticasPage() {
       )}
 
       {/* Crear práctica — requiere sesión */}
-      {authed === false && (
+      {me === null && (
         <Card className="flex flex-col items-start gap-3">
-          <p className="text-sm text-white/60">{tr("loginRequired")}</p>
+          <p className="text-sm text-white/60">{t("loginRequired")}</p>
           <Button href="/login" size="sm">
             {tc("login")}
           </Button>
         </Card>
       )}
-      {authed === true && formOpen && (
+      {!!me && formOpen && (
         <Card>
           <form onSubmit={createPractice} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm">
@@ -266,6 +271,11 @@ export default function PracticasPage() {
             ))}
           </ul>
         ))}
+
+      {/* Encontrar con quién — movido desde /bailes: aquí es donde se
+          busca pareja de práctica y se marca disponibilidad. */}
+      <AvailabilitySection me={me} />
+      <PartnerRequests me={me} />
     </main>
   );
 }
