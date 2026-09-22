@@ -23,6 +23,7 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
   CheckoutService,
+  DoorSoldOutError,
   EventNotFoundError,
   InvalidDiscountError,
   PresaleClosedError,
@@ -96,7 +97,7 @@ export class CheckoutController {
       if (e instanceof EventNotFoundError) {
         throw new NotFoundException(e.message);
       }
-      if (e instanceof PresaleSoldOutError) {
+      if (e instanceof PresaleSoldOutError || e instanceof DoorSoldOutError) {
         throw new ConflictException(e.message);
       }
       if (

@@ -11,6 +11,7 @@ export type CheckoutEvent = {
   id: string;
   name: string;
   startsAt: string;
+  status: string;
   presalePrice: number | null;
   doorPrice: number | null;
   venue: { name: string; address: string | null };

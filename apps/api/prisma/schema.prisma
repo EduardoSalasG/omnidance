@@ -922,6 +922,13 @@ model Payment {
   // ticket por persona al PAID.
   quantity  Int  @default(1)
   recipients Json?
+  // Canal de venta y economía unitaria al momento de la orden — el
+  // webhook emite los tickets con estos valores (el evento pudo cambiar
+  // de precio entre el checkout y el PAID, y presalePrice es null en
+  // ventas de puerta).
+  channel      String? // PRESALE | DOOR — null en pagos legacy (presale)
+  unitListPrice    Int? // precio de lista por ticket (CLP)
+  unitServiceFee   Int? // cargo por servicio por ticket (CLP)
   gateway   String        @default("FLOW")
   gatewayRef String?
   status    PaymentStatus @default(PENDING)

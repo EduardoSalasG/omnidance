@@ -76,10 +76,20 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
   const busy = phase.kind === "processing" || phase.kind === "awaiting";
 
+  // Canal de venta: puerta-app cuando el evento está en vivo o ya sin
+  // preventa (misma resolución que el server: LIVE o post-corte vende a
+  // doorPrice). Solo mueve el texto explicativo — el precio real lo
+  // decide el quote del API.
+  const doorChannel =
+    event.doorPrice != null &&
+    (event.status === "LIVE" || event.presalePrice == null);
+
   // Breakdown: estimado local hasta que el POST devuelva el quote real.
   // El quote del API trae montos unitarios + total de la orden; acá cada
   // línea se multiplica por la cantidad (descuento = una vez por orden).
-  const listPrice = event.presalePrice ?? event.doorPrice ?? 0;
+  const listPrice = doorChannel
+    ? event.doorPrice!
+    : (event.presalePrice ?? 0);
   const quote = phase.kind === "awaiting" ? phase.quote : null;
   const unit = quote ?? {
     listPrice,
@@ -372,7 +382,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               </dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-white/50">{t("presaleCutoff")}</p>
+          <p className="mt-3 text-xs text-white/50">
+            {doorChannel ? t("doorChannelNote") : t("presaleCutoff")}
+          </p>
         </Card>
 
         {/* Código de descuento */}

@@ -35,6 +35,13 @@ export class PresaleSoldOutError extends Error {
   }
 }
 
+export class DoorSoldOutError extends Error {
+  constructor() {
+    super("entradas de puerta agotadas");
+    this.name = "DoorSoldOutError";
+  }
+}
+
 export class PresaleClosedError extends Error {
   constructor() {
     super("La preventa cerró a las 19:00 — el resto se paga en puerta");
@@ -142,23 +149,44 @@ export class CheckoutService {
         startsAt: true,
         presalePrice: true,
         presaleCap: true,
+        doorPrice: true,
+        doorCap: true,
+        doorAppFeeClp: true,
         seriesId: true,
         serviceFeeClp: true,
         producerId: true,
       },
     });
     if (!event) throw new EventNotFoundError();
-    if (event.status !== "PUBLISHED" || event.presalePrice == null) {
-      throw new PresaleUnavailableError();
-    }
 
-    // La preventa cierra a las 19:00 del día del evento (hora local del
-    // server — los startsAt del seed también se generan en hora local).
-    // Parametrizable: presale.cutoff_hour.
+    // Canal de venta (spec: cargos diferenciados por canal — preventa
+    // +$500 / puerta app +$700). La preventa cierra a las 19:00 del día
+    // del evento (parametrizable: presale.cutoff_hour); desde ahí y
+    // durante el evento LIVE la app vende a precio de puerta.
+    const now = new Date();
     const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
     const cutoff = new Date(event.startsAt);
     cutoff.setHours(cutoffHour, 0, 0, 0);
-    if (new Date() >= cutoff) throw new PresaleClosedError();
+    const presaleOpen =
+      event.status === "PUBLISHED" &&
+      event.presalePrice != null &&
+      now < cutoff;
+    const doorOpen =
+      event.doorPrice != null &&
+      (event.status === "LIVE" ||
+        (event.status === "PUBLISHED" && now >= cutoff));
+    if (!presaleOpen && !doorOpen) {
+      // Preventa que existió y cerró sin puerta app → mensaje específico.
+      if (
+        event.status === "PUBLISHED" &&
+        event.presalePrice != null &&
+        now >= cutoff
+      ) {
+        throw new PresaleClosedError();
+      }
+      throw new PresaleUnavailableError();
+    }
+    const channel = presaleOpen ? "PRESALE" : "DOOR";
 
     // Destinatarios de regalo: deben existir, ser amigos ACCEPTED del
     // comprador y no tener ya una entrada ACTIVE para el evento.
@@ -231,7 +259,7 @@ export class CheckoutService {
       );
     }
 
-    if (event.presaleCap != null) {
+    if (channel === "PRESALE" && event.presaleCap != null) {
       // tickets emitidos + órdenes PENDING recientes cuentan contra el cap
       // (quantity, no la orden — una orden multi-entrada reserva N cupos)
       const [sold, inFlightAgg] = await Promise.all([
@@ -251,6 +279,41 @@ export class CheckoutService {
       const inFlight = inFlightAgg._sum.quantity ?? 0;
       if (sold + inFlight + quantity > event.presaleCap) {
         throw new PresaleSoldOutError();
+      }
+    }
+    if (channel === "DOOR" && event.doorCap != null) {
+      // Ventas de puerta = registros staff (checkins MANUAL, spec
+      // countDoorSales) + órdenes DOOR ya pagadas + PENDING recientes.
+      const [manualSold, doorPaidAgg, inFlightAgg] = await Promise.all([
+        this.prisma.checkin.count({
+          where: { eventId: event.id, method: "MANUAL", voidedAt: null },
+        }),
+        this.prisma.payment.aggregate({
+          _sum: { quantity: true },
+          where: {
+            orderType: "TICKET",
+            status: "PAID",
+            eventId: event.id,
+            channel: "DOOR",
+          },
+        }),
+        this.prisma.payment.aggregate({
+          _sum: { quantity: true },
+          where: {
+            orderType: "TICKET",
+            status: "PENDING",
+            eventId: event.id,
+            channel: "DOOR",
+            createdAt: { gt: new Date(Date.now() - PENDING_ORDER_TTL_MS) },
+          },
+        }),
+      ]);
+      const doorSold =
+        manualSold +
+        (doorPaidAgg._sum.quantity ?? 0) +
+        (inFlightAgg._sum.quantity ?? 0);
+      if (doorSold + quantity > event.doorCap) {
+        throw new DoorSoldOutError();
       }
     }
 
@@ -278,22 +341,30 @@ export class CheckoutService {
       if (!check.ok) throw new InvalidDiscountError(check.reason);
     }
 
-    // fee parametrizable: override del evento → default del productor →
-    // PlatformParam → env → default del shared
+    // fee parametrizable por canal: override del evento → default del
+    // productor → PlatformParam → env → default del shared.
     const producerParams = await this.params.getProducerParams(
       event.producerId,
     );
     const serviceFeeClp =
-      event.serviceFeeClp ??
-      producerParams?.serviceFeeClp ??
-      (await this.params.getNumber(
-        "service_fee.presale_clp",
-        Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
-      ));
+      channel === "PRESALE"
+        ? (event.serviceFeeClp ??
+          producerParams?.serviceFeeClp ??
+          (await this.params.getNumber(
+            "service_fee.presale_clp",
+            Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
+          )))
+        : (event.doorAppFeeClp ??
+          producerParams?.doorAppFeeClp ??
+          (await this.params.getNumber(
+            "service_fee.door_app_clp",
+            SERVICE_FEE.DOOR_APP_CLP,
+          )));
     // quote por entrada; el descuento se aplica una vez por orden (no por
     // ticket) para no multiplicar el beneficio del código.
     const unit = this.pricing.quote({
-      listPrice: event.presalePrice,
+      listPrice:
+        channel === "PRESALE" ? event.presalePrice! : event.doorPrice!,
       serviceFeeClp,
       discount: code,
     });
@@ -322,6 +393,9 @@ export class CheckoutService {
         net: orderTotal,
         quantity,
         recipients: recipientIds.length ? recipientIds : undefined,
+        channel,
+        unitListPrice: unit.listPrice,
+        unitServiceFee: unit.serviceFee,
         gateway: this.gateway.name,
       },
     });
