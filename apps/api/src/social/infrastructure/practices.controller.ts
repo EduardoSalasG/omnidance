@@ -121,10 +121,10 @@ export class PracticesController {
     });
   }
 
-  /** Prácticas publicadas próximas — mismo shape público que GET /events. */
+  /** Prácticas publicadas próximas — mismo shape público que GET /events + host. */
   @Get()
-  list() {
-    return this.prisma.event.findMany({
+  async list() {
+    const practices = await this.prisma.event.findMany({
       where: {
         type: "PRACTICA",
         status: { in: ["PUBLISHED", "LIVE"] },
@@ -146,5 +146,27 @@ export class PracticesController {
         venue: { select: { name: true, address: true } },
       },
     });
+
+    // Event.hostId es escalar → join manual del nombre del host.
+    const hosts = await this.prisma.person.findMany({
+      where: {
+        id: {
+          in: [
+            ...new Set(
+              practices
+                .map((p) => p.hostId)
+                .filter((id): id is string => id != null),
+            ),
+          ],
+        },
+      },
+      select: { id: true, name: true },
+    });
+    const hostById = new Map(hosts.map((h) => [h.id, h.name]));
+
+    return practices.map((p) => ({
+      ...p,
+      host: p.hostId ? { id: p.hostId, name: hostById.get(p.hostId) ?? null } : null,
+    }));
   }
 }
