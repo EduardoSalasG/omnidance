@@ -12,7 +12,7 @@ import { EventEntryPassesController } from "../src/social/infrastructure/entry-p
 const phone = () =>
   `010${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
 
-describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () => {
+describe("gap-passes e2e (list pass / event passes)", () => {
   let app: INestApplication;
   let baseUrl: string;
   let prisma: PrismaService;
@@ -25,7 +25,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
   let producerSession: string;
   let assignedSession: string;
   let randomSession: string;
-  let travelerSession: string;
 
   const ids = {
     venueId: "",
@@ -42,19 +41,9 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
     randomId: "",
     guest1Id: "",
     guest2Id: "",
-    travelerId: "",
-    matchAId: "",
-    matchBId: "",
-    matchCId: "",
-    tripOwnId: "",
-    tripAId: "",
-    tripBId: "",
-    tripCId: "",
   };
 
-  // Ventana de matching: el caller viaja 2026-03-08 → 2026-03-21.
   const T = (iso: string) => new Date(iso);
-  let destTag = "";
 
   const req = (
     method: string,
@@ -79,10 +68,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
     ids.randomId,
     ids.guest1Id,
     ids.guest2Id,
-    ids.travelerId,
-    ids.matchAId,
-    ids.matchBId,
-    ids.matchCId,
   ];
 
   beforeAll(async () => {
@@ -102,7 +87,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
 
     // ─── fixtures ───
     const suffix = Date.now().toString(36);
-    destTag = `Congreso-GapPT-${suffix}`;
 
     const venue = await prisma.venue.create({
       data: { name: `Venue GapPT ${suffix}` },
@@ -132,10 +116,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
       random,
       guest1,
       guest2,
-      traveler,
-      matchA,
-      matchB,
-      matchC,
     ] = await Promise.all([
       mkPerson("PT Producer", "producer", ["PRODUCER"]),
       mkPerson("PT List Owner", "owner"),
@@ -144,10 +124,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
       mkPerson("PT Random", "random"),
       mkPerson("PT Guest Uno", "guest1", ["DANCER"], { phone: phone() }),
       mkPerson("PT Guest Dos", "guest2"),
-      mkPerson("PT Traveler", "traveler"),
-      mkPerson("PT Match A", "matcha"),
-      mkPerson("PT Match B", "matchb"),
-      mkPerson("PT Match C", "matchc"),
     ]);
     ids.producerId = producer.id;
     ids.ownerId = owner.id;
@@ -156,19 +132,14 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
     ids.randomId = random.id;
     ids.guest1Id = guest1.id;
     ids.guest2Id = guest2.id;
-    ids.travelerId = traveler.id;
-    ids.matchAId = matchA.id;
-    ids.matchBId = matchB.id;
-    ids.matchCId = matchC.id;
 
     [ownerSession, staffSession, producerSession, assignedSession,
-      randomSession, travelerSession] = await Promise.all([
+      randomSession] = await Promise.all([
       auth.issueSession(owner.id),
       auth.issueSession(staff.id),
       auth.issueSession(producer.id),
       auth.issueSession(assigned.id),
       auth.issueSession(random.id),
-      auth.issueSession(traveler.id),
     ]);
 
     const event = await prisma.event.create({
@@ -214,52 +185,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
       data: { guestListId: otherList.id, personId: random.id },
     });
     ids.entryOtherListId = eOther.id;
-
-    // ─── trips ───
-    const trip = (
-      personId: string,
-      destination: string,
-      startsAt: Date,
-      endsAt: Date,
-      eventId?: string,
-    ) =>
-      prisma.trip.create({
-        data: { personId, destination, startsAt, endsAt, eventId: eventId ?? null },
-      });
-
-    // Viaje propio del caller — nunca debe aparecer en sus matches.
-    const tOwn = await trip(
-      traveler.id,
-      `${destTag} propio`,
-      T("2026-03-08T00:00:00Z"),
-      T("2026-03-21T00:00:00Z"),
-    );
-    ids.tripOwnId = tOwn.id;
-    // Match A: solapa la ventana del caller.
-    const tA = await trip(
-      matchA.id,
-      `viaje al ${destTag} edición 5`,
-      T("2026-03-12T00:00:00Z"),
-      T("2026-03-18T00:00:00Z"),
-    );
-    ids.tripAId = tA.id;
-    // Match B: mismo destino pero fuera de la ventana.
-    const tB = await trip(
-      matchB.id,
-      `${destTag} vol.2`,
-      T("2026-03-25T00:00:00Z"),
-      T("2026-04-01T00:00:00Z"),
-    );
-    ids.tripBId = tB.id;
-    // Match C: otro destino, mismo evento.
-    const tC = await trip(
-      matchC.id,
-      `Otra ciudad ${suffix}`,
-      T("2026-03-13T00:00:00Z"),
-      T("2026-03-15T00:00:00Z"),
-      event.id,
-    );
-    ids.tripCId = tC.id;
   });
 
   afterAll(async () => {
@@ -271,7 +196,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
     await prisma.guestList.deleteMany({
       where: { id: { in: [ids.listId, ids.otherListId] } },
     });
-    await prisma.trip.deleteMany({ where: { personId: { in: people } } });
     await prisma.staffAssignment.deleteMany({
       where: { eventId: ids.eventId },
     });
@@ -463,81 +387,6 @@ describe("gap-passes-trips e2e (list pass / event passes / trip matches)", () =>
         assignedSession,
       );
       expect(res.status).toBe(200);
-    });
-  });
-
-  // ═══════════════ GET /api/trips/matches ═══════════════
-  describe("GET /api/trips/matches", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("GET", "/api/trips/matches?destination=x");
-      expect(res.status).toBe(401);
-    });
-
-    it("sin destination ni eventId → 400", async () => {
-      const res = await req(
-        "GET",
-        "/api/trips/matches",
-        undefined,
-        travelerSession,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("por destination (case-insensitive contains): matchA+matchB, excluye al caller", async () => {
-      const res = await req(
-        "GET",
-        `/api/trips/matches?destination=${encodeURIComponent(destTag.toLowerCase())}`,
-        undefined,
-        travelerSession,
-      );
-      expect(res.status).toBe(200);
-      const matches = await res.json();
-      const matchIds = matches.map((m: { id: string }) => m.id);
-
-      expect(matchIds).toContain(ids.tripAId);
-      expect(matchIds).toContain(ids.tripBId);
-      expect(matchIds).not.toContain(ids.tripOwnId);
-
-      const a = matches.find((m: { id: string }) => m.id === ids.tripAId);
-      expect(a).toMatchObject({
-        eventId: null,
-        person: { id: ids.matchAId, name: "PT Match A" },
-      });
-      expect(a.person).toHaveProperty("photoUrl");
-      expect(a).toHaveProperty("startsAt");
-      expect(a).toHaveProperty("endsAt");
-    });
-
-    it("con from/to solo devuelve trips que solapan la ventana", async () => {
-      const res = await req(
-        "GET",
-        `/api/trips/matches?destination=${encodeURIComponent(destTag)}&from=2026-03-08&to=2026-03-21`,
-        undefined,
-        travelerSession,
-      );
-      expect(res.status).toBe(200);
-      const matches = await res.json();
-      const matchIds = matches.map((m: { id: string }) => m.id);
-      expect(matchIds).toContain(ids.tripAId);
-      expect(matchIds).not.toContain(ids.tripBId);
-      expect(matchIds).not.toContain(ids.tripOwnId);
-    });
-
-    it("por eventId devuelve el trip asociado al evento", async () => {
-      const res = await req(
-        "GET",
-        `/api/trips/matches?eventId=${ids.eventId}`,
-        undefined,
-        travelerSession,
-      );
-      expect(res.status).toBe(200);
-      const matches = await res.json();
-      const matchIds = matches.map((m: { id: string }) => m.id);
-      expect(matchIds).toContain(ids.tripCId);
-      expect(matchIds).not.toContain(ids.tripAId);
-      const c = matches.find((m: { id: string }) => m.id === ids.tripCId);
-      expect(c.eventId).toBe(ids.eventId);
-      expect(c.person.id).toBe(ids.matchCId);
     });
   });
 });

@@ -96,7 +96,6 @@
     "management": "Gestión",
     "qr": "Mi QR",
     "practices": "Prácticas",
-    "trips": "Viajes",
     "staff": "Staff",
     "academy": "Academia",
     "producer": "Productor",
@@ -427,6 +426,7 @@
     "location": "¿Dónde? (opcional)",
     "feedTitle": "Disponibles ahora",
     "feedEmpty": "Nadie está disponible ahora — ¡activa el toggle!",
+    "until": "Hasta",
     "loginRequired": "Entra con tu correo para marcarte disponible"
   },
   "partnerRequests": {
@@ -447,15 +447,6 @@
     "mine": "Tu solicitud",
     "created": "¡Solicitud publicada!",
     "loginRequired": "Entra con tu correo para publicar"
-  },
-  "trips": {
-    "title": "Mis viajes",
-    "empty": "Aún no has anunciado viajes.",
-    "add": "Anunciar viaje",
-    "destination": "Destino",
-    "from": "Desde",
-    "until": "Hasta",
-    "loginRequired": "Entra con tu correo para ver tus viajes"
   },
   "admin": {
     "title": "Administración",

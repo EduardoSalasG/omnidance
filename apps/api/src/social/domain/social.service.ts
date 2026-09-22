@@ -1,5 +1,5 @@
-// Reglas de negocio del módulo social (RSVP, guest lists, waitlist, prácticas,
-// trips) — servicio de dominio puro, sin Nest/Prisma.
+// Reglas de negocio del módulo social (RSVP, guest lists, waitlist, prácticas)
+// — servicio de dominio puro, sin Nest/Prisma.
 
 export type SocialErrorCode =
   | "INVALID_INPUT"
@@ -120,18 +120,4 @@ export function assertPracticeInput(input: PracticeInput): void {
       "capacidad debe ser un entero > 0",
     );
   }
-}
-
-export interface TripInput {
-  destination: string;
-  startsAt: Date;
-  endsAt: Date;
-}
-
-/** Anuncio de viaje: destino requerido y rango de fechas válido. */
-export function assertTripInput(input: TripInput): void {
-  if (!input.destination || !input.destination.trim()) {
-    throw new SocialDomainError("INVALID_INPUT", "destino requerido");
-  }
-  assertDateRange(input.startsAt, input.endsAt, "viaje");
 }

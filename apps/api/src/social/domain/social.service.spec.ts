@@ -3,7 +3,6 @@ import {
   SocialDomainError,
   assertCanJoinWaitlist,
   assertPracticeInput,
-  assertTripInput,
   canJoinWaitlist,
   nextWaitlistPosition,
   pickNextWaiting,
@@ -162,30 +161,6 @@ describe("assertPracticeInput", () => {
     expect(() =>
       assertPracticeInput({ ...base, capacity: null }),
     ).not.toThrow();
-  });
-});
-
-describe("assertTripInput", () => {
-  const base = {
-    destination: "Valparaíso",
-    startsAt: new Date("2030-09-10T00:00:00Z"),
-    endsAt: new Date("2030-09-14T00:00:00Z"),
-  };
-
-  it("input válido → no lanza", () => {
-    expect(() => assertTripInput(base)).not.toThrow();
-  });
-
-  it("destino vacío → INVALID_INPUT", () => {
-    expect(
-      catchErr(() => assertTripInput({ ...base, destination: "  " })).code,
-    ).toBe("INVALID_INPUT");
-  });
-
-  it("startsAt >= endsAt → INVALID_INPUT", () => {
-    expect(
-      catchErr(() => assertTripInput({ ...base, endsAt: base.startsAt })).code,
-    ).toBe("INVALID_INPUT");
   });
 });
 

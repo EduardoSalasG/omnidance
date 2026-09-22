@@ -64,7 +64,7 @@ src/<dominio>/
 | payments | `/api/checkout`, `/api/tickets`, `/api/payments/webhook` | mixto |
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
 | notifications | `/api/notifications`, `/api/push-tokens` | SessionGuard |
-| social | `/api/events/:id/waitlist`, `/practices`, `/trips`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id` | mixto `social.manage` |
+| social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id` | mixto `social.manage` |
 | academies | `/api/academies/*` planes, enrollments, asistencia | `academies.create` / owner |
 | gamification | `/api/gamification/*` streaks, badges, leaderboard, misiones | SessionGuard |
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |

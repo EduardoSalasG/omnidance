@@ -26,7 +26,6 @@ export type AvailabilitySectionProps = {
  */
 export function AvailabilitySection({ me }: AvailabilitySectionProps) {
   const t = useTranslations("availability");
-  const tt = useTranslations("trips"); // reutiliza trips.until ("Hasta")
   const tc = useTranslations("common");
   const titleId = useId();
   const toggleLabelId = useId();
@@ -194,7 +193,7 @@ export function AvailabilitySection({ me }: AvailabilitySectionProps) {
                   </div>
                   {e.until && (
                     <p className="shrink-0 text-xs text-white/50">
-                      {tt("until")}{" "}
+                      {t("until")}{" "}
                       <EventDate variant="time" start={e.until} />
                     </p>
                   )}

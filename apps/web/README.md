@@ -65,7 +65,7 @@ registrar ahí cada part nuevo. Auditoría: `node scripts/i18n-audit.cjs`
 | `/academias` | Directorio de academias |
 | `/clases` | Mis reservas + explorar con filtros (día/estilo/nivel) |
 | `/practicas` | Partners de práctica |
-| `/bailes`, `/viajes` | Sesiones y viajes a congresos |
+| `/bailes` | Historial de sesiones de baile |
 | `/escanear` | Scanner QR |
 | `/perfil`, `/notificaciones` | Cuenta (selector de lente) y bandeja |
 

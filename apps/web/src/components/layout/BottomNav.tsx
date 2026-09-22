@@ -102,8 +102,6 @@ const ICONS = {
   qr: "M3 3h6v6H3zM15 3h6v6H3zM3 15h6v6H3zM15 15h.01M18 15h.01M21 15h.01M15 18h.01M18 18h.01M21 18h.01M15 21h.01M18 21h.01M21 21h.01",
   practices:
     "M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0zM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
-  trips:
-    "M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z",
   staff:
     "M8 2h8a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2m3 10 2 2 4-4",
   producer: "m3 11 18-5v12L3 13v-2zM11.6 16.8a3 3 0 1 1-5.8-1.6",
@@ -313,7 +311,6 @@ const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
     key: "practices",
     icon: ICONS.practices,
   },
-  { href: "/viajes", ns: "nav", key: "trips", icon: ICONS.trips },
 ];
 const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [
   { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
@@ -822,7 +819,6 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     // Módulos del sheet del bailarín (ya no viven en el drawer).
     ["/bailes", t("dances")],
     ["/practicas", t("practices")],
-    ["/viajes", t("trips")],
     ["/academia", tac("title")],
     // /qr ya no es tab del bailarín (vive embebido en el sheet) —
     // la ruta sigue existiendo (escáner desde /bailes, /practicas).

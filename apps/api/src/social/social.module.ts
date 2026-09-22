@@ -14,12 +14,11 @@ import { PartnerRequestsController } from "./infrastructure/partner-requests.con
 import { PeopleController } from "./infrastructure/people.controller";
 import { PracticesController } from "./infrastructure/practices.controller";
 import { StylesController } from "./infrastructure/styles.controller";
-import { TripsController } from "./infrastructure/trips.controller";
 import { VenueConsoleController } from "./infrastructure/venue-console.controller";
 import { VenuesController } from "./infrastructure/venues.controller";
 import { WaitlistController } from "./infrastructure/waitlist.controller";
 
-/** Social: guest lists, waitlist, prácticas, trips, venues, matchmaking y disponibilidad. */
+/** Social: guest lists, waitlist, prácticas, venues, matchmaking y disponibilidad. */
 @Module({
   imports: [AuthModule, NotificationsModule, PrismaModule],
   controllers: [
@@ -28,7 +27,6 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
     WaitlistController,
     PracticesController,
     StylesController,
-    TripsController,
     VenuesController,
     VenueConsoleController,
     PartnerRequestsController,
