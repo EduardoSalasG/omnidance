@@ -75,7 +75,7 @@ export function Landing({
       </a>
 
       {/* ─── Header sticky mínimo: marca + entrar + crear cuenta ─── */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-night-950/80 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-white/5 bg-night-950/80 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2 sm:px-6">
           <Link
             href={variant === "pro" ? "/pro" : "/"}
