@@ -4075,6 +4075,24 @@
           }
         },
         {
+          "name": "GET /api/academies/enrolled",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/enrolled",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "enrolled"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/academies/{id}",
           "request": {
             "method": "GET",
@@ -4934,6 +4952,14 @@
                 "api",
                 "classes",
                 "mine"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }

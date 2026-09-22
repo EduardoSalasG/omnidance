@@ -449,19 +449,23 @@ export function HomeHub() {
           cta: t("findAcademy"),
         };
       }
+      // Learner: el hero va a /clases (sus reservas + explorador), nunca
+      // a /academia — esa es la consola del owner/instructor.
       const nc = stats?.nextClass;
       return nc
         ? {
-            href: "/academia",
+            href: "/clases",
             title: nc.name,
             desc: `${t("nextClass")} — ${dayFmt.format(new Date(nc.when))}${nc.place ? ` · ${nc.place}` : ""}`,
-            cta: t("academyHeroCta"),
+            cta: t("nextClassCta"),
+            secondary: { href: "/academias", label: t("myAcademies") },
           }
         : {
-            href: "/academias",
+            href: "/clases",
             title: t("modeAcademy"),
-            desc: t("academyHeroDesc"),
-            cta: t("findAcademy"),
+            desc: t("academyLearnerDesc"),
+            cta: t("seeClasses"),
+            secondary: { href: "/academias", label: t("myAcademies") },
           };
     }
     if (activeRole === "DANCER") {

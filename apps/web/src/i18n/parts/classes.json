@@ -1,0 +1,13 @@
+{
+  "classes": {
+    "history": "Historial",
+    "historyEmpty": "Tus clases pasadas aparecerán aquí",
+    "historyStatus": {
+      "attended": "Asististe",
+      "booked": "Reservada",
+      "cancelled": "Cancelada"
+    },
+    "monthlyAttended": "{count, plural, one {# asistencia este mes} other {# asistencias este mes}}",
+    "lastSpots": "{count, plural, one {¡Último cupo!} other {¡Últimos # cupos!}}"
+  }
+}

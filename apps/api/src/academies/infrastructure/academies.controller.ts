@@ -200,6 +200,56 @@ export class AcademiesController {
     });
   }
 
+  /**
+   * Vista alumno (spec §9 "Mi Aprendizaje"): inscripciones del autenticado
+   * con academia, estado (presencial/online/pausada), plan y asistencias
+   * de los últimos 30 días por academia — progreso personal, no
+   * competitivo. Distinto de /mine, que es la consola owner/instructor.
+   */
+  @Get("enrolled")
+  @UseGuards(SessionGuard)
+  async enrolled(@Req() req: Request) {
+    const personId = req.person!.id;
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { personId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        status: true,
+        startedAt: true,
+        academy: { select: { id: true, name: true, active: true } },
+        plan: { select: { name: true, type: true } },
+      },
+    });
+    if (enrollments.length === 0) return [];
+    const since = new Date(Date.now() - 30 * 86_400_000);
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        personId,
+        checkedAt: { gte: since },
+        class: {
+          slot: {
+            academyId: { in: enrollments.map((e) => e.academy.id) },
+          },
+        },
+      },
+      select: { class: { select: { slot: { select: { academyId: true } } } } },
+    });
+    const countByAcademy = new Map<string, number>();
+    for (const a of attendances) {
+      const academyId = a.class.slot.academyId;
+      countByAcademy.set(academyId, (countByAcademy.get(academyId) ?? 0) + 1);
+    }
+    return enrollments.map((e) => ({
+      id: e.id,
+      academy: e.academy,
+      status: e.status,
+      plan: e.plan,
+      startedAt: e.startedAt,
+      attendance30d: countByAcademy.get(e.academy.id) ?? 0,
+    }));
+  }
+
   @Post()
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("academies.create")

@@ -2232,6 +2232,17 @@
         }
       }
     },
+    "/api/academies/enrolled": {
+      "get": {
+        "operationId": "AcademiesController_enrolled",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/academies/{id}": {
       "get": {
         "operationId": "AcademiesController_detail",
@@ -2636,7 +2647,16 @@
     "/api/classes/mine": {
       "get": {
         "operationId": "ClassesController_mine",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""

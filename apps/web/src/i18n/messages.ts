@@ -3,6 +3,7 @@ import academyExtras from "./parts/academyExtras.json";
 import admin from "./parts/admin.json";
 import analytics from "./parts/analytics.json";
 import claim from "./parts/claim.json";
+import classes from "./parts/classes.json";
 import common from "./parts/common.json";
 import consumer from "./parts/consumer.json";
 import crm from "./parts/crm.json";
@@ -44,6 +45,7 @@ const parts = [
   admin,
   analytics,
   claim,
+  classes,
   common,
   consumer,
   crm,

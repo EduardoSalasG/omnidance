@@ -193,7 +193,8 @@ export class ClassesController {
 
   /** Mis reservas activas (BOOKED/WAITLIST) en clases futuras. */
   @Get("mine")
-  async mine(@Req() req: Request) {
+  async mine(@Req() req: Request, @Query("scope") scope?: string) {
+    if (scope === "past") return this.history(req.person!.id);
     const rows = await this.prisma.classBooking.findMany({
       where: {
         personId: req.person!.id,
@@ -236,6 +237,85 @@ export class ClassesController {
       academy: r.class.slot.academy,
       series: r.class.slot.series,
     }));
+  }
+
+  /**
+   * Historial del alumno (spec §9): clases pasadas con reserva o
+   * asistencia. Dedup por classId — la asistencia prevalece sobre la
+   * reserva (misma regla que la ficha del alumno del owner). Últimas 50.
+   */
+  private async history(personId: string) {
+    const classSelect = {
+      id: true,
+      date: true,
+      slot: {
+        select: {
+          startTime: true,
+          endTime: true,
+          academy: { select: { id: true, name: true } },
+          series: {
+            select: {
+              name: true,
+              level: { select: { name: true } },
+              style: { select: { name: true } },
+            },
+          },
+        },
+      },
+    } as const;
+    const now = new Date();
+    const [attendances, bookings] = await Promise.all([
+      this.prisma.attendance.findMany({
+        where: { personId, class: { date: { lt: now } } },
+        select: { class: { select: classSelect } },
+      }),
+      this.prisma.classBooking.findMany({
+        where: { personId, class: { date: { lt: now } } },
+        select: {
+          status: true,
+          class: { select: classSelect },
+        },
+      }),
+    ]);
+
+    const past = new Map<
+      string,
+      {
+        classId: string;
+        date: Date;
+        startTime: string;
+        endTime: string;
+        academy: { id: string; name: string };
+        series: {
+          name: string;
+          level: { name: string } | null;
+          style: { name: string } | null;
+        } | null;
+        status: "attended" | "booked" | "cancelled";
+      }
+    >();
+    const put = (
+      c: (typeof bookings)[number]["class"],
+      status: "attended" | "booked" | "cancelled",
+    ) =>
+      past.set(c.id, {
+        classId: c.id,
+        date: c.date,
+        startTime: c.slot.startTime,
+        endTime: c.slot.endTime,
+        academy: c.slot.academy,
+        series: c.slot.series,
+        status,
+      });
+    for (const b of bookings) {
+      put(b.class, b.status === "BOOKED" ? "booked" : "cancelled");
+    }
+    for (const a of attendances) {
+      put(a.class, "attended"); // la asistencia gana el dedup
+    }
+    return [...past.values()]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 50);
   }
 
   /**
