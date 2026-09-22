@@ -15,6 +15,21 @@ import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import toursI18n from "@/i18n/parts/tours.json";
+import {
+  DAY_MS,
+  DOT_COLOR,
+  GENRES,
+  GENRE_TEXT,
+  WEEK_MS,
+  WEEKDAY_HEADERS,
+  dayCompactFmt,
+  dayKey,
+  localDayKey,
+  parseDay,
+  weekCells,
+  weekStart,
+} from "@/lib/calendar";
+import type { GenreKey } from "@/lib/calendar";
 
 export const metadata: Metadata = {
   title: "Eventos de salsa y bachata esta semana",
@@ -58,24 +73,6 @@ type VenueRow = {
   lng: number | null;
 };
 type View = "list" | "calendar" | "mios" | "map";
-type GenreKey = (typeof GENRES)[number];
-
-const GENRES = ["SALSA", "BACHATA", "CUBANO"] as const;
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-// Color del punto en calendario por género (el primero del evento).
-const DOT_COLOR: Record<GenreKey, string> = {
-  SALSA: "bg-orange-500",
-  BACHATA: "bg-fuchsia-400",
-  CUBANO: "bg-amber-400",
-};
-// Género como texto coloreado en el card (misma paleta que los dots,
-// variante clara para AA sobre fondo oscuro).
-const GENRE_TEXT: Record<GenreKey, string> = {
-  SALSA: "text-orange-400",
-  BACHATA: "text-fuchsia-300",
-  CUBANO: "text-amber-300",
-};
 
 // La chip de serie solo informa cuando el nombre del evento no trae la
 // marca ("Edición Aniversario" ← serie "Bachatamania"); si el título ya
@@ -94,14 +91,6 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
-const dayCompactFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-});
-const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"] as const;
-
-const dayKey = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-CA"); // YYYY-MM-DD local, clave de grupo
 
 function dayLabel(iso: string, t: typeof messages.events): string {
   const today = dayKey(new Date().toISOString());
@@ -133,32 +122,15 @@ async function getMyTickets(): Promise<MyTicket[]> {
   return (await res.json()) as MyTicket[];
 }
 
-/** "YYYY-MM-DD" validado; null si no matchea. */
-const parseDay = (raw: string | undefined): string | null =>
-  raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-const localDayKey = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-/** Lunes de la semana que contiene `d` (semana parte lunes, es-CL). */
-function weekStart(d: Date): Date {
-  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  return monday;
-}
-
 /** Los 7 días de la semana que empieza en `monday`, con sus eventos. */
-function weekCells(
+function eventCells(
   monday: Date,
   byDay: Map<string, EventListItem[]>,
 ): { day: number; key: string; events: EventListItem[] }[] {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday.getTime() + i * DAY_MS);
-    const key = localDayKey(d);
-    return { day: d.getDate(), key, events: byDay.get(key) ?? [] };
-  });
+  return weekCells(monday, byDay).map(({ items, ...rest }) => ({
+    ...rest,
+    events: items,
+  }));
 }
 
 export default async function EventosPage({
@@ -281,7 +253,7 @@ export default async function EventosPage({
   const nextWeekKey = localDayKey(
     new Date(monday.getTime() + 7 * DAY_MS),
   );
-  const cells = weekCells(monday, calByDay);
+  const cells = eventCells(monday, calByDay);
   const weekKeys = new Set(cells.map((c) => c.key));
   const todayKey = localDayKey(new Date());
   // Día seleccionado: param si cae en la semana visible; si no, hoy.

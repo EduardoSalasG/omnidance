@@ -105,7 +105,7 @@ export class ClassesController {
                 quorum: true,
                 dropInPrice: true,
                 level: { select: { id: true, name: true } },
-                style: { select: { id: true, name: true } },
+                style: { select: { id: true, name: true, genre: true } },
                 types: {
                   include: { type: { select: { id: true, name: true } } },
                 },
@@ -205,7 +205,7 @@ export class ClassesController {
                   select: {
                     name: true,
                     level: { select: { name: true } },
-                    style: { select: { name: true } },
+                    style: { select: { name: true, genre: true } },
                   },
                 },
               },

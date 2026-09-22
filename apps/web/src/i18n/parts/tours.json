@@ -85,6 +85,20 @@
         "desc": "Cada card lleva al detalle: lineup, planificación de la noche y precios. En el checkout puedes regalar entradas a tus amigos o pedir mesa."
       }
     },
+    "clases": {
+      "s1": {
+        "title": "Tres formas de ver",
+        "desc": "Lista agrupada por día, calendario semanal con tus clases y tu historial de asistencias."
+      },
+      "s2": {
+        "title": "Mis clases",
+        "desc": "Tu agenda: reservas y lista de espera, con tu QR listo para el check-in en la academia."
+      },
+      "s3": {
+        "title": "Explora y reserva",
+        "desc": "Filtra por día, estilo y nivel — cada card muestra el cupo y reservas con un toque."
+      }
+    },
     "qr": {
       "s1": {
         "title": "Tu QR personal",
