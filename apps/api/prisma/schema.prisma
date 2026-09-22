@@ -218,6 +218,7 @@ model Event {
   venue       Venue?      @relation(fields: [venueId], references: [id])
   venueId     String?     // null = práctica sin local (parque/plaza)
   venueText   String?     // nombre libre del lugar cuando no hay Venue (parque/plaza)
+  venueNotes  String?     // detalle del lugar: sala, piso, punto exacto ("Sala 1")
   womenOnly   Boolean     @default(false) // señal declarativa safety (spec §8) — sin enforcement por género
   menOnly     Boolean     @default(false) // simétrico a womenOnly — prácticas solo hombres (líderes)
   producerId  String?

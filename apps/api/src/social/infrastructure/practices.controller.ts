@@ -41,6 +41,11 @@ class CreatePracticeDto {
   @IsString()
   venueText?: string;
 
+  /** Detalle del lugar: sala, piso, punto exacto ("Sala 1, piso 2"). */
+  @IsOptional()
+  @IsString()
+  venueNotes?: string;
+
   /** Señal safety de la spec §8 — declarativa (Person no tiene género). */
   @IsOptional()
   @IsBoolean()
@@ -130,6 +135,7 @@ export class PracticesController {
           hostId,
           venueId: dto.venueId ?? null,
           venueText: dto.venueText?.trim() || null,
+          venueNotes: dto.venueNotes?.trim() || null,
           womenOnly: dto.womenOnly ?? false,
           menOnly: dto.menOnly ?? false,
           name: dto.name,
