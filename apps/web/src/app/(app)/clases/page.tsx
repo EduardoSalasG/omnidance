@@ -474,24 +474,28 @@ function ClasesInner() {
     return (
       <li key={cls.id} className={cardCls}>
         <div className="flex items-start gap-3">
-          {/* Contenido: serie + meta (academia · profe · estilo · nivel ·
-              modalidad) + cupo */}
+          {/* Contenido: título = estilo — nivel (la clase no lleva
+              nombre propio) + meta (academia · profe · modalidad) + cupo */}
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold leading-snug">
-              {cls.series.name}
+              {style ? (
+                <>
+                  <span className={genreText(style.genre)}>{style.name}</span>
+                  {cls.series.level && (
+                    <span className="text-white/80">
+                      {" — "}
+                      {cls.series.level.name}
+                    </span>
+                  )}
+                </>
+              ) : (
+                cls.series.name
+              )}
             </h2>
             <p className="mt-1 truncate text-xs">
               <span className="text-white/60">{cls.academy.name} · </span>
               {cls.instructor?.name && (
                 <span className="text-white/50">{cls.instructor.name} · </span>
-              )}
-              {style && (
-                <span className={genreText(style.genre)}>{style.name} · </span>
-              )}
-              {cls.series.level && (
-                <span className="text-white/50">
-                  {cls.series.level.name} ·{" "}
-                </span>
               )}
               {cls.series.types.length > 0 && (
                 <span className="text-white/50">
