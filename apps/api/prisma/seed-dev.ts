@@ -1421,7 +1421,6 @@ export async function seedDev(prisma: PrismaClient) {
     opts: {
       venueText?: string;
       venueNotes?: string;
-      womenOnly?: boolean;
       description?: string;
     } = {},
   ) =>
@@ -1438,7 +1437,6 @@ export async function seedDev(prisma: PrismaClient) {
             venueId,
             venueText: opts.venueText ?? null,
             venueNotes: opts.venueNotes ?? null,
-            womenOnly: opts.womenOnly ?? false,
             description: opts.description ?? null,
             capacity,
             startsAt: nextDay(weekday, hour),
@@ -1453,7 +1451,6 @@ export async function seedDev(prisma: PrismaClient) {
             venueId,
             venueText: opts.venueText ?? null,
             venueNotes: opts.venueNotes ?? null,
-            womenOnly: opts.womenOnly ?? false,
             description: opts.description ?? null,
             capacity,
             startsAt: nextDay(weekday, hour),
@@ -1468,8 +1465,7 @@ export async function seedDev(prisma: PrismaClient) {
     description:
       "Rueda de casino abierta: rotamos parejas cada tema. Trae agua — el local abre la terraza para nosotros.",
   });
-  // En parque (sin venue) → venueText nombra el lugar; solo mujeres
-  // ejercita la señal safety de la spec §8.
+  // En parque (sin venue) → venueText nombra el lugar + venueNotes el punto.
   const parkPractice = await practice(
     "Bachata sensual en Parque Balmaceda",
     camila,
@@ -1480,7 +1476,6 @@ export async function seedDev(prisma: PrismaClient) {
     {
       venueText: "Parque Balmaceda",
       venueNotes: "Canchas junto al skatepark",
-      womenOnly: true,
       description:
         "Practicamos shines y pareja por turnos. Trae agua y zapatillas cómodas.",
     },

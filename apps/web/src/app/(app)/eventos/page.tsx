@@ -483,7 +483,13 @@ export default async function EventosPage({
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{t.title}</h1>
+          <h1 className="text-2xl font-bold">
+            {view === "mios"
+              ? t.viewMios
+              : view === "map"
+                ? t.viewMap
+                : t.title}
+          </h1>
           <div className="flex items-center gap-2">
               {/* Toggle lista/calendario — íconos, segmented */}
               <div

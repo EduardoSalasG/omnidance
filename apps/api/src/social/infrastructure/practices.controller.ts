@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
-  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -45,16 +44,6 @@ class CreatePracticeDto {
   @IsOptional()
   @IsString()
   venueNotes?: string;
-
-  /** Señal safety de la spec §8 — declarativa (Person no tiene género). */
-  @IsOptional()
-  @IsBoolean()
-  womenOnly?: boolean;
-
-  /** Simétrico a womenOnly — práctica solo hombres (p.ej. de líderes). */
-  @IsOptional()
-  @IsBoolean()
-  menOnly?: boolean;
 
   @IsDateString()
   startsAt!: string;
@@ -99,8 +88,6 @@ export class PracticesController {
         startsAt,
         endsAt,
         capacity: dto.capacity ?? null,
-        womenOnly: dto.womenOnly ?? false,
-        menOnly: dto.menOnly ?? false,
       });
     } catch (e) {
       if (e instanceof SocialDomainError) {
@@ -138,8 +125,6 @@ export class PracticesController {
           venueId: dto.venueId ?? null,
           venueText: dto.venueText?.trim() || null,
           venueNotes: dto.venueNotes?.trim() || null,
-          womenOnly: dto.womenOnly ?? false,
-          menOnly: dto.menOnly ?? false,
           name: dto.name,
           description: dto.description?.trim() || null,
           startsAt,
@@ -214,8 +199,6 @@ export class PracticesController {
         series: { select: { name: true } },
         venue: { select: { name: true, address: true } },
         venueText: true,
-        womenOnly: true,
-        menOnly: true,
         _count: { select: { rsvps: true } },
         // Estilo foco: la práctica lo materializa como ScheduleBlock único.
         scheduleBlocks: {
@@ -259,8 +242,6 @@ export class PracticesController {
         series: { select: { name: true } },
         venue: { select: { name: true, address: true } },
         venueText: true,
-        womenOnly: true,
-        menOnly: true,
         _count: { select: { rsvps: true } },
         scheduleBlocks: {
           orderBy: { startsAt: "asc" as const },

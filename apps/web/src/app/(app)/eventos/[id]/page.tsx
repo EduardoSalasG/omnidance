@@ -62,10 +62,6 @@ type EventDetail = {
   venueText: string | null;
   /** Detalle del lugar: sala, piso, punto exacto ("Sala 1"). */
   venueNotes: string | null;
-  /** Señal safety de práctica (spec §8) — declarativa. */
-  womenOnly: boolean;
-  /** Simétrico a womenOnly — práctica solo hombres. */
-  menOnly: boolean;
   /** Notas libres del host/productor — hoy lo escribe el form de práctica. */
   description: string | null;
   /** Host de práctica (resuelto desde hostId escalar) — null en sociales. */
@@ -256,10 +252,6 @@ export default async function EventoDetailPage({
             <Badge variant="outline">{t.cancelled}</Badge>
           ) : (
             isPast && <Badge variant="outline">{t.past}</Badge>
-          )}
-          {event.womenOnly && <Badge variant="muted">{t.womenOnly}</Badge>}
-          {event.menOnly && (
-            <Badge variant="muted">{messages.practices.menOnly}</Badge>
           )}
           {/* Práctica: el estilo foco es un badge, no un timeline de DJ */}
           {isPractice && practiceStyle && (

@@ -540,22 +540,6 @@ describe("social e2e", () => {
       expect(res.status).toBe(404);
     });
 
-    it("womenOnly + menOnly → 400 (nadie puede asistir)", async () => {
-      const res = await req(
-        "POST",
-        "/api/practices",
-        {
-          name: "Práctica vacía",
-          startsAt: future(48),
-          endsAt: future(50),
-          womenOnly: true,
-          menOnly: true,
-        },
-        dancerSession,
-      );
-      expect(res.status).toBe(400);
-    });
-
     it("capacity 0 → 400", async () => {
       const res = await req(
         "POST",

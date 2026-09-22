@@ -76,8 +76,6 @@ export interface PracticeInput {
   startsAt: Date;
   endsAt: Date;
   capacity?: number | null;
-  womenOnly?: boolean;
-  menOnly?: boolean;
 }
 
 function assertDateRange(
@@ -120,13 +118,6 @@ export function assertPracticeInput(input: PracticeInput): void {
     throw new SocialDomainError(
       "INVALID_INPUT",
       "capacidad debe ser un entero > 0",
-    );
-  }
-  // Una práctica no puede excluir a todos a la vez.
-  if (input.womenOnly && input.menOnly) {
-    throw new SocialDomainError(
-      "INVALID_INPUT",
-      "la práctica debe admitir al menos un público",
     );
   }
 }
