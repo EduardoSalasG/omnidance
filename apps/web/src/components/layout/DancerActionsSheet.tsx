@@ -28,10 +28,14 @@ export function DancerActionsSheet({
   open,
   onClose,
   items,
+  scanHref,
 }: {
   open: boolean;
   onClose: () => void;
   items: SheetItem[];
+  /** Solo lente social: el bailarín escanea a su pareja. En academia la
+      asistencia la registra el staff — no hay acción de escaneo. */
+  scanHref?: string;
 }) {
   const t = useTranslations("nav");
   const dialogRef = useDialogFocus<HTMLDivElement>(open);
@@ -83,6 +87,31 @@ export function DancerActionsSheet({
         <div className="flex justify-center">
           <MyQr compact />
         </div>
+
+        {/* Escanear — la contraparte del QR propio: "me muestran" arriba,
+            "yo escaneo" acá. Mismo peso visual que un ítem del grid pero
+            ancho completo porque es la acción primaria del sheet. */}
+        {scanHref && (
+          <Link
+            href={scanHref}
+            onClick={onClose}
+            className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-neon/40 bg-neon/10 px-4 text-sm font-semibold text-neon transition-colors hover:bg-neon/20 active:scale-[0.98]"
+          >
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5"
+            >
+              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 12h10" />
+            </svg>
+            {t("scanQr")}
+          </Link>
+        )}
 
         {/* Módulos secundarios — la lente academia del bailarín no tiene
             (sus módulos ya son tabs): el sheet queda solo con el QR. */}

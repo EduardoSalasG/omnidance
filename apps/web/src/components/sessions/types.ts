@@ -16,11 +16,15 @@ export type SessionRating = {
 
 export type DanceSession = {
   id: string;
+  eventId: string;
   /** La API expone "inviter" | "invitee" en minúsculas. */
   role: string;
   status: string;
   scannedAt: string;
   confirmedAt: string | null;
+  inviterId: string;
+  inviteeId: string;
+  styleId: string | null;
   partner: SessionPartner;
   myRating: SessionRating | null;
 };

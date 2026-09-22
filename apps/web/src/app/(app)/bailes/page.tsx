@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
+import { EventDate } from "@/components/ui/EventDate";
 import { PageLoading } from "@/components/ui/spinner";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { isInvitee } from "@/components/sessions/types";
@@ -15,7 +16,6 @@ type Phase = "loading" | "unauth" | "ready" | "error";
 
 function Bailes() {
   const t = useTranslations("sessions");
-  const tStaff = useTranslations("staff");
   const tCommon = useTranslations("common");
 
   const eventId = useSearchParams().get("event");
@@ -25,6 +25,17 @@ function Bailes() {
   const [busyId, setBusyId] = useState<string | null>(null);
   // Nombre del evento cuando la vista viene filtrada por ?event=
   const [eventName, setEventName] = useState<string | null>(null);
+  // Insights del último social: ficha pública del evento + catálogo de
+  // estilos para resolver styleId → nombre.
+  const [lastEvent, setLastEvent] = useState<{
+    id: string;
+    name: string;
+    startsAt: string;
+    venue: { name: string } | null;
+  } | null>(null);
+  const [styleNames, setStyleNames] = useState<ReadonlyMap<string, string>>(
+    new Map(),
+  );
 
   const fetchSessions = useCallback(async () => {
     const res = await apiFetch(
@@ -72,6 +83,40 @@ function Bailes() {
       .catch(() => {});
   }, [eventId]);
 
+  // Ficha del último social (la sesión más reciente define el evento).
+  const lastEventId =
+    !eventId && sessions.length > 0 ? sessions[0].eventId : null;
+  useEffect(() => {
+    setLastEvent(null);
+    if (!lastEventId) return;
+    apiFetch(`/events/${lastEventId}`)
+      .then(async (res) => {
+        if (res.ok) {
+          setLastEvent(
+            (await res.json()) as {
+              id: string;
+              name: string;
+              startsAt: string;
+              venue: { name: string } | null;
+            },
+          );
+        }
+      })
+      .catch(() => {});
+  }, [lastEventId]);
+
+  // Nombres de estilo para el breakdown — catálogo chico, una sola vez.
+  useEffect(() => {
+    if (!sessions.some((s) => s.styleId) || styleNames.size > 0) return;
+    apiFetch("/styles")
+      .then(async (res) => {
+        if (!res.ok) return;
+        const styles = (await res.json()) as { id: string; name: string }[];
+        setStyleNames(new Map(styles.map((s) => [s.id, s.name])));
+      })
+      .catch(() => {});
+  }, [sessions, styleNames.size]);
+
   async function act(session: DanceSession, action: SessionAction) {
     setBusyId(session.id);
     const res = await apiFetch(`/sessions/${session.id}/${action}`, {
@@ -100,8 +145,6 @@ function Bailes() {
     await fetchSessions();
   }
 
-  const scanHref = `/qr?modo=escanear${eventId ? `&event=${eventId}` : ""}`;
-
   // Invitaciones entrantes primero (accionables), luego salientes pendientes.
   const pending = sessions.filter((s) => s.status === "INVITED");
   const incoming = pending.filter(isInvitee);
@@ -114,14 +157,43 @@ function Bailes() {
     confirmed.map((s) => s.partner?.name).filter(Boolean),
   ).size;
 
+  // ── Insights del último social ─────────────────────────────────────
+  // Baile real = CONFIRMED | RATED | CLOSED (DECLINED/DISCARDED/EXPIRED
+  // no cuentan). El evento es el de la sesión más reciente.
+  const DANCED = new Set(["CONFIRMED", "RATED", "CLOSED"]);
+  const lastSessions = lastEventId
+    ? sessions.filter((s) => s.eventId === lastEventId)
+    : [];
+  const danced = lastSessions.filter((s) => DANCED.has(s.status));
+  const lastPartners = new Set(
+    danced.map((s) =>
+      s.role.toLowerCase() === "inviter" ? s.inviteeId : s.inviterId,
+    ),
+  ).size;
+  const myScores = lastSessions
+    .map((s) => s.myRating?.global)
+    .filter((v): v is number => typeof v === "number");
+  const lastAvg =
+    myScores.length > 0
+      ? Math.round((myScores.reduce((a, b) => a + b, 0) / myScores.length) * 10) /
+        10
+      : null;
+  const times = danced.map((s) => new Date(s.scannedAt).getTime());
+  const lastFrom = times.length ? new Date(Math.min(...times)) : null;
+  const lastTo = times.length ? new Date(Math.max(...times)) : null;
+  const styleCounts = new Map<string, number>();
+  for (const s of danced) {
+    if (s.styleId) styleCounts.set(s.styleId, (styleCounts.get(s.styleId) ?? 0) + 1);
+  }
+  const topStyles = [...styleCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([id, n]) => `${styleNames.get(id) ?? ""} ×${n}`)
+    .filter((s) => !s.startsWith(" "));
+  const showInsights = Boolean(lastEventId && danced.length > 0);
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
-      <header className="flex items-center justify-end">
-        <Button href={scanHref} variant="secondary" size="sm">
-          {tStaff("scan")}
-        </Button>
-      </header>
-
       {/* Contexto del filtro ?event= — permite salir de la vista acotada */}
       {eventId && (
         <Link
@@ -164,12 +236,72 @@ function Bailes() {
           <p role="status" className="text-lg font-semibold">
             {t("empty")}
           </p>
-          <Button href={scanHref} size="lg">
-            {tStaff("scan")}
-          </Button>
         </div>
       ) : (
         <>
+          {/* Insights del último social — primera sección cuando la vista
+              no viene filtrada por ?event= */}
+          {showInsights && (
+            <section
+              aria-labelledby="last-social-heading"
+              className="rounded-2xl border border-night-700 bg-night-800/60 p-4"
+            >
+              <h2
+                id="last-social-heading"
+                className="text-sm font-semibold uppercase tracking-wide text-white/50"
+              >
+                {t("lastSocial")}
+              </h2>
+              <Link
+                href={`/eventos/${lastEventId}`}
+                className="mt-1.5 block text-lg font-semibold text-white transition-colors hover:text-neon"
+              >
+                {lastEvent?.name ?? "…"}
+              </Link>
+              {lastEvent && (
+                <p className="mt-0.5 text-xs text-white/50">
+                  <EventDate start={lastEvent.startsAt} />
+                  {lastEvent.venue?.name ? ` · ${lastEvent.venue.name}` : ""}
+                </p>
+              )}
+              <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <div className="flex items-baseline gap-1.5">
+                  <dd className="font-semibold text-neon">{danced.length}</dd>
+                  <dt className="text-white/60">
+                    {t("dancesStat", { count: danced.length })}
+                  </dt>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <dd className="font-semibold text-neon">{lastPartners}</dd>
+                  <dt className="text-white/60">
+                    {t("partnersStat", { count: lastPartners })}
+                  </dt>
+                </div>
+                {lastAvg !== null && (
+                  <div className="flex items-baseline gap-1.5">
+                    <dd className="font-semibold text-neon">
+                      ★ {lastAvg.toFixed(1)}
+                    </dd>
+                    <dt className="text-white/60">{t("avgGiven")}</dt>
+                  </div>
+                )}
+              </dl>
+              {(lastFrom || topStyles.length > 0) && (
+                <p className="mt-2 text-xs text-white/50">
+                  {lastFrom && lastTo && (
+                    <>
+                      <EventDate start={lastFrom} variant="time" />
+                      {" – "}
+                      <EventDate start={lastTo} variant="time" />
+                    </>
+                  )}
+                  {topStyles.length > 0 &&
+                    `${lastFrom ? " · " : ""}${topStyles.join(" · ")}`}
+                </p>
+              )}
+            </section>
+          )}
+
           {/* Por confirmar — invitaciones vivas de la noche */}
           {pending.length > 0 && (
             <section className="flex flex-col gap-3">

@@ -1135,6 +1135,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           open={sheetOpen}
           onClose={() => setSheetOpen(false)}
           items={sheetItems}
+          scanHref={dancerAcademy ? undefined : "/qr?modo=escanear"}
         />
       )}
     </>
