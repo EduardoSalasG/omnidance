@@ -27,6 +27,7 @@ import { Inject } from "@nestjs/common";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { AuthService } from "../../auth/domain/auth.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
+import { inviteEmailHtml } from "../../auth/infrastructure/emails";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { PrismaService } from "../../prisma.service";
 import {
@@ -397,7 +398,7 @@ export class AdminController {
     await this.mailer.send(
       lead.email,
       "Tu cuenta Omnidance está lista",
-      `<p>Hola ${lead.name.split(" ")[0]}, tu cuenta está lista.</p><p>Entra con este link y completa tus datos para empezar a usar la app:</p><p><a href="${link}">${link}</a></p>`,
+      inviteEmailHtml(lead.name, link),
     );
     await this.notifications.notifySafe(person.id, {
       category: "OPERATIONAL",
