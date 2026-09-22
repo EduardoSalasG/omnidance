@@ -26,6 +26,7 @@ import {
   DoorSoldOutError,
   EventNotFoundError,
   InvalidDiscountError,
+  EventEndedError,
   PresaleClosedError,
   PresaleSoldOutError,
   PresaleUnavailableError,
@@ -104,7 +105,8 @@ export class CheckoutController {
         e instanceof PresaleUnavailableError ||
         e instanceof InvalidDiscountError ||
         e instanceof RecipientError ||
-        e instanceof PresaleClosedError
+        e instanceof PresaleClosedError ||
+        e instanceof EventEndedError
       ) {
         throw new BadRequestException(e.message);
       }

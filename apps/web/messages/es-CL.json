@@ -180,6 +180,8 @@
     "alreadyTicketQrHint": "o muestra tu QR en puerta →",
     "capacity": "Aforo: {count}",
     "live": "En vivo",
+    "past": "Este evento ya pasó",
+    "cancelled": "Evento cancelado",
     "loadError": "No pudimos cargar este evento. Intenta de nuevo en un rato.",
     "type": {
       "SOCIAL": "Social",
@@ -316,6 +318,8 @@
     "findSocial": "Encontrar un social",
     "moreNights": "Ver {count, plural, one {# noche más} other {# noches más}}",
     "fewerNights": "Ver menos",
+    "viewEvent": "Ver evento →",
+    "unknownEvent": "Evento",
     "subConnection": "Conexión",
     "subComfort": "Comodidad",
     "subMusicality": "Musicalidad",

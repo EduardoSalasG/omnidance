@@ -11,6 +11,7 @@ export type CheckoutEvent = {
   id: string;
   name: string;
   startsAt: string;
+  endsAt: string;
   status: string;
   presalePrice: number | null;
   doorPrice: number | null;
@@ -39,6 +40,25 @@ export default async function CheckoutPage({
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
         <p className="text-white/60">{t.loadError}</p>
+        <Button href={`/eventos/${params.id}`} variant="secondary">
+          {t.backToList}
+        </Button>
+      </main>
+    );
+  }
+
+  // Deep-link a checkout de un evento terminado/cancelado: aviso, no
+  // compra (el API también lo rechaza — esto evita el roundtrip).
+  const isPast =
+    event.status === "CANCELLED" ||
+    event.status === "CLOSED" ||
+    Date.now() >= new Date(event.endsAt).getTime();
+  if (isPast) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
+        <p className="text-white/60">
+          {event.status === "CANCELLED" ? t.cancelled : t.past}
+        </p>
         <Button href={`/eventos/${params.id}`} variant="secondary">
           {t.backToList}
         </Button>

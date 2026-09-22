@@ -42,6 +42,12 @@ export class DoorSoldOutError extends Error {
   }
 }
 
+export class EventEndedError extends Error {
+  constructor() {
+    super("El evento ya terminó");
+  }
+}
+
 export class PresaleClosedError extends Error {
   constructor() {
     super("La preventa cerró a las 19:00 — el resto se paga en puerta");
@@ -147,6 +153,7 @@ export class CheckoutService {
         id: true,
         status: true,
         startsAt: true,
+        endsAt: true,
         presalePrice: true,
         presaleCap: true,
         doorPrice: true,
@@ -164,6 +171,9 @@ export class CheckoutService {
     // del evento (parametrizable: presale.cutoff_hour); desde ahí y
     // durante el evento LIVE la app vende a precio de puerta.
     const now = new Date();
+    // Un evento que ya terminó no vende por ningún canal — un evento que
+    // quedó LIVE pasado su endsAt tampoco (el staff pudo no cerrarlo).
+    if (now >= event.endsAt) throw new EventEndedError();
     const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
     const cutoff = new Date(event.startsAt);
     cutoff.setHours(cutoffHour, 0, 0, 0);

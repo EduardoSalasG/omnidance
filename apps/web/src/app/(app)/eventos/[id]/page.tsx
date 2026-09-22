@@ -210,6 +210,15 @@ export default async function EventoDetailPage({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   })();
 
+  // Evento terminado/cancelado: la página sigue visible (datos, descripción,
+  // lineup) pero no vende. Cubre además el caso de un evento que quedó
+  // LIVE pasado su endsAt porque el staff no lo cerró.
+  const isCancelled = event.status === "CANCELLED";
+  const isPast =
+    isCancelled ||
+    event.status === "CLOSED" ||
+    Date.now() >= new Date(event.endsAt).getTime();
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6">
       {/* Hero */}
@@ -217,7 +226,14 @@ export default async function EventoDetailPage({
         <div className="flex flex-wrap items-center gap-2">
           {event.series && <Badge variant="neon">{event.series.name}</Badge>}
           <Badge variant="outline">{typeLabel}</Badge>
-          {event.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
+          {event.status === "LIVE" && !isPast && (
+            <Badge variant="live">{t.live}</Badge>
+          )}
+          {isCancelled ? (
+            <Badge variant="outline">{t.cancelled}</Badge>
+          ) : (
+            isPast && <Badge variant="outline">{t.past}</Badge>
+          )}
         </div>
         <h1 className="text-3xl font-bold leading-tight">{event.name}</h1>
         <EventDate
@@ -393,8 +409,9 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* Pase de serie — solo si el evento pertenece a una serie con id */}
-      {seriesId && (
+      {/* Pase de serie — solo si el evento pertenece a una serie con id
+          y no terminó (un pase anclado a un evento pasado no se vende) */}
+      {seriesId && !isPast && (
         <SeriesPassCta
           seriesId={seriesId}
           month={eventMonth}
@@ -552,22 +569,34 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* CTA sticky (mobile-first) — flota sobre la BottomNav */}
+      {/* CTA sticky (mobile-first) — flota sobre la BottomNav. Evento
+          pasado/cancelado: aviso en vez de compra; la ficha completa
+          (descripción, lineup, programa) sigue visible arriba. */}
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div className="min-w-0">
-            <span className="block text-xs text-white/50">{ctaLabel}</span>
-            {ctaPrice != null ? (
-              <PriceTag amount={ctaPrice} className="text-lg" />
-            ) : (
-              <span className="text-lg font-semibold text-neon">{t.free}</span>
-            )}
-          </div>
-          <BuyTicketCta
-            href={`/eventos/${event.id}/checkout`}
-            hasTicket={myTicket}
-            label={t.getTicket}
-          />
+          {isPast ? (
+            <p className="w-full text-center text-sm font-medium text-white/60">
+              {isCancelled ? t.cancelled : t.past}
+            </p>
+          ) : (
+            <>
+              <div className="min-w-0">
+                <span className="block text-xs text-white/50">{ctaLabel}</span>
+                {ctaPrice != null ? (
+                  <PriceTag amount={ctaPrice} className="text-lg" />
+                ) : (
+                  <span className="text-lg font-semibold text-neon">
+                    {t.free}
+                  </span>
+                )}
+              </div>
+              <BuyTicketCta
+                href={`/eventos/${event.id}/checkout`}
+                hasTicket={myTicket}
+                label={t.getTicket}
+              />
+            </>
+          )}
         </div>
       </div>
     </main>
