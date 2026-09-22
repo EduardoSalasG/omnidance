@@ -13,19 +13,10 @@ const inputCls =
   "text-white placeholder:text-white/50 " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
-const chipCls = (active: boolean) =>
-  `min-h-11 rounded-full border px-5 text-sm font-medium transition-colors active:scale-[0.97] ` +
-  `focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
-    active
-      ? "border-neon bg-neon/15 text-neon"
-      : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
-  }`;
-
 /**
  * Nueva práctica (spec §8): micro-evento creado por cualquier bailarín —
  * gratis, first-come, check-in por QR. Lugar = dirección libre (parque,
- * plaza o studio); "quiénes pueden asistir" se traduce a womenOnly/menOnly.
- * Al crear, redirige al detalle público de la práctica.
+ * plaza o studio). Al crear, redirige al detalle público de la práctica.
  */
 export default function NuevaPracticaPage() {
   const t = useTranslations("practices");
@@ -43,10 +34,6 @@ export default function NuevaPracticaPage() {
   const [address, setAddress] = useState("");
   const [venueNotes, setVenueNotes] = useState("");
   const [description, setDescription] = useState("");
-  // Asistencia: ambos activos por defecto ("todxs"); solo-mujeres →
-  // womenOnly, solo-hombres → menOnly. Al menos uno debe quedar activo.
-  const [allowMen, setAllowMen] = useState(true);
-  const [allowWomen, setAllowWomen] = useState(true);
   const [styleId, setStyleId] = useState("");
   const [styles, setStyles] = useState<{ id: string; name: string }[]>([]);
   const [capacity, setCapacity] = useState("");
@@ -69,7 +56,7 @@ export default function NuevaPracticaPage() {
 
   async function createPractice(e: React.FormEvent) {
     e.preventDefault();
-    if (submitting || !allowMen && !allowWomen) return;
+    if (submitting) return;
     setSubmitting(true);
     setFormError(false);
     try {
@@ -85,8 +72,6 @@ export default function NuevaPracticaPage() {
           ...(address.trim() ? { venueText: address.trim() } : {}),
           ...(venueNotes.trim() ? { venueNotes: venueNotes.trim() } : {}),
           ...(description.trim() ? { description: description.trim() } : {}),
-          ...(allowWomen && !allowMen ? { womenOnly: true } : {}),
-          ...(allowMen && !allowWomen ? { menOnly: true } : {}),
           ...(styleId ? { style: styleId } : {}),
           ...(capacity ? { capacity: parseInt(capacity, 10) } : {}),
           startsAt: start.toISOString(),
@@ -178,31 +163,6 @@ export default function NuevaPracticaPage() {
               className={`${inputCls} resize-none`}
             />
           </label>
-
-          {/* Asistencia — multi-select Hombres/Mujeres; ambos = todxs */}
-          <fieldset className="flex flex-col text-sm">
-            <legend className="text-white/70">{t("audience")}</legend>
-            <div className="mt-2.5 flex gap-2">
-              <button
-                type="button"
-                aria-pressed={allowMen}
-                aria-disabled={allowMen && !allowWomen}
-                onClick={() => setAllowMen((v) => (v && !allowWomen ? v : !v))}
-                className={chipCls(allowMen)}
-              >
-                {t("audienceMen")}
-              </button>
-              <button
-                type="button"
-                aria-pressed={allowWomen}
-                aria-disabled={allowWomen && !allowMen}
-                onClick={() => setAllowWomen((v) => (v && !allowMen ? v : !v))}
-                className={chipCls(allowWomen)}
-              >
-                {t("audienceWomen")}
-              </button>
-            </div>
-          </fieldset>
 
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-white/70">{t("style")}</span>
