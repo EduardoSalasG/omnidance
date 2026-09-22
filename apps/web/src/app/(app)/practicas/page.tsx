@@ -7,8 +7,6 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
-import { AvailabilitySection } from "@/components/social/AvailabilitySection";
-import { PartnerRequests } from "@/components/social/PartnerRequests";
 import type { Me } from "@/components/social/types";
 
 // GET /practices (+ /practices/mine, que agrega `going`) — shape público.
@@ -325,15 +323,6 @@ export default function PracticasPage() {
             ))}
           </div>
         )}
-      </section>
-
-      {/* Encontrar con quién — disponibilidad y búsqueda de pareja */}
-      <section className="flex flex-col gap-5 border-t border-night-800 pt-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-          {t("findPartner")}
-        </h2>
-        <AvailabilitySection me={me} />
-        <PartnerRequests me={me} />
       </section>
     </main>
   );
