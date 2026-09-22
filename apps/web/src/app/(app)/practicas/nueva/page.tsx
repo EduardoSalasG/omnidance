@@ -9,7 +9,7 @@ import { PageLoading } from "@/components/ui/spinner";
 import type { Me } from "@/components/social/types";
 
 const inputCls =
-  "min-h-11 w-full rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
+  "min-h-11 w-full min-w-0 rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
   "text-white placeholder:text-white/50 " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
@@ -221,7 +221,7 @@ export default function NuevaPracticaPage() {
           </label>
 
           <div className="grid grid-cols-2 gap-4">
-            <label className="flex flex-col gap-1.5 text-sm">
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm">
               <span className="text-white/70">{t("capacityLabel")}</span>
               <input
                 type="number"
@@ -234,7 +234,7 @@ export default function NuevaPracticaPage() {
                 className={inputCls}
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm">
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm">
               <span className="text-white/70">
                 {t("date")}
                 <span aria-hidden="true" className="text-neon"> *</span>
@@ -251,7 +251,7 @@ export default function NuevaPracticaPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <label className="flex flex-col gap-1.5 text-sm">
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm">
               <span className="text-white/70">
                 {t("startTime")}
                 <span aria-hidden="true" className="text-neon"> *</span>
@@ -264,7 +264,7 @@ export default function NuevaPracticaPage() {
                 className={inputCls}
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-sm">
+            <label className="flex min-w-0 flex-col gap-1.5 text-sm">
               <span className="text-white/70">
                 {t("endTime")}
                 <span aria-hidden="true" className="text-neon"> *</span>
