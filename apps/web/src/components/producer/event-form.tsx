@@ -90,6 +90,9 @@ export function EventForm({
   const [doorCap, setDoorCap] = useState(
     initial?.doorCap != null ? String(initial.doorCap) : "",
   );
+  const [tablesTotal, setTablesTotal] = useState(
+    initial?.tablesTotal != null ? String(initial.tablesTotal) : "",
+  );
   const [primeThreshold, setPrimeThreshold] = useState(
     initial?.primeThreshold != null ? String(initial.primeThreshold) : "",
   );
@@ -198,6 +201,12 @@ export function EventForm({
       ...(toOptionalInt(doorCap) !== undefined
         ? { doorCap: toOptionalInt(doorCap) }
         : {}),
+      // vacío = sin servicio de mesas → en edit se envía null (limpia)
+      ...(mode === "edit" && tablesTotal.trim() === ""
+        ? { tablesTotal: null }
+        : toOptionalInt(tablesTotal) !== undefined
+          ? { tablesTotal: toOptionalInt(tablesTotal) }
+          : {}),
       ...(toOptionalInt(primeThreshold) !== undefined
         ? { primeThreshold: toOptionalInt(primeThreshold) }
         : {}),
@@ -229,6 +238,7 @@ export function EventForm({
         setDoorPrice("");
         setPresaleCap("");
         setDoorCap("");
+        setTablesTotal("");
         setPrimeThreshold("");
         setHappyHour("");
         setBlocks([]);
@@ -396,6 +406,19 @@ export function EventForm({
             min={1}
             value={doorCap}
             onChange={(e) => setDoorCap(e.target.value)}
+            className={inputCls}
+          />
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-white/70">
+            {t("form.tablesTotal")}
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={tablesTotal}
+            onChange={(e) => setTablesTotal(e.target.value)}
             className={inputCls}
           />
         </label>

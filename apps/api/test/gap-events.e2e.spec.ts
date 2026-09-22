@@ -525,17 +525,19 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       expect(res.status).toBe(400);
     });
 
-    it("productor confirma con tableNo → 200", async () => {
+    it("productor confirma con tableNo + ajusta partySize → 200", async () => {
       const res = await req(
         "PATCH",
         `/api/table-reservations/${ids.reservationId}`,
-        { status: "CONFIRMED", tableNo: "M-7" },
+        { status: "CONFIRMED", tableNo: "M-7", partySize: 5 },
         sessions.producer,
       );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.status).toBe("CONFIRMED");
       expect(body.tableNo).toBe("M-7");
+      // el tamaño solicitado era 4 — el productor lo ajusta (disclaimer del checkout)
+      expect(body.partySize).toBe(5);
     });
 
     it("listado público-auth: solo CONFIRMED con nombre + partySize + tableNo", async () => {
@@ -549,7 +551,7 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       const list = await res.json();
       expect(list).toHaveLength(1);
       expect(list[0].person.name).toContain("GE Bailarín A");
-      expect(list[0].partySize).toBe(4);
+      expect(list[0].partySize).toBe(5); // ajustado por el productor
       expect(list[0].tableNo).toBe("M-7");
       // sin datos sensibles del solicitante
       expect(list[0].person).not.toHaveProperty("id");

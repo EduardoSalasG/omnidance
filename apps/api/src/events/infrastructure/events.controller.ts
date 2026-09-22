@@ -96,6 +96,12 @@ class CreateEventDto {
   @IsInt()
   capacity?: number;
 
+  /** Mesas reservables de la noche; ausente = sin servicio de mesas. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  tablesTotal?: number;
+
   @IsOptional()
   @IsInt()
   presalePrice?: number;
@@ -190,6 +196,12 @@ class UpdateEventDto {
   @IsOptional()
   @IsInt()
   capacity?: number;
+
+  /** Mesas reservables — null limpia (el evento deja de ofrecer mesas). */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  tablesTotal?: number | null;
 
   @IsOptional()
   @IsInt()
@@ -503,6 +515,7 @@ export class EventsController {
         startsAt: true,
         endsAt: true,
         capacity: true,
+        tablesTotal: true,
         presalePrice: true,
         doorPrice: true,
         presaleCap: true,
@@ -563,8 +576,28 @@ export class EventsController {
           select: { id: true, name: true, photoUrl: true },
         })
       : null;
+    // Disponibilidad de mesas referencial (spec checkout-table-reservation):
+    // las activas (REQUESTED|CONFIRMED) ocupan cupo; null si el evento no
+    // ofrece mesas. El productor confirma — no es un cap duro.
+    const tablesActive =
+      event.tablesTotal != null
+        ? await this.prisma.tableReservation.count({
+            where: {
+              eventId: id,
+              status: { in: ["REQUESTED", "CONFIRMED"] },
+            },
+          })
+        : 0;
     const { _count, ...rest } = event;
-    return { ...rest, host, rsvpCount: _count.rsvps };
+    return {
+      ...rest,
+      host,
+      rsvpCount: _count.rsvps,
+      tablesLeft:
+        event.tablesTotal != null
+          ? Math.max(0, event.tablesTotal - tablesActive)
+          : null,
+    };
   }
 
   /**
@@ -631,6 +664,7 @@ export class EventsController {
         startsAt: new Date(dto.startsAt),
         endsAt: new Date(dto.endsAt),
         capacity: dto.capacity ?? null,
+        tablesTotal: dto.tablesTotal ?? null,
         presalePrice: dto.presalePrice ?? null,
         doorPrice: dto.doorPrice ?? null,
         presaleCap: dto.presaleCap ?? null,
@@ -693,6 +727,7 @@ export class EventsController {
     if (dto.startsAt !== undefined) data.startsAt = new Date(dto.startsAt);
     if (dto.endsAt !== undefined) data.endsAt = new Date(dto.endsAt);
     if (dto.capacity !== undefined) data.capacity = dto.capacity;
+    if (dto.tablesTotal !== undefined) data.tablesTotal = dto.tablesTotal;
     if (dto.presalePrice !== undefined) data.presalePrice = dto.presalePrice;
     if (dto.doorPrice !== undefined) data.doorPrice = dto.doorPrice;
     if (dto.presaleCap !== undefined) data.presaleCap = dto.presaleCap;

@@ -273,7 +273,17 @@
     "qtyBreakdown": "{assigned, plural, =0 {Sin amigos asignados} one {# asignada a un amigo} other {# asignadas a amigos}} · {claimable, plural, =0 {sin links} one {# link para compartir} other {# links para compartir}}",
     "shareTitle": "Comparte los links de invitación",
     "shareHint": "Cada link es de un solo uso — la persona crea su cuenta y reclama la entrada.",
-    "shareWhatsApp": "Enviar link {index} por WhatsApp"
+    "shareWhatsApp": "Enviar link {index} por WhatsApp",
+    "tableTitle": "¿Quieres mesa para tu grupo?",
+    "tableYes": "Sí",
+    "tableNo": "No",
+    "tablePartySize": "Personas en la mesa",
+    "tableMinus": "Una persona menos",
+    "tablePlus": "Una persona más",
+    "tableAvailable": "{count, plural, one {# mesa disponible} other {# mesas disponibles}}",
+    "tableSoldOut": "Sin mesas disponibles para reserva en este evento.",
+    "tableDisclaimer": "La disponibilidad es referencial — la reserva queda sujeta a confirmación del productor y el tamaño podría ajustarse.",
+    "tableSuccess": "También quedó solicitada tu mesa para {count} personas — el productor la confirma y te avisamos."
   },
   "wallet": {
     "title": "Mis entradas",

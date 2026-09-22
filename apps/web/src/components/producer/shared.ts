@@ -109,6 +109,8 @@ export type EventDetail = {
   startsAt: string;
   endsAt: string;
   capacity: number | null;
+  /** Mesas reservables de la noche; null = sin servicio de mesas. */
+  tablesTotal?: number | null;
   presalePrice: number | null;
   doorPrice: number | null;
   primeThreshold: number | null;
@@ -152,6 +154,8 @@ export type EventPayload = {
   startsAt?: string;
   endsAt?: string;
   capacity?: number;
+  /** Mesas reservables; null limpia (PATCH) — el evento deja de ofrecer. */
+  tablesTotal?: number | null;
   presalePrice?: number;
   doorPrice?: number;
   presaleCap?: number;

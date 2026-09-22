@@ -16,6 +16,10 @@ export type CheckoutEvent = {
   status: string;
   presalePrice: number | null;
   doorPrice: number | null;
+  /** Mesas reservables del evento; null = sin servicio de mesas. */
+  tablesTotal: number | null;
+  /** tablesTotal − reservas activas; null cuando no hay servicio. */
+  tablesLeft: number | null;
   venue: { name: string; address: string | null };
   series: { name: string } | null;
 };

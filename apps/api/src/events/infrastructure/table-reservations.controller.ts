@@ -31,6 +31,12 @@ class ManageReservationDto {
   @IsOptional()
   @IsString()
   tableNo?: string;
+
+  /** Ajuste del tamaño al confirmar — la disponibilidad es referencial. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  partySize?: number;
 }
 
 type PersonCtx = { id: string; roles: string[] };
@@ -169,6 +175,7 @@ export class TableReservationsController {
       data: {
         status: dto.status,
         ...(dto.tableNo !== undefined ? { tableNo: dto.tableNo } : {}),
+        ...(dto.partySize !== undefined ? { partySize: dto.partySize } : {}),
       },
     });
   }
