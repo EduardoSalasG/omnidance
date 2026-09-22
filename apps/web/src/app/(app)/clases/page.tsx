@@ -84,6 +84,24 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   timeZone: "UTC",
 });
 
+// Agrupación por día — misma gramática que /practicas y /locales: el
+// encabezado del grupo lleva la fecha (Hoy/Mañana/sáb 20 sep) y el card
+// solo la hora. La fecha de clase es UTC-midnight: su día calendario es
+// el prefijo ISO; "hoy/mañana" se compara contra el día LOCAL en en-CA.
+const classDayKey = (iso: string) => iso.slice(0, 10);
+const localDayKey = (d: Date) => d.toLocaleDateString("en-CA");
+
+function groupByDay<T extends { date: string }>(items: T[]) {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const key = classDayKey(item.date);
+    const arr = groups.get(key) ?? [];
+    arr.push(item);
+    groups.set(key, arr);
+  }
+  return [...groups.entries()].map(([key, items]) => ({ key, items }));
+}
+
 // Orden del filtro de día: lunes → domingo (weekday 0 = domingo al final).
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
 
@@ -91,6 +109,15 @@ export default function ClasesPage() {
   const t = useTranslations("classes");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
+  const te = useTranslations("events");
+
+  // Etiqueta del grupo: Hoy/Mañana o "sáb 20 sep" (UTC, ver dayFmt).
+  const dayLabel = (key: string, iso: string) => {
+    if (key === localDayKey(new Date())) return te("today");
+    if (key === localDayKey(new Date(Date.now() + 86_400_000)))
+      return te("tomorrow");
+    return dayFmt.format(new Date(iso));
+  };
 
   const [mine, setMine] = useState<MyBooking[] | null>(null);
   const [mineState, setMineState] = useState<LoadState>("loading");
@@ -270,47 +297,55 @@ export default function ClasesPage() {
         )}
         {mineState === "ready" &&
           (mine && mine.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {mine.map((b) => (
-                <li key={b.bookingId} className={cardCls}>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold capitalize tabular-nums">
-                        {dayFmt.format(new Date(b.date))} · {b.startTime}–
-                        {b.endTime}
-                      </p>
-                      <p className="truncate font-medium">
-                        {b.series?.name ?? b.academy.name}
-                      </p>
-                      <p className="text-xs text-white/60">
-                        {b.academy.name}
-                        {b.series?.level?.name
-                          ? ` · ${b.series.level.name}`
-                          : ""}
-                        {b.series?.style?.name
-                          ? ` · ${b.series.style.name}`
-                          : ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant={b.status === "BOOKED" ? "neon" : "outline"}
-                      >
-                        {b.status === "BOOKED" ? t("booked") : t("waitlist")}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busyId === b.classId}
-                        onClick={() => void cancelBooking(b.classId)}
-                      >
-                        {t("cancelBooking")}
-                      </Button>
-                    </div>
-                  </div>
-                </li>
+            <div className="flex flex-col gap-5">
+              {groupByDay(mine).map((g) => (
+                <section key={g.key}>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                    {dayLabel(g.key, g.items[0].date)}
+                  </h3>
+                  <ul className="flex flex-col gap-2">
+                    {g.items.map((b) => (
+                      <li key={b.bookingId} className={cardCls}>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <p className="truncate font-medium">
+                            {b.series?.name ?? b.academy.name}
+                          </p>
+                          <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
+                            {b.startTime}–{b.endTime}
+                          </p>
+                        </div>
+                        <p className="mt-0.5 truncate text-xs text-white/60">
+                          {b.academy.name}
+                          {b.series?.level?.name
+                            ? ` · ${b.series.level.name}`
+                            : ""}
+                          {b.series?.style?.name
+                            ? ` · ${b.series.style.name}`
+                            : ""}
+                        </p>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <Badge
+                            variant={b.status === "BOOKED" ? "neon" : "outline"}
+                          >
+                            {b.status === "BOOKED"
+                              ? t("booked")
+                              : t("waitlist")}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={busyId === b.classId}
+                            onClick={() => void cancelBooking(b.classId)}
+                          >
+                            {t("cancelBooking")}
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-sm text-white/50">{t("emptyMine")}</p>
           ))}
@@ -385,123 +420,113 @@ export default function ClasesPage() {
         )}
         {browseState === "ready" &&
           (classes && classes.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {classes.map((cls) => {
-                const full = cls.spotsLeft <= 0;
-                return (
-                  <li key={cls.id} className={cardCls}>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                        <p className="text-sm font-semibold capitalize">
-                          {dayFmt.format(new Date(cls.date))}
-                        </p>
-                        <p className="text-sm tabular-nums text-white/70">
-                          {cls.startTime}–{cls.endTime}
-                        </p>
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {cls.series?.name ?? cls.academy.name}
-                        </p>
-                        <p className="text-xs text-white/60">
-                          {t("academy")}: {cls.academy.name}
-                          {cls.instructor?.name
-                            ? ` · ${t("instructor")}: ${cls.instructor.name}`
-                            : ""}
-                        </p>
-                      </div>
-
-                      {cls.series &&
-                        (cls.series.style ||
-                          cls.series.level ||
-                          cls.series.types.length > 0) && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {cls.series.style && (
-                              <Badge variant="outline">
-                                {cls.series.style.name}
-                              </Badge>
-                            )}
-                            {cls.series.level && (
-                              <Badge variant="muted">
-                                {cls.series.level.name}
-                              </Badge>
-                            )}
-                            {cls.series.types.map((ty) => (
-                              <Badge key={ty.id} variant="muted">
-                                {ty.name}
-                              </Badge>
-                            ))}
+            <div className="flex flex-col gap-5">
+              {groupByDay(classes).map((g) => (
+                <section key={g.key}>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                    {dayLabel(g.key, g.items[0].date)}
+                  </h3>
+                  <ul className="flex flex-col gap-2">
+                    {g.items.map((cls) => {
+                      const full = cls.spotsLeft <= 0;
+                      return (
+                        <li key={cls.id} className={cardCls}>
+                          {/* Nombre + horario — el día lo da el grupo */}
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="truncate font-medium">
+                              {cls.series?.name ?? cls.academy.name}
+                            </p>
+                            <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
+                              {cls.startTime}–{cls.endTime}
+                            </p>
                           </div>
-                        )}
 
-                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-                        <p
-                          className={`text-xs font-medium ${
-                            full
-                              ? "text-white/50"
-                              : cls.spotsLeft <= 3
-                                ? "text-amber-300"
-                                : "text-neon"
-                          }`}
-                        >
-                          {full
-                            ? cls.waitlistCount > 0
-                              ? `${t("full")} · ${t("waitlist")}: ${cls.waitlistCount}`
-                              : t("full")
-                            : cls.spotsLeft <= 3
-                              ? t("lastSpots", { count: cls.spotsLeft })
-                              : t("spotsLeft", { count: cls.spotsLeft })}
-                        </p>
+                          {/* Meta: academia · profesor · nivel · estilo —
+                              sin etiquetas, una línea que se trunca */}
+                          <p className="mt-0.5 truncate text-xs text-white/60">
+                            {cls.academy.name}
+                            {cls.instructor?.name
+                              ? ` · ${cls.instructor.name}`
+                              : ""}
+                            {cls.series?.level?.name
+                              ? ` · ${cls.series.level.name}`
+                              : ""}
+                            {cls.series?.style?.name
+                              ? ` · ${cls.series.style.name}`
+                              : ""}
+                          </p>
 
-                        {cls.myBooking === "BOOKED" ? (
-                          <div className="flex items-center gap-2">
-                            <Badge variant="neon">{t("booked")}</Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={busyId === cls.id}
-                              onClick={() => void cancelBooking(cls.id)}
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <p
+                              className={`text-xs font-medium ${
+                                full
+                                  ? "text-white/50"
+                                  : cls.spotsLeft <= 3
+                                    ? "text-amber-300"
+                                    : "text-neon"
+                              }`}
                             >
-                              {t("cancelBooking")}
-                            </Button>
+                              {full
+                                ? cls.waitlistCount > 0
+                                  ? `${t("full")} · ${t("waitlist")}: ${cls.waitlistCount}`
+                                  : t("full")
+                                : cls.spotsLeft <= 3
+                                  ? t("lastSpots", { count: cls.spotsLeft })
+                                  : t("spotsLeft", { count: cls.spotsLeft })}
+                            </p>
+
+                            {cls.myBooking === "BOOKED" ? (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="neon">{t("booked")}</Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={busyId === cls.id}
+                                  onClick={() => void cancelBooking(cls.id)}
+                                >
+                                  {t("cancelBooking")}
+                                </Button>
+                              </div>
+                            ) : cls.myBooking === "WAITLIST" ? (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">
+                                  {t("waitlist")}
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={busyId === cls.id}
+                                  onClick={() => void cancelBooking(cls.id)}
+                                >
+                                  {t("cancelBooking")}
+                                </Button>
+                              </div>
+                            ) : full ? (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={busyId === cls.id}
+                                onClick={() => void book(cls)}
+                              >
+                                {t("joinWaitlist")}
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                disabled={busyId === cls.id}
+                                onClick={() => void book(cls)}
+                              >
+                                {t("book")}
+                              </Button>
+                            )}
                           </div>
-                        ) : cls.myBooking === "WAITLIST" ? (
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline">{t("waitlist")}</Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              disabled={busyId === cls.id}
-                              onClick={() => void cancelBooking(cls.id)}
-                            >
-                              {t("cancelBooking")}
-                            </Button>
-                          </div>
-                        ) : full ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            disabled={busyId === cls.id}
-                            onClick={() => void book(cls)}
-                          >
-                            {t("joinWaitlist")}
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            disabled={busyId === cls.id}
-                            onClick={() => void book(cls)}
-                          >
-                            {t("book")}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
+            </div>
           ) : (
             <p className="text-sm text-white/50">{t("empty")}</p>
           ))}
@@ -536,43 +561,51 @@ export default function ClasesPage() {
         )}
         {historyState === "ready" &&
           (history && history.length > 0 ? (
-            <ul className="flex flex-col gap-2">
-              {history.map((h) => (
-                <li key={h.classId} className={cardCls}>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold capitalize tabular-nums">
-                        {dayFmt.format(new Date(h.date))} · {h.startTime}–
-                        {h.endTime}
-                      </p>
-                      <p className="truncate font-medium">
-                        {h.series?.name ?? h.academy.name}
-                      </p>
-                      <p className="text-xs text-white/60">
-                        {h.academy.name}
-                        {h.series?.level?.name
-                          ? ` · ${h.series.level.name}`
-                          : ""}
-                        {h.series?.style?.name
-                          ? ` · ${h.series.style.name}`
-                          : ""}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        h.status === "attended"
-                          ? "neon"
-                          : h.status === "booked"
-                            ? "outline"
-                            : "muted"
-                      }
-                    >
-                      {t(`historyStatus.${h.status}`)}
-                    </Badge>
-                  </div>
-                </li>
+            <div className="flex flex-col gap-5">
+              {groupByDay(history).map((g) => (
+                <section key={g.key}>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                    {dayLabel(g.key, g.items[0].date)}
+                  </h3>
+                  <ul className="flex flex-col gap-2">
+                    {g.items.map((h) => (
+                      <li key={h.classId} className={cardCls}>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <p className="truncate font-medium">
+                            {h.series?.name ?? h.academy.name}
+                          </p>
+                          <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
+                            {h.startTime}–{h.endTime}
+                          </p>
+                        </div>
+                        <div className="mt-0.5 flex items-center justify-between gap-2">
+                          <p className="truncate text-xs text-white/60">
+                            {h.academy.name}
+                            {h.series?.level?.name
+                              ? ` · ${h.series.level.name}`
+                              : ""}
+                            {h.series?.style?.name
+                              ? ` · ${h.series.style.name}`
+                              : ""}
+                          </p>
+                          <Badge
+                            variant={
+                              h.status === "attended"
+                                ? "neon"
+                                : h.status === "booked"
+                                  ? "outline"
+                                  : "muted"
+                            }
+                          >
+                            {t(`historyStatus.${h.status}`)}
+                          </Badge>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="text-sm text-white/50">{t("historyEmpty")}</p>
           ))}
