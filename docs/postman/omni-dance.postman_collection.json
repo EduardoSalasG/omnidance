@@ -3459,6 +3459,58 @@
               ]
             }
           }
+        },
+        {
+          "name": "GET /api/practices/{id}/rsvp",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "{id}",
+                "rsvp"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/practices/{id}/rsvp",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "{id}",
+                "rsvp"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
         }
       ]
     },
@@ -3513,54 +3565,6 @@
     {
       "name": "venues",
       "item": [
-        {
-          "name": "GET /api/venues",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/venues",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "venues"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/venues/{id}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/venues/{id}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "venues",
-                "{id}"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": [
-                {
-                  "key": "days",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        },
         {
           "name": "GET /api/venues/mine",
           "request": {
@@ -3647,6 +3651,54 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "GET /api/venues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/venues/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         }

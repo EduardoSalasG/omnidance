@@ -513,6 +513,8 @@ export class EventsController {
         happyHourMinutes: true,
         producerId: true,
         venueId: true,
+        venueText: true,
+        womenOnly: true,
         academyId: true,
         genres: true,
         genreMix: true,
@@ -546,10 +548,12 @@ export class EventsController {
           orderBy: { order: "asc" },
           select: { academy: true, teamType: true, name: true },
         },
+        _count: { select: { rsvps: true } },
       },
     });
     if (!event) throw new NotFoundException();
-    return event;
+    const { _count, ...rest } = event;
+    return { ...rest, rsvpCount: _count.rsvps };
   }
 
   /**

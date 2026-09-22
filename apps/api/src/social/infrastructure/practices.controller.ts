@@ -3,12 +3,15 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   NotFoundException,
+  Param,
   Post,
   Req,
   UseGuards,
 } from "@nestjs/common";
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -32,6 +35,16 @@ class CreatePracticeDto {
   @IsOptional()
   @IsString()
   venueId?: string;
+
+  /** Nombre libre del lugar cuando no hay Venue ("Parque Bustamante"). */
+  @IsOptional()
+  @IsString()
+  venueText?: string;
+
+  /** Señal safety de la spec §8 — declarativa (Person no tiene género). */
+  @IsOptional()
+  @IsBoolean()
+  womenOnly?: boolean;
 
   @IsDateString()
   startsAt!: string;
@@ -106,6 +119,8 @@ export class PracticesController {
           status: "PUBLISHED",
           hostId,
           venueId: dto.venueId ?? null,
+          venueText: dto.venueText?.trim() || null,
+          womenOnly: dto.womenOnly ?? false,
           name: dto.name,
           startsAt,
           endsAt,
@@ -144,6 +159,9 @@ export class PracticesController {
         doorPrice: true,
         series: { select: { name: true } },
         venue: { select: { name: true, address: true } },
+        venueText: true,
+        womenOnly: true,
+        _count: { select: { rsvps: true } },
         // Estilo foco: la práctica lo materializa como ScheduleBlock único.
         scheduleBlocks: {
           orderBy: { startsAt: "asc" as const },
@@ -170,10 +188,72 @@ export class PracticesController {
     });
     const hostById = new Map(hosts.map((h) => [h.id, h.name]));
 
-    return practices.map(({ scheduleBlocks, ...p }) => ({
+    return practices.map(({ scheduleBlocks, _count, ...p }) => ({
       ...p,
       style: scheduleBlocks[0]?.style ?? null,
+      rsvpCount: _count.rsvps,
       host: p.hostId ? { id: p.hostId, name: hostById.get(p.hostId) ?? null } : null,
     }));
+  }
+
+  /**
+   * GET /practices/:id/rsvp — estado propio + conteo público.
+   * SessionGuard: el "voy" es personal; el conteo público sale en el listado.
+   */
+  @Get(":id/rsvp")
+  @UseGuards(SessionGuard)
+  async myRsvp(@Param("id") id: string, @Req() req: Request) {
+    const practice = await this.prisma.event.findUnique({
+      where: { id },
+      select: { id: true, type: true },
+    });
+    if (!practice || practice.type !== "PRACTICA") {
+      throw new NotFoundException("Práctica no encontrada");
+    }
+    const [mine, count] = await Promise.all([
+      this.prisma.rsvp.findUnique({
+        where: {
+          eventId_personId: { eventId: id, personId: req.person!.id },
+        },
+        select: { id: true },
+      }),
+      this.prisma.rsvp.count({ where: { eventId: id } }),
+    ]);
+    return { going: !!mine, count };
+  }
+
+  /** POST /practices/:id/rsvp — body {going} marca o quita el "voy". */
+  @Post(":id/rsvp")
+  @HttpCode(200) // toggle, no creación — el 201 de Nest no aplica
+  @UseGuards(SessionGuard)
+  async rsvp(
+    @Param("id") id: string,
+    @Body() dto: { going?: boolean },
+    @Req() req: Request,
+  ) {
+    const practice = await this.prisma.event.findUnique({
+      where: { id },
+      select: { id: true, type: true, endsAt: true, status: true },
+    });
+    if (!practice || practice.type !== "PRACTICA") {
+      throw new NotFoundException("Práctica no encontrada");
+    }
+    if (practice.status === "CANCELLED" || new Date() >= practice.endsAt) {
+      throw new BadRequestException("La práctica ya terminó");
+    }
+    const personId = req.person!.id;
+    if (dto.going) {
+      await this.prisma.rsvp.upsert({
+        where: { eventId_personId: { eventId: id, personId } },
+        create: { eventId: id, personId },
+        update: {},
+      });
+    } else {
+      await this.prisma.rsvp
+        .delete({ where: { eventId_personId: { eventId: id, personId } } })
+        .catch(() => {}); // idempotente — quitar un "voy" inexistente no falla
+    }
+    const count = await this.prisma.rsvp.count({ where: { eventId: id } });
+    return { going: !!dto.going, count };
   }
 }

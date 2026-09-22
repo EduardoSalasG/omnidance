@@ -25,6 +25,9 @@ type Practice = {
   doorPrice: number | null;
   series: { name: string } | null;
   venue: { name: string; address: string | null } | null;
+  venueText: string | null;
+  womenOnly: boolean;
+  rsvpCount: number;
   style: { id: string; name: string } | null;
 };
 
@@ -72,6 +75,10 @@ export default function PracticasPage() {
   const [styleId, setStyleId] = useState("");
   const [capacity, setCapacity] = useState("");
   const [styles, setStyles] = useState<{ id: string; name: string }[]>([]);
+  // venueText = nombre libre del parque/plaza (cuando no hay Venue del
+  // catálogo); womenOnly = señal safety de la spec §8.
+  const [venueText, setVenueText] = useState("");
+  const [womenOnly, setWomenOnly] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -127,6 +134,10 @@ export default function PracticasPage() {
         body: JSON.stringify({
           name,
           ...(venueId ? { venueId } : {}),
+          ...(!venueId && venueText.trim()
+            ? { venueText: venueText.trim() }
+            : {}),
+          ...(womenOnly ? { womenOnly: true } : {}),
           ...(styleId ? { style: styleId } : {}),
           ...(capacity ? { capacity: parseInt(capacity, 10) } : {}),
           startsAt: start.toISOString(),
@@ -153,6 +164,8 @@ export default function PracticasPage() {
       setStartsAt("");
       setStyleId("");
       setCapacity("");
+      setVenueText("");
+      setWomenOnly(false);
       await load();
     } catch {
       setFormError(true);
@@ -233,6 +246,27 @@ export default function PracticasPage() {
                     </option>
                   ))}
                 </select>
+              </label>
+              {/* "Otro lugar" → nombre libre del parque/plaza */}
+              {!venueId && (
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="text-white/70">{t("venueName")}</span>
+                  <input
+                    value={venueText}
+                    onChange={(e) => setVenueText(e.target.value)}
+                    placeholder={t("venuePlaceholder")}
+                    className={inputCls}
+                  />
+                </label>
+              )}
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={womenOnly}
+                  onChange={(e) => setWomenOnly(e.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-[rgb(var(--accent))]"
+                />
+                <span className="text-white/70">{t("womenOnly")}</span>
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
                 <span className="text-white/70">{t("style")}</span>
@@ -334,16 +368,28 @@ export default function PracticasPage() {
                           {mine && (
                             <Badge variant="neon">{t("yours")}</Badge>
                           )}
+                          {p.womenOnly && (
+                            <Badge variant="muted">{t("womenOnly")}</Badge>
+                          )}
                           {p.capacity != null && (
                             <Badge variant="outline">
                               {t("capacity", { count: p.capacity })}
+                            </Badge>
+                          )}
+                          {p.rsvpCount > 0 && (
+                            <Badge variant="muted">
+                              {t("goingCount", { count: p.rsvpCount })}
                             </Badge>
                           )}
                         </div>
                         <h3 className="mt-2 text-lg font-semibold">{p.name}</h3>
                         <p className="text-sm text-white/60">
                           <EventDate start={p.startsAt} end={p.endsAt} />
-                          {p.venue ? ` · ${p.venue.name}` : ""}
+                          {p.venue
+                            ? ` · ${p.venue.name}`
+                            : p.venueText
+                              ? ` · ${p.venueText}`
+                              : ""}
                         </p>
                         <p className="mt-0.5 text-xs text-white/50">
                           {[
