@@ -11,7 +11,6 @@ import {
   GenreMixBar,
   PriceTag,
 } from "@/components/ui";
-import { SmartBackLink } from "@/components/ui/SmartBackLink";
 import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
@@ -194,8 +193,6 @@ export default async function EventoDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-44 pt-6 sm:px-6">
-      <SmartBackLink href="/eventos">{messages.common.back}</SmartBackLink>
-
       {/* Hero */}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">

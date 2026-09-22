@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
@@ -600,7 +600,9 @@ function badgeText(count: number): string {
 
 export function BottomNav({ children }: { children?: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("nav");
+  const tcg = useTranslations("common");
   // Labels fuera de nav.*: "create" (producer.createEvent) e ítems del
   // drawer que reutilizan los namespaces de cada dominio.
   const tp = useTranslations("producer");
@@ -634,6 +636,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Hide-on-scroll del appbar (patrón iOS).
   const [barHidden, setBarHidden] = useState(false);
+  // ¿La sesión ya navegó dentro de la app? El ref persiste entre
+  // navegaciones client-side (este componente no remonta) y se resetea
+  // en recarga completa — proxy de "hay historial interno al que volver".
+  const entryPathRef = useRef(pathname);
+  const navigatedRef = useRef(false);
   // Lente activa — cambia cuando Perfil dispara setActiveRole.
   const activeRole = useActiveRole(me?.roles);
   // Modo consumer (solo aplica a DANCER): social ↔ academy.
@@ -710,6 +717,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Al navegar el drawer y el sheet se cierran.
   useEffect(() => {
+    if (pathname !== entryPathRef.current) navigatedRef.current = true;
     setDrawerOpen(false);
     setSheetOpen(false);
     setBarHidden(false);
@@ -804,42 +812,68 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // tabs + ítems del drawer de todos los roles (solo resuelve el nombre
   // de la ruta actual — /admin/usuarios → "Usuarios", /eventos/1 →
   // "Eventos"). Sin match (p.ej. /checkout) no se muestra nada.
-  const pageLabel = (() => {
-    const entries: [string, string][] = [
-      // /notificaciones ya no es tab: vive en la campana del appbar,
-      // pero el título contextual sigue resolviendo la ruta.
-      ["/notificaciones", t("notifications")],
-      // Módulos del sheet del bailarín (ya no viven en el drawer).
-      ["/bailes", t("dances")],
-      ["/practicas", t("practices")],
-      ["/viajes", t("trips")],
-      ["/academia", tac("title")],
-      // /qr ya no es tab del bailarín (vive embebido en el sheet) —
-      // la ruta sigue existiendo (escáner desde /bailes, /practicas).
-      ["/qr", t("scan")],
-      ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
-      ...DANCER_ACADEMY_TABS.map(
-        (tab) => [tab.href, tabLabel(tab)] as [string, string],
-      ),
-      ...Object.values(DRAWER_BY_ROLE).flatMap((groups) =>
-        groups.flatMap((g) =>
-          g.items.map(
-            (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
-          ),
-        ),
-      ),
-      ...DANCER_ACADEMY_DRAWER.flatMap((g) =>
+  // navEntries también define las RAÍCES de sección: una ruta que no es
+  // raíz exacta es "empujada" y el appbar muestra ‹ back en el slot
+  // izquierdo (patrón iOS) en vez de la hamburguesa.
+  const navEntries: [string, string][] = [
+    // /notificaciones ya no es tab: vive en la campana del appbar,
+    // pero el título contextual sigue resolviendo la ruta.
+    ["/notificaciones", t("notifications")],
+    // Módulos del sheet del bailarín (ya no viven en el drawer).
+    ["/bailes", t("dances")],
+    ["/practicas", t("practices")],
+    ["/viajes", t("trips")],
+    ["/academia", tac("title")],
+    // /qr ya no es tab del bailarín (vive embebido en el sheet) —
+    // la ruta sigue existiendo (escáner desde /bailes, /practicas).
+    ["/qr", t("scan")],
+    ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
+    ...DANCER_ACADEMY_TABS.map(
+      (tab) => [tab.href, tabLabel(tab)] as [string, string],
+    ),
+    ...Object.values(DRAWER_BY_ROLE).flatMap((groups) =>
+      groups.flatMap((g) =>
         g.items.map(
           (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
         ),
       ),
-    ];
-    entries.sort((a, b) => b[0].length - a[0].length);
-    const hit = entries.find(
+    ),
+    ...DANCER_ACADEMY_DRAWER.flatMap((g) =>
+      g.items.map(
+        (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
+      ),
+    ),
+  ];
+  navEntries.sort((a, b) => b[0].length - a[0].length);
+  const pageLabel =
+    navEntries.find(
       ([href]) => pathname === href || pathname.startsWith(`${href}/`),
-    );
-    return hit?.[1] ?? null;
+    )?.[1] ?? null;
+
+  // Back del appbar (iOS): solo en rutas empujadas (no-raíz). Destino:
+  // router.back() si la sesión ya navegó dentro de la app; si la entrada
+  // fue directa (link externo, recarga, pestaña nueva) cae al padre
+  // jerárquico — raíz conocida o ruta superior — y como último recurso
+  // /inicio. El label queda solo en aria-label: el centro del appbar ya
+  // nombra la sección y un texto junto al ‹ rompería la simetría.
+  const rootHrefs = new Set(navEntries.map(([href]) => href));
+  const backFallback = (() => {
+    if (rootHrefs.has(pathname)) return null;
+    const parent = pathname.replace(/\/[^/]*$/, "");
+    if (rootHrefs.has(parent) || parent.split("/").filter(Boolean).length >= 2)
+      return parent;
+    return "/inicio";
   })();
+  const goBack = () => {
+    if (
+      navigatedRef.current ||
+      document.referrer.startsWith(window.location.origin)
+    ) {
+      router.back();
+    } else if (backFallback) {
+      router.push(backFallback);
+    }
+  };
 
   // /inicio es match exacto (prefijo "/" marcaría todo); el resto
   // por prefijo — /productor/eventos solo se activa con ese
@@ -948,10 +982,31 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       >
         <div className="mx-auto flex h-14 max-w-lg items-center px-3">
           <div className="flex w-10 items-center">
-            {hasDrawerItems && (
+            {backFallback ? (
               <button
                 type="button"
-                data-tour="appbar-menu"
+                aria-label={tcg("back")}
+                onClick={goBack}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-95"
+              >
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-6 w-6"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+            ) : (
+              hasDrawerItems && (
+                <button
+                  type="button"
+                  data-tour="appbar-menu"
                 aria-haspopup="dialog"
                 aria-expanded={drawerOpen}
                 aria-controls="app-side-drawer"
@@ -971,6 +1026,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                   <path d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
+              )
             )}
           </div>
 
