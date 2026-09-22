@@ -201,7 +201,7 @@ function Bailes() {
     allNights || eventId ? historyGroups : historyGroups.slice(0, VISIBLE_NIGHTS);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-6 sm:px-6">
       <h1 className="sr-only">{t("title")}</h1>
       {/* Contexto del filtro ?event= — permite salir de la vista acotada */}
       {eventId && (
