@@ -1,4 +1,5 @@
 import { useTranslations } from "next-intl";
+import { PageLoadingBeacon } from "./loading-beacon";
 
 export type SpinnerSize = "sm" | "md" | "lg";
 
@@ -59,14 +60,18 @@ export type PageLoadingProps = {
 };
 
 /** Estado de carga a nivel página/panel. NO usar min-h-dvh: hay chrome
- * sticky. La clase page-loading difiere la aparición 200ms (estándar
- * de carga percibida): fetches rápidos nunca muestran el spinner —
- * cero flash. Para feedback de ACCIÓN (botón presionado, submit) usar
- * Spinner inline directo: ahí la respuesta debe ser inmediata. */
+ * sticky. El spinner real lo renderiza PageLoadingHost (layout raíz)
+ * via beacon compartido: aparición diferida 200ms + mínimo visible
+ * 400ms — fetches rápidos no muestran nada y una vez visible no hay
+ * flash. Este componente solo reserva el alto y mantiene el acquire
+ * mientras la página está cargando. Para feedback de ACCIÓN (botón
+ * presionado, submit) usar Spinner inline directo: ahí la respuesta
+ * debe ser inmediata. */
 export function PageLoading({ label }: PageLoadingProps) {
   return (
-    <div className="page-loading flex min-h-[50vh] items-center justify-center">
-      <Spinner size="lg" label={label} />
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <PageLoadingBeacon />
+      {label && <span className="sr-only">{label}</span>}
     </div>
   );
 }

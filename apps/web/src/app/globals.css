@@ -137,11 +137,12 @@ body {
 
 /* ─── Estados de carga (estándar de carga percibida) ───
    <100ms se siente instantáneo; un spinner que aparece <300ms y
-   desaparece es "flash" y hace la app sentirse más lenta. PageLoading
-   difiere su aparición 200ms: si el contenido llega antes, el usuario
-   nunca ve el spinner. backwards-fill mantiene opacity 0 durante el
-   delay; bajo reduced-motion la duración colapsa pero el delay se
-   conserva (diferir aparición no es movimiento vestibular). */
+   desaparece es "flash" y hace la app sentirse más lenta.
+   .page-loading difiere la aparición 200ms en spinners INLINE de
+   sección (backwards-fill mantiene opacity 0 durante el delay) —
+   la carga a nivel página usa el beacon compartido (loading-beacon)
+   que además garantiza mínimo visible; el host entra con
+   .loading-fade-in porque su delay ya lo aplica el beacon. */
 @keyframes loading-fade-in {
   from {
     opacity: 0;
@@ -152,6 +153,9 @@ body {
 }
 .page-loading {
   animation: loading-fade-in 150ms ease-out 200ms backwards;
+}
+.loading-fade-in {
+  animation: loading-fade-in 150ms ease-out;
 }
 
 /* ─── Utilidades de sistema ─── */

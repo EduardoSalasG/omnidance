@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { messages } from "@/i18n/messages";
+import { PageLoadingHost } from "@/components/ui/page-loading-host";
 import "./globals.css";
 
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
@@ -70,6 +71,9 @@ export default function RootLayout({
       <body className="bg-night-950 text-white min-h-dvh antialiased">
         <NextIntlClientProvider locale="es-CL" messages={messages}>
           {children}
+          {/* Host del beacon de carga: spinner único para navegación
+              (NavPendingOverlay) y cargas de página (PageLoading). */}
+          <PageLoadingHost />
         </NextIntlClientProvider>
       </body>
     </html>

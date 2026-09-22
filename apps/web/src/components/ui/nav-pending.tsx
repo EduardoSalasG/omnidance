@@ -1,83 +1,70 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Spinner } from "./spinner";
+import {
+  acquirePageLoading,
+  releasePageLoading,
+} from "./loading-beacon";
 
 // La navegación por filtros es SSR con transición client-side: React
 // mantiene la UI anterior hasta que llega el nuevo payload y el swap
 // aparece de golpe (loading.tsx no re-suspende en cambios de
-// searchParams de la misma ruta). Este wrapper muestra un overlay con
-// spinner al tocar un link interno y lo retira cuando cambian
-// pathname/searchParams — es decir, cuando la navegación pinta.
+// searchParams de la misma ruta). Este wrapper hace acquire del beacon
+// de carga compartido al tocar un link interno y lo suelta cuando cambian
+// pathname/searchParams — es decir, cuando la navegación pinta. Si la
+// página destino sigue cargando data, su PageLoading mantiene el beacon:
+// un solo spinner continuo de principio a fin.
 //
-// Estándar de carga percibida (NN/g):
-//  - <100ms se siente instantáneo → no mostrar nada.
-//  - Un spinner de 200ms es "flash": hace la app sentirse MÁS lenta.
-//    Por eso SHOW_DELAY_MS antes de aparecer — las navegaciones
-//    rápidas (el caso común) no muestran nada.
-//  - Si ya se mostró, MIN_VISIBLE_MS evita el parpadeo.
+// El estándar de carga percibida (delay + min-visible) vive en
+// loading-beacon — acá solo se decide CUÁNDO adquirir/soltar.
 
-const SHOW_DELAY_MS = 200;
-const MIN_VISIBLE_MS = 400;
 const HARD_CLEAR_MS = 8000;
 
 function NavWatcher({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  useEffect(() => onNavigate(), [pathname, searchParams, onNavigate]);
+  // Solo notificar cuando la URL realmente cambió — un re-render del
+  // padre (p.ej. al encender el beacon) no es una navegación.
+  const prev = useRef(`${pathname}?${searchParams}`);
+  useEffect(() => {
+    const current = `${pathname}?${searchParams}`;
+    if (current === prev.current) return;
+    prev.current = current;
+    onNavigate();
+  }, [pathname, searchParams, onNavigate]);
   return null;
 }
 
 export function NavPendingOverlay({ children }: { children: ReactNode }) {
-  const [visible, setVisible] = useState(false);
-  const shownAt = useRef<number | null>(null);
-  const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const holding = useRef(false);
   const safeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const hide = () => {
-    shownAt.current = null;
-    setVisible(false);
-  };
-
-  const arm = () => {
-    if (showTimer.current) clearTimeout(showTimer.current);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (safeTimer.current) clearTimeout(safeTimer.current);
-    showTimer.current = setTimeout(() => {
-      shownAt.current = Date.now();
-      setVisible(true);
-    }, SHOW_DELAY_MS);
-    // Navegación abortada o error: el overlay nunca queda pegado.
-    safeTimer.current = setTimeout(hide, HARD_CLEAR_MS);
-  };
-
-  const settle = () => {
-    if (showTimer.current) {
-      clearTimeout(showTimer.current);
-      showTimer.current = null;
-    }
+  const release = useCallback(() => {
+    if (!holding.current) return;
+    holding.current = false;
     if (safeTimer.current) {
       clearTimeout(safeTimer.current);
       safeTimer.current = null;
     }
-    if (shownAt.current === null) return; // nunca llegó a mostrarse
-    const elapsed = Date.now() - shownAt.current;
-    hideTimer.current = setTimeout(
-      hide,
-      Math.max(0, MIN_VISIBLE_MS - elapsed),
-    );
-  };
+    releasePageLoading();
+  }, []);
+
+  const arm = useCallback(() => {
+    if (holding.current) return;
+    holding.current = true;
+    acquirePageLoading();
+    // Navegación abortada o error: el beacon nunca queda pegado.
+    safeTimer.current = setTimeout(release, HARD_CLEAR_MS);
+  }, [release]);
 
   useEffect(
     () => () => {
-      [showTimer, hideTimer, safeTimer].forEach((t) => {
-        if (t.current) clearTimeout(t.current);
-      });
+      if (safeTimer.current) clearTimeout(safeTimer.current);
+      release();
     },
-    [],
+    [release],
   );
 
   return (
@@ -96,7 +83,10 @@ export function NavPendingOverlay({ children }: { children: ReactNode }) {
         if (!anchor) return;
         const href = anchor.getAttribute("href");
         if (!href?.startsWith("/")) return;
-        if (anchor.getAttribute("target") === "_blank" || anchor.hasAttribute("download")) {
+        if (
+          anchor.getAttribute("target") === "_blank" ||
+          anchor.hasAttribute("download")
+        ) {
           return;
         }
         const current = `${window.location.pathname}${window.location.search}`;
@@ -106,19 +96,8 @@ export function NavPendingOverlay({ children }: { children: ReactNode }) {
     >
       {children}
       <Suspense fallback={null}>
-        <NavWatcher onNavigate={settle} />
+        <NavWatcher onNavigate={release} />
       </Suspense>
-      {visible && (
-        // Tap en el overlay lo cierra — si la navegación se abortó el
-        // usuario no queda bloqueado esperando el hard-clear.
-        <div
-          role="presentation"
-          onClick={hide}
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-night-950/60 backdrop-blur-[2px]"
-        >
-          <Spinner size="lg" />
-        </div>
-      )}
     </div>
   );
 }
