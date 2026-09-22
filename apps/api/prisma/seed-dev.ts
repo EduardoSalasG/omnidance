@@ -1543,12 +1543,54 @@ export async function seedDev(prisma: PrismaClient) {
   ]);
   await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Timba");
 
-  // Invitaciones vivas sobre la próxima Bachatamanía — sección
-  // "Por confirmar" de /bailes: una entrante (Camila → dancer) y una
-  // saliente (dancer → Antonia).
-  const soon = new Date();
-  await session(bachatamania.id, camila, dancer, "INVITED", soon);
-  await session(bachatamania.id, dancer, antonia, "INVITED", soon);
+  // Invitaciones vivas — solo existen dentro de una noche en curso:
+  // nacen del escaneo en pista y expiran ~24h después (spec §4). El seed
+  // crea un evento LIVE esta noche para anclarlas; reseed refresca la
+  // ventana y el scannedAt para que la demo no envejezca.
+  const liveEvent = await ensure(
+    () => prisma.event.findFirst({ where: { name: "Social en vivo — demo" } }),
+    () =>
+      prisma.event.create({
+        data: {
+          name: "Social en vivo — demo",
+          status: "LIVE",
+          venueId: orixas.id,
+          producerId: carlos.id,
+          genres: ALL3,
+          startsAt: new Date(Date.now() - 2 * 3_600_000),
+          endsAt: new Date(Date.now() + 4 * 3_600_000),
+          doorPrice: 7000,
+          capacity: 200,
+        },
+      }),
+    (e) =>
+      prisma.event.update({
+        where: { id: e.id },
+        data: {
+          status: "LIVE",
+          startsAt: new Date(Date.now() - 2 * 3_600_000),
+          endsAt: new Date(Date.now() + 4 * 3_600_000),
+        },
+      }),
+  );
+  // Invitaciones sobre eventos futuros son un estado imposible (nadie
+  // ha escaneado en un evento que no ocurre) — limpia residuos de seeds
+  // anteriores antes de crear las del evento LIVE. DanceSession.eventId
+  // es escalar → resolver ids de eventos futuros primero.
+  const futureEventIds = (
+    await prisma.event.findMany({
+      where: { startsAt: { gt: new Date() } },
+      select: { id: true },
+    })
+  ).map((e) => e.id);
+  await prisma.danceSession.deleteMany({
+    where: { status: "INVITED", eventId: { in: futureEventIds } },
+  });
+  // Escaneadas hace ~30 min en la pista: una entrante (Camila → dancer)
+  // y una saliente (dancer → Antonia) → sección "Por confirmar" de /bailes.
+  const scannedNow = new Date(Date.now() - 30 * 60_000);
+  await session(liveEvent.id, camila, dancer, "INVITED", scannedNow);
+  await session(liveEvent.id, dancer, antonia, "INVITED", scannedNow);
 
   // Staff asignado a la puerta de Bachatamanía (consola /staff).
   await prisma.staffAssignment.upsert({
