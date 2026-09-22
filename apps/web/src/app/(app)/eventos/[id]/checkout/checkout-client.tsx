@@ -393,14 +393,18 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                           type="button"
                           disabled={busy || full}
                           aria-pressed={checked}
-                          onClick={() =>
+                          onClick={() => {
                             setGiftIds((prev) => {
                               const next = new Set(prev);
                               if (next.has(pid)) next.delete(pid);
                               else next.add(pid);
                               return next;
-                            })
-                          }
+                            });
+                            // Al asignar se cierra el dropdown (la
+                            // selección queda como chip); al desmarcar
+                            // desde la lista se mantiene abierta.
+                            if (!checked) setGiftQuery("");
+                          }}
                           className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
                             checked
                               ? "bg-neon/10 font-medium text-neon"
