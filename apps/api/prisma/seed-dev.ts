@@ -313,6 +313,8 @@ export async function seedDev(prisma: PrismaClient) {
   const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
   const prevMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
   const prevMonth = `${prevMonthDate.getUTCFullYear()}-${String(prevMonthDate.getUTCMonth() + 1).padStart(2, "0")}`;
+  const nextMonthDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const nextMonth = `${nextMonthDate.getUTCFullYear()}-${String(nextMonthDate.getUTCMonth() + 1).padStart(2, "0")}`;
   const todayUTC = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
   );
@@ -348,6 +350,8 @@ export async function seedDev(prisma: PrismaClient) {
     active?: boolean;
     /** también materializa el mes anterior (historial). Default true. */
     withHistory?: boolean;
+    /** también materializa el mes siguiente (explorar cruza el borde de mes). */
+    withNext?: boolean;
   }) => {
     const sId = opts.styleName ? await styleId(opts.styleName) : null;
     const lId = opts.levelName ? await levelId(opts.levelName) : null;
@@ -393,7 +397,11 @@ export async function seedDev(prisma: PrismaClient) {
       });
     }
 
-    const months = [currentMonth, ...(opts.withHistory === false ? [] : [prevMonth])];
+    const months = [
+      currentMonth,
+      ...(opts.withHistory === false ? [] : [prevMonth]),
+      ...(opts.withNext ? [nextMonth] : []),
+    ];
     const slots: { slot: { id: string }; classes: { id: string; date: Date }[] }[] = [];
     for (const s of opts.slots) {
       const slot = await ensure(
@@ -462,8 +470,8 @@ export async function seedDev(prisma: PrismaClient) {
     instructorId: vale.id,
     quorum: 8,
     slots: [
-      { weekday: 1, startTime: "19:00", endTime: "20:30" },
-      { weekday: 3, startTime: "19:00", endTime: "20:30" },
+      { weekday: 1, startTime: "19:00", endTime: "20:00" },
+      { weekday: 3, startTime: "19:00", endTime: "20:00" },
     ],
   });
 
@@ -477,8 +485,8 @@ export async function seedDev(prisma: PrismaClient) {
     typeNames: ["Pareja", "Shines"],
     instructorId: rodrigo.id,
     slots: [
-      { weekday: 2, startTime: "20:00", endTime: "21:30" },
-      { weekday: 4, startTime: "20:00", endTime: "21:30", capacity: 10 },
+      { weekday: 2, startTime: "20:00", endTime: "21:00" },
+      { weekday: 4, startTime: "20:00", endTime: "21:00", capacity: 10 },
     ],
   });
 
@@ -490,7 +498,7 @@ export async function seedDev(prisma: PrismaClient) {
     levelName: "Iniciación",
     typeNames: ["Pareja"],
     instructorId: vale.id,
-    slots: [{ weekday: 6, startTime: "12:00", endTime: "13:30" }],
+    slots: [{ weekday: 6, startTime: "12:00", endTime: "13:00" }],
   });
 
   // Serie inactiva — probar desactivar/reactivar sin romper la demo.
@@ -501,7 +509,7 @@ export async function seedDev(prisma: PrismaClient) {
     levelName: "Básico",
     instructorId: rodrigo.id,
     quorum: 10,
-    slots: [{ weekday: 5, startTime: "21:00", endTime: "22:30" }],
+    slots: [{ weekday: 5, startTime: "21:00", endTime: "22:00" }],
     active: false,
     withHistory: false,
   });
@@ -515,7 +523,125 @@ export async function seedDev(prisma: PrismaClient) {
     levelName: "Intermedio",
     typeNames: ["Shines"],
     instructorId: vale.id,
-    slots: [{ weekday: 3, startTime: "21:00", endTime: "22:30" }],
+    slots: [{ weekday: 3, startTime: "21:00", endTime: "22:00" }],
+  });
+
+  // ─── Academias de la escena — catálogo Santiago ───
+  // Una serie por estilo que dicta cada academia. Los números del spec
+  // del usuario son índices 1-based de ACADEMY_STYLE_MAP (el orden en
+  // que listó los estilos).
+  const academiasOwner = await person("academias", "Dirección Académica", [
+    { role: "ACADEMY_OWNER" },
+  ]);
+
+  const ACADEMY_STYLE_MAP = [
+    { label: "Mambo", styleName: "Mambo on2" }, // 1
+    { label: "Bachata Sensual", styleName: "Bachata sensual" }, // 2
+    { label: "Bachata Tradicional", styleName: "Bachata tradicional" }, // 3
+    { label: "Bachata Moderna", styleName: "Bachata moderna" }, // 4
+    { label: "Cubano", styleName: "Cubano" }, // 5
+    { label: "Rueda de Casino", styleName: "Rueda de casino" }, // 6
+    { label: "Casino", styleName: "Salsa cubana (casino)" }, // 7
+    { label: "Afrocubano", styleName: "Afrocubano" }, // 8
+    { label: "Fusión", styleName: "Fusión" }, // 9
+  ] as const;
+
+  const ACADEMY_SEED: { name: string; styles: number[] }[] = [
+    { name: "Mambo Madness", styles: [1, 4] },
+    { name: "Danson Academy", styles: [1, 2, 5] },
+    { name: "La Gozadera", styles: [5, 6, 7, 8] },
+    { name: "Clave Timba", styles: [2, 5, 6, 7] },
+    { name: "Baila con Romitza", styles: [2, 5, 6, 7] },
+    { name: "Santiago Baila Salsa", styles: [2, 5, 6, 7] },
+    { name: "Habana Dance Company", styles: [5, 6, 7] },
+    { name: "As you wish", styles: [1, 2, 5, 6, 7] },
+    { name: "Acrodance Training", styles: [1] },
+    { name: "Femme", styles: [1, 3] },
+    { name: "La Casa del Mambo", styles: [1] },
+    { name: "Factoria Mambo", styles: [1] },
+    // "Muevete On Tour" del spec = muvet (ya tiene series curadas arriba).
+    { name: "Erick Baez", styles: [1] },
+    { name: "BSoul", styles: [2] },
+    { name: "Utopia", styles: [3] },
+    { name: "Pasion Latina", styles: [2] },
+    { name: "Ritmo y Guaperia", styles: [2, 5, 6, 7] },
+  ];
+
+  // Clases de 1h entre 18 y 22 (última parte a las 21). Los horarios se
+  // reparten rotando días/hora/modalidad/nivel para que el explorador
+  // muestre una parrilla realista, no un bloque idéntico por academia.
+  const DAY_PAIRS = [
+    [1, 3],
+    [2, 4],
+    [5, 6],
+    [1, 4],
+    [2, 5],
+  ];
+  const CLASS_HOURS = ["18:00", "19:00", "20:00", "21:00"];
+  const MODALITIES = [
+    ["Pareja"],
+    ["Shines"],
+    ["Pareja", "Shines"],
+    ["Corporalidad"],
+  ];
+  const LEVEL_ROT = ["Iniciación", "Básico", "Intermedio"];
+
+  for (const [aIdx, a] of ACADEMY_SEED.entries()) {
+    const academy = await ensure(
+      () => prisma.academy.findFirst({ where: { name: a.name } }),
+      () =>
+        prisma.academy.create({
+          data: {
+            name: a.name,
+            ownerId: academiasOwner.id,
+            defaultQuorum: 15,
+          },
+        }),
+    );
+    // Vale y Rodrigo se reparten las academias como profesores de la casa.
+    const profe = aIdx % 2 === 0 ? vale : rodrigo;
+    await prisma.academyInstructor.upsert({
+      where: {
+        academyId_personId: { academyId: academy.id, personId: profe.id },
+      },
+      update: {},
+      create: { academyId: academy.id, personId: profe.id },
+    });
+    for (const [sIdx, styleNum] of a.styles.entries()) {
+      const style = ACADEMY_STYLE_MAP[styleNum - 1];
+      const weekdays = DAY_PAIRS[(aIdx + sIdx) % DAY_PAIRS.length];
+      const startTime = CLASS_HOURS[(aIdx * 2 + sIdx) % CLASS_HOURS.length];
+      const endTime = `${String(Number(startTime.slice(0, 2)) + 1).padStart(2, "0")}:00`;
+      const levelName = LEVEL_ROT[(aIdx + sIdx) % LEVEL_ROT.length];
+      await mkClassSeries({
+        academyId: academy.id,
+        name: `${style.label} — ${levelName}`,
+        styleName: style.styleName,
+        levelName,
+        typeNames: MODALITIES[(aIdx + sIdx) % MODALITIES.length],
+        instructorId: profe.id,
+        slots: weekdays.map((weekday) => ({ weekday, startTime, endTime })),
+        withHistory: false,
+        withNext: true,
+      });
+    }
+  }
+
+  // "Muevete On Tour" del spec lleva estilos 2·5·6·7 — muvet ya tiene
+  // Bachata Sensual (2), Rueda (6) y Casino (7); le falta Cubano (5).
+  await mkClassSeries({
+    academyId: muvet.id,
+    name: "Cubano — Básico",
+    styleName: "Cubano",
+    levelName: "Básico",
+    typeNames: ["Pareja", "Shines"],
+    instructorId: rodrigo.id,
+    slots: [
+      { weekday: 2, startTime: "18:00", endTime: "19:00" },
+      { weekday: 5, startTime: "18:00", endTime: "19:00" },
+    ],
+    withHistory: false,
+    withNext: true,
   });
 
   // Overrides puntuales a nivel de instancia Class: capacidad y profesor.

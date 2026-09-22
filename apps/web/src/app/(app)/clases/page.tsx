@@ -105,6 +105,60 @@ function groupByDay<T extends { date: string }>(items: T[]) {
 // Orden del filtro de día: lunes → domingo (weekday 0 = domingo al final).
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
 
+// Cancelar en dos taps: "Cancelar" → inline "¿Seguro? Sí / No". Un
+// window.confirm rompe la inmersión de la PWA; inline respeta el sistema.
+function CancelBookingButton({
+  busy,
+  onConfirm,
+}: {
+  busy: boolean;
+  onConfirm: () => void;
+}) {
+  const t = useTranslations("classes");
+  const tc = useTranslations("common");
+  const [confirming, setConfirming] = useState(false);
+  if (!confirming) {
+    return (
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={busy}
+        onClick={() => setConfirming(true)}
+      >
+        {t("cancelBooking")}
+      </Button>
+    );
+  }
+  return (
+    <div
+      className="flex items-center gap-2"
+      role="group"
+      aria-label={t("cancelConfirm")}
+    >
+      <span className="text-xs text-white/60">{t("cancelShort")}</span>
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={busy}
+        onClick={() => {
+          setConfirming(false);
+          onConfirm();
+        }}
+      >
+        {tc("yes")}
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={busy}
+        onClick={() => setConfirming(false)}
+      >
+        {tc("no")}
+      </Button>
+    </div>
+  );
+}
+
 export default function ClasesPage() {
   const t = useTranslations("classes");
   const ta = useTranslations("academy");
@@ -247,8 +301,9 @@ export default function ClasesPage() {
     }
   }
 
+  // La confirmación vive en CancelBookingButton (dos taps inline) — esta
+  // función solo se invoca tras confirmar.
   async function cancelBooking(classId: string): Promise<void> {
-    if (!window.confirm(t("cancelConfirm"))) return;
     setBusyId(classId);
     setNotice(null);
     try {
@@ -331,14 +386,10 @@ export default function ClasesPage() {
                               ? t("booked")
                               : t("waitlist")}
                           </Badge>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={busyId === b.classId}
-                            onClick={() => void cancelBooking(b.classId)}
-                          >
-                            {t("cancelBooking")}
-                          </Button>
+                          <CancelBookingButton
+                            busy={busyId === b.classId}
+                            onConfirm={() => void cancelBooking(b.classId)}
+                          />
                         </div>
                       </li>
                     ))}
@@ -478,28 +529,20 @@ export default function ClasesPage() {
                             {cls.myBooking === "BOOKED" ? (
                               <div className="flex items-center gap-2">
                                 <Badge variant="neon">{t("booked")}</Badge>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  disabled={busyId === cls.id}
-                                  onClick={() => void cancelBooking(cls.id)}
-                                >
-                                  {t("cancelBooking")}
-                                </Button>
+                                <CancelBookingButton
+                                  busy={busyId === cls.id}
+                                  onConfirm={() => void cancelBooking(cls.id)}
+                                />
                               </div>
                             ) : cls.myBooking === "WAITLIST" ? (
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline">
                                   {t("waitlist")}
                                 </Badge>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  disabled={busyId === cls.id}
-                                  onClick={() => void cancelBooking(cls.id)}
-                                >
-                                  {t("cancelBooking")}
-                                </Button>
+                                <CancelBookingButton
+                                  busy={busyId === cls.id}
+                                  onConfirm={() => void cancelBooking(cls.id)}
+                                />
                               </div>
                             ) : full ? (
                               <Button

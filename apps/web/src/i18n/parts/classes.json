@@ -8,6 +8,7 @@
       "cancelled": "Cancelada"
     },
     "monthlyAttended": "{count, plural, one {# asistencia este mes} other {# asistencias este mes}}",
-    "lastSpots": "{count, plural, one {¡Último cupo!} other {¡Últimos # cupos!}}"
+    "lastSpots": "{count, plural, one {¡Último cupo!} other {¡Últimos # cupos!}}",
+    "cancelShort": "¿Seguro?"
   }
 }
