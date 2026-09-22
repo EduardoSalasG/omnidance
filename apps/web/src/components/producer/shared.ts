@@ -111,6 +111,10 @@ export type EventDetail = {
   capacity: number | null;
   /** Mesas reservables de la noche; null = sin servicio de mesas. */
   tablesTotal?: number | null;
+  /** Máx. personas por reserva de mesa (null = sin tope propio). */
+  tableSeatMax?: number | null;
+  /** Cupo sentable total en mesas — el checkout valida contra esto. */
+  tableSeatsTotal?: number | null;
   presalePrice: number | null;
   doorPrice: number | null;
   primeThreshold: number | null;
@@ -154,8 +158,12 @@ export type EventPayload = {
   startsAt?: string;
   endsAt?: string;
   capacity?: number;
-  /** Mesas reservables; null limpia (PATCH) — el evento deja de ofrecer. */
+  /** Mesas reservables; null apaga el servicio (PATCH). */
   tablesTotal?: number | null;
+  /** Tope por reserva; null = hereda default del productor. */
+  tableSeatMax?: number | null;
+  /** Cupo sentable total; null = hereda default del productor. */
+  tableSeatsTotal?: number | null;
   presalePrice?: number;
   doorPrice?: number;
   presaleCap?: number;

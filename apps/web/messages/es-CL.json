@@ -283,7 +283,8 @@
     "tableAvailable": "{count, plural, one {# mesa disponible} other {# mesas disponibles}}",
     "tableSoldOut": "Sin mesas disponibles para reserva en este evento.",
     "tableDisclaimer": "La disponibilidad es referencial — la reserva queda sujeta a confirmación del productor y el tamaño podría ajustarse.",
-    "tableSuccess": "También quedó solicitada tu mesa para {count} personas — el productor la confirma y te avisamos."
+    "tableSuccess": "También quedó solicitada tu mesa para {count} personas — el productor la confirma y te avisamos.",
+    "tableSeatsLeft": "{count, plural, one {# asiento en mesa} other {# asientos en mesa}}"
   },
   "wallet": {
     "title": "Mis entradas",
@@ -1028,7 +1029,12 @@
     "selectProducer": "Productor",
     "save": "Guardar",
     "saved": "Guardado",
-    "error": "No se pudo guardar"
+    "error": "No se pudo guardar",
+    "tablesTitle": "Mesas reservables",
+    "tablesHint": "Defaults que heredan tus eventos nuevos. El cupo sentable es la capacidad real que consumen las reservas — distinto al aforo del evento, usualmente menor.",
+    "tablesTotalLabel": "Mesas por evento",
+    "tableSeatMaxLabel": "Máx. personas por mesa",
+    "tableSeatsTotalLabel": "Personas sentables en mesas"
   },
   "analytics": {
     "title": "Analítica",

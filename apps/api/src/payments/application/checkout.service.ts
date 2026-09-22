@@ -104,6 +104,22 @@ export class RecipientError extends Error {
   }
 }
 
+/** La reserva de mesa pedida supera el tope por mesa del evento. */
+export class TablePartyTooLargeError extends Error {
+  constructor(max: number) {
+    super(`máximo ${max} personas por mesa`);
+    this.name = "TablePartyTooLargeError";
+  }
+}
+
+/** No queda cupo sentable en mesas para el grupo pedido. */
+export class TableSoldOutError extends Error {
+  constructor() {
+    super("sin cupo en mesas para esa cantidad de personas");
+    this.name = "TableSoldOutError";
+  }
+}
+
 export interface PurchaseTicketInput {
   eventId: string;
   discountCode?: string;
@@ -165,9 +181,35 @@ export class CheckoutService {
         serviceFeeClp: true,
         producerId: true,
         tablesTotal: true,
+        tableSeatMax: true,
+        tableSeatsTotal: true,
       },
     });
     if (!event) throw new EventNotFoundError();
+
+    // Reserva de mesa: solo si el evento ofrece, no supera el tope por
+    // mesa (default 12 sin configuración) y queda cupo sentable — el
+    // inventario real es en personas (tableSeatsTotal), no en mesas.
+    if (input.tablePartySize != null && event.tablesTotal != null) {
+      const seatMax = event.tableSeatMax ?? 12;
+      if (input.tablePartySize > seatMax) {
+        throw new TablePartyTooLargeError(seatMax);
+      }
+      if (event.tableSeatsTotal != null) {
+        const agg = await this.prisma.tableReservation.aggregate({
+          where: {
+            eventId: event.id,
+            status: { in: ["REQUESTED", "CONFIRMED"] },
+          },
+          _sum: { partySize: true },
+        });
+        const seatsLeft =
+          event.tableSeatsTotal - (agg._sum.partySize ?? 0);
+        if (input.tablePartySize > seatsLeft) {
+          throw new TableSoldOutError();
+        }
+      }
+    }
 
     // Canal de venta (spec: cargos diferenciados por canal — preventa
     // +$500 / puerta app +$700). La preventa cierra a las 19:00 del día

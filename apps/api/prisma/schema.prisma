@@ -232,7 +232,14 @@ model Event {
   startsAt    DateTime
   endsAt      DateTime
   capacity    Int?
-  tablesTotal Int?        // mesas reservables de la noche; null = sin servicio de mesas
+  // Mesas reservables (spec checkout-table-reservation): tablesTotal=null
+  // apaga la sección en el checkout. El cupo real se mide en PERSONAS
+  // sentables (tableSeatsTotal, usualmente < capacity), no en mesas;
+  // tableSeatMax es el tope por reserva. Vacíos → heredan el default del
+  // productor (ProducerParams) al escribir el evento.
+  tablesTotal     Int?
+  tableSeatMax    Int?
+  tableSeatsTotal Int?
   presalePrice Int?       // CLP
   doorPrice    Int?
   presaleCap  Int?
@@ -1123,15 +1130,21 @@ model AuditLog {
 
 // ═══════════════════ CONFIGURACIÓN DE PLATAFORMA ═══════════════════
 
-// Defaults de fees/comisiones por productor — editables solo por admin.
-// Cada campo null hereda el PlatformParam global; un evento puede
-// sobreescribir a su vez (cadena: evento → productor → global).
+// Defaults por productor. Fees/comisiones: editables solo por admin, cada
+// campo null hereda el PlatformParam global y un evento puede sobreescribir
+// (cadena: evento → productor → global). Mesas: operativos, los edita el
+// propio productor — el evento los hereda al crear/editar salvo override.
 model ProducerParams {
   producerId     String   @id
   serviceFeeClp  Int?
   doorAppFeeClp  Int?
   doorCashFeeClp Int?
   platformFeePct Float?
+  // Defaults de reserva de mesa (spec checkout-table-reservation):
+  // mesas ofrecidas, tope por reserva y cupo sentable total.
+  tablesTotal     Int?
+  tableSeatMax    Int?
+  tableSeatsTotal Int?
   updatedById    String?
   updatedAt      DateTime @updatedAt
 }

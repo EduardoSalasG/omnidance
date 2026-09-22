@@ -18,8 +18,12 @@ export type CheckoutEvent = {
   doorPrice: number | null;
   /** Mesas reservables del evento; null = sin servicio de mesas. */
   tablesTotal: number | null;
+  /** Máx. personas por reserva de mesa (null = sin tope propio). */
+  tableSeatMax: number | null;
   /** tablesTotal − reservas activas; null cuando no hay servicio. */
   tablesLeft: number | null;
+  /** Cupo sentable restante en mesas; null = sin cupo configurado. */
+  seatsLeft: number | null;
   venue: { name: string; address: string | null };
   series: { name: string } | null;
 };

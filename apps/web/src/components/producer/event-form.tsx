@@ -93,6 +93,12 @@ export function EventForm({
   const [tablesTotal, setTablesTotal] = useState(
     initial?.tablesTotal != null ? String(initial.tablesTotal) : "",
   );
+  const [tableSeatMax, setTableSeatMax] = useState(
+    initial?.tableSeatMax != null ? String(initial.tableSeatMax) : "",
+  );
+  const [tableSeatsTotal, setTableSeatsTotal] = useState(
+    initial?.tableSeatsTotal != null ? String(initial.tableSeatsTotal) : "",
+  );
   const [primeThreshold, setPrimeThreshold] = useState(
     initial?.primeThreshold != null ? String(initial.primeThreshold) : "",
   );
@@ -207,6 +213,14 @@ export function EventForm({
         : toOptionalInt(tablesTotal) !== undefined
           ? { tablesTotal: toOptionalInt(tablesTotal) }
           : {}),
+      // Límites de mesa: vacío hereda el default del productor — en edit
+      // se envía null explícito para volver a heredar.
+      ...(mode === "edit" || toOptionalInt(tableSeatMax) !== undefined
+        ? { tableSeatMax: toOptionalInt(tableSeatMax) ?? null }
+        : {}),
+      ...(mode === "edit" || toOptionalInt(tableSeatsTotal) !== undefined
+        ? { tableSeatsTotal: toOptionalInt(tableSeatsTotal) ?? null }
+        : {}),
       ...(toOptionalInt(primeThreshold) !== undefined
         ? { primeThreshold: toOptionalInt(primeThreshold) }
         : {}),
@@ -239,6 +253,8 @@ export function EventForm({
         setPresaleCap("");
         setDoorCap("");
         setTablesTotal("");
+        setTableSeatMax("");
+        setTableSeatsTotal("");
         setPrimeThreshold("");
         setHappyHour("");
         setBlocks([]);
@@ -422,6 +438,37 @@ export function EventForm({
             className={inputCls}
           />
         </label>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-white/70">
+            {t("form.tableSeatMax")}
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            value={tableSeatMax}
+            onChange={(e) => setTableSeatMax(e.target.value)}
+            placeholder={t("form.inheritsDefault")}
+            className={inputCls}
+          />
+        </label>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-white/70">
+            {t("form.tableSeatsTotal")}
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={tableSeatsTotal}
+            onChange={(e) => setTableSeatsTotal(e.target.value)}
+            placeholder={t("form.inheritsDefault")}
+            className={inputCls}
+          />
+        </label>
+        <p className="text-xs text-white/40 sm:col-span-2">
+          {t("form.tablesHint")}
+        </p>
         <label className="flex flex-col gap-2">
           <span className="text-sm text-white/70">
             {t("form.primeThreshold")}

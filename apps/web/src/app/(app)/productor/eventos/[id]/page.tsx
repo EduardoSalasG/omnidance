@@ -367,6 +367,7 @@ export default function ProducerEventDetailPage({
           <ReservationsSection
             eventId={eventId}
             tablesTotal={event.tablesTotal ?? null}
+            tableSeatsTotal={event.tableSeatsTotal ?? null}
           />
           <RatingsSection eventId={eventId} />
         </>

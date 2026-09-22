@@ -46,10 +46,13 @@ describe("GET /api/events", () => {
         endsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000 + 6 * 3600 * 1000),
         venueId: venue.id,
         tablesTotal: 3,
+        tableSeatMax: 4,
+        tableSeatsTotal: 10,
       },
     });
     eventId = event.id;
-    // 1 activa (ocupa) + 1 cancelada (no ocupa) → tablesLeft = 2
+    // 1 activa (ocupa 4 asientos) + 1 cancelada (no ocupa)
+    // → tablesLeft = 2, seatsLeft = 6
     await prisma.tableReservation.createMany({
       data: [
         { eventId: event.id, personId: "e2e-a", partySize: 4, status: "CONFIRMED" },
@@ -123,13 +126,19 @@ describe("GET /api/events", () => {
     const detail = await res.json();
     expect(detail.tablesTotal).toBe(3);
     expect(detail.tablesLeft).toBe(2); // 3 total − 1 CONFIRMED (la CANCELLED no cuenta)
+    // cupo sentable: 10 total − 4 personas de la CONFIRMED (la CANCELLED
+    // de 2 no consume) → seatsLeft = 6. El tope por mesa viaja también.
+    expect(detail.tableSeatMax).toBe(4);
+    expect(detail.tableSeatsTotal).toBe(10);
+    expect(detail.seatsLeft).toBe(6);
   });
 
-  it("evento sin tablesTotal → tablesLeft null (no ofrece mesas)", async () => {
+  it("evento sin tablesTotal → disponibilidad null (no ofrece mesas)", async () => {
     const res = await fetch(`${baseUrl}/api/events/${practiceId}`);
     const detail = await res.json();
     expect(detail.tablesTotal).toBeNull();
     expect(detail.tablesLeft).toBeNull();
+    expect(detail.seatsLeft).toBeNull();
   });
 
   it("?genre= filtra por género propio o heredado de la serie", async () => {

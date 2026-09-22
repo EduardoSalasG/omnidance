@@ -11,22 +11,60 @@ tiene el productor.
 
 ### Requirement: inventario de mesas del evento
 
-`Event.tablesTotal` (Int, null = sin servicio de mesas) SHALL ser editable
-por el productor del evento en create y PATCH. El detalle público
-`GET /events/:id` SHALL exponer `tablesTotal` y `tablesLeft`
-(`tablesTotal − reservas activas REQUESTED|CONFIRMED`; null cuando el
-evento no tiene mesas).
+`Event.tablesTotal` (Int, null = sin servicio), `Event.tableSeatMax` (Int,
+tope por reserva) y `Event.tableSeatsTotal` (Int, cupo sentable total —
+distinto del aforo del evento y usualmente menor) SHALL ser editables por
+el productor del evento en create y PATCH. El detalle público
+`GET /events/:id` SHALL exponerlos junto a `tablesLeft`
+(`tablesTotal − reservas activas REQUESTED|CONFIRMED`) y `seatsLeft`
+(`tableSeatsTotal − Σ partySize de las activas`, clamp ≥0; null cuando el
+evento no tiene mesas o no configuró cupo).
 
 #### Scenario: productor configura mesas
 
-- **WHEN** el productor crea o edita un evento con `tablesTotal: 8`
-- **THEN** el detalle devuelve `tablesTotal: 8` y `tablesLeft: 8` menos las
-  reservas activas
+- **WHEN** el productor crea o edita un evento con `tablesTotal: 8,
+  tableSeatMax: 6, tableSeatsTotal: 40`
+- **THEN** el detalle devuelve esos valores, `tablesLeft: 8` menos las
+  reservas activas y `seatsLeft: 40` menos las personas de las activas
 
 #### Scenario: sin servicio de mesas
 
 - **WHEN** `tablesTotal` es null
-- **THEN** `tablesLeft` es null y el checkout no ofrece la sección de mesa
+- **THEN** `tablesLeft` y `seatsLeft` son null y el checkout no ofrece la
+  sección de mesa
+
+#### Scenario: cupo sentable es el cap real
+
+- **WHEN** un evento tiene `tablesTotal: 8` y `tableSeatsTotal: 40` con
+  reservas activas que suman 36 personas
+- **THEN** `tablesLeft` puede ser positivo pero `seatsLeft: 4` — una reserva
+  de 5 personas ya no cabe aunque queden mesas
+
+### Requirement: defaults de mesas del productor
+
+`ProducerParams.{tablesTotal,tableSeatMax,tableSeatsTotal}` SHALL ser
+editable por el propio productor (a diferencia de los fees, solo-admin) en
+`GET/PUT /producer/table-params` (productor APPROVED o admin.access). Los
+eventos SHALL heredarlos: en create un campo ausente toma el default y
+`tablesTotal: null` explícito apaga el servicio; en PATCH `tablesTotal:
+null` apaga y null en los límites vuelve a heredar el default.
+
+#### Scenario: herencia en create
+
+- **WHEN** el productor tiene defaults `{tablesTotal: 8, tableSeatMax: 6,
+  tableSeatsTotal: 40}` y crea un evento sin campos de mesa
+- **THEN** el evento queda con esos tres valores
+
+#### Scenario: override gana
+
+- **WHEN** crea el evento con `tableSeatsTotal: 24`
+- **THEN** el evento usa 24 y hereda `tablesTotal`/`tableSeatMax` del
+  productor
+
+#### Scenario: apagar el servicio en un evento
+
+- **WHEN** crea o edita con `tablesTotal: null` explícito
+- **THEN** el evento no ofrece mesas aunque el productor tenga defaults
 
 ### Requirement: ajuste de tamaño al gestionar
 

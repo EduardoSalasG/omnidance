@@ -12,7 +12,11 @@ import {
   type TableReservationItem,
 } from "./shared";
 
-type Props = { eventId: string; tablesTotal?: number | null };
+type Props = {
+  eventId: string;
+  tablesTotal?: number | null;
+  tableSeatsTotal?: number | null;
+};
 
 const RES_STATUS_VARIANT: Record<string, "neon" | "muted" | "outline" | "live"> =
   {
@@ -26,7 +30,11 @@ const RES_STATUS_VARIANT: Record<string, "neon" | "muted" | "outline" | "live"> 
  * GET /events/:id/table-reservations/manage devuelve TODAS las reservas
  * con id+status (el listado público solo expone CONFIRMED sin ids).
  */
-export function ReservationsSection({ eventId, tablesTotal }: Props) {
+export function ReservationsSection({
+  eventId,
+  tablesTotal,
+  tableSeatsTotal,
+}: Props) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
@@ -111,10 +119,13 @@ export function ReservationsSection({ eventId, tablesTotal }: Props) {
   }
 
   // Ocupación referencial: activas (REQUESTED+CONFIRMED) contra el
-  // inventario declarado del evento (tablesTotal). null = sin mesas.
-  const activeCount = (items ?? []).filter(
+  // inventario declarado del evento. El cupo real es en personas
+  // sentables (tableSeatsTotal); tablesTotal da la lectura de mesas.
+  const actives = (items ?? []).filter(
     (r) => r.status === "REQUESTED" || r.status === "CONFIRMED",
-  ).length;
+  );
+  const activeCount = actives.length;
+  const seatsUsed = actives.reduce((sum, r) => sum + (r.partySize ?? 0), 0);
 
   return (
     <section className="flex flex-col gap-3">
@@ -125,6 +136,8 @@ export function ReservationsSection({ eventId, tablesTotal }: Props) {
       {tablesTotal != null && (
         <p className="text-xs text-white/50">
           {t("reservations.occupancy", { used: activeCount, total: tablesTotal })}
+          {tableSeatsTotal != null &&
+            ` · ${t("reservations.seatsOccupancy", { used: seatsUsed, total: tableSeatsTotal })}`}
         </p>
       )}
       {tablesTotal === null && items !== null && items.length === 0 && (

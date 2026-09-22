@@ -146,6 +146,8 @@ describe("checkout + payments e2e", () => {
           status: "PUBLISHED",
           presalePrice: 10000,
           tablesTotal: 4,
+          tableSeatMax: 6,
+          tableSeatsTotal: 10,
         },
       }),
     ]);
@@ -434,6 +436,16 @@ describe("checkout + payments e2e", () => {
       }
     });
 
+    it("tablePartySize sobre tableSeatMax (6) → 400 aunque quepa en asientos", async () => {
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.tablesEventId, tablePartySize: 7 },
+        otherSession,
+      );
+      expect(res.status).toBe(400);
+      expect((await res.json()).message).toContain("6");
+    });
+
     it("tablePartySize en evento SIN mesas → se ignora (Payment sin intención)", async () => {
       const res = await post(
         "/api/checkout/ticket",
@@ -527,6 +539,17 @@ describe("checkout + payments e2e", () => {
         },
       });
       expect(count).toBe(1);
+    });
+
+    it("cupo sentable insuficiente → 409 (seatsLeft es el cap real)", async () => {
+      // La reserva PAID de 6 consume 6 de 10 asientos → quedan 4.
+      // Pedir 5 pasa el tope por mesa (6) pero no el cupo sentable.
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.tablesEventId, tablePartySize: 5 },
+        otherSession,
+      );
+      expect(res.status).toBe(409);
     });
   });
 

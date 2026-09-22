@@ -55,7 +55,11 @@
       "djsHelp": "IDs separados por coma o espacio. Al editar, la lista nueva reemplaza la actual.",
       "currentDjs": "DJs actuales",
       "optional": "opcional",
-      "datesInvalid": "Revisa las fechas: el término debe ser después del inicio."
+      "datesInvalid": "Revisa las fechas: el término debe ser después del inicio.",
+      "tableSeatMax": "Máx. personas por mesa",
+      "tableSeatsTotal": "Personas sentables en mesas",
+      "inheritsDefault": "Default del productor",
+      "tablesHint": "El cupo sentable es la capacidad real de las mesas — distinto al aforo general, usualmente menor. Vacío hereda tu default de Parámetros."
     },
     "sections": {
       "staff": "Staff de puerta",
@@ -129,7 +133,8 @@
         "REQUESTED": "Solicitada",
         "CONFIRMED": "Confirmada",
         "CANCELLED": "Cancelada"
-      }
+      },
+      "seatsOccupancy": "{used} de {total} asientos ocupados"
     },
     "ratings": {
       "notEnough": "Aún no hay suficientes evaluaciones para mostrar ({count}/3).",

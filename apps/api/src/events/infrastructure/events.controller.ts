@@ -32,6 +32,7 @@ import type { Request } from "express";
 import type { EventStatus, EventType, Genre, Prisma } from "@prisma/client";
 import { EVENT_RECENT_LOOKBACK_MS } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
+import { ParamsService } from "../../params/params.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
   RolesGuard,
@@ -96,11 +97,26 @@ class CreateEventDto {
   @IsInt()
   capacity?: number;
 
-  /** Mesas reservables de la noche; ausente = sin servicio de mesas. */
+  /**
+   * Mesas reservables de la noche. Ausente = hereda el default del
+   * productor; null explícito = este evento no ofrece mesas.
+   */
   @IsOptional()
   @IsInt()
   @Min(0)
-  tablesTotal?: number;
+  tablesTotal?: number | null;
+
+  /** Máx. personas por reserva de mesa; ausente = default del productor. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  tableSeatMax?: number;
+
+  /** Cupo sentable total en mesas (≤ capacity); ausente = default del productor. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  tableSeatsTotal?: number;
 
   @IsOptional()
   @IsInt()
@@ -197,11 +213,23 @@ class UpdateEventDto {
   @IsInt()
   capacity?: number;
 
-  /** Mesas reservables — null limpia (el evento deja de ofrecer mesas). */
+  /** Mesas reservables — null apaga el servicio de mesas. */
   @IsOptional()
   @IsInt()
   @Min(0)
   tablesTotal?: number | null;
+
+  /** Máx. personas por reserva — null vuelve al default del productor. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  tableSeatMax?: number | null;
+
+  /** Cupo sentable total — null vuelve al default del productor. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  tableSeatsTotal?: number | null;
 
   @IsOptional()
   @IsInt()
@@ -280,7 +308,10 @@ class AddStaffDto {
 
 @Controller("events")
 export class EventsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly params: ParamsService,
+  ) {}
 
   /**
    * Eventos del productor autenticado — todos los estados, para la consola.
@@ -516,6 +547,8 @@ export class EventsController {
         endsAt: true,
         capacity: true,
         tablesTotal: true,
+        tableSeatMax: true,
+        tableSeatsTotal: true,
         presalePrice: true,
         doorPrice: true,
         presaleCap: true,
@@ -578,17 +611,23 @@ export class EventsController {
       : null;
     // Disponibilidad de mesas referencial (spec checkout-table-reservation):
     // las activas (REQUESTED|CONFIRMED) ocupan cupo; null si el evento no
-    // ofrece mesas. El productor confirma — no es un cap duro.
-    const tablesActive =
+    // ofrece mesas. El cupo real es en PERSONAS sentables (seatsLeft), con
+    // tablesLeft como lectura rápida de mesas libres. El productor confirma
+    // — no es un cap duro.
+    const tablesAgg =
       event.tablesTotal != null
-        ? await this.prisma.tableReservation.count({
+        ? await this.prisma.tableReservation.aggregate({
             where: {
               eventId: id,
               status: { in: ["REQUESTED", "CONFIRMED"] },
             },
+            _count: true,
+            _sum: { partySize: true },
           })
-        : 0;
+        : null;
     const { _count, ...rest } = event;
+    const tablesActive = tablesAgg?._count ?? 0;
+    const seatsUsed = tablesAgg?._sum.partySize ?? 0;
     return {
       ...rest,
       host,
@@ -596,6 +635,10 @@ export class EventsController {
       tablesLeft:
         event.tablesTotal != null
           ? Math.max(0, event.tablesTotal - tablesActive)
+          : null,
+      seatsLeft:
+        event.tableSeatsTotal != null
+          ? Math.max(0, event.tableSeatsTotal - seatsUsed)
           : null,
     };
   }
@@ -652,6 +695,14 @@ export class EventsController {
     if (dto.seriesId) {
       await this.assertOwnSeries(dto.seriesId, me.id);
     }
+    // Mesas (spec checkout-table-reservation): cadena evento → default del
+    // productor. `tablesTotal` ausente hereda el default; `null` explícito
+    // apaga el servicio en este evento aunque haya default.
+    const pd = await this.params.getProducerParams(me.id);
+    const tablesTotal =
+      dto.tablesTotal !== undefined
+        ? dto.tablesTotal
+        : (pd?.tablesTotal ?? null);
     const djIds = [...new Set(dto.djIds ?? [])];
     return this.prisma.event.create({
       data: {
@@ -664,7 +715,15 @@ export class EventsController {
         startsAt: new Date(dto.startsAt),
         endsAt: new Date(dto.endsAt),
         capacity: dto.capacity ?? null,
-        tablesTotal: dto.tablesTotal ?? null,
+        tablesTotal,
+        tableSeatMax:
+          tablesTotal != null
+            ? (dto.tableSeatMax ?? pd?.tableSeatMax ?? null)
+            : null,
+        tableSeatsTotal:
+          tablesTotal != null
+            ? (dto.tableSeatsTotal ?? pd?.tableSeatsTotal ?? null)
+            : null,
         presalePrice: dto.presalePrice ?? null,
         doorPrice: dto.doorPrice ?? null,
         presaleCap: dto.presaleCap ?? null,
@@ -727,7 +786,28 @@ export class EventsController {
     if (dto.startsAt !== undefined) data.startsAt = new Date(dto.startsAt);
     if (dto.endsAt !== undefined) data.endsAt = new Date(dto.endsAt);
     if (dto.capacity !== undefined) data.capacity = dto.capacity;
-    if (dto.tablesTotal !== undefined) data.tablesTotal = dto.tablesTotal;
+    // Mesas: `tablesTotal: null` apaga el servicio; un número lo activa con
+    // overrides propios. Los límites null heredan el default del productor;
+    // al activar sin enviarlos se heredan solo si el evento no tenía propios.
+    const tablesTouched =
+      dto.tablesTotal !== undefined ||
+      dto.tableSeatMax !== undefined ||
+      dto.tableSeatsTotal !== undefined;
+    if (tablesTouched) {
+      const pd = await this.params.getProducerParams(event.producerId);
+      if (dto.tablesTotal !== undefined) data.tablesTotal = dto.tablesTotal;
+      if (dto.tableSeatMax !== undefined) {
+        data.tableSeatMax = dto.tableSeatMax ?? pd?.tableSeatMax ?? null;
+      } else if (dto.tablesTotal != null && event.tableSeatMax == null) {
+        data.tableSeatMax = pd?.tableSeatMax ?? null;
+      }
+      if (dto.tableSeatsTotal !== undefined) {
+        data.tableSeatsTotal =
+          dto.tableSeatsTotal ?? pd?.tableSeatsTotal ?? null;
+      } else if (dto.tablesTotal != null && event.tableSeatsTotal == null) {
+        data.tableSeatsTotal = pd?.tableSeatsTotal ?? null;
+      }
+    }
     if (dto.presalePrice !== undefined) data.presalePrice = dto.presalePrice;
     if (dto.doorPrice !== undefined) data.doorPrice = dto.doorPrice;
     if (dto.presaleCap !== undefined) data.presaleCap = dto.presaleCap;
