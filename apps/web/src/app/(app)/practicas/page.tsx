@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
@@ -10,23 +10,24 @@ import { AvailabilitySection } from "@/components/social/AvailabilitySection";
 import { PartnerRequests } from "@/components/social/PartnerRequests";
 import type { Me } from "@/components/social/types";
 
-// Mismo shape público que GET /events (PracticesController.list)
+// GET /practices — shape público de evento + host resuelto.
 type Practice = {
   id: string;
   name: string;
   type: string;
   status: string;
   hostId: string | null;
+  host: { id: string; name: string | null } | null;
   capacity: number | null;
   startsAt: string;
   endsAt: string;
   presalePrice: number | null;
   doorPrice: number | null;
   series: { name: string } | null;
-  venue: { name: string; address: string | null };
+  venue: { name: string; address: string | null } | null;
 };
 
-/** GET /venues (público) — alimenta el datalist del formulario. */
+/** GET /venues (público) — alimenta el select del formulario. */
 type Venue = {
   id: string;
   name: string;
@@ -43,6 +44,7 @@ const inputCls =
 
 /** Duración por defecto de una práctica (el DTO exige endsAt; sin input propio). */
 const PRACTICE_DURATION_MS = 3 * 60 * 60 * 1000;
+const CREATED_FEEDBACK_MS = 4000;
 
 export default function PracticasPage() {
   const t = useTranslations("practices");
@@ -58,6 +60,7 @@ export default function PracticasPage() {
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(false);
   const [formError, setFormError] = useState(false);
+  const createdTimer = useRef<number | null>(null);
 
   const [name, setName] = useState("");
   const [venueId, setVenueId] = useState("");
@@ -85,12 +88,15 @@ export default function PracticasPage() {
     apiFetch("/me")
       .then(async (res) => setMe(res.ok ? ((await res.json()) as Me) : null))
       .catch(() => setMe(null));
-    // Venues para el datalist (público). Si falla, el input sigue libre.
+    // Venues para el select (público). Si falla, queda solo "otro lugar".
     apiFetch("/venues")
       .then(async (res) => {
         if (res.ok) setVenues((await res.json()) as Venue[]);
       })
       .catch(() => {});
+    return () => {
+      if (createdTimer.current) window.clearTimeout(createdTimer.current);
+    };
   }, [load]);
 
   async function createPractice(e: React.FormEvent) {
@@ -104,9 +110,10 @@ export default function PracticasPage() {
       const res = await apiFetch("/practices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // venueId vacío = "otro lugar" (parque/plaza) — el API lo acepta como null.
         body: JSON.stringify({
           name,
-          venueId,
+          ...(venueId ? { venueId } : {}),
           startsAt: start.toISOString(),
           endsAt: new Date(start.getTime() + PRACTICE_DURATION_MS).toISOString(),
         }),
@@ -120,6 +127,11 @@ export default function PracticasPage() {
         return;
       }
       setCreated(true);
+      if (createdTimer.current) window.clearTimeout(createdTimer.current);
+      createdTimer.current = window.setTimeout(
+        () => setCreated(false),
+        CREATED_FEEDBACK_MS,
+      );
       setFormOpen(false);
       setName("");
       setVenueId("");
@@ -133,17 +145,21 @@ export default function PracticasPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-end gap-4">
-        {me && !formOpen && (
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
+      <header className="flex items-center justify-end">
+        {!!me && !formOpen && (
           <Button size="sm" onClick={() => setFormOpen(true)}>
             {t("create")}
           </Button>
         )}
-      </div>
+      </header>
 
+      {/* Confirmación transitoria — desaparece sola */}
       {created && (
-        <p role="status" className="text-sm font-medium text-neon">
+        <p
+          role="status"
+          className="rounded-xl border border-neon/40 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon"
+        >
           {t("created")}
         </p>
       )}
@@ -172,28 +188,20 @@ export default function PracticasPage() {
                 className={inputCls}
               />
             </label>
-            {/* Datalist con GET /venues (value=id, label=nombre). Si la API
-                falla el input sigue aceptando texto libre como fallback. */}
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">
-                {t("venue")}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                required
-                list="practice-venues"
+              <span className="text-white/70">{t("venue")}</span>
+              <select
                 value={venueId}
                 onChange={(e) => setVenueId(e.target.value)}
-                placeholder={t("venuePlaceholder")}
                 className={inputCls}
-              />
-              <datalist id="practice-venues">
+              >
+                <option value="">{t("venueOther")}</option>
                 {venues.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
                   </option>
                 ))}
-              </datalist>
+              </select>
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="text-white/70">
@@ -229,53 +237,77 @@ export default function PracticasPage() {
         </Card>
       )}
 
-      {/* Lista */}
-      {state === "loading" && <PageLoading />}
-      {state === "error" && (
-        <p role="alert" className="text-white/60">
-          {tc("error")}
-        </p>
-      )}
-      {state === "ready" &&
-        (practices.length === 0 ? (
-          <Card>
-            <p role="status" className="text-white/60">
-              {t("empty")}
-            </p>
-          </Card>
-        ) : (
-          <ul className="flex flex-col gap-4">
-            {practices.map((p) => (
-              <li key={p.id}>
-                <Link href={`/eventos/${p.id}`} className="block">
-                  <Card className="transition-colors hover:border-neon/50">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="neon">{te("type.PRACTICA")}</Badge>
-                      {p.status === "LIVE" && (
-                        <Badge variant="live">{te("live")}</Badge>
-                      )}
-                    </div>
-                    <h2 className="mt-2 text-lg font-semibold">{p.name}</h2>
-                    <p className="text-sm text-white/60">
-                      <EventDate start={p.startsAt} end={p.endsAt} /> ·{" "}
-                      {p.venue.name}
-                    </p>
-                    {p.venue.address && (
-                      <p className="mt-0.5 text-xs text-white/50">
-                        {p.venue.address}
-                      </p>
-                    )}
-                  </Card>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ))}
+      {/* Próximas prácticas */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          {t("upcoming")}
+        </h2>
+        {state === "loading" && <PageLoading />}
+        {state === "error" && (
+          <p role="alert" className="text-white/60">
+            {tc("error")}
+          </p>
+        )}
+        {state === "ready" &&
+          (practices.length === 0 ? (
+            <Card>
+              <p role="status" className="text-white/60">
+                {t("empty")}
+              </p>
+            </Card>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {practices.map((p) => {
+                const mine = me != null && p.hostId === me.id;
+                return (
+                  <li key={p.id}>
+                    <Link href={`/eventos/${p.id}`} className="block">
+                      <Card className="transition-colors hover:border-neon/50">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {p.status === "LIVE" && (
+                            <Badge variant="live">{te("live")}</Badge>
+                          )}
+                          {mine && (
+                            <Badge variant="neon">{t("yours")}</Badge>
+                          )}
+                          {p.capacity != null && (
+                            <Badge variant="outline">
+                              {t("capacity", { count: p.capacity })}
+                            </Badge>
+                          )}
+                        </div>
+                        <h3 className="mt-2 text-lg font-semibold">{p.name}</h3>
+                        <p className="text-sm text-white/60">
+                          <EventDate start={p.startsAt} end={p.endsAt} />
+                          {p.venue ? ` · ${p.venue.name}` : ""}
+                        </p>
+                        <p className="mt-0.5 text-xs text-white/50">
+                          {[
+                            p.venue?.address,
+                            p.host?.name && !mine
+                              ? t("hostedBy", { name: p.host.name })
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      </Card>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ))}
+      </section>
 
-      {/* Encontrar con quién — movido desde /bailes: aquí es donde se
-          busca pareja de práctica y se marca disponibilidad. */}
-      <AvailabilitySection me={me} />
-      <PartnerRequests me={me} />
+      {/* Encontrar con quién — disponibilidad y búsqueda de pareja */}
+      <section className="flex flex-col gap-5 border-t border-night-800 pt-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          {t("findPartner")}
+        </h2>
+        <AvailabilitySection me={me} />
+        <PartnerRequests me={me} />
+      </section>
     </main>
   );
 }

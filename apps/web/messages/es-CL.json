@@ -297,7 +297,10 @@
     "invalidQr": "QR no válido",
     "myDances": "Mis bailes",
     "history": "Historial",
-    "refresh": "Actualizar",
+    "summary": "{dances} {dances, plural, one {baile} other {bailes}} · {partners} {partners, plural, one {pareja} other {parejas}}",
+    "filtered": "Viendo un solo evento",
+    "filteredEvent": "Evento: {name}",
+    "clearFilter": "Ver todos los bailes",
     "rating": "{value, plural, one {# estrella} other {# estrellas}}"
   },
   "staff": {
@@ -413,8 +416,14 @@
     "name": "Nombre de la práctica",
     "city": "Ciudad",
     "venue": "Lugar",
+    "venueOther": "Otro lugar (parque/plaza)",
     "startsAt": "Fecha y hora",
     "host": "Anfitrión",
+    "hostedBy": "Anfitrión: {name}",
+    "yours": "Tu práctica",
+    "capacity": "{count} cupos",
+    "upcoming": "Próximas prácticas",
+    "findPartner": "Encontrar con quién",
     "created": "¡Práctica creada!",
     "venuePlaceholder": "Nombre del lugar",
     "loginRequired": "Entra con tu correo para publicar una práctica"
