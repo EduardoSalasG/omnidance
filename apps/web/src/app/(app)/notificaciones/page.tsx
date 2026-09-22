@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useActiveRole } from "@/lib/active-role";
+import { useViewMode } from "@/lib/view-mode";
+import { notificationLens } from "@/lib/notification-lens";
 import { Badge, Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
@@ -97,6 +100,17 @@ export default function NotificacionesPage() {
   const router = useRouter();
   const [state, setState] = useState<PageState>("loading");
   const [items, setItems] = useState<NotificationItem[]>([]);
+  // Lente: roles de /me + modo consumer — el centro filtra por dominio
+  // (social ↔ academia); lo transversal (account.*, crm.*) va en ambas.
+  const [meRoles, setMeRoles] = useState<string[] | null>(null);
+  const activeRole = useActiveRole(meRoles);
+  const viewMode = useViewMode();
+  const lens: "social" | "academy" =
+    activeRole === "ACADEMY_OWNER" ||
+    activeRole === "INSTRUCTOR" ||
+    (activeRole === "DANCER" && viewMode === "academy")
+      ? "academy"
+      : "social";
 
   const load = useCallback(async () => {
     try {
@@ -127,6 +141,11 @@ export default function NotificacionesPage() {
 
   useEffect(() => {
     void load();
+    apiFetch("/me")
+      .then(async (res) =>
+        res.ok ? setMeRoles(((await res.json()) as { roles?: string[] }).roles ?? []) : null,
+      )
+      .catch(() => {});
   }, [load]);
 
   async function markRead(n: NotificationItem) {
@@ -156,7 +175,12 @@ export default function NotificacionesPage() {
     }
   }
 
-  const unreadCount = items.filter((it) => !it.readAt).length;
+  // Solo las notificaciones de la lente activa (transversales = "any").
+  const visible = items.filter((n) => {
+    const l = notificationLens(n.type);
+    return l === "any" || l === lens;
+  });
+  const unreadCount = visible.filter((it) => !it.readAt).length;
 
   if (state === "unauth") {
     return (
@@ -185,7 +209,7 @@ export default function NotificacionesPage() {
       )}
 
       {state === "ready" &&
-        (items.length === 0 ? (
+        (visible.length === 0 ? (
           <Card className="py-12 text-center">
             <p role="status" className="text-white/60">
               {t("empty")}
@@ -193,7 +217,7 @@ export default function NotificacionesPage() {
           </Card>
         ) : (
           <ul className="flex flex-col gap-3">
-            {items.map((n) => {
+            {visible.map((n) => {
               const unread = !n.readAt;
               const href = hrefFor(n);
               const eventAt =
