@@ -9,6 +9,7 @@ import { Button } from "@/components/ui";
 import { EventDate } from "@/components/ui/EventDate";
 import { PageLoading } from "@/components/ui/spinner";
 import { SessionCard } from "@/components/sessions/SessionCard";
+import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { isInvitee } from "@/components/sessions/types";
 import type { DanceSession, SessionAction } from "@/components/sessions/types";
 
@@ -296,65 +297,101 @@ function Bailes() {
           {showInsights && lastEvent && (
             <section
               aria-labelledby="last-social-heading"
-              className="rounded-2xl border border-night-700 bg-night-800/60 p-4"
+              className="relative overflow-hidden rounded-2xl border border-night-700 bg-night-900 p-4"
             >
-              <h2
-                id="last-social-heading"
-                className="text-sm font-semibold uppercase tracking-wide text-white/50"
-              >
-                {t("lastSocial")}
-              </h2>
-              <Link
-                href={`/eventos/${lastEventId}`}
-                className="mt-1.5 block text-lg font-semibold text-white transition-colors hover:text-neon"
-              >
-                {lastEvent.name}
-              </Link>
-              <p className="mt-0.5 text-xs text-white/50">
-                {lastEvent.status === "LIVE" ? (
-                  <span className="font-medium text-neon">{t("tonight")}</span>
-                ) : (
-                  <EventDate start={lastEvent.startsAt} />
-                )}
-                {lastEvent.venue?.name ? ` · ${lastEvent.venue.name}` : ""}
-              </p>
-              <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                <div className="flex items-baseline gap-1.5">
-                  <dd className="font-semibold text-neon">{danced.length}</dd>
-                  <dt className="text-white/60">
-                    {t("dancesStat", { count: danced.length })}
-                  </dt>
+              {/* La pista como material: glow radial del acento sobre la
+                  superficie — mismo lenguaje que el hero de /inicio */}
+              <div
+                aria-hidden="true"
+                className="glow-neon pointer-events-none absolute inset-0"
+              />
+              <div className="relative">
+                <div className="flex items-center justify-between gap-3">
+                  <h2
+                    id="last-social-heading"
+                    className="text-sm font-semibold uppercase tracking-wide text-white/50"
+                  >
+                    {lastEvent.status === "LIVE"
+                      ? t("tonight")
+                      : t("lastSocial")}
+                  </h2>
+                  {lastEvent.status === "LIVE" && (
+                    // Indicador live — mismo rojo que Badge variant="live"
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75 motion-reduce:animate-none" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <dd className="font-semibold text-neon">{lastPartners}</dd>
-                  <dt className="text-white/60">
-                    {t("partnersStat", { count: lastPartners })}
-                  </dt>
-                </div>
-                {lastAvg !== null && (
+                <Link
+                  href={`/eventos/${lastEventId}`}
+                  className="text-display mt-1 block truncate text-xl font-bold text-white transition-colors hover:text-neon"
+                >
+                  {lastEvent.name}
+                </Link>
+                <p className="mt-0.5 text-xs text-white/50">
+                  {lastEvent.status !== "LIVE" && (
+                    <>
+                      <EventDate start={lastEvent.startsAt} />
+                      {lastEvent.venue?.name ? " · " : ""}
+                    </>
+                  )}
+                  {lastEvent.venue?.name}
+                </p>
+                <dl className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
                   <div className="flex items-baseline gap-1.5">
-                    <dd className="font-semibold text-neon">
-                      ★ {lastAvg.toFixed(1)}
+                    <dd className="font-semibold tabular-nums text-neon">
+                      {danced.length}
                     </dd>
-                    <dt className="text-white/60">{t("avgGiven")}</dt>
+                    <dt className="text-white/60">
+                      {t("dancesStat", { count: danced.length })}
+                    </dt>
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <dd className="font-semibold tabular-nums text-neon">
+                      {lastPartners}
+                    </dd>
+                    <dt className="text-white/60">
+                      {t("partnersStat", { count: lastPartners })}
+                    </dt>
+                  </div>
+                  {lastAvg !== null && (
+                    <div className="flex items-baseline gap-1.5">
+                      <dd className="font-semibold tabular-nums text-neon">
+                        ★ {lastAvg.toFixed(1)}
+                      </dd>
+                      <dt className="text-white/60">{t("avgGiven")}</dt>
+                    </div>
+                  )}
+                </dl>
+                {/* Highlight emocional: el mejor baile es una persona, no
+                    un texto — avatar + nombre + tu nota. La racha cierra
+                    como línea de continuidad. */}
+                {(bestDance?.partner || (streak !== null && streak >= 2)) && (
+                  <div className="mt-3 flex flex-col gap-1.5 border-t border-night-700/60 pt-3">
+                    {bestDance?.partner && (
+                      <p className="flex items-center gap-2 text-sm text-white/70">
+                        <PartnerAvatar
+                          name={bestDance.partner.name}
+                          photoUrl={bestDance.partner.photoUrl}
+                          size="sm"
+                        />
+                        <span className="min-w-0 truncate">
+                          {t("bestDance", { name: bestDance.partner.name })}
+                        </span>
+                        <span className="shrink-0 font-semibold tabular-nums text-neon">
+                          ★ {bestDance.myRating!.global}
+                        </span>
+                      </p>
+                    )}
+                    {streak !== null && streak >= 2 && (
+                      <p className="text-xs font-medium text-neon/80">
+                        {t("streakLine", { weeks: streak })}
+                      </p>
+                    )}
                   </div>
                 )}
-              </dl>
-              {/* Highlight emocional: el mejor baile que diste esta noche +
-                  la racha si sigue viva */}
-              {bestDance?.partner && (
-                <p className="mt-2 text-sm text-white/70">
-                  {t("bestDance", { name: bestDance.partner.name })}{" "}
-                  <span className="text-neon">
-                    ★ {bestDance.myRating!.global}
-                  </span>
-                </p>
-              )}
-              {streak !== null && streak >= 2 && (
-                <p className="mt-1 text-xs font-medium text-neon/80">
-                  {t("streakLine", { weeks: streak })}
-                </p>
-              )}
+              </div>
             </section>
           )}
 
