@@ -6,11 +6,18 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
+  Patch,
   Post,
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsOptional, IsString, Matches, MinLength } from "class-validator";
+import {
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { AuthService } from "../auth/domain/auth.service";
@@ -30,6 +37,15 @@ class CompleteProfileDto {
   @IsString()
   @MinLength(8)
   password?: string;
+}
+
+class UpdateMeDto {
+  // Handle de Instagram autodeclarado — público por naturaleza (se muestra
+  // en el perfil de amistad). "" o null limpia el campo.
+  @IsOptional()
+  @IsString()
+  @MaxLength(31) // 30 + '@' inicial tolerado (se normaliza abajo)
+  instagram?: string | null;
 }
 
 class OnboardingDto {
@@ -58,6 +74,7 @@ export class PeopleController {
       name: person.name,
       email: person.email,
       photoUrl: person.photoUrl,
+      instagram: person.instagram,
       roles: person.roles
         .filter((r) => r.status === "APPROVED")
         .map((r) => r.role),
@@ -70,6 +87,30 @@ export class PeopleController {
       // el tour de una superficie solo si su clave falta.
       onboarding: (person.onboarding as Record<string, string> | null) ?? {},
     };
+  }
+
+  /**
+   * PATCH /me — edición de campos sociales propios. Hoy solo instagram;
+   * normaliza "@handle"/espacios y valida el formato real de handle IG.
+   */
+  @Patch("me")
+  @UseGuards(SessionGuard)
+  async updateMe(@Req() req: Request, @Body() dto: UpdateMeDto) {
+    const personId = req.person!.id;
+    const data: { instagram?: string | null } = {};
+    if (dto.instagram !== undefined) {
+      const handle = (dto.instagram ?? "").trim().replace(/^@+/, "");
+      if (handle === "") {
+        data.instagram = null;
+      } else {
+        if (!/^[a-zA-Z0-9._]{1,30}$/.test(handle)) {
+          throw new BadRequestException("instagram inválido");
+        }
+        data.instagram = handle;
+      }
+    }
+    await this.prisma.person.update({ where: { id: personId }, data });
+    return { ok: true };
   }
 
   /** Marca un tour de primera visita como visto (merge sobre el JSON). */

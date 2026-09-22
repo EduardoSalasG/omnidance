@@ -17,6 +17,7 @@ type Me = {
   name: string;
   email: string;
   photoUrl: string | null;
+  instagram?: string | null;
   roles: string[];
   roleStates?: { role: string; status: string }[];
 };
@@ -63,6 +64,12 @@ export default function PerfilPage() {
   // Override local para feedback inmediato al cambiar de lente; el hook
   // converge al mismo valor cuando el evento de rol se propaga.
   const [picked, setPicked] = useState<AppRole | null>(null);
+  // Edición del handle de Instagram (PATCH /me).
+  const [igInput, setIgInput] = useState("");
+  const [igDirty, setIgDirty] = useState(false);
+  const [igState, setIgState] = useState<"idle" | "saving" | "saved" | "err">(
+    "idle",
+  );
 
   function roleLabel(role: string): string {
     return t.has(`roleLabels.${role}`) ? t(`roleLabels.${role}`) : role;
@@ -85,6 +92,7 @@ export default function PerfilPage() {
         }
         const meJson = (await meRes.json()) as Me;
         setMe(meJson);
+        setIgInput(meJson.instagram ?? "");
         setState("ready");
         // Con lente ADMIN no hay gamificación: ni fetch ni cards. Se
         // resuelve con los roles reales de /me — el activeRole del primer
@@ -148,6 +156,29 @@ export default function PerfilPage() {
       stale = true;
     };
   }, [me, gamifFetched, currentLens]);
+
+  async function saveInstagram() {
+    setIgState("saving");
+    try {
+      const res = await apiFetch("/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instagram: igInput }),
+      });
+      if (!res.ok) {
+        setIgState("err");
+        return;
+      }
+      const clean = igInput.trim().replace(/^@+/, "");
+      setMe((m) => (m ? { ...m, instagram: clean || null } : m));
+      setIgInput(clean);
+      setIgDirty(false);
+      setIgState("saved");
+      setTimeout(() => setIgState("idle"), 2500);
+    } catch {
+      setIgState("err");
+    }
+  }
 
   async function logout() {
     try {
@@ -249,6 +280,56 @@ export default function PerfilPage() {
             </div>
           )}
         </div>
+      </Card>
+
+      {/* Instagram — handle público que ven tus amigos en tu perfil */}
+      <Card>
+        <h2
+          id="ig-title"
+          className="text-sm font-semibold uppercase tracking-wide text-white/50"
+        >
+          {t("instagram")}
+        </h2>
+        <p className="mt-1 text-xs text-white/40">{t("instagramHint")}</p>
+        <div className="mt-3 flex items-center gap-3">
+          <label htmlFor="ig-input" className="sr-only">
+            {t("instagram")}
+          </label>
+          <input
+            id="ig-input"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            spellCheck={false}
+            value={igInput}
+            onChange={(e) => {
+              setIgInput(e.target.value);
+              setIgDirty(true);
+              setIgState("idle");
+            }}
+            placeholder={t("instagramPlaceholder")}
+            className="min-h-11 min-w-0 flex-1 rounded-xl border border-night-700 bg-night-900 px-4 text-white placeholder:text-white/40 focus:border-neon focus:outline-none"
+          />
+          {igDirty && (
+            <Button
+              size="sm"
+              disabled={igState === "saving"}
+              onClick={() => void saveInstagram()}
+            >
+              {tc("save")}
+            </Button>
+          )}
+        </div>
+        {igState === "saved" && (
+          <p role="status" className="mt-2 text-xs text-neon">
+            {t("instagramSaved")}
+          </p>
+        )}
+        {igState === "err" && (
+          <p role="alert" className="mt-2 text-xs text-red-400">
+            {t("instagramError")}
+          </p>
+        )}
       </Card>
 
       {/* Interactuar como — cambia el lente de toda la app (nav + home).

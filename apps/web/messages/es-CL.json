@@ -206,7 +206,11 @@
     "more": "+{count} más",
     "noEventsDay": "Sin eventos este día",
     "loadLater": "Ver la próxima semana",
-    "howToGet": "Cómo llegar"
+    "howToGet": "Cómo llegar",
+    "friendsGoingLabel": "Amigos que van a este evento",
+    "friendsGoingOne": "{name} ya va",
+    "friendsGoingTwo": "{a} y {b} ya van",
+    "friendsGoingMany": "{a}, {b} y {count} más ya van"
   },
   "qr": {
     "title": "Mi QR",
@@ -705,7 +709,12 @@
       "ADMIN": "Administrador",
       "SUPPORT": "Soporte"
     },
-    "roleSandbox": "En prueba (sandbox)"
+    "roleSandbox": "En prueba (sandbox)",
+    "instagram": "Instagram",
+    "instagramHint": "Tu usuario público — tus amigos lo verán en tu perfil",
+    "instagramPlaceholder": "tu.usuario",
+    "instagramSaved": "Guardado",
+    "instagramError": "Usuario inválido — solo letras, números, puntos y guion bajo"
   },
   "crm": {
     "title": "CRM",
@@ -852,6 +861,10 @@
     "stylesTitle": "Estilos",
     "actionError": "No se pudo completar la acción",
     "level": "Nivel",
+    "addTitle": "Agregar amigos",
+    "invite": "Invitar por link",
+    "inviteText": "Agrégame en Omnidance",
+    "inviteCopied": "Link copiado",
     "goingTitle": "Tus amigos van a",
     "goingFriends": "{count, plural, one {# amigo va} other {# amigos van}}",
     "upcomingTitle": "Próximos eventos"

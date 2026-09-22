@@ -68,6 +68,9 @@ export default function AmigosPage() {
 
   const [state, setState] = useState<PageState>("loading");
   const [data, setData] = useState<FriendsData>(EMPTY_DATA);
+  // Mi id — para construir el link de invitación a mi perfil.
+  const [meId, setMeId] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   // "Tus amigos van a" — agenda social de amigos (tickets activos).
   const [friendEvents, setFriendEvents] = useState<FriendEvent[]>([]);
   const [query, setQuery] = useState("");
@@ -90,10 +93,16 @@ export default function AmigosPage() {
         return;
       }
       setData((await res.json()) as FriendsData);
-      // Feed "van a" — mejor esfuerzo: si falla queda vacío, no bloquea.
+      // Feed "van a" + mi id (para el link de invitación) — mejor
+      // esfuerzo: si fallan quedan vacíos, no bloquean la lista.
       apiFetch("/friends/upcoming-events")
         .then(async (r) => {
           if (r.ok) setFriendEvents((await r.json()) as FriendEvent[]);
+        })
+        .catch(() => {});
+      apiFetch("/me")
+        .then(async (r) => {
+          if (r.ok) setMeId(((await r.json()) as { id: string }).id);
         })
         .catch(() => {});
       setState("ready");
@@ -273,8 +282,56 @@ export default function AmigosPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      {/* Buscador */}
-      <section aria-label={t("search")} className="flex flex-col gap-3">
+      {/* Agregar amigos: buscador por nombre + link de invitación.
+          El link apunta a mi propio perfil — quien lo abre sin sesión
+          cae a login/registro y aterriza aquí con el botón Agregar. */}
+      <section
+        aria-labelledby="add-friends-title"
+        className="flex flex-col gap-3"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h2
+            id="add-friends-title"
+            className="text-sm font-semibold uppercase tracking-wide text-white/50"
+          >
+            {t("addTitle")}
+          </h2>
+          {meId && (
+            <button
+              type="button"
+              onClick={async () => {
+                const url = `${window.location.origin}/amigos/${meId}`;
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ url, text: t("inviteText") });
+                    return;
+                  }
+                  await navigator.clipboard.writeText(url);
+                  setInviteCopied(true);
+                  setTimeout(() => setInviteCopied(false), 2500);
+                } catch {
+                  // Share cancelado o clipboard bloqueado — no es error.
+                }
+              }}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-night-700 bg-night-800 px-4 text-sm font-medium text-neon transition-colors hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              </svg>
+              {inviteCopied ? t("inviteCopied") : t("invite")}
+            </button>
+          )}
+        </div>
         <input
           type="search"
           value={query}

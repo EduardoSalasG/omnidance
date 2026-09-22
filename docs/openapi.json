@@ -136,6 +136,25 @@
             "description": ""
           }
         }
+      },
+      "patch": {
+        "operationId": "PeopleController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
       }
     },
     "/api/me/onboarding": {
@@ -474,6 +493,26 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/friends-going": {
+      "get": {
+        "operationId": "EventsController_friendsGoing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -3956,6 +3995,10 @@
         "properties": {}
       },
       "SetPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMeDto": {
         "type": "object",
         "properties": {}
       },
