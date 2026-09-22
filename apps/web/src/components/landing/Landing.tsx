@@ -261,13 +261,15 @@ export function Landing({
         </section>
       </main>
 
-      {/* ─── Footer mínimo: marca + cruce a la otra audiencia ─── */}
+      {/* ─── Footer mínimo: marca + tagline + cruce a la otra
+          audiencia — todo centrado, una cosa por línea. ─── */}
       <footer className="border-t border-white/5 px-6 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
-          <p className="text-xs text-white/50">
-            Omni<span className="text-neon">dance</span> · {t.footerTagline}
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 text-center">
+          <p className="text-sm font-bold tracking-tight">
+            Omni<span className="text-neon">dance</span>
           </p>
-          <nav aria-label={t.navFooter} className="flex items-center gap-6">
+          <p className="text-xs text-white/50">{t.footerTagline}</p>
+          <nav aria-label={t.navFooter} className="mt-2 flex items-center gap-6">
             <Link
               href={variant === "pro" ? "/" : "/pro"}
               className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
