@@ -144,6 +144,12 @@ export class PracticesController {
         doorPrice: true,
         series: { select: { name: true } },
         venue: { select: { name: true, address: true } },
+        // Estilo foco: la práctica lo materializa como ScheduleBlock único.
+        scheduleBlocks: {
+          orderBy: { startsAt: "asc" as const },
+          take: 1,
+          select: { style: { select: { id: true, name: true } } },
+        },
       },
     });
 
@@ -164,8 +170,9 @@ export class PracticesController {
     });
     const hostById = new Map(hosts.map((h) => [h.id, h.name]));
 
-    return practices.map((p) => ({
+    return practices.map(({ scheduleBlocks, ...p }) => ({
       ...p,
+      style: scheduleBlocks[0]?.style ?? null,
       host: p.hostId ? { id: p.hostId, name: hostById.get(p.hostId) ?? null } : null,
     }));
   }
