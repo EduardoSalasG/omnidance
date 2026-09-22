@@ -861,8 +861,19 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       return parent;
     return "/inicio";
   })();
+  // Rutas con back forzado — el perfil del local siempre vuelve a la
+  // vista de mapa de /eventos (su punto de entrada natural), sin
+  // importar cómo llegó la sesión.
+  const BACK_OVERRIDES: [string, string][] = [
+    ["/locales/", "/eventos?view=map"],
+  ];
+  const backOverride = BACK_OVERRIDES.find(([p]) =>
+    pathname.startsWith(p),
+  )?.[1];
   const goBack = () => {
-    if (
+    if (backOverride) {
+      router.push(backOverride);
+    } else if (
       navigatedRef.current ||
       document.referrer.startsWith(window.location.origin)
     ) {
