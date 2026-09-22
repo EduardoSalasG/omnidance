@@ -438,7 +438,6 @@ Micro-encuentros de baile **creados por cualquier bailarín** — no requieren a
 - **Host** = el creador: fija tono, recibe gente, trae parlante. Check-in igual por QR
 - **"Disponible para bailar"**: toggle de disponibilidad → feed de quién quiere practicar ahora/cerca
 - **Coordinación**: chat ligero por práctica (v1: comentarios del evento o link a WhatsApp; chat real es scope pesado)
-- **Trip matching**: "voy a Valpo el finde / al congreso de Buenos Aires" → match con bailarines locales o asistentes al mismo evento (la escena viaja harto a congresos)
 - **Venues como hosts de prácticas**: Tierra Dura está muerto de día → prácticas de tarde = tráfico + consumo (métrica Local Pro). Academias igual
 - **Safety**: perfiles verificados, reportar, opción "práctica solo mujeres" — crítico en parques con desconocidos
 - **Gamificación**: badge "organizador de prácticas", misión "organiza una práctica", prácticas cuentan como actividad (check-in ligero, sin sesiones Prime Time)
@@ -671,7 +670,7 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 `song_suggestion` (event, person, canción — del checkout; top-N para DJ/productor, habilita "la más pedida suena a las X"),
 `season` (leaderboard por estilo+rol), `night_summary`, `happy_hour_window` (sesiones cuentan doble para contador),
 `academy`, `academy_instructor` (profe en N academias / dueño / independiente=academia de uno), `enrollment` (activo/pausado/trial/congelado/online), `membership_plan` (mensual/pack clases/periodo/trial), `class_slot` (horario+cupos+reserva+lista espera), `class`, `attendance`, `private_lesson`, `academy_score`, `video`, `subscription`,
-`practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), `availability_toggle` ("disponible para bailar"), `trip` (viaje futuro → match con locales/congreso), `user_verification`, `report`,
+`practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), `availability_toggle` ("disponible para bailar"), `user_verification`, `report`,
 `event_day` (congresos multi-día), `practice_partner_request` (buscar pareja de práctica), `venue_rental` (local↔academia para galas/prácticas),
 **CRM transversal**: `relationship_score` (actor→person, privado por actor: academy/producer/venue/dj/instructor_score), `campaign` (actor, segmento, acción, resultado), `discount_code` (descuento/cortesía/comp), `actor_tag` (nota manual actor→person), `referral` (quién trajo a quién), `crm_trigger` (regla automática: win-back, trial expira, regular no compró),
 **Transaccional**: `rsvp` ("voy" — mencionado en features pero faltaba como entidad), `payment` (orden/ticket, pasarela, fee, neto — la liquidación lo necesita), `payout` (liquidación a productor/academia: periodo, monto, estado), `notification` (push/in-app; preferencias por categoría: social / transaccional / marketing-CRM), `user_block` (bloquear a alguien → no puede invitarte a sesión ni escanearte — safety del lado follower), `analytics_event` (append-only de eventos de producto → materialized views para Pro/CRM), `fiscal_profile` (RUT, razón social, empresa/persona, giro — requerido en todo rol que recibe liquidaciones o emite documentos)
@@ -700,7 +699,6 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 | Misiones | Activas con barra de progreso, disponibles, cumplidas |
 | Prácticas | Explorar prácticas cercanas, crear práctica (host), chat/comentarios de coordinación |
 | Disponible para bailar | Toggle de disponibilidad + feed de quién quiere practicar ahora |
-| Viajes | "Voy a X ciudad/congreso" → match con locales y asistentes al mismo evento |
 | Notificaciones | Preferencias por categoría: social / transaccional / marketing |
 
 Wireframe — pantalla "En vivo" (la pantalla de la noche):

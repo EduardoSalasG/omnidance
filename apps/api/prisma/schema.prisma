@@ -853,16 +853,6 @@ model AvailabilityToggle {
   updatedAt DateTime  @updatedAt
 }
 
-model Trip {
-  id          String   @id @default(cuid())
-  personId    String
-  destination String // ciudad / congreso
-  eventId     String? // si el viaje es a un congreso registrado
-  startsAt    DateTime
-  endsAt      DateTime
-  createdAt   DateTime @default(now())
-}
-
 model UserVerification {
   id        String    @id @default(cuid())
   personId  String

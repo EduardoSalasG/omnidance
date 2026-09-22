@@ -128,7 +128,6 @@ describe("social e2e", () => {
     await prisma.scheduleBlock.deleteMany({
       where: { eventId: { in: ids.practiceEventIds } },
     });
-    await prisma.trip.deleteMany({ where: { personId: { in: peopleIds } } });
     await prisma.ticket.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
     await prisma.style.delete({ where: { id: ids.styleId } });
@@ -625,87 +624,6 @@ describe("social e2e", () => {
       expect(
         list.every((e: { type: string }) => e.type === "PRACTICA"),
       ).toBe(true);
-    });
-  });
-
-  // ═══════════════════════ TRIPS ═══════════════════════
-  describe("POST /api/trips", () => {
-    const future = (h: number) =>
-      new Date(Date.now() + h * 3600 * 1000).toISOString();
-
-    it("sin sesión → 401", async () => {
-      const res = await req("POST", "/api/trips", {
-        city: "Valparaíso",
-        startsAt: future(200),
-        endsAt: future(250),
-      });
-      expect(res.status).toBe(401);
-    });
-
-    it("rango inválido → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/trips",
-        { city: "Valparaíso", startsAt: future(250), endsAt: future(200) },
-        dancerSession,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("eventId fantasma → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/trips",
-        {
-          city: "Buenos Aires",
-          startsAt: future(200),
-          endsAt: future(250),
-          eventId: "evt-fantasma",
-        },
-        dancerSession,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("válido → 201 con destination=city", async () => {
-      const res = await req(
-        "POST",
-        "/api/trips",
-        {
-          city: "Valparaíso",
-          startsAt: future(200),
-          endsAt: future(250),
-          eventId: ids.eventId,
-        },
-        dancerSession,
-      );
-      expect(res.status).toBe(201);
-      const body = await res.json();
-      expect(body.destination).toBe("Valparaíso");
-      expect(body.personId).toBe(ids.dancerId);
-      expect(body.eventId).toBe(ids.eventId);
-    });
-  });
-
-  describe("GET /api/trips/mine", () => {
-    it("sin sesión → 401", async () => {
-      const res = await fetch(`${baseUrl}/api/trips/mine`);
-      expect(res.status).toBe(401);
-    });
-
-    it("devuelve solo los trips propios", async () => {
-      const res = await fetch(`${baseUrl}/api/trips/mine`, {
-        headers: { cookie: `omnidance_session=${dancerSession}` },
-      });
-      expect(res.status).toBe(200);
-      const trips = await res.json();
-      expect(trips.length).toBeGreaterThanOrEqual(1);
-      expect(
-        trips.every(
-          (t: { personId: string }) => t.personId === ids.dancerId,
-        ),
-      ).toBe(true);
-      expect(trips[0].destination).toBe("Valparaíso");
     });
   });
 });
