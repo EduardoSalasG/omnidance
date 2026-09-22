@@ -219,6 +219,7 @@ model Event {
   venueId     String?     // null = práctica sin local (parque/plaza)
   venueText   String?     // nombre libre del lugar cuando no hay Venue (parque/plaza)
   womenOnly   Boolean     @default(false) // señal declarativa safety (spec §8) — sin enforcement por género
+  menOnly     Boolean     @default(false) // simétrico a womenOnly — prácticas solo hombres (líderes)
   producerId  String?
   hostId      String?     // host de práctica (creador bailarín)
   academyId   String?

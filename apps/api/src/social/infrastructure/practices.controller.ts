@@ -46,6 +46,11 @@ class CreatePracticeDto {
   @IsBoolean()
   womenOnly?: boolean;
 
+  /** Simétrico a womenOnly — práctica solo hombres (p.ej. de líderes). */
+  @IsOptional()
+  @IsBoolean()
+  menOnly?: boolean;
+
   @IsDateString()
   startsAt!: string;
 
@@ -126,6 +131,7 @@ export class PracticesController {
           venueId: dto.venueId ?? null,
           venueText: dto.venueText?.trim() || null,
           womenOnly: dto.womenOnly ?? false,
+          menOnly: dto.menOnly ?? false,
           name: dto.name,
           description: dto.description?.trim() || null,
           startsAt,
@@ -201,6 +207,7 @@ export class PracticesController {
         venue: { select: { name: true, address: true } },
         venueText: true,
         womenOnly: true,
+        menOnly: true,
         _count: { select: { rsvps: true } },
         // Estilo foco: la práctica lo materializa como ScheduleBlock único.
         scheduleBlocks: {
@@ -245,6 +252,7 @@ export class PracticesController {
         venue: { select: { name: true, address: true } },
         venueText: true,
         womenOnly: true,
+        menOnly: true,
         _count: { select: { rsvps: true } },
         scheduleBlocks: {
           orderBy: { startsAt: "asc" as const },
