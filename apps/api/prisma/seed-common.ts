@@ -62,7 +62,7 @@ export const CLASS_LEVEL_CATALOG = [
 ] as const;
 
 export const CLASS_TYPE_CATALOG = [
-  { name: "Pareja" },
+  { name: "En Pareja" },
   { name: "Shines" },
   { name: "Corporalidad" },
 ] as const;
@@ -176,6 +176,22 @@ export async function seedCommon(prisma: PrismaClient) {
       update: { order: l.order },
       create: l,
     });
+  }
+  // Rename "Pareja" → "En Pareja" (vocabulario del spec) — preserva el id
+  // y los ClassSeriesType existentes; si ambos ya existen no choca unique.
+  const legacyPareja = await prisma.classType.findUnique({
+    where: { name: "Pareja" },
+  });
+  if (legacyPareja) {
+    const enPareja = await prisma.classType.findUnique({
+      where: { name: "En Pareja" },
+    });
+    if (!enPareja) {
+      await prisma.classType.update({
+        where: { id: legacyPareja.id },
+        data: { name: "En Pareja" },
+      });
+    }
   }
   for (const ct of CLASS_TYPE_CATALOG) {
     await prisma.classType.upsert({
