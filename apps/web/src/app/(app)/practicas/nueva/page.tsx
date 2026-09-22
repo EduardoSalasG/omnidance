@@ -118,7 +118,7 @@ export default function NuevaPracticaPage() {
     .slice(0, 10);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-6 sm:px-6">
       <h1 className="text-2xl font-bold leading-tight">{t("new")}</h1>
 
       {me === undefined && <PageLoading />}
