@@ -4,6 +4,7 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { SocialModule } from "../src/social/social.module";
+import { EventsModule } from "../src/events/events.module";
 import { PrismaService } from "../src/prisma.service";
 
 describe("social e2e", () => {
@@ -50,7 +51,7 @@ describe("social e2e", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SocialModule, AuthModule],
+      imports: [SocialModule, EventsModule, AuthModule],
     }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix("api");
@@ -582,6 +583,7 @@ describe("social e2e", () => {
           endsAt: future(50),
           capacity: 12,
           style: ids.styleId,
+          description: "Trae agua y zapatillas cómodas",
         },
         dancerSession,
       );
@@ -593,11 +595,19 @@ describe("social e2e", () => {
       expect(event.hostId).toBe(ids.dancerId);
       expect(event.venueId).toBe(ids.venueId);
       expect(event.capacity).toBe(12);
+      expect(event.description).toBe("Trae agua y zapatillas cómodas");
 
       const block = await prisma.scheduleBlock.findFirst({
         where: { eventId: event.id },
       });
       expect(block?.styleId).toBe(ids.styleId);
+
+      // El detalle público expone host resuelto + descripción (ficha práctica)
+      const detail = await (
+        await fetch(`${baseUrl}/api/events/${event.id}`)
+      ).json();
+      expect(detail.description).toBe("Trae agua y zapatillas cómodas");
+      expect(detail.host?.id).toBe(ids.dancerId);
     });
   });
 

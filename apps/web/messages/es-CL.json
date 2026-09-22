@@ -223,7 +223,8 @@
     "friendsGoingLabel": "Amigos que van a este evento",
     "friendsGoingOne": "{name} ya va",
     "friendsGoingTwo": "{a} y {b} ya van",
-    "friendsGoingMany": "{a}, {b} y {count} más ya van"
+    "friendsGoingMany": "{a}, {b} y {count} más ya van",
+    "organizedBy": "Organiza {name}"
   },
   "qr": {
     "title": "Mi QR",
@@ -470,7 +471,10 @@
     "findPartner": "Encontrar con quién",
     "created": "¡Práctica creada!",
     "venuePlaceholder": "Nombre del lugar",
-    "loginRequired": "Entra con tu correo para publicar una práctica"
+    "loginRequired": "Entra con tu correo para publicar una práctica",
+    "new": "Nueva práctica",
+    "description": "Descripción (opcional)",
+    "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué traer? Punto exacto de encuentro…"
   },
   "availability": {
     "toggle": "Disponible para bailar",

@@ -61,6 +61,11 @@ class CreatePracticeDto {
   @IsOptional()
   @IsString()
   style?: string;
+
+  /** Notas libres del host: qué traer, punto exacto de encuentro, etc. */
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
 
 /**
@@ -122,6 +127,7 @@ export class PracticesController {
           venueText: dto.venueText?.trim() || null,
           womenOnly: dto.womenOnly ?? false,
           name: dto.name,
+          description: dto.description?.trim() || null,
           startsAt,
           endsAt,
           capacity: dto.capacity ?? null,
