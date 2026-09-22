@@ -146,102 +146,102 @@ export default function PracticasPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
-      <header className="flex items-center justify-end">
-        {!!me && !formOpen && (
-          <Button size="sm" onClick={() => setFormOpen(true)}>
-            {t("create")}
-          </Button>
-        )}
-      </header>
-
-      {/* Confirmación transitoria — desaparece sola */}
-      {created && (
-        <p
-          role="status"
-          className="rounded-xl border border-neon/40 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon"
-        >
-          {t("created")}
-        </p>
-      )}
-
-      {/* Crear práctica — requiere sesión */}
-      {me === null && (
-        <Card className="flex flex-col items-start gap-3">
-          <p className="text-sm text-white/60">{t("loginRequired")}</p>
-          <Button href="/login" size="sm">
-            {tc("login")}
-          </Button>
-        </Card>
-      )}
-      {!!me && formOpen && (
-        <Card>
-          <form onSubmit={createPractice} className="flex flex-col gap-4">
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">
-                {t("name")}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className={inputCls}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("venue")}</span>
-              <select
-                value={venueId}
-                onChange={(e) => setVenueId(e.target.value)}
-                className={inputCls}
-              >
-                <option value="">{t("venueOther")}</option>
-                {venues.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">
-                {t("startsAt")}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                required
-                type="datetime-local"
-                value={startsAt}
-                onChange={(e) => setStartsAt(e.target.value)}
-                className={inputCls}
-              />
-            </label>
-            {formError && (
-              <p role="alert" className="text-sm text-red-400">
-                {tc("error")}
-              </p>
-            )}
-            <div className="flex gap-3">
-              <Button type="submit" disabled={submitting} className="flex-1">
-                {submitting ? tc("loading") : tc("create")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setFormOpen(false)}
-              >
-                {tc("cancel")}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {/* Próximas prácticas */}
+      {/* Próximas prácticas — heading + crear, mismo patrón que
+          "Busco pareja" */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-          {t("upcoming")}
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            {t("upcoming")}
+          </h2>
+          {!!me && !formOpen && (
+            <Button size="sm" onClick={() => setFormOpen(true)}>
+              {t("create")}
+            </Button>
+          )}
+        </div>
+
+        {/* Confirmación transitoria — desaparece sola */}
+        {created && (
+          <p
+            role="status"
+            className="rounded-xl border border-neon/40 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon"
+          >
+            {t("created")}
+          </p>
+        )}
+
+        {/* Crear práctica — requiere sesión */}
+        {me === null && (
+          <Card className="flex flex-col items-start gap-3">
+            <p className="text-sm text-white/60">{t("loginRequired")}</p>
+            <Button href="/login" size="sm">
+              {tc("login")}
+            </Button>
+          </Card>
+        )}
+        {!!me && formOpen && (
+          <Card>
+            <form onSubmit={createPractice} className="flex flex-col gap-4">
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-white/70">
+                  {t("name")}
+                  <span aria-hidden="true" className="text-neon"> *</span>
+                </span>
+                <input
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-white/70">{t("venue")}</span>
+                <select
+                  value={venueId}
+                  onChange={(e) => setVenueId(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">{t("venueOther")}</option>
+                  {venues.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-white/70">
+                  {t("startsAt")}
+                  <span aria-hidden="true" className="text-neon"> *</span>
+                </span>
+                <input
+                  required
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(e) => setStartsAt(e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+              {formError && (
+                <p role="alert" className="text-sm text-red-400">
+                  {tc("error")}
+                </p>
+              )}
+              <div className="flex gap-3">
+                <Button type="submit" disabled={submitting} className="flex-1">
+                  {submitting ? tc("loading") : tc("create")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setFormOpen(false)}
+                >
+                  {tc("cancel")}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
         {state === "loading" && <PageLoading />}
         {state === "error" && (
           <p role="alert" className="text-white/60">
