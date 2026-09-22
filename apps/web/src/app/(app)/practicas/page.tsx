@@ -233,7 +233,7 @@ export default function PracticasPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-6 sm:px-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6">
       <h1 className="sr-only">{t("title")}</h1>
 
       <section className="flex flex-col gap-3">
