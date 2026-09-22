@@ -474,7 +474,7 @@
     "going": "Vas",
     "viewLabel": "Ver prácticas",
     "address": "Dirección",
-    "addressPlaceholder": "Parque Balmaceda, Av. Providencia 1234, Studio Rame…",
+    "addressPlaceholder": "Calle Numeración, Comuna",
     "audience": "¿Quiénes pueden asistir?",
     "audienceMen": "Hombres",
     "audienceWomen": "Mujeres",
@@ -483,7 +483,7 @@
     "startTime": "Desde",
     "endTime": "Hasta",
     "addressNotes": "Notas de la dirección",
-    "addressNotesPlaceholder": "Sala 1, piso 2, junto al skatepark…",
+    "addressNotesPlaceholder": "Ej. Plaza El Llano",
     "description": "Descripción",
     "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué nivel? ¿Qué traer?"
   },
