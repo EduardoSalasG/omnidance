@@ -112,6 +112,8 @@ export interface PurchaseTicketInput {
   recipientIds?: string[];
   /** Entradas de la orden (1–10; default 1). Sobrantes = reclamables. */
   quantity?: number;
+  /** Personas para reserva de mesa (solo si el evento tiene tablesTotal). */
+  tablePartySize?: number;
 }
 
 export interface PurchaseSeriesPassInput {
@@ -162,6 +164,7 @@ export class CheckoutService {
         seriesId: true,
         serviceFeeClp: true,
         producerId: true,
+        tablesTotal: true,
       },
     });
     if (!event) throw new EventNotFoundError();
@@ -403,6 +406,12 @@ export class CheckoutService {
         net: orderTotal,
         quantity,
         recipients: recipientIds.length ? recipientIds : undefined,
+        // Intención de mesa: solo si el evento ofrece mesas — el webhook
+        // la materializa al PAID (pago fallido/abandonado no reserva).
+        tablePartySize:
+          event.tablesTotal != null && input.tablePartySize
+            ? input.tablePartySize
+            : null,
         channel,
         unitListPrice: unit.listPrice,
         unitServiceFee: unit.serviceFee,

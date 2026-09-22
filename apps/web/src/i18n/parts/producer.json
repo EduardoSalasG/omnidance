@@ -41,6 +41,7 @@
       "doorPrice": "Precio en puerta (CLP)",
       "presaleCap": "Tope preventa",
       "doorCap": "Tope puerta",
+      "tablesTotal": "Mesas reservables",
       "primeThreshold": "Umbral Prime Time",
       "happyHourMinutes": "Minutos happy hour",
       "schedule": "Bloques horarios",
@@ -117,7 +118,10 @@
     "reservations": {
       "empty": "Sin reservas.",
       "partySize": "{count} personas",
+      "partySizeField": "Personas",
       "table": "Mesa",
+      "occupancy": "{used} de {total} mesas ocupadas",
+      "noTables": "Este evento no ofrece reservas de mesa.",
       "assignTable": "Nº de mesa",
       "confirm": "Confirmar",
       "cancel": "Cancelar",

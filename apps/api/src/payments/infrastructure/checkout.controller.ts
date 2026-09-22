@@ -73,6 +73,18 @@ class CheckoutTicketDto {
   @ArrayMaxSize(9)
   @IsString({ each: true })
   recipientIds?: string[];
+
+  /**
+   * Reserva de mesa opcional (spec §13): personas del grupo. Viaja en la
+   * orden (Payment.tablePartySize) y el webhook materializa la
+   * TableReservation REQUESTED solo al PAID. Solo aplica si el evento
+   * tiene tablesTotal.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  tablePartySize?: number;
 }
 
 class CheckoutSeriesPassDto {

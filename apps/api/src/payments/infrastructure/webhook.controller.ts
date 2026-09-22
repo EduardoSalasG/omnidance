@@ -131,6 +131,7 @@ export class PaymentsController {
         serviceFeeClp: true,
         name: true,
         startsAt: true,
+        producerId: true,
       },
     });
     const serviceFeeClp =
@@ -143,6 +144,7 @@ export class PaymentsController {
     // la notificación solo sale si esta llamada fue la que marcó PAID
     // (no en re-notificaciones ni carreras perdidas dentro de la tx)
     let paidNow = false;
+    let reservationCreated = false;
     await this.prisma.$transaction(async (tx) => {
       // re-check dentro de la tx: doble webhook concurrente no duplica
       const fresh = await tx.payment.findUnique({
@@ -222,6 +224,31 @@ export class PaymentsController {
         });
       }
 
+      // Reserva de mesa del checkout (spec §13): la intención viajó en
+      // Payment.tablePartySize y se materializa solo con el pago PAID.
+      // Dedup: una activa por persona/evento (como el POST standalone).
+      if (payment.tablePartySize) {
+        const existingReservation = await tx.tableReservation.findFirst({
+          where: {
+            eventId: order.eventId,
+            personId: payment.personId,
+            status: { in: ["REQUESTED", "CONFIRMED"] },
+          },
+          select: { id: true },
+        });
+        if (!existingReservation) {
+          await tx.tableReservation.create({
+            data: {
+              eventId: order.eventId,
+              personId: payment.personId,
+              partySize: payment.tablePartySize,
+              status: "REQUESTED",
+            },
+          });
+          reservationCreated = true;
+        }
+      }
+
       if (code) {
         // auditoría de la redemption + consumo del uso
         await tx.discountRedemption.create({
@@ -261,6 +288,28 @@ export class PaymentsController {
           amount: payment.amount,
         },
       });
+
+      // Aviso al productor: nueva solicitud de mesa desde el checkout
+      // (solo si efectivamente se creó — no en dedup de reserva activa).
+      if (reservationCreated && event?.producerId) {
+        const buyer = await this.prisma.person.findUnique({
+          where: { id: payment.personId },
+          select: { name: true },
+        });
+        await this.notifications.notifySafe(event.producerId, {
+          category: "TRANSACTIONAL",
+          type: "table.requested",
+          title: "Nueva solicitud de mesa",
+          body: `${buyer?.name ?? "Un asistente"} · ${payment.tablePartySize} personas · ${event.name}`,
+          data: {
+            paymentId: payment.id,
+            eventId: order.eventId,
+            eventName: event.name,
+            partySize: payment.tablePartySize,
+            personId: payment.personId,
+          },
+        });
+      }
 
       // Aviso a cada destinatario de regalo: quién la compró + qué evento.
       const recipientIds = Array.isArray(payment.recipients)

@@ -1145,9 +1145,11 @@ export async function seedDev(prisma: PrismaClient) {
     create: { producerId: muvetOwner.id, platformFeePct: 8 },
   });
   // Override puntual en un evento → badge "Valor propio" en la ficha.
+  // tablesTotal: inventario de mesas reservables — la consola muestra
+  // "N de M ocupadas" y el checkout la sección "¿Quieres mesa?".
   await prisma.event.update({
     where: { id: bachatamania.id },
-    data: { serviceFeeClp: 300, platformFeePct: 10 },
+    data: { serviceFeeClp: 300, platformFeePct: 10, tablesTotal: 10 },
   });
 
   // ─── Edición pasada — alimenta analytics (GMV, check-ins) e historial ───

@@ -232,6 +232,7 @@ model Event {
   startsAt    DateTime
   endsAt      DateTime
   capacity    Int?
+  tablesTotal Int?        // mesas reservables de la noche; null = sin servicio de mesas
   presalePrice Int?       // CLP
   doorPrice    Int?
   presaleCap  Int?
@@ -947,6 +948,10 @@ model Payment {
   channel      String? // PRESALE | DOOR — null en pagos legacy (presale)
   unitListPrice    Int? // precio de lista por ticket (CLP)
   unitServiceFee   Int? // cargo por servicio por ticket (CLP)
+  // Intención de reserva de mesa del checkout (spec §13): el webhook la
+  // materializa como TableReservation REQUESTED solo al PAID — una mesa
+  // sin ticket pagado nunca ocupa cupo.
+  tablePartySize Int?
   gateway   String        @default("FLOW")
   gatewayRef String?
   status    PaymentStatus @default(PENDING)

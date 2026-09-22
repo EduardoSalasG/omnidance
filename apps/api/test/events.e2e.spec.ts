@@ -45,9 +45,17 @@ describe("GET /api/events", () => {
         startsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
         endsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000 + 6 * 3600 * 1000),
         venueId: venue.id,
+        tablesTotal: 3,
       },
     });
     eventId = event.id;
+    // 1 activa (ocupa) + 1 cancelada (no ocupa) → tablesLeft = 2
+    await prisma.tableReservation.createMany({
+      data: [
+        { eventId: event.id, personId: "e2e-a", partySize: 4, status: "CONFIRMED" },
+        { eventId: event.id, personId: "e2e-b", partySize: 2, status: "CANCELLED" },
+      ],
+    });
     const practice = await prisma.event.create({
       data: {
         name: `Práctica E2E ${suffix}`,
@@ -61,6 +69,7 @@ describe("GET /api/events", () => {
   });
 
   afterAll(async () => {
+    await prisma.tableReservation.deleteMany({ where: { eventId } });
     await prisma.event.deleteMany({ where: { id: { in: [eventId, practiceId] } } });
     await prisma.venue.deleteMany({ where: { id: venueId } });
     await app.close();
@@ -107,6 +116,20 @@ describe("GET /api/events", () => {
   it("id inexistente → 404", async () => {
     const res = await fetch(`${baseUrl}/api/events/no-existe`);
     expect(res.status).toBe(404);
+  });
+
+  it("detalle expone disponibilidad de mesas dinámica (REQUESTED/CONFIRMED ocupan, CANCELLED libera)", async () => {
+    const res = await fetch(`${baseUrl}/api/events/${eventId}`);
+    const detail = await res.json();
+    expect(detail.tablesTotal).toBe(3);
+    expect(detail.tablesLeft).toBe(2); // 3 total − 1 CONFIRMED (la CANCELLED no cuenta)
+  });
+
+  it("evento sin tablesTotal → tablesLeft null (no ofrece mesas)", async () => {
+    const res = await fetch(`${baseUrl}/api/events/${practiceId}`);
+    const detail = await res.json();
+    expect(detail.tablesTotal).toBeNull();
+    expect(detail.tablesLeft).toBeNull();
   });
 
   it("?genre= filtra por género propio o heredado de la serie", async () => {

@@ -35,6 +35,7 @@ type OrderTicket = {
 };
 
 const MAX_TICKETS = 10;
+const MAX_TABLE_PARTY = 12;
 
 // Búsqueda de amigos insensible a tildes/mayúsculas.
 const norm = (s: string) =>
@@ -68,6 +69,14 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   const [giftQuery, setGiftQuery] = useState("");
   // claimable = entradas sin amigo asignado (se comparten por link)
   const claimable = quantity - 1 - giftIds.size;
+
+  // Reserva de mesa opcional (spec §13): solo si el evento ofrece mesas
+  // (tablesTotal no-null). La disponibilidad mostrada es referencial — la
+  // reserva queda REQUESTED y el productor la confirma/ajusta.
+  const [wantsTable, setWantsTable] = useState(false);
+  const [partySize, setPartySize] = useState(4);
+  const hasTables = event.tablesTotal != null;
+  const tablesLeft = event.tablesLeft ?? 0;
 
   useEffect(() => {
     apiFetch("/friends")
@@ -154,6 +163,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           quantity,
           ...(discountCode.trim() ? { discountCode: discountCode.trim() } : {}),
           ...(giftIds.size ? { recipientIds: [...giftIds] } : {}),
+          ...(wantsTable && hasTables && tablesLeft > 0
+            ? { tablePartySize: partySize }
+            : {}),
         }),
       });
 
@@ -238,6 +250,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         eventName={event.name}
         paymentId={phase.paymentId}
         giftCount={giftIds.size}
+        tablePartySize={
+          wantsTable && hasTables && tablesLeft > 0 ? partySize : null
+        }
       />
     );
   }
@@ -415,6 +430,95 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </Card>
         )}
 
+        {/* Reserva de mesa (spec §13): solo si el evento ofrece mesas.
+            Sin stock → estado informativo, no interactivo. Con stock →
+            Sí/No; el Sí revela el stepper de personas + disclaimer. */}
+        {hasTables && tablesLeft <= 0 && (
+          <Card className="opacity-70">
+            <h2 className="text-base font-semibold">{t("tableTitle")}</h2>
+            <p role="status" className="mt-1 text-sm text-white/50">
+              {t("tableSoldOut")}
+            </p>
+          </Card>
+        )}
+        {hasTables && tablesLeft > 0 && (
+          <Card>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">{t("tableTitle")}</h2>
+              <div
+                role="group"
+                aria-label={t("tableTitle")}
+                className="flex shrink-0 rounded-full border border-night-700 p-1"
+              >
+                {([false, true] as const).map((v) => (
+                  <button
+                    key={String(v)}
+                    type="button"
+                    disabled={busy}
+                    aria-pressed={wantsTable === v}
+                    onClick={() => setWantsTable(v)}
+                    className={`min-h-9 min-w-14 rounded-full px-4 text-sm font-medium transition-colors active:scale-[0.97] disabled:opacity-50 ${
+                      wantsTable === v
+                        ? "bg-neon text-night-950"
+                        : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {v ? t("tableYes") : t("tableNo")}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="mt-1 text-xs text-white/50">
+              {t("tableAvailable", { count: tablesLeft })}
+            </p>
+
+            {wantsTable && (
+              <>
+                <div className="mt-4 flex items-center justify-between border-t border-night-700 pt-4">
+                  <span className="text-sm text-white/70">
+                    {t("tablePartySize")}
+                  </span>
+                  <div
+                    className="flex items-center gap-2"
+                    role="group"
+                    aria-label={t("tablePartySize")}
+                  >
+                    <button
+                      type="button"
+                      disabled={busy || partySize <= 1}
+                      onClick={() => setPartySize((n) => Math.max(1, n - 1))}
+                      aria-label={t("tableMinus")}
+                      className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+                    >
+                      −
+                    </button>
+                    <output
+                      aria-live="polite"
+                      className="w-10 text-center text-xl font-bold tabular-nums"
+                    >
+                      {partySize}
+                    </output>
+                    <button
+                      type="button"
+                      disabled={busy || partySize >= MAX_TABLE_PARTY}
+                      onClick={() =>
+                        setPartySize((n) => Math.min(MAX_TABLE_PARTY, n + 1))
+                      }
+                      aria-label={t("tablePlus")}
+                      className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <p className="mt-3 rounded-xl bg-night-800 px-3 py-2 text-xs text-white/60">
+                  {t("tableDisclaimer")}
+                </p>
+              </>
+            )}
+          </Card>
+        )}
+
         {/* Breakdown de precio */}
         <Card>
           <dl className="flex flex-col gap-3">
@@ -571,10 +675,12 @@ function CheckoutSuccess({
   eventName,
   paymentId,
   giftCount,
+  tablePartySize,
 }: {
   eventName: string;
   paymentId: string;
   giftCount: number;
+  tablePartySize: number | null;
 }) {
   const t = useTranslations("checkout");
   const tw = useTranslations("wallet");
@@ -604,6 +710,11 @@ function CheckoutSuccess({
       {giftCount > 0 && (
         <p className="text-sm text-white/70">
           {t("giftSuccess", { count: giftCount })}
+        </p>
+      )}
+      {tablePartySize != null && (
+        <p className="text-sm text-white/70">
+          {t("tableSuccess", { count: tablePartySize })}
         </p>
       )}
 

@@ -29,8 +29,10 @@ describe("checkout + payments e2e", () => {
     otherEventId: "", // para código con scope de otro evento
     feeEventId: "", // PUBLISHED con serviceFeeClp=900 (override admin)
     zeroFeeEventId: "", // PUBLISHED con serviceFeeClp=0 (override a cero)
+    tablesEventId: "", // PUBLISHED con tablesTotal=4 (ofrece mesas)
   };
   const codeIds: string[] = [];
+  let tablePaymentRef = "";
 
   const post = (path: string, body: unknown, session?: string) =>
     fetch(`${baseUrl}${path}`, {
@@ -71,7 +73,16 @@ describe("checkout + payments e2e", () => {
       startsAt: new Date(Date.now() + 24 * 3600 * 1000),
       endsAt: new Date(Date.now() + 28 * 3600 * 1000),
     };
-    const [event, draft, noPresale, capped, otherEvent, feeEvent, zeroFeeEvent] =
+    const [
+      event,
+      draft,
+      noPresale,
+      capped,
+      otherEvent,
+      feeEvent,
+      zeroFeeEvent,
+      tablesEvent,
+    ] =
       await Promise.all([
       prisma.event.create({
         data: {
@@ -128,6 +139,15 @@ describe("checkout + payments e2e", () => {
           serviceFeeClp: 0,
         },
       }),
+      prisma.event.create({
+        data: {
+          ...base,
+          name: `Con Mesas ${suffix}`,
+          status: "PUBLISHED",
+          presalePrice: 10000,
+          tablesTotal: 4,
+        },
+      }),
     ]);
     ids.eventId = event.id;
     ids.draftId = draft.id;
@@ -136,6 +156,7 @@ describe("checkout + payments e2e", () => {
     ids.otherEventId = otherEvent.id;
     ids.feeEventId = feeEvent.id;
     ids.zeroFeeEventId = zeroFeeEvent.id;
+    ids.tablesEventId = tablesEvent.id;
 
     // cap agotado: ya hay un ticket emitido
     await prisma.ticket.create({
@@ -166,6 +187,12 @@ describe("checkout + payments e2e", () => {
     otherId = other.id;
     buyerSession = await auth.issueSession(buyerId);
     otherSession = await auth.issueSession(otherId);
+
+    // "other" produce el evento con mesas → recibe la notificación de solicitud
+    await prisma.event.update({
+      where: { id: ids.tablesEventId },
+      data: { producerId: otherId },
+    });
   });
 
   afterAll(async () => {
@@ -184,9 +211,13 @@ describe("checkout + payments e2e", () => {
             ids.otherEventId,
             ids.feeEventId,
             ids.zeroFeeEventId,
+            ids.tablesEventId,
           ],
         },
       },
+    });
+    await prisma.tableReservation.deleteMany({
+      where: { eventId: ids.tablesEventId },
     });
     await prisma.payment.deleteMany({
       where: { personId: { in: [buyerId, otherId] } },
@@ -202,6 +233,7 @@ describe("checkout + payments e2e", () => {
             ids.otherEventId,
             ids.feeEventId,
             ids.zeroFeeEventId,
+            ids.tablesEventId,
           ],
         },
       },
@@ -367,6 +399,134 @@ describe("checkout + payments e2e", () => {
         buyerSession,
       );
       expect(res.status).toBe(409);
+    });
+  });
+
+  describe("reserva de mesa en checkout", () => {
+    it("tablePartySize en evento con mesas → persiste en el Payment (sin reserva aún)", async () => {
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.tablesEventId, tablePartySize: 6 },
+        buyerSession,
+      );
+      expect(res.status).toBe(201);
+      const { paymentId } = await res.json();
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: paymentId },
+      });
+      expect(payment.tablePartySize).toBe(6);
+      // la reserva NO existe antes de pagar — checkout abandonado no ocupa mesa
+      const reservations = await prisma.tableReservation.count({
+        where: { eventId: ids.tablesEventId, personId: buyerId },
+      });
+      expect(reservations).toBe(0);
+      tablePaymentRef = payment.refId;
+    });
+
+    it("tablePartySize inválido → 400", async () => {
+      for (const size of [0, 13, 2.5]) {
+        const res = await post(
+          "/api/checkout/ticket",
+          { eventId: ids.tablesEventId, tablePartySize: size },
+          otherSession,
+        );
+        expect(res.status).toBe(400);
+      }
+    });
+
+    it("tablePartySize en evento SIN mesas → se ignora (Payment sin intención)", async () => {
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.otherEventId, tablePartySize: 4 },
+        buyerSession,
+      );
+      expect(res.status).toBe(201);
+      const { paymentId } = await res.json();
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: paymentId },
+      });
+      expect(payment.tablePartySize).toBeNull();
+    });
+
+    it("webhook PAID → crea TableReservation REQUESTED + notifica al productor", async () => {
+      const res = await post("/api/payments/webhook", {
+        refId: tablePaymentRef,
+        status: "PAID",
+      });
+      expect(res.status).toBe(200);
+
+      const r = await prisma.tableReservation.findFirstOrThrow({
+        where: { eventId: ids.tablesEventId, personId: buyerId },
+      });
+      expect(r.status).toBe("REQUESTED");
+      expect(r.partySize).toBe(6);
+
+      const notif = await prisma.notification.findFirst({
+        where: { personId: otherId, type: "table.requested" },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(notif).toBeTruthy();
+      expect(notif!.body).toContain("6");
+    });
+
+    it("re-webhook PAID → idempotente, no duplica la reserva", async () => {
+      const res = await post("/api/payments/webhook", {
+        refId: tablePaymentRef,
+        status: "PAID",
+      });
+      expect(res.status).toBe(200);
+      const count = await prisma.tableReservation.count({
+        where: { eventId: ids.tablesEventId, personId: buyerId },
+      });
+      expect(count).toBe(1);
+    });
+
+    it("webhook FAILED → sin reserva", async () => {
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.tablesEventId, tablePartySize: 3 },
+        otherSession,
+      );
+      const { paymentId } = await res.json();
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: paymentId },
+      });
+      const wh = await post("/api/payments/webhook", {
+        refId: payment.refId,
+        status: "FAILED",
+      });
+      expect(wh.status).toBe(200);
+      const count = await prisma.tableReservation.count({
+        where: { eventId: ids.tablesEventId, personId: otherId },
+      });
+      expect(count).toBe(0);
+    });
+
+    it("ya tenía reserva activa → el webhook no duplica", async () => {
+      // buyer ya tiene una REQUESTED del test anterior — un segundo pago
+      // con mesa no debe crear otra fila.
+      const res = await post(
+        "/api/checkout/ticket",
+        { eventId: ids.tablesEventId, tablePartySize: 2 },
+        buyerSession,
+      );
+      const { paymentId } = await res.json();
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: paymentId },
+      });
+      const wh = await post("/api/payments/webhook", {
+        refId: payment.refId,
+        status: "PAID",
+      });
+      expect(wh.status).toBe(200);
+      const count = await prisma.tableReservation.count({
+        where: {
+          eventId: ids.tablesEventId,
+          personId: buyerId,
+          status: { in: ["REQUESTED", "CONFIRMED"] },
+        },
+      });
+      expect(count).toBe(1);
     });
   });
 
