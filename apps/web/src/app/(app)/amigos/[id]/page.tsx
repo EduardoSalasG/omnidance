@@ -295,14 +295,16 @@ export default function AmigoPerfilPage({
             </section>
           )}
 
-          {/* Zona destructiva al pie — lejos del pulgar y con confirmación */}
+          {/* Zona destructiva: centrada y anclada al pie del perfil
+              (mt-auto) — el espacio libre queda entre el contenido y la
+              acción, como "Delete Contact" en iOS. */}
           {!person.isMe && person.friendship?.status === "friends" && (
-            <div className="mt-4 border-t border-white/10 pt-4">
+            <div className="mt-auto flex justify-center pt-8">
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => setConfirmRemove(true)}
-                className="text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
                 {t("remove")}
               </button>
