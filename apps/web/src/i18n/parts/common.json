@@ -1,5 +1,7 @@
 {
   "common": {
-    "newTab": "(abre en nueva pestaña)"
+    "newTab": "(abre en nueva pestaña)",
+    "yes": "Sí",
+    "no": "No"
   }
 }
