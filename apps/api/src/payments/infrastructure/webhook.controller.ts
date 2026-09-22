@@ -18,7 +18,6 @@ import type { Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
-import { PricingService } from "../domain/pricing.service";
 import {
   decodeSeriesPassRef,
   decodeTicketOrderRef,
@@ -51,7 +50,6 @@ export class PaymentsController {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
-    private readonly pricing: PricingService,
     private readonly params: ParamsService,
     private readonly notifications: NotificationsService,
   ) {}
@@ -141,16 +139,16 @@ export class PaymentsController {
       });
       paidNow = true;
 
-      // el ticket SOLO se emite cuando el pago queda PAID
-      // (event ya cargado antes de la tx: presalePrice + serviceFeeClp)
+      // el ticket SOLO se emite cuando el pago queda PAID.
+      // Economía unitaria: la orden la desnormalizó al checkout
+      // (unitListPrice/unitServiceFee cubren preventa y puerta app);
+      // pagos legacy sin columnas caen al re-derive por presalePrice.
       const code = order.codeId
         ? await tx.discountCode.findUnique({ where: { id: order.codeId } })
         : null;
-      const quote = this.pricing.quote({
-        listPrice: event?.presalePrice ?? payment.amount,
-        serviceFeeClp,
-        discount: code,
-      });
+      const unitListPrice =
+        payment.unitListPrice ?? event?.presalePrice ?? 0;
+      const unitServiceFee = payment.unitServiceFee ?? serviceFeeClp;
 
       // Multi-entrada: un ticket para el comprador + uno por destinatario
       // de regalo (ownerId=amigo, giftedFromId=comprador). El descuento se
@@ -166,8 +164,8 @@ export class PaymentsController {
           ownerId: payment.personId,
           buyerId: payment.personId,
           paymentId: payment.id,
-          listPrice: event?.presalePrice ?? 0,
-          serviceFee: quote.serviceFee,
+          listPrice: unitListPrice,
+          serviceFee: unitServiceFee,
           discountCodeId: code?.id ?? null,
         },
       });
@@ -179,8 +177,8 @@ export class PaymentsController {
             buyerId: payment.personId,
             giftedFromId: payment.personId,
             paymentId: payment.id,
-            listPrice: event?.presalePrice ?? 0,
-            serviceFee: quote.serviceFee,
+            listPrice: unitListPrice,
+            serviceFee: unitServiceFee,
           },
         });
       }
@@ -200,8 +198,8 @@ export class PaymentsController {
             buyerId: payment.personId,
             paymentId: payment.id,
             claimToken: randomBytes(16).toString("hex"),
-            listPrice: event?.presalePrice ?? 0,
-            serviceFee: quote.serviceFee,
+            listPrice: unitListPrice,
+            serviceFee: unitServiceFee,
           },
         });
       }

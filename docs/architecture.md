@@ -61,7 +61,7 @@ src/<dominio>/
 | qr | `/api/qr/mine` QR rotativo | SessionGuard |
 | sessions | `/api/sessions/*` invitar/confirmar/puntuar | SessionGuard + wiring notify+badges |
 | checkins | `/api/checkins*` staff door scan/manual | `checkins.write` |
-| payments | `/api/checkout`, `/api/tickets`, `/api/payments/webhook` | mixto |
+| payments | `/api/checkout`, `/api/tickets`, `/api/payments/webhook` | mixto (checkout = preventa o puerta-app según estado/corte del evento) |
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
 | notifications | `/api/notifications`, `/api/push-tokens` | SessionGuard |
 | social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id` | mixto `social.manage` |
@@ -135,7 +135,7 @@ flowchart LR
 | Key | Consumidor | Default |
 |---|---|---|
 | `service_fee.presale_clp` | checkout + webhook | 500 |
-| `service_fee.door_app_clp` | checkin app | 700 |
+| `service_fee.door_app_clp` | checkout puerta-app + checkin app | 700 |
 | `service_fee.door_cash_clp` | checkin efectivo | 0 |
 | `session.cooldown_minutes` | sessions invite | 4 |
 | `qr.rotation_seconds` | QR mint | 60 |

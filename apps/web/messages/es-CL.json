@@ -223,6 +223,7 @@
     "serviceFee": "Cargo por servicio",
     "discount": "Descuento",
     "presaleCutoff": "La preventa cierra a las 19:00 del día del evento — después solo en puerta.",
+    "doorChannelNote": "Venta en puerta por la app — tu QR se activa al pagar y lo muestras en la entrada.",
     "total": "Total",
     "discountCode": "Código de descuento (opcional)",
     "discountPlaceholder": "CUMPLE20",

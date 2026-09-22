@@ -19,6 +19,7 @@ import {
   SeriesPassAlreadyOwnedError,
   RecipientError,
   PresaleClosedError,
+  DoorSoldOutError,
 } from "./checkout.service";
 
 // CheckoutService — orquestación del checkout de preventa / pase de serie.
@@ -38,6 +39,7 @@ function mkPrisma() {
     [];
   const prisma = {
     event: { findUnique: vi.fn() },
+    checkin: { count: vi.fn(async () => 0) },
     ticket: {
       count: vi.fn(async () => 0),
       findMany: vi.fn(async () => [] as { ownerId: string }[]),
@@ -158,6 +160,9 @@ const mkEvent = (over: Record<string, unknown> = {}) => ({
   startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   presalePrice: 10000,
   presaleCap: null,
+  doorPrice: null,
+  doorCap: null,
+  doorAppFeeClp: null,
   seriesId: null,
   serviceFeeClp: null,
   producerId: "prod-1",
@@ -218,9 +223,10 @@ describe("CheckoutService.purchaseTicket", () => {
   });
 
   it("pasado el corte (19:00 del día del evento) → PresaleClosedError", async () => {
-    // startsAt 1h atrás → el corte de las 19:00 de ese día ya pasó
+    // startsAt ayer → el corte de las 19:00 de ese día ya pasó (determinista:
+    // now-1h a la 1AM deja el cutoff del mismo día en el futuro)
     fx.prisma.event.findUnique.mockResolvedValue(
-      mkEvent({ startsAt: new Date(Date.now() - 60 * 60 * 1000) }),
+      mkEvent({ startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000) }),
     );
     await expect(buy()).rejects.toBeInstanceOf(PresaleClosedError);
   });
@@ -259,6 +265,131 @@ describe("CheckoutService.purchaseTicket", () => {
     const gt = where.createdAt!.gt!.getTime();
     expect(Date.now() - gt).toBeGreaterThanOrEqual(30 * 60 * 1000);
     expect(Date.now() - gt).toBeLessThan(30 * 60 * 1000 + 5000);
+  });
+
+  // ─── Canal puerta-app (LIVE / post-corte) ───
+
+  it("evento LIVE con doorPrice → vende a precio puerta y persiste channel DOOR", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+      }),
+    );
+    const res = await buy();
+    expect(res.quote.listPrice).toBe(7000);
+    // fee de puerta app: default shared DOOR_APP_CLP = 700
+    expect(res.quote.serviceFee).toBe(700);
+    expect(res.quote.total).toBe(7700);
+    const p = fx.payments[0]!;
+    expect(p.channel).toBe("DOOR");
+    expect(p.unitListPrice).toBe(7000);
+    expect(p.unitServiceFee).toBe(700);
+  });
+
+  it("evento LIVE sin doorPrice → PresaleUnavailableError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ status: "LIVE", doorPrice: null }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PresaleUnavailableError);
+  });
+
+  it("PUBLISHED post-corte con doorPrice → canal DOOR (la app vende a precio puerta)", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        // ayer → el cutoff de las 19:00 de ese día ya pasó (determinista)
+        startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+        doorPrice: 8000,
+      }),
+    );
+    const res = await buy();
+    expect(res.quote.listPrice).toBe(8000);
+    expect(fx.payments[0]!.channel).toBe("DOOR");
+  });
+
+  it("PUBLISHED post-corte sin doorPrice → PresaleClosedError (sin puerta app)", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000) }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PresaleClosedError);
+  });
+
+  it("doorCap: ventas staff (MANUAL) + órdenes DOOR alcanzan el cap → DoorSoldOutError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+        doorCap: 10,
+      }),
+    );
+    fx.prisma.checkin.count.mockResolvedValue(8); // staff ya registró 8 en puerta
+    fx.prisma.payment.aggregate.mockResolvedValue({ _sum: { quantity: 1 } });
+    await expect(buy({ quantity: 2 })).rejects.toBeInstanceOf(
+      DoorSoldOutError,
+    );
+  });
+
+  it("doorCap: cabe justo → vende", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+        doorCap: 10,
+      }),
+    );
+    fx.prisma.checkin.count.mockResolvedValue(8);
+    const res = await buy({ quantity: 2 }); // 8 + 0 + 2 = 10 = cap
+    expect(res.quantity).toBe(2);
+  });
+
+  it("fee puerta: override del evento (doorAppFeeClp) gana a productor y global", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+        doorAppFeeClp: 900,
+      }),
+    );
+    pf.producers.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: 400,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+    });
+    pf.numbers.set("service_fee.door_app_clp", 300);
+    const res = await buy();
+    expect(res.quote.serviceFee).toBe(900);
+  });
+
+  it("fee puerta: sin override del evento gana ProducerParams.doorAppFeeClp", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+      }),
+    );
+    pf.producers.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: 400,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+    });
+    pf.numbers.set("service_fee.door_app_clp", 300);
+    const res = await buy();
+    expect(res.quote.serviceFee).toBe(400);
+  });
+
+  it("órdenes PRESALE siguen persistiendo channel PRESALE + precios unitarios", async () => {
+    await buy();
+    const p = fx.payments[0]!;
+    expect(p.channel).toBe("PRESALE");
+    expect(p.unitListPrice).toBe(10000);
+    expect(p.unitServiceFee).toBe(500);
   });
 
   // ─── Regalo multi-entrada (recipientIds) ───
