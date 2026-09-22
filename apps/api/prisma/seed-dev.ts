@@ -3,6 +3,16 @@
 // y las fechas se refrescan en cada corrida para que la demo no envejezca.
 import { randomBytes, scryptSync } from "node:crypto";
 import { Genre, Prisma, PrismaClient } from "@prisma/client";
+import {
+  BadgeAwarder,
+  buildBadgeStats,
+  buildStreakWeeks,
+  computeStreak,
+  CROWN_TTL_DAYS,
+  isEarlyCheckinAt,
+  POINT_VALUES,
+  type PointReason,
+} from "../src/gamification/domain/rules";
 import { ensurePerson, seedCommon } from "./seed-common";
 
 const DEV_DOMAIN = "omnidance.dev";
@@ -1591,6 +1601,293 @@ export async function seedDev(prisma: PrismaClient) {
   const scannedNow = new Date(Date.now() - 30 * 60_000);
   await session(liveEvent.id, camila, dancer, "INVITED", scannedNow);
   await session(liveEvent.id, dancer, antonia, "INVITED", scannedNow);
+
+  // ─── Gamificación — actividad real que produce badges/puntos/rachas ───
+  // Dos ediciones más de Bachatamanía (hace 2 y 3 semanas) con sesiones
+  // resueltas del clique. Las rachas semanales, los puntos de temporada y
+  // los badges por conducta se derivan de esta actividad con las mismas
+  // reglas del dominio — no se fabrican números de exhibición.
+  const weeksAgo = (n: number) => new Date(Date.now() - n * 7 * 86_400_000);
+  const pastEdition = (name: string, start: Date) =>
+    ensure(
+      () => prisma.event.findFirst({ where: { name } }),
+      () =>
+        prisma.event.create({
+          data: {
+            seriesId: bachatamania.seriesId,
+            venueId: orixas.id,
+            producerId: carlos.id,
+            name,
+            status: "CLOSED",
+            startsAt: start,
+            endsAt: new Date(start.getTime() + 6 * 3_600_000),
+            presalePrice: 5000,
+            doorPrice: 6000,
+            capacity: 300,
+          },
+        }),
+    );
+  const edition2 = await pastEdition(
+    "Bachatamanía — hace 2 semanas",
+    weeksAgo(2),
+  );
+  const edition3 = await pastEdition(
+    "Bachatamanía — hace 3 semanas",
+    weeksAgo(3),
+  );
+  const atEdition = (ev: { startsAt: Date }, min: number) =>
+    new Date(ev.startsAt.getTime() + min * 60_000);
+
+  // Check-ins tempranos (21:30 — antes del cutoff madrugador) en las
+  // ediciones pasadas: alimentan puntos early_checkin y el badge
+  // madrugador. La hora es fija — no depende de cuándo corre el seed.
+  const earlyIn = (start: Date) => {
+    const d = new Date(start);
+    d.setHours(21, 30, 0, 0);
+    return d;
+  };
+  for (const [ev, people] of [
+    [
+      edition2,
+      [
+        dancer,
+        camila,
+        josefa,
+        diego,
+        antonia,
+        daniela,
+        francisca,
+        sebastian,
+        felipe,
+        vale,
+      ],
+    ],
+    [edition3, [dancer, camila, josefa, diego, antonia, daniela]],
+  ] as const) {
+    for (const p of people) {
+      await ensure(
+        () =>
+          prisma.checkin.findFirst({
+            where: { eventId: ev.id, personId: p.id },
+          }),
+        () =>
+          prisma.checkin.create({
+            data: {
+              eventId: ev.id,
+              personId: p.id,
+              staffId: staff.id,
+              method: "SCAN",
+              inAt: earlyIn(ev.startsAt),
+            },
+          }),
+      );
+    }
+  }
+
+  // La gran noche del demo bailarín (edición -2): 8 parejas distintas →
+  // mariposa_social; con las de las otras ediciones suma 13 confirmadas
+  // → bailarin_constante. El resto del clique queda con totales variados.
+  await session(edition2.id, dancer, camila, "RATED", atEdition(edition2, 60), "Bachata sensual", [
+    [dancer, 5],
+    [camila, 5],
+  ]);
+  await session(edition2.id, josefa, dancer, "CONFIRMED", atEdition(edition2, 90), "Salsa cubana (casino)", [
+    [josefa, 5],
+  ]);
+  await session(edition2.id, dancer, diego, "CONFIRMED", atEdition(edition2, 120), "Timba");
+  await session(edition2.id, daniela, dancer, "CONFIRMED", atEdition(edition2, 150), "Bachata sensual");
+  await session(edition2.id, dancer, francisca, "CONFIRMED", atEdition(edition2, 180), "Salsa cubana (casino)");
+  await session(edition2.id, sebastian, dancer, "CONFIRMED", atEdition(edition2, 210), "Bachata sensual");
+  await session(edition2.id, dancer, felipe, "RATED", atEdition(edition2, 240), "Timba", [
+    [felipe, 4],
+  ]);
+  await session(edition2.id, vale, dancer, "RATED", atEdition(edition2, 270), "Salsa cubana (casino)", [
+    [vale, 5],
+    [dancer, 5],
+  ]);
+  await session(edition2.id, diego, antonia, "CONFIRMED", atEdition(edition2, 75), "Bachata sensual");
+  await session(edition2.id, camila, felipe, "CONFIRMED", atEdition(edition2, 195), "Salsa cubana (casino)");
+
+  // Edición -3 — sostiene la tercera semana de las rachas del clique.
+  await session(edition3.id, dancer, antonia, "CONFIRMED", atEdition(edition3, 70), "Bachata sensual", [
+    [antonia, 5],
+  ]);
+  await session(edition3.id, josefa, diego, "RATED", atEdition(edition3, 100), "Timba", [
+    [josefa, 4],
+    [diego, 4],
+  ]);
+  await session(edition3.id, camila, daniela, "CONFIRMED", atEdition(edition3, 130), "Salsa cubana (casino)");
+  await session(edition3.id, sebastian, josefa, "CONFIRMED", atEdition(edition3, 160), "Bachata sensual");
+
+  // Temporada activa del año — los puntos del ledger se posicionan por
+  // temporada (spec §7: no gastables, resetean por Season).
+  const seasonYear = now.getUTCFullYear();
+  const season = await ensure(
+    () =>
+      prisma.season.findFirst({ where: { name: `Temporada ${seasonYear}` } }),
+    () =>
+      prisma.season.create({
+        data: {
+          name: `Temporada ${seasonYear}`,
+          startsAt: new Date(Date.UTC(seasonYear, 0, 1)),
+          endsAt: new Date(Date.UTC(seasonYear, 11, 31, 23, 59, 59)),
+        },
+      }),
+  );
+
+  // Puntos de temporada — mismo accrual del dominio: session_confirmed a
+  // ambos bailarines, rating_closed al evaluador, early_checkin al que
+  // entró temprano. Idempotente por (persona, reason, refType, refId).
+  const accrue = (
+    personId: string,
+    reason: PointReason,
+    refType: string,
+    refId: string,
+  ) =>
+    prisma.pointLedger.upsert({
+      where: {
+        personId_reason_refType_refId: { personId, reason, refType, refId },
+      },
+      update: {},
+      create: {
+        personId,
+        seasonId: season.id,
+        points: POINT_VALUES[reason],
+        reason,
+        refType,
+        refId,
+      },
+    });
+
+  const pastEventIds = [prevEdition.id, edition2.id, edition3.id];
+  const doneSessions = await prisma.danceSession.findMany({
+    where: {
+      eventId: { in: pastEventIds },
+      status: { in: ["CONFIRMED", "RATED"] },
+    },
+    include: { ratings: true },
+  });
+  for (const s of doneSessions) {
+    await accrue(s.inviterId, "session_confirmed", "session", s.id);
+    await accrue(s.inviteeId, "session_confirmed", "session", s.id);
+    for (const r of s.ratings) {
+      await accrue(r.raterId, "rating_closed", "session", s.id);
+    }
+  }
+  const pastCheckins = await prisma.checkin.findMany({
+    where: { eventId: { in: pastEventIds }, voidedAt: null },
+  });
+  for (const c of pastCheckins) {
+    if (isEarlyCheckinAt(c.inAt)) {
+      await accrue(c.personId, "early_checkin", "checkin", c.id);
+    }
+  }
+
+  // Rachas semanales — el KPI del home lee Streak (WEEKLY_OUT); se
+  // computa con buildStreakWeeks/computeStreak sobre la actividad real
+  // (sesiones confirmadas + check-ins de las ediciones pasadas).
+  const activityByPerson = new Map<string, Date[]>();
+  const track = (personId: string, d: Date) => {
+    const arr = activityByPerson.get(personId) ?? [];
+    arr.push(d);
+    activityByPerson.set(personId, arr);
+  };
+  for (const s of doneSessions) {
+    const activityAt = s.confirmedAt ?? s.scannedAt;
+    track(s.inviterId, activityAt);
+    track(s.inviteeId, activityAt);
+  }
+  for (const c of pastCheckins) track(c.personId, c.inAt);
+  for (const [personId, dates] of activityByPerson) {
+    const { currentWeeks } = computeStreak(buildStreakWeeks(dates, now));
+    const lastAt = new Date(Math.max(...dates.map((d) => d.getTime())));
+    await ensure(
+      () =>
+        prisma.streak.findFirst({
+          where: { personId, type: "WEEKLY_OUT", targetId: null },
+        }),
+      () =>
+        prisma.streak.create({
+          data: { personId, type: "WEEKLY_OUT", count: currentWeeks, lastAt },
+        }),
+      (row) =>
+        prisma.streak.update({
+          where: { id: row.id },
+          data: { count: currentWeeks, lastAt },
+        }),
+    );
+  }
+
+  // Badges ganados por conducta — se otorgan con las mismas reglas del
+  // dominio (BadgeAwarder + buildBadgeStats) sobre la actividad real, así
+  // /me/badges no depende del lazy-award para mostrar el demo.
+  const badgeRows = await prisma.badge.findMany();
+  const badgeIdByKey = new Map(badgeRows.map((b) => [b.key, b.id]));
+  const badgeKeyById = new Map(badgeRows.map((b) => [b.id, b.key]));
+  const award = (
+    personId: string,
+    key: string,
+    featured = false,
+    expiresAt: Date | null = null,
+  ) => {
+    const badgeId = badgeIdByKey.get(key);
+    if (!badgeId) return Promise.resolve(null);
+    return prisma.personBadge.upsert({
+      where: { personId_badgeId: { personId, badgeId } },
+      update: featured || expiresAt ? { featured, expiresAt } : {},
+      create: { personId, badgeId, featured, expiresAt },
+    });
+  };
+  const awarder = new BadgeAwarder();
+  const gamified = [
+    dancer,
+    camila,
+    josefa,
+    diego,
+    antonia,
+    daniela,
+    francisca,
+    sebastian,
+    felipe,
+    vale,
+  ];
+  for (const p of gamified) {
+    const mySessions = await prisma.danceSession.findMany({
+      where: {
+        status: { in: ["CONFIRMED", "RATED"] },
+        OR: [{ inviterId: p.id }, { inviteeId: p.id }],
+      },
+      select: { eventId: true, inviterId: true, inviteeId: true },
+    });
+    const myCheckins = await prisma.checkin.findMany({
+      where: { personId: p.id, voidedAt: null },
+      select: { inAt: true },
+    });
+    const owned = (
+      await prisma.personBadge.findMany({
+        where: { personId: p.id },
+        select: { badgeId: true },
+      })
+    )
+      .map((b) => badgeKeyById.get(b.badgeId))
+      .filter((k): k is string => k != null);
+    for (const key of awarder.evaluate(
+      buildBadgeStats(mySessions, myCheckins, p.id),
+      owned,
+    )) {
+      await award(p.id, key);
+    }
+  }
+  // Badges exhibidos al escanear el QR (spec §7: el status vive en el
+  // ritual) — bailarin_constante destacado del demo y corona Prime Time
+  // vigente de Camila (temporal: vence en CROWN_TTL_DAYS).
+  await award(dancer.id, "bailarin_constante", true);
+  await award(
+    camila.id,
+    "prime_time_crown",
+    true,
+    new Date(Date.now() + CROWN_TTL_DAYS * 86_400_000),
+  );
 
   // Staff asignado a la puerta de Bachatamanía (consola /staff).
   await prisma.staffAssignment.upsert({

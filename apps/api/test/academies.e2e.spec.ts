@@ -18,6 +18,7 @@ describe("academies e2e", () => {
   let instructorSession: string;
   let outsiderSession: string;
   let adminSession: string;
+  let studentSession: string;
 
   const ids = {
     ownerId: "",
@@ -90,6 +91,7 @@ describe("academies e2e", () => {
       { role: "DANCER", status: "APPROVED" },
     ]);
     ids.studentId = student.id;
+    studentSession = await auth.issueSession(student.id);
 
     const outsider = await mkPerson("Bailarín Ajeno Test", [
       { role: "DANCER", status: "APPROVED" },
@@ -114,6 +116,9 @@ describe("academies e2e", () => {
 
   afterAll(async () => {
     await prisma.attendance.deleteMany({
+      where: { class: { slot: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } } } },
+    });
+    await prisma.classBooking.deleteMany({
       where: { class: { slot: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } } } },
     });
     await prisma.class.deleteMany({
@@ -501,6 +506,126 @@ describe("academies e2e", () => {
         outsiderSession,
       );
       expect(res.status).toBe(403);
+    });
+  });
+
+  describe("vista alumno (learner)", () => {
+    const dayAt = (daysAgo: number) => {
+      const d = new Date(Date.now() - daysAgo * 86_400_000);
+      d.setUTCHours(0, 0, 0, 0);
+      return d;
+    };
+    let attendedClassId: string;
+    let bookedClassId: string;
+    let cancelledClassId: string;
+
+    beforeAll(async () => {
+      // Clases pasadas del slot del alumno: una asistida, una solo
+      // reservada y una cancelada — las tres ramas del historial.
+      const attended = await prisma.class.create({
+        data: { classSlotId: ids.slotId, date: dayAt(3) },
+      });
+      attendedClassId = attended.id;
+      await prisma.attendance.create({
+        data: { classId: attended.id, personId: ids.studentId },
+      });
+      const booked = await prisma.class.create({
+        data: { classSlotId: ids.slotId, date: dayAt(10) },
+      });
+      bookedClassId = booked.id;
+      await prisma.classBooking.create({
+        data: { classId: booked.id, personId: ids.studentId },
+      });
+      const cancelled = await prisma.class.create({
+        data: { classSlotId: ids.slotId, date: dayAt(17) },
+      });
+      cancelledClassId = cancelled.id;
+      await prisma.classBooking.create({
+        data: {
+          classId: cancelled.id,
+          personId: ids.studentId,
+          status: "CANCELLED",
+        },
+      });
+    });
+
+    describe("GET /api/academies/enrolled", () => {
+      it("sin sesión → 401", async () => {
+        const res = await get("/api/academies/enrolled");
+        expect(res.status).toBe(401);
+      });
+
+      it("alumno ve su inscripción con academia, plan y attendance30d", async () => {
+        const res = await get("/api/academies/enrolled", studentSession);
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        const enr = list.find(
+          (e: { academy: { id: string } }) => e.academy.id === ids.academyId,
+        );
+        expect(enr).toBeTruthy();
+        expect(enr.academy.name).toBe("Academia Test");
+        expect(enr.status).toBe("ACTIVE");
+        expect(enr.plan.name).toBe("Mensual 8 clases");
+        expect(enr.attendance30d).toBeGreaterThanOrEqual(1); // la de hace 3 días
+      });
+
+      it("outsider sin inscripciones → []", async () => {
+        const res = await get("/api/academies/enrolled", outsiderSession);
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        expect(
+          list.every(
+            (e: { academy: { id: string } }) => e.academy.id !== ids.academyId,
+          ),
+        ).toBe(true);
+      });
+    });
+
+    describe("GET /api/classes/mine?scope=past", () => {
+      it("sin sesión → 401", async () => {
+        const res = await get("/api/classes/mine?scope=past");
+        expect(res.status).toBe(401);
+      });
+
+      it("historial deduplica por clase: attended prevalece sobre booking", async () => {
+        const res = await get("/api/classes/mine?scope=past", studentSession);
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        const byId = new Map(
+          list.map((r: { classId: string }) => [r.classId, r]),
+        );
+        expect(byId.get(attendedClassId)).toMatchObject({
+          status: "attended",
+        });
+        expect(byId.get(bookedClassId)).toMatchObject({ status: "booked" });
+        expect(byId.get(cancelledClassId)).toMatchObject({
+          status: "cancelled",
+        });
+      });
+
+      it("orden descendente por fecha y sin clases futuras", async () => {
+        const res = await get("/api/classes/mine?scope=past", studentSession);
+        const list = await res.json();
+        const dates = list.map((r: { date: string }) =>
+          new Date(r.date).getTime(),
+        );
+        expect([...dates].sort((a, b) => b - a)).toEqual(dates);
+        for (const d of dates) expect(d).toBeLessThan(Date.now());
+      });
+
+      it("sin scope sigue devolviendo solo reservas futuras", async () => {
+        const res = await get("/api/classes/mine", studentSession);
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        expect(
+          list.every(
+            (r: { classId: string }) =>
+              ![attendedClassId, bookedClassId, cancelledClassId].includes(
+                r.classId,
+              ),
+          ),
+        ).toBe(true);
+      });
     });
   });
 });

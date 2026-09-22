@@ -33,6 +33,19 @@
         "cancelled": "Cancelada"
       },
       "viewProfile": "Ver perfil de {name}"
+    },
+    "learner": {
+      "myAcademies": "Mis academias",
+      "enrolledBadge": "Inscrita",
+      "attendance30d": "{count, plural, one {# asistencia este mes} other {# asistencias este mes}}",
+      "reserveCta": "Reservar clase",
+      "status": {
+        "ACTIVE": "Activa",
+        "ONLINE": "Online",
+        "TRIAL": "De prueba",
+        "PAUSED": "Pausada",
+        "FROZEN": "Congelada"
+      }
     }
   },
   "academySeries": {

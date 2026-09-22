@@ -55,6 +55,22 @@ type MyBooking = {
   } | null;
 };
 
+// GET /classes/mine?scope=past — historial del alumno (spec §9):
+// asistencia prevalece sobre la reserva de la misma clase.
+type HistoryItem = {
+  classId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  academy: { id: string; name: string };
+  series: {
+    name: string;
+    level: { name: string } | null;
+    style: { name: string } | null;
+  } | null;
+  status: "attended" | "booked" | "cancelled";
+};
+
 // Card compacta del explorador (misma receta que las listas del dominio).
 const cardCls =
   "rounded-xl border border-night-700 bg-night-800/60 px-4 py-3";
@@ -80,6 +96,8 @@ export default function ClasesPage() {
   const [mineState, setMineState] = useState<LoadState>("loading");
   const [classes, setClasses] = useState<BrowseClass[] | null>(null);
   const [browseState, setBrowseState] = useState<LoadState>("loading");
+  const [history, setHistory] = useState<HistoryItem[] | null>(null);
+  const [historyState, setHistoryState] = useState<LoadState>("loading");
 
   const [styles, setStyles] = useState<StyleOption[]>([]);
   const [levels, setLevels] = useState<LevelOption[]>([]);
@@ -134,9 +152,25 @@ export default function ClasesPage() {
     }
   }, [weekday, styleId, levelId]);
 
+  const loadHistory = useCallback(async () => {
+    setHistoryState("loading");
+    try {
+      const res = await apiFetch("/classes/mine?scope=past");
+      if (!res.ok) {
+        setHistoryState("error");
+        return;
+      }
+      setHistory((await res.json()) as HistoryItem[]);
+      setHistoryState("ready");
+    } catch {
+      setHistoryState("error");
+    }
+  }, []);
+
   useEffect(() => {
     void loadMine();
-  }, [loadMine]);
+    void loadHistory();
+  }, [loadMine, loadHistory]);
 
   // Refetch al cambiar cualquier filtro (loadBrowse cambia de identidad).
   useEffect(() => {
@@ -206,6 +240,13 @@ export default function ClasesPage() {
       setBusyId(null);
     }
   }
+
+  // Progreso personal del mes — asistencias de los últimos 30 días.
+  const attended30d = (history ?? []).filter(
+    (h) =>
+      h.status === "attended" &&
+      Date.now() - new Date(h.date).getTime() < 30 * 86_400_000,
+  ).length;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-8 px-4 py-6 sm:px-6">
@@ -397,14 +438,20 @@ export default function ClasesPage() {
                       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                         <p
                           className={`text-xs font-medium ${
-                            full ? "text-white/50" : "text-neon"
+                            full
+                              ? "text-white/50"
+                              : cls.spotsLeft <= 3
+                                ? "text-amber-300"
+                                : "text-neon"
                           }`}
                         >
                           {full
                             ? cls.waitlistCount > 0
                               ? `${t("full")} · ${t("waitlist")}: ${cls.waitlistCount}`
                               : t("full")
-                            : t("spotsLeft", { count: cls.spotsLeft })}
+                            : cls.spotsLeft <= 3
+                              ? t("lastSpots", { count: cls.spotsLeft })
+                              : t("spotsLeft", { count: cls.spotsLeft })}
                         </p>
 
                         {cls.myBooking === "BOOKED" ? (
@@ -457,6 +504,77 @@ export default function ClasesPage() {
             </ul>
           ) : (
             <p className="text-sm text-white/50">{t("empty")}</p>
+          ))}
+      </section>
+
+      {/* ─── Historial — progreso personal, no competitivo (spec §9) ─── */}
+      <section aria-label={t("history")} className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-lg font-semibold">{t("history")}</h2>
+          {attended30d > 0 && (
+            <p className="text-xs font-medium text-neon">
+              {t("monthlyAttended", { count: attended30d })}
+            </p>
+          )}
+        </div>
+        {historyState === "loading" && (
+          <Spinner size="sm" className="page-loading" />
+        )}
+        {historyState === "error" && (
+          <div className="flex items-center gap-3">
+            <p role="alert" className="text-sm text-white/60">
+              {tc("error")}
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void loadHistory()}
+            >
+              ↻ {tc("retry")}
+            </Button>
+          </div>
+        )}
+        {historyState === "ready" &&
+          (history && history.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {history.map((h) => (
+                <li key={h.classId} className={cardCls}>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold capitalize tabular-nums">
+                        {dayFmt.format(new Date(h.date))} · {h.startTime}–
+                        {h.endTime}
+                      </p>
+                      <p className="truncate font-medium">
+                        {h.series?.name ?? h.academy.name}
+                      </p>
+                      <p className="text-xs text-white/60">
+                        {h.academy.name}
+                        {h.series?.level?.name
+                          ? ` · ${h.series.level.name}`
+                          : ""}
+                        {h.series?.style?.name
+                          ? ` · ${h.series.style.name}`
+                          : ""}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        h.status === "attended"
+                          ? "neon"
+                          : h.status === "booked"
+                            ? "outline"
+                            : "muted"
+                      }
+                    >
+                      {t(`historyStatus.${h.status}`)}
+                    </Badge>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-white/50">{t("historyEmpty")}</p>
           ))}
       </section>
 
