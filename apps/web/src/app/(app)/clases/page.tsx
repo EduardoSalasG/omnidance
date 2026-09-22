@@ -482,22 +482,19 @@ function ClasesInner() {
             <h2 className="truncate text-base font-semibold leading-snug">
               {style?.name ?? cls.series.name}
             </h2>
-            {/* Tipo de clase (fuerte) + nivel (atenuado) — misma línea,
-                diferenciados por peso/color */}
+            {/* Tipo de clase + nivel como chips — diferenciados por
+                variante: tipo outline (fuerte), nivel muted */}
             {(cls.series.types.length > 0 || cls.series.level) && (
-              <p className="mt-1 truncate text-xs">
-                {cls.series.types.length > 0 && (
-                  <span className="font-medium text-white/70">
-                    {cls.series.types.map((x) => x.name).join(" + ")}
-                  </span>
-                )}
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {cls.series.types.map((x) => (
+                  <Badge key={x.id} variant="outline">
+                    {x.name}
+                  </Badge>
+                ))}
                 {cls.series.level && (
-                  <span className="text-white/40">
-                    {cls.series.types.length > 0 ? " · " : ""}
-                    {cls.series.level.name}
-                  </span>
+                  <Badge variant="muted">{cls.series.level.name}</Badge>
                 )}
-              </p>
+              </div>
             )}
             {/* Academia · profesor */}
             <p className="mt-1 truncate text-xs text-white/50">

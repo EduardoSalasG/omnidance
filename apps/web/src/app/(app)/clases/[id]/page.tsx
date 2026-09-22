@@ -107,34 +107,23 @@ export default async function ClaseDetailPage({
       <BackLink href="/clases">{tc.back}</BackLink>
 
       <header className="flex flex-col gap-3">
-        {(cls.cancelled || cls.attended) && (
-          <div className="flex flex-wrap items-center gap-2">
-            {cls.cancelled && (
-              <Badge variant="outline">{t.cancelledTag}</Badge>
-            )}
-            {cls.attended && <Badge variant="neon">{t.attendedTag}</Badge>}
-          </div>
-        )}
-        {/* Misma gramática que el card: estilo solo como título; tipo
-            (fuerte) y nivel (atenuado) en la línea siguiente */}
+        {/* Chips: tipo(s) de clase outline, nivel muted, badges de
+            estado — mismo set que el card del explorador */}
+        <div className="flex flex-wrap items-center gap-2">
+          {cls.series.types.map((tp) => (
+            <Badge key={tp.id} variant="outline">
+              {tp.name}
+            </Badge>
+          ))}
+          {cls.series.level && (
+            <Badge variant="muted">{cls.series.level.name}</Badge>
+          )}
+          {cls.cancelled && <Badge variant="outline">{t.cancelledTag}</Badge>}
+          {cls.attended && <Badge variant="neon">{t.attendedTag}</Badge>}
+        </div>
         <h1 className="text-3xl font-bold leading-tight">
           {cls.series.style?.name ?? cls.series.name}
         </h1>
-        {(cls.series.types.length > 0 || cls.series.level) && (
-          <p className="text-sm">
-            {cls.series.types.length > 0 && (
-              <span className="font-medium text-white/80">
-                {cls.series.types.map((tp) => tp.name).join(" + ")}
-              </span>
-            )}
-            {cls.series.level && (
-              <span className="text-white/40">
-                {cls.series.types.length > 0 ? " · " : ""}
-                {cls.series.level.name}
-              </span>
-            )}
-          </p>
-        )}
         <p className="text-sm text-white/60">
           {cls.series.name} · {cls.academy.name}
         </p>
