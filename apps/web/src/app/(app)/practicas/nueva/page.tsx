@@ -180,9 +180,9 @@ export default function NuevaPracticaPage() {
           </label>
 
           {/* Asistencia — multi-select Hombres/Mujeres; ambos = todxs */}
-          <fieldset className="flex flex-col gap-3 text-sm">
+          <fieldset className="flex flex-col text-sm">
             <legend className="text-white/70">{t("audience")}</legend>
-            <div className="flex gap-2">
+            <div className="mt-2.5 flex gap-2">
               <button
                 type="button"
                 aria-pressed={allowMen}
