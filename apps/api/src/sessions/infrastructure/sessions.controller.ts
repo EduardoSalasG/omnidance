@@ -250,6 +250,7 @@ export class SessionsController {
       select: {
         id: true,
         name: true,
+        status: true,
         startsAt: true,
         venue: { select: { name: true } },
       },

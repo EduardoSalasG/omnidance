@@ -30,6 +30,7 @@ export type DanceSession = {
   event: {
     id: string;
     name: string;
+    status: string;
     startsAt: string;
     venue: { name: string } | null;
   } | null;
