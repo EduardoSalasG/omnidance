@@ -25,6 +25,7 @@ type Practice = {
   doorPrice: number | null;
   series: { name: string } | null;
   venue: { name: string; address: string | null } | null;
+  style: { id: string; name: string } | null;
 };
 
 /** GET /venues (público) — alimenta el select del formulario. */
@@ -66,6 +67,11 @@ export default function PracticasPage() {
   const [venueId, setVenueId] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [venues, setVenues] = useState<Venue[]>([]);
+  // Estilo foco y cupos — la spec pide aforo chico (~8-15) y género foco;
+  // el DTO del API ya acepta ambos.
+  const [styleId, setStyleId] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [styles, setStyles] = useState<{ id: string; name: string }[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -94,6 +100,13 @@ export default function PracticasPage() {
         if (res.ok) setVenues((await res.json()) as Venue[]);
       })
       .catch(() => {});
+    // Catálogo de estilos para el foco de la práctica (público, ~10 filas).
+    apiFetch("/styles")
+      .then(async (res) => {
+        if (res.ok)
+          setStyles((await res.json()) as { id: string; name: string }[]);
+      })
+      .catch(() => {});
     return () => {
       if (createdTimer.current) window.clearTimeout(createdTimer.current);
     };
@@ -114,6 +127,8 @@ export default function PracticasPage() {
         body: JSON.stringify({
           name,
           ...(venueId ? { venueId } : {}),
+          ...(styleId ? { style: styleId } : {}),
+          ...(capacity ? { capacity: parseInt(capacity, 10) } : {}),
           startsAt: start.toISOString(),
           endsAt: new Date(start.getTime() + PRACTICE_DURATION_MS).toISOString(),
         }),
@@ -136,6 +151,8 @@ export default function PracticasPage() {
       setName("");
       setVenueId("");
       setStartsAt("");
+      setStyleId("");
+      setCapacity("");
       await load();
     } catch {
       setFormError(true);
@@ -144,8 +161,16 @@ export default function PracticasPage() {
     }
   }
 
+  // datetime-local exige hora local (no UTC) en formato YYYY-MM-DDTHH:mm.
+  const minStartsAt = new Date(
+    Date.now() - new Date().getTimezoneOffset() * 60_000,
+  )
+    .toISOString()
+    .slice(0, 16);
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
+      <h1 className="sr-only">{t("title")}</h1>
       {/* Próximas prácticas — heading + crear, mismo patrón que
           "Busco pareja" */}
       <section className="flex flex-col gap-3">
@@ -210,6 +235,34 @@ export default function PracticasPage() {
                 </select>
               </label>
               <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-white/70">{t("style")}</span>
+                <select
+                  value={styleId}
+                  onChange={(e) => setStyleId(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">{t("styleAny")}</option>
+                  {styles.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
+                <span className="text-white/70">{t("capacityLabel")}</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={2}
+                  max={60}
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  placeholder={t("capacityPlaceholder")}
+                  className={inputCls}
+                />
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm">
                 <span className="text-white/70">
                   {t("startsAt")}
                   <span aria-hidden="true" className="text-neon"> *</span>
@@ -217,6 +270,7 @@ export default function PracticasPage() {
                 <input
                   required
                   type="datetime-local"
+                  min={minStartsAt}
                   value={startsAt}
                   onChange={(e) => setStartsAt(e.target.value)}
                   className={inputCls}
@@ -250,10 +304,17 @@ export default function PracticasPage() {
         )}
         {state === "ready" &&
           (practices.length === 0 ? (
-            <Card>
+            <Card className="flex flex-col items-start gap-3">
               <p role="status" className="text-white/60">
                 {t("empty")}
               </p>
+              {/* Sin dead-end: organizar la primera práctica es la acción
+                  que la spec gamifica (badge "organizador de prácticas") */}
+              {!!me && !formOpen && (
+                <Button size="sm" onClick={() => setFormOpen(true)}>
+                  {t("create")}
+                </Button>
+              )}
             </Card>
           ) : (
             <ul className="flex flex-col gap-3">
@@ -266,6 +327,9 @@ export default function PracticasPage() {
                         <div className="flex flex-wrap items-center gap-2">
                           {p.status === "LIVE" && (
                             <Badge variant="live">{te("live")}</Badge>
+                          )}
+                          {p.style && (
+                            <Badge variant="neon">{p.style.name}</Badge>
                           )}
                           {mine && (
                             <Badge variant="neon">{t("yours")}</Badge>

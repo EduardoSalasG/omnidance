@@ -614,6 +614,8 @@ describe("social e2e", () => {
       expect(mine.type).toBe("PRACTICA");
       expect(mine.hostId).toBe(ids.dancerId);
       expect(mine.venue.name).toBe("Venue Social Test");
+      // estilo foco materializado como ScheduleBlock → expuesto como style
+      expect(mine.style?.id).toBe(ids.styleId);
       // la práctica sin local aparece con venue null
       const noVenue = list.find(
         (e: { id: string }) => e.id === ids.practiceNoVenueId,

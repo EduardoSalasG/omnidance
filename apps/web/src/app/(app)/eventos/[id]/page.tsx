@@ -578,6 +578,22 @@ export default async function EventoDetailPage({
             <p className="w-full text-center text-sm font-medium text-white/60">
               {isCancelled ? t.cancelled : t.past}
             </p>
+          ) : event.type === "PRACTICA" ? (
+            /* Práctica: gratis, first-come, sin ticket (spec §8). El CTA
+               es mostrar tu QR — el host/staff escanea al llegar. */
+            <>
+              <div className="min-w-0">
+                <span className="block text-xs text-white/50">
+                  {t.practiceFree}
+                </span>
+                <span className="text-lg font-semibold text-neon">
+                  {t.free}
+                </span>
+              </div>
+              <Button href="/qr?modo=mio" size="lg">
+                {t.showQr}
+              </Button>
+            </>
           ) : (
             <>
               <div className="min-w-0">

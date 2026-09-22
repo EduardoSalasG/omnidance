@@ -10,6 +10,7 @@ const API_URL = process.env.API_URL ?? "http://localhost:4000";
 export type CheckoutEvent = {
   id: string;
   name: string;
+  type: string;
   startsAt: string;
   endsAt: string;
   status: string;
@@ -47,17 +48,22 @@ export default async function CheckoutPage({
     );
   }
 
-  // Deep-link a checkout de un evento terminado/cancelado: aviso, no
-  // compra (el API también lo rechaza — esto evita el roundtrip).
+  // Deep-link a checkout de un evento terminado/cancelado, o de una
+  // práctica (gratis, sin ticket — spec §8): aviso, no compra.
   const isPast =
     event.status === "CANCELLED" ||
     event.status === "CLOSED" ||
     Date.now() >= new Date(event.endsAt).getTime();
-  if (isPast) {
+  const noTicket = isPast || event.type === "PRACTICA";
+  if (noTicket) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
         <p className="text-white/60">
-          {event.status === "CANCELLED" ? t.cancelled : t.past}
+          {event.status === "CANCELLED"
+            ? t.cancelled
+            : event.type === "PRACTICA"
+              ? t.practiceFree
+              : t.past}
         </p>
         <Button href={`/eventos/${params.id}`} variant="secondary">
           {t.backToList}
