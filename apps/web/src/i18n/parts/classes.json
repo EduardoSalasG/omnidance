@@ -9,6 +9,15 @@
     },
     "monthlyAttended": "{count, plural, one {# asistencia este mes} other {# asistencias este mes}}",
     "lastSpots": "{count, plural, one {¡Último cupo!} other {¡Últimos # cupos!}}",
-    "cancelShort": "¿Seguro?"
+    "waitlistCount": "{count} en espera",
+    "cancelShort": "¿Seguro?",
+    "viewList": "Lista",
+    "viewCalendar": "Calendario",
+    "viewHistory": "Historial",
+    "viewMine": "Mis clases",
+    "scopeAll": "Todas",
+    "scopeMine": "Mías",
+    "noClassesDay": "Sin clases este día",
+    "qrHint": "Mostrar QR para el check-in"
   }
 }
