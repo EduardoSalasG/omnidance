@@ -79,7 +79,8 @@
     "statsError": "No pudimos cargar tu actividad",
     "retry": "Reintentar",
     "sessionExpired": "Tu sesión expiró",
-    "sessionExpiredDesc": "Entra de nuevo para ver qué hay esta noche."
+    "sessionExpiredDesc": "Entra de nuevo para ver qué hay esta noche.",
+    "myEntries": "Tus entradas"
   },
   "nav": {
     "main": "Navegación principal",

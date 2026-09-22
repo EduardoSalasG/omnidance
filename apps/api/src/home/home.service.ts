@@ -45,7 +45,11 @@ export type TonightEvent = {
 export type HomeStats = {
   kpis: Kpi[];
   tonight?: Tonight | null;
-  scene?: { events: TonightEvent[]; upcoming: TonightEvent[] } | null;
+  scene?: {
+    events: TonightEvent[];
+    upcoming: TonightEvent[];
+    mine: TonightEvent[];
+  } | null;
   nextClass?: NextItem | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
@@ -142,7 +146,11 @@ export class HomeService {
    */
   private async tonightSceneFor(
     personId: string,
-  ): Promise<{ events: TonightEvent[]; upcoming: TonightEvent[] } | null> {
+  ): Promise<{
+    events: TonightEvent[];
+    upcoming: TonightEvent[];
+    mine: TonightEvent[];
+  } | null> {
     const now = new Date();
     const cutoff = new Date(now);
     cutoff.setUTCDate(cutoff.getUTCDate() + 1);
@@ -185,10 +193,31 @@ export class HomeService {
           })
         : [];
 
-    const all = [...soon, ...next];
+    // Mis entradas futuras fuera de la ventana de "esta noche" — la
+    // franja "Tus entradas" existe siempre, no solo cuando hay noche.
+    // Ticket.eventId es scalar (sin relación): ids primero, eventos después.
+    const myTicketRows = await this.prisma.ticket.findMany({
+      where: { ownerId: personId, status: "ACTIVE" },
+      select: { eventId: true },
+    });
+    const myEventIds = [...new Set(myTicketRows.map((r) => r.eventId))];
+    const myEvents = myEventIds.length
+      ? await this.prisma.event.findMany({
+          where: {
+            id: { in: myEventIds },
+            startsAt: { gt: now },
+            status: { in: ["PUBLISHED", "LIVE"] },
+          },
+          orderBy: { startsAt: "asc" },
+          take: 3,
+          select,
+        })
+      : [];
+
+    const all = [...soon, ...next, ...myEvents];
     if (all.length === 0) return null;
 
-    const ids = all.map((e) => e.id);
+    const ids = [...new Set(all.map((e) => e.id))];
     const [mine, friendships, sold] = await Promise.all([
       this.prisma.ticket.findMany({
         where: { ownerId: personId, status: "ACTIVE", eventId: { in: ids } },
@@ -257,7 +286,11 @@ export class HomeService {
         // El evento donde ya tengo entrada encabeza la escena.
         .sort((a, b) => Number(b.hasTicket) - Number(a.hasTicket));
 
-    return { events: enrich(soon), upcoming: enrich(next) };
+    return {
+      events: enrich(soon),
+      upcoming: enrich(next),
+      mine: enrich(myEvents),
+    };
   }
 
   private async dancerSocialStats(personId: string): Promise<HomeStats> {

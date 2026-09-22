@@ -43,7 +43,11 @@ type TonightEvent = {
 
 type HomeStats = {
   kpis: Kpi[];
-  scene?: { events: TonightEvent[]; upcoming: TonightEvent[] } | null;
+  scene?: {
+    events: TonightEvent[];
+    upcoming: TonightEvent[];
+    mine: TonightEvent[];
+  } | null;
   nextClass?: NextItem | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
@@ -129,6 +133,11 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
   const isTonight = tonightEvents.length > 0;
   const heroEvent = tonightEvents[0] ?? upcoming[0] ?? null;
   const more = isTonight ? tonightEvents.slice(1) : upcoming.slice(1);
+  // Entradas propias fuera de la escena del hero — la franja "Tus
+  // entradas" confirma lo comprado sin competir con la decisión de hoy.
+  const myEntries = (stats?.scene?.mine ?? []).filter(
+    (e) => e.id !== heroEvent?.id,
+  );
 
   if (!heroEvent) {
     return (
@@ -244,6 +253,37 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           <span aria-hidden>→</span>
         </Link>
       </div>
+
+      {myEntries.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/45">
+            {t("myEntries")}
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {myEntries.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href="/qr"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neon/30 bg-night-800/50 px-4 py-3 transition-colors hover:border-neon/60"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {e.name}
+                    </span>
+                    <span className="block truncate text-xs text-white/50">
+                      {dayFmt.format(new Date(e.startsAt))}
+                      {e.venueName ? ` · ${e.venueName}` : ""}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs font-semibold text-neon">
+                    {t("myQr")} →
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {more.length > 0 && (
         <div className="flex flex-col gap-2">
