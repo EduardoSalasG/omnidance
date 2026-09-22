@@ -6,7 +6,6 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, type BadgeVariant } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { AcademyGate } from "@/components/academy/academy-gate";
-import { ConsoleHeader } from "@/components/console/console-header";
 import {
   classDayFmt,
   shortId,
@@ -51,7 +50,6 @@ export default function AcademiaAlumnoPage({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <ConsoleHeader backHref="/academia/alumnos" backLabel={t("students")} />
       <AcademyGate>
         {({ academy }) => (
           <ProfileModule

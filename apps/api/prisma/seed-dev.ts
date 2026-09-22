@@ -1267,6 +1267,56 @@ export async function seedDev(prisma: PrismaClient) {
     create: { aId: dancer.id, bId: josefa.id, status: "PENDING" },
   });
 
+  // Roles de baile autodeclarados (PersonStyleRole) — alimentan la sección
+  // "Estilos" del perfil del amigo (estilo · leader/follower · nivel).
+  const stylesByName = new Map(
+    (await prisma.style.findMany()).map((s) => [s.name, s.id]),
+  );
+  const styleRole = (
+    p: { id: string },
+    styleName: string,
+    role: "LEADER" | "FOLLOWER" | "SWITCH",
+    level?: string,
+  ) => {
+    const styleId = stylesByName.get(styleName);
+    if (!styleId) return Promise.resolve(null);
+    return prisma.personStyleRole.upsert({
+      where: { personId_styleId_role: { personId: p.id, styleId, role } },
+      update: { level: level ?? null },
+      create: { personId: p.id, styleId, role, level },
+    });
+  };
+  await Promise.all([
+    styleRole(dancer, "Salsa cubana (casino)", "LEADER", "intermedio"),
+    styleRole(dancer, "Bachata tradicional", "LEADER", "principiante"),
+    styleRole(camila, "Bachata sensual", "FOLLOWER", "intermedio"),
+    styleRole(camila, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
+    styleRole(josefa, "Salsa cubana (casino)", "FOLLOWER", "avanzado"),
+    styleRole(josefa, "Timba", "FOLLOWER", "intermedio"),
+    styleRole(diego, "Salsa cubana (casino)", "LEADER", "intermedio"),
+    styleRole(diego, "Rueda de casino", "LEADER", "principiante"),
+    styleRole(antonia, "Bachata sensual", "FOLLOWER", "avanzado"),
+    styleRole(antonia, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
+    styleRole(sebastian, "Salsa on2", "LEADER", "avanzado"),
+    styleRole(sebastian, "Mambo on2", "LEADER", "intermedio"),
+    styleRole(francisca, "Bachata sensual", "FOLLOWER", "principiante"),
+    styleRole(felipe, "Timba", "LEADER", "intermedio"),
+    styleRole(felipe, "Salsa cubana (casino)", "SWITCH", "principiante"),
+    styleRole(daniela, "Bachata dominicana", "FOLLOWER", "intermedio"),
+    styleRole(daniela, "Bachata sensual", "FOLLOWER", "principiante"),
+    // Instructores y DJs también bailan social — sus perfiles lo reflejan.
+    styleRole(vale, "Salsa cubana (casino)", "SWITCH", "avanzado"),
+    styleRole(vale, "Bachata sensual", "FOLLOWER", "avanzado"),
+    styleRole(rodrigo, "Salsa cubana (casino)", "LEADER", "avanzado"),
+    styleRole(rodrigo, "Rueda de casino", "LEADER", "avanzado"),
+    styleRole(jesus, "Timba", "LEADER", "avanzado"),
+    styleRole(steban, "Salsa on1", "LEADER", "intermedio"),
+    styleRole(matias, "Salsa cubana (casino)", "LEADER", "intermedio"),
+    styleRole(fabian, "Bachata sensual", "SWITCH", "intermedio"),
+    styleRole(cesar, "Salsa cubana (casino)", "LEADER", "avanzado"),
+    styleRole(ardilla, "Bachata tradicional", "LEADER", "intermedio"),
+  ]);
+
   // Staff asignado a la puerta de Bachatamanía (consola /staff).
   await prisma.staffAssignment.upsert({
     where: {
