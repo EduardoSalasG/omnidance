@@ -1151,6 +1151,16 @@ export async function seedDev(prisma: PrismaClient) {
     where: { id: bachatamania.id },
     data: { serviceFeeClp: 300, platformFeePct: 10, tablesTotal: 10 },
   });
+  // Las noches grandes de fin de semana también ofrecen mesa — hace la
+  // sección de checkout descubrible en la demo sin depender de un solo
+  // evento.
+  await prisma.event.updateMany({
+    where: {
+      status: "PUBLISHED",
+      name: { in: ["Viernes Sabroso", "Sábado con Sabrosura", "Bachatazo", "La Gozadera"] },
+    },
+    data: { tablesTotal: 8 },
+  });
 
   // ─── Edición pasada — alimenta analytics (GMV, check-ins) e historial ───
   const lastWeek = new Date(Date.now() - 7 * 86_400_000);
