@@ -1397,6 +1397,159 @@ export async function seedDev(prisma: PrismaClient) {
     ig(ardilla, "ardilla.dance"),
   ]);
 
+  // ─── Prácticas — Event type=PRACTICA, hostId=creador bailarín ───
+  // Alimentan /practicas: una por cada escenario de card (propia, de
+  // otro, sin venue=parque, con aforo). Idempotente por nombre+tipo; las
+  // fechas se refrescan en cada corrida como el resto del seed.
+  const practice = (
+    name: string,
+    host: { id: string },
+    venueId: string | null,
+    weekday: number,
+    hour: number,
+    capacity: number | null,
+  ) =>
+    ensure(
+      () =>
+        prisma.event.findFirst({ where: { type: "PRACTICA", name } }),
+      () =>
+        prisma.event.create({
+          data: {
+            type: "PRACTICA",
+            status: "PUBLISHED",
+            name,
+            hostId: host.id,
+            venueId,
+            capacity,
+            startsAt: nextDay(weekday, hour),
+            endsAt: nextDay(weekday, hour + 3),
+          },
+        }),
+      (e) =>
+        prisma.event.update({
+          where: { id: e.id },
+          data: {
+            hostId: host.id,
+            venueId,
+            capacity,
+            startsAt: nextDay(weekday, hour),
+            endsAt: nextDay(weekday, hour + 3),
+            status: "PUBLISHED",
+          },
+        }),
+    );
+
+  // La del demo bailarín → badge "Tu práctica". Sábado a la tarde.
+  await practice("Práctica de casino — rueda abierta", dancer, orixas.id, 6, 16, 15);
+  // En parque (sin venue) → la card muestra solo nombre + fecha.
+  await practice("Bachata sensual en Parque Balmaceda", camila, null, 0, 17, 10);
+  // De un instructor que también baila → badge "Anfitrión: Valeska".
+  await practice("Práctica de salsa on1 — línea y tiempo", vale, havana.id, 2, 19, 20);
+  // Sin aforo declarado → card sin badge de cupos.
+  await practice("Timba para todos — práctica libre", jesus, tierraDura.id, 4, 18, null);
+
+  // ─── Sesiones de baile (DanceSession + SessionRating) ───
+  // Historial sobre la edición pasada de Bachatamanía (evento CLOSED) +
+  // invitaciones vivas sobre la próxima — cubre todas las ramas de
+  // /bailes: entrantes, salientes, confirmadas, puntuadas y declinadas.
+  const styleIdOf = (name: string) => stylesByName.get(name) ?? null;
+  const session = async (
+    eventId: string,
+    inviter: { id: string },
+    invitee: { id: string },
+    status: "INVITED" | "CONFIRMED" | "DECLINED" | "RATED",
+    scannedAt: Date,
+    styleName?: string,
+    // [rater, global, connection, comfort, musicality]
+    ratings: [
+      { id: string },
+      number,
+      number?,
+      number?,
+      number?,
+    ][] = [],
+  ) => {
+    const s = await ensure(
+      () =>
+        prisma.danceSession.findFirst({
+          where: { eventId, inviterId: inviter.id, inviteeId: invitee.id },
+        }),
+      () =>
+        prisma.danceSession.create({
+          data: {
+            eventId,
+            inviterId: inviter.id,
+            inviteeId: invitee.id,
+            status,
+            scannedAt,
+            confirmedAt:
+              status === "INVITED" || status === "DECLINED"
+                ? null
+                : new Date(scannedAt.getTime() + 30_000),
+            styleId: styleName ? styleIdOf(styleName) : null,
+          },
+        }),
+      // Las INVITED expiran a las 24h (lazy) — refrescar scannedAt en
+      // cada reseed mantiene la invitación demo viva.
+      (row) =>
+        status === "INVITED"
+          ? prisma.danceSession.update({
+              where: { id: row.id },
+              data: { scannedAt },
+            })
+          : Promise.resolve(null),
+    );
+    for (const [rater, global, connection, comfort, musicality] of ratings) {
+      await prisma.sessionRating.upsert({
+        where: { sessionId_raterId: { sessionId: s.id, raterId: rater.id } },
+        update: { global, connection, comfort, musicality },
+        create: {
+          sessionId: s.id,
+          raterId: rater.id,
+          global,
+          connection,
+          comfort,
+          musicality,
+        },
+      });
+    }
+    return s;
+  };
+
+  const night = lastWeek; // ventana de la edición pasada
+  const at = (min: number) => new Date(night.getTime() + min * 60_000);
+
+  // Historial del demo bailarín (vista /bailes de dancer@omnidance.dev):
+  await session(prevEdition.id, dancer, camila, "RATED", at(60), "Bachata sensual", [
+    [dancer, 5, 5, 5, 4],
+    [camila, 5],
+  ]);
+  await session(prevEdition.id, josefa, dancer, "CONFIRMED", at(95), "Salsa cubana (casino)", [
+    [josefa, 4],
+  ]); // sin rating del dancer → aparece "Puntuar"
+  await session(prevEdition.id, dancer, antonia, "CONFIRMED", at(130), "Bachata sensual", [
+    [dancer, 4, 4, 5, 4],
+    [antonia, 5],
+  ]);
+  await session(prevEdition.id, diego, dancer, "CONFIRMED", at(160)); // nadie ha puntuado
+  await session(prevEdition.id, dancer, daniela, "DECLINED", at(200)); // ella declinó
+  // Historial entre otros del clique — visible al entrar con sus cuentas.
+  await session(prevEdition.id, diego, camila, "RATED", at(70), "Bachata sensual", [
+    [diego, 5],
+    [camila, 4],
+  ]);
+  await session(prevEdition.id, antonia, daniela, "CONFIRMED", at(110), "Salsa cubana (casino)", [
+    [antonia, 5],
+  ]);
+  await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Timba");
+
+  // Invitaciones vivas sobre la próxima Bachatamanía — sección
+  // "Por confirmar" de /bailes: una entrante (Camila → dancer) y una
+  // saliente (dancer → Antonia).
+  const soon = new Date();
+  await session(bachatamania.id, camila, dancer, "INVITED", soon);
+  await session(bachatamania.id, dancer, antonia, "INVITED", soon);
+
   // Staff asignado a la puerta de Bachatamanía (consola /staff).
   await prisma.staffAssignment.upsert({
     where: {
