@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://127.0.0.1:4000"
+      "value": "http://localhost:4000"
     }
   ],
   "item": [
@@ -5112,6 +5112,31 @@
                 "classes",
                 "teaching"
               ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/classes/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/classes/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         },

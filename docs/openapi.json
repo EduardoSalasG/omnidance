@@ -2766,6 +2766,26 @@
         }
       }
     },
+    "/api/classes/{id}": {
+      "get": {
+        "operationId": "ClassesController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/classes/{id}/roster": {
       "get": {
         "operationId": "ClassesController_roster",

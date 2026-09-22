@@ -425,6 +425,142 @@ export class ClassesController {
   }
 
   /**
+   * Detalle de una clase para el alumno: serie (estilo/nivel/modalidad/
+   * precio suelta), academia, instructor efectivo (clase → slot → serie),
+   * cupos/espera y mi estado de reserva/asistencia. Además las próximas
+   * sesiones de la misma serie.
+   */
+  @Get(":id")
+  async detail(@Param("id") classId: string, @Req() req: Request) {
+    const me = req.person!.id;
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        date: true,
+        instructorId: true,
+        capacity: true,
+        cancelled: true,
+        slot: {
+          select: {
+            weekday: true,
+            startTime: true,
+            endTime: true,
+            capacity: true,
+            instructorId: true,
+            academyId: true,
+            academy: {
+              select: { id: true, name: true, defaultQuorum: true },
+            },
+            series: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                quorum: true,
+                dropInPrice: true,
+                instructorId: true,
+                level: { select: { name: true } },
+                style: { select: { name: true, genre: true } },
+                types: {
+                  include: { type: { select: { id: true, name: true } } },
+                },
+              },
+            },
+            types: {
+              include: { type: { select: { id: true, name: true } } },
+            },
+          },
+        },
+        bookings: {
+          where: { status: { in: ["BOOKED", "WAITLIST"] } },
+          select: { personId: true, status: true },
+        },
+        attendances: {
+          where: { personId: me },
+          select: { id: true },
+        },
+      },
+    });
+    if (!cls) throw new NotFoundException();
+
+    // Instructor efectivo: override de la clase → del slot → default de la
+    // serie (misma cadena que `teaching`).
+    const instructorId =
+      cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series.instructorId;
+    const instructor = instructorId
+      ? await this.prisma.person.findUnique({
+          where: { id: instructorId },
+          select: {
+            id: true,
+            name: true,
+            photoUrl: true,
+            instagram: true,
+          },
+        })
+      : null;
+
+    // Próximas sesiones de la misma serie (el alumno puede mirar otra fecha).
+    const upcoming = await this.prisma.class.findMany({
+      where: {
+        slot: { seriesId: cls.slot.series.id },
+        cancelled: false,
+        date: { gt: cls.date },
+      },
+      orderBy: { date: "asc" },
+      take: 4,
+      select: {
+        id: true,
+        date: true,
+        slot: { select: { startTime: true, endTime: true } },
+      },
+    });
+
+    const booked = cls.bookings.filter((b) => b.status === "BOOKED").length;
+    const mine = cls.bookings.find((b) => b.personId === me);
+    const capacity = effectiveCapacity({
+      classCapacity: cls.capacity,
+      slotCapacity: cls.slot.capacity,
+      seriesQuorum: cls.slot.series.quorum,
+      academyDefaultQuorum: cls.slot.academy.defaultQuorum,
+    });
+    return {
+      id: cls.id,
+      date: cls.date,
+      startTime: cls.slot.startTime,
+      endTime: cls.slot.endTime,
+      weekday: cls.slot.weekday,
+      cancelled: cls.cancelled,
+      capacity,
+      bookedCount: booked,
+      spotsLeft: Math.max(capacity - booked, 0),
+      waitlistCount: cls.bookings.filter((b) => b.status === "WAITLIST").length,
+      myBooking: mine?.status ?? null,
+      attended: cls.attendances.length > 0,
+      academy: cls.slot.academy,
+      instructor,
+      series: {
+        id: cls.slot.series.id,
+        name: cls.slot.series.name,
+        description: cls.slot.series.description,
+        level: cls.slot.series.level,
+        style: cls.slot.series.style,
+        dropInPrice: cls.slot.series.dropInPrice,
+        types: (cls.slot.types.length
+          ? cls.slot.types
+          : cls.slot.series.types
+        ).map((t) => t.type),
+      },
+      upcoming: upcoming.map((u) => ({
+        id: u.id,
+        date: u.date,
+        startTime: u.slot.startTime,
+        endTime: u.slot.endTime,
+      })),
+    };
+  }
+
+  /**
    * Roster de una clase: detalle + reservas BOOKED/WAITLIST con el nombre
    * del alumno. Gestión de la academia dueña del slot (requireManage:
    * owner / instructor / ADMIN).
