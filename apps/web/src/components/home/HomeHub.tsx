@@ -8,6 +8,7 @@ import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import {
   OnboardingRunner,
@@ -23,6 +24,8 @@ type Me = {
 
 type Kpi = { key: string; value: number; format?: "clp" };
 type NextItem = { id: string; name: string; when: string; place: string | null };
+/** Reserva activa del learner en una clase futura (HomeStats.myClasses). */
+type MyClass = NextItem & { status: "BOOKED" | "WAITLIST" };
 
 // Evento de la escena nocturna — lo que decide "¿salgo hoy?":
 // género, precio, amigos que van, preventas restantes.
@@ -51,6 +54,7 @@ type HomeStats = {
   nextClass?: NextItem | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
+  myClasses?: MyClass[];
   needsAcademy?: boolean;
 };
 
@@ -77,6 +81,18 @@ const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "long",
 });
+
+// "Hoy" si la fecha es del día local en curso — el learner lee "Hoy
+// 19:30" más rápido que "mar 12 nov · 19:30".
+const isToday = (iso: string) => {
+  const d = new Date(iso);
+  const n = new Date();
+  return (
+    d.getFullYear() === n.getFullYear() &&
+    d.getMonth() === n.getMonth() &&
+    d.getDate() === n.getDate()
+  );
+};
 
 // Género como texto coloreado — misma paleta que la cartelera.
 const GENRE_TEXT: Record<string, string> = {
@@ -341,6 +357,7 @@ export function HomeHub() {
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
+  const tcl = useTranslations("classes");
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
@@ -436,10 +453,12 @@ export function HomeHub() {
     );
   }
 
-  // Hero = acción principal para lentes de gestión y bailarín-academia.
-  // El bailarín-social no pasa por acá: su superficie es TonightScene
-  // (la escena completa de la noche, no una sola card).
-  const hero: Hero = (() => {
+  // Hero = acción principal para lentes de gestión y el fallback del
+  // bailarín-academia sin clase próxima. El bailarín-social no pasa por
+  // acá: su superficie es TonightScene (la escena completa de la noche).
+  // dancerAcademy con nextClass → null: la "Próxima clase" se renderiza
+  // como sección propia con el rótulo fuera del card.
+  const hero: Hero | null = (() => {
     if (dancerAcademy) {
       if (stats?.needsAcademy || stats?.kpis.length === 0) {
         return {
@@ -449,23 +468,15 @@ export function HomeHub() {
           cta: t("findAcademy"),
         };
       }
-      // Learner: el hero va a /clases (sus reservas + explorador), nunca
-      // a /academia — esa es la consola del owner/instructor.
-      const nc = stats?.nextClass;
-      return nc
-        ? {
-            href: "/clases",
-            title: nc.name,
-            desc: `${t("nextClass")} — ${dayFmt.format(new Date(nc.when))}${nc.place ? ` · ${nc.place}` : ""}`,
-            cta: t("nextClassCta"),
-            secondary: { href: "/academias", label: t("myAcademies") },
-          }
+      // Learner: va a /clases (sus reservas + explorador), nunca a
+      // /academia — esa es la consola del owner/instructor.
+      return stats?.nextClass
+        ? null
         : {
             href: "/clases",
             title: t("modeAcademy"),
             desc: t("academyLearnerDesc"),
             cta: t("seeClasses"),
-            secondary: { href: "/academias", label: t("myAcademies") },
           };
     }
     if (activeRole === "DANCER") {
@@ -599,30 +610,103 @@ export function HomeHub() {
             <KpiGrid kpis={stats.kpis} label={kpiLabel} />
           )}
 
-          <section aria-label={hero.title}>
-            <Link
-              href={hero.href}
-              className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
-            >
-              <span className="text-xl font-bold leading-tight">
-                {hero.title}
-              </span>
-              <span className="text-sm text-white/60">{hero.desc}</span>
-              <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
-                {hero.cta}
-                <span aria-hidden>→</span>
-              </span>
-            </Link>
-            {hero.secondary && (
-              <Button
-                href={hero.secondary.href}
-                variant="secondary"
-                className="mt-3 w-full"
+          {/* Próxima clase del learner — el rótulo va FUERA del card:
+              la sección dice qué es y el card solo responde cuándo/
+              dónde. "Hoy" en vez de la fecha cuando es el día en curso. */}
+          {dancerAcademy && stats?.nextClass && (
+            <section aria-label={t("nextClass")}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                {t("nextClass")}
+              </h2>
+              <Link
+                href="/clases"
+                className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
               >
-            {hero.secondary.label}
-              </Button>
-            )}
-          </section>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="truncate text-xl font-bold leading-tight">
+                    {stats.nextClass.name}
+                  </span>
+                  <span className="text-sm text-white/60">
+                    {isToday(stats.nextClass.when)
+                      ? te("today")
+                      : dayFmt.format(new Date(stats.nextClass.when))}
+                    {stats.nextClass.place
+                      ? ` · ${stats.nextClass.place}`
+                      : ""}
+                  </span>
+                </div>
+                <span aria-hidden className="shrink-0 text-neon">
+                  →
+                </span>
+              </Link>
+            </section>
+          )}
+
+          {hero && (
+            <section aria-label={hero.title}>
+              <Link
+                href={hero.href}
+                className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+              >
+                <span className="text-xl font-bold leading-tight">
+                  {hero.title}
+                </span>
+                <span className="text-sm text-white/60">{hero.desc}</span>
+                <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+                  {hero.cta}
+                  <span aria-hidden>→</span>
+                </span>
+              </Link>
+              {hero.secondary && (
+                <Button
+                  href={hero.secondary.href}
+                  variant="secondary"
+                  className="mt-3 w-full"
+                >
+                  {hero.secondary.label}
+                </Button>
+              )}
+            </section>
+          )}
+
+          {/* Tus próximas clases — las reservas reales del learner
+              (BOOKED/WAITLIST), próximas primero, máx 3. */}
+          {dancerAcademy && (stats?.myClasses?.length ?? 0) > 0 && (
+            <section aria-label={t("myClassesTitle")}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                {t("myClassesTitle")}
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {stats!.myClasses!.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href="/clases"
+                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/60 p-3 transition-colors hover:border-neon/50"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-white">
+                          {c.name}
+                        </p>
+                        <p className="truncate text-xs text-white/50">
+                          {isToday(c.when)
+                            ? te("today")
+                            : dayFmt.format(new Date(c.when))}
+                          {c.place ? ` · ${c.place}` : ""}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={c.status === "BOOKED" ? "neon" : "outline"}
+                      >
+                        {c.status === "BOOKED"
+                          ? tcl("booked")
+                          : tcl("waitlist")}
+                      </Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
 
