@@ -25,6 +25,14 @@ export type DanceSession = {
   inviterId: string;
   inviteeId: string;
   styleId: string | null;
+  /** Ficha mínima del evento — permite agrupar el historial por noche.
+      null si el evento ya no existe. */
+  event: {
+    id: string;
+    name: string;
+    startsAt: string;
+    venue: { name: string } | null;
+  } | null;
   partner: SessionPartner;
   myRating: SessionRating | null;
 };

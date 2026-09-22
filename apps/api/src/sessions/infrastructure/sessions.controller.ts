@@ -242,6 +242,20 @@ export class SessionsController {
       },
     });
 
+    // Ficha mínima de los eventos para agrupar el historial por noche —
+    // DanceSession.eventId es escalar (sin relación), lookup manual.
+    const eventIds = [...new Set(rows.map((s) => s.eventId))];
+    const events = await this.prisma.event.findMany({
+      where: { id: { in: eventIds } },
+      select: {
+        id: true,
+        name: true,
+        startsAt: true,
+        venue: { select: { name: true } },
+      },
+    });
+    const eventById = new Map(events.map((e) => [e.id, e]));
+
     const counterpartIds = [
       ...new Set(
         rows.map((s) => (s.inviterId === me ? s.inviteeId : s.inviterId)),
@@ -261,6 +275,7 @@ export class SessionsController {
         ...s,
         status: this.sessions.effectiveStatus(s, now),
         role: iAmInviter ? ("inviter" as const) : ("invitee" as const),
+        event: eventById.get(s.eventId) ?? null,
         partner,
         myRating: ratings[0] ?? null,
       };
