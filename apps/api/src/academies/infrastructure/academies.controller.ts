@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  IsArray,
   IsIn,
   IsInt,
   IsISO8601,
@@ -130,6 +131,12 @@ class CreateSlotDto {
   @IsInt()
   @Min(1)
   capacity?: number;
+
+  /** Modalidades del horario (slot legacy sin serie — no hay herencia). */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  typeIds?: string[];
 }
 
 class UpdateAcademySettingsDto {
@@ -559,7 +566,11 @@ export class AcademiesController {
         styleId: dto.styleId ?? null,
         instructorId: dto.instructorId ?? null,
         capacity: dto.capacity ?? null, // null = hereda serie/academia
+        types: dto.typeIds?.length
+          ? { create: dto.typeIds.map((typeId) => ({ typeId })) }
+          : undefined,
       },
+      include: { types: { include: { type: true } } },
     });
   }
 
@@ -570,6 +581,7 @@ export class AcademiesController {
     return this.prisma.classSlot.findMany({
       where: { academyId: id },
       orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+      include: { types: { include: { type: true } } },
     });
   }
 

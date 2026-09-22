@@ -725,9 +725,10 @@ model ClassLevel {
 
 model ClassType {
   id   String @id @default(cuid())
-  name String @unique // Pareja | Shines | Corporalidad
+  name String @unique // En Pareja | Shines | Corporalidad
 
   series ClassSeriesType[]
+  slots  ClassSlotType[]
 }
 
 // Curso recurrente mensual: agrupa 1+ horarios semanales (ClassSlot) con
@@ -745,6 +746,7 @@ model ClassSeries {
   levelId      String?
   instructorId String? // profesor por defecto de la serie
   quorum       Int? // cupos por defecto de la serie (null → hereda academy/default)
+  dropInPrice  Int? // CLP — precio de la clase suelta (null = no se vende suelta)
   month        String // "2026-09"
   active       Boolean     @default(true)
   createdAt    DateTime    @default(now())
@@ -773,8 +775,24 @@ model ClassSlot {
   startTime    String // "19:00"
   endTime      String
   capacity     Int? // null = hereda el quórum de la serie/academia
+  // Solo slots legacy (seriesId null, creados al registrar asistencia).
+  // Un slot de serie NO lo declara: hereda series.styleId — mismo patrón
+  // de herencia que capacity/instructorId.
   styleId      String?
   classes      Class[]
+  types        ClassSlotType[]
+}
+
+// Modalidad del horario (En Pareja | Shines | Corporalidad). Vacío =
+// hereda las modalidades de la serie. Permite una sola serie "Cubano"
+// con lunes En Pareja y miércoles Shines, sin duplicar la serie.
+model ClassSlotType {
+  slot    ClassSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  slotId  String
+  type    ClassType @relation(fields: [typeId], references: [id])
+  typeId  String
+
+  @@id([slotId, typeId])
 }
 
 model Class {

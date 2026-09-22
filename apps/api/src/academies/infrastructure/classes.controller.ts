@@ -113,6 +113,9 @@ export class ClassesController {
             startTime: true,
             endTime: true,
             capacity: true,
+            types: {
+              include: { type: { select: { id: true, name: true } } },
+            },
             academy: {
               select: { id: true, name: true, defaultQuorum: true },
             },
@@ -121,6 +124,7 @@ export class ClassesController {
                 id: true,
                 name: true,
                 quorum: true,
+                dropInPrice: true,
                 level: { select: { id: true, name: true } },
                 style: { select: { id: true, name: true } },
                 types: {
@@ -184,7 +188,13 @@ export class ClassesController {
                 name: c.slot.series.name,
                 level: c.slot.series.level,
                 style: c.slot.series.style,
-                types: c.slot.series.types.map((t) => t.type),
+                dropInPrice: c.slot.series.dropInPrice,
+                // Modalidad efectiva: el horario propio gana sobre la serie
+                // (slot.types vacío = hereda series.types).
+                types: (c.slot.types.length
+                  ? c.slot.types
+                  : c.slot.series.types
+                ).map((t) => t.type),
               }
             : null,
         };

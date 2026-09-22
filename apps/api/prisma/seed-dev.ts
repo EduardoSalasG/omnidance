@@ -331,6 +331,8 @@ export async function seedDev(prisma: PrismaClient) {
     startTime: string;
     endTime: string;
     capacity?: number; // omitido = hereda serie/academia
+    /** Modalidad propia del horario; omitido = hereda typeNames de la serie. */
+    typeNames?: string[];
   };
 
   /**
@@ -346,6 +348,7 @@ export async function seedDev(prisma: PrismaClient) {
     typeNames?: string[];
     instructorId?: string;
     quorum?: number; // override de serie; omitido = hereda academia
+    dropInPrice?: number; // CLP — precio de clase suelta
     slots: SlotSeed[];
     active?: boolean;
     /** también materializa el mes anterior (historial). Default true. */
@@ -369,6 +372,7 @@ export async function seedDev(prisma: PrismaClient) {
             levelId: lId,
             instructorId: opts.instructorId ?? null,
             quorum: opts.quorum ?? null,
+            dropInPrice: opts.dropInPrice ?? null,
             month: currentMonth,
             active: opts.active ?? true,
           },
@@ -381,6 +385,7 @@ export async function seedDev(prisma: PrismaClient) {
             levelId: lId,
             instructorId: opts.instructorId ?? null,
             quorum: opts.quorum ?? null,
+            dropInPrice: opts.dropInPrice ?? null,
             month: currentMonth,
             active: opts.active ?? true,
           },
@@ -423,20 +428,33 @@ export async function seedDev(prisma: PrismaClient) {
               startTime: s.startTime,
               endTime: s.endTime,
               capacity: s.capacity ?? null,
-              styleId: sId,
               instructorId: opts.instructorId ?? null,
             },
           }),
         (sl) =>
+          // styleId: null — el slot de serie hereda series.styleId; el campo
+          // es solo para slots legacy sin serie.
           prisma.classSlot.update({
             where: { id: sl.id },
             data: {
               endTime: s.endTime,
               capacity: s.capacity ?? null,
               instructorId: opts.instructorId ?? null,
+              styleId: null,
             },
           }),
       );
+
+      // Modalidad propia del horario (declarativa): si el slot declara
+      // typeNames se sincroniza el set; si no, hereda los de la serie.
+      if (s.typeNames !== undefined) {
+        await prisma.classSlotType.deleteMany({ where: { slotId: slot.id } });
+        for (const tName of s.typeNames) {
+          await prisma.classSlotType.create({
+            data: { slotId: slot.id, typeId: await typeId(tName) },
+          });
+        }
+      }
 
       const classes: { id: string; date: Date }[] = [];
       for (const month of months) {
@@ -469,6 +487,7 @@ export async function seedDev(prisma: PrismaClient) {
     typeNames: ["En Pareja"],
     instructorId: vale.id,
     quorum: 8,
+    dropInPrice: 9000,
     slots: [
       { weekday: 1, startTime: "19:00", endTime: "20:00" },
       { weekday: 3, startTime: "19:00", endTime: "20:00" },
@@ -523,6 +542,7 @@ export async function seedDev(prisma: PrismaClient) {
     levelName: "Intermedio",
     typeNames: ["Shines"],
     instructorId: vale.id,
+    dropInPrice: 8000,
     slots: [{ weekday: 3, startTime: "21:00", endTime: "22:00" }],
   });
 
@@ -613,14 +633,24 @@ export async function seedDev(prisma: PrismaClient) {
       const startTime = CLASS_HOURS[(aIdx * 2 + sIdx) % CLASS_HOURS.length];
       const endTime = `${String(Number(startTime.slice(0, 2)) + 1).padStart(2, "0")}:00`;
       const levelName = LEVEL_ROT[(aIdx + sIdx) % LEVEL_ROT.length];
+      const modality = MODALITIES[(aIdx + sIdx) % MODALITIES.length];
+      // "Ambos" se resuelve por slot: cada día del par lleva una modalidad
+      // (lunes En Pareja / miércoles Shines) en una misma serie.
+      const mixed = modality.length > 1;
       await mkClassSeries({
         academyId: academy.id,
         name: `${style.label} — ${levelName}`,
         styleName: style.styleName,
         levelName,
-        typeNames: MODALITIES[(aIdx + sIdx) % MODALITIES.length],
+        typeNames: modality,
         instructorId: profe.id,
-        slots: weekdays.map((weekday) => ({ weekday, startTime, endTime })),
+        dropInPrice: 8000,
+        slots: weekdays.map((weekday, i) => ({
+          weekday,
+          startTime,
+          endTime,
+          typeNames: mixed ? [modality[i % modality.length]] : undefined,
+        })),
         withHistory: false,
         withNext: true,
       });
@@ -636,12 +666,30 @@ export async function seedDev(prisma: PrismaClient) {
     levelName: "Básico",
     typeNames: ["En Pareja", "Shines"],
     instructorId: rodrigo.id,
+    dropInPrice: 9000,
     slots: [
-      { weekday: 2, startTime: "18:00", endTime: "19:00" },
-      { weekday: 5, startTime: "18:00", endTime: "19:00" },
+      {
+        weekday: 2,
+        startTime: "18:00",
+        endTime: "19:00",
+        typeNames: ["En Pareja"],
+      },
+      {
+        weekday: 5,
+        startTime: "18:00",
+        endTime: "19:00",
+        typeNames: ["Shines"],
+      },
     ],
     withHistory: false,
     withNext: true,
+  });
+
+  // Invariante: styleId del slot es solo para slots legacy sin serie —
+  // limpia el duplicado en cualquier slot de serie sembrado antes del fix.
+  await prisma.classSlot.updateMany({
+    where: { seriesId: { not: null }, styleId: { not: null } },
+    data: { styleId: null },
   });
 
   // Overrides puntuales a nivel de instancia Class: capacidad y profesor.

@@ -36,6 +36,8 @@ type BrowseClass = {
     name: string;
     level: { id: string; name: string } | null;
     style: { id: string; name: string } | null;
+    dropInPrice: number | null;
+    // Modalidad efectiva del horario: slot.types si declara, si no los de la serie.
     types: { id: string; name: string }[];
   } | null;
 };
@@ -504,6 +506,9 @@ export default function ClasesPage() {
                               : ""}
                             {cls.series?.style?.name
                               ? ` · ${cls.series.style.name}`
+                              : ""}
+                            {cls.series && cls.series.types.length > 0
+                              ? ` · ${cls.series.types.map((x) => x.name).join(" + ")}`
                               : ""}
                           </p>
 

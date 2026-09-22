@@ -63,7 +63,12 @@
     "slotAdded": "Horario agregado",
     "quorum": "Quórum",
     "quorumHint": "Opcional — vacío hereda el quórum por defecto de la academia.",
-    "quorumValue": "Quórum {value}"
+    "quorumValue": "Quórum {value}",
+    "dropIn": "Clase suelta (CLP)",
+    "dropInHint": "Vacío = la clase no se vende suelta.",
+    "dropInValue": "Suelta {value}",
+    "slotTypes": "Modalidad",
+    "slotTypesHint": "vacío = hereda la serie"
   },
   "instructor": {
     "title": "Mis clases",
