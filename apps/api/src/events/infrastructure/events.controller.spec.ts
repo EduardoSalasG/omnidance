@@ -102,7 +102,11 @@ describe("EventsController.friendsGoing", () => {
 
   beforeEach(() => {
     prisma = new FakePrisma();
-    ctrl = new EventsController(prisma as unknown as PrismaService);
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      // ParamsService mockeado — friendsGoing no toca defaults de productor.
+      { getProducerParams: async () => null } as never,
+    );
     prisma.people.set("me", { id: "me", name: "Yo", photoUrl: null });
     prisma.people.set("cami", {
       id: "cami",

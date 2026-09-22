@@ -1137,29 +1137,54 @@ export async function seedDev(prisma: PrismaClient) {
       serviceFeeClp: 400,
       doorAppFeeClp: 500,
       platformFeePct: 5,
+      // Defaults de mesas del productor: sus eventos nuevos los heredan
+      // salvo override. El cupo sentable (40) es menor que el aforo del
+      // evento — es el total real contra el que valida el checkout.
+      tablesTotal: 8,
+      tableSeatMax: 6,
+      tableSeatsTotal: 40,
     },
   });
+  // muvetOwner sin defaults de mesas → sus eventos no ofrecen el servicio.
   await prisma.producerParams.upsert({
     where: { producerId: muvetOwner.id },
     update: {},
     create: { producerId: muvetOwner.id, platformFeePct: 8 },
   });
+  // Backfill de defaults de mesas: solo si el productor jamás configuró
+  // ninguno (los tres en null) — no pisa ediciones hechas en /productor/
+  // parametros sobre una DB existente.
+  await prisma.producerParams.updateMany({
+    where: {
+      producerId: carlos.id,
+      tablesTotal: null,
+      tableSeatMax: null,
+      tableSeatsTotal: null,
+    },
+    data: { tablesTotal: 8, tableSeatMax: 6, tableSeatsTotal: 40 },
+  });
   // Override puntual en un evento → badge "Valor propio" en la ficha.
-  // tablesTotal: inventario de mesas reservables — la consola muestra
-  // "N de M ocupadas" y el checkout la sección "¿Quieres mesa?".
+  // Bachatamanía configura su propio inventario de mesas (10 mesas, hasta
+  // 8 por mesa, 60 personas sentables — menos que su aforo).
   await prisma.event.update({
     where: { id: bachatamania.id },
-    data: { serviceFeeClp: 300, platformFeePct: 10, tablesTotal: 10 },
+    data: {
+      serviceFeeClp: 300,
+      platformFeePct: 10,
+      tablesTotal: 10,
+      tableSeatMax: 8,
+      tableSeatsTotal: 60,
+    },
   });
   // Las noches grandes de fin de semana también ofrecen mesa — hace la
   // sección de checkout descubrible en la demo sin depender de un solo
-  // evento.
+  // evento. 8 mesas × máx. 6 personas = 48 asientos (aforo es mayor).
   await prisma.event.updateMany({
     where: {
       status: "PUBLISHED",
       name: { in: ["Viernes Sabroso", "Sábado con Sabrosura", "Bachatazo", "La Gozadera"] },
     },
-    data: { tablesTotal: 8 },
+    data: { tablesTotal: 8, tableSeatMax: 6, tableSeatsTotal: 48 },
   });
 
   // ─── Edición pasada — alimenta analytics (GMV, check-ins) e historial ───

@@ -34,6 +34,8 @@ import {
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
   RecipientError,
+  TablePartyTooLargeError,
+  TableSoldOutError,
 } from "../application/checkout.service";
 
 class CheckoutTicketDto {
@@ -78,12 +80,13 @@ class CheckoutTicketDto {
    * Reserva de mesa opcional (spec §13): personas del grupo. Viaja en la
    * orden (Payment.tablePartySize) y el webhook materializa la
    * TableReservation REQUESTED solo al PAID. Solo aplica si el evento
-   * tiene tablesTotal.
+   * tiene tablesTotal; el tope real lo valida el servicio contra
+   * tableSeatMax del evento.
    */
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(12)
+  @Max(50)
   tablePartySize?: number;
 }
 
@@ -110,7 +113,11 @@ export class CheckoutController {
       if (e instanceof EventNotFoundError) {
         throw new NotFoundException(e.message);
       }
-      if (e instanceof PresaleSoldOutError || e instanceof DoorSoldOutError) {
+      if (
+        e instanceof PresaleSoldOutError ||
+        e instanceof DoorSoldOutError ||
+        e instanceof TableSoldOutError
+      ) {
         throw new ConflictException(e.message);
       }
       if (
@@ -118,7 +125,8 @@ export class CheckoutController {
         e instanceof InvalidDiscountError ||
         e instanceof RecipientError ||
         e instanceof PresaleClosedError ||
-        e instanceof EventEndedError
+        e instanceof EventEndedError ||
+        e instanceof TablePartyTooLargeError
       ) {
         throw new BadRequestException(e.message);
       }
