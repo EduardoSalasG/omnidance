@@ -30,12 +30,8 @@ class CreatePracticeDto {
   @IsString()
   name!: string;
 
-  /** Opcional (spec omni-dance.md §8): práctica sin local — parque/plaza. */
-  @IsOptional()
-  @IsString()
-  venueId?: string;
-
-  /** Nombre libre del lugar cuando no hay Venue ("Parque Bustamante"). */
+  /** Lugar libre: dirección o nombre ("Parque Bustamante", "Studio Rame").
+      Las prácticas nunca se vinculan a un Venue del catálogo. */
   @IsOptional()
   @IsString()
   venueText?: string;
@@ -96,16 +92,6 @@ export class PracticesController {
       throw e;
     }
 
-    // venueId opcional: si viene, debe existir; si no, la práctica queda
-    // sin local (parque/plaza) → Event.venueId = null.
-    if (dto.venueId) {
-      const venue = await this.prisma.venue.findUnique({
-        where: { id: dto.venueId },
-        select: { id: true },
-      });
-      if (!venue) throw new NotFoundException("venue no encontrado");
-    }
-
     // style: id directo o match por nombre → ScheduleBlock con el estilo foco
     let styleId: string | null = null;
     if (dto.style) {
@@ -122,7 +108,6 @@ export class PracticesController {
           type: "PRACTICA",
           status: "PUBLISHED",
           hostId,
-          venueId: dto.venueId ?? null,
           venueText: dto.venueText?.trim() || null,
           venueNotes: dto.venueNotes?.trim() || null,
           name: dto.name,
@@ -197,7 +182,6 @@ export class PracticesController {
         presalePrice: true,
         doorPrice: true,
         series: { select: { name: true } },
-        venue: { select: { name: true, address: true } },
         venueText: true,
         _count: { select: { rsvps: true } },
         // Estilo foco: la práctica lo materializa como ScheduleBlock único.
@@ -240,7 +224,6 @@ export class PracticesController {
         presalePrice: true,
         doorPrice: true,
         series: { select: { name: true } },
-        venue: { select: { name: true, address: true } },
         venueText: true,
         _count: { select: { rsvps: true } },
         scheduleBlocks: {

@@ -488,7 +488,6 @@ describe("social e2e", () => {
     it("sin sesión → 401", async () => {
       const res = await req("POST", "/api/practices", {
         name: "x",
-        venueId: ids.venueId,
         startsAt: future(48),
         endsAt: future(50),
       });
@@ -501,7 +500,6 @@ describe("social e2e", () => {
         "/api/practices",
         {
           name: "Práctica mala",
-          venueId: ids.venueId,
           startsAt: future(50),
           endsAt: future(48),
         },
@@ -525,28 +523,12 @@ describe("social e2e", () => {
       expect(event.venueId).toBeNull();
     });
 
-    it("venue inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/practices",
-        {
-          name: "Práctica venue fantasma",
-          venueId: "venue-fantasma",
-          startsAt: future(48),
-          endsAt: future(50),
-        },
-        dancerSession,
-      );
-      expect(res.status).toBe(404);
-    });
-
     it("capacity 0 → 400", async () => {
       const res = await req(
         "POST",
         "/api/practices",
         {
           name: "Práctica cap 0",
-          venueId: ids.venueId,
           startsAt: future(48),
           endsAt: future(50),
           capacity: 0,
@@ -562,7 +544,6 @@ describe("social e2e", () => {
         "/api/practices",
         {
           name: "Práctica style fantasma",
-          venueId: ids.venueId,
           startsAt: future(48),
           endsAt: future(50),
           style: "estilo-que-no-existe",
@@ -578,11 +559,11 @@ describe("social e2e", () => {
         "/api/practices",
         {
           name: "Práctica de casino en el parque",
-          venueId: ids.venueId,
           startsAt: future(48),
           endsAt: future(50),
           capacity: 12,
           style: ids.styleId,
+          venueText: "Parque de los Reyes",
           description: "Trae agua y zapatillas cómodas",
         },
         dancerSession,
@@ -593,7 +574,7 @@ describe("social e2e", () => {
       expect(event.type).toBe("PRACTICA");
       expect(event.status).toBe("PUBLISHED");
       expect(event.hostId).toBe(ids.dancerId);
-      expect(event.venueId).toBe(ids.venueId);
+      expect(event.venueId).toBeNull();
       expect(event.capacity).toBe(12);
       expect(event.description).toBe("Trae agua y zapatillas cómodas");
 
@@ -623,15 +604,17 @@ describe("social e2e", () => {
       expect(mine).toBeTruthy();
       expect(mine.type).toBe("PRACTICA");
       expect(mine.hostId).toBe(ids.dancerId);
-      expect(mine.venue.name).toBe("Venue Social Test");
+      // las prácticas no se vinculan a Venue — el lugar es venueText
+      expect(mine.venueText).toBe("Parque de los Reyes");
+      expect(mine).not.toHaveProperty("venue");
       // estilo foco materializado como ScheduleBlock → expuesto como style
       expect(mine.style?.id).toBe(ids.styleId);
-      // la práctica sin local aparece con venue null
+      // la práctica sin lugar declarado llega con venueText null
       const noVenue = list.find(
         (e: { id: string }) => e.id === ids.practiceNoVenueId,
       );
       expect(noVenue).toBeTruthy();
-      expect(noVenue.venue).toBeNull();
+      expect(noVenue.venueText).toBeNull();
       // ningún evento que no sea práctica se cuela
       expect(
         list.every((e: { type: string }) => e.type === "PRACTICA"),

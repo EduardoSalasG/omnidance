@@ -1414,7 +1414,6 @@ export async function seedDev(prisma: PrismaClient) {
   const practice = (
     name: string,
     host: { id: string },
-    venueId: string | null,
     weekday: number,
     hour: number,
     capacity: number | null,
@@ -1434,7 +1433,9 @@ export async function seedDev(prisma: PrismaClient) {
             status: "PUBLISHED",
             name,
             hostId: host.id,
-            venueId,
+            // Las prácticas nunca se vinculan a un Venue del catálogo —
+            // el lugar es texto libre (parque, plaza, sala).
+            venueId: null,
             venueText: opts.venueText ?? null,
             venueNotes: opts.venueNotes ?? null,
             description: opts.description ?? null,
@@ -1448,7 +1449,7 @@ export async function seedDev(prisma: PrismaClient) {
           where: { id: e.id },
           data: {
             hostId: host.id,
-            venueId,
+            venueId: null, // limpia filas legadas que sí tenían venueId
             venueText: opts.venueText ?? null,
             venueNotes: opts.venueNotes ?? null,
             description: opts.description ?? null,
@@ -1461,15 +1462,16 @@ export async function seedDev(prisma: PrismaClient) {
     );
 
   // La del demo bailarín → badge "Tu práctica". Sábado a la tarde.
-  await practice("Práctica de casino — rueda abierta", dancer, orixas.id, 6, 16, 15, {
+  await practice("Práctica de casino — rueda abierta", dancer, 6, 16, 15, {
+    venueText: "Parque de los Reyes",
+    venueNotes: "Anfiteatro, junto al puente peatonal",
     description:
-      "Rueda de casino abierta: rotamos parejas cada tema. Trae agua — el local abre la terraza para nosotros.",
+      "Rueda de casino abierta: rotamos parejas cada tema. Trae agua y parlante chico si tienes.",
   });
-  // En parque (sin venue) → venueText nombra el lugar + venueNotes el punto.
+  // En parque → venueText nombra el lugar + venueNotes el punto exacto.
   const parkPractice = await practice(
     "Bachata sensual en Parque Balmaceda",
     camila,
-    null,
     0,
     17,
     10,
@@ -1481,12 +1483,16 @@ export async function seedDev(prisma: PrismaClient) {
     },
   );
   // De un instructor que también baila → badge "Anfitrión: Valeska".
-  await practice("Práctica de salsa on1 — línea y tiempo", vale, havana.id, 2, 19, 20, {
+  await practice("Práctica de salsa on1 — línea y tiempo", vale, 2, 19, 20, {
+    venueText: "Studio Rame",
+    venueNotes: "Sala 1 — Metro Salvador",
     description:
       "Trabajamos línea, tiempo y marcas básicas. Nivel abierto: si sabes el básico, alcanzas. Consultas por interno.",
   });
   // Sin aforo declarado → card sin badge de cupos.
-  const timbaPractice = await practice("Timba para todos — práctica libre", jesus, tierraDura.id, 4, 18, null, {
+  const timbaPractice = await practice("Timba para todos — práctica libre", jesus, 4, 18, null, {
+    venueText: "Plaza Ñuñoa",
+    venueNotes: "Junto a la pila central",
     description:
       "Timba libre con parlante propio. Todos los niveles — si vienes a mirar, terminas bailando.",
   });
