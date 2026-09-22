@@ -710,4 +710,43 @@ describe("social e2e", () => {
       expect(again.status).toBe(200);
     });
   });
+
+  describe("GET /api/practices/mine", () => {
+    it("sin sesión → 401", async () => {
+      const res = await req("GET", "/api/practices/mine");
+      expect(res.status).toBe(401);
+    });
+
+    it("devuelve las que organizo + las que voy, con flag going", async () => {
+      // dancer2 va a la práctica del parque (sin venue, host=dancer)
+      await req(
+        "POST",
+        `/api/practices/${ids.practiceNoVenueId}/rsvp`,
+        { going: true },
+        dancer2Session,
+      );
+
+      const mias = await (
+        await req("GET", "/api/practices/mine", undefined, dancer2Session)
+      ).json();
+      const joined = mias.find(
+        (e: { id: string }) => e.id === ids.practiceNoVenueId,
+      );
+      expect(joined?.going).toBe(true);
+      // dancer2 no organiza nada → la práctica de dancer no aparece
+      expect(
+        mias.some((e: { id: string }) => e.id === ids.practiceEventIds[0]),
+      ).toBe(false);
+
+      // dancer es host de ambas → aparecen con going=false (host ≠ RSVP)
+      const delHost = await (
+        await req("GET", "/api/practices/mine", undefined, dancerSession)
+      ).json();
+      const propia = delHost.find(
+        (e: { id: string }) => e.id === ids.practiceEventIds[0],
+      );
+      expect(propia).toBeTruthy();
+      expect(propia.going).toBe(false);
+    });
+  });
 });
