@@ -39,3 +39,18 @@ grupo al confirmar.
 - **WHEN** el productor confirma una reserva de 10 personas con
   `partySize: 6` y `tableNo: "M4"`
 - **THEN** la reserva queda `CONFIRMED` con `partySize: 6` y mesa M4
+
+### Requirement: aviso al solicitante
+
+La transición REQUESTED → CONFIRMED SHALL notificar al solicitante con el
+tamaño FINAL confirmado por el productor (y la mesa asignada si la hay);
+REQUESTED → CANCELLED por el productor SHALL avisar que la reserva no pudo
+confirmarse. Re-ediciones de una reserva ya CONFIRMED (cambiar mesa o
+tamaño) no SHALL re-notificar.
+
+#### Scenario: confirmación notifica tamaño final
+
+- **WHEN** el productor confirma una reserva solicitada para 4 ajustándola
+  a `partySize: 5` con `tableNo: "M-7"`
+- **THEN** el solicitante recibe una notificación `table.confirmed` que
+  dice "5 personas · Mesa M-7" — el valor final, no el solicitado

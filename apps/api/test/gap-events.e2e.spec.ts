@@ -4,6 +4,7 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PaymentsModule } from "../src/payments/payments.module";
+import { NotificationsModule } from "../src/notifications/notifications.module";
 import { PrismaService } from "../src/prisma.service";
 // Controllers nuevos aún no registrados en EventsModule (wiring pendiente):
 // se montan directo en el test module para cubrir el contrato HTTP.
@@ -72,7 +73,7 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [PaymentsModule, AuthModule],
+      imports: [PaymentsModule, AuthModule, NotificationsModule],
       controllers: [
         EventRatingsController,
         TableReservationsController,
@@ -538,6 +539,34 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       expect(body.tableNo).toBe("M-7");
       // el tamaño solicitado era 4 — el productor lo ajusta (disclaimer del checkout)
       expect(body.partySize).toBe(5);
+    });
+
+    it("al confirmar, el solicitante recibe notificación con el tamaño FINAL", async () => {
+      const notif = await prisma.notification.findFirst({
+        where: { personId: ids.aId, type: "table.confirmed" },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(notif).toBeTruthy();
+      // 5 (el valor confirmado por el productor), no 4 (el solicitado)
+      expect(notif!.body).toContain("5");
+      expect(notif!.body).toContain("M-7");
+    });
+
+    it("re-editar una ya CONFIRMED no re-notifica al solicitante", async () => {
+      const before = await prisma.notification.count({
+        where: { personId: ids.aId, type: "table.confirmed" },
+      });
+      const res = await req(
+        "PATCH",
+        `/api/table-reservations/${ids.reservationId}`,
+        { status: "CONFIRMED", tableNo: "M-7" },
+        sessions.producer,
+      );
+      expect(res.status).toBe(200);
+      const after = await prisma.notification.count({
+        where: { personId: ids.aId, type: "table.confirmed" },
+      });
+      expect(after).toBe(before);
     });
 
     it("listado público-auth: solo CONFIRMED con nombre + partySize + tableNo", async () => {
