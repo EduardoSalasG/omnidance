@@ -267,9 +267,8 @@ export class ClassSeriesController {
       });
 
       for (const s of dto.slots) {
-        // Sin styleId: el slot de serie hereda series.styleId (styleId del
-        // slot es solo para slots legacy sin serie). Modalidad propia del
-        // horario vía typeIds; vacío = hereda las de la serie.
+        // Modalidad propia del horario vía typeIds; vacío = hereda las
+        // de la serie. El estilo/nivel viven en la serie.
         const slot = await tx.classSlot.create({
           data: {
             academyId: id,

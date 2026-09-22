@@ -432,15 +432,12 @@ export async function seedDev(prisma: PrismaClient) {
             },
           }),
         (sl) =>
-          // styleId: null — el slot de serie hereda series.styleId; el campo
-          // es solo para slots legacy sin serie.
           prisma.classSlot.update({
             where: { id: sl.id },
             data: {
               endTime: s.endTime,
               capacity: s.capacity ?? null,
               instructorId: opts.instructorId ?? null,
-              styleId: null,
             },
           }),
       );
@@ -683,13 +680,6 @@ export async function seedDev(prisma: PrismaClient) {
     ],
     withHistory: false,
     withNext: true,
-  });
-
-  // Invariante: styleId del slot es solo para slots legacy sin serie —
-  // limpia el duplicado en cualquier slot de serie sembrado antes del fix.
-  await prisma.classSlot.updateMany({
-    where: { seriesId: { not: null }, styleId: { not: null } },
-    data: { styleId: null },
   });
 
   // Overrides puntuales a nivel de instancia Class: capacidad y profesor.

@@ -2539,34 +2539,6 @@
       }
     },
     "/api/academies/{id}/slots": {
-      "post": {
-        "operationId": "AcademiesController_createSlot",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSlotDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
       "get": {
         "operationId": "AcademiesController_listSlots",
         "parameters": [
@@ -4210,10 +4182,6 @@
         "properties": {}
       },
       "CreateEnrollmentDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateSlotDto": {
         "type": "object",
         "properties": {}
       },

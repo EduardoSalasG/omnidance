@@ -274,7 +274,6 @@ export class UserIntelController {
           date: true,
           slot: {
             select: {
-              styleId: true,
               academy: { select: { id: true, name: true } },
               series: { select: { style: { select: { name: true } } } },
             },
@@ -285,20 +284,13 @@ export class UserIntelController {
         where: { ...instructorWhere, date: { lt: now }, cancelled: false },
       }),
     ]);
-    const styleNames = await this.styleNamesByIds(
-      upcoming
-        .map((c) => c.slot.styleId)
-        .filter((s): s is string => !!s),
-    );
     return {
       academies: memberships.map((m) => m.academy),
       // Class.date se expone como startsAt (instante de la clase).
       classesUpcoming: upcoming.map((c) => ({
         id: c.id,
         startsAt: c.date,
-        style: c.slot.styleId
-          ? (styleNames.get(c.slot.styleId) ?? null)
-          : (c.slot.series?.style?.name ?? null),
+        style: c.slot.series.style?.name ?? null,
         academy: c.slot.academy,
       })),
       classesPastCount,
@@ -508,7 +500,6 @@ export class UserIntelController {
                 slot: {
                   select: {
                     academyId: true,
-                    styleId: true,
                     series: { select: { styleId: true } },
                   },
                 },
@@ -542,7 +533,7 @@ export class UserIntelController {
         slot.academyId,
         (academyCounts.get(slot.academyId) ?? 0) + 1,
       );
-      const styleId = slot.styleId ?? slot.series?.styleId;
+      const styleId = slot.series.styleId;
       if (styleId) {
         styleCounts.set(styleId, (styleCounts.get(styleId) ?? 0) + 1);
       }
@@ -896,15 +887,5 @@ export class UserIntelController {
       select: { id: true, name: true },
     });
     return new Map(people.map((p) => [p.id, p]));
-  }
-
-  private async styleNamesByIds(ids: string[]) {
-    const unique = [...new Set(ids)];
-    if (!unique.length) return new Map<string, string>();
-    const styles = await this.prisma.style.findMany({
-      where: { id: { in: unique } },
-      select: { id: true, name: true },
-    });
-    return new Map(styles.map((s) => [s.id, s.name]));
   }
 }

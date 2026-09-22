@@ -221,19 +221,15 @@ export class BrowseController {
 
   private async classes(q: BrowseQueryDto) {
     const where: Prisma.ClassWhereInput = {};
-    if (q.academyId) where.slot = { academyId: q.academyId };
+    const slotWhere: Prisma.ClassSlotWhereInput = {};
+    if (q.academyId) slotWhere.academyId = q.academyId;
+    if (q.styleId) slotWhere.series = { styleId: q.styleId };
+    if (q.academyId || q.styleId) where.slot = slotWhere;
     if (q.from || q.to) {
       where.date = {
         ...(q.from ? { gte: new Date(q.from) } : {}),
         ...(q.to ? { lte: new Date(q.to) } : {}),
       };
-    }
-    if (q.styleId) {
-      // ClassSlot.styleId no declara relación; el fallback es la serie.
-      where.OR = [
-        { slot: { styleId: q.styleId } },
-        { slot: { series: { styleId: q.styleId } } },
-      ];
     }
     const classes = await this.prisma.class.findMany({
       where,
@@ -248,7 +244,6 @@ export class BrowseController {
         slot: {
           select: {
             instructorId: true,
-            styleId: true,
             capacity: true,
             academy: {
               select: { id: true, name: true, defaultQuorum: true },
@@ -267,10 +262,7 @@ export class BrowseController {
     const instructorIds = classes
       .map((c) => c.instructorId ?? c.slot.instructorId)
       .filter((p): p is string => !!p);
-    const slotStyleIds = classes
-      .map((c) => c.slot.styleId)
-      .filter((s): s is string => !!s);
-    const [bookedByClass, instructors, slotStyles] = await Promise.all([
+    const [bookedByClass, instructors] = await Promise.all([
       ids.length
         ? this.prisma.classBooking.groupBy({
             by: ["classId"],
@@ -279,21 +271,12 @@ export class BrowseController {
           })
         : Promise.resolve([]),
       this.peopleByIds(instructorIds),
-      slotStyleIds.length
-        ? this.prisma.style.findMany({
-            where: { id: { in: [...new Set(slotStyleIds)] } },
-            select: { id: true, name: true },
-          })
-        : Promise.resolve([]),
     ]);
     const bookedOf = new Map(bookedByClass.map((b) => [b.classId, b._count]));
-    const slotStyleOf = new Map(slotStyles.map((s) => [s.id, s]));
 
     return classes.map((c) => {
       const instructorId = c.instructorId ?? c.slot.instructorId;
-      const style = c.slot.styleId
-        ? (slotStyleOf.get(c.slot.styleId) ?? null)
-        : (c.slot.series?.style ?? null);
+      const style = c.slot.series.style ?? null;
       return {
         id: c.id,
         // Class.date es el instante de la clase → expuesto como startsAt.

@@ -278,9 +278,17 @@ describe("role-console-depth e2e", () => {
     const todayUTC = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
     );
+    const series = await prisma.classSeries.create({
+      data: {
+        academyId: academy.id,
+        name: `RCD Serie ${suffix}`,
+        month: `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`,
+      },
+    });
     const slot = await prisma.classSlot.create({
       data: {
         academyId: academy.id,
+        seriesId: series.id,
         weekday: now.getUTCDay(),
         startTime: "19:00",
         endTime: "20:30",
@@ -321,6 +329,7 @@ describe("role-console-depth e2e", () => {
       await prisma.class.deleteMany({ where: { id: ids.classId } });
     }
     await prisma.classSlot.deleteMany({ where: { academyId: ids.academyId } });
+    await prisma.classSeries.deleteMany({ where: { academyId: ids.academyId } });
     await prisma.academy.deleteMany({ where: { id: ids.academyId } });
     await prisma.venue.deleteMany({ where: { id: ids.venueId } });
     if (createdPersonIds.length) {

@@ -67,7 +67,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
 
   function slotText(s: ClassSlot | undefined): string {
     if (!s) return "—";
-    return `${t(`weekday.${s.weekday}`)} ${s.startTime}–${s.endTime}`;
+    return `${s.series.name} · ${t(`weekday.${s.weekday}`)} ${s.startTime}–${s.endTime}`;
   }
 
   async function submit(e: React.FormEvent) {

@@ -74,12 +74,16 @@ export type Student = {
   startsAt: string | null;
 };
 
+// GET /academies/:id/slots — todo slot pertenece a una serie (invariante
+// de schema); capacity null = hereda el quórum de la serie/academia.
 export type ClassSlot = {
   id: string;
   weekday: number; // 0-6, domingo = 0
   startTime: string; // "19:00"
   endTime: string;
-  capacity: number;
+  capacity: number | null;
+  series: { id: string; name: string };
+  types: { type: { id: string; name: string } }[];
 };
 
 // GET /academies/:id/attendance — person viene del join manual del controller

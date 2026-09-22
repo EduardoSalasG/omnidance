@@ -405,7 +405,7 @@ export class HomeService {
         : null,
       myClasses: myBookings.map((b) => ({
         id: b.class.id,
-        name: b.class.slot.series?.name ?? b.class.slot.academy.name,
+        name: b.class.slot.series.name,
         when: b.class.date,
         place: `${b.class.slot.startTime} · ${b.class.slot.academy.name}`,
         status: b.status,
