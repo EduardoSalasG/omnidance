@@ -4,6 +4,7 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { AcademiesModule } from "../src/academies/academies.module";
+import { ParamsModule } from "../src/params/params.module";
 import { DjController } from "../src/events/infrastructure/dj.controller";
 import { EventsController } from "../src/events/infrastructure/events.controller";
 import { VenueConsoleController } from "../src/social/infrastructure/venue-console.controller";
@@ -54,7 +55,7 @@ describe("role-console-depth e2e", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AcademiesModule, AuthModule],
+      imports: [AcademiesModule, AuthModule, ParamsModule],
       controllers: [DjController, EventsController, VenueConsoleController],
       providers: [PrismaService],
     }).compile();
