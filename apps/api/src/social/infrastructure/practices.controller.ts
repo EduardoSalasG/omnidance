@@ -142,6 +142,40 @@ export class PracticesController {
     });
   }
 
+  /** Shape público compartido entre el listado general y "mis prácticas". */
+  private async mapPractices(
+    practices: {
+      hostId: string | null;
+      scheduleBlocks: { style: { id: string; name: string } | null }[];
+      _count: { rsvps: number };
+      [k: string]: unknown;
+    }[],
+  ) {
+    // Event.hostId es escalar → join manual del nombre del host.
+    const hosts = await this.prisma.person.findMany({
+      where: {
+        id: {
+          in: [
+            ...new Set(
+              practices
+                .map((p) => p.hostId)
+                .filter((id): id is string => id != null),
+            ),
+          ],
+        },
+      },
+      select: { id: true, name: true },
+    });
+    const hostById = new Map(hosts.map((h) => [h.id, h.name]));
+
+    return practices.map(({ scheduleBlocks, _count, ...p }) => ({
+      ...p,
+      style: scheduleBlocks[0]?.style ?? null,
+      rsvpCount: _count.rsvps,
+      host: p.hostId ? { id: p.hostId, name: hostById.get(p.hostId) ?? null } : null,
+    }));
+  }
+
   /** Prácticas publicadas próximas — mismo shape público que GET /events + host. */
   @Get()
   async list() {
@@ -176,30 +210,55 @@ export class PracticesController {
         },
       },
     });
+    return this.mapPractices(practices);
+  }
 
-    // Event.hostId es escalar → join manual del nombre del host.
-    const hosts = await this.prisma.person.findMany({
+  /**
+   * GET /practices/mine — las que organizo + las que voy (RSVP).
+   * Mismo shape del listado + `going` (mi RSVP existe). Debe declararse
+   * antes que @Get(":id/rsvp") para que "mine" no matchee :id/rsvp.
+   */
+  @Get("mine")
+  @UseGuards(SessionGuard)
+  async mine(@Req() req: Request) {
+    const me = req.person!.id;
+    const practices = await this.prisma.event.findMany({
       where: {
-        id: {
-          in: [
-            ...new Set(
-              practices
-                .map((p) => p.hostId)
-                .filter((id): id is string => id != null),
-            ),
-          ],
-        },
+        type: "PRACTICA",
+        status: { in: ["PUBLISHED", "LIVE"] },
+        startsAt: { gte: new Date(Date.now() - EVENT_RECENT_LOOKBACK_MS) },
+        OR: [{ hostId: me }, { rsvps: { some: { personId: me } } }],
       },
-      select: { id: true, name: true },
+      orderBy: { startsAt: "asc" },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        status: true,
+        hostId: true,
+        capacity: true,
+        startsAt: true,
+        endsAt: true,
+        presalePrice: true,
+        doorPrice: true,
+        series: { select: { name: true } },
+        venue: { select: { name: true, address: true } },
+        venueText: true,
+        womenOnly: true,
+        _count: { select: { rsvps: true } },
+        scheduleBlocks: {
+          orderBy: { startsAt: "asc" as const },
+          take: 1,
+          select: { style: { select: { id: true, name: true } } },
+        },
+        // Mi RSVP — solo necesito saber si existe.
+        rsvps: { where: { personId: me }, select: { id: true } },
+      },
     });
-    const hostById = new Map(hosts.map((h) => [h.id, h.name]));
-
-    return practices.map(({ scheduleBlocks, _count, ...p }) => ({
-      ...p,
-      style: scheduleBlocks[0]?.style ?? null,
-      rsvpCount: _count.rsvps,
-      host: p.hostId ? { id: p.hostId, name: hostById.get(p.hostId) ?? null } : null,
-    }));
+    return (await this.mapPractices(practices)).map((p) => {
+      const { rsvps, ...rest } = p as typeof p & { rsvps: unknown[] };
+      return { ...rest, going: rsvps.length > 0 };
+    });
   }
 
   /**

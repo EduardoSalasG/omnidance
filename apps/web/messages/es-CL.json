@@ -474,7 +474,12 @@
     "loginRequired": "Entra con tu correo para publicar una práctica",
     "new": "Nueva práctica",
     "description": "Descripción (opcional)",
-    "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué traer? Punto exacto de encuentro…"
+    "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué traer? Punto exacto de encuentro…",
+    "all": "Todas",
+    "mine": "Mis prácticas",
+    "mineEmpty": "Aún no te apuntas ni organizas ninguna práctica.",
+    "going": "Vas",
+    "viewLabel": "Ver prácticas"
   },
   "availability": {
     "toggle": "Disponible para bailar",

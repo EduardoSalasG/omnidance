@@ -3461,6 +3461,24 @@
           }
         },
         {
+          "name": "GET /api/practices/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/practices/{id}/rsvp",
           "request": {
             "method": "GET",

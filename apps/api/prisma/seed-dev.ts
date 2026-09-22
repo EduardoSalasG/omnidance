@@ -1457,7 +1457,10 @@ export async function seedDev(prisma: PrismaClient) {
     );
 
   // La del demo bailarín → badge "Tu práctica". Sábado a la tarde.
-  await practice("Práctica de casino — rueda abierta", dancer, orixas.id, 6, 16, 15);
+  await practice("Práctica de casino — rueda abierta", dancer, orixas.id, 6, 16, 15, {
+    description:
+      "Rueda de casino abierta: rotamos parejas cada tema. Trae agua — el local abre la terraza para nosotros.",
+  });
   // En parque (sin venue) → venueText nombra el lugar; solo mujeres
   // ejercita la señal safety de la spec §8.
   const parkPractice = await practice(
@@ -1475,9 +1478,15 @@ export async function seedDev(prisma: PrismaClient) {
     },
   );
   // De un instructor que también baila → badge "Anfitrión: Valeska".
-  await practice("Práctica de salsa on1 — línea y tiempo", vale, havana.id, 2, 19, 20);
+  await practice("Práctica de salsa on1 — línea y tiempo", vale, havana.id, 2, 19, 20, {
+    description:
+      "Trabajamos línea, tiempo y marcas básicas. Nivel abierto: si sabes el básico, alcanzas. Consultas por interno.",
+  });
   // Sin aforo declarado → card sin badge de cupos.
-  const timbaPractice = await practice("Timba para todos — práctica libre", jesus, tierraDura.id, 4, 18, null);
+  const timbaPractice = await practice("Timba para todos — práctica libre", jesus, tierraDura.id, 4, 18, null, {
+    description:
+      "Timba libre con parlante propio. Todos los niveles — si vienes a mirar, terminas bailando.",
+  });
 
   // RSVPs "voy" — alimentan el badge "N van" y el estado del PracticeBar.
   // Idempotente por (eventId, personId).

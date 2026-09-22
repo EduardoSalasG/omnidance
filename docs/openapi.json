@@ -1810,6 +1810,17 @@
         }
       }
     },
+    "/api/practices/mine": {
+      "get": {
+        "operationId": "PracticesController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/practices/{id}/rsvp": {
       "get": {
         "operationId": "PracticesController_myRsvp",
