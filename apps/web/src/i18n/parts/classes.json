@@ -18,6 +18,11 @@
     "scopeAll": "Todas",
     "scopeMine": "Mías",
     "noClassesDay": "Sin clases este día",
-    "qrHint": "Mostrar QR para el check-in"
+    "qrHint": "Mostrar QR para el check-in",
+    "cancelledTag": "Cancelada",
+    "attendedTag": "Asististe",
+    "capacityLabel": "Cupos",
+    "dropIn": "Clase suelta",
+    "upcomingSessions": "Próximas clases de la serie"
   }
 }

@@ -472,8 +472,12 @@ function ClasesInner() {
       <li key={cls.id} className={cardCls}>
         <div className="flex items-start gap-3">
           {/* Contenido: título = estilo + nivel (la clase no lleva
-              nombre propio) + meta (academia · profe · modalidad) + cupo */}
-          <div className="min-w-0 flex-1">
+              nombre propio) + meta (academia · profe · modalidad) + cupo.
+              El bloque entero linkea a la ficha de la clase. */}
+          <Link
+            href={`/clases/${cls.id}`}
+            className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          >
             <h2 className="truncate text-base font-semibold leading-snug">
               {style
                 ? `${style.name} ${cls.series.level?.name ?? ""}`.trim()
@@ -507,8 +511,9 @@ function ClasesInner() {
                   ? t("lastSpots", { count: cls.spotsLeft })
                   : t("spotsLeft", { count: cls.spotsLeft })}
             </p>
-          </div>
-          {/* Col 3: acción — reservar / espera / estado + cancelar */}
+          </Link>
+          {/* Acción — reservar / espera / estado + cancelar (fuera del
+              link para no anidar interactivos) */}
           <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
             {cls.myBooking === "BOOKED" ? (
               <>
@@ -555,13 +560,16 @@ function ClasesInner() {
     <li key={b.bookingId}>
       <Card className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-col gap-1">
+          <Link
+            href={`/clases/${b.classId}`}
+            className="flex min-w-0 flex-col gap-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          >
             <p className="truncate text-lg font-semibold">{b.series.name}</p>
             <p className="text-sm text-white/60">
               {dayLabel(classDayKey(b.date), b.date)} · {b.startTime}–{b.endTime}
             </p>
             <p className="text-sm text-white/50">{b.academy.name}</p>
-          </div>
+          </Link>
           <Badge variant={b.status === "BOOKED" ? "neon" : "outline"}>
             {b.status === "BOOKED" ? t("booked") : t("waitlist")}
           </Badge>
