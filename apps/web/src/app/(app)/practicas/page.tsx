@@ -22,8 +22,6 @@ type Practice = {
   endsAt: string;
   venue: { name: string; address: string | null } | null;
   venueText: string | null;
-  womenOnly: boolean;
-  menOnly: boolean;
   rsvpCount: number;
   style: { id: string; name: string } | null;
   /** Solo en /practices/mine: mi RSVP existe. */
@@ -201,12 +199,6 @@ export default function PracticasPage() {
                 {hosting && <Badge variant="neon">{t("yours")}</Badge>}
                 {going && !hosting && (
                   <Badge variant="neon">{t("going")}</Badge>
-                )}
-                {p.womenOnly && (
-                  <Badge variant="muted">{t("womenOnly")}</Badge>
-                )}
-                {p.menOnly && (
-                  <Badge variant="muted">{t("menOnly")}</Badge>
                 )}
                 {p.capacity != null && (
                   <Badge variant="outline">
