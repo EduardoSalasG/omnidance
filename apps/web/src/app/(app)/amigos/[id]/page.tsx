@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
-import { ConsoleHeader } from "@/components/console/console-header";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 type FriendshipStatus = "none" | "sent" | "received" | "friends";
 
@@ -49,10 +50,15 @@ export default function AmigoPerfilPage({
   // Etiquetas de rol de baile ya existen en el namespace de partner requests.
   const tp = useTranslations("partnerRequests");
 
+  const router = useRouter();
   const [state, setState] = useState<PageState>("loading");
   const [person, setPerson] = useState<PersonProfile | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionErr, setActionErr] = useState(false);
+  // Confirmación de eliminar amistad — bottom sheet (mismo patrón que
+  // el modal de entrada duplicada), no window.confirm.
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const dialogRef = useDialogFocus<HTMLDivElement>(confirmRemove);
 
   const load = useCallback(async () => {
     try {
@@ -107,8 +113,34 @@ export default function AmigoPerfilPage({
     act(() => apiFetch(`/friends/${fid}/accept`, { method: "POST" }));
   const declineReq = (fid: string) =>
     act(() => apiFetch(`/friends/${fid}/decline`, { method: "POST" }));
-  const removeRel = (fid: string) =>
-    act(() => apiFetch(`/friends/${fid}`, { method: "DELETE" }));
+  // Eliminar amistad: solo desde el pie del perfil, con confirmación.
+  // En éxito vuelve a la lista — el perfil ya no tiene acciones útiles.
+  const removeRel = async (fid: string) => {
+    setBusy(true);
+    setActionErr(false);
+    try {
+      const res = await apiFetch(`/friends/${fid}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 409) {
+        setActionErr(true);
+        return;
+      }
+      router.push("/amigos");
+    } catch {
+      setActionErr(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Escape cierra el sheet de confirmación.
+  useEffect(() => {
+    if (!confirmRemove) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmRemove(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmRemove]);
 
   const roleLabels: Record<StyleRole["role"], string> = {
     LEADER: tp("roleLeader"),
@@ -126,8 +158,6 @@ export default function AmigoPerfilPage({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <ConsoleHeader backHref="/amigos" backLabel={t("title")} />
-
       {state === "loading" && <PageLoading />}
       {state === "error" && (
         <div className="flex items-center gap-3">
@@ -214,27 +244,7 @@ export default function AmigoPerfilPage({
                     </>
                   )}
                   {status === "friends" && (
-                    <>
-                      <Badge variant="neon">{t("friendBadge")}</Badge>
-                      {fid && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                t("removeConfirm", { name: person.name }),
-                              )
-                            ) {
-                              void removeRel(fid);
-                            }
-                          }}
-                        >
-                          {t("remove")}
-                        </Button>
-                      )}
-                    </>
+                    <Badge variant="neon">{t("friendBadge")}</Badge>
                   )}
                 </div>
               );
@@ -284,7 +294,67 @@ export default function AmigoPerfilPage({
               </div>
             </section>
           )}
+
+          {/* Zona destructiva al pie — lejos del pulgar y con confirmación */}
+          {!person.isMe && person.friendship?.status === "friends" && (
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmRemove(true)}
+                className="text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                {t("remove")}
+              </button>
+            </div>
+          )}
         </>
+      )}
+
+      {/* Confirmación de eliminar amistad — bottom sheet */}
+      {confirmRemove && person && person.friendship?.id && (
+        <div
+          ref={dialogRef}
+          role="presentation"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
+          onClick={() => setConfirmRemove(false)}
+        >
+          <Card
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-friend-title"
+            className="w-full max-w-md space-y-4"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
+            <h2 id="remove-friend-title" className="text-lg font-semibold">
+              {t("remove")}
+            </h2>
+            <p className="text-sm text-white/70">
+              {t("removeConfirm", { name: person.name })}
+            </p>
+            <div className="flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmRemove(false)}
+              >
+                {tc("cancel")}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmRemove(false);
+                  void removeRel(person.friendship!.id!);
+                }}
+              >
+                {t("remove")}
+              </Button>
+            </div>
+          </Card>
+        </div>
       )}
     </main>
   );

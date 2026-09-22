@@ -453,24 +453,7 @@ export default function AmigosPage() {
             ) : (
               <ul className="flex flex-col gap-2">
                 {data.friends.map((f) => (
-                  <Row key={f.id} person={f.person}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={busyKey === `del:${f.id}`}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            t("removeConfirm", { name: f.person.name }),
-                          )
-                        ) {
-                          void removeRel(f.id);
-                        }
-                      }}
-                    >
-                      {t("remove")}
-                    </Button>
-                  </Row>
+                  <Row key={f.id} person={f.person} />
                 ))}
               </ul>
             )}

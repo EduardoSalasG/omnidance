@@ -6,7 +6,6 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PillTabs } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
-import { ConsoleHeader } from "@/components/console/console-header";
 
 // GET /admin/users/:personId/detail → person + historial de roles.
 type RoleEntry = { id: string; role: string; status: string; createdAt: string };
@@ -197,10 +196,6 @@ export default function AnaliticaUsuarioPage({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-6">
-      <ConsoleHeader
-        backHref="/analitica/usuarios"
-        backLabel={t("userSearch.title")}
-      />
       <AdminGate>
         <UserPanel personId={params.personId} />
       </AdminGate>
