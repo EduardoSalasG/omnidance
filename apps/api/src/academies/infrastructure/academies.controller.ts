@@ -12,13 +12,11 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
-  IsArray,
   IsIn,
   IsInt,
   IsISO8601,
   IsOptional,
   IsString,
-  Max,
   Min,
 } from "class-validator";
 import type { Request } from "express";
@@ -96,47 +94,6 @@ class CreateEnrollmentDto {
 class UpdateEnrollmentDto {
   @IsIn(ENROLLMENT_STATUSES)
   status!: EnrollmentStatus;
-}
-
-class CreateSlotDto {
-  /** Spec: dayOfWeek → columna real weekday (0-6). */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(6)
-  dayOfWeek?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(6)
-  weekday?: number;
-
-  @IsString()
-  startTime!: string;
-
-  @IsString()
-  endTime!: string;
-
-  @IsOptional()
-  @IsString()
-  styleId?: string;
-
-  @IsOptional()
-  @IsString()
-  instructorId?: string;
-
-  /** null/omitido = hereda el quórum de la serie/academia. */
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  capacity?: number;
-
-  /** Modalidades del horario (slot legacy sin serie — no hay herencia). */
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  typeIds?: string[];
 }
 
 class UpdateAcademySettingsDto {
@@ -442,7 +399,6 @@ export class AcademiesController {
       date: true,
       slot: {
         select: {
-          styleId: true,
           series: {
             select: {
               name: true,
@@ -469,28 +425,13 @@ export class AcademiesController {
       }),
     ]);
 
-    // styleId del slot es FK plana (sin relación) — join manual para
-    // slots legacy sin serie.
-    const styleIds = [
-      ...new Set(
-        [...attendances, ...bookings]
-          .map((r) => r.class.slot.styleId)
-          .filter((x): x is string => !!x),
-      ),
-    ];
-    const styles = styleIds.length
-      ? await this.prisma.style.findMany({
-          where: { id: { in: styleIds } },
-          select: { id: true, name: true },
-        })
-      : [];
-    const styleName = new Map(styles.map((s) => [s.id, s.name]));
-    const meta = (c: { date: Date; slot: { styleId: string | null; series: { name: string; style: { name: string } | null } | null } }) => ({
+    const meta = (c: {
+      date: Date;
+      slot: { series: { name: string; style: { name: string } | null } };
+    }) => ({
       date: c.date,
-      seriesName: c.slot.series?.name ?? null,
-      styleName:
-        c.slot.series?.style?.name ??
-        (c.slot.styleId ? (styleName.get(c.slot.styleId) ?? null) : null),
+      seriesName: c.slot.series.name,
+      styleName: c.slot.series.style?.name ?? null,
     });
 
     // Historial: reservas en clases pasadas + asistencias (estas ganan el
@@ -530,7 +471,7 @@ export class AcademiesController {
       .map((b) => ({
         classId: b.classId,
         date: b.class.date,
-        seriesName: b.class.slot.series?.name ?? null,
+        seriesName: b.class.slot.series.name,
         status: b.status,
       }));
 
@@ -544,35 +485,9 @@ export class AcademiesController {
   }
 
   // ─── slots ───
-
-  @Post(":id/slots")
-  @UseGuards(SessionGuard)
-  async createSlot(
-    @Param("id") id: string,
-    @Body() dto: CreateSlotDto,
-    @Req() req: Request,
-  ) {
-    await this.access.requireAdminister(id, req.person!);
-    const weekday = dto.weekday ?? dto.dayOfWeek;
-    if (weekday === undefined) {
-      throw new BadRequestException("dayOfWeek (0-6) es requerido");
-    }
-    return this.prisma.classSlot.create({
-      data: {
-        academyId: id,
-        weekday,
-        startTime: dto.startTime,
-        endTime: dto.endTime,
-        styleId: dto.styleId ?? null,
-        instructorId: dto.instructorId ?? null,
-        capacity: dto.capacity ?? null, // null = hereda serie/academia
-        types: dto.typeIds?.length
-          ? { create: dto.typeIds.map((typeId) => ({ typeId })) }
-          : undefined,
-      },
-      include: { types: { include: { type: true } } },
-    });
-  }
+  // Los horarios solo se crean vía serie (POST /academies/:id/series y
+  // /series/:id/slots) — todo slot pertenece a una serie por invariante
+  // de schema. Este GET es la parrilla semanal completa de la academia.
 
   @Get(":id/slots")
   @UseGuards(SessionGuard)
@@ -581,7 +496,10 @@ export class AcademiesController {
     return this.prisma.classSlot.findMany({
       where: { academyId: id },
       orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
-      include: { types: { include: { type: true } } },
+      include: {
+        series: { select: { id: true, name: true } },
+        types: { include: { type: true } },
+      },
     });
   }
 
@@ -669,7 +587,7 @@ export class AcademiesController {
         id: c.id,
         startTime: c.slot.startTime,
         endTime: c.slot.endTime,
-        seriesName: c.slot.series?.name ?? null,
+        seriesName: c.slot.series.name,
         instructorName:
           instructorNameBy.get(c.instructorId ?? c.slot.instructorId ?? "") ??
           null,

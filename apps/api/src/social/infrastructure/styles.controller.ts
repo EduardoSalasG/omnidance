@@ -48,31 +48,23 @@ export class StylesController {
 
     const now = new Date();
     const [academies, upcomingClasses, upcomingEvents] = await Promise.all([
-      // Academias activas con serie activa del estilo o slot suelto con
-      // styleId (los slots pueden existir sin serie).
+      // Academias activas con una serie activa del estilo (todo slot
+      // pertenece a una serie — el estilo vive en series.styleId).
       this.prisma.academy.findMany({
         where: {
           active: true,
-          OR: [
-            { classSeries: { some: { styleId: style.id, active: true } } },
-            { classSlots: { some: { styleId: style.id } } },
-          ],
+          classSeries: { some: { styleId: style.id, active: true } },
         },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
-      // Próximas clases materializadas del estilo (via slot directo o via
-      // la serie del slot), no canceladas.
+      // Próximas clases materializadas del estilo (vía la serie del
+      // slot), no canceladas.
       this.prisma.class.findMany({
         where: {
           cancelled: false,
           date: { gte: now },
-          slot: {
-            OR: [
-              { styleId: style.id },
-              { series: { styleId: style.id } },
-            ],
-          },
+          slot: { series: { styleId: style.id } },
         },
         orderBy: { date: "asc" },
         take: 10,
@@ -124,8 +116,8 @@ export class StylesController {
         date: c.date,
         startTime: c.slot.startTime,
         endTime: c.slot.endTime,
-        seriesName: c.slot.series?.name ?? null,
-        levelName: c.slot.series?.level?.name ?? null,
+        seriesName: c.slot.series.name,
+        levelName: c.slot.series.level?.name ?? null,
         academyName: c.slot.academy.name,
       })),
       upcomingEvents,

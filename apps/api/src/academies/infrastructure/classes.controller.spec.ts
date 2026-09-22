@@ -25,7 +25,7 @@ interface FakeClass {
   cancelled: boolean;
   slot: {
     capacity: number;
-    series: { name: string } | null;
+    series: { name: string };
     academy: { name: string };
   };
 }

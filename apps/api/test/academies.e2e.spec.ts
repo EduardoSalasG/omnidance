@@ -127,6 +127,9 @@ describe("academies e2e", () => {
     await prisma.classSlot.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
+    await prisma.classSeries.deleteMany({
+      where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
+    });
     await prisma.enrollment.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
@@ -366,39 +369,49 @@ describe("academies e2e", () => {
   });
 
   describe("slots", () => {
-    it("POST slot owner → 201", async () => {
+    // Los slots solo existen dentro de una serie — el endpoint standalone
+    // POST /academies/:id/slots fue eliminado con el invariante de schema.
+    it("POST series owner → crea serie + slots", async () => {
       const res = await post(
-        `/api/academies/${ids.academyId}/slots`,
+        `/api/academies/${ids.academyId}/series`,
         {
-          dayOfWeek: 2,
-          startTime: "19:00",
-          endTime: "20:30",
-          instructorId: ids.instructorId,
-          capacity: 20,
+          name: "Serie Test",
+          month: "2025-06",
+          slots: [
+            {
+              weekday: 2,
+              startTime: "19:00",
+              endTime: "20:30",
+              instructorId: ids.instructorId,
+              capacity: 20,
+            },
+          ],
         },
         ownerSession,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.weekday).toBe(2);
-      expect(body.academyId).toBe(ids.academyId);
-      ids.slotId = body.id;
+      expect(body.slots[0].weekday).toBe(2);
+      expect(body.slots[0].seriesId).toBe(body.id);
+      ids.slotId = body.slots[0].id;
     });
 
-    it("POST slot weekday inválido → 400", async () => {
+    it("POST slot standalone → ya no existe", async () => {
       const res = await post(
         `/api/academies/${ids.academyId}/slots`,
-        { dayOfWeek: 9, startTime: "19:00", endTime: "20:00", capacity: 10 },
+        { dayOfWeek: 2, startTime: "19:00", endTime: "20:00", capacity: 10 },
         ownerSession,
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(404);
     });
 
-    it("GET slots owner → lista", async () => {
+    it("GET slots owner → lista con serie", async () => {
       const res = await get(`/api/academies/${ids.academyId}/slots`, ownerSession);
       expect(res.status).toBe(200);
       const list = await res.json();
-      expect(list.some((s: { id: string }) => s.id === ids.slotId)).toBe(true);
+      const slot = list.find((s: { id: string }) => s.id === ids.slotId);
+      expect(slot).toBeTruthy();
+      expect(slot.series.name).toBe("Serie Test");
     });
   });
 

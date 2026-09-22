@@ -145,9 +145,13 @@ describe("academies gap: private lessons + videos e2e", () => {
       },
     });
 
+    const series = await prisma.classSeries.create({
+      data: { academyId: academy.id, name: "Serie PL", month: "2025-06" },
+    });
     const slot = await prisma.classSlot.create({
       data: {
         academyId: academy.id,
+        seriesId: series.id,
         weekday: 3,
         startTime: "19:00",
         endTime: "20:00",
@@ -180,6 +184,9 @@ describe("academies gap: private lessons + videos e2e", () => {
       where: { slot: { academyId: { in: academyIds } } },
     });
     await prisma.classSlot.deleteMany({
+      where: { academyId: { in: academyIds } },
+    });
+    await prisma.classSeries.deleteMany({
       where: { academyId: { in: academyIds } },
     });
     await prisma.enrollment.deleteMany({

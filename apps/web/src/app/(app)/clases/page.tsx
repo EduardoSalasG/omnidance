@@ -31,6 +31,7 @@ type BrowseClass = {
   myBooking: "BOOKED" | "WAITLIST" | null;
   academy: { id: string; name: string };
   instructor: { id: string; name: string | null } | null;
+  // Todo slot pertenece a una serie — series nunca es null.
   series: {
     id: string;
     name: string;
@@ -39,7 +40,7 @@ type BrowseClass = {
     dropInPrice: number | null;
     // Modalidad efectiva del horario: slot.types si declara, si no los de la serie.
     types: { id: string; name: string }[];
-  } | null;
+  };
 };
 
 type MyBooking = {
@@ -54,7 +55,7 @@ type MyBooking = {
     name: string;
     level: { name: string } | null;
     style: { name: string } | null;
-  } | null;
+  };
 };
 
 // GET /classes/mine?scope=past — historial del alumno (spec §9):
@@ -69,7 +70,7 @@ type HistoryItem = {
     name: string;
     level: { name: string } | null;
     style: { name: string } | null;
-  } | null;
+  };
   status: "attended" | "booked" | "cancelled";
 };
 
@@ -365,7 +366,7 @@ export default function ClasesPage() {
                       <li key={b.bookingId} className={cardCls}>
                         <div className="flex items-baseline justify-between gap-3">
                           <p className="truncate font-medium">
-                            {b.series?.name ?? b.academy.name}
+                            {b.series.name}
                           </p>
                           <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
                             {b.startTime}–{b.endTime}
@@ -373,10 +374,10 @@ export default function ClasesPage() {
                         </div>
                         <p className="mt-0.5 truncate text-xs text-white/60">
                           {b.academy.name}
-                          {b.series?.level?.name
+                          {b.series.level?.name
                             ? ` · ${b.series.level.name}`
                             : ""}
-                          {b.series?.style?.name
+                          {b.series.style?.name
                             ? ` · ${b.series.style.name}`
                             : ""}
                         </p>
@@ -487,7 +488,7 @@ export default function ClasesPage() {
                           {/* Nombre + horario — el día lo da el grupo */}
                           <div className="flex items-baseline justify-between gap-3">
                             <p className="truncate font-medium">
-                              {cls.series?.name ?? cls.academy.name}
+                              {cls.series.name}
                             </p>
                             <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
                               {cls.startTime}–{cls.endTime}
@@ -501,13 +502,13 @@ export default function ClasesPage() {
                             {cls.instructor?.name
                               ? ` · ${cls.instructor.name}`
                               : ""}
-                            {cls.series?.level?.name
+                            {cls.series.level?.name
                               ? ` · ${cls.series.level.name}`
                               : ""}
-                            {cls.series?.style?.name
+                            {cls.series.style?.name
                               ? ` · ${cls.series.style.name}`
                               : ""}
-                            {cls.series && cls.series.types.length > 0
+                            {cls.series.types.length > 0
                               ? ` · ${cls.series.types.map((x) => x.name).join(" + ")}`
                               : ""}
                           </p>
@@ -620,7 +621,7 @@ export default function ClasesPage() {
                       <li key={h.classId} className={cardCls}>
                         <div className="flex items-baseline justify-between gap-3">
                           <p className="truncate font-medium">
-                            {h.series?.name ?? h.academy.name}
+                            {h.series.name}
                           </p>
                           <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
                             {h.startTime}–{h.endTime}
@@ -629,10 +630,10 @@ export default function ClasesPage() {
                         <div className="mt-0.5 flex items-center justify-between gap-2">
                           <p className="truncate text-xs text-white/60">
                             {h.academy.name}
-                            {h.series?.level?.name
+                            {h.series.level?.name
                               ? ` · ${h.series.level.name}`
                               : ""}
-                            {h.series?.style?.name
+                            {h.series.style?.name
                               ? ` · ${h.series.style.name}`
                               : ""}
                           </p>

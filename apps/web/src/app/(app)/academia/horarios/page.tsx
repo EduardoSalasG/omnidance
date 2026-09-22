@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
@@ -11,8 +12,9 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import type { ClassSlot } from "@/components/academy/shared";
 
 /**
- * /academia/horarios — bloques de clases semanales (ClassSlot) de la
- * academia seleccionada. La página fetchea GET /academies/:id/slots.
+ * /academia/horarios — parrilla semanal de la academia (ClassSlot). Solo
+ * lectura: los horarios se crean/editan dentro de su serie en
+ * /academia/series (invariante: todo slot pertenece a una serie).
  */
 export default function AcademiaHorariosPage() {
   const t = useTranslations("academy");
@@ -31,6 +33,7 @@ export default function AcademiaHorariosPage() {
 
 function SlotsModule({ academyId }: { academyId: string }) {
   const tc = useTranslations("common");
+  const ts = useTranslations("academySeries");
   const [slots, setSlots] = useState<ClassSlot[] | null>(null);
   const [error, setError] = useState(false);
 
@@ -68,6 +71,14 @@ function SlotsModule({ academyId }: { academyId: string }) {
     return <PageLoading />;
   }
   return (
-    <SlotsSection academyId={academyId} slots={slots} onChanged={reload} />
+    <div className="flex flex-col gap-4">
+      <SlotsSection slots={slots} />
+      <Link
+        href="/academia/series"
+        className="text-sm font-medium text-neon hover:underline"
+      >
+        {ts("title")} →
+      </Link>
+    </div>
   );
 }

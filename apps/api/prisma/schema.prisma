@@ -764,21 +764,20 @@ model ClassSeriesType {
   @@id([seriesId, typeId])
 }
 
+// Horario semanal de una serie. Todo slot pertenece a una serie — la
+// clase es siempre "estilo + modalidad + nivel" del curso, con overrides
+// puntuales (capacity/instructorId/types) que heredan de la serie.
 model ClassSlot {
   id           String   @id @default(cuid())
   academy      Academy  @relation(fields: [academyId], references: [id])
   academyId    String
-  series       ClassSeries? @relation(fields: [seriesId], references: [id])
-  seriesId     String?
+  series       ClassSeries @relation(fields: [seriesId], references: [id])
+  seriesId     String
   instructorId String?
   weekday      Int // 0-6
   startTime    String // "19:00"
   endTime      String
   capacity     Int? // null = hereda el quórum de la serie/academia
-  // Solo slots legacy (seriesId null, creados al registrar asistencia).
-  // Un slot de serie NO lo declara: hereda series.styleId — mismo patrón
-  // de herencia que capacity/instructorId.
-  styleId      String?
   classes      Class[]
   types        ClassSlotType[]
 }
