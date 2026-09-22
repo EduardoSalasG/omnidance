@@ -25,14 +25,8 @@ function Bailes() {
   const [busyId, setBusyId] = useState<string | null>(null);
   // Nombre del evento cuando la vista viene filtrada por ?event=
   const [eventName, setEventName] = useState<string | null>(null);
-  // Insights del último social: ficha pública del evento + catálogo de
-  // estilos para resolver styleId → nombre.
-  const [lastEvent, setLastEvent] = useState<{
-    id: string;
-    name: string;
-    startsAt: string;
-    venue: { name: string } | null;
-  } | null>(null);
+  // Insights del último social: catálogo de estilos para resolver
+  // styleId → nombre (la ficha del evento ya viene en cada sesión).
   const [styleNames, setStyleNames] = useState<ReadonlyMap<string, string>>(
     new Map(),
   );
@@ -83,27 +77,10 @@ function Bailes() {
       .catch(() => {});
   }, [eventId]);
 
-  // Ficha del último social (la sesión más reciente define el evento).
-  const lastEventId =
-    !eventId && sessions.length > 0 ? sessions[0].eventId : null;
-  useEffect(() => {
-    setLastEvent(null);
-    if (!lastEventId) return;
-    apiFetch(`/events/${lastEventId}`)
-      .then(async (res) => {
-        if (res.ok) {
-          setLastEvent(
-            (await res.json()) as {
-              id: string;
-              name: string;
-              startsAt: string;
-              venue: { name: string } | null;
-            },
-          );
-        }
-      })
-      .catch(() => {});
-  }, [lastEventId]);
+  // Ficha del último social — la sesión más reciente define el evento;
+  // su nombre/fecha/local ya vienen embebidos en la sesión.
+  const lastEvent = !eventId && sessions.length > 0 ? sessions[0].event : null;
+  const lastEventId = lastEvent?.id ?? null;
 
   // Nombres de estilo para el breakdown — catálogo chico, una sola vez.
   useEffect(() => {
@@ -192,6 +169,36 @@ function Bailes() {
     .filter((s) => !s.startsWith(" "));
   const showInsights = Boolean(lastEventId && danced.length > 0);
 
+  // Historial agrupado por noche — la lista viene ordenada desc por
+  // scannedAt, así que el primer grupo es siempre el evento más reciente.
+  const historyGroups: {
+    eventId: string;
+    event: DanceSession["event"];
+    items: DanceSession[];
+    dances: number;
+    partners: number;
+  }[] = [];
+  const byEvent = new Map<string, DanceSession[]>();
+  for (const s of history) {
+    const arr = byEvent.get(s.eventId) ?? [];
+    arr.push(s);
+    byEvent.set(s.eventId, arr);
+  }
+  for (const [groupEventId, items] of byEvent) {
+    const d = items.filter((s) => DANCED.has(s.status));
+    historyGroups.push({
+      eventId: groupEventId,
+      event: items[0].event,
+      items,
+      dances: d.length,
+      partners: new Set(
+        d.map((s) =>
+          s.role.toLowerCase() === "inviter" ? s.inviteeId : s.inviterId,
+        ),
+      ).size,
+    });
+  }
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
       {/* Contexto del filtro ?event= — permite salir de la vista acotada */}
@@ -241,7 +248,7 @@ function Bailes() {
         <>
           {/* Insights del último social — primera sección cuando la vista
               no viene filtrada por ?event= */}
-          {showInsights && (
+          {showInsights && lastEvent && (
             <section
               aria-labelledby="last-social-heading"
               className="rounded-2xl border border-night-700 bg-night-800/60 p-4"
@@ -256,14 +263,12 @@ function Bailes() {
                 href={`/eventos/${lastEventId}`}
                 className="mt-1.5 block text-lg font-semibold text-white transition-colors hover:text-neon"
               >
-                {lastEvent?.name ?? "…"}
+                {lastEvent.name}
               </Link>
-              {lastEvent && (
-                <p className="mt-0.5 text-xs text-white/50">
-                  <EventDate start={lastEvent.startsAt} />
-                  {lastEvent.venue?.name ? ` · ${lastEvent.venue.name}` : ""}
-                </p>
-              )}
+              <p className="mt-0.5 text-xs text-white/50">
+                <EventDate start={lastEvent.startsAt} />
+                {lastEvent.venue?.name ? ` · ${lastEvent.venue.name}` : ""}
+              </p>
               <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                 <div className="flex items-baseline gap-1.5">
                   <dd className="font-semibold text-neon">{danced.length}</dd>
@@ -327,14 +332,16 @@ function Bailes() {
             </section>
           )}
 
-          {/* Historial — confirmadas, puntuadas y cerradas */}
+          {/* Historial — agrupado por noche (la unidad real del baile).
+              Con ?event= hay un solo grupo y el chip ya da el contexto,
+              así que el header del grupo se omite. */}
           {history.length > 0 && (
             <section className="flex flex-col gap-3">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                   {t("history")}
                 </h2>
-                {confirmed.length > 0 && (
+                {eventId && confirmed.length > 0 && (
                   <p className="text-xs text-white/50">
                     {t("summary", {
                       dances: confirmed.length,
@@ -343,14 +350,48 @@ function Bailes() {
                   </p>
                 )}
               </div>
-              {history.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  busy={busyId === s.id}
-                  onAct={(action) => void act(s, action)}
-                  onRate={(score) => void rate(s, score)}
-                />
+              {historyGroups.map((g) => (
+                <section
+                  key={g.eventId}
+                  aria-label={g.event?.name}
+                  className="flex flex-col gap-2"
+                >
+                  {!eventId && g.event && (
+                    <header className="flex items-baseline justify-between gap-3 px-0.5 pt-1">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/eventos/${g.event.id}`}
+                          className="block truncate text-sm font-semibold text-white transition-colors hover:text-neon"
+                        >
+                          {g.event.name}
+                        </Link>
+                        <p className="text-xs text-white/50">
+                          <EventDate start={g.event.startsAt} />
+                          {g.event.venue?.name
+                            ? ` · ${g.event.venue.name}`
+                            : ""}
+                        </p>
+                      </div>
+                      {g.dances > 0 && (
+                        <p className="shrink-0 text-xs text-white/50">
+                          {t("summary", {
+                            dances: g.dances,
+                            partners: g.partners,
+                          })}
+                        </p>
+                      )}
+                    </header>
+                  )}
+                  {g.items.map((s) => (
+                    <SessionCard
+                      key={s.id}
+                      session={s}
+                      busy={busyId === s.id}
+                      onAct={(action) => void act(s, action)}
+                      onRate={(score) => void rate(s, score)}
+                    />
+                  ))}
+                </section>
               ))}
             </section>
           )}
