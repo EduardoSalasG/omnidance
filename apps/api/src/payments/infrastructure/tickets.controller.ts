@@ -113,7 +113,7 @@ export class TicketsController {
       }),
       this.prisma.event.findUnique({
         where: { id: ticket.eventId },
-        select: { name: true },
+        select: { name: true, startsAt: true },
       }),
     ]);
     const claimantName = claimant?.name ?? "Alguien";
@@ -125,6 +125,8 @@ export class TicketsController {
       data: {
         ticketId: ticket.id,
         eventId: ticket.eventId,
+        eventName: event?.name ?? null,
+        eventStartsAt: event?.startsAt?.toISOString() ?? null,
         claimedById: me.id,
         claimedByName: claimantName,
       },
