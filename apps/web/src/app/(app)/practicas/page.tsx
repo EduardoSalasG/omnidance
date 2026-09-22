@@ -20,7 +20,6 @@ type Practice = {
   capacity: number | null;
   startsAt: string;
   endsAt: string;
-  venue: { name: string; address: string | null } | null;
   venueText: string | null;
   rsvpCount: number;
   style: { id: string; name: string } | null;
@@ -165,7 +164,7 @@ export default function PracticasPage() {
               <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
                 <EventDate start={p.startsAt} variant="time" />
               </span>
-              {(p.venue || p.venueText) && (
+              {p.venueText && (
                 <span className="inline-flex max-w-full items-center gap-1 text-xs text-white/60">
                   <svg
                     aria-hidden="true"
@@ -180,9 +179,7 @@ export default function PracticasPage() {
                     <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                     <circle cx="12" cy="10" r="3" />
                   </svg>
-                  <span className="truncate">
-                    {p.venue?.name ?? p.venueText}
-                  </span>
+                  <span className="truncate">{p.venueText}</span>
                 </span>
               )}
             </div>

@@ -69,6 +69,9 @@ export class VenuesController {
       where: {
         venueId: id,
         status: EventStatus.PUBLISHED,
+        // Las prácticas no se vinculan a locales (venueText libre) —
+        // defensa por si quedara una fila legada con venueId.
+        type: { not: "PRACTICA" },
         startsAt: {
           gte: new Date(),
           lte: new Date(Date.now() + horizonDays * 86_400_000),
