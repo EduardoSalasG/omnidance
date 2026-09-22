@@ -1499,15 +1499,21 @@ export async function seedDev(prisma: PrismaClient) {
             styleId: styleName ? styleIdOf(styleName) : null,
           },
         }),
-      // Las INVITED expiran a las 24h (lazy) — refrescar scannedAt en
-      // cada reseed mantiene la invitación demo viva.
+      // Re-anclar scannedAt/confirmedAt en cada reseed: los callers pasan
+      // anchors relativos al presente (at(), liveAt(), scannedNow) — sin
+      // refresh, los bailes del evento LIVE quedan antes de su startsAt
+      // cuando el evento se mueve a now−2h en corridas posteriores.
       (row) =>
-        status === "INVITED"
-          ? prisma.danceSession.update({
-              where: { id: row.id },
-              data: { scannedAt },
-            })
-          : Promise.resolve(null),
+        prisma.danceSession.update({
+          where: { id: row.id },
+          data: {
+            scannedAt,
+            confirmedAt:
+              status === "INVITED" || status === "DECLINED"
+                ? null
+                : new Date(scannedAt.getTime() + 30_000),
+          },
+        }),
     );
     for (const [rater, global, connection, comfort, musicality] of ratings) {
       await prisma.sessionRating.upsert({
@@ -1601,6 +1607,40 @@ export async function seedDev(prisma: PrismaClient) {
   const scannedNow = new Date(Date.now() - 30 * 60_000);
   await session(liveEvent.id, camila, dancer, "INVITED", scannedNow);
   await session(liveEvent.id, dancer, antonia, "INVITED", scannedNow);
+
+  // Bailes ya resueltos de esta misma noche — alimentan el card
+  // "Tu último social" de /bailes (el evento LIVE es el más reciente).
+  // liveAt(m): minutos desde el inicio del evento (hace 2h); las
+  // invitaciones vivas quedan al final (+90 ≈ hace 30 min).
+  const liveAt = (min: number) =>
+    new Date(liveEvent.startsAt.getTime() + min * 60_000);
+  // Dancer: 6 parejas distintas, estilos variados, dos con rating mutuo.
+  await session(liveEvent.id, dancer, josefa, "CONFIRMED", liveAt(10), "Salsa cubana (casino)");
+  await session(liveEvent.id, felipe, dancer, "RATED", liveAt(30), "Bachata sensual", [
+    [dancer, 4, 4, 5, 4],
+    [felipe, 5],
+  ]);
+  await session(liveEvent.id, dancer, sebastian, "CONFIRMED", liveAt(50), "Timba");
+  await session(liveEvent.id, vale, dancer, "RATED", liveAt(70), "Salsa cubana (casino)", [
+    [dancer, 5, 5, 4, 5],
+    [vale, 4],
+  ]);
+  await session(liveEvent.id, dancer, daniela, "CONFIRMED", liveAt(80), "Bachata sensual");
+  await session(liveEvent.id, francisca, dancer, "CONFIRMED", liveAt(105), "Timba");
+  // Camila: su propia noche — el card también debe verse rico en su cuenta.
+  await session(liveEvent.id, camila, diego, "RATED", liveAt(20), "Timba", [
+    [camila, 5, 5, 5, 4],
+    [diego, 4],
+  ]);
+  await session(liveEvent.id, sebastian, camila, "CONFIRMED", liveAt(40), "Salsa cubana (casino)");
+  await session(liveEvent.id, camila, josefa, "CONFIRMED", liveAt(60), "Bachata sensual");
+  await session(liveEvent.id, daniela, camila, "RATED", liveAt(85), "Bachata sensual", [
+    [camila, 4],
+    [daniela, 5],
+  ]);
+  // Ambiente: pares ajenos bailando la misma noche.
+  await session(liveEvent.id, antonia, felipe, "CONFIRMED", liveAt(35), "Bachata sensual");
+  await session(liveEvent.id, diego, vale, "CONFIRMED", liveAt(75), "Salsa cubana (casino)");
 
   // ─── Gamificación — actividad real que produce badges/puntos/rachas ───
   // Dos ediciones más de Bachatamanía (hace 2 y 3 semanas) con sesiones
