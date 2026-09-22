@@ -612,8 +612,8 @@ function ClasesInner() {
     return [...groups.entries()].map(([key, items]) => ({ key, items }));
   }
 
-  // Subgrupo por hora de inicio dentro del día — la hora es rótulo de
-  // la fila, no dato repetido en cada card (parrilla de horarios).
+  // Subgrupo por hora de inicio dentro del día — la hora es encabezado
+  // separador sobre los cards (a todo ancho), no dato repetido en cada uno.
   function groupByHour<T extends { startTime: string }>(items: T[]) {
     const groups = new Map<string, T[]>();
     for (const item of items) {
@@ -622,19 +622,19 @@ function ClasesInner() {
     return [...groups.entries()].map(([time, items]) => ({ time, items }));
   }
 
-  // Día de clases: heading del día + filas "hh:mm | cards".
+  // Día de clases: heading del día + bloques "hh:mm" con sus cards.
+  const hourLabelCls =
+    "mb-1.5 text-sm font-semibold tabular-nums text-white/70";
   const renderClassDayGroup = (g: { key: string; items: BrowseClass[] }) => (
     <section key={g.key}>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
         {dayLabel(g.key, g.items[0].date)}
       </h3>
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         {groupByHour(g.items).map((h) => (
-          <div key={h.time} className="flex items-start gap-3">
-            <span className="w-11 shrink-0 pt-2.5 text-sm font-semibold tabular-nums text-white/70">
-              {h.time}
-            </span>
-            <ul className="flex min-w-0 flex-1 flex-col gap-2">
+          <div key={h.time}>
+            <p className={hourLabelCls}>{h.time}</p>
+            <ul className="flex flex-col gap-2">
               {h.items.map(renderClassCard)}
             </ul>
           </div>
@@ -1079,13 +1079,11 @@ function ClasesInner() {
               ) : selectedClasses.length === 0 ? (
                 <p className="text-sm text-white/50">{t("noClassesDay")}</p>
               ) : (
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4">
                   {groupByHour(selectedClasses).map((h) => (
-                    <div key={h.time} className="flex items-start gap-3">
-                      <span className="w-11 shrink-0 pt-2.5 text-sm font-semibold tabular-nums text-white/70">
-                        {h.time}
-                      </span>
-                      <ul className="flex min-w-0 flex-1 flex-col gap-2">
+                    <div key={h.time}>
+                      <p className={hourLabelCls}>{h.time}</p>
+                      <ul className="flex flex-col gap-2">
                         {h.items.map(renderClassCard)}
                       </ul>
                     </div>
