@@ -99,6 +99,8 @@ export class PracticesController {
         startsAt,
         endsAt,
         capacity: dto.capacity ?? null,
+        womenOnly: dto.womenOnly ?? false,
+        menOnly: dto.menOnly ?? false,
       });
     } catch (e) {
       if (e instanceof SocialDomainError) {

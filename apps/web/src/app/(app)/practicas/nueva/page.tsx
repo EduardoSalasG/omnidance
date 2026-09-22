@@ -186,7 +186,8 @@ export default function NuevaPracticaPage() {
               <button
                 type="button"
                 aria-pressed={allowMen}
-                onClick={() => setAllowMen((v) => !v)}
+                aria-disabled={allowMen && !allowWomen}
+                onClick={() => setAllowMen((v) => (v && !allowWomen ? v : !v))}
                 className={chipCls(allowMen)}
               >
                 {t("audienceMen")}
@@ -194,7 +195,8 @@ export default function NuevaPracticaPage() {
               <button
                 type="button"
                 aria-pressed={allowWomen}
-                onClick={() => setAllowWomen((v) => !v)}
+                aria-disabled={allowWomen && !allowMen}
+                onClick={() => setAllowWomen((v) => (v && !allowMen ? v : !v))}
                 className={chipCls(allowWomen)}
               >
                 {t("audienceWomen")}
