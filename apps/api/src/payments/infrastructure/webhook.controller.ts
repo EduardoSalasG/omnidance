@@ -81,11 +81,24 @@ export class PaymentsController {
         where: { id: payment.id },
         data: { status: "FAILED" },
       });
+      const failedEvent = payment.eventId
+        ? await this.prisma.event.findUnique({
+            where: { id: payment.eventId },
+            select: { name: true, startsAt: true },
+          })
+        : null;
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.failed",
         title: "Tu pago no pudo procesarse",
-        data: { paymentId: payment.id, refId: payment.refId },
+        body: failedEvent ? `Para ${failedEvent.name}` : undefined,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          eventId: payment.eventId,
+          eventName: failedEvent?.name ?? null,
+          eventStartsAt: failedEvent?.startsAt?.toISOString() ?? null,
+        },
       });
       return { ok: true, status: "FAILED" };
     }
@@ -113,7 +126,12 @@ export class PaymentsController {
     // El evento también se reutiliza dentro de la tx para el quote/ticket.
     const event = await this.prisma.event.findUnique({
       where: { id: order.eventId },
-      select: { presalePrice: true, serviceFeeClp: true, name: true },
+      select: {
+        presalePrice: true,
+        serviceFeeClp: true,
+        name: true,
+        startsAt: true,
+      },
     });
     const serviceFeeClp =
       event?.serviceFeeClp ??
@@ -221,11 +239,27 @@ export class PaymentsController {
     });
 
     if (paidNow) {
+      const clp = new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(payment.amount);
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.paid",
         title: "Pago confirmado — tu ticket está listo",
-        data: { paymentId: payment.id, refId: payment.refId },
+        body: event
+          ? `${event.name} · ${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`
+          : `${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          eventId: order.eventId,
+          eventName: event?.name ?? null,
+          eventStartsAt: event?.startsAt?.toISOString() ?? null,
+          quantity: payment.quantity,
+          amount: payment.amount,
+        },
       });
 
       // Aviso a cada destinatario de regalo: quién la compró + qué evento.
@@ -253,6 +287,7 @@ export class PaymentsController {
               refId: payment.refId,
               eventId: order.eventId,
               eventName: event?.name ?? null,
+              eventStartsAt: event?.startsAt?.toISOString() ?? null,
               buyerId: payment.personId,
               buyerName,
             },
@@ -312,14 +347,20 @@ export class PaymentsController {
     });
 
     if (paidNow) {
+      const series = await this.prisma.classSeries.findUnique({
+        where: { id: order.seriesId },
+        select: { name: true },
+      });
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.series_pass",
         title: "Pago confirmado — tu pase de serie está activo",
+        body: series ? `Para ${series.name} · ${order.month}` : undefined,
         data: {
           paymentId: payment.id,
           refId: payment.refId,
           seriesId: order.seriesId,
+          seriesName: series?.name ?? null,
           month: order.month,
         },
       });

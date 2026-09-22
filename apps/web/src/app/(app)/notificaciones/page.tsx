@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
@@ -14,6 +15,15 @@ type NotificationItem = {
   body?: string | null;
   readAt: string | null;
   createdAt: string;
+  /** Contexto estructurado del emisor (eventId, eventStartsAt, …). */
+  data?: {
+    eventId?: string | null;
+    eventName?: string | null;
+    eventStartsAt?: string | null;
+    seriesId?: string | null;
+    sessionId?: string | null;
+    [k: string]: unknown;
+  } | null;
 };
 
 type PageState = "loading" | "ready" | "unauth" | "error";
@@ -33,6 +43,38 @@ const dateFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
+// Meta de los cards con evento: "sáb 15 jun · 21:00".
+const eventDateFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** Deep link por tipo — el tap marca leída y navega al contexto. */
+function hrefFor(n: NotificationItem): string | null {
+  const eventId =
+    typeof n.data?.eventId === "string" ? n.data.eventId : null;
+  switch (n.type) {
+    case "payment.paid":
+      return "/eventos?view=mios";
+    case "ticket.gifted":
+    case "ticket.claimed":
+    case "waitlist.promoted":
+      return eventId ? `/eventos/${eventId}` : "/eventos";
+    case "payment.failed":
+      return eventId ? `/eventos/${eventId}` : null;
+    case "session.invite":
+    case "session.confirmed":
+    case "session.declined":
+      return "/bailes";
+    case "friend.request":
+      return "/amigos";
+    default:
+      return null;
+  }
+}
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -52,6 +94,7 @@ function relativeTime(iso: string): string {
 export default function NotificacionesPage() {
   const t = useTranslations("notifications");
   const tc = useTranslations("common");
+  const router = useRouter();
   const [state, setState] = useState<PageState>("loading");
   const [items, setItems] = useState<NotificationItem[]>([]);
 
@@ -66,8 +109,17 @@ export default function NotificacionesPage() {
         setState("error");
         return;
       }
-      setItems(parseNotifications(await res.json()));
+      const list = parseNotifications(await res.json());
+      setItems(list);
       setState("ready");
+      // Leer al entrar: todo queda leído en el servidor, pero la lista
+      // conserva el highlight de no-leída durante esta visita (ves qué
+      // llegó nuevo; a la próxima visita ya está todo leído).
+      if (list.some((n) => !n.readAt)) {
+        apiFetch("/notifications/read-all", { method: "POST" }).catch(
+          () => {},
+        );
+      }
     } catch {
       setState("error");
     }
@@ -78,17 +130,20 @@ export default function NotificacionesPage() {
   }, [load]);
 
   async function markRead(n: NotificationItem) {
-    if (n.readAt) return;
-    const now = new Date().toISOString();
-    // Optimista: marcar leída de inmediato
-    setItems((prev) =>
-      prev.map((it) => (it.id === n.id ? { ...it, readAt: now } : it)),
-    );
-    try {
-      await apiFetch(`/notifications/${n.id}/read`, { method: "POST" });
-    } catch {
-      // Si falla, el próximo load() restaura el estado real
+    if (!n.readAt) {
+      const now = new Date().toISOString();
+      // Optimista: marcar leída de inmediato
+      setItems((prev) =>
+        prev.map((it) => (it.id === n.id ? { ...it, readAt: now } : it)),
+      );
+      try {
+        await apiFetch(`/notifications/${n.id}/read`, { method: "POST" });
+      } catch {
+        // Si falla, el próximo load() restaura el estado real
+      }
     }
+    const href = hrefFor(n);
+    if (href) router.push(href);
   }
 
   async function markAll() {
@@ -140,6 +195,11 @@ export default function NotificacionesPage() {
           <ul className="flex flex-col gap-3">
             {items.map((n) => {
               const unread = !n.readAt;
+              const href = hrefFor(n);
+              const eventAt =
+                typeof n.data?.eventStartsAt === "string"
+                  ? n.data.eventStartsAt
+                  : null;
               return (
                 <li key={n.id}>
                   <button
@@ -173,10 +233,23 @@ export default function NotificacionesPage() {
                           {n.body}
                         </span>
                       )}
+                      {eventAt && (
+                        <span className="mt-0.5 block text-xs font-medium text-neon/80">
+                          {eventDateFmt.format(new Date(eventAt))}
+                        </span>
+                      )}
                       <span className="mt-1 block text-xs text-white/50">
                         {relativeTime(n.createdAt)}
                       </span>
                     </span>
+                    {href && (
+                      <span
+                        aria-hidden="true"
+                        className="mt-0.5 shrink-0 self-center text-white/30"
+                      >
+                        ›
+                      </span>
+                    )}
                   </button>
                 </li>
               );

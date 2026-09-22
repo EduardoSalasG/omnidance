@@ -309,9 +309,13 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
       const notifs = await notifsFor(ids.buyerId, "payment.paid");
       expect(notifs).toHaveLength(1);
       expect(notifs[0].category).toBe("TRANSACTIONAL");
-      expect(notifs[0].data).toEqual({
+      // data enriquecido: eventId desde el refId legado + economía de la orden
+      expect(notifs[0].data).toMatchObject({
         paymentId: payment.id,
         refId: payment.refId,
+        eventId: ids.eventId,
+        quantity: 1,
+        amount: 10500,
       });
     });
 
@@ -349,9 +353,11 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
       const notifs = await notifsFor(ids.buyerId, "payment.failed");
       expect(notifs).toHaveLength(1);
       expect(notifs[0].category).toBe("TRANSACTIONAL");
-      expect(notifs[0].data).toEqual({
+      // payment.eventId es null (orden legacy por refId) → evento no resuelto
+      expect(notifs[0].data).toMatchObject({
         paymentId: payment.id,
         refId: payment.refId,
+        eventId: null,
       });
     });
   });
@@ -378,7 +384,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
       const notifs = await notifsFor(ids.cId, "waitlist.promoted");
       expect(notifs).toHaveLength(1);
       expect(notifs[0].category).toBe("SOCIAL");
-      expect(notifs[0].data).toEqual({ eventId: ids.eventId });
+      expect(notifs[0].data).toMatchObject({ eventId: ids.eventId });
     });
   });
 });
