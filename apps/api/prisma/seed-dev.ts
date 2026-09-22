@@ -1783,6 +1783,161 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
 
+  // ─── Data de consolas — productor / DJ / venue ───
+
+  // Salidas de pista (outAt) en los check-ins pasados: alimentan la
+  // permanencia media del dashboard del venue. Determinista por índice.
+  for (const [i, c] of pastCheckins.entries()) {
+    if (c.outAt) continue;
+    await prisma.checkin.update({
+      where: { id: c.id },
+      data: { outAt: new Date(c.inAt.getTime() + (150 + (i % 4) * 30) * 60_000) },
+    });
+  }
+
+  // DJ asignado a las ediciones pasadas de Bachatamanía (matias es su
+  // residente) — sin EventDj el gig no aparece en /dj/gigs ni puede ver
+  // su evaluación de música.
+  for (const ev of [prevEdition, edition2, edition3]) {
+    await prisma.eventDj.upsert({
+      where: { eventId_personId: { eventId: ev.id, personId: matias.id } },
+      update: {},
+      create: { eventId: ev.id, personId: matias.id },
+    });
+  }
+
+  // Evaluaciones post-evento (spec §5): agregados por actor — música →
+  // DJ, ocupación/organización → productor, piso/temperatura/sonido →
+  // venue. ≥3 evaluaciones por edición para que los promedios superen
+  // la k-anonymity del resumen. Sin texto libre, rater privado.
+  type EventDims = {
+    music?: number;
+    occupation?: number;
+    organization?: number;
+    floorComfort?: number;
+    temperature?: number;
+    lightingSound?: number;
+  };
+  const rateEvent = (eventId: string, raterId: string, dims: EventDims) =>
+    prisma.eventRating.upsert({
+      where: { eventId_raterId: { eventId, raterId } },
+      update: {},
+      create: { eventId, raterId, ...dims },
+    });
+  const eventRaters = [dancer, camila, josefa, diego, antonia, daniela];
+  const prevDims: EventDims[] = [
+    { music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 3, lightingSound: 4 },
+    { music: 4, occupation: 5, organization: 4, floorComfort: 5, temperature: 4, lightingSound: 5 },
+    { music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 4, lightingSound: 4 },
+    { music: 4, occupation: 4, organization: 4, floorComfort: 4, temperature: 2, lightingSound: 4 },
+    { music: 5, occupation: 5, organization: 5, floorComfort: 5, temperature: 3, lightingSound: 5 },
+    { music: 4, occupation: 4, organization: 4, floorComfort: 3, temperature: 3, lightingSound: 4 },
+  ];
+  const ed2Dims: EventDims[] = [
+    { music: 5, occupation: 5, organization: 5, floorComfort: 5, temperature: 4, lightingSound: 5 },
+    { music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 3, lightingSound: 4 },
+    { music: 4, occupation: 5, organization: 4, floorComfort: 5, temperature: 4, lightingSound: 5 },
+    { music: 5, occupation: 4, organization: 4, floorComfort: 4, temperature: 3, lightingSound: 4 },
+  ];
+  for (const [i, p] of eventRaters.entries()) {
+    await rateEvent(prevEdition.id, p.id, prevDims[i]);
+    if (i < ed2Dims.length) await rateEvent(edition2.id, p.id, ed2Dims[i]);
+  }
+  // Edición -3 queda bajo el umbral (2 evaluaciones) — demuestra el
+  // estado "insuficientes evaluaciones" de la consola del DJ.
+  await rateEvent(edition3.id, dancer.id, {
+    music: 4,
+    organization: 4,
+  });
+  await rateEvent(edition3.id, camila.id, { music: 5, floorComfort: 4 });
+
+  // Operación en curso del evento LIVE: check-ins de pista (SCAN) y un
+  // par de ventas manuales de puerta (MANUAL, sin Payment) + una venta
+  // de puerta por la app — alimentan el tablero /events/:id/live.
+  const liveAttendees = [camila, josefa, antonia, daniela, felipe, vale];
+  for (const [i, p] of liveAttendees.entries()) {
+    await ensure(
+      () =>
+        prisma.checkin.findFirst({
+          where: { eventId: liveEvent.id, personId: p.id },
+        }),
+      () =>
+        prisma.checkin.create({
+          data: {
+            eventId: liveEvent.id,
+            personId: p.id,
+            staffId: staff.id,
+            method: "SCAN",
+            inAt: new Date(Date.now() - (100 - i * 12) * 60_000),
+          },
+        }),
+    );
+  }
+  for (const p of [sebastian, francisca]) {
+    await ensure(
+      () =>
+        prisma.checkin.findFirst({
+          where: { eventId: liveEvent.id, personId: p.id },
+        }),
+      () =>
+        prisma.checkin.create({
+          data: {
+            eventId: liveEvent.id,
+            personId: p.id,
+            staffId: staff.id,
+            method: "MANUAL",
+            note: "venta en puerta",
+            inAt: new Date(Date.now() - 45 * 60_000),
+          },
+        }),
+    );
+  }
+  // Venta de puerta por la app ya pagada (canal DOOR del checkout).
+  await prisma.payment.upsert({
+    where: { refId: `seed-door-${liveEvent.id.slice(-6)}` },
+    update: {},
+    create: {
+      orderType: "TICKET",
+      refId: `seed-door-${liveEvent.id.slice(-6)}`,
+      personId: dancer.id,
+      eventId: liveEvent.id,
+      amount: 7700,
+      fee: 230,
+      net: 7470,
+      status: "PAID",
+      channel: "DOOR",
+      unitListPrice: 7000,
+      unitServiceFee: 700,
+      createdAt: new Date(Date.now() - 90 * 60_000),
+    },
+  });
+  await ensure(
+    () =>
+      prisma.ticket.findFirst({
+        where: {
+          eventId: liveEvent.id,
+          ownerId: dancer.id,
+          status: "ACTIVE",
+        },
+      }),
+    () =>
+      prisma.ticket.create({
+        data: {
+          eventId: liveEvent.id,
+          ownerId: dancer.id,
+          buyerId: dancer.id,
+          listPrice: 7000,
+          serviceFee: 700,
+        },
+      }),
+  );
+  // El DJ del evento en vivo — su gig aparece en /dj/gigs.
+  await prisma.eventDj.upsert({
+    where: { eventId_personId: { eventId: liveEvent.id, personId: steban.id } },
+    update: {},
+    create: { eventId: liveEvent.id, personId: steban.id },
+  });
+
   // Rachas semanales — el KPI del home lee Streak (WEEKLY_OUT); se
   // computa con buildStreakWeeks/computeStreak sobre la actividad real
   // (sesiones confirmadas + check-ins de las ediciones pasadas).
@@ -1942,6 +2097,24 @@ export async function seedDev(prisma: PrismaClient) {
           personId: diego.id,
           partySize: 6,
           status: "REQUESTED",
+        },
+      }),
+  );
+  // Mesa confirmada con número asignado — el venue la ve en su
+  // dashboard ("qué mesas esperar cada noche").
+  await ensure(
+    () =>
+      prisma.tableReservation.findFirst({
+        where: { eventId: bachatamania.id, personId: josefa.id },
+      }),
+    () =>
+      prisma.tableReservation.create({
+        data: {
+          eventId: bachatamania.id,
+          personId: josefa.id,
+          partySize: 4,
+          tableNo: "M3",
+          status: "CONFIRMED",
         },
       }),
   );

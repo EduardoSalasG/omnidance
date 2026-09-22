@@ -13,6 +13,7 @@ import { PassesSection } from "@/components/producer/passes-section";
 import { SuggestionsSection } from "@/components/producer/suggestions-section";
 import { ReservationsSection } from "@/components/producer/reservations-section";
 import { RatingsSection } from "@/components/producer/ratings-section";
+import { LiveSection } from "@/components/producer/live-section";
 import {
   CANCELLABLE_STATUSES,
   EDITABLE_STATUSES,
@@ -352,6 +353,8 @@ export default function ProducerEventDetailPage({
               />
             </Card>
           )}
+
+          {canManage && <LiveSection eventId={eventId} status={event.status} />}
 
           <EventFeesSection
             event={event}

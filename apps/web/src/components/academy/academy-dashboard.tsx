@@ -86,6 +86,50 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
           </ul>
         )}
       </section>
+
+      {/* Hoy — clases del día + asistencia marcada (spec §13). */}
+      {dashboard && dashboard.todayClasses.length > 0 && (
+        <section aria-label={t("today.title")}>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              {t("today.title")}
+            </h3>
+            <p className="text-xs tabular-nums text-white/50">
+              {t("today.attendance", { count: dashboard.attendanceToday })}
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {dashboard.todayClasses.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3"
+              >
+                <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
+                  {c.startTime}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {c.seriesName ?? t("today.unnamed")}
+                  </span>
+                  {c.instructorName && (
+                    <span className="block truncate text-xs text-white/50">
+                      {c.instructorName}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-white/50">
+                  {c.capacity != null
+                    ? t("today.bookedOf", {
+                        booked: c.bookedCount,
+                        capacity: c.capacity,
+                      })
+                    : t("today.booked", { count: c.bookedCount })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

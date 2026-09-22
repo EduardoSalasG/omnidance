@@ -20,6 +20,12 @@ import {
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
+const clp = new Intl.NumberFormat("es-CL", {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
+
 /**
  * /productor/eventos — lista de mis eventos + formulario de creación.
  * GET /events/mine devuelve todos los estados del productor autenticado.
@@ -240,6 +246,15 @@ function ProducerEvents() {
                         )}
                         {ev.series?.name && <span>{ev.series.name}</span>}
                       </div>
+                      {ev.stats && (
+                        <p className="text-xs tabular-nums text-white/60">
+                          {t("stats.sold", { count: ev.stats.sold })}
+                          {" · "}
+                          {clp.format(ev.stats.grossClp)}
+                          {" · "}
+                          {t("stats.checkins", { count: ev.stats.checkins })}
+                        </p>
+                      )}
                     </Card>
                   </Link>
                 </li>

@@ -96,6 +96,8 @@ export type EventListItem = {
   seriesId?: string | null;
   series?: { id?: string; name: string } | null;
   venue?: { id?: string; name: string; address?: string | null } | null;
+  /** Pulso comercial por evento (GET /events/mine) — vendidas/bruto/check-ins. */
+  stats?: { sold: number; grossClp: number; checkins: number };
 };
 
 /** GET /events/:id — shape real del controller (select explícito). */

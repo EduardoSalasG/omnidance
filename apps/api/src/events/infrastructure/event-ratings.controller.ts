@@ -20,7 +20,8 @@ import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 // Ventana post-evento para evaluar: hasta ~24h después de endsAt (spec §5).
 const RATING_WINDOW_MS = 24 * 60 * 60 * 1000;
 // k-anonymity: los promedios solo se exponen con ≥3 evaluaciones totales.
-const EXPOSURE_THRESHOLD = 3;
+// Compartido con el agregado de música del DJ (dj.controller).
+export const EXPOSURE_THRESHOLD = 3;
 
 // Dimensiones 1-5, todas opcionales; sin texto libre (spec: solo puntajes).
 class RateEventDto {

@@ -277,8 +277,8 @@ export class EventsController {
   @Get("mine")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("events.manage")
-  mine(@Req() req: Request) {
-    return this.prisma.event.findMany({
+  async mine(@Req() req: Request) {
+    const events = await this.prisma.event.findMany({
       where: { producerId: req.person!.id },
       orderBy: { startsAt: "desc" },
       select: {
@@ -294,6 +294,117 @@ export class EventsController {
         venue: { select: { name: true, address: true } },
       },
     });
+    const ids = events.map((e) => e.id);
+    if (!ids.length) return [];
+
+    // Pulso comercial por evento (spec §13 Productor: ventas y
+    // ocupación en la consola) — 3 groupBy sobre los ids, no N×queries.
+    const [soldBy, grossBy, checkinsBy] = await Promise.all([
+      this.prisma.ticket.groupBy({
+        by: ["eventId"],
+        where: { eventId: { in: ids }, status: { in: ["ACTIVE", "USED"] } },
+        _count: { _all: true },
+      }),
+      this.prisma.payment.groupBy({
+        by: ["eventId"],
+        where: {
+          eventId: { in: ids },
+          orderType: "TICKET",
+          status: "PAID",
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.checkin.groupBy({
+        by: ["eventId"],
+        where: { eventId: { in: ids }, voidedAt: null },
+        _count: { _all: true },
+      }),
+    ]);
+    const sold = new Map(soldBy.map((r) => [r.eventId, r._count._all]));
+    const gross = new Map(grossBy.map((r) => [r.eventId, r._sum.amount ?? 0]));
+    const checkins = new Map(
+      checkinsBy.map((r) => [r.eventId, r._count._all]),
+    );
+
+    return events.map((e) => ({
+      ...e,
+      stats: {
+        sold: sold.get(e.id) ?? 0,
+        grossClp: gross.get(e.id) ?? 0,
+        checkins: checkins.get(e.id) ?? 0,
+      },
+    }));
+  }
+
+  /**
+   * GET /events/:id/live — tablero en vivo del productor: ventas por
+   * canal, check-ins (total, última hora, histograma por hora) y
+   * ocupación vs aforo. Owner del evento o admin. El Prime Time y el
+   * leaderboard ya son endpoints públicos por evento — el front los
+   * compone; acá solo van los datos operativos privados.
+   */
+  @Get(":id/live")
+  @UseGuards(SessionGuard)
+  async live(@Param("id") id: string, @Req() req: Request) {
+    const me = req.person!;
+    const event = await this.findEventOr404(id);
+    await this.requireOwnerOrAdmin(event.producerId, me);
+
+    const [payments, checkins, passCount] = await Promise.all([
+      this.prisma.payment.findMany({
+        where: { eventId: id, orderType: "TICKET", status: "PAID" },
+        select: { channel: true, quantity: true, amount: true },
+      }),
+      this.prisma.checkin.findMany({
+        where: { eventId: id, voidedAt: null },
+        select: { inAt: true, method: true },
+      }),
+      this.prisma.entryPass.count({
+        where: { eventId: id, status: { not: "CANCELLED" } },
+      }),
+    ]);
+
+    const presale = { count: 0, amount: 0 };
+    const door = { count: 0, amount: 0 };
+    for (const p of payments) {
+      const bucket = p.channel === "DOOR" ? door : presale;
+      bucket.count += p.quantity;
+      bucket.amount += p.amount;
+    }
+    // Ventas manuales de puerta (staff Checkin MANUAL sin Payment).
+    const doorManual = checkins.filter((c) => c.method === "MANUAL").length;
+
+    const byHour = new Array<number>(24).fill(0);
+    let lastHour = 0;
+    const hourAgo = Date.now() - 60 * 60 * 1000;
+    for (const c of checkins) {
+      byHour[c.inAt.getHours()] += 1;
+      if (c.inAt.getTime() >= hourAgo) lastHour += 1;
+    }
+
+    return {
+      eventId: event.id,
+      status: event.status,
+      sales: {
+        presale,
+        door: { ...door, manual: doorManual },
+        total: {
+          count: presale.count + door.count,
+          amount: presale.amount + door.amount,
+        },
+      },
+      checkins: {
+        total: checkins.length,
+        lastHour,
+        byHour,
+      },
+      capacity: event.capacity,
+      occupancy:
+        event.capacity && event.capacity > 0
+          ? Math.min(1, checkins.length / event.capacity)
+          : null,
+      passes: passCount,
+    };
   }
 
   /**

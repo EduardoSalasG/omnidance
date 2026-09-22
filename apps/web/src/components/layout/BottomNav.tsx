@@ -434,6 +434,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.videos",
           icon: ICONS.play,
         },
+        { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
         {
           href: "/analitica",
           ns: "analytics",
