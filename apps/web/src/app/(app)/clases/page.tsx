@@ -471,38 +471,38 @@ function ClasesInner() {
     return (
       <li key={cls.id} className={cardCls}>
         <div className="flex items-start gap-3">
-          {/* Contenido: título = estilo + nivel (la clase no lleva
-              nombre propio) + meta (academia · profe · modalidad) + cupo.
-              El bloque entero linkea a la ficha de la clase. */}
+          {/* Contenido en 4 líneas: estilo (título) / tipo+nivel
+              diferenciados / academia+profe / cupo. El bloque entero
+              linkea a la ficha de la clase. */}
           <Link
             href={`/clases/${cls.id}`}
             className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
+            {/* Estilo solo como título — es lo que el dancer busca */}
             <h2 className="truncate text-base font-semibold leading-snug">
-              {style ? (
-                <>
-                  {style.name}
-                  {cls.series.level && (
-                    <span className="font-normal text-white/50">
-                      {" "}
-                      {cls.series.level.name}
-                    </span>
-                  )}
-                </>
-              ) : (
-                cls.series.name
-              )}
+              {style?.name ?? cls.series.name}
             </h2>
-            <p className="mt-1 truncate text-xs">
-              <span className="text-white/60">{cls.academy.name} · </span>
-              {cls.instructor?.name && (
-                <span className="text-white/50">{cls.instructor.name} · </span>
-              )}
-              {cls.series.types.length > 0 && (
-                <span className="text-white/50">
-                  {cls.series.types.map((x) => x.name).join(" + ")}
-                </span>
-              )}
+            {/* Tipo de clase (fuerte) + nivel (atenuado) — misma línea,
+                diferenciados por peso/color */}
+            {(cls.series.types.length > 0 || cls.series.level) && (
+              <p className="mt-1 truncate text-xs">
+                {cls.series.types.length > 0 && (
+                  <span className="font-medium text-white/70">
+                    {cls.series.types.map((x) => x.name).join(" + ")}
+                  </span>
+                )}
+                {cls.series.level && (
+                  <span className="text-white/40">
+                    {cls.series.types.length > 0 ? " · " : ""}
+                    {cls.series.level.name}
+                  </span>
+                )}
+              </p>
+            )}
+            {/* Academia · profesor */}
+            <p className="mt-1 truncate text-xs text-white/50">
+              {cls.academy.name}
+              {cls.instructor?.name && ` · ${cls.instructor.name}`}
             </p>
             <p
               className={`mt-1 text-xs font-medium ${
