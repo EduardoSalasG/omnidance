@@ -196,7 +196,7 @@ export default function AnaliticaUsuarioPage({
   const t = useTranslations("analytics");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-6">
       <ConsoleHeader
         backHref="/analitica/usuarios"
         backLabel={t("userSearch.title")}
