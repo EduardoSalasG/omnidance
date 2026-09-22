@@ -220,7 +220,7 @@ export default function NuevaPracticaPage() {
             </select>
           </label>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-1.5 text-sm">
               <span className="text-white/70">{t("capacityLabel")}</span>
               <input
@@ -250,7 +250,7 @@ export default function NuevaPracticaPage() {
             </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-1.5 text-sm">
               <span className="text-white/70">
                 {t("startTime")}
