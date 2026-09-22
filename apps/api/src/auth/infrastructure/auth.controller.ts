@@ -19,7 +19,7 @@ import { AuthService } from "../domain/auth.service";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
-import { welcomeEmailHtml } from "./welcome-email";
+import { magicLinkEmailHtml, welcomeEmailHtml } from "./emails";
 
 export const SESSION_COOKIE = "omnidance_session";
 
@@ -123,7 +123,7 @@ export class AuthController {
     await this.mailer.send(
       dto.email,
       "Tu acceso a Omnidance",
-      `<p>Entra a Omnidance con este link (válido 15 min):</p><p><a href="${link}">${link}</a></p>`,
+      magicLinkEmailHtml(link),
     );
     return { sent: true };
   }
