@@ -1078,7 +1078,7 @@ export async function seedDev(prisma: PrismaClient) {
   };
   const pubEvents = await prisma.event.findMany({
     where: { status: "PUBLISHED" },
-    select: { id: true, name: true, startsAt: true },
+    select: { id: true, name: true, startsAt: true, presalePrice: true },
     orderBy: { startsAt: "asc" },
   });
   // Reseed determinista: se recrea el roster completo en cada corrida.
@@ -1250,22 +1250,78 @@ export async function seedDev(prisma: PrismaClient) {
     },
   });
 
-  // Amistades: una aceptada (lista de amigos), una entrante y una enviada.
+  // Amistades: clique ACCEPTED entre los bailarines demo — cualquier
+  // cuenta demo ve amigos en /amigos y "amigos que van" en los eventos.
+  // Respeta la dirección de filas existentes (una PENDING previa entre
+  // dos del clique se promueve a ACCEPTED sin duplicar el par).
+  const clique = [dancer, camila, josefa, diego, antonia, daniela];
+  for (let i = 0; i < clique.length; i++) {
+    for (let j = i + 1; j < clique.length; j++) {
+      const a = clique[i];
+      const b = clique[j];
+      const existing = await prisma.friendship.findFirst({
+        where: {
+          OR: [
+            { aId: a.id, bId: b.id },
+            { aId: b.id, bId: a.id },
+          ],
+        },
+      });
+      if (existing) {
+        await prisma.friendship.update({
+          where: { id: existing.id },
+          data: { status: "ACCEPTED" },
+        });
+      } else {
+        await prisma.friendship.create({
+          data: { aId: a.id, bId: b.id, status: "ACCEPTED" },
+        });
+      }
+    }
+  }
+  // Solicitudes pendientes con gente fuera del clique — mantienen el
+  // demo de la bandeja: una entrante (felipe→dancer) y una enviada.
   await prisma.friendship.upsert({
-    where: { aId_bId: { aId: dancer.id, bId: camila.id } },
-    update: { status: "ACCEPTED" },
-    create: { aId: dancer.id, bId: camila.id, status: "ACCEPTED" },
-  });
-  await prisma.friendship.upsert({
-    where: { aId_bId: { aId: antonia.id, bId: dancer.id } },
+    where: { aId_bId: { aId: felipe.id, bId: dancer.id } },
     update: {},
-    create: { aId: antonia.id, bId: dancer.id, status: "PENDING" },
+    create: { aId: felipe.id, bId: dancer.id, status: "PENDING" },
   });
   await prisma.friendship.upsert({
-    where: { aId_bId: { aId: dancer.id, bId: josefa.id } },
+    where: { aId_bId: { aId: dancer.id, bId: sebastian.id } },
     update: {},
-    create: { aId: dancer.id, bId: josefa.id, status: "PENDING" },
+    create: { aId: dancer.id, bId: sebastian.id, status: "PENDING" },
   });
+
+  // Entradas ACTIVE del clique en los próximos eventos — alimentan la
+  // sección "amigos que van" del detalle y el feed "Tus amigos van a" de
+  // /amigos. Distribución fija sobre los 3 próximos publicados.
+  const goingPlan: [number, { id: string }[]][] = [
+    [0, [camila, josefa, diego, antonia]],
+    [1, [camila, daniela]],
+    [2, [josefa, diego]],
+  ];
+  for (const [evIdx, people] of goingPlan) {
+    const ev = pubEvents[evIdx];
+    if (!ev) continue;
+    for (const p of people) {
+      await ensure(
+        () =>
+          prisma.ticket.findFirst({
+            where: { eventId: ev.id, ownerId: p.id, status: "ACTIVE" },
+          }),
+        () =>
+          prisma.ticket.create({
+            data: {
+              eventId: ev.id,
+              ownerId: p.id,
+              buyerId: p.id,
+              listPrice: ev.presalePrice ?? 5000,
+              serviceFee: 0,
+            },
+          }),
+      );
+    }
+  }
 
   // Roles de baile autodeclarados (PersonStyleRole) — alimentan la sección
   // "Estilos" del perfil del amigo (estilo · leader/follower · nivel).
@@ -1322,13 +1378,23 @@ export async function seedDev(prisma: PrismaClient) {
   const ig = (p: { id: string }, handle: string) =>
     prisma.person.update({ where: { id: p.id }, data: { instagram: handle } });
   await Promise.all([
+    ig(dancer, "bailarin.demo"),
     ig(camila, "camila.dance"),
     ig(josefa, "josefa.martinez"),
     ig(antonia, "anto.reyes"),
     ig(diego, "diegosanhueza"),
     ig(daniela, "dani.fuentes"),
+    ig(francisca, "fran.leon"),
+    ig(sebastian, "seba.pino"),
+    ig(felipe, "felipe.contreras"),
     ig(vale, "valeska.dance"),
     ig(rodrigo, "rodrigo.timba"),
+    ig(jesus, "jesus.salsa"),
+    ig(steban, "dj.steban"),
+    ig(matias, "matias.dj"),
+    ig(fabian, "fabian.baila"),
+    ig(cesar, "cesar.casino"),
+    ig(ardilla, "ardilla.dance"),
   ]);
 
   // Staff asignado a la puerta de Bachatamanía (consola /staff).
