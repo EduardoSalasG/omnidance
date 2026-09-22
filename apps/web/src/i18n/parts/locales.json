@@ -1,6 +1,5 @@
 {
   "venuePublic": {
-    "back": "Volver a eventos",
     "address": "Dirección",
     "hours": "Horarios",
     "capacity": "Aforo {count}",
