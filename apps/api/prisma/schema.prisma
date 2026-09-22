@@ -228,6 +228,7 @@ model Event {
   genreMix    Json?       // override del ciclo de la serie; noches standalone lo declaran acá
   program     Json?       // override del cronograma de la serie; noches standalone lo declaran acá
   name        String
+  description String?   // notas libres — hoy lo usa PRACTICA ("trae agua, junto al skatepark")
   startsAt    DateTime
   endsAt      DateTime
   capacity    Int?

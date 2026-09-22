@@ -62,6 +62,10 @@ type EventDetail = {
   venueText: string | null;
   /** Señal safety de práctica (spec §8) — declarativa. */
   womenOnly: boolean;
+  /** Notas libres del host/productor — hoy lo escribe el form de práctica. */
+  description: string | null;
+  /** Host de práctica (resuelto desde hostId escalar) — null en sociales. */
+  host: { id: string; name: string | null; photoUrl: string | null } | null;
   /** RSVP "voy" — cuenta pública (prácticas). */
   rsvpCount: number;
   djs: {
@@ -228,6 +232,12 @@ export default async function EventoDetailPage({
     event.status === "CLOSED" ||
     Date.now() >= new Date(event.endsAt).getTime();
 
+  // Práctica (spec §8): gratis, first-come, RSVP — no es una "noche": sin
+  // precios, programa, lineup, shows, misiones ni Prime Time. La ficha es
+  // quién organiza + dónde + notas del host; la acción es "Me apunto" → QR.
+  const isPractice = event.type === "PRACTICA";
+  const practiceStyle = blocks[0]?.style?.name ?? null;
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6">
       {/* Hero */}
@@ -244,6 +254,10 @@ export default async function EventoDetailPage({
             isPast && <Badge variant="outline">{t.past}</Badge>
           )}
           {event.womenOnly && <Badge variant="muted">{t.womenOnly}</Badge>}
+          {/* Práctica: el estilo foco es un badge, no un timeline de DJ */}
+          {isPractice && practiceStyle && (
+            <Badge variant="neon">{practiceStyle}</Badge>
+          )}
         </div>
         <h1 className="text-3xl font-bold leading-tight">{event.name}</h1>
         <EventDate
@@ -252,8 +266,19 @@ export default async function EventoDetailPage({
           end={event.endsAt}
           className="text-white/70"
         />
-        {/* Estilos: texto coloreado + barra del ciclo del DJ */}
-        {orderedGenres.length > 0 && (
+        {/* Host de la práctica — "quién organiza" es dato clave de la ficha */}
+        {isPractice && event.host?.name && (
+          <p className="text-sm text-white/60">
+            <Link
+              href={`/amigos/${event.host.id}`}
+              className="font-medium text-white underline-offset-4 transition-colors hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              {t.organizedBy.replace("{name}", event.host.name)}
+            </Link>
+          </p>
+        )}
+        {/* Estilos: texto coloreado + barra del ciclo del DJ (solo sociales) */}
+        {!isPractice && orderedGenres.length > 0 && (
           <p className="text-sm">
             {orderedGenres.map((g, i) => (
               <span key={g}>
@@ -265,7 +290,7 @@ export default async function EventoDetailPage({
             ))}
           </p>
         )}
-        {mixSegs && (
+        {!isPractice && mixSegs && (
           <GenreMixBar
             mix={genreMix!}
             labels={t.genre as Record<string, string>}
@@ -329,8 +354,9 @@ export default async function EventoDetailPage({
       </header>
 
       {/* Prueba social: amigos confirmados con entrada — avatares + nombres.
-          Solo si hay ≥1 (el endpoint devuelve [] o 401 → null → oculta). */}
-      {friendsGoing && friendsGoing.length > 0 && (
+          Solo si hay ≥1 (el endpoint devuelve [] o 401 → null → oculta).
+          No aplica a prácticas: no hay tickets que confirmar. */}
+      {!isPractice && friendsGoing && friendsGoing.length > 0 && (
         <div className="flex items-center gap-3">
           <ul
             aria-label={t.friendsGoingLabel}
@@ -372,37 +398,54 @@ export default async function EventoDetailPage({
         </div>
       )}
 
-      {/* Prime Time — solo cuando el evento está en vivo */}
-      {event.status === "LIVE" && <PrimeTimeWidget eventId={event.id} />}
+      {/* Descripción — notas del host (prácticas) o del productor cuando
+          exista. En prácticas es el contenido principal de la ficha. */}
+      {event.description && (
+        <Card>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">
+            {event.description}
+          </p>
+        </Card>
+      )}
 
-      {/* Precios */}
-      <Card>
-        {event.presalePrice == null && event.doorPrice == null ? (
-          <p className="text-lg font-semibold text-neon">{t.free}</p>
-        ) : (
-          <dl className="grid grid-cols-2 gap-4">
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-white/50">
-                {t.presale}
-              </dt>
-              <dd className="mt-1">
-                <PriceTag amount={event.presalePrice} className="text-xl" />
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase tracking-wide text-white/50">
-                {t.door}
-              </dt>
-              <dd className="mt-1">
-                <PriceTag amount={event.doorPrice} className="text-xl" />
-              </dd>
-            </div>
-          </dl>
-        )}
-      </Card>
+      {/* Prime Time — solo cuando el evento está en vivo (nunca en prácticas:
+          no cuentan para la racha competitiva, spec §8) */}
+      {!isPractice && event.status === "LIVE" && (
+        <PrimeTimeWidget eventId={event.id} />
+      )}
 
-      {/* Planificación de la noche — qué pasa y a qué hora */}
-      {program != null && program.length > 0 && (
+      {/* Precios — las prácticas son gratis/first-come: el precio lo
+          comunica el PracticeBar ("Entrada liberada"), no una tabla */}
+      {!isPractice && (
+        <Card>
+          {event.presalePrice == null && event.doorPrice == null ? (
+            <p className="text-lg font-semibold text-neon">{t.free}</p>
+          ) : (
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-white/50">
+                  {t.presale}
+                </dt>
+                <dd className="mt-1">
+                  <PriceTag amount={event.presalePrice} className="text-xl" />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase tracking-wide text-white/50">
+                  {t.door}
+                </dt>
+                <dd className="mt-1">
+                  <PriceTag amount={event.doorPrice} className="text-xl" />
+                </dd>
+              </div>
+            </dl>
+          )}
+        </Card>
+      )}
+
+      {/* Planificación de la noche — qué pasa y a qué hora (no aplica a
+          prácticas: son un solo bloque de baile) */}
+      {!isPractice && program != null && program.length > 0 && (
         <Card>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t.program}
@@ -427,7 +470,7 @@ export default async function EventoDetailPage({
 
       {/* Pase de serie — solo si el evento pertenece a una serie con id
           y no terminó (un pase anclado a un evento pasado no se vende) */}
-      {seriesId && !isPast && (
+      {seriesId && !isPast && !isPractice && (
         <SeriesPassCta
           seriesId={seriesId}
           month={eventMonth}
@@ -435,17 +478,9 @@ export default async function EventoDetailPage({
         />
       )}
 
-      {event.type === "PRACTICA" && (
-        <Link
-          href="/practicas"
-          className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 underline-offset-4 hover:text-neon"
-        >
-          {messages.practices.title} →
-        </Link>
-      )}
-
-      {/* Misiones — solo con sesión (401 → getMissions devuelve null y se oculta) */}
-      {missions !== null && missions.length > 0 && (
+      {/* Misiones — solo con sesión (401 → getMissions devuelve null y se
+          oculta). No aplica a prácticas: no tienen misiones de productor. */}
+      {!isPractice && missions !== null && missions.length > 0 && (
         <section aria-labelledby="missions-heading">
           <Card>
             <h2
@@ -500,8 +535,8 @@ export default async function EventoDetailPage({
         </section>
       )}
 
-      {/* Lineup */}
-      {event.djs.length > 0 && (
+      {/* Lineup — no aplica a prácticas (no hay DJs en cartel) */}
+      {!isPractice && event.djs.length > 0 && (
         <Card>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t.lineup}
@@ -537,8 +572,8 @@ export default async function EventoDetailPage({
       )}
 
       {/* Shows de la noche — academias invitadas con sus teams.
-          0..n (típico 3–5); vacío → sección oculta. */}
-      {event.shows.length > 0 && (
+          0..n (típico 3–5); vacío → sección oculta. No aplica a prácticas. */}
+      {!isPractice && event.shows.length > 0 && (
         <Card>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t.shows}
@@ -559,8 +594,9 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* Timeline por estilo */}
-      {blocks.length > 0 && (
+      {/* Timeline por estilo — no aplica a prácticas: su estilo foco ya
+          está como badge en el hero */}
+      {!isPractice && blocks.length > 0 && (
         <Card>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t.schedule}

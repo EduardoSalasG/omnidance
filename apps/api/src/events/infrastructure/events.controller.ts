@@ -512,9 +512,11 @@ export class EventsController {
         primeThreshold: true,
         happyHourMinutes: true,
         producerId: true,
+        hostId: true,
         venueId: true,
         venueText: true,
         womenOnly: true,
+        description: true,
         academyId: true,
         genres: true,
         genreMix: true,
@@ -552,8 +554,15 @@ export class EventsController {
       },
     });
     if (!event) throw new NotFoundException();
+    // Event.hostId es escalar (sin relación) → join manual, como en /practices.
+    const host = event.hostId
+      ? await this.prisma.person.findUnique({
+          where: { id: event.hostId },
+          select: { id: true, name: true, photoUrl: true },
+        })
+      : null;
     const { _count, ...rest } = event;
-    return { ...rest, rsvpCount: _count.rsvps };
+    return { ...rest, host, rsvpCount: _count.rsvps };
   }
 
   /**
