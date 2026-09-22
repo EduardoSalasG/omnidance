@@ -53,6 +53,9 @@ export type HomeStats = {
   nextClass?: NextItem | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
+  /** Reservas activas del learner (BOOKED/WAITLIST) en clases futuras —
+      "tus próximas clases" del home Academia. */
+  myClasses?: (NextItem & { status: string })[];
   needsAcademy?: boolean;
 };
 
@@ -333,16 +336,14 @@ export class HomeService {
       return { kpis: [], needsAcademy: true };
     }
     const academyIds = enrollments.map((e) => e.academyId);
-    const [attendance30d, classesNext7d, nextClassRow] = await Promise.all([
+    // "Clases tomadas este mes" = asistencias del mes calendario en curso
+    // (el learner piensa en meses, no en ventanas rolling de 30d).
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const [classesMonth, nextClassRow, myBookings] = await Promise.all([
       this.prisma.attendance.count({
-        where: { personId, checkedAt: { gte: daysAgo(30) } },
-      }),
-      this.prisma.class.count({
-        where: {
-          cancelled: false,
-          date: { gte: new Date(), lte: inDays(7) },
-          slot: { academyId: { in: academyIds } },
-        },
+        where: { personId, checkedAt: { gte: monthStart } },
       }),
       this.prisma.class.findFirst({
         where: {
@@ -362,12 +363,37 @@ export class HomeService {
           },
         },
       }),
+      // Sus próximas reservas — "qué tengo esta semana" del learner.
+      this.prisma.classBooking.findMany({
+        where: {
+          personId,
+          status: { in: ["BOOKED", "WAITLIST"] },
+          class: { date: { gte: new Date() }, cancelled: false },
+        },
+        orderBy: { class: { date: "asc" } },
+        take: 3,
+        select: {
+          status: true,
+          class: {
+            select: {
+              id: true,
+              date: true,
+              slot: {
+                select: {
+                  startTime: true,
+                  academy: { select: { name: true } },
+                  series: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+      }),
     ]);
     return {
       kpis: [
         { key: "enrollments", value: enrollments.length },
-        { key: "attendance30d", value: attendance30d },
-        { key: "classes7d", value: classesNext7d },
+        { key: "classesMonth", value: classesMonth },
       ],
       nextClass: nextClassRow
         ? {
@@ -377,6 +403,13 @@ export class HomeService {
             place: nextClassRow.slot.startTime,
           }
         : null,
+      myClasses: myBookings.map((b) => ({
+        id: b.class.id,
+        name: b.class.slot.series?.name ?? b.class.slot.academy.name,
+        when: b.class.date,
+        place: `${b.class.slot.startTime} · ${b.class.slot.academy.name}`,
+        status: b.status,
+      })),
     };
   }
 
