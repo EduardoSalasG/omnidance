@@ -98,11 +98,6 @@ export default async function ClaseDetailPage({
     );
   }
 
-  // Título dinámico: estilo + nivel — la clase no lleva nombre propio
-  // (misma regla que el card del explorador). Fallback al nombre de serie.
-  const title = cls.series.style
-    ? `${cls.series.style.name} ${cls.series.level?.name ?? ""}`.trim()
-    : cls.series.name;
   const full = cls.spotsLeft <= 0;
   const isPast = new Date(cls.date).getTime() < Date.now() - 24 * 60 * 60 * 1000;
   const dateLabel = `${dayFmt.format(new Date(cls.date))} · ${cls.startTime}–${cls.endTime}`;
@@ -121,7 +116,21 @@ export default async function ClaseDetailPage({
           {cls.cancelled && <Badge variant="outline">{t.cancelledTag}</Badge>}
           {cls.attended && <Badge variant="neon">{t.attendedTag}</Badge>}
         </div>
-        <h1 className="text-3xl font-bold leading-tight">{title}</h1>
+        <h1 className="text-3xl font-bold leading-tight">
+          {cls.series.style ? (
+            <>
+              {cls.series.style.name}
+              {cls.series.level && (
+                <span className="font-medium text-white/50">
+                  {" "}
+                  {cls.series.level.name}
+                </span>
+              )}
+            </>
+          ) : (
+            cls.series.name
+          )}
+        </h1>
         <p className="text-sm text-white/60">
           {cls.series.name} · {cls.academy.name}
         </p>

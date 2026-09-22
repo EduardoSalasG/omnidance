@@ -479,9 +479,19 @@ function ClasesInner() {
             className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
             <h2 className="truncate text-base font-semibold leading-snug">
-              {style
-                ? `${style.name} ${cls.series.level?.name ?? ""}`.trim()
-                : cls.series.name}
+              {style ? (
+                <>
+                  {style.name}
+                  {cls.series.level && (
+                    <span className="font-normal text-white/50">
+                      {" "}
+                      {cls.series.level.name}
+                    </span>
+                  )}
+                </>
+              ) : (
+                cls.series.name
+              )}
             </h2>
             <p className="mt-1 truncate text-xs">
               <span className="text-white/60">{cls.academy.name} · </span>
