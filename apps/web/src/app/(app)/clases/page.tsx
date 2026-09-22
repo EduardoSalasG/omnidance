@@ -14,7 +14,6 @@ import { readError } from "@/components/academy/shared";
 import {
   DAY_MS,
   DOT_COLOR,
-  GENRE_TEXT,
   WEEK_MS,
   WEEKDAY_HEADERS,
   dayCompactFmt,
@@ -106,8 +105,6 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
 // Orden del filtro de día: lunes → domingo (weekday 0 = domingo al final).
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0] as const;
 
-const genreText = (g: string | null | undefined) =>
-  GENRE_TEXT[(g ?? "") as GenreKey] ?? "text-white/50";
 const genreDot = (g: string | null | undefined) =>
   DOT_COLOR[(g ?? "") as GenreKey] ?? "bg-white/50";
 
@@ -478,19 +475,9 @@ function ClasesInner() {
               nombre propio) + meta (academia · profe · modalidad) + cupo */}
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold leading-snug">
-              {style ? (
-                <>
-                  <span className={genreText(style.genre)}>{style.name}</span>
-                  {cls.series.level && (
-                    <span className="text-white/80">
-                      {" "}
-                      {cls.series.level.name}
-                    </span>
-                  )}
-                </>
-              ) : (
-                cls.series.name
-              )}
+              {style
+                ? `${style.name} ${cls.series.level?.name ?? ""}`.trim()
+                : cls.series.name}
             </h2>
             <p className="mt-1 truncate text-xs">
               <span className="text-white/60">{cls.academy.name} · </span>
