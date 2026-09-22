@@ -6,29 +6,55 @@
     "home": {
       "s1": {
         "title": "Tu pulso en la escena",
-        "desc": "Bailes, eventos y tu actividad reciente — todo de un vistazo."
+        "desc": "Racha de semanas, puntos, insignias y bailes — tu actividad real de un vistazo."
       },
       "s2": {
         "title": "La cartelera",
-        "desc": "Todos los sociales de Santiago: filtra por estilo, local o fecha y compra tu entrada."
+        "desc": "Todos los sociales de Santiago: filtra por estilo o local, compra tu preventa y pide mesa para tu grupo."
       },
       "s3": {
-        "title": "Tus acciones",
-        "desc": "El botón +: acá vive tu QR (tu entrada en la puerta) y los módulos para invitar a bailar."
+        "title": "El botón +",
+        "desc": "Tu QR (tu entrada en la puerta y cómo sumas bailes en la pista), tu historial de Bailes y las Prácticas informales de la comunidad."
       },
       "s4": {
+        "title": "Tus amigos",
+        "desc": "Suma a tu crew: ve quién va a cada evento, marca que estás disponible para bailar y regálales entradas desde el checkout."
+      },
+      "s5": {
         "title": "Tu perfil",
-        "desc": "Foto, estilos que bailas y tus otras lentes si también eres profe, DJ o productor."
+        "desc": "Foto, estilos que bailas y tus lentes: si también eres profe, DJ, productor o de una academia, cambia de vista acá."
+      },
+      "academy": {
+        "s1": {
+          "title": "Tu aprendizaje",
+          "desc": "Asistencias, clases tomadas y tu progreso como alumno — de un vistazo."
+        },
+        "s2": {
+          "title": "Clases",
+          "desc": "Explora clases y particulares de todas las academias, reserva tu cupo y revisa tu historial."
+        },
+        "s3": {
+          "title": "El botón +",
+          "desc": "Tu QR personal — también es tu credencial en clases y sociales."
+        },
+        "s4": {
+          "title": "Academias",
+          "desc": "El directorio de la escena: descubre academias, mira sus clases e inscríbete. Si ya estás en una, acá vive Mi Aprendizaje."
+        },
+        "s5": {
+          "title": "Tu perfil",
+          "desc": "Foto, estilos y tus lentes — vuelve a la vista Social cuando quieras salir a bailar."
+        }
       }
     },
     "eventos": {
       "s1": {
         "title": "Filtra por estilo",
-        "desc": "¿Salsa, bachata o timba? Toca un chip para ver solo esas noches."
+        "desc": "¿Salsa, bachata o timba? Toca un chip para ver solo esas noches — puedes combinar varios."
       },
       "s2": {
         "title": "Por local",
-        "desc": "¿Hinchas de un lugar? Mira solo su programación."
+        "desc": "¿Hinchas de un lugar? Mira solo su cartelera — y entra a su perfil para ver dirección y cómo llegar."
       },
       "s3": {
         "title": "Tres formas de ver",
@@ -36,27 +62,27 @@
       },
       "s4": {
         "title": "Toca un evento",
-        "desc": "Cada card lleva al detalle: estilos, precios, planificación de la noche y tu entrada."
+        "desc": "Cada card lleva al detalle: lineup, planificación de la noche y precios. En el checkout puedes regalar entradas a tus amigos o pedir mesa."
       }
     },
     "qr": {
       "s1": {
         "title": "Tu QR personal",
-        "desc": "Se renueva solo para que nadie lo copie. En la puerta es tu entrada; en la pista, invita a bailar."
+        "desc": "Se renueva solo para que nadie lo copie. En la puerta es tu entrada; en la pista, suma bailes con tu pareja."
       },
       "s2": {
         "title": "Modo escáner",
-        "desc": "Cambia a Escanear para sumar un baile con el QR de tu pareja o invitarla a bailar."
+        "desc": "Cambia a Escanear para sumar un baile con el QR de tu pareja — queda en tu historial de Bailes."
       }
     },
     "productor": {
       "s1": {
         "title": "El +",
-        "desc": "Crea tu evento: fecha, local, precios, lineup y aforo."
+        "desc": "Crea tu evento: fecha, local, precios, lineup, aforo — y mesas reservables con su tope por mesa y cupo sentable."
       },
       "s2": {
         "title": "Tus eventos",
-        "desc": "Publicados, borradores y las acciones de cada noche (staff, pases, reservas)."
+        "desc": "Publicados, borradores y las acciones de cada noche: staff de puerta, pases y las solicitudes de reserva de mesa — revísalas y confirma el tamaño final."
       },
       "s3": {
         "title": "Liquidaciones",
@@ -64,7 +90,7 @@
       },
       "s4": {
         "title": "Todos los módulos",
-        "desc": "Códigos de descuento, listas de puerta, parámetros y analítica viven en este menú."
+        "desc": "Códigos de descuento, listas de puerta, analítica y tus parámetros — incluidos los defaults de mesas que heredan tus eventos."
       }
     },
     "academia": {

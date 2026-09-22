@@ -638,8 +638,8 @@ export function HomeHub() {
         </Link>
       )}
 
-      {/* Tour de primera visita — solo lente bailarín social (los tabs
-          del nav referenciados son los de esa lente). */}
+      {/* Tour de primera visita — lente social del bailarín (los tabs
+          referenciados son los de esa lente). */}
       {activeRole === "DANCER" && !dancerAcademy && (
         <OnboardingRunner
           tour="home"
@@ -662,9 +662,54 @@ export function HomeHub() {
               side: "top",
             },
             {
-              element: "[data-tour='nav-profile']",
+              element: "[data-tour='nav-friends']",
               title: tt("s4.title"),
               description: tt("s4.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-profile']",
+              title: tt("s5.title"),
+              description: tt("s5.desc"),
+              side: "top",
+            },
+          ] satisfies TourStep[]}
+        />
+      )}
+
+      {/* Tour de la lente Academia del bailarín — Mi Aprendizaje:
+          tabs Clases / + (QR) / Academias / Perfil. */}
+      {activeRole === "DANCER" && dancerAcademy && (
+        <OnboardingRunner
+          tour="home-academy"
+          steps={[
+            {
+              element: "[data-tour='home-stats']",
+              title: tt("academy.s1.title"),
+              description: tt("academy.s1.desc"),
+            },
+            {
+              element: "[data-tour='nav-classes']",
+              title: tt("academy.s2.title"),
+              description: tt("academy.s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-more']",
+              title: tt("academy.s3.title"),
+              description: tt("academy.s3.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-academies']",
+              title: tt("academy.s4.title"),
+              description: tt("academy.s4.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-profile']",
+              title: tt("academy.s5.title"),
+              description: tt("academy.s5.desc"),
               side: "top",
             },
           ] satisfies TourStep[]}
