@@ -312,10 +312,10 @@ const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
     icon: ICONS.practices,
   },
 ];
-const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [
-  { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
-  { href: "/eventos", ns: "events", key: "title", icon: ICONS.events },
-];
+// Lente academia del bailarín: sin módulos secundarios propios — /clases
+// y /academias ya son tabs; /academia es la consola del dueño y /eventos
+// pertenece a la lente social. El sheet queda solo con el QR.
+const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [];
 
 const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   // El bailarín no usa drawer: sus módulos viven en el sheet del "+".
