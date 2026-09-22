@@ -36,6 +36,13 @@ type OrderTicket = {
 
 const MAX_TICKETS = 10;
 
+// Búsqueda de amigos insensible a tildes/mayúsculas.
+const norm = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s
 
@@ -58,6 +65,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   // hace el servidor; la lista solo filtra la UI.
   const [friends, setFriends] = useState<FriendItem[]>([]);
   const [giftIds, setGiftIds] = useState<Set<string>>(new Set());
+  const [giftQuery, setGiftQuery] = useState("");
   // claimable = entradas sin amigo asignado (se comparten por link)
   const claimable = quantity - 1 - giftIds.size;
 
@@ -303,46 +311,107 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           )}
         </Card>
 
-        {/* Regalo multi-entrada: checkbox por amigo = +1 entrada */}
+        {/* Regalo multi-entrada: buscador de amigos — cada resultado se
+            toca para asignar/quitar una entrada. Los receptores quedan
+            como chips (tocar también quita). */}
         {friends.length > 0 && (
           <Card>
             <h2 className="text-base font-semibold">{t("giftTitle")}</h2>
             <p className="mt-1 text-xs text-white/50">{t("giftHint")}</p>
-            <ul className="mt-3 flex flex-col gap-1">
-              {friends.map((f) => {
-                const pid = f.person!.id;
-                const checked = giftIds.has(pid);
-                // No hay cupos asignables: el resto queda como link
-                const full = claimable <= 0 && !checked;
-                return (
-                  <li key={f.id}>
-                    <label
-                      className={`flex min-h-11 items-center gap-3 rounded-xl px-2 py-2 ${
-                        full
-                          ? "cursor-not-allowed opacity-40"
-                          : "cursor-pointer hover:bg-white/5"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        disabled={busy || full}
-                        onChange={() =>
-                          setGiftIds((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(pid)) next.delete(pid);
-                            else next.add(pid);
-                            return next;
-                          })
-                        }
-                        className="size-5 shrink-0 accent-neon"
-                      />
-                      <span className="text-sm">{f.person!.name}</span>
-                    </label>
+
+            {giftIds.size > 0 && (
+              <ul className="mt-3 flex flex-wrap gap-2">
+                {friends
+                  .filter((f) => giftIds.has(f.person!.id))
+                  .map((f) => {
+                    const pid = f.person!.id;
+                    return (
+                      <li key={pid}>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={t("giftRemove", {
+                            name: f.person!.name,
+                          })}
+                          onClick={() =>
+                            setGiftIds((prev) => {
+                              const next = new Set(prev);
+                              next.delete(pid);
+                              return next;
+                            })
+                          }
+                          className="flex min-h-9 items-center gap-2 rounded-full bg-neon/15 px-3 text-sm font-medium text-neon transition-colors hover:bg-neon/25 disabled:opacity-50"
+                        >
+                          {f.person!.name}
+                          <span aria-hidden="true">✕</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+              </ul>
+            )}
+
+            <input
+              type="search"
+              value={giftQuery}
+              onChange={(e) => setGiftQuery(e.target.value)}
+              placeholder={t("giftSearchPlaceholder")}
+              aria-label={t("giftTitle")}
+              disabled={busy}
+              className="mt-3 min-h-11 w-full rounded-xl border border-night-700 bg-night-900 px-4 text-white placeholder:text-white/40 focus:border-neon focus:outline-none disabled:opacity-50"
+            />
+
+            {giftQuery.trim().length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1">
+                {friends
+                  .filter((f) =>
+                    norm(f.person!.name).includes(norm(giftQuery)),
+                  )
+                  .map((f) => {
+                    const pid = f.person!.id;
+                    const checked = giftIds.has(pid);
+                    // No hay cupos asignables: el resto queda como link
+                    const full = claimable <= 0 && !checked;
+                    return (
+                      <li key={f.id}>
+                        <button
+                          type="button"
+                          disabled={busy || full}
+                          aria-pressed={checked}
+                          onClick={() =>
+                            setGiftIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(pid)) next.delete(pid);
+                              else next.add(pid);
+                              return next;
+                            })
+                          }
+                          className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+                            checked
+                              ? "bg-neon/10 font-medium text-neon"
+                              : full
+                                ? "cursor-not-allowed opacity-40"
+                                : "hover:bg-white/5"
+                          }`}
+                        >
+                          {f.person!.name}
+                          {checked && <span aria-hidden="true">✓</span>}
+                        </button>
+                      </li>
+                    );
+                  })}
+                {friends.filter((f) =>
+                  norm(f.person!.name).includes(norm(giftQuery)),
+                ).length === 0 && (
+                  <li
+                    role="status"
+                    className="px-3 py-2 text-sm text-white/50"
+                  >
+                    {t("giftNoResults")}
                   </li>
-                );
-              })}
-            </ul>
+                )}
+              </ul>
+            )}
           </Card>
         )}
 
