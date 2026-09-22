@@ -436,6 +436,8 @@ export class EventsController {
 
     const where: Prisma.EventWhereInput = {
       status: { in: ["PUBLISHED", "LIVE"] },
+      // Las prácticas viven en /practices — no son cartelera pública.
+      type: { not: "PRACTICA" },
       startsAt: {
         gte: new Date(Date.now() - EVENT_RECENT_LOOKBACK_MS),
         ...(week === "this"

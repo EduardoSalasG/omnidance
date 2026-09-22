@@ -12,6 +12,7 @@ describe("GET /api/events", () => {
   let baseUrl: string;
   let prisma: PrismaService;
   let eventId: string;
+  let practiceId: string;
   let venueId: string;
 
   beforeAll(async () => {
@@ -47,10 +48,20 @@ describe("GET /api/events", () => {
       },
     });
     eventId = event.id;
+    const practice = await prisma.event.create({
+      data: {
+        name: `Práctica E2E ${suffix}`,
+        type: "PRACTICA",
+        status: "PUBLISHED",
+        startsAt: new Date(Date.now() + 3 * 24 * 3600 * 1000),
+        endsAt: new Date(Date.now() + 3 * 24 * 3600 * 1000 + 2 * 3600 * 1000),
+      },
+    });
+    practiceId = practice.id;
   });
 
   afterAll(async () => {
-    await prisma.event.deleteMany({ where: { id: eventId } });
+    await prisma.event.deleteMany({ where: { id: { in: [eventId, practiceId] } } });
     await prisma.venue.deleteMany({ where: { id: venueId } });
     await app.close();
   });
@@ -67,6 +78,13 @@ describe("GET /api/events", () => {
     expect(mine).toHaveProperty("startsAt");
     expect(mine.venue).toHaveProperty("name");
     expect(["PUBLISHED", "LIVE"]).toContain(mine.status);
+  });
+
+  it("no incluye prácticas — viven en /practices", async () => {
+    const res = await fetch(`${baseUrl}/api/events`);
+    const events = await res.json();
+    expect(events.some((e: { id: string }) => e.id === practiceId)).toBe(false);
+    expect(events.every((e: { type: string }) => e.type !== "PRACTICA")).toBe(true);
   });
 
   it("expone lat/lng del venue para 'cerca de ti'", async () => {
