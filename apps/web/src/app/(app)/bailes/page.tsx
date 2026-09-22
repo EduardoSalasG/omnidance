@@ -30,6 +30,10 @@ function Bailes() {
   const [styleNames, setStyleNames] = useState<ReadonlyMap<string, string>>(
     new Map(),
   );
+  // Racha semanal para la línea de continuidad del insights.
+  const [streak, setStreak] = useState<number | null>(null);
+  // Progressive disclosure del historial: primeras N noches visibles.
+  const [allNights, setAllNights] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     const res = await apiFetch(
@@ -94,6 +98,18 @@ function Bailes() {
       .catch(() => {});
   }, [sessions, styleNames.size]);
 
+  // Racha semanal — solo cuando el card del último social va a mostrarse.
+  useEffect(() => {
+    if (!lastEventId) return;
+    apiFetch("/gamification/me/streak")
+      .then(async (res) => {
+        if (!res.ok) return;
+        const d = (await res.json()) as { currentWeeks?: number };
+        setStreak(d.currentWeeks ?? null);
+      })
+      .catch(() => {});
+  }, [lastEventId]);
+
   async function act(session: DanceSession, action: SessionAction) {
     setBusyId(session.id);
     const res = await apiFetch(`/sessions/${session.id}/${action}`, {
@@ -128,11 +144,12 @@ function Bailes() {
   const outgoing = pending.filter((s) => !isInvitee(s));
   const history = sessions.filter((s) => s.status !== "INVITED");
 
-  // Resumen de la vista actual: bailes confirmados y parejas distintas.
+  // Resumen de la vista actual: bailes confirmados y parejas distintas
+  // (por id — los homónimos no colapsan).
+  const counterpartId = (s: DanceSession) =>
+    s.role.toLowerCase() === "inviter" ? s.inviteeId : s.inviterId;
   const confirmed = history.filter((s) => s.status === "CONFIRMED");
-  const partnerCount = new Set(
-    confirmed.map((s) => s.partner?.name).filter(Boolean),
-  ).size;
+  const partnerCount = new Set(confirmed.map(counterpartId)).size;
 
   // ── Insights del último social ─────────────────────────────────────
   // Baile real = CONFIRMED | RATED | CLOSED (DECLINED/DISCARDED/EXPIRED
@@ -142,11 +159,7 @@ function Bailes() {
     ? sessions.filter((s) => s.eventId === lastEventId)
     : [];
   const danced = lastSessions.filter((s) => DANCED.has(s.status));
-  const lastPartners = new Set(
-    danced.map((s) =>
-      s.role.toLowerCase() === "inviter" ? s.inviteeId : s.inviterId,
-    ),
-  ).size;
+  const lastPartners = new Set(danced.map(counterpartId)).size;
   const myScores = lastSessions
     .map((s) => s.myRating?.global)
     .filter((v): v is number => typeof v === "number");
@@ -164,9 +177,18 @@ function Bailes() {
   }
   const topStyles = [...styleCounts.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([id, n]) => `${styleNames.get(id) ?? ""} ×${n}`)
-    .filter((s) => !s.startsWith(" "));
+    .map(([id, n]) => ({ name: styleNames.get(id), n }))
+    .filter((x): x is { name: string; n: number } => Boolean(x.name))
+    .slice(0, 2);
+  // El mejor baile de la noche — highlight personal (solo si fue bueno:
+  // "mejor baile ★2" no celebra nada).
+  const bestDance = danced
+    .filter((s) => s.myRating && s.myRating.global >= 4 && s.partner)
+    .sort(
+      (a, b) =>
+        b.myRating!.global - a.myRating!.global ||
+        +new Date(b.scannedAt) - +new Date(a.scannedAt),
+    )[0];
   const showInsights = Boolean(lastEventId && danced.length > 0);
 
   // Historial agrupado por noche — la lista viene ordenada desc por
@@ -199,8 +221,16 @@ function Bailes() {
     });
   }
 
+  // Progressive disclosure: máximo 3 noches expandidas; el resto tras
+  // "ver más". Con ?event= hay un solo grupo — no aplica.
+  const VISIBLE_NIGHTS = 3;
+  const moreNights = Math.max(0, historyGroups.length - VISIBLE_NIGHTS);
+  const visibleGroups =
+    allNights || eventId ? historyGroups : historyGroups.slice(0, VISIBLE_NIGHTS);
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:px-6">
+      <h1 className="sr-only">{t("title")}</h1>
       {/* Contexto del filtro ?event= — permite salir de la vista acotada */}
       {eventId && (
         <Link
@@ -243,10 +273,54 @@ function Bailes() {
           <p role="status" className="text-lg font-semibold">
             {t("empty")}
           </p>
+          <Button href="/eventos" variant="secondary" size="lg">
+            {t("findSocial")}
+          </Button>
         </div>
       ) : (
         <>
-          {/* Insights del último social — primera sección cuando la vista
+          {/* Por confirmar — invitaciones vivas de la noche. Siempre
+              primero: es la acción más urgente (regla de los ~5s).
+              aria-live anuncia invitaciones que llegan por refetch. */}
+          {pending.length > 0 && (
+            <section
+              aria-live="polite"
+              aria-label={t("pending")}
+              className="flex flex-col gap-3"
+            >
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                {t("pending")}
+              </h2>
+              {incoming.length > 0 && outgoing.length > 0 && (
+                <h3 className="text-xs font-medium text-white/60">
+                  {t("pendingIn")}
+                </h3>
+              )}
+              {incoming.map((s) => (
+                <SessionCard
+                  key={s.id}
+                  session={s}
+                  busy={busyId === s.id}
+                  onAct={(action) => void act(s, action)}
+                />
+              ))}
+              {incoming.length > 0 && outgoing.length > 0 && (
+                <h3 className="mt-1 text-xs font-medium text-white/60">
+                  {t("pendingOut")}
+                </h3>
+              )}
+              {outgoing.map((s) => (
+                <SessionCard
+                  key={s.id}
+                  session={s}
+                  busy={busyId === s.id}
+                  onAct={(action) => void act(s, action)}
+                />
+              ))}
+            </section>
+          )}
+
+          {/* Insights del último social — retrospectiva; cuando la vista
               no viene filtrada por ?event= */}
           {showInsights && lastEvent && (
             <section
@@ -266,7 +340,11 @@ function Bailes() {
                 {lastEvent.name}
               </Link>
               <p className="mt-0.5 text-xs text-white/50">
-                <EventDate start={lastEvent.startsAt} />
+                {lastEvent.status === "LIVE" ? (
+                  <span className="font-medium text-neon">{t("tonight")}</span>
+                ) : (
+                  <EventDate start={lastEvent.startsAt} />
+                )}
                 {lastEvent.venue?.name ? ` · ${lastEvent.venue.name}` : ""}
               </p>
               <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
@@ -301,34 +379,26 @@ function Bailes() {
                     </>
                   )}
                   {topStyles.length > 0 &&
-                    `${lastFrom ? " · " : ""}${topStyles.join(" · ")}`}
+                    `${lastFrom ? " · " : ""}${topStyles
+                      .map((x) => `${x.name} ×${x.n}`)
+                      .join(" · ")}`}
                 </p>
               )}
-            </section>
-          )}
-
-          {/* Por confirmar — invitaciones vivas de la noche */}
-          {pending.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-                {t("pending")}
-              </h2>
-              {incoming.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  busy={busyId === s.id}
-                  onAct={(action) => void act(s, action)}
-                />
-              ))}
-              {outgoing.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  busy={busyId === s.id}
-                  onAct={(action) => void act(s, action)}
-                />
-              ))}
+              {/* Highlight emocional: el mejor baile que diste esta noche +
+                  la racha si sigue viva */}
+              {bestDance?.partner && (
+                <p className="mt-2 text-sm text-white/70">
+                  {t("bestDance", { name: bestDance.partner.name })}{" "}
+                  <span className="text-neon">
+                    ★ {bestDance.myRating!.global}
+                  </span>
+                </p>
+              )}
+              {streak !== null && streak >= 2 && (
+                <p className="mt-1 text-xs font-medium text-neon/80">
+                  {t("streakLine", { weeks: streak })}
+                </p>
+              )}
             </section>
           )}
 
@@ -350,7 +420,7 @@ function Bailes() {
                   </p>
                 )}
               </div>
-              {historyGroups.map((g) => (
+              {visibleGroups.map((g) => (
                 <section
                   key={g.eventId}
                   aria-label={g.event?.name}
@@ -393,6 +463,19 @@ function Bailes() {
                   ))}
                 </section>
               ))}
+              {!eventId && moreNights > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="self-center"
+                  aria-expanded={allNights}
+                  onClick={() => setAllNights((v) => !v)}
+                >
+                  {allNights
+                    ? t("fewerNights")
+                    : t("moreNights", { count: moreNights })}
+                </Button>
+              )}
             </section>
           )}
         </>

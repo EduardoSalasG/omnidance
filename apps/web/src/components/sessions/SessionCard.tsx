@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
@@ -11,10 +12,12 @@ import type { DanceSession, SessionAction } from "./types";
 
 const STATUS_META: Record<
   string,
-  { key: "pending" | "confirmed" | "expired" | "decline" | "discard"; variant: BadgeVariant }
+  { key: "pending" | "confirmed" | "rated" | "closed" | "expired" | "decline" | "discard"; variant: BadgeVariant }
 > = {
   INVITED: { key: "pending", variant: "outline" },
   CONFIRMED: { key: "confirmed", variant: "neon" },
+  RATED: { key: "rated", variant: "neon" },
+  CLOSED: { key: "closed", variant: "muted" },
   EXPIRED: { key: "expired", variant: "muted" },
   DECLINED: { key: "decline", variant: "muted" },
   DISCARDED: { key: "discard", variant: "muted" },
@@ -39,6 +42,7 @@ export function SessionCard({
 
   const invitee = isInvitee(session);
   const name = session.partner?.name ?? "?";
+  const partnerId = invitee ? session.inviterId : session.inviteeId;
   const meta = STATUS_META[session.status];
   const incoming = session.status === "INVITED" && invitee;
 
@@ -51,28 +55,51 @@ export function SessionCard({
       }
     >
       <div className="flex items-center gap-3">
-        <PartnerAvatar
-          name={name}
-          photoUrl={session.partner?.photoUrl ?? null}
-          size={incoming ? "lg" : "md"}
-        />
+        <Link
+          href={`/amigos/${partnerId}`}
+          aria-label={name}
+          className="shrink-0 rounded-full transition-transform active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
+        >
+          <PartnerAvatar
+            name={name}
+            photoUrl={session.partner?.photoUrl ?? null}
+            size={incoming ? "lg" : "md"}
+          />
+        </Link>
         <div className="min-w-0 flex-1">
           {session.status === "INVITED" ? (
             <p className={incoming ? "text-lg" : ""}>
               {invitee ? (
                 <>
-                  <span className="font-bold">{name}</span>{" "}
+                  <Link
+                    href={`/amigos/${partnerId}`}
+                    className="font-bold hover:text-neon"
+                  >
+                    {name}
+                  </Link>{" "}
                   <span className="text-white/70">{t("invitedYou")}</span>
                 </>
               ) : (
                 <>
                   <span className="text-white/70">{t("youInvited")}</span>{" "}
-                  <span className="font-semibold">{name}</span>
+                  <Link
+                    href={`/amigos/${partnerId}`}
+                    className="font-semibold hover:text-neon"
+                  >
+                    {name}
+                  </Link>
                 </>
               )}
             </p>
           ) : (
-            <p className="font-semibold">{name}</p>
+            <p className="font-semibold">
+              <Link
+                href={`/amigos/${partnerId}`}
+                className="transition-colors hover:text-neon"
+              >
+                {name}
+              </Link>
+            </p>
           )}
           <EventDate
             variant="time"
@@ -120,11 +147,28 @@ export function SessionCard({
         </div>
       )}
 
-      {/* Confirmada: puntuar inline o mostrar el puntaje ya dado */}
-      {session.status === "CONFIRMED" &&
+      {/* Confirmada/puntuada: puntuar inline o mostrar lo que di.
+          RATED también es rateable — la contraparte puede actualizar. */}
+      {(session.status === "CONFIRMED" || session.status === "RATED") &&
         (session.myRating ? (
           <div className="mt-2">
             <StarRating value={session.myRating.global} />
+            {(session.myRating.connection !== null ||
+              session.myRating.comfort !== null ||
+              session.myRating.musicality !== null) && (
+              <p className="mt-1 text-xs text-white/50">
+                {[
+                  session.myRating.connection !== null &&
+                    `${t("subConnection")} ${session.myRating.connection}`,
+                  session.myRating.comfort !== null &&
+                    `${t("subComfort")} ${session.myRating.comfort}`,
+                  session.myRating.musicality !== null &&
+                    `${t("subMusicality")} ${session.myRating.musicality}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
           </div>
         ) : ratingOpen ? (
           <div className="mt-3">
