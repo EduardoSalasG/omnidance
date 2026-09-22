@@ -38,6 +38,20 @@ export type AcademyDashboard = {
   totalStudents: number;
   plansCount: number;
   attendanceLast30d: number;
+  // Spec §13: "asistencia de hoy, clases del día" en el dashboard.
+  attendanceToday: number;
+  todayClasses: TodayClass[];
+};
+
+// Clase del día en el dashboard de la academia (GET /academies/:id/dashboard).
+export type TodayClass = {
+  id: string;
+  startTime: string; // "19:00"
+  endTime: string;
+  seriesName: string | null;
+  instructorName: string | null;
+  bookedCount: number;
+  capacity: number | null;
 };
 
 export type MembershipPlan = {

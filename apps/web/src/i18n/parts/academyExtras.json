@@ -9,7 +9,16 @@
     "studentStatus": "Estado de {name}",
     "modules": {
       "myClasses": "Mis clases",
-      "myClassesDesc": "Clases que impartes, roster y quórum"
+      "myClassesDesc": "Clases que impartes, roster y quórum",
+      "crm": "CRM",
+      "crmDesc": "Relación con tus alumnos"
+    },
+    "today": {
+      "title": "Clases de hoy",
+      "unnamed": "Clase",
+      "attendance": "{count, plural, one {# asistencia hoy} other {# asistencias hoy}}",
+      "booked": "{count} reservados",
+      "bookedOf": "{booked}/{capacity} reservados"
     },
     "settings": {
       "title": "Configuración",

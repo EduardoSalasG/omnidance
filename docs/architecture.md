@@ -57,14 +57,14 @@ src/<dominio>/
 |---|---|---|
 | auth | `/api/auth/*` magic-link, session, logout | — |
 | people | `/api/me` perfil + roleStates | SessionGuard |
-| events | `/api/events*` catálogo público con `?genre=&venue=&week=this`; `genres` resueltos (evento o heredados de serie) | público / SessionGuard |
+| events | `/api/events*` catálogo público con `?genre=&venue=&week=this`; `genres` resueltos (evento o heredados de serie); consola productor: `/events/mine` (+stats vendidas/bruto/check-ins), `/events/:id/live` (ventas por canal, check-ins, ocupación — owner/admin), `/events/:id/ratings/summary` (agregado k≥3), `/dj/gigs*` (gigs + sugerencias + rating de música del DJ asignado) | público / SessionGuard / `events.manage` |
 | qr | `/api/qr/mine` QR rotativo | SessionGuard |
 | sessions | `/api/sessions/*` invitar/confirmar/puntuar | SessionGuard + wiring notify+badges |
 | checkins | `/api/checkins*` staff door scan/manual | `checkins.write` |
 | payments | `/api/checkout`, `/api/tickets`, `/api/payments/webhook` | mixto (checkout = preventa o puerta-app según estado/corte del evento) |
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
 | notifications | `/api/notifications`, `/api/push-tokens` | SessionGuard |
-| social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id` | mixto `social.manage` |
+| social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id`; consola venue: `/venues/mine`, `/venues/:id/dashboard` (KPIs + reservas de mesa + flujo: hora peak/permanencia), `/venues/:id/rentals/:id` PATCH | mixto `social.manage` / `VENUE_MANAGER`+admin |
 | academies | `/api/academies/*` planes, enrollments, asistencia | `academies.create` / owner |
 | gamification | `/api/gamification/*` streaks, badges, leaderboard, misiones | SessionGuard |
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |
@@ -87,6 +87,14 @@ src/<dominio>/
 - `/eventos` sin sesión: solo eventos de la semana, sin links al detalle, con CTA a login — "ver sin entrar a la app". `BottomNav` no renderiza chrome cuando `/me` resuelve anónimo (`meChecked && !me`) y marca `html[data-anon]` para que `ChromeShell` no reserve el padding de la tab bar.
 - Tras login, `?next=` devuelve a la ruta pedida (solo rutas internas — sin open redirect).
 - Estilos: `EventSeries.genres` + `Event.genres` (Genre[]: SALSA/BACHATA/CUBANO; vacío en evento → hereda la serie). En la UI `CUBANO` se muestra como "Timba" — el nombre que usa la escena.
+
+> **Orden de controllers con prefijo compartido**: si dos controllers
+> declaran el mismo `@Controller("x")`, el que registra `@Get(":id")`
+> gana sobre rutas literales del otro (`x/mine` → 404). En
+> `social.module.ts` `VenueConsoleController` va ANTES de
+> `VenuesController` por eso — al agregar un controller con prefijo
+> ya ocupado, declararlo antes que el que tenga rutas paramétricas
+> de un segmento.
 
 ## Hub de eventos (`/eventos` autenticado)
 

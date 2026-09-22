@@ -16,12 +16,26 @@
     },
     "sections": {
       "upcoming": "Próximos eventos",
+      "tables": "Reservas de mesa",
+      "flow": "Flujo del público",
       "rentals": "Arriendos",
       "menus": "Cartas y menús"
     },
     "emptyUpcoming": "Sin eventos próximos agendados.",
+    "emptyTables": "Sin reservas de mesa en los eventos próximos.",
+    "emptyFlow": "Sin check-ins en los últimos 30 días.",
     "emptyRentals": "Sin solicitudes de arriendo.",
     "emptyMenus": "Sin cartas cargadas.",
+    "tables": {
+      "anonymous": "Reserva",
+      "party": "{count, plural, one {# persona} other {# personas}}"
+    },
+    "flow": {
+      "peakHour": "hora peak de llegadas",
+      "avgStay": "permanencia media",
+      "stayValue": "{hours} h {minutes} min",
+      "chartLabel": "Llegadas por hora (últimos 30 días)"
+    },
     "rentals": {
       "confirm": "Confirmar",
       "confirmAsk": "¿Confirmar esta solicitud de arriendo?",

@@ -58,12 +58,73 @@ function parseSuggestions(data: unknown): {
 }
 
 const num = new Intl.NumberFormat("es-CL");
+const scoreFmt = new Intl.NumberFormat("es-CL", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 // Historial: solo fecha (sin hora) — los gigs pasados no necesitan el slot.
 const pastFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
   year: "numeric",
 });
+
+type GigRatingResponse = {
+  exposed: boolean;
+  count: number;
+  music: { avg: number; count: number } | null;
+};
+
+/**
+ * Evaluación agregada de la música de un gig pasado
+ * (GET /dj/gigs/:id/rating). Bajo el umbral de k-anonymity muestra un
+ * estado discreto — nunca el promedio con pocas evaluaciones.
+ */
+function GigRating({ eventId }: { eventId: string }) {
+  const t = useTranslations("dj");
+  const [rating, setRating] = useState<GigRatingResponse | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    apiFetch(`/dj/gigs/${eventId}/rating`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (alive && d) setRating(d as GigRatingResponse);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [eventId]);
+
+  if (!rating) return null;
+  if (!rating.exposed || !rating.music) {
+    return (
+      <span className="text-xs text-white/40" title={t("rating.fewHint")}>
+        {t("rating.few", { count: rating.count })}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums text-neon"
+      title={t("rating.title", { count: rating.music.count })}
+    >
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="h-3.5 w-3.5"
+      >
+        <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z" />
+      </svg>
+      {scoreFmt.format(rating.music.avg)}
+      <span className="sr-only">
+        {t("rating.title", { count: rating.music.count })}
+      </span>
+    </span>
+  );
+}
 
 type SugPhase = "loading" | "error" | "forbidden" | "ready";
 
@@ -367,12 +428,15 @@ export default function DjPage() {
                     </span>
                   )}
                 </span>
-                <time
-                  dateTime={new Date(g.startsAt).toISOString()}
-                  className="shrink-0 text-xs tabular-nums text-white/50"
-                >
-                  {pastFmt.format(new Date(g.startsAt))}
-                </time>
+                <span className="flex shrink-0 items-center gap-3">
+                  <GigRating eventId={g.eventId} />
+                  <time
+                    dateTime={new Date(g.startsAt).toISOString()}
+                    className="text-xs tabular-nums text-white/50"
+                  >
+                    {pastFmt.format(new Date(g.startsAt))}
+                  </time>
+                </span>
               </li>
             ))}
           </ul>

@@ -1577,6 +1577,32 @@
           }
         },
         {
+          "name": "GET /api/events/{id}/live",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/live",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "live"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/events",
           "request": {
             "method": "GET",
@@ -2383,6 +2409,33 @@
                 "gigs",
                 "{eventId}",
                 "suggestions"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": ":eventId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/dj/gigs/{eventId}/rating",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dj/gigs/{eventId}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dj",
+                "gigs",
+                "{eventId}",
+                "rating"
               ],
               "variable": [
                 {

@@ -49,6 +49,24 @@ type Rental = {
 
 type Menu = { id: string; pdfUrl: string; version: number };
 
+// Reserva de mesa de un evento próximo (spec §13 Local).
+type TableReservation = {
+  id: string;
+  status: string;
+  partySize: number;
+  tableNo: string | null;
+  personName: string | null;
+  event: { id: string; name: string; startsAt: string | null };
+};
+
+// Flujo del público 30d: llegadas por hora + permanencia media.
+type VenueFlow = {
+  byHour: number[];
+  peakHour: number | null;
+  avgStayMinutes: number | null;
+  checkins: number;
+};
+
 type Dashboard = {
   venue: {
     id: string;
@@ -60,6 +78,8 @@ type Dashboard = {
   past30d: { events: number; checkins: number };
   rentals: Rental[];
   menus: Menu[];
+  tables: TableReservation[];
+  flow: VenueFlow;
 };
 
 type Phase = "loading" | "unauth" | "forbidden" | "empty" | "error" | "ready";
@@ -83,6 +103,14 @@ const rentalDayFmt = new Intl.DateTimeFormat("es-CL", {
   month: "short",
   year: "numeric",
 });
+// Fecha corta para las mesas (el nombre del evento ya da contexto).
+const dayFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+// Ventana nocturna del histograma de flujo: 19:00 → 05:00.
+const FLOW_HOURS = [19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5];
 
 // Skeleton simple: bloques night-800 con pulse (scanability > detalle).
 function SkeletonBlocks() {
@@ -399,6 +427,116 @@ export default function VenuePage() {
                       </li>
                     ))}
                   </ul>
+                )}
+              </section>
+
+              {/* Reservas de mesa — qué mesas esperar cada noche. */}
+              <section aria-label={t("sections.tables")}>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                  {t("sections.tables")}
+                </h2>
+                {dash.tables.length === 0 ? (
+                  <p className="text-sm text-white/50">{t("emptyTables")}</p>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    {dash.tables.map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">
+                            {r.personName ?? t("tables.anonymous")}
+                            {r.tableNo ? ` · ${r.tableNo}` : ""}
+                          </span>
+                          <span className="block truncate text-xs text-white/50">
+                            {r.event.name}
+                            {r.event.startsAt
+                              ? ` · ${dayFmt.format(new Date(r.event.startsAt))}`
+                              : ""}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-xs tabular-nums text-white/50">
+                          {t("tables.party", { count: r.partySize })}
+                        </span>
+                        <Badge
+                          variant={
+                            RENTAL_STATUS_VARIANT[r.status] ?? "muted"
+                          }
+                        >
+                          {t.has(`rentals.statuses.${r.status}`)
+                            ? t(`rentals.statuses.${r.status}`)
+                            : r.status}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+
+              {/* Flujo del público — hora peak, permanencia y llegadas
+                  por hora (30d). La ventana nocturna 19→05 ordena las
+                  barras como vive la noche. */}
+              <section aria-label={t("sections.flow")}>
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                  {t("sections.flow")}
+                </h2>
+                {dash.flow.checkins === 0 ? (
+                  <p className="text-sm text-white/50">{t("emptyFlow")}</p>
+                ) : (
+                  <Card className="flex flex-col gap-4">
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                      {dash.flow.peakHour != null && (
+                        <p>
+                          <span className="font-semibold text-neon">
+                            {dash.flow.peakHour}:00
+                          </span>{" "}
+                          <span className="text-white/50">
+                            {t("flow.peakHour")}
+                          </span>
+                        </p>
+                      )}
+                      {dash.flow.avgStayMinutes != null && (
+                        <p>
+                          <span className="font-semibold text-neon">
+                            {t("flow.stayValue", {
+                              hours: Math.floor(dash.flow.avgStayMinutes / 60),
+                              minutes: dash.flow.avgStayMinutes % 60,
+                            })}
+                          </span>{" "}
+                          <span className="text-white/50">
+                            {t("flow.avgStay")}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                    <div
+                      className="flex h-16 items-end gap-1"
+                      role="img"
+                      aria-label={t("flow.chartLabel")}
+                    >
+                      {FLOW_HOURS.map((h) => {
+                        const v = dash.flow.byHour[h] ?? 0;
+                        const max = Math.max(...dash.flow.byHour, 1);
+                        return (
+                          <span
+                            key={h}
+                            title={`${h}:00 — ${num.format(v)}`}
+                            className="flex-1 rounded-sm bg-neon/60"
+                            style={{
+                              height: `${Math.max(4, (v / max) * 100)}%`,
+                              opacity: v === 0 ? 0.15 : undefined,
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="flex justify-between text-[10px] tabular-nums text-white/40">
+                      <span>19:00</span>
+                      <span>00:00</span>
+                      <span>05:00</span>
+                    </div>
+                  </Card>
                 )}
               </section>
 

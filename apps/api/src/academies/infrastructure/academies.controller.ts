@@ -580,17 +580,91 @@ export class AcademiesController {
   async dashboard(@Param("id") id: string, @Req() req: Request) {
     await this.access.requireAdminister(id, req.person!);
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const [enrollments, plansCount, attendanceLast30d] = await Promise.all([
-      this.prisma.enrollment.findMany({
-        where: { academyId: id },
-        select: { status: true },
-      }),
-      this.prisma.membershipPlan.count({ where: { academyId: id } }),
-      this.prisma.attendance.count({
-        where: { class: { slot: { academyId: id }, date: { gte: since } } },
-      }),
-    ]);
-    return computeDashboard({ enrollments, plansCount, attendanceLast30d });
+    // Class.date vive a medianoche UTC (misma convención que
+    // ClassSeriesController.monthDates) — "hoy" = el día UTC actual.
+    const now = new Date();
+    const todayUTC = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const [enrollments, plansCount, attendanceLast30d, today, todayAttendance] =
+      await Promise.all([
+        this.prisma.enrollment.findMany({
+          where: { academyId: id },
+          select: { status: true },
+        }),
+        this.prisma.membershipPlan.count({ where: { academyId: id } }),
+        this.prisma.attendance.count({
+          where: { class: { slot: { academyId: id }, date: { gte: since } } },
+        }),
+        // Clases del día — spec §13 Academia: "asistencia de hoy, clases
+        // del día" en el dashboard de la consola.
+        this.prisma.class.findMany({
+          where: {
+            cancelled: false,
+            date: todayUTC,
+            slot: { academyId: id },
+          },
+          orderBy: { slot: { startTime: "asc" } },
+          select: {
+            id: true,
+            capacity: true,
+            instructorId: true,
+            slot: {
+              select: {
+                startTime: true,
+                endTime: true,
+                capacity: true,
+                instructorId: true,
+                series: { select: { name: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.attendance.count({
+          where: { class: { slot: { academyId: id }, date: todayUTC } },
+        }),
+      ]);
+
+    const classIds = today.map((c) => c.id);
+    const bookedBy = classIds.length
+      ? await this.prisma.classBooking.groupBy({
+          by: ["classId"],
+          where: { classId: { in: classIds }, status: "BOOKED" },
+          _count: { _all: true },
+        })
+      : [];
+    const booked = new Map(bookedBy.map((b) => [b.classId, b._count._all]));
+
+    // instructorId es escalar (override de la clase o default del slot) —
+    // nombres por join manual.
+    const instructorIds = [
+      ...new Set(
+        today.map((c) => c.instructorId ?? c.slot.instructorId).filter(Boolean),
+      ),
+    ] as string[];
+    const instructors = instructorIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: instructorIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const instructorNameBy = new Map(instructors.map((p) => [p.id, p.name]));
+
+    return {
+      ...computeDashboard({ enrollments, plansCount, attendanceLast30d }),
+      attendanceToday: todayAttendance,
+      todayClasses: today.map((c) => ({
+        id: c.id,
+        startTime: c.slot.startTime,
+        endTime: c.slot.endTime,
+        seriesName: c.slot.series?.name ?? null,
+        instructorName:
+          instructorNameBy.get(c.instructorId ?? c.slot.instructorId ?? "") ??
+          null,
+        bookedCount: booked.get(c.id) ?? 0,
+        capacity: c.capacity ?? c.slot.capacity,
+      })),
+    };
   }
 }
 

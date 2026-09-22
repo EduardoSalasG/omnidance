@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { apiFetch } from "@/lib/api";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { AcademySettings } from "@/components/academy/academy-settings";
@@ -22,6 +24,10 @@ const MODULES = [
   { href: "/academia/asistencia", key: "attendance" },
   { href: "/academia/particulares", key: "lessons" },
   { href: "/academia/videos", key: "videos" },
+  // CRM con actorType=ACADEMY — la API ya segmenta por academia; el
+  // ActorPicker la resuelve via GET /academies/mine. Solo owner/ADMIN:
+  // CRM_ROLES no incluye instructor (el card se filtra abajo).
+  { href: "/crm", key: "crm", ownerOnly: true },
 ] as const;
 
 /**
@@ -32,6 +38,15 @@ const MODULES = [
 export default function AcademiaPage() {
   const t = useTranslations("academy");
   const tt = useTranslations("tours.academia");
+
+  // /me para filtrar módulos owner-only (CRM) — academy.ownerId vs me.id.
+  const [me, setMe] = useState<{ id: string; roles: string[] } | null>(null);
+  useEffect(() => {
+    apiFetch("/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setMe(d as { id: string; roles: string[] } | null))
+      .catch(() => setMe(null));
+  }, []);
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -46,7 +61,12 @@ export default function AcademiaPage() {
                 no ven el card (canAdminister interno vía GET /me). */}
             <AcademySettings academy={academy} />
             <ModuleGrid>
-              {MODULES.map((m) => (
+              {MODULES.filter(
+                (m) =>
+                  !("ownerOnly" in m && m.ownerOnly) ||
+                  me?.roles.includes("ADMIN") ||
+                  me?.id === academy.ownerId,
+              ).map((m) => (
                 <ModuleCard
                   key={m.href}
                   href={m.href}

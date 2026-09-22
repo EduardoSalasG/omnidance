@@ -397,6 +397,26 @@
         }
       }
     },
+    "/api/events/{id}/live": {
+      "get": {
+        "operationId": "EventsController_live",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events": {
       "get": {
         "operationId": "EventsController_list",
@@ -830,6 +850,26 @@
     "/api/dj/gigs/{eventId}/suggestions": {
       "get": {
         "operationId": "DjController_suggestions",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/dj/gigs/{eventId}/rating": {
+      "get": {
+        "operationId": "DjController_rating",
         "parameters": [
           {
             "name": "eventId",

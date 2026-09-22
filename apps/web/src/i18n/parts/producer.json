@@ -63,6 +63,23 @@
       "reservations": "Reservas de mesa",
       "ratings": "Evaluación del evento"
     },
+    "stats": {
+      "sold": "{count, plural, one {# vendida} other {# vendidas}}",
+      "checkins": "{count, plural, one {# check-in} other {# check-ins}}"
+    },
+    "live": {
+      "title": "En vivo",
+      "titlePast": "Operación del evento",
+      "presale": "Preventa",
+      "door": "Puerta",
+      "doorManual": "{count} en puerta manual",
+      "totalSold": "Vendidas",
+      "checkins": "check-ins",
+      "lastHour": "última hora",
+      "occupancy": "de {capacity} de aforo",
+      "passes": "{count, plural, one {# pase emitido} other {# pases emitidos}}",
+      "chartLabel": "Llegadas por hora"
+    },
     "staffSection": {
       "add": "Agregar staff",
       "personId": "ID de persona",

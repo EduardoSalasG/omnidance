@@ -27,8 +27,11 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
     WaitlistController,
     PracticesController,
     StylesController,
-    VenuesController,
+    // VenueConsoleController ANTES de VenuesController: ambos comparten el
+    // prefijo "venues" y el público tiene @Get(":id") — si el público se
+    // registra primero, /venues/mine matcha ":id" y la consola queda 404.
     VenueConsoleController,
+    VenuesController,
     PartnerRequestsController,
     AvailabilityController,
     BlocksController,
