@@ -1058,6 +1058,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
             {me && (
               <Link
                 href="/notificaciones"
+                data-tour="appbar-bell"
                 aria-label={
                   badge > 0
                     ? t("notificationsUnread", { count: badge })

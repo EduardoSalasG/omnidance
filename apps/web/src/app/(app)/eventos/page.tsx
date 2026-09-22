@@ -472,9 +472,15 @@ export default async function EventosPage({
       side: "bottom",
     },
     {
-      element: "[data-tour='ev-list']",
+      element: "[data-tour='ev-mios']",
       title: tt.s4.title,
       description: tt.s4.desc,
+      side: "bottom",
+    },
+    {
+      element: "[data-tour='ev-list']",
+      title: tt.s5.title,
+      description: tt.s5.desc,
       side: "top",
     },
   ];
@@ -532,6 +538,7 @@ export default async function EventosPage({
               {/* Mis eventos — agenda propia (ticket activo), ícono aparte */}
               <Link
                 href={hrefFor({ view: "mios", week: undefined, day: undefined })}
+                data-tour="ev-mios"
                 aria-label={t.viewMios}
                 aria-current={view === "mios" ? "true" : undefined}
                 className={`${iconBtn(view === "mios")} border border-white/15`}

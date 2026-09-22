@@ -11,6 +11,7 @@ import {
 } from "@/lib/active-role";
 import { Badge, Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
+import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 
 type Me = {
   id: string;
@@ -52,6 +53,7 @@ export default function PerfilPage() {
   const t = useTranslations("profile");
   const tg = useTranslations("gamification");
   const tc = useTranslations("common");
+  const tt = useTranslations("tours.perfil");
 
   const [state, setState] = useState<PageState>("loading");
   const [me, setMe] = useState<Me | null>(null);
@@ -237,7 +239,7 @@ export default function PerfilPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       {/* Identidad */}
-      <Card className="flex items-center gap-4">
+      <Card data-tour="perfil-identity" className="flex items-center gap-4">
         {me.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
           <img
@@ -337,7 +339,7 @@ export default function PerfilPage() {
           patrón que el segmented del hub /qr). Se oculta si solo hay una
           opción (DANCER puro): sin opciones no hay decisión. */}
       {actAsOptions.length > 1 && (
-        <Card>
+        <Card data-tour="perfil-actas">
           <h2
             id="act-as-title"
             className="text-sm font-semibold uppercase tracking-wide text-white/50"
@@ -376,7 +378,7 @@ export default function PerfilPage() {
       {currentActAs !== "ADMIN" && (
         <>
           {/* Racha — orgullo, grande */}
-          <Card>
+          <Card data-tour="perfil-gamif">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
               {tg("streak")}
             </h2>
@@ -419,6 +421,31 @@ export default function PerfilPage() {
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}
       </Button>
+
+      {/* Tour de primera visita — monta con `me` resuelto; los targets
+          condicionales (act-as, gamificación) se omiten si no aplican. */}
+      <OnboardingRunner
+        tour="perfil"
+        steps={
+          [
+            {
+              element: "[data-tour='perfil-identity']",
+              title: tt("s1.title"),
+              description: tt("s1.desc"),
+            },
+            {
+              element: "[data-tour='perfil-actas']",
+              title: tt("s2.title"),
+              description: tt("s2.desc"),
+            },
+            {
+              element: "[data-tour='perfil-gamif']",
+              title: tt("s3.title"),
+              description: tt("s3.desc"),
+            },
+          ] satisfies TourStep[]
+        }
+      />
     </main>
   );
 }

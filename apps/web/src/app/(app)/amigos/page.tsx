@@ -13,6 +13,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
+import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 
 type FriendshipStatus = "none" | "sent" | "received" | "friends";
 
@@ -65,6 +66,7 @@ const EMPTY_DATA: FriendsData = {
 export default function AmigosPage() {
   const t = useTranslations("friends");
   const tc = useTranslations("common");
+  const tt = useTranslations("tours.amigos");
 
   const [state, setState] = useState<PageState>("loading");
   const [data, setData] = useState<FriendsData>(EMPTY_DATA);
@@ -287,6 +289,7 @@ export default function AmigosPage() {
           cae a login/registro y aterriza aquí con el botón Agregar. */}
       <section
         aria-labelledby="add-friends-title"
+        data-tour="amigos-add"
         className="flex flex-col gap-3"
       >
         <div className="flex items-center justify-between gap-3">
@@ -389,7 +392,7 @@ export default function AmigosPage() {
         <>
           {/* Tus amigos van a — eventos con ticket activo de ≥1 amigo */}
           {friendEvents.length > 0 && (
-            <section className="flex flex-col gap-3">
+            <section data-tour="amigos-going" className="flex flex-col gap-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("goingTitle")}
               </h2>
@@ -497,7 +500,7 @@ export default function AmigosPage() {
           )}
 
           {/* Amigos */}
-          <section className="flex flex-col gap-3">
+          <section data-tour="amigos-list" className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
               {t("list")}
             </h2>
@@ -516,6 +519,33 @@ export default function AmigosPage() {
             )}
           </section>
         </>
+      )}
+
+      {/* Tour de primera visita — monta solo con la data lista para
+          que las secciones target existan en el DOM. */}
+      {state === "ready" && (
+        <OnboardingRunner
+          tour="amigos"
+          steps={
+            [
+              {
+                element: "[data-tour='amigos-add']",
+                title: tt("s1.title"),
+                description: tt("s1.desc"),
+              },
+              {
+                element: "[data-tour='amigos-going']",
+                title: tt("s2.title"),
+                description: tt("s2.desc"),
+              },
+              {
+                element: "[data-tour='amigos-list']",
+                title: tt("s3.title"),
+                description: tt("s3.desc"),
+              },
+            ] satisfies TourStep[]
+          }
+        />
       )}
     </main>
   );
