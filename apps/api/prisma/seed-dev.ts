@@ -481,7 +481,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Bachata Sensual — Básico",
     styleName: "Bachata sensual",
     levelName: "Básico",
-    typeNames: ["En Pareja"],
+    typeNames: ["Pareja"],
     instructorId: vale.id,
     quorum: 8,
     dropInPrice: 9000,
@@ -498,7 +498,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Salsa Cubana — Intermedio",
     styleName: "Salsa cubana (casino)",
     levelName: "Intermedio",
-    typeNames: ["En Pareja", "Shines"],
+    typeNames: ["Pareja", "Shines"],
     instructorId: rodrigo.id,
     slots: [
       { weekday: 2, startTime: "20:00", endTime: "21:00" },
@@ -512,7 +512,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Rueda de Casino — Open",
     styleName: "Rueda de casino",
     levelName: "Iniciación",
-    typeNames: ["En Pareja"],
+    typeNames: ["Pareja"],
     instructorId: vale.id,
     slots: [{ weekday: 6, startTime: "12:00", endTime: "13:00" }],
   });
@@ -596,9 +596,9 @@ export async function seedDev(prisma: PrismaClient) {
   ];
   const CLASS_HOURS = ["18:00", "19:00", "20:00", "21:00"];
   const MODALITIES = [
-    ["En Pareja"],
+    ["Pareja"],
     ["Shines"],
-    ["En Pareja", "Shines"],
+    ["Pareja", "Shines"],
     ["Corporalidad"],
   ];
   const LEVEL_ROT = ["Iniciación", "Básico", "Intermedio"];
@@ -632,7 +632,7 @@ export async function seedDev(prisma: PrismaClient) {
       const levelName = LEVEL_ROT[(aIdx + sIdx) % LEVEL_ROT.length];
       const modality = MODALITIES[(aIdx + sIdx) % MODALITIES.length];
       // "Ambos" se resuelve por slot: cada día del par lleva una modalidad
-      // (lunes En Pareja / miércoles Shines) en una misma serie.
+      // (lunes Pareja / miércoles Shines) en una misma serie.
       const mixed = modality.length > 1;
       await mkClassSeries({
         academyId: academy.id,
@@ -661,7 +661,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Cubano — Básico",
     styleName: "Cubano",
     levelName: "Básico",
-    typeNames: ["En Pareja", "Shines"],
+    typeNames: ["Pareja", "Shines"],
     instructorId: rodrigo.id,
     dropInPrice: 9000,
     slots: [
@@ -669,7 +669,7 @@ export async function seedDev(prisma: PrismaClient) {
         weekday: 2,
         startTime: "18:00",
         endTime: "19:00",
-        typeNames: ["En Pareja"],
+        typeNames: ["Pareja"],
       },
       {
         weekday: 5,
