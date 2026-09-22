@@ -466,42 +466,22 @@ function ClasesInner() {
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
 
-  // ─── Card del explorador: 3 columnas como el card de eventos ───
-  // [hora + academia] [nombre + meta] [acción]. El día lo da el heading.
+  // ─── Card del explorador: [serie + meta] [acción]. El día y la hora
+  // los dan los headings del grupo — parrilla de horarios, no repetición.
   const renderClassCard = (cls: BrowseClass) => {
     const full = cls.spotsLeft <= 0;
     const style = cls.series.style;
     return (
       <li key={cls.id} className={cardCls}>
         <div className="flex items-start gap-3">
-          {/* Col 1: hora de inicio + academia (pin, como venue en eventos) */}
-          <div className="flex w-14 shrink-0 flex-col items-start gap-1">
-            <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
-              {cls.startTime}
-            </span>
-            <span className="inline-flex max-w-full items-center gap-1 text-xs text-white/60">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="h-3 w-3 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              <span className="truncate">{cls.academy.name}</span>
-            </span>
-          </div>
-          {/* Col 2: serie + meta (nivel · estilo · modalidad · cupos) */}
+          {/* Contenido: serie + meta (academia · profe · estilo · nivel ·
+              modalidad) + cupo */}
           <div className="min-w-0 flex-1">
             <h2 className="truncate text-base font-semibold leading-snug">
               {cls.series.name}
             </h2>
             <p className="mt-1 truncate text-xs">
+              <span className="text-white/60">{cls.academy.name} · </span>
               {cls.instructor?.name && (
                 <span className="text-white/50">{cls.instructor.name} · </span>
               )}
@@ -631,6 +611,37 @@ function ClasesInner() {
     }
     return [...groups.entries()].map(([key, items]) => ({ key, items }));
   }
+
+  // Subgrupo por hora de inicio dentro del día — la hora es rótulo de
+  // la fila, no dato repetido en cada card (parrilla de horarios).
+  function groupByHour<T extends { startTime: string }>(items: T[]) {
+    const groups = new Map<string, T[]>();
+    for (const item of items) {
+      groups.set(item.startTime, [...(groups.get(item.startTime) ?? []), item]);
+    }
+    return [...groups.entries()].map(([time, items]) => ({ time, items }));
+  }
+
+  // Día de clases: heading del día + filas "hh:mm | cards".
+  const renderClassDayGroup = (g: { key: string; items: BrowseClass[] }) => (
+    <section key={g.key}>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+        {dayLabel(g.key, g.items[0].date)}
+      </h3>
+      <div className="flex flex-col gap-3">
+        {groupByHour(g.items).map((h) => (
+          <div key={h.time} className="flex items-start gap-3">
+            <span className="w-11 shrink-0 pt-2.5 text-sm font-semibold tabular-nums text-white/70">
+              {h.time}
+            </span>
+            <ul className="flex min-w-0 flex-1 flex-col gap-2">
+              {h.items.map(renderClassCard)}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
   const styleLabel = styleId
     ? (styles.find((s) => s.id === styleId)?.name ?? t("filterStyle"))
@@ -1068,9 +1079,18 @@ function ClasesInner() {
               ) : selectedClasses.length === 0 ? (
                 <p className="text-sm text-white/50">{t("noClassesDay")}</p>
               ) : (
-                <ul className="flex flex-col gap-2">
-                  {selectedClasses.map((cls) => renderClassCard(cls))}
-                </ul>
+                <div className="flex flex-col gap-3">
+                  {groupByHour(selectedClasses).map((h) => (
+                    <div key={h.time} className="flex items-start gap-3">
+                      <span className="w-11 shrink-0 pt-2.5 text-sm font-semibold tabular-nums text-white/70">
+                        {h.time}
+                      </span>
+                      <ul className="flex min-w-0 flex-1 flex-col gap-2">
+                        {h.items.map(renderClassCard)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               )}
             </section>
           )}
@@ -1105,9 +1125,7 @@ function ClasesInner() {
                     {te("thisWeek")}
                   </h2>
                   <div className="flex flex-col gap-6">
-                    {groupByDay(thisWeek).map((g) =>
-                      renderDayGroup(g, renderClassCard),
-                    )}
+                    {groupByDay(thisWeek).map(renderClassDayGroup)}
                     {thisWeek.length === 0 && (
                       <p className="text-sm text-white/60">{t("empty")}</p>
                     )}
@@ -1119,9 +1137,7 @@ function ClasesInner() {
                       {te("upcoming")}
                     </h2>
                     <div className="flex flex-col gap-6">
-                      {groupByDay(later).map((g) =>
-                        renderDayGroup(g, renderClassCard),
-                      )}
+                      {groupByDay(later).map(renderClassDayGroup)}
                     </div>
                   </section>
                 )}
