@@ -515,6 +515,7 @@ export class EventsController {
         hostId: true,
         venueId: true,
         venueText: true,
+        venueNotes: true,
         womenOnly: true,
         menOnly: true,
         description: true,

@@ -39,8 +39,10 @@ export default function NuevaPracticaPage() {
 
   const [name, setName] = useState("");
   // Dirección libre — parque, plaza o studio; sin catálogo de venues.
+  // venueNotes = detalle del lugar (sala, piso, punto exacto).
   const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
+  const [venueNotes, setVenueNotes] = useState("");
+  const [description, setDescription] = useState("");
   // Asistencia: ambos activos por defecto ("todxs"); solo-mujeres →
   // womenOnly, solo-hombres → menOnly. Al menos uno debe quedar activo.
   const [allowMen, setAllowMen] = useState(true);
@@ -81,7 +83,8 @@ export default function NuevaPracticaPage() {
         body: JSON.stringify({
           name,
           ...(address.trim() ? { venueText: address.trim() } : {}),
-          ...(notes.trim() ? { description: notes.trim() } : {}),
+          ...(venueNotes.trim() ? { venueNotes: venueNotes.trim() } : {}),
+          ...(description.trim() ? { description: description.trim() } : {}),
           ...(allowWomen && !allowMen ? { womenOnly: true } : {}),
           ...(allowMen && !allowWomen ? { menOnly: true } : {}),
           ...(styleId ? { style: styleId } : {}),
@@ -143,31 +146,43 @@ export default function NuevaPracticaPage() {
             />
           </label>
 
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-white/70">{t("address")}</span>
-            <input
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder={t("addressPlaceholder")}
-              className={inputCls}
-            />
-          </label>
+          {/* Dirección + notas del lugar — el "dónde" en un solo bloque */}
+          <div className="flex flex-col gap-3">
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="text-white/70">{t("address")}</span>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={t("addressPlaceholder")}
+                className={inputCls}
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="text-white/70">{t("addressNotes")}</span>
+              <input
+                value={venueNotes}
+                onChange={(e) => setVenueNotes(e.target.value)}
+                placeholder={t("addressNotesPlaceholder")}
+                className={inputCls}
+              />
+            </label>
+          </div>
 
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-white/70">{t("notes")}</span>
+            <span className="text-white/70">{t("description")}</span>
             <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t("notesPlaceholder")}
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("descriptionPlaceholder")}
               className={`${inputCls} resize-none`}
             />
           </label>
 
           {/* Asistencia — multi-select Hombres/Mujeres; ambos = todxs */}
-          <fieldset className="flex flex-col gap-1.5 text-sm">
+          <fieldset className="flex flex-col gap-3 text-sm">
             <legend className="text-white/70">{t("audience")}</legend>
-            <div className="flex gap-2 pt-0.5">
+            <div className="flex gap-2">
               <button
                 type="button"
                 aria-pressed={allowMen}

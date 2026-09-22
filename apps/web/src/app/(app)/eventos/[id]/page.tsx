@@ -60,6 +60,8 @@ type EventDetail = {
   venue: { name: string; address: string | null; capacity: number | null } | null;
   /** Práctica sin Venue del catálogo: nombre libre ("Parque Bustamante"). */
   venueText: string | null;
+  /** Detalle del lugar: sala, piso, punto exacto ("Sala 1"). */
+  venueNotes: string | null;
   /** Señal safety de práctica (spec §8) — declarativa. */
   womenOnly: boolean;
   /** Simétrico a womenOnly — práctica solo hombres. */
@@ -334,7 +336,7 @@ export default async function EventoDetailPage({
               </p>
               <p className="text-white/50">
                 {[
-                  event.venue?.address,
+                  event.venue?.address ?? event.venueNotes,
                   capacity != null
                     ? t.capacity.replace(
                         "{count}",

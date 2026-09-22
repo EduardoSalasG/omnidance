@@ -1418,7 +1418,12 @@ export async function seedDev(prisma: PrismaClient) {
     weekday: number,
     hour: number,
     capacity: number | null,
-    opts: { venueText?: string; womenOnly?: boolean; description?: string } = {},
+    opts: {
+      venueText?: string;
+      venueNotes?: string;
+      womenOnly?: boolean;
+      description?: string;
+    } = {},
   ) =>
     ensure(
       () =>
@@ -1432,6 +1437,7 @@ export async function seedDev(prisma: PrismaClient) {
             hostId: host.id,
             venueId,
             venueText: opts.venueText ?? null,
+            venueNotes: opts.venueNotes ?? null,
             womenOnly: opts.womenOnly ?? false,
             description: opts.description ?? null,
             capacity,
@@ -1446,6 +1452,7 @@ export async function seedDev(prisma: PrismaClient) {
             hostId: host.id,
             venueId,
             venueText: opts.venueText ?? null,
+            venueNotes: opts.venueNotes ?? null,
             womenOnly: opts.womenOnly ?? false,
             description: opts.description ?? null,
             capacity,
@@ -1471,10 +1478,11 @@ export async function seedDev(prisma: PrismaClient) {
     17,
     10,
     {
-      venueText: "Parque Balmaceda, canchas junto al skatepark",
+      venueText: "Parque Balmaceda",
+      venueNotes: "Canchas junto al skatepark",
       womenOnly: true,
       description:
-        "Nos juntamos junto al skatepark. Trae agua y zapatillas cómodas — practicamos shines y pareja por turnos.",
+        "Practicamos shines y pareja por turnos. Trae agua y zapatillas cómodas.",
     },
   );
   // De un instructor que también baila → badge "Anfitrión: Valeska".

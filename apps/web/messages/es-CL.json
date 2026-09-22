@@ -475,15 +475,17 @@
     "viewLabel": "Ver prácticas",
     "address": "Dirección",
     "addressPlaceholder": "Parque Balmaceda, Av. Providencia 1234, Studio Rame…",
-    "notes": "Notas adicionales",
-    "notesPlaceholder": "Studio Rame, Sala 1 — qué traer, punto de encuentro…",
     "audience": "¿Quiénes pueden asistir?",
     "audienceMen": "Hombres",
     "audienceWomen": "Mujeres",
     "menOnly": "Solo hombres",
     "date": "Fecha",
     "startTime": "Desde",
-    "endTime": "Hasta"
+    "endTime": "Hasta",
+    "addressNotes": "Notas de la dirección",
+    "addressNotesPlaceholder": "Sala 1, piso 2, junto al skatepark…",
+    "description": "Descripción",
+    "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué nivel? ¿Qué traer?"
   },
   "availability": {
     "toggle": "Disponible para bailar",
