@@ -442,6 +442,37 @@ export class EventsController {
   }
 
   /**
+   * GET /events/:id/friends-going — amigos confirmados (ACCEPTED) del
+   * solicitante con ticket ACTIVE para el evento. Prueba social en el
+   * detalle: separado del detail público para no exponer relaciones a
+   * anónimos. Dedup por persona (puede tener varios tickets).
+   */
+  @Get(":id/friends-going")
+  @UseGuards(SessionGuard)
+  async friendsGoing(@Param("id") id: string, @Req() req: Request) {
+    const me = req.person!.id;
+    const friendships = await this.prisma.friendship.findMany({
+      where: { OR: [{ aId: me }, { bId: me }], status: "ACCEPTED" },
+      select: { aId: true, bId: true },
+    });
+    const friendIds = friendships.map((f) => (f.aId === me ? f.bId : f.aId));
+    if (friendIds.length === 0) return [];
+
+    const tickets = await this.prisma.ticket.findMany({
+      where: { eventId: id, ownerId: { in: friendIds }, status: "ACTIVE" },
+      select: { ownerId: true },
+      distinct: ["ownerId"],
+    });
+    if (tickets.length === 0) return [];
+
+    return this.prisma.person.findMany({
+      where: { id: { in: tickets.map((t) => t.ownerId) } },
+      select: { id: true, name: true, photoUrl: true },
+      orderBy: { name: "asc" },
+    });
+  }
+
+  /**
    * Crea un evento DRAFT del productor autenticado (permiso events.manage).
    * Si viene seriesId, la serie debe existir y ser del mismo productor.
    * ScheduleBlocks y EventDjs se crean anidados (misma transacción implícita).

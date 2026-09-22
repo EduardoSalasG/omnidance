@@ -29,6 +29,7 @@ model Person {
   phone         String?  @unique
   name          String
   photoUrl      String?
+  instagram     String?  // handle público autodeclarado (sin @) — se muestra en el perfil de amistad
   passwordHash  String?  // scrypt$N$r$p$salt$hash — null = solo magic link
   qrSecret      String   @default(cuid()) // semilla del QR rotativo (TOTP-like)
   isLightAccount Boolean @default(false) // cuenta creada en puerta (nombre+teléfono)

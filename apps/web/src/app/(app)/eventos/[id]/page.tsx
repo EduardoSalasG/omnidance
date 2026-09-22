@@ -15,6 +15,7 @@ import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
 import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
+import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 
 // Misma paleta que la cartelera (eventos/page.tsx).
 const GENRE_TEXT: Record<string, string> = {
@@ -72,6 +73,9 @@ type EventDetail = {
   }[];
 };
 
+/** GET /events/:id/friends-going (SessionGuard): amigos con ticket ACTIVE. */
+type FriendGoing = { id: string; name: string; photoUrl: string | null };
+
 /** MissionView del API (gamification.service.ts): misiones del evento + progreso propio. */
 type MissionView = {
   id: string;
@@ -107,6 +111,20 @@ async function getMissions(eventId: string): Promise<MissionView[] | null> {
 }
 
 /**
+ * GET /events/:id/friends-going (SessionGuard): amigos confirmados con
+ * entrada activa. Mismo patrón que getMissions — cookie del request,
+ * 401/fallo → null y la sección se omite (nunca error visible).
+ */
+async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
+  const res = await fetch(`${API_URL}/api/events/${eventId}/friends-going`, {
+    cache: "no-store",
+    headers: { cookie: cookies().toString() },
+  }).catch(() => null);
+  if (!res || !res.ok) return null;
+  return (await res.json()) as FriendGoing[];
+}
+
+/**
  * GET /tickets/mine (SessionGuard): true si el usuario ya tiene una entrada
  * ACTIVE para este evento — dispara el popup de confirmación en el CTA.
  */
@@ -130,10 +148,11 @@ export default async function EventoDetailPage({
 }) {
   const t = messages.events;
   const tg = messages.gamification;
-  const [event, missions, myTicket] = await Promise.all([
+  const [event, missions, myTicket, friendsGoing] = await Promise.all([
     getEvent(params.id),
     getMissions(params.id),
     hasActiveTicket(params.id),
+    getFriendsGoing(params.id),
   ]);
 
   if (event === "error") {
@@ -276,6 +295,50 @@ export default async function EventoDetailPage({
           </div>
         </div>
       </header>
+
+      {/* Prueba social: amigos confirmados con entrada — avatares + nombres.
+          Solo si hay ≥1 (el endpoint devuelve [] o 401 → null → oculta). */}
+      {friendsGoing && friendsGoing.length > 0 && (
+        <div className="flex items-center gap-3">
+          <ul
+            aria-label={t.friendsGoingLabel}
+            className="flex shrink-0 -space-x-2"
+          >
+            {friendsGoing.slice(0, 4).map((f) => (
+              <li key={f.id} className="rounded-full ring-2 ring-night-950">
+                <PartnerAvatar
+                  name={f.name}
+                  photoUrl={f.photoUrl}
+                  size="sm"
+                />
+              </li>
+            ))}
+            {friendsGoing.length > 4 && (
+              <li className="flex h-8 w-8 items-center justify-center rounded-full bg-night-700 text-[10px] font-semibold text-white/70 ring-2 ring-night-950">
+                +{friendsGoing.length - 4}
+              </li>
+            )}
+          </ul>
+          <p className="text-sm text-white/70">
+            {(() => {
+              const first = friendsGoing[0].name.split(" ")[0];
+              if (friendsGoing.length === 1) {
+                return t.friendsGoingOne.replace("{name}", first);
+              }
+              const second = friendsGoing[1].name.split(" ")[0];
+              if (friendsGoing.length === 2) {
+                return t.friendsGoingTwo
+                  .replace("{a}", first)
+                  .replace("{b}", second);
+              }
+              return t.friendsGoingMany
+                .replace("{a}", first)
+                .replace("{b}", second)
+                .replace("{count}", String(friendsGoing.length - 2));
+            })()}
+          </p>
+        </div>
+      )}
 
       {/* Prime Time — solo cuando el evento está en vivo */}
       {event.status === "LIVE" && <PrimeTimeWidget eventId={event.id} />}

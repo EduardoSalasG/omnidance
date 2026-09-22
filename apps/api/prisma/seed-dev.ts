@@ -1317,6 +1317,20 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(ardilla, "Bachata tradicional", "LEADER", "intermedio"),
   ]);
 
+  // Handles de Instagram — alimentan la fila "@handle" del perfil del
+  // amigo. update directo: el seed es dueño de estas cuentas demo.
+  const ig = (p: { id: string }, handle: string) =>
+    prisma.person.update({ where: { id: p.id }, data: { instagram: handle } });
+  await Promise.all([
+    ig(camila, "camila.dance"),
+    ig(josefa, "josefa.martinez"),
+    ig(antonia, "anto.reyes"),
+    ig(diego, "diegosanhueza"),
+    ig(daniela, "dani.fuentes"),
+    ig(vale, "valeska.dance"),
+    ig(rodrigo, "rodrigo.timba"),
+  ]);
+
   // Staff asignado a la puerta de Bachatamanía (consola /staff).
   await prisma.staffAssignment.upsert({
     where: {

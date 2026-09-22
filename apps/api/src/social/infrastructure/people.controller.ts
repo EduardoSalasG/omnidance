@@ -104,6 +104,7 @@ export class PeopleController {
         id: true,
         name: true,
         photoUrl: true,
+        instagram: true,
         styleRoles: {
           select: {
             role: true,
@@ -157,6 +158,7 @@ export class PeopleController {
       id: person.id,
       name: person.name,
       photoUrl: person.photoUrl,
+      instagram: person.instagram,
       styleRoles: person.styleRoles,
       badgeCount: badges,
       friendship,
