@@ -1,6 +1,7 @@
 {
   "venuePublic": {
     "address": "Dirección",
+    "directions": "Cómo llegar a esta dirección",
     "hours": "Horarios",
     "capacity": "Aforo {count}",
     "upcoming": "Próximos eventos",

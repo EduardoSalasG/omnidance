@@ -50,6 +50,7 @@ type EventsT = (typeof messages)["events"] & {
   nextWeek: string;
   more: string;
   today: string;
+  tomorrow: string;
   noEventsDay: string;
 };
 
@@ -95,6 +96,25 @@ function weekStart(d: Date): Date {
   const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
   return monday;
+}
+
+function groupByDay(events: VenueEvent[]) {
+  const groups = new Map<string, VenueEvent[]>();
+  for (const e of events) {
+    const key = dayKey(e.startsAt);
+    groups.set(key, [...(groups.get(key) ?? []), e]);
+  }
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, items]) => ({ key, items }));
+}
+
+function dayLabel(key: string, te: EventsT): string {
+  const today = localDayKey(new Date());
+  const tomorrow = localDayKey(new Date(Date.now() + DAY_MS));
+  if (key === today) return te.today;
+  if (key === tomorrow) return te.tomorrow;
+  return dayFmt.format(new Date(`${key}T12:00:00`));
 }
 
 async function getVenue(id: string): Promise<VenueProfile> {
@@ -220,11 +240,10 @@ export default async function VenueProfilePage({
     return (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
         <div className="flex items-start gap-2">
+          {/* Solo la hora — el día es agrupador (lista) o selección
+              (calendario); repetirlo en cada card era ruido. */}
           <div className="flex w-1/4 shrink-0 flex-col items-start gap-0.5">
-            <span className="text-xs font-medium capitalize text-white/50">
-              {dayFmt.format(new Date(e.startsAt))}
-            </span>
-            <span className="text-sm font-semibold tabular-nums text-white/80">
+            <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
               <EventDate start={e.startsAt} variant="time" />
             </span>
           </div>
@@ -291,7 +310,17 @@ export default async function VenueProfilePage({
         <div className="min-w-0">
           <h1 className="text-2xl font-bold leading-tight">{venue.name}</h1>
           {venue.address && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/60">
+            <a
+              href={
+                venue.lat != null && venue.lng != null
+                  ? `https://maps.apple.com/?daddr=${venue.lat},${venue.lng}`
+                  : `https://maps.apple.com/?daddr=${encodeURIComponent(venue.address)}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${t.directions}: ${venue.address}`}
+              className="mt-1 inline-flex items-center gap-1.5 rounded-lg text-sm text-white/60 transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
@@ -305,8 +334,10 @@ export default async function VenueProfilePage({
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              {venue.address}
-            </p>
+              <span className="underline decoration-white/20 underline-offset-2">
+                {venue.address}
+              </span>
+            </a>
           )}
           {venue.hours && (
             <p className="mt-1 flex items-center gap-1.5 text-sm text-white/60">
@@ -508,22 +539,31 @@ export default async function VenueProfilePage({
             )}
           </>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {filtered.map((e) => (
-              <li key={e.id}>
-                {isAuthed ? (
-                  <Link
-                    href={`/eventos/${e.id}`}
-                    className="block rounded-2xl"
-                  >
-                    {eventCard(e)}
-                  </Link>
-                ) : (
-                  <div>{eventCard(e)}</div>
-                )}
-              </li>
+          <div className="flex flex-col gap-6">
+            {groupByDay(filtered).map((g) => (
+              <section key={g.key}>
+                <h3 className="mb-2 text-xs font-semibold capitalize tracking-wide text-white/45">
+                  {dayLabel(g.key, te)}
+                </h3>
+                <ul className="flex flex-col gap-3">
+                  {g.items.map((e) => (
+                    <li key={e.id}>
+                      {isAuthed ? (
+                        <Link
+                          href={`/eventos/${e.id}`}
+                          className="block rounded-2xl"
+                        >
+                          {eventCard(e)}
+                        </Link>
+                      ) : (
+                        <div>{eventCard(e)}</div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
       </section>
     </main>
