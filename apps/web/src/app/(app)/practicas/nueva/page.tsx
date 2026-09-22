@@ -284,14 +284,9 @@ export default function NuevaPracticaPage() {
               {tc("error")}
             </p>
           )}
-          <div className="flex gap-3">
-            <Button type="submit" disabled={submitting} className="flex-1">
-              {submitting ? tc("loading") : tc("create")}
-            </Button>
-            <Button href="/practicas" variant="ghost">
-              {tc("cancel")}
-            </Button>
-          </div>
+          <Button type="submit" disabled={submitting} className="w-full">
+            {submitting ? tc("loading") : tc("create")}
+          </Button>
         </form>
       )}
     </main>
