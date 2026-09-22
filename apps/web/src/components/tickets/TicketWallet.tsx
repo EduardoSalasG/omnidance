@@ -129,10 +129,11 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
     return labels[key] ?? status;
   }
 
+  // Más futuro/reciente primero — lo próximo es lo que se usa en puerta.
   const sorted = [...items].sort(
     (a, b) =>
-      new Date(a.event.startsAt).getTime() -
-      new Date(b.event.startsAt).getTime(),
+      new Date(b.event.startsAt).getTime() -
+      new Date(a.event.startsAt).getTime(),
   );
 
   if (sorted.length === 0) {
