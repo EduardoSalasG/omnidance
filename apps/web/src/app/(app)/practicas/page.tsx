@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
+import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import type { Me } from "@/components/social/types";
 
 // GET /practices (+ /practices/mine, que agrega `going`) — shape público.
@@ -58,6 +59,7 @@ export default function PracticasPage() {
   const t = useTranslations("practices");
   const te = useTranslations("events");
   const tc = useTranslations("common");
+  const tt = useTranslations("tours.practicas");
   const searchParams = useSearchParams();
 
   // Vista y filtro compartibles — mismo contrato que /eventos.
@@ -230,7 +232,7 @@ export default function PracticasPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
             {t("upcoming")}
           </h2>
-          <Button href="/practicas/nueva" size="sm">
+          <Button href="/practicas/nueva" size="sm" data-tour="practicas-create">
             {t("create")}
           </Button>
         </div>
@@ -238,6 +240,7 @@ export default function PracticasPage() {
         {/* Vista: Todas / Mis prácticas — mismo patrón de chips que /eventos */}
         <nav
           aria-label={t("viewLabel")}
+          data-tour="practicas-views"
           className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6"
         >
           <Link
@@ -297,7 +300,7 @@ export default function PracticasPage() {
             </Button>
           </Card>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div data-tour="practicas-list" className="flex flex-col gap-6">
             {groupByDay(visible).map((g) => (
               <section key={g.key}>
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
@@ -313,6 +316,33 @@ export default function PracticasPage() {
           </div>
         )}
       </section>
+
+      {/* Tour de primera visita — el header (crear + vistas) siempre
+          existe; la lista se omite del tour si está vacía. */}
+      {state === "ready" && (
+        <OnboardingRunner
+          tour="practicas"
+          steps={
+            [
+              {
+                element: "[data-tour='practicas-views']",
+                title: tt("s1.title"),
+                description: tt("s1.desc"),
+              },
+              {
+                element: "[data-tour='practicas-create']",
+                title: tt("s2.title"),
+                description: tt("s2.desc"),
+              },
+              {
+                element: "[data-tour='practicas-list']",
+                title: tt("s3.title"),
+                description: tt("s3.desc"),
+              },
+            ] satisfies TourStep[]
+          }
+        />
+      )}
     </main>
   );
 }

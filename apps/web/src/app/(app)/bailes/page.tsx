@@ -12,12 +12,14 @@ import { SessionCard } from "@/components/sessions/SessionCard";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { isInvitee } from "@/components/sessions/types";
 import type { DanceSession, SessionAction } from "@/components/sessions/types";
+import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 
 type Phase = "loading" | "unauth" | "ready" | "error";
 
 function Bailes() {
   const t = useTranslations("sessions");
   const tCommon = useTranslations("common");
+  const tt = useTranslations("tours.bailes");
 
   const eventId = useSearchParams().get("event");
 
@@ -258,6 +260,7 @@ function Bailes() {
             <section
               aria-live="polite"
               aria-label={t("pending")}
+              data-tour="bailes-pending"
               className="flex flex-col gap-3"
             >
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -297,6 +300,7 @@ function Bailes() {
           {showInsights && lastEvent && (
             <section
               aria-labelledby="last-social-heading"
+              data-tour="bailes-insights"
               className="relative overflow-hidden rounded-2xl border border-night-700 bg-night-900 p-4"
             >
               {/* La pista como material: glow radial del acento sobre la
@@ -399,7 +403,7 @@ function Bailes() {
               Con ?event= hay un solo grupo y el chip ya da el contexto,
               así que el header del grupo se omite. */}
           {history.length > 0 && (
-            <section className="flex flex-col gap-3">
+            <section data-tour="bailes-history" className="flex flex-col gap-3">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                   {t("history")}
@@ -510,6 +514,33 @@ function Bailes() {
             </section>
           )}
         </>
+      )}
+
+      {/* Tour de primera visita — solo con sesiones cargadas: sin
+          historial no hay targets que destacar. */}
+      {phase === "ready" && sessions.length > 0 && (
+        <OnboardingRunner
+          tour="bailes"
+          steps={
+            [
+              {
+                element: "[data-tour='bailes-pending']",
+                title: tt("s1.title"),
+                description: tt("s1.desc"),
+              },
+              {
+                element: "[data-tour='bailes-insights']",
+                title: tt("s2.title"),
+                description: tt("s2.desc"),
+              },
+              {
+                element: "[data-tour='bailes-history']",
+                title: tt("s3.title"),
+                description: tt("s3.desc"),
+              },
+            ] satisfies TourStep[]
+          }
+        />
       )}
     </main>
   );
