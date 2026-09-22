@@ -55,6 +55,12 @@ class SeriesSlotDto {
   @IsOptional()
   @IsString()
   instructorId?: string;
+
+  /** Modalidades propias del horario — omitido/vacío = hereda las de la serie. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  typeIds?: string[];
 }
 
 class CreateSeriesDto {
@@ -87,6 +93,12 @@ class CreateSeriesDto {
   @IsInt()
   @Min(1)
   quorum?: number;
+
+  /** Precio CLP de la clase suelta (null/omitido = no se vende suelta). */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  dropInPrice?: number;
 
   @IsString()
   @Matches(/^\d{4}-\d{2}$/, { message: "month formato YYYY-MM" })
@@ -126,6 +138,12 @@ class AddSeriesSlotDto {
   @IsOptional()
   @IsString()
   instructorId?: string;
+
+  /** Modalidades propias del horario — omitido/vacío = hereda las de la serie. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  typeIds?: string[];
 }
 
 class UpdateSeriesDto {
@@ -159,6 +177,12 @@ class UpdateSeriesDto {
   @Min(1)
   quorum?: number;
 
+  /** Precio CLP de la clase suelta (null explícito = deja de venderse suelta). */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  dropInPrice?: number | null;
+
   @IsOptional()
   @IsBoolean()
   active?: boolean;
@@ -174,7 +198,12 @@ const SERIES_INCLUDE: Prisma.ClassSeriesInclude = {
   style: { select: { id: true, name: true } },
   level: { select: { id: true, name: true } },
   types: { include: { type: { select: { id: true, name: true } } } },
-  slots: { orderBy: [{ weekday: "asc" }, { startTime: "asc" }] },
+  slots: {
+    orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
+    include: {
+      types: { include: { type: { select: { id: true, name: true } } } },
+    },
+  },
 };
 
 /**
@@ -229,6 +258,7 @@ export class ClassSeriesController {
           levelId: dto.levelId ?? null,
           instructorId: dto.instructorId ?? null,
           quorum: dto.quorum ?? null,
+          dropInPrice: dto.dropInPrice ?? null,
           month: dto.month,
           types: dto.typeIds?.length
             ? { create: dto.typeIds.map((typeId) => ({ typeId })) }
@@ -237,6 +267,9 @@ export class ClassSeriesController {
       });
 
       for (const s of dto.slots) {
+        // Sin styleId: el slot de serie hereda series.styleId (styleId del
+        // slot es solo para slots legacy sin serie). Modalidad propia del
+        // horario vía typeIds; vacío = hereda las de la serie.
         const slot = await tx.classSlot.create({
           data: {
             academyId: id,
@@ -245,8 +278,10 @@ export class ClassSeriesController {
             startTime: s.startTime,
             endTime: s.endTime,
             capacity: s.capacity ?? null, // null = hereda serie/academia
-            styleId: dto.styleId ?? null,
             instructorId: s.instructorId ?? dto.instructorId ?? null,
+            types: s.typeIds?.length
+              ? { create: s.typeIds.map((typeId) => ({ typeId })) }
+              : undefined,
           },
         });
         // getUTCDay — las fechas se generan a medianoche UTC; con getDay()
@@ -310,6 +345,7 @@ export class ClassSeriesController {
           levelId: dto.levelId,
           instructorId: dto.instructorId,
           quorum: dto.quorum,
+          dropInPrice: dto.dropInPrice,
           active: dto.active,
         },
         include: SERIES_INCLUDE,
@@ -345,9 +381,11 @@ export class ClassSeriesController {
                 startTime: s.startTime,
                 endTime: s.endTime,
                 capacity: s.capacity ?? null, // null = hereda serie/academia
-                styleId: series.styleId,
                 instructorId:
                   s.instructorId ?? series.instructorId ?? null,
+                types: s.typeIds?.length
+                  ? { create: s.typeIds.map((typeId) => ({ typeId })) }
+                  : undefined,
               },
             });
             known.push(slot);

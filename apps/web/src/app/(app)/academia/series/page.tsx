@@ -22,6 +22,8 @@ type SeriesSlot = {
   endTime: string;
   capacity: number;
   instructorId: string | null;
+  // Modalidad propia del horario — vacío = hereda los types de la serie.
+  types: { type: NamedRef }[];
 };
 
 type Series = {
@@ -34,6 +36,8 @@ type Series = {
   // Override de quórum por serie (PATCH acepta quorum; null = hereda el
   // defaultQuorum de la academia). Opcional hasta que el backend lo exponga.
   quorum?: number | null;
+  // CLP — precio de la clase suelta (null = no se vende suelta).
+  dropInPrice?: number | null;
   style: NamedRef | null;
   level: NamedRef | null;
   types: { type: NamedRef }[];
@@ -49,6 +53,8 @@ type SlotDraft = {
   startTime: string;
   endTime: string;
   capacity: string; // string para el input controlado; se parsea al enviar
+  // Modalidad propia del horario — vacío = hereda los types de la serie.
+  typeIds: string[];
 };
 
 const emptySlot = (): SlotDraft => ({
@@ -56,6 +62,7 @@ const emptySlot = (): SlotDraft => ({
   startTime: "19:00",
   endTime: "20:00",
   capacity: "20",
+  typeIds: [],
 });
 
 /** "YYYY-MM" del mes actual en hora local — default del input month. */
@@ -113,6 +120,8 @@ function SeriesModule({ academyId }: { academyId: string }) {
   // Quórum opcional (override de serie) — string para el input controlado;
   // vacío = null = hereda el defaultQuorum de la academia.
   const [quorum, setQuorum] = useState("");
+  // Precio clase suelta (CLP) — vacío = null = no se vende suelta.
+  const [dropIn, setDropIn] = useState("");
   const [month, setMonth] = useState(currentMonth);
   const [slots, setSlots] = useState<SlotDraft[]>([emptySlot()]);
 
@@ -123,6 +132,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const [nsEnd, setNsEnd] = useState("20:00");
   const [nsCapacity, setNsCapacity] = useState("");
   const [nsInstructor, setNsInstructor] = useState("");
+  const [nsTypeIds, setNsTypeIds] = useState<string[]>([]);
 
   const [busy, setBusy] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -133,6 +143,16 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const monthFmt = useMemo(
     () =>
       new Intl.DateTimeFormat("es-CL", { month: "long", year: "numeric" }),
+    [],
+  );
+
+  const clpFmt = useMemo(
+    () =>
+      new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }),
     [],
   );
 
@@ -224,6 +244,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     setTypeIds([]);
     setInstructorId("");
     setQuorum("");
+    setDropIn("");
     setMonth(currentMonth());
     setSlots([emptySlot()]);
     setFormError(null);
@@ -245,6 +266,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     setTypeIds(s.types.map((x) => x.type.id));
     setInstructorId(s.instructorId ?? "");
     setQuorum(s.quorum != null ? String(s.quorum) : "");
+    setDropIn(s.dropInPrice != null ? String(s.dropInPrice) : "");
     setMonth(s.month);
     setSlots([emptySlot()]);
     setFormError(null);
@@ -254,6 +276,17 @@ function SeriesModule({ academyId }: { academyId: string }) {
   function toggleType(id: string): void {
     setTypeIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  const toggleIn = (arr: string[], id: string) =>
+    arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id];
+
+  function toggleSlotType(i: number, id: string): void {
+    setSlots((prev) =>
+      prev.map((s, j) =>
+        j === i ? { ...s, typeIds: toggleIn(s.typeIds, id) } : s,
+      ),
     );
   }
 
@@ -270,12 +303,21 @@ function SeriesModule({ academyId }: { academyId: string }) {
     return Number.isFinite(n) && n >= 0 ? n : null;
   }
 
+  // Misma convención que quorum: vacío/inválido → null (deja de venderse).
+  function parsedDropIn(): number | null {
+    const v = dropIn.trim();
+    if (!v) return null;
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
     if (!editing && (!month || slots.length === 0)) return;
     const q = parsedQuorum();
+    const drop = parsedDropIn();
     setBusy(true);
     setFormError(null);
     setFeedback(null);
@@ -292,6 +334,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
               typeIds,
               instructorId: instructorId || null,
               quorum: q,
+              dropInPrice: drop,
             }),
           })
         : await apiFetch(`/academies/${academyId}/series`, {
@@ -307,12 +350,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
               ...(typeIds.length ? { typeIds } : {}),
               ...(instructorId ? { instructorId } : {}),
               ...(q !== null ? { quorum: q } : {}),
+              ...(drop !== null ? { dropInPrice: drop } : {}),
               month,
               slots: slots.map((s) => ({
                 weekday: s.weekday,
                 startTime: s.startTime,
                 endTime: s.endTime,
                 capacity: Number.parseInt(s.capacity, 10) || 1,
+                ...(s.typeIds.length ? { typeIds: s.typeIds } : {}),
               })),
             }),
           });
@@ -411,6 +456,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                   ? { capacity: Number.parseInt(nsCapacity, 10) || 1 }
                   : {}),
                 ...(nsInstructor ? { instructorId: nsInstructor } : {}),
+                ...(nsTypeIds.length ? { typeIds: nsTypeIds } : {}),
               },
             ],
           }),
@@ -576,6 +622,21 @@ function SeriesModule({ academyId }: { academyId: string }) {
               <span className="text-xs text-white/40">{t("quorumHint")}</span>
             </label>
 
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-white/50">{t("dropIn")}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={500}
+                className={inputCls}
+                value={dropIn}
+                onChange={(e) => setDropIn(e.target.value)}
+                placeholder="8000"
+              />
+              <span className="text-xs text-white/40">{t("dropInHint")}</span>
+            </label>
+
             {!editing && (
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-white/50">
@@ -699,6 +760,30 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       >
                         ✕
                       </Button>
+                      {types.length > 0 && (
+                        <div className="flex basis-full flex-wrap items-center gap-1.5">
+                          <span className="text-xs text-white/40">
+                            {t("slotTypes")}:
+                          </span>
+                          {types.map((ty) => (
+                            <label
+                              key={ty.id}
+                              className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-night-700 bg-night-900 px-2 text-xs text-white"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={s.typeIds.includes(ty.id)}
+                                onChange={() => toggleSlotType(i, ty.id)}
+                                className="accent-neon"
+                              />
+                              {ty.name}
+                            </label>
+                          ))}
+                          <span className="text-xs text-white/40">
+                            {t("slotTypesHint")}
+                          </span>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -770,7 +855,11 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 {s.description && (
                   <p className="text-sm text-white/60">{s.description}</p>
                 )}
-                {(s.style || s.level || s.types.length > 0 || s.quorum != null) && (
+                {(s.style ||
+                  s.level ||
+                  s.types.length > 0 ||
+                  s.quorum != null ||
+                  s.dropInPrice != null) && (
                   <div className="flex flex-wrap gap-1.5">
                     {s.style && <Badge variant="neon">{s.style.name}</Badge>}
                     {s.level && <Badge variant="muted">{s.level.name}</Badge>}
@@ -784,6 +873,13 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         {x.type.name}
                       </Badge>
                     ))}
+                    {s.dropInPrice != null && (
+                      <Badge variant="outline">
+                        {t("dropInValue", {
+                          value: clpFmt.format(s.dropInPrice),
+                        })}
+                      </Badge>
+                    )}
                   </div>
                 )}
                 {s.slots.length > 0 && (
@@ -797,6 +893,8 @@ function SeriesModule({ academyId }: { academyId: string }) {
                           {ta(`weekday.${slot.weekday}`).slice(0, 3)}{" "}
                           {slot.startTime}–{slot.endTime} ·{" "}
                           {tClasses("spotsLeft", { count: slot.capacity })}
+                          {slot.types.length > 0 &&
+                            ` · ${slot.types.map((x) => x.type.name).join(" + ")}`}
                         </span>
                         {s.active && (
                           <Button
@@ -828,6 +926,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         setNsEnd("20:00");
                         setNsCapacity("");
                         setNsInstructor("");
+                        setNsTypeIds([]);
                         setActionError(null);
                       }}
                     >
@@ -913,6 +1012,32 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         ))}
                       </select>
                     </label>
+                    {types.length > 0 && (
+                      <div className="flex w-full flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-white/40">
+                          {t("slotTypes")}:
+                        </span>
+                        {types.map((ty) => (
+                          <label
+                            key={ty.id}
+                            className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-night-700 bg-night-900 px-2 text-xs text-white"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={nsTypeIds.includes(ty.id)}
+                              onChange={() =>
+                                setNsTypeIds((prev) => toggleIn(prev, ty.id))
+                              }
+                              className="accent-neon"
+                            />
+                            {ty.name}
+                          </label>
+                        ))}
+                        <span className="text-xs text-white/40">
+                          {t("slotTypesHint")}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="submit"
