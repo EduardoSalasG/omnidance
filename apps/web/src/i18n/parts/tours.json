@@ -9,22 +9,26 @@
         "desc": "Racha de semanas, puntos, insignias y bailes — tu actividad real de un vistazo."
       },
       "s2": {
+        "title": "Social ↔ Academia",
+        "desc": "Dos mundos en una app: Social para eventos, bailes y amigos; Academia para clases y tu aprendizaje. Cámbialo acá."
+      },
+      "s3": {
         "title": "La campana",
         "desc": "Acá llega todo: entradas que te regalaron, reservas de mesa confirmadas, solicitudes de amistad y avisos de tus eventos."
       },
-      "s3": {
+      "s4": {
         "title": "La cartelera",
         "desc": "Todos los sociales de Santiago: filtra por estilo o local, compra tu preventa y pide mesa para tu grupo."
       },
-      "s4": {
+      "s5": {
         "title": "El botón +",
         "desc": "Tu QR (tu entrada en la puerta y cómo sumas bailes en la pista), tu historial de Bailes y las Prácticas informales de la comunidad."
       },
-      "s5": {
+      "s6": {
         "title": "Tus amigos",
         "desc": "Suma a tu crew: ve quién va a cada evento, marca que estás disponible para bailar y regálales entradas desde el checkout."
       },
-      "s6": {
+      "s7": {
         "title": "Tu perfil",
         "desc": "Foto, estilos que bailas y tus lentes: si también eres profe, DJ, productor o de una academia, cambia de vista acá."
       },
@@ -34,22 +38,26 @@
           "desc": "Asistencias, clases tomadas y tu progreso como alumno — de un vistazo."
         },
         "s2": {
+          "title": "Social ↔ Academia",
+          "desc": "Estás en modo Academia — vuelve a Social para la cartelera de eventos, tus bailes y tu crew."
+        },
+        "s3": {
           "title": "La campana",
           "desc": "Acá llegan los avisos: reservas de clase, confirmaciones y novedades de tus academias."
         },
-        "s3": {
+        "s4": {
           "title": "Clases",
           "desc": "Explora clases y particulares de todas las academias, reserva tu cupo y revisa tu historial."
         },
-        "s4": {
+        "s5": {
           "title": "El botón +",
           "desc": "Tu QR personal — también es tu credencial en clases y sociales."
         },
-        "s5": {
+        "s6": {
           "title": "Academias",
           "desc": "El directorio de la escena: descubre academias, mira sus clases e inscríbete. Si ya estás en una, acá vive Mi Aprendizaje."
         },
-        "s6": {
+        "s7": {
           "title": "Tu perfil",
           "desc": "Foto, estilos y tus lentes — vuelve a la vista Social cuando quieras salir a bailar."
         }

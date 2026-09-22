@@ -19,6 +19,7 @@ export function ModeToggle() {
     <div
       role="radiogroup"
       aria-label={t("modeLabel")}
+      data-tour="appbar-mode"
       className="relative grid w-full grid-cols-2 rounded-full border border-night-700 bg-night-800 p-1"
     >
       <span
