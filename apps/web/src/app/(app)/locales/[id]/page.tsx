@@ -42,6 +42,8 @@ type VenueT = (typeof messages)["venuePublic"] & Record<string, string>;
 // El merge i18n devuelve Dict — las claves se declaran explícitas.
 type EventsT = (typeof messages)["events"] & {
   genre: Record<string, string>;
+  filterAll: string;
+  emptyFiltered: string;
   viewList: string;
   viewCalendar: string;
   prevWeek: string;
@@ -68,6 +70,8 @@ const dayCompactFmt = new Intl.DateTimeFormat("es-CL", {
 });
 const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"] as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const GENRES = ["SALSA", "BACHATA", "CUBANO"] as const;
 
 // Color del punto por género (el primero del evento) — misma paleta
 // que el calendario de /eventos.
@@ -117,7 +121,12 @@ export default async function VenueProfilePage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams?: { vista?: string; semana?: string; dia?: string };
+  searchParams?: {
+    vista?: string;
+    semana?: string;
+    dia?: string;
+    genre?: string;
+  };
 }) {
   const t = messages.venuePublic as VenueT;
   const te = messages.events as EventsT;
@@ -125,9 +134,33 @@ export default async function VenueProfilePage({
   const venue = await getVenue(params.id);
 
   const vista = searchParams?.vista === "calendario" ? "calendario" : "lista";
-  const hrefFor = (o: { vista?: string; semana?: string; dia?: string }) => {
+
+  // Filtro por estilo: ?genre=SALSA,BACHATA — unión, mismo patrón de
+  // /eventos. Aplica a la lista y al calendario (mismo pool).
+  const genreSet = new Set(
+    (searchParams?.genre ?? "")
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter((g): g is (typeof GENRES)[number] =>
+        (GENRES as readonly string[]).includes(g),
+      ),
+  );
+  const filtered =
+    genreSet.size === 0
+      ? venue.events
+      : venue.events.filter((e) =>
+          e.genres.some((g) => genreSet.has(g as (typeof GENRES)[number])),
+        );
+
+  const hrefFor = (o: {
+    vista?: string;
+    semana?: string;
+    dia?: string;
+    genre?: string;
+  }) => {
     const merged = {
       vista: vista !== "lista" ? vista : undefined,
+      genre: [...genreSet].join(",") || undefined,
       ...o,
     };
     const qs = new URLSearchParams(
@@ -136,9 +169,16 @@ export default async function VenueProfilePage({
     return `/locales/${params.id}${qs ? `?${qs}` : ""}`;
   };
 
+  const chipClass = (active: boolean) =>
+    `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] ${
+      active
+        ? "border-neon bg-neon/15 text-neon"
+        : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+    }`;
+
   // ─── Calendario semanal (?semana=<día> → su lunes) ───
   const byDay = new Map<string, VenueEvent[]>();
-  for (const e of venue.events) {
+  for (const e of filtered) {
     const key = dayKey(e.startsAt);
     byDay.set(key, [...(byDay.get(key) ?? []), e]);
   }
@@ -325,8 +365,40 @@ export default async function VenueProfilePage({
             </Link>
           </div>
         </div>
+        {/* Estilos — multiselect chips (unión), preservan vista/semana/día */}
+        {venue.events.length > 0 && (
+          <nav
+            aria-label="Filtrar por estilo"
+            className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6"
+          >
+            <Link
+              href={hrefFor({ genre: undefined })}
+              className={chipClass(genreSet.size === 0)}
+            >
+              {te.filterAll}
+            </Link>
+            {GENRES.map((g) => {
+              const next = new Set(genreSet);
+              if (next.has(g)) next.delete(g);
+              else next.add(g);
+              const active = genreSet.has(g);
+              return (
+                <Link
+                  key={g}
+                  href={hrefFor({ genre: [...next].join(",") || undefined })}
+                  aria-pressed={active}
+                  className={chipClass(active)}
+                >
+                  {te.genre[g]}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
         {venue.events.length === 0 ? (
           <p className="text-sm text-white/50">{t.noUpcoming}</p>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-white/50">{te.emptyFiltered}</p>
         ) : vista === "calendario" ? (
           <>
             <div className="mb-4 flex items-center justify-between">
@@ -437,7 +509,7 @@ export default async function VenueProfilePage({
           </>
         ) : (
           <ul className="flex flex-col gap-3">
-            {venue.events.map((e) => (
+            {filtered.map((e) => (
               <li key={e.id}>
                 {isAuthed ? (
                   <Link
