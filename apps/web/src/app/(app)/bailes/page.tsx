@@ -25,11 +25,6 @@ function Bailes() {
   const [busyId, setBusyId] = useState<string | null>(null);
   // Nombre del evento cuando la vista viene filtrada por ?event=
   const [eventName, setEventName] = useState<string | null>(null);
-  // Insights del último social: catálogo de estilos para resolver
-  // styleId → nombre (la ficha del evento ya viene en cada sesión).
-  const [styleNames, setStyleNames] = useState<ReadonlyMap<string, string>>(
-    new Map(),
-  );
   // Racha semanal para la línea de continuidad del insights.
   const [streak, setStreak] = useState<number | null>(null);
   // Progressive disclosure del historial: primeras N noches visibles.
@@ -85,18 +80,6 @@ function Bailes() {
   // su nombre/fecha/local ya vienen embebidos en la sesión.
   const lastEvent = !eventId && sessions.length > 0 ? sessions[0].event : null;
   const lastEventId = lastEvent?.id ?? null;
-
-  // Nombres de estilo para el breakdown — catálogo chico, una sola vez.
-  useEffect(() => {
-    if (!sessions.some((s) => s.styleId) || styleNames.size > 0) return;
-    apiFetch("/styles")
-      .then(async (res) => {
-        if (!res.ok) return;
-        const styles = (await res.json()) as { id: string; name: string }[];
-        setStyleNames(new Map(styles.map((s) => [s.id, s.name])));
-      })
-      .catch(() => {});
-  }, [sessions, styleNames.size]);
 
   // Racha semanal — solo cuando el card del último social va a mostrarse.
   useEffect(() => {
@@ -168,18 +151,6 @@ function Bailes() {
       ? Math.round((myScores.reduce((a, b) => a + b, 0) / myScores.length) * 10) /
         10
       : null;
-  const times = danced.map((s) => new Date(s.scannedAt).getTime());
-  const lastFrom = times.length ? new Date(Math.min(...times)) : null;
-  const lastTo = times.length ? new Date(Math.max(...times)) : null;
-  const styleCounts = new Map<string, number>();
-  for (const s of danced) {
-    if (s.styleId) styleCounts.set(s.styleId, (styleCounts.get(s.styleId) ?? 0) + 1);
-  }
-  const topStyles = [...styleCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([id, n]) => ({ name: styleNames.get(id), n }))
-    .filter((x): x is { name: string; n: number } => Boolean(x.name))
-    .slice(0, 2);
   // El mejor baile de la noche — highlight personal (solo si fue bueno:
   // "mejor baile ★2" no celebra nada).
   const bestDance = danced
@@ -369,21 +340,6 @@ function Bailes() {
                   </div>
                 )}
               </dl>
-              {(lastFrom || topStyles.length > 0) && (
-                <p className="mt-2 text-xs text-white/50">
-                  {lastFrom && lastTo && (
-                    <>
-                      <EventDate start={lastFrom} variant="time" />
-                      {" – "}
-                      <EventDate start={lastTo} variant="time" />
-                    </>
-                  )}
-                  {topStyles.length > 0 &&
-                    `${lastFrom ? " · " : ""}${topStyles
-                      .map((x) => `${x.name} ×${x.n}`)
-                      .join(" · ")}`}
-                </p>
-              )}
               {/* Highlight emocional: el mejor baile que diste esta noche +
                   la racha si sigue viva */}
               {bestDance?.partner && (
@@ -420,49 +376,87 @@ function Bailes() {
                   </p>
                 )}
               </div>
-              {visibleGroups.map((g) => (
-                <section
-                  key={g.eventId}
-                  aria-label={g.event?.name}
-                  className="flex flex-col gap-2"
-                >
-                  {!eventId && g.event && (
-                    <header className="flex items-baseline justify-between gap-3 px-0.5 pt-1">
+              {visibleGroups.map((g) =>
+                // Vista filtrada ?event=: un solo grupo — lista plana, el
+                // chip ya da el contexto. Sin filtro: acordeón por noche.
+                eventId ? (
+                  <div key={g.eventId} className="flex flex-col gap-2">
+                    {g.items.map((s) => (
+                      <SessionCard
+                        key={s.id}
+                        session={s}
+                        busy={busyId === s.id}
+                        onAct={(action) => void act(s, action)}
+                        onRate={(score) => void rate(s, score)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <details
+                    key={g.eventId}
+                    className="group rounded-2xl border border-night-700 bg-night-800/40 transition-colors open:bg-night-800/60"
+                  >
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
                       <div className="min-w-0">
-                        <Link
-                          href={`/eventos/${g.event.id}`}
-                          className="block truncate text-sm font-semibold text-white transition-colors hover:text-neon"
-                        >
-                          {g.event.name}
-                        </Link>
+                        <p className="truncate text-sm font-semibold text-white">
+                          {g.event?.name ?? t("unknownEvent")}
+                        </p>
                         <p className="text-xs text-white/50">
-                          <EventDate start={g.event.startsAt} />
-                          {g.event.venue?.name
-                            ? ` · ${g.event.venue.name}`
-                            : ""}
+                          {g.event && (
+                            <>
+                              <EventDate start={g.event.startsAt} />
+                              {g.event.venue?.name
+                                ? ` · ${g.event.venue.name}`
+                                : ""}
+                            </>
+                          )}
                         </p>
                       </div>
-                      {g.dances > 0 && (
-                        <p className="shrink-0 text-xs text-white/50">
-                          {t("summary", {
-                            dances: g.dances,
-                            partners: g.partners,
-                          })}
-                        </p>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {g.dances > 0 && (
+                          <p className="text-xs text-white/50">
+                            {t("summary", {
+                              dances: g.dances,
+                              partners: g.partners,
+                            })}
+                          </p>
+                        )}
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 16 16"
+                          className="h-4 w-4 text-white/40 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="m4 6 4 4 4-4" />
+                        </svg>
+                      </div>
+                    </summary>
+                    <div className="flex flex-col gap-2 px-3 pb-3">
+                      {g.event && (
+                        <Link
+                          href={`/eventos/${g.event.id}`}
+                          className="w-fit text-xs text-neon underline-offset-4 transition-colors hover:underline"
+                        >
+                          {t("viewEvent")}
+                        </Link>
                       )}
-                    </header>
-                  )}
-                  {g.items.map((s) => (
-                    <SessionCard
-                      key={s.id}
-                      session={s}
-                      busy={busyId === s.id}
-                      onAct={(action) => void act(s, action)}
-                      onRate={(score) => void rate(s, score)}
-                    />
-                  ))}
-                </section>
-              ))}
+                      {g.items.map((s) => (
+                        <SessionCard
+                          key={s.id}
+                          session={s}
+                          busy={busyId === s.id}
+                          onAct={(action) => void act(s, action)}
+                          onRate={(score) => void rate(s, score)}
+                        />
+                      ))}
+                    </div>
+                  </details>
+                ),
+              )}
               {!eventId && moreNights > 0 && (
                 <Button
                   variant="ghost"
