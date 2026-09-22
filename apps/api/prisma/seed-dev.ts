@@ -466,7 +466,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Bachata Sensual — Básico",
     styleName: "Bachata sensual",
     levelName: "Básico",
-    typeNames: ["Pareja"],
+    typeNames: ["En Pareja"],
     instructorId: vale.id,
     quorum: 8,
     slots: [
@@ -482,7 +482,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Salsa Cubana — Intermedio",
     styleName: "Salsa cubana (casino)",
     levelName: "Intermedio",
-    typeNames: ["Pareja", "Shines"],
+    typeNames: ["En Pareja", "Shines"],
     instructorId: rodrigo.id,
     slots: [
       { weekday: 2, startTime: "20:00", endTime: "21:00" },
@@ -496,7 +496,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Rueda de Casino — Open",
     styleName: "Rueda de casino",
     levelName: "Iniciación",
-    typeNames: ["Pareja"],
+    typeNames: ["En Pareja"],
     instructorId: vale.id,
     slots: [{ weekday: 6, startTime: "12:00", endTime: "13:00" }],
   });
@@ -579,9 +579,9 @@ export async function seedDev(prisma: PrismaClient) {
   ];
   const CLASS_HOURS = ["18:00", "19:00", "20:00", "21:00"];
   const MODALITIES = [
-    ["Pareja"],
+    ["En Pareja"],
     ["Shines"],
-    ["Pareja", "Shines"],
+    ["En Pareja", "Shines"],
     ["Corporalidad"],
   ];
   const LEVEL_ROT = ["Iniciación", "Básico", "Intermedio"];
@@ -634,7 +634,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Cubano — Básico",
     styleName: "Cubano",
     levelName: "Básico",
-    typeNames: ["Pareja", "Shines"],
+    typeNames: ["En Pareja", "Shines"],
     instructorId: rodrigo.id,
     slots: [
       { weekday: 2, startTime: "18:00", endTime: "19:00" },
