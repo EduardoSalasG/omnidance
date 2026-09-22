@@ -1810,6 +1810,44 @@
         }
       }
     },
+    "/api/practices/{id}/rsvp": {
+      "get": {
+        "operationId": "PracticesController_myRsvp",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "PracticesController_rsvp",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/styles": {
       "get": {
         "operationId": "StylesController_list",
@@ -1829,45 +1867,6 @@
             "name": "id",
             "required": true,
             "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/venues": {
-      "get": {
-        "operationId": "VenuesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/venues/{id}": {
-      "get": {
-        "operationId": "VenuesController_detail",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "days",
-            "required": true,
-            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -1942,6 +1941,45 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/venues": {
+      "get": {
+        "operationId": "VenuesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/venues/{id}": {
+      "get": {
+        "operationId": "VenuesController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""

@@ -628,4 +628,76 @@ describe("social e2e", () => {
       ).toBe(true);
     });
   });
+
+  describe("RSVP /api/practices/:id/rsvp", () => {
+    it("sin sesión → 401", async () => {
+      const res = await req("POST", `/api/practices/${ids.practiceEventIds[0]}/rsvp`, {
+        going: true,
+      });
+      expect(res.status).toBe(401);
+    });
+
+    it("evento que no es PRACTICA → 404", async () => {
+      const res = await req(
+        "POST",
+        `/api/practices/${ids.eventId}/rsvp`,
+        { going: true },
+        dancerSession,
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it("voy → going:true y el listado público sube rsvpCount", async () => {
+      const res = await req(
+        "POST",
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        { going: true },
+        dancer2Session,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.going).toBe(true);
+      expect(body.count).toBe(1);
+
+      const list = await (
+        await fetch(`${baseUrl}/api/practices`)
+      ).json();
+      const p = list.find(
+        (e: { id: string }) => e.id === ids.practiceEventIds[0],
+      );
+      expect(p.rsvpCount).toBe(1);
+    });
+
+    it("GET /rsvp refleja el estado propio", async () => {
+      const res = await req(
+        "GET",
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        undefined,
+        dancer2Session,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).going).toBe(true);
+    });
+
+    it("quitar el voy es idempotente y baja el conteo", async () => {
+      const res = await req(
+        "POST",
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        { going: false },
+        dancer2Session,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.going).toBe(false);
+      expect(body.count).toBe(0);
+      // segunda vez sin RSVP — no explota
+      const again = await req(
+        "POST",
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        { going: false },
+        dancer2Session,
+      );
+      expect(again.status).toBe(200);
+    });
+  });
 });

@@ -1418,6 +1418,7 @@ export async function seedDev(prisma: PrismaClient) {
     weekday: number,
     hour: number,
     capacity: number | null,
+    opts: { venueText?: string; womenOnly?: boolean } = {},
   ) =>
     ensure(
       () =>
@@ -1430,6 +1431,8 @@ export async function seedDev(prisma: PrismaClient) {
             name,
             hostId: host.id,
             venueId,
+            venueText: opts.venueText ?? null,
+            womenOnly: opts.womenOnly ?? false,
             capacity,
             startsAt: nextDay(weekday, hour),
             endsAt: nextDay(weekday, hour + 3),
@@ -1441,6 +1444,8 @@ export async function seedDev(prisma: PrismaClient) {
           data: {
             hostId: host.id,
             venueId,
+            venueText: opts.venueText ?? null,
+            womenOnly: opts.womenOnly ?? false,
             capacity,
             startsAt: nextDay(weekday, hour),
             endsAt: nextDay(weekday, hour + 3),
@@ -1451,12 +1456,37 @@ export async function seedDev(prisma: PrismaClient) {
 
   // La del demo bailarín → badge "Tu práctica". Sábado a la tarde.
   await practice("Práctica de casino — rueda abierta", dancer, orixas.id, 6, 16, 15);
-  // En parque (sin venue) → la card muestra solo nombre + fecha.
-  await practice("Bachata sensual en Parque Balmaceda", camila, null, 0, 17, 10);
+  // En parque (sin venue) → venueText nombra el lugar; solo mujeres
+  // ejercita la señal safety de la spec §8.
+  const parkPractice = await practice(
+    "Bachata sensual en Parque Balmaceda",
+    camila,
+    null,
+    0,
+    17,
+    10,
+    { venueText: "Parque Balmaceda, canchas junto al skatepark", womenOnly: true },
+  );
   // De un instructor que también baila → badge "Anfitrión: Valeska".
   await practice("Práctica de salsa on1 — línea y tiempo", vale, havana.id, 2, 19, 20);
   // Sin aforo declarado → card sin badge de cupos.
-  await practice("Timba para todos — práctica libre", jesus, tierraDura.id, 4, 18, null);
+  const timbaPractice = await practice("Timba para todos — práctica libre", jesus, tierraDura.id, 4, 18, null);
+
+  // RSVPs "voy" — alimentan el badge "N van" y el estado del PracticeBar.
+  // Idempotente por (eventId, personId).
+  for (const [evt, person] of [
+    [timbaPractice, dancer],
+    [timbaPractice, camila],
+    [timbaPractice, felipe],
+    [parkPractice, josefa],
+    [parkPractice, vale],
+  ] as const) {
+    await prisma.rsvp.upsert({
+      where: { eventId_personId: { eventId: evt.id, personId: person.id } },
+      create: { eventId: evt.id, personId: person.id },
+      update: {},
+    });
+  }
 
   // ─── Sesiones de baile (DanceSession + SessionRating) ───
   // Historial sobre la edición pasada de Bachatamanía (evento CLOSED) +

@@ -15,6 +15,7 @@ import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
 import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
+import { PracticeBar } from "@/components/social/PracticeBar";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 
 // Misma paleta que la cartelera (eventos/page.tsx).
@@ -56,7 +57,13 @@ type EventDetail = {
     genreMix?: GenreMixBlock[] | null;
     program?: ProgramItem[] | null;
   } | null;
-  venue: { name: string; address: string | null; capacity: number | null };
+  venue: { name: string; address: string | null; capacity: number | null } | null;
+  /** Práctica sin Venue del catálogo: nombre libre ("Parque Bustamante"). */
+  venueText: string | null;
+  /** Señal safety de práctica (spec §8) — declarativa. */
+  womenOnly: boolean;
+  /** RSVP "voy" — cuenta pública (prácticas). */
+  rsvpCount: number;
   djs: {
     slotNote: string | null;
     person: { name: string; photoUrl: string | null };
@@ -180,7 +187,7 @@ export default async function EventoDetailPage({
       : event.doorPrice != null
         ? t.door
         : t.free;
-  const capacity = event.capacity ?? event.venue.capacity;
+  const capacity = event.capacity ?? event.venue?.capacity ?? null;
 
   // Géneros/mix resueltos igual que el listado: el evento manda, si no hereda la serie.
   const genres = event.genres.length
@@ -197,7 +204,9 @@ export default async function EventoDetailPage({
   // "Cómo llegar": URL universal de Google Maps — sin API key, el SO la
   // abre en la app de mapas que el usuario tenga.
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    [event.venue.name, event.venue.address].filter(Boolean).join(" "),
+    [event.venue?.name ?? event.venueText, event.venue?.address]
+      .filter(Boolean)
+      .join(" "),
   )}`;
 
   // Pase de serie: el endpoint hoy devuelve solo series.name — el CTA se
@@ -234,6 +243,7 @@ export default async function EventoDetailPage({
           ) : (
             isPast && <Badge variant="outline">{t.past}</Badge>
           )}
+          {event.womenOnly && <Badge variant="muted">{t.womenOnly}</Badge>}
         </div>
         <h1 className="text-3xl font-bold leading-tight">{event.name}</h1>
         <EventDate
@@ -262,54 +272,60 @@ export default async function EventoDetailPage({
             className="max-w-xs"
           />
         )}
-        {/* Local: nombre → perfil público; Cómo llegar → app de mapas */}
-        <div className="flex items-center gap-2 text-sm">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="h-4 w-4 shrink-0 text-white/50"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-          <div className="min-w-0">
-            <p className="font-medium">
-              {event.venueId ? (
-                <Link
-                  href={`/locales/${event.venueId}`}
-                  className="underline-offset-4 hover:text-neon hover:underline"
-                >
-                  {event.venue.name}
-                </Link>
-              ) : (
-                event.venue.name
-              )}
-            </p>
-            <p className="text-white/50">
-              {[
-                event.venue.address,
-                capacity != null
-                  ? t.capacity.replace("{count}", capacity.toLocaleString("es-CL"))
-                  : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-0.5 inline-flex min-h-11 items-center text-xs font-medium text-neon hover:underline"
+        {/* Local: nombre → perfil público; Cómo llegar → app de mapas.
+            Práctica en parque: venue=null → se muestra venueText. */}
+        {(event.venue || event.venueText) && (
+          <div className="flex items-center gap-2 text-sm">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4 shrink-0 text-white/50"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              {t.howToGet} →
-            </a>
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <div className="min-w-0">
+              <p className="font-medium">
+                {event.venueId && event.venue ? (
+                  <Link
+                    href={`/locales/${event.venueId}`}
+                    className="underline-offset-4 hover:text-neon hover:underline"
+                  >
+                    {event.venue.name}
+                  </Link>
+                ) : (
+                  (event.venue?.name ?? event.venueText)
+                )}
+              </p>
+              <p className="text-white/50">
+                {[
+                  event.venue?.address,
+                  capacity != null
+                    ? t.capacity.replace(
+                        "{count}",
+                        capacity.toLocaleString("es-CL"),
+                      )
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-0.5 inline-flex min-h-11 items-center text-xs font-medium text-neon hover:underline"
+              >
+                {t.howToGet} →
+              </a>
+            </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Prueba social: amigos confirmados con entrada — avatares + nombres.
@@ -579,21 +595,9 @@ export default async function EventoDetailPage({
               {isCancelled ? t.cancelled : t.past}
             </p>
           ) : event.type === "PRACTICA" ? (
-            /* Práctica: gratis, first-come, sin ticket (spec §8). El CTA
-               es mostrar tu QR — el host/staff escanea al llegar. */
-            <>
-              <div className="min-w-0">
-                <span className="block text-xs text-white/50">
-                  {t.practiceFree}
-                </span>
-                <span className="text-lg font-semibold text-neon">
-                  {t.free}
-                </span>
-              </div>
-              <Button href="/qr?modo=mio" size="lg">
-                {t.showQr}
-              </Button>
-            </>
+            /* Práctica: gratis, first-come, sin ticket (spec §8). La
+               acción es RSVP "voy"; cuando vas, el CTA pasa a tu QR. */
+            <PracticeBar eventId={event.id} initialCount={event.rsvpCount} />
           ) : (
             <>
               <div className="min-w-0">
