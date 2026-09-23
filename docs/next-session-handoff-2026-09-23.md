@@ -283,3 +283,9 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   GET /styles, rol, nivel) + quitar/agregar fila + Guardar/Cancelar.
 - Pendiente sugerible: foto de perfil (upload) y edición de
   nombre/teléfono (hoy solo lectura).
+- NOTA layout: `min-h-dvh` en el `<main>` de las páginas (patrón
+  repetido en ~60 archivos) suma 100dvh + appbar + el pb del chrome
+  (4rem+safe-area) → scroll muerto ~120px al pie en páginas cortas.
+  Corregido en /perfil y /perfil/datos quitando min-h-dvh del estado
+  ready; el resto de las páginas tiene el mismo defecto si conviene
+  barrerlo globalmente.
