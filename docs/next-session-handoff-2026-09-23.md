@@ -257,3 +257,20 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   lista. TicketWallet (/entradas) tampoco — es credencial.
 - Verificado: render en vivo con sesión minteada (22 cards con pin de
   venue + precio), tsc limpio, detector `[]`.
+
+### `/perfil/datos` — datos personales + datos por modo
+
+- `GET /me` extendido: `phone`, `createdAt`, `verifiedAt`,
+  `styleRoles` (style+role+level) y `enrollments` (academy, plan,
+  status, startedAt). Ojo: Person no tiene back-relation a Enrollment
+  → query aparte con `personId`.
+- `/perfil`: el card de identidad ahora es link a `/perfil/datos`
+  (chevron de affordance); el editor de Instagram se movió allá.
+- `/perfil/datos` (nueva, client): "Datos personales" comunes
+  (nombre/email/teléfono/miembro desde/verificada) + Instagram
+  editable + sección por `useViewMode()`: social → "Tu baile"
+  (styleRoles: estilo · nivel + badge Leader/Follower/Switch);
+  academia → "Tus academias" (enrollments: nombre + plan + desde +
+  badge de estado). i18n nuevo en `parts/profile.json` → `datos.*`.
+- Pendiente sugerible: edición de styleRoles (hoy solo lectura — no
+  existe endpoint de escritura) y foto de perfil.

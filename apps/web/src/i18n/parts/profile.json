@@ -2,6 +2,35 @@
   "profile": {
     "pendingBanner": "Completa tus datos para activar tu cuenta",
     "pendingBannerCta": "Completar",
+    "datos": {
+      "title": "Mis datos",
+      "back": "Volver al perfil",
+      "personal": "Datos personales",
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "memberSince": "Miembro desde",
+      "verified": "Cuenta verificada",
+      "noPhone": "Sin teléfono registrado",
+      "socialSection": "Tu baile",
+      "socialEmpty": "Aún no declaras tus estilos de baile",
+      "academySection": "Tus academias",
+      "academyEmpty": "Sin inscripciones vigentes",
+      "danceRole": {
+        "LEADER": "Leader",
+        "FOLLOWER": "Follower",
+        "SWITCH": "Switch"
+      },
+      "enrollmentStatus": {
+        "ACTIVE": "Activa",
+        "TRIAL": "Prueba",
+        "ONLINE": "Online",
+        "PAUSED": "Pausada",
+        "FROZEN": "Congelada"
+      },
+      "plan": "Plan {name}",
+      "since": "Desde {date}"
+    },
     "complete": {
       "title": "Completa tu perfil",
       "subtitle": "Confirma tus datos para activar tu cuenta y empezar a usar la app.",

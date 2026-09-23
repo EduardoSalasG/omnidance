@@ -65,20 +65,51 @@ export class PeopleController {
   @Get("me")
   @UseGuards(SessionGuard)
   async me(@Req() req: Request) {
-    const person = await this.prisma.person.findUniqueOrThrow({
-      where: { id: req.person!.id },
-      include: { roles: { select: { role: true, status: true } } },
-    });
+    const personId = req.person!.id;
+    const [person, enrollments] = await Promise.all([
+      this.prisma.person.findUniqueOrThrow({
+        where: { id: personId },
+        include: {
+          roles: { select: { role: true, status: true } },
+          // Roles de baile autodeclarados (leader/follower por estilo +
+          // nivel) — sección "Tu baile" de /perfil/datos.
+          styleRoles: {
+            select: {
+              role: true,
+              level: true,
+              style: { select: { id: true, name: true, genre: true } },
+            },
+          },
+        },
+      }),
+      // Inscripciones a academias — sección academy de /perfil/datos.
+      // Person no tiene back-relation a Enrollment → query aparte.
+      this.prisma.enrollment.findMany({
+        where: { personId },
+        orderBy: { startedAt: "desc" },
+        select: {
+          status: true,
+          startedAt: true,
+          academy: { select: { id: true, name: true } },
+          plan: { select: { name: true } },
+        },
+      }),
+    ]);
     return {
       id: person.id,
       name: person.name,
       email: person.email,
+      phone: person.phone,
       photoUrl: person.photoUrl,
       instagram: person.instagram,
+      createdAt: person.createdAt,
+      verifiedAt: person.verifiedAt,
       roles: person.roles
         .filter((r) => r.status === "APPROVED")
         .map((r) => r.role),
       roleStates: person.roles,
+      styleRoles: person.styleRoles,
+      enrollments,
       // Flags de ciclo de vida: demo (lead /pro, solo lectura) y
       // pendingProfile (admin convirtió el lead — falta completar datos).
       isDemo: person.isDemoAccount,
