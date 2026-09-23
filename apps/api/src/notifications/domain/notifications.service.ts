@@ -122,8 +122,9 @@ export class NotificationsService {
       this.repo.listNotifications(personId, {
         unread: opts.unread ?? false,
         limit,
+        lens: opts.lens,
       }),
-      this.repo.countUnread(personId),
+      this.repo.countUnread(personId, opts.lens),
     ]);
     return { notifications, unreadCount };
   }

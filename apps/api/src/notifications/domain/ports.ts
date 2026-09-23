@@ -1,4 +1,5 @@
 import type { Notification, Prisma, PushToken } from "@prisma/client";
+import type { NotificationLensFilter } from "@omnidance/shared";
 
 export const NOTIFICATIONS_REPO = "NOTIFICATIONS_REPO";
 
@@ -16,16 +17,27 @@ export interface ListNotificationsOptions {
   unread?: boolean;
   /** tope de resultados — el servicio aplica default/clamp. */
   limit?: number;
+  /** Lente activa (social|academy) — filtra por dominio del `type`. */
+  lens?: NotificationLensFilter;
 }
+
+/** Opciones ya resueltas por el servicio (unread/limit concretos). */
+export type ResolvedListOptions = Omit<
+  ListNotificationsOptions,
+  "unread" | "limit"
+> & { unread: boolean; limit: number };
 
 export interface NotificationsRepo {
   createNotification(data: CreateNotificationData): Promise<Notification>;
   findNotificationById(id: string): Promise<Notification | null>;
   listNotifications(
     personId: string,
-    opts: Required<ListNotificationsOptions>,
+    opts: ResolvedListOptions,
   ): Promise<Notification[]>;
-  countUnread(personId: string): Promise<number>;
+  countUnread(
+    personId: string,
+    lens?: NotificationLensFilter,
+  ): Promise<number>;
   markRead(id: string, readAt: Date): Promise<Notification>;
   /** Marca todas las no leídas del usuario; retorna cuántas se actualizaron. */
   markAllRead(personId: string, readAt: Date): Promise<number>;

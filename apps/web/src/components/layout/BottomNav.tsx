@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
@@ -654,24 +655,32 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       activeRole === "INSTRUCTOR" ||
       dancerAcademy);
 
-  // Baseline de no-leídas: solo si hay sesión. Un 401 deja unread en null
-  // (mismo patrón de catch silencioso que apiFetch("/me") en HomeHub).
+  // Baseline de no-leídas por lente: `?lens=` acota el unreadCount al
+  // dominio activo (los tipos "any" cuentan en ambas). Corre tras /me
+  // (sin sesión no se pide — un 401 dejaría unread en null igual) y se
+  // repite si la lente cambia (toggle Social/Academia del bailarín).
+  const notifLens: "social" | "academy" = academyLens ? "academy" : "social";
   useEffect(() => {
+    if (!meChecked || !me) return;
     let cancelled = false;
-    apiFetch("/notifications?limit=1")
+    apiFetch(`/notifications?limit=1&lens=${notifLens}`)
       .then(async (res) => {
         if (cancelled || !res.ok) return;
         const data = (await res.json()) as { unreadCount?: number };
         setUnread(data.unreadCount ?? 0);
       })
       .catch(() => {});
-    const onNotify = () => setUnread((u) => (u ?? 0) + 1);
+    const onNotify = (e: Event) => {
+      const n = (e as CustomEvent<{ type?: string }>).detail;
+      const l = n?.type ? notificationLens(n.type) : "any";
+      if (l === "any" || l === notifLens) setUnread((u) => (u ?? 0) + 1);
+    };
     window.addEventListener(NOTIFICATION_EVENT, onNotify);
     return () => {
       cancelled = true;
       window.removeEventListener(NOTIFICATION_EVENT, onNotify);
     };
-  }, []);
+  }, [meChecked, me, notifLens]);
 
   // Roles para filtrar los ítems del drawer — una sola vez, con el
   // mismo patrón de catch silencioso que el badge (401 → me queda null).

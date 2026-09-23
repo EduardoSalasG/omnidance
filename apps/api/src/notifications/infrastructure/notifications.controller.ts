@@ -16,6 +16,10 @@ import {
 import { IsIn, IsNotEmpty, IsOptional, IsString, ValidateNested } from "class-validator";
 import { Type } from "class-transformer";
 import type { Request } from "express";
+import {
+  NOTIFICATION_LENSES,
+  type NotificationLensFilter,
+} from "@omnidance/shared";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
   NotificationDomainError,
@@ -73,6 +77,7 @@ export class NotificationsController {
     @Req() req: Request,
     @Query("unread") unread?: string,
     @Query("limit") limit?: string,
+    @Query("lens") lens?: string,
   ) {
     let parsedLimit: number | undefined;
     if (limit !== undefined) {
@@ -82,9 +87,16 @@ export class NotificationsController {
       }
       parsedLimit = n;
     }
+    if (
+      lens !== undefined &&
+      !NOTIFICATION_LENSES.includes(lens as NotificationLensFilter)
+    ) {
+      throw new BadRequestException("lens inválido");
+    }
     return this.notifications.listForPerson(req.person!.id, {
       unread: unread === "true",
       limit: parsedLimit,
+      lens: lens as NotificationLensFilter | undefined,
     });
   }
 
