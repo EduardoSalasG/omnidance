@@ -134,7 +134,7 @@ export class ClassesController {
                 name: true,
                 quorum: true,
                 dropInPrice: true,
-                level: { select: { id: true, name: true } },
+                level: { select: { id: true, name: true, order: true } },
                 style: { select: { id: true, name: true, genre: true } },
                 types: {
                   include: { type: { select: { id: true, name: true } } },
@@ -238,7 +238,7 @@ export class ClassesController {
                     name: true,
                     // ids incluidos: la vista reservadas de /clases
                     // filtra por estilo/nivel client-side con ellos.
-                    level: { select: { id: true, name: true } },
+                    level: { select: { id: true, name: true, order: true } },
                     style: { select: { id: true, name: true, genre: true } },
                   },
                 },

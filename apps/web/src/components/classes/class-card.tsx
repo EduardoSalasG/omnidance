@@ -27,13 +27,45 @@ export type ClassCardData = {
   series: {
     id: string;
     name: string;
-    level: { id: string; name: string } | null;
+    level: { id: string; name: string; order: number } | null;
     style: { id: string; name: string; genre: string | null } | null;
     dropInPrice: number | null;
     // Modalidad efectiva del horario: slot.types si declara, si no los de la serie.
     types: { id: string; name: string }[];
   };
 };
+
+// Nivel como indicador visual: `order+1` barras ascendentes
+// (Iniciación=1 … Avanzado=4), color por progresión — ocupa ~20px
+// y se lee sin texto. El nombre va en aria-label + title.
+function LevelBars({ order, name }: { order: number; name: string }) {
+  const bars = Math.min(Math.max(order + 1, 1), 4);
+  const color =
+    bars <= 1
+      ? "bg-neon"
+      : bars === 2
+        ? "bg-amber-300"
+        : bars === 3
+          ? "bg-orange-400"
+          : "bg-red-400";
+  return (
+    <span
+      role="img"
+      aria-label={name}
+      title={name}
+      className="flex items-end gap-0.5"
+    >
+      {Array.from({ length: bars }).map((_, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          className={`w-1 rounded-[1px] ${color}`}
+          style={{ height: 4 + i * 3 }}
+        />
+      ))}
+    </span>
+  );
+}
 
 // Card del explorador de clases: [serie + meta] [acción]. En /clases el
 // día y la hora los dan los headings del grupo; fuera de ese contexto el
@@ -70,15 +102,24 @@ export function ClassCard({
           <h3 className="truncate text-base font-semibold leading-snug">
             {style?.name ?? cls.series.name}
           </h3>
-          {/* Tags categóricos: modalidad + academia (neon, nombre
-              propio con tope de ancho). Si no caben, la academia cae
-              entera a la segunda línea — nunca se parte a medias. */}
+          {/* Modalidad + nivel visual (barras): una fila de tags
+              compactos — el nivel ocupa ~20px sin texto */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {cls.series.types.map((x) => (
               <Badge key={x.id} variant="outline">
                 {x.name}
               </Badge>
             ))}
+            {cls.series.level && (
+              <LevelBars
+                order={cls.series.level.order}
+                name={cls.series.level.name}
+              />
+            )}
+          </div>
+          {/* Academia en su propia fila — el nombre propio largo nunca
+              parte la fila de chips a medias */}
+          <div className="mt-1.5">
             <Badge
               variant="neon"
               className="max-w-44 truncate normal-case tracking-normal"
@@ -86,13 +127,10 @@ export function ClassCard({
               {cls.academy.name}
             </Badge>
           </div>
-          {/* Meta: nivel + profesor — descriptores en texto, fuera de
-              la fila de chips para que no compitan por ancho */}
-          {(cls.series.level || cls.instructor?.name) && (
+          {/* Meta: profesor */}
+          {cls.instructor?.name && (
             <p className="mt-1.5 truncate text-xs text-white/50">
-              {cls.series.level?.name}
-              {cls.series.level && cls.instructor?.name && " · "}
-              {cls.instructor?.name}
+              {cls.instructor.name}
             </p>
           )}
         </Link>
@@ -169,7 +207,7 @@ export type BookingCardData = {
   academy: { id: string; name: string };
   series: {
     name: string;
-    level: { id: string; name: string } | null;
+    level: { id: string; name: string; order: number } | null;
     style: { id: string; name: string; genre: string | null } | null;
   };
 };

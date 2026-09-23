@@ -419,7 +419,7 @@ export class HomeService {
                   name: true,
                   quorum: true,
                   dropInPrice: true,
-                  level: { select: { id: true, name: true } },
+                  level: { select: { id: true, name: true, order: true } },
                   style: { select: { id: true, name: true, genre: true } },
                   types: {
                     include: { type: { select: { id: true, name: true } } },
@@ -459,7 +459,7 @@ export class HomeService {
                   series: {
                     select: {
                       name: true,
-                      level: { select: { id: true, name: true } },
+                      level: { select: { id: true, name: true, order: true } },
                       style: {
                         select: { id: true, name: true, genre: true },
                       },
