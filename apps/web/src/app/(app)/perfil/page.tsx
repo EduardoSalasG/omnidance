@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -69,12 +70,6 @@ export default function PerfilPage() {
   // Override local para feedback inmediato al cambiar de lente; el hook
   // converge al mismo valor cuando el evento de rol se propaga.
   const [picked, setPicked] = useState<AppRole | null>(null);
-  // Edición del handle de Instagram (PATCH /me).
-  const [igInput, setIgInput] = useState("");
-  const [igDirty, setIgDirty] = useState(false);
-  const [igState, setIgState] = useState<"idle" | "saving" | "saved" | "err">(
-    "idle",
-  );
 
   function roleLabel(role: string): string {
     return t.has(`roleLabels.${role}`) ? t(`roleLabels.${role}`) : role;
@@ -97,7 +92,6 @@ export default function PerfilPage() {
         }
         const meJson = (await meRes.json()) as Me;
         setMe(meJson);
-        setIgInput(meJson.instagram ?? "");
         setState("ready");
         // Con lente ADMIN no hay gamificación: ni fetch ni cards. Se
         // resuelve con los roles reales de /me — el activeRole del primer
@@ -185,29 +179,6 @@ export default function PerfilPage() {
     };
   }, [me, gamifFetched, currentLens]);
 
-  async function saveInstagram() {
-    setIgState("saving");
-    try {
-      const res = await apiFetch("/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instagram: igInput }),
-      });
-      if (!res.ok) {
-        setIgState("err");
-        return;
-      }
-      const clean = igInput.trim().replace(/^@+/, "");
-      setMe((m) => (m ? { ...m, instagram: clean || null } : m));
-      setIgInput(clean);
-      setIgDirty(false);
-      setIgState("saved");
-      setTimeout(() => setIgState("idle"), 2500);
-    } catch {
-      setIgState("err");
-    }
-  }
-
   async function logout() {
     try {
       const res = await apiFetch("/auth/logout", { method: "POST" });
@@ -264,107 +235,76 @@ export default function PerfilPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      {/* Identidad */}
-      <Card data-tour="perfil-identity" className="flex items-center gap-4">
-        {me.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
-          <img
-            src={me.photoUrl}
-            alt=""
-            className="h-16 w-16 shrink-0 rounded-full border border-night-700 object-cover"
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-night-700 bg-night-800 text-2xl font-bold text-neon"
-          >
-            {me.name.charAt(0).toUpperCase()}
-          </span>
-        )}
-        <div className="min-w-0">
-          <p className="truncate text-lg font-semibold">{me.name}</p>
-          <p className="truncate text-sm text-white/50">{me.email}</p>
-          {(me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" })))
-            .length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {(me.roleStates ??
-                me.roles.map((r) => ({ role: r, status: "APPROVED" }))
-              ).map((rs) => (
-                <Badge
-                  key={rs.role}
-                  variant={rs.status === "APPROVED" ? "neon" : "outline"}
-                >
-                  {roleLabel(rs.role)}
-                  {rs.status !== "APPROVED" && (
-                    <span className="ml-1 text-white/50">
-                      ·{" "}
-                      {rs.status === "SANDBOX"
-                        ? t("roleSandbox")
-                        : t("rolePending")}
-                    </span>
-                  )}
-                </Badge>
-              ))}
-            </div>
+      {/* Identidad → /perfil/datos (datos personales + datos por modo;
+          la edición de Instagram vive allá). */}
+      <Link
+        href="/perfil/datos"
+        data-tour="perfil-identity"
+        className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+      >
+        <Card className="flex items-center gap-4 transition-colors hover:border-neon/40">
+          {me.photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
+            <img
+              src={me.photoUrl}
+              alt=""
+              className="h-16 w-16 shrink-0 rounded-full border border-night-700 object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-night-700 bg-night-800 text-2xl font-bold text-neon"
+            >
+              {me.name.charAt(0).toUpperCase()}
+            </span>
           )}
-        </div>
-      </Card>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-semibold">{me.name}</p>
+            <p className="truncate text-sm text-white/50">{me.email}</p>
+            {(me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" })))
+              .length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(me.roleStates ??
+                  me.roles.map((r) => ({ role: r, status: "APPROVED" }))
+                ).map((rs) => (
+                  <Badge
+                    key={rs.role}
+                    variant={rs.status === "APPROVED" ? "neon" : "outline"}
+                  >
+                    {roleLabel(rs.role)}
+                    {rs.status !== "APPROVED" && (
+                      <span className="ml-1 text-white/50">
+                        ·{" "}
+                        {rs.status === "SANDBOX"
+                          ? t("roleSandbox")
+                          : t("rolePending")}
+                      </span>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-5 w-5 shrink-0 text-white/40"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </Card>
+      </Link>
 
       {/* Tu actividad — todos los insights de la lente DANCER activa
           (social o academia); el home social muestra solo 2. */}
       {currentActAs === "DANCER" && kpis && kpis.length > 0 && (
         <KpiGrid kpis={kpis} label={th("insights")} />
       )}
-
-      {/* Instagram — handle público que ven tus amigos en tu perfil */}
-      <Card>
-        <h2
-          id="ig-title"
-          className="text-sm font-semibold uppercase tracking-wide text-white/50"
-        >
-          {t("instagram")}
-        </h2>
-        <p className="mt-1 text-xs text-white/40">{t("instagramHint")}</p>
-        <div className="mt-3 flex items-center gap-3">
-          <label htmlFor="ig-input" className="sr-only">
-            {t("instagram")}
-          </label>
-          <input
-            id="ig-input"
-            type="text"
-            inputMode="text"
-            autoComplete="off"
-            spellCheck={false}
-            value={igInput}
-            onChange={(e) => {
-              setIgInput(e.target.value);
-              setIgDirty(true);
-              setIgState("idle");
-            }}
-            placeholder={t("instagramPlaceholder")}
-            className="min-h-11 min-w-0 flex-1 rounded-xl border border-night-700 bg-night-900 px-4 text-white placeholder:text-white/40 focus:border-neon focus:outline-none"
-          />
-          {igDirty && (
-            <Button
-              size="sm"
-              disabled={igState === "saving"}
-              onClick={() => void saveInstagram()}
-            >
-              {tc("save")}
-            </Button>
-          )}
-        </div>
-        {igState === "saved" && (
-          <p role="status" className="mt-2 text-xs text-neon">
-            {t("instagramSaved")}
-          </p>
-        )}
-        {igState === "err" && (
-          <p role="alert" className="mt-2 text-xs text-red-400">
-            {t("instagramError")}
-          </p>
-        )}
-      </Card>
 
       {/* Interactuar como — cambia el lente de toda la app (nav + home).
           Radiogroup nativo: un tab stop, flechas cambian de opción (mismo
