@@ -96,11 +96,11 @@ export function ClassCard({
             </p>
           )}
         </Link>
-        {/* Reservado/Espera: badge arriba a la derecha del card.
-            Sin reserva: grid 1fr/auto/1fr — el botón queda en el
-            centro vertical exacto y el caption de cupos cuelga debajo
-            centrado a él, sin moverlo. Cancelar NO va en el card — la
-            acción destructiva vive al pie de la ficha. */}
+        {/* Slot de acción top-right: Reservado/Espera como badge, o el
+            CTA con el caption de cupos centrado debajo. Mismo ancla en
+            todos los estados — rail estable aunque la altura del card
+            varíe. Cancelar NO va en el card — la acción destructiva
+            vive al pie de la ficha. */}
         {booked ? (
           <Badge
             variant={cls.myBooking === "BOOKED" ? "neon" : "outline"}
@@ -109,12 +109,11 @@ export function ClassCard({
             {cls.myBooking === "BOOKED" ? t("booked") : t("waitlist")}
           </Badge>
         ) : (
-          <div className="grid shrink-0 grid-rows-[1fr_auto_1fr] justify-items-center py-0.5">
-            <span aria-hidden="true" />
+          <div className="flex shrink-0 flex-col items-center gap-1 self-start py-0.5">
             {!cls.enrolled ? (
               // Academia ajena (vista explore): sin inscripción vigente
               // no hay reserva — el API lo rechazaría con 403.
-              <span className="self-center text-center text-xs leading-tight text-white/40">
+              <span className="text-center text-xs leading-tight text-white/40">
                 {t("requiresEnrollment")}
               </span>
             ) : full ? (
@@ -134,7 +133,7 @@ export function ClassCard({
               </Button>
             )}
             <span
-              className={`mt-1 self-start text-center text-xs font-medium leading-tight ${
+              className={`text-center text-xs font-medium leading-tight ${
                 full
                   ? "text-white/50"
                   : cls.spotsLeft <= 3
