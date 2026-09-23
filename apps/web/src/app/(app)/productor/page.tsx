@@ -3,14 +3,16 @@
 import { useTranslations } from "next-intl";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 import { ProducerGate } from "@/components/producer/producer-gate";
+import { ProducerPulse } from "@/components/producer/producer-pulse";
 import {
   OnboardingRunner,
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
 
 /**
- * /productor — hub de la consola del productor. Cada módulo vive en su
- * subruta (/productor/eventos, /productor/codigos, /productor/listas,
+ * /productor — hub de la consola del productor. Arriba el pulso (KPIs
+ * agregados de los eventos próximos vía /events/mine); cada módulo vive
+ * en su subruta (/productor/eventos, /productor/codigos, /productor/listas,
  * /productor/pagos, /crm) y fetchea sus propios datos tras el gate.
  */
 export default function ProducerPage() {
@@ -22,6 +24,7 @@ export default function ProducerPage() {
       <p className="text-white/60">{t("hubDesc")}</p>
 
       <ProducerGate>
+        <ProducerPulse />
         <ModuleGrid>
           <ModuleCard
             href="/productor/eventos"
