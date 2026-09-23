@@ -70,18 +70,15 @@ export function ClassCard({
           <h3 className="truncate text-base font-semibold leading-snug">
             {style?.name ?? cls.series.name}
           </h3>
-          {/* Modalidad → nivel → academia: jerarquía progresiva
-              (qué es → cómo → nivel → dónde). Academy es nombre
-              propio: chip neon sin uppercase y con tope de ancho. */}
+          {/* Tags categóricos: modalidad + academia (neon, nombre
+              propio con tope de ancho). Si no caben, la academia cae
+              entera a la segunda línea — nunca se parte a medias. */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {cls.series.types.map((x) => (
               <Badge key={x.id} variant="outline">
                 {x.name}
               </Badge>
             ))}
-            {cls.series.level && (
-              <Badge variant="muted">{cls.series.level.name}</Badge>
-            )}
             <Badge
               variant="neon"
               className="max-w-44 truncate normal-case tracking-normal"
@@ -89,10 +86,13 @@ export function ClassCard({
               {cls.academy.name}
             </Badge>
           </div>
-          {/* Meta: solo profesor — el cupo vive bajo la acción */}
-          {cls.instructor?.name && (
+          {/* Meta: nivel + profesor — descriptores en texto, fuera de
+              la fila de chips para que no compitan por ancho */}
+          {(cls.series.level || cls.instructor?.name) && (
             <p className="mt-1.5 truncate text-xs text-white/50">
-              {cls.instructor.name}
+              {cls.series.level?.name}
+              {cls.series.level && cls.instructor?.name && " · "}
+              {cls.instructor?.name}
             </p>
           )}
         </Link>
