@@ -94,12 +94,16 @@ export function CancelBookingButton({
 export function ClassCard({
   cls,
   when,
+  academyChip = false,
   busy,
   onBook,
   onCancel,
 }: {
   cls: ClassCardData;
   when?: string;
+  // Academia como chip neon (explore: diferencia cards de academias
+  // distintas). En "mis academias" queda en texto — se repite poco.
+  academyChip?: boolean;
   busy: boolean;
   onBook: (cls: ClassCardData) => void;
   onCancel: (classId: string) => void;
@@ -124,10 +128,15 @@ export function ClassCard({
           <h2 className="truncate text-base font-semibold leading-snug">
             {style?.name ?? cls.series.name}
           </h2>
-          {/* Tipo de clase + nivel como chips — diferenciados por
-              variante: tipo outline (fuerte), nivel muted */}
-          {(cls.series.types.length > 0 || cls.series.level) && (
+          {/* Academia (chip neon en explore) + tipo outline + nivel
+              muted — tres variantes, tres jerarquías distinguibles. */}
+          {(academyChip ||
+            cls.series.types.length > 0 ||
+            cls.series.level) && (
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {academyChip && (
+                <Badge variant="neon">{cls.academy.name}</Badge>
+              )}
               {cls.series.types.map((x) => (
                 <Badge key={x.id} variant="outline">
                   {x.name}
@@ -138,11 +147,14 @@ export function ClassCard({
               )}
             </div>
           )}
-          {/* Academia · profesor */}
-          <p className="mt-1 truncate text-xs text-white/50">
-            {cls.academy.name}
-            {cls.instructor?.name && ` · ${cls.instructor.name}`}
-          </p>
+          {/* Profesor (la academia ya está en el chip cuando aplica) */}
+          {(academyChip ? cls.instructor?.name : true) && (
+            <p className="mt-1 truncate text-xs text-white/50">
+              {academyChip
+                ? cls.instructor?.name
+                : `${cls.academy.name}${cls.instructor?.name ? ` · ${cls.instructor.name}` : ""}`}
+            </p>
+          )}
           <p
             className={`mt-1 text-xs font-medium ${
               full
