@@ -364,6 +364,8 @@
   },
   "gamification": {
     "streak": "Semanas seguidas",
+    "streakSocial": "Saliendo a bailar",
+    "streakAcademy": "Asistiendo a clases",
     "streakBest": "Tu mejor racha",
     "badges": "Insignias",
     "leaderboard": "Ranking de la noche",

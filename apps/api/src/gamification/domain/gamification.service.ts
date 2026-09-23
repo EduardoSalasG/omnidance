@@ -88,8 +88,25 @@ export class GamificationService {
     },
   ) {}
 
-  /** Racha de "salidas semanales": semanas consecutivas con ≥1 check-in o sesión CONFIRMED. */
-  async streakFor(personId: string, now = new Date()) {
+  /**
+   * Racha semanal por modo: social = semanas consecutivas con ≥1 check-in
+   * o sesión CONFIRMED; academy = semanas consecutivas con ≥1 asistencia
+   * a clase. Mismo algoritmo, distinta fuente de actividad.
+   */
+  async streakFor(
+    personId: string,
+    opts: { now?: Date; mode?: string } = {},
+  ) {
+    const now = opts.now ?? new Date();
+    if (opts.mode === "academy") {
+      const attendances = await this.repo.attendancesForPerson(personId);
+      return computeStreak(
+        buildStreakWeeks(
+          attendances.map((a) => a.checkedAt),
+          now,
+        ),
+      );
+    }
     const [sessions, checkins] = await Promise.all([
       this.repo.confirmedSessionsForPerson(personId),
       this.repo.checkinsForPerson(personId),

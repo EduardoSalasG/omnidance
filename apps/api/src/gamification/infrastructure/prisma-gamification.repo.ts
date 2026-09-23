@@ -100,6 +100,13 @@ export class PrismaGamificationRepo implements GamificationRepo {
     });
   }
 
+  attendancesForPerson(personId: string) {
+    return this.prisma.attendance.findMany({
+      where: { personId },
+      select: { checkedAt: true },
+    });
+  }
+
   peopleByIds(ids: string[]) {
     return this.prisma.person.findMany({
       where: { id: { in: ids } },
