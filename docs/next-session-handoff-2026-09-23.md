@@ -74,3 +74,64 @@ contra el código real — los 3 seguían vigentes — y se cerraron.
 - ProducerPulse agrega solo eventos próximos/en vivo — un productor sin
   eventos activos ve la fila en 0 (correcto, pero vacío de información;
   candidato: "últimos 30d" como segunda vista).
+
+---
+
+## Segunda sesión — `/clases` prioriza las academias del alumno
+
+OpenSpec `clases-enrolled-scope` (proposal + spec delta `academy-learner` +
+design + tasks, todo completo). Decisiones del usuario: vigente =
+ACTIVE/TRIAL/ONLINE (PAUSED/FROZEN no cuentan); gate de reserva en API;
+reservadas solo badge + filtro (sin sección pineada).
+
+### API (`academies/infrastructure/classes.controller.ts`)
+
+- `GET /classes/browse?scope=enrolled` — acota a academias con
+  Enrollment vigente del autenticado (sin scope = todas, compat). Cada
+  item gana `enrolled: boolean`. `scope=enrolled` ∩ `academyId` no
+  calzando → `[]`.
+- `GET /classes/:id` — flag `enrolled` (misma regla).
+- `POST /classes/:id/book` — **breaking**: exige inscripción vigente en
+  la academia de la clase → 403 dentro de la tx. La academia inscribe;
+  no hay auto-inscripción.
+- Constante `BOOKABLE_ENROLLMENT` local al controller.
+
+### Web `/clases`
+
+- Vistas: `list | calendar | history | explore`. `list`/`calendar`
+  consultan `browse?scope=enrolled`; `explore` (ícono brújula, ex
+  marcador) carga todas las academias. `history` intacto (todas las
+  pasadas, inscrito o no).
+- Filtro segmentado **Todas | Reservadas** en list+calendar
+  (`scope=reservadas`; `mias` legado = alias). Reservadas usa
+  `/classes/mine` con las cards wallet (badge + link QR) — absorbe la
+  vista `mine`; `view=mine` legado redirige a list+reservadas.
+- En explore, cards de academias sin inscripción muestran "Requiere
+  inscripción" en vez del botón Reservar (flag `enrolled` del browse).
+- `ClassBookingCta` (ficha) recibe `enrolled` y muestra el mismo estado.
+- Empty state sin inscripciones → CTA a explore. i18n: `viewExplore`,
+  `scopeBooked`, `requiresEnrollment`, `emptyEnrolled`; tour `cl-mine`
+  → `cl-explore` con textos nuevos.
+
+### Verificación
+
+- API tsc + web tsc limpios. Suite completa: 42 archivos / 941+38
+  tests verdes (2 suites gamification dieron timeout de hook en el run
+  completo — flake; aislados pasan 38/38).
+- Unit nuevo: book gate (sin inscripción/PAUSED/otra academia → 403,
+  TRIAL → BOOKED). E2E nuevo: scope=enrolled, enrolled flags, book
+  403/201.
+- Smoke API viva: browse enrolled 25 clases todas `enrolled:true`;
+  outsider → `[]`; book outsider → 403; book inscrito → 201 BOOKED
+  (reserva de prueba cancelada después).
+- `docs/openapi.json` + Postman regenerados; `architecture.md` fila
+  academies actualizada; `omni-dance.md` §9 documenta la regla.
+- Commit aparte: fix del back link duplicado en `/clases/[id]`
+  (ecaa01d).
+
+### Candidatos (no pendientes)
+
+- CTA "contactar academia" en cards de explore — no existe página
+  pública de academia ni deep link de contacto.
+- Explore podría ganar filtro por academia (el API ya acepta
+  `academyId`) si el volumen lo justifica.

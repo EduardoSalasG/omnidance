@@ -36,6 +36,8 @@ type BrowseClass = {
   spotsLeft: number;
   waitlistCount: number;
   myBooking: "BOOKED" | "WAITLIST" | null;
+  // Inscripción vigente en la academia de la clase — habilita reservar.
+  enrolled: boolean;
   academy: { id: string; name: string };
   instructor: { id: string; name: string | null } | null;
   // Todo slot pertenece a una serie — series nunca es null.
@@ -84,8 +86,11 @@ type HistoryItem = {
 type StyleOption = { id: string; name: string };
 type LevelOption = { id: string; name: string };
 type LoadState = "loading" | "error" | "ready";
-type View = "list" | "calendar" | "history" | "mine";
-type CalScope = "todas" | "mias";
+// Vistas: mis academias (list/calendar), historial completo y explore
+// (todas las academias). La antigua vista `mine` se plegó al filtro
+// scope=reservadas — ver parsing de la URL más abajo.
+type View = "list" | "calendar" | "history" | "explore";
+type CalScope = "todas" | "reservadas";
 
 // Card compacta (misma receta que las listas del dominio).
 const cardCls =
@@ -181,8 +186,10 @@ function ClasesInner() {
 
   // ─── Estado en URL (mismo patrón que /eventos: deep-linkable) ───
   const rawView = searchParams.get("view");
+  const rawScope = searchParams.get("scope");
+  // `view=mine` legado (el ícono marcador) → lista en scope reservadas.
   const view: View =
-    rawView === "calendar" || rawView === "history" || rawView === "mine"
+    rawView === "calendar" || rawView === "history" || rawView === "explore"
       ? rawView
       : "list";
   const dow = searchParams.get("dow") ?? "";
@@ -192,7 +199,11 @@ function ClasesInner() {
     1,
     Number.parseInt(searchParams.get("upto") ?? "1", 10) || 1,
   );
-  const scope: CalScope = searchParams.get("scope") === "mias" ? "mias" : "todas";
+  // `mias` es el alias legado del scope reservadas.
+  const scope: CalScope =
+    rawScope === "reservadas" || rawScope === "mias" || rawView === "mine"
+      ? "reservadas"
+      : "todas";
 
   const hrefFor = (o: {
     view?: string;
@@ -204,15 +215,20 @@ function ClasesInner() {
     day?: string;
     scope?: string;
   }) => {
+    // Vista destino: override explícito (undefined = list) o la actual.
+    const target = "view" in o ? (o.view ?? "list") : view;
     const merged = {
-      view: view !== "list" ? view : undefined,
+      view: target !== "list" ? target : undefined,
       dow: dow || undefined,
       style: styleId || undefined,
       level: levelId || undefined,
       upto: upto > 1 ? String(upto) : undefined,
-      week: view === "calendar" ? weekKey : undefined,
-      day: view === "calendar" ? (selectedDay ?? undefined) : undefined,
-      scope: view === "calendar" && scope === "mias" ? "mias" : undefined,
+      week: target === "calendar" ? weekKey : undefined,
+      day: target === "calendar" ? (selectedDay ?? undefined) : undefined,
+      scope:
+        (target === "list" || target === "calendar") && scope === "reservadas"
+          ? "reservadas"
+          : undefined,
       ...o,
     };
     const params = new URLSearchParams();
@@ -294,9 +310,12 @@ function ClasesInner() {
     setBrowseState("loading");
     try {
       const params = new URLSearchParams({ days: String(daysNeeded) });
-      // El chip de día solo existe en lista — en calendario el día lo
-      // elige la franja, no aplica el filtro aunque quede en la URL.
-      if (dow && view === "list") params.set("weekday", dow);
+      // Lista/calendario = mis academias; explore = todas. La vista
+      // decide el scope del servidor (inscripción vigente).
+      if (view !== "explore") params.set("scope", "enrolled");
+      // El chip de día solo existe en lista/explore — en calendario el
+      // día lo elige la franja, no aplica el filtro aunque quede en URL.
+      if (dow && view !== "calendar") params.set("weekday", dow);
       if (styleId) params.set("styleId", styleId);
       if (levelId) params.set("levelId", levelId);
       const res = await apiFetch(`/classes/browse?${params.toString()}`);
@@ -326,15 +345,19 @@ function ClasesInner() {
     }
   }, []);
 
-  // Cada vista carga solo lo que muestra.
+  // Cada vista carga solo lo que muestra: reservadas vive de /mine,
+  // el resto de list/calendar/explore del browse (con su scope).
   useEffect(() => {
-    if (view === "mine") void loadMine();
-    if (view === "history") void loadHistory();
-    if (view === "list" || view === "calendar") {
-      void loadBrowse();
-      if (view === "calendar") void loadMine();
+    if (view === "history") {
+      void loadHistory();
+      return;
     }
-  }, [view, loadMine, loadHistory, loadBrowse]);
+    if (scope === "reservadas" && view !== "explore") {
+      void loadMine();
+      return;
+    }
+    void loadBrowse();
+  }, [view, scope, loadMine, loadHistory, loadBrowse]);
 
   // Catálogos de los filtros — una vez; fallo silencioso.
   useEffect(() => {
@@ -416,8 +439,8 @@ function ClasesInner() {
     upto * 7 + 7 <= 60 &&
     pool.some((c) => new Date(c.date).getTime() > horizon);
 
-  // Calendario: en scope "todas" los dots vienen del browse; en "mias"
-  // de mis reservas — el mismo grid sirve de agenda propia.
+  // Calendario: en scope "todas" los dots vienen del browse (mis
+  // academias); en "reservadas" de mis reservas — agenda propia.
   const calByDay = new Map<string, BrowseClass[]>();
   for (const c of pool) {
     const key = classDayKey(c.date);
@@ -429,7 +452,7 @@ function ClasesInner() {
     myByDay.set(key, [...(myByDay.get(key) ?? []), b]);
   }
   const cells =
-    scope === "mias"
+    scope === "reservadas"
       ? weekCells(monday, myByDay)
       : weekCells(monday, calByDay);
   const weekKeys = new Set(cells.map((c) => c.key));
@@ -538,6 +561,12 @@ function ClasesInner() {
                   onConfirm={() => void cancelBooking(cls.id)}
                 />
               </>
+            ) : !cls.enrolled ? (
+              // Academia ajena (vista explore): sin inscripción vigente
+              // no hay reserva — el API lo rechazaría con 403.
+              <span className="text-xs leading-tight text-white/40">
+                {t("requiresEnrollment")}
+              </span>
             ) : full ? (
               <Button
                 size="sm"
@@ -657,8 +686,8 @@ function ClasesInner() {
     : t("filterLevel");
 
   const title =
-    view === "mine"
-      ? t("viewMine")
+    view === "explore"
+      ? t("viewExplore")
       : view === "history"
         ? t("history")
         : t("title");
@@ -723,22 +752,23 @@ function ClasesInner() {
                 </svg>
               </Link>
             </div>
-            {/* Mis clases — agenda propia (reservas), ícono aparte como
+            {/* Explorar — todas las academias, ícono aparte como
                 el ticket de "Mis entradas" en /eventos */}
             <Link
               href={hrefFor({
-                view: "mine",
+                view: "explore",
                 week: undefined,
                 day: undefined,
                 scope: undefined,
               })}
-              data-tour="cl-mine"
-              aria-label={t("viewMine")}
-              aria-current={view === "mine" ? "true" : undefined}
-              className={`${iconBtn(view === "mine")} border border-white/15`}
+              data-tour="cl-explore"
+              aria-label={t("viewExplore")}
+              aria-current={view === "explore" ? "true" : undefined}
+              className={`${iconBtn(view === "explore")} border border-white/15`}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="12" r="9" />
+                <path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" />
               </svg>
             </Link>
           </div>
@@ -746,10 +776,11 @@ function ClasesInner() {
 
         {/* Filtros: chips de día (single-select) + dropdowns de estilo y
             nivel tipo chip — misma gramática que géneros/locales. En
-            calendario el día lo elige la franja → se ocultan los chips. */}
-        {(view === "list" || view === "calendar") && (
+            calendario el día lo elige la franja → se ocultan los chips.
+            El toggle Todas|Reservadas vive en list y calendar. */}
+        {view !== "history" && (
           <>
-            {view === "list" && (
+            {view !== "calendar" && scope === "todas" && (
               <nav
                 aria-label={t("filterDay")}
                 className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
@@ -773,10 +804,11 @@ function ClasesInner() {
               </nav>
             )}
 
-            {/* Calendario: toggle Todas/Mías (patrón de /practicas) +
-                dropdowns estilo/nivel. */}
+            {/* Todas|Reservadas (patrón de /practicas) + dropdowns
+                estilo/nivel — los dropdowns filtran el browse, no
+                aplican al scope reservadas (datos de /classes/mine). */}
             <div className="flex items-center gap-2">
-              {view === "calendar" && (
+              {(view === "list" || view === "calendar") && (
                 <div className="flex items-center rounded-full border border-white/15 p-0.5">
                   <Link
                     href={hrefFor({ scope: undefined })}
@@ -786,15 +818,15 @@ function ClasesInner() {
                     {t("scopeAll")}
                   </Link>
                   <Link
-                    href={hrefFor({ scope: "mias" })}
-                    aria-pressed={scope === "mias"}
-                    className={`${chipClass(scope === "mias")} min-h-9 border-0 px-3`}
+                    href={hrefFor({ scope: "reservadas" })}
+                    aria-pressed={scope === "reservadas"}
+                    className={`${chipClass(scope === "reservadas")} min-h-9 border-0 px-3`}
                   >
-                    {t("scopeMine")}
+                    {t("scopeBooked")}
                   </Link>
                 </div>
               )}
-              {view !== "calendar" || scope === "todas" ? (
+              {scope === "todas" ? (
                 <>
                   <details key={styleId || "all-styles"} className="relative">
                     <summary
@@ -865,41 +897,7 @@ function ClasesInner() {
         )}
       </header>
 
-      {/* ─── Vista Mis clases (símil de Mis entradas) ─── */}
-      {view === "mine" ? (
-        <section aria-label={t("viewMine")} className="flex flex-col gap-3">
-          {mineState === "loading" && (
-            <Spinner size="sm" className="page-loading" />
-          )}
-          {mineState === "error" && (
-            <div className="flex items-center gap-3">
-              <p role="alert" className="text-sm text-white/60">
-                {tc("error")}
-              </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void loadMine()}
-              >
-                ↻ {tc("retry")}
-              </Button>
-            </div>
-          )}
-          {mineState === "ready" &&
-            (mine && mine.length > 0 ? (
-              <ul className="flex flex-col gap-4">
-                {mine.map(renderMyCard)}
-              </ul>
-            ) : (
-              <Card className="flex flex-col items-center gap-4 py-10 text-center">
-                <p role="status" className="text-white/70">
-                  {t("emptyMine")}
-                </p>
-                <Button href="/clases">{t("explore")}</Button>
-              </Card>
-            ))}
-        </section>
-      ) : view === "history" ? (
+      {view === "history" ? (
         /* ─── Historial — progreso personal, no competitivo (spec §9) ─── */
         <section aria-label={t("history")} className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-3">
@@ -1007,7 +1005,7 @@ function ClasesInner() {
               const isToday = cell.key === todayKey;
               const isSelected = cell.key === selectedDay;
               const dots =
-                scope === "mias"
+                scope === "reservadas"
                   ? (cell.items as MyBooking[]).map((b) => ({
                       id: b.bookingId,
                       genre: b.series.style?.genre,
@@ -1072,7 +1070,7 @@ function ClasesInner() {
                   `${selectedDay}T00:00:00.000Z`,
                 )}
               </h3>
-              {scope === "mias" ? (
+              {scope === "reservadas" ? (
                 selectedMine.length === 0 ? (
                   <p className="text-sm text-white/50">{t("noClassesDay")}</p>
                 ) : (
@@ -1099,8 +1097,48 @@ function ClasesInner() {
             </section>
           )}
         </section>
+      ) : view === "list" && scope === "reservadas" ? (
+        /* ─── Reservadas (ex vista Mis clases): cards wallet con QR ─── */
+        <section
+          aria-label={t("scopeBooked")}
+          className="flex flex-col gap-3"
+        >
+          {mineState === "loading" && (
+            <Spinner size="sm" className="page-loading" />
+          )}
+          {mineState === "error" && (
+            <div className="flex items-center gap-3">
+              <p role="alert" className="text-sm text-white/60">
+                {tc("error")}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void loadMine()}
+              >
+                ↻ {tc("retry")}
+              </Button>
+            </div>
+          )}
+          {mineState === "ready" &&
+            (mine && mine.length > 0 ? (
+              <div className="flex flex-col gap-5">
+                {groupByDay(mine).map((g) => renderDayGroup(g, renderMyCard))}
+              </div>
+            ) : (
+              <Card className="flex flex-col items-center gap-4 py-10 text-center">
+                <p role="status" className="text-white/70">
+                  {t("emptyMine")}
+                </p>
+                <Button href={hrefFor({ view: "explore", scope: undefined })}>
+                  {t("explore")}
+                </Button>
+              </Card>
+            ))}
+        </section>
       ) : (
-        /* ─── Lista (explorar): esta semana / más adelante ─── */
+        /* ─── Lista (mis academias) / Explore (todas): esta semana /
+            más adelante ─── */
         <>
           {browseState === "loading" && (
             <Spinner size="sm" className="page-loading" />
@@ -1121,7 +1159,20 @@ function ClasesInner() {
           )}
           {browseState === "ready" &&
             (pool.length === 0 ? (
-              <p className="text-white/60">{t("empty")}</p>
+              view === "explore" ? (
+                <p className="text-white/60">{t("empty")}</p>
+              ) : (
+                // Sin inscripciones vigentes (o sin clases en ellas):
+                // el camino es explorar el resto de la escena.
+                <Card className="flex flex-col items-center gap-4 py-10 text-center">
+                  <p role="status" className="text-white/70">
+                    {t("emptyEnrolled")}
+                  </p>
+                  <Button href={hrefFor({ view: "explore" })}>
+                    {t("explore")}
+                  </Button>
+                </Card>
+              )
             ) : (
               <div className="flex flex-col gap-8">
                 <section data-tour="cl-list">
@@ -1169,11 +1220,12 @@ function ClasesInner() {
         </p>
       )}
 
-      {/* Tour de primera visita — el switcher y el ícono de Mis clases
+      {/* Tour de primera visita — el switcher y el ícono de Explorar
           siempre existen; la lista se omite si aún no carga o está vacía. */}
-      {((view === "list" && browseState === "ready") ||
+      {(((view === "list" || view === "explore") && scope === "todas" &&
+        browseState === "ready") ||
         (view === "calendar" && browseState === "ready") ||
-        (view === "mine" && mineState === "ready") ||
+        (scope === "reservadas" && mineState === "ready") ||
         (view === "history" && historyState === "ready")) && (
         <OnboardingRunner
           tour="clases"
@@ -1186,7 +1238,7 @@ function ClasesInner() {
                 side: "bottom",
               },
               {
-                element: "[data-tour='cl-mine']",
+                element: "[data-tour='cl-explore']",
                 title: tt("s2.title"),
                 description: tt("s2.desc"),
                 side: "bottom",

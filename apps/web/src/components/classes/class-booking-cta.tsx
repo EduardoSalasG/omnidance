@@ -18,11 +18,14 @@ export function ClassBookingCta({
   classId,
   initialBooking,
   full,
+  enrolled,
   disabled,
 }: {
   classId: string;
   initialBooking: Booking;
   full: boolean;
+  /** Inscripción vigente en la academia — sin ella no se puede reservar. */
+  enrolled: boolean;
   /** Clase cancelada o ya pasada — la ficha queda solo informativa. */
   disabled?: boolean;
 }) {
@@ -127,6 +130,10 @@ export function ClassBookingCta({
             </Button>
           )}
         </div>
+      ) : !enrolled ? (
+        <p className="rounded-xl border border-white/10 bg-night-800/40 px-4 py-3 text-center text-sm text-white/50">
+          {t("requiresEnrollment")}
+        </p>
       ) : full ? (
         <Button className="w-full" disabled={busy} onClick={() => void book()}>
           {t("joinWaitlist")}

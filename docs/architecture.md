@@ -65,7 +65,7 @@ src/<dominio>/
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
 | notifications | `/api/notifications` (`?unread=&limit=&lens=` — lens acota lista y unreadCount al dominio social/academy), `/api/push-tokens` | SessionGuard |
 | social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id`; consola venue: `/venues/mine`, `/venues/:id/dashboard` (KPIs + reservas de mesa + flujo: hora peak/permanencia), `/venues/:id/rentals/:id` PATCH | mixto `social.manage` / `venues.manage` |
-| academies | `/api/academies/*` planes, enrollments, asistencia | `academies.create` / owner |
+| academies | `/api/academies/*` planes, enrollments, asistencia; alumno: `/api/classes/browse` (`?scope=enrolled` = solo mis academias, flag `enrolled` por item), `/classes/mine`, `/classes/:id` (+`enrolled`), `/classes/:id/book` — reservar exige Enrollment vigente (ACTIVE/TRIAL/ONLINE) → 403 | `academies.create` / owner / SessionGuard |
 | gamification | `/api/gamification/*` streaks, badges, leaderboard, misiones | SessionGuard |
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |
 | leads | `POST /api/leads` (upsert por email, devuelve `demoToken`, notifica a ADMIN) + `POST /api/leads/:id/demo` (token en body → crea `Person` `isDemoAccount` con los roles del lead en APPROVED, enlaza `lead.personId`, emite sesión; email ya registrado → 409) | público, rate-limited por IP |

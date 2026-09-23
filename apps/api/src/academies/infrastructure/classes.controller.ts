@@ -14,12 +14,18 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
+import type { EnrollmentStatus } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { effectiveCapacity } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
+
+// Inscripción vigente: la que habilita ver la academia como "mía" en
+// /clases y reservar cupo. PAUSED/FROZEN no cuentan (spec de producto:
+// reservar exige inscripción vigente).
+const BOOKABLE_ENROLLMENT: EnrollmentStatus[] = ["ACTIVE", "TRIAL", "ONLINE"];
 
 /**
  * Vista alumno: explorar clases próximas (por día/estilo/nivel/academia)
@@ -60,17 +66,41 @@ export class ClassesController {
     @Query("levelId") levelId?: string,
     @Query("academyId") academyId?: string,
     @Query("days") days?: string,
+    @Query("scope") scope?: string,
   ) {
     const me = req.person!.id;
     const horizon = Math.min(Math.max(Number(days) || 14, 1), 60);
     const until = new Date(Date.now() + horizon * 86_400_000);
+
+    // Academias con inscripción vigente — scope=enrolled acota el listado
+    // y el flag `enrolled` por item resuelve el CTA sin query extra.
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { personId: me, status: { in: BOOKABLE_ENROLLMENT } },
+      select: { academyId: true },
+    });
+    const enrolledIds = new Set(enrollments.map((e) => e.academyId));
+
+    // scope=enrolled ∩ academyId: si se piden ambos y no calzan, vacío.
+    const academyScope =
+      scope === "enrolled"
+        ? academyId
+          ? enrolledIds.has(academyId)
+            ? [academyId]
+            : []
+          : [...enrolledIds]
+        : null;
+    if (academyScope !== null && academyScope.length === 0) return [];
 
     const classes = await this.prisma.class.findMany({
       where: {
         cancelled: false,
         date: { gte: new Date(), lte: until },
         slot: {
-          ...(academyId ? { academyId } : {}),
+          ...(academyScope
+            ? { academyId: { in: academyScope } }
+            : academyId
+              ? { academyId }
+              : {}),
           academy: { active: true },
           series: {
             active: true,
@@ -157,6 +187,7 @@ export class ClassesController {
           waitlistCount: c.bookings.filter((b) => b.status === "WAITLIST")
             .length,
           myBooking: mine?.status ?? null,
+          enrolled: enrolledIds.has(c.slot.academy.id),
           academy: c.slot.academy,
           instructor: c.instructorId
             ? { id: c.instructorId, name: instructorName.get(c.instructorId) ?? null }
@@ -516,6 +547,17 @@ export class ClassesController {
       },
     });
 
+    // Inscripción vigente en la academia de la clase — el CTA de la
+    // ficha depende de esto (book también lo exige).
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        personId: me,
+        academyId: cls.slot.academyId,
+        status: { in: BOOKABLE_ENROLLMENT },
+      },
+      select: { id: true },
+    });
+
     const booked = cls.bookings.filter((b) => b.status === "BOOKED").length;
     const mine = cls.bookings.find((b) => b.personId === me);
     const capacity = effectiveCapacity({
@@ -537,6 +579,7 @@ export class ClassesController {
       waitlistCount: cls.bookings.filter((b) => b.status === "WAITLIST").length,
       myBooking: mine?.status ?? null,
       attended: cls.attendances.length > 0,
+      enrolled: !!enrollment,
       academy: cls.slot.academy,
       instructor,
       series: {
@@ -652,7 +695,8 @@ export class ClassesController {
 
   /**
    * Reservar: cupo libre → BOOKED; lleno → WAITLIST (orden de llegada).
-   * Re-reservar una reserva cancelada reactiva la misma fila.
+   * Re-reservar una reserva cancelada reactiva la misma fila. Exige
+   * inscripción vigente (ACTIVE/TRIAL/ONLINE) en la academia de la clase.
    */
   @Post(":id/book")
   async book(@Param("id") classId: string, @Req() req: Request) {
@@ -667,6 +711,7 @@ export class ClassesController {
         slot: {
           select: {
             capacity: true,
+            academyId: true,
             series: { select: { quorum: true } },
             academy: { select: { defaultQuorum: true } },
           },
@@ -680,6 +725,23 @@ export class ClassesController {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // Regla de producto: reservar exige inscripción vigente en la
+      // academia. Dentro de la tx para que una desinscripción
+      // concurrente no deje pasar la reserva.
+      const enrollment = await tx.enrollment.findFirst({
+        where: {
+          personId: me,
+          academyId: cls.slot.academyId,
+          status: { in: BOOKABLE_ENROLLMENT },
+        },
+        select: { id: true },
+      });
+      if (!enrollment) {
+        throw new ForbiddenException(
+          "necesitas una inscripción vigente en la academia",
+        );
+      }
+
       const existing = await tx.classBooking.findUnique({
         where: { classId_personId: { classId, personId: me } },
       });

@@ -640,5 +640,97 @@ describe("academies e2e", () => {
         ).toBe(true);
       });
     });
+
+    describe("browse por inscripción + gate de reserva", () => {
+      let futureClassId: string;
+
+      beforeAll(async () => {
+        // Clase futura materializada del slot del alumno.
+        const future = await prisma.class.create({
+          data: {
+            classSlotId: ids.slotId,
+            date: new Date(Date.now() + 5 * 86_400_000),
+          },
+        });
+        futureClassId = future.id;
+      });
+
+      it("scope=enrolled del alumno incluye su academia con enrolled:true", async () => {
+        const res = await get(
+          "/api/classes/browse?scope=enrolled&days=30",
+          studentSession,
+        );
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        const cls = list.find(
+          (c: { id: string }) => c.id === futureClassId,
+        );
+        expect(cls).toBeTruthy();
+        expect(cls.enrolled).toBe(true);
+        // Todo lo listado es de academias con inscripción vigente.
+        expect(list.every((c: { enrolled: boolean }) => c.enrolled)).toBe(
+          true,
+        );
+      });
+
+      it("scope=enrolled del outsider no incluye la academia ajena", async () => {
+        const res = await get(
+          "/api/classes/browse?scope=enrolled&days=30",
+          outsiderSession,
+        );
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        expect(
+          list.some((c: { id: string }) => c.id === futureClassId),
+        ).toBe(false);
+      });
+
+      it("browse sin scope lista todas las academias con enrolled:false", async () => {
+        const res = await get(
+          "/api/classes/browse?days=30",
+          outsiderSession,
+        );
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        const cls = list.find(
+          (c: { id: string }) => c.id === futureClassId,
+        );
+        expect(cls).toBeTruthy();
+        expect(cls.enrolled).toBe(false);
+      });
+
+      it("detail informa enrolled según inscripción del visitante", async () => {
+        const asStudent = await get(
+          `/api/classes/${futureClassId}`,
+          studentSession,
+        );
+        expect((await asStudent.json()).enrolled).toBe(true);
+        const asOutsider = await get(
+          `/api/classes/${futureClassId}`,
+          outsiderSession,
+        );
+        expect((await asOutsider.json()).enrolled).toBe(false);
+      });
+
+      it("book sin inscripción vigente → 403 y no crea reserva", async () => {
+        const res = await post(
+          `/api/classes/${futureClassId}/book`,
+          {},
+          outsiderSession,
+        );
+        expect(res.status).toBe(403);
+      });
+
+      it("book con inscripción ACTIVE → 201 BOOKED", async () => {
+        const res = await post(
+          `/api/classes/${futureClassId}/book`,
+          {},
+          studentSession,
+        );
+        expect(res.status).toBe(201);
+        const body = await res.json();
+        expect(body.status).toBe("BOOKED");
+      });
+    });
   });
 });
