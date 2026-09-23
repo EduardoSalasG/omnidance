@@ -63,8 +63,8 @@ src/<dominio>/
 | checkins | `/api/checkins*` staff door scan/manual | `checkins.write` |
 | payments | `/api/checkout`, `/api/tickets`, `/api/payments/webhook` | mixto (checkout = preventa o puerta-app según estado/corte del evento) |
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
-| notifications | `/api/notifications`, `/api/push-tokens` | SessionGuard |
-| social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id`; consola venue: `/venues/mine`, `/venues/:id/dashboard` (KPIs + reservas de mesa + flujo: hora peak/permanencia), `/venues/:id/rentals/:id` PATCH | mixto `social.manage` / `VENUE_MANAGER`+admin |
+| notifications | `/api/notifications` (`?unread=&limit=&lens=` — lens acota lista y unreadCount al dominio social/academy), `/api/push-tokens` | SessionGuard |
+| social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id`; consola venue: `/venues/mine`, `/venues/:id/dashboard` (KPIs + reservas de mesa + flujo: hora peak/permanencia), `/venues/:id/rentals/:id` PATCH | mixto `social.manage` / `venues.manage` |
 | academies | `/api/academies/*` planes, enrollments, asistencia | `academies.create` / owner |
 | gamification | `/api/gamification/*` streaks, badges, leaderboard, misiones | SessionGuard |
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |
