@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, Spinner } from "@/components/ui";
@@ -181,6 +181,7 @@ function ClasesInner() {
   const tc = useTranslations("common");
   const te = useTranslations("events");
   const tt = useTranslations("tours.clases");
+  const router = useRouter();
   const searchParams = useSearchParams();
 
   // ─── Estado en URL (mismo patrón que /eventos: deep-linkable) ───
@@ -678,13 +679,6 @@ function ClasesInner() {
     </section>
   );
 
-  const styleLabel = styleId
-    ? (styles.find((s) => s.id === styleId)?.name ?? t("filterStyle"))
-    : t("filterStyle");
-  const levelLabel = levelId
-    ? (levels.find((l) => l.id === levelId)?.name ?? t("filterLevel"))
-    : t("filterLevel");
-
   const title =
     view === "explore"
       ? t("viewExplore")
@@ -782,7 +776,7 @@ function ClasesInner() {
             {/* Todas|Reservadas (patrón de /practicas) + dropdowns
                 estilo/nivel — en browse van al servidor; en reservadas
                 filtran client-side sobre /classes/mine. */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {(view === "list" || view === "calendar") && (
                 <div className="flex items-center rounded-full border border-white/15 p-0.5">
                   <Link
@@ -801,70 +795,70 @@ function ClasesInner() {
                   </Link>
                 </div>
               )}
-              <>
-                <details key={styleId || "all-styles"} className="relative">
-                    <summary
-                      className={`${chipClass(!!styleId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
-                    >
-                      {styleLabel}
-                    </summary>
-                    <ul className="absolute left-0 z-20 mt-2 flex max-h-72 w-56 flex-col overflow-y-auto rounded-xl border border-night-700 bg-night-900 p-1 shadow-xl shadow-black/40">
-                      <li>
-                        <Link
-                          href={hrefFor({ style: undefined })}
-                          className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
-                            !styleId ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
-                          }`}
-                        >
-                          {t("all")}
-                        </Link>
-                      </li>
-                      {styles.map((s) => (
-                        <li key={s.id}>
-                          <Link
-                            href={hrefFor({ style: s.id })}
-                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
-                              styleId === s.id ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
-                            }`}
-                          >
-                            {s.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                <details key={levelId || "all-levels"} className="relative">
-                    <summary
-                      className={`${chipClass(!!levelId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
-                    >
-                      {levelLabel}
-                    </summary>
-                    <ul className="absolute left-0 z-20 mt-2 flex max-h-72 w-56 flex-col overflow-y-auto rounded-xl border border-night-700 bg-night-900 p-1 shadow-xl shadow-black/40">
-                      <li>
-                        <Link
-                          href={hrefFor({ level: undefined })}
-                          className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
-                            !levelId ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
-                          }`}
-                        >
-                          {t("all")}
-                        </Link>
-                      </li>
-                      {levels.map((l) => (
-                        <li key={l.id}>
-                          <Link
-                            href={hrefFor({ level: l.id })}
-                            className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
-                              levelId === l.id ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
-                            }`}
-                          >
-                            {l.name}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                </details>
-              </>
+              {/* <select> nativo: en mobile abre el picker del SO
+                  (nunca desborda la pantalla) y es accesible gratis. */}
+              <div className="relative shrink-0">
+                <select
+                  aria-label={t("filterStyle")}
+                  value={styleId}
+                  onChange={(e) =>
+                    router.push(
+                      hrefFor({ style: e.target.value || undefined }),
+                    )
+                  }
+                  className={`${chipClass(!!styleId)} max-w-40 cursor-pointer appearance-none truncate bg-transparent pr-8`}
+                >
+                  <option value="">{t("filterStyle")}</option>
+                  {styles.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${styleId ? "text-neon" : "text-white/40"}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
+              <div className="relative shrink-0">
+                <select
+                  aria-label={t("filterLevel")}
+                  value={levelId}
+                  onChange={(e) =>
+                    router.push(
+                      hrefFor({ level: e.target.value || undefined }),
+                    )
+                  }
+                  className={`${chipClass(!!levelId)} max-w-40 cursor-pointer appearance-none truncate bg-transparent pr-8`}
+                >
+                  <option value="">{t("filterLevel")}</option>
+                  {levels.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${levelId ? "text-neon" : "text-white/40"}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
             </div>
           </>
         )}
