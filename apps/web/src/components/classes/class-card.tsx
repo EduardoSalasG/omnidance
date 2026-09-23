@@ -97,11 +97,11 @@ export function ClassCard({
             </p>
           )}
         </Link>
-        {/* Acción anclada a los bordes del card: primaria arriba
-            (alineada al título), cupo abajo (alineado a la última
-            línea del contenido). Cancelar NO va en el card — la
-            acción destructiva vive al pie de la ficha de la clase. */}
-        <div className="flex shrink-0 flex-col items-end justify-between py-0.5 text-right">
+        {/* Acción centrada verticalmente: el CTA/badge ocupa el medio
+            del card y el cupo va como caption debajo del botón.
+            Cancelar NO va en el card — la acción destructiva vive al
+            pie de la ficha de la clase. */}
+        <div className="flex shrink-0 flex-col items-end justify-center gap-1 py-0.5 text-right">
           {cls.myBooking === "BOOKED" ? (
             <Badge variant="neon">{t("booked")}</Badge>
           ) : cls.myBooking === "WAITLIST" ? (
