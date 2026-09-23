@@ -289,6 +289,16 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   ("Reserva tu próxima clase…") también — queda KPIs + "Tus próximas
   clases". Limpieza: bookNextClass/classError/classBusyId,
   keys nextClass/nextClassCta/seeClasses/academyLearnerDesc.
+- Frontera reservada/historial corregida: antes era `Class.date`
+  (medianoche UTC) vs now → las clases DE HOY caían al historial como
+  "Reservada" y salían de /classes/mine. Ahora el límite es el fin
+  real de la clase: `classEnded()` calcula el instante de término
+  (día local + slot.endTime, offset Santiago vía Intl — sin lib).
+  `mine` trae date >= ayer y filtra por `!classEnded` (cubre clases
+  que cruzan medianoche). `history` solo devuelve attended/cancelled —
+  una reserva vigente de clase pasada-sin-asistencia desaparece (ni
+  reservada ni historial, por diseño del usuario). Web: status
+  "booked" eliminado de HistoryCardData/badge/i18n.
 - `/clases/[id]`: header reordenado (título → chips → fecha), se fue
   la línea series.name redundante; nivel como LevelBars (detalle ahora
   devuelve level.order); CTA en barra fija sobre la BottomNav — mismo

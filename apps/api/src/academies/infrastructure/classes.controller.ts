@@ -67,6 +67,43 @@ const CLASS_CARD_SELECT = {
   },
 } as const;
 
+// Instante UTC en que termina la clase: Class.date es medianoche UTC
+// del día calendario local y slot.endTime es "HH:MM" en hora de Chile.
+// El offset Santiago↔UTC (-3/-4 DST) se deriva con Intl — sin librería.
+function classEndInstant(date: Date, endTime: string): Date {
+  const ymd = date.toISOString().slice(0, 10);
+  const probe = new Date(`${ymd}T12:00:00Z`); // mediodía: lejos de bordes DST
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santiago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(probe);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)!.value);
+  const localAsUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
+  const offsetMs = localAsUtc - probe.getTime();
+  return new Date(Date.parse(`${ymd}T${endTime}:00Z`) - offsetMs);
+}
+
+// ¿La clase ya se cerró? — terminó su horario (la frontera que separa
+// "reservada" de "historial": una clase de HOY a las 20:00 sigue activa
+// aunque Class.date (medianoche UTC) ya quedó en el pasado).
+function classEnded(c: { date: Date; slot: { endTime: string } }): boolean {
+  return classEndInstant(c.date, c.slot.endTime).getTime() <= Date.now();
+}
+
 type ClassCardRow = {
   id: string;
   date: Date;
@@ -267,19 +304,27 @@ export class ClassesController {
   async mine(@Req() req: Request, @Query("scope") scope?: string) {
     if (scope === "past") return this.history(req.person!.id);
     const me = req.person!.id;
+    // La frontera reservada/historial es el fin real de la clase, no
+    // Class.date (medianoche UTC): una clase de hoy sigue vigente. Se
+    // acota a ayer+ para no barrer toda la tabla y se filtra por el
+    // instante de término (cubre clases que cruzan medianoche).
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    yesterday.setUTCHours(0, 0, 0, 0);
     const [enrolledIds, rows] = await Promise.all([
       this.enrolledAcademyIds(me),
       this.prisma.classBooking.findMany({
         where: {
           personId: me,
           status: { in: ["BOOKED", "WAITLIST"] },
-          class: { date: { gte: new Date() }, cancelled: false },
+          class: { date: { gte: yesterday }, cancelled: false },
         },
         orderBy: { class: { date: "asc" } },
         select: { class: { select: CLASS_CARD_SELECT } },
       }),
     ]);
-    const classes = rows.map((r) => r.class);
+    const classes = rows
+      .map((r) => r.class)
+      .filter((c) => !classEnded(c));
     const instructorName = await this.instructorNames(classes);
     return classes.map((c) =>
       classCardItem(c, me, enrolledIds, instructorName),
@@ -287,38 +332,33 @@ export class ClassesController {
   }
 
   /**
-   * Historial del alumno (spec §9): clases pasadas con reserva o
-   * asistencia. Dedup por classId — la asistencia prevalece sobre la
-   * reserva (misma regla que la ficha del alumno del owner). Últimas 50.
+   * Historial del alumno (spec §9): solo resultados cerrados —
+   * asistencias y reservas canceladas. Una reserva vigente NO aparece
+   * acá aunque Class.date ya pasó: sigue en "reservadas" hasta que la
+   * clase termine (classEnded). Dedup por classId — la asistencia
+   * prevalece sobre la cancelación. Últimas 50.
    */
   private async history(personId: string) {
-    const now = new Date();
     const [enrolledIds, attendances, bookings] = await Promise.all([
       this.enrolledAcademyIds(personId),
       this.prisma.attendance.findMany({
-        where: { personId, class: { date: { lt: now } } },
+        where: { personId },
         select: { class: { select: CLASS_CARD_SELECT } },
       }),
       this.prisma.classBooking.findMany({
-        where: { personId, class: { date: { lt: now } } },
-        select: {
-          status: true,
-          class: { select: CLASS_CARD_SELECT },
-        },
+        where: { personId, status: "CANCELLED" },
+        select: { class: { select: CLASS_CARD_SELECT } },
       }),
     ]);
 
     // Dedup por classId con el shape completo del card + status de
-    // resultado ("attended" gana sobre la reserva de la misma clase).
+    // resultado ("attended" gana sobre la cancelación de la misma clase).
     const past = new Map<
       string,
-      { cls: ClassCardRow; status: "attended" | "booked" | "cancelled" }
+      { cls: ClassCardRow; status: "attended" | "cancelled" }
     >();
     for (const b of bookings) {
-      past.set(b.class.id, {
-        cls: b.class,
-        status: b.status === "BOOKED" ? "booked" : "cancelled",
-      });
+      past.set(b.class.id, { cls: b.class, status: "cancelled" });
     }
     for (const a of attendances) {
       past.set(a.class.id, { cls: a.class, status: "attended" });
