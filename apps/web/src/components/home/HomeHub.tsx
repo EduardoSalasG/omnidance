@@ -93,18 +93,6 @@ const classUtcDayFmt = new Intl.DateTimeFormat("es-CL", {
   timeZone: "UTC",
 });
 
-// "Hoy" si la fecha es del día local en curso — el learner lee "Hoy
-// 19:30" más rápido que "mar 12 nov · 19:30".
-const isToday = (iso: string) => {
-  const d = new Date(iso);
-  const n = new Date();
-  return (
-    d.getFullYear() === n.getFullYear() &&
-    d.getMonth() === n.getMonth() &&
-    d.getDate() === n.getDate()
-  );
-};
-
 // Género como texto coloreado — misma paleta que la cartelera.
 const GENRE_TEXT: Record<string, string> = {
   SALSA: "text-orange-400",
@@ -637,7 +625,10 @@ export function HomeHub() {
 
       {/* Fallo de stats ≠ "sin datos": aviso honesto con reintento. */}
       {statsError && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+        >
           {t("statsError")}
           <button
             type="button"
@@ -730,18 +721,21 @@ export function HomeHub() {
               <ul className="flex flex-col gap-2">
                 {stats!.myClasses!.map((c) => (
                   <li key={c.id}>
+                    {/* Fila → ficha de la clase (directo, no al listado) */}
                     <Link
-                      href="/clases"
-                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/60 p-3 transition-colors hover:border-neon/50"
+                      href={`/clases/${c.id}`}
+                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/60 p-3 transition-colors hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium text-white">
                           {c.name}
                         </p>
                         <p className="truncate text-xs text-white/50">
-                          {isToday(c.when)
+                          {/* class.date = medianoche UTC — comparar día
+                              por prefijo ISO, no por instante local. */}
+                          {c.when.slice(0, 10) === localDayKey(new Date())
                             ? te("today")
-                            : dayFmt.format(new Date(c.when))}
+                            : classUtcDayFmt.format(new Date(c.when))}
                           {c.place ? ` · ${c.place}` : ""}
                         </p>
                       </div>

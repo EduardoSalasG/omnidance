@@ -121,6 +121,13 @@ reservadas solo badge + filtro (sin sección pineada).
   cards de clase — ClassCard (list/calendar/explore/home), card
   wallet de reservadas y chips de la ficha `/clases/:id`.
 - `ClassBookingCta` (ficha) recibe `enrolled` y muestra el mismo estado.
+- Pase UX/a11y (impeccable): franja semanal sin `role="grid"` falso
+  (role=group + días completos para SR + aria-label con conteo),
+  `aria-pressed`→`aria-current` en links, h2→h3 en ClassCard, touch
+  targets 44px (iconBtn/toggle), focus-visible en chips, notice de
+  reserva bajo el header (antes al final del main), spinner inline en
+  Reservar, filas de historial → ficha, home myClasses → ficha directa
+  + fix "Hoy" en TZ negativas (prefijo ISO vs localDayKey).
 - El card del explorador vive en `components/classes/class-card.tsx`
   (`ClassCard` + `ClassCardData` + `CancelBookingButton`); `/clases` y
   el home Academia lo comparten. `home/stats.nextClass` devuelve el
