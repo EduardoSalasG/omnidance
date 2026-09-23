@@ -27,12 +27,14 @@ export const PERMISSION_CATALOG = [
   { key: "academies.create", description: "Crear academia propia" },
   { key: "events.manage", description: "Crear y gestionar eventos propios (productor)" },
   { key: "crm.manage", description: "CRM del actor: scores, tags, campañas, triggers, payouts propios" },
+  { key: "venues.manage", description: "Consola del local: dashboard operativo, arriendos y cartas" },
 ] as const;
 
 export const ROLE_GRANTS: Record<string, string[]> = {
   STAFF: ["checkins.write", "social.manage"],
   PRODUCER: ["discounts.manage", "social.manage", "events.manage", "crm.manage"],
   ACADEMY_OWNER: ["academies.create", "crm.manage"],
+  VENUE_MANAGER: ["venues.manage"],
   // ADMIN: isSuperuser — pasa todo sin grants explícitos
 };
 
