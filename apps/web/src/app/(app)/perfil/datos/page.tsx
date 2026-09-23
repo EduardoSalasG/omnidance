@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useViewMode } from "@/lib/view-mode";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, LevelBars } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 type DanceRole = "LEADER" | "FOLLOWER" | "SWITCH";
@@ -48,6 +48,13 @@ type StyleRoleDraft = {
 
 const DANCE_ROLES: DanceRole[] = ["LEADER", "FOLLOWER", "SWITCH"];
 const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"];
+// Nivel autodeclarado → order de la escala de clases (Iniciación=0 …
+// Avanzado=3) para pintarlo con las mismas barras que ClassCard.
+const LEVEL_ORDER: Record<string, number> = {
+  principiante: 0,
+  intermedio: 2,
+  avanzado: 3,
+};
 
 const dateFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
@@ -533,16 +540,23 @@ export default function DatosPage() {
                     >
                       <p className="min-w-0 truncate text-sm font-medium">
                         {sr.style.name}
-                        {levelLabel(sr.level) && (
-                          <span className="text-white/50">
-                            {" "}
-                            · {levelLabel(sr.level)}
-                          </span>
-                        )}
                       </p>
-                      <Badge variant="outline" className="shrink-0">
-                        {t(`datos.danceRole.${sr.role}`)}
-                      </Badge>
+                      <div className="flex shrink-0 items-center gap-3">
+                        {sr.level &&
+                          (LEVEL_ORDER[sr.level] !== undefined ? (
+                            <LevelBars
+                              order={LEVEL_ORDER[sr.level]}
+                              name={levelLabel(sr.level) ?? ""}
+                            />
+                          ) : (
+                            <span className="text-xs text-white/50">
+                              {sr.level}
+                            </span>
+                          ))}
+                        <Badge variant="outline">
+                          {t(`datos.danceRole.${sr.role}`)}
+                        </Badge>
+                      </div>
                     </li>
                   ))}
                 </ul>
