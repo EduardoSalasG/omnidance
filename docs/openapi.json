@@ -936,6 +936,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "lens",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

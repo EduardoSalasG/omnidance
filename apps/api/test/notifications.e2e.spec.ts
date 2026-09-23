@@ -207,6 +207,61 @@ describe("notifications e2e", () => {
     });
   });
 
+  describe("GET /api/notifications?lens=", () => {
+    it("lens acota la lista y el unreadCount al dominio de la lente", async () => {
+      // Tras read-all todo lo anterior quedó leído — counts limpios.
+      await notifications.notify(myId, {
+        category: "SOCIAL",
+        type: "session.invite",
+        title: "social",
+      });
+      await notifications.notify(myId, {
+        category: "TRANSACTIONAL",
+        type: "payment.series_pass",
+        title: "academy",
+      });
+      await notifications.notify(myId, {
+        category: "OPERATIONAL",
+        type: "account.complete_profile",
+        title: "any",
+      });
+
+      // La lista incluye leídas previas (todas "any") — se verifica
+      // contención/exclusión, no igualdad exacta.
+      const social = await (
+        await get("/api/notifications?lens=social", mySession)
+      ).json();
+      expect(social.unreadCount).toBe(2);
+      const socialTypes = social.notifications.map(
+        (n: { type: string }) => n.type,
+      );
+      expect(socialTypes).toContain("session.invite");
+      expect(socialTypes).toContain("account.complete_profile");
+      expect(socialTypes).not.toContain("payment.series_pass");
+
+      const academy = await (
+        await get("/api/notifications?lens=academy", mySession)
+      ).json();
+      expect(academy.unreadCount).toBe(2);
+      const academyTypes = academy.notifications.map(
+        (n: { type: string }) => n.type,
+      );
+      expect(academyTypes).toContain("payment.series_pass");
+      expect(academyTypes).toContain("account.complete_profile");
+      expect(academyTypes).not.toContain("session.invite");
+
+      const all = await (
+        await get("/api/notifications", mySession)
+      ).json();
+      expect(all.unreadCount).toBe(3);
+    });
+
+    it("lens inválido → 400", async () => {
+      const res = await get("/api/notifications?lens=books", mySession);
+      expect(res.status).toBe(400);
+    });
+  });
+
   describe("POST /api/push-tokens", () => {
     it("sin sesión → 401", async () => {
       const res = await post("/api/push-tokens", {

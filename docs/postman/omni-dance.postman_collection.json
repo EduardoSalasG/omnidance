@@ -2527,6 +2527,11 @@
                   "key": "limit",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "lens",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }

@@ -1,11 +1,33 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
+import {
+  NOTIFICATION_LENS_TYPES,
+  type NotificationLensFilter,
+} from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import type {
   CreateNotificationData,
-  ListNotificationsOptions,
   NotificationsRepo,
+  ResolvedListOptions,
 } from "../domain/ports";
+
+// Filtro por lente: excluye los `type` de la lente opuesta — los "any"
+// (sin dominio propio: account.*, crm.*, lead.*) cuentan en ambas.
+function lensWhere(
+  lens?: NotificationLensFilter,
+): Prisma.NotificationWhereInput {
+  if (!lens) return {};
+  const other =
+    NOTIFICATION_LENS_TYPES[lens === "academy" ? "social" : "academy"];
+  return {
+    NOT: {
+      OR: [
+        ...other.prefixes.map((p) => ({ type: { startsWith: p } })),
+        ...other.exact.map((t) => ({ type: t as string })),
+      ],
+    },
+  };
+}
 
 @Injectable()
 export class PrismaNotificationsRepo implements NotificationsRepo {
@@ -28,23 +50,21 @@ export class PrismaNotificationsRepo implements NotificationsRepo {
     return this.prisma.notification.findUnique({ where: { id } });
   }
 
-  listNotifications(
-    personId: string,
-    opts: Required<ListNotificationsOptions>,
-  ) {
+  listNotifications(personId: string, opts: ResolvedListOptions) {
     return this.prisma.notification.findMany({
       where: {
         personId,
         ...(opts.unread ? { readAt: null } : {}),
+        ...lensWhere(opts.lens),
       },
       orderBy: { createdAt: "desc" },
       take: opts.limit,
     });
   }
 
-  countUnread(personId: string) {
+  countUnread(personId: string, lens?: NotificationLensFilter) {
     return this.prisma.notification.count({
-      where: { personId, readAt: null },
+      where: { personId, readAt: null, ...lensWhere(lens) },
     });
   }
 

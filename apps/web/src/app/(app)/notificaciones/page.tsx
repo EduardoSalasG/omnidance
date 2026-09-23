@@ -114,7 +114,9 @@ export default function NotificacionesPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch("/notifications?limit=50");
+      // ?lens= delega el filtro al servidor — la lista ya viene acotada
+      // (el filter client-side queda como red de seguridad para "any").
+      const res = await apiFetch(`/notifications?limit=50&lens=${lens}`);
       if (res.status === 401) {
         setState("unauth");
         return;
@@ -137,7 +139,7 @@ export default function NotificacionesPage() {
     } catch {
       setState("error");
     }
-  }, []);
+  }, [lens]);
 
   useEffect(() => {
     void load();
