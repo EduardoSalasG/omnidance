@@ -4,7 +4,6 @@
     "pendingBannerCta": "Completar",
     "datos": {
       "title": "Mis datos",
-      "back": "Volver al perfil",
       "personal": "Datos personales",
       "name": "Nombre",
       "email": "Correo",
@@ -12,8 +11,22 @@
       "memberSince": "Miembro desde",
       "verified": "Cuenta verificada",
       "noPhone": "Sin teléfono registrado",
+      "instagramEmpty": "Toca para agregar tu usuario",
       "socialSection": "Tu baile",
       "socialEmpty": "Aún no declaras tus estilos de baile",
+      "edit": "Editar",
+      "addStyle": "Agregar estilo",
+      "remove": "Quitar",
+      "chooseStyle": "Elige un estilo",
+      "chooseRole": "Rol",
+      "level": {
+        "none": "Sin nivel",
+        "principiante": "Principiante",
+        "intermedio": "Intermedio",
+        "avanzado": "Avanzado"
+      },
+      "saved": "Guardado",
+      "saveError": "No se pudo guardar — intenta de nuevo",
       "academySection": "Tus academias",
       "academyEmpty": "Sin inscripciones vigentes",
       "danceRole": {

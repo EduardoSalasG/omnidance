@@ -272,5 +272,14 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   (styleRoles: estilo · nivel + badge Leader/Follower/Switch);
   academia → "Tus academias" (enrollments: nombre + plan + desde +
   badge de estado). i18n nuevo en `parts/profile.json` → `datos.*`.
-- Pendiente sugerible: edición de styleRoles (hoy solo lectura — no
-  existe endpoint de escritura) y foto de perfil.
+- Instagram es fila editable inline dentro de "Datos personales":
+  tap → input, blur → PATCH si cambió, Escape cancela. "Volver al
+  perfil" del hero se quitó (el appbar ya tiene back).
+- `PUT /me/style-roles` (nuevo): reemplazo total de PersonStyleRole —
+  body `{items:[{styleId, role, level?}]}`, valida styleIds existentes,
+  dedupe por (styleId, role), devuelve la lista fresca. Niveles
+  válidos: principiante/intermedio/avanzado.
+- "Tu baile" tiene modo edición: selects nativos (estilo del catálogo
+  GET /styles, rol, nivel) + quitar/agregar fila + Guardar/Cancelar.
+- Pendiente sugerible: foto de perfil (upload) y edición de
+  nombre/teléfono (hoy solo lectura).
