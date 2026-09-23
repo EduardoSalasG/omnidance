@@ -168,3 +168,58 @@ reservadas solo badge + filtro (sin sección pineada).
   pública de academia ni deep link de contacto.
 - Explore podría ganar filtro por academia (el API ya acepta
   `academyId`) si el volumen lo justifica.
+
+---
+
+## Tercera sesión — card único en todas las superficies de clase
+
+Lo que decía arriba de `BookingCard`/wallet quedó **supersedido**: el
+wallet con QR se retiró y todas las vistas de clase usan el mismo
+`ClassCard` (`components/classes/class-card.tsx`).
+
+### API — proyección única del card
+
+- `classes.controller.ts`: `CLASS_CARD_SELECT` + `classCardItem()`
+  compartidos por `browse`, `mine` e `history` (select con slot,
+  academy+defaultQuorum, series con `level.order`, tipos efectivos
+  slot→series, bookings activos para conteos).
+- `GET /classes/mine` ahora devuelve el shape completo
+  `ClassCardData` (antes shape wallet: bookingId/classId/academy/
+  series reducida). Ordena por fecha de clase asc.
+- `GET /classes/mine?scope=past` devuelve el mismo shape + `status`
+  (`attended|booked|cancelled`); dedup por classId con asistencia
+  ganando sobre la reserva (regla intacta). Últimas 50.
+- `home.service.ts`: `ClassCardStats` + `CLASS_CARD_SELECT` +
+  `toClassCard()` propios (la proyección vive duplicada — los dos
+  módulos no comparten helpers; si vuelve a cambiar el shape, tocar
+  ambos). `myClasses` ahora `ClassCardStats[]` igual que `nextClass`.
+- `level.order` expuesto en browse/mine/history/home.
+
+### Web — un solo card
+
+- `ClassCard` gana prop `statusBadge?: {label, variant}` — reemplaza
+  el slot de acción (las clases pasadas no tienen CTA). `busy`/`onBook`
+  ahora opcionales.
+- `HistoryCardData = ClassCardData & { status }` exportado del mismo
+  archivo; `BookingCard`/`BookingCardData` eliminados del todo (con
+  ellos la fila QR y la key i18n `classes.qrHint`).
+- `/clases` reservadas → `renderClassCard` (badge Reservado/En espera
+  arriba a la derecha). Historial → `ClassCard` + `statusBadge`
+  (neon Asististe / outline Reservada / muted Cancelada) dentro de
+  los day-groups, navegable a la ficha por el link del card.
+- Home "Tus próximas clases" → `ClassCard` con `when` día+hora (sin
+  QR; cancelar solo vive en la ficha, patrón eliminar-amigo).
+- `LevelBars`: siempre 4 barras ascendentes, pintadas `order+1` por
+  nivel (neon/ámbar/naranja/rojo), resto `bg-white/15`.
+- Filtro de nivel ordenado por `level.order` ascendente
+  (Iniciación→Avanzado), no alfabético — derivación propia con dedup
+  (el `uniq()` genérico sigue alfabético para estilos).
+
+### Verificación
+
+- tsc api+web limpios, detector impeccable sin findings, i18n-audit
+  sin findings nuevos.
+- Smoke vivo (sesión minteada del dancer `camila@omnidance.dev`):
+  `/classes/mine` 5 items shape completo (`order`, `enrolled`,
+  `myBooking`); `?scope=past` 31 items con `status`;
+  `/home/stats?mode=academy` nextClass+3 myClasses shape completo.

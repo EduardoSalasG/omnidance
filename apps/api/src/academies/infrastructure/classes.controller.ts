@@ -27,6 +27,121 @@ import { AcademyAccess } from "./academy-access.service";
 // reservar exige inscripción vigente).
 const BOOKABLE_ENROLLMENT: EnrollmentStatus[] = ["ACTIVE", "TRIAL", "ONLINE"];
 
+// Proyección completa del card de clase — la consumen browse, mine
+// (reservadas) y el historial; misma shape que ClassCardData en web.
+const CLASS_CARD_SELECT = {
+  id: true,
+  date: true,
+  instructorId: true,
+  capacity: true,
+  slot: {
+    select: {
+      weekday: true,
+      startTime: true,
+      endTime: true,
+      capacity: true,
+      types: {
+        include: { type: { select: { id: true, name: true } } },
+      },
+      academy: {
+        select: { id: true, name: true, defaultQuorum: true },
+      },
+      series: {
+        select: {
+          id: true,
+          name: true,
+          quorum: true,
+          dropInPrice: true,
+          level: { select: { id: true, name: true, order: true } },
+          style: { select: { id: true, name: true, genre: true } },
+          types: {
+            include: { type: { select: { id: true, name: true } } },
+          },
+        },
+      },
+    },
+  },
+  bookings: {
+    where: { status: { in: ["BOOKED", "WAITLIST"] as string[] } },
+    select: { personId: true, status: true },
+  },
+} as const;
+
+type ClassCardRow = {
+  id: string;
+  date: Date;
+  instructorId: string | null;
+  capacity: number | null;
+  slot: {
+    weekday: number;
+    startTime: string;
+    endTime: string;
+    capacity: number | null;
+    types: { type: { id: string; name: string } }[];
+    academy: { id: string; name: string; defaultQuorum: number | null };
+    series: {
+      id: string;
+      name: string;
+      quorum: number | null;
+      dropInPrice: number | null;
+      level: { id: string; name: string; order: number } | null;
+      style: { id: string; name: string; genre: string | null } | null;
+      types: { type: { id: string; name: string } }[];
+    };
+  };
+  bookings: { personId: string; status: string }[];
+};
+
+function classCardItem(
+  c: ClassCardRow,
+  me: string,
+  enrolledIds: Set<string>,
+  instructorName: Map<string, string | null>,
+) {
+  const booked = c.bookings.filter((b) => b.status === "BOOKED").length;
+  const mine = c.bookings.find((b) => b.personId === me);
+  // Quórum efectivo ya resuelto: class → slot → serie → academia → 20.
+  const capacity = effectiveCapacity({
+    classCapacity: c.capacity,
+    slotCapacity: c.slot.capacity,
+    seriesQuorum: c.slot.series.quorum,
+    academyDefaultQuorum: c.slot.academy.defaultQuorum,
+  });
+  return {
+    id: c.id,
+    date: c.date,
+    startTime: c.slot.startTime,
+    endTime: c.slot.endTime,
+    weekday: c.slot.weekday,
+    capacity,
+    bookedCount: booked,
+    spotsLeft: Math.max(capacity - booked, 0),
+    waitlistCount: c.bookings.filter((b) => b.status === "WAITLIST")
+      .length,
+    myBooking: mine?.status ?? null,
+    enrolled: enrolledIds.has(c.slot.academy.id),
+    academy: c.slot.academy,
+    instructor: c.instructorId
+      ? {
+          id: c.instructorId,
+          name: instructorName.get(c.instructorId) ?? null,
+        }
+      : null,
+    series: {
+      id: c.slot.series.id,
+      name: c.slot.series.name,
+      level: c.slot.series.level,
+      style: c.slot.series.style,
+      dropInPrice: c.slot.series.dropInPrice,
+      // Modalidad efectiva: el horario propio gana sobre la serie
+      // (slot.types vacío = hereda series.types).
+      types: (c.slot.types.length ? c.slot.types : c.slot.series.types).map(
+        (t) => t.type,
+      ),
+    },
+  };
+}
+
 /**
  * Vista alumno: explorar clases próximas (por día/estilo/nivel/academia)
  * y reservar cupo. Booking con capacidad real — si el slot está lleno la
@@ -111,154 +226,64 @@ export class ClassesController {
       },
       orderBy: { date: "asc" },
       take: 200,
-      select: {
-        id: true,
-        date: true,
-        instructorId: true,
-        capacity: true,
-        slot: {
-          select: {
-            weekday: true,
-            startTime: true,
-            endTime: true,
-            capacity: true,
-            types: {
-              include: { type: { select: { id: true, name: true } } },
-            },
-            academy: {
-              select: { id: true, name: true, defaultQuorum: true },
-            },
-            series: {
-              select: {
-                id: true,
-                name: true,
-                quorum: true,
-                dropInPrice: true,
-                level: { select: { id: true, name: true, order: true } },
-                style: { select: { id: true, name: true, genre: true } },
-                types: {
-                  include: { type: { select: { id: true, name: true } } },
-                },
-              },
-            },
-          },
-        },
-        bookings: {
-          where: { status: { in: ["BOOKED", "WAITLIST"] } },
-          select: { personId: true, status: true },
-        },
-      },
+      select: CLASS_CARD_SELECT,
     });
 
     const weekdayFilter =
       weekday !== undefined && weekday !== "" ? Number(weekday) : null;
-    const instructorIds = [
-      ...new Set(classes.map((c) => c.instructorId).filter(Boolean)),
-    ] as string[];
-    const instructors = instructorIds.length
-      ? await this.prisma.person.findMany({
-          where: { id: { in: instructorIds } },
-          select: { id: true, name: true },
-        })
-      : [];
-    const instructorName = new Map(instructors.map((i) => [i.id, i.name]));
+    const instructorName = await this.instructorNames(classes);
 
     return classes
       .filter((c) => weekdayFilter === null || c.slot.weekday === weekdayFilter)
-      .map((c) => {
-        const booked = c.bookings.filter((b) => b.status === "BOOKED").length;
-        const mine = c.bookings.find((b) => b.personId === me);
-        // Quórum efectivo ya resuelto: class → slot → serie → academia → 20.
-        const capacity = effectiveCapacity({
-          classCapacity: c.capacity,
-          slotCapacity: c.slot.capacity,
-          seriesQuorum: c.slot.series.quorum,
-          academyDefaultQuorum: c.slot.academy.defaultQuorum,
-        });
-        return {
-          id: c.id,
-          date: c.date,
-          startTime: c.slot.startTime,
-          endTime: c.slot.endTime,
-          weekday: c.slot.weekday,
-          capacity,
-          bookedCount: booked,
-          spotsLeft: Math.max(capacity - booked, 0),
-          waitlistCount: c.bookings.filter((b) => b.status === "WAITLIST")
-            .length,
-          myBooking: mine?.status ?? null,
-          enrolled: enrolledIds.has(c.slot.academy.id),
-          academy: c.slot.academy,
-          instructor: c.instructorId
-            ? { id: c.instructorId, name: instructorName.get(c.instructorId) ?? null }
-            : null,
-          series: {
-            id: c.slot.series.id,
-            name: c.slot.series.name,
-            level: c.slot.series.level,
-            style: c.slot.series.style,
-            dropInPrice: c.slot.series.dropInPrice,
-            // Modalidad efectiva: el horario propio gana sobre la serie
-            // (slot.types vacío = hereda series.types).
-            types: (c.slot.types.length
-              ? c.slot.types
-              : c.slot.series.types
-            ).map((t) => t.type),
-          },
-        };
-      });
+      .map((c) => classCardItem(c, me, enrolledIds, instructorName));
   }
 
-  /** Mis reservas activas (BOOKED/WAITLIST) en clases futuras. */
+  /** Nombres de instructores (override de instancia) en batch. */
+  private async instructorNames(classes: { instructorId: string | null }[]) {
+    const ids = [
+      ...new Set(classes.map((c) => c.instructorId).filter(Boolean)),
+    ] as string[];
+    const people = ids.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true },
+        })
+      : [];
+    return new Map<string, string | null>(people.map((i) => [i.id, i.name]));
+  }
+
+  /** Inscripciones vigentes del learner → Set de academyIds. */
+  private async enrolledAcademyIds(personId: string) {
+    const rows = await this.prisma.enrollment.findMany({
+      where: { personId, status: { in: BOOKABLE_ENROLLMENT } },
+      select: { academyId: true },
+    });
+    return new Set(rows.map((e) => e.academyId));
+  }
+
+  /** Mis reservas activas (BOOKED/WAITLIST) en clases futuras —
+      mismo shape del card que browse. */
   @Get("mine")
   async mine(@Req() req: Request, @Query("scope") scope?: string) {
     if (scope === "past") return this.history(req.person!.id);
-    const rows = await this.prisma.classBooking.findMany({
-      where: {
-        personId: req.person!.id,
-        status: { in: ["BOOKED", "WAITLIST"] },
-        class: { date: { gte: new Date() }, cancelled: false },
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        status: true,
-        class: {
-          select: {
-            id: true,
-            date: true,
-            slot: {
-              select: {
-                weekday: true,
-                startTime: true,
-                endTime: true,
-                academy: { select: { id: true, name: true } },
-                series: {
-                  select: {
-                    name: true,
-                    // ids incluidos: la vista reservadas de /clases
-                    // filtra por estilo/nivel client-side con ellos.
-                    level: { select: { id: true, name: true, order: true } },
-                    style: { select: { id: true, name: true, genre: true } },
-                  },
-                },
-              },
-            },
-          },
+    const me = req.person!.id;
+    const [enrolledIds, rows] = await Promise.all([
+      this.enrolledAcademyIds(me),
+      this.prisma.classBooking.findMany({
+        where: {
+          personId: me,
+          status: { in: ["BOOKED", "WAITLIST"] },
+          class: { date: { gte: new Date() }, cancelled: false },
         },
-      },
-    });
-    return rows.map((r) => ({
-      bookingId: r.id,
-      status: r.status,
-      classId: r.class.id,
-      date: r.class.date,
-      weekday: r.class.slot.weekday,
-      startTime: r.class.slot.startTime,
-      endTime: r.class.slot.endTime,
-      academy: r.class.slot.academy,
-      series: r.class.slot.series,
-    }));
+        orderBy: { class: { date: "asc" } },
+        select: { class: { select: CLASS_CARD_SELECT } },
+      }),
+    ]);
+    const classes = rows.map((r) => r.class);
+    const instructorName = await this.instructorNames(classes);
+    return classes.map((c) =>
+      classCardItem(c, me, enrolledIds, instructorName),
+    );
   }
 
   /**
@@ -267,77 +292,47 @@ export class ClassesController {
    * reserva (misma regla que la ficha del alumno del owner). Últimas 50.
    */
   private async history(personId: string) {
-    const classSelect = {
-      id: true,
-      date: true,
-      slot: {
-        select: {
-          startTime: true,
-          endTime: true,
-          academy: { select: { id: true, name: true } },
-          series: {
-            select: {
-              name: true,
-              level: { select: { name: true } },
-              style: { select: { name: true } },
-            },
-          },
-        },
-      },
-    } as const;
     const now = new Date();
-    const [attendances, bookings] = await Promise.all([
+    const [enrolledIds, attendances, bookings] = await Promise.all([
+      this.enrolledAcademyIds(personId),
       this.prisma.attendance.findMany({
         where: { personId, class: { date: { lt: now } } },
-        select: { class: { select: classSelect } },
+        select: { class: { select: CLASS_CARD_SELECT } },
       }),
       this.prisma.classBooking.findMany({
         where: { personId, class: { date: { lt: now } } },
         select: {
           status: true,
-          class: { select: classSelect },
+          class: { select: CLASS_CARD_SELECT },
         },
       }),
     ]);
 
+    // Dedup por classId con el shape completo del card + status de
+    // resultado ("attended" gana sobre la reserva de la misma clase).
     const past = new Map<
       string,
-      {
-        classId: string;
-        date: Date;
-        startTime: string;
-        endTime: string;
-        academy: { id: string; name: string };
-        series: {
-          name: string;
-          level: { name: string } | null;
-          style: { name: string } | null;
-        };
-        status: "attended" | "booked" | "cancelled";
-      }
+      { cls: ClassCardRow; status: "attended" | "booked" | "cancelled" }
     >();
-    const put = (
-      c: (typeof bookings)[number]["class"],
-      status: "attended" | "booked" | "cancelled",
-    ) =>
-      past.set(c.id, {
-        classId: c.id,
-        date: c.date,
-        startTime: c.slot.startTime,
-        endTime: c.slot.endTime,
-        academy: c.slot.academy,
-        series: c.slot.series,
-        status,
-      });
     for (const b of bookings) {
-      put(b.class, b.status === "BOOKED" ? "booked" : "cancelled");
+      past.set(b.class.id, {
+        cls: b.class,
+        status: b.status === "BOOKED" ? "booked" : "cancelled",
+      });
     }
     for (const a of attendances) {
-      put(a.class, "attended"); // la asistencia gana el dedup
+      past.set(a.class.id, { cls: a.class, status: "attended" });
     }
-    return [...past.values()]
-      .sort((a, b) => b.date.getTime() - a.date.getTime())
+    const rows = [...past.values()]
+      .sort((a, b) => b.cls.date.getTime() - a.cls.date.getTime())
       .slice(0, 50);
+    const instructorName = await this.instructorNames(
+      rows.map((r) => r.cls),
+    );
+    return rows.map((r) => ({
+      ...classCardItem(r.cls, personId, enrolledIds, instructorName),
+      status: r.status,
+    }));
   }
 
   /**
