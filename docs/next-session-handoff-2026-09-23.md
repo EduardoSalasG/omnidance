@@ -223,3 +223,37 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   `/classes/mine` 5 items shape completo (`order`, `enrolled`,
   `myBooking`); `?scope=past` 31 items con `status`;
   `/home/stats?mode=academy` nextClass+3 myClasses shape completo.
+
+---
+
+## Cuarta sesión — insights por lente + EventCard
+
+### "Tu actividad" reordenado
+
+- `KpiGrid` extraído a `components/home/kpi-grid.tsx` (tipo `Kpi`,
+  `clp`, `ATTENTION_KEYS`) — compartido home/perfil.
+- Home lente social: "Tu actividad" es la **primera** sección con solo
+  2 insights (`streak` + `dances7d` — los que leen actividad; puntos e
+  insignias son logros y ya están en perfil). Oculto si ambos en 0.
+- `/perfil`: nueva sección tras identidad con **todos** los insights
+  de la lente DANCER — `GET /home/stats?role=DANCER&mode=<viewMode>`,
+  social o academy según `useViewMode()`, refetch al cambiar de lente.
+
+### EventCard (símil del ClassCard)
+
+- `components/events/event-card.tsx` nuevo — compartido, sin
+  `"use client"` (sirve en la página RSC `/eventos` y en client).
+  `useTranslations("events")` + `t.raw("genre")` para el mix.
+- Esqueleto: contenido izq (when? eyebrow → título h3 → géneros
+  coloreados + serie + live → GenreMixBar → venue) + rail derecho
+  (hora tabular arriba = ancla de escaneo, precio/"Gratis" debajo).
+- **Venue = chip neon con pin** en su fila propia (símil academia).
+- Card completo = Link a la ficha; prop `when` lista para reuso en
+  home/TonightScene si se decide.
+- `/eventos`: `renderCard` inline reemplazado; `h2`→`h3` corregido;
+  `iconBtn` 40→44px (mismo fix de clases); `normName`/`seriesIsDup`
+  se mudaron al componente.
+- TonightScene del home NO migra — es hero de decisión, no card de
+  lista. TicketWallet (/entradas) tampoco — es credencial.
+- Verificado: render en vivo con sesión minteada (22 cards con pin de
+  venue + precio), tsc limpio, detector `[]`.
