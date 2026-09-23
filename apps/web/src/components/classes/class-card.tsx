@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Badge, Button } from "@/components/ui";
@@ -36,60 +35,6 @@ export type ClassCardData = {
   };
 };
 
-// Cancelar en dos taps: "Cancelar" → inline "¿Seguro? Sí / No". Un
-// window.confirm rompe la inmersión de la PWA; inline respeta el sistema.
-export function CancelBookingButton({
-  busy,
-  onConfirm,
-}: {
-  busy: boolean;
-  onConfirm: () => void;
-}) {
-  const t = useTranslations("classes");
-  const tc = useTranslations("common");
-  const [confirming, setConfirming] = useState(false);
-  if (!confirming) {
-    return (
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={busy}
-        onClick={() => setConfirming(true)}
-      >
-        {t("cancelBooking")}
-      </Button>
-    );
-  }
-  return (
-    <div
-      className="flex items-center gap-2"
-      role="group"
-      aria-label={t("cancelConfirm")}
-    >
-      <span className="text-xs text-white/60">{t("cancelShort")}</span>
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={busy}
-        onClick={() => {
-          setConfirming(false);
-          onConfirm();
-        }}
-      >
-        {tc("yes")}
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={busy}
-        onClick={() => setConfirming(false)}
-      >
-        {tc("no")}
-      </Button>
-    </div>
-  );
-}
-
 // Card del explorador de clases: [serie + meta] [acción]. En /clases el
 // día y la hora los dan los headings del grupo; fuera de ese contexto el
 // caller pasa `when` ("Hoy · 19:00–20:00") como línea eyebrow.
@@ -98,13 +43,11 @@ export function ClassCard({
   when,
   busy,
   onBook,
-  onCancel,
 }: {
   cls: ClassCardData;
   when?: string;
   busy: boolean;
   onBook: (cls: ClassCardData) => void;
-  onCancel: (classId: string) => void;
 }) {
   const t = useTranslations("classes");
   const full = cls.spotsLeft <= 0;
@@ -155,9 +98,9 @@ export function ClassCard({
           )}
         </Link>
         {/* Acción anclada a los bordes del card: primaria arriba
-            (alineada al título), abajo "Cancelar" si está reservado o
-            el cupo si no (ya reservado el cupo es ruido). Así el borde
-            inferior siempre calza la última línea del contenido. */}
+            (alineada al título), cupo abajo (alineado a la última
+            línea del contenido). Cancelar NO va en el card — la
+            acción destructiva vive al pie de la ficha de la clase. */}
         <div className="flex shrink-0 flex-col items-end justify-between py-0.5 text-right">
           {cls.myBooking === "BOOKED" ? (
             <Badge variant="neon">{t("booked")}</Badge>
@@ -185,12 +128,7 @@ export function ClassCard({
               {t("book")}
             </Button>
           )}
-          {booked ? (
-            <CancelBookingButton
-              busy={busy}
-              onConfirm={() => onCancel(cls.id)}
-            />
-          ) : (
+          {!booked && (
             <span
               className={`text-xs font-medium leading-tight ${
                 full
@@ -234,18 +172,16 @@ export type BookingCardData = {
 };
 
 // Card wallet de una reserva (símil de Mis entradas): datos de la clase
-// + credencial QR + cancelación. `when` = etiqueta de día ("Hoy", fecha)
-// que en /clases dan los headings de grupo.
+// + credencial QR. Cancelar NO va en el card — la acción destructiva
+// vive al pie de la ficha de la clase (patrón "eliminar amigo").
+// `when` = etiqueta de día ("Hoy", fecha) que en /clases dan los
+// headings de grupo.
 export function BookingCard({
   b,
   when,
-  busy,
-  onCancel,
 }: {
   b: BookingCardData;
   when: string;
-  busy: boolean;
-  onCancel: (classId: string) => void;
 }) {
   const t = useTranslations("classes");
   return (
@@ -279,7 +215,6 @@ export function BookingCard({
         <span>{t("qrHint")}</span>
         <span aria-hidden="true">→</span>
       </Link>
-      <CancelBookingButton busy={busy} onConfirm={() => onCancel(b.classId)} />
     </Card>
   );
 }
