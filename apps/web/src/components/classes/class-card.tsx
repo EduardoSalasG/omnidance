@@ -55,14 +55,23 @@ export function ClassCard({
   const booked = cls.myBooking === "BOOKED" || cls.myBooking === "WAITLIST";
   return (
     <div className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
-      {/* Acción anclada a los bordes: primaria arriba (alineada al
-          título), "Cancelar" abajo (alineado a la línea meta). Así la
-          columna derecha no queda ragged aunque el contenido varíe. */}
+      {/* Contenido (link a la ficha) + columna de acción que solo
+          existe cuando la clase no está reservada. */}
       <div className="flex items-stretch gap-3">
         <Link
           href={`/clases/${cls.id}`}
           className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
+          {/* Estado de reserva: badge top-left dentro del card — es lo
+              primero que lee el usuario, no compite con el CTA */}
+          {booked && (
+            <Badge
+              variant={cls.myBooking === "BOOKED" ? "neon" : "outline"}
+              className="mb-1"
+            >
+              {cls.myBooking === "BOOKED" ? t("booked") : t("waitlist")}
+            </Badge>
+          )}
           {when && (
             <p className="mb-0.5 text-xs font-medium text-neon">{when}</p>
           )}
@@ -97,40 +106,37 @@ export function ClassCard({
             </p>
           )}
         </Link>
-        {/* Acción centrada verticalmente: el CTA/badge ocupa el medio
-            del card y el cupo va como caption debajo del botón.
-            Cancelar NO va en el card — la acción destructiva vive al
-            pie de la ficha de la clase. */}
-        <div className="flex shrink-0 flex-col items-end justify-center gap-1 py-0.5 text-right">
-          {cls.myBooking === "BOOKED" ? (
-            <Badge variant="neon">{t("booked")}</Badge>
-          ) : cls.myBooking === "WAITLIST" ? (
-            <Badge variant="outline">{t("waitlist")}</Badge>
-          ) : !cls.enrolled ? (
-            // Academia ajena (vista explore): sin inscripción vigente
-            // no hay reserva — el API lo rechazaría con 403.
-            <span className="text-xs leading-tight text-white/40">
-              {t("requiresEnrollment")}
-            </span>
-          ) : full ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => onBook(cls)}
-            >
-              {busy && <Spinner size="sm" />}
-              {t("joinWaitlist")}
-            </Button>
-          ) : (
-            <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
-              {busy && <Spinner size="sm" />}
-              {t("book")}
-            </Button>
-          )}
-          {!booked && (
+        {/* Acción (solo cuando no está reservada): grid 1fr/auto/1fr —
+            el botón queda en el centro vertical exacto del card y el
+            caption de cupos cuelga debajo sin moverlo. Cancelar NO va
+            en el card — la acción destructiva vive al pie de la ficha. */}
+        {!booked && (
+          <div className="grid shrink-0 grid-rows-[1fr_auto_1fr] py-0.5 text-right">
+            <span aria-hidden="true" />
+            {!cls.enrolled ? (
+              // Academia ajena (vista explore): sin inscripción vigente
+              // no hay reserva — el API lo rechazaría con 403.
+              <span className="self-center text-xs leading-tight text-white/40">
+                {t("requiresEnrollment")}
+              </span>
+            ) : full ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => onBook(cls)}
+              >
+                {busy && <Spinner size="sm" />}
+                {t("joinWaitlist")}
+              </Button>
+            ) : (
+              <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
+                {busy && <Spinner size="sm" />}
+                {t("book")}
+              </Button>
+            )}
             <span
-              className={`text-xs font-medium leading-tight ${
+              className={`mt-1 self-start justify-self-end text-xs font-medium leading-tight ${
                 full
                   ? "text-white/50"
                   : cls.spotsLeft <= 3
@@ -146,8 +152,8 @@ export function ClassCard({
                   ? t("lastSpots", { count: cls.spotsLeft })
                   : t("spotsLeft", { count: cls.spotsLeft })}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
