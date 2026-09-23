@@ -72,6 +72,13 @@
       "sold": "{count, plural, one {# vendida} other {# vendidas}}",
       "checkins": "{count, plural, one {# check-in} other {# check-ins}}"
     },
+    "kpi": {
+      "title": "Tu pulso",
+      "upcoming": "Eventos próximos",
+      "sold": "Entradas vendidas",
+      "gross": "Recaudación bruta",
+      "checkins": "Check-ins"
+    },
     "live": {
       "title": "En vivo",
       "titlePast": "Operación del evento",
