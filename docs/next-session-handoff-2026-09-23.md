@@ -283,6 +283,19 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   GET /styles, rol, nivel) + quitar/agregar fila + Guardar/Cancelar.
 - Pendiente sugerible: foto de perfil (upload) y edición de
   nombre/teléfono (hoy solo lectura).
+### Home academia sin "Próxima clase" + ficha de clase refinada
+
+- Home academia: sección "Próxima clase" eliminada y el hero learner
+  ("Reserva tu próxima clase…") también — queda KPIs + "Tus próximas
+  clases". Limpieza: bookNextClass/classError/classBusyId,
+  keys nextClass/nextClassCta/seeClasses/academyLearnerDesc.
+- `/clases/[id]`: header reordenado (título → chips → fecha), se fue
+  la línea series.name redundante; nivel como LevelBars (detalle ahora
+  devuelve level.order); CTA en barra fija sobre la BottomNav — mismo
+  patrón que /eventos/[id] (cupos izq + acción der); la zona
+  destructiva de cancelar sigue en el pie; clase pasada/cancelada →
+  barra con aviso ("Clase pasada"/"Cancelada").
+
 - NOTA layout: `min-h-dvh` en el `<main>` de las páginas (patrón
   repetido en ~60 archivos) suma 100dvh + appbar + el pb del chrome
   (4rem+safe-area) → scroll muerto ~120px al pie en páginas cortas.

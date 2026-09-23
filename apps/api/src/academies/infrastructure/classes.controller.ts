@@ -490,7 +490,7 @@ export class ClassesController {
                 quorum: true,
                 dropInPrice: true,
                 instructorId: true,
-                level: { select: { name: true } },
+                level: { select: { name: true, order: true } },
                 style: { select: { name: true, genre: true } },
                 types: {
                   include: { type: { select: { id: true, name: true } } },

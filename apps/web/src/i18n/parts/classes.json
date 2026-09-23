@@ -23,6 +23,7 @@
     "emptyEnrolled": "Sin clases próximas en tus academias",
     "noClassesDay": "Sin clases este día",
     "cancelledTag": "Cancelada",
+    "pastTag": "Clase pasada",
     "attendedTag": "Asististe",
     "capacityLabel": "Cupos",
     "dropIn": "Clase suelta",
