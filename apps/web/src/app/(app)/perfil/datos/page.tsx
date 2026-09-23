@@ -86,14 +86,13 @@ export default function DatosPage() {
   const [state, setState] = useState<PageState>("loading");
   const [me, setMe] = useState<Me | null>(null);
 
-  // Instagram: edición inline — tap enfoca el input, blur guarda si
-  // hubo cambio (PATCH /me), Escape cancela.
-  const [igEditing, setIgEditing] = useState(false);
+  // Datos personales: modo edición — hoy solo Instagram es editable
+  // (PATCH /me); el resto de las filas son de solo lectura.
+  const [personalEditing, setPersonalEditing] = useState(false);
   const [igInput, setIgInput] = useState("");
   const [igState, setIgState] = useState<"idle" | "saving" | "saved" | "err">(
     "idle",
   );
-  const igCancel = useRef(false);
 
   // "Tu baile": modo edición con borrador local; Guardar hace
   // PUT /me/style-roles (reemplazo total).
@@ -132,17 +131,23 @@ export default function DatosPage() {
     };
   }, []);
 
-  async function commitInstagram() {
-    if (igCancel.current) {
-      igCancel.current = false;
-      setIgInput(me?.instagram ?? "");
-      setIgEditing(false);
-      return;
-    }
+  function startPersonalEdit() {
+    if (!me) return;
+    setIgInput(me.instagram ?? "");
+    setIgState("idle");
+    setPersonalEditing(true);
+  }
+
+  function cancelPersonalEdit() {
+    setIgInput(me?.instagram ?? "");
+    setIgState("idle");
+    setPersonalEditing(false);
+  }
+
+  async function savePersonal() {
     const clean = igInput.trim().replace(/^@+/, "");
     if (clean === (me?.instagram ?? "")) {
-      setIgInput(clean);
-      setIgEditing(false);
+      setPersonalEditing(false);
       return;
     }
     setIgState("saving");
@@ -153,13 +158,11 @@ export default function DatosPage() {
         body: JSON.stringify({ instagram: clean }),
       });
       if (!res.ok) {
-        // El input queda visible para corregir y reintentar con blur.
         setIgState("err");
         return;
       }
       setMe((m) => (m ? { ...m, instagram: clean || null } : m));
-      setIgInput(clean);
-      setIgEditing(false);
+      setPersonalEditing(false);
       setIgState("saved");
       setTimeout(() => setIgState("idle"), 2500);
     } catch {
@@ -271,15 +274,14 @@ export default function DatosPage() {
             label={t("datos.phone")}
             value={me.phone ?? t("datos.noPhone")}
           />
-          {/* Instagram editable: tap → input, blur → guarda si cambió */}
-          <div className="flex items-baseline justify-between gap-4 py-1">
-            <label
-              htmlFor="ig-input"
-              className="shrink-0 text-xs uppercase tracking-wide text-white/45"
-            >
-              {t("instagram")}
-            </label>
-            {igEditing ? (
+          {personalEditing ? (
+            <div className="flex items-baseline justify-between gap-4 py-1">
+              <label
+                htmlFor="ig-input"
+                className="shrink-0 text-xs uppercase tracking-wide text-white/45"
+              >
+                {t("instagram")}
+              </label>
               <input
                 id="ig-input"
                 type="text"
@@ -293,30 +295,22 @@ export default function DatosPage() {
                   setIgInput(e.target.value);
                   setIgState("idle");
                 }}
-                onBlur={() => void commitInstagram()}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                  if (e.key === "Escape") {
-                    igCancel.current = true;
-                    e.currentTarget.blur();
-                  }
+                  if (e.key === "Enter") void savePersonal();
+                  if (e.key === "Escape") cancelPersonalEdit();
                 }}
                 placeholder={t("instagramPlaceholder")}
                 className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white placeholder:text-white/40 focus:outline-none"
               />
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setIgInput(me.instagram ?? "");
-                  setIgEditing(true);
-                }}
-                className="-my-1 min-h-11 min-w-0 max-w-full truncate rounded-lg px-2 text-right text-sm text-white transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-              >
-                {me.instagram ? `@${me.instagram}` : t("datos.instagramEmpty")}
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <Field
+              label={t("instagram")}
+              value={
+                me.instagram ? `@${me.instagram}` : t("datos.instagramEmpty")
+              }
+            />
+          )}
           <Field
             label={t("datos.memberSince")}
             value={dateFmt.format(new Date(me.createdAt))}
@@ -332,10 +326,39 @@ export default function DatosPage() {
             {t("instagramError")}
           </p>
         )}
-        {me.verifiedAt && (
+        {me.verifiedAt && !personalEditing && (
           <p className="pt-2 text-xs font-medium text-neon">
             ✓ {t("datos.verified")}
           </p>
+        )}
+        {personalEditing ? (
+          <div className="mt-3 flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={igState === "saving"}
+              onClick={cancelPersonalEdit}
+            >
+              {tc("cancel")}
+            </Button>
+            <Button
+              size="sm"
+              disabled={igState === "saving"}
+              onClick={() => void savePersonal()}
+            >
+              {tc("save")}
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-3 flex justify-center">
+            <button
+              type="button"
+              onClick={startPersonalEdit}
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              {t("datos.edit")}
+            </button>
+          </div>
         )}
       </Card>
 
@@ -524,13 +547,15 @@ export default function DatosPage() {
                   ))}
                 </ul>
               )}
-              <button
-                type="button"
-                onClick={startStyleRoleEdit}
-                className="mt-3 inline-flex min-h-11 items-center self-end rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-              >
-                {t("datos.edit")}
-              </button>
+              <div className="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  onClick={startStyleRoleEdit}
+                  className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  {t("datos.edit")}
+                </button>
+              </div>
             </>
           )}
         </Card>
