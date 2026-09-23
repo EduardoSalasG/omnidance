@@ -13,6 +13,7 @@ import {
   ClassCard,
   type ClassCardData,
 } from "@/components/classes/class-card";
+import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 import { readError } from "@/components/academy/shared";
 import { localDayKey } from "@/lib/calendar";
 import {
@@ -27,7 +28,6 @@ type Me = {
   roleStates?: { role: string; status: string }[];
 };
 
-type Kpi = { key: string; value: number; format?: "clp" };
 type NextItem = { id: string; name: string; when: string; place: string | null };
 
 // Evento de la escena nocturna — lo que decide "¿salgo hoy?":
@@ -60,10 +60,6 @@ type HomeStats = {
   myClasses?: ClassCardData[];
   needsAcademy?: boolean;
 };
-
-// KPIs que representan trabajo pendiente — se destacan con borde de
-// acento para que el dashboard "grite" lo accionable.
-const ATTENTION_KEYS = new Set(["pendingRoles", "pendingPayouts"]);
 
 const clp = new Intl.NumberFormat("es-CL", {
   style: "currency",
@@ -99,35 +95,6 @@ const GENRE_TEXT: Record<string, string> = {
   BACHATA: "text-fuchsia-300",
   CUBANO: "text-amber-300",
 };
-
-function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
-  const t = useTranslations("home");
-  if (kpis.length === 0) return null;
-  return (
-    <section aria-label={label} data-tour="home-stats">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-        {label}
-      </h2>
-      <ul className="grid grid-cols-2 gap-3">
-        {kpis.map((k) => (
-          <li
-            key={k.key}
-            className={`rounded-xl border bg-night-800/60 px-4 py-3 ${
-              ATTENTION_KEYS.has(k.key) && k.value > 0
-                ? "border-neon/60"
-                : "border-night-700"
-            }`}
-          >
-            <span className="block text-2xl font-bold tabular-nums">
-              {k.format === "clp" ? clp.format(k.value) : k.value}
-            </span>
-            <span className="text-xs text-white/50">{t(`kpi.${k.key}`)}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
 
 const genreLabel = (g: string) =>
   g === "OTHER" ? "Otro" : g.charAt(0) + g.slice(1).toLowerCase();
@@ -591,6 +558,11 @@ export function HomeHub() {
 
   const statsError = statsSlot?.key === lensKey && statsSlot.error;
   const dancerSocial = activeRole === "DANCER" && !dancerAcademy;
+  // Home social: 2 insights máximo — los que leen actividad (racha,
+  // bailes 7d) y con valor > 0. El resto se muestra en /perfil.
+  const socialKpis = (stats?.kpis ?? []).filter(
+    (k) => (k.key === "streak" || k.key === "dances7d") && k.value > 0,
+  );
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
@@ -624,12 +596,14 @@ export function HomeHub() {
 
       {dancerSocial ? (
         <>
-          {/* La noche primero, el espejo después: los KPIs en cero son
-              un valle emocional, no una invitación — se ocultan. */}
-          <TonightScene stats={stats} />
-          {stats && stats.kpis.some((k) => k.value > 0) && (
-            <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+          {/* Tu actividad primero — solo 2 señales rápidas (racha +
+              bailes recientes, las que leen "actividad"); la grilla
+              completa de la lente vive en /perfil. KPIs en cero se
+              ocultan: un valle emocional, no una invitación. */}
+          {stats && socialKpis.length > 0 && (
+            <KpiGrid kpis={socialKpis} label={kpiLabel} />
           )}
+          <TonightScene stats={stats} />
         </>
       ) : (
         <>
