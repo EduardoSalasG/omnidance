@@ -128,16 +128,10 @@ export function ClassCard({
           <h3 className="truncate text-base font-semibold leading-snug">
             {style?.name ?? cls.series.name}
           </h3>
-          {/* Academia chip neon + tipo outline + nivel muted — tres
-              variantes, tres jerarquías distinguibles. Academy es
-              nombre propio: sin uppercase y con tope de ancho. */}
+          {/* Modalidad → nivel → academia: jerarquía progresiva
+              (qué es → cómo → nivel → dónde). Academy es nombre
+              propio: chip neon sin uppercase y con tope de ancho. */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <Badge
-              variant="neon"
-              className="max-w-44 truncate normal-case tracking-normal"
-            >
-              {cls.academy.name}
-            </Badge>
             {cls.series.types.map((x) => (
               <Badge key={x.id} variant="outline">
                 {x.name}
@@ -146,6 +140,12 @@ export function ClassCard({
             {cls.series.level && (
               <Badge variant="muted">{cls.series.level.name}</Badge>
             )}
+            <Badge
+              variant="neon"
+              className="max-w-44 truncate normal-case tracking-normal"
+            >
+              {cls.academy.name}
+            </Badge>
           </div>
           {/* Meta: solo profesor — el cupo vive bajo la acción */}
           {cls.instructor?.name && (
@@ -154,37 +154,43 @@ export function ClassCard({
             </p>
           )}
         </Link>
-        {/* Acción anclada a los bordes: primaria + cupo arriba (junto
-            al CTA, como referencia de decisión), "Cancelar" abajo
-            alineado a la línea meta. */}
-        <div className="flex shrink-0 flex-col items-end justify-between py-0.5">
-          <div className="flex flex-col items-end gap-1 text-right">
-            {cls.myBooking === "BOOKED" ? (
-              <Badge variant="neon">{t("booked")}</Badge>
-            ) : cls.myBooking === "WAITLIST" ? (
-              <Badge variant="outline">{t("waitlist")}</Badge>
-            ) : !cls.enrolled ? (
-              // Academia ajena (vista explore): sin inscripción vigente
-              // no hay reserva — el API lo rechazaría con 403.
-              <span className="text-xs leading-tight text-white/40">
-                {t("requiresEnrollment")}
-              </span>
-            ) : full ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busy}
-                onClick={() => onBook(cls)}
-              >
-                {busy && <Spinner size="sm" />}
-                {t("joinWaitlist")}
-              </Button>
-            ) : (
-              <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
-                {busy && <Spinner size="sm" />}
-                {t("book")}
-              </Button>
-            )}
+        {/* Acción anclada a los bordes del card: primaria arriba
+            (alineada al título), abajo "Cancelar" si está reservado o
+            el cupo si no (ya reservado el cupo es ruido). Así el borde
+            inferior siempre calza la última línea del contenido. */}
+        <div className="flex shrink-0 flex-col items-end justify-between py-0.5 text-right">
+          {cls.myBooking === "BOOKED" ? (
+            <Badge variant="neon">{t("booked")}</Badge>
+          ) : cls.myBooking === "WAITLIST" ? (
+            <Badge variant="outline">{t("waitlist")}</Badge>
+          ) : !cls.enrolled ? (
+            // Academia ajena (vista explore): sin inscripción vigente
+            // no hay reserva — el API lo rechazaría con 403.
+            <span className="text-xs leading-tight text-white/40">
+              {t("requiresEnrollment")}
+            </span>
+          ) : full ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => onBook(cls)}
+            >
+              {busy && <Spinner size="sm" />}
+              {t("joinWaitlist")}
+            </Button>
+          ) : (
+            <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
+              {busy && <Spinner size="sm" />}
+              {t("book")}
+            </Button>
+          )}
+          {booked ? (
+            <CancelBookingButton
+              busy={busy}
+              onConfirm={() => onCancel(cls.id)}
+            />
+          ) : (
             <span
               className={`text-xs font-medium leading-tight ${
                 full
@@ -202,12 +208,6 @@ export function ClassCard({
                   ? t("lastSpots", { count: cls.spotsLeft })
                   : t("spotsLeft", { count: cls.spotsLeft })}
             </span>
-          </div>
-          {booked && (
-            <CancelBookingButton
-              busy={busy}
-              onConfirm={() => onCancel(cls.id)}
-            />
           )}
         </div>
       </div>
