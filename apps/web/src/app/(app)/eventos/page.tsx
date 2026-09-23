@@ -2,15 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import messages from "../../../../messages/es-CL.json";
-import {
-  Badge,
-  Card,
-  EventDate,
-  GenreMixBar,
-  PriceTag,
-  aggregateMix,
-} from "@/components/ui";
-import type { GenreMixBlock } from "@/components/ui";
+import { EventCard, type EventCardData } from "@/components/events/event-card";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
@@ -19,7 +11,6 @@ import {
   DAY_MS,
   DOT_COLOR,
   GENRES,
-  GENRE_TEXT,
   WEEK_MS,
   WEEKDAY_HEADERS,
   dayCompactFmt,
@@ -38,24 +29,8 @@ export const metadata: Metadata = {
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
-type EventListItem = {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  startsAt: string;
-  endsAt: string;
-  presalePrice: number | null;
-  doorPrice: number | null;
-  genres: string[];
-  genreMix: GenreMixBlock[] | null;
-  series: { name: string } | null;
-  venue: {
-    id: string;
-    name: string;
-    address: string | null;
-  } | null;
-};
+// Shape del card de evento — compartido con components/events/event-card.
+type EventListItem = EventCardData;
 
 type MyTicket = {
   id: string;
@@ -73,18 +48,6 @@ type VenueRow = {
   lng: number | null;
 };
 type View = "list" | "calendar" | "mios" | "map";
-
-// La chip de serie solo informa cuando el nombre del evento no trae la
-// marca ("Edición Aniversario" ← serie "Bachatamania"); si el título ya
-// la contiene, es duplicado.
-const normName = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "");
-const seriesIsDup = (e: EventListItem) =>
-  !!e.series && normName(e.name).includes(normName(e.series.name));
 
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "short",
@@ -296,105 +259,14 @@ export default async function EventosPage({
         : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
     }`;
   const iconBtn = (active: boolean) =>
-    `inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
+    `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
 
-  const renderCard = (e: EventListItem) => {
-    // Proporción del ciclo: ordena el texto de géneros de mayor a
-    // menor share y alimenta la mini barra segmentada.
-    const mixSegs = e.genreMix?.length ? aggregateMix(e.genreMix) : null;
-    const orderedGenres = mixSegs
-      ? [...mixSegs].sort((a, b) => b.pct - a.pct).map((s) => s.genre)
-      : e.genres;
-    // Los cards siempre viven bajo un heading de día (lista, día del
-    // 3 columnas: [hora + chip venue] [título + estilos] [precio].
-    // Los cards viven bajo heading de día → solo hora.
-    const inner = (
-      <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
-        <div className="flex items-start gap-2">
-          {/* Col 1: hora + venue (pin + texto, sin chrome de chip —
-              así nombres de dos palabras caben sin truncar) */}
-          <div className="flex w-1/4 shrink-0 flex-col items-start gap-1">
-            <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
-              <EventDate start={e.startsAt} variant="time" />
-            </span>
-            {e.venue && (
-              <span className="inline-flex max-w-full items-center gap-1 text-xs text-white/60">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-3 w-3 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <span className="truncate">{e.venue.name}</span>
-              </span>
-            )}
-          </div>
-          {/* Col 2: título (1 línea) + estilos debajo */}
-          <div className="w-1/2 min-w-0">
-            <h2 className="truncate text-base font-semibold leading-snug">
-              {e.name}
-            </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-              {orderedGenres.length > 0 && (
-                <span>
-                  {orderedGenres.map((g, i) => (
-                    <span key={g}>
-                      {i > 0 && <span className="text-white/30"> · </span>}
-                      <span
-                        className={
-                          GENRE_TEXT[g as GenreKey] ?? "text-white/50"
-                        }
-                      >
-                        {t.genre[g as keyof typeof t.genre] ?? g}
-                      </span>
-                    </span>
-                  ))}
-                </span>
-              )}
-              {e.series && !seriesIsDup(e) && (
-                <Badge variant="neon">{e.series.name}</Badge>
-              )}
-              {e.status === "LIVE" && <Badge variant="live">{t.live}</Badge>}
-            </div>
-            {mixSegs && (
-              <GenreMixBar
-                mix={e.genreMix!}
-                labels={t.genre as Record<string, string>}
-                className="mt-1.5"
-              />
-            )}
-          </div>
-          {/* Col 3: precio */}
-          <div className="w-1/4 shrink-0 pt-0.5 text-right">
-            {e.presalePrice != null ? (
-              <>
-                <span className="block text-xs leading-tight text-white/50">
-                  {t.presale}
-                </span>
-                <PriceTag amount={e.presalePrice} />
-              </>
-            ) : (
-              <span className="text-sm text-white/60">{t.free}</span>
-            )}
-          </div>
-        </div>
-      </Card>
-    );
-    return (
-      <Link href={`/eventos/${e.id}`} className="block rounded-2xl">
-        {inner}
-      </Link>
-    );
-  };
+  // Card de evento — componente compartido (mismo esqueleto que el
+  // ClassCard de /clases): contenido a la izquierda, rail hora+precio
+  // a la derecha. Los cards viven bajo heading de día → sin `when`.
+  const renderCard = (e: EventListItem) => <EventCard e={e} />;
 
   const renderDayGroup = ({
     key,
