@@ -389,8 +389,20 @@ function ClasesInner() {
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   };
-  const styleOptions = uniq(seriesPool.map((s) => s.style));
-  const levelOptions = uniq(seriesPool.map((s) => s.level));
+  // Facetas dependientes: el otro filtro acota las opciones — un
+  // nivel que no existe para el estilo elegido tampoco tendría
+  // resultados. El filtro propio nunca se auto-acota (siempre se
+  // puede ver/cambiar la selección vigente).
+  const styleOptions = uniq(
+    seriesPool
+      .filter((s) => !levelId || s.level?.id === levelId)
+      .map((s) => s.style),
+  );
+  const levelOptions = uniq(
+    seriesPool
+      .filter((s) => !styleId || s.style?.id === styleId)
+      .map((s) => s.level),
+  );
   const myByDay = new Map<string, MyBooking[]>();
   for (const b of filteredMine) {
     const key = classDayKey(b.date);
