@@ -109,6 +109,10 @@ export default async function ClaseDetailPage({
         {/* Chips: tipo(s) de clase outline, nivel muted, badges de
             estado — mismo set que el card del explorador */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Academy = nombre propio: chip neon como en los cards */}
+          <Badge variant="neon" className="normal-case tracking-normal">
+            {cls.academy.name}
+          </Badge>
           {cls.series.types.map((tp) => (
             <Badge key={tp.id} variant="outline">
               {tp.name}
@@ -123,9 +127,7 @@ export default async function ClaseDetailPage({
         <h1 className="text-3xl font-bold leading-tight">
           {cls.series.style?.name ?? cls.series.name}
         </h1>
-        <p className="text-sm text-white/60">
-          {cls.series.name} · {cls.academy.name}
-        </p>
+        <p className="text-sm text-white/60">{cls.series.name}</p>
         <p className="text-white/70">{dateLabel}</p>
       </header>
 

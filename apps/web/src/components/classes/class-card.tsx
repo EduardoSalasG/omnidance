@@ -94,16 +94,12 @@ export function CancelBookingButton({
 export function ClassCard({
   cls,
   when,
-  academyChip = false,
   busy,
   onBook,
   onCancel,
 }: {
   cls: ClassCardData;
   when?: string;
-  // Academia como chip neon (explore: diferencia cards de academias
-  // distintas). En "mis academias" queda en texto — se repite poco.
-  academyChip?: boolean;
   busy: boolean;
   onBook: (cls: ClassCardData) => void;
   onCancel: (classId: string) => void;
@@ -128,31 +124,26 @@ export function ClassCard({
           <h2 className="truncate text-base font-semibold leading-snug">
             {style?.name ?? cls.series.name}
           </h2>
-          {/* Academia (chip neon en explore) + tipo outline + nivel
-              muted — tres variantes, tres jerarquías distinguibles. */}
-          {(academyChip ||
-            cls.series.types.length > 0 ||
-            cls.series.level) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {academyChip && (
-                <Badge variant="neon">{cls.academy.name}</Badge>
-              )}
-              {cls.series.types.map((x) => (
-                <Badge key={x.id} variant="outline">
-                  {x.name}
-                </Badge>
-              ))}
-              {cls.series.level && (
-                <Badge variant="muted">{cls.series.level.name}</Badge>
-              )}
-            </div>
-          )}
-          {/* Profesor (la academia ya está en el chip cuando aplica) */}
-          {(academyChip ? cls.instructor?.name : true) && (
+          {/* Academia chip neon + tipo outline + nivel muted — tres
+              variantes, tres jerarquías distinguibles. */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {/* Academy = nombre propio: sin el uppercase del Badge */}
+            <Badge variant="neon" className="normal-case tracking-normal">
+              {cls.academy.name}
+            </Badge>
+            {cls.series.types.map((x) => (
+              <Badge key={x.id} variant="outline">
+                {x.name}
+              </Badge>
+            ))}
+            {cls.series.level && (
+              <Badge variant="muted">{cls.series.level.name}</Badge>
+            )}
+          </div>
+          {/* Profesor (la academia ya está en el chip) */}
+          {cls.instructor?.name && (
             <p className="mt-1 truncate text-xs text-white/50">
-              {academyChip
-                ? cls.instructor?.name
-                : `${cls.academy.name}${cls.instructor?.name ? ` · ${cls.instructor.name}` : ""}`}
+              {cls.instructor.name}
             </p>
           )}
           <p

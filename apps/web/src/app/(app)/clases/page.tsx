@@ -449,7 +449,6 @@ function ClasesInner() {
     <li key={cls.id}>
       <ClassCard
         cls={cls}
-        academyChip={view === "explore"}
         busy={busyId === cls.id}
         onBook={(c) => void book(c)}
         onCancel={(id) => void cancelBooking(id)}
@@ -470,7 +469,9 @@ function ClasesInner() {
             <p className="text-sm text-white/60">
               {dayLabel(classDayKey(b.date), b.date)} · {b.startTime}–{b.endTime}
             </p>
-            <p className="text-sm text-white/50">{b.academy.name}</p>
+            <Badge variant="neon" className="self-start normal-case tracking-normal">
+              {b.academy.name}
+            </Badge>
           </Link>
           <Badge variant={b.status === "BOOKED" ? "neon" : "outline"}>
             {b.status === "BOOKED" ? t("booked") : t("waitlist")}
