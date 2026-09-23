@@ -9,6 +9,8 @@ import {
   useActiveRole,
   type AppRole,
 } from "@/lib/active-role";
+import { useViewMode } from "@/lib/view-mode";
+import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 import { Badge, Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
@@ -53,6 +55,7 @@ export default function PerfilPage() {
   const t = useTranslations("profile");
   const tg = useTranslations("gamification");
   const tc = useTranslations("common");
+  const th = useTranslations("home");
   const tt = useTranslations("tours.perfil");
 
   const [state, setState] = useState<PageState>("loading");
@@ -137,6 +140,29 @@ export default function PerfilPage() {
   // Cambio de lente ADMIN → otra sin recargar: trae la gamificación
   // que el load inicial omitió (one-shot por gamifFetched).
   const currentLens = picked ?? activeRole;
+  const viewMode = useViewMode();
+  // Insights de la lente DANCER — todos, no el subset del home:
+  // social (racha/puntos/insignias/bailes) o academia (inscripciones/
+  // clases del mes) según el view-mode activo.
+  const [kpis, setKpis] = useState<Kpi[] | null>(null);
+  useEffect(() => {
+    if (!me || currentLens !== "DANCER") {
+      setKpis(null);
+      return;
+    }
+    let cancelled = false;
+    apiFetch(`/home/stats?role=DANCER&mode=${viewMode}`)
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        const stats = (await res.json()) as { kpis?: Kpi[] };
+        setKpis(stats.kpis ?? []);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [me, currentLens, viewMode]);
+
   useEffect(() => {
     if (!me || gamifFetched || currentLens === "ADMIN") return;
     let stale = false;
@@ -283,6 +309,12 @@ export default function PerfilPage() {
           )}
         </div>
       </Card>
+
+      {/* Tu actividad — todos los insights de la lente DANCER activa
+          (social o academia); el home social muestra solo 2. */}
+      {currentActAs === "DANCER" && kpis && kpis.length > 0 && (
+        <KpiGrid kpis={kpis} label={th("insights")} />
+      )}
 
       {/* Instagram — handle público que ven tus amigos en tu perfil */}
       <Card>
