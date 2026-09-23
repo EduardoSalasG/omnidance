@@ -14,7 +14,7 @@ import {
   type ClassCardData,
 } from "@/components/classes/class-card";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
-import { readError } from "@/components/academy/shared";
+
 import { localDayKey } from "@/lib/calendar";
 import {
   OnboardingRunner,
@@ -323,7 +323,6 @@ export function HomeHub() {
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
-  const tcl = useTranslations("classes");
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
@@ -337,10 +336,6 @@ export function HomeHub() {
   } | null>(null);
   // Contador de reintento: el efecto de stats lo escucha para refetchear.
   const [statsRetry, setStatsRetry] = useState(0);
-  // Reservar desde el card de próxima clase (lente Academia) —
-  // cancelar vive solo en la ficha de la clase.
-  const [classBusyId, setClassBusyId] = useState<string | null>(null);
-  const [classError, setClassError] = useState<string | null>(null);
   const activeRole = useActiveRole(me?.roles);
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
@@ -386,27 +381,6 @@ export function HomeHub() {
     };
   }, [me, activeRole, viewMode, statsRetry]);
 
-  // Reservar la próxima clase desde el home — mismo contrato que
-  // /clases; tras mutar se refetchean los stats de la lente.
-  async function bookNextClass(cls: ClassCardData): Promise<void> {
-    setClassBusyId(cls.id);
-    setClassError(null);
-    try {
-      const res = await apiFetch(`/classes/${cls.id}/book`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        setClassError((await readError(res)) ?? tcl("error"));
-        return;
-      }
-      setStatsRetry((r) => r + 1);
-    } catch {
-      setClassError(tcl("error"));
-    } finally {
-      setClassBusyId(null);
-    }
-  }
-
   // null hasta que el fetch de ESTA lente resuelva — los heroes que
   // dependen de stats (dancer/staff/dj/venue) nunca ven datos ajenos.
   const stats = statsSlot?.key === lensKey ? statsSlot.data : null;
@@ -444,11 +418,9 @@ export function HomeHub() {
     );
   }
 
-  // Hero = acción principal para lentes de gestión y el fallback del
-  // bailarín-academia sin clase próxima. El bailarín-social no pasa por
+  // Hero = acción principal para lentes de gestión y la CTA del
+  // bailarín-academia hacia /clases. El bailarín-social no pasa por
   // acá: su superficie es TonightScene (la escena completa de la noche).
-  // dancerAcademy con nextClass → null: la "Próxima clase" se renderiza
-  // como sección propia con el rótulo fuera del card.
   const hero: Hero | null = (() => {
     if (dancerAcademy) {
       if (stats?.needsAcademy || stats?.kpis.length === 0) {
@@ -461,14 +433,12 @@ export function HomeHub() {
       }
       // Learner: va a /clases (sus reservas + explorador), nunca a
       // /academia — esa es la consola del owner/instructor.
-      return stats?.nextClass
-        ? null
-        : {
-            href: "/clases",
-            title: t("modeAcademy"),
-            desc: t("academyLearnerDesc"),
-            cta: t("seeClasses"),
-          };
+      return {
+        href: "/clases",
+        title: t("modeAcademy"),
+        desc: t("academyLearnerDesc"),
+        cta: t("seeClasses"),
+      };
     }
     if (activeRole === "DANCER") {
       // Lente social: no se renderiza (TonightScene la reemplaza).
@@ -611,34 +581,6 @@ export function HomeHub() {
             <KpiGrid kpis={stats.kpis} label={kpiLabel} />
           )}
 
-          {/* Próxima clase del learner — mismo card del explorador de
-              /clases (ClassCard): estilo, tipo+nivel, academia·profe,
-              cupo y acción reservar/cancelar en contexto. `when` da el
-              día+hora que en /clases aportan los headings de grupo. */}
-          {dancerAcademy && stats?.nextClass && (
-            <section aria-label={t("nextClass")}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-                {t("nextClass")}
-              </h2>
-              <ClassCard
-                cls={stats.nextClass}
-                when={`${
-                  stats.nextClass.date.slice(0, 10) ===
-                  localDayKey(new Date())
-                    ? te("today")
-                    : classUtcDayFmt.format(new Date(stats.nextClass.date))
-                } · ${stats.nextClass.startTime}–${stats.nextClass.endTime}`}
-                busy={classBusyId === stats.nextClass.id}
-                onBook={(c) => void bookNextClass(c)}
-              />
-              {classError && (
-                <p role="alert" className="mt-2 text-sm text-amber-200">
-                  {classError}
-                </p>
-              )}
-            </section>
-          )}
-
           {hero && (
             <section aria-label={hero.title}>
               <Link
@@ -684,8 +626,6 @@ export function HomeHub() {
                           ? te("today")
                           : classUtcDayFmt.format(new Date(c.date))
                       } · ${c.startTime}–${c.endTime}`}
-                      busy={classBusyId === c.id}
-                      onBook={(cls) => void bookNextClass(cls)}
                     />
                   </li>
                 ))}
