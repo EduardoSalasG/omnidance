@@ -147,17 +147,46 @@ export function ClassCard({
               <Badge variant="muted">{cls.series.level.name}</Badge>
             )}
           </div>
-          {/* Meta en una sola línea: profesor + cupo. Menos líneas =
-              alturas de card consistentes y lectura en un barrido. */}
-          <p className="mt-1.5 truncate text-xs">
-            {cls.instructor?.name && (
-              <span className="text-white/50">
-                {cls.instructor.name}
-                <span aria-hidden="true"> · </span>
+          {/* Meta: solo profesor — el cupo vive bajo la acción */}
+          {cls.instructor?.name && (
+            <p className="mt-1.5 truncate text-xs text-white/50">
+              {cls.instructor.name}
+            </p>
+          )}
+        </Link>
+        {/* Acción anclada a los bordes: primaria + cupo arriba (junto
+            al CTA, como referencia de decisión), "Cancelar" abajo
+            alineado a la línea meta. */}
+        <div className="flex shrink-0 flex-col items-end justify-between py-0.5">
+          <div className="flex flex-col items-end gap-1 text-right">
+            {cls.myBooking === "BOOKED" ? (
+              <Badge variant="neon">{t("booked")}</Badge>
+            ) : cls.myBooking === "WAITLIST" ? (
+              <Badge variant="outline">{t("waitlist")}</Badge>
+            ) : !cls.enrolled ? (
+              // Academia ajena (vista explore): sin inscripción vigente
+              // no hay reserva — el API lo rechazaría con 403.
+              <span className="text-xs leading-tight text-white/40">
+                {t("requiresEnrollment")}
               </span>
+            ) : full ? (
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => onBook(cls)}
+              >
+                {busy && <Spinner size="sm" />}
+                {t("joinWaitlist")}
+              </Button>
+            ) : (
+              <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
+                {busy && <Spinner size="sm" />}
+                {t("book")}
+              </Button>
             )}
             <span
-              className={`font-medium ${
+              className={`text-xs font-medium leading-tight ${
                 full
                   ? "text-white/50"
                   : cls.spotsLeft <= 3
@@ -173,35 +202,7 @@ export function ClassCard({
                   ? t("lastSpots", { count: cls.spotsLeft })
                   : t("spotsLeft", { count: cls.spotsLeft })}
             </span>
-          </p>
-        </Link>
-        <div className="flex shrink-0 flex-col items-end justify-between py-0.5">
-          {cls.myBooking === "BOOKED" ? (
-            <Badge variant="neon">{t("booked")}</Badge>
-          ) : cls.myBooking === "WAITLIST" ? (
-            <Badge variant="outline">{t("waitlist")}</Badge>
-          ) : !cls.enrolled ? (
-            // Academia ajena (vista explore): sin inscripción vigente
-            // no hay reserva — el API lo rechazaría con 403.
-            <span className="text-xs leading-tight text-white/40">
-              {t("requiresEnrollment")}
-            </span>
-          ) : full ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => onBook(cls)}
-            >
-              {busy && <Spinner size="sm" />}
-              {t("joinWaitlist")}
-            </Button>
-          ) : (
-            <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
-              {busy && <Spinner size="sm" />}
-              {t("book")}
-            </Button>
-          )}
+          </div>
           {booked && (
             <CancelBookingButton
               busy={busy}
