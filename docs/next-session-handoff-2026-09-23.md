@@ -103,8 +103,10 @@ reservadas solo badge + filtro (sin sección pineada).
   marcador) carga todas las academias. `history` intacto (todas las
   pasadas, inscrito o no).
 - Filtro segmentado **Todas | Reservadas** en list+calendar
-  (`scope=reservadas`; `mias` legado = alias). Reservadas usa
-  `/classes/mine` con las cards wallet (badge + link QR) — absorbe la
+  (`scope=reservadas`; `mias` legado = alias). Los chips de día y los
+  dropdowns estilo/nivel también aplican en reservadas — client-side
+  sobre `/classes/mine`, que ganó `weekday` + ids de estilo/nivel.
+  Reservadas usa las cards wallet (badge + link QR) — absorbe la
   vista `mine`; `view=mine` legado redirige a list+reservadas.
 - En explore, cards de academias sin inscripción muestran "Requiere
   inscripción" en vez del botón Reservar (flag `enrolled` del browse).
