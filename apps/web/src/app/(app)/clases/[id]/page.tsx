@@ -26,6 +26,8 @@ type ClassDetail = {
   waitlistCount: number;
   myBooking: "BOOKED" | "WAITLIST" | null;
   attended: boolean;
+  // Inscripción vigente en la academia — habilita reservar.
+  enrolled: boolean;
   academy: { id: string; name: string };
   instructor: {
     id: string;
@@ -233,6 +235,7 @@ export default async function ClaseDetailPage({
         classId={cls.id}
         initialBooking={cls.myBooking}
         full={full}
+        enrolled={cls.enrolled}
         disabled={cls.cancelled || isPast}
       />
     </main>

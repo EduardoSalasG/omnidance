@@ -479,6 +479,8 @@ Micro-encuentros de baile **creados por cualquier bailarín** — no requieren a
 - Videos (si la academia sube y el alumno paga): solo clases asistidas, sin descarga ni share
 - Score interno de academia visible en versión suave (etiquetas)
 - Progreso personal no competitivo
+- `/clases` prioriza las academias del alumno: lista y calendario muestran solo clases de academias con inscripción vigente (`activa`/`trial`/`online`); la vista **Explorar** muestra todas las academias
+- **Reservar exige inscripción vigente** en la academia de la clase (sin ella el CTA es "requiere inscripción" y el API responde 403) — la academia inscribe al alumno, no hay auto-inscripción
 
 ---
 

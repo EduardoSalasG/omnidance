@@ -5071,6 +5071,11 @@
                   "key": "days",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "scope",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }

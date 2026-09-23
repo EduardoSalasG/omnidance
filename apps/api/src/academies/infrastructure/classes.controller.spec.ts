@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from "@nestjs/common";
 import type { Request } from "express";
@@ -25,9 +26,17 @@ interface FakeClass {
   cancelled: boolean;
   slot: {
     capacity: number;
+    academyId: string;
     series: { name: string };
     academy: { name: string };
   };
+}
+
+interface FakeEnrollment {
+  id: string;
+  personId: string;
+  academyId: string;
+  status: string;
 }
 
 interface FakeBooking {
@@ -41,6 +50,7 @@ interface FakeBooking {
 class FakePrisma {
   classes = new Map<string, FakeClass>();
   bookings: FakeBooking[] = [];
+  enrollments: FakeEnrollment[] = [];
   private seq = 0;
 
   addClass(id: string, over: Partial<FakeClass> = {}) {
@@ -50,11 +60,21 @@ class FakePrisma {
       cancelled: false,
       slot: {
         capacity: 1,
+        academyId: "acad-1",
         series: { name: "Bachata Inicial" },
         academy: { name: "Academia X" },
         ...over.slot,
       },
       ...over,
+    });
+  }
+
+  addEnrollment(personId: string, academyId = "acad-1", status = "ACTIVE") {
+    this.enrollments.push({
+      id: `enr-${++this.seq}`,
+      personId,
+      academyId,
+      status,
     });
   }
 
@@ -76,6 +96,20 @@ class FakePrisma {
   class = {
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.classes.get(where.id) ?? null,
+  };
+
+  enrollment = {
+    findFirst: async ({
+      where,
+    }: {
+      where: { personId: string; academyId: string; status: { in: string[] } };
+    }) =>
+      this.enrollments.find(
+        (e) =>
+          e.personId === where.personId &&
+          e.academyId === where.academyId &&
+          where.status.in.includes(e.status),
+      ) ?? null,
   };
 
   classBooking = {
@@ -171,6 +205,37 @@ describe("ClassesController.book", () => {
       {} as AcademyAccess, // book/cancel no lo usan
     );
     prisma.addClass("cls-1");
+    // Regla: reservar exige inscripción vigente — per-1/per-2 inscritos,
+    // per-3 queda fuera para los casos de rechazo.
+    prisma.addEnrollment("per-1");
+    prisma.addEnrollment("per-2");
+  });
+
+  it("sin inscripción vigente → ForbiddenException y no crea reserva", async () => {
+    await expect(ctrl.book("cls-1", reqAs("per-3"))).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+    expect(prisma.bookings).toHaveLength(0);
+  });
+
+  it("inscripción PAUSED no habilita reserva → ForbiddenException", async () => {
+    prisma.addEnrollment("per-3", "acad-1", "PAUSED");
+    await expect(ctrl.book("cls-1", reqAs("per-3"))).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it("inscripción TRIAL habilita reserva → BOOKED", async () => {
+    prisma.addEnrollment("per-3", "acad-1", "TRIAL");
+    const res = await ctrl.book("cls-1", reqAs("per-3"));
+    expect(res.status).toBe("BOOKED");
+  });
+
+  it("inscripción en otra academia no habilita → ForbiddenException", async () => {
+    prisma.addEnrollment("per-3", "acad-2");
+    await expect(ctrl.book("cls-1", reqAs("per-3"))).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it("con cupo libre → BOOKED", async () => {
