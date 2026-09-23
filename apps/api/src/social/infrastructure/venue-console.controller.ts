@@ -16,7 +16,7 @@ import {
   roleKeysHavePermission,
   RolesGuard,
 } from "../../common/rbac/roles.guard";
-import { RequireRoles } from "../../common/rbac/roles.decorator";
+import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { PrismaService } from "../../prisma.service";
 
 class SetRentalStatusDto {
@@ -29,14 +29,15 @@ type SessionPerson = NonNullable<Request["person"]>;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Consola del venue (venue_manager): sus locales, dashboard operativo
- * (eventos, check-ins, arriendos de academias, cartas) y gestión del
- * estado de los VenueRental. ADMIN entra con bypass de ownership —
- * un rol con permiso admin.access (o isSuperuser) ve todos los venues.
+ * Consola del venue: sus locales, dashboard operativo (eventos,
+ * check-ins, arriendos de academias, cartas) y gestión del estado de
+ * los VenueRental. Exige el permiso `venues.manage` (grant de
+ * VENUE_MANAGER en seed); ADMIN entra con bypass de ownership — un rol
+ * con permiso admin.access (o isSuperuser) ve todos los venues.
  */
 @Controller("venues")
 @UseGuards(SessionGuard, RolesGuard)
-@RequireRoles("VENUE_MANAGER", "ADMIN")
+@RequirePermissions("venues.manage")
 export class VenueConsoleController {
   constructor(private readonly prisma: PrismaService) {}
 
