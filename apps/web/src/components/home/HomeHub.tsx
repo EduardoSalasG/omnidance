@@ -431,14 +431,9 @@ export function HomeHub() {
           cta: t("findAcademy"),
         };
       }
-      // Learner: va a /clases (sus reservas + explorador), nunca a
-      // /academia — esa es la consola del owner/instructor.
-      return {
-        href: "/clases",
-        title: t("modeAcademy"),
-        desc: t("academyLearnerDesc"),
-        cta: t("seeClasses"),
-      };
+      // Learner inscrito: sin hero — su superficie es "Tus próximas
+      // clases" + el tab Clases del nav; el card promo era ruido.
+      return null;
     }
     if (activeRole === "DANCER") {
       // Lente social: no se renderiza (TonightScene la reemplaza).

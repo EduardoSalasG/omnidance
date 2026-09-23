@@ -10,26 +10,32 @@ import { readError } from "@/components/academy/shared";
 type Booking = "BOOKED" | "WAITLIST" | null;
 
 /**
- * CTA del detalle de clase: Reservar / Anotarme en espera / estado.
- * Cancelar vive en la zona destructiva al pie de la ficha (patrón
- * "eliminar amigo"): lejos del pulgar + confirmación en bottom sheet,
- * no inline. El estado inicial viene del server; tras reservar/cancelar
- * se actualiza local — sin re-fetch de la página.
+ * Acción de la ficha de clase en barra fija sobre la BottomNav — mismo
+ * patrón que la ficha de evento (cupos a la izquierda, acción a la
+ * derecha). Cancelar vive en la zona destructiva al pie del contenido
+ * (patrón "eliminar amigo"): lejos del pulgar + confirmación en bottom
+ * sheet, no inline. El estado inicial viene del server; tras
+ * reservar/cancelar se actualiza local — sin re-fetch de la página.
  */
 export function ClassBookingCta({
   classId,
   initialBooking,
-  full,
   enrolled,
-  disabled,
+  spotsLeft,
+  capacity,
+  waitlistCount,
+  closedLabel,
 }: {
   classId: string;
   initialBooking: Booking;
-  full: boolean;
   /** Inscripción vigente en la academia — sin ella no se puede reservar. */
   enrolled: boolean;
-  /** Clase cancelada o ya pasada — la ficha queda solo informativa. */
-  disabled?: boolean;
+  spotsLeft: number;
+  capacity: number;
+  waitlistCount: number;
+  /** Clase cancelada o ya pasada — la barra muestra un aviso y la ficha
+      queda solo informativa (sin acción ni zona destructiva). */
+  closedLabel?: string;
 }) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
@@ -96,38 +102,82 @@ export function ClassBookingCta({
     }
   }
 
-  if (disabled) return null;
+  const full = spotsLeft <= 0;
+
+  if (closedLabel) {
+    return (
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
+        <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6">
+          <p className="text-center text-sm font-medium text-white/60">
+            {closedLabel}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      <div className="flex flex-col gap-2">
-        {booking === "BOOKED" || booking === "WAITLIST" ? (
-          <div className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
-            <Badge variant={booking === "BOOKED" ? "neon" : "outline"}>
-              {booking === "BOOKED" ? t("booked") : t("waitlist")}
-            </Badge>
-          </div>
-        ) : !enrolled ? (
-          <p className="rounded-xl border border-white/10 bg-night-800/40 px-4 py-3 text-center text-sm text-white/50">
-            {t("requiresEnrollment")}
-          </p>
-        ) : full ? (
-          <Button className="w-full" disabled={busy} onClick={() => void book()}>
-            {t("joinWaitlist")}
-          </Button>
-        ) : (
-          <Button className="w-full" disabled={busy} onClick={() => void book()}>
-            {t("book")}
-          </Button>
-        )}
-        {notice && (
-          <p
-            role={notice.error ? "alert" : "status"}
-            className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
-          >
-            {notice.text}
-          </p>
-        )}
+      {/* Barra de acción fija — flota sobre la BottomNav (4rem + safe
+          area), igual que la ficha de evento. */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-4 sm:px-6">
+          {notice && (
+            <p
+              role={notice.error ? "alert" : "status"}
+              className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
+            >
+              {notice.text}
+            </p>
+          )}
+          {booking === "BOOKED" || booking === "WAITLIST" ? (
+            <div className="flex justify-center">
+              <Badge variant={booking === "BOOKED" ? "neon" : "outline"}>
+                {booking === "BOOKED" ? t("booked") : t("waitlist")}
+              </Badge>
+            </div>
+          ) : !enrolled ? (
+            <p className="text-center text-sm text-white/50">
+              {t("requiresEnrollment")}
+            </p>
+          ) : (
+            <div className="flex items-center justify-between gap-4">
+              {/* Cupo junto a la acción — la urgencia es referencia de
+                  decisión, mismo patrón que el rail del ClassCard. */}
+              <div className="min-w-0">
+                <span className="block text-xs uppercase tracking-wide text-white/50">
+                  {t("capacityLabel")}
+                </span>
+                {full ? (
+                  <span className="text-sm font-semibold text-white/60">
+                    {t("full")}
+                    {waitlistCount > 0 && (
+                      <span className="text-white/40">
+                        {" "}
+                        · {t("waitlistCount", { count: waitlistCount })}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span
+                    className={`text-lg font-semibold tabular-nums ${
+                      spotsLeft <= 3 ? "text-amber-300" : "text-neon"
+                    }`}
+                  >
+                    {spotsLeft} / {capacity}
+                  </span>
+                )}
+              </div>
+              <Button
+                disabled={busy}
+                onClick={() => void book()}
+                className="shrink-0"
+              >
+                {full ? t("joinWaitlist") : t("book")}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Zona destructiva al pie del contenido, centrada — patrón

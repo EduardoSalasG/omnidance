@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import messages from "../../../../../messages/es-CL.json";
 import classesPart from "@/i18n/parts/classes.json";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Badge, Button, Card, LevelBars, PriceTag } from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ClassBookingCta } from "@/components/classes/class-booking-cta";
 
@@ -39,7 +39,7 @@ type ClassDetail = {
     id: string;
     name: string;
     description: string | null;
-    level: { name: string } | null;
+    level: { name: string; order: number } | null;
     style: { name: string; genre: string | null } | null;
     dropInPrice: number | null;
     types: { id: string; name: string }[];
@@ -106,28 +106,32 @@ export default async function ClaseDetailPage({
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6">
       <header className="flex flex-col gap-3">
-        {/* Chips: tipo(s) de clase outline, nivel muted, badges de
-            estado — mismo set que el card del explorador */}
+        <h1 className="text-3xl font-bold leading-tight">
+          {cls.series.style?.name ?? cls.series.name}
+        </h1>
+        {/* Chips bajo el título — mismo set que el card del explorador:
+            modalidad outline, nivel como barras, academia neon y
+            badges de estado. El nombre de la serie no va: repite
+            estilo + nivel que ya están acá. */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Academy = nombre propio: chip neon como en los cards */}
-          <Badge variant="neon" className="normal-case tracking-normal">
-            {cls.academy.name}
-          </Badge>
           {cls.series.types.map((tp) => (
             <Badge key={tp.id} variant="outline">
               {tp.name}
             </Badge>
           ))}
           {cls.series.level && (
-            <Badge variant="muted">{cls.series.level.name}</Badge>
+            <LevelBars
+              order={cls.series.level.order}
+              name={cls.series.level.name}
+            />
           )}
+          {/* Academy = nombre propio: chip neon como en los cards */}
+          <Badge variant="neon" className="normal-case tracking-normal">
+            {cls.academy.name}
+          </Badge>
           {cls.cancelled && <Badge variant="outline">{t.cancelledTag}</Badge>}
           {cls.attended && <Badge variant="neon">{t.attendedTag}</Badge>}
         </div>
-        <h1 className="text-3xl font-bold leading-tight">
-          {cls.series.style?.name ?? cls.series.name}
-        </h1>
-        <p className="text-sm text-white/60">{cls.series.name}</p>
         <p className="text-white/70">{dateLabel}</p>
       </header>
 
@@ -231,14 +235,19 @@ export default async function ClaseDetailPage({
         </section>
       )}
 
-      {/* CTA — solo si la clase sigue vigente; la cancelada/pasada queda
-          como ficha informativa */}
+      {/* Acción en barra fija sobre la BottomNav (patrón de la ficha
+          de evento); cancelar queda como zona destructiva en el pie.
+          Clase cancelada/pasada → la barra muestra solo un aviso. */}
       <ClassBookingCta
         classId={cls.id}
         initialBooking={cls.myBooking}
-        full={full}
         enrolled={cls.enrolled}
-        disabled={cls.cancelled || isPast}
+        spotsLeft={cls.spotsLeft}
+        capacity={cls.capacity}
+        waitlistCount={cls.waitlistCount}
+        closedLabel={
+          cls.cancelled ? t.cancelledTag : isPast ? t.pastTag : undefined
+        }
       />
     </main>
   );
