@@ -234,7 +234,9 @@ export default function PerfilPage() {
   const currentActAs = picked ?? activeRole;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    // Sin min-h-dvh: el wrapper del chrome ya reserva el clearance de
+    // la tab bar — forzar alto de viewport dejaba scroll muerto al pie.
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       {/* Identidad → /perfil/datos (datos personales + datos por modo;
           la edición de Instagram vive allá). */}
       <Link
