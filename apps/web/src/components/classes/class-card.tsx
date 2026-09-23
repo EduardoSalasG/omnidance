@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Badge, Button } from "@/components/ui";
-import { Card } from "@/components/ui/Card";
+import type { BadgeVariant } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/spinner";
 
-// GET /classes/browse — clase materializada futura con contexto de serie.
-// También la devuelve /home/stats (nextClass del learner) con el mismo shape.
+// Shape único del card de clase — lo devuelven /classes/browse,
+// /classes/mine (reservadas) y /home/stats (nextClass + myClasses).
+// scope=past agrega `status` (ver HistoryCardData más abajo).
 export type ClassCardData = {
   id: string;
   date: string; // ISO — medianoche UTC del día de la clase
@@ -35,17 +36,18 @@ export type ClassCardData = {
   };
 };
 
-// Nivel como indicador visual: `order+1` barras ascendentes
-// (Iniciación=1 … Avanzado=4), color por progresión — ocupa ~20px
-// y se lee sin texto. El nombre va en aria-label + title.
+// Nivel como medidor visual: 4 barras ascendentes fijas, pintadas
+// `order+1` según el catálogo (Iniciación=1 … Avanzado=4) y el resto
+// en gris — se lee como progreso, no como conteo suelto. El nombre
+// va en aria-label + title.
 function LevelBars({ order, name }: { order: number; name: string }) {
-  const bars = Math.min(Math.max(order + 1, 1), 4);
+  const filled = Math.min(Math.max(order + 1, 1), 4);
   const color =
-    bars <= 1
+    filled <= 1
       ? "bg-neon"
-      : bars === 2
+      : filled === 2
         ? "bg-amber-300"
-        : bars === 3
+        : filled === 3
           ? "bg-orange-400"
           : "bg-red-400";
   return (
@@ -55,11 +57,11 @@ function LevelBars({ order, name }: { order: number; name: string }) {
       title={name}
       className="flex items-end gap-0.5"
     >
-      {Array.from({ length: bars }).map((_, i) => (
+      {Array.from({ length: 4 }).map((_, i) => (
         <span
           key={i}
           aria-hidden="true"
-          className={`w-1 rounded-[1px] ${color}`}
+          className={`w-1 rounded-[1px] ${i < filled ? color : "bg-white/15"}`}
           style={{ height: 4 + i * 3 }}
         />
       ))}
@@ -75,11 +77,15 @@ export function ClassCard({
   when,
   busy,
   onBook,
+  statusBadge,
 }: {
   cls: ClassCardData;
   when?: string;
-  busy: boolean;
-  onBook: (cls: ClassCardData) => void;
+  busy?: boolean;
+  onBook?: (cls: ClassCardData) => void;
+  /** Badge de estado externo (historial: Asististe/Cancelaste) —
+      reemplaza al slot de acción; la clase pasada no tiene CTA. */
+  statusBadge?: { label: string; variant?: BadgeVariant };
 }) {
   const t = useTranslations("classes");
   const full = cls.spotsLeft <= 0;
@@ -139,7 +145,14 @@ export function ClassCard({
             todos los estados — rail estable aunque la altura del card
             varíe. Cancelar NO va en el card — la acción destructiva
             vive al pie de la ficha. */}
-        {booked ? (
+        {statusBadge ? (
+          <Badge
+            variant={statusBadge.variant ?? "neon"}
+            className="shrink-0 self-start"
+          >
+            {statusBadge.label}
+          </Badge>
+        ) : booked ? (
           <Badge
             variant={cls.myBooking === "BOOKED" ? "neon" : "outline"}
             className="shrink-0 self-start"
@@ -159,13 +172,13 @@ export function ClassCard({
                 size="sm"
                 variant="secondary"
                 disabled={busy}
-                onClick={() => onBook(cls)}
+                onClick={() => onBook?.(cls)}
               >
                 {busy && <Spinner size="sm" />}
                 {t("joinWaitlist")}
               </Button>
             ) : (
-              <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
+              <Button size="sm" disabled={busy} onClick={() => onBook?.(cls)}>
                 {busy && <Spinner size="sm" />}
                 {t("book")}
               </Button>
@@ -194,68 +207,8 @@ export function ClassCard({
   );
 }
 
-// GET /classes/mine — reserva activa del learner. También la devuelve
-// /home/stats (myClasses) con el mismo shape.
-export type BookingCardData = {
-  bookingId: string;
-  status: "BOOKED" | "WAITLIST";
-  classId: string;
-  date: string;
-  weekday: number;
-  startTime: string;
-  endTime: string;
-  academy: { id: string; name: string };
-  series: {
-    name: string;
-    level: { id: string; name: string; order: number } | null;
-    style: { id: string; name: string; genre: string | null } | null;
-  };
+// GET /classes/mine?scope=past — historial del alumno: card completo
+// + status de resultado (attended gana el dedup sobre la reserva).
+export type HistoryCardData = ClassCardData & {
+  status: "attended" | "booked" | "cancelled";
 };
-
-// Card wallet de una reserva (símil de Mis entradas): datos de la clase
-// + credencial QR. Cancelar NO va en el card — la acción destructiva
-// vive al pie de la ficha de la clase (patrón "eliminar amigo").
-// `when` = etiqueta de día ("Hoy", fecha) que en /clases dan los
-// headings de grupo.
-export function BookingCard({
-  b,
-  when,
-}: {
-  b: BookingCardData;
-  when: string;
-}) {
-  const t = useTranslations("classes");
-  return (
-    <Card className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-4">
-        <Link
-          href={`/clases/${b.classId}`}
-          className="flex min-w-0 flex-col gap-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-        >
-          <p className="truncate text-lg font-semibold">{b.series.name}</p>
-          <p className="text-sm text-white/60">
-            {when} · {b.startTime}–{b.endTime}
-          </p>
-          {/* Academy = nombre propio: chip neon como en los demás cards */}
-          <Badge
-            variant="neon"
-            className="self-start normal-case tracking-normal"
-          >
-            {b.academy.name}
-          </Badge>
-        </Link>
-        <Badge variant={b.status === "BOOKED" ? "neon" : "outline"}>
-          {b.status === "BOOKED" ? t("booked") : t("waitlist")}
-        </Badge>
-      </div>
-      {/* El QR es la credencial de check-in — misma fila que el ticket */}
-      <Link
-        href="/qr"
-        className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
-      >
-        <span>{t("qrHint")}</span>
-        <span aria-hidden="true">→</span>
-      </Link>
-    </Card>
-  );
-}

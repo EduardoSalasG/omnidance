@@ -5,17 +5,16 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, Spinner } from "@/components/ui";
+import { Button, Card, Spinner } from "@/components/ui";
 import {
   OnboardingRunner,
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
 import { readError } from "@/components/academy/shared";
 import {
-  BookingCard,
   ClassCard,
-  type BookingCardData,
   type ClassCardData,
+  type HistoryCardData,
 } from "@/components/classes/class-card";
 import {
   DAY_MS,
@@ -34,25 +33,13 @@ import type { GenreKey } from "@/lib/calendar";
 // serie. El shape vive en el componente del card (lo reusa el home).
 type BrowseClass = ClassCardData;
 
-// Ids de estilo/nivel: los filtros de reservadas resuelven client-side
-// sobre estos campos (/classes/mine no acepta params).
-type MyBooking = BookingCardData;
+// GET /classes/mine — reserva activa del learner, mismo shape del card.
+// Los filtros de reservadas resuelven client-side (/mine no acepta params).
+type MyBooking = ClassCardData;
 
 // GET /classes/mine?scope=past — historial del alumno (spec §9):
 // asistencia prevalece sobre la reserva de la misma clase.
-type HistoryItem = {
-  classId: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  academy: { id: string; name: string };
-  series: {
-    name: string;
-    level: { name: string } | null;
-    style: { name: string } | null;
-  };
-  status: "attended" | "booked" | "cancelled";
-};
+type HistoryItem = HistoryCardData;
 
 type FilterOption = { id: string; name: string };
 type LoadState = "loading" | "error" | "ready";
@@ -61,10 +48,6 @@ type LoadState = "loading" | "error" | "ready";
 // scope=reservadas — ver parsing de la URL más abajo.
 type View = "list" | "calendar" | "history" | "explore";
 type CalScope = "todas" | "reservadas";
-
-// Card compacta (misma receta que las listas del dominio).
-const cardCls =
-  "rounded-xl border border-night-700 bg-night-800/60 px-4 py-3";
 
 // Class.date llega como ISO a medianoche UTC — el día calendario es el
 // prefijo ISO; "hoy/mañana" se compara contra el día LOCAL en en-CA.
@@ -188,7 +171,7 @@ function ClasesInner() {
         return;
       }
       const rows = (await res.json()) as MyBooking[];
-      // El API ordena por createdAt desc; para el alumno importa la fecha.
+      // El API ordena por fecha de clase asc; re-aseguro por hora.
       rows.sort((a, b) =>
         `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`),
       );
@@ -368,11 +351,18 @@ function ClasesInner() {
       .filter((s) => !levelId || s.level?.id === levelId)
       .map((s) => s.style),
   );
-  const levelOptions = uniq(
-    seriesPool
-      .filter((s) => !styleId || s.style?.id === styleId)
-      .map((s) => s.level),
-  );
+  // Nivel: dedup + orden por dificultad (order del catálogo —
+  // Iniciación → Avanzado), no alfabético.
+  const levelOptions = (() => {
+    const m = new Map<string, { id: string; name: string; order: number }>();
+    for (const s of seriesPool.filter(
+      (s) => !styleId || s.style?.id === styleId,
+    )) {
+      const l = s.level;
+      if (l && !m.has(l.id)) m.set(l.id, l);
+    }
+    return [...m.values()].sort((a, b) => a.order - b.order);
+  })();
   const myByDay = new Map<string, MyBooking[]>();
   for (const b of filteredMine) {
     const key = classDayKey(b.date);
@@ -425,15 +415,9 @@ function ClasesInner() {
     </li>
   );
 
-  // ─── Card wallet de "Mis clases" (componente compartido con home) ───
-  const renderMyCard = (b: MyBooking) => (
-    <li key={b.bookingId}>
-      <BookingCard
-        b={b}
-        when={dayLabel(classDayKey(b.date), b.date)}
-      />
-    </li>
-  );
+  // ─── Reservadas: mismo ClassCard del explorador (badge Reservado/
+  // En espera arriba a la derecha — ya tienen su cupo, sin CTA) ───
+  const renderMyCard = (b: MyBooking) => renderClassCard(b);
 
   const renderDayGroup = <T extends { date: string }>(
     g: { key: string; items: T[] },
@@ -720,42 +704,22 @@ function ClasesInner() {
               <div className="flex flex-col gap-5">
                 {groupByDay(history).map((g) =>
                   renderDayGroup(g, (h: HistoryItem) => (
-                    <li key={h.classId}>
-                      {/* Fila → ficha de la clase (misma navegación que
-                          los demás cards del dominio). */}
-                      <Link
-                        href={`/clases/${h.classId}`}
-                        className={`${cardCls} block transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon`}
-                      >
-                        <div className="flex items-baseline justify-between gap-3">
-                          <p className="truncate font-medium">{h.series.name}</p>
-                          <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
-                            {h.startTime}–{h.endTime}
-                          </p>
-                        </div>
-                        <div className="mt-0.5 flex items-center justify-between gap-2">
-                          <p className="truncate text-xs text-white/60">
-                            {h.academy.name}
-                            {h.series.level?.name
-                              ? ` · ${h.series.level.name}`
-                              : ""}
-                            {h.series.style?.name
-                              ? ` · ${h.series.style.name}`
-                              : ""}
-                          </p>
-                          <Badge
-                            variant={
-                              h.status === "attended"
-                                ? "neon"
-                                : h.status === "booked"
-                                  ? "outline"
-                                  : "muted"
-                            }
-                          >
-                            {t(`historyStatus.${h.status}`)}
-                          </Badge>
-                        </div>
-                      </Link>
+                    <li key={h.id}>
+                      {/* Mismo card que el resto de la vista — el
+                          resultado (asististe/cancelaste) ocupa el slot
+                          de acción; no hay CTA en una clase pasada. */}
+                      <ClassCard
+                        cls={h}
+                        statusBadge={{
+                          label: t(`historyStatus.${h.status}`),
+                          variant:
+                            h.status === "attended"
+                              ? "neon"
+                              : h.status === "booked"
+                                ? "outline"
+                                : "muted",
+                        }}
+                      />
                     </li>
                   )),
                 )}
@@ -810,7 +774,7 @@ function ClasesInner() {
               const dots =
                 scope === "reservadas"
                   ? (cell.items as MyBooking[]).map((b) => ({
-                      id: b.bookingId,
+                      id: b.id,
                       genre: b.series.style?.genre,
                     }))
                   : (cell.items as BrowseClass[]).map((c) => ({
@@ -910,7 +874,7 @@ function ClasesInner() {
           )}
         </section>
       ) : view === "list" && scope === "reservadas" ? (
-        /* ─── Reservadas (ex vista Mis clases): cards wallet con QR ─── */
+        /* ─── Reservadas (ex vista Mis clases): mismo ClassCard ─── */
         <section
           aria-label={t("scopeBooked")}
           className="flex flex-col gap-3"

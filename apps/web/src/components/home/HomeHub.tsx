@@ -10,9 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import {
-  BookingCard,
   ClassCard,
-  type BookingCardData,
   type ClassCardData,
 } from "@/components/classes/class-card";
 import { readError } from "@/components/academy/shared";
@@ -59,7 +57,7 @@ type HomeStats = {
   nextClass?: ClassCardData | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
-  myClasses?: BookingCardData[];
+  myClasses?: ClassCardData[];
   needsAcademy?: boolean;
 };
 
@@ -695,8 +693,8 @@ export function HomeHub() {
           )}
 
           {/* Tus próximas clases — reservas del learner (BOOKED/
-              WAITLIST), máx 3, con el mismo card wallet de
-              /clases?scope=reservadas (QR + cancelar incluidos). */}
+              WAITLIST), máx 3, mismo ClassCard de /clases: el badge
+              Reservado/En espera va arriba a la derecha. */}
           {dancerAcademy && (stats?.myClasses?.length ?? 0) > 0 && (
             <section aria-label={t("myClassesTitle")}>
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -704,14 +702,16 @@ export function HomeHub() {
               </h2>
               <ul className="flex flex-col gap-3">
                 {stats!.myClasses!.map((c) => (
-                  <li key={c.bookingId}>
-                    <BookingCard
-                      b={c}
+                  <li key={c.id}>
+                    <ClassCard
+                      cls={c}
                       when={`${
                         c.date.slice(0, 10) === localDayKey(new Date())
                           ? te("today")
                           : classUtcDayFmt.format(new Date(c.date))
-                      }`}
+                      } · ${c.startTime}–${c.endTime}`}
+                      busy={classBusyId === c.id}
+                      onBook={(cls) => void bookNextClass(cls)}
                     />
                   </li>
                 ))}

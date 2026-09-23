@@ -43,6 +43,32 @@ export type TonightEvent = {
   presaleLeft: number | null;
 };
 
+/** Shape del card de clase (ClassCardData en web) — el mismo que
+    devuelven GET /classes/browse y GET /classes/mine. */
+type ClassCardStats = {
+  id: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  weekday: number;
+  capacity: number;
+  bookedCount: number;
+  spotsLeft: number;
+  waitlistCount: number;
+  myBooking: string | null;
+  enrolled: boolean;
+  academy: { id: string; name: string };
+  instructor: { id: string; name: string | null } | null;
+  series: {
+    id: string;
+    name: string;
+    level: { id: string; name: string; order: number } | null;
+    style: { id: string; name: string; genre: string | null } | null;
+    dropInPrice: number | null;
+    types: { id: string; name: string }[];
+  };
+};
+
 export type HomeStats = {
   kpis: Kpi[];
   tonight?: Tonight | null;
@@ -51,52 +77,79 @@ export type HomeStats = {
     upcoming: TonightEvent[];
     mine: TonightEvent[];
   } | null;
-  /** Próxima clase de las academias del learner — shape completo del
-      card del explorador de /clases (ClassCardData en web). */
-  nextClass?: {
-    id: string;
-    date: Date;
-    startTime: string;
-    endTime: string;
-    weekday: number;
-    capacity: number;
-    bookedCount: number;
-    spotsLeft: number;
-    waitlistCount: number;
-    myBooking: string | null;
-    enrolled: boolean;
-    academy: { id: string; name: string };
-    instructor: { id: string; name: string | null } | null;
-    series: {
-      id: string;
-      name: string;
-      level: { id: string; name: string } | null;
-      style: { id: string; name: string; genre: string | null } | null;
-      dropInPrice: number | null;
-      types: { id: string; name: string }[];
-    };
-  } | null;
+  /** Próxima clase de las academias del learner. */
+  nextClass?: ClassCardStats | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
   /** Reservas activas del learner (BOOKED/WAITLIST) en clases futuras —
-      "tus próximas clases" del home Academia. Shape completo del card
-      wallet (BookingCardData en web, igual que GET /classes/mine). */
-  myClasses?: {
-    bookingId: string;
-    status: string;
-    classId: string;
-    date: Date;
+      "tus próximas clases" del home Academia. */
+  myClasses?: ClassCardStats[];
+  needsAcademy?: boolean;
+};
+
+// Proyección de Prisma que alimenta ClassCardStats — misma selección
+// que CLASS_CARD_SELECT en classes.controller.
+const CLASS_CARD_SELECT = {
+  id: true,
+  date: true,
+  instructorId: true,
+  capacity: true,
+  slot: {
+    select: {
+      weekday: true,
+      startTime: true,
+      endTime: true,
+      capacity: true,
+      types: {
+        include: { type: { select: { id: true, name: true } } },
+      },
+      academy: {
+        select: { id: true, name: true, defaultQuorum: true },
+      },
+      series: {
+        select: {
+          id: true,
+          name: true,
+          quorum: true,
+          dropInPrice: true,
+          level: { select: { id: true, name: true, order: true } },
+          style: { select: { id: true, name: true, genre: true } },
+          types: {
+            include: { type: { select: { id: true, name: true } } },
+          },
+        },
+      },
+    },
+  },
+  bookings: {
+    where: { status: { in: ["BOOKED", "WAITLIST"] as string[] } },
+    select: { personId: true, status: true },
+  },
+} as const;
+
+type ClassCardRow = {
+  id: string;
+  date: Date;
+  instructorId: string | null;
+  capacity: number | null;
+  slot: {
     weekday: number;
     startTime: string;
     endTime: string;
-    academy: { id: string; name: string };
+    capacity: number | null;
+    types: { type: { id: string; name: string } }[];
+    academy: { id: string; name: string; defaultQuorum: number | null };
     series: {
+      id: string;
       name: string;
-      level: { id: string; name: string } | null;
+      quorum: number | null;
+      dropInPrice: number | null;
+      level: { id: string; name: string; order: number } | null;
       style: { id: string; name: string; genre: string | null } | null;
+      types: { type: { id: string; name: string } }[];
     };
-  }[];
-  needsAcademy?: boolean;
+  };
+  bookings: { personId: string; status: string }[];
 };
 
 const DAY = 86_400_000;
@@ -396,43 +449,7 @@ export class HomeService {
           },
         },
         orderBy: { date: "asc" },
-        select: {
-          id: true,
-          date: true,
-          instructorId: true,
-          capacity: true,
-          slot: {
-            select: {
-              weekday: true,
-              startTime: true,
-              endTime: true,
-              capacity: true,
-              types: {
-                include: { type: { select: { id: true, name: true } } },
-              },
-              academy: {
-                select: { id: true, name: true, defaultQuorum: true },
-              },
-              series: {
-                select: {
-                  id: true,
-                  name: true,
-                  quorum: true,
-                  dropInPrice: true,
-                  level: { select: { id: true, name: true, order: true } },
-                  style: { select: { id: true, name: true, genre: true } },
-                  types: {
-                    include: { type: { select: { id: true, name: true } } },
-                  },
-                },
-              },
-            },
-          },
-          bookings: {
-            where: { status: { in: ["BOOKED", "WAITLIST"] } },
-            select: { personId: true, status: true },
-          },
-        },
+        select: CLASS_CARD_SELECT,
       }),
       // Sus próximas reservas — "qué tengo esta semana" del learner.
       this.prisma.classBooking.findMany({
@@ -443,114 +460,92 @@ export class HomeService {
         },
         orderBy: { class: { date: "asc" } },
         take: 3,
-        select: {
-          id: true,
-          status: true,
-          class: {
-            select: {
-              id: true,
-              date: true,
-              slot: {
-                select: {
-                  weekday: true,
-                  startTime: true,
-                  endTime: true,
-                  academy: { select: { id: true, name: true } },
-                  series: {
-                    select: {
-                      name: true,
-                      level: { select: { id: true, name: true, order: true } },
-                      style: {
-                        select: { id: true, name: true, genre: true },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        select: { class: { select: CLASS_CARD_SELECT } },
       }),
     ]);
+    const enrolledIds = new Set(academyIds);
+    const cardClasses = [
+      ...(nextClassRow ? [nextClassRow] : []),
+      ...myBookings.map((b) => b.class),
+    ];
+    const instructorName = await this.instructorNames(cardClasses);
     return {
       kpis: [
         { key: "enrollments", value: enrollments.length },
         { key: "classesMonth", value: classesMonth },
       ],
       nextClass: nextClassRow
-        ? await (async () => {
-            const c = nextClassRow;
-            const booked = c.bookings.filter(
-              (b) => b.status === "BOOKED",
-            ).length;
-            const capacity = effectiveCapacity({
-              classCapacity: c.capacity,
-              slotCapacity: c.slot.capacity,
-              seriesQuorum: c.slot.series.quorum,
-              academyDefaultQuorum: c.slot.academy.defaultQuorum,
-            });
-            const instructor = c.instructorId
-              ? await this.prisma.person.findUnique({
-                  where: { id: c.instructorId },
-                  select: { id: true, name: true },
-                })
-              : null;
-            return {
-              id: c.id,
-              date: c.date,
-              startTime: c.slot.startTime,
-              endTime: c.slot.endTime,
-              weekday: c.slot.weekday,
-              capacity,
-              bookedCount: booked,
-              spotsLeft: Math.max(capacity - booked, 0),
-              waitlistCount: c.bookings.filter(
-                (b) => b.status === "WAITLIST",
-              ).length,
-              myBooking:
-                c.bookings.find((b) => b.personId === personId)?.status ??
-                null,
-              // La clase viene de academias con inscripción vigente.
-              enrolled: true,
-              academy: {
-                id: c.slot.academy.id,
-                name: c.slot.academy.name,
-              },
-              instructor,
-              series: {
-                id: c.slot.series.id,
-                name: c.slot.series.name,
-                level: c.slot.series.level,
-                style: c.slot.series.style,
-                dropInPrice: c.slot.series.dropInPrice,
-                // Modalidad efectiva: el horario propio gana sobre la
-                // serie (slot.types vacío = hereda series.types).
-                types: (c.slot.types.length
-                  ? c.slot.types
-                  : c.slot.series.types
-                ).map((x) => x.type),
-              },
-            };
-          })()
+        ? this.toClassCard(nextClassRow, personId, enrolledIds, instructorName)
         : null,
-      myClasses: myBookings.map((b) => ({
-        bookingId: b.id,
-        status: b.status,
-        classId: b.class.id,
-        date: b.class.date,
-        weekday: b.class.slot.weekday,
-        startTime: b.class.slot.startTime,
-        endTime: b.class.slot.endTime,
-        academy: {
-          id: b.class.slot.academy.id,
-          name: b.class.slot.academy.name,
-        },
-        series: {
-          name: b.class.slot.series.name,
-          level: b.class.slot.series.level,
-          style: b.class.slot.series.style,
-        },
-      })),
+      myClasses: myBookings.map((b) =>
+        this.toClassCard(b.class, personId, enrolledIds, instructorName),
+      ),
+    };
+  }
+
+  /** Nombres de instructores (override de instancia) en batch. */
+  private async instructorNames(classes: { instructorId: string | null }[]) {
+    const ids = [
+      ...new Set(classes.map((c) => c.instructorId).filter(Boolean)),
+    ] as string[];
+    const people = ids.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true },
+        })
+      : [];
+    return new Map<string, string | null>(people.map((i) => [i.id, i.name]));
+  }
+
+  /** Proyección de una Class al shape del card (ClassCardData en web) —
+      misma lógica que classCardItem en classes.controller. */
+  private toClassCard(
+    c: ClassCardRow,
+    personId: string,
+    enrolledIds: Set<string>,
+    instructorName: Map<string, string | null>,
+  ): ClassCardStats {
+    const booked = c.bookings.filter((b) => b.status === "BOOKED").length;
+    const capacity = effectiveCapacity({
+      classCapacity: c.capacity,
+      slotCapacity: c.slot.capacity,
+      seriesQuorum: c.slot.series.quorum,
+      academyDefaultQuorum: c.slot.academy.defaultQuorum,
+    });
+    return {
+      id: c.id,
+      date: c.date,
+      startTime: c.slot.startTime,
+      endTime: c.slot.endTime,
+      weekday: c.slot.weekday,
+      capacity,
+      bookedCount: booked,
+      spotsLeft: Math.max(capacity - booked, 0),
+      waitlistCount: c.bookings.filter((b) => b.status === "WAITLIST")
+        .length,
+      myBooking:
+        c.bookings.find((b) => b.personId === personId)?.status ?? null,
+      enrolled: enrolledIds.has(c.slot.academy.id),
+      academy: { id: c.slot.academy.id, name: c.slot.academy.name },
+      instructor: c.instructorId
+        ? {
+            id: c.instructorId,
+            name: instructorName.get(c.instructorId) ?? null,
+          }
+        : null,
+      series: {
+        id: c.slot.series.id,
+        name: c.slot.series.name,
+        level: c.slot.series.level,
+        style: c.slot.series.style,
+        dropInPrice: c.slot.series.dropInPrice,
+        // Modalidad efectiva: el horario propio gana sobre la serie
+        // (slot.types vacío = hereda series.types).
+        types: (c.slot.types.length
+          ? c.slot.types
+          : c.slot.series.types
+        ).map((x) => x.type),
+      },
     };
   }
 
