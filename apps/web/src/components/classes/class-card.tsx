@@ -62,16 +62,6 @@ export function ClassCard({
           href={`/clases/${cls.id}`}
           className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
-          {/* Estado de reserva: badge top-left dentro del card — es lo
-              primero que lee el usuario, no compite con el CTA */}
-          {booked && (
-            <Badge
-              variant={cls.myBooking === "BOOKED" ? "neon" : "outline"}
-              className="mb-1"
-            >
-              {cls.myBooking === "BOOKED" ? t("booked") : t("waitlist")}
-            </Badge>
-          )}
           {when && (
             <p className="mb-0.5 text-xs font-medium text-neon">{when}</p>
           )}
@@ -106,11 +96,19 @@ export function ClassCard({
             </p>
           )}
         </Link>
-        {/* Acción (solo cuando no está reservada): grid 1fr/auto/1fr —
-            el botón queda en el centro vertical exacto del card y el
-            caption de cupos cuelga debajo sin moverlo. Cancelar NO va
-            en el card — la acción destructiva vive al pie de la ficha. */}
-        {!booked && (
+        {/* Reservado/Espera: badge arriba a la derecha del card.
+            Sin reserva: grid 1fr/auto/1fr — el botón queda en el
+            centro vertical exacto y el caption de cupos cuelga debajo
+            sin moverlo. Cancelar NO va en el card — la acción
+            destructiva vive al pie de la ficha. */}
+        {booked ? (
+          <Badge
+            variant={cls.myBooking === "BOOKED" ? "neon" : "outline"}
+            className="shrink-0 self-start"
+          >
+            {cls.myBooking === "BOOKED" ? t("booked") : t("waitlist")}
+          </Badge>
+        ) : (
           <div className="grid shrink-0 grid-rows-[1fr_auto_1fr] py-0.5 text-right">
             <span aria-hidden="true" />
             {!cls.enrolled ? (
