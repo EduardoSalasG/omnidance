@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Badge, Button } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 
 // GET /classes/browse — clase materializada futura con contexto de serie.
 // También la devuelve /home/stats (nextClass del learner) con el mismo shape.
@@ -120,10 +121,11 @@ export function ClassCard({
           {when && (
             <p className="mb-0.5 text-xs font-medium text-neon">{when}</p>
           )}
-          {/* Estilo solo como título — es lo que el dancer busca */}
-          <h2 className="truncate text-base font-semibold leading-snug">
+          {/* Estilo solo como título — es lo que el dancer busca.
+              h3: h2 lo tienen las secciones (semana / día / home). */}
+          <h3 className="truncate text-base font-semibold leading-snug">
             {style?.name ?? cls.series.name}
-          </h2>
+          </h3>
           {/* Academia chip neon + tipo outline + nivel muted — tres
               variantes, tres jerarquías distinguibles. */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -196,10 +198,12 @@ export function ClassCard({
               disabled={busy}
               onClick={() => onBook(cls)}
             >
+              {busy && <Spinner size="sm" />}
               {t("joinWaitlist")}
             </Button>
           ) : (
             <Button size="sm" disabled={busy} onClick={() => onBook(cls)}>
+              {busy && <Spinner size="sm" />}
               {t("book")}
             </Button>
           )}

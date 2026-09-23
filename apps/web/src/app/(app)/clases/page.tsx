@@ -89,6 +89,11 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   month: "short",
   timeZone: "UTC",
 });
+// Nombre completo del día para lectores de pantalla (la letra visual
+// L/M/M/J… queda aria-hidden en la celda del calendario).
+const weekdayNameFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "long",
+});
 
 const genreDot = (g: string | null | undefined) =>
   DOT_COLOR[(g ?? "") as GenreKey] ?? "bg-white/50";
@@ -433,13 +438,13 @@ function ClasesInner() {
 
   // ─── Clases compartidas con /eventos ───
   const chipClass = (active: boolean) =>
-    `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] ${
+    `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
       active
         ? "border-neon bg-neon/15 text-neon"
         : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
     }`;
   const iconBtn = (active: boolean) =>
-    `inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
+    `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
 
@@ -562,6 +567,8 @@ function ClasesInner() {
                 (mismo control que /eventos) */}
             <div
               data-tour="cl-views"
+              role="group"
+              aria-label={t("viewsLabel")}
               className="flex items-center rounded-full border border-white/15 p-0.5"
             >
               <Link
@@ -647,15 +654,17 @@ function ClasesInner() {
                 <div className="flex items-center rounded-full border border-white/15 p-0.5">
                   <Link
                     href={hrefFor({ scope: undefined })}
-                    aria-pressed={scope === "todas"}
-                    className={`${chipClass(scope === "todas")} min-h-9 border-0 px-3`}
+                    aria-current={scope === "todas" ? "true" : undefined}
+                    className={`${chipClass(scope === "todas")} border-0 px-3`}
                   >
                     {t("scopeAll")}
                   </Link>
                   <Link
                     href={hrefFor({ scope: "reservadas" })}
-                    aria-pressed={scope === "reservadas"}
-                    className={`${chipClass(scope === "reservadas")} min-h-9 border-0 px-3`}
+                    aria-current={
+                      scope === "reservadas" ? "true" : undefined
+                    }
+                    className={`${chipClass(scope === "reservadas")} border-0 px-3`}
                   >
                     {t("scopeBooked")}
                   </Link>
@@ -730,6 +739,17 @@ function ClasesInner() {
         )}
       </header>
 
+      {/* Feedback de reservar/cancelar junto al contenido — al final
+          del main quedaba fuera de pantalla en listas largas. */}
+      {notice && (
+        <p
+          role={notice.error ? "alert" : "status"}
+          className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
+        >
+          {notice.text}
+        </p>
+      )}
+
       {view === "history" ? (
         /* ─── Historial — progreso personal, no competitivo (spec §9) ─── */
         <section aria-label={t("history")} className="flex flex-col gap-3">
@@ -763,35 +783,42 @@ function ClasesInner() {
               <div className="flex flex-col gap-5">
                 {groupByDay(history).map((g) =>
                   renderDayGroup(g, (h: HistoryItem) => (
-                    <li key={h.classId} className={cardCls}>
-                      <div className="flex items-baseline justify-between gap-3">
-                        <p className="truncate font-medium">{h.series.name}</p>
-                        <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
-                          {h.startTime}–{h.endTime}
-                        </p>
-                      </div>
-                      <div className="mt-0.5 flex items-center justify-between gap-2">
-                        <p className="truncate text-xs text-white/60">
-                          {h.academy.name}
-                          {h.series.level?.name
-                            ? ` · ${h.series.level.name}`
-                            : ""}
-                          {h.series.style?.name
-                            ? ` · ${h.series.style.name}`
-                            : ""}
-                        </p>
-                        <Badge
-                          variant={
-                            h.status === "attended"
-                              ? "neon"
-                              : h.status === "booked"
-                                ? "outline"
-                                : "muted"
-                          }
-                        >
-                          {t(`historyStatus.${h.status}`)}
-                        </Badge>
-                      </div>
+                    <li key={h.classId}>
+                      {/* Fila → ficha de la clase (misma navegación que
+                          los demás cards del dominio). */}
+                      <Link
+                        href={`/clases/${h.classId}`}
+                        className={`${cardCls} block transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon`}
+                      >
+                        <div className="flex items-baseline justify-between gap-3">
+                          <p className="truncate font-medium">{h.series.name}</p>
+                          <p className="shrink-0 text-sm font-medium tabular-nums text-white/70">
+                            {h.startTime}–{h.endTime}
+                          </p>
+                        </div>
+                        <div className="mt-0.5 flex items-center justify-between gap-2">
+                          <p className="truncate text-xs text-white/60">
+                            {h.academy.name}
+                            {h.series.level?.name
+                              ? ` · ${h.series.level.name}`
+                              : ""}
+                            {h.series.style?.name
+                              ? ` · ${h.series.style.name}`
+                              : ""}
+                          </p>
+                          <Badge
+                            variant={
+                              h.status === "attended"
+                                ? "neon"
+                                : h.status === "booked"
+                                  ? "outline"
+                                  : "muted"
+                            }
+                          >
+                            {t(`historyStatus.${h.status}`)}
+                          </Badge>
+                        </div>
+                      </Link>
                     </li>
                   )),
                 )}
@@ -832,8 +859,14 @@ function ClasesInner() {
               </svg>
             </Link>
           </div>
-          {/* Franja semanal: letra del día + número + dots por género */}
-          <div role="grid" className="grid grid-cols-7 gap-1" aria-label={t("viewCalendar")}>
+          {/* Franja semanal: letra del día + número + dots por género.
+              No es role="grid" (sin navegación por flechas ni celdas
+              semánticas) — es un grupo de links con nombres completos. */}
+          <div
+            role="group"
+            className="grid grid-cols-7 gap-1"
+            aria-label={t("viewCalendar")}
+          >
             {cells.map((cell, i) => {
               const isToday = cell.key === todayKey;
               const isSelected = cell.key === selectedDay;
@@ -847,9 +880,16 @@ function ClasesInner() {
                       id: c.id,
                       genre: c.series.style?.genre,
                     }));
+              // "lunes 22" completo para SR — la letra es aria-hidden.
+              const dayName = weekdayNameFmt.format(
+                new Date(`${cell.key}T12:00:00`),
+              );
               const inner = (
                 <>
-                  <span className="text-[10px] font-semibold uppercase text-white/40">
+                  <span
+                    aria-hidden="true"
+                    className="text-[10px] font-semibold uppercase text-white/40"
+                  >
                     {WEEKDAY_HEADERS[i]}
                   </span>
                   <span
@@ -879,12 +919,14 @@ function ClasesInner() {
               }`;
               return cell.items.length === 0 ? (
                 <div key={cell.key} className={cellClass}>
+                  <span className="sr-only">{dayName}</span>
                   {inner}
                 </div>
               ) : (
                 <Link
                   key={cell.key}
                   href={hrefFor({ day: cell.key })}
+                  aria-label={`${dayName} ${cell.day} — ${t("dayClasses", { count: dots.length })}`}
                   aria-current={isSelected ? "date" : undefined}
                   className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
                 >
@@ -1047,15 +1089,6 @@ function ClasesInner() {
               </div>
             ))}
         </>
-      )}
-
-      {notice && (
-        <p
-          role={notice.error ? "alert" : "status"}
-          className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
-        >
-          {notice.text}
-        </p>
       )}
 
       {/* Tour de primera visita — el switcher y el ícono de Explorar
