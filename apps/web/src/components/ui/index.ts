@@ -25,3 +25,5 @@ export { NavPendingOverlay } from "./nav-pending";
 
 export { GenreMixBar, aggregateMix } from "./GenreMixBar";
 export type { GenreMixBlock } from "./GenreMixBar";
+
+export { LevelBars } from "./level-bars";
