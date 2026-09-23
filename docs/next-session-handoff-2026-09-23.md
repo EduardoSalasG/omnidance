@@ -117,8 +117,9 @@ reservadas solo badge + filtro (sin sección pineada).
   vista `mine`; `view=mine` legado redirige a list+reservadas.
 - En explore, cards de academias sin inscripción muestran "Requiere
   inscripción" en vez del botón Reservar (flag `enrolled` del browse),
-  y la academia va como chip `neon` en la fila de badges
-  (`academyChip` prop de ClassCard — off en mis academias/home).
+  y la academia va como chip `neon` (sin uppercase) en todos los
+  cards de clase — ClassCard (list/calendar/explore/home), card
+  wallet de reservadas y chips de la ficha `/clases/:id`.
 - `ClassBookingCta` (ficha) recibe `enrolled` y muestra el mismo estado.
 - El card del explorador vive en `components/classes/class-card.tsx`
   (`ClassCard` + `ClassCardData` + `CancelBookingButton`); `/clases` y
