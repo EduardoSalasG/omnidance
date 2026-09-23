@@ -8,9 +8,13 @@ import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
-import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
+import {
+  BookingCard,
+  ClassCard,
+  type BookingCardData,
+  type ClassCardData,
+} from "@/components/classes/class-card";
 import { readError } from "@/components/academy/shared";
 import { localDayKey } from "@/lib/calendar";
 import {
@@ -27,8 +31,6 @@ type Me = {
 
 type Kpi = { key: string; value: number; format?: "clp" };
 type NextItem = { id: string; name: string; when: string; place: string | null };
-/** Reserva activa del learner en una clase futura (HomeStats.myClasses). */
-type MyClass = NextItem & { status: "BOOKED" | "WAITLIST" };
 
 // Evento de la escena nocturna — lo que decide "¿salgo hoy?":
 // género, precio, amigos que van, preventas restantes.
@@ -57,7 +59,7 @@ type HomeStats = {
   nextClass?: ClassCardData | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
-  myClasses?: MyClass[];
+  myClasses?: BookingCardData[];
   needsAcademy?: boolean;
 };
 
@@ -370,8 +372,9 @@ export function HomeHub() {
   } | null>(null);
   // Contador de reintento: el efecto de stats lo escucha para refetchear.
   const [statsRetry, setStatsRetry] = useState(0);
-  // Reservar/cancelar desde el card de próxima clase (lente Academia).
-  const [classBusy, setClassBusy] = useState(false);
+  // Reservar/cancelar desde los cards de clase (lente Academia) —
+  // busyId por card: hay varias (próxima clase + tus próximas).
+  const [classBusyId, setClassBusyId] = useState<string | null>(null);
   const [classError, setClassError] = useState<string | null>(null);
   const activeRole = useActiveRole(me?.roles);
   const viewMode = useViewMode();
@@ -421,7 +424,7 @@ export function HomeHub() {
   // Reservar/cancelar la próxima clase desde el home — mismo contrato
   // que /clases; tras mutar se refetchean los stats de la lente.
   async function bookNextClass(cls: ClassCardData): Promise<void> {
-    setClassBusy(true);
+    setClassBusyId(cls.id);
     setClassError(null);
     try {
       const res = await apiFetch(`/classes/${cls.id}/book`, {
@@ -435,12 +438,12 @@ export function HomeHub() {
     } catch {
       setClassError(tcl("error"));
     } finally {
-      setClassBusy(false);
+      setClassBusyId(null);
     }
   }
 
   async function cancelNextClass(classId: string): Promise<void> {
-    setClassBusy(true);
+    setClassBusyId(classId);
     setClassError(null);
     try {
       const res = await apiFetch(`/classes/${classId}/book`, {
@@ -454,7 +457,7 @@ export function HomeHub() {
     } catch {
       setClassError(tcl("error"));
     } finally {
-      setClassBusy(false);
+      setClassBusyId(null);
     }
   }
 
@@ -672,7 +675,7 @@ export function HomeHub() {
                     ? te("today")
                     : classUtcDayFmt.format(new Date(stats.nextClass.date))
                 } · ${stats.nextClass.startTime}–${stats.nextClass.endTime}`}
-                busy={classBusy}
+                busy={classBusyId === stats.nextClass.id}
                 onBook={(c) => void bookNextClass(c)}
                 onCancel={(id) => void cancelNextClass(id)}
               />
@@ -711,42 +714,27 @@ export function HomeHub() {
             </section>
           )}
 
-          {/* Tus próximas clases — las reservas reales del learner
-              (BOOKED/WAITLIST), próximas primero, máx 3. */}
+          {/* Tus próximas clases — reservas del learner (BOOKED/
+              WAITLIST), máx 3, con el mismo card wallet de
+              /clases?scope=reservadas (QR + cancelar incluidos). */}
           {dancerAcademy && (stats?.myClasses?.length ?? 0) > 0 && (
             <section aria-label={t("myClassesTitle")}>
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("myClassesTitle")}
               </h2>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-3">
                 {stats!.myClasses!.map((c) => (
-                  <li key={c.id}>
-                    {/* Fila → ficha de la clase (directo, no al listado) */}
-                    <Link
-                      href={`/clases/${c.id}`}
-                      className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/60 p-3 transition-colors hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-white">
-                          {c.name}
-                        </p>
-                        <p className="truncate text-xs text-white/50">
-                          {/* class.date = medianoche UTC — comparar día
-                              por prefijo ISO, no por instante local. */}
-                          {c.when.slice(0, 10) === localDayKey(new Date())
-                            ? te("today")
-                            : classUtcDayFmt.format(new Date(c.when))}
-                          {c.place ? ` · ${c.place}` : ""}
-                        </p>
-                      </div>
-                      <Badge
-                        variant={c.status === "BOOKED" ? "neon" : "outline"}
-                      >
-                        {c.status === "BOOKED"
-                          ? tcl("booked")
-                          : tcl("waitlist")}
-                      </Badge>
-                    </Link>
+                  <li key={c.bookingId}>
+                    <BookingCard
+                      b={c}
+                      when={`${
+                        c.date.slice(0, 10) === localDayKey(new Date())
+                          ? te("today")
+                          : classUtcDayFmt.format(new Date(c.date))
+                      }`}
+                      busy={classBusyId === c.classId}
+                      onCancel={(id) => void cancelNextClass(id)}
+                    />
                   </li>
                 ))}
               </ul>

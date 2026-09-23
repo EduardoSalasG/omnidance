@@ -128,6 +128,15 @@ reservadas solo badge + filtro (sin sección pineada).
   reserva bajo el header (antes al final del main), spinner inline en
   Reservar, filas de historial → ficha, home myClasses → ficha directa
   + fix "Hoy" en TZ negativas (prefijo ISO vs localDayKey).
+- Normalización de cards: el card wallet de reservadas se extrajo como
+  `BookingCard` (+`BookingCardData`) en class-card.tsx — /clases y el
+  home lo comparten. `home/stats?mode=academy` → `myClasses` con shape
+  completo (bookingId/classId/date/weekday/horarios/academy/series).
+  Layout de `ClassCard` ordenado: acción primaria arriba alineada al
+  título, "Cancelar" abajo alineado a la línea meta (justify-between),
+  meta profesor+cupo en una sola línea, chip academia con max-w.
+  OJO: `home/stats` sin `?mode=` devuelve la lente social — el smoke
+  debe pasar `?mode=academy`.
 - El card del explorador vive en `components/classes/class-card.tsx`
   (`ClassCard` + `ClassCardData` + `CancelBookingButton`); `/clases` y
   el home Academia lo comparten. `home/stats.nextClass` devuelve el

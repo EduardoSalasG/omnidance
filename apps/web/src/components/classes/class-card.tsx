@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Badge, Button } from "@/components/ui";
+import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/spinner";
 
 // GET /classes/browse — clase materializada futura con contexto de serie.
@@ -108,12 +109,13 @@ export function ClassCard({
   const t = useTranslations("classes");
   const full = cls.spotsLeft <= 0;
   const style = cls.series.style;
+  const booked = cls.myBooking === "BOOKED" || cls.myBooking === "WAITLIST";
   return (
     <div className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
-      <div className="flex items-start gap-3">
-        {/* Contenido en 4 líneas: estilo (título) / tipo+nivel
-            diferenciados / academia+profe / cupo. El bloque entero
-            linkea a la ficha de la clase. */}
+      {/* Acción anclada a los bordes: primaria arriba (alineada al
+          título), "Cancelar" abajo (alineado a la línea meta). Así la
+          columna derecha no queda ragged aunque el contenido varíe. */}
+      <div className="flex items-stretch gap-3">
         <Link
           href={`/clases/${cls.id}`}
           className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
@@ -127,10 +129,13 @@ export function ClassCard({
             {style?.name ?? cls.series.name}
           </h3>
           {/* Academia chip neon + tipo outline + nivel muted — tres
-              variantes, tres jerarquías distinguibles. */}
+              variantes, tres jerarquías distinguibles. Academy es
+              nombre propio: sin uppercase y con tope de ancho. */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {/* Academy = nombre propio: sin el uppercase del Badge */}
-            <Badge variant="neon" className="normal-case tracking-normal">
+            <Badge
+              variant="neon"
+              className="max-w-44 truncate normal-case tracking-normal"
+            >
               {cls.academy.name}
             </Badge>
             {cls.series.types.map((x) => (
@@ -142,49 +147,39 @@ export function ClassCard({
               <Badge variant="muted">{cls.series.level.name}</Badge>
             )}
           </div>
-          {/* Profesor (la academia ya está en el chip) */}
-          {cls.instructor?.name && (
-            <p className="mt-1 truncate text-xs text-white/50">
-              {cls.instructor.name}
-            </p>
-          )}
-          <p
-            className={`mt-1 text-xs font-medium ${
-              full
-                ? "text-white/50"
+          {/* Meta en una sola línea: profesor + cupo. Menos líneas =
+              alturas de card consistentes y lectura en un barrido. */}
+          <p className="mt-1.5 truncate text-xs">
+            {cls.instructor?.name && (
+              <span className="text-white/50">
+                {cls.instructor.name}
+                <span aria-hidden="true"> · </span>
+              </span>
+            )}
+            <span
+              className={`font-medium ${
+                full
+                  ? "text-white/50"
+                  : cls.spotsLeft <= 3
+                    ? "text-amber-300"
+                    : "text-neon"
+              }`}
+            >
+              {full
+                ? cls.waitlistCount > 0
+                  ? `${t("full")} · ${t("waitlistCount", { count: cls.waitlistCount })}`
+                  : t("full")
                 : cls.spotsLeft <= 3
-                  ? "text-amber-300"
-                  : "text-neon"
-            }`}
-          >
-            {full
-              ? cls.waitlistCount > 0
-                ? `${t("full")} · ${t("waitlistCount", { count: cls.waitlistCount })}`
-                : t("full")
-              : cls.spotsLeft <= 3
-                ? t("lastSpots", { count: cls.spotsLeft })
-                : t("spotsLeft", { count: cls.spotsLeft })}
+                  ? t("lastSpots", { count: cls.spotsLeft })
+                  : t("spotsLeft", { count: cls.spotsLeft })}
+            </span>
           </p>
         </Link>
-        {/* Acción — reservar / espera / estado + cancelar (fuera del
-            link para no anidar interactivos) */}
-        <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
+        <div className="flex shrink-0 flex-col items-end justify-between py-0.5">
           {cls.myBooking === "BOOKED" ? (
-            <>
-              <Badge variant="neon">{t("booked")}</Badge>
-              <CancelBookingButton
-                busy={busy}
-                onConfirm={() => onCancel(cls.id)}
-              />
-            </>
+            <Badge variant="neon">{t("booked")}</Badge>
           ) : cls.myBooking === "WAITLIST" ? (
-            <>
-              <Badge variant="outline">{t("waitlist")}</Badge>
-              <CancelBookingButton
-                busy={busy}
-                onConfirm={() => onCancel(cls.id)}
-              />
-            </>
+            <Badge variant="outline">{t("waitlist")}</Badge>
           ) : !cls.enrolled ? (
             // Academia ajena (vista explore): sin inscripción vigente
             // no hay reserva — el API lo rechazaría con 403.
@@ -207,8 +202,83 @@ export function ClassCard({
               {t("book")}
             </Button>
           )}
+          {booked && (
+            <CancelBookingButton
+              busy={busy}
+              onConfirm={() => onCancel(cls.id)}
+            />
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+// GET /classes/mine — reserva activa del learner. También la devuelve
+// /home/stats (myClasses) con el mismo shape.
+export type BookingCardData = {
+  bookingId: string;
+  status: "BOOKED" | "WAITLIST";
+  classId: string;
+  date: string;
+  weekday: number;
+  startTime: string;
+  endTime: string;
+  academy: { id: string; name: string };
+  series: {
+    name: string;
+    level: { id: string; name: string } | null;
+    style: { id: string; name: string; genre: string | null } | null;
+  };
+};
+
+// Card wallet de una reserva (símil de Mis entradas): datos de la clase
+// + credencial QR + cancelación. `when` = etiqueta de día ("Hoy", fecha)
+// que en /clases dan los headings de grupo.
+export function BookingCard({
+  b,
+  when,
+  busy,
+  onCancel,
+}: {
+  b: BookingCardData;
+  when: string;
+  busy: boolean;
+  onCancel: (classId: string) => void;
+}) {
+  const t = useTranslations("classes");
+  return (
+    <Card className="flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-4">
+        <Link
+          href={`/clases/${b.classId}`}
+          className="flex min-w-0 flex-col gap-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        >
+          <p className="truncate text-lg font-semibold">{b.series.name}</p>
+          <p className="text-sm text-white/60">
+            {when} · {b.startTime}–{b.endTime}
+          </p>
+          {/* Academy = nombre propio: chip neon como en los demás cards */}
+          <Badge
+            variant="neon"
+            className="self-start normal-case tracking-normal"
+          >
+            {b.academy.name}
+          </Badge>
+        </Link>
+        <Badge variant={b.status === "BOOKED" ? "neon" : "outline"}>
+          {b.status === "BOOKED" ? t("booked") : t("waitlist")}
+        </Badge>
+      </div>
+      {/* El QR es la credencial de check-in — misma fila que el ticket */}
+      <Link
+        href="/qr"
+        className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
+      >
+        <span>{t("qrHint")}</span>
+        <span aria-hidden="true">→</span>
+      </Link>
+      <CancelBookingButton busy={busy} onConfirm={() => onCancel(b.classId)} />
+    </Card>
   );
 }

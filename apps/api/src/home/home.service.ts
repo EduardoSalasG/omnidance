@@ -79,8 +79,23 @@ export type HomeStats = {
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
   /** Reservas activas del learner (BOOKED/WAITLIST) en clases futuras —
-      "tus próximas clases" del home Academia. */
-  myClasses?: (NextItem & { status: string })[];
+      "tus próximas clases" del home Academia. Shape completo del card
+      wallet (BookingCardData en web, igual que GET /classes/mine). */
+  myClasses?: {
+    bookingId: string;
+    status: string;
+    classId: string;
+    date: Date;
+    weekday: number;
+    startTime: string;
+    endTime: string;
+    academy: { id: string; name: string };
+    series: {
+      name: string;
+      level: { id: string; name: string } | null;
+      style: { id: string; name: string; genre: string | null } | null;
+    };
+  }[];
   needsAcademy?: boolean;
 };
 
@@ -429,6 +444,7 @@ export class HomeService {
         orderBy: { class: { date: "asc" } },
         take: 3,
         select: {
+          id: true,
           status: true,
           class: {
             select: {
@@ -436,9 +452,19 @@ export class HomeService {
               date: true,
               slot: {
                 select: {
+                  weekday: true,
                   startTime: true,
-                  academy: { select: { name: true } },
-                  series: { select: { name: true } },
+                  endTime: true,
+                  academy: { select: { id: true, name: true } },
+                  series: {
+                    select: {
+                      name: true,
+                      level: { select: { id: true, name: true } },
+                      style: {
+                        select: { id: true, name: true, genre: true },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -508,11 +534,22 @@ export class HomeService {
           })()
         : null,
       myClasses: myBookings.map((b) => ({
-        id: b.class.id,
-        name: b.class.slot.series.name,
-        when: b.class.date,
-        place: `${b.class.slot.startTime} · ${b.class.slot.academy.name}`,
+        bookingId: b.id,
         status: b.status,
+        classId: b.class.id,
+        date: b.class.date,
+        weekday: b.class.slot.weekday,
+        startTime: b.class.slot.startTime,
+        endTime: b.class.slot.endTime,
+        academy: {
+          id: b.class.slot.academy.id,
+          name: b.class.slot.academy.name,
+        },
+        series: {
+          name: b.class.slot.series.name,
+          level: b.class.slot.series.level,
+          style: b.class.slot.series.style,
+        },
       })),
     };
   }

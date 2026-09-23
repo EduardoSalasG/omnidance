@@ -12,8 +12,9 @@ import {
 } from "@/components/onboarding/OnboardingRunner";
 import { readError } from "@/components/academy/shared";
 import {
-  CancelBookingButton,
+  BookingCard,
   ClassCard,
+  type BookingCardData,
   type ClassCardData,
 } from "@/components/classes/class-card";
 import {
@@ -33,23 +34,9 @@ import type { GenreKey } from "@/lib/calendar";
 // serie. El shape vive en el componente del card (lo reusa el home).
 type BrowseClass = ClassCardData;
 
-type MyBooking = {
-  bookingId: string;
-  status: "BOOKED" | "WAITLIST";
-  classId: string;
-  date: string;
-  // weekday + ids de estilo/nivel: los filtros de reservadas resuelven
-  // client-side sobre estos campos (/classes/mine no acepta params).
-  weekday: number;
-  startTime: string;
-  endTime: string;
-  academy: { id: string; name: string };
-  series: {
-    name: string;
-    level: { id: string; name: string } | null;
-    style: { id: string; name: string; genre: string | null } | null;
-  };
-};
+// Ids de estilo/nivel: los filtros de reservadas resuelven client-side
+// sobre estos campos (/classes/mine no acepta params).
+type MyBooking = BookingCardData;
 
 // GET /classes/mine?scope=past — historial del alumno (spec §9):
 // asistencia prevalece sobre la reserva de la misma clase.
@@ -461,40 +448,15 @@ function ClasesInner() {
     </li>
   );
 
-  // ─── Card wallet de "Mis clases" (símil de Mis entradas) ───
+  // ─── Card wallet de "Mis clases" (componente compartido con home) ───
   const renderMyCard = (b: MyBooking) => (
     <li key={b.bookingId}>
-      <Card className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-4">
-          <Link
-            href={`/clases/${b.classId}`}
-            className="flex min-w-0 flex-col gap-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-          >
-            <p className="truncate text-lg font-semibold">{b.series.name}</p>
-            <p className="text-sm text-white/60">
-              {dayLabel(classDayKey(b.date), b.date)} · {b.startTime}–{b.endTime}
-            </p>
-            <Badge variant="neon" className="self-start normal-case tracking-normal">
-              {b.academy.name}
-            </Badge>
-          </Link>
-          <Badge variant={b.status === "BOOKED" ? "neon" : "outline"}>
-            {b.status === "BOOKED" ? t("booked") : t("waitlist")}
-          </Badge>
-        </div>
-        {/* El QR es la credencial de check-in — misma fila que el ticket */}
-        <Link
-          href="/qr"
-          className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
-        >
-          <span>{t("qrHint")}</span>
-          <span aria-hidden="true">→</span>
-        </Link>
-        <CancelBookingButton
-          busy={busyId === b.classId}
-          onConfirm={() => void cancelBooking(b.classId)}
-        />
-      </Card>
+      <BookingCard
+        b={b}
+        when={dayLabel(classDayKey(b.date), b.date)}
+        busy={busyId === b.classId}
+        onCancel={(id) => void cancelBooking(id)}
+      />
     </li>
   );
 
