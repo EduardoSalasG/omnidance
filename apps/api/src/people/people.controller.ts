@@ -8,15 +8,21 @@ import {
   HttpCode,
   Patch,
   Post,
+  Put,
   Req,
   UseGuards,
 } from "@nestjs/common";
+import { Type } from "class-transformer";
 import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
@@ -46,6 +52,31 @@ class UpdateMeDto {
   @IsString()
   @MaxLength(31) // 30 + '@' inicial tolerado (se normaliza abajo)
   instagram?: string | null;
+}
+
+// Nivel autodeclarado del bailarín — valores sembrados por el seed y
+// elegidos en /perfil/datos ("Tu baile").
+const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"] as const;
+const DANCE_ROLES = ["LEADER", "FOLLOWER", "SWITCH"] as const;
+
+class StyleRoleItemDto {
+  @IsString()
+  styleId!: string;
+
+  @IsIn(DANCE_ROLES)
+  role!: (typeof DANCE_ROLES)[number];
+
+  @IsOptional()
+  @IsIn(DANCE_LEVELS)
+  level?: (typeof DANCE_LEVELS)[number] | null;
+}
+
+class UpdateStyleRolesDto {
+  @IsArray()
+  @ArrayMaxSize(30)
+  @ValidateNested({ each: true })
+  @Type(() => StyleRoleItemDto)
+  items!: StyleRoleItemDto[];
 }
 
 class OnboardingDto {
@@ -142,6 +173,52 @@ export class PeopleController {
     }
     await this.prisma.person.update({ where: { id: personId }, data });
     return { ok: true };
+  }
+
+  /**
+   * PUT /me/style-roles — reemplazo total de los roles de baile
+   * autodeclarados (sección "Tu baile" de /perfil/datos). Semántica
+   * PUT: la lista enviada ES el estado final — filas ausentes se borran.
+   * Dedupe por la unique key (styleId, role): el último ítem gana.
+   */
+  @Put("me/style-roles")
+  @UseGuards(SessionGuard)
+  async updateStyleRoles(@Req() req: Request, @Body() dto: UpdateStyleRolesDto) {
+    const personId = req.person!.id;
+    const byKey = new Map<string, StyleRoleItemDto>();
+    for (const item of dto.items) {
+      byKey.set(`${item.styleId}:${item.role}`, item);
+    }
+    const items = [...byKey.values()];
+    const styleIds = [...new Set(items.map((i) => i.styleId))];
+    const found = await this.prisma.style.count({
+      where: { id: { in: styleIds } },
+    });
+    if (found !== styleIds.length) {
+      throw new BadRequestException("estilo inválido");
+    }
+    await this.prisma.$transaction([
+      this.prisma.personStyleRole.deleteMany({ where: { personId } }),
+      this.prisma.personStyleRole.createMany({
+        data: items.map((i) => ({
+          personId,
+          styleId: i.styleId,
+          role: i.role,
+          level: i.level ?? null,
+        })),
+      }),
+    ]);
+    // Devuelve la lista fresca con el mismo shape de GET /me — el front
+    // actualiza su estado sin refetch.
+    const styleRoles = await this.prisma.personStyleRole.findMany({
+      where: { personId },
+      select: {
+        role: true,
+        level: true,
+        style: { select: { id: true, name: true, genre: true } },
+      },
+    });
+    return { ok: true, styleRoles };
   }
 
   /** Marca un tour de primera visita como visto (merge sobre el JSON). */
