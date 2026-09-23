@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Badge, Button, Card } from "@/components/ui";
+import { Button, Card } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
 
 type Booking = "BOOKED" | "WAITLIST" | null;
@@ -39,6 +40,7 @@ export function ClassBookingCta({
 }) {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
+  const router = useRouter();
   const [booking, setBooking] = useState<Booking>(initialBooking);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -75,6 +77,9 @@ export function ClassBookingCta({
         text: status === "WAITLIST" ? t("waitlistOk") : t("bookedOk"),
         error: false,
       });
+      // El badge "Reservado" del header es server-rendered — refresh lo
+      // sincroniza sin perder el estado local del componente.
+      router.refresh();
     } catch {
       setNotice({ text: t("error"), error: true });
     } finally {
@@ -95,6 +100,7 @@ export function ClassBookingCta({
       }
       setBooking(null);
       setNotice({ text: t("cancelledOk"), error: false });
+      router.refresh();
     } catch {
       setNotice({ text: t("error"), error: true });
     } finally {
@@ -119,9 +125,70 @@ export function ClassBookingCta({
   return (
     <>
       {/* Barra de acción fija — flota sobre la BottomNav (4rem + safe
-          area), igual que la ficha de evento. */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-4 sm:px-6">
+          area), igual que la ficha de evento. Solo existe cuando hay
+          acción: reservada/en espera → el estado va en los chips del
+          header, no en la barra. */}
+      {!booking && (
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-4 sm:px-6">
+            {notice && (
+              <p
+                role={notice.error ? "alert" : "status"}
+                className={`text-sm ${notice.error ? "text-red-400" : "text-neon"}`}
+              >
+                {notice.text}
+              </p>
+            )}
+            {!enrolled ? (
+              <p className="text-center text-sm text-white/50">
+                {t("requiresEnrollment")}
+              </p>
+            ) : (
+              <div className="flex items-center justify-between gap-4">
+                {/* Cupo junto a la acción — la urgencia es referencia de
+                    decisión, mismo patrón que el rail del ClassCard. */}
+                <div className="min-w-0">
+                  <span className="block text-xs uppercase tracking-wide text-white/50">
+                    {t("capacityLabel")}
+                  </span>
+                  {full ? (
+                    <span className="text-sm font-semibold text-white/60">
+                      {t("full")}
+                      {waitlistCount > 0 && (
+                        <span className="text-white/40">
+                          {" "}
+                          · {t("waitlistCount", { count: waitlistCount })}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-lg font-semibold tabular-nums ${
+                        spotsLeft <= 3 ? "text-amber-300" : "text-neon"
+                      }`}
+                    >
+                      {spotsLeft} / {capacity}
+                    </span>
+                  )}
+                </div>
+                <Button
+                  disabled={busy}
+                  onClick={() => void book()}
+                  className="shrink-0"
+                >
+                  {full ? t("joinWaitlist") : t("book")}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pie: aviso post-reserva + zona destructiva centrada — patrón
+          "eliminar amigo": lejos del pulgar, la confirmación va en
+          bottom sheet (no inline ni window.confirm). */}
+      {booking && (
+        <div className="flex flex-col items-center gap-2 pt-2">
           {notice && (
             <p
               role={notice.error ? "alert" : "status"}
@@ -130,61 +197,6 @@ export function ClassBookingCta({
               {notice.text}
             </p>
           )}
-          {booking === "BOOKED" || booking === "WAITLIST" ? (
-            <div className="flex justify-center">
-              <Badge variant={booking === "BOOKED" ? "neon" : "outline"}>
-                {booking === "BOOKED" ? t("booked") : t("waitlist")}
-              </Badge>
-            </div>
-          ) : !enrolled ? (
-            <p className="text-center text-sm text-white/50">
-              {t("requiresEnrollment")}
-            </p>
-          ) : (
-            <div className="flex items-center justify-between gap-4">
-              {/* Cupo junto a la acción — la urgencia es referencia de
-                  decisión, mismo patrón que el rail del ClassCard. */}
-              <div className="min-w-0">
-                <span className="block text-xs uppercase tracking-wide text-white/50">
-                  {t("capacityLabel")}
-                </span>
-                {full ? (
-                  <span className="text-sm font-semibold text-white/60">
-                    {t("full")}
-                    {waitlistCount > 0 && (
-                      <span className="text-white/40">
-                        {" "}
-                        · {t("waitlistCount", { count: waitlistCount })}
-                      </span>
-                    )}
-                  </span>
-                ) : (
-                  <span
-                    className={`text-lg font-semibold tabular-nums ${
-                      spotsLeft <= 3 ? "text-amber-300" : "text-neon"
-                    }`}
-                  >
-                    {spotsLeft} / {capacity}
-                  </span>
-                )}
-              </div>
-              <Button
-                disabled={busy}
-                onClick={() => void book()}
-                className="shrink-0"
-              >
-                {full ? t("joinWaitlist") : t("book")}
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Zona destructiva al pie del contenido, centrada — patrón
-          "eliminar amigo": lejos del pulgar, la confirmación va en
-          bottom sheet (no inline ni window.confirm). */}
-      {booking && (
-        <div className="flex justify-center pt-2">
           <button
             type="button"
             disabled={busy}

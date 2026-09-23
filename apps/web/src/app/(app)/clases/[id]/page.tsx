@@ -129,6 +129,14 @@ export default async function ClaseDetailPage({
           <Badge variant="neon" className="normal-case tracking-normal">
             {cls.academy.name}
           </Badge>
+          {/* Mi reserva — mismo lugar semántico que el badge top-right
+              del ClassCard; se re-sincroniza vía router.refresh() tras
+              reservar/cancelar en la barra de acción. */}
+          {cls.myBooking === "BOOKED" ? (
+            <Badge variant="neon">{t.booked}</Badge>
+          ) : cls.myBooking === "WAITLIST" ? (
+            <Badge variant="outline">{t.waitlist}</Badge>
+          ) : null}
           {cls.cancelled && <Badge variant="outline">{t.cancelledTag}</Badge>}
           {cls.attended && <Badge variant="neon">{t.attendedTag}</Badge>}
         </div>
