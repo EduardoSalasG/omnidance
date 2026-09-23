@@ -57,13 +57,16 @@ type MyBooking = {
   status: "BOOKED" | "WAITLIST";
   classId: string;
   date: string;
+  // weekday + ids de estilo/nivel: los filtros de reservadas resuelven
+  // client-side sobre estos campos (/classes/mine no acepta params).
+  weekday: number;
   startTime: string;
   endTime: string;
   academy: { id: string; name: string };
   series: {
     name: string;
-    level: { name: string } | null;
-    style: { name: string; genre: string | null } | null;
+    level: { id: string; name: string } | null;
+    style: { id: string; name: string; genre: string | null } | null;
   };
 };
 
@@ -446,8 +449,16 @@ function ClasesInner() {
     const key = classDayKey(c.date);
     calByDay.set(key, [...(calByDay.get(key) ?? []), c]);
   }
+  // Reservadas filtradas: /classes/mine no acepta params — los chips de
+  // día y los dropdowns de estilo/nivel resuelven client-side por id.
+  const filteredMine = (mine ?? []).filter(
+    (b) =>
+      (!dow || b.weekday === Number(dow)) &&
+      (!styleId || b.series.style?.id === styleId) &&
+      (!levelId || b.series.level?.id === levelId),
+  );
   const myByDay = new Map<string, MyBooking[]>();
-  for (const b of mine ?? []) {
+  for (const b of filteredMine) {
     const key = classDayKey(b.date);
     myByDay.set(key, [...(myByDay.get(key) ?? []), b]);
   }
@@ -780,7 +791,7 @@ function ClasesInner() {
             El toggle Todas|Reservadas vive en list y calendar. */}
         {view !== "history" && (
           <>
-            {view !== "calendar" && scope === "todas" && (
+            {view !== "calendar" && (
               <nav
                 aria-label={t("filterDay")}
                 className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
@@ -805,8 +816,8 @@ function ClasesInner() {
             )}
 
             {/* Todas|Reservadas (patrón de /practicas) + dropdowns
-                estilo/nivel — los dropdowns filtran el browse, no
-                aplican al scope reservadas (datos de /classes/mine). */}
+                estilo/nivel — en browse van al servidor; en reservadas
+                filtran client-side sobre /classes/mine. */}
             <div className="flex items-center gap-2">
               {(view === "list" || view === "calendar") && (
                 <div className="flex items-center rounded-full border border-white/15 p-0.5">
@@ -826,9 +837,8 @@ function ClasesInner() {
                   </Link>
                 </div>
               )}
-              {scope === "todas" ? (
-                <>
-                  <details key={styleId || "all-styles"} className="relative">
+              <>
+                <details key={styleId || "all-styles"} className="relative">
                     <summary
                       className={`${chipClass(!!styleId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
                     >
@@ -859,7 +869,7 @@ function ClasesInner() {
                       ))}
                     </ul>
                   </details>
-                  <details key={levelId || "all-levels"} className="relative">
+                <details key={levelId || "all-levels"} className="relative">
                     <summary
                       className={`${chipClass(!!levelId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
                     >
@@ -889,9 +899,8 @@ function ClasesInner() {
                         </li>
                       ))}
                     </ul>
-                  </details>
-                </>
-              ) : null}
+                </details>
+              </>
             </div>
           </>
         )}
@@ -1121,10 +1130,15 @@ function ClasesInner() {
             </div>
           )}
           {mineState === "ready" &&
-            (mine && mine.length > 0 ? (
+            (filteredMine.length > 0 ? (
               <div className="flex flex-col gap-5">
-                {groupByDay(mine).map((g) => renderDayGroup(g, renderMyCard))}
+                {groupByDay(filteredMine).map((g) =>
+                  renderDayGroup(g, renderMyCard),
+                )}
               </div>
+            ) : (mine?.length ?? 0) > 0 ? (
+              // Hay reservas pero los filtros las excluyen todas.
+              <p className="text-sm text-white/60">{t("empty")}</p>
             ) : (
               <Card className="flex flex-col items-center gap-4 py-10 text-center">
                 <p role="status" className="text-white/70">

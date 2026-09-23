@@ -229,14 +229,17 @@ export class ClassesController {
             date: true,
             slot: {
               select: {
+                weekday: true,
                 startTime: true,
                 endTime: true,
                 academy: { select: { id: true, name: true } },
                 series: {
                   select: {
                     name: true,
-                    level: { select: { name: true } },
-                    style: { select: { name: true, genre: true } },
+                    // ids incluidos: la vista reservadas de /clases
+                    // filtra por estilo/nivel client-side con ellos.
+                    level: { select: { id: true, name: true } },
+                    style: { select: { id: true, name: true, genre: true } },
                   },
                 },
               },
@@ -250,6 +253,7 @@ export class ClassesController {
       status: r.status,
       classId: r.class.id,
       date: r.class.date,
+      weekday: r.class.slot.weekday,
       startTime: r.class.slot.startTime,
       endTime: r.class.slot.endTime,
       academy: r.class.slot.academy,
