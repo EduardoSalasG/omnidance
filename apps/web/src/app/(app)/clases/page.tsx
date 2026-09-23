@@ -110,9 +110,6 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   timeZone: "UTC",
 });
 
-// Orden del filtro de día: lunes → domingo (weekday 0 = domingo al final).
-const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0] as const;
-
 const genreDot = (g: string | null | undefined) =>
   DOT_COLOR[(g ?? "") as GenreKey] ?? "bg-white/50";
 
@@ -181,7 +178,6 @@ export default function ClasesPage() {
 
 function ClasesInner() {
   const t = useTranslations("classes");
-  const ta = useTranslations("academy");
   const tc = useTranslations("common");
   const te = useTranslations("events");
   const tt = useTranslations("tours.clases");
@@ -195,7 +191,6 @@ function ClasesInner() {
     rawView === "calendar" || rawView === "history" || rawView === "explore"
       ? rawView
       : "list";
-  const dow = searchParams.get("dow") ?? "";
   const styleId = searchParams.get("style") ?? "";
   const levelId = searchParams.get("level") ?? "";
   const upto = Math.max(
@@ -210,7 +205,6 @@ function ClasesInner() {
 
   const hrefFor = (o: {
     view?: string;
-    dow?: string;
     style?: string;
     level?: string;
     upto?: string;
@@ -222,7 +216,6 @@ function ClasesInner() {
     const target = "view" in o ? (o.view ?? "list") : view;
     const merged = {
       view: target !== "list" ? target : undefined,
-      dow: dow || undefined,
       style: styleId || undefined,
       level: levelId || undefined,
       upto: upto > 1 ? String(upto) : undefined,
@@ -316,9 +309,6 @@ function ClasesInner() {
       // Lista/calendario = mis academias; explore = todas. La vista
       // decide el scope del servidor (inscripción vigente).
       if (view !== "explore") params.set("scope", "enrolled");
-      // El chip de día solo existe en lista/explore — en calendario el
-      // día lo elige la franja, no aplica el filtro aunque quede en URL.
-      if (dow && view !== "calendar") params.set("weekday", dow);
       if (styleId) params.set("styleId", styleId);
       if (levelId) params.set("levelId", levelId);
       const res = await apiFetch(`/classes/browse?${params.toString()}`);
@@ -331,7 +321,7 @@ function ClasesInner() {
     } catch {
       setBrowseState("error");
     }
-  }, [daysNeeded, dow, view, styleId, levelId]);
+  }, [daysNeeded, view, styleId, levelId]);
 
   const loadHistory = useCallback(async () => {
     setHistoryState("loading");
@@ -449,11 +439,10 @@ function ClasesInner() {
     const key = classDayKey(c.date);
     calByDay.set(key, [...(calByDay.get(key) ?? []), c]);
   }
-  // Reservadas filtradas: /classes/mine no acepta params — los chips de
-  // día y los dropdowns de estilo/nivel resuelven client-side por id.
+  // Reservadas filtradas: /classes/mine no acepta params — los
+  // dropdowns de estilo/nivel resuelven client-side por id.
   const filteredMine = (mine ?? []).filter(
     (b) =>
-      (!dow || b.weekday === Number(dow)) &&
       (!styleId || b.series.style?.id === styleId) &&
       (!levelId || b.series.level?.id === levelId),
   );
@@ -785,36 +774,11 @@ function ClasesInner() {
           </div>
         </div>
 
-        {/* Filtros: chips de día (single-select) + dropdowns de estilo y
-            nivel tipo chip — misma gramática que géneros/locales. En
-            calendario el día lo elige la franja → se ocultan los chips.
-            El toggle Todas|Reservadas vive en list y calendar. */}
+        {/* Filtros: dropdowns de estilo y nivel tipo chip — misma
+            gramática que géneros/locales. El toggle Todas|Reservadas
+            vive en list y calendar. */}
         {view !== "history" && (
           <>
-            {view !== "calendar" && (
-              <nav
-                aria-label={t("filterDay")}
-                className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
-              >
-                <Link
-                  href={hrefFor({ dow: undefined })}
-                  className={chipClass(dow === "")}
-                >
-                  {t("all")}
-                </Link>
-                {WEEKDAYS.map((d) => (
-                  <Link
-                    key={d}
-                    href={hrefFor({ dow: String(d) })}
-                    aria-pressed={dow === String(d)}
-                    className={chipClass(dow === String(d))}
-                  >
-                    {ta(`weekday.${d}`)}
-                  </Link>
-                ))}
-              </nav>
-            )}
-
             {/* Todas|Reservadas (patrón de /practicas) + dropdowns
                 estilo/nivel — en browse van al servidor; en reservadas
                 filtran client-side sobre /classes/mine. */}
