@@ -449,6 +449,7 @@ function ClasesInner() {
     <li key={cls.id}>
       <ClassCard
         cls={cls}
+        academyChip={view === "explore"}
         busy={busyId === cls.id}
         onBook={(c) => void book(c)}
         onCancel={(id) => void cancelBooking(id)}
