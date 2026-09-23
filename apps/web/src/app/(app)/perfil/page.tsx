@@ -10,7 +10,7 @@ import {
   useActiveRole,
   type AppRole,
 } from "@/lib/active-role";
-import { useViewMode } from "@/lib/view-mode";
+import { getViewMode, useViewMode } from "@/lib/view-mode";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 import { Badge, Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
@@ -102,21 +102,20 @@ export default function PerfilPage() {
         return;
       }
 
-      await loadGamification();
+      await loadBadges();
     }
 
-    async function loadGamification() {
-      // Gamificación en paralelo — fallos no bloquean
+    async function loadBadges() {
+      // Insignias son nightlife-only — en modo academy no se fetchean
+      // (no existe insignia de academia para el alumno; academy_score es
+      // CRM privado por spec).
+      if (getViewMode() === "academy") return;
       try {
-        const [streakRes, badgesRes] = await Promise.all([
-          apiFetch("/gamification/me/streak"),
-          apiFetch("/gamification/me/badges"),
-        ]);
+        const res = await apiFetch("/gamification/me/badges");
         setGamifFetched(true);
         if (cancelled) return;
-        if (streakRes.ok) setStreak((await streakRes.json()) as Streak);
-        if (badgesRes.ok) {
-          const json: unknown = await badgesRes.json();
+        if (res.ok) {
+          const json: unknown = await res.json();
           setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
         }
       } catch {
@@ -157,27 +156,49 @@ export default function PerfilPage() {
     };
   }, [me, currentLens, viewMode]);
 
+  // Racha por modo: social = semanas saliendo; academy = semanas
+  // asistiendo a clases. Re-fetchea al cambiar de modo.
   useEffect(() => {
-    if (!me || gamifFetched || currentLens === "ADMIN") return;
+    if (!me || currentLens === "ADMIN") {
+      setStreak(null);
+      return;
+    }
     let stale = false;
-    void Promise.all([
-      apiFetch("/gamification/me/streak"),
-      apiFetch("/gamification/me/badges"),
-    ])
-      .then(async ([streakRes, badgesRes]) => {
+    void apiFetch(`/gamification/me/streak?mode=${viewMode}`)
+      .then(async (res) => {
+        if (stale || !res.ok) return;
+        setStreak((await res.json()) as Streak);
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [me, currentLens, viewMode]);
+
+  // Insignias — solo nightlife; en modo academy no existen insignias
+  // para el alumno (lazy: se traen al entrar a modo social).
+  useEffect(() => {
+    if (
+      !me ||
+      gamifFetched ||
+      currentLens === "ADMIN" ||
+      viewMode !== "social"
+    ) {
+      return;
+    }
+    let stale = false;
+    void apiFetch("/gamification/me/badges")
+      .then(async (res) => {
         setGamifFetched(true);
-        if (stale) return;
-        if (streakRes.ok) setStreak((await streakRes.json()) as Streak);
-        if (badgesRes.ok) {
-          const json: unknown = await badgesRes.json();
-          setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
-        }
+        if (stale || !res.ok) return;
+        const json: unknown = await res.json();
+        setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
       })
       .catch(() => setGamifFetched(true));
     return () => {
       stale = true;
     };
-  }, [me, gamifFetched, currentLens]);
+  }, [me, gamifFetched, currentLens, viewMode]);
 
   async function logout() {
     try {
@@ -350,46 +371,50 @@ export default function PerfilPage() {
       {/* Gamificación — solo lente consumidora/operativa; la lente ADMIN
           es gestión pura (ni Racha ni Insignias, y tampoco se fetchean). */}
       {currentActAs !== "ADMIN" && (
-        <>
-          {/* Racha — orgullo, grande */}
-          <Card data-tour="perfil-gamif">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-              {tg("streak")}
-            </h2>
-            <p className="mt-2 text-6xl font-bold leading-none text-neon">
-              {streak?.currentWeeks ?? 0}
-            </p>
-            <p className="mt-2 text-sm text-white/50">
-              {tg("streakBest")}: {streak?.bestWeeks ?? 0}
-            </p>
-          </Card>
+        /* Racha por modo — orgullo, grande. Social = salidas semanales;
+           academy = asistencia a clases (mismo card, otra fuente). */
+        <Card data-tour="perfil-gamif">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            {tg("streak")}
+          </h2>
+          <p className="mt-2 text-6xl font-bold leading-none text-neon">
+            {streak?.currentWeeks ?? 0}
+          </p>
+          <p className="mt-2 text-sm text-white/50">
+            {tg(viewMode === "academy" ? "streakAcademy" : "streakSocial")}
+            {" · "}
+            {tg("streakBest")}: {streak?.bestWeeks ?? 0}
+          </p>
+        </Card>
+      )}
 
-          {/* Insignias */}
-          <Card>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-              {tg("badges")}
-            </h2>
-            {badges.length === 0 ? (
-              <p className="mt-3 text-sm text-white/60">{tg("badgesEmpty")}</p>
-            ) : (
-              <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {badges.map((b) => (
-                  <li
-                    key={b.badge.key}
-                    className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 p-3"
-                  >
-                    <span className="font-medium leading-tight">
-                      {b.badge.name}
-                    </span>
-                    <Badge variant="muted" className="w-fit">
-                      {b.badge.category}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </>
+      {/* Insignias — nightlife-only: no hay insignias de academia para
+          el alumno (academy_score es CRM privado por spec §11). */}
+      {currentActAs !== "ADMIN" && viewMode === "social" && (
+        <Card>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            {tg("badges")}
+          </h2>
+          {badges.length === 0 ? (
+            <p className="mt-3 text-sm text-white/60">{tg("badgesEmpty")}</p>
+          ) : (
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {badges.map((b) => (
+                <li
+                  key={b.badge.key}
+                  className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 p-3"
+                >
+                  <span className="font-medium leading-tight">
+                    {b.badge.name}
+                  </span>
+                  <Badge variant="muted" className="w-fit">
+                    {b.badge.category}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       )}
 
       <Button variant="secondary" onClick={logout} className="w-full">
