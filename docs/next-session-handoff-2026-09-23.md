@@ -108,7 +108,10 @@ reservadas solo badge + filtro (sin sección pineada).
   `/classes/mine`, que ganó `weekday` + ids de estilo/nivel (el filtro
   de chips por día se eliminó; `weekday` sigue en el contrato browse).
   Los dropdowns estilo/nivel son `<select>` nativos (picker del SO en
-  mobile — el `<details>`+`<ul>` custom desbordaba la pantalla).
+  mobile — el `<details>`+`<ul>` custom desbordaba la pantalla) y sus
+  opciones se derivan del set sin filtrar del scope (`facetClasses`,
+  fetch extra solo con filtro activo; `mine` en reservadas) — nunca
+  ofrecen un valor sin resultados.
   Reservadas usa las cards wallet (badge + link QR) — absorbe la
   vista `mine`; `view=mine` legado redirige a list+reservadas.
 - En explore, cards de academias sin inscripción muestran "Requiere

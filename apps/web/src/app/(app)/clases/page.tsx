@@ -67,8 +67,7 @@ type HistoryItem = {
   status: "attended" | "booked" | "cancelled";
 };
 
-type StyleOption = { id: string; name: string };
-type LevelOption = { id: string; name: string };
+type FilterOption = { id: string; name: string };
 type LoadState = "loading" | "error" | "ready";
 // Vistas: mis academias (list/calendar), historial completo y explore
 // (todas las academias). La antigua vista `mine` se plegó al filtro
@@ -176,8 +175,11 @@ function ClasesInner() {
   const [history, setHistory] = useState<HistoryItem[] | null>(null);
   const [historyState, setHistoryState] = useState<LoadState>("loading");
 
-  const [styles, setStyles] = useState<StyleOption[]>([]);
-  const [levels, setLevels] = useState<LevelOption[]>([]);
+  // Facetas de los selects: clases sin filtrar del scope actual —
+  // con filtro activo `classes` ya viene acotado por el servidor.
+  const [facetClasses, setFacetClasses] = useState<BrowseClass[] | null>(
+    null,
+  );
 
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(
     null,
@@ -244,7 +246,21 @@ function ClasesInner() {
         setBrowseState("error");
         return;
       }
-      setClasses((await res.json()) as BrowseClass[]);
+      const list = (await res.json()) as BrowseClass[];
+      setClasses(list);
+      // Opciones de los selects = estilos/niveles que existen en el
+      // scope. Con filtro activo el response ya viene acotado → un
+      // fetch extra sin filtro (solo en ese caso) para las facetas.
+      if (styleId || levelId) {
+        const base = new URLSearchParams({ days: String(daysNeeded) });
+        if (view !== "explore") base.set("scope", "enrolled");
+        const r2 = await apiFetch(`/classes/browse?${base.toString()}`);
+        setFacetClasses(
+          r2.ok ? ((await r2.json()) as BrowseClass[]) : list,
+        );
+      } else {
+        setFacetClasses(list);
+      }
       setBrowseState("ready");
     } catch {
       setBrowseState("error");
@@ -279,22 +295,6 @@ function ClasesInner() {
     }
     void loadBrowse();
   }, [view, scope, loadMine, loadHistory, loadBrowse]);
-
-  // Catálogos de los filtros — una vez; fallo silencioso.
-  useEffect(() => {
-    apiFetch("/styles")
-      .then(async (res) => (res.ok ? ((await res.json()) as StyleOption[]) : []))
-      .then(setStyles)
-      .catch(() => {});
-    apiFetch("/classes/catalogs")
-      .then(async (res) =>
-        res.ok
-          ? ((await res.json()) as { levels?: LevelOption[] })
-          : null,
-      )
-      .then((c) => setLevels(c?.levels ?? []))
-      .catch(() => {});
-  }, []);
 
   async function book(cls: BrowseClass): Promise<void> {
     setBusyId(cls.id);
@@ -374,6 +374,23 @@ function ClasesInner() {
       (!styleId || b.series.style?.id === styleId) &&
       (!levelId || b.series.level?.id === levelId),
   );
+  // Opciones de los selects = solo lo que existe en el set sin
+  // filtrar del scope (evita elegir un filtro sin resultados).
+  const seriesPool =
+    scope === "reservadas"
+      ? (mine ?? []).map((b) => b.series)
+      : (facetClasses ?? []).map((c) => c.series);
+  const uniq = (
+    xs: ({ id: string; name: string } | null | undefined)[],
+  ): FilterOption[] => {
+    const m = new Map<string, string>();
+    for (const x of xs) if (x && !m.has(x.id)) m.set(x.id, x.name);
+    return [...m.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, "es"));
+  };
+  const styleOptions = uniq(seriesPool.map((s) => s.style));
+  const levelOptions = uniq(seriesPool.map((s) => s.level));
   const myByDay = new Map<string, MyBooking[]>();
   for (const b of filteredMine) {
     const key = classDayKey(b.date);
@@ -644,7 +661,7 @@ function ClasesInner() {
                   className={`${chipClass(!!styleId)} max-w-40 cursor-pointer appearance-none truncate bg-transparent pr-8`}
                 >
                   <option value="">{t("filterStyle")}</option>
-                  {styles.map((s) => (
+                  {styleOptions.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -675,7 +692,7 @@ function ClasesInner() {
                   className={`${chipClass(!!levelId)} max-w-40 cursor-pointer appearance-none truncate bg-transparent pr-8`}
                 >
                   <option value="">{t("filterLevel")}</option>
-                  {levels.map((l) => (
+                  {levelOptions.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}
                     </option>
