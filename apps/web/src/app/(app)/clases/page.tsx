@@ -713,11 +713,7 @@ function ClasesInner() {
                         statusBadge={{
                           label: t(`historyStatus.${h.status}`),
                           variant:
-                            h.status === "attended"
-                              ? "neon"
-                              : h.status === "booked"
-                                ? "outline"
-                                : "muted",
+                            h.status === "attended" ? "neon" : "muted",
                         }}
                       />
                     </li>

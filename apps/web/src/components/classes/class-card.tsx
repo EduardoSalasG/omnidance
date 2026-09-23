@@ -175,7 +175,7 @@ export function ClassCard({
 }
 
 // GET /classes/mine?scope=past — historial del alumno: card completo
-// + status de resultado (attended gana el dedup sobre la reserva).
+// + status de resultado (attended gana el dedup sobre la cancelación).
 export type HistoryCardData = ClassCardData & {
-  status: "attended" | "booked" | "cancelled";
+  status: "attended" | "cancelled";
 };
