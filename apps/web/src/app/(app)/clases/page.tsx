@@ -12,6 +12,11 @@ import {
 } from "@/components/onboarding/OnboardingRunner";
 import { readError } from "@/components/academy/shared";
 import {
+  CancelBookingButton,
+  ClassCard,
+  type ClassCardData,
+} from "@/components/classes/class-card";
+import {
   DAY_MS,
   DOT_COLOR,
   WEEK_MS,
@@ -24,33 +29,9 @@ import {
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 
-// GET /classes/browse — clase materializada futura con contexto de serie.
-type BrowseClass = {
-  id: string;
-  date: string; // ISO — medianoche UTC del día de la clase
-  startTime: string;
-  endTime: string;
-  weekday: number;
-  capacity: number;
-  bookedCount: number;
-  spotsLeft: number;
-  waitlistCount: number;
-  myBooking: "BOOKED" | "WAITLIST" | null;
-  // Inscripción vigente en la academia de la clase — habilita reservar.
-  enrolled: boolean;
-  academy: { id: string; name: string };
-  instructor: { id: string; name: string | null } | null;
-  // Todo slot pertenece a una serie — series nunca es null.
-  series: {
-    id: string;
-    name: string;
-    level: { id: string; name: string } | null;
-    style: { id: string; name: string; genre: string | null } | null;
-    dropInPrice: number | null;
-    // Modalidad efectiva del horario: slot.types si declara, si no los de la serie.
-    types: { id: string; name: string }[];
-  };
-};
+// GET /classes/browse — clase materializada futura con contexto de
+// serie. El shape vive en el componente del card (lo reusa el home).
+type BrowseClass = ClassCardData;
 
 type MyBooking = {
   bookingId: string;
@@ -112,60 +93,6 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
 
 const genreDot = (g: string | null | undefined) =>
   DOT_COLOR[(g ?? "") as GenreKey] ?? "bg-white/50";
-
-// Cancelar en dos taps: "Cancelar" → inline "¿Seguro? Sí / No". Un
-// window.confirm rompe la inmersión de la PWA; inline respeta el sistema.
-function CancelBookingButton({
-  busy,
-  onConfirm,
-}: {
-  busy: boolean;
-  onConfirm: () => void;
-}) {
-  const t = useTranslations("classes");
-  const tc = useTranslations("common");
-  const [confirming, setConfirming] = useState(false);
-  if (!confirming) {
-    return (
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={busy}
-        onClick={() => setConfirming(true)}
-      >
-        {t("cancelBooking")}
-      </Button>
-    );
-  }
-  return (
-    <div
-      className="flex items-center gap-2"
-      role="group"
-      aria-label={t("cancelConfirm")}
-    >
-      <span className="text-xs text-white/60">{t("cancelShort")}</span>
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={busy}
-        onClick={() => {
-          setConfirming(false);
-          onConfirm();
-        }}
-      >
-        {tc("yes")}
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        disabled={busy}
-        onClick={() => setConfirming(false)}
-      >
-        {tc("no")}
-      </Button>
-    </div>
-  );
-}
 
 // useSearchParams exige Suspense en el componente client-side.
 export default function ClasesPage() {
@@ -487,110 +414,18 @@ function ClasesInner() {
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
 
-  // ─── Card del explorador: [serie + meta] [acción]. El día y la hora
-  // los dan los headings del grupo — parrilla de horarios, no repetición.
-  const renderClassCard = (cls: BrowseClass) => {
-    const full = cls.spotsLeft <= 0;
-    const style = cls.series.style;
-    return (
-      <li key={cls.id} className={cardCls}>
-        <div className="flex items-start gap-3">
-          {/* Contenido en 4 líneas: estilo (título) / tipo+nivel
-              diferenciados / academia+profe / cupo. El bloque entero
-              linkea a la ficha de la clase. */}
-          <Link
-            href={`/clases/${cls.id}`}
-            className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-          >
-            {/* Estilo solo como título — es lo que el dancer busca */}
-            <h2 className="truncate text-base font-semibold leading-snug">
-              {style?.name ?? cls.series.name}
-            </h2>
-            {/* Tipo de clase + nivel como chips — diferenciados por
-                variante: tipo outline (fuerte), nivel muted */}
-            {(cls.series.types.length > 0 || cls.series.level) && (
-              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                {cls.series.types.map((x) => (
-                  <Badge key={x.id} variant="outline">
-                    {x.name}
-                  </Badge>
-                ))}
-                {cls.series.level && (
-                  <Badge variant="muted">{cls.series.level.name}</Badge>
-                )}
-              </div>
-            )}
-            {/* Academia · profesor */}
-            <p className="mt-1 truncate text-xs text-white/50">
-              {cls.academy.name}
-              {cls.instructor?.name && ` · ${cls.instructor.name}`}
-            </p>
-            <p
-              className={`mt-1 text-xs font-medium ${
-                full
-                  ? "text-white/50"
-                  : cls.spotsLeft <= 3
-                    ? "text-amber-300"
-                    : "text-neon"
-              }`}
-            >
-              {full
-                ? cls.waitlistCount > 0
-                  ? `${t("full")} · ${t("waitlistCount", { count: cls.waitlistCount })}`
-                  : t("full")
-                : cls.spotsLeft <= 3
-                  ? t("lastSpots", { count: cls.spotsLeft })
-                  : t("spotsLeft", { count: cls.spotsLeft })}
-            </p>
-          </Link>
-          {/* Acción — reservar / espera / estado + cancelar (fuera del
-              link para no anidar interactivos) */}
-          <div className="flex shrink-0 flex-col items-end gap-1.5 pt-0.5">
-            {cls.myBooking === "BOOKED" ? (
-              <>
-                <Badge variant="neon">{t("booked")}</Badge>
-                <CancelBookingButton
-                  busy={busyId === cls.id}
-                  onConfirm={() => void cancelBooking(cls.id)}
-                />
-              </>
-            ) : cls.myBooking === "WAITLIST" ? (
-              <>
-                <Badge variant="outline">{t("waitlist")}</Badge>
-                <CancelBookingButton
-                  busy={busyId === cls.id}
-                  onConfirm={() => void cancelBooking(cls.id)}
-                />
-              </>
-            ) : !cls.enrolled ? (
-              // Academia ajena (vista explore): sin inscripción vigente
-              // no hay reserva — el API lo rechazaría con 403.
-              <span className="text-xs leading-tight text-white/40">
-                {t("requiresEnrollment")}
-              </span>
-            ) : full ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={busyId === cls.id}
-                onClick={() => void book(cls)}
-              >
-                {t("joinWaitlist")}
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                disabled={busyId === cls.id}
-                onClick={() => void book(cls)}
-              >
-                {t("book")}
-              </Button>
-            )}
-          </div>
-        </div>
-      </li>
-    );
-  };
+  // ─── Card del explorador (componente compartido con el home). El
+  // día y la hora los dan los headings del grupo → sin `when`. ───
+  const renderClassCard = (cls: BrowseClass) => (
+    <li key={cls.id}>
+      <ClassCard
+        cls={cls}
+        busy={busyId === cls.id}
+        onBook={(c) => void book(c)}
+        onCancel={(id) => void cancelBooking(id)}
+      />
+    </li>
+  );
 
   // ─── Card wallet de "Mis clases" (símil de Mis entradas) ───
   const renderMyCard = (b: MyBooking) => (

@@ -114,6 +114,11 @@ reservadas solo badge + filtro (sin sección pineada).
 - En explore, cards de academias sin inscripción muestran "Requiere
   inscripción" en vez del botón Reservar (flag `enrolled` del browse).
 - `ClassBookingCta` (ficha) recibe `enrolled` y muestra el mismo estado.
+- El card del explorador vive en `components/classes/class-card.tsx`
+  (`ClassCard` + `ClassCardData` + `CancelBookingButton`); `/clases` y
+  el home Academia lo comparten. `home/stats.nextClass` devuelve el
+  shape completo del card (misma proyección que browse) y el home
+  acepta `when` (día+hora) + reservar/cancelar con refetch de stats.
 - Empty state sin inscripciones → CTA a explore. i18n: `viewExplore`,
   `scopeBooked`, `requiresEnrollment`, `emptyEnrolled`; tour `cl-mine`
   → `cl-explore` con textos nuevos.

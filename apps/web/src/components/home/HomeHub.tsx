@@ -10,6 +10,9 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
+import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
+import { readError } from "@/components/academy/shared";
+import { localDayKey } from "@/lib/calendar";
 import {
   OnboardingRunner,
   type TourStep,
@@ -51,7 +54,7 @@ type HomeStats = {
     upcoming: TonightEvent[];
     mine: TonightEvent[];
   } | null;
-  nextClass?: NextItem | null;
+  nextClass?: ClassCardData | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
   myClasses?: MyClass[];
@@ -80,6 +83,14 @@ const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "long",
   day: "numeric",
   month: "long",
+});
+// Class.date llega como ISO a medianoche UTC — el día calendario se
+// formatea en UTC (mismo criterio que /clases, no el dayFmt local).
+const classUtcDayFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
 });
 
 // "Hoy" si la fecha es del día local en curso — el learner lee "Hoy
@@ -371,6 +382,9 @@ export function HomeHub() {
   } | null>(null);
   // Contador de reintento: el efecto de stats lo escucha para refetchear.
   const [statsRetry, setStatsRetry] = useState(0);
+  // Reservar/cancelar desde el card de próxima clase (lente Academia).
+  const [classBusy, setClassBusy] = useState(false);
+  const [classError, setClassError] = useState<string | null>(null);
   const activeRole = useActiveRole(me?.roles);
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
@@ -415,6 +429,46 @@ export function HomeHub() {
       cancelled = true;
     };
   }, [me, activeRole, viewMode, statsRetry]);
+
+  // Reservar/cancelar la próxima clase desde el home — mismo contrato
+  // que /clases; tras mutar se refetchean los stats de la lente.
+  async function bookNextClass(cls: ClassCardData): Promise<void> {
+    setClassBusy(true);
+    setClassError(null);
+    try {
+      const res = await apiFetch(`/classes/${cls.id}/book`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        setClassError((await readError(res)) ?? tcl("error"));
+        return;
+      }
+      setStatsRetry((r) => r + 1);
+    } catch {
+      setClassError(tcl("error"));
+    } finally {
+      setClassBusy(false);
+    }
+  }
+
+  async function cancelNextClass(classId: string): Promise<void> {
+    setClassBusy(true);
+    setClassError(null);
+    try {
+      const res = await apiFetch(`/classes/${classId}/book`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setClassError((await readError(res)) ?? tcl("error"));
+        return;
+      }
+      setStatsRetry((r) => r + 1);
+    } catch {
+      setClassError(tcl("error"));
+    } finally {
+      setClassBusy(false);
+    }
+  }
 
   // null hasta que el fetch de ESTA lente resuelva — los heroes que
   // dependen de stats (dancer/staff/dj/venue) nunca ven datos ajenos.
@@ -610,35 +664,32 @@ export function HomeHub() {
             <KpiGrid kpis={stats.kpis} label={kpiLabel} />
           )}
 
-          {/* Próxima clase del learner — el rótulo va FUERA del card:
-              la sección dice qué es y el card solo responde cuándo/
-              dónde. "Hoy" en vez de la fecha cuando es el día en curso. */}
+          {/* Próxima clase del learner — mismo card del explorador de
+              /clases (ClassCard): estilo, tipo+nivel, academia·profe,
+              cupo y acción reservar/cancelar en contexto. `when` da el
+              día+hora que en /clases aportan los headings de grupo. */}
           {dancerAcademy && stats?.nextClass && (
             <section aria-label={t("nextClass")}>
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("nextClass")}
               </h2>
-              <Link
-                href="/clases"
-                className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
-              >
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="truncate text-xl font-bold leading-tight">
-                    {stats.nextClass.name}
-                  </span>
-                  <span className="text-sm text-white/60">
-                    {isToday(stats.nextClass.when)
-                      ? te("today")
-                      : dayFmt.format(new Date(stats.nextClass.when))}
-                    {stats.nextClass.place
-                      ? ` · ${stats.nextClass.place}`
-                      : ""}
-                  </span>
-                </div>
-                <span aria-hidden className="shrink-0 text-neon">
-                  →
-                </span>
-              </Link>
+              <ClassCard
+                cls={stats.nextClass}
+                when={`${
+                  stats.nextClass.date.slice(0, 10) ===
+                  localDayKey(new Date())
+                    ? te("today")
+                    : classUtcDayFmt.format(new Date(stats.nextClass.date))
+                } · ${stats.nextClass.startTime}–${stats.nextClass.endTime}`}
+                busy={classBusy}
+                onBook={(c) => void bookNextClass(c)}
+                onCancel={(id) => void cancelNextClass(id)}
+              />
+              {classError && (
+                <p role="alert" className="mt-2 text-sm text-amber-200">
+                  {classError}
+                </p>
+              )}
             </section>
           )}
 
