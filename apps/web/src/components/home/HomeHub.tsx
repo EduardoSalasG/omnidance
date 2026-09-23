@@ -372,8 +372,8 @@ export function HomeHub() {
   } | null>(null);
   // Contador de reintento: el efecto de stats lo escucha para refetchear.
   const [statsRetry, setStatsRetry] = useState(0);
-  // Reservar/cancelar desde los cards de clase (lente Academia) —
-  // busyId por card: hay varias (próxima clase + tus próximas).
+  // Reservar desde el card de próxima clase (lente Academia) —
+  // cancelar vive solo en la ficha de la clase.
   const [classBusyId, setClassBusyId] = useState<string | null>(null);
   const [classError, setClassError] = useState<string | null>(null);
   const activeRole = useActiveRole(me?.roles);
@@ -421,33 +421,14 @@ export function HomeHub() {
     };
   }, [me, activeRole, viewMode, statsRetry]);
 
-  // Reservar/cancelar la próxima clase desde el home — mismo contrato
-  // que /clases; tras mutar se refetchean los stats de la lente.
+  // Reservar la próxima clase desde el home — mismo contrato que
+  // /clases; tras mutar se refetchean los stats de la lente.
   async function bookNextClass(cls: ClassCardData): Promise<void> {
     setClassBusyId(cls.id);
     setClassError(null);
     try {
       const res = await apiFetch(`/classes/${cls.id}/book`, {
         method: "POST",
-      });
-      if (!res.ok) {
-        setClassError((await readError(res)) ?? tcl("error"));
-        return;
-      }
-      setStatsRetry((r) => r + 1);
-    } catch {
-      setClassError(tcl("error"));
-    } finally {
-      setClassBusyId(null);
-    }
-  }
-
-  async function cancelNextClass(classId: string): Promise<void> {
-    setClassBusyId(classId);
-    setClassError(null);
-    try {
-      const res = await apiFetch(`/classes/${classId}/book`, {
-        method: "DELETE",
       });
       if (!res.ok) {
         setClassError((await readError(res)) ?? tcl("error"));
@@ -677,7 +658,6 @@ export function HomeHub() {
                 } · ${stats.nextClass.startTime}–${stats.nextClass.endTime}`}
                 busy={classBusyId === stats.nextClass.id}
                 onBook={(c) => void bookNextClass(c)}
-                onCancel={(id) => void cancelNextClass(id)}
               />
               {classError && (
                 <p role="alert" className="mt-2 text-sm text-amber-200">
@@ -732,8 +712,6 @@ export function HomeHub() {
                           ? te("today")
                           : classUtcDayFmt.format(new Date(c.date))
                       }`}
-                      busy={classBusyId === c.classId}
-                      onCancel={(id) => void cancelNextClass(id)}
                     />
                   </li>
                 ))}

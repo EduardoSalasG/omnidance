@@ -313,28 +313,6 @@ function ClasesInner() {
     }
   }
 
-  // La confirmación vive en CancelBookingButton (dos taps inline) — esta
-  // función solo se invoca tras confirmar.
-  async function cancelBooking(classId: string): Promise<void> {
-    setBusyId(classId);
-    setNotice(null);
-    try {
-      const res = await apiFetch(`/classes/${classId}/book`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
-        return;
-      }
-      setNotice({ text: t("cancelledOk"), error: false });
-      await Promise.all([loadBrowse(), loadMine()]);
-    } catch {
-      setNotice({ text: t("error"), error: true });
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   // ─── Derivados de lista/calendario ───
   const now = Date.now();
   const pool = classes ?? [];
@@ -443,7 +421,6 @@ function ClasesInner() {
         cls={cls}
         busy={busyId === cls.id}
         onBook={(c) => void book(c)}
-        onCancel={(id) => void cancelBooking(id)}
       />
     </li>
   );
@@ -454,8 +431,6 @@ function ClasesInner() {
       <BookingCard
         b={b}
         when={dayLabel(classDayKey(b.date), b.date)}
-        busy={busyId === b.classId}
-        onCancel={(id) => void cancelBooking(id)}
       />
     </li>
   );
