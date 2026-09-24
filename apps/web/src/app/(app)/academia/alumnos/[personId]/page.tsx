@@ -8,6 +8,7 @@ import { PageLoading } from "@/components/ui/spinner";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import {
   classDayFmt,
+  planDateFmt,
   shortId,
   type Academy,
   type StudentProfile,
@@ -147,6 +148,15 @@ function ProfileModule({
             {tp("enrollmentStatus")}: {statusLabel(profile.enrollmentStatus)}
           </Badge>
         </div>
+        {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
+          <p className="text-xs text-white/50">
+            {profile.enrollmentStartedAt &&
+              `${tp("startsAt")}: ${planDateFmt.format(new Date(profile.enrollmentStartedAt))}`}
+            {profile.enrollmentStartedAt && profile.enrollmentEndsAt && " · "}
+            {profile.enrollmentEndsAt &&
+              `${tp("endsAt")}: ${planDateFmt.format(new Date(profile.enrollmentEndsAt))}`}
+          </p>
+        )}
       </Card>
 
       {/* Historial */}

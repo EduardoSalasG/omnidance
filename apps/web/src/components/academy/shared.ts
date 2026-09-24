@@ -79,6 +79,8 @@ export type Student = {
   plan: { name: string } | null;
   status: EnrollmentStatus;
   startsAt: string | null;
+  /** "Pagado hasta" — vigencia del plan; null = sin fecha registrada. */
+  endsAt: string | null;
 };
 
 // GET /academies/:id/slots — todo slot pertenece a una serie (invariante
@@ -147,6 +149,8 @@ export type StudentProfile = {
   person: { id: string; name: string | null };
   plan: { name: string } | null;
   enrollmentStatus: string;
+  enrollmentStartedAt: string | null;
+  enrollmentEndsAt: string | null;
   history: {
     classId: string;
     date: string;
@@ -169,6 +173,14 @@ export const classDayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
   timeZone: "UTC",
+});
+
+// Vigencia del enrollment (startedAt/endsAt llegan como ISO real, no
+// medianoche UTC — formatear en zona local, distinto de classDayFmt).
+export const planDateFmt = new Intl.DateTimeFormat("es-CL", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
 });
 
 // Fallback visible cuando el API no entrega nombre (personId crudo).
