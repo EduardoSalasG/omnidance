@@ -15,10 +15,14 @@ import {
   selectFeaturedBadge,
   summarizePoints,
   weekIndex,
+  ALUMNO_CONSTANTE_ATTENDANCES,
   CROWN_BADGE_KEY,
+  EARLY_CHECKIN_CUTOFF_MINUTES,
+  EXPLORADOR_ACADEMIAS_COUNT,
   MARATONISTA_SESSIONS,
   MARIPOSA_SOCIAL_PARTNERS,
   PRIME_DEFAULT_CAPACITY,
+  RACHA_ACADEMIA_WEEKS,
   PUBLIC_COUNT_MIN,
   REVEAL_BAYES_C,
 } from "./rules";
@@ -507,6 +511,55 @@ describe("BadgeAwarder", () => {
   it("stats nuevos ausentes → 0 (backward compatible)", () => {
     expect(awarder.evaluate({ confirmedSessions: 0 })).toEqual([]);
   });
+
+  // ─── badges academy (asistencia a clases) ───
+
+  it("primera_clase: ≥1 asistencia a clases", () => {
+    const stats = (classAttendances: number) => ({
+      confirmedSessions: 0,
+      classAttendances,
+    });
+    expect(awarder.evaluate(stats(0))).toEqual([]);
+    expect(awarder.evaluate(stats(1))).toEqual(["primera_clase"]);
+  });
+
+  it(`alumno_constante: ${ALUMNO_CONSTANTE_ATTENDANCES}+ asistencias`, () => {
+    const stats = (classAttendances: number) => ({
+      confirmedSessions: 0,
+      classAttendances,
+    });
+    expect(
+      awarder.evaluate(stats(ALUMNO_CONSTANTE_ATTENDANCES - 1)),
+    ).toEqual(["primera_clase"]);
+    expect(awarder.evaluate(stats(ALUMNO_CONSTANTE_ATTENDANCES))).toEqual([
+      "primera_clase",
+      "alumno_constante",
+    ]);
+  });
+
+  it(`racha_academia: ${RACHA_ACADEMIA_WEEKS}+ semanas seguidas asistiendo`, () => {
+    const stats = (academyStreakWeeks: number) => ({
+      confirmedSessions: 0,
+      academyStreakWeeks,
+    });
+    expect(awarder.evaluate(stats(RACHA_ACADEMIA_WEEKS - 1))).toEqual([]);
+    expect(awarder.evaluate(stats(RACHA_ACADEMIA_WEEKS))).toEqual([
+      "racha_academia",
+    ]);
+  });
+
+  it(`explorador_academias: ${EXPLORADOR_ACADEMIAS_COUNT}+ academias distintas`, () => {
+    const stats = (distinctAcademies: number) => ({
+      confirmedSessions: 0,
+      distinctAcademies,
+    });
+    expect(awarder.evaluate(stats(EXPLORADOR_ACADEMIAS_COUNT - 1))).toEqual(
+      [],
+    );
+    expect(awarder.evaluate(stats(EXPLORADOR_ACADEMIAS_COUNT))).toEqual([
+      "explorador_academias",
+    ]);
+  });
 });
 
 describe("isEarlyCheckinAt", () => {
@@ -575,6 +628,32 @@ describe("buildBadgeStats", () => {
       me,
     );
     expect(stats.earlyCheckins).toBe(2);
+  });
+
+  it("attendances alimentan stats academy (count, racha, academias)", () => {
+    const now = new Date("2026-09-24T12:00:00Z"); // jueves
+    const at = (weeksAgo: number, academyId: string) => ({
+      checkedAt: new Date(now.getTime() - weeksAgo * WEEK),
+      academyId,
+    });
+    const stats = buildBadgeStats(
+      [],
+      [],
+      me,
+      EARLY_CHECKIN_CUTOFF_MINUTES,
+      [at(0, "a1"), at(1, "a1"), at(2, "a2"), at(3, "a2"), at(3, "a3")],
+      now,
+    );
+    expect(stats.classAttendances).toBe(5);
+    expect(stats.academyStreakWeeks).toBe(4); // semanas 0..3 con asistencia
+    expect(stats.distinctAcademies).toBe(3);
+  });
+
+  it("sin attendances → stats academy en 0", () => {
+    const stats = buildBadgeStats([], [], me);
+    expect(stats.classAttendances).toBe(0);
+    expect(stats.academyStreakWeeks).toBe(0);
+    expect(stats.distinctAcademies).toBe(0);
   });
 });
 

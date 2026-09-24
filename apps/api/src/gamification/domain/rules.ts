@@ -27,6 +27,12 @@ export const EARLY_CHECKIN_CUTOFF_MINUTES = 23 * 60;
 export const MARATONISTA_SESSIONS = 15;
 /** Parejas distintas en una misma noche/evento para `mariposa_social`. */
 export const MARIPOSA_SOCIAL_PARTNERS = 8;
+/** Asistencias a clases para el badge `alumno_constante` (modo Academy). */
+export const ALUMNO_CONSTANTE_ATTENDANCES = 10;
+/** Semanas seguidas asistiendo a clases para `racha_academia`. */
+export const RACHA_ACADEMIA_WEEKS = 4;
+/** Academias distintas con asistencia para `explorador_academias`. */
+export const EXPLORADOR_ACADEMIAS_COUNT = 3;
 /** Badge de status temporal del reveal Prime Time (corona 👑, +7 días). */
 export const CROWN_BADGE_KEY = "prime_time_crown";
 /** Duración de la corona tras otorgarse (spec §7: 1 semana). */
@@ -281,6 +287,12 @@ export interface BadgeStats {
   maxSessionsInNight?: number;
   /** Máximo de parejas distintas en un mismo evento/noche. */
   maxDistinctPartnersInNight?: number;
+  /** Asistencias históricas a clases de academia (modo Academy). */
+  classAttendances?: number;
+  /** Racha semanal vigente de asistencia a clases (misma gracia de semana en curso). */
+  academyStreakWeeks?: number;
+  /** Academias distintas donde la persona asistió a clases. */
+  distinctAcademies?: number;
 }
 
 /** ¿Un check-in cuenta como "temprano"? Ventana [12:00, cutoff) hora local. */
@@ -302,6 +314,8 @@ export function buildBadgeStats(
   checkins: { inAt: Date }[],
   personId: string,
   cutoffMinutes = EARLY_CHECKIN_CUTOFF_MINUTES,
+  attendances: { checkedAt: Date; academyId: string | null }[] = [],
+  now = new Date(),
 ): Required<BadgeStats> {
   const sessionsByEvent = new Map<string, number>();
   const partnersByEvent = new Map<string, Set<string>>();
@@ -321,6 +335,18 @@ export function buildBadgeStats(
       0,
       ...[...partnersByEvent.values()].map((s) => s.size),
     ),
+    classAttendances: attendances.length,
+    academyStreakWeeks: computeStreak(
+      buildStreakWeeks(
+        attendances.map((a) => a.checkedAt),
+        now,
+      ),
+    ).currentWeeks,
+    distinctAcademies: new Set(
+      attendances
+        .map((a) => a.academyId)
+        .filter((id): id is string => id != null),
+    ).size,
   };
 }
 
@@ -348,6 +374,21 @@ const BADGE_RULES: readonly {
     key: "mariposa_social",
     test: (s) =>
       (s.maxDistinctPartnersInNight ?? 0) >= MARIPOSA_SOCIAL_PARTNERS,
+  },
+  // Badges academy (spec §11: gamificar conducta del alumno — asistencia,
+  // constancia, exploración; nunca puntajes ni evaluaciones).
+  { key: "primera_clase", test: (s) => (s.classAttendances ?? 0) >= 1 },
+  {
+    key: "alumno_constante",
+    test: (s) => (s.classAttendances ?? 0) >= ALUMNO_CONSTANTE_ATTENDANCES,
+  },
+  {
+    key: "racha_academia",
+    test: (s) => (s.academyStreakWeeks ?? 0) >= RACHA_ACADEMIA_WEEKS,
+  },
+  {
+    key: "explorador_academias",
+    test: (s) => (s.distinctAcademies ?? 0) >= EXPLORADOR_ACADEMIAS_COUNT,
   },
 ];
 

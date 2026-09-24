@@ -136,15 +136,17 @@ export class GamificationService {
     owned?: AwardedBadge[],
   ): Promise<boolean> {
     const current = owned ?? (await this.repo.badgesForPerson(personId));
-    const [confirmed, checkins] = await Promise.all([
+    const [confirmed, checkins, attendances] = await Promise.all([
       this.repo.confirmedSessionsForPerson(personId),
       this.repo.checkinsForPerson(personId),
+      this.repo.attendancesForPerson(personId),
     ]);
     const stats = buildBadgeStats(
       confirmed,
       checkins,
       personId,
       await this.earlyCheckinCutoff(),
+      attendances,
     );
     const newKeys = this.awarder.evaluate(
       stats,

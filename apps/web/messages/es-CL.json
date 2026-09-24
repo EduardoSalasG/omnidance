@@ -376,7 +376,8 @@
     "primeUnlocked": "¡Prime Time desbloqueado!",
     "missions": "Misiones",
     "completed": "Completada",
-    "badgesEmpty": "Baila, confirma y completa misiones para ganar insignias."
+    "badgesEmpty": "Baila, confirma y completa misiones para ganar insignias.",
+    "badgesEmptyAcademy": "Asiste a clases y mantén tu constancia para ganar insignias."
   },
   "notifications": {
     "title": "Notificaciones",
