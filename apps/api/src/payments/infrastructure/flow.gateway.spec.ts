@@ -12,9 +12,16 @@ const KEY = "test-api-key";
 const SECRET = "test-secret-key";
 const BASE = "https://sandbox.flow.cl/api";
 const CONFIRM = "http://api.test/api/payments/webhook";
+const SUB_CB = "http://api.test/api/payments/subscription-webhook";
 
 function makeGateway() {
   return new FlowGateway(KEY, SECRET, BASE, CONFIRM);
+}
+
+// Gateway con subscriptionCallbackUrl (6º param del ctor) — el que arma
+// resolveGateway como `${API_URL}/api/payments/subscription-webhook`.
+function makeSubGateway() {
+  return new FlowGateway(KEY, SECRET, BASE, CONFIRM, undefined, SUB_CB);
 }
 
 // Firma esperada según doc Flow: params ordenados alfabéticamente,
@@ -175,6 +182,280 @@ describe("FlowGateway", () => {
     ])("status %i → %s", async (status, expected) => {
       mockFetch({ status });
       expect(await makeGateway().refreshStatus("r")).toBe(expected);
+    });
+  });
+
+  describe("suscripciones (plans/customer/subscription)", () => {
+    describe("ensurePlan", () => {
+      it("plans/get error → plans/create con params firmados + urlCallback", async () => {
+        const spy = vi
+          .fn()
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 400,
+            text: () => Promise.resolve("{}"),
+            json: () => Promise.resolve({}),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            text: () => Promise.resolve("{}"),
+            json: () => Promise.resolve({ planId: "pl_1" }),
+          });
+        vi.stubGlobal("fetch", spy);
+
+        await makeSubGateway().ensurePlan({
+          planId: "pl_1",
+          name: "Academia X — Mensual",
+          amount: 25000,
+          intervalCount: 1,
+        });
+
+        expect(spy).toHaveBeenCalledTimes(2);
+        // 1ª: GET plans/get con planId firmado en querystring
+        const [getUrl] = spy.mock.calls[0] as [string];
+        expect(getUrl.startsWith(`${BASE}/plans/get?`)).toBe(true);
+        const getQs = new URLSearchParams(getUrl.split("?")[1]);
+        expect(getQs.get("planId")).toBe("pl_1");
+        expect(getQs.get("s")).toBe(
+          expectedSignature({ apiKey: KEY, planId: "pl_1" }),
+        );
+        // 2ª: POST plans/create
+        const [createUrl, createInit] = spy.mock.calls[1] as [
+          string,
+          RequestInit,
+        ];
+        expect(createUrl).toBe(`${BASE}/plans/create`);
+        expect(createInit.method).toBe("POST");
+        const body = createInit.body as URLSearchParams;
+        const params: Record<string, string> = {
+          apiKey: KEY,
+          planId: "pl_1",
+          name: "Academia X — Mensual",
+          currency: "CLP",
+          amount: "25000",
+          interval: "3",
+          interval_count: "1",
+          urlCallback: SUB_CB,
+          charges_retries_number: "3",
+        };
+        for (const [k, v] of Object.entries(params)) {
+          expect(body.get(k)).toBe(v);
+        }
+        expect(body.get("s")).toBe(expectedSignature(params));
+      });
+
+      it("plans/get ok → ya existe, no llama plans/create", async () => {
+        const spy = mockFetch({ planId: "pl_1", name: "Plan" });
+        await makeSubGateway().ensurePlan({
+          planId: "pl_1",
+          name: "Plan",
+          amount: 100,
+          intervalCount: 3,
+        });
+        expect(spy).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("syncPlan POST plans/edit con planId+name+amount", async () => {
+      const spy = mockFetch({ planId: "pl_1" });
+      await makeGateway().syncPlan({
+        planId: "pl_1",
+        name: "Nuevo nombre",
+        amount: 30000,
+      });
+      const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/plans/edit`);
+      const body = init.body as URLSearchParams;
+      const params: Record<string, string> = {
+        apiKey: KEY,
+        planId: "pl_1",
+        name: "Nuevo nombre",
+        amount: "30000",
+      };
+      for (const [k, v] of Object.entries(params)) {
+        expect(body.get(k)).toBe(v);
+      }
+      expect(body.get("s")).toBe(expectedSignature(params));
+    });
+
+    it("createCustomer POST customer/create → customerId", async () => {
+      const spy = mockFetch({ customerId: "cus_9", email: "d@o.dev" });
+      const out = await makeGateway().createCustomer({
+        email: "d@o.dev",
+        name: "Dani",
+        externalId: "per_1",
+      });
+      const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/customer/create`);
+      const body = init.body as URLSearchParams;
+      const params: Record<string, string> = {
+        apiKey: KEY,
+        email: "d@o.dev",
+        name: "Dani",
+        externalId: "per_1",
+      };
+      for (const [k, v] of Object.entries(params)) {
+        expect(body.get(k)).toBe(v);
+      }
+      expect(body.get("s")).toBe(expectedSignature(params));
+      expect(out.customerId).toBe("cus_9");
+    });
+
+    it("getCustomer GET customer/get → creditCardType+status", async () => {
+      const spy = mockFetch({
+        customerId: "cus_1",
+        creditCardType: "Visa",
+        status: 1,
+      });
+      const out = await makeGateway().getCustomer("cus_1");
+      const [url] = spy.mock.calls[0] as [string];
+      expect(url.startsWith(`${BASE}/customer/get?`)).toBe(true);
+      const qs = new URLSearchParams(url.split("?")[1]);
+      expect(qs.get("customerId")).toBe("cus_1");
+      expect(qs.get("s")).toBe(
+        expectedSignature({ apiKey: KEY, customerId: "cus_1" }),
+      );
+      expect(out).toEqual({ creditCardType: "Visa", status: 1 });
+    });
+
+    it("registerCustomerCard POST customer/register → registerUrl = url?token=", async () => {
+      const spy = mockFetch({
+        url: "https://sandbox.flow.cl/app/customer/disclaimer.php",
+        token: "tokR",
+      });
+      const out = await makeGateway().registerCustomerCard({
+        customerId: "cus_1",
+        returnUrl: "https://api/cb",
+      });
+      const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/customer/register`);
+      const body = init.body as URLSearchParams;
+      expect(body.get("customerId")).toBe("cus_1");
+      expect(body.get("url_return")).toBe("https://api/cb");
+      expect(body.get("s")).toBe(
+        expectedSignature({
+          apiKey: KEY,
+          customerId: "cus_1",
+          url_return: "https://api/cb",
+        }),
+      );
+      expect(out.registerUrl).toBe(
+        "https://sandbox.flow.cl/app/customer/disclaimer.php?token=tokR",
+      );
+    });
+
+    it("getRegisterStatus GET — status viene STRING '1' → parsea a 1 + customerId", async () => {
+      const spy = mockFetch({
+        status: "1",
+        customerId: "cus_1",
+        creditCardType: "Visa",
+        last4CardDigits: "4242",
+      });
+      const out = await makeGateway().getRegisterStatus("tokReg");
+      const [url] = spy.mock.calls[0] as [string];
+      expect(url.startsWith(`${BASE}/customer/getRegisterStatus?`)).toBe(
+        true,
+      );
+      const qs = new URLSearchParams(url.split("?")[1]);
+      expect(qs.get("token")).toBe("tokReg");
+      expect(qs.get("s")).toBe(
+        expectedSignature({ apiKey: KEY, token: "tokReg" }),
+      );
+      expect(out).toEqual({ status: 1, customerId: "cus_1" });
+    });
+
+    it("createSubscription POST subscription/create con planId+customerId+start", async () => {
+      const spy = mockFetch({
+        subscriptionId: "sus_1",
+        planId: "pl_1",
+        status: 1,
+        next_invoice_date: "2026-10-24 00:00:00",
+      });
+      const out = await makeGateway().createSubscription({
+        planId: "pl_1",
+        customerId: "cus_1",
+        subscriptionStart: "2026-09-24",
+      });
+      const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/subscription/create`);
+      const body = init.body as URLSearchParams;
+      const params: Record<string, string> = {
+        apiKey: KEY,
+        planId: "pl_1",
+        customerId: "cus_1",
+        subscription_start: "2026-09-24",
+      };
+      for (const [k, v] of Object.entries(params)) {
+        expect(body.get(k)).toBe(v);
+      }
+      expect(body.get("s")).toBe(expectedSignature(params));
+      expect(out.subscriptionId).toBe("sus_1");
+      expect(out.next_invoice_date).toBe("2026-10-24 00:00:00");
+    });
+
+    it("getSubscription GET subscription/get → parsea invoices[]", async () => {
+      const spy = mockFetch({
+        subscriptionId: "sus_1",
+        planId: "pl_1",
+        status: 1,
+        invoices: [
+          {
+            id: 10,
+            status: 1,
+            amount: 5000,
+            payment: { status: 2, flowOrder: 99 },
+          },
+        ],
+      });
+      const out = await makeGateway().getSubscription("sus_1");
+      const [url] = spy.mock.calls[0] as [string];
+      expect(url.startsWith(`${BASE}/subscription/get?`)).toBe(true);
+      const qs = new URLSearchParams(url.split("?")[1]);
+      expect(qs.get("subscriptionId")).toBe("sus_1");
+      expect(qs.get("s")).toBe(
+        expectedSignature({ apiKey: KEY, subscriptionId: "sus_1" }),
+      );
+      expect(out.invoices).toHaveLength(1);
+      expect(out.invoices?.[0].id).toBe(10);
+      expect(out.invoices?.[0].payment?.flowOrder).toBe(99);
+    });
+
+    it("cancelSubscription → at_period_end=1", async () => {
+      const spy = mockFetch({ subscriptionId: "sus_1" });
+      await makeGateway().cancelSubscription("sus_1");
+      const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/subscription/cancel`);
+      const body = init.body as URLSearchParams;
+      expect(body.get("subscriptionId")).toBe("sus_1");
+      expect(body.get("at_period_end")).toBe("1");
+      expect(body.get("s")).toBe(
+        expectedSignature({
+          apiKey: KEY,
+          subscriptionId: "sus_1",
+          at_period_end: "1",
+        }),
+      );
+    });
+
+    it("correlationId de opts propaga a la auditoría de call()", async () => {
+      const txLog: GatewayTxEntry[] = [];
+      const gw = new FlowGateway(KEY, SECRET, BASE, CONFIRM, async (e) => {
+        txLog.push(e);
+      });
+      mockFetch({ subscriptionId: "sus_1", status: 1 });
+      await gw.createSubscription(
+        {
+          planId: "pl_1",
+          customerId: "cus_1",
+          subscriptionStart: "2026-09-24",
+        },
+        { correlationId: "corr_sub_42" },
+      );
+      expect(txLog).toHaveLength(1);
+      expect(txLog[0].endpoint).toBe("subscription/create");
+      expect(txLog[0].correlationId).toBe("corr_sub_42");
+      expect(txLog[0].ok).toBe(true);
     });
   });
 

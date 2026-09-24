@@ -82,6 +82,7 @@ export function resolveGateway(
       baseUrl,
       `${apiUrl}/api/payments/webhook`,
       onTx,
+      `${apiUrl}/api/payments/subscription-webhook`,
     );
   }
   // Fail-close: el stub acepta webhooks sin firma — jamás en producción.

@@ -1,6 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { createHmac, randomUUID } from "node:crypto";
-import type { PaymentGateway } from "../domain/ports";
+import type {
+  FlowSubscription,
+  PaymentGateway,
+  SubscriptionCallOpts,
+  SubscriptionProvider,
+} from "../domain/ports";
 import {
   sanitizeGatewayPayload,
   type GatewayTxEntry,
@@ -20,8 +25,11 @@ import {
 // TODA llamada HTTP a Flow pasa por call(), que emite un GatewayTxEntry
 // (append-only) vía onTx — el writer real es GatewayTransactionsService,
 // inyectado desde el módulo; en tests se inyecta un collector fake.
+// Re-export de los tipos del contrato para callers del adapter.
+export type { FlowInvoice, FlowSubscription } from "../domain/ports";
+
 @Injectable()
-export class FlowGateway implements PaymentGateway {
+export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   readonly name = "FLOW";
 
   constructor(
@@ -30,8 +38,9 @@ export class FlowGateway implements PaymentGateway {
     private readonly baseUrl = "https://sandbox.flow.cl/api",
     private readonly confirmationUrl = "",
     private readonly onTx?: (e: GatewayTxEntry) => Promise<void>,
-    // Reservado para suscripciones (task 4): urlCallback de
-    // subscription/create. Se declara ya para estabilizar la firma.
+    // urlCallback que Flow invoca ante eventos del plan/suscripción
+    // (plans/create lo registra por plan). Lo arma el module:
+    // `${API_URL}/api/payments/subscription-webhook`.
     private readonly subscriptionCallbackUrl = "",
   ) {}
 
@@ -114,6 +123,212 @@ export class FlowGateway implements PaymentGateway {
     if (data.status === 2) return "PAID";
     if (data.status === 3 || data.status === 4) return "FAILED";
     return "PENDING";
+  }
+
+  // ---------- Suscripciones (SubscriptionProvider) ----------
+  // Motor nativo de Flow: el plan define el cobro recurrente
+  // (interval=3 mensual, interval_count = cada cuántos meses cobra:
+  // 1 mensual · 3 trimestral · 6 semestral según PlanType), el customer
+  // registra su tarjeta vía customer/register y la suscripción se crea
+  // con subscription/create. Todos pasan por call() → auditados.
+
+  /**
+   * plans/get → si Flow responde error (incl. plan inexistente) →
+   * plans/create. Idempotente: un plan ya creado no se duplica.
+   * urlCallback = webhook de suscripciones (lo arma el module).
+   */
+  async ensurePlan(
+    p: {
+      planId: string;
+      name: string;
+      amount: number;
+      intervalCount: number;
+    },
+    opts?: SubscriptionCallOpts,
+  ): Promise<void> {
+    try {
+      await this.call<unknown>(
+        "plans/get",
+        { apiKey: this.apiKey, planId: p.planId },
+        { method: "GET", correlationId: opts?.correlationId },
+      );
+      return; // ya existe en Flow — no duplicar
+    } catch {
+      // plans/get falló (404/error) → crear abajo.
+    }
+    await this.call<unknown>(
+      "plans/create",
+      {
+        apiKey: this.apiKey,
+        planId: p.planId,
+        name: p.name,
+        currency: "CLP",
+        amount: String(p.amount),
+        interval: "3",
+        interval_count: String(p.intervalCount),
+        urlCallback: this.subscriptionCallbackUrl,
+        charges_retries_number: "3",
+      },
+      { correlationId: opts?.correlationId },
+    );
+  }
+
+  /** plans/edit — sync cuando staff edita precio/nombre del plan local. */
+  async syncPlan(
+    p: { planId: string; name: string; amount: number },
+    opts?: SubscriptionCallOpts,
+  ): Promise<void> {
+    await this.call<unknown>(
+      "plans/edit",
+      {
+        apiKey: this.apiKey,
+        planId: p.planId,
+        name: p.name,
+        amount: String(p.amount),
+      },
+      { correlationId: opts?.correlationId },
+    );
+  }
+
+  async createCustomer(
+    p: { email: string; name: string; externalId: string },
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ customerId: string }> {
+    const data = await this.call<{ customerId?: string }>(
+      "customer/create",
+      {
+        apiKey: this.apiKey,
+        email: p.email,
+        name: p.name,
+        externalId: p.externalId,
+      },
+      { correlationId: opts?.correlationId },
+    );
+    if (!data.customerId) {
+      throw new Error("flow customer/create: respuesta inválida");
+    }
+    return { customerId: data.customerId };
+  }
+
+  /**
+   * customer/get — `creditCardType` presente = el customer ya registró
+   * tarjeta (completó customer/register); si falta, hay que mandarlo al
+   * disclaimer de Flow antes de crear la suscripción.
+   */
+  async getCustomer(
+    customerId: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ creditCardType?: string; status?: number }> {
+    const data = await this.call<{
+      creditCardType?: string;
+      status?: number;
+    }>(
+      "customer/get",
+      { apiKey: this.apiKey, customerId },
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    return { creditCardType: data.creditCardType, status: data.status };
+  }
+
+  /**
+   * customer/register → URL del disclaimer de registro de tarjeta
+   * (registerUrl = url?token=). El usuario vuelve a returnUrl con
+   * ?token=, que se consulta vía getRegisterStatus.
+   */
+  async registerCustomerCard(
+    p: { customerId: string; returnUrl: string },
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ registerUrl: string }> {
+    const data = await this.call<{ url?: string; token?: string }>(
+      "customer/register",
+      {
+        apiKey: this.apiKey,
+        customerId: p.customerId,
+        url_return: p.returnUrl,
+      },
+      { correlationId: opts?.correlationId },
+    );
+    if (!data.url || !data.token) {
+      throw new Error("flow customer/register: respuesta inválida");
+    }
+    return { registerUrl: `${data.url}?token=${data.token}` };
+  }
+
+  /**
+   * customer/getRegisterStatus — Flow devuelve status como STRING
+   * ("1" = tarjeta registrada); se parsea a number en la salida.
+   */
+  async getRegisterStatus(
+    token: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<{ status: number; customerId?: string }> {
+    const data = await this.call<{
+      status?: string | number;
+      customerId?: string;
+    }>(
+      "customer/getRegisterStatus",
+      { apiKey: this.apiKey, token },
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+    return {
+      status: Number(data.status ?? 0),
+      customerId: data.customerId,
+    };
+  }
+
+  /**
+   * subscription/create — subscriptionStart "YYYY-MM-DD" fija el inicio
+   * (Flow cobra el primer período y programa next_invoice_date).
+   */
+  async createSubscription(
+    p: { planId: string; customerId: string; subscriptionStart: string },
+    opts?: SubscriptionCallOpts,
+  ): Promise<FlowSubscription> {
+    const data = await this.call<FlowSubscription>(
+      "subscription/create",
+      {
+        apiKey: this.apiKey,
+        planId: p.planId,
+        customerId: p.customerId,
+        subscription_start: p.subscriptionStart,
+      },
+      { correlationId: opts?.correlationId },
+    );
+    if (!data.subscriptionId) {
+      throw new Error("flow subscription/create: respuesta inválida");
+    }
+    return data;
+  }
+
+  /**
+   * subscription/get — fuente de verdad del reconcile diario: trae
+   * invoices[] con su estado de cobro (ver isFlowInvoicePaid).
+   */
+  async getSubscription(
+    subscriptionId: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<FlowSubscription> {
+    return this.call<FlowSubscription>(
+      "subscription/get",
+      { apiKey: this.apiKey, subscriptionId },
+      { method: "GET", correlationId: opts?.correlationId },
+    );
+  }
+
+  /** Cancela al fin del período ya pagado (at_period_end=1). */
+  async cancelSubscription(
+    subscriptionId: string,
+    opts?: SubscriptionCallOpts,
+  ): Promise<void> {
+    await this.call<unknown>(
+      "subscription/cancel",
+      {
+        apiKey: this.apiKey,
+        subscriptionId,
+        at_period_end: "1",
+      },
+      { correlationId: opts?.correlationId },
+    );
   }
 
   /**
