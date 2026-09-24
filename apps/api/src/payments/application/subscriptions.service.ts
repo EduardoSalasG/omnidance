@@ -31,6 +31,11 @@ const INTERVAL_COUNT: Record<string, number> = {
   SEMIANNUAL: 6,
 };
 
+// PENDING_CARD/ACTIVATING más vieja que esto se considera intento
+// muerto (crash del request o abandono del disclaimer) y se reemplaza;
+// una fresca del mismo plan se reutiliza (idempotencia del retry).
+const PENDING_CARD_TTL_MS = 15 * 60_000;
+
 export type SubscribeResult =
   | { kind: "needs_card"; registerUrl: string; subscriptionId: string }
   | { kind: "subscribed"; subscriptionId: string };
@@ -126,6 +131,16 @@ export class SubscriptionsService {
    *  - con tarjeta → subscription/create directo (Flow cobra el primer
    *    período de inmediato) → ACTIVE + reconcile best-effort del primer
    *    invoice si ya figura pagado.
+   *
+   * Concurrencia (I1): el re-check de sub viva + la elección/creación de
+   * la fila PENDING_CARD van dentro de una tx corta con advisory lock
+   * `pg_advisory_xact_lock(hashtext(personId:planId))` — dos subscribe()
+   * concurrentes ya no pueden pasar ambos el guard y duplicar el
+   * subscription/create en Flow (= doble cobro). Las llamadas HTTP a
+   * Flow quedan FUERA de la tx (el lock solo serializa quién crea la
+   * fila, no se sostiene durante la red). Antes del createSubscription
+   * hay un claim atómico PENDING_CARD→ACTIVATING que cubre la carrera
+   * contra customerReturn (que toma la misma sub por su lado).
    */
   async subscribe(
     personId: string,
@@ -147,19 +162,66 @@ export class SubscriptionsService {
       throw new BadRequestException("este plan no admite cobro recurrente");
     }
 
-    // Una suscripción viva por plan: re-suscribir con tarjeta registrada
-    // crearía una segunda suscripción en Flow → doble cobro real.
-    const existing = await this.prisma.membershipSubscription.findFirst({
-      where: {
-        personId,
-        planId: plan.id,
-        status: { in: ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD"] },
-      },
-      orderBy: { createdAt: "desc" },
+    // Sección crítica (serializada por advisory lock): re-check de sub
+    // viva + elección de la PENDING_CARD. Una PENDING_CARD FRESCA del
+    // mismo plan se reutiliza — idempotencia del retry del cliente: el
+    // segundo request devuelve needs_card con el mismo subscriptionId y
+    // un registerUrl nuevo (customer/register es re-llamable sobre el
+    // mismo customerId). Una PENDING_CARD/ACTIVATING expirada (>TTL,
+    // crash del intento anterior) se reemplaza por un intento nuevo.
+    const sub = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sub:${personId}:${plan.id}`}))`;
+      const existing = await tx.membershipSubscription.findFirst({
+        where: {
+          personId,
+          planId: plan.id,
+          status: {
+            in: ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD", "ACTIVATING"],
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      const fresh =
+        existing != null &&
+        Date.now() - existing.createdAt.getTime() < PENDING_CARD_TTL_MS;
+      const reuse =
+        existing?.status === "PENDING_CARD" && fresh ? existing : null;
+      if (existing && !reuse) {
+        const replaceable =
+          existing.status === "PENDING_CARD" ||
+          existing.status === "ACTIVATING";
+        if (!replaceable || fresh) {
+          throw new ConflictException(
+            "ya tienes una suscripción a este plan",
+          );
+        }
+      }
+      const now = new Date();
+      // Se cancelan TODAS las PENDING_CARD del person (cualquier plan):
+      // el token de customer-return ata a customer→person, no a una sub
+      // concreta — con dos pendientes vivas no habría forma de saber
+      // cuál activar al volver del disclaimer (M7).
+      await tx.membershipSubscription.updateMany({
+        where: {
+          personId,
+          status: "PENDING_CARD",
+          ...(reuse ? { id: { not: reuse.id } } : {}),
+        },
+        data: { status: "CANCELED", canceledAt: now },
+      });
+      // ACTIVATING expirada de este plan (crash entre claim y update):
+      // la reemplaza el intento nuevo.
+      if (existing?.status === "ACTIVATING") {
+        await tx.membershipSubscription.update({
+          where: { id: existing.id },
+          data: { status: "CANCELED", canceledAt: now },
+        });
+      }
+      if (reuse) return reuse;
+      return tx.membershipSubscription.create({
+        data: { personId, planId: plan.id, academyId: plan.academyId },
+      });
     });
-    if (existing && existing.status !== "PENDING_CARD") {
-      throw new ConflictException("ya tienes una suscripción a este plan");
-    }
 
     const correlationId = randomUUID();
     const flow = this.flow();
@@ -209,18 +271,6 @@ export class SubscriptionsService {
       });
     }
 
-    // Un intento PENDING_CARD anterior se reemplaza por el nuevo (la
-    // tarjeta pudo quedar registrada entremedio — getCustomer decide).
-    if (existing) {
-      await this.prisma.membershipSubscription.update({
-        where: { id: existing.id },
-        data: { status: "CANCELED", canceledAt: new Date() },
-      });
-    }
-    const sub = await this.prisma.membershipSubscription.create({
-      data: { personId, planId: plan.id, academyId: plan.academyId },
-    });
-
     const customer = await flow.getCustomer(customerId, { correlationId });
     if (!customer.creditCardType) {
       const { registerUrl } = await flow.registerCustomerCard(
@@ -233,23 +283,32 @@ export class SubscriptionsService {
       return { kind: "needs_card", registerUrl, subscriptionId: sub.id };
     }
 
-    const fs = await flow.createSubscription(
-      {
-        planId: flowPlanId,
-        customerId,
-        subscriptionStart: new Date().toISOString().slice(0, 10),
-      },
-      { correlationId },
-    );
-    const active = await this.prisma.membershipSubscription.update({
-      where: { id: sub.id },
-      data: {
-        flowSubscriptionId: fs.subscriptionId,
-        status: "ACTIVE",
-        nextInvoiceAt: fs.next_invoice_date
-          ? new Date(fs.next_invoice_date)
-          : null,
-      },
+    // Claim atómico de la PENDING_CARD: el lock de la tx ya se liberó y
+    // un customer-return concurrente pudo activar la sub entremedio —
+    // sin el claim ambos harían subscription/create → doble cobro.
+    const claimed = await this.prisma.membershipSubscription.updateMany({
+      where: { id: sub.id, status: "PENDING_CARD" },
+      data: { status: "ACTIVATING" },
+    });
+    if (claimed.count === 0) {
+      const cur = await this.prisma.membershipSubscription.findUnique({
+        where: { id: sub.id },
+        select: { status: true },
+      });
+      // El customer-return ganó la carrera y ya la dejó ACTIVE → el
+      // subscribe responde éxito sin duplicar el cobro.
+      if (cur?.status === "ACTIVE") {
+        return { kind: "subscribed", subscriptionId: sub.id };
+      }
+      throw new ConflictException(
+        "la suscripción está siendo procesada — reintenta en unos segundos",
+      );
+    }
+
+    const { active, fs } = await this.createFlowSubscription(sub.id, {
+      flowPlanId,
+      customerId,
+      correlationId,
     });
 
     // El primer invoice puede venir ya pagado en la respuesta — el settle
@@ -262,18 +321,110 @@ export class SubscriptionsService {
       );
     }
 
-    await this.notifications.notifySafe(personId, {
-      category: "TRANSACTIONAL",
-      type: "membership.subscription_started",
-      title: "Tu suscripción está activa",
-      body: `${plan.name} · ${plan.academy.name}`,
-      data: {
-        subscriptionId: sub.id,
-        planId: plan.id,
-        academyId: plan.academyId,
-      },
-    });
+    if (active.status === "ACTIVE") {
+      await this.notifications.notifySafe(personId, {
+        category: "TRANSACTIONAL",
+        type: "membership.subscription_started",
+        title: "Tu suscripción está activa",
+        body: `${plan.name} · ${plan.academy.name}`,
+        data: {
+          subscriptionId: sub.id,
+          planId: plan.id,
+          academyId: plan.academyId,
+        },
+      });
+    }
     return { kind: "subscribed", subscriptionId: sub.id };
+  }
+
+  /**
+   * subscription/create de Flow sobre una sub ya claimeada (ACTIVATING)
+   * + persistencia del resultado. Compartido por subscribe (con tarjeta)
+   * y customerReturn.
+   *
+   * - Si la llamada a Flow falla, el claim se revierte a PENDING_CARD:
+   *   la tarjeta ya está registrada y el próximo intento la retoma (si
+   *   quedara ACTIVATING para siempre, el guard de subscribe daría 409
+   *   eterno).
+   * - Guard de status remoto (M4): no se asume ACTIVE a ciegas —
+   *   `fs.status === 4` (cancelada) → CANCELED; ausente/1 → ACTIVE; otro
+   *   valor inesperado → warn + ACTIVE (la sub existe en Flow; bloquear
+   *   dejaría un cobro real sin reflejo local y el próximo reconcile
+   *   corrige el estado).
+   * - Si el update local falla, la sub Flow quedaría huérfana (cobrando
+   *   sin reflejo local) → compensación best-effort: cancel inmediata
+   *   (M6) y rethrow.
+   * - La transición ACTIVATING→final es condicional (updateMany): si la
+   *   sub cambió de estado entremedio (p.ej. cancel del usuario), la sub
+   *   Flow recién creada se compensa igual y se lanza Conflict.
+   */
+  private async createFlowSubscription(
+    subId: string,
+    p: { flowPlanId: string; customerId: string; correlationId: string },
+  ): Promise<{ active: MembershipSubscription; fs: FlowSubscription }> {
+    const flow = this.flow();
+    let fs: FlowSubscription;
+    try {
+      fs = await flow.createSubscription(
+        {
+          planId: p.flowPlanId,
+          customerId: p.customerId,
+          subscriptionStart: new Date().toISOString().slice(0, 10),
+        },
+        { correlationId: p.correlationId },
+      );
+    } catch (e) {
+      await this.prisma.membershipSubscription
+        .updateMany({
+          where: { id: subId, status: "ACTIVATING" },
+          data: { status: "PENDING_CARD" },
+        })
+        .catch(() => {});
+      throw e;
+    }
+
+    const remoteStatus = typeof fs.status === "number" ? fs.status : null;
+    if (remoteStatus != null && remoteStatus !== 1 && remoteStatus !== 4) {
+      this.logger.warn(
+        `subscription/create sub ${subId}: status remoto inesperado ${remoteStatus} — queda ACTIVE y el reconcile lo corrige`,
+      );
+    }
+    const nextStatus = remoteStatus === 4 ? "CANCELED" : "ACTIVE";
+    const transition = await this.prisma.membershipSubscription
+      .updateMany({
+        where: { id: subId, status: "ACTIVATING" },
+        data: {
+          flowSubscriptionId: fs.subscriptionId,
+          status: nextStatus,
+          nextInvoiceAt: fs.next_invoice_date
+            ? new Date(fs.next_invoice_date)
+            : null,
+          ...(nextStatus === "CANCELED" ? { canceledAt: new Date() } : {}),
+        },
+      })
+      .catch(() => ({ count: 0 }));
+    if (transition.count === 0) {
+      // La sub ya no estaba ACTIVATING (cancel concurrente, crash+retry)
+      // o el update falló: la sub Flow quedó huérfana → cancel inmediata
+      // best-effort para no dejar un cobro sin reflejo local.
+      await flow
+        .cancelSubscription(fs.subscriptionId, {
+          correlationId: p.correlationId,
+          immediate: true,
+        })
+        .catch((ce) =>
+          this.logger.error(
+            `compensación cancel Flow sub ${fs.subscriptionId} (local ${subId}): ${ce instanceof Error ? ce.message : ce}`,
+          ),
+        );
+      throw new ConflictException(
+        "la suscripción cambió de estado durante la activación",
+      );
+    }
+    const active = await this.prisma.membershipSubscription.findUniqueOrThrow({
+      where: { id: subId },
+    });
+    return { active, fs };
   }
 
   /**
@@ -321,23 +472,28 @@ export class SubscriptionsService {
       return { ok: false, academyId: sub.academyId };
     }
 
-    const fs = await flow.createSubscription(
-      {
-        planId: sub.plan.flowPlanId,
-        customerId: reg.customerId,
-        subscriptionStart: new Date().toISOString().slice(0, 10),
-      },
-      { correlationId },
-    );
-    const active = await this.prisma.membershipSubscription.update({
-      where: { id: sub.id },
-      data: {
-        flowSubscriptionId: fs.subscriptionId,
-        status: "ACTIVE",
-        nextInvoiceAt: fs.next_invoice_date
-          ? new Date(fs.next_invoice_date)
-          : null,
-      },
+    // Claim atómico PENDING_CARD → ACTIVATING (I1): un segundo return
+    // del browser o un subscribe concurrente con tarjeta no puede
+    // duplicar el subscription/create. count===0 → otro la tomó; si ya
+    // quedó ACTIVE el redirect es de éxito igual (retry del browser).
+    const claimed = await this.prisma.membershipSubscription.updateMany({
+      where: { id: sub.id, status: "PENDING_CARD" },
+      data: { status: "ACTIVATING" },
+    });
+    if (claimed.count === 0) {
+      const cur = await this.prisma.membershipSubscription.findUnique({
+        where: { id: sub.id },
+        select: { status: true, academyId: true },
+      });
+      return cur?.status === "ACTIVE"
+        ? { ok: true, academyId: cur.academyId }
+        : { ok: false, academyId: sub.academyId };
+    }
+
+    const { active, fs } = await this.createFlowSubscription(sub.id, {
+      flowPlanId: sub.plan.flowPlanId,
+      customerId: reg.customerId,
+      correlationId,
     });
     try {
       await this.reconcileSubscription(active, fs, "system");
@@ -346,13 +502,15 @@ export class SubscriptionsService {
         `reconcile post-customer-return sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
       );
     }
-    await this.notifications.notifySafe(person.id, {
-      category: "TRANSACTIONAL",
-      type: "membership.subscription_started",
-      title: "Tu suscripción está activa",
-      body: `${sub.plan.name} · ${sub.plan.academy.name}`,
-      data: { subscriptionId: sub.id, academyId: sub.academyId },
-    });
+    if (active.status === "ACTIVE") {
+      await this.notifications.notifySafe(person.id, {
+        category: "TRANSACTIONAL",
+        type: "membership.subscription_started",
+        title: "Tu suscripción está activa",
+        body: `${sub.plan.name} · ${sub.plan.academy.name}`,
+        data: { subscriptionId: sub.id, academyId: sub.academyId },
+      });
+    }
     return { ok: true, academyId: sub.academyId };
   }
 
@@ -362,6 +520,11 @@ export class SubscriptionsService {
    * inbound y disparamos reconcileAll fire-and-forget — el endpoint
    * responde 200 siempre (si no, Flow reintenta y repetiría el barrido);
    * el cron diario (T7) es la red de seguridad real.
+   *
+   * I3: sin `token` (string no vacía) NO se dispara el sweep — el
+   * endpoint es público y cada reconcileAll ejecuta N llamadas firmadas
+   * a Flow; exigir el token evita amplificación por POST arbitrarios.
+   * El registro INBOUND se mantiene igual (evidencia del intento).
    */
   async subscriptionWebhook(token: string | null): Promise<void> {
     await this.gatewayTx.record({
@@ -372,6 +535,7 @@ export class SubscriptionsService {
       requestBody: { token },
       ok: true,
     });
+    if (typeof token !== "string" || token.trim() === "") return;
     void this.reconcileAll().catch((e) =>
       this.logger.error(
         `reconcileAll post-webhook falló: ${e instanceof Error ? e.message : e}`,
@@ -471,7 +635,7 @@ export class SubscriptionsService {
         this.prisma,
         lastPayment.id,
         "SUBSCRIPTION_CANCELED",
-        "user",
+        "person",
         {
           subscriptionId: sub.id,
           flowSubscriptionId: sub.flowSubscriptionId,
@@ -565,9 +729,21 @@ export class SubscriptionsService {
         const refId = `mem_${sub.planId}_${invId}`;
         const exists = await this.prisma.payment.findFirst({
           where: { refId },
-          select: { id: true },
         });
         if (exists) {
+          // Si el settle de una pasada anterior falló post-create, el
+          // Payment quedó PENDING y la invoice cobrada sin enrollment
+          // (I2). Se reintenta acá — settleMembership re-chequea status
+          // dentro de su tx → idempotente. Si lanza, la invoice NO se
+          // marca y el próximo barrido lo reintenta de nuevo.
+          if (exists.status === "PENDING") {
+            await this.settlement.settleMembership(exists, {
+              actor,
+              kind: "renewal",
+              gatewayData: inv.payment?.paymentData,
+            });
+            settled++;
+          }
           await this.markInvoice(sub.id, invId);
           sub.lastInvoiceId = invId;
           continue;

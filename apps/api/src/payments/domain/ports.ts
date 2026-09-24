@@ -142,9 +142,14 @@ export interface SubscriptionProvider {
     opts?: SubscriptionCallOpts,
   ): Promise<FlowSubscription>;
 
-  /** Cancela al fin del período ya pagado (at_period_end=1). */
+  /**
+   * Cancela al fin del período ya pagado (at_period_end=1). Con
+   * `immediate: true` → at_period_end=0: cancelación inmediata, usada
+   * solo como compensación de una sub Flow huérfana (creada pero no
+   * persistida localmente) — nunca para la cancelación del usuario.
+   */
   cancelSubscription(
     subscriptionId: string,
-    opts?: SubscriptionCallOpts,
+    opts?: SubscriptionCallOpts & { immediate?: boolean },
   ): Promise<void>;
 }

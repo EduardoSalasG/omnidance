@@ -167,6 +167,25 @@ function mkPrisma() {
           ? { ...row, plan: plans.get(row.planId as string) }
           : null;
       }),
+      findUniqueOrThrow: vi.fn(
+        async ({ where }: { where: { id: string } }) => {
+          const row = subs.find((s) => s.id === where.id);
+          if (!row) throw new Error("P2025");
+          return { ...row, plan: plans.get(row.planId as string) };
+        },
+      ),
+      updateMany: vi.fn(
+        async ({ where, data }: { where: Row; data: Row }) => {
+          let count = 0;
+          for (const s of subs) {
+            if (matchWhere(s, where)) {
+              Object.assign(s, data);
+              count++;
+            }
+          }
+          return { count };
+        },
+      ),
     },
     person: {
       findUniqueOrThrow: vi.fn(async ({ where }: { where: { id: string } }) => {
@@ -280,6 +299,7 @@ function mkPrisma() {
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prisma),
+    $executeRaw: vi.fn(async () => 0),
   };
   return { prisma, payments, events, enrollments, subs, persons, plans, gatewayTxs };
 }
@@ -533,14 +553,117 @@ describe("SubscriptionsService", () => {
       expect(flow.createSubscription).not.toHaveBeenCalled();
     });
 
-    it("PENDING_CARD anterior se cancela y se crea intento nuevo", async () => {
-      const old = mkSub({ status: "PENDING_CARD" });
+    it("PENDING_CARD fresca del mismo plan → reutiliza la sub (idempotente)", async () => {
+      // Segundo subscribe concurrente/retry: el advisory lock serializa
+      // y el que llega segundo ve la PENDING_CARD del primero — la
+      // reutiliza en vez de crear otra (mismo subscriptionId, nuevo
+      // registerUrl sobre el mismo customerId).
+      const pending = mkSub({ status: "PENDING_CARD" });
+      fx.subs.push(pending);
+      const r = await svc.subscribe("p1", "plan1", true);
+      expect(r).toEqual({
+        kind: "needs_card",
+        registerUrl: "https://flow.example/register?token=rt1",
+        subscriptionId: pending.id,
+      });
+      expect(fx.subs).toHaveLength(1);
+      expect(fx.subs[0]!.status).toBe("PENDING_CARD");
+      expect(flow.registerCustomerCard).toHaveBeenCalledTimes(1);
+      expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("PENDING_CARD expirada (>15min) se cancela y se crea intento nuevo", async () => {
+      const old = mkSub({
+        status: "PENDING_CARD",
+        createdAt: new Date(Date.now() - 20 * 60_000),
+      });
       fx.subs.push(old);
       flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
       await svc.subscribe("p1", "plan1", true);
       const oldRow = fx.subs.find((s) => s.id === old.id)!;
       expect(oldRow.status).toBe("CANCELED");
       expect(fx.subs).toHaveLength(2);
+    });
+
+    it("subscribe cancela TODAS las PENDING_CARD del person (otros planes)", async () => {
+      // El token de customer-return ata a customer→person, no a sub —
+      // una pendiente de otro plan no puede sobrevivir al nuevo intento.
+      const other = mkSub({ planId: "plan2", status: "PENDING_CARD" });
+      fx.subs.push(other);
+      await svc.subscribe("p1", "plan1", true);
+      const otherRow = fx.subs.find((s) => s.id === other.id)!;
+      expect(otherRow.status).toBe("CANCELED");
+      const alive = fx.subs.filter((s) => s.status === "PENDING_CARD");
+      expect(alive).toHaveLength(1);
+      expect(alive[0]!.planId).toBe("plan1");
+    });
+
+    it("claim perdido ante customer-return (sub ya ACTIVE) → subscribed sin duplicar createSubscription", async () => {
+      // Carrera subscribe↔customerReturn: la PENDING_CARD se reutiliza,
+      // el customer tiene tarjeta, pero entre el check y el claim el
+      // return del browser ya la activó → el subscribe responde éxito
+      // sin llamar subscription/create (no hay doble cobro).
+      const pending = mkSub({ status: "PENDING_CARD" });
+      fx.subs.push(pending);
+      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      const inner = fx.prisma.membershipSubscription as unknown as {
+        updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
+      };
+      const orig = inner.updateMany;
+      inner.updateMany = vi.fn(
+        async ({ where, data }: { where: Row; data: Row }) => {
+          if (where.id === pending.id && data.status === "ACTIVATING") {
+            pending.status = "ACTIVE"; // customer-return ganó la carrera
+            return { count: 0 };
+          }
+          return orig({ where, data });
+        },
+      );
+
+      const r = await svc.subscribe("p1", "plan1", true);
+      expect(r).toEqual({ kind: "subscribed", subscriptionId: pending.id });
+      expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("createSubscription reporta status 4 → CANCELED, no asume ACTIVE", async () => {
+      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.createSubscription.mockResolvedValue({
+        subscriptionId: "fsub-x",
+        planId: "omni_plan1",
+        status: 4,
+        next_invoice_date: "2026-10-24",
+        invoices: [],
+      });
+      const r = await svc.subscribe("p1", "plan1", true);
+      expect(r.kind).toBe("subscribed");
+      const sub = fx.subs[0]!;
+      expect(sub.status).toBe("CANCELED");
+      expect(sub.flowSubscriptionId).toBe("fsub-x");
+      // sin notificación de "está activa" para una sub cancelada
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+    });
+
+    it("update post-createSubscription falla → cancel inmediata compensa la sub Flow huérfana", async () => {
+      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      const inner = fx.prisma.membershipSubscription as unknown as {
+        updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
+      };
+      const orig = inner.updateMany;
+      inner.updateMany = vi.fn(
+        async ({ where, data }: { where: Row; data: Row }) => {
+          // la transición ACTIVATING→ACTIVE falla (DB perdió la sub)
+          if (data.status === "ACTIVE") return { count: 0 };
+          return orig({ where, data });
+        },
+      );
+
+      await expect(svc.subscribe("p1", "plan1", true)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(flow.cancelSubscription).toHaveBeenCalledWith("fsub-1", {
+        correlationId: expect.any(String),
+        immediate: true,
+      });
     });
   });
 
@@ -686,6 +809,66 @@ describe("SubscriptionsService", () => {
       expect(row.nextInvoiceAt).toEqual(new Date("2026-10-24"));
     });
 
+    it("Payment PENDING con refId existente → reintenta el settle (I2)", async () => {
+      // Una pasada anterior creó el Payment pero settleMembership falló
+      // después → invoice cobrada con Payment PENDING y sin enrollment.
+      // El reconcile debe retomarlo, no solo marcar la invoice.
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      fx.payments.set("pay-9", {
+        id: "pay-9",
+        refId: "mem_plan1_42",
+        orderType: "MEMBERSHIP",
+        personId: "p1",
+        amount: 10500,
+        fee: 0,
+        net: 10500,
+        gateway: "FLOW",
+        status: "PENDING",
+        createdAt: new Date(),
+      });
+      const fs = {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        invoices: [
+          {
+            id: 42,
+            status: 1,
+            amount: 10500,
+            payment: {
+              status: 2,
+              flowOrder: 777,
+              paymentData: { amount: 10500, fee: 335 },
+            },
+          },
+        ],
+      };
+
+      const settled = await svc.reconcileSubscription(sub, fs as never);
+      expect(settled).toBe(1);
+
+      const p = fx.payments.get("pay-9")!;
+      expect(p.status).toBe("PAID");
+      expect(p.gatewayFeeClp).toBe(335);
+      // el retry materializó el enrollment pendiente
+      expect(fx.enrollments).toHaveLength(1);
+      expect(fx.enrollments[0]).toMatchObject({
+        academyId: "ac1",
+        personId: "p1",
+        status: "ACTIVE",
+      });
+      // ORDER_CREATED ya se emitió en la pasada original — el retry solo
+      // agrega la transición del settle (idempotente, no duplica eventos)
+      const types = fx.events
+        .filter((e) => e.paymentId === "pay-9")
+        .map((e) => e.type);
+      expect(types).toEqual(["STATUS_CONFIRMED", "RENEWAL_SETTLED"]);
+      // la invoice queda marcada solo porque el settle no lanzó
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      expect(row.lastInvoiceId).toBe("42");
+    });
+
     it("dedup: invoice ya en lastInvoiceId o con Payment existente → no duplica", async () => {
       const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
       fx.subs.push(sub);
@@ -766,6 +949,29 @@ describe("SubscriptionsService", () => {
       // fire-and-forget: el reconcile corre en background — esperar el tick
       await new Promise((r) => setTimeout(r, 10));
       expect(flow.getSubscription).toHaveBeenCalled();
+    });
+
+    it("sin token → registra INBOUND pero NO dispara reconcileAll (I3)", async () => {
+      // Endpoint público: un POST arbitrario sin token no puede forzar
+      // N llamadas firmadas a Flow (amplificación). El INBOUND queda
+      // registrado igual — evidencia del intento.
+      fx.subs.push(mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" }));
+      await svc.subscriptionWebhook(null);
+      expect(fx.gatewayTxs[0]).toMatchObject({
+        direction: "INBOUND_WEBHOOK",
+        endpoint: "subscription/callback",
+        requestBody: { token: null },
+        ok: true,
+      });
+      await new Promise((r) => setTimeout(r, 10));
+      expect(flow.getSubscription).not.toHaveBeenCalled();
+    });
+
+    it("token vacío → INBOUND registrado, sin reconcile", async () => {
+      await svc.subscriptionWebhook("");
+      expect(fx.gatewayTxs).toHaveLength(1);
+      await new Promise((r) => setTimeout(r, 10));
+      expect(flow.getSubscription).not.toHaveBeenCalled();
     });
   });
 });

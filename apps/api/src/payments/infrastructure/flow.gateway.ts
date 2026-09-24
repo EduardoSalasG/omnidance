@@ -332,17 +332,21 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     );
   }
 
-  /** Cancela al fin del período ya pagado (at_period_end=1). */
+  /**
+   * subscription/cancel — default at_period_end=1 (conserva el acceso
+   * hasta el fin del período pagado). `immediate:true` → at_period_end=0,
+   * solo para compensar subs huérfanas (ver SubscriptionsService).
+   */
   async cancelSubscription(
     subscriptionId: string,
-    opts?: SubscriptionCallOpts,
+    opts?: SubscriptionCallOpts & { immediate?: boolean },
   ): Promise<void> {
     await this.call<unknown>(
       "subscription/cancel",
       {
         apiKey: this.apiKey,
         subscriptionId,
-        at_period_end: "1",
+        at_period_end: opts?.immediate ? "0" : "1",
       },
       { correlationId: opts?.correlationId },
     );
