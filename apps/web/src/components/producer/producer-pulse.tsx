@@ -13,15 +13,22 @@ const clp = new Intl.NumberFormat("es-CL", {
 const num = new Intl.NumberFormat("es-CL");
 
 type Pulse = {
-  upcoming: number;
+  /** "upcoming" = eventos vivos/próximos; "last30d" = fallback cuando no
+   * hay ninguno — agrega eventos cerrados de los últimos 30 días. */
+  scope: "upcoming" | "last30d";
+  events: number;
   sold: number;
   grossClp: number;
   checkins: number;
 };
 
+const LAST_30D_MS = 30 * 24 * 3600 * 1000;
+
 /**
  * KPIs del hub /productor: agrega los stats de los eventos próximos o
  * en vivo (PUBLISHED|LIVE con endsAt a futuro) de GET /events/mine.
+ * Sin eventos activos → cae a "últimos 30 días" sobre eventos cerrados
+ * (productor inactivo ve su histórico reciente en vez de ceros).
  * Error → se omite la sección: el hub es navegación y cada módulo
  * reporta sus propios errores.
  */
@@ -46,17 +53,21 @@ export function ProducerPulse() {
             (e.status === "PUBLISHED" || e.status === "LIVE") &&
             new Date(e.endsAt).getTime() >= now,
         );
+        // Sin eventos activos el pulso miraría a futuro vacío — cae a
+        // "últimos 30 días" sobre los eventos ya cerrados.
+        const pool =
+          upcoming.length > 0
+            ? upcoming
+            : events.filter((e) => {
+                const end = new Date(e.endsAt).getTime();
+                return end < now && end >= now - LAST_30D_MS;
+              });
         setPulse({
-          upcoming: upcoming.length,
-          sold: upcoming.reduce((s, e) => s + (e.stats?.sold ?? 0), 0),
-          grossClp: upcoming.reduce(
-            (s, e) => s + (e.stats?.grossClp ?? 0),
-            0,
-          ),
-          checkins: upcoming.reduce(
-            (s, e) => s + (e.stats?.checkins ?? 0),
-            0,
-          ),
+          scope: upcoming.length > 0 ? "upcoming" : "last30d",
+          events: pool.length,
+          sold: pool.reduce((s, e) => s + (e.stats?.sold ?? 0), 0),
+          grossClp: pool.reduce((s, e) => s + (e.stats?.grossClp ?? 0), 0),
+          checkins: pool.reduce((s, e) => s + (e.stats?.checkins ?? 0), 0),
         });
       })
       .catch(() => {
@@ -84,15 +95,25 @@ export function ProducerPulse() {
     );
   }
 
+  const isLast30d = pulse.scope === "last30d";
+
   return (
     <section aria-label={t("kpi.title")}>
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
         {t("kpi.title")}
+        {isLast30d && (
+          <span className="ml-2 font-normal normal-case tracking-normal text-white/40">
+            · {t("kpi.periodLast30d")}
+          </span>
+        )}
       </h2>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(
           [
-            [t("kpi.upcoming"), num.format(pulse.upcoming)],
+            [
+              t(isLast30d ? "kpi.events" : "kpi.upcoming"),
+              num.format(pulse.events),
+            ],
             [t("kpi.sold"), num.format(pulse.sold)],
             [t("kpi.gross"), clp.format(pulse.grossClp)],
             [t("kpi.checkins"), num.format(pulse.checkins)],
