@@ -1257,7 +1257,7 @@ model PaymentEvent {
   paymentId   String
   seq         Int
   type        String   // ORDER_CREATED | GATEWAY_REQUEST | WEBHOOK_RECEIVED | STATUS_CONFIRMED | SETTLED | FAILED | RENEWAL_SETTLED | SUBSCRIPTION_CREATED | SUBSCRIPTION_CANCELED | AMOUNT_MISMATCH | IMPORTED
-  actor       String   // system | webhook | polling | admin | cron | migration
+  actor       String   // system | webhook | polling | admin | cron | migration | person | reconcile
   prevHash    String
   payloadHash String
   payload     Json
@@ -1275,7 +1275,9 @@ model MembershipSubscription {
   planId             String
   academyId          String
   flowSubscriptionId String?        @unique
-  // PENDING_CARD → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
+  // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
+  // ACTIVATING = claim transitorio entre el registro de tarjeta y el
+  // subscription/create de Flow (evita doble cobro por carrera).
   status             String         @default("PENDING_CARD")
   nextInvoiceAt      DateTime?      // de Flow next_invoice_date — alimenta el reminder
   lastInvoiceId      String?        // dedup de renovaciones ya liquidadas

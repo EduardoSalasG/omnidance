@@ -18,8 +18,9 @@ import { SERVICE_FEE } from "@omnidance/shared";
 
 /**
  * Contexto del settle: quién lo originó y la evidencia de la pasarela.
- * - actor: "webhook" | "polling" | "cron" | "admin" | "system" — queda en
- *   la columna actor de cada PaymentEvent.
+ * - actor: "webhook" | "polling" | "cron" | "admin" | "system" |
+ *   "person" | "reconcile" — queda en la columna actor de cada
+ *   PaymentEvent (vocabulario completo en el comentario del schema).
  * - gatewayData: `paymentData` de payment/getStatus (Flow) — verdad
  *   monetaria reportada por la pasarela; se persiste en los campos
  *   gateway* del Payment cuando el estado confirmado es PAID.
