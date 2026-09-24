@@ -289,8 +289,15 @@ export async function seedDev(prisma: PrismaClient) {
     planId: string,
     status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE",
     startedDaysAgo = 45,
-  ) =>
-    ensure(
+    // "Pagado hasta" en ±días desde hoy; null = sin fecha de término
+    // (packs de clases y trials no tienen vencimiento natural).
+    endsInDays: number | null = null,
+  ) => {
+    const endsAt =
+      endsInDays === null
+        ? null
+        : new Date(Date.now() + endsInDays * 86_400_000);
+    return ensure(
       () => prisma.enrollment.findFirst({ where: { academyId, personId } }),
       () =>
         prisma.enrollment.create({
@@ -300,6 +307,7 @@ export async function seedDev(prisma: PrismaClient) {
             planId,
             status,
             startedAt: new Date(Date.now() - startedDaysAgo * 86_400_000),
+            endsAt,
             pausedAt:
               status === "PAUSED" || status === "FROZEN" ? new Date() : null,
           },
@@ -307,21 +315,23 @@ export async function seedDev(prisma: PrismaClient) {
       (e) =>
         prisma.enrollment.update({
           where: { id: e.id },
-          data: { planId, status },
+          data: { planId, status, endsAt },
         }),
     );
+  };
 
-  await enroll(muvet.id, camila.id, muvetMensual.id, "ACTIVE", 90);
+  await enroll(muvet.id, camila.id, muvetMensual.id, "ACTIVE", 90, 18);
   await enroll(muvet.id, josefa.id, muvetPack.id, "ACTIVE", 30);
-  await enroll(muvet.id, diego.id, muvetMensual.id, "ACTIVE", 120);
+  // Diego vencido hace 6 días — demo del estado "Plan vencido" en rojo.
+  await enroll(muvet.id, diego.id, muvetMensual.id, "ACTIVE", 120, -6);
   await enroll(muvet.id, francisca.id, muvetTrial.id, "TRIAL", 5);
-  await enroll(muvet.id, sebastian.id, muvetMensual.id, "PAUSED", 75);
-  await enroll(muvet.id, antonia.id, muvetMensual.id, "ACTIVE", 20);
+  await enroll(muvet.id, sebastian.id, muvetMensual.id, "PAUSED", 75, 5);
+  await enroll(muvet.id, antonia.id, muvetMensual.id, "ACTIVE", 20, 10);
   await enroll(muvet.id, felipe.id, muvetPack.id, "FROZEN", 150);
   await enroll(muvet.id, daniela.id, muvetPack.id, "ACTIVE", 12);
-  await enroll(muvet.id, dancer.id, muvetMensual.id, "ACTIVE", 60);
-  await enroll(tumbao.id, camila.id, tumbaoMensual.id, "ACTIVE", 40);
-  await enroll(tumbao.id, antonia.id, tumbaoMensual.id, "TRIAL", 8);
+  await enroll(muvet.id, dancer.id, muvetMensual.id, "ACTIVE", 60, 25);
+  await enroll(tumbao.id, camila.id, tumbaoMensual.id, "ACTIVE", 40, 21);
+  await enroll(tumbao.id, antonia.id, tumbaoMensual.id, "TRIAL", 8, 2);
 
   // ─── Series + slots + clases materializadas ───
   const styleId = async (name: string) =>

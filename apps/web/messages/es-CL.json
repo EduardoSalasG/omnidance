@@ -490,7 +490,8 @@
     "addressNotesPlaceholder": "Ej. Plaza El Llano",
     "description": "Descripción",
     "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué nivel? ¿Qué traer?",
-    "startsAt": "Fecha"
+    "startsAt": "Fecha",
+    "endsAt": "Pagado hasta"
   },
   "availability": {
     "toggle": "Disponible para bailar",

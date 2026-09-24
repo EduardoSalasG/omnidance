@@ -715,6 +715,10 @@ model Enrollment {
   planId    String?
   status    EnrollmentStatus @default(ACTIVE)
   startedAt DateTime         @default(now())
+  // "Pagado hasta" — vigencia del plan. Opcional: PERIOD se deriva
+  // (startedAt + periodDays); MONTHLY/CLASS_PACK lo marca el staff al
+  // cobrar; null = sin fecha de término registrada.
+  endsAt    DateTime?
   pausedAt  DateTime?
   createdAt DateTime         @default(now())
 }

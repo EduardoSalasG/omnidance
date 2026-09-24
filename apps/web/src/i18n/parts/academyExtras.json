@@ -49,6 +49,8 @@
     "studentProfile": {
       "plan": "Plan",
       "enrollmentStatus": "Estado de inscripción",
+      "startsAt": "Inicio",
+      "endsAt": "Pagado hasta",
       "history": "Historial de clases",
       "upcoming": "Próximas clases reservadas",
       "emptyHistory": "Sin clases registradas.",
@@ -65,6 +67,10 @@
       "myAcademies": "Mis academias",
       "enrolledBadge": "Inscrita",
       "attendance30d": "{count, plural, one {# asistencia este mes} other {# asistencias este mes}}",
+      "planRange": "Del {start} al {end}",
+      "planSince": "Plan desde el {start}",
+      "planUntil": "Pagado hasta el {end}",
+      "planExpired": "Plan vencido el {end}",
       "reserveCta": "Reservar clase",
       "status": {
         "ACTIVE": "Activa",

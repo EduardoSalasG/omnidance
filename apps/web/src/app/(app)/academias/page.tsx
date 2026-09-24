@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Card, Segmented } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
+import { planDateFmt } from "@/components/academy/shared";
 
 // /academias — "Mi Aprendizaje" del modo Academia (spec §9). Misma
 // gramática que /clases: dos ejes independientes en la URL
@@ -52,6 +53,8 @@ type Enrollment = {
   status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
   plan: { name: string; type: string } | null;
   startedAt: string;
+  /** "Pagado hasta" — null = sin fecha de término registrada. */
+  endsAt: string | null;
   attendance30d: number;
 };
 
@@ -159,6 +162,32 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
           {tp.has(enrollment.plan.type) ? ` · ${tp(enrollment.plan.type)}` : ""}
         </p>
       )}
+
+      {/* Vigencia del plan pagado: vencido en rojo; "hasta" cuando el
+          staff no registró inicio; "desde" cuando no hay término. */}
+      {(() => {
+        const startD = enrollment.startedAt
+          ? new Date(enrollment.startedAt)
+          : null;
+        const endD = enrollment.endsAt ? new Date(enrollment.endsAt) : null;
+        if (!startD && !endD) return null;
+        // "Pagado hasta el 12" incluye el día 12 — vence al día siguiente.
+        const expired = !!endD && endD.getTime() < new Date().setHours(0, 0, 0, 0);
+        return (
+          <p className={`text-xs ${expired ? "text-red-400" : "text-white/50"}`}>
+            {expired && endD
+              ? tl("planExpired", { end: planDateFmt.format(endD) })
+              : startD && endD
+                ? tl("planRange", {
+                    start: planDateFmt.format(startD),
+                    end: planDateFmt.format(endD),
+                  })
+                : endD
+                  ? tl("planUntil", { end: planDateFmt.format(endD) })
+                  : tl("planSince", { start: planDateFmt.format(startD!) })}
+          </p>
+        );
+      })()}
 
       {enrollment.attendance30d > 0 && (
         <p className="text-sm font-medium text-neon">

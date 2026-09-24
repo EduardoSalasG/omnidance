@@ -97,11 +97,22 @@ class CreateEnrollmentDto {
   @IsOptional()
   @IsISO8601()
   startsAt?: string;
+
+  /** "Pagado hasta" — si falta y el plan es PERIOD se deriva de
+      periodDays; otros tipos quedan abiertos (staff lo marca al cobrar). */
+  @IsOptional()
+  @IsISO8601()
+  endsAt?: string;
 }
 
 class UpdateEnrollmentDto {
   @IsIn(ENROLLMENT_STATUSES)
   status!: EnrollmentStatus;
+
+  /** Renovar/corregir la vigencia; null explícito la limpia. */
+  @IsOptional()
+  @IsISO8601()
+  endsAt?: string | null;
 }
 
 class UpdateAcademySettingsDto {
@@ -295,6 +306,7 @@ export class AcademiesController {
         id: true,
         status: true,
         startedAt: true,
+        endsAt: true,
         academy: {
           select: {
             id: true,
@@ -334,6 +346,7 @@ export class AcademiesController {
       status: e.status,
       plan: e.plan,
       startedAt: e.startedAt,
+      endsAt: e.endsAt,
       attendance30d: countByAcademy.get(e.academy.id) ?? 0,
     }));
   }
@@ -571,13 +584,24 @@ export class AcademiesController {
       });
     }
 
+    const startedAt = dto.startsAt ? new Date(dto.startsAt) : new Date();
+    // "Pagado hasta": explícito, o derivado del plan PERIOD
+    // (startedAt + periodDays). MONTHLY/CLASS_PACK/TRIAL quedan sin
+    // fecha — el staff la marca al cobrar (PATCH /enrollments/:id).
+    const endsAt = dto.endsAt
+      ? new Date(dto.endsAt)
+      : plan.type === "PERIOD" && plan.periodDays
+        ? new Date(startedAt.getTime() + plan.periodDays * 86_400_000)
+        : null;
+
     return this.prisma.enrollment.create({
       data: {
         academyId: id,
         personId: dto.personId,
         planId: plan.id,
         status: dto.status ?? "ACTIVE",
-        ...(dto.startsAt ? { startedAt: new Date(dto.startsAt) } : {}),
+        startedAt,
+        endsAt,
       },
     });
   }
@@ -595,6 +619,7 @@ export class AcademiesController {
         id: true,
         status: true,
         startedAt: true,
+        endsAt: true,
         personId: true,
         plan: { select: { name: true } },
       },
@@ -611,6 +636,7 @@ export class AcademiesController {
       plan: e.plan,
       status: e.status,
       startsAt: e.startedAt,
+      endsAt: e.endsAt,
     }));
   }
 
@@ -639,6 +665,8 @@ export class AcademiesController {
       orderBy: { createdAt: "desc" },
       select: {
         status: true,
+        startedAt: true,
+        endsAt: true,
         plan: { select: { id: true, name: true, type: true, price: true } },
       },
     });
@@ -727,6 +755,8 @@ export class AcademiesController {
       person,
       plan: enrollment?.plan ?? null,
       enrollmentStatus: enrollment?.status ?? null,
+      enrollmentStartedAt: enrollment?.startedAt ?? null,
+      enrollmentEndsAt: enrollment?.endsAt ?? null,
       history,
       upcoming,
     };
@@ -877,8 +907,12 @@ export class EnrollmentsController {
       where: { id },
       data: {
         status: dto.status,
-        // auditoría mínima disponible en schema (no hay endsAt/cancelledAt)
+        // auditoría mínima disponible en schema (no hay cancelledAt)
         pausedAt: dto.status === "PAUSED" ? new Date() : null,
+        // endsAt=null limpia la vigencia; undefined no la toca.
+        ...(dto.endsAt !== undefined
+          ? { endsAt: dto.endsAt === null ? null : new Date(dto.endsAt) }
+          : {}),
       },
     });
   }
