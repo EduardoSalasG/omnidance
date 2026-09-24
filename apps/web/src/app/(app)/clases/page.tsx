@@ -747,16 +747,6 @@ function ClasesInner() {
                 </div>
               )}
             </div>
-
-            {/* Clase particular 1:1 — la solicitud y "mis solicitudes"
-                viven en /clases/particular (antes embebidas en
-                /academias). En lista va en la fila "Esta semana"; en
-                calendario se queda aquí para no perder el CTA. */}
-            {view === "calendar" && (
-              <Button href="/clases/particular" className="self-start">
-                {ta("requestTitle")}
-              </Button>
-            )}
           </>
         )}
       </header>
@@ -976,6 +966,21 @@ function ClasesInner() {
               )}
             </section>
           )}
+
+          {/* Mismo fallback que en lista — también al final del
+              recorrido en calendario. */}
+          <Link
+            href="/clases/particular"
+            className="group mt-6 flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/60 transition-colors hover:border-neon/40 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          >
+            {ta("fallbackCta")}
+            <span
+              aria-hidden="true"
+              className="text-neon transition-transform group-hover:translate-x-0.5"
+            >
+              →
+            </span>
+          </Link>
         </section>
       ) : view === "list" && scope === "mias" && calScope === "reservadas" ? (
         /* ─── Reservadas (sub-filtro de Mis clases): mismo ClassCard ─── */
@@ -1061,14 +1066,9 @@ function ClasesInner() {
             ) : (
               <div className="flex flex-col gap-8">
                 <section data-tour="cl-list">
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                    <h2 className="text-sm font-semibold text-neon">
-                      {te("thisWeek")}
-                    </h2>
-                    <Button size="sm" href="/clases/particular">
-                      {ta("requestTitle")}
-                    </Button>
-                  </div>
+                  <h2 className="mb-3 text-sm font-semibold text-neon">
+                    {te("thisWeek")}
+                  </h2>
                   <div className="flex flex-col gap-6">
                     {groupByDay(thisWeek).map(renderClassDayGroup)}
                     {thisWeek.length === 0 && (
@@ -1096,6 +1096,21 @@ function ClasesInner() {
                     {te("loadLater")} ↓
                   </Link>
                 )}
+                {/* Fallback tranquilo al final del recorrido: la
+                    particular es el escape cuando ninguna clase calza
+                    — no compite con el CTA Reservar de las cards. */}
+                <Link
+                  href="/clases/particular"
+                  className="group flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/60 transition-colors hover:border-neon/40 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  {ta("fallbackCta")}
+                  <span
+                    aria-hidden="true"
+                    className="text-neon transition-transform group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
+                </Link>
               </div>
             ))}
         </>
