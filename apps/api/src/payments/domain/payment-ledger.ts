@@ -7,13 +7,14 @@ import type { Prisma } from "@prisma/client";
  * Postgres `jsonb` reordena keys almacenadas; sin canonicalización, releer un
  * payload y re-stringificarlo produce un string distinto y verifyPaymentChain
  * reportaría tampering falso. Emit y verify convergen al mismo string.
+ * El orden de keys es por codepoint (no localeCompare): determinista sin ICU.
  */
 function sortKeys(v: unknown): unknown {
   if (Array.isArray(v)) return v.map(sortKeys);
   if (v && typeof v === "object") {
     return Object.fromEntries(
       Object.entries(v as Record<string, unknown>)
-        .sort(([a], [b]) => a.localeCompare(b))
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
         .map(([k, val]) => [k, sortKeys(val)]),
     );
   }
@@ -21,7 +22,12 @@ function sortKeys(v: unknown): unknown {
 }
 
 export function canonicalJson(v: unknown): string {
-  return JSON.stringify(sortKeys(v));
+  // Round-trip a JSON puro ANTES de ordenar keys: convierte Date→ISO string,
+  // Decimal→número y cualquier objeto con toJSON a su forma serializada —
+  // exactamente lo que jsonb persiste. Sin esto, un Date tiene Object.entries
+  // vacío y canonicaliza como {} mientras la DB guarda "2026-…Z" → falsos
+  // positivos de tampering al releer.
+  return JSON.stringify(sortKeys(JSON.parse(JSON.stringify(v))));
 }
 
 /**
