@@ -28,6 +28,24 @@
       "saved": "Configuración guardada.",
       "saveError": "No se pudo guardar la configuración"
     },
+    "publicProfile": {
+      "title": "Perfil público",
+      "desc": "Lo que ven los bailarines en la ficha y el mapa de academias.",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Qué imparte la academia, su propuesta…",
+      "address": "Dirección",
+      "addressPlaceholder": "Av. Ejemplo 123, Santiago",
+      "lat": "Latitud",
+      "lng": "Longitud",
+      "coordsHint": "Coordenadas para el mapa. Vacías = la academia no aparece en el mapa.",
+      "instagram": "Instagram",
+      "instagramPlaceholder": "@academia",
+      "whatsapp": "WhatsApp",
+      "whatsappPlaceholder": "+56 9 1234 5678",
+      "saved": "Perfil guardado.",
+      "saveError": "No se pudo guardar el perfil",
+      "invalidCoords": "Coordenadas inválidas"
+    },
     "studentProfile": {
       "plan": "Plan",
       "enrollmentStatus": "Estado de inscripción",

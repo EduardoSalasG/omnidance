@@ -22,6 +22,8 @@ type AcademyProfile = {
   address: string | null;
   lat: number | null;
   lng: number | null;
+  instagram: string | null;
+  whatsapp: string | null;
   styles: { id: string; name: string; genre: string | null }[];
   instructors: {
     personId: string;
@@ -140,6 +142,57 @@ export default async function AcademiaDetailPage({
             </svg>
             {academy.address}
           </p>
+        )}
+        {/* Contacto — Instagram/WhatsApp públicos de la academia */}
+        {(academy.instagram || academy.whatsapp) && (
+          <div className="flex flex-wrap gap-2">
+            {academy.instagram && (
+              <a
+                href={`https://instagram.com/${academy.instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-night-700 bg-night-800 px-3 text-sm text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+              >
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4 text-neon"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="2" y="2" width="20" height="20" rx="5" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+                </svg>
+                @{academy.instagram}
+              </a>
+            )}
+            {academy.whatsapp && (
+              <a
+                href={`https://wa.me/${academy.whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-night-700 bg-night-800 px-3 text-sm text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+              >
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4 text-neon"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                </svg>
+                WhatsApp
+              </a>
+            )}
+          </div>
         )}
       </header>
 
