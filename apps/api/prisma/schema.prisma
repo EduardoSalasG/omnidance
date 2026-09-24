@@ -37,6 +37,7 @@ model Person {
   pendingProfileAt DateTime? // admin convirtió el lead: debe completar perfil para ser usuario real
   verifiedAt    DateTime?
   onboarding    Json?   // {tourKey: ISO timestamp} — tours de primera visita ya vistos
+  flowCustomerId String? // customerId en Flow — se crea on-demand al suscribirse
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -701,7 +702,11 @@ model MembershipPlan {
   description String[]
   active      Boolean  @default(true)
 
-  enrollments Enrollment[]
+  enrollments   Enrollment[]
+  subscriptions MembershipSubscription[]
+  // plan espejo en Flow (lazy create al primer subscribe — interval 3 mensual,
+  // interval_count según tipo). null = aún no sincronizado.
+  flowPlanId    String?
 }
 
 enum EnrollmentStatus {
@@ -994,8 +999,17 @@ model Payment {
   tablePartySize Int?
   gateway   String        @default("FLOW")
   gatewayRef String?
+  // Verdad monetaria reportada por la pasarela al confirmar PAID — auditable
+  // contra la tarifa esperada (~3.19% tarjeta) y contra Payment.amount.
+  gatewayFeeClp         Int?
+  gatewayReportedAmount Int?
+  gatewayMedia          String?
+  gatewayPaidAt         DateTime?
+  gatewayRaw            Json?   // getStatus completo (evidencia)
   status    PaymentStatus @default(PENDING)
   createdAt DateTime      @default(now())
+
+  events PaymentEvent[]
 }
 
 enum PayoutStatus {
@@ -1208,4 +1222,68 @@ model Lead {
   demoToken String? // secreto de activación demo — solo se devuelve en el POST /leads
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ═══════════════════ PASARELA / AUDITORÍA ═══════════════════
+
+/// Cada request/response contra la pasarela (append-only, nunca update/delete).
+/// Evidencia primaria ante disputas con Flow.
+model GatewayTransaction {
+  id            String   @id @default(cuid())
+  provider      String   // "FLOW"
+  direction     String   // OUTBOUND | INBOUND_WEBHOOK
+  endpoint      String   // "payment/create", "subscription/get", ...
+  correlationId String   // uuid por operación de negocio
+  requestBody   Json?    // params sanitizados (firma "s" → sha256 truncado)
+  responseBody  Json?
+  httpStatus    Int?
+  durationMs    Int?
+  ok            Boolean
+  error         String?
+  paymentId     String?
+  createdAt     DateTime @default(now())
+
+  @@index([correlationId])
+  @@index([paymentId])
+  @@index([createdAt])
+}
+
+/// Ledger de dominio append-only con hash-chain por payment:
+/// payloadHash = sha256(prevHash + canonical({paymentId,seq,type,actor,payload})).
+/// Editar una fila rompe la cadena en el siguiente evento → tamper-evident.
+model PaymentEvent {
+  id          String   @id @default(cuid())
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+  paymentId   String
+  seq         Int
+  type        String   // ORDER_CREATED | GATEWAY_REQUEST | WEBHOOK_RECEIVED | STATUS_CONFIRMED | SETTLED | FAILED | RENEWAL_SETTLED | SUBSCRIPTION_CREATED | SUBSCRIPTION_CANCELED | AMOUNT_MISMATCH | IMPORTED
+  actor       String   // system | webhook | polling | admin | cron | migration
+  prevHash    String
+  payloadHash String
+  payload     Json
+  createdAt   DateTime @default(now())
+
+  @@unique([paymentId, seq])
+  @@index([paymentId])
+}
+
+/// Suscripción recurrente a un plan de academia (motor Flow).
+model MembershipSubscription {
+  id                 String         @id @default(cuid())
+  personId           String
+  plan               MembershipPlan @relation(fields: [planId], references: [id])
+  planId             String
+  academyId          String
+  flowSubscriptionId String?        @unique
+  // PENDING_CARD → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
+  status             String         @default("PENDING_CARD")
+  nextInvoiceAt      DateTime?      // de Flow next_invoice_date — alimenta el reminder
+  lastInvoiceId      String?        // dedup de renovaciones ya liquidadas
+  reminderSentFor    DateTime?      // nextInvoiceAt ya recordado (dedup alerta)
+  createdAt          DateTime       @default(now())
+  canceledAt         DateTime?
+
+  @@index([personId])
+  @@index([academyId])
+  @@index([status, nextInvoiceAt])
 }
