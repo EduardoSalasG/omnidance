@@ -82,6 +82,53 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+// Fila label → input en modo edición de datos personales (misma
+// geometría que Field: label a la izquierda, input alineado a la
+// derecha). Enter guarda, Escape cancela.
+function EditField({
+  id,
+  label,
+  value,
+  onChange,
+  onEnter,
+  onEscape,
+  ...inputProps
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onEnter: () => void;
+  onEscape: () => void;
+} & Omit<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "id" | "value" | "onChange" | "onKeyDown"
+>) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-1">
+      <label
+        htmlFor={id}
+        className="shrink-0 text-xs uppercase tracking-wide text-white/45"
+      >
+        {label}
+      </label>
+      <input
+        id={id}
+        type="text"
+        inputMode="text"
+        {...inputProps}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onEnter();
+          if (e.key === "Escape") onEscape();
+        }}
+        className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white placeholder:text-white/40 focus:outline-none"
+      />
+    </div>
+  );
+}
+
 const selectCls =
   "min-h-11 min-w-0 rounded-lg border border-night-700 bg-night-900 px-3 text-sm text-white focus:border-neon focus:outline-none";
 
@@ -93,13 +140,15 @@ export default function DatosPage() {
   const [state, setState] = useState<PageState>("loading");
   const [me, setMe] = useState<Me | null>(null);
 
-  // Datos personales: modo edición — hoy solo Instagram es editable
-  // (PATCH /me); el resto de las filas son de solo lectura.
+  // Datos personales: modo edición — nombre, teléfono e Instagram son
+  // editables (PATCH /me); email/fecha verificación son de solo lectura.
   const [personalEditing, setPersonalEditing] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
   const [igInput, setIgInput] = useState("");
-  const [igState, setIgState] = useState<"idle" | "saving" | "saved" | "err">(
-    "idle",
-  );
+  const [personalState, setPersonalState] = useState<
+    "idle" | "saving" | "saved" | "err" | "nameRequired"
+  >("idle");
 
   // "Tu baile": modo edición con borrador local; Guardar hace
   // PUT /me/style-roles (reemplazo total).
@@ -127,6 +176,8 @@ export default function DatosPage() {
         }
         const json = (await res.json()) as Me;
         setMe(json);
+        setNameInput(json.name);
+        setPhoneInput(json.phone ?? "");
         setIgInput(json.instagram ?? "");
         setState("ready");
       })
@@ -140,40 +191,59 @@ export default function DatosPage() {
 
   function startPersonalEdit() {
     if (!me) return;
+    setNameInput(me.name);
+    setPhoneInput(me.phone ?? "");
     setIgInput(me.instagram ?? "");
-    setIgState("idle");
+    setPersonalState("idle");
     setPersonalEditing(true);
   }
 
   function cancelPersonalEdit() {
+    setNameInput(me?.name ?? "");
+    setPhoneInput(me?.phone ?? "");
     setIgInput(me?.instagram ?? "");
-    setIgState("idle");
+    setPersonalState("idle");
     setPersonalEditing(false);
   }
 
   async function savePersonal() {
-    const clean = igInput.trim().replace(/^@+/, "");
-    if (clean === (me?.instagram ?? "")) {
+    const name = nameInput.trim();
+    if (name === "") {
+      setPersonalState("nameRequired");
+      return;
+    }
+    const ig = igInput.trim().replace(/^@+/, "");
+    // Misma normalización del server: separadores fuera, "+" se conserva.
+    const phone = phoneInput.replace(/[\s()-]/g, "");
+    if (
+      name === me?.name &&
+      ig === (me?.instagram ?? "") &&
+      phone === (me?.phone ?? "")
+    ) {
       setPersonalEditing(false);
       return;
     }
-    setIgState("saving");
+    setPersonalState("saving");
     try {
       const res = await apiFetch("/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ instagram: clean }),
+        body: JSON.stringify({ name, phone, instagram: ig }),
       });
       if (!res.ok) {
-        setIgState("err");
+        setPersonalState("err");
         return;
       }
-      setMe((m) => (m ? { ...m, instagram: clean || null } : m));
+      setMe((m) =>
+        m
+          ? { ...m, name, instagram: ig || null, phone: phone || null }
+          : m,
+      );
       setPersonalEditing(false);
-      setIgState("saved");
-      setTimeout(() => setIgState("idle"), 2500);
+      setPersonalState("saved");
+      setTimeout(() => setPersonalState("idle"), 2500);
     } catch {
-      setIgState("err");
+      setPersonalState("err");
     }
   }
 
@@ -275,41 +345,66 @@ export default function DatosPage() {
           {t("datos.personal")}
         </h2>
         <div className="mt-2 flex flex-col divide-y divide-white/5">
-          <Field label={t("datos.name")} value={me.name} />
-          <Field label={t("datos.email")} value={me.email ?? "—"} />
-          <Field
-            label={t("datos.phone")}
-            value={me.phone ?? t("datos.noPhone")}
-          />
           {personalEditing ? (
-            <div className="flex items-baseline justify-between gap-4 py-1">
-              <label
-                htmlFor="ig-input"
-                className="shrink-0 text-xs uppercase tracking-wide text-white/45"
-              >
-                {t("instagram")}
-              </label>
-              <input
-                id="ig-input"
-                type="text"
-                inputMode="text"
-                autoComplete="off"
+            <>
+              <EditField
+                id="name-input"
+                label={t("datos.name")}
+                disabled={personalState === "saving"}
+                value={nameInput}
+                onChange={(v) => {
+                  setNameInput(v);
+                  setPersonalState("idle");
+                }}
+                onEnter={() => void savePersonal()}
+                onEscape={cancelPersonalEdit}
                 autoFocus
-                spellCheck={false}
-                disabled={igState === "saving"}
-                value={igInput}
-                onChange={(e) => {
-                  setIgInput(e.target.value);
-                  setIgState("idle");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void savePersonal();
-                  if (e.key === "Escape") cancelPersonalEdit();
-                }}
-                placeholder={t("instagramPlaceholder")}
-                className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white placeholder:text-white/40 focus:outline-none"
               />
-            </div>
+              <EditField
+                id="phone-input"
+                label={t("datos.phone")}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                disabled={personalState === "saving"}
+                value={phoneInput}
+                onChange={(v) => {
+                  setPhoneInput(v);
+                  setPersonalState("idle");
+                }}
+                onEnter={() => void savePersonal()}
+                onEscape={cancelPersonalEdit}
+                placeholder={t("datos.phonePlaceholder")}
+              />
+            </>
+          ) : (
+            <>
+              <Field label={t("datos.name")} value={me.name} />
+              <Field
+                label={t("datos.phone")}
+                value={me.phone ?? t("datos.noPhone")}
+              />
+            </>
+          )}
+          {/* Email no es editable (es la identidad de login) — siempre
+              visible, también en modo edición. */}
+          <Field label={t("datos.email")} value={me.email ?? "—"} />
+          {personalEditing ? (
+            <EditField
+              id="ig-input"
+              label={t("instagram")}
+              autoComplete="off"
+              spellCheck={false}
+              disabled={personalState === "saving"}
+              value={igInput}
+              onChange={(v) => {
+                setIgInput(v);
+                setPersonalState("idle");
+              }}
+              onEnter={() => void savePersonal()}
+              onEscape={cancelPersonalEdit}
+              placeholder={t("instagramPlaceholder")}
+            />
           ) : (
             <Field
               label={t("instagram")}
@@ -323,14 +418,19 @@ export default function DatosPage() {
             value={dateFmt.format(new Date(me.createdAt))}
           />
         </div>
-        {igState === "saved" && (
+        {personalState === "saved" && (
           <p role="status" className="mt-2 text-xs text-neon">
-            {t("instagramSaved")}
+            {t("datos.saved")}
           </p>
         )}
-        {igState === "err" && (
+        {personalState === "nameRequired" && (
           <p role="alert" className="mt-2 text-xs text-red-400">
-            {t("instagramError")}
+            {t("datos.nameRequired")}
+          </p>
+        )}
+        {personalState === "err" && (
+          <p role="alert" className="mt-2 text-xs text-red-400">
+            {t("datos.saveError")}
           </p>
         )}
         {me.verifiedAt && !personalEditing && (
@@ -343,14 +443,14 @@ export default function DatosPage() {
             <Button
               variant="ghost"
               size="sm"
-              disabled={igState === "saving"}
+              disabled={personalState === "saving"}
               onClick={cancelPersonalEdit}
             >
               {tc("cancel")}
             </Button>
             <Button
               size="sm"
-              disabled={igState === "saving"}
+              disabled={personalState === "saving"}
               onClick={() => void savePersonal()}
             >
               {tc("save")}

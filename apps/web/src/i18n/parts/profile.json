@@ -42,7 +42,9 @@
         "FROZEN": "Congelada"
       },
       "plan": "Plan {name}",
-      "since": "Desde {date}"
+      "since": "Desde {date}",
+      "phonePlaceholder": "+56 9 1234 5678",
+      "nameRequired": "El nombre no puede quedar vacío"
     },
     "complete": {
       "title": "Completa tu perfil",

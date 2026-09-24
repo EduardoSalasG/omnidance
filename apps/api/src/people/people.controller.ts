@@ -52,6 +52,19 @@ class UpdateMeDto {
   @IsString()
   @MaxLength(31) // 30 + '@' inicial tolerado (se normaliza abajo)
   instagram?: string | null;
+
+  // Nombre visible — requerido por el modelo (no nullable); se valida
+  // no-vacío tras trim en el handler.
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  name?: string;
+
+  // Teléfono de contacto — "" o null limpia. Se normaliza a "+ dígitos".
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phone?: string | null;
 }
 
 // Nivel autodeclarado del bailarín — valores sembrados por el seed y
@@ -152,14 +165,19 @@ export class PeopleController {
   }
 
   /**
-   * PATCH /me — edición de campos sociales propios. Hoy solo instagram;
-   * normaliza "@handle"/espacios y valida el formato real de handle IG.
+   * PATCH /me — edición de datos propios: instagram, nombre y teléfono.
+   * Normaliza "@handle"/espacios y valida formatos reales; el nombre no
+   * puede quedar vacío (el modelo lo exige).
    */
   @Patch("me")
   @UseGuards(SessionGuard)
   async updateMe(@Req() req: Request, @Body() dto: UpdateMeDto) {
     const personId = req.person!.id;
-    const data: { instagram?: string | null } = {};
+    const data: {
+      instagram?: string | null;
+      name?: string;
+      phone?: string | null;
+    } = {};
     if (dto.instagram !== undefined) {
       const handle = (dto.instagram ?? "").trim().replace(/^@+/, "");
       if (handle === "") {
@@ -169,6 +187,24 @@ export class PeopleController {
           throw new BadRequestException("instagram inválido");
         }
         data.instagram = handle;
+      }
+    }
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (name === "") {
+        throw new BadRequestException("nombre requerido");
+      }
+      data.name = name;
+    }
+    if (dto.phone !== undefined) {
+      const digits = (dto.phone ?? "").replace(/[\s()-]/g, "");
+      if (digits === "" || digits === "+") {
+        data.phone = null;
+      } else {
+        if (!/^\+?[0-9]{8,15}$/.test(digits)) {
+          throw new BadRequestException("teléfono inválido");
+        }
+        data.phone = digits;
       }
     }
     await this.prisma.person.update({ where: { id: personId }, data });
