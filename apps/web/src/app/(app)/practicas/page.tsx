@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, Segmented } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import type { Me } from "@/components/social/types";
@@ -237,26 +237,30 @@ export default function PracticasPage() {
           </Button>
         </div>
 
-        {/* Vista: Todas / Mis prácticas — mismo patrón de chips que /eventos */}
+        {/* Vista: Todas / Mis prácticas — segmented con thumb
+            deslizante, mismo control que /clases y /academias */}
         <nav
           aria-label={t("viewLabel")}
           data-tour="practicas-views"
           className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6"
         >
-          <Link
-            href={hrefFor({ view: undefined })}
-            aria-current={view === "todas" ? "true" : undefined}
-            className={chipClass(view === "todas")}
-          >
-            {t("all")}
-          </Link>
-          <Link
-            href={hrefFor({ view: "mias" })}
-            aria-current={view === "mias" ? "true" : undefined}
-            className={chipClass(view === "mias")}
-          >
-            {t("mine")}
-          </Link>
+          <Segmented
+            ariaLabel={t("viewLabel")}
+            active={view}
+            className="shrink-0"
+            items={[
+              {
+                key: "todas",
+                href: hrefFor({ view: undefined }),
+                children: t("all"),
+              },
+              {
+                key: "mias",
+                href: hrefFor({ view: "mias" }),
+                children: t("mine"),
+              },
+            ]}
+          />
           {/* Estilos — chips en la misma fila; solo los presentes en el pool */}
           {styleOptions.map(([id, name]) => (
             <Link
