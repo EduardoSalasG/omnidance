@@ -5,7 +5,7 @@ import messages from "../../../../messages/es-CL.json";
 import { EventCard, type EventCardData } from "@/components/events/event-card";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
-import { Segmented } from "@/components/ui/segmented";
+import { Segmented, SegmentedMulti } from "@/components/ui/segmented";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import toursI18n from "@/i18n/parts/tours.json";
 import {
@@ -263,24 +263,10 @@ export default async function EventosPage({
     `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
-  // Chip dentro del contenedor segmentado (filtro de géneros) — sin
-  // borde propio: el borde lo da el grupo. El estado activo es un
-  // pill interno que se materializa (scale+fade) con el mismo easing
-  // del thumb de Segmented — equivalente multiselect del deslizamiento.
-  const segChip = (active: boolean) =>
-    `relative inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
-      active ? "text-neon" : "text-white/60 hover:text-white"
-    }`;
-  // Pill neon del estado activo — anima scale/opacity al toggle
-  // (aria-hidden, decorativo; el estado real es aria-pressed/current).
-  const segChipPill = (active: boolean) => (
-    <span
-      aria-hidden="true"
-      className={`absolute inset-0 rounded-full bg-neon/15 transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
-        active ? "scale-100 opacity-100" : "scale-90 opacity-0"
-      }`}
-    />
-  );
+  // Género multiselect → SegmentedMulti: cada chip activo lleva su
+  // pill propio y un anillo neon itinerante se desliza al último
+  // toggled-on (el set preserva orden de inserción → el último de la
+  // lista es el más reciente). "Todos" es el ítem exclusivo.
 
   // Card de evento — componente compartido (mismo esqueleto que el
   // ClassCard de /clases): contenido a la izquierda, rail hora+precio
@@ -420,45 +406,42 @@ export default async function EventosPage({
             </div>
         </div>
 
-        {/* Géneros — multiselect dentro del contenedor segmentado
-            (mismo look que Segmented): cada chip activo lleva su
-            propio estado neon — el thumb no aplica porque no hay una
-            posición única que deslizar. Ocultos en mapa: el mapa es
-            vista global de locales (mapVenues se arma desde `pool`). */}
+        {/* Géneros — multiselect segmentado con anillo itinerante
+            (misma física del thumb del BottomNav). Ocultos en mapa:
+            el mapa es vista global de locales (mapVenues se arma
+            desde `pool`). */}
         {view !== "map" && (
           <>
             <nav
               aria-label="Filtrar por estilo"
-              data-tour="ev-genres"
               className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
             >
-              <div className="flex shrink-0 items-center rounded-full border border-white/15 p-0.5">
-                <Link
-                  href={hrefFor({ genre: undefined })}
-                  aria-current={genreSet.size === 0 ? "true" : undefined}
-                  className={segChip(genreSet.size === 0)}
-                >
-                  {segChipPill(genreSet.size === 0)}
-                  <span className="relative">{t.filterAll}</span>
-                </Link>
-                {GENRES.map((g) => {
-                  const next = new Set(genreSet);
-                  if (next.has(g)) next.delete(g);
-                  else next.add(g);
-                  const active = genreSet.has(g);
-                  return (
-                    <Link
-                      key={g}
-                      href={hrefFor({ genre: [...next].join(",") || undefined })}
-                      aria-pressed={active}
-                      className={segChip(active)}
-                    >
-                      {segChipPill(active)}
-                      <span className="relative">{t.genre[g]}</span>
-                    </Link>
-                  );
-                })}
-              </div>
+              <SegmentedMulti
+                tour="ev-genres"
+                ariaLabel="Géneros"
+                focusKey={[...genreSet].at(-1) ?? "all"}
+                items={[
+                  {
+                    key: "all",
+                    href: hrefFor({ genre: undefined }),
+                    active: genreSet.size === 0,
+                    children: t.filterAll,
+                  },
+                  ...GENRES.map((g) => {
+                    const next = new Set(genreSet);
+                    if (next.has(g)) next.delete(g);
+                    else next.add(g);
+                    return {
+                      key: g,
+                      href: hrefFor({
+                        genre: [...next].join(",") || undefined,
+                      }),
+                      active: genreSet.has(g),
+                      children: t.genre[g],
+                    };
+                  }),
+                ]}
+              />
             </nav>
 
             {/* Locales — dropdown tipo chip (sin JS). key por venue: al
