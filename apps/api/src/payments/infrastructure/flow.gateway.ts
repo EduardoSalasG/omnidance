@@ -85,6 +85,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   async verifyWebhook(body: unknown): Promise<{
     refId: string;
     status: "PAID" | "FAILED";
+    gatewayData?: unknown;
   }> {
     const b = body as { token?: unknown } | null;
     if (!b || typeof b.token !== "string") {
@@ -93,6 +94,9 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     const data = await this.call<{
       status?: number;
       commerceOrder?: string;
+      // paymentData {fee, amount, media, transferDate, …} — verdad
+      // monetaria del cobro; el settle la persiste en Payment.gateway*.
+      paymentData?: Record<string, unknown>;
     }>(
       "payment/getStatus",
       { apiKey: this.apiKey, token: b.token },
@@ -100,10 +104,18 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     );
     if (!data.commerceOrder) throw new Error("flow getStatus: sin orden");
     if (data.status === 2) {
-      return { refId: data.commerceOrder, status: "PAID" };
+      return {
+        refId: data.commerceOrder,
+        status: "PAID",
+        gatewayData: data.paymentData,
+      };
     }
     if (data.status === 3 || data.status === 4) {
-      return { refId: data.commerceOrder, status: "FAILED" };
+      return {
+        refId: data.commerceOrder,
+        status: "FAILED",
+        gatewayData: data.paymentData,
+      };
     }
     throw new Error(`flow getStatus: estado no terminal ${data.status}`);
   }

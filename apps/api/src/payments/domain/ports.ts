@@ -15,6 +15,13 @@ export interface PaymentGateway {
   verifyWebhook(body: unknown): Promise<{
     refId: string;
     status: "PAID" | "FAILED";
+    /**
+     * Verdad monetaria reportada por la pasarela (Flow: `paymentData` de
+     * payment/getStatus — fee, amount, media, transferDate). El settle la
+     * persiste en los campos gateway* del Payment cuando hay PAID.
+     * Opcional: StubGateway no la produce.
+     */
+    gatewayData?: unknown;
   }>;
 
   /**

@@ -19,6 +19,7 @@ import {
   MePayoutsController,
 } from "./infrastructure/payouts.controller";
 import { CheckoutService } from "./application/checkout.service";
+import { PaymentSettlementService } from "./application/payment-settlement.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
@@ -32,6 +33,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
   ],
   providers: [
     CheckoutService,
+    PaymentSettlementService,
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
@@ -43,7 +45,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
       inject: [PrismaService],
     },
   ],
-  exports: [PAYMENT_GATEWAY, GatewayTransactionsService],
+  exports: [PAYMENT_GATEWAY, GatewayTransactionsService, PaymentSettlementService],
 })
 export class PaymentsModule {}
 
