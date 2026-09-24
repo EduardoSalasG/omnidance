@@ -18,6 +18,9 @@ export type { EventDateProps, EventDateVariant } from "./EventDate";
 export { PillTabs } from "./pill-tabs";
 export type { PillTabItem, PillTabsProps } from "./pill-tabs";
 
+export { Segmented } from "./segmented";
+export type { SegmentedItem, SegmentedProps } from "./segmented";
+
 export { Spinner, PageLoading } from "./spinner";
 export type { SpinnerProps, PageLoadingProps } from "./spinner";
 
