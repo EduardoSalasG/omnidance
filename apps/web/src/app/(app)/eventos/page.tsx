@@ -263,6 +263,12 @@ export default async function EventosPage({
     `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
+  // Chip dentro del contenedor segmentado (filtro de géneros) — sin
+  // borde propio: el borde lo da el grupo, el activo lleva neon/15.
+  const segChip = (active: boolean) =>
+    `inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
+      active ? "bg-neon/15 text-neon" : "text-white/60 hover:text-white"
+    }`;
 
   // Card de evento — componente compartido (mismo esqueleto que el
   // ClassCard de /clases): contenido a la izquierda, rail hora+precio
@@ -402,9 +408,11 @@ export default async function EventosPage({
             </div>
         </div>
 
-        {/* Géneros — multiselect, cada chip togglea en el set.
-            Ocultos en mapa: el mapa es vista global de locales, los
-            filtros no aplican (mapVenues se arma desde `pool`). */}
+        {/* Géneros — multiselect dentro del contenedor segmentado
+            (mismo look que Segmented): cada chip activo lleva su
+            propio estado neon — el thumb no aplica porque no hay una
+            posición única que deslizar. Ocultos en mapa: el mapa es
+            vista global de locales (mapVenues se arma desde `pool`). */}
         {view !== "map" && (
           <>
             <nav
@@ -412,28 +420,31 @@ export default async function EventosPage({
               data-tour="ev-genres"
               className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
             >
-          <Link
-            href={hrefFor({ genre: undefined })}
-            className={chipClass(genreSet.size === 0)}
-          >
-            {t.filterAll}
-          </Link>
-          {GENRES.map((g) => {
-            const next = new Set(genreSet);
-            if (next.has(g)) next.delete(g);
-            else next.add(g);
-            const active = genreSet.has(g);
-            return (
-              <Link
-                key={g}
-                href={hrefFor({ genre: [...next].join(",") || undefined })}
-                aria-pressed={active}
-                className={chipClass(active)}
-              >
-                {t.genre[g]}
-              </Link>
-            );
-          })}
+              <div className="flex shrink-0 items-center rounded-full border border-white/15 p-0.5">
+                <Link
+                  href={hrefFor({ genre: undefined })}
+                  aria-current={genreSet.size === 0 ? "true" : undefined}
+                  className={segChip(genreSet.size === 0)}
+                >
+                  {t.filterAll}
+                </Link>
+                {GENRES.map((g) => {
+                  const next = new Set(genreSet);
+                  if (next.has(g)) next.delete(g);
+                  else next.add(g);
+                  const active = genreSet.has(g);
+                  return (
+                    <Link
+                      key={g}
+                      href={hrefFor({ genre: [...next].join(",") || undefined })}
+                      aria-pressed={active}
+                      className={segChip(active)}
+                    >
+                      {t.genre[g]}
+                    </Link>
+                  );
+                })}
+              </div>
             </nav>
 
             {/* Locales — dropdown tipo chip (sin JS). key por venue: al
