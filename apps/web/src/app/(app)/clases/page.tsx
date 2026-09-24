@@ -585,19 +585,19 @@ function ClasesInner() {
             {t("scopeMine")}
           </Link>
           <Link
+            href={hrefFor({ s: "historial" })}
+            aria-current={scope === "historial" ? "true" : undefined}
+            className={`${chipClass(scope === "historial")} justify-center border-0 px-2`}
+          >
+            {t("history")}
+          </Link>
+          <Link
             href={hrefFor({ s: "explorar" })}
             data-tour="cl-explore"
             aria-current={scope === "explorar" ? "true" : undefined}
             className={`${chipClass(scope === "explorar")} justify-center border-0 px-2`}
           >
             {t("viewExplore")}
-          </Link>
-          <Link
-            href={hrefFor({ s: "historial" })}
-            aria-current={scope === "historial" ? "true" : undefined}
-            className={`${chipClass(scope === "historial")} justify-center border-0 px-2`}
-          >
-            {t("history")}
           </Link>
         </div>
 
