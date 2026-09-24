@@ -15,12 +15,15 @@ import {
   IsIn,
   IsInt,
   IsISO8601,
+  IsNumber,
   IsOptional,
   IsString,
+  Max,
+  MaxLength,
   Min,
 } from "class-validator";
 import type { Request } from "express";
-import type { EnrollmentStatus, PlanType } from "@prisma/client";
+import type { EnrollmentStatus, PlanType, Prisma } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import {
@@ -107,6 +110,77 @@ class UpdateAcademySettingsDto {
   @IsInt()
   @Min(1)
   defaultQuorum?: number | null;
+
+  // Perfil público de la academia (lo consume GET /:id/profile y el
+  // directorio). "" y null limpian el campo.
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  description?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  address?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  lat?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  lng?: number | null;
+
+  /** Handle de Instagram (con o sin "@", se normaliza). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(31)
+  instagram?: string | null;
+
+  /** Teléfono WhatsApp — se normaliza a dígitos (+56…) para wa.me. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  whatsapp?: string | null;
+}
+
+/** "" → null; trim. Campos de texto libre del perfil público. */
+function cleanText(
+  v: string | null | undefined,
+): string | null | undefined {
+  if (v === undefined) return undefined;
+  const t = (v ?? "").trim();
+  return t === "" ? null : t;
+}
+
+/** Handle de Instagram sin "@", validado; "" → null. */
+function cleanInstagram(
+  v: string | null | undefined,
+): string | null | undefined {
+  if (v === undefined) return undefined;
+  const h = (v ?? "").trim().replace(/^@+/, "");
+  if (h === "") return null;
+  if (!/^[a-zA-Z0-9._]{1,30}$/.test(h)) {
+    throw new BadRequestException("instagram inválido");
+  }
+  return h;
+}
+
+/** Teléfono de contacto → dígitos E.164 sin "+" (wa.me); "" → null. */
+function cleanWhatsapp(
+  v: string | null | undefined,
+): string | null | undefined {
+  if (v === undefined) return undefined;
+  const d = (v ?? "").replace(/[\s\-()+]/g, "");
+  if (d === "") return null;
+  if (!/^[0-9]{8,15}$/.test(d)) {
+    throw new BadRequestException("whatsapp inválido");
+  }
+  return d;
 }
 
 @Controller("academies")
@@ -311,6 +385,8 @@ export class AcademiesController {
         address: true,
         lat: true,
         lng: true,
+        instagram: true,
+        whatsapp: true,
         instructors: { select: { personId: true } },
         classSeries: {
           where: { active: true },
@@ -385,6 +461,8 @@ export class AcademiesController {
       address: academy.address,
       lat: academy.lat,
       lng: academy.lng,
+      instagram: academy.instagram,
+      whatsapp: academy.whatsapp,
       styles: [...styles.values()].sort((x, y) =>
         x.name.localeCompare(y.name, "es"),
       ),
@@ -405,6 +483,8 @@ export class AcademiesController {
   /**
    * Settings de la academia (solo owner/ADMIN). defaultQuorum es el piso
    * de la cadena de quórum efectivo de las clases; null lo limpia.
+   * También edita el perfil público (descripción, dirección, coords y
+   * contacto) — undefined no toca el campo; null/"" lo limpian.
    */
   @Patch(":id/settings")
   @UseGuards(SessionGuard)
@@ -414,11 +494,17 @@ export class AcademiesController {
     @Req() req: Request,
   ) {
     await this.access.requireAdminister(id, req.person!);
-    return this.prisma.academy.update({
-      where: { id },
+    const data: Prisma.AcademyUpdateInput = {
       // undefined = no enviado → no toca; null explícito limpia el override.
-      data: { defaultQuorum: dto.defaultQuorum },
-    });
+      defaultQuorum: dto.defaultQuorum,
+      description: cleanText(dto.description),
+      address: cleanText(dto.address),
+      lat: dto.lat,
+      lng: dto.lng,
+      instagram: cleanInstagram(dto.instagram),
+      whatsapp: cleanWhatsapp(dto.whatsapp),
+    };
+    return this.prisma.academy.update({ where: { id }, data });
   }
 
   // ─── planes ───
