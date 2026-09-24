@@ -25,6 +25,13 @@ export type Academy = {
   // Quórum default de la academia (PATCH /academies/:id/settings).
   // Opcional hasta que el backend exponga la columna en GET /academies/mine.
   defaultQuorum?: number | null;
+  // Perfil público editable vía PATCH /academies/:id/settings.
+  description?: string | null;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  instagram?: string | null;
+  whatsapp?: string | null;
 };
 
 export type AcademyDashboard = {

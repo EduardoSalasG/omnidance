@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { AcademySettings } from "@/components/academy/academy-settings";
+import { AcademyProfile } from "@/components/academy/academy-profile";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 import {
   OnboardingRunner,
@@ -49,7 +50,7 @@ export default function AcademiaPage() {
   }, []);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <p className="text-sm text-white/50">{t("hubDesc")}</p>
 
       <AcademyGate showStudentLessons>
@@ -57,9 +58,11 @@ export default function AcademiaPage() {
           <>
             {/* key por id: cambiar de academia remonta el resumen. */}
             <AcademyDashboard key={academy.id} academy={academy} />
-            {/* Settings (quórum default) — solo owner/ADMIN; instructores
-                no ven el card (canAdminister interno vía GET /me). */}
+            {/* Settings (quórum default) y perfil público — solo
+                owner/ADMIN; instructores no ven los cards (canAdminister
+                interno vía GET /me). */}
             <AcademySettings academy={academy} />
+            <AcademyProfile academy={academy} />
             <ModuleGrid>
               {MODULES.filter(
                 (m) =>
