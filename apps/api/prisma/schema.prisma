@@ -656,6 +656,8 @@ model Academy {
   address   String?
   lat       Float?
   lng       Float?
+  instagram String? // handle público de contacto (sin @)
+  whatsapp  String? // teléfono de contacto para wa.me (E.164 sin "+")
   createdAt DateTime @default(now())
 
   instructors  AcademyInstructor[]
