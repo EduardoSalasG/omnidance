@@ -1061,13 +1061,13 @@ function ClasesInner() {
             ) : (
               <div className="flex flex-col gap-8">
                 <section data-tour="cl-list">
-                  <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <Button size="sm" href="/clases/particular">
-                      {ta("requestTitle")}
-                    </Button>
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                     <h2 className="text-sm font-semibold text-neon">
                       {te("thisWeek")}
                     </h2>
+                    <Button size="sm" href="/clases/particular">
+                      {ta("requestTitle")}
+                    </Button>
                   </div>
                   <div className="flex flex-col gap-6">
                     {groupByDay(thisWeek).map(renderClassDayGroup)}
