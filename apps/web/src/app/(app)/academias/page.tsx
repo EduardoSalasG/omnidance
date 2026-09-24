@@ -381,55 +381,52 @@ function AcademiasInner() {
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{t("directoryTitle")}</h1>
           <div className="flex items-center gap-2">
-            {/* Scope mías/explorar — íconos segmentados como /clases */}
+            {/* Toggle lista/mapa — display del scope activo, íconos
+                segmentados como las vistas de /clases */}
             <div
               role="group"
               aria-label={t("viewsLabel")}
               className="flex items-center rounded-full border border-white/15 p-0.5"
             >
               <Link
-                href={hrefFor({ v: "mias", map: null, q: null, search: null })}
-                aria-label={t("viewMine")}
-                aria-current={scope === "mias" ? "true" : undefined}
-                className={iconBtn(scope === "mias")}
+                href={hrefFor({ map: null })}
+                aria-label={t("viewList")}
+                aria-current={!isMap ? "true" : undefined}
+                className={iconBtn(!isMap)}
               >
-                {/* persona — "mis" academias */}
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
-                </svg>
-              </Link>
-              <Link
-                href={hrefFor({ v: "explorar", map: null })}
-                aria-label={t("viewExplore")}
-                aria-current={scope === "explorar" ? "true" : undefined}
-                className={iconBtn(scope === "explorar")}
-              >
-                {/* brújula — mismo ícono que "explorar" en /clases */}
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" />
-                </svg>
-              </Link>
-            </div>
-            {/* Mapa — toggle de display del scope activo, mismo ícono
-                que /eventos */}
-            <Link
-              href={hrefFor({ map: isMap ? null : "1" })}
-              aria-label={isMap ? t("viewList") : t("viewMap")}
-              aria-current={isMap ? "true" : undefined}
-              className={`${iconBtn(isMap)} border border-white/15`}
-            >
-              {isMap ? (
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
                   <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
                 </svg>
-              ) : (
+              </Link>
+              <Link
+                href={hrefFor({ map: "1" })}
+                aria-label={t("viewMap")}
+                aria-current={isMap ? "true" : undefined}
+                className={iconBtn(isMap)}
+              >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
                   <path d="M8 2v15M16 6v15" />
                 </svg>
+              </Link>
+            </div>
+            {/* Explorar — scope aparte como en /clases: ON = resto del
+                directorio, OFF = mis academias (vuelve al default) */}
+            <Link
+              href={hrefFor(
+                scope === "explorar"
+                  ? { v: "mias", q: null, search: null }
+                  : { v: "explorar" },
               )}
+              aria-label={t("viewExplore")}
+              aria-current={scope === "explorar" ? "true" : undefined}
+              className={`${iconBtn(scope === "explorar")} border border-white/15`}
+            >
+              {/* brújula — mismo ícono que "explorar" en /clases */}
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" />
+              </svg>
             </Link>
             {/* Lupa — buscar por nombre, solo en explorar */}
             {scope === "explorar" && (
