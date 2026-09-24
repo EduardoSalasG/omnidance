@@ -269,7 +269,7 @@ export default function VenuePage() {
   const selected = venues.find((v) => v.id === selectedId) ?? venues[0];
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       {phase === "loading" && <SkeletonBlocks />}
 
       {phase === "unauth" && (

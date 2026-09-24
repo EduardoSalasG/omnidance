@@ -327,7 +327,7 @@ export default function DjPage() {
 
   if (phase === "loading") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <PageLoading />
       </main>
     );
@@ -335,7 +335,7 @@ export default function DjPage() {
 
   if (phase === "unauth") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Button href="/login" size="lg" className="self-start">
           {tc("login")}
         </Button>
@@ -345,7 +345,7 @@ export default function DjPage() {
 
   if (phase === "error") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-white/70">{t("loadError")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
@@ -358,7 +358,7 @@ export default function DjPage() {
 
   if (phase === "forbidden") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="py-6 text-center">
           <p className="text-sm text-white/70">{t("forbidden")}</p>
         </Card>
@@ -367,7 +367,7 @@ export default function DjPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       {/* Próximos gigs — cards expandibles con sugerencias del público. */}
       <section aria-labelledby="dj-upcoming">
         <h2

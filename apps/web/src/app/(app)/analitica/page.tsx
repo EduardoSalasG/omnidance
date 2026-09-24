@@ -166,7 +166,7 @@ export default function AnaliticaPage() {
 
   if (phase === "loading") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <p className="pt-6 text-sm text-white/50">{tc("loading")}</p>
       </main>
     );
@@ -174,7 +174,7 @@ export default function AnaliticaPage() {
 
   if (phase === "error") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-white/70">{t("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
@@ -187,7 +187,7 @@ export default function AnaliticaPage() {
 
   if (phase === "forbidden") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="py-6 text-center">
           <p className="text-sm text-white/70">{t("forbidden")}</p>
         </Card>
@@ -224,7 +224,7 @@ export default function AnaliticaPage() {
   })();
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <header className="flex flex-col gap-3 pt-4">
         <p className="text-sm text-white/50">{t("period")}</p>
 
