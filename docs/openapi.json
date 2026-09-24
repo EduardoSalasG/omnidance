@@ -276,7 +276,16 @@
     "/api/gamification/me/streak": {
       "get": {
         "operationId": "GamificationController_streak",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -2394,6 +2403,26 @@
     "/api/academies/{id}": {
       "get": {
         "operationId": "AcademiesController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/profile": {
+      "get": {
+        "operationId": "AcademiesController_profile",
         "parameters": [
           {
             "name": "id",

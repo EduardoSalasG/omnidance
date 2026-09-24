@@ -652,6 +652,10 @@ model Academy {
   ownerId   String // personId del academy_owner
   active    Boolean @default(true)
   defaultQuorum Int? // quórum por defecto de las clases (null → 20)
+  description String? // presentación pública de la academia
+  address   String?
+  lat       Float?
+  lng       Float?
   createdAt DateTime @default(now())
 
   instructors  AcademyInstructor[]

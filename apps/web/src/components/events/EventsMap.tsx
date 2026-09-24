@@ -9,6 +9,9 @@ export type MapVenue = {
   lat: number;
   lng: number;
   eventCount: number;
+  /** Destino del pin — default /locales/:id; /academias lo usa con
+      /academias/:id. */
+  href?: string;
 };
 
 // Leaflet es client-only (toca window en import) — carga diferida con

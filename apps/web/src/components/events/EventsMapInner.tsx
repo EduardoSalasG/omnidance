@@ -62,7 +62,7 @@ export default function EventsMapInner({ venues }: { venues: MapVenue[] }) {
             fillOpacity: 1,
           }}
           eventHandlers={{
-            click: () => router.push(`/locales/${v.id}`),
+            click: () => router.push(v.href ?? `/locales/${v.id}`),
           }}
         >
           <Tooltip

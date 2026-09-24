@@ -952,7 +952,8 @@
     "cancelledOk": "Reserva cancelada",
     "academy": "Academia",
     "instructor": "Profesor",
-    "error": "No se pudo completar la acción"
+    "error": "No se pudo completar la acción",
+    "filterAcademy": "Academia"
   },
   "academySeries": {
     "title": "Series de clases",

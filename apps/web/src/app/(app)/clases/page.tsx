@@ -95,6 +95,8 @@ function ClasesInner() {
       : "list";
   const styleId = searchParams.get("style") ?? "";
   const levelId = searchParams.get("level") ?? "";
+  // Filtro de academia — solo lo expone la vista explorar.
+  const academyId = searchParams.get("academy") ?? "";
   const upto = Math.max(
     1,
     Number.parseInt(searchParams.get("upto") ?? "1", 10) || 1,
@@ -109,6 +111,7 @@ function ClasesInner() {
     view?: string;
     style?: string;
     level?: string;
+    academy?: string;
     upto?: string;
     week?: string;
     day?: string;
@@ -120,6 +123,10 @@ function ClasesInner() {
       view: target !== "list" ? target : undefined,
       style: styleId || undefined,
       level: levelId || undefined,
+      // El filtro de academia solo existe en explorar — no arrastrarlo
+      // a vistas donde sería un filtro invisible.
+      academy:
+        target === "explore" ? academyId || undefined : undefined,
       upto: upto > 1 ? String(upto) : undefined,
       week: target === "calendar" ? weekKey : undefined,
       day: target === "calendar" ? (selectedDay ?? undefined) : undefined,
@@ -216,6 +223,8 @@ function ClasesInner() {
       if (view !== "explore") params.set("scope", "enrolled");
       if (styleId) params.set("styleId", styleId);
       if (levelId) params.set("levelId", levelId);
+      if (view === "explore" && academyId)
+        params.set("academyId", academyId);
       const res = await apiFetch(`/classes/browse?${params.toString()}`);
       if (!res.ok) {
         setBrowseState("error");
@@ -223,10 +232,10 @@ function ClasesInner() {
       }
       const list = (await res.json()) as BrowseClass[];
       setClasses(list);
-      // Opciones de los selects = estilos/niveles que existen en el
-      // scope. Con filtro activo el response ya viene acotado → un
-      // fetch extra sin filtro (solo en ese caso) para las facetas.
-      if (styleId || levelId) {
+      // Opciones de los selects = estilos/niveles/academias que existen
+      // en el scope. Con filtro activo el response ya viene acotado →
+      // un fetch extra sin filtro (solo en ese caso) para las facetas.
+      if (styleId || levelId || (view === "explore" && academyId)) {
         const base = new URLSearchParams({ days: String(daysNeeded) });
         if (view !== "explore") base.set("scope", "enrolled");
         const r2 = await apiFetch(`/classes/browse?${base.toString()}`);
@@ -240,7 +249,7 @@ function ClasesInner() {
     } catch {
       setBrowseState("error");
     }
-  }, [daysNeeded, view, styleId, levelId]);
+  }, [daysNeeded, view, styleId, levelId, academyId]);
 
   const loadHistory = useCallback(async () => {
     setHistoryState("loading");
@@ -329,10 +338,8 @@ function ClasesInner() {
   );
   // Opciones de los selects = solo lo que existe en el set sin
   // filtrar del scope (evita elegir un filtro sin resultados).
-  const seriesPool =
-    scope === "reservadas"
-      ? (mine ?? []).map((b) => b.series)
-      : (facetClasses ?? []).map((c) => c.series);
+  const facetPool: (BrowseClass | MyBooking)[] =
+    scope === "reservadas" ? (mine ?? []) : (facetClasses ?? []);
   const uniq = (
     xs: ({ id: string; name: string } | null | undefined)[],
   ): FilterOption[] => {
@@ -342,27 +349,43 @@ function ClasesInner() {
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   };
-  // Facetas dependientes: el otro filtro acota las opciones — un
-  // nivel que no existe para el estilo elegido tampoco tendría
-  // resultados. El filtro propio nunca se auto-acota (siempre se
-  // puede ver/cambiar la selección vigente).
+  // Facetas dependientes: los otros filtros acotan las opciones — un
+  // nivel que no existe para el estilo+academia elegidos tampoco
+  // tendría resultados. El filtro propio nunca se auto-acota (siempre
+  // se puede ver/cambiar la selección vigente).
   const styleOptions = uniq(
-    seriesPool
-      .filter((s) => !levelId || s.level?.id === levelId)
-      .map((s) => s.style),
+    facetPool
+      .filter(
+        (c) =>
+          (!levelId || c.series.level?.id === levelId) &&
+          (!academyId || c.academy.id === academyId),
+      )
+      .map((c) => c.series.style),
   );
   // Nivel: dedup + orden por dificultad (order del catálogo —
   // Iniciación → Avanzado), no alfabético.
   const levelOptions = (() => {
     const m = new Map<string, { id: string; name: string; order: number }>();
-    for (const s of seriesPool.filter(
-      (s) => !styleId || s.style?.id === styleId,
+    for (const c of facetPool.filter(
+      (c) =>
+        (!styleId || c.series.style?.id === styleId) &&
+        (!academyId || c.academy.id === academyId),
     )) {
-      const l = s.level;
+      const l = c.series.level;
       if (l && !m.has(l.id)) m.set(l.id, l);
     }
     return [...m.values()].sort((a, b) => a.order - b.order);
   })();
+  // Academias con clases en el scope, acotadas por estilo/nivel.
+  const academyOptions = uniq(
+    facetPool
+      .filter(
+        (c) =>
+          (!styleId || c.series.style?.id === styleId) &&
+          (!levelId || c.series.level?.id === levelId),
+      )
+      .map((c) => c.academy),
+  );
   const myByDay = new Map<string, MyBooking[]>();
   for (const b of filteredMine) {
     const key = classDayKey(b.date);
@@ -655,6 +678,41 @@ function ClasesInner() {
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </div>
+              {/* Academia — solo en explorar: en mis academias el scope
+                  ya es la inscripción. */}
+              {view === "explore" && (
+                <div className="relative shrink-0">
+                  <select
+                    aria-label={t("filterAcademy")}
+                    value={academyId}
+                    onChange={(e) =>
+                      router.push(
+                        hrefFor({ academy: e.target.value || undefined }),
+                      )
+                    }
+                    className={`${chipClass(!!academyId)} max-w-40 cursor-pointer appearance-none truncate bg-transparent pr-8`}
+                  >
+                    <option value="">{t("filterAcademy")}</option>
+                    {academyOptions.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${academyId ? "text-neon" : "text-white/40"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </div>
+              )}
             </div>
           </>
         )}

@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
-import { effectiveCapacity } from "../academies/domain/academy.service";
+import {
+  CLASS_CARD_SELECT,
+  classCardItem,
+  type ClassCardRow,
+} from "../academies/infrastructure/class-card-projection";
 
 /**
  * KPIs del home por rol activo. Ventanas "rolling" (últimos 7/30 días,
@@ -87,70 +91,6 @@ export type HomeStats = {
   needsAcademy?: boolean;
 };
 
-// Proyección de Prisma que alimenta ClassCardStats — misma selección
-// que CLASS_CARD_SELECT en classes.controller.
-const CLASS_CARD_SELECT = {
-  id: true,
-  date: true,
-  instructorId: true,
-  capacity: true,
-  slot: {
-    select: {
-      weekday: true,
-      startTime: true,
-      endTime: true,
-      capacity: true,
-      types: {
-        include: { type: { select: { id: true, name: true } } },
-      },
-      academy: {
-        select: { id: true, name: true, defaultQuorum: true },
-      },
-      series: {
-        select: {
-          id: true,
-          name: true,
-          quorum: true,
-          dropInPrice: true,
-          level: { select: { id: true, name: true, order: true } },
-          style: { select: { id: true, name: true, genre: true } },
-          types: {
-            include: { type: { select: { id: true, name: true } } },
-          },
-        },
-      },
-    },
-  },
-  bookings: {
-    where: { status: { in: ["BOOKED", "WAITLIST"] as string[] } },
-    select: { personId: true, status: true },
-  },
-} as const;
-
-type ClassCardRow = {
-  id: string;
-  date: Date;
-  instructorId: string | null;
-  capacity: number | null;
-  slot: {
-    weekday: number;
-    startTime: string;
-    endTime: string;
-    capacity: number | null;
-    types: { type: { id: string; name: string } }[];
-    academy: { id: string; name: string; defaultQuorum: number | null };
-    series: {
-      id: string;
-      name: string;
-      quorum: number | null;
-      dropInPrice: number | null;
-      level: { id: string; name: string; order: number } | null;
-      style: { id: string; name: string; genre: string | null } | null;
-      types: { type: { id: string; name: string } }[];
-    };
-  };
-  bookings: { personId: string; status: string }[];
-};
 
 const DAY = 86_400_000;
 const inDays = (n: number) => new Date(Date.now() + n * DAY);
@@ -498,55 +438,14 @@ export class HomeService {
   }
 
   /** Proyección de una Class al shape del card (ClassCardData en web) —
-      misma lógica que classCardItem en classes.controller. */
+      delega en la proyección compartida del módulo academies. */
   private toClassCard(
     c: ClassCardRow,
     personId: string,
     enrolledIds: Set<string>,
     instructorName: Map<string, string | null>,
   ): ClassCardStats {
-    const booked = c.bookings.filter((b) => b.status === "BOOKED").length;
-    const capacity = effectiveCapacity({
-      classCapacity: c.capacity,
-      slotCapacity: c.slot.capacity,
-      seriesQuorum: c.slot.series.quorum,
-      academyDefaultQuorum: c.slot.academy.defaultQuorum,
-    });
-    return {
-      id: c.id,
-      date: c.date,
-      startTime: c.slot.startTime,
-      endTime: c.slot.endTime,
-      weekday: c.slot.weekday,
-      capacity,
-      bookedCount: booked,
-      spotsLeft: Math.max(capacity - booked, 0),
-      waitlistCount: c.bookings.filter((b) => b.status === "WAITLIST")
-        .length,
-      myBooking:
-        c.bookings.find((b) => b.personId === personId)?.status ?? null,
-      enrolled: enrolledIds.has(c.slot.academy.id),
-      academy: { id: c.slot.academy.id, name: c.slot.academy.name },
-      instructor: c.instructorId
-        ? {
-            id: c.instructorId,
-            name: instructorName.get(c.instructorId) ?? null,
-          }
-        : null,
-      series: {
-        id: c.slot.series.id,
-        name: c.slot.series.name,
-        level: c.slot.series.level,
-        style: c.slot.series.style,
-        dropInPrice: c.slot.series.dropInPrice,
-        // Modalidad efectiva: el horario propio gana sobre la serie
-        // (slot.types vacío = hereda series.types).
-        types: (c.slot.types.length
-          ? c.slot.types
-          : c.slot.series.types
-        ).map((x) => x.type),
-      },
-    };
+    return classCardItem(c, personId, enrolledIds, instructorName);
   }
 
   private async producerStats(personId: string): Promise<HomeStats> {
