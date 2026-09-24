@@ -6,6 +6,11 @@ import { PAYMENT_GATEWAY, type PaymentGateway } from "./domain/ports";
 import { PricingService } from "./domain/pricing.service";
 import { StubGateway } from "./infrastructure/stub.gateway";
 import { FlowGateway } from "./infrastructure/flow.gateway";
+import {
+  GatewayTransactionsService,
+  type GatewayTxEntry,
+} from "./infrastructure/gateway-transactions.service";
+import { PrismaService } from "../prisma.service";
 import { CheckoutController } from "./infrastructure/checkout.controller";
 import { TicketsController } from "./infrastructure/tickets.controller";
 import { PaymentsController } from "./infrastructure/webhook.controller";
@@ -27,13 +32,18 @@ import { NotificationsModule } from "../notifications/notifications.module";
   ],
   providers: [
     CheckoutService,
+    GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
       provide: PAYMENT_GATEWAY,
-      useFactory: (): PaymentGateway => resolveGateway(process.env),
+      useFactory: (prisma: PrismaService): PaymentGateway => {
+        const txWriter = new GatewayTransactionsService(prisma);
+        return resolveGateway(process.env, (e) => txWriter.record(e));
+      },
+      inject: [PrismaService],
     },
   ],
-  exports: [PAYMENT_GATEWAY],
+  exports: [PAYMENT_GATEWAY, GatewayTransactionsService],
 })
 export class PaymentsModule {}
 
@@ -47,7 +57,10 @@ const SANDBOX_BASE_URL = "https://sandbox.flow.cl/api";
  * ser https://sandbox.flow.cl/api — producción se habilita tras validar
  * el flujo end-to-end contra el sandbox.
  */
-export function resolveGateway(env: NodeJS.ProcessEnv): PaymentGateway {
+export function resolveGateway(
+  env: NodeJS.ProcessEnv,
+  onTx?: (e: GatewayTxEntry) => Promise<void>,
+): PaymentGateway {
   const apiKey = env.FLOW_API_KEY;
   const secret = env.FLOW_SECRET ?? env.FLOW_SECRET_KEY;
   if (env.PAYMENT_GATEWAY === "flow") {
@@ -68,6 +81,7 @@ export function resolveGateway(env: NodeJS.ProcessEnv): PaymentGateway {
       secret,
       baseUrl,
       `${apiUrl}/api/payments/webhook`,
+      onTx,
     );
   }
   // Fail-close: el stub acepta webhooks sin firma — jamás en producción.

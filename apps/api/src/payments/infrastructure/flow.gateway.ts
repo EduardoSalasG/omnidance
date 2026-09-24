@@ -1,6 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import type { PaymentGateway } from "../domain/ports";
+import {
+  sanitizeGatewayPayload,
+  type GatewayTxEntry,
+} from "./gateway-transactions.service";
 
 // Flow (https://developers.flow.cl/api): firma HMAC-SHA256 sobre los
 // parámetros ordenados alfabéticamente concatenados como "nombreValor",
@@ -12,6 +16,10 @@ import type { PaymentGateway } from "../domain/ports";
 //
 // El módulo solo instancia este adapter cuando PAYMENT_GATEWAY=flow y
 // existen FLOW_API_KEY + FLOW_SECRET(_KEY); en otro caso usa StubGateway.
+//
+// TODA llamada HTTP a Flow pasa por call(), que emite un GatewayTxEntry
+// (append-only) vía onTx — el writer real es GatewayTransactionsService,
+// inyectado desde el módulo; en tests se inyecta un collector fake.
 @Injectable()
 export class FlowGateway implements PaymentGateway {
   readonly name = "FLOW";
@@ -21,6 +29,10 @@ export class FlowGateway implements PaymentGateway {
     private readonly secret: string,
     private readonly baseUrl = "https://sandbox.flow.cl/api",
     private readonly confirmationUrl = "",
+    private readonly onTx?: (e: GatewayTxEntry) => Promise<void>,
+    // Reservado para suscripciones (task 4): urlCallback de
+    // subscription/create. Se declara ya para estabilizar la firma.
+    private readonly subscriptionCallbackUrl = "",
   ) {}
 
   async createOrder(p: {
@@ -45,23 +57,11 @@ export class FlowGateway implements PaymentGateway {
       urlConfirmation: this.confirmationUrl,
       urlReturn: p.returnUrl,
     };
-    const body = this.signedParams(params);
-    const res = await fetch(`${this.baseUrl}/payment/create`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body,
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!res.ok) {
-      throw new Error(
-        `flow createOrder HTTP ${res.status}: ${await this.errorDetail(res)}`,
-      );
-    }
-    const data = (await res.json()) as {
+    const data = await this.call<{
       url?: string;
       token?: string;
       flowOrder?: number;
-    };
+    }>("payment/create", params);
     if (!data.url || !data.token) {
       throw new Error("flow createOrder: respuesta inválida");
     }
@@ -81,20 +81,14 @@ export class FlowGateway implements PaymentGateway {
     if (!b || typeof b.token !== "string") {
       throw new Error("webhook flow inválido");
     }
-    const params = this.signedParams({ apiKey: this.apiKey, token: b.token });
-    const res = await fetch(
-      `${this.baseUrl}/payment/getStatus?${params.toString()}`,
-      { signal: AbortSignal.timeout(10_000) },
-    );
-    if (!res.ok) {
-      throw new Error(
-        `flow getStatus HTTP ${res.status}: ${await this.errorDetail(res)}`,
-      );
-    }
-    const data = (await res.json()) as {
+    const data = await this.call<{
       status?: number;
       commerceOrder?: string;
-    };
+    }>(
+      "payment/getStatus",
+      { apiKey: this.apiKey, token: b.token },
+      { method: "GET" },
+    );
     if (!data.commerceOrder) throw new Error("flow getStatus: sin orden");
     if (data.status === 2) {
       return { refId: data.commerceOrder, status: "PAID" };
@@ -112,23 +106,97 @@ export class FlowGateway implements PaymentGateway {
    * Estados Flow: 1 pendiente · 2 pagado · 3 rechazado · 4 anulado.
    */
   async refreshStatus(refId: string): Promise<"PAID" | "FAILED" | "PENDING"> {
-    const params = this.signedParams({
-      apiKey: this.apiKey,
-      commerceOrder: refId,
-    });
-    const res = await fetch(
-      `${this.baseUrl}/payment/getStatusByCommerceId?${params.toString()}`,
-      { signal: AbortSignal.timeout(10_000) },
+    const data = await this.call<{ status?: number }>(
+      "payment/getStatusByCommerceId",
+      { apiKey: this.apiKey, commerceOrder: refId },
+      { method: "GET" },
     );
-    if (!res.ok) {
-      throw new Error(
-        `flow getStatusByCommerceId HTTP ${res.status}: ${await this.errorDetail(res)}`,
-      );
-    }
-    const data = (await res.json()) as { status?: number };
     if (data.status === 2) return "PAID";
     if (data.status === 3 || data.status === 4) return "FAILED";
     return "PENDING";
+  }
+
+  /**
+   * Wrapper único de HTTP contra Flow: firma los params, ejecuta el fetch
+   * (POST urlencoded por default; GET lleva los params firmados en la
+   * querystring) y SIEMPRE emite un GatewayTxEntry en el finally — éxito,
+   * error HTTP o falla de red quedan auditados con durationMs y detalle.
+   * La firma viaja sanitizada (sha256 truncado) en requestBody: la raw
+   * signature nunca sale del boundary del fetch.
+   */
+  private async call<T>(
+    endpoint: string,
+    params: Record<string, string>,
+    opts: {
+      method?: "GET" | "POST";
+      correlationId?: string;
+      paymentId?: string;
+      timeoutMs?: number;
+    } = {},
+  ): Promise<T> {
+    const method = opts.method ?? "POST";
+    const correlationId = opts.correlationId ?? randomUUID();
+    const signed = this.signedParams(params);
+    const started = Date.now();
+    let httpStatus: number | undefined;
+    let responseBody: unknown;
+    let ok = false;
+    let error: string | undefined;
+    try {
+      const url =
+        method === "GET"
+          ? `${this.baseUrl}/${endpoint}?${signed.toString()}`
+          : `${this.baseUrl}/${endpoint}`;
+      const res = await fetch(url, {
+        method,
+        headers:
+          method === "POST"
+            ? { "content-type": "application/x-www-form-urlencoded" }
+            : undefined,
+        body: method === "POST" ? signed : undefined,
+        // Timeout unificado 15s (create era 15s, status 10s — la
+        // auditoría favorece no cortar una consulta que sí respondería).
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 15_000),
+      });
+      httpStatus = res.status;
+      const text = await res.text();
+      try {
+        responseBody = JSON.parse(text);
+      } catch {
+        responseBody = text;
+      }
+      ok = res.ok;
+      if (!res.ok) {
+        // Flow responde {code, message} en errores — el message es seguro
+        // de loggear (no incluye credenciales ni firmas).
+        const detail = (
+          responseBody as { code?: number; message?: string } | null
+        )?.message;
+        throw new Error(
+          `flow ${endpoint} HTTP ${res.status}${detail ? `: ${detail}` : ""}`,
+        );
+      }
+      return responseBody as T;
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+      throw e;
+    } finally {
+      await this.onTx?.({
+        provider: "FLOW",
+        direction: "OUTBOUND",
+        endpoint,
+        correlationId,
+        requestBody: sanitizeGatewayPayload(
+          Object.fromEntries(signed.entries()),
+        ),
+        responseBody,
+        httpStatus,
+        durationMs: Date.now() - started,
+        ok,
+        error,
+        paymentId: opts.paymentId,
+      });
+    }
   }
 
   // Ordena params por clave, concatena "claveValor" y firma con HMAC-SHA256.
@@ -141,16 +209,5 @@ export class FlowGateway implements PaymentGateway {
     const qs = new URLSearchParams(params);
     qs.set("s", s);
     return qs;
-  }
-
-  // Flow responde {code, message} en errores — el message es seguro de
-  // loggear (no incluye credenciales ni firmas). Truncado por sanidad.
-  private async errorDetail(res: Response): Promise<string> {
-    try {
-      const data = (await res.json()) as { code?: number; message?: string };
-      return data.message ? `${data.code ?? ""} ${data.message}`.trim() : "";
-    } catch {
-      return "";
-    }
   }
 }
