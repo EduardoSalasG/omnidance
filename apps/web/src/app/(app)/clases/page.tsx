@@ -90,6 +90,7 @@ function ClasesInner() {
   const t = useTranslations("classes");
   const tc = useTranslations("common");
   const te = useTranslations("events");
+  const ta = useTranslations("academyExtras.lessons");
   const tt = useTranslations("tours.clases");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -746,6 +747,17 @@ function ClasesInner() {
                 </div>
               )}
             </div>
+
+            {/* Clase particular 1:1 — la solicitud y "mis solicitudes"
+                viven en /clases/particular (antes embebidas en
+                /academias). */}
+            <Button
+              href="/clases/particular"
+              variant="secondary"
+              className="self-start"
+            >
+              {ta("requestTitle")}
+            </Button>
           </>
         )}
       </header>

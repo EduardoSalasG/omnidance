@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card, Segmented } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
-import { PrivateLessons } from "@/components/academy/private-lessons";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 
 // /academias — "Mi Aprendizaje" del modo Academia (spec §9). Misma
@@ -550,8 +549,6 @@ function AcademiasInner() {
                 {t("directoryEmpty")}
               </p>
             )}
-            {/* Vista alumno: mis solicitudes + form de clase particular. */}
-            <PrivateLessons />
           </section>
         ) : (
           /* ─── Explorar — el resto del directorio ─── */
