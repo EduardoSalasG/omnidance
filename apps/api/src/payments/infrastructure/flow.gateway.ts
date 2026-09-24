@@ -156,6 +156,11 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     } catch {
       // plans/get falló (404/error) → crear abajo.
     }
+    if (!this.subscriptionCallbackUrl) {
+      throw new Error(
+        "FlowGateway: subscriptionCallbackUrl no configurada — plans/create sin urlCallback dejaría la suscripción sin notificación de cobros",
+      );
+    }
     await this.call<unknown>(
       "plans/create",
       {
