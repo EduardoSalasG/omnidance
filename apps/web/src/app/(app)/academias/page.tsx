@@ -548,7 +548,7 @@ function AcademiasInner() {
             {mapPins.length === 0 ? (
               <p className="text-sm text-white/50">{t("noLocation")}</p>
             ) : (
-              <div className="h-[55dvh] min-h-[340px] w-full overflow-hidden rounded-2xl border border-night-700">
+              <div className="h-[58dvh] min-h-[340px] w-full overflow-hidden rounded-2xl border border-night-700">
                 <EventsMap venues={mapPins} />
               </div>
             )}
