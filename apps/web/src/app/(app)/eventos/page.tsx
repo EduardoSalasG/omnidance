@@ -5,6 +5,7 @@ import messages from "../../../../messages/es-CL.json";
 import { EventCard, type EventCardData } from "@/components/events/event-card";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
+import { Segmented } from "@/components/ui/segmented";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import toursI18n from "@/i18n/parts/tours.json";
 import {
@@ -341,44 +342,51 @@ export default async function EventosPage({
                 : t.title}
           </h1>
           <div className="flex items-center gap-2">
-              {/* Toggle lista/calendario — íconos, segmented */}
-              <div
-                data-tour="ev-views"
-                className="flex items-center rounded-full border border-white/15 p-0.5"
-              >
-                <Link
-                  href={hrefFor({ view: undefined, week: undefined, day: undefined })}
-                  aria-label={t.viewList}
-                  aria-current={view === "list" ? "true" : undefined}
-                  className={iconBtn(view === "list")}
-                >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                    <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
-                  </svg>
-                </Link>
-                <Link
-                  href={hrefFor({ view: "calendar", week: undefined, day: undefined })}
-                  aria-label={t.viewCalendar}
-                  aria-current={view === "calendar" ? "true" : undefined}
-                  className={iconBtn(view === "calendar")}
-                >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                    <rect x="3" y="4" width="18" height="17" rx="2" />
-                    <path d="M8 2v3M16 2v3M3 9h18" />
-                  </svg>
-                </Link>
-                <Link
-                  href={hrefFor({ view: "map", week: undefined, day: undefined, genre: undefined, venue: undefined })}
-                  aria-label={t.viewMap}
-                  aria-current={view === "map" ? "true" : undefined}
-                  className={iconBtn(view === "map")}
-                >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
-                    <path d="M8 2v15M16 6v15" />
-                  </svg>
-                </Link>
-              </div>
+              {/* Toggle lista/calendario/mapa — íconos, segmented con
+                  thumb deslizante (mismo control que /clases) */}
+              <Segmented
+                tour="ev-views"
+                ariaLabel={t.viewsLabel}
+                active={view}
+                tone="solid"
+                items={[
+                  {
+                    key: "list",
+                    href: hrefFor({ view: undefined, week: undefined, day: undefined }),
+                    icon: true,
+                    ariaLabel: t.viewList,
+                    children: (
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    key: "calendar",
+                    href: hrefFor({ view: "calendar", week: undefined, day: undefined }),
+                    icon: true,
+                    ariaLabel: t.viewCalendar,
+                    children: (
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                        <rect x="3" y="4" width="18" height="17" rx="2" />
+                        <path d="M8 2v3M16 2v3M3 9h18" />
+                      </svg>
+                    ),
+                  },
+                  {
+                    key: "map",
+                    href: hrefFor({ view: "map", week: undefined, day: undefined, genre: undefined, venue: undefined }),
+                    icon: true,
+                    ariaLabel: t.viewMap,
+                    children: (
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                        <path d="M8 2v15M16 6v15" />
+                      </svg>
+                    ),
+                  },
+                ]}
+              />
               {/* Mis eventos — agenda propia (ticket activo), ícono aparte */}
               <Link
                 href={hrefFor({ view: "mios", week: undefined, day: undefined })}

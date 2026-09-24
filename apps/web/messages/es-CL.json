@@ -207,6 +207,7 @@
     "viewList": "Lista",
     "viewCalendar": "Calendario",
     "viewMap": "Locales",
+    "viewsLabel": "Cambiar vista",
     "mapHint": "Toca un local para ver su perfil y próximos eventos",
     "viewMios": "Mis entradas",
     "prevWeek": "Semana anterior",
