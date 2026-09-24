@@ -281,7 +281,8 @@
     "tableSoldOut": "Sin mesas disponibles para reserva en este evento.",
     "tableDisclaimer": "La disponibilidad es referencial — la reserva queda sujeta a confirmación del productor y el tamaño podría ajustarse.",
     "tableSuccess": "También quedó solicitada tu mesa para {count} personas — el productor la confirma y te avisamos.",
-    "tableSeatsLeft": "{count, plural, one {# asiento en mesa} other {# asientos en mesa}}"
+    "tableSeatsLeft": "{count, plural, one {# asiento en mesa} other {# asientos en mesa}}",
+    "returnToAcademies": "Ir a Mis academias"
   },
   "wallet": {
     "title": "Mis entradas",
@@ -455,7 +456,10 @@
       "PERIOD": "Período",
       "TRIAL": "Trial"
     },
-    "studentStatus": "Estado de {name}"
+    "studentStatus": "Estado de {name}",
+    "planPeriodDays": "Días de vigencia",
+    "planDesc": "Descripción (una línea = un punto de la lista)",
+    "planDescPlaceholder": "Clases ilimitadas de todas las series\nAcceso a evaluación de nivel\nDescuento en privadas"
   },
   "practices": {
     "title": "Prácticas",

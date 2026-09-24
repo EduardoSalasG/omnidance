@@ -55,3 +55,25 @@ export function decodeSeriesPassRef(refId: string): SeriesPassRef | null {
   if (!seriesId || !month || !uid) return null;
   return { seriesId, month, uid };
 }
+
+// ─── Membership (plan de academia) ───
+// Formato: mem_<planId>_<uuid>. Como SERIES_PASS, el contexto solo viaja
+// en el refId (Payment no tiene columna para el plan); el webhook lo
+// decodifica para materializar el Enrollment al PAID.
+export interface MembershipRef {
+  planId: string;
+  uid: string;
+}
+
+export function encodeMembershipRef(planId: string): string {
+  return `mem_${planId}_${randomUUID()}`;
+}
+
+export function decodeMembershipRef(refId: string): MembershipRef | null {
+  const parts = refId.split("_");
+  if (parts.length < 3 || parts[0] !== "mem") return null;
+  const [, planId, ...rest] = parts;
+  const uid = rest.join("_");
+  if (!planId || !uid) return null;
+  return { planId, uid };
+}

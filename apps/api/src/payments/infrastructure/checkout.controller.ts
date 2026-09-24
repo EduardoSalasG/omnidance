@@ -33,6 +33,8 @@ import {
   SeriesInactiveError,
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
+  PlanNotFoundError,
+  PlanNotPurchasableError,
   RecipientError,
   TablePartyTooLargeError,
   TableSoldOutError,
@@ -100,6 +102,11 @@ class CheckoutSeriesPassDto {
   month!: string;
 }
 
+class CheckoutMembershipDto {
+  @IsString()
+  planId!: string;
+}
+
 @Controller("checkout")
 export class CheckoutController {
   constructor(private readonly checkout: CheckoutService) {}
@@ -152,6 +159,26 @@ export class CheckoutController {
         throw new ConflictException(e.message);
       }
       if (e instanceof SeriesInactiveError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Plan de academia: cobra el precio del plan en DB y el webhook emite/
+   * renueva el Enrollment al PAID. TRIAL y planes inactivos no se venden.
+   */
+  @Post("membership")
+  @UseGuards(SessionGuard)
+  async membership(@Req() req: Request, @Body() dto: CheckoutMembershipDto) {
+    try {
+      return await this.checkout.purchaseMembership(req.person!.id, dto);
+    } catch (e) {
+      if (e instanceof PlanNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
       throw e;

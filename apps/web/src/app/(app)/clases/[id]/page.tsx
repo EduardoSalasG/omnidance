@@ -250,6 +250,7 @@ export default async function ClaseDetailPage({
         classId={cls.id}
         initialBooking={cls.myBooking}
         enrolled={cls.enrolled}
+        academyId={cls.academy.id}
         spotsLeft={cls.spotsLeft}
         capacity={cls.capacity}
         waitlistCount={cls.waitlistCount}

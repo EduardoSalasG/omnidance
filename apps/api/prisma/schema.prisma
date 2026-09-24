@@ -678,22 +678,28 @@ model AcademyInstructor {
 }
 
 enum PlanType {
-  MONTHLY
-  CLASS_PACK
-  PERIOD
-  TRIAL
+  MONTHLY    // fin del mes calendario
+  QUARTERLY  // fin del 3er mes calendario desde la compra
+  SEMIANNUAL // fin del 6º mes calendario
+  SINGLE     // clase única — fin del día de compra
+  CLASS_PACK // pack N clases — sin fecha (consumo no auditado en v1)
+  PERIOD     // periodDays corridos desde startedAt
+  TRIAL      // prueba — no se vende, la asigna staff
 }
 
 model MembershipPlan {
-  id         String   @id @default(cuid())
-  academy    Academy  @relation(fields: [academyId], references: [id])
-  academyId  String
-  name       String
-  type       PlanType
-  price      Int
-  classCount Int? // para CLASS_PACK
-  periodDays Int? // para PERIOD
-  active     Boolean  @default(true)
+  id          String   @id @default(cuid())
+  academy     Academy  @relation(fields: [academyId], references: [id])
+  academyId   String
+  name        String
+  type        PlanType
+  price       Int
+  classCount  Int? // para CLASS_PACK
+  periodDays  Int? // para PERIOD
+  // Bullets de venta en la ficha pública (una línea del textarea del
+  // staff = un ítem del <ul>).
+  description String[]
+  active      Boolean  @default(true)
 
   enrollments Enrollment[]
 }

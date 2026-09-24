@@ -1382,6 +1382,27 @@
         }
       }
     },
+    "/api/checkout/membership": {
+      "post": {
+        "operationId": "CheckoutController_membership",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/tickets/claim/{token}": {
       "get": {
         "operationId": "TicketsController_claimInfo",
@@ -4204,6 +4225,10 @@
         "properties": {}
       },
       "CheckoutSeriesPassDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CheckoutMembershipDto": {
         "type": "object",
         "properties": {}
       },

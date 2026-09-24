@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma.service";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService, type Quote } from "../domain/pricing.service";
 import {
+  encodeMembershipRef,
   encodeSeriesPassRef,
   encodeTicketOrderRef,
 } from "../domain/order-ref";
@@ -91,6 +92,20 @@ export class SeriesPassAlreadyOwnedError extends Error {
   }
 }
 
+export class PlanNotFoundError extends Error {
+  constructor() {
+    super("plan no encontrado");
+    this.name = "PlanNotFoundError";
+  }
+}
+
+export class PlanNotPurchasableError extends Error {
+  constructor() {
+    super("este plan no está disponible para compra online");
+    this.name = "PlanNotPurchasableError";
+  }
+}
+
 /**
  * Un destinatario de regalo no pasó la validación: no está registrado, no
  * es amigo ACCEPTED del comprador, es el propio comprador, o ya tiene una
@@ -136,6 +151,10 @@ export interface PurchaseSeriesPassInput {
   seriesId: string;
   /** Mes de vigencia "YYYY-MM" — validado por el DTO del controller. */
   month: string;
+}
+
+export interface PurchaseMembershipInput {
+  planId: string;
 }
 
 export interface PurchaseTicketResult {
@@ -558,6 +577,88 @@ export class CheckoutService {
     const payment = await this.prisma.payment.create({
       data: {
         orderType: "SERIES_PASS",
+        refId,
+        personId,
+        eventId: null,
+        discountCodeId: null,
+        amount: quote.total,
+        fee: 0, // costo pasarela: desconocido hasta la liquidación
+        net: quote.total,
+        gateway: this.gateway.name,
+      },
+    });
+
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const order = await this.gateway.createOrder({
+      refId,
+      amount: quote.total,
+      email: person?.email ?? "",
+      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+    });
+
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { gatewayRef: order.gatewayRef },
+    });
+
+    return {
+      paymentUrl: order.paymentUrl,
+      paymentId: payment.id,
+      quote,
+      quantity: 1,
+    };
+  }
+
+  /**
+   * Checkout de plan de academia: valida plan+academia activos, rechaza
+   * TRIAL (se asigna por staff, no se vende), crea la orden PENDING
+   * (orderType MEMBERSHIP) y delega el cobro. El Enrollment lo emite el
+   * webhook al PAID — renovación incluida (extiende la vigencia vigente).
+   * Lanza errores de dominio — el controller los mapea a HTTP.
+   */
+  async purchaseMembership(
+    personId: string,
+    input: PurchaseMembershipInput,
+  ): Promise<PurchaseTicketResult> {
+    const plan = await this.prisma.membershipPlan.findUnique({
+      where: { id: input.planId },
+      select: {
+        id: true,
+        active: true,
+        type: true,
+        price: true,
+        academy: { select: { active: true } },
+      },
+    });
+    if (!plan || !plan.academy.active) throw new PlanNotFoundError();
+    if (!plan.active || plan.type === "TRIAL") {
+      throw new PlanNotPurchasableError();
+    }
+
+    // Precio del plan desde DB (nunca del cliente) + cargo de servicio
+    // parametrizable; sin descuentos ni duplicidad de orden PENDING en v1 —
+    // re-comprar con orden en curso solo genera otra orden abandonable.
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.membership_clp",
+      500,
+    );
+    const quote = this.pricing.quote({
+      listPrice: plan.price,
+      serviceFeeClp,
+      discount: null,
+    });
+
+    // refId = mem_<planId>_<uuid>: Payment no tiene columna para el plan,
+    // así que el contexto viaja aquí — el webhook lo decodifica al PAID.
+    const refId = encodeMembershipRef(plan.id);
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { email: true },
+    });
+
+    const payment = await this.prisma.payment.create({
+      data: {
+        orderType: "MEMBERSHIP",
         refId,
         personId,
         eventId: null,
