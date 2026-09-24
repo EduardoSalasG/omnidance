@@ -880,7 +880,7 @@ function ClasesInner() {
                   </span>
                   {dots.length > 3 && (
                     <span className="text-[10px] leading-none text-white/40">
-                      {te("more").replace("{count}", String(dots.length - 3))}
+                      {te("more", { count: dots.length - 3 })}
                     </span>
                   )}
                 </>
