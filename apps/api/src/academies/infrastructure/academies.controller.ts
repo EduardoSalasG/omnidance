@@ -340,22 +340,44 @@ export class AcademiesController {
     });
     if (enrollments.length === 0) return [];
     const since = new Date(Date.now() - 30 * 86_400_000);
-    const attendances = await this.prisma.attendance.findMany({
-      where: {
-        personId,
-        checkedAt: { gte: since },
-        class: {
-          slot: {
-            academyId: { in: enrollments.map((e) => e.academy.id) },
+    const [attendances, subscriptions] = await Promise.all([
+      this.prisma.attendance.findMany({
+        where: {
+          personId,
+          checkedAt: { gte: since },
+          class: {
+            slot: {
+              academyId: { in: enrollments.map((e) => e.academy.id) },
+            },
           },
         },
-      },
-      select: { class: { select: { slot: { select: { academyId: true } } } } },
-    });
+        select: { class: { select: { slot: { select: { academyId: true } } } } },
+      }),
+      // Suscripción vigente del viewer por academia (la más reciente) —
+      // alimenta el badge "se cancela el…" de Mis academias.
+      this.prisma.membershipSubscription.findMany({
+        where: {
+          personId,
+          academyId: { in: enrollments.map((e) => e.academy.id) },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          academyId: true,
+          status: true,
+          nextInvoiceAt: true,
+          canceledAt: true,
+        },
+      }),
+    ]);
     const countByAcademy = new Map<string, number>();
     for (const a of attendances) {
       const academyId = a.class.slot.academyId;
       countByAcademy.set(academyId, (countByAcademy.get(academyId) ?? 0) + 1);
+    }
+    const subByAcademy = new Map<string, (typeof subscriptions)[number]>();
+    for (const s of subscriptions) {
+      if (!subByAcademy.has(s.academyId)) subByAcademy.set(s.academyId, s);
     }
     return enrollments.map((e) => ({
       id: e.id,
@@ -365,6 +387,7 @@ export class AcademiesController {
       startedAt: e.startedAt,
       endsAt: e.endsAt,
       attendance30d: countByAcademy.get(e.academy.id) ?? 0,
+      subscription: subByAcademy.get(e.academy.id) ?? null,
     }));
   }
 
@@ -400,7 +423,8 @@ export class AcademiesController {
    * descripción, dirección/coords, estilos impartidos (derivados de
    * series activas), profesores, planes activos y próximas clases
    * materializadas (mismo shape ClassCardData que /classes/browse).
-   * `myEnrollment` = inscripción del viewer si existe (cualquier estado).
+   * `myEnrollment` = inscripción del viewer si existe (cualquier estado);
+   * `mySubscription` = su suscripción Flow más reciente a esta academia.
    */
   @Get(":id/profile")
   @UseGuards(SessionGuard)
@@ -442,33 +466,47 @@ export class AcademiesController {
     if (!academy) throw new NotFoundException("academia no encontrada");
 
     const instructorIds = academy.instructors.map((i) => i.personId);
-    const [people, myEnrollment, upcoming] = await Promise.all([
-      this.prisma.person.findMany({
-        where: { id: { in: instructorIds } },
-        select: { id: true, name: true, photoUrl: true },
-      }),
-      this.prisma.enrollment.findFirst({
-        where: { personId: me, academyId: id },
-        select: {
-          status: true,
-          startedAt: true,
-          endsAt: true,
-          plan: { select: { id: true, name: true, type: true } },
-        },
-      }),
-      // Próximas clases no terminadas de la academia (cap razonable —
-      // la página muestra las primeras y la ficha de clase tiene el resto).
-      this.prisma.class.findMany({
-        where: {
-          cancelled: false,
-          date: { gte: new Date() },
-          slot: { academyId: id, series: { active: true } },
-        },
-        orderBy: { date: "asc" },
-        take: 30,
-        select: CLASS_CARD_SELECT,
-      }),
-    ]);
+    const [people, myEnrollment, mySubscription, upcoming] =
+      await Promise.all([
+        this.prisma.person.findMany({
+          where: { id: { in: instructorIds } },
+          select: { id: true, name: true, photoUrl: true },
+        }),
+        this.prisma.enrollment.findFirst({
+          where: { personId: me, academyId: id },
+          select: {
+            status: true,
+            startedAt: true,
+            endsAt: true,
+            plan: { select: { id: true, name: true, type: true } },
+          },
+        }),
+        // Suscripción del viewer a esta academia (la más reciente) — la
+        // ficha muestra el estado/badge igual que myEnrollment.
+        this.prisma.membershipSubscription.findFirst({
+          where: { personId: me, academyId: id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            planId: true,
+            status: true,
+            nextInvoiceAt: true,
+            canceledAt: true,
+          },
+        }),
+        // Próximas clases no terminadas de la academia (cap razonable —
+        // la página muestra las primeras y la ficha de clase tiene el resto).
+        this.prisma.class.findMany({
+          where: {
+            cancelled: false,
+            date: { gte: new Date() },
+            slot: { academyId: id, series: { active: true } },
+          },
+          orderBy: { date: "asc" },
+          take: 30,
+          select: CLASS_CARD_SELECT,
+        }),
+      ]);
     const nameOf = new Map(people.map((p) => [p.id, p.name]));
     const photoOf = new Map(people.map((p) => [p.id, p.photoUrl]));
     const enrolledIds = new Set(myEnrollment ? [id] : []);
@@ -506,6 +544,7 @@ export class AcademiesController {
       })),
       plans: academy.plans,
       myEnrollment: myEnrollment ?? null,
+      mySubscription: mySubscription ?? null,
       classes: upcoming
         .filter((c) => !classEnded(c))
         .slice(0, 12)
