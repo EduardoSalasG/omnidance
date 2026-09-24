@@ -488,7 +488,8 @@
     "addressNotes": "Notas de la dirección",
     "addressNotesPlaceholder": "Ej. Plaza El Llano",
     "description": "Descripción",
-    "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué nivel? ¿Qué traer?"
+    "descriptionPlaceholder": "¿Qué van a practicar? ¿Qué nivel? ¿Qué traer?",
+    "startsAt": "Fecha"
   },
   "availability": {
     "toggle": "Disponible para bailar",
