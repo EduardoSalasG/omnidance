@@ -467,8 +467,12 @@ function AcademiasInner() {
           ]}
         />
 
-        {/* Filtro de estilo — aplica a ambas vistas (y a los pins del
-            mapa): las academias exponen los estilos que imparten. */}
+        {/* Filtro de estilo + buscador por nombre en la misma fila —
+            el buscador ocupa el espacio restante (basis-48: envuelve a
+            su propia línea solo si la pantalla es muy angosta). El
+            estilo aplica a ambos scopes (y a los pins del mapa); el
+            buscador es solo explorar y se escribe en la URL con
+            router.replace para no ensuciar history al teclear. */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative shrink-0">
             <select
@@ -499,38 +503,34 @@ function AcademiasInner() {
               <path d="m6 9 6 6 6-6" />
             </svg>
           </div>
+          {scope === "explorar" && (
+            <div className="relative min-w-0 flex-1 basis-48">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) =>
+                  router.replace(hrefFor({ q: e.target.value || null }))
+                }
+                placeholder={t("searchName")}
+                aria-label={t("searchName")}
+                className="min-h-11 w-full rounded-full border border-white/15 bg-night-800 pl-11 pr-4 text-sm text-white placeholder:text-white/40 focus:border-neon focus:outline-none"
+              />
+            </div>
+          )}
         </div>
-
-        {/* Buscador por nombre — siempre visible en explorar (sin
-            toggle); se escribe en la URL con router.replace para no
-            ensuciar history al teclear. */}
-        {scope === "explorar" && (
-          <div className="relative">
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) =>
-                router.replace(hrefFor({ q: e.target.value || null }))
-              }
-              placeholder={t("searchName")}
-              aria-label={t("searchName")}
-              className="min-h-11 w-full rounded-full border border-white/15 bg-night-800 pl-11 pr-4 text-sm text-white placeholder:text-white/40 focus:border-neon focus:outline-none"
-            />
-          </div>
-        )}
       </header>
 
       {state === "loading" && <Spinner size="sm" className="page-loading" />}
