@@ -12,8 +12,12 @@ function makeFake() {
           .filter((e) => e.paymentId === where.paymentId)
           .sort((a, b) => b.seq - a.seq)[0] ?? null,
       create: async ({ data }: any) => {
-        events.push(data);
-        return data;
+        // Simula el round-trip real de jsonb: Postgres serializa al guardar
+        // (Date→ISO string, Decimal→número, toJSON→serializado). Guardar la
+        // referencia cruda enmascararía divergencias emit-vs-verify.
+        const stored = JSON.parse(JSON.stringify(data));
+        events.push(stored);
+        return stored;
       },
       findMany: async ({ where }: any) =>
         events
@@ -76,6 +80,18 @@ describe("verifyPaymentChain", () => {
     }
     const r = await verifyPaymentChain(tx as any, "p1");
     expect(r).toEqual({ ok: true, events: 2 });
+  });
+
+  it("payload con Date → jsonb lo serializa a ISO y la cadena sigue OK", async () => {
+    const { tx, events } = makeFake();
+    await emitPaymentEvent(tx as any, "p1", "IMPORTED", "migration", {
+      status: "PAID",
+      createdAt: new Date("2026-09-24T12:34:56.789Z"),
+    } as any);
+    // El fake ya serializó a JSON puro (Date → ISO string), como jsonb real.
+    expect(events[0].payload.createdAt).toBe("2026-09-24T12:34:56.789Z");
+    const r = await verifyPaymentChain(tx as any, "p1");
+    expect(r).toEqual({ ok: true, events: 1 });
   });
 });
 

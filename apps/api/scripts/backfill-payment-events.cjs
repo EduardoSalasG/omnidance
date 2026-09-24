@@ -10,14 +10,16 @@ function sortKeys(v) {
   if (v && typeof v === "object") {
     return Object.fromEntries(
       Object.entries(v)
-        .sort(([a], [b]) => a.localeCompare(b))
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
         .map(([k, val]) => [k, sortKeys(val)]),
     );
   }
   return v;
 }
 function canonicalJson(v) {
-  return JSON.stringify(sortKeys(v));
+  // Round-trip a JSON puro primero: Date→ISO, Decimal→número, toJSON→serializado.
+  // Sin esto un Date canonicaliza como {} pero jsonb lo guarda como string.
+  return JSON.stringify(sortKeys(JSON.parse(JSON.stringify(v))));
 }
 
 (async () => {
