@@ -296,6 +296,14 @@ describe("sanitizeGatewayPayload", () => {
     expect(a.s).not.toBe(c.s);
   });
 
+  it("es idempotente en valor (sha256:... ya formado queda igual)", () => {
+    const once = sanitizeGatewayPayload({ s: "abc123firma" }) as {
+      s: string;
+    };
+    const twice = sanitizeGatewayPayload(once) as { s: string };
+    expect(twice.s).toBe(once.s);
+  });
+
   it("no-objeto → tal cual (null/undefined → null)", () => {
     expect(sanitizeGatewayPayload(undefined)).toBeNull();
     expect(sanitizeGatewayPayload(null)).toBeNull();

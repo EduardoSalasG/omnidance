@@ -181,21 +181,25 @@ export class FlowGateway implements PaymentGateway {
       error = e instanceof Error ? e.message : String(e);
       throw e;
     } finally {
-      await this.onTx?.({
-        provider: "FLOW",
-        direction: "OUTBOUND",
-        endpoint,
-        correlationId,
-        requestBody: sanitizeGatewayPayload(
-          Object.fromEntries(signed.entries()),
-        ),
-        responseBody,
-        httpStatus,
-        durationMs: Date.now() - started,
-        ok,
-        error,
-        paymentId: opts.paymentId,
-      });
+      try {
+        await this.onTx?.({
+          provider: "FLOW",
+          direction: "OUTBOUND",
+          endpoint,
+          correlationId,
+          requestBody: sanitizeGatewayPayload(
+            Object.fromEntries(signed.entries()),
+          ),
+          responseBody,
+          httpStatus,
+          durationMs: Date.now() - started,
+          ok,
+          error,
+          paymentId: opts.paymentId,
+        });
+      } catch {
+        // Auditoría best-effort: un writer que lance nunca rompe el call.
+      }
     }
   }
 

@@ -28,8 +28,9 @@ export interface GatewayTxEntry {
  * persiste (es recomputable con el secret y funciona como credencial),
  * pero la huella permite correlacionar params firmados sin guardarla.
  * El secret nunca llega aquí — no es un param de Flow.
- * Idempotente en forma: re-aplicarla a un payload ya sanitizado sigue
- * produciendo "sha256:<16 hex>".
+ * Idempotente en valor: un `s` que ya viene "sha256:<16 hex>" se deja
+ * tal cual — re-hashearlo produciría sha256("sha256:"+H), un hash del
+ * hash no recomputable desde la firma (rompe la correlación).
  */
 export function sanitizeGatewayPayload(body: unknown): unknown {
   if (!body || typeof body !== "object") return body ?? null;
@@ -37,7 +38,9 @@ export function sanitizeGatewayPayload(body: unknown): unknown {
   for (const [k, v] of Object.entries(body as Record<string, unknown>)) {
     clean[k] =
       k === "s" && typeof v === "string"
-        ? `sha256:${createHash("sha256").update(v).digest("hex").slice(0, 16)}`
+        ? /^sha256:[0-9a-f]{16}$/.test(v)
+          ? v
+          : `sha256:${createHash("sha256").update(v).digest("hex").slice(0, 16)}`
         : v;
   }
   return clean;
