@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Card, Segmented } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import { PrivateLessons } from "@/components/academy/private-lessons";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
@@ -378,10 +378,6 @@ function AcademiasInner() {
         ? "border-neon bg-neon/15 text-neon"
         : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
     }`;
-  const iconBtn = (active: boolean) =>
-    `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
-      active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
-    }`;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
@@ -390,57 +386,58 @@ function AcademiasInner() {
           <h1 className="text-2xl font-bold">{t("directoryTitle")}</h1>
           {/* Toggle lista/mapa — display del scope activo, íconos
               segmentados como las vistas de /clases */}
-          <div
-            role="group"
-            aria-label={t("viewsLabel")}
-            className="flex items-center rounded-full border border-white/15 p-0.5"
-          >
-            <Link
-              href={hrefFor({ v: null })}
-              aria-label={t("viewList")}
-              aria-current={view === "list" ? "true" : undefined}
-              className={iconBtn(view === "list")}
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
-              </svg>
-            </Link>
-            <Link
-              href={hrefFor({ v: "map" })}
-              aria-label={t("viewMap")}
-              aria-current={view === "map" ? "true" : undefined}
-              className={iconBtn(view === "map")}
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
-                <path d="M8 2v15M16 6v15" />
-              </svg>
-            </Link>
-          </div>
+          <Segmented
+            ariaLabel={t("viewsLabel")}
+            active={view}
+            tone="solid"
+            items={[
+              {
+                key: "list",
+                href: hrefFor({ v: null }),
+                icon: true,
+                ariaLabel: t("viewList"),
+                children: (
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                    <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+                  </svg>
+                ),
+              },
+              {
+                key: "map",
+                href: hrefFor({ v: "map" }),
+                icon: true,
+                ariaLabel: t("viewMap"),
+                children: (
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                    <path d="M8 2v15M16 6v15" />
+                  </svg>
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Scope: qué se muestra — pills con texto (mismo patrón que
             /clases: el display va como íconos, el scope con nombre). */}
-        <div
-          role="group"
-          aria-label={t("scopesLabel")}
-          className="grid grid-cols-2 rounded-full border border-white/15 p-0.5"
-        >
-          <Link
-            href={hrefFor({ s: "mias" })}
-            aria-current={scope === "mias" ? "true" : undefined}
-            className={`${chipClass(scope === "mias")} justify-center border-0 px-3`}
-          >
-            {t("learner.myAcademies")}
-          </Link>
-          <Link
-            href={hrefFor({ s: "explorar" })}
-            aria-current={scope === "explorar" ? "true" : undefined}
-            className={`${chipClass(scope === "explorar")} justify-center border-0 px-3`}
-          >
-            {t("viewExplore")}
-          </Link>
-        </div>
+        <Segmented
+          ariaLabel={t("scopesLabel")}
+          active={scope}
+          className="w-full"
+          innerClassName="grid w-full grid-cols-2"
+          items={[
+            {
+              key: "mias",
+              href: hrefFor({ s: "mias" }),
+              children: t("learner.myAcademies"),
+            },
+            {
+              key: "explorar",
+              href: hrefFor({ s: "explorar" }),
+              children: t("viewExplore"),
+            },
+          ]}
+        />
 
         {/* Filtro de estilo — aplica a ambas vistas (y a los pins del
             mapa): las academias exponen los estilos que imparten. */}

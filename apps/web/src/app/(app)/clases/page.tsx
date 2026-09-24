@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Spinner } from "@/components/ui";
+import { Button, Card, Segmented, Spinner } from "@/components/ui";
 import {
   OnboardingRunner,
   type TourStep,
@@ -535,71 +535,70 @@ function ClasesInner() {
               control que /eventos). El historial es solo lista: sin
               calendario propio el grupo se oculta. */}
           {scope !== "historial" && (
-            <div
-              data-tour="cl-views"
-              role="group"
-              aria-label={t("viewsLabel")}
-              className="flex items-center rounded-full border border-white/15 p-0.5"
-            >
-              <Link
-                href={hrefFor({
-                  v: "list",
-                  week: undefined,
-                  day: undefined,
-                })}
-                aria-label={t("viewList")}
-                aria-current={view === "list" ? "true" : undefined}
-                className={iconBtn(view === "list")}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
-                </svg>
-              </Link>
-              <Link
-                href={hrefFor({ v: "calendar" })}
-                aria-label={t("viewCalendar")}
-                aria-current={view === "calendar" ? "true" : undefined}
-                className={iconBtn(view === "calendar")}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <rect x="3" y="4" width="18" height="17" rx="2" />
-                  <path d="M8 2v3M16 2v3M3 9h18" />
-                </svg>
-              </Link>
-            </div>
+            <Segmented
+              tour="cl-views"
+              ariaLabel={t("viewsLabel")}
+              active={view}
+              tone="solid"
+              items={[
+                {
+                  key: "list",
+                  href: hrefFor({
+                    v: "list",
+                    week: undefined,
+                    day: undefined,
+                  }),
+                  icon: true,
+                  ariaLabel: t("viewList"),
+                  children: (
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                      <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+                    </svg>
+                  ),
+                },
+                {
+                  key: "calendar",
+                  href: hrefFor({ v: "calendar" }),
+                  icon: true,
+                  ariaLabel: t("viewCalendar"),
+                  children: (
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                      <rect x="3" y="4" width="18" height="17" rx="2" />
+                      <path d="M8 2v3M16 2v3M3 9h18" />
+                    </svg>
+                  ),
+                },
+              ]}
+            />
           )}
         </div>
 
         {/* Scope: qué se muestra — pills con texto (3 opciones: los
             íconos se vuelven crípticos; mismo patrón que /academias). */}
-        <div
-          role="group"
-          aria-label={t("scopesLabel")}
-          className="grid grid-cols-3 rounded-full border border-white/15 p-0.5"
-        >
-          <Link
-            href={hrefFor({ s: "mias" })}
-            aria-current={scope === "mias" ? "true" : undefined}
-            className={`${chipClass(scope === "mias")} justify-center border-0 px-2`}
-          >
-            {t("scopeMine")}
-          </Link>
-          <Link
-            href={hrefFor({ s: "historial" })}
-            aria-current={scope === "historial" ? "true" : undefined}
-            className={`${chipClass(scope === "historial")} justify-center border-0 px-2`}
-          >
-            {t("history")}
-          </Link>
-          <Link
-            href={hrefFor({ s: "explorar" })}
-            data-tour="cl-explore"
-            aria-current={scope === "explorar" ? "true" : undefined}
-            className={`${chipClass(scope === "explorar")} justify-center border-0 px-2`}
-          >
-            {t("viewExplore")}
-          </Link>
-        </div>
+        <Segmented
+          ariaLabel={t("scopesLabel")}
+          active={scope}
+          className="w-full"
+          innerClassName="grid w-full grid-cols-3"
+          items={[
+            {
+              key: "mias",
+              href: hrefFor({ s: "mias" }),
+              children: t("scopeMine"),
+            },
+            {
+              key: "historial",
+              href: hrefFor({ s: "historial" }),
+              children: t("history"),
+            },
+            {
+              key: "explorar",
+              href: hrefFor({ s: "explorar" }),
+              tour: "cl-explore",
+              children: t("viewExplore"),
+            },
+          ]}
+        />
 
         {/* Filtros: dropdowns de estilo y nivel tipo chip — misma
             gramática que géneros/locales. El toggle Todas|Reservadas
@@ -611,24 +610,22 @@ function ClasesInner() {
                 filtran client-side sobre /classes/mine. */}
             <div className="flex flex-wrap items-center gap-2">
               {scope === "mias" && (
-                <div className="flex items-center rounded-full border border-white/15 p-0.5">
-                  <Link
-                    href={hrefFor({ scope: undefined })}
-                    aria-current={calScope === "todas" ? "true" : undefined}
-                    className={`${chipClass(calScope === "todas")} border-0 px-3`}
-                  >
-                    {t("scopeAll")}
-                  </Link>
-                  <Link
-                    href={hrefFor({ scope: "reservadas" })}
-                    aria-current={
-                      calScope === "reservadas" ? "true" : undefined
-                    }
-                    className={`${chipClass(calScope === "reservadas")} border-0 px-3`}
-                  >
-                    {t("scopeBooked")}
-                  </Link>
-                </div>
+                <Segmented
+                  ariaLabel={`${t("scopeAll")} / ${t("scopeBooked")}`}
+                  active={calScope}
+                  items={[
+                    {
+                      key: "todas",
+                      href: hrefFor({ scope: undefined }),
+                      children: t("scopeAll"),
+                    },
+                    {
+                      key: "reservadas",
+                      href: hrefFor({ scope: "reservadas" }),
+                      children: t("scopeBooked"),
+                    },
+                  ]}
+                />
               )}
               {/* <select> nativo: en mobile abre el picker del SO
                   (nunca desborda la pantalla) y es accesible gratis. */}
