@@ -528,6 +528,31 @@ function ClasesInner() {
   // Día de clases: heading del día + bloques "hh:mm" con sus cards.
   const hourLabelCls =
     "mb-1.5 text-sm font-semibold tabular-nums text-white/70";
+
+  // Fallback tranquilo al final del recorrido (lista y calendario):
+  // la particular es el escape cuando ninguna clase calza — card
+  // outline, sin competir con el verde primario de Reservar.
+  const particularFallback = (className = "") => (
+    <Link
+      href="/clases/particular"
+      className={`group flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${className}`}
+    >
+      <span className="flex flex-col gap-0.5">
+        <span className="text-white/60 transition-colors group-hover:text-white">
+          {ta("fallbackCta")}
+        </span>
+        <span className="font-medium text-neon">
+          {ta("fallbackAction")}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        className="text-neon transition-transform group-hover:translate-x-0.5"
+      >
+        →
+      </span>
+    </Link>
+  );
   const renderClassDayGroup = (g: { key: string; items: BrowseClass[] }) => (
     <section key={g.key}>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
@@ -969,18 +994,7 @@ function ClasesInner() {
 
           {/* Mismo fallback que en lista — también al final del
               recorrido en calendario. */}
-          <Link
-            href="/clases/particular"
-            className="group mt-6 flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/60 transition-colors hover:border-neon/40 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-          >
-            {ta("fallbackCta")}
-            <span
-              aria-hidden="true"
-              className="text-neon transition-transform group-hover:translate-x-0.5"
-            >
-              →
-            </span>
-          </Link>
+          {particularFallback("mt-6")}
         </section>
       ) : view === "list" && scope === "mias" && calScope === "reservadas" ? (
         /* ─── Reservadas (sub-filtro de Mis clases): mismo ClassCard ─── */
@@ -1096,21 +1110,7 @@ function ClasesInner() {
                     {te("loadLater")} ↓
                   </Link>
                 )}
-                {/* Fallback tranquilo al final del recorrido: la
-                    particular es el escape cuando ninguna clase calza
-                    — no compite con el CTA Reservar de las cards. */}
-                <Link
-                  href="/clases/particular"
-                  className="group flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm text-white/60 transition-colors hover:border-neon/40 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                >
-                  {ta("fallbackCta")}
-                  <span
-                    aria-hidden="true"
-                    className="text-neon transition-transform group-hover:translate-x-0.5"
-                  >
-                    →
-                  </span>
-                </Link>
+                {particularFallback()}
               </div>
             ))}
         </>
