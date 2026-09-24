@@ -510,7 +510,7 @@ export default async function EventosPage({
             </p>
           ) : (
             <>
-              <div className="h-[62dvh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-night-700">
+              <div className="h-[64dvh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-night-700">
                 <EventsMap venues={mapVenues} />
               </div>
               <p className="mt-3 text-center text-xs text-white/40">
