@@ -24,7 +24,8 @@ export type CheckoutEvent = {
   tablesLeft: number | null;
   /** Cupo sentable restante en mesas; null = sin cupo configurado. */
   seatsLeft: number | null;
-  venue: { name: string; address: string | null };
+  // Eventos standalone (p.ej. galas de academia) pueden no tener venue.
+  venue: { name: string; address: string | null } | null;
   series: { name: string } | null;
 };
 

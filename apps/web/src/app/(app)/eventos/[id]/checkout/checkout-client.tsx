@@ -283,12 +283,16 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             start={event.startsAt}
             className="text-sm text-white/70"
           />
-          <p className="text-sm">
-            <span className="font-medium">{event.venue.name}</span>
-            {event.venue.address && (
-              <span className="block text-white/50">{event.venue.address}</span>
-            )}
-          </p>
+          {event.venue && (
+            <p className="text-sm">
+              <span className="font-medium">{event.venue.name}</span>
+              {event.venue.address && (
+                <span className="block text-white/50">
+                  {event.venue.address}
+                </span>
+              )}
+            </p>
+          )}
         </div>
       </Card>
 
