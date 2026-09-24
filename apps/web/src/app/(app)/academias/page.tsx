@@ -468,11 +468,12 @@ function AcademiasInner() {
         />
 
         {/* Filtro de estilo + buscador por nombre en la misma fila —
-            el buscador ocupa el espacio restante (basis-48: envuelve a
-            su propia línea solo si la pantalla es muy angosta). El
-            estilo aplica a ambos scopes (y a los pins del mapa); el
-            buscador es solo explorar y se escribe en la URL con
-            router.replace para no ensuciar history al teclear. */}
+            el buscador ocupa el espacio restante (basis-36 + select
+            max-w-36 = caben en una fila hasta ~350px; bajo eso el
+            buscador envuelve a ancho completo). El estilo aplica a
+            ambos scopes (y a los pins del mapa); el buscador es solo
+            explorar y se escribe en la URL con router.replace para no
+            ensuciar history al teclear. */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative shrink-0">
             <select
@@ -481,7 +482,7 @@ function AcademiasInner() {
               onChange={(e) =>
                 router.push(hrefFor({ style: e.target.value || null }))
               }
-              className={`${chipClass(!!styleId)} max-w-40 cursor-pointer appearance-none truncate bg-transparent pr-8`}
+              className={`${chipClass(!!styleId)} max-w-36 cursor-pointer appearance-none truncate bg-transparent pr-8`}
             >
               <option value="">{t("filterStyle")}</option>
               {styleOptions.map((s) => (
@@ -504,7 +505,7 @@ function AcademiasInner() {
             </svg>
           </div>
           {scope === "explorar" && (
-            <div className="relative min-w-0 flex-1 basis-48">
+            <div className="relative min-w-0 flex-1 basis-36">
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
