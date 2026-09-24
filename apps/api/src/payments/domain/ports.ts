@@ -16,4 +16,12 @@ export interface PaymentGateway {
     refId: string;
     status: "PAID" | "FAILED";
   }>;
+
+  /**
+   * Consulta activa del estado de una orden (polling del checkout).
+   * Relevante en sandbox/dev: el webhook de la pasarela no llega a
+   * localhost, así que GET /payments/:id puede resolver el estado
+   * directamente contra la pasarela por refId (commerceOrder).
+   */
+  refreshStatus?(refId: string): Promise<"PAID" | "FAILED" | "PENDING">;
 }

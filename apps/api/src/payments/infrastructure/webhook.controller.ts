@@ -76,12 +76,21 @@ export class PaymentsController {
     });
     if (!payment) throw new NotFoundException("pago no encontrado");
 
+    return this.settle(payment, result.status);
+  }
+
+  /**
+   * Liquida el pago según el estado confirmado por la pasarela — lo
+   * llaman el webhook (notificación pasiva) y getPayment (consulta
+   * activa en sandbox/dev, donde el webhook no llega a localhost).
+   */
+  private async settle(payment: Payment, status: "PAID" | "FAILED") {
     // ya PAID → idempotente (re-notificación de la pasarela)
     if (payment.status === "PAID") {
-      return { ok: true, status: "PAID", duplicated: true };
+      return { ok: true, status: "PAID" as const, duplicated: true };
     }
 
-    if (result.status === "FAILED") {
+    if (status === "FAILED") {
       await this.prisma.payment.update({
         where: { id: payment.id },
         data: { status: "FAILED" },
@@ -547,7 +556,11 @@ export class PaymentsController {
     return { ok: true, status: "PAID" };
   }
 
-  // Polling desde el checkout (solo el dueño del pago).
+  // Polling desde el checkout (solo el dueño del pago). Si la pasarela
+  // soporta consulta activa (Flow.refreshStatus por commerceOrder) y la
+  // orden sigue PENDING, se le pregunta directamente — cubre sandbox/dev
+  // donde el webhook no puede alcanzar localhost; un estado terminal
+  // pasa por el mismo settle del webhook (idempotente).
   @Get(":id")
   @UseGuards(SessionGuard)
   async getPayment(@Req() req: Request, @Param("id") id: string) {
@@ -555,6 +568,24 @@ export class PaymentsController {
     if (!payment || payment.personId !== req.person!.id) {
       throw new NotFoundException("pago no encontrado");
     }
+
+    if (payment.status === "PENDING" && this.gateway.refreshStatus) {
+      try {
+        const remote = await this.gateway.refreshStatus(payment.refId);
+        if (remote !== "PENDING") {
+          await this.settle(payment, remote);
+          const fresh = await this.prisma.payment.findUnique({
+            where: { id: payment.id },
+            select: { status: true },
+          });
+          if (fresh) payment.status = fresh.status;
+        }
+      } catch {
+        // best-effort: si la pasarela no responde se devuelve el estado
+        // local (PENDING) y el próximo poll reintenta.
+      }
+    }
+
     return {
       id: payment.id,
       orderType: payment.orderType,

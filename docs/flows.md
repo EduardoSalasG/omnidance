@@ -99,6 +99,8 @@ sequenceDiagram
 
 El webhook resuelve la orden por `refId` (order-ref `tkt_<event>_<code>` embebido en `stub://pay/<refId>`); `eventId`/`discountCodeId` son desnormalización para reporting.
 
+> **Flow real**: la notificación llega como `{token}` → la API consulta `payment/getStatus` firmado para confirmar (nunca confía en el body). Si la orden sigue PENDING al volver del pago, el polling de `GET /payments/:id` la consulta directamente vía `payment/getStatusByCommerceId` — mismo `settle` idempotente del webhook. Esto permite probar el sandbox de Flow desde localhost sin exponer la API (Flow no puede hacer POST a localhost).
+
 ## Check-in en puerta (staff)
 
 ```mermaid
