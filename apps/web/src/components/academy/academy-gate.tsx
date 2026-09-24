@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
-import { PrivateLessons } from "./private-lessons";
 import { inputCls, readError, type Academy } from "./shared";
 
 type Gate = "loading" | "unauth" | "empty" | "ready" | "error";
@@ -19,21 +18,14 @@ const STORAGE_KEY = "omnidance:academy-id";
  * `mine` incluye academias como owner o como instructor (findMany ordenado
  * por createdAt) — si hay varias se ofrece selector persistido en
  * localStorage para que el hub y los módulos muestren la misma academia.
- *
- * En el estado empty se mantiene la vista alumno (PrivateLessons sin
- * academy → "mis solicitudes") salvo que el caller pase
- * showStudentLessons={false}; preserva el acceso a las solicitudes de
- * clases particulares aunque el usuario no tenga academia propia.
  */
 export function AcademyGate({
   children,
-  showStudentLessons = true,
 }: {
   children: (ctx: {
     academy: Academy;
     academies: Academy[];
   }) => React.ReactNode;
-  showStudentLessons?: boolean;
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
@@ -172,9 +164,6 @@ export function AcademyGate({
               </div>
             </form>
           </Card>
-          {/* Vista alumno: sin academias propias aún puede tener
-              solicitudes de clases particulares (/private-lessons/mine). */}
-          {showStudentLessons && <PrivateLessons academies={academies} />}
         </div>
       )}
 
