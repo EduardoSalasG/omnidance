@@ -27,7 +27,7 @@ type StaffEvent = {
   startsAt: string;
   endsAt: string;
   series: { name: string } | null;
-  venue: { name: string; address: string | null };
+  venue: { name: string; address: string | null } | null;
 };
 
 type Gate = "loading" | "unauth" | "notStaff" | "error" | "ready";
@@ -130,8 +130,8 @@ export default function StaffPage() {
                       </div>
                       <h2 className="text-lg font-semibold">{e.name}</h2>
                       <p className="text-sm text-white/60">
-                        <EventDate start={e.startsAt} end={e.endsAt} /> ·{" "}
-                        {e.venue.name}
+                        <EventDate start={e.startsAt} end={e.endsAt} />
+                        {e.venue && ` · ${e.venue.name}`}
                       </p>
                     </div>
                   </Card>
