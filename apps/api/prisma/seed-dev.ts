@@ -182,16 +182,28 @@ export async function seedDev(prisma: PrismaClient) {
   });
 
   // ─── MuéveteOnTour — academia Y productor ───
+  const muvetData = {
+    name: "MuéveteOnTour",
+    ownerId: muvetOwner.id,
+    description:
+      "Escuela de salsa cubana y bachata — organiza además las sociales Muévete. Formación por niveles con enfoque en pista.",
+    address: "Av. Providencia 1650, Providencia",
+    lat: -33.4264,
+    lng: -70.6155,
+  };
   const muvet = await ensure(
     () => prisma.academy.findFirst({ where: { name: "MuéveteOnTour" } }),
-    () =>
-      prisma.academy.create({
-        data: { name: "MuéveteOnTour", ownerId: muvetOwner.id },
-      }),
+    () => prisma.academy.create({ data: muvetData }),
     (a) =>
       prisma.academy.update({
         where: { id: a.id },
-        data: { ownerId: muvetOwner.id },
+        data: {
+          ownerId: muvetOwner.id,
+          description: a.description ?? muvetData.description,
+          address: a.address ?? muvetData.address,
+          lat: a.lat ?? muvetData.lat,
+          lng: a.lng ?? muvetData.lng,
+        },
       }),
   );
   // Quórum default de la academia — slots/clases sin override heredan 15.
@@ -202,20 +214,30 @@ export async function seedDev(prisma: PrismaClient) {
 
   // Segunda academia — Valeska enseña en ambas (/classes/teaching es
   // cross-academia) y el owner tiene gate multi-academia propio.
+  const tumbaoData = {
+    name: "Academia Tumbao",
+    ownerId: tumbaoOwner.id,
+    defaultQuorum: 12,
+    description:
+      "Academia de bachata y ritmos latinos — grupos reducidos, técnica y musicalidad desde el primer día.",
+    address: "Av. Irarrázaval 2828, Ñuñoa",
+    lat: -33.4546,
+    lng: -70.5980,
+  };
   const tumbao = await ensure(
     () => prisma.academy.findFirst({ where: { name: "Academia Tumbao" } }),
-    () =>
-      prisma.academy.create({
-        data: {
-          name: "Academia Tumbao",
-          ownerId: tumbaoOwner.id,
-          defaultQuorum: 12,
-        },
-      }),
+    () => prisma.academy.create({ data: tumbaoData }),
     (a) =>
       prisma.academy.update({
         where: { id: a.id },
-        data: { ownerId: tumbaoOwner.id, defaultQuorum: 12 },
+        data: {
+          ownerId: tumbaoOwner.id,
+          defaultQuorum: 12,
+          description: a.description ?? tumbaoData.description,
+          address: a.address ?? tumbaoData.address,
+          lat: a.lat ?? tumbaoData.lat,
+          lng: a.lng ?? tumbaoData.lng,
+        },
       }),
   );
 
@@ -563,6 +585,20 @@ export async function seedDev(prisma: PrismaClient) {
     { label: "Fusión", styleName: "Fusión" }, // 9
   ] as const;
 
+  // Ubicaciones Santiago para el directorio/mapa de academias — el
+  // seed rota por ellas; direcciones plausibles del eje Providencia–
+  // Ñuñoa–Centro donde están las academias reales de la escena.
+  const ACADEMY_LOCS = [
+    { address: "Av. Providencia 1208, Providencia", lat: -33.4289, lng: -70.6189 },
+    { address: "Av. Irarrázaval 2480, Ñuñoa", lat: -33.4531, lng: -70.5998 },
+    { address: "Nataniel Cox 52, Santiago Centro", lat: -33.4489, lng: -70.6627 },
+    { address: "José Miguel de la Barra 430, Santiago", lat: -33.4412, lng: -70.6435 },
+    { address: "Av. Manuel Montt 024, Providencia", lat: -33.4192, lng: -70.6150 },
+    { address: "Av. Grecia 1120, Ñuñoa", lat: -33.4700, lng: -70.5850 },
+    { address: "Calle Cumming 120, Santiago", lat: -33.4392, lng: -70.6718 },
+    { address: "Av. Italia 1101, Providencia", lat: -33.4480, lng: -70.6230 },
+  ];
+
   const ACADEMY_SEED: { name: string; styles: number[] }[] = [
     { name: "Mambo Madness", styles: [1, 4] },
     { name: "Danson Academy", styles: [1, 2, 5] },
@@ -604,14 +640,29 @@ export async function seedDev(prisma: PrismaClient) {
   const LEVEL_ROT = ["Iniciación", "Básico", "Intermedio"];
 
   for (const [aIdx, a] of ACADEMY_SEED.entries()) {
+    const loc = ACADEMY_LOCS[aIdx % ACADEMY_LOCS.length];
+    const academyData = {
+      name: a.name,
+      ownerId: academiasOwner.id,
+      defaultQuorum: 15,
+      description: `Academia de baile en ${loc.address.split(",").pop()?.trim() ?? "Santiago"} — clases regulares de la escena SBK.`,
+      address: loc.address,
+      lat: loc.lat,
+      lng: loc.lng,
+    };
     const academy = await ensure(
       () => prisma.academy.findFirst({ where: { name: a.name } }),
-      () =>
-        prisma.academy.create({
+      () => prisma.academy.create({ data: academyData }),
+      // Backfill idempotente: academias sembradas antes de los campos
+      // de perfil público se completan sin pisar ediciones manuales.
+      (existing) =>
+        prisma.academy.update({
+          where: { id: existing.id },
           data: {
-            name: a.name,
-            ownerId: academiasOwner.id,
-            defaultQuorum: 15,
+            description: existing.description ?? academyData.description,
+            address: existing.address ?? academyData.address,
+            lat: existing.lat ?? academyData.lat,
+            lng: existing.lng ?? academyData.lng,
           },
         }),
     );

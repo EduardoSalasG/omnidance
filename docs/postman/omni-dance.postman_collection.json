@@ -1406,6 +1406,14 @@
                 "gamification",
                 "me",
                 "streak"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -4316,6 +4324,32 @@
                 "api",
                 "academies",
                 "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "profile"
               ],
               "variable": [
                 {

@@ -55,7 +55,24 @@
         "PAUSED": "Pausada",
         "FROZEN": "Congelada"
       }
-    }
+    },
+    "viewMine": "Mis academias",
+    "viewExplore": "Explorar",
+    "viewMap": "Mapa",
+    "viewList": "Lista",
+    "searchName": "Buscar por nombre",
+    "filterStyle": "Estilo",
+    "exploreEmpty": "No hay más academias por explorar.",
+    "exploreEmptyFiltered": "Ninguna academia coincide con los filtros.",
+    "noLocation": "Sin ubicación publicada",
+    "profile": {
+      "about": "Sobre la academia",
+      "instructors": "Profesores",
+      "plans": "Planes",
+      "classes": "Próximas clases",
+      "classesEmpty": "Sin clases programadas próximamente."
+    },
+    "viewsLabel": "Vistas"
   },
   "academySeries": {
     "capacityOptional": "default",

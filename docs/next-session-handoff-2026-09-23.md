@@ -312,3 +312,48 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   Corregido en /perfil y /perfil/datos quitando min-h-dvh del estado
   ready; el resto de las páginas tiene el mismo defecto si conviene
   barrerlo globalmente.
+
+### Academias: directorio learner + ficha pública + filtro en clases
+
+- **Modelo**: `Academy` ganó `description`, `address`, `lat`, `lng`
+  (db push — el repo no usa migrations/). Estilos que imparte se
+  DERIVAN de sus `classSeries` activas (fuente real, sin duplicar
+  catálogo). Seed-dev poblado: 19 academias Santiago con
+  dirección/coords/descripción.
+- **API nuevos** (`academies.controller.ts`): `GET /academies`
+  directorio enriquecido (styles, instructors, coords, flag
+  `enrolled` del viewer), `GET /academies/enrolled` (inscripciones +
+  attendance30d — ya existía, ahora incluye address/lat/lng),
+  `GET /academies/:id/profile` ficha pública learner (datos, estilos,
+  profesores con foto, planes activos, próximas clases en shape
+  ClassCardData, myEnrollment). `GET /academies/:id` sigue siendo
+  gestión (requireManage) — frontera público/gestión intacta.
+- **Proyección compartida**: `class-card-projection.ts` exporta
+  CLASS_CARD_SELECT / classCardItem / classEnded — lo usan
+  classes.controller, home.service (mata el drift duplicado) y el
+  profile de academia.
+- **`/academias` rediseñada** (misma gramática que /clases y /eventos):
+  estado en URL (`v=mias|explorar`, `map=1`, `style`, `q`, `search`),
+  íconos segmentados [mías|explorar] + mapa + lupa (lupa solo en
+  explorar). Filtro de estilo en ambas vistas. Buscador por nombre
+  accent-insensitive (NFD). Mapa reusa EventsMap con pins→/academias/:id
+  (MapVenue ganó `href?` opcional, default /locales/:id intacto).
+  Default scope: mias si hay inscripciones, explorar si no.
+- **`/academias/[id]` nueva** (RSC, patrón /clases/[id]): nombre +
+  badge de inscripción, chips de estilos, dirección con pin, "Sobre la
+  academia", profesores con PartnerAvatar, planes con PriceTag,
+  próximas clases con ClassCard (when="día · hora").
+- **`/clases` explorar**: filtro `academy` (3er select, solo en
+  explore — list/calendar ya están acotados por inscripción). Facetas
+  cruzadas: academia acota estilo/nivel y viceversa. El param se
+  descarta al salir de explore (no filtro invisible).
+- Verificado en vivo: directory 25 academias con shape completo,
+  profile MuéveteOnTour (4 estilos, 2 profesores, 3 planes, 12 clases,
+  myEnrollment ACTIVE), browse?academyId filtra (n=21 todas de la
+  academia), /academias + /academias/[id] + /clases?view=explore 200,
+  tsc api+web limpios, detector [], i18n-audit sin findings nuevos
+  (los 2 academy.* falsos se corrigieron renombrando el translator
+  del card a `tl`; practices.startsAt es preexistente).
+- **Nota DB dev**: hay ~6 academias "Test"/"Nueva Test" sin datos de
+  corridas de tests anteriores — aparecen en Explorar sin estilos ni
+  dirección. Son residuo de data, no bug; limpiarlas es opcional.

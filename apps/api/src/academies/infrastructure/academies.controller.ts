@@ -29,6 +29,11 @@ import {
   InvalidEnrollmentTransitionError,
 } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
+import {
+  CLASS_CARD_SELECT,
+  classCardItem,
+  classEnded,
+} from "./class-card-projection";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import {
   AllowSandbox,
@@ -112,20 +117,33 @@ export class AcademiesController {
   ) {}
 
   /**
-   * Directorio de academias activas para alumnos autenticados: id + nombre
-   * + instructores (para el form de clase particular). Datos públicos de
-   * negocio — sin métricas ni datos de alumnos.
+   * Directorio de academias activas para alumnos autenticados: perfil
+   * público (nombre, descripción, dirección, coords), estilos que imparte
+   * (derivados de sus series activas), instructores y flag `enrolled`
+   * (alguna inscripción del autenticado, cualquier estado — "Mis
+   * academias" vs "Explorar" lo resuelve el front con esto). Datos
+   * públicos de negocio — sin métricas ni datos de alumnos.
    */
   @Get()
   @UseGuards(SessionGuard)
-  async directory() {
+  async directory(@Req() req: Request) {
     const academies = await this.prisma.academy.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
       select: {
         id: true,
         name: true,
+        description: true,
+        address: true,
+        lat: true,
+        lng: true,
         instructors: { select: { id: true, personId: true } },
+        classSeries: {
+          where: { active: true },
+          select: {
+            style: { select: { id: true, name: true, genre: true } },
+          },
+        },
       },
     });
     const instructorIds = [
@@ -133,20 +151,42 @@ export class AcademiesController {
         academies.flatMap((a) => a.instructors.map((i) => i.personId)),
       ),
     ];
-    const people = await this.prisma.person.findMany({
-      where: { id: { in: instructorIds } },
-      select: { id: true, name: true },
-    });
+    const [people, myEnrollments] = await Promise.all([
+      this.prisma.person.findMany({
+        where: { id: { in: instructorIds } },
+        select: { id: true, name: true },
+      }),
+      this.prisma.enrollment.findMany({
+        where: { personId: req.person!.id },
+        select: { academyId: true },
+      }),
+    ]);
     const byId = new Map(people.map((p) => [p.id, p]));
-    return academies.map((a) => ({
-      id: a.id,
-      name: a.name,
-      instructors: a.instructors.map((i) => ({
-        id: i.id,
-        personId: i.personId,
-        name: byId.get(i.personId)?.name ?? null,
-      })),
-    }));
+    const enrolledIds = new Set(myEnrollments.map((e) => e.academyId));
+    return academies.map((a) => {
+      // Estilos que imparte = estilos de sus series activas (dedup).
+      const styles = new Map<string, { id: string; name: string; genre: string | null }>();
+      for (const s of a.classSeries) {
+        if (s.style && !styles.has(s.style.id)) styles.set(s.style.id, s.style);
+      }
+      return {
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        address: a.address,
+        lat: a.lat,
+        lng: a.lng,
+        styles: [...styles.values()].sort((x, y) =>
+          x.name.localeCompare(y.name, "es"),
+        ),
+        instructors: a.instructors.map((i) => ({
+          id: i.id,
+          personId: i.personId,
+          name: byId.get(i.personId)?.name ?? null,
+        })),
+        enrolled: enrolledIds.has(a.id),
+      };
+    });
   }
 
   @Get("mine")
@@ -181,7 +221,17 @@ export class AcademiesController {
         id: true,
         status: true,
         startedAt: true,
-        academy: { select: { id: true, name: true, active: true } },
+        academy: {
+          select: {
+            id: true,
+            name: true,
+            active: true,
+            description: true,
+            address: true,
+            lat: true,
+            lng: true,
+          },
+        },
         plan: { select: { name: true, type: true } },
       },
     });
@@ -238,6 +288,118 @@ export class AcademiesController {
       this.prisma.classSlot.count({ where: { academyId: id } }),
     ]);
     return { ...academy, stats: { activeStudents, plansCount, slotsCount } };
+  }
+
+  /**
+   * Perfil público de la academia (cualquier autenticado — la vista de
+   * gestión es GET /:id con requireManage). Datos de negocio públicos:
+   * descripción, dirección/coords, estilos impartidos (derivados de
+   * series activas), profesores, planes activos y próximas clases
+   * materializadas (mismo shape ClassCardData que /classes/browse).
+   * `myEnrollment` = inscripción del viewer si existe (cualquier estado).
+   */
+  @Get(":id/profile")
+  @UseGuards(SessionGuard)
+  async profile(@Param("id") id: string, @Req() req: Request) {
+    const me = req.person!.id;
+    const academy = await this.prisma.academy.findFirst({
+      where: { id, active: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        address: true,
+        lat: true,
+        lng: true,
+        instructors: { select: { personId: true } },
+        classSeries: {
+          where: { active: true },
+          select: {
+            style: { select: { id: true, name: true, genre: true } },
+          },
+        },
+        plans: {
+          where: { active: true },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            price: true,
+            classCount: true,
+            periodDays: true,
+          },
+          orderBy: { price: "asc" },
+        },
+      },
+    });
+    if (!academy) throw new NotFoundException("academia no encontrada");
+
+    const instructorIds = academy.instructors.map((i) => i.personId);
+    const [people, myEnrollment, upcoming] = await Promise.all([
+      this.prisma.person.findMany({
+        where: { id: { in: instructorIds } },
+        select: { id: true, name: true, photoUrl: true },
+      }),
+      this.prisma.enrollment.findFirst({
+        where: { personId: me, academyId: id },
+        select: {
+          status: true,
+          plan: { select: { name: true, type: true } },
+        },
+      }),
+      // Próximas clases no terminadas de la academia (cap razonable —
+      // la página muestra las primeras y la ficha de clase tiene el resto).
+      this.prisma.class.findMany({
+        where: {
+          cancelled: false,
+          date: { gte: new Date() },
+          slot: { academyId: id, series: { active: true } },
+        },
+        orderBy: { date: "asc" },
+        take: 30,
+        select: CLASS_CARD_SELECT,
+      }),
+    ]);
+    const nameOf = new Map(people.map((p) => [p.id, p.name]));
+    const photoOf = new Map(people.map((p) => [p.id, p.photoUrl]));
+    const enrolledIds = new Set(myEnrollment ? [id] : []);
+    const instructorName = new Map(
+      upcoming
+        .filter((c) => c.instructorId)
+        .map(
+          (c) =>
+            [c.instructorId!, nameOf.get(c.instructorId!) ?? null] as const,
+        ),
+    );
+    const styles = new Map<
+      string,
+      { id: string; name: string; genre: string | null }
+    >();
+    for (const s of academy.classSeries) {
+      if (s.style && !styles.has(s.style.id)) styles.set(s.style.id, s.style);
+    }
+    return {
+      id: academy.id,
+      name: academy.name,
+      description: academy.description,
+      address: academy.address,
+      lat: academy.lat,
+      lng: academy.lng,
+      styles: [...styles.values()].sort((x, y) =>
+        x.name.localeCompare(y.name, "es"),
+      ),
+      instructors: instructorIds.map((pid) => ({
+        personId: pid,
+        name: nameOf.get(pid) ?? null,
+        photoUrl: photoOf.get(pid) ?? null,
+      })),
+      plans: academy.plans,
+      myEnrollment: myEnrollment ?? null,
+      classes: upcoming
+        .filter((c) => !classEnded(c))
+        .slice(0, 12)
+        .map((c) => classCardItem(c, me, enrolledIds, instructorName)),
+    };
   }
 
   /**
