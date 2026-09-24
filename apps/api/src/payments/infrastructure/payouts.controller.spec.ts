@@ -49,7 +49,7 @@ function matchWhere(row: Row, where: Row): boolean {
 }
 
 interface FakePayment {
-  orderType: "TICKET" | "SERIES_PASS";
+  orderType: "TICKET" | "SERIES_PASS" | "MEMBERSHIP";
   status: "PENDING" | "PAID" | "FAILED";
   eventId: string | null;
   refId: string;
@@ -76,6 +76,7 @@ interface FakePayout {
 class FakePrisma {
   events: Row[] = [];
   series: Row[] = [];
+  membershipPlans: Row[] = [];
   payments: FakePayment[] = [];
   payouts: FakePayout[] = [];
   auditLogs: Row[] = [];
@@ -89,6 +90,11 @@ class FakePrisma {
   eventSeries = {
     findMany: async ({ where }: { where: Row }) =>
       this.series.filter((s) => matchWhere(s, where)),
+  };
+
+  membershipPlan = {
+    findMany: async ({ where }: { where: Row }) =>
+      this.membershipPlans.filter((p) => matchWhere(p, where)),
   };
 
   payment = {

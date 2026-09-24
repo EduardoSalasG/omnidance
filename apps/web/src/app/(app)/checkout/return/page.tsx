@@ -105,8 +105,16 @@ function CheckoutReturn() {
           <Badge variant="neon">{t("success")}</Badge>
           <h1 className="text-2xl font-bold">{t("returnPaidTitle")}</h1>
           <PriceTag amount={phase.amount} className="text-lg" />
-          <Button href="/entradas" size="lg" className="w-full">
-            {tw("title")}
+          {/* MEMBERSHIP: la compra fue un plan de academia — el destino
+              natural es Mis academias (ahí se ve la vigencia nueva). */}
+          <Button
+            href={phase.orderType === "MEMBERSHIP" ? "/academias" : "/entradas"}
+            size="lg"
+            className="w-full"
+          >
+            {phase.orderType === "MEMBERSHIP"
+              ? t("returnToAcademies")
+              : tw("title")}
           </Button>
           <Link
             href="/eventos"

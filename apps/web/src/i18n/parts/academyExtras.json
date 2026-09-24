@@ -4,7 +4,10 @@
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",
       "PERIOD": "Por periodo",
-      "TRIAL": "De prueba"
+      "TRIAL": "De prueba",
+      "QUARTERLY": "Trimestral",
+      "SEMIANNUAL": "Semestral",
+      "SINGLE": "Clase única"
     },
     "studentStatus": "Estado de {name}",
     "modules": {
@@ -93,7 +96,10 @@
       "instructors": "Profesores",
       "plans": "Planes",
       "classes": "Próximas clases",
-      "classesEmpty": "Sin clases programadas próximamente."
+      "classesEmpty": "Sin clases programadas próximamente.",
+      "buyPlan": "Comprar plan",
+      "extendPlan": "Extender vigencia",
+      "planActive": "Plan activo"
     },
     "viewsLabel": "Vistas",
     "scopesLabel": "Sección"

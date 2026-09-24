@@ -28,6 +28,7 @@
     "attendedTag": "Asististe",
     "capacityLabel": "Cupos",
     "dropIn": "Clase suelta",
-    "upcomingSessions": "Próximas clases de la serie"
+    "upcomingSessions": "Próximas clases de la serie",
+    "viewPlans": "Ver planes"
   }
 }

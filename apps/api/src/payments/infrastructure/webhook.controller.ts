@@ -19,9 +19,14 @@ import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import {
+  decodeMembershipRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
 } from "../domain/order-ref";
+import {
+  membershipBase,
+  membershipEndsAt,
+} from "../domain/membership-vigency";
 import { ParamsService } from "../../params/params.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { SERVICE_FEE } from "@omnidance/shared";
@@ -109,6 +114,12 @@ export class PaymentsController {
     // viaja codificado en el refId y se decodifica como fuente primaria.
     if (payment.orderType === "SERIES_PASS") {
       return this.settleSeriesPass(payment);
+    }
+
+    // MEMBERSHIP: igual que el pase, el contexto solo viaja en el refId —
+    // el settle decodifica el plan y materializa/renueva el Enrollment.
+    if (payment.orderType === "MEMBERSHIP") {
+      return this.settleMembership(payment);
     }
 
     // El contexto de la compra vive en columnas (Payment.eventId/
@@ -411,6 +422,124 @@ export class PaymentsController {
           seriesId: order.seriesId,
           seriesName: series?.name ?? null,
           month: order.month,
+        },
+      });
+    }
+
+    return { ok: true, status: "PAID" };
+  }
+
+  /**
+   * Liquidación del plan de academia al PAID: marca el Payment y
+   * materializa/renueva el Enrollment de (academia, persona). Si el
+   * enrollment vigente aún tiene fecha futura, la compra extiende desde
+   * el día siguiente a su vencimiento (membershipBase); si no, parte hoy
+   * y reinicia startedAt. Idempotente igual que el pase de serie.
+   */
+  private async settleMembership(payment: Payment) {
+    const order = decodeMembershipRef(payment.refId);
+    if (!order) {
+      throw new BadRequestException("pago sin contexto de orden membership");
+    }
+    const plan = await this.prisma.membershipPlan.findUnique({
+      where: { id: order.planId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        periodDays: true,
+        academyId: true,
+        academy: { select: { name: true } },
+      },
+    });
+    if (!plan) {
+      throw new BadRequestException("plan de la orden membership no existe");
+    }
+
+    const now = new Date();
+    let paidNow = false;
+    await this.prisma.$transaction(async (tx) => {
+      const fresh = await tx.payment.findUnique({
+        where: { id: payment.id },
+        select: { status: true },
+      });
+      if (!fresh || fresh.status === "PAID") return;
+
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { status: "PAID" },
+      });
+      paidNow = true;
+
+      // Enrollment no tiene @@unique(academyId,personId) — el histórico
+      // se permite por diseño (el alta staff ya hace check manual de
+      // duplicados). findFirst + update/create dentro de la tx.
+      const existing = await tx.enrollment.findFirst({
+        where: {
+          academyId: plan.academyId,
+          personId: payment.personId,
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, status: true, startedAt: true, endsAt: true },
+      });
+      // Solo extiende si la inscripción sigue vigente (ACTIVE con fecha
+      // futura); una vencida/pausada reinicia el ciclo desde hoy.
+      const stillActive =
+        existing?.status === "ACTIVE" &&
+        existing.endsAt != null &&
+        existing.endsAt > now;
+      const base = membershipBase(
+        now,
+        stillActive ? existing.endsAt : null,
+      );
+      const endsAt = membershipEndsAt(plan, base);
+
+      if (existing) {
+        await tx.enrollment.update({
+          where: { id: existing.id },
+          data: {
+            planId: plan.id,
+            status: "ACTIVE",
+            pausedAt: null,
+            endsAt,
+            // Renovación conserva el alta original; vuelta desde
+            // pausa/vencimiento reinicia el ciclo.
+            startedAt: stillActive ? existing.startedAt : now,
+          },
+        });
+      } else {
+        await tx.enrollment.create({
+          data: {
+            academyId: plan.academyId,
+            personId: payment.personId,
+            planId: plan.id,
+            status: "ACTIVE",
+            startedAt: now,
+            endsAt,
+          },
+        });
+      }
+    });
+
+    if (paidNow) {
+      const clp = new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(payment.amount);
+      await this.notifications.notifySafe(payment.personId, {
+        category: "TRANSACTIONAL",
+        type: "payment.membership",
+        title: "Pago confirmado — tu plan está activo",
+        body: `${plan.name} · ${plan.academy.name} · ${clp}`,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          planId: plan.id,
+          planName: plan.name,
+          academyId: plan.academyId,
+          academyName: plan.academy.name,
+          amount: payment.amount,
         },
       });
     }

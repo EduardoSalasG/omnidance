@@ -258,9 +258,21 @@ export async function seedDev(prisma: PrismaClient) {
   const plan = (
     academyId: string,
     name: string,
-    type: "MONTHLY" | "CLASS_PACK" | "PERIOD" | "TRIAL",
+    type:
+      | "MONTHLY"
+      | "QUARTERLY"
+      | "SEMIANNUAL"
+      | "SINGLE"
+      | "CLASS_PACK"
+      | "PERIOD"
+      | "TRIAL",
     price: number,
-    extra: { classCount?: number; periodDays?: number } = {},
+    extra: {
+      classCount?: number;
+      periodDays?: number;
+      // Bullets de venta — un ítem por línea del <ul> de la ficha.
+      description?: string[];
+    } = {},
   ) =>
     ensure(
       () => prisma.membershipPlan.findFirst({ where: { academyId, name } }),
@@ -275,12 +287,59 @@ export async function seedDev(prisma: PrismaClient) {
         }),
     );
 
-  const muvetMensual = await plan(muvet.id, "Mensual ilimitado", "MONTHLY", 45000);
+  const muvetMensual = await plan(
+    muvet.id,
+    "Mensual ilimitado",
+    "MONTHLY",
+    45000,
+    {
+      description: [
+        "Todas las clases del mes, sin límite",
+        "Válido hasta fin del mes calendario",
+        "Se renueva antes de que venza",
+      ],
+    },
+  );
+  await plan(muvet.id, "Trimestral ilimitado", "QUARTERLY", 120000, {
+    description: [
+      "Todas las clases por 3 meses",
+      "Válido hasta fin del 3er mes calendario",
+      "Ahorras $15.000 vs. el mensual",
+    ],
+  });
+  await plan(muvet.id, "Semestral ilimitado", "SEMIANNUAL", 210000, {
+    description: [
+      "Todas las clases por 6 meses",
+      "Válido hasta fin del 6º mes calendario",
+      "El mejor valor por mes",
+    ],
+  });
+  await plan(muvet.id, "Clase única", "SINGLE", 12000, {
+    description: ["Una clase del día", "Ideal para probar antes del plan"],
+  });
   const muvetPack = await plan(muvet.id, "Pack 8 clases", "CLASS_PACK", 38000, {
     classCount: 8,
+    description: [
+      "8 clases a tu ritmo, sin fecha de vencimiento",
+      "Cualquier serie de la academia",
+    ],
   });
   const muvetTrial = await plan(muvet.id, "Clase de prueba", "TRIAL", 0);
-  const tumbaoMensual = await plan(tumbao.id, "Mensual Tumbao", "MONTHLY", 40000);
+  const tumbaoMensual = await plan(
+    tumbao.id,
+    "Mensual Tumbao",
+    "MONTHLY",
+    40000,
+    {
+      description: [
+        "Todas las clases del mes, sin límite",
+        "Válido hasta fin del mes calendario",
+      ],
+    },
+  );
+  await plan(tumbao.id, "Clase única", "SINGLE", 10000, {
+    description: ["Una clase del día"],
+  });
 
   // ─── Enrollments — mezcla de planes y estados para el listado ───
   const enroll = (

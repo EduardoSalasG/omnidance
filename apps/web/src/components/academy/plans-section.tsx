@@ -31,6 +31,8 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
   const [type, setType] = useState<PlanType>("MONTHLY");
   const [price, setPrice] = useState("");
   const [classCount, setClassCount] = useState("");
+  const [periodDays, setPeriodDays] = useState("");
+  const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +51,14 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
           ...(classCount.trim()
             ? { classCount: Number.parseInt(classCount, 10) }
             : {}),
+          ...(periodDays.trim()
+            ? { periodDays: Number.parseInt(periodDays, 10) }
+            : {}),
+          // Una línea del textarea = un bullet del <ul> público
+          description: description
+            .split("\n")
+            .map((d) => d.trim())
+            .filter(Boolean),
         }),
       });
       if (!res.ok) {
@@ -58,6 +68,8 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
       setName("");
       setPrice("");
       setClassCount("");
+      setPeriodDays("");
+      setDescription("");
       await onChanged();
     } catch {
       setError(tc("error"));
@@ -81,6 +93,13 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
                     <p className="text-xs text-white/50">
                       {t("planClasses")}: {p.classCount}
                     </p>
+                  )}
+                  {p.description.length > 0 && (
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-white/60">
+                      {p.description.map((d, i) => (
+                        <li key={i}>{d}</li>
+                      ))}
+                    </ul>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -160,6 +179,34 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
               step={1}
               value={classCount}
               onChange={(e) => setClassCount(e.target.value)}
+            />
+          </label>
+          {/* Vigencia custom: solo el tipo PERIOD la usa (los calendario
+              se derivan del tipo al pagar). */}
+          {type === "PERIOD" && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-white/50">
+                {t("planPeriodDays")}
+              </span>
+              <input
+                className={inputCls}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={periodDays}
+                onChange={(e) => setPeriodDays(e.target.value)}
+              />
+            </label>
+          )}
+          <label className="flex flex-col gap-1 sm:col-span-2">
+            <span className="text-xs text-white/50">{t("planDesc")}</span>
+            <textarea
+              className={inputCls}
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t("planDescPlaceholder")}
             />
           </label>
           {error && (

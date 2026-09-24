@@ -3,7 +3,15 @@
 //   apps/api/src/academies/infrastructure/academies.controller.ts
 //   apps/api/src/academies/infrastructure/attendance.controller.ts
 
-export const PLAN_TYPES = ["MONTHLY", "CLASS_PACK", "PERIOD", "TRIAL"] as const;
+export const PLAN_TYPES = [
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMIANNUAL",
+  "SINGLE",
+  "CLASS_PACK",
+  "PERIOD",
+  "TRIAL",
+] as const;
 export type PlanType = (typeof PLAN_TYPES)[number];
 
 // Espejo de ENROLLMENT_STATUSES del controller (CANCELLED no existe en el enum).
@@ -68,6 +76,7 @@ export type MembershipPlan = {
   price: number;
   classCount: number | null;
   periodDays: number | null;
+  description: string[];
   active: boolean;
 };
 

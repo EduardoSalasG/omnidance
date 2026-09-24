@@ -22,6 +22,7 @@ export function ClassBookingCta({
   classId,
   initialBooking,
   enrolled,
+  academyId,
   spotsLeft,
   capacity,
   waitlistCount,
@@ -31,6 +32,9 @@ export function ClassBookingCta({
   initialBooking: Booking;
   /** Inscripción vigente en la academia — sin ella no se puede reservar. */
   enrolled: boolean;
+  /** Academia dueña de la clase — el CTA "sin inscripción" lleva a su
+      ficha, donde están los planes comprables. */
+  academyId: string;
   spotsLeft: number;
   capacity: number;
   waitlistCount: number;
@@ -140,9 +144,20 @@ export function ClassBookingCta({
               </p>
             )}
             {!enrolled ? (
-              <p className="text-center text-sm text-white/50">
-                {t("requiresEnrollment")}
-              </p>
+              // Sin inscripción: el escape es la ficha de la academia,
+              // donde están los planes comprables — la barra conserva
+              // la gramática info-izquierda / acción-derecha.
+              <div className="flex items-center justify-between gap-4">
+                <p className="min-w-0 text-sm text-white/60">
+                  {t("requiresEnrollment")}
+                </p>
+                <Button
+                  href={`/academias/${academyId}`}
+                  className="shrink-0"
+                >
+                  {t("viewPlans")}
+                </Button>
+              </div>
             ) : (
               <div className="flex items-center justify-between gap-4">
                 {/* Cupo junto a la acción — la urgencia es referencia de

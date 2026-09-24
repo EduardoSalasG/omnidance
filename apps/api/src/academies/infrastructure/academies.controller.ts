@@ -12,6 +12,8 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  ArrayMaxSize,
+  IsArray,
   IsIn,
   IsInt,
   IsISO8601,
@@ -43,7 +45,15 @@ import {
   RequirePermissions,
 } from "../../common/rbac/roles.decorator";
 
-const PLAN_TYPES: PlanType[] = ["MONTHLY", "CLASS_PACK", "PERIOD", "TRIAL"];
+const PLAN_TYPES: PlanType[] = [
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMIANNUAL",
+  "SINGLE",
+  "CLASS_PACK",
+  "PERIOD",
+  "TRIAL",
+];
 const ENROLLMENT_STATUSES: EnrollmentStatus[] = [
   "ACTIVE",
   "PAUSED",
@@ -80,6 +90,13 @@ class CreatePlanDto {
   @IsOptional()
   @IsInt()
   periodDays?: number;
+
+  /** Bullets de venta: cada ítem es una línea del <ul> en la ficha. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  description?: string[];
 }
 
 class CreateEnrollmentDto {
@@ -416,6 +433,7 @@ export class AcademiesController {
             price: true,
             classCount: true,
             periodDays: true,
+            description: true,
           },
           orderBy: { price: "asc" },
         },
@@ -433,7 +451,9 @@ export class AcademiesController {
         where: { personId: me, academyId: id },
         select: {
           status: true,
-          plan: { select: { name: true, type: true } },
+          startedAt: true,
+          endsAt: true,
+          plan: { select: { id: true, name: true, type: true } },
         },
       }),
       // Próximas clases no terminadas de la academia (cap razonable —
@@ -538,6 +558,8 @@ export class AcademiesController {
         price: dto.price,
         classCount: dto.classCount ?? dto.classesPerPeriod ?? null,
         periodDays: dto.periodDays ?? null,
+        description:
+          dto.description?.map((d) => d.trim()).filter(Boolean) ?? [],
       },
     });
   }

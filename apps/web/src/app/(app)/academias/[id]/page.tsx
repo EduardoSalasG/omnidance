@@ -5,6 +5,7 @@ import academyExtrasPart from "@/i18n/parts/academyExtras.json";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
+import { PlanPurchaseCta } from "@/components/academy/plan-purchase-cta";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +38,13 @@ type AcademyProfile = {
     price: number;
     classCount: number | null;
     periodDays: number | null;
+    description: string[];
   }[];
   myEnrollment: {
     status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
-    plan: { name: string; type: string } | null;
+    startedAt: string | null;
+    endsAt: string | null;
+    plan: { id: string; name: string; type: string } | null;
   } | null;
   classes: ClassCardData[];
 };
@@ -232,23 +236,51 @@ export default async function AcademiaDetailPage({
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t.profile.plans}
           </h2>
-          <ul className="flex flex-col gap-2">
-            {academy.plans.map((p) => (
-              <li
-                key={p.id}
-                className="flex items-center justify-between gap-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{p.name}</p>
-                  <p className="text-xs text-white/50">
-                    {(t.planTypes as Record<string, string>)[p.type] ??
-                      p.type}
-                    {p.classCount ? ` · ${p.classCount} clases` : ""}
-                  </p>
-                </div>
-                <PriceTag amount={p.price} />
-              </li>
-            ))}
+          <ul className="flex flex-col gap-3">
+            {academy.plans.map((p) => {
+              // El plan vigente se marca; el resto sigue comprable
+              // (renovar/extiende la vigencia al pagar).
+              const isActivePlan =
+                (academy.myEnrollment?.status === "ACTIVE" ||
+                  academy.myEnrollment?.status === "ONLINE") &&
+                academy.myEnrollment.plan?.id === p.id;
+              return (
+                <li
+                  key={p.id}
+                  className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="flex flex-wrap items-center gap-2 font-medium">
+                        {p.name}
+                        {isActivePlan && (
+                          <Badge variant="neon">{t.profile.planActive}</Badge>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-xs text-white/50">
+                        {(t.planTypes as Record<string, string>)[p.type] ??
+                          p.type}
+                        {p.classCount ? ` · ${p.classCount} clases` : ""}
+                      </p>
+                    </div>
+                    <PriceTag amount={p.price} />
+                  </div>
+                  {p.description.length > 0 && (
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-white/70">
+                      {p.description.map((d, i) => (
+                        <li key={i}>{d}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <PlanPurchaseCta
+                    planId={p.id}
+                    label={
+                      isActivePlan ? t.profile.extendPlan : t.profile.buyPlan
+                    }
+                  />
+                </li>
+              );
+            })}
           </ul>
         </Card>
       )}
