@@ -264,11 +264,23 @@ export default async function EventosPage({
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
   // Chip dentro del contenedor segmentado (filtro de géneros) — sin
-  // borde propio: el borde lo da el grupo, el activo lleva neon/15.
+  // borde propio: el borde lo da el grupo. El estado activo es un
+  // pill interno que se materializa (scale+fade) con el mismo easing
+  // del thumb de Segmented — equivalente multiselect del deslizamiento.
   const segChip = (active: boolean) =>
-    `inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
-      active ? "bg-neon/15 text-neon" : "text-white/60 hover:text-white"
+    `relative inline-flex min-h-11 shrink-0 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
+      active ? "text-neon" : "text-white/60 hover:text-white"
     }`;
+  // Pill neon del estado activo — anima scale/opacity al toggle
+  // (aria-hidden, decorativo; el estado real es aria-pressed/current).
+  const segChipPill = (active: boolean) => (
+    <span
+      aria-hidden="true"
+      className={`absolute inset-0 rounded-full bg-neon/15 transition-all duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${
+        active ? "scale-100 opacity-100" : "scale-90 opacity-0"
+      }`}
+    />
+  );
 
   // Card de evento — componente compartido (mismo esqueleto que el
   // ClassCard de /clases): contenido a la izquierda, rail hora+precio
@@ -426,7 +438,8 @@ export default async function EventosPage({
                   aria-current={genreSet.size === 0 ? "true" : undefined}
                   className={segChip(genreSet.size === 0)}
                 >
-                  {t.filterAll}
+                  {segChipPill(genreSet.size === 0)}
+                  <span className="relative">{t.filterAll}</span>
                 </Link>
                 {GENRES.map((g) => {
                   const next = new Set(genreSet);
@@ -440,7 +453,8 @@ export default async function EventosPage({
                       aria-pressed={active}
                       className={segChip(active)}
                     >
-                      {t.genre[g]}
+                      {segChipPill(active)}
+                      <span className="relative">{t.genre[g]}</span>
                     </Link>
                   );
                 })}
