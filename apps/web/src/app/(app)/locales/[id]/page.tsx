@@ -11,6 +11,23 @@ import {
   aggregateMix,
 } from "@/components/ui";
 import type { GenreMixBlock } from "@/components/ui";
+import {
+  DAY_MS,
+  DOT_COLOR,
+  GENRES,
+  GENRE_TEXT,
+  WEEKDAY_HEADERS,
+  dayKey,
+  localDayKey,
+  monthCells,
+  monthDate,
+  monthFmt,
+  monthKey,
+  monthStart,
+  parseDay,
+  parseMonth,
+} from "@/lib/calendar";
+import type { GenreKey } from "@/lib/calendar";
 
 export const dynamic = "force-dynamic";
 
@@ -46,18 +63,12 @@ type EventsT = (typeof messages)["events"] & {
   emptyFiltered: string;
   viewList: string;
   viewCalendar: string;
-  prevWeek: string;
-  nextWeek: string;
+  prevMonth: string;
+  nextMonth: string;
   more: string;
   today: string;
   tomorrow: string;
   noEventsDay: string;
-};
-
-const GENRE_TEXT: Record<string, string> = {
-  SALSA: "text-orange-400",
-  BACHATA: "text-fuchsia-300",
-  CUBANO: "text-amber-300",
 };
 
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
@@ -65,38 +76,6 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
-const dayCompactFmt = new Intl.DateTimeFormat("es-CL", {
-  day: "numeric",
-  month: "short",
-});
-const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"] as const;
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-const GENRES = ["SALSA", "BACHATA", "CUBANO"] as const;
-
-// Color del punto por género (el primero del evento) — misma paleta
-// que el calendario de /eventos.
-const DOT_COLOR: Record<string, string> = {
-  SALSA: "bg-orange-500",
-  BACHATA: "bg-fuchsia-400",
-  CUBANO: "bg-amber-400",
-};
-
-const localDayKey = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA");
-
-/** "YYYY-MM-DD" validado; null si no matchea. */
-const parseDay = (raw: string | undefined): string | null =>
-  raw && /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
-
-/** Lunes de la semana que contiene `d` (semana parte lunes, es-CL). */
-function weekStart(d: Date): Date {
-  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  return monday;
-}
 
 function groupByDay(events: VenueEvent[]) {
   const groups = new Map<string, VenueEvent[]>();
@@ -118,7 +97,7 @@ function dayLabel(key: string, te: EventsT): string {
 }
 
 async function getVenue(id: string): Promise<VenueProfile> {
-  const res = await fetch(`${API_URL}/api/venues/${id}?days=45`, {
+  const res = await fetch(`${API_URL}/api/venues/${id}?days=62`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
@@ -143,7 +122,8 @@ export default async function VenueProfilePage({
   params: { id: string };
   searchParams?: {
     vista?: string;
-    semana?: string;
+    mes?: string;
+    semana?: string; // legado: <día> → su mes
     dia?: string;
     genre?: string;
   };
@@ -174,13 +154,14 @@ export default async function VenueProfilePage({
 
   const hrefFor = (o: {
     vista?: string;
-    semana?: string;
+    mes?: string;
     dia?: string;
     genre?: string;
   }) => {
     const merged = {
       vista: vista !== "lista" ? vista : undefined,
       genre: [...genreSet].join(",") || undefined,
+      mes: vista === "calendario" ? monthKey(monthCursor) : undefined,
       ...o,
     };
     const qs = new URLSearchParams(
@@ -196,36 +177,41 @@ export default async function VenueProfilePage({
         : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
     }`;
 
-  // ─── Calendario semanal (?semana=<día> → su lunes) ───
+  // ─── Calendario mensual (?mes=YYYY-MM; legado semana=<día> → su mes) ───
   const byDay = new Map<string, VenueEvent[]>();
   for (const e of filtered) {
     const key = dayKey(e.startsAt);
     byDay.set(key, [...(byDay.get(key) ?? []), e]);
   }
-  const semanaParam = parseDay(searchParams?.semana);
-  const monday = weekStart(
-    semanaParam ? new Date(`${semanaParam}T12:00:00`) : new Date(),
+  const mesParam = parseMonth(searchParams?.mes);
+  const legacySemana = parseDay(searchParams?.semana);
+  const monthCursor = monthStart(
+    mesParam
+      ? monthDate(mesParam)
+      : legacySemana
+        ? new Date(`${legacySemana}T12:00:00`)
+        : new Date(),
   );
-  const weekKey = localDayKey(monday);
-  const sunday = new Date(monday.getTime() + 6 * DAY_MS);
-  const prevWeekKey = localDayKey(new Date(monday.getTime() - 7 * DAY_MS));
-  const nextWeekKey = localDayKey(new Date(monday.getTime() + 7 * DAY_MS));
-  const cells = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday.getTime() + i * DAY_MS);
-    const key = localDayKey(d);
-    return { day: d.getDate(), key, events: byDay.get(key) ?? [] };
-  });
-  const weekKeys = new Set(cells.map((c) => c.key));
+  const prevMonthKey = monthKey(
+    new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1),
+  );
+  const nextMonthKey = monthKey(
+    new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1),
+  );
+  const cells = monthCells(monthCursor, byDay).map(
+    ({ items, ...rest }) => ({ ...rest, events: items }),
+  );
+  const gridKeys = new Set(cells.map((c) => c.key));
   const todayKey = localDayKey(new Date());
-  // Día seleccionado: param si cae en la semana visible; si no, hoy.
+  // Día seleccionado: param si cae en el grid visible; si no, hoy.
   const selectedDay = (() => {
     const d = parseDay(searchParams?.dia);
-    if (d && weekKeys.has(d)) return d;
-    if (weekKeys.has(todayKey)) return todayKey;
+    if (d && gridKeys.has(d)) return d;
+    if (gridKeys.has(todayKey)) return todayKey;
     return null;
   })();
   const selectedEvents = selectedDay ? (byDay.get(selectedDay) ?? []) : [];
-  const weekLabel = `${dayCompactFmt.format(monday)} – ${dayCompactFmt.format(sunday)}`;
+  const monthLabel = monthFmt.format(monthCursor);
 
   const iconBtn = (active: boolean) =>
     `inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
@@ -256,7 +242,7 @@ export default async function VenueProfilePage({
                 {orderedGenres.map((g, i) => (
                   <span key={g}>
                     {i > 0 && <span className="text-white/30"> · </span>}
-                    <span className={GENRE_TEXT[g] ?? "text-white/50"}>
+                    <span className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}>
                       {te.genre[g] ?? g}
                     </span>
                   </span>
@@ -374,7 +360,7 @@ export default async function VenueProfilePage({
           <h2 className="text-sm font-semibold text-neon">{t.upcoming}</h2>
           <div className="flex items-center rounded-full border border-white/15 p-0.5">
             <Link
-              href={hrefFor({ vista: undefined, semana: undefined, dia: undefined })}
+              href={hrefFor({ vista: undefined, mes: undefined, dia: undefined })}
               aria-label={te.viewList}
               aria-current={vista === "lista" ? "true" : undefined}
               className={iconBtn(vista === "lista")}
@@ -434,35 +420,43 @@ export default async function VenueProfilePage({
           <>
             <div className="mb-4 flex items-center justify-between">
               <Link
-                href={hrefFor({ semana: prevWeekKey, dia: undefined })}
+                href={hrefFor({ mes: prevMonthKey, dia: undefined })}
                 className={iconBtn(false)}
-                aria-label={te.prevWeek}
+                aria-label={te.prevMonth}
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </Link>
-              <h3 className="text-base font-semibold capitalize">{weekLabel}</h3>
+              <h3 className="text-base font-semibold capitalize">{monthLabel}</h3>
               <Link
-                href={hrefFor({ semana: nextWeekKey, dia: undefined })}
+                href={hrefFor({ mes: nextMonthKey, dia: undefined })}
                 className={iconBtn(false)}
-                aria-label={te.nextWeek}
+                aria-label={te.nextMonth}
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 6l6 6-6 6" />
                 </svg>
               </Link>
             </div>
-            {/* Franja semanal: letra del día + número + puntos por género */}
+            {/* Grid mensual: fila de letras L–D + número + puntos por
+                género. Días de meses vecinos atenuados. */}
+            <div className="mb-1 grid grid-cols-7 gap-1" aria-hidden="true">
+              {WEEKDAY_HEADERS.map((h, i) => (
+                <span
+                  key={i}
+                  className="text-center text-[10px] font-semibold uppercase text-white/40"
+                >
+                  {h}
+                </span>
+              ))}
+            </div>
             <div role="grid" className="grid grid-cols-7 gap-1" aria-label={te.viewCalendar}>
-              {cells.map((cell, i) => {
+              {cells.map((cell) => {
                 const isToday = cell.key === todayKey;
                 const isSelected = cell.key === selectedDay;
                 const inner = (
                   <>
-                    <span className="text-[10px] font-semibold uppercase text-white/40">
-                      {WEEKDAY_HEADERS[i]}
-                    </span>
                     <span
                       className={`text-sm font-semibold ${
                         isToday ? "text-neon" : isSelected ? "text-white" : "text-white/70"
@@ -475,7 +469,7 @@ export default async function VenueProfilePage({
                         <span
                           key={e.id}
                           className={`h-1.5 w-1.5 rounded-full ${
-                            DOT_COLOR[e.genres[0]] ?? "bg-white/50"
+                            DOT_COLOR[e.genres[0] as GenreKey] ?? "bg-white/50"
                           }`}
                         />
                       ))}
@@ -487,9 +481,9 @@ export default async function VenueProfilePage({
                     )}
                   </>
                 );
-                const cellClass = `flex min-h-14 flex-col items-center gap-0.5 rounded-xl py-2 ${
+                const cellClass = `flex min-h-11 flex-col items-center gap-0.5 rounded-xl py-1.5 ${
                   isSelected ? "bg-neon/15" : ""
-                }`;
+                } ${cell.inMonth ? "" : "opacity-40"}`;
                 return cell.events.length === 0 ? (
                   <div key={cell.key} className={cellClass}>
                     {inner}
@@ -497,7 +491,7 @@ export default async function VenueProfilePage({
                 ) : (
                   <Link
                     key={cell.key}
-                    href={hrefFor({ semana: weekKey, dia: cell.key })}
+                    href={hrefFor({ dia: cell.key })}
                     aria-current={isSelected ? "date" : undefined}
                     className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
                   >

@@ -21,11 +21,15 @@ import {
   DOT_COLOR,
   WEEK_MS,
   WEEKDAY_HEADERS,
-  dayCompactFmt,
   localDayKey,
+  monthCells,
+  monthDate,
+  monthFmt,
+  monthGridRange,
+  monthKey,
+  monthStart,
   parseDay,
-  weekCells,
-  weekStart,
+  parseMonth,
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 
@@ -133,7 +137,7 @@ function ClasesInner() {
     level?: string;
     academy?: string;
     upto?: string;
-    week?: string;
+    month?: string;
     day?: string;
     scope?: string | null;
   }) => {
@@ -156,7 +160,7 @@ function ClasesInner() {
       academy:
         targetScope === "explorar" ? academyId || undefined : undefined,
       upto: upto > 1 ? String(upto) : undefined,
-      week: targetView === "calendar" ? weekKey : undefined,
+      month: targetView === "calendar" ? monthParamKey : undefined,
       day:
         targetView === "calendar" ? (selectedDay ?? undefined) : undefined,
       // El sub-filtro todas|reservadas solo existe en Mis clases.
@@ -221,23 +225,38 @@ function ClasesInner() {
 
   // Horizonte del fetch: en lista, upto semanas visibles + 1 de buffer
   // (el buffer detecta si hay "más adelante"); en calendario, hasta el
-  // domingo de la semana visible + colchón. Tope del API: 60 días.
-  const weekParam = parseDay(searchParams.get("week") ?? undefined);
-  const monday = weekStart(
-    weekParam ? new Date(`${weekParam}T12:00:00`) : new Date(),
+  // domingo final del grid mensual + colchón. Tope del API: 60 días.
+  // ?month=YYYY-MM; legado week=<día> → su mes.
+  const monthParam = parseMonth(searchParams.get("month") ?? undefined);
+  const legacyWeek = parseDay(searchParams.get("week") ?? undefined);
+  const monthCursor = monthStart(
+    monthParam
+      ? monthDate(monthParam)
+      : legacyWeek
+        ? new Date(`${legacyWeek}T12:00:00`)
+        : new Date(),
   );
-  const weekKey = localDayKey(monday);
-  const sunday = new Date(monday.getTime() + 6 * DAY_MS);
-  const prevWeekKey = localDayKey(new Date(monday.getTime() - 7 * DAY_MS));
-  const nextWeekKey = localDayKey(new Date(monday.getTime() + 7 * DAY_MS));
+  const monthParamKey = monthKey(monthCursor);
+  const prevMonthKey = monthKey(
+    new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1),
+  );
+  const nextMonthKey = monthKey(
+    new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1),
+  );
   const todayKey = localDayKey(new Date());
-  const isCurrentWeek = weekKey === localDayKey(weekStart(new Date()));
+  // Browse solo trae clases futuras — meses pasados estarían vacíos.
+  const isCurrentMonth = monthParamKey === monthKey(new Date());
 
   const daysNeeded =
     view === "calendar"
       ? Math.min(
           Math.max(
-            Math.ceil((sunday.getTime() + DAY_MS - Date.now()) / DAY_MS),
+            Math.ceil(
+              (monthGridRange(monthCursor).end.getTime() +
+                DAY_MS -
+                Date.now()) /
+                DAY_MS,
+            ),
             14,
           ),
           60,
@@ -425,19 +444,19 @@ function ClasesInner() {
   }
   const cells =
     scope === "mias" && calScope === "reservadas"
-      ? weekCells(monday, myByDay)
-      : weekCells(monday, calByDay);
-  const weekKeys = new Set(cells.map((c) => c.key));
-  // Día seleccionado: param si cae en la semana visible; si no, hoy.
+      ? monthCells(monthCursor, myByDay)
+      : monthCells(monthCursor, calByDay);
+  const gridKeys = new Set(cells.map((c) => c.key));
+  // Día seleccionado: param si cae en el grid visible; si no, hoy.
   const selectedDay = (() => {
     const d = parseDay(searchParams.get("day") ?? undefined);
-    if (d && weekKeys.has(d)) return d;
-    if (weekKeys.has(todayKey)) return todayKey;
+    if (d && gridKeys.has(d)) return d;
+    if (gridKeys.has(todayKey)) return todayKey;
     return null;
   })();
   const selectedClasses = selectedDay ? (calByDay.get(selectedDay) ?? []) : [];
   const selectedMine = selectedDay ? (myByDay.get(selectedDay) ?? []) : [];
-  const weekLabel = `${dayCompactFmt.format(monday)} – ${dayCompactFmt.format(sunday)}`;
+  const monthLabel = monthFmt.format(monthCursor);
 
   // Progreso personal del mes — asistencias de los últimos 30 días.
   const attended30d = (history ?? []).filter(
@@ -545,7 +564,7 @@ function ClasesInner() {
                   key: "list",
                   href: hrefFor({
                     v: "list",
-                    week: undefined,
+                    month: undefined,
                     day: undefined,
                   }),
                   icon: true,
@@ -796,10 +815,10 @@ function ClasesInner() {
             ))}
         </section>
       ) : view === "calendar" ? (
-        /* ─── Calendario semanal — misma franja que /eventos ─── */
+        /* ─── Calendario mensual — mismo grid que /eventos ─── */
         <section>
           <div className="mb-4 flex items-center justify-between">
-            {isCurrentWeek ? (
+            {isCurrentMonth ? (
               <span className={iconBtn(false)} aria-hidden="true">
                 <svg viewBox="0 0 24 24" className="h-5 w-5 text-white/20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
@@ -807,35 +826,47 @@ function ClasesInner() {
               </span>
             ) : (
               <Link
-                href={hrefFor({ week: prevWeekKey, day: undefined })}
+                href={hrefFor({ month: prevMonthKey, day: undefined })}
                 className={iconBtn(false)}
-                aria-label={te("prevWeek")}
+                aria-label={te("prevMonth")}
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </Link>
             )}
-            <h2 className="text-base font-semibold capitalize">{weekLabel}</h2>
+            <h2 className="text-base font-semibold capitalize">{monthLabel}</h2>
             <Link
-              href={hrefFor({ week: nextWeekKey, day: undefined })}
+              href={hrefFor({ month: nextMonthKey, day: undefined })}
               className={iconBtn(false)}
-              aria-label={te("nextWeek")}
+              aria-label={te("nextMonth")}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 6l6 6-6 6" />
               </svg>
             </Link>
           </div>
-          {/* Franja semanal: letra del día + número + dots por género.
-              No es role="grid" (sin navegación por flechas ni celdas
-              semánticas) — es un grupo de links con nombres completos. */}
+          {/* Grid mensual: fila de letras L–D + número + dots por
+              género. Días de meses vecinos atenuados. No es
+              role="grid" (sin navegación por flechas ni celdas
+              semánticas) — es un grupo de links con nombres
+              completos. */}
+          <div className="mb-1 grid grid-cols-7 gap-1" aria-hidden="true">
+            {WEEKDAY_HEADERS.map((h, i) => (
+              <span
+                key={i}
+                className="text-center text-[10px] font-semibold uppercase text-white/40"
+              >
+                {h}
+              </span>
+            ))}
+          </div>
           <div
             role="group"
             className="grid grid-cols-7 gap-1"
             aria-label={t("viewCalendar")}
           >
-            {cells.map((cell, i) => {
+            {cells.map((cell) => {
               const isToday = cell.key === todayKey;
               const isSelected = cell.key === selectedDay;
               const dots =
@@ -848,18 +879,13 @@ function ClasesInner() {
                       id: c.id,
                       genre: c.series.style?.genre,
                     }));
-              // "lunes 22" completo para SR — la letra es aria-hidden.
+              // "lunes 22" completo para SR — la celda solo muestra el
+              // número (la letra del día va en la fila de cabecera).
               const dayName = weekdayNameFmt.format(
                 new Date(`${cell.key}T12:00:00`),
               );
               const inner = (
                 <>
-                  <span
-                    aria-hidden="true"
-                    className="text-[10px] font-semibold uppercase text-white/40"
-                  >
-                    {WEEKDAY_HEADERS[i]}
-                  </span>
                   <span
                     className={`text-sm font-semibold ${
                       isToday ? "text-neon" : isSelected ? "text-white" : "text-white/70"
@@ -882,9 +908,9 @@ function ClasesInner() {
                   )}
                 </>
               );
-              const cellClass = `flex min-h-14 flex-col items-center gap-0.5 rounded-xl py-2 ${
+              const cellClass = `flex min-h-11 flex-col items-center gap-0.5 rounded-xl py-1.5 ${
                 isSelected ? "bg-neon/15" : ""
-              }`;
+              } ${cell.inMonth ? "" : "opacity-40"}`;
               return cell.items.length === 0 ? (
                 <div key={cell.key} className={cellClass}>
                   <span className="sr-only">{dayName}</span>
