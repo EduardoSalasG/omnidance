@@ -20,6 +20,8 @@ import {
 } from "./infrastructure/payouts.controller";
 import { CheckoutService } from "./application/checkout.service";
 import { PaymentSettlementService } from "./application/payment-settlement.service";
+import { SubscriptionsService } from "./application/subscriptions.service";
+import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
@@ -30,10 +32,12 @@ import { NotificationsModule } from "../notifications/notifications.module";
     PaymentsController,
     AdminPayoutsController,
     MePayoutsController,
+    SubscriptionsController,
   ],
   providers: [
     CheckoutService,
     PaymentSettlementService,
+    SubscriptionsService,
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
@@ -45,7 +49,12 @@ import { NotificationsModule } from "../notifications/notifications.module";
       inject: [PrismaService],
     },
   ],
-  exports: [PAYMENT_GATEWAY, GatewayTransactionsService, PaymentSettlementService],
+  exports: [
+    PAYMENT_GATEWAY,
+    GatewayTransactionsService,
+    PaymentSettlementService,
+    SubscriptionsService,
+  ],
 })
 export class PaymentsModule {}
 

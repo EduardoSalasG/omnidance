@@ -9,14 +9,16 @@ import {
   Param,
   Post,
   Req,
+  Res,
   UseGuards,
 } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PaymentSettlementService } from "../application/payment-settlement.service";
+import { SubscriptionsService } from "../application/subscriptions.service";
 
 class WebhookDto {
   @IsOptional()
@@ -37,12 +39,19 @@ class WebhookDto {
   token?: string;
 }
 
+class FlowTokenDto {
+  @IsOptional()
+  @IsString()
+  token?: string;
+}
+
 @Controller("payments")
 export class PaymentsController {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly settlement: PaymentSettlementService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -80,6 +89,48 @@ export class PaymentsController {
       actor: "webhook",
       gatewayData: result.gatewayData,
     });
+  }
+
+  /**
+   * Retorno del browser tras el disclaimer de registro de tarjeta de
+   * Flow (url_return de customer/register — Flow POSTea {token}).
+   * Público: el service registra el INBOUND, resuelve el customer y
+   * crea la suscripción pendiente; acá solo se traduce a redirect 303
+   * hacia la ficha de la academia (`?sub=ok|error`). Nunca responde
+   * error HTTP al browser — el redirect es la respuesta.
+   */
+  @Post("flow/customer-return")
+  async customerReturn(@Body() body: FlowTokenDto, @Res() res: Response) {
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const errorTo = (academyId?: string | null) =>
+      academyId
+        ? `${webUrl}/academias/${academyId}?sub=error`
+        : `${webUrl}/academias?sub=error`;
+    if (!body.token) return res.redirect(303, errorTo());
+    try {
+      const r = await this.subscriptions.customerReturn(body.token);
+      return res.redirect(
+        303,
+        r.ok
+          ? `${webUrl}/academias/${r.academyId}?sub=ok`
+          : errorTo(r.academyId),
+      );
+    } catch {
+      return res.redirect(303, errorTo());
+    }
+  }
+
+  /**
+   * urlCallback de los Flow-plans de suscripción (registrado en
+   * plans/create). Público: registra el INBOUND en GatewayTransaction y
+   * dispara reconcileAll fire-and-forget — responde 200 siempre (Flow
+   * reintenta ante no-200 y repetiría el barrido completo).
+   */
+  @Post("subscription-webhook")
+  @HttpCode(200)
+  async subscriptionWebhook(@Body() body: FlowTokenDto) {
+    await this.subscriptions.subscriptionWebhook(body.token ?? null);
+    return { ok: true };
   }
 
   // Polling desde el checkout (solo el dueño del pago). Si la pasarela

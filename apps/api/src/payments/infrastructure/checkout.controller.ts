@@ -11,6 +11,7 @@ import {
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsInt,
   IsOptional,
   IsString,
@@ -39,6 +40,7 @@ import {
   TablePartyTooLargeError,
   TableSoldOutError,
 } from "../application/checkout.service";
+import { SubscriptionsService } from "../application/subscriptions.service";
 
 class CheckoutTicketDto {
   @IsString()
@@ -107,9 +109,21 @@ class CheckoutMembershipDto {
   planId!: string;
 }
 
+class CheckoutMembershipSubscriptionDto {
+  @IsString()
+  planId!: string;
+
+  /** Consentimiento explícito del cobro recurrente (aviso legal del checkout). */
+  @IsBoolean()
+  acceptRecurring!: boolean;
+}
+
 @Controller("checkout")
 export class CheckoutController {
-  constructor(private readonly checkout: CheckoutService) {}
+  constructor(
+    private readonly checkout: CheckoutService,
+    private readonly subscriptions: SubscriptionsService,
+  ) {}
 
   @Post("ticket")
   @UseGuards(SessionGuard)
@@ -183,5 +197,25 @@ export class CheckoutController {
       }
       throw e;
     }
+  }
+
+  /**
+   * Suscripción recurrente a un plan de academia (motor Flow). Solo
+   * planes de tipo recurrente (MONTHLY/QUARTERLY/SEMIANNUAL). Devuelve
+   * `needs_card` + registerUrl si el customer aún no registra tarjeta en
+   * Flow (vuelve por POST /payments/flow/customer-return) o `subscribed`
+   * si Flow pudo crear la suscripción directo (cobra el 1er período ya).
+   */
+  @Post("membership-subscription")
+  @UseGuards(SessionGuard)
+  membershipSubscription(
+    @Req() req: Request,
+    @Body() dto: CheckoutMembershipSubscriptionDto,
+  ) {
+    return this.subscriptions.subscribe(
+      req.person!.id,
+      dto.planId,
+      dto.acceptRecurring,
+    );
   }
 }
