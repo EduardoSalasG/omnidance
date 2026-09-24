@@ -10,7 +10,7 @@ import {
   useActiveRole,
   type AppRole,
 } from "@/lib/active-role";
-import { getViewMode, useViewMode } from "@/lib/view-mode";
+import { useViewMode } from "@/lib/view-mode";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 import { Badge, Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
@@ -51,6 +51,15 @@ const ACT_AS_ORDER: AppRole[] = [
   "SUPPORT",
   "ADMIN",
 ];
+
+// Insignias del modo academy — espejo del catálogo sembrado
+// (BADGE_CATALOG en seed-common.ts). El resto son nightlife.
+const ACADEMY_BADGE_KEYS = new Set([
+  "primera_clase",
+  "alumno_constante",
+  "racha_academia",
+  "explorador_academias",
+]);
 
 export default function PerfilPage() {
   const t = useTranslations("profile");
@@ -106,10 +115,6 @@ export default function PerfilPage() {
     }
 
     async function loadBadges() {
-      // Insignias son nightlife-only — en modo academy no se fetchean
-      // (no existe insignia de academia para el alumno; academy_score es
-      // CRM privado por spec).
-      if (getViewMode() === "academy") return;
       try {
         const res = await apiFetch("/gamification/me/badges");
         setGamifFetched(true);
@@ -175,15 +180,10 @@ export default function PerfilPage() {
     };
   }, [me, currentLens, viewMode]);
 
-  // Insignias — solo nightlife; en modo academy no existen insignias
-  // para el alumno (lazy: se traen al entrar a modo social).
+  // Insignias — ambos modos tienen catálogo propio (nightlife: sesiones/
+  // check-ins; academy: asistencias/constancia). Lazy one-shot.
   useEffect(() => {
-    if (
-      !me ||
-      gamifFetched ||
-      currentLens === "ADMIN" ||
-      viewMode !== "social"
-    ) {
+    if (!me || gamifFetched || currentLens === "ADMIN") {
       return;
     }
     let stale = false;
@@ -199,6 +199,12 @@ export default function PerfilPage() {
       stale = true;
     };
   }, [me, gamifFetched, currentLens, viewMode]);
+
+  const visibleBadges = badges.filter((b) =>
+    viewMode === "academy"
+      ? ACADEMY_BADGE_KEYS.has(b.badge.key)
+      : !ACADEMY_BADGE_KEYS.has(b.badge.key),
+  );
 
   async function logout() {
     try {
@@ -388,18 +394,21 @@ export default function PerfilPage() {
         </Card>
       )}
 
-      {/* Insignias — nightlife-only: no hay insignias de academia para
-          el alumno (academy_score es CRM privado por spec §11). */}
-      {currentActAs !== "ADMIN" && viewMode === "social" && (
+      {/* Insignias del modo activo: academy muestra las de asistencia/
+          constancia/exploración; social las de sesiones/check-ins. Las
+          del otro modo se filtran — academy_score sigue privado (spec). */}
+      {currentActAs !== "ADMIN" && (
         <Card>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
             {tg("badges")}
           </h2>
-          {badges.length === 0 ? (
-            <p className="mt-3 text-sm text-white/60">{tg("badgesEmpty")}</p>
+          {visibleBadges.length === 0 ? (
+            <p className="mt-3 text-sm text-white/60">
+              {tg(viewMode === "academy" ? "badgesEmptyAcademy" : "badgesEmpty")}
+            </p>
           ) : (
             <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {badges.map((b) => (
+              {visibleBadges.map((b) => (
                 <li
                   key={b.badge.key}
                   className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 p-3"

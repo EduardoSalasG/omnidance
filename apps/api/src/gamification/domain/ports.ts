@@ -86,7 +86,9 @@ export interface GamificationRepo {
   ): Promise<{ eventId: string; inAt: Date }[]>;
 
   /** Asistencias a clases de la persona — alimentan la racha academy. */
-  attendancesForPerson(personId: string): Promise<{ checkedAt: Date }[]>;
+  attendancesForPerson(
+    personId: string,
+  ): Promise<{ checkedAt: Date; academyId: string | null }[]>;
 
   /** Nombres para el leaderboard (join manual — personId es escalar). */
   peopleByIds(ids: string[]): Promise<{ id: string; name: string }[]>;

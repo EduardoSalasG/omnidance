@@ -97,6 +97,11 @@ export const BADGE_CATALOG = [
   { key: "maratonista", name: "Maratonista", category: "CONDUCT" },
   { key: "mariposa_social", name: "Mariposa social", category: "CONDUCT" },
   { key: "prime_time_crown", name: "Corona Prime Time", category: "TEMPORARY_STATUS" },
+  // Modo Academy — conducta del alumno (asistencia/constancia/exploración).
+  { key: "primera_clase", name: "Primera clase", category: "MILESTONE" },
+  { key: "alumno_constante", name: "Alumno constante", category: "MILESTONE" },
+  { key: "racha_academia", name: "Constancia de academia", category: "CONDUCT" },
+  { key: "explorador_academias", name: "Explorador de academias", category: "CONDUCT" },
 ] as const;
 
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
