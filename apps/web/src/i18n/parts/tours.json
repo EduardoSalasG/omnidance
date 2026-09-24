@@ -87,8 +87,8 @@
     },
     "clases": {
       "s1": {
-        "title": "Tres formas de ver",
-        "desc": "Lista agrupada por día, calendario semanal con tus clases y tu historial de asistencias."
+        "title": "Lista o calendario",
+        "desc": "Lista agrupada por día o calendario semanal — también dentro de Explorar, para ver la semana completa de la escena."
       },
       "s2": {
         "title": "Explorar academias",
