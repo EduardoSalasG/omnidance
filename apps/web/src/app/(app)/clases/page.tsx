@@ -502,7 +502,7 @@ function ClasesInner() {
         : t("title");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{title}</h1>

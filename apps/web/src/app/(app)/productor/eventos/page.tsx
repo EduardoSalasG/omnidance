@@ -126,7 +126,7 @@ function ProducerEvents() {
   ];
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-8 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
       <BackLink href="/productor">{t("title")}</BackLink>
 
       <div className="flex items-center justify-end gap-3">

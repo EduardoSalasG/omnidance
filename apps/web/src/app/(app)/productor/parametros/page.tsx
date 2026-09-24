@@ -140,7 +140,7 @@ export default function ProducerParamsPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <BackLink href="/productor">{t("title")}</BackLink>
 
       {gate === "loading" && <PageLoading />}

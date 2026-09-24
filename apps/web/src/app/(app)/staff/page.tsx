@@ -78,7 +78,7 @@ export default function StaffPage() {
   }, [boot]);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       {gate === "loading" && <PageLoading />}
 
       {gate === "unauth" && (

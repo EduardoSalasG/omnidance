@@ -193,7 +193,7 @@ export default function NotificacionesPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
       <header className="flex items-center justify-between gap-4">
         {unreadCount > 0 && <Badge variant="neon">{unreadCount}</Badge>}
         {unreadCount > 0 && (
