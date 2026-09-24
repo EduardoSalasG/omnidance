@@ -43,10 +43,15 @@ type HistoryItem = HistoryCardData;
 
 type FilterOption = { id: string; name: string };
 type LoadState = "loading" | "error" | "ready";
-// Vistas: mis academias (list/calendar), historial completo y explore
-// (todas las academias). La antigua vista `mine` se plegó al filtro
-// scope=reservadas — ver parsing de la URL más abajo.
-type View = "list" | "calendar" | "history" | "explore";
+// Dos ejes independientes (misma IA que /academias):
+// - `s` scope — qué datos: mias | explorar | historial (pills con texto)
+// - `v` display — cómo se ven: lista | calendario (íconos segmentados,
+//   calendario disponible en mias y explorar; historial es solo lista)
+// `calScope` es el sub-filtro dentro de Mis clases: todas las clases de
+// mis academias vs solo mis reservas. Legado: `view` mezclaba ambos
+// ejes (list|calendar|history|explore|mine) — ver parsing más abajo.
+type Scope = "mias" | "explorar" | "historial";
+type Display = "list" | "calendar";
 type CalScope = "todas" | "reservadas";
 
 // Class.date llega como ISO a medianoche UTC — el día calendario es el
@@ -86,55 +91,80 @@ function ClasesInner() {
   const searchParams = useSearchParams();
 
   // ─── Estado en URL (mismo patrón que /eventos: deep-linkable) ───
-  const rawView = searchParams.get("view");
+  const rawView = searchParams.get("view"); // legado: mezclaba scope+display
+  const rawS = searchParams.get("s");
+  const rawV = searchParams.get("v");
   const rawScope = searchParams.get("scope");
-  // `view=mine` legado (el ícono marcador) → lista en scope reservadas.
-  const view: View =
-    rawView === "calendar" || rawView === "history" || rawView === "explore"
-      ? rawView
+  // Scope (qué datos): legado view=explore|history|mine.
+  const scope: Scope =
+    rawS === "explorar" || rawS === "historial" || rawS === "mias"
+      ? rawS
+      : rawView === "explore"
+        ? "explorar"
+        : rawView === "history"
+          ? "historial"
+          : "mias";
+  // Display (cómo se ve): calendario en mias y explorar; el historial
+  // es siempre lista. Legado view=calendar.
+  const view: Display =
+    scope !== "historial" &&
+    (rawV === "calendar" || rawView === "calendar")
+      ? "calendar"
       : "list";
   const styleId = searchParams.get("style") ?? "";
   const levelId = searchParams.get("level") ?? "";
-  // Filtro de academia — solo lo expone la vista explorar.
+  // Filtro de academia — solo lo expone el scope explorar.
   const academyId = searchParams.get("academy") ?? "";
   const upto = Math.max(
     1,
     Number.parseInt(searchParams.get("upto") ?? "1", 10) || 1,
   );
-  // `mias` es el alias legado del scope reservadas.
-  const scope: CalScope =
+  // Sub-filtro de Mis clases: `mias` y view=mine son aliases legados
+  // del scope reservadas.
+  const calScope: CalScope =
     rawScope === "reservadas" || rawScope === "mias" || rawView === "mine"
       ? "reservadas"
       : "todas";
 
   const hrefFor = (o: {
-    view?: string;
+    s?: string | null;
+    v?: string | null;
     style?: string;
     level?: string;
     academy?: string;
     upto?: string;
     week?: string;
     day?: string;
-    scope?: string;
+    scope?: string | null;
   }) => {
-    // Vista destino: override explícito (undefined = list) o la actual.
-    const target = "view" in o ? (o.view ?? "list") : view;
+    // Scope/vista destino: override explícito (null = default) o el
+    // actual. El historial fuerza lista — sin calendario propio.
+    const targetScope = "s" in o ? (o.s ?? "mias") : scope;
+    const targetView =
+      targetScope !== "historial" &&
+      ("v" in o ? (o.v ?? "list") : view) === "calendar"
+        ? "calendar"
+        : "list";
+    const { s: _s, v: _v, ...rest } = o;
     const merged = {
-      view: target !== "list" ? target : undefined,
+      s: targetScope !== "mias" ? targetScope : undefined,
+      v: targetView !== "list" ? targetView : undefined,
       style: styleId || undefined,
       level: levelId || undefined,
       // El filtro de academia solo existe en explorar — no arrastrarlo
-      // a vistas donde sería un filtro invisible.
+      // a scopes donde sería un filtro invisible.
       academy:
-        target === "explore" ? academyId || undefined : undefined,
+        targetScope === "explorar" ? academyId || undefined : undefined,
       upto: upto > 1 ? String(upto) : undefined,
-      week: target === "calendar" ? weekKey : undefined,
-      day: target === "calendar" ? (selectedDay ?? undefined) : undefined,
+      week: targetView === "calendar" ? weekKey : undefined,
+      day:
+        targetView === "calendar" ? (selectedDay ?? undefined) : undefined,
+      // El sub-filtro todas|reservadas solo existe en Mis clases.
       scope:
-        (target === "list" || target === "calendar") && scope === "reservadas"
+        targetScope === "mias" && calScope === "reservadas"
           ? "reservadas"
           : undefined,
-      ...o,
+      ...rest,
     };
     const params = new URLSearchParams();
     for (const [k, v] of Object.entries(merged)) if (v) params.set(k, v);
@@ -218,12 +248,12 @@ function ClasesInner() {
     setBrowseState("loading");
     try {
       const params = new URLSearchParams({ days: String(daysNeeded) });
-      // Lista/calendario = mis academias; explore = todas. La vista
-      // decide el scope del servidor (inscripción vigente).
-      if (view !== "explore") params.set("scope", "enrolled");
+      // Mis clases = inscripción vigente; explorar = todas las
+      // academias. El scope decide el scope del servidor.
+      if (scope === "mias") params.set("scope", "enrolled");
       if (styleId) params.set("styleId", styleId);
       if (levelId) params.set("levelId", levelId);
-      if (view === "explore" && academyId)
+      if (scope === "explorar" && academyId)
         params.set("academyId", academyId);
       const res = await apiFetch(`/classes/browse?${params.toString()}`);
       if (!res.ok) {
@@ -235,9 +265,9 @@ function ClasesInner() {
       // Opciones de los selects = estilos/niveles/academias que existen
       // en el scope. Con filtro activo el response ya viene acotado →
       // un fetch extra sin filtro (solo en ese caso) para las facetas.
-      if (styleId || levelId || (view === "explore" && academyId)) {
+      if (styleId || levelId || (scope === "explorar" && academyId)) {
         const base = new URLSearchParams({ days: String(daysNeeded) });
-        if (view !== "explore") base.set("scope", "enrolled");
+        if (scope === "mias") base.set("scope", "enrolled");
         const r2 = await apiFetch(`/classes/browse?${base.toString()}`);
         setFacetClasses(
           r2.ok ? ((await r2.json()) as BrowseClass[]) : list,
@@ -249,7 +279,7 @@ function ClasesInner() {
     } catch {
       setBrowseState("error");
     }
-  }, [daysNeeded, view, styleId, levelId, academyId]);
+  }, [daysNeeded, scope, styleId, levelId, academyId]);
 
   const loadHistory = useCallback(async () => {
     setHistoryState("loading");
@@ -266,19 +296,19 @@ function ClasesInner() {
     }
   }, []);
 
-  // Cada vista carga solo lo que muestra: reservadas vive de /mine,
-  // el resto de list/calendar/explore del browse (con su scope).
+  // Cada scope carga solo lo que muestra: historial de /mine?scope=past,
+  // reservadas de /mine, el resto del browse (enrolled o directorio).
   useEffect(() => {
-    if (view === "history") {
+    if (scope === "historial") {
       void loadHistory();
       return;
     }
-    if (scope === "reservadas" && view !== "explore") {
+    if (scope === "mias" && calScope === "reservadas") {
       void loadMine();
       return;
     }
     void loadBrowse();
-  }, [view, scope, loadMine, loadHistory, loadBrowse]);
+  }, [scope, calScope, loadMine, loadHistory, loadBrowse]);
 
   async function book(cls: BrowseClass): Promise<void> {
     setBusyId(cls.id);
@@ -322,8 +352,8 @@ function ClasesInner() {
     upto * 7 + 7 <= 60 &&
     pool.some((c) => new Date(c.date).getTime() > horizon);
 
-  // Calendario: en scope "todas" los dots vienen del browse (mis
-  // academias); en "reservadas" de mis reservas — agenda propia.
+  // Calendario: en "todas" (mias) y en explorar los dots vienen del
+  // browse; en "reservadas" de mis reservas — agenda propia.
   const calByDay = new Map<string, BrowseClass[]>();
   for (const c of pool) {
     const key = classDayKey(c.date);
@@ -339,7 +369,9 @@ function ClasesInner() {
   // Opciones de los selects = solo lo que existe en el set sin
   // filtrar del scope (evita elegir un filtro sin resultados).
   const facetPool: (BrowseClass | MyBooking)[] =
-    scope === "reservadas" ? (mine ?? []) : (facetClasses ?? []);
+    scope === "mias" && calScope === "reservadas"
+      ? (mine ?? [])
+      : (facetClasses ?? []);
   const uniq = (
     xs: ({ id: string; name: string } | null | undefined)[],
   ): FilterOption[] => {
@@ -392,7 +424,7 @@ function ClasesInner() {
     myByDay.set(key, [...(myByDay.get(key) ?? []), b]);
   }
   const cells =
-    scope === "reservadas"
+    scope === "mias" && calScope === "reservadas"
       ? weekCells(monday, myByDay)
       : weekCells(monday, calByDay);
   const weekKeys = new Set(cells.map((c) => c.key));
@@ -494,21 +526,15 @@ function ClasesInner() {
     </section>
   );
 
-  const title =
-    view === "explore"
-      ? t("viewExplore")
-      : view === "history"
-        ? t("history")
-        : t("title");
-
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{title}</h1>
-          <div className="flex items-center gap-2">
-            {/* Toggle lista/calendario/historial — íconos, segmented
-                (mismo control que /eventos) */}
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          {/* Display: lista|calendario — íconos segmentados (mismo
+              control que /eventos). El historial es solo lista: sin
+              calendario propio el grupo se oculta. */}
+          {scope !== "historial" && (
             <div
               data-tour="cl-views"
               role="group"
@@ -517,10 +543,9 @@ function ClasesInner() {
             >
               <Link
                 href={hrefFor({
-                  view: undefined,
+                  v: "list",
                   week: undefined,
                   day: undefined,
-                  scope: undefined,
                 })}
                 aria-label={t("viewList")}
                 aria-current={view === "list" ? "true" : undefined}
@@ -531,11 +556,7 @@ function ClasesInner() {
                 </svg>
               </Link>
               <Link
-                href={hrefFor({
-                  view: "calendar",
-                  week: undefined,
-                  day: undefined,
-                })}
+                href={hrefFor({ v: "calendar" })}
                 aria-label={t("viewCalendar")}
                 aria-current={view === "calendar" ? "true" : undefined}
                 className={iconBtn(view === "calendar")}
@@ -545,70 +566,65 @@ function ClasesInner() {
                   <path d="M8 2v3M16 2v3M3 9h18" />
                 </svg>
               </Link>
-              <Link
-                href={hrefFor({
-                  view: "history",
-                  week: undefined,
-                  day: undefined,
-                  scope: undefined,
-                })}
-                aria-label={t("viewHistory")}
-                aria-current={view === "history" ? "true" : undefined}
-                className={iconBtn(view === "history")}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 12a9 9 0 1 0 3-6.7" />
-                  <path d="M3 4v5h5" />
-                  <path d="M12 7v5l3 3" />
-                </svg>
-              </Link>
             </div>
-            {/* Explorar — todas las academias, ícono aparte como
-                el ticket de "Mis entradas" en /eventos */}
-            <Link
-              href={hrefFor({
-                view: "explore",
-                week: undefined,
-                day: undefined,
-                scope: undefined,
-              })}
-              data-tour="cl-explore"
-              aria-label={t("viewExplore")}
-              aria-current={view === "explore" ? "true" : undefined}
-              className={`${iconBtn(view === "explore")} border border-white/15`}
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" />
-              </svg>
-            </Link>
-          </div>
+          )}
+        </div>
+
+        {/* Scope: qué se muestra — pills con texto (3 opciones: los
+            íconos se vuelven crípticos; mismo patrón que /academias). */}
+        <div
+          role="group"
+          aria-label={t("scopesLabel")}
+          className="grid grid-cols-3 rounded-full border border-white/15 p-0.5"
+        >
+          <Link
+            href={hrefFor({ s: "mias" })}
+            aria-current={scope === "mias" ? "true" : undefined}
+            className={`${chipClass(scope === "mias")} justify-center border-0 px-2`}
+          >
+            {t("scopeMine")}
+          </Link>
+          <Link
+            href={hrefFor({ s: "explorar" })}
+            data-tour="cl-explore"
+            aria-current={scope === "explorar" ? "true" : undefined}
+            className={`${chipClass(scope === "explorar")} justify-center border-0 px-2`}
+          >
+            {t("viewExplore")}
+          </Link>
+          <Link
+            href={hrefFor({ s: "historial" })}
+            aria-current={scope === "historial" ? "true" : undefined}
+            className={`${chipClass(scope === "historial")} justify-center border-0 px-2`}
+          >
+            {t("history")}
+          </Link>
         </div>
 
         {/* Filtros: dropdowns de estilo y nivel tipo chip — misma
             gramática que géneros/locales. El toggle Todas|Reservadas
-            vive en list y calendar. */}
-        {view !== "history" && (
+            es sub-filtro de Mis clases (lista y calendario). */}
+        {scope !== "historial" && (
           <>
             {/* Todas|Reservadas (patrón de /practicas) + dropdowns
                 estilo/nivel — en browse van al servidor; en reservadas
                 filtran client-side sobre /classes/mine. */}
             <div className="flex flex-wrap items-center gap-2">
-              {(view === "list" || view === "calendar") && (
+              {scope === "mias" && (
                 <div className="flex items-center rounded-full border border-white/15 p-0.5">
                   <Link
                     href={hrefFor({ scope: undefined })}
-                    aria-current={scope === "todas" ? "true" : undefined}
-                    className={`${chipClass(scope === "todas")} border-0 px-3`}
+                    aria-current={calScope === "todas" ? "true" : undefined}
+                    className={`${chipClass(calScope === "todas")} border-0 px-3`}
                   >
                     {t("scopeAll")}
                   </Link>
                   <Link
                     href={hrefFor({ scope: "reservadas" })}
                     aria-current={
-                      scope === "reservadas" ? "true" : undefined
+                      calScope === "reservadas" ? "true" : undefined
                     }
-                    className={`${chipClass(scope === "reservadas")} border-0 px-3`}
+                    className={`${chipClass(calScope === "reservadas")} border-0 px-3`}
                   >
                     {t("scopeBooked")}
                   </Link>
@@ -678,9 +694,9 @@ function ClasesInner() {
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </div>
-              {/* Academia — solo en explorar: en mis academias el scope
+              {/* Academia — solo en explorar: en mis clases el scope
                   ya es la inscripción. */}
-              {view === "explore" && (
+              {scope === "explorar" && (
                 <div className="relative shrink-0">
                   <select
                     aria-label={t("filterAcademy")}
@@ -729,7 +745,7 @@ function ClasesInner() {
         </p>
       )}
 
-      {view === "history" ? (
+      {scope === "historial" ? (
         /* ─── Historial — progreso personal, no competitivo (spec §9) ─── */
         <section aria-label={t("history")} className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-3">
@@ -826,7 +842,7 @@ function ClasesInner() {
               const isToday = cell.key === todayKey;
               const isSelected = cell.key === selectedDay;
               const dots =
-                scope === "reservadas"
+                scope === "mias" && calScope === "reservadas"
                   ? (cell.items as MyBooking[]).map((b) => ({
                       id: b.id,
                       genre: b.series.style?.genre,
@@ -900,7 +916,7 @@ function ClasesInner() {
                   `${selectedDay}T00:00:00.000Z`,
                 )}
               </h3>
-              {scope === "reservadas" ? (
+              {scope === "mias" && calScope === "reservadas" ? (
                 selectedMine.length === 0 ? (
                   <p className="text-sm text-white/50">{t("noClassesDay")}</p>
                 ) : (
@@ -927,8 +943,8 @@ function ClasesInner() {
             </section>
           )}
         </section>
-      ) : view === "list" && scope === "reservadas" ? (
-        /* ─── Reservadas (ex vista Mis clases): mismo ClassCard ─── */
+      ) : view === "list" && scope === "mias" && calScope === "reservadas" ? (
+        /* ─── Reservadas (sub-filtro de Mis clases): mismo ClassCard ─── */
         <section
           aria-label={t("scopeBooked")}
           className="flex flex-col gap-3"
@@ -965,7 +981,7 @@ function ClasesInner() {
                 <p role="status" className="text-white/70">
                   {t("emptyMine")}
                 </p>
-                <Button href={hrefFor({ view: "explore", scope: undefined })}>
+                <Button href={hrefFor({ s: "explorar" })}>
                   {t("explore")}
                 </Button>
               </Card>
@@ -994,7 +1010,7 @@ function ClasesInner() {
           )}
           {browseState === "ready" &&
             (pool.length === 0 ? (
-              view === "explore" ? (
+              scope === "explorar" ? (
                 <p className="text-white/60">{t("empty")}</p>
               ) : (
                 // Sin inscripciones vigentes (o sin clases en ellas):
@@ -1003,7 +1019,7 @@ function ClasesInner() {
                   <p role="status" className="text-white/70">
                     {t("emptyEnrolled")}
                   </p>
-                  <Button href={hrefFor({ view: "explore" })}>
+                  <Button href={hrefFor({ s: "explorar" })}>
                     {t("explore")}
                   </Button>
                 </Card>
@@ -1046,13 +1062,15 @@ function ClasesInner() {
         </>
       )}
 
-      {/* Tour de primera visita — el switcher y el ícono de Explorar
-          siempre existen; la lista se omite si aún no carga o está vacía. */}
-      {(((view === "list" || view === "explore") && scope === "todas" &&
+      {/* Tour de primera visita — los targets que falten (p.ej. el
+          toggle de display en historial) se omiten solos; la lista se
+          omite si aún no carga o está vacía. */}
+      {((scope !== "historial" &&
+        !(scope === "mias" && calScope === "reservadas") &&
         browseState === "ready") ||
-        (view === "calendar" && browseState === "ready") ||
-        (scope === "reservadas" && mineState === "ready") ||
-        (view === "history" && historyState === "ready")) && (
+        (scope === "mias" && calScope === "reservadas" &&
+          mineState === "ready") ||
+        (scope === "historial" && historyState === "ready")) && (
         <OnboardingRunner
           tour="clases"
           steps={

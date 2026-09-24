@@ -89,7 +89,8 @@
       "classes": "Próximas clases",
       "classesEmpty": "Sin clases programadas próximamente."
     },
-    "viewsLabel": "Vistas"
+    "viewsLabel": "Vistas",
+    "scopesLabel": "Sección"
   },
   "academySeries": {
     "capacityOptional": "default",

@@ -11,17 +11,18 @@ import { PrivateLessons } from "@/components/academy/private-lessons";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 
 // /academias — "Mi Aprendizaje" del modo Academia (spec §9). Misma
-// gramática de vistas que /clases y /eventos: estado en la URL
-// (deep-linkable), íconos segmentados, filtros como chips.
+// gramática que /clases: dos ejes independientes en la URL
+// (deep-linkable) — `s` scope (mias|explorar) como pills con texto y
+// `v` display (lista|mapa) como íconos segmentados; filtros como chips.
 //
-// Vistas (scope):
+// Scopes:
 // - `mias`: academias donde el dancer tiene inscripción — card con
 //   estado/plan/asistencias/videos + link a la ficha /academias/:id.
 // - `explorar`: el resto del directorio (enrolled=false) — card con
 //   estilos impartidos, dirección y profesores.
-// `map=1` cambia la lista por pins de las academias del scope activo;
-// `style` filtra ambas vistas; `q` busca por nombre (explorar, siempre
-// visible).
+// `v=map` cambia la lista por pins de las academias del scope activo;
+// `style` filtra ambos scopes; `q` busca por nombre (explorar, siempre
+// visible). Legado: `v=mias|explorar` era el scope y `map=1` el mapa.
 //
 // Contratos: GET /academies (directorio enriquecido: description,
 // address, lat/lng, styles derivados de series activas, enrolled),
@@ -63,6 +64,7 @@ type AcademyVideo = {
 };
 
 type Scope = "mias" | "explorar";
+type Display = "list" | "map";
 type LoadState = "loading" | "ready" | "error";
 
 // Búsqueda accent-insensitive: "gozadera" encuentra "La Gozadera",
@@ -266,29 +268,13 @@ function AcademiasInner() {
   const searchParams = useSearchParams();
 
   // ─── Estado en URL (mismo patrón que /clases y /eventos) ───
-  const rawView = searchParams.get("v");
-  const isMap = searchParams.get("map") === "1";
+  // `s` = scope (mias|explorar), `v` = display (lista|mapa). Legado:
+  // `v` llevaba el scope y `map=1` el mapa — se leen como fallback.
+  const rawS = searchParams.get("s");
+  const rawV = searchParams.get("v");
+  const legacyMap = searchParams.get("map") === "1";
   const styleId = searchParams.get("style") ?? "";
   const query = searchParams.get("q") ?? "";
-
-  const hrefFor = (o: {
-    v?: string | null;
-    map?: string | null;
-    style?: string | null;
-    q?: string | null;
-  }) => {
-    const merged = {
-      v: rawView || undefined,
-      map: isMap ? "1" : undefined,
-      style: styleId || undefined,
-      q: query || undefined,
-      ...o,
-    };
-    const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(merged)) if (v) params.set(k, v);
-    const qs = params.toString();
-    return `/academias${qs ? `?${qs}` : ""}`;
-  };
 
   const [academies, setAcademies] = useState<DirectoryAcademy[] | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[] | null>(null);
@@ -312,11 +298,41 @@ function AcademiasInner() {
   // Scope: por defecto "mias" si hay inscripciones; sin ellas la vista
   // útil es el directorio — evita una pantalla vacía de entrada.
   const scope: Scope =
-    rawView === "explorar" || rawView === "mias"
-      ? rawView
-      : enrollments !== null && enrollments.length === 0
-        ? "explorar"
-        : "mias";
+    rawS === "explorar" || rawS === "mias"
+      ? rawS
+      : rawV === "explorar" || rawV === "mias"
+        ? rawV
+        : enrollments !== null && enrollments.length === 0
+          ? "explorar"
+          : "mias";
+
+  // Display: lista o mapa — independiente del scope activo.
+  const view: Display = rawV === "map" || legacyMap ? "map" : "list";
+
+  const hrefFor = (o: {
+    s?: string | null;
+    v?: string | null;
+    style?: string | null;
+    q?: string | null;
+  }) => {
+    // Scope/vista destino: override explícito (null/undefined = default)
+    // o el actual. La búsqueda solo existe en explorar — se cae sola
+    // al volver a mis academias para no quedar de filtro invisible.
+    const targetScope = "s" in o ? (o.s ?? "mias") : scope;
+    const targetView = "v" in o ? (o.v ?? "list") : view;
+    const { s: _s, v: _v, ...rest } = o;
+    const merged = {
+      s: targetScope !== "mias" ? targetScope : undefined,
+      v: targetView !== "list" ? targetView : undefined,
+      style: styleId || undefined,
+      q: targetScope === "explorar" ? query || undefined : undefined,
+      ...rest,
+    };
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(merged)) if (v) params.set(k, v);
+    const qs = params.toString();
+    return `/academias${qs ? `?${qs}` : ""}`;
+  };
 
   // Pool del scope: el directorio es la fuente única (enrolled flag).
   // En "mias" se cruza con /enrolled para los datos de inscripción.
@@ -372,53 +388,58 @@ function AcademiasInner() {
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{t("directoryTitle")}</h1>
-          <div className="flex items-center gap-2">
-            {/* Toggle lista/mapa — display del scope activo, íconos
-                segmentados como las vistas de /clases */}
-            <div
-              role="group"
-              aria-label={t("viewsLabel")}
-              className="flex items-center rounded-full border border-white/15 p-0.5"
-            >
-              <Link
-                href={hrefFor({ map: null })}
-                aria-label={t("viewList")}
-                aria-current={!isMap ? "true" : undefined}
-                className={iconBtn(!isMap)}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                  <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
-                </svg>
-              </Link>
-              <Link
-                href={hrefFor({ map: "1" })}
-                aria-label={t("viewMap")}
-                aria-current={isMap ? "true" : undefined}
-                className={iconBtn(isMap)}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
-                  <path d="M8 2v15M16 6v15" />
-                </svg>
-              </Link>
-            </div>
-            {/* Explorar — scope aparte como en /clases: ON = resto del
-                directorio, OFF = mis academias (vuelve al default) */}
+          {/* Toggle lista/mapa — display del scope activo, íconos
+              segmentados como las vistas de /clases */}
+          <div
+            role="group"
+            aria-label={t("viewsLabel")}
+            className="flex items-center rounded-full border border-white/15 p-0.5"
+          >
             <Link
-              href={hrefFor(
-                scope === "explorar" ? { v: "mias", q: null } : { v: "explorar" },
-              )}
-              aria-label={t("viewExplore")}
-              aria-current={scope === "explorar" ? "true" : undefined}
-              className={`${iconBtn(scope === "explorar")} border border-white/15`}
+              href={hrefFor({ v: null })}
+              aria-label={t("viewList")}
+              aria-current={view === "list" ? "true" : undefined}
+              className={iconBtn(view === "list")}
             >
-              {/* brújula — mismo ícono que "explorar" en /clases */}
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+              </svg>
+            </Link>
+            <Link
+              href={hrefFor({ v: "map" })}
+              aria-label={t("viewMap")}
+              aria-current={view === "map" ? "true" : undefined}
+              className={iconBtn(view === "map")}
+            >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" />
+                <path d="M1 6v15l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                <path d="M8 2v15M16 6v15" />
               </svg>
             </Link>
           </div>
+        </div>
+
+        {/* Scope: qué se muestra — pills con texto (mismo patrón que
+            /clases: el display va como íconos, el scope con nombre). */}
+        <div
+          role="group"
+          aria-label={t("scopesLabel")}
+          className="grid grid-cols-2 rounded-full border border-white/15 p-0.5"
+        >
+          <Link
+            href={hrefFor({ s: "mias" })}
+            aria-current={scope === "mias" ? "true" : undefined}
+            className={`${chipClass(scope === "mias")} justify-center border-0 px-3`}
+          >
+            {t("learner.myAcademies")}
+          </Link>
+          <Link
+            href={hrefFor({ s: "explorar" })}
+            aria-current={scope === "explorar" ? "true" : undefined}
+            className={`${chipClass(scope === "explorar")} justify-center border-0 px-3`}
+          >
+            {t("viewExplore")}
+          </Link>
         </div>
 
         {/* Filtro de estilo — aplica a ambas vistas (y a los pins del
@@ -495,7 +516,7 @@ function AcademiasInner() {
       )}
 
       {state === "ready" &&
-        (isMap ? (
+        (view === "map" ? (
           /* ─── Mapa del scope activo — pins a la ficha /academias/:id ─── */
           <section aria-label={t("viewMap")}>
             {mapPins.length === 0 ? (
