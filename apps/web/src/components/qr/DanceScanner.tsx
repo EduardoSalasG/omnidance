@@ -24,7 +24,8 @@ type EventListItem = {
   startsAt: string;
   endsAt: string;
   series: { name: string } | null;
-  venue: { name: string };
+  // Eventos standalone (p.ej. galas de academia) pueden no tener venue.
+  venue: { name: string } | null;
 };
 
 const FEEDBACK_MS = 2600;
@@ -196,7 +197,8 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
                     </div>
                     <h3 className="mt-1 text-lg font-semibold">{e.name}</h3>
                     <p className="text-sm text-white/60">
-                      <EventDate start={e.startsAt} /> · {e.venue.name}
+                      <EventDate start={e.startsAt} />
+                      {e.venue ? ` · ${e.venue.name}` : ""}
                     </p>
                   </Card>
                 </Link>

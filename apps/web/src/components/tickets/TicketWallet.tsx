@@ -20,7 +20,8 @@ export type WalletTicket = {
     id: string;
     name: string;
     startsAt: string;
-    venue: { name: string };
+    // Eventos standalone (p.ej. galas de academia) pueden no tener venue.
+    venue: { name: string } | null;
   };
 };
 
@@ -171,9 +172,11 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
                     start={ticket.event.startsAt}
                     className="text-sm text-white/60"
                   />
-                  <p className="text-sm text-white/50">
-                    {ticket.event.venue.name}
-                  </p>
+                  {ticket.event.venue && (
+                    <p className="text-sm text-white/50">
+                      {ticket.event.venue.name}
+                    </p>
+                  )}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2">
                   <Badge
