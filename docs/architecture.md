@@ -61,7 +61,7 @@ src/<dominio>/
 | qr | `/api/qr/mine` QR rotativo | SessionGuard |
 | sessions | `/api/sessions/*` invitar/confirmar/puntuar | SessionGuard + wiring notify+badges |
 | checkins | `/api/checkins*` staff door scan/manual | `checkins.write` |
-| payments | `/api/checkout` (ticket / series-pass / membership — plan de academia), `/api/tickets`, `/api/payments/webhook` | mixto (checkout = preventa o puerta-app según estado/corte del evento) |
+| payments | `/api/checkout` (ticket / series-pass / membership — plan de academia), `/api/tickets`, `/api/payments/webhook` (Flow notifica `{token}` → se confirma vía `payment/getStatus` firmado), `GET /api/payments/:id` (polling del checkout; si la orden sigue PENDING y el gateway es Flow, consulta `payment/getStatusByCommerceId` y liquida con la misma lógica del webhook — cubre sandbox/dev donde el webhook no alcanza localhost) | mixto (checkout = preventa o puerta-app según estado/corte del evento) |
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
 | notifications | `/api/notifications` (`?unread=&limit=&lens=` — lens acota lista y unreadCount al dominio social/academy), `/api/push-tokens` | SessionGuard |
 | social | `/api/events/:id/waitlist`, `/practices`, `/venues`, `/styles`, `/partner-requests`, `/availability`, `/guest-lists`, `/friends`, `/friends/upcoming-events`, `/people/:id`; consola venue: `/venues/mine`, `/venues/:id/dashboard` (KPIs + reservas de mesa + flujo: hora peak/permanencia), `/venues/:id/rentals/:id` PATCH | mixto `social.manage` / `venues.manage` |
@@ -195,6 +195,14 @@ erDiagram
 | `waitlist.promote` | social | notify SOCIAL `waitlist.promoted` |
 
 `RATED` cuenta como actividad confirmada en streaks/badges/misiones/leaderboard (`confirmedSessions*` incluye `["CONFIRMED","RATED"]`).
+
+## Pasarela de pago (Flow)
+
+- **Selección por env** (`resolveGateway` en `payments.module.ts`): `PAYMENT_GATEWAY=stub` (default, simulado local — acepta webhooks sin firma) o `=flow` con `FLOW_API_KEY` + `FLOW_SECRET_KEY` (sandbox.flow.cl → Mis datos → Integraciones; son distintas a las de producción).
+- **Sandbox-only**: `FLOW_BASE_URL` debe ser `https://sandbox.flow.cl/api` — cualquier otro valor hace fail-fast al boot. Producción (`https://www.flow.cl/api`) se habilita solo tras validar end-to-end en sandbox.
+- **`API_URL`** es la URL pública de la API para `urlConfirmation` (webhook de Flow). En local Flow no puede alcanzar `localhost`, por eso `GET /payments/:id` consulta `payment/getStatusByCommerceId` cuando la orden sigue PENDING — el checkout liquida igual al volver. En despliegue, `API_URL` real + webhook.
+- Firma: HMAC-SHA256 sobre params ordenados alfabéticamente (`nombre`+`valor` concatenados), enviada como `s` — nunca loggear keys ni firmas.
+- **Tarifa Flow**: ~3.19% sobre el bruto cobrado por tarjeta — costo nuestro (merchant fee); **no** se descuenta al payout de academia/productor (su `fee` es nuestro `service_fee`/comisión de plataforma).
 
 ## Persistencia y seeds
 
