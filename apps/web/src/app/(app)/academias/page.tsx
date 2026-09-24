@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -20,7 +20,8 @@ import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 // - `explorar`: el resto del directorio (enrolled=false) — card con
 //   estilos impartidos, dirección y profesores.
 // `map=1` cambia la lista por pins de las academias del scope activo;
-// `style` filtra ambas vistas; `search=1`+`q` busca por nombre (explorar).
+// `style` filtra ambas vistas; `q` busca por nombre (explorar, siempre
+// visible).
 //
 // Contratos: GET /academies (directorio enriquecido: description,
 // address, lat/lng, styles derivados de series activas, enrolled),
@@ -269,21 +270,18 @@ function AcademiasInner() {
   const isMap = searchParams.get("map") === "1";
   const styleId = searchParams.get("style") ?? "";
   const query = searchParams.get("q") ?? "";
-  const searchOpen = searchParams.get("search") === "1";
 
   const hrefFor = (o: {
     v?: string | null;
     map?: string | null;
     style?: string | null;
     q?: string | null;
-    search?: string | null;
   }) => {
     const merged = {
       v: rawView || undefined,
       map: isMap ? "1" : undefined,
       style: styleId || undefined,
       q: query || undefined,
-      search: searchOpen ? "1" : undefined,
       ...o,
     };
     const params = new URLSearchParams();
@@ -295,7 +293,6 @@ function AcademiasInner() {
   const [academies, setAcademies] = useState<DirectoryAcademy[] | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[] | null>(null);
   const [state, setState] = useState<LoadState>("loading");
-  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void Promise.all([
@@ -311,11 +308,6 @@ function AcademiasInner() {
       .then(() => setState("ready"))
       .catch(() => setState("error"));
   }, []);
-
-  // Autofocus al abrir el buscador (la lupa explícita pide el campo).
-  useEffect(() => {
-    if (searchOpen) searchRef.current?.focus();
-  }, [searchOpen]);
 
   // Scope: por defecto "mias" si hay inscripciones; sin ellas la vista
   // útil es el directorio — evita una pantalla vacía de entrada.
@@ -414,9 +406,7 @@ function AcademiasInner() {
                 directorio, OFF = mis academias (vuelve al default) */}
             <Link
               href={hrefFor(
-                scope === "explorar"
-                  ? { v: "mias", q: null, search: null }
-                  : { v: "explorar" },
+                scope === "explorar" ? { v: "mias", q: null } : { v: "explorar" },
               )}
               aria-label={t("viewExplore")}
               aria-current={scope === "explorar" ? "true" : undefined}
@@ -428,23 +418,6 @@ function AcademiasInner() {
                 <path d="M15.5 8.5l-2.2 4.8-4.8 2.2 2.2-4.8z" />
               </svg>
             </Link>
-            {/* Lupa — buscar por nombre, solo en explorar */}
-            {scope === "explorar" && (
-              <Link
-                href={hrefFor({
-                  search: searchOpen ? null : "1",
-                  q: searchOpen ? null : query || null,
-                })}
-                aria-label={t("searchName")}
-                aria-current={searchOpen ? "true" : undefined}
-                className={`${iconBtn(searchOpen)} border border-white/15`}
-              >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-              </Link>
-            )}
           </div>
         </div>
 
@@ -482,9 +455,10 @@ function AcademiasInner() {
           </div>
         </div>
 
-        {/* Buscador por nombre — la lupa lo revela en explorar; se
-            escribe en la URL (router.replace para no ensuciar history). */}
-        {scope === "explorar" && searchOpen && (
+        {/* Buscador por nombre — siempre visible en explorar (sin
+            toggle); se escribe en la URL con router.replace para no
+            ensuciar history al teclear. */}
+        {scope === "explorar" && (
           <div className="relative">
             <svg
               aria-hidden="true"
@@ -500,7 +474,6 @@ function AcademiasInner() {
               <path d="m21 21-4.3-4.3" />
             </svg>
             <input
-              ref={searchRef}
               type="search"
               value={query}
               onChange={(e) =>
