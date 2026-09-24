@@ -1,6 +1,10 @@
 import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FlowGateway } from "./flow.gateway";
+import {
+  sanitizeGatewayPayload,
+  type GatewayTxEntry,
+} from "./gateway-transactions.service";
 import { StubGateway } from "./stub.gateway";
 import { resolveGateway } from "../payments.module";
 
@@ -28,6 +32,10 @@ function mockFetch(payload: unknown, ok = true, status = 200) {
     ok,
     status,
     json: () => Promise.resolve(payload),
+    text: () =>
+      Promise.resolve(
+        typeof payload === "string" ? payload : JSON.stringify(payload),
+      ),
   });
   vi.stubGlobal("fetch", spy);
   return spy;
@@ -168,6 +176,130 @@ describe("FlowGateway", () => {
       mockFetch({ status });
       expect(await makeGateway().refreshStatus("r")).toBe(expected);
     });
+  });
+
+  describe("auditoría GatewayTransaction (onTx)", () => {
+    function auditedGateway(txLog: GatewayTxEntry[]) {
+      return new FlowGateway(KEY, SECRET, BASE, CONFIRM, async (e) => {
+        txLog.push(e);
+      });
+    }
+
+    it("registra GatewayTransaction por cada call, firma sanitizada", async () => {
+      const txLog: GatewayTxEntry[] = [];
+      mockFetch({ url: "u", token: "t", flowOrder: 1 });
+      const gw = auditedGateway(txLog);
+      await gw.createOrder({
+        refId: "tkt_a_b",
+        amount: 1,
+        email: "e",
+        returnUrl: "r",
+      });
+      expect(txLog).toHaveLength(1);
+      expect(txLog[0].endpoint).toBe("payment/create");
+      expect(txLog[0].direction).toBe("OUTBOUND");
+      expect(txLog[0].provider).toBe("FLOW");
+      expect(txLog[0].ok).toBe(true);
+      expect(txLog[0].httpStatus).toBe(200);
+      expect(txLog[0].durationMs).toBeGreaterThanOrEqual(0);
+      expect(txLog[0].correlationId).toBeTruthy();
+      const req = txLog[0].requestBody as Record<string, string>;
+      expect(req.s).toMatch(/^sha256:/);
+      expect(req.s).not.toHaveLength(64); // nunca la firma completa
+      expect(req.commerceOrder).toBe("tkt_a_b");
+      const res = txLog[0].responseBody as Record<string, unknown>;
+      expect(res.token).toBe("t");
+    });
+
+    it("verifyWebhook registra payment/getStatus (GET)", async () => {
+      const txLog: GatewayTxEntry[] = [];
+      mockFetch({ status: 2, commerceOrder: "tkt_e1_abc" });
+      const gw = auditedGateway(txLog);
+      await gw.verifyWebhook({ token: "tok9" });
+      expect(txLog).toHaveLength(1);
+      expect(txLog[0].endpoint).toBe("payment/getStatus");
+      expect(txLog[0].direction).toBe("OUTBOUND");
+      expect(txLog[0].ok).toBe(true);
+      const req = txLog[0].requestBody as Record<string, string>;
+      expect(req.token).toBe("tok9");
+      expect(req.s).toMatch(/^sha256:/);
+    });
+
+    it("refreshStatus registra payment/getStatusByCommerceId (GET)", async () => {
+      const txLog: GatewayTxEntry[] = [];
+      mockFetch({ status: 2 });
+      const gw = auditedGateway(txLog);
+      await gw.refreshStatus("mem_p1_x");
+      expect(txLog).toHaveLength(1);
+      expect(txLog[0].endpoint).toBe("payment/getStatusByCommerceId");
+      expect(txLog[0].ok).toBe(true);
+      const req = txLog[0].requestBody as Record<string, string>;
+      expect(req.commerceOrder).toBe("mem_p1_x");
+      expect(req.s).toMatch(/^sha256:/);
+    });
+
+    it("error HTTP → entry con ok=false, httpStatus y error; la excepción propaga", async () => {
+      const txLog: GatewayTxEntry[] = [];
+      mockFetch({ code: 108, message: "orden inválida" }, false, 400);
+      const gw = auditedGateway(txLog);
+      await expect(
+        gw.createOrder({ refId: "tkt_x", amount: 1, email: "e", returnUrl: "r" }),
+      ).rejects.toThrow("flow payment/create HTTP 400: orden inválida");
+      expect(txLog).toHaveLength(1);
+      expect(txLog[0].ok).toBe(false);
+      expect(txLog[0].httpStatus).toBe(400);
+      expect(txLog[0].error).toContain("HTTP 400");
+      const res = txLog[0].responseBody as Record<string, unknown>;
+      expect(res.message).toBe("orden inválida");
+    });
+
+    it("falla de red (fetch rechaza) → entry con ok=false y sin httpStatus", async () => {
+      const txLog: GatewayTxEntry[] = [];
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockRejectedValue(new Error("socket hang up")),
+      );
+      const gw = auditedGateway(txLog);
+      await expect(gw.refreshStatus("r")).rejects.toThrow("socket hang up");
+      expect(txLog).toHaveLength(1);
+      expect(txLog[0].ok).toBe(false);
+      expect(txLog[0].httpStatus).toBeUndefined();
+      expect(txLog[0].error).toBe("socket hang up");
+      expect(txLog[0].durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it("sin onTx (ctor de 4 args) las llamadas siguen funcionando", async () => {
+      mockFetch({ status: 2, commerceOrder: "tkt_e1_abc" });
+      const out = await makeGateway().verifyWebhook({ token: "t" });
+      expect(out.status).toBe("PAID");
+    });
+  });
+});
+
+describe("sanitizeGatewayPayload", () => {
+  it("s → sha256:<16 hex>, nunca la firma raw", () => {
+    const out = sanitizeGatewayPayload({
+      apiKey: "k",
+      s: "a".repeat(64),
+      token: "t",
+    }) as Record<string, string>;
+    expect(out.s).toMatch(/^sha256:[0-9a-f]{16}$/);
+    expect(out.apiKey).toBe("k");
+    expect(out.token).toBe("t");
+  });
+
+  it("mismo s → misma huella (correlacionable); distinto s → distinta", () => {
+    const a = sanitizeGatewayPayload({ s: "sig-a" }) as { s: string };
+    const b = sanitizeGatewayPayload({ s: "sig-a" }) as { s: string };
+    const c = sanitizeGatewayPayload({ s: "sig-b" }) as { s: string };
+    expect(a.s).toBe(b.s);
+    expect(a.s).not.toBe(c.s);
+  });
+
+  it("no-objeto → tal cual (null/undefined → null)", () => {
+    expect(sanitizeGatewayPayload(undefined)).toBeNull();
+    expect(sanitizeGatewayPayload(null)).toBeNull();
+    expect(sanitizeGatewayPayload("raw")).toBe("raw");
   });
 });
 
