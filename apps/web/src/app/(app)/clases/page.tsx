@@ -750,14 +750,13 @@ function ClasesInner() {
 
             {/* Clase particular 1:1 — la solicitud y "mis solicitudes"
                 viven en /clases/particular (antes embebidas en
-                /academias). */}
-            <Button
-              href="/clases/particular"
-              variant="secondary"
-              className="self-start"
-            >
-              {ta("requestTitle")}
-            </Button>
+                /academias). En lista va en la fila "Esta semana"; en
+                calendario se queda aquí para no perder el CTA. */}
+            {view === "calendar" && (
+              <Button href="/clases/particular" className="self-start">
+                {ta("requestTitle")}
+              </Button>
+            )}
           </>
         )}
       </header>
@@ -1062,9 +1061,14 @@ function ClasesInner() {
             ) : (
               <div className="flex flex-col gap-8">
                 <section data-tour="cl-list">
-                  <h2 className="mb-3 text-sm font-semibold text-neon">
-                    {te("thisWeek")}
-                  </h2>
+                  <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <Button size="sm" href="/clases/particular">
+                      {ta("requestTitle")}
+                    </Button>
+                    <h2 className="text-sm font-semibold text-neon">
+                      {te("thisWeek")}
+                    </h2>
+                  </div>
                   <div className="flex flex-col gap-6">
                     {groupByDay(thisWeek).map(renderClassDayGroup)}
                     {thisWeek.length === 0 && (
