@@ -12,24 +12,11 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
-import { randomBytes } from "node:crypto";
 import type { Request } from "express";
-import type { Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
-import {
-  decodeMembershipRef,
-  decodeSeriesPassRef,
-  decodeTicketOrderRef,
-} from "../domain/order-ref";
-import {
-  membershipBase,
-  membershipEndsAt,
-} from "../domain/membership-vigency";
-import { ParamsService } from "../../params/params.service";
-import { NotificationsService } from "../../notifications/domain/notifications.service";
-import { SERVICE_FEE } from "@omnidance/shared";
+import { PaymentSettlementService } from "../application/payment-settlement.service";
 
 class WebhookDto {
   @IsOptional()
@@ -55,16 +42,21 @@ export class PaymentsController {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
-    private readonly params: ParamsService,
-    private readonly notifications: NotificationsService,
+    private readonly settlement: PaymentSettlementService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
-  // Idempotente: re-notificación PAID no duplica ticket ni usedCount.
+  // Idempotente: re-notificación PAID no duplica ticket ni usedCount —
+  // la transición real vive en PaymentSettlementService.settle; aquí solo
+  // queda verificación + lookup + evidencia WEBHOOK_RECEIVED.
   @Post("webhook")
   @HttpCode(200)
   async webhook(@Body() body: WebhookDto) {
-    let result: { refId: string; status: "PAID" | "FAILED" };
+    let result: {
+      refId: string;
+      status: "PAID" | "FAILED";
+      gatewayData?: unknown;
+    };
     try {
       result = await this.gateway.verifyWebhook(body);
     } catch {
@@ -76,484 +68,18 @@ export class PaymentsController {
     });
     if (!payment) throw new NotFoundException("pago no encontrado");
 
-    return this.settle(payment, result.status);
-  }
-
-  /**
-   * Liquida el pago según el estado confirmado por la pasarela — lo
-   * llaman el webhook (notificación pasiva) y getPayment (consulta
-   * activa en sandbox/dev, donde el webhook no llega a localhost).
-   */
-  private async settle(payment: Payment, status: "PAID" | "FAILED") {
-    // ya PAID → idempotente (re-notificación de la pasarela)
-    if (payment.status === "PAID") {
-      return { ok: true, status: "PAID" as const, duplicated: true };
-    }
-
-    if (status === "FAILED") {
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: { status: "FAILED" },
-      });
-      const failedEvent = payment.eventId
-        ? await this.prisma.event.findUnique({
-            where: { id: payment.eventId },
-            select: { name: true, startsAt: true },
-          })
-        : null;
-      await this.notifications.notifySafe(payment.personId, {
-        category: "TRANSACTIONAL",
-        type: "payment.failed",
-        title: "Tu pago no pudo procesarse",
-        body: failedEvent ? `Para ${failedEvent.name}` : undefined,
-        data: {
-          paymentId: payment.id,
-          refId: payment.refId,
-          eventId: payment.eventId,
-          eventName: failedEvent?.name ?? null,
-          eventStartsAt: failedEvent?.startsAt?.toISOString() ?? null,
-        },
-      });
-      return { ok: true, status: "FAILED" };
-    }
-
-    // SERIES_PASS: rama separada del flujo ticket. A diferencia del ticket,
-    // la orden no tiene contexto en columnas (Payment.eventId es null por
-    // diseño — el pase es de la serie, no de un evento): el (seriesId, month)
-    // viaja codificado en el refId y se decodifica como fuente primaria.
-    if (payment.orderType === "SERIES_PASS") {
-      return this.settleSeriesPass(payment);
-    }
-
-    // MEMBERSHIP: igual que el pase, el contexto solo viaja en el refId —
-    // el settle decodifica el plan y materializa/renueva el Enrollment.
-    if (payment.orderType === "MEMBERSHIP") {
-      return this.settleMembership(payment);
-    }
-
-    // El contexto de la compra vive en columnas (Payment.eventId/
-    // discountCodeId); refId queda solo como correlación con la pasarela.
-    // Fallback al decode para pagos legacy sin las columnas.
-    const order = payment.eventId
-      ? { eventId: payment.eventId, codeId: payment.discountCodeId }
-      : decodeTicketOrderRef(payment.refId);
-    if (!order) {
-      throw new BadRequestException("pago sin contexto de orden ticket");
-    }
-
-    // fee parametrizable: se lee ANTES de abrir la tx (usa this.prisma, no
-    // tx). Override admin del evento → PlatformParam → env → default shared.
-    // El evento también se reutiliza dentro de la tx para el quote/ticket.
-    const event = await this.prisma.event.findUnique({
-      where: { id: order.eventId },
-      select: {
-        presalePrice: true,
-        serviceFeeClp: true,
-        name: true,
-        startsAt: true,
-        producerId: true,
-      },
-    });
-    const serviceFeeClp =
-      event?.serviceFeeClp ??
-      (await this.params.getNumber(
-        "service_fee.presale_clp",
-        Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
-      ));
-
-    // la notificación solo sale si esta llamada fue la que marcó PAID
-    // (no en re-notificaciones ni carreras perdidas dentro de la tx)
-    let paidNow = false;
-    let reservationCreated = false;
-    await this.prisma.$transaction(async (tx) => {
-      // re-check dentro de la tx: doble webhook concurrente no duplica
-      const fresh = await tx.payment.findUnique({
-        where: { id: payment.id },
-        select: { status: true },
-      });
-      if (!fresh || fresh.status === "PAID") return;
-
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: { status: "PAID" },
-      });
-      paidNow = true;
-
-      // el ticket SOLO se emite cuando el pago queda PAID.
-      // Economía unitaria: la orden la desnormalizó al checkout
-      // (unitListPrice/unitServiceFee cubren preventa y puerta app);
-      // pagos legacy sin columnas caen al re-derive por presalePrice.
-      const code = order.codeId
-        ? await tx.discountCode.findUnique({ where: { id: order.codeId } })
-        : null;
-      const unitListPrice =
-        payment.unitListPrice ?? event?.presalePrice ?? 0;
-      const unitServiceFee = payment.unitServiceFee ?? serviceFeeClp;
-
-      // Multi-entrada: un ticket para el comprador + uno por destinatario
-      // de regalo (ownerId=amigo, giftedFromId=comprador). El descuento se
-      // audita una sola vez — solo el ticket del comprador lo referencia.
-      const recipientIds = Array.isArray(payment.recipients)
-        ? (payment.recipients as string[]).filter(
-            (id): id is string => typeof id === "string",
-          )
-        : [];
-      await tx.ticket.create({
-        data: {
-          eventId: order.eventId,
-          ownerId: payment.personId,
-          buyerId: payment.personId,
-          paymentId: payment.id,
-          listPrice: unitListPrice,
-          serviceFee: unitServiceFee,
-          discountCodeId: code?.id ?? null,
-        },
-      });
-      for (const ownerId of recipientIds) {
-        await tx.ticket.create({
-          data: {
-            eventId: order.eventId,
-            ownerId,
-            buyerId: payment.personId,
-            giftedFromId: payment.personId,
-            paymentId: payment.id,
-            listPrice: unitListPrice,
-            serviceFee: unitServiceFee,
-          },
-        });
-      }
-
-      // Reclamables: entradas sobrantes de la orden quedan del comprador
-      // con claimToken — el destinatario las reclama en /reclamar/:token
-      // aunque no esté registrado ni sea amigo.
-      const unassigned = Math.max(
-        0,
-        payment.quantity - 1 - recipientIds.length,
-      );
-      for (let i = 0; i < unassigned; i++) {
-        await tx.ticket.create({
-          data: {
-            eventId: order.eventId,
-            ownerId: payment.personId,
-            buyerId: payment.personId,
-            paymentId: payment.id,
-            claimToken: randomBytes(16).toString("hex"),
-            listPrice: unitListPrice,
-            serviceFee: unitServiceFee,
-          },
-        });
-      }
-
-      // Reserva de mesa del checkout (spec §13): la intención viajó en
-      // Payment.tablePartySize y se materializa solo con el pago PAID.
-      // Dedup: una activa por persona/evento (como el POST standalone).
-      if (payment.tablePartySize) {
-        const existingReservation = await tx.tableReservation.findFirst({
-          where: {
-            eventId: order.eventId,
-            personId: payment.personId,
-            status: { in: ["REQUESTED", "CONFIRMED"] },
-          },
-          select: { id: true },
-        });
-        if (!existingReservation) {
-          await tx.tableReservation.create({
-            data: {
-              eventId: order.eventId,
-              personId: payment.personId,
-              partySize: payment.tablePartySize,
-              status: "REQUESTED",
-            },
-          });
-          reservationCreated = true;
-        }
-      }
-
-      if (code) {
-        // auditoría de la redemption + consumo del uso
-        await tx.discountRedemption.create({
-          data: {
-            codeId: code.id,
-            personId: payment.personId,
-            paymentId: payment.id,
-          },
-        });
-        await tx.discountCode.update({
-          where: { id: code.id },
-          data: { usedCount: { increment: 1 } },
-        });
-      }
+    // WEBHOOK_RECEIVED se emite SIEMPRE — un webhook duplicado también es
+    // evidencia. Los eventos de transición (STATUS_CONFIRMED, SETTLED,
+    // FAILED…) solo se emiten dentro del settle cuando hay cambio real.
+    await this.settlement.recordWebhookReceived(payment, {
+      remoteStatus: result.status,
+      body,
     });
 
-    if (paidNow) {
-      const clp = new Intl.NumberFormat("es-CL", {
-        style: "currency",
-        currency: "CLP",
-        maximumFractionDigits: 0,
-      }).format(payment.amount);
-      await this.notifications.notifySafe(payment.personId, {
-        category: "TRANSACTIONAL",
-        type: "payment.paid",
-        title: "Pago confirmado — tu ticket está listo",
-        body: event
-          ? `${event.name} · ${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`
-          : `${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`,
-        data: {
-          paymentId: payment.id,
-          refId: payment.refId,
-          eventId: order.eventId,
-          eventName: event?.name ?? null,
-          eventStartsAt: event?.startsAt?.toISOString() ?? null,
-          quantity: payment.quantity,
-          amount: payment.amount,
-        },
-      });
-
-      // Aviso al productor: nueva solicitud de mesa desde el checkout
-      // (solo si efectivamente se creó — no en dedup de reserva activa).
-      if (reservationCreated && event?.producerId) {
-        const buyer = await this.prisma.person.findUnique({
-          where: { id: payment.personId },
-          select: { name: true },
-        });
-        await this.notifications.notifySafe(event.producerId, {
-          category: "TRANSACTIONAL",
-          type: "table.requested",
-          title: "Nueva solicitud de mesa",
-          body: `${buyer?.name ?? "Un asistente"} · ${payment.tablePartySize} personas · ${event.name}`,
-          data: {
-            paymentId: payment.id,
-            eventId: order.eventId,
-            eventName: event.name,
-            partySize: payment.tablePartySize,
-            personId: payment.personId,
-          },
-        });
-      }
-
-      // Aviso a cada destinatario de regalo: quién la compró + qué evento.
-      const recipientIds = Array.isArray(payment.recipients)
-        ? (payment.recipients as string[]).filter(
-            (id): id is string => typeof id === "string",
-          )
-        : [];
-      if (recipientIds.length) {
-        const buyer = await this.prisma.person.findUnique({
-          where: { id: payment.personId },
-          select: { name: true },
-        });
-        const buyerName = buyer?.name ?? "Un amigo";
-        for (const ownerId of recipientIds) {
-          await this.notifications.notifySafe(ownerId, {
-            category: "TRANSACTIONAL",
-            type: "ticket.gifted",
-            title: `${buyerName} te regaló una entrada`,
-            body: event?.name
-              ? `Para ${event.name} — ya está en Mis entradas`
-              : "Ya está en Mis entradas",
-            data: {
-              paymentId: payment.id,
-              refId: payment.refId,
-              eventId: order.eventId,
-              eventName: event?.name ?? null,
-              eventStartsAt: event?.startsAt?.toISOString() ?? null,
-              buyerId: payment.personId,
-              buyerName,
-            },
-          });
-        }
-      }
-    }
-
-    return { ok: true, status: "PAID" };
-  }
-
-  /**
-   * Liquidación del pase de serie al PAID: marca el Payment y hace upsert del
-   * SeriesPass por @@unique([seriesId,personId,month]) — re-pago del mismo mes
-   * solo refresca el precio, nunca duplica. Idempotente: re-notificación PAID
-   * sale antes (ramal "duplicated") y el re-check dentro de la tx cubre
-   * carreras; la notificación solo sale cuando esta llamada marcó PAID.
-   */
-  private async settleSeriesPass(payment: Payment) {
-    const order = decodeSeriesPassRef(payment.refId);
-    if (!order) {
-      throw new BadRequestException("pago sin contexto de orden series pass");
-    }
-
-    let paidNow = false;
-    await this.prisma.$transaction(async (tx) => {
-      // re-check dentro de la tx: doble webhook concurrente no duplica
-      const fresh = await tx.payment.findUnique({
-        where: { id: payment.id },
-        select: { status: true },
-      });
-      if (!fresh || fresh.status === "PAID") return;
-
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: { status: "PAID" },
-      });
-      paidNow = true;
-
-      // el SeriesPass SOLO se emite cuando el pago queda PAID
-      await tx.seriesPass.upsert({
-        where: {
-          seriesId_personId_month: {
-            seriesId: order.seriesId,
-            personId: payment.personId,
-            month: order.month,
-          },
-        },
-        update: { price: payment.amount },
-        create: {
-          seriesId: order.seriesId,
-          personId: payment.personId,
-          month: order.month,
-          price: payment.amount,
-        },
-      });
+    return this.settlement.settle(payment, result.status, {
+      actor: "webhook",
+      gatewayData: result.gatewayData,
     });
-
-    if (paidNow) {
-      const series = await this.prisma.classSeries.findUnique({
-        where: { id: order.seriesId },
-        select: { name: true },
-      });
-      await this.notifications.notifySafe(payment.personId, {
-        category: "TRANSACTIONAL",
-        type: "payment.series_pass",
-        title: "Pago confirmado — tu pase de serie está activo",
-        body: series ? `Para ${series.name} · ${order.month}` : undefined,
-        data: {
-          paymentId: payment.id,
-          refId: payment.refId,
-          seriesId: order.seriesId,
-          seriesName: series?.name ?? null,
-          month: order.month,
-        },
-      });
-    }
-
-    return { ok: true, status: "PAID" };
-  }
-
-  /**
-   * Liquidación del plan de academia al PAID: marca el Payment y
-   * materializa/renueva el Enrollment de (academia, persona). Si el
-   * enrollment vigente aún tiene fecha futura, la compra extiende desde
-   * el día siguiente a su vencimiento (membershipBase); si no, parte hoy
-   * y reinicia startedAt. Idempotente igual que el pase de serie.
-   */
-  private async settleMembership(payment: Payment) {
-    const order = decodeMembershipRef(payment.refId);
-    if (!order) {
-      throw new BadRequestException("pago sin contexto de orden membership");
-    }
-    const plan = await this.prisma.membershipPlan.findUnique({
-      where: { id: order.planId },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        periodDays: true,
-        academyId: true,
-        academy: { select: { name: true } },
-      },
-    });
-    if (!plan) {
-      throw new BadRequestException("plan de la orden membership no existe");
-    }
-
-    const now = new Date();
-    let paidNow = false;
-    await this.prisma.$transaction(async (tx) => {
-      const fresh = await tx.payment.findUnique({
-        where: { id: payment.id },
-        select: { status: true },
-      });
-      if (!fresh || fresh.status === "PAID") return;
-
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: { status: "PAID" },
-      });
-      paidNow = true;
-
-      // Enrollment no tiene @@unique(academyId,personId) — el histórico
-      // se permite por diseño (el alta staff ya hace check manual de
-      // duplicados). findFirst + update/create dentro de la tx.
-      const existing = await tx.enrollment.findFirst({
-        where: {
-          academyId: plan.academyId,
-          personId: payment.personId,
-        },
-        orderBy: { createdAt: "desc" },
-        select: { id: true, status: true, startedAt: true, endsAt: true },
-      });
-      // Solo extiende si la inscripción sigue vigente (ACTIVE con fecha
-      // futura); una vencida/pausada reinicia el ciclo desde hoy.
-      const stillActive =
-        existing?.status === "ACTIVE" &&
-        existing.endsAt != null &&
-        existing.endsAt > now;
-      const base = membershipBase(
-        now,
-        stillActive ? existing.endsAt : null,
-      );
-      const endsAt = membershipEndsAt(plan, base);
-
-      if (existing) {
-        await tx.enrollment.update({
-          where: { id: existing.id },
-          data: {
-            planId: plan.id,
-            status: "ACTIVE",
-            pausedAt: null,
-            endsAt,
-            // Renovación conserva el alta original; vuelta desde
-            // pausa/vencimiento reinicia el ciclo.
-            startedAt: stillActive ? existing.startedAt : now,
-          },
-        });
-      } else {
-        await tx.enrollment.create({
-          data: {
-            academyId: plan.academyId,
-            personId: payment.personId,
-            planId: plan.id,
-            status: "ACTIVE",
-            startedAt: now,
-            endsAt,
-          },
-        });
-      }
-    });
-
-    if (paidNow) {
-      const clp = new Intl.NumberFormat("es-CL", {
-        style: "currency",
-        currency: "CLP",
-        maximumFractionDigits: 0,
-      }).format(payment.amount);
-      await this.notifications.notifySafe(payment.personId, {
-        category: "TRANSACTIONAL",
-        type: "payment.membership",
-        title: "Pago confirmado — tu plan está activo",
-        body: `${plan.name} · ${plan.academy.name} · ${clp}`,
-        data: {
-          paymentId: payment.id,
-          refId: payment.refId,
-          planId: plan.id,
-          planName: plan.name,
-          academyId: plan.academyId,
-          academyName: plan.academy.name,
-          amount: payment.amount,
-        },
-      });
-    }
-
-    return { ok: true, status: "PAID" };
   }
 
   // Polling desde el checkout (solo el dueño del pago). Si la pasarela
@@ -573,7 +99,7 @@ export class PaymentsController {
       try {
         const remote = await this.gateway.refreshStatus(payment.refId);
         if (remote !== "PENDING") {
-          await this.settle(payment, remote);
+          await this.settlement.settle(payment, remote, { actor: "polling" });
           const fresh = await this.prisma.payment.findUnique({
             where: { id: payment.id },
             select: { status: true },
