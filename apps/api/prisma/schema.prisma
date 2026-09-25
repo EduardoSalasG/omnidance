@@ -1256,7 +1256,7 @@ model PaymentEvent {
   payment     Payment  @relation(fields: [paymentId], references: [id])
   paymentId   String
   seq         Int
-  type        String   // ORDER_CREATED | GATEWAY_REQUEST | WEBHOOK_RECEIVED | STATUS_CONFIRMED | SETTLED | FAILED | RENEWAL_SETTLED | SUBSCRIPTION_CREATED | SUBSCRIPTION_CANCELED | AMOUNT_MISMATCH | IMPORTED
+  type        String   // ORDER_CREATED | GATEWAY_REQUEST | WEBHOOK_RECEIVED | STATUS_CONFIRMED | SETTLED | FAILED | RENEWAL_SETTLED | SUBSCRIPTION_CREATED | SUBSCRIPTION_CANCELED | AMOUNT_MISMATCH | RENEWAL_FAILED | IMPORTED
   actor       String   // system | webhook | polling | admin | cron | migration | person | reconcile
   prevHash    String
   payloadHash String

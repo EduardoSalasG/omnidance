@@ -231,6 +231,9 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       where: { eventId: { in: eventIds } },
     });
     await prisma.ticket.deleteMany({ where: { eventId: { in: eventIds } } });
+    await prisma.paymentEvent.deleteMany({
+      where: { payment: { personId: { in: peopleIds } } },
+    });
     await prisma.payment.deleteMany({
       where: { personId: { in: peopleIds } },
     });

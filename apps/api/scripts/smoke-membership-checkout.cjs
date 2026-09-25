@@ -62,8 +62,17 @@ async function main() {
   );
 
   // Idempotente: limpia el estado que deja una corrida previa.
+  // PaymentEvent referencia Payment (FK) — el ledger del smoke se borra
+  // primero (solo aplica a payments de prueba, nunca a datos reales).
   await prisma.enrollment.deleteMany({
     where: { academyId: tumbao.id, personId: outsider.id },
+  });
+  const stalePayments = await prisma.payment.findMany({
+    where: { personId: outsider.id, orderType: "MEMBERSHIP" },
+    select: { id: true },
+  });
+  await prisma.paymentEvent.deleteMany({
+    where: { paymentId: { in: stalePayments.map((p) => p.id) } },
   });
   await prisma.payment.deleteMany({
     where: { personId: outsider.id, orderType: "MEMBERSHIP" },
