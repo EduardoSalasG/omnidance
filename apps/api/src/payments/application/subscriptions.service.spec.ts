@@ -665,6 +665,110 @@ describe("SubscriptionsService", () => {
         immediate: true,
       });
     });
+
+    it("ACTIVATING expirada que commiteó ACTIVE entremedio → 409, NO se pisa ni crea fila", async () => {
+      // El request colgado termina entre el findMany y el cancel de la
+      // tx: el updateMany condicional {id, status:"ACTIVATING"} devuelve
+      // count 0 → abortar. Un update incondicional pisaría ACTIVE→
+      // CANCELED y dejaría la sub Flow viva cobrando sin reflejo local.
+      const stale = mkSub({
+        status: "ACTIVATING",
+        createdAt: new Date(Date.now() - 20 * 60_000),
+      });
+      fx.subs.push(stale);
+      const inner = fx.prisma.membershipSubscription as unknown as {
+        updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
+      };
+      const orig = inner.updateMany;
+      inner.updateMany = vi.fn(
+        async ({ where, data }: { where: Row; data: Row }) => {
+          if (where.id === stale.id && where.status === "ACTIVATING") {
+            stale.status = "ACTIVE"; // el request colgado commiteó
+            return { count: 0 };
+          }
+          return orig({ where, data });
+        },
+      );
+
+      await expect(svc.subscribe("p1", "plan1", true)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(stale.status).toBe("ACTIVE"); // no se pisó
+      expect(fx.subs).toHaveLength(1); // no se creó intento nuevo
+      expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("PENDING_CARD expirada claimeada por customer-return entremedio → 409, sin fila nueva", async () => {
+      // El sweep M7 es dirigido por (id, status esperado): si el return
+      // del browser claimeó la pendiente entre el findMany y el update,
+      // count===0 → abortar (si no, quedarían dos filas activables).
+      const stale = mkSub({
+        status: "PENDING_CARD",
+        createdAt: new Date(Date.now() - 20 * 60_000),
+      });
+      fx.subs.push(stale);
+      const inner = fx.prisma.membershipSubscription as unknown as {
+        updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
+      };
+      const orig = inner.updateMany;
+      inner.updateMany = vi.fn(
+        async ({ where, data }: { where: Row; data: Row }) => {
+          if (where.id === stale.id && where.status === "PENDING_CARD") {
+            stale.status = "ACTIVATING"; // customer-return la claimeó
+            return { count: 0 };
+          }
+          return orig({ where, data });
+        },
+      );
+
+      await expect(svc.subscribe("p1", "plan1", true)).rejects.toThrow(
+        ConflictException,
+      );
+      expect(stale.status).toBe("ACTIVATING"); // no se pisó
+      expect(fx.subs).toHaveLength(1);
+      expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("claim perdido y la sub quedó CANCELED → 409 con mensaje de cancelada (N3)", async () => {
+      const pending = mkSub({ status: "PENDING_CARD" });
+      fx.subs.push(pending);
+      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      const inner = fx.prisma.membershipSubscription as unknown as {
+        updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
+      };
+      const orig = inner.updateMany;
+      inner.updateMany = vi.fn(
+        async ({ where, data }: { where: Row; data: Row }) => {
+          if (where.id === pending.id && data.status === "ACTIVATING") {
+            pending.status = "CANCELED"; // cancel/sweep concurrente
+            return { count: 0 };
+          }
+          return orig({ where, data });
+        },
+      );
+
+      await expect(svc.subscribe("p1", "plan1", true)).rejects.toThrow(
+        "cancelada",
+      );
+      expect(flow.createSubscription).not.toHaveBeenCalled();
+    });
+
+    it("createSubscription devuelve status como STRING '4' → CANCELED (coerción M4)", async () => {
+      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.createSubscription.mockResolvedValue({
+        subscriptionId: "fsub-s",
+        planId: "omni_plan1",
+        status: "4" as unknown as number, // Flow a veces manda string
+        next_invoice_date: "2026-10-24",
+        invoices: [],
+      });
+      const r = await svc.subscribe("p1", "plan1", true);
+      expect(r.kind).toBe("subscribed");
+      const sub = fx.subs[0]!;
+      expect(sub.status).toBe("CANCELED");
+      expect(sub.flowSubscriptionId).toBe("fsub-s");
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+    });
   });
 
   describe("customerReturn", () => {
