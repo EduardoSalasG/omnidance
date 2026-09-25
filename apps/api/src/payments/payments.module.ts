@@ -22,6 +22,7 @@ import { CheckoutService } from "./application/checkout.service";
 import { PaymentSettlementService } from "./application/payment-settlement.service";
 import { SubscriptionsService } from "./application/subscriptions.service";
 import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
+import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
@@ -38,6 +39,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
     CheckoutService,
     PaymentSettlementService,
     SubscriptionsService,
+    SubscriptionsScheduler,
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {

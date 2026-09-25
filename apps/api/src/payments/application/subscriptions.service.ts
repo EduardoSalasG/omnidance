@@ -36,6 +36,10 @@ const INTERVAL_COUNT: Record<string, number> = {
 // una fresca del mismo plan se reutiliza (idempotencia del retry).
 const PENDING_CARD_TTL_MS = 15 * 60_000;
 
+// Ventana del reminder pre-cobro: avisa el día anterior (nextInvoiceAt
+// dentro de las próximas 24h, nunca por cobros ya pasados).
+const REMINDER_WINDOW_MS = 24 * 60 * 60_000;
+
 export type SubscribeResult =
   | { kind: "needs_card"; registerUrl: string; subscriptionId: string }
   | { kind: "subscribed"; subscriptionId: string };
@@ -704,7 +708,9 @@ export class SubscriptionsService {
    * falle no aborta el resto — queda loggeada y la reintenta el próximo
    * barrido.
    */
-  async reconcileAll(): Promise<{ checked: number; settled: number }> {
+  async reconcileAll(
+    actor = "reconcile",
+  ): Promise<{ checked: number; settled: number }> {
     if (this.gateway.name !== "FLOW") return { checked: 0, settled: 0 };
     const flow = this.flow();
     const subs = await this.prisma.membershipSubscription.findMany({
@@ -719,7 +725,7 @@ export class SubscriptionsService {
         const fs = await flow.getSubscription(sub.flowSubscriptionId!, {
           correlationId: randomUUID(),
         });
-        settled += await this.reconcileSubscription(sub, fs);
+        settled += await this.reconcileSubscription(sub, fs, actor);
       } catch (e) {
         this.logger.error(
           `reconcile sub ${sub.id}: ${e instanceof Error ? e.message : e}`,
@@ -742,6 +748,14 @@ export class SubscriptionsService {
    * Sync de estado: nextInvoiceAt desde next_invoice_date;
    * cancel_at_period_end → CANCEL_PENDING; status 4 → CANCELED.
    * Devuelve cuántos invoices se liquidaron en esta pasada.
+   *
+   * Encima del sync corren los avisos del cron (T7): el reminder del
+   * cobro del día siguiente (dedup por reminderSentFor === nextInvoiceAt)
+   * y la mora — `morose=1` con invoice impaga → membership.renewal_failed
+   * (dedup por invoiceId en la notificación ya enviada). Política SIN
+   * grace period: el enrollment expira solo en endsAt, acá no se toca
+   * nada más que notificar; la sub tampoco se marca CANCELED por mora
+   * (Flow reintenta el cobro — sigue viva).
    */
   async reconcileSubscription(
     sub: MembershipSubscription,
@@ -828,13 +842,16 @@ export class SubscriptionsService {
       : null;
     let status = sub.status;
     let canceledAt = sub.canceledAt;
-    // Flow puede devolver status como string ("4") — misma coerción
-    // defensiva que en createFlowSubscription.
+    // Flow puede devolver status y flags como strings ("4", "1") —
+    // misma coerción defensiva que en createFlowSubscription.
     const remoteStatus = fs.status == null ? null : Number(fs.status);
     if (remoteStatus === 4) {
       status = "CANCELED";
       canceledAt ??= new Date();
-    } else if (fs.cancel_at_period_end === 1 && status === "ACTIVE") {
+    } else if (
+      Number(fs.cancel_at_period_end) === 1 &&
+      status === "ACTIVE"
+    ) {
       status = "CANCEL_PENDING";
       canceledAt ??= new Date();
     }
@@ -847,6 +864,105 @@ export class SubscriptionsService {
         where: { id: sub.id },
         data: { status, nextInvoiceAt, canceledAt },
       });
+    }
+
+    const now = Date.now();
+    // Reminder del cobro del día siguiente: una vez por nextInvoiceAt
+    // (reminderSentFor lo dedup — si Flow mueve la fecha, se puede
+    // volver a avisar). Solo en ACTIVE: una CANCEL_PENDING no tiene
+    // próximo cobro real aunque Flow siga reportando la fecha.
+    if (
+      status === "ACTIVE" &&
+      nextInvoiceAt != null &&
+      nextInvoiceAt.getTime() > now &&
+      nextInvoiceAt.getTime() <= now + REMINDER_WINDOW_MS &&
+      sub.reminderSentFor?.getTime() !== nextInvoiceAt.getTime()
+    ) {
+      const plan = await this.prisma.membershipPlan.findUnique({
+        where: { id: sub.planId },
+        select: { name: true, academy: { select: { name: true } } },
+      });
+      await this.notifications.notifySafe(sub.personId, {
+        category: "TRANSACTIONAL",
+        type: "membership.renewal_reminder",
+        title: "Mañana se renueva tu suscripción",
+        body: plan
+          ? `${plan.name} · ${plan.academy.name}`
+          : "Se cobrará el próximo período de tu plan",
+        data: {
+          subscriptionId: sub.id,
+          planId: sub.planId,
+          planName: plan?.name ?? null,
+          nextInvoiceAt: nextInvoiceAt.toISOString(),
+        },
+      });
+      await this.prisma.membershipSubscription.update({
+        where: { id: sub.id },
+        data: { reminderSentFor: nextInvoiceAt },
+      });
+      sub.reminderSentFor = nextInvoiceAt;
+    }
+
+    // Mora: Flow reporta morose=1 con la invoice impaga en invoices[].
+    // Sin grace period — solo se notifica una vez por invoice impaga
+    // (dedup por invoiceId en la notificación enviada; Flow crea una
+    // invoice por intento, la más antigua es el inicio del episodio —
+    // clave estable mientras dure la mora).
+    if (Number(fs.morose) === 1) {
+      const unpaid = (fs.invoices ?? [])
+        .filter((inv) => !isFlowInvoicePaid(inv))
+        .sort((a, b) => a.id - b.id)[0];
+      const invoiceId = unpaid != null ? String(unpaid.id) : null;
+      const already = await this.prisma.notification.findFirst({
+        where: {
+          personId: sub.personId,
+          type: "membership.renewal_failed",
+          data: invoiceId
+            ? { path: ["invoiceId"], equals: invoiceId }
+            : { path: ["subscriptionId"], equals: sub.id },
+        },
+        select: { id: true },
+      });
+      if (!already) {
+        // Evidencia en el ledger del último pago de la suscripción
+        // (mismo anchor que SUBSCRIPTION_CANCELED en cancel()).
+        const lastPayment = await this.prisma.payment.findFirst({
+          where: {
+            personId: sub.personId,
+            orderType: "MEMBERSHIP",
+            refId: { startsWith: `mem_${sub.planId}_` },
+          },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+        });
+        if (lastPayment) {
+          await emitPaymentEvent(
+            this.prisma,
+            lastPayment.id,
+            "RENEWAL_FAILED",
+            actor,
+            { subscriptionId: sub.id, invoiceId, morose: true },
+          );
+        }
+        const plan = await this.prisma.membershipPlan.findUnique({
+          where: { id: sub.planId },
+          select: { name: true, academy: { select: { name: true } } },
+        });
+        await this.notifications.notifySafe(sub.personId, {
+          category: "TRANSACTIONAL",
+          type: "membership.renewal_failed",
+          title: "No pudimos cobrar tu suscripción",
+          body: plan
+            ? `${plan.name} · ${plan.academy.name} — reintentaremos el cobro; revisa tu tarjeta`
+            : "Reintentaremos el cobro; revisa tu tarjeta registrada",
+          data: {
+            subscriptionId: sub.id,
+            planId: sub.planId,
+            planName: plan?.name ?? null,
+            invoiceId,
+          },
+        });
+      }
     }
     return settled;
   }
