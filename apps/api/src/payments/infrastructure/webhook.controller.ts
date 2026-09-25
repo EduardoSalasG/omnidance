@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   Inject,
@@ -14,11 +15,20 @@ import {
 } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
 import type { Request, Response } from "express";
+import type { Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PaymentSettlementService } from "../application/payment-settlement.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
+import {
+  decodeMembershipRef,
+  decodeSeriesPassRef,
+  decodeTicketOrderRef,
+} from "../domain/order-ref";
+
+const AUDIT_TAKE = 100;
 
 class WebhookDto {
   @IsOptional()
@@ -133,6 +143,144 @@ export class PaymentsController {
     return { ok: true };
   }
 
+  // ─── Vistas de auditoría por actor ──────────────────────────────────
+  // Row común: montos de la orden + verdad monetaria reportada por la
+  // pasarela (gatewayFeeClp/gatewayReportedAmount/gatewayMedia/
+  // gatewayPaidAt) + eventCount del ledger. `gatewayRaw` nunca sale por
+  // estos endpoints — es evidencia interna (solo admin/browse).
+  // Las rutas estáticas van ANTES de ":id" (Express matchea en orden de
+  // registro — si no, /payments/mine caería en getPayment con id="mine").
+
+  /**
+   * GET /payments/mine — historial del autenticado (≤100, recientes
+   * primero) con contador de eventos del ledger y contexto de compra
+   * resuelto (eventName / seriesName / academyName + planName).
+   */
+  @Get("mine")
+  @UseGuards(SessionGuard)
+  async myPayments(@Req() req: Request) {
+    const payments = await this.prisma.payment.findMany({
+      where: { personId: req.person!.id },
+      orderBy: { createdAt: "desc" },
+      take: AUDIT_TAKE,
+      include: { _count: { select: { events: true } } },
+    });
+    return this.withContextNames(payments);
+  }
+
+  /**
+   * GET /payments/by-event/:eventId — ventas del evento para su
+   * productor (event.producerId === caller) o admin.access.
+   * Solo órdenes con eventId directo: un SERIES_PASS pertenece a la
+   * serie (mes completo), no a una fecha puntual — su devengo ya se
+   * liquida por serie en payouts, mezclarlo aquí inflaría la recaudación
+   * del evento.
+   */
+  @Get("by-event/:eventId")
+  @UseGuards(SessionGuard)
+  async paymentsByEvent(
+    @Req() req: Request,
+    @Param("eventId") eventId: string,
+  ) {
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, producerId: true },
+    });
+    if (!event) throw new NotFoundException("evento no encontrado");
+    const person = req.person!;
+    const isAdmin = await roleKeysHavePermission(this.prisma, person.roles, [
+      "admin.access",
+    ]);
+    if (event.producerId !== person.id && !isAdmin) {
+      throw new ForbiddenException(
+        "requiere ser el productor del evento o admin",
+      );
+    }
+    const payments = await this.prisma.payment.findMany({
+      where: { eventId: event.id },
+      orderBy: { createdAt: "desc" },
+      take: AUDIT_TAKE,
+      include: { _count: { select: { events: true } } },
+    });
+    return this.withContextNames(payments);
+  }
+
+  /**
+   * GET /payments/by-academy/:academyId — cobros MEMBERSHIP de los planes
+   * de la academia. La orden no tiene columna de academia: el refId
+   * (mem_<planId>_<uid>) decodifica al plan y de ahí al academyId — el
+   * filtro `refId startsWith mem_<planId>_` es el mismo decode+belongs
+   * de payouts, resuelto en SQL. Owner de la academia o admin.access
+   * (no existe permiso academies.manage — la administración financiera
+   * de la academia es owner|admin, como canAdministerAcademy).
+   */
+  @Get("by-academy/:academyId")
+  @UseGuards(SessionGuard)
+  async paymentsByAcademy(
+    @Req() req: Request,
+    @Param("academyId") academyId: string,
+  ) {
+    const academy = await this.prisma.academy.findUnique({
+      where: { id: academyId },
+      select: { id: true, ownerId: true },
+    });
+    if (!academy) throw new NotFoundException("academia no encontrada");
+    const person = req.person!;
+    const isAdmin = await roleKeysHavePermission(this.prisma, person.roles, [
+      "admin.access",
+    ]);
+    if (academy.ownerId !== person.id && !isAdmin) {
+      throw new ForbiddenException(
+        "requiere ser el owner de la academia o admin",
+      );
+    }
+    const plans = await this.prisma.membershipPlan.findMany({
+      where: { academyId: academy.id },
+      select: { id: true },
+    });
+    if (!plans.length) return [];
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        orderType: "MEMBERSHIP",
+        OR: plans.map((p) => ({
+          refId: { startsWith: `mem_${p.id}_` },
+        })),
+      },
+      orderBy: { createdAt: "desc" },
+      take: AUDIT_TAKE,
+      include: { _count: { select: { events: true } } },
+    });
+    return this.withContextNames(payments);
+  }
+
+  /**
+   * GET /payments/:id/events — ledger append-only del pago ordenado por
+   * seq: cada evento con su payload y payloadHash (la evidencia
+   * tamper-evident completa). Dueño del pago o admin.access; el staff
+   * del actor relacionado audita vía by-event/by-academy. 404 para
+   * ajenos — misma política anti-enumeración que GET /payments/:id.
+   */
+  @Get(":id/events")
+  @UseGuards(SessionGuard)
+  async paymentEvents(@Req() req: Request, @Param("id") id: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      select: { id: true, personId: true },
+    });
+    if (!payment) throw new NotFoundException("pago no encontrado");
+    const person = req.person!;
+    const isAdmin = await roleKeysHavePermission(this.prisma, person.roles, [
+      "admin.access",
+    ]);
+    if (payment.personId !== person.id && !isAdmin) {
+      throw new NotFoundException("pago no encontrado");
+    }
+    return this.prisma.paymentEvent.findMany({
+      where: { paymentId: payment.id },
+      orderBy: { seq: "asc" },
+    });
+  }
+
   // Polling desde el checkout (solo el dueño del pago). Si la pasarela
   // soporta consulta activa (Flow.refreshStatus por commerceOrder) y la
   // orden sigue PENDING, se le pregunta directamente — cubre sandbox/dev
@@ -194,5 +342,107 @@ export class PaymentsController {
       orderBy: { createdAt: "asc" },
     });
     return tickets;
+  }
+
+  /**
+   * Proyecta filas Payment → row de auditoría y resuelve el contexto de
+   * compra con lookups batch (el schema no declara esas relaciones):
+   * TICKET → eventName (eventId directo; fallback decode tkt_ legacy),
+   * SERIES_PASS → seriesName (refId sp_<seriesId>_), MEMBERSHIP →
+   * academyName + planName (refId mem_<planId>_ → plan.academyId).
+   */
+  private async withContextNames(
+    payments: Array<Payment & { _count: { events: number } }>,
+  ) {
+    const eventIds = new Set<string>();
+    const seriesIds = new Set<string>();
+    const planIds = new Set<string>();
+    for (const p of payments) {
+      const eventId =
+        p.eventId ??
+        (p.orderType === "TICKET"
+          ? decodeTicketOrderRef(p.refId)?.eventId
+          : null);
+      if (eventId) eventIds.add(eventId);
+      if (p.orderType === "SERIES_PASS") {
+        const seriesId = decodeSeriesPassRef(p.refId)?.seriesId;
+        if (seriesId) seriesIds.add(seriesId);
+      }
+      if (p.orderType === "MEMBERSHIP") {
+        const planId = decodeMembershipRef(p.refId)?.planId;
+        if (planId) planIds.add(planId);
+      }
+    }
+    const [events, series, plans] = await Promise.all([
+      eventIds.size
+        ? this.prisma.event.findMany({
+            where: { id: { in: [...eventIds] } },
+            select: { id: true, name: true },
+          })
+        : [],
+      seriesIds.size
+        ? this.prisma.eventSeries.findMany({
+            where: { id: { in: [...seriesIds] } },
+            select: { id: true, name: true },
+          })
+        : [],
+      planIds.size
+        ? this.prisma.membershipPlan.findMany({
+            where: { id: { in: [...planIds] } },
+            select: { id: true, name: true, academyId: true },
+          })
+        : [],
+    ]);
+    const eventNameOf = new Map(events.map((e) => [e.id, e.name]));
+    const seriesNameOf = new Map(series.map((s) => [s.id, s.name]));
+    const planOf = new Map(plans.map((p) => [p.id, p]));
+
+    const academyIds = [
+      ...new Set(plans.map((p) => p.academyId)),
+    ];
+    const academies = academyIds.length
+      ? await this.prisma.academy.findMany({
+          where: { id: { in: academyIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const academyNameOf = new Map(academies.map((a) => [a.id, a.name]));
+
+    return payments.map((p) => {
+      const seriesId =
+        p.orderType === "SERIES_PASS"
+          ? decodeSeriesPassRef(p.refId)?.seriesId
+          : undefined;
+      const plan =
+        p.orderType === "MEMBERSHIP"
+          ? planOf.get(decodeMembershipRef(p.refId)?.planId ?? "")
+          : undefined;
+      const eventId =
+        p.eventId ??
+        (p.orderType === "TICKET"
+          ? decodeTicketOrderRef(p.refId)?.eventId
+          : null);
+      return {
+        id: p.id,
+        orderType: p.orderType,
+        refId: p.refId,
+        amount: p.amount,
+        fee: p.fee,
+        net: p.net,
+        status: p.status,
+        createdAt: p.createdAt,
+        gatewayFeeClp: p.gatewayFeeClp,
+        gatewayReportedAmount: p.gatewayReportedAmount,
+        gatewayMedia: p.gatewayMedia,
+        gatewayPaidAt: p.gatewayPaidAt,
+        eventCount: p._count.events,
+        eventName: eventId ? (eventNameOf.get(eventId) ?? null) : null,
+        seriesName: seriesId ? (seriesNameOf.get(seriesId) ?? null) : null,
+        academyName: plan
+          ? (academyNameOf.get(plan.academyId) ?? null)
+          : null,
+        planName: plan?.name ?? null,
+      };
+    });
   }
 }
