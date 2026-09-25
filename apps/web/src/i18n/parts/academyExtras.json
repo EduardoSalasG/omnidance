@@ -104,7 +104,11 @@
       "planActive": "Plan activo"
     },
     "viewsLabel": "Vistas",
-    "scopesLabel": "Sección"
+    "scopesLabel": "Sección",
+    "editPlan": "Editar plan",
+    "planActive": "Plan activo (visible para comprar)",
+    "planInactive": "Inactivo",
+    "planTypeLocked": "El tipo no se puede cambiar: el plan tiene cobro recurrente en Flow"
   },
   "academySeries": {
     "capacityOptional": "default",

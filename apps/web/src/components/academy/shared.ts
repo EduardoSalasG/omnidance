@@ -78,6 +78,9 @@ export type MembershipPlan = {
   periodDays: number | null;
   description: string[];
   active: boolean;
+  // Espejo en Flow (omni_<id>) — presente cuando algún subscribe lo
+  // materializó; si existe, PATCH no permite cambiar `type`.
+  flowPlanId?: string | null;
 };
 
 // GET /academies/:id/students — person viene del join manual del controller;

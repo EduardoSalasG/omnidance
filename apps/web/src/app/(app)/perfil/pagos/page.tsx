@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { PaymentCards } from "@/components/payments/payment-cards";
 import type { PaymentAuditRow } from "@/components/payments/shared";
@@ -36,10 +36,25 @@ type MySubscription = {
 export default function PerfilPagosPage() {
   const t = useTranslations("payments");
   const tc = useTranslations("common");
+  const ts = useTranslations("subscriptions");
 
   const [gate, setGate] = useState<Gate>("loading");
   const [payments, setPayments] = useState<PaymentAuditRow[]>([]);
   const [subs, setSubs] = useState<MySubscription[]>([]);
+  // Cancelación inline por suscripción (2-step igual que en la ficha).
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  // Refresh de solo las suscripciones (post-cancel) — no toca el gate
+  // para que la página no vuelva a skeleton parpadeando.
+  const refreshSubs = useCallback(async () => {
+    const res = await apiFetch("/subscriptions/mine").catch(() => null);
+    if (res?.ok) {
+      const list = (await res.json()) as MySubscription[];
+      setSubs(list.filter((s) => s.status !== "CANCELED"));
+    }
+  }, []);
 
   const boot = useCallback(async () => {
     setGate("loading");
@@ -71,6 +86,32 @@ export default function PerfilPagosPage() {
   useEffect(() => {
     void boot();
   }, [boot]);
+
+  /**
+   * POST /subscriptions/:id/cancel — at_period_end: la sub queda
+   * CANCEL_PENDING y conserva acceso hasta el fin del período pagado;
+   * el refresh re-lee el estado real del server.
+   */
+  async function cancelSub(id: string) {
+    if (cancelBusyId) return;
+    setCancelBusyId(id);
+    setCancelError(null);
+    try {
+      const res = await apiFetch(`/subscriptions/${id}/cancel`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        setCancelError(tc("error"));
+        return;
+      }
+      setConfirmId(null);
+      await refreshSubs();
+    } catch {
+      setCancelError(tc("error"));
+    } finally {
+      setCancelBusyId(null);
+    }
+  }
 
   if (gate === "unauth") {
     return (
@@ -115,34 +156,101 @@ export default function PerfilPagosPage() {
           <ul className="flex flex-col gap-3">
             {subs.map((s) => (
               <li key={s.id}>
-                {/* La ficha de la academia es donde vive la gestión
-                    (cancelar / registrar tarjeta) — la card linkea ahí. */}
-                <Link href={`/academias/${s.academy.id}`} className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon">
-                  <Card className="flex flex-col gap-1.5 p-4 transition-colors hover:border-neon/40">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="min-w-0 flex-1 truncate text-sm font-semibold">
-                        {s.academy.name} · {s.plan.name}
-                      </p>
-                      <Badge
-                        variant={s.status === "ACTIVE" ? "neon" : "outline"}
+                {/* La card no puede ser <Link> completa: contiene el
+                    botón de cancelar (nested interactive sería inválido).
+                    El nombre linkea a la ficha, donde vive la gestión
+                    completa (retomar tarjeta, ver plan). */}
+                <Card className="flex flex-col gap-1.5 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link
+                      href={`/academias/${s.academy.id}`}
+                      className="min-w-0 flex-1 truncate rounded text-sm font-semibold hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    >
+                      {s.academy.name} · {s.plan.name}
+                    </Link>
+                    <Badge
+                      variant={s.status === "ACTIVE" ? "neon" : "outline"}
+                    >
+                      {t.has(`sub.status.${s.status}`)
+                        ? t(`sub.status.${s.status}`)
+                        : s.status}
+                    </Badge>
+                  </div>
+                  {s.nextInvoiceAt && s.status === "ACTIVE" && (
+                    <p className="text-xs text-white/50">
+                      {t("sub.nextCharge", {
+                        date: dateFmt.format(new Date(s.nextInvoiceAt)),
+                      })}
+                    </p>
+                  )}
+
+                  {/* Cancelación directa — mismo 2-step + endpoint que la
+                      ficha de la academia (at_period_end: se conserva el
+                      acceso hasta el fin del período ya pagado). */}
+                  {s.status === "ACTIVE" &&
+                    (confirmId === s.id ? (
+                      <div className="mt-1 flex flex-col gap-2">
+                        <p className="text-xs text-white/60">
+                          {ts("cancelConfirm")}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="flex-1"
+                            disabled={cancelBusyId === s.id}
+                            onClick={() => void cancelSub(s.id)}
+                          >
+                            {cancelBusyId === s.id && (
+                              <Spinner size="sm" />
+                            )}
+                            {ts("cancelYes")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="flex-1"
+                            disabled={cancelBusyId === s.id}
+                            onClick={() => setConfirmId(null)}
+                          >
+                            {ts("cancelKeep")}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="self-start"
+                        onClick={() => {
+                          setConfirmId(s.id);
+                          setCancelError(null);
+                        }}
                       >
-                        {t.has(`sub.status.${s.status}`)
-                          ? t(`sub.status.${s.status}`)
-                          : s.status}
-                      </Badge>
-                    </div>
-                    {s.nextInvoiceAt && s.status === "ACTIVE" && (
-                      <p className="text-xs text-white/50">
-                        {t("sub.nextCharge", {
-                          date: dateFmt.format(new Date(s.nextInvoiceAt)),
-                        })}
-                      </p>
-                    )}
-                  </Card>
-                </Link>
+                        {ts("cancel")}
+                      </Button>
+                    ))}
+                  {s.status === "CANCEL_PENDING" && (
+                    <p className="text-xs text-white/50">
+                      {s.nextInvoiceAt
+                        ? ts("cancelPending", {
+                            date: dateFmt.format(new Date(s.nextInvoiceAt)),
+                          })
+                        : ts("cancelPendingNoDate")}
+                    </p>
+                  )}
+                </Card>
               </li>
             ))}
           </ul>
+          {cancelError && (
+            <p role="alert" className="text-sm text-red-400">
+              {cancelError}
+            </p>
+          )}
         </section>
       )}
 
