@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -114,27 +115,31 @@ export default function PerfilPagosPage() {
           <ul className="flex flex-col gap-3">
             {subs.map((s) => (
               <li key={s.id}>
-                <Card className="flex flex-col gap-1.5 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="min-w-0 flex-1 truncate text-sm font-semibold">
-                      {s.academy.name} · {s.plan.name}
-                    </p>
-                    <Badge
-                      variant={s.status === "ACTIVE" ? "neon" : "outline"}
-                    >
-                      {t.has(`sub.status.${s.status}`)
-                        ? t(`sub.status.${s.status}`)
-                        : s.status}
-                    </Badge>
-                  </div>
-                  {s.nextInvoiceAt && s.status === "ACTIVE" && (
-                    <p className="text-xs text-white/50">
-                      {t("sub.nextCharge", {
-                        date: dateFmt.format(new Date(s.nextInvoiceAt)),
-                      })}
-                    </p>
-                  )}
-                </Card>
+                {/* La ficha de la academia es donde vive la gestión
+                    (cancelar / registrar tarjeta) — la card linkea ahí. */}
+                <Link href={`/academias/${s.academy.id}`} className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon">
+                  <Card className="flex flex-col gap-1.5 p-4 transition-colors hover:border-neon/40">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="min-w-0 flex-1 truncate text-sm font-semibold">
+                        {s.academy.name} · {s.plan.name}
+                      </p>
+                      <Badge
+                        variant={s.status === "ACTIVE" ? "neon" : "outline"}
+                      >
+                        {t.has(`sub.status.${s.status}`)
+                          ? t(`sub.status.${s.status}`)
+                          : s.status}
+                      </Badge>
+                    </div>
+                    {s.nextInvoiceAt && s.status === "ACTIVE" && (
+                      <p className="text-xs text-white/50">
+                        {t("sub.nextCharge", {
+                          date: dateFmt.format(new Date(s.nextInvoiceAt)),
+                        })}
+                      </p>
+                    )}
+                  </Card>
+                </Link>
               </li>
             ))}
           </ul>

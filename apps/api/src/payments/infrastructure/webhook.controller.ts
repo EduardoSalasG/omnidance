@@ -436,6 +436,10 @@ export class PaymentsController {
         gatewayMedia: p.gatewayMedia,
         gatewayPaidAt: p.gatewayPaidAt,
         eventCount: p._count.events,
+        // Ids de contexto: la UI linkea el pago a su evento/academia
+        // (p.ej. /perfil/pagos → ficha donde vive la gestión del plan).
+        eventId: eventId ?? null,
+        academyId: plan?.academyId ?? null,
         eventName: eventId ? (eventNameOf.get(eventId) ?? null) : null,
         seriesName: seriesId ? (seriesNameOf.get(seriesId) ?? null) : null,
         academyName: plan

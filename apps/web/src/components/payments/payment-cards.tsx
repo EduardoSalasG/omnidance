@@ -8,10 +8,12 @@ import {
   PAYMENT_STATUS_VARIANT,
   paymentContext,
   paymentDateTimeFmt,
+  paymentHref,
   paymentPaidAt,
   type PaymentAuditRow,
   type PaymentLedgerEvent,
 } from "./shared";
+import Link from "next/link";
 
 type Props = {
   payments: PaymentAuditRow[];
@@ -77,9 +79,21 @@ function PaymentCard({
     <li>
       <Card className="flex flex-col gap-2 p-4">
         <div className="flex items-start justify-between gap-3">
-          <p className="min-w-0 flex-1 truncate text-sm font-semibold">
-            {title}
-          </p>
+          {/* El contexto linkea a su ficha: la membresía lleva a la
+              academia (donde vive la gestión/cancel de la suscripción)
+              y el ticket al evento. */}
+          {paymentHref(p) ? (
+            <Link
+              href={paymentHref(p)!}
+              className="min-w-0 flex-1 truncate text-sm font-semibold text-white underline-offset-2 hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              {title}
+            </Link>
+          ) : (
+            <p className="min-w-0 flex-1 truncate text-sm font-semibold">
+              {title}
+            </p>
+          )}
           <Badge variant={PAYMENT_STATUS_VARIANT[p.status] ?? "muted"}>
             {t.has(`status.${p.status}`) ? t(`status.${p.status}`) : p.status}
           </Badge>

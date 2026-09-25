@@ -36,6 +36,10 @@ function CheckoutReturn() {
   // (el redirect real de customer-return va a /academias/:id?sub=…).
   const sub = searchParams.get("sub");
   const [phase, setPhase] = useState<Phase>({ kind: "verifying" });
+  // orderType llega con el primer poll aunque siga PENDING — los CTAs
+  // de failed/stillPending/error lo usan para mandar al destino correcto
+  // (MEMBERSHIP → academias, no a eventos).
+  const [orderType, setOrderType] = useState<string | null>(null);
 
   useEffect(() => {
     if (sub === "ok") {
@@ -70,6 +74,7 @@ function CheckoutReturn() {
           orderType: string;
           amount: number;
         };
+        setOrderType(payment.orderType);
         if (payment.status === "PAID") {
           setPhase({
             kind: "paid",
@@ -145,8 +150,14 @@ function CheckoutReturn() {
           <Badge variant="live">{t("failed")}</Badge>
           <h1 className="text-2xl font-bold">{t("returnFailedTitle")}</h1>
           <p className="text-sm text-white/60">{t("returnFailedDesc")}</p>
-          <Button href="/eventos" size="lg" className="w-full">
-            {t("returnToEvents")}
+          <Button
+            href={orderType === "MEMBERSHIP" ? "/academias" : "/eventos"}
+            size="lg"
+            className="w-full"
+          >
+            {orderType === "MEMBERSHIP"
+              ? t("returnToAcademies")
+              : t("returnToEvents")}
           </Button>
         </>
       )}
@@ -178,8 +189,12 @@ function CheckoutReturn() {
           <Badge variant="muted">{t("pending")}</Badge>
           <h1 className="text-xl font-bold">{t("returnPendingTitle")}</h1>
           <p className="text-sm text-white/60">{t("returnPendingDesc")}</p>
-          <Button href="/entradas" size="lg" className="w-full">
-            {tw("title")}
+          <Button
+            href={orderType === "MEMBERSHIP" ? "/academias" : "/entradas"}
+            size="lg"
+            className="w-full"
+          >
+            {orderType === "MEMBERSHIP" ? t("returnToAcademies") : tw("title")}
           </Button>
         </>
       )}
@@ -197,8 +212,14 @@ function CheckoutReturn() {
         <>
           <Badge variant="live">{tc("error")}</Badge>
           <h1 className="text-xl font-bold">{t("returnErrorTitle")}</h1>
-          <Button href="/eventos" size="lg" className="w-full">
-            {t("returnToEvents")}
+          <Button
+            href={orderType === "MEMBERSHIP" ? "/academias" : "/eventos"}
+            size="lg"
+            className="w-full"
+          >
+            {orderType === "MEMBERSHIP"
+              ? t("returnToAcademies")
+              : t("returnToEvents")}
           </Button>
         </>
       )}

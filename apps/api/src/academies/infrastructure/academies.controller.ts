@@ -364,6 +364,7 @@ export class AcademiesController {
         select: {
           id: true,
           academyId: true,
+          planId: true,
           status: true,
           nextInvoiceAt: true,
           canceledAt: true,

@@ -3158,6 +3158,32 @@
           }
         },
         {
+          "name": "GET /api/checkout/membership-quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/membership-quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "membership-quote"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "planId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /api/checkout/membership",
           "request": {
             "method": "POST",

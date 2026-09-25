@@ -7,6 +7,11 @@ import {
   encodeSeriesPassRef,
   encodeTicketOrderRef,
 } from "../domain/order-ref";
+import {
+  membershipBase,
+  membershipEndsAt,
+  RECURRING_PLAN_TYPES,
+} from "../domain/membership-vigency";
 import { isRedeemable } from "../../discounts/domain/discounts.service";
 import { ParamsService } from "../../params/params.service";
 import { SERVICE_FEE } from "@omnidance/shared";
@@ -688,6 +693,91 @@ export class CheckoutService {
       paymentId: payment.id,
       quote,
       quantity: 1,
+    };
+  }
+
+  /**
+   * Revisión de orden del checkout de membresía — todo lo que la página
+   * muestra ANTES de cobrar: precio, cargo de servicio, total real que
+   * la pasarela debita, vigencia resultante (misma derivación que el
+   * settle: extiende desde endsAt+1d si hay vigencia futura) y la
+   * suscripción viva del viewer a este plan (la UI no ofrece suscribirse
+   * dos veces). Mismas reglas de dominio que purchaseMembership.
+   */
+  async membershipQuote(personId: string, planId: string) {
+    const plan = await this.prisma.membershipPlan.findUnique({
+      where: { id: planId },
+      select: {
+        id: true,
+        name: true,
+        active: true,
+        type: true,
+        price: true,
+        classCount: true,
+        periodDays: true,
+        description: true,
+        academy: { select: { id: true, name: true, active: true } },
+      },
+    });
+    if (!plan || !plan.academy.active) throw new PlanNotFoundError();
+    if (!plan.active || plan.type === "TRIAL") {
+      throw new PlanNotPurchasableError();
+    }
+
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.membership_clp",
+      500,
+    );
+
+    const [enrollment, subscription] = await Promise.all([
+      this.prisma.enrollment.findFirst({
+        where: {
+          personId,
+          academyId: plan.academy.id,
+          status: { in: ["ACTIVE", "ONLINE"] },
+          endsAt: { gt: new Date() },
+        },
+        orderBy: { endsAt: "desc" },
+        select: { endsAt: true },
+      }),
+      this.prisma.membershipSubscription.findFirst({
+        where: {
+          personId,
+          planId: plan.id,
+          status: {
+            in: ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD", "ACTIVATING"],
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, status: true, nextInvoiceAt: true },
+      }),
+    ]);
+
+    const vigenciaEndsAt = membershipEndsAt(
+      plan,
+      membershipBase(new Date(), enrollment?.endsAt ?? null),
+    );
+
+    return {
+      plan: {
+        id: plan.id,
+        name: plan.name,
+        type: plan.type,
+        price: plan.price,
+        classCount: plan.classCount,
+        periodDays: plan.periodDays,
+        description: plan.description,
+      },
+      academy: { id: plan.academy.id, name: plan.academy.name },
+      serviceFeeClp,
+      totalClp: plan.price + serviceFeeClp,
+      recurring: RECURRING_PLAN_TYPES.has(plan.type),
+      vigenciaEndsAt: vigenciaEndsAt?.toISOString() ?? null,
+      // Fin de la vigencia vigente — el checkout la muestra cuando la
+      // compra extiende ("vence el X — la nueva vigencia parte después").
+      currentEndsAt: enrollment?.endsAt?.toISOString() ?? null,
+      subscription: subscription ?? null,
+      gateway: this.gateway.name,
     };
   }
 }

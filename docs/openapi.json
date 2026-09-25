@@ -1382,6 +1382,26 @@
         }
       }
     },
+    "/api/checkout/membership-quote": {
+      "get": {
+        "operationId": "CheckoutController_membershipQuote",
+        "parameters": [
+          {
+            "name": "planId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/checkout/membership": {
       "post": {
         "operationId": "CheckoutController_membership",
