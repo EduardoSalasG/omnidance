@@ -109,20 +109,24 @@ export class PaymentSettlementService {
   /**
    * WEBHOOK_RECEIVED — evidencia append-only de CADA notificación que
    * llega de la pasarela, duplicadas incluidas (una re-notificación es
-   * evidencia válida aunque no produzca transición). Se emite fuera de la
-   * tx del settle, antes de él; si el payment no existe no hay paymentId
-   * para el ledger y el webhook sigue respondiendo 404.
+   * evidencia válida aunque no produzca transición). Va en su propia tx
+   * (separa de la del settle, que corre después): el advisory lock del
+   * ledger necesita contexto transaccional para serializar emisores
+   * concurrentes. Si el payment no existe no hay paymentId para el
+   * ledger y el webhook sigue respondiendo 404.
    */
   async recordWebhookReceived(
     payment: Payment,
     input: { remoteStatus: "PAID" | "FAILED"; body: unknown },
   ): Promise<void> {
-    await emitPaymentEvent(this.prisma, payment.id, "WEBHOOK_RECEIVED", "webhook", {
-      refId: payment.refId,
-      remoteStatus: input.remoteStatus,
-      body: (sanitizeGatewayPayload(input.body ?? null) ??
-        null) as Prisma.InputJsonValue,
-    });
+    await this.prisma.$transaction((tx) =>
+      emitPaymentEvent(tx, payment.id, "WEBHOOK_RECEIVED", "webhook", {
+        refId: payment.refId,
+        remoteStatus: input.remoteStatus,
+        body: (sanitizeGatewayPayload(input.body ?? null) ??
+          null) as Prisma.InputJsonValue,
+      }),
+    );
   }
 
   /**
@@ -143,16 +147,15 @@ export class PaymentSettlementService {
       // (PENDING → FAILED); una re-notificación FAILED es un no-op.
       let failedNow = false;
       await this.prisma.$transaction(async (tx) => {
-        const fresh = await tx.payment.findUnique({
-          where: { id: payment.id },
-          select: { status: true },
-        });
-        if (!fresh || fresh.status !== "PENDING") return;
-
-        await tx.payment.update({
-          where: { id: payment.id },
+        // Claim atómico PENDING→FAILED: dos notificaciones concurrentes
+        // serializan sobre la fila y el perdedor ve count=0 (el re-check
+        // por lectura no servía — bajo READ COMMITTED ambos leían
+        // PENDING antes del commit del ganador y duplicaban el settle).
+        const claimed = await tx.payment.updateMany({
+          where: { id: payment.id, status: "PENDING" },
           data: { status: "FAILED" },
         });
+        if (claimed.count === 0) return;
         failedNow = true;
 
         await emitPaymentEvent(tx, payment.id, "STATUS_CONFIRMED", meta.actor, {
@@ -322,17 +325,15 @@ export class PaymentSettlementService {
     let reservationCreated = false;
     let mismatch: AmountMismatch | null = null;
     await this.prisma.$transaction(async (tx) => {
-      // re-check dentro de la tx: doble webhook concurrente no duplica
-      const fresh = await tx.payment.findUnique({
-        where: { id: payment.id },
-        select: { status: true },
-      });
-      if (!fresh || fresh.status === "PAID") return;
-
-      await tx.payment.update({
-        where: { id: payment.id },
+      // Claim atómico →PAID: dos webhooks concurrentes serializan sobre
+      // la fila; el perdedor ve count=0 y sale sin emitir eventos ni
+      // ticket. Reemplaza el read-check-update que bajo READ COMMITTED
+      // leía PENDING en ambos y doble-liquida(va).
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
         data: { status: "PAID", ...(gw ?? {}) },
       });
+      if (claimed.count === 0) return;
       paidNow = true;
 
       mismatch = await this.emitSettleEvents(tx, payment, meta, gw, {
@@ -554,17 +555,13 @@ export class PaymentSettlementService {
     let paidNow = false;
     let mismatch: AmountMismatch | null = null;
     await this.prisma.$transaction(async (tx) => {
-      // re-check dentro de la tx: doble webhook concurrente no duplica
-      const fresh = await tx.payment.findUnique({
-        where: { id: payment.id },
-        select: { status: true },
-      });
-      if (!fresh || fresh.status === "PAID") return;
-
-      await tx.payment.update({
-        where: { id: payment.id },
+      // claim atómico →PAID (idéntico a settleTicket): el perdedor de la
+      // carrera ve count=0 y no emite eventos ni upsert del pase.
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
         data: { status: "PAID", ...(gw ?? {}) },
       });
+      if (claimed.count === 0) return;
       paidNow = true;
 
       mismatch = await this.emitSettleEvents(tx, payment, meta, gw, {
@@ -657,16 +654,14 @@ export class PaymentSettlementService {
     let paidNow = false;
     let mismatch: AmountMismatch | null = null;
     await this.prisma.$transaction(async (tx) => {
-      const fresh = await tx.payment.findUnique({
-        where: { id: payment.id },
-        select: { status: true },
-      });
-      if (!fresh || fresh.status === "PAID") return;
-
-      await tx.payment.update({
-        where: { id: payment.id },
+      // claim atómico →PAID (idéntico a settleTicket/settleSeriesPass):
+      // el webhook/reconcile que pierde la carrera ve count=0 y no
+      // duplica eventos ni extensión de vigencia.
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
         data: { status: "PAID", ...(gw ?? {}) },
       });
+      if (claimed.count === 0) return;
       paidNow = true;
 
       mismatch = await this.emitSettleEvents(tx, payment, meta, gw, {

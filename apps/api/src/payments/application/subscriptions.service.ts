@@ -127,6 +127,33 @@ export class SubscriptionsService {
   }
 
   /**
+   * plans/edit — empuja nombre/precio al plan espejo de Flow cuando
+   * staff edita el plan local (PATCH /academies/:id/plans/:planId).
+   * No-op si el plan aún no tiene espejo (el primer subscribe lo crea
+   * con los valores vigentes) o el gateway no implementa
+   * SubscriptionProvider — en ambos casos no hay nada que sincronizar.
+   *
+   * El caller lo ejecuta ANTES del update local: si Flow rechaza, la
+   * fila local queda intacta y ambos lados siguen consistentes (la
+   * llamada queda auditada en GatewayTransaction igual).
+   */
+  async syncMirrorPlan(
+    plan: { flowPlanId: string | null; academy: { name: string } },
+    next: { name: string; price: number },
+  ): Promise<void> {
+    if (!plan.flowPlanId || this.gateway.name !== "FLOW") return;
+    const fee = await this.params.getNumber("service_fee.membership_clp", 500);
+    await this.flow().syncPlan(
+      {
+        planId: plan.flowPlanId,
+        name: `${plan.academy.name} — ${next.name}`,
+        amount: next.price + fee,
+      },
+      { correlationId: randomUUID() },
+    );
+  }
+
+  /**
    * Checkout de suscripción: valida plan recurrente + consentimiento
    * explícito, materializa lazy el plan espejo y el customer en Flow, y
    * decide por tarjeta registrada:
@@ -669,16 +696,18 @@ export class SubscriptionsService {
       select: { id: true },
     });
     if (lastPayment) {
-      await emitPaymentEvent(
-        this.prisma,
-        lastPayment.id,
-        "SUBSCRIPTION_CANCELED",
-        "person",
-        {
-          subscriptionId: sub.id,
-          flowSubscriptionId: sub.flowSubscriptionId,
-          planId: sub.planId,
-        },
+      await this.prisma.$transaction((tx) =>
+        emitPaymentEvent(
+          tx,
+          lastPayment.id,
+          "SUBSCRIPTION_CANCELED",
+          "person",
+          {
+            subscriptionId: sub.id,
+            flowSubscriptionId: sub.flowSubscriptionId,
+            planId: sub.planId,
+          },
+        ),
       );
     }
 
@@ -819,12 +848,12 @@ export class SubscriptionsService {
                 : null,
           },
         });
-        await emitPaymentEvent(
-          this.prisma,
-          payment.id,
-          "ORDER_CREATED",
-          actor,
-          { refId, invoiceId: invId, subscriptionId: sub.id },
+        await this.prisma.$transaction((tx) =>
+          emitPaymentEvent(tx, payment.id, "ORDER_CREATED", actor, {
+            refId,
+            invoiceId: invId,
+            subscriptionId: sub.id,
+          }),
         );
         await this.settlement.settleMembership(payment, {
           actor,
@@ -939,12 +968,12 @@ export class SubscriptionsService {
           select: { id: true },
         });
         if (lastPayment) {
-          await emitPaymentEvent(
-            this.prisma,
-            lastPayment.id,
-            "RENEWAL_FAILED",
-            actor,
-            { subscriptionId: sub.id, invoiceId, morose: true },
+          await this.prisma.$transaction((tx) =>
+            emitPaymentEvent(tx, lastPayment.id, "RENEWAL_FAILED", actor, {
+              subscriptionId: sub.id,
+              invoiceId,
+              morose: true,
+            }),
           );
         }
         const plan = await this.prisma.membershipPlan.findUnique({

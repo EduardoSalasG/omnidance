@@ -171,7 +171,7 @@ describe("FlowGateway", () => {
       expect(qs.get("s")).toBe(
         expectedSignature({ apiKey: KEY, commerceOrder: "mem_p1_x" }),
       );
-      expect(out).toBe("PAID");
+      expect(out.status).toBe("PAID");
     });
 
     it.each([
@@ -181,7 +181,20 @@ describe("FlowGateway", () => {
       [4, "FAILED"],
     ])("status %i → %s", async (status, expected) => {
       mockFetch({ status });
-      expect(await makeGateway().refreshStatus("r")).toBe(expected);
+      expect((await makeGateway().refreshStatus("r")).status).toBe(expected);
+    });
+
+    it("devuelve paymentData como gatewayData (verdad monetaria del polling)", async () => {
+      mockFetch({
+        status: 2,
+        paymentData: { amount: 10500, fee: 335, media: "Webpay" },
+      });
+      const out = await makeGateway().refreshStatus("r");
+      expect(out.gatewayData).toEqual({
+        amount: 10500,
+        fee: 335,
+        media: "Webpay",
+      });
     });
   });
 

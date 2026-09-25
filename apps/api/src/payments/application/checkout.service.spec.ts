@@ -113,8 +113,16 @@ function mkPrisma() {
       findUnique: vi.fn(async (): Promise<{ id: string } | null> => null),
     },
     membershipPlan: { findUnique: vi.fn() },
-    enrollment: { findFirst: vi.fn(async () => null) },
-    membershipSubscription: { findFirst: vi.fn(async () => null) },
+    enrollment: {
+      findFirst: vi.fn(
+        async (): Promise<{ endsAt: Date | null } | null> => null,
+      ),
+    },
+    membershipSubscription: {
+      findFirst: vi.fn(
+        async (): Promise<Record<string, unknown> | null> => null,
+      ),
+    },
   };
   return { prisma, payments, songSuggestions };
 }

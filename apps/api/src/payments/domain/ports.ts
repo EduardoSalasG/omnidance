@@ -29,8 +29,13 @@ export interface PaymentGateway {
    * Relevante en sandbox/dev: el webhook de la pasarela no llega a
    * localhost, así que GET /payments/:id puede resolver el estado
    * directamente contra la pasarela por refId (commerceOrder).
+   * `gatewayData` = misma verdad monetaria que verifyWebhook — el
+   * settle la persiste igual sea cual sea el camino de confirmación.
    */
-  refreshStatus?(refId: string): Promise<"PAID" | "FAILED" | "PENDING">;
+  refreshStatus?(refId: string): Promise<{
+    status: "PAID" | "FAILED" | "PENDING";
+    gatewayData?: unknown;
+  }>;
 }
 
 // ---- Suscripciones recurrentes (motor nativo de la pasarela) ----
