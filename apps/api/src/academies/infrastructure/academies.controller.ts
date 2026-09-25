@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   Body,
   ConflictException,
@@ -14,6 +15,7 @@ import {
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsISO8601,
@@ -28,6 +30,7 @@ import type { Request } from "express";
 import type { EnrollmentStatus, PlanType, Prisma } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
+import { SubscriptionsService } from "../../payments/application/subscriptions.service";
 import {
   assertEnrollmentTransition,
   computeDashboard,
@@ -97,6 +100,40 @@ class CreatePlanDto {
   @ArrayMaxSize(12)
   @IsString({ each: true })
   description?: string[];
+}
+
+class UpdatePlanDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsIn(PLAN_TYPES)
+  type?: PlanType;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  price?: number;
+
+  /** `null` explícito limpia el cupo/pack. */
+  @IsOptional()
+  @IsInt()
+  classCount?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  periodDays?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(12)
+  @IsString({ each: true })
+  description?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
 }
 
 class CreateEnrollmentDto {
@@ -216,6 +253,7 @@ export class AcademiesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AcademyAccess,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   /**
@@ -611,6 +649,76 @@ export class AcademiesController {
     return this.prisma.membershipPlan.findMany({
       where: { academyId: id },
       orderBy: { name: "asc" },
+    });
+  }
+
+  /**
+   * Edición de plan. Si el plan ya tiene espejo en Flow (algún
+   * subscribe lo materializó) y cambia nombre/precio, se empuja
+   * plans/edit ANTES del update local: si Flow rechaza, la fila local
+   * queda intacta y ambos lados siguen consistentes; el reintento
+   * converge (syncPlan es idempotente con los mismos valores). El tipo
+   * queda bloqueado cuando hay espejo — Flow plans/edit no admite
+   * cambiar el intervalo de un plan ya creado.
+   */
+  @Patch(":id/plans/:planId")
+  @UseGuards(SessionGuard)
+  async updatePlan(
+    @Param("id") id: string,
+    @Param("planId") planId: string,
+    @Body() dto: UpdatePlanDto,
+    @Req() req: Request,
+  ) {
+    await this.access.requireAdminister(id, req.person!);
+    const plan = await this.prisma.membershipPlan.findFirst({
+      where: { id: planId, academyId: id },
+      include: { academy: { select: { name: true } } },
+    });
+    if (!plan) throw new NotFoundException("plan no encontrado");
+    if (
+      plan.flowPlanId &&
+      dto.type !== undefined &&
+      dto.type !== plan.type
+    ) {
+      throw new BadRequestException(
+        "el tipo no se puede cambiar en un plan con cobro recurrente",
+      );
+    }
+    if (
+      plan.flowPlanId &&
+      (dto.name !== undefined || dto.price !== undefined)
+    ) {
+      try {
+        await this.subscriptions.syncMirrorPlan(plan, {
+          name: dto.name ?? plan.name,
+          price: dto.price ?? plan.price,
+        });
+      } catch {
+        throw new BadGatewayException(
+          "Flow no pudo actualizar el plan de cobro — reintenta",
+        );
+      }
+    }
+    const data: Prisma.MembershipPlanUpdateInput = {
+      ...(dto.name !== undefined ? { name: dto.name } : {}),
+      ...(dto.type !== undefined ? { type: dto.type } : {}),
+      ...(dto.price !== undefined ? { price: dto.price } : {}),
+      ...(dto.classCount !== undefined
+        ? { classCount: dto.classCount }
+        : {}),
+      ...(dto.periodDays !== undefined
+        ? { periodDays: dto.periodDays }
+        : {}),
+      ...(dto.description !== undefined
+        ? {
+            description: dto.description.map((d) => d.trim()).filter(Boolean),
+          }
+        : {}),
+      ...(dto.active !== undefined ? { active: dto.active } : {}),
+    };
+    return this.prisma.membershipPlan.update({
+      where: { id: plan.id },
+      data,
     });
   }
 

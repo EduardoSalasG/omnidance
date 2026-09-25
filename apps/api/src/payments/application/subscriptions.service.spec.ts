@@ -254,6 +254,27 @@ function mkPrisma() {
           return p;
         },
       ),
+      // claim atómico del settle (updateMany id + status/{not}).
+      updateMany: vi.fn(
+        async ({
+          where,
+          data,
+        }: {
+          where: { id: string; status?: string | { not: string } };
+          data: Row;
+        }) => {
+          const p = payments.get(where.id);
+          const st = where.status;
+          const ok =
+            !!p &&
+            (st === undefined ||
+              st === p.status ||
+              (typeof st === "object" && st.not !== p.status));
+          if (!ok) return { count: 0 };
+          Object.assign(p, data);
+          return { count: 1 };
+        },
+      ),
     },
     paymentEvent: {
       findFirst: vi.fn(async ({ where }: { where: { paymentId: string } }) =>
@@ -1366,6 +1387,64 @@ describe("SubscriptionsService", () => {
       expect(fx.gatewayTxs).toHaveLength(1);
       await new Promise((r) => setTimeout(r, 10));
       expect(flow.getSubscription).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("syncMirrorPlan", () => {
+    it("plan con espejo → plans/edit con nombre compuesto y amount = price + fee", async () => {
+      await svc.syncMirrorPlan(
+        { flowPlanId: "omni_plan1", academy: { name: "Academia Tumbao" } },
+        { name: "Mensual Pro", price: 40000 },
+      );
+
+      expect(flow.syncPlan).toHaveBeenCalledWith(
+        {
+          planId: "omni_plan1",
+          name: "Academia Tumbao — Mensual Pro",
+          amount: 40500, // 40000 + service_fee.membership_clp (500 default)
+        },
+        expect.objectContaining({ correlationId: expect.any(String) }),
+      );
+    });
+
+    it("sin flowPlanId → no-op (el espejo se crea en el primer subscribe)", async () => {
+      await svc.syncMirrorPlan(
+        { flowPlanId: null, academy: { name: "X" } },
+        { name: "n", price: 1 },
+      );
+      expect(flow.syncPlan).not.toHaveBeenCalled();
+    });
+
+    it("gateway no-Flow → no-op silencioso", async () => {
+      const params = mkParams();
+      const prisma = fx.prisma as unknown as PrismaService;
+      const notif = notifications as unknown as NotificationsService;
+      const stubSvc = new SubscriptionsService(
+        prisma,
+        { name: "STUB", createOrder: vi.fn(), verifyWebhook: vi.fn() },
+        params as unknown as ParamsService,
+        new PaymentSettlementService(
+          prisma,
+          params as unknown as ParamsService,
+          notif,
+        ),
+        notif,
+        new GatewayTransactionsService(prisma),
+      );
+      await stubSvc.syncMirrorPlan(
+        { flowPlanId: "omni_x", academy: { name: "X" } },
+        { name: "n", price: 1 },
+      );
+    });
+
+    it("si Flow rechaza, propaga el error (el caller decide — PATCH aborta)", async () => {
+      flow.syncPlan.mockRejectedValueOnce(new Error("flow 500"));
+      await expect(
+        svc.syncMirrorPlan(
+          { flowPlanId: "omni_plan1", academy: { name: "X" } },
+          { name: "n", price: 1 },
+        ),
+      ).rejects.toThrow("flow 500");
     });
   });
 });

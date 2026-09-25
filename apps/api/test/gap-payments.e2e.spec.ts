@@ -11,6 +11,7 @@ import { PrismaService } from "../src/prisma.service";
 import { ParamsModule } from "../src/params/params.module";
 import { QrService } from "../src/qr/domain/qr.service";
 import { encodeSeriesPassRef } from "../src/payments/domain/order-ref";
+import { verifyPaymentChain } from "../src/payments/domain/payment-ledger";
 // Los controllers de payouts se declaran a nivel del TestingModule hasta que
 // queden registrados en PaymentsModule (los módulos no se tocan en este cambio).
 import {
@@ -540,6 +541,49 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
         where: { id: pid },
       });
       expect(payment.orderType).toBe("SERIES_PASS");
+    });
+
+    it("webhooks concurrentes → seqs únicas y cadena íntegra", async () => {
+      // Mes aún más adelante para no chocar con los pases previos.
+      const d = new Date();
+      d.setMonth(d.getMonth() + 2);
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const checkout = await post(
+        "/api/checkout/series-pass",
+        { seriesId: ids.seriesId, month },
+        dancerSession,
+      );
+      expect(checkout.status).toBe(201);
+      const { paymentId: pid } = await checkout.json();
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: pid },
+      });
+
+      // Dos notificaciones simultáneas del mismo pago: sin el advisory
+      // lock ambas leían el mismo seq y la segunda abortaba su tx por
+      // @@unique([paymentId, seq]).
+      const [r1, r2] = await Promise.all([
+        post("/api/payments/webhook", { refId: payment.refId, status: "PAID" }),
+        post("/api/payments/webhook", { refId: payment.refId, status: "PAID" }),
+      ]);
+      expect(r1.status).toBe(200);
+      expect(r2.status).toBe(200);
+
+      const events = await prisma.paymentEvent.findMany({
+        where: { paymentId: pid },
+        orderBy: { seq: "asc" },
+      });
+      const seqs = events.map((e) => e.seq);
+      expect(new Set(seqs).size).toBe(seqs.length);
+      // Ambos WEBHOOK_RECEIVED quedan registrados (evidencia completa) +
+      // transición + settle una sola vez.
+      expect(
+        events.filter((e) => e.type === "WEBHOOK_RECEIVED"),
+      ).toHaveLength(2);
+      expect(events.filter((e) => e.type === "SETTLED")).toHaveLength(1);
+
+      const chain = await verifyPaymentChain(prisma, pid);
+      expect(chain.ok).toBe(true);
     });
   });
 

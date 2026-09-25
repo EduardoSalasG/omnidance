@@ -297,8 +297,11 @@ export class PaymentsController {
     if (payment.status === "PENDING" && this.gateway.refreshStatus) {
       try {
         const remote = await this.gateway.refreshStatus(payment.refId);
-        if (remote !== "PENDING") {
-          await this.settlement.settle(payment, remote, { actor: "polling" });
+        if (remote.status !== "PENDING") {
+          await this.settlement.settle(payment, remote.status, {
+            actor: "polling",
+            gatewayData: remote.gatewayData,
+          });
           const fresh = await this.prisma.payment.findUnique({
             where: { id: payment.id },
             select: { status: true },

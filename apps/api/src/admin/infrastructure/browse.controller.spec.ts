@@ -55,6 +55,9 @@ class FakePrisma {
       this.payments.find((p) => p.id === where.id) ?? null,
   };
 
+  // El ledger emite con pg_advisory_xact_lock ($executeRaw) — no-op en fake.
+  $executeRaw = async () => 0;
+
   paymentEvent = {
     // API completa del ledger: emit (fixture) + verify/browse.
     findFirst: async ({ where }: { where: { paymentId: string } }) =>

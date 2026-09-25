@@ -24,6 +24,9 @@ function makeFake() {
           .filter((e) => e.paymentId === where.paymentId)
           .sort((a, b) => a.seq - b.seq),
     },
+    // El advisory lock real es pg_advisory_xact_lock (Postgres) — en el
+    // fake no hay concurrencia, es no-op.
+    $executeRaw: async () => 0,
   };
   return { tx, events };
 }

@@ -70,6 +70,27 @@ function mkPrisma() {
           return row;
         },
       ),
+      // claim atómico del settle: filtra por id + status (string o {not}).
+      updateMany: vi.fn(
+        async ({
+          where,
+          data,
+        }: {
+          where: { id: string; status?: string | { not: string } };
+          data: Row;
+        }) => {
+          const row = payments.get(where.id);
+          const st = where.status;
+          const ok =
+            !!row &&
+            (st === undefined ||
+              st === row.status ||
+              (typeof st === "object" && st.not !== row.status));
+          if (!ok) return { count: 0 };
+          Object.assign(row, data);
+          return { count: 1 };
+        },
+      ),
     },
     paymentEvent: {
       findFirst: vi.fn(async ({ where }: { where: { paymentId: string } }) =>
@@ -142,6 +163,8 @@ function mkPrisma() {
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prisma),
+    // pg_advisory_xact_lock del ledger — no-op en el fake.
+    $executeRaw: vi.fn(async () => 0),
   };
   return { prisma, payments, events, enrollments, tickets, admins };
 }

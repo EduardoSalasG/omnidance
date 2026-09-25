@@ -126,15 +126,23 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
    * sandbox/dev donde el urlConfirmation de Flow no llega a localhost.
    * Estados Flow: 1 pendiente · 2 pagado · 3 rechazado · 4 anulado.
    */
-  async refreshStatus(refId: string): Promise<"PAID" | "FAILED" | "PENDING"> {
-    const data = await this.call<{ status?: number }>(
+  async refreshStatus(refId: string): Promise<{
+    status: "PAID" | "FAILED" | "PENDING";
+    gatewayData?: unknown;
+  }> {
+    const data = await this.call<{
+      status?: number;
+      paymentData?: Record<string, unknown>;
+    }>(
       "payment/getStatusByCommerceId",
       { apiKey: this.apiKey, commerceOrder: refId },
       { method: "GET" },
     );
-    if (data.status === 2) return "PAID";
-    if (data.status === 3 || data.status === 4) return "FAILED";
-    return "PENDING";
+    const gatewayData = data.paymentData;
+    if (data.status === 2) return { status: "PAID", gatewayData };
+    if (data.status === 3 || data.status === 4)
+      return { status: "FAILED", gatewayData };
+    return { status: "PENDING" };
   }
 
   // ---------- Suscripciones (SubscriptionProvider) ----------

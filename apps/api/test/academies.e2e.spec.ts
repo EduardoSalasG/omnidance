@@ -269,6 +269,68 @@ describe("academies e2e", () => {
       const list = await res.json();
       expect(list.some((p: { id: string }) => p.id === ids.planId)).toBe(true);
     });
+
+    it("PATCH plan owner → 200 actualiza precio/descripcion/active", async () => {
+      const res = await patch(
+        `/api/academies/${ids.academyId}/plans/${ids.planId}`,
+        {
+          price: 46000,
+          description: ["Acceso a todas las sedes"],
+          active: true,
+        },
+        ownerSession,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.name).toBe("Mensual 8 clases"); // sin tocar
+      expect(body.price).toBe(46000);
+      expect(body.description).toEqual(["Acceso a todas las sedes"]);
+    });
+
+    it("PATCH plan por outsider → 403", async () => {
+      const res = await patch(
+        `/api/academies/${ids.academyId}/plans/${ids.planId}`,
+        { price: 1 },
+        outsiderSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("PATCH plan de otra academia → 404", async () => {
+      const res = await patch(
+        `/api/academies/${ids.academyId}/plans/plan-fantasma`,
+        { price: 1 },
+        ownerSession,
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it("PATCH cambiar type con espejo Flow → 400", async () => {
+      // El espejo se materializa en el primer subscribe; lo simulamos
+      // directo — con gateway stub el sync es no-op, lo que se valida
+      // acá es el lock de tipo.
+      await prisma.membershipPlan.update({
+        where: { id: ids.planId },
+        data: { flowPlanId: "omni_test" },
+      });
+      const res = await patch(
+        `/api/academies/${ids.academyId}/plans/${ids.planId}`,
+        { type: "SINGLE" },
+        ownerSession,
+      );
+      expect(res.status).toBe(400);
+      // Mismo type pasa el lock; flowPlanId queda (el settle no lo toca).
+      const same = await patch(
+        `/api/academies/${ids.academyId}/plans/${ids.planId}`,
+        { type: "MONTHLY", price: 46000 },
+        ownerSession,
+      );
+      expect(same.status).toBe(200);
+      await prisma.membershipPlan.update({
+        where: { id: ids.planId },
+        data: { flowPlanId: null },
+      });
+    });
   });
 
   describe("enrollments", () => {

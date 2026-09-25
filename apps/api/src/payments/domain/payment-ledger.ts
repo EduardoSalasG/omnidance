@@ -33,7 +33,18 @@ export function canonicalJson(v: unknown): string {
 /**
  * Ledger BIAN: append-only, hash-chain por payment.
  * payloadHash = sha256(prevHash + canonicalJson({paymentId,seq,type,actor,payload}))
- * Debe llamarse DENTRO de la tx de negocio (el caller pasa el tx client).
+ * Debe llamarse DENTRO de una tx (el caller pasa el tx client, o abre una
+ * $transaction si el evento no forma parte de una tx de negocio mayor) —
+ * el advisory lock xact-scoped solo cubre el find+create si ambos corren
+ * dentro de la misma transacción.
+ *
+ * Concurrencia: webhook + polling + reconcile pueden emitir sobre el
+ * mismo paymentId en paralelo. Sin serialización ambos leen el mismo
+ * último seq y el segundo choca contra @@unique([paymentId, seq]) —
+ * el error aborta su tx entera. pg_advisory_xact_lock(hashtext(id))
+ * bloquea al segundo emisor hasta el commit/rollback del primero, que
+ * recién ahí lee el seq real. Es re-entrante dentro de la misma tx
+ * (varios emits del mismo payment no se bloquean entre sí).
  */
 export async function emitPaymentEvent(
   tx: Prisma.TransactionClient,
@@ -42,6 +53,7 @@ export async function emitPaymentEvent(
   actor: string,
   payload: Prisma.InputJsonValue,
 ): Promise<void> {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${paymentId}))`;
   const last = await tx.paymentEvent.findFirst({
     where: { paymentId },
     orderBy: { seq: "desc" },
