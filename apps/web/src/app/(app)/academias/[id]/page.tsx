@@ -66,6 +66,21 @@ async function getProfile(id: string): Promise<AcademyProfile | "error"> {
   return (await res.json()) as AcademyProfile;
 }
 
+// Cargo de servicio de membresía — GET /api/params/public (whitelist).
+// El disclosure de suscripción debe mostrar el total real que Flow
+// debita (precio + fee — mismo amount del plan espejo en
+// subscriptions.service.ts). Si el endpoint falla se usa el mismo
+// fallback que el service (500).
+async function getMembershipFee(): Promise<number> {
+  const res = await fetch(`${API_URL}/api/params/public`, {
+    cache: "no-store",
+  }).catch(() => null);
+  if (!res?.ok) return 500;
+  const params = (await res.json()) as Record<string, unknown>;
+  const fee = params["service_fee.membership_clp"];
+  return typeof fee === "number" && fee >= 0 ? fee : 500;
+}
+
 // Class.date llega a medianoche UTC — formatear en UTC para no correr
 // el día (misma convención que /clases).
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
@@ -87,7 +102,10 @@ export default async function AcademiaDetailPage({
   const t = { ...messages.academy, ...academyExtrasPart.academy };
   const tc = messages.common;
   const ts = subscriptionsPart.subscriptions;
-  const academy = await getProfile(params.id);
+  const [academy, membershipFee] = await Promise.all([
+    getProfile(params.id),
+    getMembershipFee(),
+  ]);
 
   if (academy === "error") {
     return (
@@ -231,7 +249,6 @@ export default async function AcademiaDetailPage({
       {academy.mySubscription && (
         <SubscriptionManage
           subscription={academy.mySubscription}
-          academyId={academy.id}
           accessUntil={academy.myEnrollment?.endsAt ?? null}
         />
       )}
@@ -314,7 +331,11 @@ export default async function AcademiaDetailPage({
                       isActivePlan ? t.profile.extendPlan : t.profile.buyPlan
                     }
                     planType={p.type}
-                    price={p.price}
+                    recurringAmount={
+                      typeof p.price === "number"
+                        ? p.price + membershipFee
+                        : undefined
+                    }
                   />
                 </li>
               );

@@ -7,16 +7,16 @@ import classes from "./parts/classes.json";
 import common from "./parts/common.json";
 import consumer from "./parts/consumer.json";
 import crm from "./parts/crm.json";
+import dj from "./parts/dj.json";
 import landing from "./parts/landing.json";
+import locales from "./parts/locales.json";
 import producer from "./parts/producer.json";
 import profile from "./parts/profile.json";
 import realtime from "./parts/realtime.json";
-import dj from "./parts/dj.json";
-import locales from "./parts/locales.json";
-import venue from "./parts/venue.json";
 import subscriptions from "./parts/subscriptions.json";
 import support from "./parts/support.json";
 import tours from "./parts/tours.json";
+import venue from "./parts/venue.json";
 
 type Dict = Record<string, unknown>;
 
@@ -50,16 +50,16 @@ const parts = [
   common,
   consumer,
   crm,
+  dj,
   landing,
+  locales,
   producer,
   profile,
   realtime,
-  dj,
-  locales,
-  venue,
   subscriptions,
   support,
   tours,
+  venue,
 ] as Dict[];
 
 /** Diccionario completo: base + parts. Compartido por request.ts y layout. */

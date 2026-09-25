@@ -22,6 +22,7 @@ const PUBLIC_KEYS = new Set([
   "service_fee.presale_clp",
   "service_fee.door_app_clp",
   "service_fee.door_cash_clp",
+  "service_fee.membership_clp",
   "session.cooldown_minutes",
   "qr.rotation_seconds",
   "prime_time.window_minutes",

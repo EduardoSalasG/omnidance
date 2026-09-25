@@ -155,7 +155,7 @@ function CheckoutReturn() {
           quedó creada — el primer cobro se procesa/reconcilia en la API. */}
       {phase.kind === "subOk" && (
         <>
-          <Badge variant="neon">{t("success")}</Badge>
+          <Badge variant="neon">{ts("activated")}</Badge>
           <h1 className="text-xl font-bold">{ts("subOk")}</h1>
           <Button href="/academias" size="lg" className="w-full">
             {ts("returnToAcademies")}
