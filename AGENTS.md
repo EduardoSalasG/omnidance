@@ -74,10 +74,11 @@ Para una modificación acotada, verifica primero la superficie afectada (`pnpm -
 - Mobile-first: verifica 320px, mobile representativo y desktop; touch targets, estados de carga/vacío/error.
 - i18n: todo string por catálogo de mensajes (next-intl), solo `es-CL` habilitado — pero las bases listas desde el día 1.
 - **Indicadores de carga (estándar de carga percibida)**: <100ms se siente instantáneo → no mostrar nada; un spinner visible <300ms es "flash" y hace la app sentirse más lenta. Reglas:
-  - Carga de **contenido** (fetch de página/panel): `PageLoading` ya difiere su aparición 200ms vía `.page-loading` (CSS) — úsalo siempre para `phase/state === "loading"`, nunca `<Spinner>` desnudo a nivel panel.
+  - Carga de **contenido con layout conocido** (listas, cards, detalle): `SkeletonList`/`SkeletonCard`/`SkeletonText` de `components/ui` — el skeleton se percibe más corto que un spinner porque anticipa la estructura (NN/g). Todos llevan `.page-loading` (aparición diferida 200ms) y `motion-reduce` apaga el pulse.
+  - Carga de **contenido con layout desconocido** (gates de sesión/rol que deciden qué renderizar): `PageLoading` — difiere su aparición 200ms vía beacon compartido.
   - **Navegación** entre rutas o por `searchParams`: `NavPendingOverlay` (montado en `(app)/layout.tsx`, cubre toda la app) arma un overlay al click en link interno, lo muestra solo si la navegación supera 200ms y lo retira al pintar. No crear loading ad-hoc por página.
   - Feedback de **acción** (botón presionado, submit, guardar): `Spinner` inline **inmediato** — ahí la latencia la pide el usuario, no el sistema.
-  - Nunca forzar duración mínima larga (≥1s) para "que se aprecie": penaliza el caso común rápido. Si un indicador ya se mostró, basta un mínimo ~400ms anti-parpadeo.
+  - Nunca `<Spinner>` desnudo a nivel panel ni "Cargando…" de texto plano sin delay. Nunca forzar duración mínima larga (≥1s) para "que se aprecie": penaliza el caso común rápido. Si un indicador ya se mostró, basta un mínimo ~400ms anti-parpadeo.
 
 ### Documentación
 

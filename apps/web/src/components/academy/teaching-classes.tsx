@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { QuorumBar } from "./quorum-bar";
 import {
   classDayFmt,
@@ -60,7 +60,7 @@ export function TeachingClasses() {
   }, [load]);
 
   if (state === "loading") {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
   if (state === "unauth") {
     return (

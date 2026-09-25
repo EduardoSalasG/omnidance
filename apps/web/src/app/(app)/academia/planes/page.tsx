@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { PlansSection } from "@/components/academy/plans-section";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -66,7 +66,7 @@ function PlansModule({ academyId }: { academyId: string }) {
     );
   }
   if (plans === null) {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
   return (
     <PlansSection academyId={academyId} plans={plans} onChanged={reload} />

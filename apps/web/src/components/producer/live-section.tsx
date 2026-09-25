@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 
 type Props = { eventId: string; status: string };
 
@@ -79,7 +79,7 @@ export function LiveSection({ eventId, status }: Props) {
         {status === "LIVE" ? t("live.title") : t("live.titlePast")}
       </h2>
 
-      {state === "loading" && <Spinner size="sm" className="page-loading" />}
+      {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

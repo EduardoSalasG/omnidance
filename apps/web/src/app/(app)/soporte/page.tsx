@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
-import { PageLoading, Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import type {
   PaymentStatus,
   RoleStatus,
@@ -271,7 +272,7 @@ export default function SoportePage() {
             <span aria-hidden="true">‹</span> {t("backToResults")}
           </button>
 
-          {detailPhase === "loading" && <PageLoading />}
+          {detailPhase === "loading" && <SkeletonList />}
           {detailPhase === "error" && (
             <Card className="flex flex-col items-center gap-3 py-6 text-center">
               <p role="alert" className="text-sm text-white/70">

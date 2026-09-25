@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 
@@ -320,7 +320,7 @@ function DiscountCodes() {
           </Card>
         )}
 
-        {codes === null && !codesError && <Spinner size="sm" className="page-loading" />}
+        {codes === null && !codesError && <SkeletonList />}
         {codesError && (
           <div className="flex items-center gap-3">
             <p className="text-sm text-red-400">{tc("error")}</p>

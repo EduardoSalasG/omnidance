@@ -10,8 +10,8 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
-import { PageLoading, Spinner } from "@/components/ui/spinner";
+import { Badge, Button, Card, EventDate, SkeletonList } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 
@@ -369,7 +369,7 @@ export default function AmigosPage() {
         </p>
       )}
 
-      {state === "loading" && <PageLoading />}
+      {state === "loading" && <SkeletonList />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-white/50">

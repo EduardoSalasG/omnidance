@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { RoleRow } from "@/components/admin/types";
 
@@ -236,7 +236,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
   };
 
   if (state === "loading") {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
   if (state === "notFound") {
     return (

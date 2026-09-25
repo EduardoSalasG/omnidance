@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import type { CrmActor, CrmCampaign } from "./types";
 import { actorQuery } from "./types";
 
@@ -114,7 +114,7 @@ export function CampaignList({
   }
 
   if (items === null && !error) {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
 
   return (

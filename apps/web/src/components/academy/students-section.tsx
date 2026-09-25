@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, type BadgeVariant } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import {
   ENROLLMENT_STATUSES,
   inputCls,
@@ -198,7 +198,7 @@ export function StudentsSection({
   return (
     <div className="flex flex-col gap-4">
       {loading ? (
-        <Spinner size="sm" className="page-loading" />
+        <SkeletonList items={3} lines={1} />
       ) : error ? (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-white/60">

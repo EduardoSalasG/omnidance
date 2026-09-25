@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { PaymentCards } from "@/components/payments/payment-cards";
 import type { PaymentAuditRow } from "@/components/payments/shared";
 
@@ -48,7 +48,7 @@ export function AcademyPayments({ academyId }: Props) {
     void load();
   }, [load]);
 
-  if (phase === "loading") return <PageLoading />;
+  if (phase === "loading") return <SkeletonList />;
 
   if (phase === "denied") {
     return (

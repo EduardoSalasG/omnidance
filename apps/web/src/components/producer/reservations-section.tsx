@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import {
   inputCls,
   readError,
@@ -144,7 +144,7 @@ export function ReservationsSection({
         <p className="text-xs text-white/40">{t("reservations.noTables")}</p>
       )}
 
-      {items === null && !error && <Spinner size="sm" className="page-loading" />}
+      {items === null && !error && <SkeletonList items={2} lines={1} />}
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

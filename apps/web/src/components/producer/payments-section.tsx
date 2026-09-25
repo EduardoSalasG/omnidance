@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import {
   PAYMENT_STATUS_VARIANT,
   paymentDateTimeFmt,
@@ -63,7 +63,7 @@ export function PaymentsSection({ eventId }: Props) {
       </h2>
 
       {payments === null && !error && (
-        <Spinner size="sm" className="page-loading" />
+        <SkeletonList items={2} lines={1} />
       )}
       {error && (
         <div className="flex items-center gap-3">

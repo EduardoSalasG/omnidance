@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, PriceTag, Spinner } from "@/components/ui";
+import { Badge, Card, PriceTag, SkeletonText } from "@/components/ui";
 import {
   PAYMENT_STATUS_VARIANT,
   paymentContext,
@@ -143,9 +143,7 @@ function PaymentCard({
             </button>
             {expanded && (
               <div className="mt-2">
-                {events === null && !eventsError && (
-                  <Spinner size="sm" className="page-loading" />
-                )}
+                {events === null && !eventsError && <SkeletonText lines={2} />}
                 {eventsError && (
                   <p role="alert" className="text-xs text-red-400">
                     {tc("error")}

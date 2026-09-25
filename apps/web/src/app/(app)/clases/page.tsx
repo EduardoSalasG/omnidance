@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Segmented, Spinner } from "@/components/ui";
+import { Button, Card, Segmented, SkeletonList } from "@/components/ui";
 import {
   OnboardingRunner,
   type TourStep,
@@ -798,9 +798,7 @@ function ClasesInner() {
               </p>
             )}
           </div>
-          {historyState === "loading" && (
-            <Spinner size="sm" className="page-loading" />
-          )}
+          {historyState === "loading" && <SkeletonList items={2} />}
           {historyState === "error" && (
             <div className="flex items-center gap-3">
               <p role="alert" className="text-sm text-white/60">
@@ -974,7 +972,7 @@ function ClasesInner() {
                   </ul>
                 )
               ) : browseState === "loading" ? (
-                <Spinner size="sm" className="page-loading" />
+                <SkeletonList items={2} />
               ) : selectedClasses.length === 0 ? (
                 <p className="text-sm text-white/50">{t("noClassesDay")}</p>
               ) : (
@@ -1002,9 +1000,7 @@ function ClasesInner() {
           aria-label={t("scopeBooked")}
           className="flex flex-col gap-3"
         >
-          {mineState === "loading" && (
-            <Spinner size="sm" className="page-loading" />
-          )}
+          {mineState === "loading" && <SkeletonList items={2} />}
           {mineState === "error" && (
             <div className="flex items-center gap-3">
               <p role="alert" className="text-sm text-white/60">
@@ -1044,9 +1040,7 @@ function ClasesInner() {
         /* ─── Lista (mis academias) / Explore (todas): esta semana /
             más adelante ─── */
         <>
-          {browseState === "loading" && (
-            <Spinner size="sm" className="page-loading" />
-          )}
+          {browseState === "loading" && <SkeletonList items={2} />}
           {browseState === "error" && (
             <div className="flex items-center gap-3">
               <p role="alert" className="text-sm text-white/60">

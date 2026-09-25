@@ -5,8 +5,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate, Segmented } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import {
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  Segmented,
+  SkeletonList,
+} from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import type { Me } from "@/components/social/types";
 
@@ -283,9 +289,9 @@ export default function PracticasPage() {
             </Button>
           </Card>
         ) : view === "mias" && mine === null ? (
-          <PageLoading />
+          <SkeletonList />
         ) : view === "todas" && state === "loading" ? (
-          <PageLoading />
+          <SkeletonList />
         ) : view === "todas" && state === "error" ? (
           <p role="alert" className="text-white/60">
             {tc("error")}

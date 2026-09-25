@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { SlotsSection } from "@/components/academy/slots-section";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -68,7 +68,7 @@ function SlotsModule({ academyId }: { academyId: string }) {
     );
   }
   if (slots === null) {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
   return (
     <div className="flex flex-col gap-4">

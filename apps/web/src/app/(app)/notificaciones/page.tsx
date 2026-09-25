@@ -8,7 +8,7 @@ import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { notificationLens } from "@/lib/notification-lens";
 import { Badge, Button, Card } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 
 type NotificationItem = {
   id: string;
@@ -203,7 +203,7 @@ export default function NotificacionesPage() {
         )}
       </header>
 
-      {state === "loading" && <PageLoading />}
+      {state === "loading" && <SkeletonList items={4} lines={1} />}
       {state === "error" && (
         <p role="alert" className="text-white/50">
           {tc("error")}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, SkeletonList, SkeletonText } from "@/components/ui";
 import { EVENT_STATUS_VARIANT } from "@/components/producer/shared";
 
 /**
@@ -167,7 +167,7 @@ export default function AnaliticaPage() {
   if (phase === "loading") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-        <p className="pt-6 text-sm text-white/50">{tc("loading")}</p>
+        <SkeletonList />
       </main>
     );
   }
@@ -256,9 +256,7 @@ export default function AnaliticaPage() {
         )}
       </header>
 
-      {summaryPhase === "loading" && (
-        <p className="text-sm text-white/50">{tc("loading")}</p>
-      )}
+      {summaryPhase === "loading" && <SkeletonText lines={3} />}
 
       {summaryPhase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
