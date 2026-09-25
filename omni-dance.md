@@ -1018,7 +1018,7 @@ Preferencias por categoría — el usuario apaga marketing sin perder transaccio
 
 ### Integraciones externas
 
-Flow (pagos + webhooks) · Google Drive (fotos) · YouTube/Vimeo (videos/streaming embebido) · futuro: Webpay Oneclick/Khipu para mensualidades de academia
+Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia) · Google Drive (fotos) · YouTube/Vimeo (videos/streaming embebido) · futuro: Webpay Oneclick/Khipu si el volumen justifica migrar de pasarela
 
 ### Riesgos técnicos conocidos
 

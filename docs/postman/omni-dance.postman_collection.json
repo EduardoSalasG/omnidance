@@ -887,6 +887,33 @@
           }
         },
         {
+          "name": "GET /api/admin/payments/{id}/verify-chain",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payments/{id}/verify-chain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "payments",
+                "{id}",
+                "verify-chain"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/admin/catalogs/styles",
           "request": {
             "method": "GET",
@@ -3161,6 +3188,38 @@
               }
             }
           }
+        },
+        {
+          "name": "POST /api/checkout/membership-subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/membership-subscription",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "membership-subscription"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -3315,6 +3374,167 @@
           }
         },
         {
+          "name": "POST /api/payments/flow/customer-return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/flow/customer-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "flow",
+                "customer-return"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/payments/subscription-webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/subscription-webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "subscription-webhook"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/by-event/{eventId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/by-event/{eventId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "by-event",
+                "{eventId}"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": ":eventId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/by-academy/{academyId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/by-academy/{academyId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "by-academy",
+                "{academyId}"
+              ],
+              "variable": [
+                {
+                  "key": "academyId",
+                  "value": ":academyId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/{id}/events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{id}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{id}",
+                "events"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/payments/{id}",
           "request": {
             "method": "GET",
@@ -3354,6 +3574,80 @@
                 "payments",
                 "{id}",
                 "tickets"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "subscriptions",
+      "item": [
+        {
+          "name": "GET /api/subscriptions/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/subscriptions/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/subscriptions/{id}/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/{id}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "{id}",
+                "cancel"
               ],
               "variable": [
                 {

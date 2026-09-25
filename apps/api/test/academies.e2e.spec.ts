@@ -600,17 +600,19 @@ describe("academies e2e", () => {
         expect(res.status).toBe(401);
       });
 
-      it("historial deduplica por clase: attended prevalece sobre booking", async () => {
+      it("historial deduplica por clase: attended prevalece sobre cancelación", async () => {
         const res = await get("/api/classes/mine?scope=past", studentSession);
         expect(res.status).toBe(200);
         const list = await res.json();
         const byId = new Map(
-          list.map((r: { classId: string }) => [r.classId, r]),
+          list.map((r: { id: string }) => [r.id, r]),
         );
         expect(byId.get(attendedClassId)).toMatchObject({
           status: "attended",
         });
-        expect(byId.get(bookedClassId)).toMatchObject({ status: "booked" });
+        // Una reserva pasada sin asistencia no es historial (solo
+        // attended/cancelled — semántica desde 2d2eff5).
+        expect(byId.get(bookedClassId)).toBeUndefined();
         expect(byId.get(cancelledClassId)).toMatchObject({
           status: "cancelled",
         });
@@ -632,9 +634,9 @@ describe("academies e2e", () => {
         const list = await res.json();
         expect(
           list.every(
-            (r: { classId: string }) =>
+            (r: { id: string }) =>
               ![attendedClassId, bookedClassId, cancelledClassId].includes(
-                r.classId,
+                r.id,
               ),
           ),
         ).toBe(true);

@@ -342,6 +342,9 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
         ],
       },
     });
+    await prisma.paymentEvent.deleteMany({
+      where: { payment: { personId: { in: personIds } } },
+    });
     await prisma.payment.deleteMany({
       where: { personId: { in: personIds } },
     });

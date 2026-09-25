@@ -401,6 +401,112 @@ sequenceDiagram
 
 `Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido — misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) — el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId, fee % global).
 
+## Suscripción de academia — alta y renovación (Flow)
+
+```mermaid
+sequenceDiagram
+    actor U as Bailarín
+    participant API as SubscriptionsService
+    participant GW as Flow
+    participant DB as Postgres
+
+    U->>API: POST /checkout/membership-subscription<br/>{planId, acceptRecurring:true}
+    API->>DB: tx + pg_advisory_xact_lock(person):<br/>barre PENDING_CARD pendientes,<br/>crea/reusa MembershipSubscription PENDING_CARD
+    API->>GW: ensurePlan omni_<planId> (lazy)<br/>+ customer/create (lazy → Person.flowCustomerId)
+    alt sin tarjeta registrada
+        API->>GW: customer/register → registerUrl
+        API-->>U: {kind:needs_card, registerUrl, subscriptionId}
+        U->>GW: disclaimer de tarjeta (Flow)
+        GW->>API: POST /payments/flow/customer-return {token}
+        API->>GW: customer/getRegisterStatus → tarjeta OK
+        API->>DB: claim atómico PENDING_CARD→ACTIVATING
+    else tarjeta ya registrada
+        API->>DB: claim atómico PENDING_CARD→ACTIVATING
+        API-->>U: (tras create) {kind:subscribed}
+    end
+    API->>GW: subscription/create (cobra 1er período,<br/>fija next_invoice_date)
+    API->>DB: ACTIVE + flowSubscriptionId + nextInvoiceAt<br/>+ reconcile del 1er invoice → Payment mem_* → settle
+    Note over API,GW: customer-return responde 303 →<br/>/academias/:id?sub=ok — nunca error HTTP
+```
+
+```mermaid
+sequenceDiagram
+    participant CRON as SubscriptionsScheduler (cron 09:00)
+    participant WH as subscription-webhook (urlCallback del plan)
+    participant GET as GET /subscriptions/:id
+    participant GW as Flow
+    participant API as reconcileSubscription
+    participant DB as Postgres
+
+    Note over CRON,GET: tres gatillos del mismo barrido —<br/>webhook fast-path, polling del dueño, cron (red de seguridad)
+    CRON->>GW: subscription/get (por sub ACTIVE/CANCEL_PENDING)
+    WH->>API: {token} → reconcileAll fire-and-forget (200 siempre)
+    GET->>GW: subscription/get (refresh activo del detalle)
+    GW-->>API: invoices[] + status + next_invoice_date + morose
+    alt invoice pagada nueva (dedup lastInvoiceId + refId único)
+        API->>DB: Payment PENDING mem_<planId>_<invoiceId><br/>+ ORDER_CREATED
+        API->>DB: settleMembership → PAID + RENEWAL_SETTLED<br/>+ Enrollment.endsAt extendido
+        API->>DB: notify payment.membership
+    end
+    API->>DB: sync: nextInvoiceAt · cancel_at_period_end→CANCEL_PENDING<br/>· status=4→CANCELED
+    opt nextInvoiceAt < 24h (dedup reminderSentFor)
+        API->>DB: notify membership.renewal_reminder
+    end
+    opt morose=1 con invoice impaga (dedup por invoiceId)
+        API->>DB: RENEWAL_FAILED + notify membership.renewal_failed
+        Note over API,DB: sin grace period — el enrollment expira<br/>solo en endsAt; la sub sigue viva (Flow reintenta)
+    end
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING_CARD: subscribe (sin tarjeta aún)
+    PENDING_CARD --> CANCELED: sweep de otro subscribe / TTL expirado / cancel
+    PENDING_CARD --> ACTIVATING: claim atómico<br/>(subscribe con tarjeta · customer-return)
+    ACTIVATING --> PENDING_CARD: subscription/create falló<br/>(reversión del claim)
+    ACTIVATING --> ACTIVE: subscription/create OK (Flow cobra 1er período)
+    ACTIVATING --> CANCELED: status remoto 4
+    ACTIVE --> CANCEL_PENDING: cancel del usuario<br/>(Flow at_period_end=1 — conserva el período pagado)
+    ACTIVE --> CANCELED: reconcile ve status=4
+    CANCEL_PENDING --> CANCELED: reconcile ve status=4<br/>(fin del período ya pagado)
+```
+
+- **Cancelación `at_period_end`**: `POST /subscriptions/:id/cancel` llama `subscription/cancel` con `at_period_end=1` → `CANCEL_PENDING`; el usuario conserva el acceso hasta el fin del período ya pagado y el próximo reconcile cierra a `CANCELED` cuando Flow reporta `status=4`.
+- **Reminder el día previo**: cuando `nextInvoiceAt` queda a <24 h y la sub sigue `ACTIVE`, el reconcile notifica `membership.renewal_reminder` una sola vez por fecha (`reminderSentFor` la dedup — si Flow mueve la fecha, se vuelve a avisar).
+
+## Ledger de pago — evidencia hash-chain (BIAN)
+
+```mermaid
+sequenceDiagram
+    participant GW as Flow
+    participant WH as PaymentsController
+    participant SET as PaymentSettlementService
+    participant DB as Postgres (PaymentEvent)
+    participant Ad as Admin (admin.access)
+
+    GW->>WH: POST /payments/webhook {token}
+    WH->>GW: payment/getStatus firmado → {refId, status, paymentData}
+    Note over WH,GW: cada request/response Flow → GatewayTransaction OUTBOUND<br/>(append-only, correlationId, firma "s" → huella sha256)
+    WH->>SET: recordWebhookReceived
+    SET->>DB: WEBHOOK_RECEIVED (siempre — duplicado también es evidencia)
+    SET->>SET: settle: re-check status en tx (idempotente)
+    alt transición real → PAID
+        SET->>DB: Payment→PAID + gatewayFeeClp/gatewayReportedAmount/<br/>gatewayMedia/gatewayPaidAt/gatewayRaw
+        SET->>DB: STATUS_CONFIRMED → [AMOUNT_MISMATCH] →<br/>SETTLED (compra) | RENEWAL_SETTLED (suscripción)
+        Note over DB: payloadHash = sha256(prevHash +<br/>canonicalJson({paymentId,seq,type,actor,payload}))<br/>— editar una fila rompe la cadena
+    else transición real → FAILED
+        SET->>DB: STATUS_CONFIRMED + FAILED
+    else ya PAID (re-notificación)
+        SET-->>WH: {duplicated:true} — sin eventos ni efectos
+    end
+    Ad->>WH: GET /admin/payments/:id/verify-chain
+    WH-->>Ad: {ok, events, firstBadSeq?} — verifyPaymentChain re-calcula
+    Note over WH: GET /payments/:id/events (dueño/admin):<br/>ledger completo ordenado por seq
+```
+
+- `canonicalJson` = `JSON.stringify(sortKeys(JSON.parse(JSON.stringify(v))))` — round-trip a JSON puro antes de ordenar keys para que emit y verify converjan al mismo string que `jsonb` persiste (Date→ISO, Decimal→número; keys por codepoint).
+- El writer de `GatewayTransaction` es best-effort: un fallo de escritura nunca rompe el pago — la auditoría es observador, no camino crítico.
+
 ## Payouts — liquidación del productor
 
 ```mermaid

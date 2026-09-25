@@ -1403,6 +1403,27 @@
         }
       }
     },
+    "/api/checkout/membership-subscription": {
+      "post": {
+        "operationId": "CheckoutController_membershipSubscription",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutMembershipSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/tickets/claim/{token}": {
       "get": {
         "operationId": "TicketsController_claimInfo",
@@ -1496,6 +1517,119 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/flow/customer-return": {
+      "post": {
+        "operationId": "PaymentsController_customerReturn",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/subscription-webhook": {
+      "post": {
+        "operationId": "PaymentsController_subscriptionWebhook",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/mine": {
+      "get": {
+        "operationId": "PaymentsController_myPayments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/by-event/{eventId}": {
+      "get": {
+        "operationId": "PaymentsController_paymentsByEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/by-academy/{academyId}": {
+      "get": {
+        "operationId": "PaymentsController_paymentsByAcademy",
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/events": {
+      "get": {
+        "operationId": "PaymentsController_paymentEvents",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -1631,6 +1765,57 @@
         "parameters": [],
         "responses": {
           "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/subscriptions/mine": {
+      "get": {
+        "operationId": "SubscriptionsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/subscriptions/{id}": {
+      "get": {
+        "operationId": "SubscriptionsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/subscriptions/{id}/cancel": {
+      "post": {
+        "operationId": "SubscriptionsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
             "description": ""
           }
         }
@@ -3445,6 +3630,26 @@
         }
       }
     },
+    "/api/admin/payments/{id}/verify-chain": {
+      "get": {
+        "operationId": "BrowseController_verifyChain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/admin/catalogs/styles": {
       "get": {
         "operationId": "CatalogsController_styles",
@@ -4232,11 +4437,19 @@
         "type": "object",
         "properties": {}
       },
+      "CheckoutMembershipSubscriptionDto": {
+        "type": "object",
+        "properties": {}
+      },
       "TransferTicketDto": {
         "type": "object",
         "properties": {}
       },
       "WebhookDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "FlowTokenDto": {
         "type": "object",
         "properties": {}
       },

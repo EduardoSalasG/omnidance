@@ -15,6 +15,9 @@ import { WaitlistController } from "../src/social/infrastructure/waitlist.contro
 import { PAYMENT_GATEWAY } from "../src/payments/domain/ports";
 import { PricingService } from "../src/payments/domain/pricing.service";
 import { StubGateway } from "../src/payments/infrastructure/stub.gateway";
+import { PaymentSettlementService } from "../src/payments/application/payment-settlement.service";
+import { SubscriptionsService } from "../src/payments/application/subscriptions.service";
+import { GatewayTransactionsService } from "../src/payments/infrastructure/gateway-transactions.service";
 import { encodeTicketOrderRef } from "../src/payments/domain/order-ref";
 import { PrismaService } from "../src/prisma.service";
 
@@ -83,6 +86,9 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
         { provide: SessionsService, useFactory: () => new SessionsService() },
         { provide: PricingService, useFactory: () => new PricingService() },
         { provide: PAYMENT_GATEWAY, useClass: StubGateway },
+        PaymentSettlementService,
+        SubscriptionsService,
+        GatewayTransactionsService,
       ],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -151,6 +157,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
     await prisma.danceSession.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.waitlist.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.ticket.deleteMany({ where: { eventId: ids.eventId } });
+    await prisma.paymentEvent.deleteMany({ where: { payment: { personId: { in: peopleIds } } } });
     await prisma.payment.deleteMany({ where: { personId: { in: peopleIds } } });
     await prisma.event.delete({ where: { id: ids.eventId } });
     await prisma.venue.delete({ where: { id: ids.venueId } });

@@ -221,6 +221,9 @@ describe("checkout + payments e2e", () => {
     await prisma.tableReservation.deleteMany({
       where: { eventId: ids.tablesEventId },
     });
+    await prisma.paymentEvent.deleteMany({
+      where: { payment: { personId: { in: [buyerId, otherId] } } },
+    });
     await prisma.payment.deleteMany({
       where: { personId: { in: [buyerId, otherId] } },
     });
