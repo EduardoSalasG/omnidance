@@ -1,7 +1,8 @@
 {
   "subscriptions": {
     "subscribe": "Suscribirme",
-    "oneTime": "Pago único",
+    "error": "No pudimos iniciar la suscripción — inténtalo de nuevo.",
+    "activated": "¡Suscripción activada!",
     "period": {
       "MONTHLY": "mes",
       "QUARTERLY": "trimestre",

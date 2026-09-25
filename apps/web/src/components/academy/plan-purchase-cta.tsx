@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
 
 type Phase =
   | { kind: "idle" }
@@ -42,8 +42,11 @@ export type PlanPurchaseCtaProps = {
   label: string;
   /** PlanType — si es recurrente se ofrece también "Suscribirme". */
   planType?: string;
-  /** Precio del plan — solo para el aviso legal del consentimiento. */
-  price?: number;
+  /** Monto REAL que Flow debitará cada período (precio + cargo de
+      servicio) — lo resuelve el caller vía /params/public. Si no se
+      puede determinar, el bloque de suscripción no se muestra (el
+      aviso legal nunca debe declarar un monto incorrecto). */
+  recurringAmount?: number;
 };
 
 /**
@@ -57,7 +60,7 @@ export function PlanPurchaseCta({
   planId,
   label,
   planType,
-  price,
+  recurringAmount,
 }: PlanPurchaseCtaProps) {
   const tc = useTranslations("common");
   const tco = useTranslations("checkout");
@@ -75,6 +78,10 @@ export function PlanPurchaseCta({
   const [subOpen, setSubOpen] = useState(false);
   const [consent, setConsent] = useState(false);
   const [subPhase, setSubPhase] = useState<SubPhase>("idle");
+  // Error propio del flujo de suscripción (mensaje legible de la API si
+  // viene como string, o la key genérica subscriptions.error) — nunca
+  // reutilizar los notices de tickets ("soldOut" no aplica acá).
+  const [subError, setSubError] = useState<string | null>(null);
 
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
@@ -168,6 +175,7 @@ export function PlanPurchaseCta({
   async function subscribe() {
     if (subPhase !== "idle" || !consent) return;
     setNotice(null);
+    setSubError(null);
     setSubPhase("processing");
 
     try {
@@ -188,7 +196,20 @@ export function PlanPurchaseCta({
         return;
       }
       if (!res.ok) {
-        setNotice(res.status === 400 || res.status === 404 ? "unavailable" : "generic");
+        // Errores propios de suscripción (400: plan no admite cobro
+        // recurrente / falta email / gateway sin soporte; 404: plan
+        // inexistente; etc.). Si la API devuelve `message` legible se
+        // muestra tal cual; si no, la key genérica subscriptions.error.
+        const body = (await res.json().catch(() => null)) as {
+          message?: unknown;
+        } | null;
+        const msg =
+          typeof body?.message === "string" &&
+          body.message.length > 0 &&
+          body.message.length <= 200
+            ? body.message
+            : null;
+        setSubError(msg ?? ts("error"));
         setSubPhase("idle");
         return;
       }
@@ -216,8 +237,9 @@ export function PlanPurchaseCta({
       router.refresh();
       setSubPhase("idle");
       setSubOpen(false);
+      setConsent(false);
     } catch {
-      setNotice("generic");
+      setSubError(ts("error"));
       setSubPhase("idle");
     }
   }
@@ -254,7 +276,7 @@ export function PlanPurchaseCta({
         <Button
           type="button"
           className="w-full"
-          disabled={busy}
+          disabled={busy || subPhase !== "idle"}
           onClick={() => void buy()}
         >
           {phase.kind === "processing" ? tco("processing") : label}
@@ -283,18 +305,23 @@ export function PlanPurchaseCta({
         </div>
       )}
 
-      {/* Opción suscripción (planes recurrentes): "Suscribirme"
-          despliega el aviso legal de cobro automático + checkbox de
-          consentimiento; el CTA queda deshabilitado hasta marcarlo. */}
-      {isRecurring && (
+      {/* Opción suscripción (planes recurrentes con monto conocido —
+          el aviso legal debe declarar el total real que Flow debitará:
+          precio + cargo de servicio). "Suscribirme" despliega el aviso
+          de cobro automático + checkbox de consentimiento; el CTA queda
+          deshabilitado hasta marcarlo. */}
+      {isRecurring && recurringAmount != null && (
         <div className="flex flex-col gap-2 border-t border-night-700 pt-2">
           {!subOpen ? (
             <Button
               type="button"
               variant="secondary"
               className="w-full"
-              disabled={subPhase !== "idle"}
-              onClick={() => setSubOpen(true)}
+              disabled={busy || subPhase !== "idle"}
+              onClick={() => {
+                setSubOpen(true);
+                setSubError(null);
+              }}
             >
               {ts("subscribe")}
             </Button>
@@ -302,7 +329,7 @@ export function PlanPurchaseCta({
             <>
               <p className="text-xs leading-relaxed text-white/60">
                 {ts("consent", {
-                  amount: clp.format(price ?? 0),
+                  amount: clp.format(recurringAmount),
                   period: ts(`period.${planType}`),
                 })}
               </p>
@@ -310,7 +337,7 @@ export function PlanPurchaseCta({
                 <input
                   type="checkbox"
                   checked={consent}
-                  disabled={subPhase !== "idle"}
+                  disabled={busy || subPhase !== "idle"}
                   onChange={(e) => setConsent(e.target.checked)}
                   className="mt-0.5 h-4 w-4 shrink-0 accent-neon"
                 />
@@ -321,7 +348,7 @@ export function PlanPurchaseCta({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  disabled={subPhase !== "idle"}
+                  disabled={busy || subPhase !== "idle"}
                   onClick={() => {
                     setSubOpen(false);
                     setConsent(false);
@@ -333,15 +360,23 @@ export function PlanPurchaseCta({
                   type="button"
                   size="sm"
                   className="flex-1"
-                  disabled={!consent || subPhase !== "idle"}
+                  disabled={!consent || busy || subPhase !== "idle"}
                   onClick={() => void subscribe()}
                 >
+                  {subPhase !== "idle" && <Spinner size="sm" />}
                   {subPhase === "processing"
                     ? tco("processing")
-                    : ts("subscribe")}
+                    : subPhase === "activating"
+                      ? ts("activating")
+                      : ts("subscribe")}
                 </Button>
               </div>
             </>
+          )}
+          {subError && (
+            <p role="alert" className="text-sm text-red-400">
+              {subError}
+            </p>
           )}
           {subPhase === "activating" && (
             <p className="animate-pulse text-sm text-white/70">

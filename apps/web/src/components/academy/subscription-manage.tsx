@@ -19,8 +19,6 @@ export type SubscriptionInfo = {
 
 export type SubscriptionManageProps = {
   subscription: SubscriptionInfo;
-  /** Academia dueña del plan (contexto del caller — la API de cancel usa solo sub.id). */
-  academyId: string;
   /** "Vigente hasta": enrollment.endsAt del viewer — en CANCEL_PENDING
       es la fecha real de fin del acceso; si no hay, se usa nextInvoiceAt. */
   accessUntil?: string | null;
@@ -36,7 +34,6 @@ export type SubscriptionManageProps = {
  */
 export function SubscriptionManage({
   subscription,
-  academyId: _academyId,
   accessUntil,
 }: SubscriptionManageProps) {
   const ts = useTranslations("subscriptions");
