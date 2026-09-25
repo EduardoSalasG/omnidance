@@ -20,7 +20,10 @@ export type PaymentAuditRow = {
   gatewayPaidAt: string | null;
   /** Cantidad de eventos del ledger (evidencia tamper-evident). */
   eventCount: number;
-  // Contexto de compra resuelto por la API según orderType.
+  // Contexto de compra resuelto por la API según orderType (los ids
+  // permiten linkear el pago a su evento/academia).
+  eventId: string | null;
+  academyId: string | null;
   eventName: string | null;
   seriesName: string | null;
   academyName: string | null;
@@ -51,6 +54,13 @@ export function paymentContext(p: PaymentAuditRow): string | null {
   if (p.seriesName) return p.seriesName;
   if (p.academyName && p.planName) return `${p.academyName} · ${p.planName}`;
   return p.academyName ?? p.planName;
+}
+
+/** Ruta a la ficha del contexto del pago (null = sin destino). */
+export function paymentHref(p: PaymentAuditRow): string | null {
+  if (p.academyId) return `/academias/${p.academyId}`;
+  if (p.eventId) return `/eventos/${p.eventId}`;
+  return null;
 }
 
 /** Fecha real de cobro: la reportada por la pasarela si existe. */

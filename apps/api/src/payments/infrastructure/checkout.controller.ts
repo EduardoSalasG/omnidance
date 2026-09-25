@@ -3,8 +3,10 @@ import {
   Body,
   ConflictException,
   Controller,
+  Get,
   NotFoundException,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -173,6 +175,28 @@ export class CheckoutController {
         throw new ConflictException(e.message);
       }
       if (e instanceof SeriesInactiveError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Revisión de orden para la página de checkout de membresía: precio,
+   * cargo de servicio, total real, vigencia resultante y suscripción
+   * viva del viewer — nada se cobra acá, es el paso "review" previo al
+   * POST /checkout/membership (o /checkout/membership-subscription).
+   */
+  @Get("membership-quote")
+  @UseGuards(SessionGuard)
+  async membershipQuote(@Req() req: Request, @Query("planId") planId: string) {
+    try {
+      return await this.checkout.membershipQuote(req.person!.id, planId);
+    } catch (e) {
+      if (e instanceof PlanNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
       throw e;

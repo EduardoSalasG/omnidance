@@ -12,6 +12,9 @@ import { planDateFmt } from "./shared";
 // nextInvoiceAt, canceledAt) y /academies/enrolled (`subscription`).
 export type SubscriptionInfo = {
   id: string;
+  /** MembershipPlan.id — permite re-disparar subscribe() al retomar
+      un registro de tarjeta abandonado (PENDING_CARD). */
+  planId: string;
   status: string;
   nextInvoiceAt: string | null;
   canceledAt: string | null;
@@ -22,19 +25,32 @@ export type SubscriptionManageProps = {
   /** "Vigente hasta": enrollment.endsAt del viewer — en CANCEL_PENDING
       es la fecha real de fin del acceso; si no hay, se usa nextInvoiceAt. */
   accessUntil?: string | null;
+  /** Monto real del próximo cobro (plan.price + cargo de servicio) —
+      lo resuelve el caller desde los planes de la academia + params. */
+  nextAmount?: number;
 };
+
+const clp = new Intl.NumberFormat("es-CL", {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 /**
  * Gestión de la suscripción del viewer en la ficha de la academia:
- *  - ACTIVE → badge + próximo cobro + "Cancelar suscripción" (confirm
- *    inline de 2 pasos) → POST /subscriptions/:id/cancel → refresh;
+ *  - ACTIVE → badge + próximo cobro (fecha + monto) + "Cancelar
+ *    suscripción" (confirm inline de 2 pasos) → POST /:id/cancel;
  *  - CANCEL_PENDING → "Se cancela el {fecha}" sin acciones;
- *  - PENDING_CARD/ACTIVATING → estado transitorio "activando…";
+ *  - PENDING_CARD → "te falta registrar tu tarjeta" + botón que
+ *    re-dispara subscribe() (el backend reutiliza la fila fresca o
+ *    reemplaza la expirada) → redirect al disclaimer de Flow;
+ *  - ACTIVATING → estado transitorio con spinner;
  *  - CANCELED → no renderiza nada (la vigencia ya la muestra el plan).
  */
 export function SubscriptionManage({
   subscription,
   accessUntil,
+  nextAmount,
 }: SubscriptionManageProps) {
   const ts = useTranslations("subscriptions");
   const tc = useTranslations("common");
@@ -65,12 +81,74 @@ export function SubscriptionManage({
     }
   }
 
+  /**
+   * Retoma el registro de tarjeta de una PENDING_CARD (el usuario salió
+   * del disclaimer de Flow sin terminar o falló): subscribe() sobre el
+   * mismo plan devuelve needs_card + registerUrl nueva — el backend
+   * reutiliza la fila fresca o reemplaza la expirada, sin duplicar.
+   */
+  async function resumeCardRegistration() {
+    if (busy) return;
+    setBusy(true);
+    setFailed(false);
+    try {
+      const res = await apiFetch("/checkout/membership-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: subscription.planId,
+          acceptRecurring: true,
+        }),
+      });
+      if (!res.ok) {
+        setFailed(true);
+        setBusy(false);
+        return;
+      }
+      const data = (await res.json()) as
+        | { kind: "needs_card"; registerUrl: string }
+        | { kind: "subscribed"; subscriptionId: string };
+      if (data.kind === "needs_card") {
+        window.location.href = data.registerUrl;
+        return;
+      }
+      router.refresh();
+    } catch {
+      setFailed(true);
+      setBusy(false);
+    }
+  }
+
   if (subscription.status === "CANCELED") return null;
 
-  if (
-    subscription.status === "PENDING_CARD" ||
-    subscription.status === "ACTIVATING"
-  ) {
+  if (subscription.status === "PENDING_CARD" || subscription.status === "FAILED_CARD") {
+    return (
+      <div className="flex flex-col gap-2 rounded-2xl border border-night-700 p-4">
+        <p className="text-sm text-white/70">
+          {subscription.status === "FAILED_CARD"
+            ? ts("failedCard")
+            : ts("pendingCard")}
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          className="self-start"
+          disabled={busy}
+          onClick={() => void resumeCardRegistration()}
+        >
+          {busy && <Spinner size="sm" />}
+          {ts("resumeCard")}
+        </Button>
+        {failed && (
+          <p role="alert" className="text-sm text-red-400">
+            {tc("error")}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (subscription.status === "ACTIVATING") {
     return (
       <p className="flex items-center gap-2 text-sm text-white/60">
         <Spinner size="sm" label={ts("activating")} />
@@ -108,7 +186,12 @@ export function SubscriptionManage({
         </Badge>
         {nextCharge && (
           <p className="text-sm text-white/60">
-            {ts("nextCharge", { date: nextCharge })}
+            {nextAmount != null
+              ? ts("nextChargeAmount", {
+                  date: nextCharge,
+                  amount: clp.format(nextAmount),
+                })
+              : ts("nextCharge", { date: nextCharge })}
           </p>
         )}
       </div>

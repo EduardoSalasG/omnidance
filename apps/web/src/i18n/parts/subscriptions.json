@@ -22,6 +22,10 @@
     "cancelPendingNoDate": "Se cancela al fin del período",
     "subOk": "Suscripción activada — el primer cobro se está procesando.",
     "subError": "No pudimos completar la suscripción. Inténtalo de nuevo.",
-    "returnToAcademies": "Ir a Mis academias"
+    "returnToAcademies": "Ir a Mis academias",
+    "pendingCard": "Te falta registrar tu tarjeta para activar la suscripción",
+    "failedCard": "No pudimos registrar tu tarjeta",
+    "resumeCard": "Registrar tarjeta",
+    "nextChargeAmount": "Próximo cobro: {date} · {amount}"
   }
 }

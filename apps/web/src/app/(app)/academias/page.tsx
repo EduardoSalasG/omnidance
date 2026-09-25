@@ -60,6 +60,7 @@ type Enrollment = {
       reciente) — alimenta el badge "Suscripción"/"Se cancela el…". */
   subscription: {
     id: string;
+    planId: string;
     status: string;
     nextInvoiceAt: string | null;
     canceledAt: string | null;

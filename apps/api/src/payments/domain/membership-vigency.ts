@@ -32,6 +32,13 @@ function endOfClMonth(y: number, m: number): Date {
  * futura, la compra extiende desde el día siguiente a su vencimiento
  * (renovar no come ni regala días); si no, parte hoy.
  */
+/** PlanTypes suscribibles vía motor recurrente de la pasarela (Flow). */
+export const RECURRING_PLAN_TYPES = new Set<PlanType>([
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMIANNUAL",
+]);
+
 export function membershipBase(now: Date, currentEndsAt: Date | null): Date {
   return currentEndsAt && currentEndsAt > now
     ? new Date(currentEndsAt.getTime() + DAY_MS)

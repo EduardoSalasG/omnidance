@@ -112,6 +112,9 @@ function mkPrisma() {
     seriesPass: {
       findUnique: vi.fn(async (): Promise<{ id: string } | null> => null),
     },
+    membershipPlan: { findUnique: vi.fn() },
+    enrollment: { findFirst: vi.fn(async () => null) },
+    membershipSubscription: { findFirst: vi.fn(async () => null) },
   };
   return { prisma, payments, songSuggestions };
 }
@@ -749,5 +752,102 @@ describe("CheckoutService.purchaseSeriesPass", () => {
     const ref = decodeSeriesPassRef(p.refId as string);
     expect(ref?.seriesId).toBe("ser-1");
     expect(ref?.month).toBe("2025-11");
+  });
+});
+
+describe("CheckoutService.membershipQuote", () => {
+  // Revisión de orden del checkout de membresía — sin cobro: precio,
+  // fee, total real, vigencia resultante y suscripción viva del plan.
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let svc: CheckoutService;
+
+  const mkPlan = (over: Record<string, unknown> = {}) => ({
+    id: "plan-1",
+    name: "Mensual",
+    active: true,
+    type: "MONTHLY",
+    price: 15000,
+    classCount: null,
+    periodDays: null,
+    description: ["2 clases por semana"],
+    academy: { id: "ac-1", name: "Academia X", active: true },
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    const { gateway } = mkGateway();
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  it("404: plan inexistente → PlanNotFoundError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(null);
+    await expect(svc.membershipQuote("p1", "plan-x")).rejects.toThrow(
+      "plan no encontrado",
+    );
+  });
+
+  it("400: TRIAL y plan inactivo no son cotizables", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL" }),
+    );
+    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
+      "este plan no está disponible para compra online",
+    );
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ active: false }),
+    );
+    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
+      "este plan no está disponible para compra online",
+    );
+  });
+
+  it("MONTHLY: recurring, total = price + fee, vigencia = fin de mes", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    pf.numbers.set("service_fee.membership_clp", 700);
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.recurring).toBe(true);
+    expect(q.totalClp).toBe(15700);
+    expect(q.serviceFeeClp).toBe(700);
+    expect(q.vigenciaEndsAt).not.toBeNull();
+    expect(q.gateway).toBe("STUB");
+    expect(q.subscription).toBeNull();
+  });
+
+  it("enrollment vigente → currentEndsAt y la vigencia extiende desde ahí", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    const endsAt = new Date(Date.now() + 10 * 86_400_000);
+    fx.prisma.enrollment.findFirst.mockResolvedValue({ endsAt });
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.currentEndsAt).toBe(endsAt.toISOString());
+    // MONTHLY extiende al fin del mes de (endsAt + 1d) → debe ser
+    // estrictamente posterior al endsAt vigente.
+    expect(new Date(q.vigenciaEndsAt!).getTime()).toBeGreaterThan(
+      endsAt.getTime(),
+    );
+  });
+
+  it("CLASS_PACK: no recurrente, sin vigenciaEndsAt", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "CLASS_PACK", classCount: 8 }),
+    );
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.recurring).toBe(false);
+    expect(q.vigenciaEndsAt).toBeNull();
+  });
+
+  it("devuelve la suscripción viva del plan si existe", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    const sub = { id: "sub-1", status: "ACTIVE", nextInvoiceAt: new Date() };
+    fx.prisma.membershipSubscription.findFirst.mockResolvedValue(sub);
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.subscription?.id).toBe("sub-1");
   });
 });

@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import messages from "../../../../../messages/es-CL.json";
 import academyExtrasPart from "@/i18n/parts/academyExtras.json";
 import subscriptionsPart from "@/i18n/parts/subscriptions.json";
+import membershipCheckoutPart from "@/i18n/parts/membershipCheckout.json";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
-import { PlanPurchaseCta } from "@/components/academy/plan-purchase-cta";
 import {
   SubscriptionManage,
   type SubscriptionInfo,
@@ -102,6 +102,7 @@ export default async function AcademiaDetailPage({
   const t = { ...messages.academy, ...academyExtrasPart.academy };
   const tc = messages.common;
   const ts = subscriptionsPart.subscriptions;
+  const mc = membershipCheckoutPart.membershipCheckout;
   const [academy, membershipFee] = await Promise.all([
     getProfile(params.id),
     getMembershipFee(),
@@ -250,6 +251,10 @@ export default async function AcademiaDetailPage({
         <SubscriptionManage
           subscription={academy.mySubscription}
           accessUntil={academy.myEnrollment?.endsAt ?? null}
+          nextAmount={
+            (academy.plans.find((p) => p.id === academy.mySubscription!.planId)
+              ?.price ?? 0) + membershipFee
+          }
         />
       )}
 
@@ -297,6 +302,14 @@ export default async function AcademiaDetailPage({
                 (academy.myEnrollment?.status === "ACTIVE" ||
                   academy.myEnrollment?.status === "ONLINE") &&
                 academy.myEnrollment.plan?.id === p.id;
+              // Si el plan ya tiene suscripción viva no se ofrece CTA —
+              // el bloque SubscriptionManage de arriba es su gestión y un
+              // segundo "Comprar" cobraría el mismo período dos veces.
+              const subscribedToPlan =
+                academy.mySubscription?.planId === p.id &&
+                ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD", "ACTIVATING"].includes(
+                  academy.mySubscription.status,
+                );
               return (
                 <li
                   key={p.id}
@@ -316,7 +329,14 @@ export default async function AcademiaDetailPage({
                         {p.classCount ? ` · ${p.classCount} clases` : ""}
                       </p>
                     </div>
-                    <PriceTag amount={p.price} />
+                    {/* Precio real cobrado (plan + cargo de servicio) —
+                        mismo total que el breakdown del checkout. */}
+                    <div className="shrink-0 text-right">
+                      <PriceTag amount={p.price + membershipFee} />
+                      <p className="mt-0.5 text-[10px] text-white/40">
+                        {mc.feeIncluded}
+                      </p>
+                    </div>
                   </div>
                   {p.description.length > 0 && (
                     <ul className="list-disc space-y-1 pl-5 text-sm text-white/70">
@@ -325,18 +345,14 @@ export default async function AcademiaDetailPage({
                       ))}
                     </ul>
                   )}
-                  <PlanPurchaseCta
-                    planId={p.id}
-                    label={
-                      isActivePlan ? t.profile.extendPlan : t.profile.buyPlan
-                    }
-                    planType={p.type}
-                    recurringAmount={
-                      typeof p.price === "number"
-                        ? p.price + membershipFee
-                        : undefined
-                    }
-                  />
+                  {!subscribedToPlan && (
+                    <Button
+                      href={`/academias/${academy.id}/checkout?plan=${p.id}`}
+                      className="w-full"
+                    >
+                      {isActivePlan ? t.profile.extendPlan : t.profile.buyPlan}
+                    </Button>
+                  )}
                 </li>
               );
             })}
