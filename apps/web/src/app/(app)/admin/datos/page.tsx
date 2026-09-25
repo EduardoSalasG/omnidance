@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Card, PillTabs, type BadgeVariant } from "@/components/ui";
-import { PageLoading, Spinner } from "@/components/ui/spinner";
+import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
@@ -886,9 +887,9 @@ function DatosPanel() {
         </div>
       )}
 
-      {phase === "loading" && rows === null && <PageLoading />}
+      {phase === "loading" && rows === null && <SkeletonList />}
       {phase === "loading" && rows !== null && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="page-loading text-sm text-white/50">
           {tc("loading")}
         </p>
       )}

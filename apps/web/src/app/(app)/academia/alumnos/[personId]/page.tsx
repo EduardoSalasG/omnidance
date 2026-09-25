@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, type BadgeVariant } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import {
   classDayFmt,
@@ -107,7 +107,7 @@ function ProfileModule({
   }, [load]);
 
   if (state === "loading") {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
   if (state === "forbidden") {
     return (

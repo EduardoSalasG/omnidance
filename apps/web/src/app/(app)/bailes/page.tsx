@@ -5,9 +5,8 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, SkeletonList } from "@/components/ui";
 import { EventDate } from "@/components/ui/EventDate";
-import { PageLoading } from "@/components/ui/spinner";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { isInvitee } from "@/components/sessions/types";
@@ -241,7 +240,7 @@ function Bailes() {
           </Button>
         </div>
       ) : phase === "loading" ? (
-        <PageLoading />
+        <SkeletonList />
       ) : sessions.length === 0 ? (
         <div className="flex flex-col items-center gap-6 py-16 text-center">
           <p role="status" className="text-lg font-semibold">

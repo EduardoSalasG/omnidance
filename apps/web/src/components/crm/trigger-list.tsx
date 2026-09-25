@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import type {
   CrmActor,
   CrmTrigger,
@@ -110,7 +110,7 @@ export function TriggerList({
   }
 
   if (items === null && !error) {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
 
   return (

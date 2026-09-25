@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
-import { PageLoading, Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 /**
  * /dj — consola del rol DJ. GET /dj/gigs devuelve los gigs donde el DJ
@@ -164,7 +165,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
 
   return (
     <section aria-label={t("suggestions.title")} className="flex flex-col gap-3">
-      {phase === "loading" && <Spinner size="sm" className="page-loading" />}
+      {phase === "loading" && <SkeletonList items={2} lines={1} />}
 
       {phase === "error" && (
         <div className="flex items-center gap-3">

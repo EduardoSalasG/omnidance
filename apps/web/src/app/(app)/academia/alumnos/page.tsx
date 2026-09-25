@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { StudentsSection } from "@/components/academy/students-section";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -98,7 +98,7 @@ function StudentsModule({
     );
   }
   if (plans === null) {
-    return <PageLoading />;
+    return <SkeletonList />;
   }
   return (
     <StudentsSection

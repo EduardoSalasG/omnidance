@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { PASS_STATUS_VARIANT, type EntryPass } from "./shared";
 
 type Props = { eventId: string };
@@ -44,7 +44,7 @@ export function PassesSection({ eventId }: Props) {
         {t("sections.passes")}
       </h2>
 
-      {passes === null && !error && <Spinner size="sm" className="page-loading" />}
+      {passes === null && !error && <SkeletonList items={2} lines={1} />}
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

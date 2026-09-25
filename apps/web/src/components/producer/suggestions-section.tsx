@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import type { SongSuggestion } from "./shared";
 
 type Props = { eventId: string };
@@ -44,7 +44,7 @@ export function SuggestionsSection({ eventId }: Props) {
         {t("sections.suggestions")}
       </h2>
 
-      {items === null && !error && <Spinner size="sm" className="page-loading" />}
+      {items === null && !error && <SkeletonList items={2} lines={1} />}
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

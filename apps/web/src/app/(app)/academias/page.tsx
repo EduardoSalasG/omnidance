@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, Segmented } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { Badge, Card, Segmented, SkeletonList } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { planDateFmt } from "@/components/academy/shared";
 
@@ -580,7 +579,7 @@ function AcademiasInner() {
         </p>
       )}
 
-      {state === "loading" && <Spinner size="sm" className="page-loading" />}
+      {state === "loading" && <SkeletonList />}
       {state === "error" && (
         <p role="alert" className="text-sm text-white/60">
           {tc("error")}

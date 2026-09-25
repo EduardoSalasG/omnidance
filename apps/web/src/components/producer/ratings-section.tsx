@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import type { RatingAgg, RatingsSummary } from "./shared";
 
 type Props = { eventId: string };
@@ -94,7 +94,7 @@ export function RatingsSection({ eventId }: Props) {
         {t("sections.ratings")}
       </h2>
 
-      {state === "loading" && <Spinner size="sm" className="page-loading" />}
+      {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">

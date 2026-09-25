@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
-import { Spinner } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { TagBadges } from "./tag-badges";
 import type { CrmActor, CrmPersonRow, CrmTag } from "./types";
 import { SEGMENTS, actorBody, actorQuery } from "./types";
@@ -267,7 +267,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       </div>
 
       {/* Lista — cards apiladas (mobile-first, estilo admin) */}
-      {rows === null && !error && <Spinner size="sm" className="page-loading" />}
+      {rows === null && !error && <SkeletonList items={4} lines={1} />}
       {rows !== null && rows.length === 0 && (
         <Card className="flex flex-col items-start gap-3">
           <p className="text-white/60">{t("people.empty")}</p>

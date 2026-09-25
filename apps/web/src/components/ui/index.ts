@@ -24,6 +24,14 @@ export type { SegmentedItem, SegmentedProps } from "./segmented";
 export { Spinner, PageLoading } from "./spinner";
 export type { SpinnerProps, PageLoadingProps } from "./spinner";
 
+export { Skeleton, SkeletonText, SkeletonCard, SkeletonList } from "./skeleton";
+export type {
+  SkeletonProps,
+  SkeletonTextProps,
+  SkeletonCardProps,
+  SkeletonListProps,
+} from "./skeleton";
+
 export { NavPendingOverlay } from "./nav-pending";
 
 export { GenreMixBar, aggregateMix } from "./GenreMixBar";

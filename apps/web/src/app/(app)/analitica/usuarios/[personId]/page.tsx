@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PillTabs } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 
 // GET /admin/users/:personId/detail → person + historial de roles.
@@ -277,7 +277,7 @@ function UserPanel({ personId }: { personId: string }) {
     if (role) void loadSections(role);
   }, [role, loadSections]);
 
-  if (phase === "loading") return <PageLoading />;
+  if (phase === "loading") return <SkeletonList />;
 
   if (phase === "notfound") {
     return (
@@ -333,7 +333,7 @@ function UserPanel({ personId }: { personId: string }) {
         </Card>
       )}
 
-      {sectionPhase === "loading" && role && <PageLoading />}
+      {sectionPhase === "loading" && role && <SkeletonList />}
 
       {sectionPhase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">

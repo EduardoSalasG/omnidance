@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { SkeletonList } from "@/components/ui";
 import { PaymentCards } from "@/components/payments/payment-cards";
 import type { PaymentAuditRow } from "@/components/payments/shared";
 
@@ -93,7 +93,7 @@ export default function PerfilPagosPage() {
             </Button>
           </>
         ) : (
-          <PageLoading />
+          <SkeletonList />
         )}
       </main>
     );
