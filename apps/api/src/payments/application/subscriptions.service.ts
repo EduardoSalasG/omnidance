@@ -917,9 +917,12 @@ export class SubscriptionsService {
         where: {
           personId: sub.personId,
           type: "membership.renewal_failed",
-          data: invoiceId
-            ? { path: ["invoiceId"], equals: invoiceId }
-            : { path: ["subscriptionId"], equals: sub.id },
+          AND: [
+            { data: { path: ["subscriptionId"], equals: sub.id } },
+            ...(invoiceId
+              ? [{ data: { path: ["invoiceId"], equals: invoiceId } }]
+              : []),
+          ],
         },
         select: { id: true },
       });
