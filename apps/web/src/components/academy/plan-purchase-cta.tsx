@@ -204,6 +204,7 @@ export function PlanPurchaseCta({
           message?: unknown;
         } | null;
         const msg =
+          res.status < 500 &&
           typeof body?.message === "string" &&
           body.message.length > 0 &&
           body.message.length <= 200
