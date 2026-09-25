@@ -82,6 +82,10 @@ function mkPrisma() {
   const persons = new Map<string, Row>();
   const plans = new Map<string, Row>();
   const gatewayTxs: Row[] = [];
+  // Notificaciones "enviadas" — el spy de notifySafe las registra acá
+  // (beforeEach) y notification.findFirst las consulta: así el dedup de
+  // membership.renewal_failed se ejerce end-to-end en el spec.
+  const sentNotifs: Row[] = [];
   let seq = 0;
   const nid = () => `id-${++seq}`;
 
@@ -291,6 +295,29 @@ function mkPrisma() {
       ),
     },
     personRole: { findMany: vi.fn(async () => [] as Row[]) },
+    notification: {
+      // Dedup de renewal_failed: filtra por personId/type y, si viene,
+      // por data.path + equals (filtro JSON de Prisma sobre Postgres).
+      findFirst: vi.fn(async ({ where }: { where: Row }) => {
+        const d = where.data as
+          | { path?: string[]; equals?: unknown }
+          | undefined;
+        return (
+          sentNotifs.find((n) => {
+            if (n.personId !== where.personId) return false;
+            if (n.type !== where.type) return false;
+            if (d?.path) {
+              let cur: unknown = n.data;
+              for (const key of d.path) {
+                cur = (cur as Row | null | undefined)?.[key];
+              }
+              if (cur !== d.equals) return false;
+            }
+            return true;
+          }) ?? null
+        );
+      }),
+    },
     gatewayTransaction: {
       create: vi.fn(async ({ data }: { data: Row }) => {
         gatewayTxs.push(data);
@@ -301,7 +328,17 @@ function mkPrisma() {
       fn(prisma),
     $executeRaw: vi.fn(async () => 0),
   };
-  return { prisma, payments, events, enrollments, subs, persons, plans, gatewayTxs };
+  return {
+    prisma,
+    payments,
+    events,
+    enrollments,
+    subs,
+    persons,
+    plans,
+    gatewayTxs,
+    sentNotifs,
+  };
 }
 
 type Opts = { correlationId?: string } | undefined;
@@ -379,7 +416,9 @@ function mkFlow() {
 }
 
 function mkNotifications() {
-  return { notifySafe: vi.fn(async () => undefined) };
+  return {
+    notifySafe: vi.fn(async (_personId: string, _input: Row) => undefined),
+  };
 }
 
 function mkParams() {
@@ -398,6 +437,13 @@ describe("SubscriptionsService", () => {
     fx = mkPrisma();
     flow = mkFlow();
     notifications = mkNotifications();
+    // El dedup de mora consulta prisma.notification — el spy registra
+    // cada notifySafe en sentNotifs para que findFirst lo encuentre.
+    notifications.notifySafe.mockImplementation(
+      async (personId: string, input: Row) => {
+        fx.sentNotifs.push({ personId, ...input });
+      },
+    );
     const params = mkParams();
     fx.plans.set("plan1", { ...PLAN_MONTHLY });
     fx.persons.set("p1", {
@@ -1011,6 +1057,223 @@ describe("SubscriptionsService", () => {
       expect(row.status).toBe("CANCEL_PENDING");
       expect(row.canceledAt).toBeInstanceOf(Date);
     });
+
+    it("cancel_at_period_end como STRING '1' → CANCEL_PENDING (coerción)", async () => {
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        cancel_at_period_end: "1" as unknown as number,
+        next_invoice_date: "2026-10-24",
+        invoices: [],
+      } as never);
+      expect(fx.subs.find((s) => s.id === sub.id)!.status).toBe(
+        "CANCEL_PENDING",
+      );
+    });
+
+    it("nextInvoiceAt dentro de 24h → reminder renewal_reminder + reminderSentFor", async () => {
+      const in12h = new Date(Date.now() + 12 * 60 * 60_000);
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        next_invoice_date: in12h.toISOString(),
+        invoices: [],
+      } as never);
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({
+          category: "TRANSACTIONAL",
+          type: "membership.renewal_reminder",
+          data: expect.objectContaining({
+            subscriptionId: sub.id,
+            planId: "plan1",
+            planName: "Mensual",
+          }),
+        }),
+      );
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      expect(row.reminderSentFor).toEqual(in12h);
+      expect(row.nextInvoiceAt).toEqual(in12h);
+    });
+
+    it("reminder dedup: reminderSentFor === nextInvoiceAt → no re-notifica; fecha nueva → re-notifica", async () => {
+      const in12h = new Date(Date.now() + 12 * 60 * 60_000);
+      const sub = mkSub({
+        status: "ACTIVE",
+        flowSubscriptionId: "fsub-1",
+        nextInvoiceAt: in12h,
+        reminderSentFor: in12h, // ya avisado para esta fecha
+      });
+      fx.subs.push(sub);
+      const fs = {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        next_invoice_date: in12h.toISOString(),
+        invoices: [],
+      };
+      await svc.reconcileSubscription(sub, fs as never);
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+
+      // Flow movió el cobro → nueva fecha → se puede volver a avisar
+      const in20h = new Date(Date.now() + 20 * 60 * 60_000);
+      const sub2 = {
+        ...sub,
+        nextInvoiceAt: in12h,
+        reminderSentFor: in12h,
+      } as MembershipSubscription;
+      await svc.reconcileSubscription(sub2, {
+        ...fs,
+        next_invoice_date: in20h.toISOString(),
+      } as never);
+      expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
+      expect(
+        fx.subs.find((s) => s.id === sub.id)!.reminderSentFor,
+      ).toEqual(in20h);
+    });
+
+    it("nextInvoiceAt fuera de ventana (>24h o pasado) → sin reminder", async () => {
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      const base = {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        invoices: [],
+      };
+      // próximo cobro en 7 días → fuera de la ventana de 24h
+      await svc.reconcileSubscription(sub, {
+        ...base,
+        next_invoice_date: new Date(
+          Date.now() + 7 * 24 * 60 * 60_000,
+        ).toISOString(),
+      } as never);
+      // cobro ya pasado → nunca se recuerda atrasado
+      await svc.reconcileSubscription(sub, {
+        ...base,
+        next_invoice_date: new Date(Date.now() - 60_000).toISOString(),
+      } as never);
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+      expect(
+        fx.subs.find((s) => s.id === sub.id)!.reminderSentFor,
+      ).toBeNull();
+    });
+
+    it("cancel_at_period_end con cobro <24h → CANCEL_PENDING y SIN reminder", async () => {
+      // Una sub cancelada al fin de período no tiene próximo cobro real
+      // aunque Flow siga reportando next_invoice_date.
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        cancel_at_period_end: 1,
+        next_invoice_date: new Date(
+          Date.now() + 12 * 60 * 60_000,
+        ).toISOString(),
+        invoices: [],
+      } as never);
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      expect(row.status).toBe("CANCEL_PENDING");
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+    });
+
+    it("morose=1 con invoice impaga → renewal_failed + enrollment intacto + sub sigue ACTIVE", async () => {
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        morose: 1,
+        next_invoice_date: "2026-10-24",
+        invoices: [{ id: 55, status: 0, amount: 10500 }],
+      } as never);
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({
+          category: "TRANSACTIONAL",
+          type: "membership.renewal_failed",
+          data: expect.objectContaining({
+            subscriptionId: sub.id,
+            invoiceId: "55",
+          }),
+        }),
+      );
+      const row = fx.subs.find((s) => s.id === sub.id)!;
+      // SIN grace period y sin marcar CANCELED: la sub sigue viva (Flow
+      // reintenta), el enrollment no se toca — expira solo en endsAt.
+      expect(row.status).toBe("ACTIVE");
+      expect(fx.enrollments).toHaveLength(0);
+      expect(fx.payments.size).toBe(0);
+    });
+
+    it("morose dedup: segunda pasada con la misma invoice impaga → no re-notifica", async () => {
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      const fs = {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        morose: 1,
+        invoices: [{ id: 55, status: 0, amount: 10500 }],
+      };
+      await svc.reconcileSubscription(sub, fs as never);
+      await svc.reconcileSubscription(sub, fs as never);
+      const failed = notifications.notifySafe.mock.calls.filter(
+        ([, input]) => input.type === "membership.renewal_failed",
+      );
+      expect(failed).toHaveLength(1);
+      // invoice impaga NUEVA (otro intento/episodio) → vuelve a avisar
+      await svc.reconcileSubscription(sub, {
+        ...fs,
+        invoices: [
+          { id: 55, status: 0, amount: 10500 },
+          { id: 56, status: 0, amount: 10500 },
+        ],
+      } as never);
+      // la clave del episodio es la invoice impaga más antigua (55) —
+      // sigue dedupado mientras dure la misma mora
+      expect(
+        notifications.notifySafe.mock.calls.filter(
+          ([, input]) => input.type === "membership.renewal_failed",
+        ),
+      ).toHaveLength(1);
+    });
+
+    it("morose emite RENEWAL_FAILED en el ledger del último pago mem_", async () => {
+      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
+      fx.subs.push(sub);
+      fx.payments.set("pay-1", {
+        id: "pay-1",
+        refId: "mem_plan1_42",
+        orderType: "MEMBERSHIP",
+        personId: "p1",
+        status: "PAID",
+        createdAt: new Date(),
+      });
+      await svc.reconcileSubscription(sub, {
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        morose: 1,
+        invoices: [{ id: 55, status: 0, amount: 10500 }],
+      } as never);
+      const ev = fx.events.find(
+        (e) => e.paymentId === "pay-1" && e.type === "RENEWAL_FAILED",
+      );
+      expect(ev).toMatchObject({
+        actor: "reconcile",
+        payload: { subscriptionId: sub.id, invoiceId: "55" },
+      });
+    });
   });
 
   describe("reconcileAll", () => {
@@ -1031,6 +1294,33 @@ describe("SubscriptionsService", () => {
       const r = await svc.reconcileAll();
       expect(r).toEqual({ checked: 2, settled: 0 });
       expect(flow.getSubscription).toHaveBeenCalledTimes(2);
+    });
+
+    it("actor 'cron' propaga al ledger; mora detectada en el barrido notifica", async () => {
+      fx.subs.push(mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" }));
+      fx.payments.set("pay-1", {
+        id: "pay-1",
+        refId: "mem_plan1_42",
+        orderType: "MEMBERSHIP",
+        personId: "p1",
+        status: "PAID",
+        createdAt: new Date(),
+      });
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        morose: 1,
+        invoices: [{ id: 55, status: 0, amount: 10500 }],
+      });
+      const r = await svc.reconcileAll("cron");
+      expect(r).toEqual({ checked: 1, settled: 0 });
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({ type: "membership.renewal_failed" }),
+      );
+      const ev = fx.events.find((e) => e.type === "RENEWAL_FAILED");
+      expect(ev?.actor).toBe("cron");
     });
   });
 
