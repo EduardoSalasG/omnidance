@@ -134,13 +134,18 @@ export class SubscriptionsService {
    *
    * Concurrencia (I1): el re-check de sub viva + la elección/creación de
    * la fila PENDING_CARD van dentro de una tx corta con advisory lock
-   * `pg_advisory_xact_lock(hashtext(personId:planId))` — dos subscribe()
-   * concurrentes ya no pueden pasar ambos el guard y duplicar el
-   * subscription/create en Flow (= doble cobro). Las llamadas HTTP a
-   * Flow quedan FUERA de la tx (el lock solo serializa quién crea la
-   * fila, no se sostiene durante la red). Antes del createSubscription
+   * `pg_advisory_xact_lock(hashtext(personId))` — por PERSON, no por
+   * plan: el sweep M7 cancela pendientes de cualquier plan, así que dos
+   * subscribe() de planes distintos del mismo person también deben
+   * serializarse (si no, una PENDING_CARD creada por el otro entre el
+   * findMany y el commit escaparía al cancel dirigido). Las llamadas
+   * HTTP a Flow quedan FUERA de la tx (el lock solo serializa quién crea
+   * la fila, no se sostiene durante la red). Antes del createSubscription
    * hay un claim atómico PENDING_CARD→ACTIVATING que cubre la carrera
    * contra customerReturn (que toma la misma sub por su lado).
+   * Regla de la sección crítica: TODO update de status es condicional
+   * por el status esperado (updateMany id+status) — nunca update
+   * incondicional sobre una fila cuyo estado pudo moverse fuera de la tx.
    */
   async subscribe(
     personId: string,
@@ -170,17 +175,21 @@ export class SubscriptionsService {
     // mismo customerId). Una PENDING_CARD/ACTIVATING expirada (>TTL,
     // crash del intento anterior) se reemplaza por un intento nuevo.
     const sub = await this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sub:${personId}:${plan.id}`}))`;
-      const existing = await tx.membershipSubscription.findFirst({
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sub:${personId}`}))`;
+      // TODAS las subs vivas del person (cualquier plan): el sweep M7
+      // decide por fila sobre este snapshot — con el lock por person,
+      // ningún subscribe concurrente puede crear una PENDING_CARD que
+      // escape a la lista.
+      const live = await tx.membershipSubscription.findMany({
         where: {
           personId,
-          planId: plan.id,
           status: {
             in: ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD", "ACTIVATING"],
           },
         },
         orderBy: { createdAt: "desc" },
       });
+      const existing = live.find((s) => s.planId === plan.id) ?? null;
       const fresh =
         existing != null &&
         Date.now() - existing.createdAt.getTime() < PENDING_CARD_TTL_MS;
@@ -197,25 +206,41 @@ export class SubscriptionsService {
         }
       }
       const now = new Date();
-      // Se cancelan TODAS las PENDING_CARD del person (cualquier plan):
-      // el token de customer-return ata a customer→person, no a una sub
+      // Se cancelan las PENDING_CARD del person (cualquier plan): el
+      // token de customer-return ata a customer→person, no a una sub
       // concreta — con dos pendientes vivas no habría forma de saber
-      // cuál activar al volver del disclaimer (M7).
-      await tx.membershipSubscription.updateMany({
-        where: {
-          personId,
-          status: "PENDING_CARD",
-          ...(reuse ? { id: { not: reuse.id } } : {}),
-        },
-        data: { status: "CANCELED", canceledAt: now },
-      });
-      // ACTIVATING expirada de este plan (crash entre claim y update):
-      // la reemplaza el intento nuevo.
-      if (existing?.status === "ACTIVATING") {
-        await tx.membershipSubscription.update({
-          where: { id: existing.id },
+      // cuál activar al volver del disclaimer (M7). Cancel dirigido por
+      // fila y condicional por status esperado: si count===0 la fila se
+      // movió entremedio (un customer-return la claimeó a ACTIVATING) →
+      // se aborta la tx en vez de crear una segunda fila activable.
+      for (const s of live) {
+        if (s.status !== "PENDING_CARD" || s.id === reuse?.id) continue;
+        const canceled = await tx.membershipSubscription.updateMany({
+          where: { id: s.id, status: "PENDING_CARD" },
           data: { status: "CANCELED", canceledAt: now },
         });
+        if (canceled.count === 0) {
+          throw new ConflictException(
+            "la suscripción está siendo procesada — reintenta en unos segundos",
+          );
+        }
+      }
+      // ACTIVATING expirada de este plan (crash entre claim y update):
+      // la reemplaza el intento nuevo — cancel condicional por status.
+      // Si el request colgado commiteó ACTIVATING→ACTIVE entremedio,
+      // count===0 y NO se pisa: un update incondicional dejaría una sub
+      // Flow viva cobrando con fila CANCELED (huérfana permanente —
+      // reconcileAll solo escanea ACTIVE/CANCEL_PENDING).
+      if (existing?.status === "ACTIVATING") {
+        const canceled = await tx.membershipSubscription.updateMany({
+          where: { id: existing.id, status: "ACTIVATING" },
+          data: { status: "CANCELED", canceledAt: now },
+        });
+        if (canceled.count === 0) {
+          throw new ConflictException(
+            "la suscripción está siendo procesada — reintenta en unos segundos",
+          );
+        }
       }
       if (reuse) return reuse;
       return tx.membershipSubscription.create({
@@ -300,8 +325,13 @@ export class SubscriptionsService {
       if (cur?.status === "ACTIVE") {
         return { kind: "subscribed", subscriptionId: sub.id };
       }
+      // Mensaje acorde al estado real: una CANCELED (cancel del usuario
+      // o sweep de otro subscribe) no está "siendo procesada" — el
+      // retry inmediato crea un intento nuevo.
       throw new ConflictException(
-        "la suscripción está siendo procesada — reintenta en unos segundos",
+        cur?.status === "CANCELED"
+          ? "la suscripción fue cancelada — vuelve a intentarlo"
+          : "la suscripción está siendo procesada — reintenta en unos segundos",
       );
     }
 
@@ -347,10 +377,11 @@ export class SubscriptionsService {
    *   quedara ACTIVATING para siempre, el guard de subscribe daría 409
    *   eterno).
    * - Guard de status remoto (M4): no se asume ACTIVE a ciegas —
-   *   `fs.status === 4` (cancelada) → CANCELED; ausente/1 → ACTIVE; otro
-   *   valor inesperado → warn + ACTIVE (la sub existe en Flow; bloquear
-   *   dejaría un cobro real sin reflejo local y el próximo reconcile
-   *   corrige el estado).
+   *   `fs.status` se coerciona a número (Flow puede devolverlo como
+   *   STRING "4", igual que getRegisterStatus); 4 (cancelada) →
+   *   CANCELED; ausente/1 → ACTIVE; otro valor o NaN → warn + ACTIVE
+   *   (la sub existe en Flow; bloquear dejaría un cobro real sin
+   *   reflejo local y el próximo reconcile corrige el estado).
    * - Si el update local falla, la sub Flow quedaría huérfana (cobrando
    *   sin reflejo local) → compensación best-effort: cancel inmediata
    *   (M6) y rethrow.
@@ -383,10 +414,13 @@ export class SubscriptionsService {
       throw e;
     }
 
-    const remoteStatus = typeof fs.status === "number" ? fs.status : null;
+    // Coerción defensiva: Flow puede devolver status como string ("4")
+    // igual que en getRegisterStatus. NaN cae en el warn y se trata como
+    // ACTIVE (la sub existe en Flow; el reconcile corrige).
+    const remoteStatus = fs.status == null ? null : Number(fs.status);
     if (remoteStatus != null && remoteStatus !== 1 && remoteStatus !== 4) {
       this.logger.warn(
-        `subscription/create sub ${subId}: status remoto inesperado ${remoteStatus} — queda ACTIVE y el reconcile lo corrige`,
+        `subscription/create sub ${subId}: status remoto inesperado ${String(fs.status)} — queda ACTIVE y el reconcile lo corrige`,
       );
     }
     const nextStatus = remoteStatus === 4 ? "CANCELED" : "ACTIVE";
@@ -794,7 +828,10 @@ export class SubscriptionsService {
       : null;
     let status = sub.status;
     let canceledAt = sub.canceledAt;
-    if (fs.status === 4) {
+    // Flow puede devolver status como string ("4") — misma coerción
+    // defensiva que en createFlowSubscription.
+    const remoteStatus = fs.status == null ? null : Number(fs.status);
+    if (remoteStatus === 4) {
       status = "CANCELED";
       canceledAt ??= new Date();
     } else if (fs.cancel_at_period_end === 1 && status === "ACTIVE") {
