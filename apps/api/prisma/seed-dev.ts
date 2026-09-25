@@ -772,6 +772,58 @@ export async function seedDev(prisma: PrismaClient) {
         withNext: true,
       });
     }
+
+    // Planes de membresía — regla general: 1 clase/semana $25.000,
+    // 2 clases/semana $40.000. Mambo Madness es premium: 1 clase $40.000,
+    // ilimitado $60.000, VIP $99.000 (ilimitado + 1 particular), y es la
+    // única con trimestral/semestral ilimitados (lineal: 3x y 6x).
+    if (a.name === "Mambo Madness") {
+      await plan(academy.id, "Mensual — 1 clase semanal", "MONTHLY", 40000, {
+        description: [
+          "1 clase por semana a elección",
+          "Válido hasta fin del mes calendario",
+        ],
+      });
+      await plan(academy.id, "Mensual ilimitado", "MONTHLY", 60000, {
+        description: [
+          "Todas las clases del mes, sin límite",
+          "Válido hasta fin del mes calendario",
+        ],
+      });
+      await plan(academy.id, "Mensual VIP", "MONTHLY", 99000, {
+        description: [
+          "Todo lo del plan ilimitado",
+          "1 clase particular al mes con un instructor de la casa",
+          "Válido hasta fin del mes calendario",
+        ],
+      });
+      await plan(academy.id, "Trimestral ilimitado", "QUARTERLY", 180000, {
+        description: [
+          "Todas las clases por 3 meses, sin límite",
+          "Válido hasta fin del 3er mes calendario",
+        ],
+      });
+      await plan(academy.id, "Semestral ilimitado", "SEMIANNUAL", 360000, {
+        description: [
+          "Todas las clases por 6 meses, sin límite",
+          "Válido hasta fin del 6º mes calendario",
+          "El mejor valor por mes",
+        ],
+      });
+    } else {
+      await plan(academy.id, "Mensual — 1 clase semanal", "MONTHLY", 25000, {
+        description: [
+          "1 clase por semana a elección",
+          "Válido hasta fin del mes calendario",
+        ],
+      });
+      await plan(academy.id, "Mensual — 2 clases semanales", "MONTHLY", 40000, {
+        description: [
+          "2 clases por semana a elección",
+          "Válido hasta fin del mes calendario",
+        ],
+      });
+    }
   }
 
   // "Muevete On Tour" del spec lleva estilos 2·5·6·7 — muvet ya tiene
