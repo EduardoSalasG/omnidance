@@ -77,8 +77,8 @@ async function getMembershipFee(): Promise<number> {
   }).catch(() => null);
   if (!res?.ok) return 500;
   const params = (await res.json()) as Record<string, unknown>;
-  const fee = params["service_fee.membership_clp"];
-  return typeof fee === "number" && fee >= 0 ? fee : 500;
+  const fee = Number(params["service_fee.membership_clp"]);
+  return Number.isFinite(fee) && fee >= 0 ? fee : 500;
 }
 
 // Class.date llega a medianoche UTC — formatear en UTC para no correr
