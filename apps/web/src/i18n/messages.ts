@@ -14,6 +14,7 @@ import realtime from "./parts/realtime.json";
 import dj from "./parts/dj.json";
 import locales from "./parts/locales.json";
 import venue from "./parts/venue.json";
+import subscriptions from "./parts/subscriptions.json";
 import support from "./parts/support.json";
 import tours from "./parts/tours.json";
 
@@ -56,6 +57,7 @@ const parts = [
   dj,
   locales,
   venue,
+  subscriptions,
   support,
   tours,
 ] as Dict[];

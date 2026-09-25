@@ -2,10 +2,15 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import messages from "../../../../../messages/es-CL.json";
 import academyExtrasPart from "@/i18n/parts/academyExtras.json";
+import subscriptionsPart from "@/i18n/parts/subscriptions.json";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
 import { PlanPurchaseCta } from "@/components/academy/plan-purchase-cta";
+import {
+  SubscriptionManage,
+  type SubscriptionInfo,
+} from "@/components/academy/subscription-manage";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +51,8 @@ type AcademyProfile = {
     endsAt: string | null;
     plan: { id: string; name: string; type: string } | null;
   } | null;
+  /** Suscripción Flow más reciente del viewer a esta academia. */
+  mySubscription: SubscriptionInfo | null;
   classes: ClassCardData[];
 };
 
@@ -70,11 +77,16 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
 
 export default async function AcademiaDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  // `sub` lo escribe el redirect de POST /payments/flow/customer-return
+  // (retorno del disclaimer de registro de tarjeta): ok | error.
+  searchParams: { sub?: string };
 }) {
   const t = { ...messages.academy, ...academyExtrasPart.academy };
   const tc = messages.common;
+  const ts = subscriptionsPart.subscriptions;
   const academy = await getProfile(params.id);
 
   if (academy === "error") {
@@ -200,6 +212,30 @@ export default async function AcademiaDetailPage({
         )}
       </header>
 
+      {/* Retorno del disclaimer de tarjeta de Flow (customer-return →
+          303 ?sub=ok|error). ok: la sub puede seguir ACTIVATING — el
+          bloque de gestión de abajo refleja el estado real. */}
+      {searchParams.sub === "ok" && (
+        <Card>
+          <p className="text-sm text-neon">{ts.subOk}</p>
+        </Card>
+      )}
+      {searchParams.sub === "error" && (
+        <Card>
+          <p role="alert" className="text-sm text-red-400">
+            {ts.subError}
+          </p>
+        </Card>
+      )}
+
+      {academy.mySubscription && (
+        <SubscriptionManage
+          subscription={academy.mySubscription}
+          academyId={academy.id}
+          accessUntil={academy.myEnrollment?.endsAt ?? null}
+        />
+      )}
+
       {academy.description && (
         <Card>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -277,6 +313,8 @@ export default async function AcademiaDetailPage({
                     label={
                       isActivePlan ? t.profile.extendPlan : t.profile.buyPlan
                     }
+                    planType={p.type}
+                    price={p.price}
                   />
                 </li>
               );
