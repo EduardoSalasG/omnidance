@@ -14,6 +14,8 @@ type Phase =
   | { kind: "failed" }
   | { kind: "stillPending" }
   | { kind: "unauth" }
+  | { kind: "subOk" }
+  | { kind: "subError" }
   | { kind: "error" };
 
 const POLL_INTERVAL_MS = 2_000;
@@ -27,10 +29,23 @@ function CheckoutReturn() {
   const t = useTranslations("checkout");
   const tc = useTranslations("common");
   const tw = useTranslations("wallet");
-  const paymentId = useSearchParams().get("paymentId");
+  const ts = useTranslations("subscriptions");
+  const searchParams = useSearchParams();
+  const paymentId = searchParams.get("paymentId");
+  // `sub` llega si el retorno de suscripción cae acá en vez de la ficha
+  // (el redirect real de customer-return va a /academias/:id?sub=…).
+  const sub = searchParams.get("sub");
   const [phase, setPhase] = useState<Phase>({ kind: "verifying" });
 
   useEffect(() => {
+    if (sub === "ok") {
+      setPhase({ kind: "subOk" });
+      return;
+    }
+    if (sub === "error") {
+      setPhase({ kind: "subError" });
+      return;
+    }
     if (!paymentId) {
       setPhase({ kind: "error" });
       return;
@@ -82,7 +97,7 @@ function CheckoutReturn() {
     return () => {
       stopped = true;
     };
-  }, [paymentId]);
+  }, [paymentId, sub]);
 
   return (
     <main
@@ -132,6 +147,28 @@ function CheckoutReturn() {
           <p className="text-sm text-white/60">{t("returnFailedDesc")}</p>
           <Button href="/eventos" size="lg" className="w-full">
             {t("returnToEvents")}
+          </Button>
+        </>
+      )}
+
+      {/* Retorno del disclaimer de tarjeta de Flow: la suscripción ya
+          quedó creada — el primer cobro se procesa/reconcilia en la API. */}
+      {phase.kind === "subOk" && (
+        <>
+          <Badge variant="neon">{t("success")}</Badge>
+          <h1 className="text-xl font-bold">{ts("subOk")}</h1>
+          <Button href="/academias" size="lg" className="w-full">
+            {ts("returnToAcademies")}
+          </Button>
+        </>
+      )}
+
+      {phase.kind === "subError" && (
+        <>
+          <Badge variant="live">{tc("error")}</Badge>
+          <h1 className="text-xl font-bold">{ts("subError")}</h1>
+          <Button href="/academias" size="lg" className="w-full">
+            {ts("returnToAcademies")}
           </Button>
         </>
       )}

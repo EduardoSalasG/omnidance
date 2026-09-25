@@ -1,0 +1,26 @@
+{
+  "subscriptions": {
+    "subscribe": "Suscribirme",
+    "oneTime": "Pago único",
+    "period": {
+      "MONTHLY": "mes",
+      "QUARTERLY": "trimestre",
+      "SEMIANNUAL": "semestre"
+    },
+    "consent": "Suscripción: se te cobrará automáticamente {amount} cada {period} hasta que lo canceles. Te avisaremos un día antes de cada cobro.",
+    "consentCheck": "Entiendo y acepto el cobro automático recurrente",
+    "activating": "Activando tu suscripción…",
+    "activeBadge": "Suscripción activa",
+    "badge": "Suscripción",
+    "nextCharge": "Próximo cobro: {date}",
+    "cancel": "Cancelar suscripción",
+    "cancelConfirm": "¿Cancelar la suscripción? Mantienes el acceso hasta el fin del período ya pagado.",
+    "cancelYes": "Sí, cancelar",
+    "cancelKeep": "Mantener suscripción",
+    "cancelPending": "Se cancela el {date}",
+    "cancelPendingNoDate": "Se cancela al fin del período",
+    "subOk": "Suscripción activada — el primer cobro se está procesando.",
+    "subError": "No pudimos completar la suscripción. Inténtalo de nuevo.",
+    "returnToAcademies": "Ir a Mis academias"
+  }
+}

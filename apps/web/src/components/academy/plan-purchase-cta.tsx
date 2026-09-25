@@ -14,14 +14,36 @@ type Phase =
 
 type Notice = "loginRequired" | "unavailable" | "generic" | null;
 
+// Fase del flujo de suscripción (independiente del pago único):
+// idle → processing → needs_card (redirect a Flow) | activating
+// (subscribed: el primer cobro ya fue cargado; sondeo corto a
+// GET /subscriptions/:id hasta ver ACTIVE y luego router.refresh()).
+type SubPhase = "idle" | "processing" | "activating";
+
 const POLL_INTERVAL_MS = 2_000;
 const POLL_MAX_ATTEMPTS = 15; // ~30s — mismo criterio que checkout-client
+
+// PlanType recurrente → suscribible vía /checkout/membership-subscription
+// (espejo de INTERVAL_COUNT en subscriptions.service.ts).
+const RECURRING_TYPES = new Set(["MONTHLY", "QUARTERLY", "SEMIANNUAL"]);
+const SUB_POLL_MS = 1_500;
+const SUB_POLL_ATTEMPTS = 3;
+
+const clp = new Intl.NumberFormat("es-CL", {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 export type PlanPurchaseCtaProps = {
   /** MembershipPlan.id — requerido por POST /checkout/membership. */
   planId: string;
   /** Texto del CTA ("Comprar" / "Extender vigencia" si ya es el plan activo). */
   label: string;
+  /** PlanType — si es recurrente se ofrece también "Suscribirme". */
+  planType?: string;
+  /** Precio del plan — solo para el aviso legal del consentimiento. */
+  price?: number;
 };
 
 /**
@@ -31,14 +53,28 @@ export type PlanPurchaseCtaProps = {
  * Al PAID el webhook ya materializó el Enrollment — router.refresh()
  * repinta la ficha con el badge "Plan activo".
  */
-export function PlanPurchaseCta({ planId, label }: PlanPurchaseCtaProps) {
+export function PlanPurchaseCta({
+  planId,
+  label,
+  planType,
+  price,
+}: PlanPurchaseCtaProps) {
   const tc = useTranslations("common");
   const tco = useTranslations("checkout");
+  const ts = useTranslations("subscriptions");
   const router = useRouter();
 
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [notice, setNotice] = useState<Notice>(null);
   const [simulating, setSimulating] = useState(false);
+
+  // Opción suscripción (solo planes recurrentes): el bloque de
+  // consentimiento se despliega con "Suscribirme" y el CTA queda
+  // deshabilitado hasta marcar el checkbox.
+  const isRecurring = planType != null && RECURRING_TYPES.has(planType);
+  const [subOpen, setSubOpen] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [subPhase, setSubPhase] = useState<SubPhase>("idle");
 
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
@@ -116,6 +152,76 @@ export function PlanPurchaseCta({ planId, label }: PlanPurchaseCtaProps) {
     }
   }
 
+  /**
+   * Suscripción recurrente: POST /checkout/membership-subscription con
+   * consentimiento explícito (acceptRecurring — el aviso legal ya se
+   * mostró y el checkbox quedó marcado). Respuestas:
+   *  - needs_card → registerUrl del disclaimer de Flow (redirect; el
+   *    retorno entra por POST /payments/flow/customer-return → 303 a la
+   *    ficha con ?sub=ok|error);
+   *  - subscribed → Flow ya cobró el primer período; se sondea
+   *    GET /subscriptions/:id unos segundos hasta ver ACTIVE y se
+   *    refresca (si sigue ACTIVATING la ficha misma muestra el estado).
+   * 409 (ya existe una sub viva del plan o está siendo procesada) →
+   * refresh directo: la ficha repinta con SubscriptionManage.
+   */
+  async function subscribe() {
+    if (subPhase !== "idle" || !consent) return;
+    setNotice(null);
+    setSubPhase("processing");
+
+    try {
+      const res = await apiFetch("/checkout/membership-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId, acceptRecurring: true }),
+      });
+
+      if (res.status === 401) {
+        setNotice("loginRequired");
+        setSubPhase("idle");
+        return;
+      }
+      if (res.status === 409) {
+        setSubPhase("idle");
+        router.refresh();
+        return;
+      }
+      if (!res.ok) {
+        setNotice(res.status === 400 || res.status === 404 ? "unavailable" : "generic");
+        setSubPhase("idle");
+        return;
+      }
+
+      const data = (await res.json()) as
+        | { kind: "needs_card"; registerUrl: string; subscriptionId: string }
+        | { kind: "subscribed"; subscriptionId: string };
+
+      if (data.kind === "needs_card") {
+        window.location.href = data.registerUrl;
+        return;
+      }
+
+      setSubPhase("activating");
+      for (let i = 0; i < SUB_POLL_ATTEMPTS; i++) {
+        await new Promise((r) => setTimeout(r, SUB_POLL_MS));
+        const poll = await apiFetch(`/subscriptions/${data.subscriptionId}`).catch(
+          () => null,
+        );
+        if (poll?.ok) {
+          const sub = (await poll.json()) as { status: string };
+          if (sub.status === "ACTIVE") break;
+        }
+      }
+      router.refresh();
+      setSubPhase("idle");
+      setSubOpen(false);
+    } catch {
+      setNotice("generic");
+      setSubPhase("idle");
+    }
+  }
+
   async function simulate(status: "PAID" | "FAILED") {
     if (phase.kind !== "awaiting") return;
     setSimulating(true);
@@ -174,6 +280,74 @@ export function PlanPurchaseCta({ planId, label }: PlanPurchaseCtaProps) {
           <Button href="/login" size="sm">
             {tc("login")}
           </Button>
+        </div>
+      )}
+
+      {/* Opción suscripción (planes recurrentes): "Suscribirme"
+          despliega el aviso legal de cobro automático + checkbox de
+          consentimiento; el CTA queda deshabilitado hasta marcarlo. */}
+      {isRecurring && (
+        <div className="flex flex-col gap-2 border-t border-night-700 pt-2">
+          {!subOpen ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled={subPhase !== "idle"}
+              onClick={() => setSubOpen(true)}
+            >
+              {ts("subscribe")}
+            </Button>
+          ) : (
+            <>
+              <p className="text-xs leading-relaxed text-white/60">
+                {ts("consent", {
+                  amount: clp.format(price ?? 0),
+                  period: ts(`period.${planType}`),
+                })}
+              </p>
+              <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-white/80">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  disabled={subPhase !== "idle"}
+                  onChange={(e) => setConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-neon"
+                />
+                {ts("consentCheck")}
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={subPhase !== "idle"}
+                  onClick={() => {
+                    setSubOpen(false);
+                    setConsent(false);
+                  }}
+                >
+                  {tc("back")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="flex-1"
+                  disabled={!consent || subPhase !== "idle"}
+                  onClick={() => void subscribe()}
+                >
+                  {subPhase === "processing"
+                    ? tco("processing")
+                    : ts("subscribe")}
+                </Button>
+              </div>
+            </>
+          )}
+          {subPhase === "activating" && (
+            <p className="animate-pulse text-sm text-white/70">
+              {ts("activating")}
+            </p>
+          )}
         </div>
       )}
 

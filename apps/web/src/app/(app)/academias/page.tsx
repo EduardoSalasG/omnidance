@@ -56,6 +56,14 @@ type Enrollment = {
   /** "Pagado hasta" — null = sin fecha de término registrada. */
   endsAt: string | null;
   attendance30d: number;
+  /** Suscripción Flow vigente del viewer en esta academia (la más
+      reciente) — alimenta el badge "Suscripción"/"Se cancela el…". */
+  subscription: {
+    id: string;
+    status: string;
+    nextInvoiceAt: string | null;
+    canceledAt: string | null;
+  } | null;
 };
 
 type AcademyVideo = {
@@ -119,6 +127,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
   const tl = useTranslations("academy.learner");
   const tp = useTranslations("academy.planTypes");
   const tv = useTranslations("academyExtras.videos");
+  const tsb = useTranslations("subscriptions");
   const [videos, setVideos] = useState<AcademyVideo[] | null>(null);
 
   useEffect(() => {
@@ -147,7 +156,34 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
         <Badge variant={statusVariant}>
           {tl(`status.${enrollment.status}`)}
         </Badge>
+        {enrollment.subscription?.status === "ACTIVE" && (
+          <Badge variant="outline" className="normal-case tracking-normal">
+            {tsb("badge")}
+          </Badge>
+        )}
       </div>
+
+      {/* Suscripción: CANCEL_PENDING muestra la fecha de fin real
+          (endsAt del enrollment — "pagado hasta" — o el próximo cobro
+          que Flow reporta); ACTIVATING/PENDING_CARD son transitorios. */}
+      {enrollment.subscription?.status === "CANCEL_PENDING" &&
+        (() => {
+          const end =
+            enrollment.endsAt ?? enrollment.subscription!.nextInvoiceAt;
+          return (
+            <p className="text-xs text-white/50">
+              {end
+                ? tsb("cancelPending", {
+                    date: planDateFmt.format(new Date(end)),
+                  })
+                : tsb("cancelPendingNoDate")}
+            </p>
+          );
+        })()}
+      {(enrollment.subscription?.status === "ACTIVATING" ||
+        enrollment.subscription?.status === "PENDING_CARD") && (
+        <p className="text-xs text-white/50">{tsb("activating")}</p>
+      )}
 
       {enrollment.academy.address && (
         <p className="flex items-center gap-1.5 text-sm text-white/50">
@@ -292,6 +328,7 @@ export default function AcademiasPage() {
 function AcademiasInner() {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
+  const tsb = useTranslations("subscriptions");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -533,6 +570,14 @@ function AcademiasInner() {
           )}
         </div>
       </header>
+
+      {/* customer-return de Flow redirige acá (?sub=error) cuando no
+          pudo resolver la academia del registro de tarjeta. */}
+      {searchParams.get("sub") === "error" && (
+        <p role="alert" className="text-sm text-red-400">
+          {tsb("subError")}
+        </p>
+      )}
 
       {state === "loading" && <Spinner size="sm" className="page-loading" />}
       {state === "error" && (
