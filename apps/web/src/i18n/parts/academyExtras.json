@@ -14,7 +14,9 @@
       "myClasses": "Mis clases",
       "myClassesDesc": "Clases que impartes, roster y quórum",
       "crm": "CRM",
-      "crmDesc": "Relación con tus alumnos"
+      "crmDesc": "Relación con tus alumnos",
+      "payments": "Cobros",
+      "paymentsDesc": "Membresías cobradas a tus alumnos"
     },
     "today": {
       "title": "Clases de hoy",

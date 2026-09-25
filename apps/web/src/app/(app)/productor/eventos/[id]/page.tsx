@@ -10,6 +10,7 @@ import { EventForm } from "@/components/producer/event-form";
 import { EventFeesSection } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
 import { PassesSection } from "@/components/producer/passes-section";
+import { PaymentsSection } from "@/components/producer/payments-section";
 import { SuggestionsSection } from "@/components/producer/suggestions-section";
 import { ReservationsSection } from "@/components/producer/reservations-section";
 import { RatingsSection } from "@/components/producer/ratings-section";
@@ -363,6 +364,8 @@ export default function ProducerEventDetailPage({
           />
           <StaffSection eventId={eventId} />
           <PassesSection eventId={eventId} />
+          {/* Ventas del evento — se oculta sola ante 403/404 (no-owner). */}
+          <PaymentsSection eventId={eventId} />
           <SuggestionsSection eventId={eventId} />
           <ReservationsSection
             eventId={eventId}

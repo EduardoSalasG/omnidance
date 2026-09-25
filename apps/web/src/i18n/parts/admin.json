@@ -75,7 +75,10 @@
         "venues": "Locales",
         "rentals": "Arriendos",
         "people": "Personas",
-        "leads": "Leads"
+        "leads": "Leads",
+        "payment-events": "Eventos de pago",
+        "gateway-transactions": "Transacciones Flow",
+        "membership-subscriptions": "Suscripciones"
       },
       "filters": {
         "search": "Buscar…",
@@ -91,7 +94,33 @@
         "orderType": "Tipo",
         "event": "Evento",
         "apply": "Filtrar",
-        "intent": "Interés"
+        "intent": "Interés",
+        "paymentId": "ID de pago",
+        "personId": "ID de persona",
+        "type": "Tipo",
+        "actor": "Actor",
+        "endpoint": "Endpoint",
+        "direction": "Dirección",
+        "correlationId": "ID de correlación",
+        "ok": "Resultado"
+      },
+      "optionLabels": {
+        "true": "OK",
+        "false": "Error",
+        "OUTBOUND": "Saliente",
+        "INBOUND_WEBHOOK": "Webhook entrante"
+      },
+      "audit": {
+        "payload": "Payload",
+        "request": "Request",
+        "response": "Response",
+        "paymentRef": "pago {id}",
+        "hash": "hash {id}",
+        "corrRef": "corr {id}",
+        "duration": "{ms} ms",
+        "nextInvoice": "Próximo cobro {date}",
+        "canceledAt": "Cancelada {date}",
+        "flowRef": "flow {id}"
       },
       "cols": {
         "name": "Nombre",
