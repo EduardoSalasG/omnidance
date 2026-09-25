@@ -66,7 +66,8 @@
       "passes": "Pases de entrada",
       "suggestions": "Sugerencias para el DJ",
       "reservations": "Reservas de mesa",
-      "ratings": "Evaluación del evento"
+      "ratings": "Evaluación del evento",
+      "payments": "Pagos"
     },
     "stats": {
       "sold": "{count, plural, one {# vendida} other {# vendidas}}",

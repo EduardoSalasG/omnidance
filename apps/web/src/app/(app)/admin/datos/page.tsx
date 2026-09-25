@@ -20,7 +20,10 @@ type Entity =
   | "venues"
   | "rentals"
   | "people"
-  | "leads";
+  | "leads"
+  | "payment-events"
+  | "gateway-transactions"
+  | "membership-subscriptions";
 
 const ENTITIES: Entity[] = [
   "events",
@@ -32,6 +35,9 @@ const ENTITIES: Entity[] = [
   "rentals",
   "people",
   "leads",
+  "payment-events",
+  "gateway-transactions",
+  "membership-subscriptions",
 ];
 
 type Ref = { id: string; name: string } | null;
@@ -95,6 +101,46 @@ type LeadRow = {
   demoPending?: boolean;
   createdAt: string;
 };
+// Ledger append-only del pago (payload/prevHash/payloadHash completos —
+// la evidencia que verify-chain recalcula).
+type PaymentEventRow = {
+  id: string;
+  paymentId: string;
+  seq: number;
+  type: string;
+  actor: string;
+  prevHash: string;
+  payloadHash: string;
+  payload: unknown;
+  createdAt: string;
+};
+type GatewayTxRow = {
+  id: string;
+  provider: string;
+  direction: string;
+  endpoint: string;
+  correlationId: string;
+  requestBody: unknown;
+  responseBody: unknown;
+  httpStatus: number | null;
+  durationMs: number | null;
+  ok: boolean;
+  error: string | null;
+  paymentId: string | null;
+  createdAt: string;
+};
+type SubscriptionRow = {
+  id: string;
+  status: string;
+  flowSubscriptionId: string | null;
+  nextInvoiceAt: string | null;
+  lastInvoiceId: string | null;
+  canceledAt: string | null;
+  createdAt: string;
+  plan: { id: string; name: string } | null;
+  person: Ref;
+  academy: Ref;
+};
 
 // ── Filtros soportados por entidad (whitelist del controller) ──────────
 
@@ -111,6 +157,18 @@ const TICKET_STATUSES = ["ACTIVE", "USED", "CANCELLED", "TRANSFERRED"];
 const RENTAL_STATUSES = ["REQUESTED", "CONFIRMED", "CANCELLED"];
 const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "DISCARDED"];
 const LEAD_INTENTS = ["CONTACT", "DEMO"];
+// Whitelists del controller para las entidades de auditoría (el resto
+// de sus filtros son texto libre: paymentId, actor, endpoint…).
+const GATEWAY_DIRECTIONS = ["OUTBOUND", "INBOUND_WEBHOOK"];
+const GATEWAY_OK = ["true", "false"];
+const SUBSCRIPTION_STATUSES = [
+  "PENDING_CARD",
+  "ACTIVATING",
+  "ACTIVE",
+  "CANCEL_PENDING",
+  "CANCELED",
+  "FAILED_CARD",
+];
 
 type Option = { value: string; label: string };
 
@@ -133,6 +191,9 @@ const FILTER_SOURCES: Record<Entity, Partial<Record<string, OptionSource>>> = {
   academies: {},
   venues: {},
   leads: {},
+  "payment-events": {},
+  "gateway-transactions": {},
+  "membership-subscriptions": { academyId: "academies" },
 };
 
 const STATIC_OPTIONS: Record<string, string[]> = {
@@ -143,6 +204,9 @@ const STATIC_OPTIONS: Record<string, string[]> = {
   "rentals.status": RENTAL_STATUSES,
   "leads.status": LEAD_STATUSES,
   "leads.intent": LEAD_INTENTS,
+  "gateway-transactions.direction": GATEWAY_DIRECTIONS,
+  "gateway-transactions.ok": GATEWAY_OK,
+  "membership-subscriptions.status": SUBSCRIPTION_STATUSES,
 };
 
 // Claves de filtro → param del query string que entiende el controller.
@@ -156,10 +220,35 @@ const ENTITY_PARAMS: Record<Entity, string[]> = {
   rentals: ["status", "venueId"],
   people: ["q", "role"],
   leads: ["q", "status", "intent", "from", "to"],
+  "payment-events": ["paymentId", "type", "actor", "from", "to"],
+  "gateway-transactions": [
+    "paymentId",
+    "correlationId",
+    "endpoint",
+    "direction",
+    "ok",
+    "from",
+    "to",
+  ],
+  "membership-subscriptions": [
+    "personId",
+    "academyId",
+    "status",
+    "from",
+    "to",
+  ],
 };
 
 const HAS_Q = new Set<Entity>(["events", "academies", "venues", "people", "leads"]);
-const HAS_DATES = new Set<Entity>(["events", "classes", "payments", "leads"]);
+const HAS_DATES = new Set<Entity>([
+  "events",
+  "classes",
+  "payments",
+  "leads",
+  "payment-events",
+  "gateway-transactions",
+  "membership-subscriptions",
+]);
 
 const DEBOUNCE_MS = 300;
 
@@ -184,6 +273,8 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
   CANCELLED: "outline",
   REFUNDED: "outline",
   FAILED: "live",
+  OK: "neon",
+  ERROR: "live",
 };
 
 /**
@@ -362,19 +453,42 @@ function DatosPanel() {
       eventId: t("datos.filters.event"),
       role: t("datos.filters.role"),
       intent: t("datos.filters.intent"),
+      paymentId: t("datos.filters.paymentId"),
+      personId: t("datos.filters.personId"),
+      type: t("datos.filters.type"),
+      actor: t("datos.filters.actor"),
+      endpoint: t("datos.filters.endpoint"),
+      direction: t("datos.filters.direction"),
+      correlationId: t("datos.filters.correlationId"),
+      ok: t("datos.filters.ok"),
     };
     return map[key] ?? key;
   };
 
+  // Label de una opción de select: orderType tiene su mapa propio; el
+  // resto intenta datos.optionLabels (true/false, direction…) y cae al
+  // catálogo de estados compartido (statusLabel).
+  const valueLabel = (key: string) => (v: string) =>
+    key === "orderType"
+      ? orderLabel(v)
+      : t.has(`datos.optionLabels.${v}`)
+        ? t(`datos.optionLabels.${v}`)
+        : statusLabel(v);
+
   const optionsFor = (key: string): Option[] => {
     const staticList = STATIC_OPTIONS[`${entity}.${key}`];
     if (staticList) {
-      const labelOf = key === "orderType" ? orderLabel : statusLabel;
+      const labelOf = valueLabel(key);
       return staticList.map((v) => ({ value: v, label: labelOf(v) }));
     }
     const source = FILTER_SOURCES[entity][key];
     return source ? (fkOptions[source] ?? []) : [];
   };
+
+  // Keys con opciones (whitelist estática o fuente FK) → select; el
+  // resto (ids, tipo, actor, endpoint…) → input de texto libre.
+  const isOptionKey = (key: string) =>
+    !!STATIC_OPTIONS[`${entity}.${key}`] || !!FILTER_SOURCES[entity][key];
 
   const selectKeys = ENTITY_PARAMS[entity].filter(
     (k) => k !== "q" && k !== "from" && k !== "to",
@@ -564,6 +678,103 @@ function DatosPanel() {
           />
         );
       }
+      case "payment-events": {
+        const r = row as PaymentEventRow;
+        return (
+          <RowShell
+            key={r.id}
+            title={r.type}
+            meta={[
+              `#${r.seq} · ${r.actor}`,
+              t("datos.audit.paymentRef", { id: r.paymentId.slice(0, 8) }),
+              dateTimeFmt.format(new Date(r.createdAt)),
+            ]}
+            tail={t("datos.audit.hash", {
+              id: `${r.payloadHash.slice(0, 12)}…`,
+            })}
+            action={
+              <JsonDetails label={t("datos.audit.payload")} value={r.payload} />
+            }
+          />
+        );
+      }
+      case "gateway-transactions": {
+        const r = row as GatewayTxRow;
+        return (
+          <RowShell
+            key={r.id}
+            title={r.endpoint}
+            badge={r.ok ? "OK" : "ERROR"}
+            badgeLabel={
+              r.ok
+                ? t("datos.optionLabels.true")
+                : t("datos.optionLabels.false")
+            }
+            meta={[
+              t.has(`datos.optionLabels.${r.direction}`)
+                ? t(`datos.optionLabels.${r.direction}`)
+                : r.direction,
+              r.httpStatus != null ? `HTTP ${r.httpStatus}` : null,
+              r.durationMs != null
+                ? t("datos.audit.duration", { ms: r.durationMs })
+                : null,
+              r.paymentId
+                ? t("datos.audit.paymentRef", {
+                    id: r.paymentId.slice(0, 8),
+                  })
+                : null,
+              t("datos.audit.corrRef", {
+                id: r.correlationId.slice(0, 8),
+              }),
+              dateTimeFmt.format(new Date(r.createdAt)),
+            ]}
+            tail={r.error ?? undefined}
+            action={
+              <>
+                <JsonDetails
+                  label={t("datos.audit.request")}
+                  value={r.requestBody}
+                />
+                <JsonDetails
+                  label={t("datos.audit.response")}
+                  value={r.responseBody}
+                />
+              </>
+            }
+          />
+        );
+      }
+      case "membership-subscriptions": {
+        const r = row as SubscriptionRow;
+        return (
+          <RowShell
+            key={r.id}
+            title={r.person?.name ?? r.id.slice(0, 8)}
+            badge={r.status}
+            badgeLabel={statusLabel(r.status)}
+            meta={[
+              r.academy?.name,
+              r.plan?.name,
+              r.nextInvoiceAt
+                ? t("datos.audit.nextInvoice", {
+                    date: dateFmt.format(new Date(r.nextInvoiceAt)),
+                  })
+                : null,
+              r.canceledAt
+                ? t("datos.audit.canceledAt", {
+                    date: dateFmt.format(new Date(r.canceledAt)),
+                  })
+                : null,
+              dateTimeFmt.format(new Date(r.createdAt)),
+            ]}
+            tail={
+              r.flowSubscriptionId
+                ? t("datos.audit.flowRef", { id: r.flowSubscriptionId })
+                : undefined
+            }
+          />
+        );
+      }
       default:
         return <li key={i} />;
     }
@@ -607,18 +818,27 @@ function DatosPanel() {
                 <span className="text-xs text-white/50">
                   {filterLabel(key)}
                 </span>
-                <select
-                  value={filters[key] ?? ""}
-                  onChange={(e) => setFilter(key, e.target.value)}
-                  className={inputCls}
-                >
-                  <option value="">{t("datos.filters.all")}</option>
-                  {optionsFor(key).map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                {isOptionKey(key) ? (
+                  <select
+                    value={filters[key] ?? ""}
+                    onChange={(e) => setFilter(key, e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">{t("datos.filters.all")}</option>
+                    {optionsFor(key).map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={filters[key] ?? ""}
+                    onChange={(e) => setFilter(key, e.target.value)}
+                    className={inputCls}
+                  />
+                )}
               </label>
             ))}
             {HAS_DATES.has(entity) && (
@@ -731,5 +951,24 @@ function RowShell({
         {action}
       </Card>
     </li>
+  );
+}
+
+/**
+ * Payload JSON expandible — el browse no tenía renderer para columnas
+ * Json (payment-events.payload, gateway request/response): <details>
+ * nativo con el JSON pretty-printed truncado por scroll.
+ */
+function JsonDetails({ label, value }: { label: string; value: unknown }) {
+  if (value === null || value === undefined) return null;
+  return (
+    <details className="mt-1">
+      <summary className="w-fit cursor-pointer text-xs font-medium text-white/50 transition-colors hover:text-white/80">
+        {label}
+      </summary>
+      <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-night-950/70 p-2 text-[11px] leading-snug whitespace-pre-wrap break-all text-white/60">
+        {JSON.stringify(value, null, 2)}
+      </pre>
+    </details>
   );
 }

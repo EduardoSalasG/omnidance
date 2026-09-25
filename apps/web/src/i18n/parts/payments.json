@@ -1,0 +1,51 @@
+{
+  "payments": {
+    "title": "Mis pagos",
+    "subtitle": "Historial de tus compras: entradas, pases y planes de academia.",
+    "empty": "Aún no tienes pagos registrados.",
+    "orderTypes": {
+      "TICKET": "Entrada",
+      "SERIES_PASS": "Pase de serie",
+      "MEMBERSHIP": "Plan de academia",
+      "PRIVATE_LESSON": "Clase particular",
+      "WORKSHOP": "Workshop"
+    },
+    "status": {
+      "PENDING": "Pendiente",
+      "PAID": "Pagado",
+      "FAILED": "Fallido",
+      "REFUNDED": "Reembolsado"
+    },
+    "cols": {
+      "paidAt": "Cobrado",
+      "amount": "Monto",
+      "gatewayFee": "Fee Flow",
+      "net": "Neto",
+      "status": "Estado"
+    },
+    "ledger": {
+      "toggle": "Auditoría ({count})",
+      "empty": "Sin eventos registrados"
+    },
+    "sub": {
+      "title": "Suscripciones",
+      "nextCharge": "Próximo cobro: {date}",
+      "status": {
+        "PENDING_CARD": "Pendiente de tarjeta",
+        "ACTIVATING": "Activando",
+        "ACTIVE": "Activa",
+        "CANCEL_PENDING": "Cancela al fin del período",
+        "CANCELED": "Cancelada",
+        "FAILED_CARD": "Tarjeta rechazada"
+      }
+    },
+    "byEvent": {
+      "empty": "Sin ventas registradas para este evento."
+    },
+    "byAcademy": {
+      "desc": "Cobros de membresías de los planes de la academia (suscripciones y pagos únicos).",
+      "empty": "Aún no hay cobros de membresías.",
+      "noAccess": "Solo el dueño de la academia (o un admin) puede ver los cobros."
+    }
+  }
+}

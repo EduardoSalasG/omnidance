@@ -63,6 +63,7 @@ const ACADEMY_BADGE_KEYS = new Set([
 
 export default function PerfilPage() {
   const t = useTranslations("profile");
+  const tpay = useTranslations("payments");
   const tg = useTranslations("gamification");
   const tc = useTranslations("common");
   const th = useTranslations("home");
@@ -425,6 +426,28 @@ export default function PerfilPage() {
           )}
         </Card>
       )}
+
+      {/* Historial de compras/cobros del usuario → /perfil/pagos. */}
+      <Link
+        href="/perfil/pagos"
+        className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+      >
+        <Card className="flex items-center justify-between gap-4 transition-colors hover:border-neon/40">
+          <span className="text-sm font-semibold">{tpay("title")}</span>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="h-5 w-5 shrink-0 text-white/40"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </Card>
+      </Link>
 
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}

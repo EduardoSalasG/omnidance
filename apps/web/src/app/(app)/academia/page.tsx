@@ -25,6 +25,9 @@ const MODULES = [
   { href: "/academia/asistencia", key: "attendance" },
   { href: "/academia/particulares", key: "lessons" },
   { href: "/academia/videos", key: "videos" },
+  // Cobros MEMBERSHIP de los planes (GET /payments/by-academy/:id) —
+  // solo owner/ADMIN: el endpoint 403 al resto (misma política que CRM).
+  { href: "/academia/cobros", key: "payments", ownerOnly: true },
   // CRM con actorType=ACADEMY — la API ya segmenta por academia; el
   // ActorPicker la resuelve via GET /academies/mine. Solo owner/ADMIN:
   // CRM_ROLES no incluye instructor (el card se filtra abajo).

@@ -31,7 +31,12 @@
       "CONVERTED": "Convertido",
       "DISCARDED": "Descartado",
       "CONTACT": "Quiere contacto",
-      "DEMO": "Pide demo"
+      "DEMO": "Pide demo",
+      "PENDING_CARD": "Pendiente de tarjeta",
+      "ACTIVATING": "Activando",
+      "CANCEL_PENDING": "Cancela al fin del período",
+      "CANCELED": "Cancelada",
+      "FAILED_CARD": "Tarjeta rechazada"
     },
     "orderTypes": {
       "TICKET": "Ticket",
