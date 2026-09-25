@@ -12,6 +12,7 @@ import {
   membershipEndsAt,
 } from "../domain/membership-vigency";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import { sanitizeGatewayPayload } from "../infrastructure/gateway-transactions.service";
 import { ParamsService } from "../../params/params.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { SERVICE_FEE } from "@omnidance/shared";
@@ -119,7 +120,8 @@ export class PaymentSettlementService {
     await emitPaymentEvent(this.prisma, payment.id, "WEBHOOK_RECEIVED", "webhook", {
       refId: payment.refId,
       remoteStatus: input.remoteStatus,
-      body: (input.body ?? null) as Prisma.InputJsonValue,
+      body: (sanitizeGatewayPayload(input.body ?? null) ??
+        null) as Prisma.InputJsonValue,
     });
   }
 
