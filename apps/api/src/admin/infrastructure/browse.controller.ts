@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Query,
   UseGuards,
@@ -18,6 +19,7 @@ import { PrismaService } from "../../prisma.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { effectiveCapacity } from "../../academies/domain/academy.service";
+import { verifyPaymentChain } from "../../payments/domain/payment-ledger";
 
 const TAKE = 100;
 const ROLE_KEY = /^[A-Z0-9_]+$/;
@@ -52,6 +54,17 @@ const ORDER_TYPES = [
 const RENTAL_STATUSES = ["REQUESTED", "CONFIRMED", "CANCELLED"] as const;
 const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "DISCARDED"] as const;
 const LEAD_INTENTS = ["CONTACT", "DEMO"] as const;
+// GatewayTransaction.direction / MembershipSubscription.status son String
+// libre en schema — whitelists de negocio (mismo criterio que ORDER_TYPES).
+const GATEWAY_DIRECTIONS = ["OUTBOUND", "INBOUND_WEBHOOK"] as const;
+const SUBSCRIPTION_STATUSES = [
+  "PENDING_CARD",
+  "ACTIVATING",
+  "ACTIVE",
+  "CANCEL_PENDING",
+  "CANCELED",
+  "FAILED_CARD",
+] as const;
 
 class BrowseQueryDto {
   @IsOptional()
@@ -102,6 +115,41 @@ class BrowseQueryDto {
   @IsOptional()
   @IsString()
   eventId?: string;
+
+  // ── Filtros de las entidades de auditoría (payment-events,
+  // gateway-transactions, membership-subscriptions) ──
+  @IsOptional()
+  @IsString()
+  paymentId?: string;
+
+  @IsOptional()
+  @IsString()
+  personId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  endpoint?: string;
+
+  @IsOptional()
+  @IsString()
+  direction?: string;
+
+  @IsOptional()
+  @IsString()
+  ok?: string;
+
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @IsOptional()
+  @IsString()
+  actor?: string;
+
+  @IsOptional()
+  @IsString()
+  correlationId?: string;
 }
 
 /** Valida un filtro enum por whitelist — inválido → 400 (no se ignora). */
@@ -152,11 +200,33 @@ export class BrowseController {
         return this.people(q);
       case "leads":
         return this.leads(q);
+      case "payment-events":
+        return this.paymentEvents(q);
+      case "gateway-transactions":
+        return this.gatewayTransactions(q);
+      case "membership-subscriptions":
+        return this.membershipSubscriptions(q);
       default:
         throw new BadRequestException(
-          `entidad inválida: "${entity}" (válidas: events, classes, payments, tickets, academies, venues, rentals, people, leads)`,
+          `entidad inválida: "${entity}" (válidas: events, classes, payments, tickets, academies, venues, rentals, people, leads, payment-events, gateway-transactions, membership-subscriptions)`,
         );
     }
+  }
+
+  /**
+   * GET /admin/payments/:id/verify-chain — re-calcula el hash-chain del
+   * ledger del pago (verifyPaymentChain) y reporta integridad:
+   * {ok, events, firstBadSeq?}. La fila adulterada rompe la cadena en
+   * seq ≥ firstBadSeq.
+   */
+  @Get("payments/:id/verify-chain")
+  async verifyChain(@Param("id") id: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!payment) throw new NotFoundException("pago no encontrado");
+    return verifyPaymentChain(this.prisma, id);
   }
 
   // ── events: q,status,from,to,producerId,venueId ─────────────────────
@@ -580,7 +650,115 @@ export class BrowseController {
     }));
   }
 
+  // ── payment-events: paymentId,type,actor,from,to — ledger BIAN ──────
+  // payload/prevHash/payloadHash se devuelven completos: son la evidencia
+  // que verify-chain recalcula.
+
+  private async paymentEvents(q: BrowseQueryDto) {
+    return this.prisma.paymentEvent.findMany({
+      where: {
+        ...(q.paymentId ? { paymentId: q.paymentId } : {}),
+        ...(q.type ? { type: q.type } : {}),
+        ...(q.actor ? { actor: q.actor } : {}),
+        ...(q.from || q.to
+          ? {
+              createdAt: {
+                ...(q.from ? { gte: new Date(q.from) } : {}),
+                ...(q.to ? { lte: new Date(q.to) } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: "desc" }, { seq: "desc" }],
+      take: TAKE,
+    });
+  }
+
+  // ── gateway-transactions: paymentId,endpoint,direction,ok,correlationId,from,to
+  // requestBody/responseBody salen tal cual — ya sanitizados en escritura
+  // (firma "s" → huella sha256, nunca el secreto).
+
+  private async gatewayTransactions(q: BrowseQueryDto) {
+    const direction = whitelist(q.direction, GATEWAY_DIRECTIONS, "direction");
+    const ok = whitelist(q.ok, ["true", "false"] as const, "ok");
+    return this.prisma.gatewayTransaction.findMany({
+      where: {
+        ...(q.paymentId ? { paymentId: q.paymentId } : {}),
+        ...(q.correlationId ? { correlationId: q.correlationId } : {}),
+        ...(q.endpoint?.trim()
+          ? { endpoint: { contains: q.endpoint.trim() } }
+          : {}),
+        ...(direction ? { direction } : {}),
+        ...(ok ? { ok: ok === "true" } : {}),
+        ...(q.from || q.to
+          ? {
+              createdAt: {
+                ...(q.from ? { gte: new Date(q.from) } : {}),
+                ...(q.to ? { lte: new Date(q.to) } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: TAKE,
+    });
+  }
+
+  // ── membership-subscriptions: personId,academyId,status,from,to ─────
+
+  private async membershipSubscriptions(q: BrowseQueryDto) {
+    const status = whitelist(q.status, SUBSCRIPTION_STATUSES, "status");
+    const subs = await this.prisma.membershipSubscription.findMany({
+      where: {
+        ...(q.personId ? { personId: q.personId } : {}),
+        ...(q.academyId ? { academyId: q.academyId } : {}),
+        ...(status ? { status } : {}),
+        ...(q.from || q.to
+          ? {
+              createdAt: {
+                ...(q.from ? { gte: new Date(q.from) } : {}),
+                ...(q.to ? { lte: new Date(q.to) } : {}),
+              },
+            }
+          : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: TAKE,
+      select: {
+        id: true,
+        personId: true,
+        academyId: true,
+        status: true,
+        flowSubscriptionId: true,
+        nextInvoiceAt: true,
+        lastInvoiceId: true,
+        canceledAt: true,
+        createdAt: true,
+        plan: { select: { id: true, name: true } },
+      },
+    });
+    const [people, academies] = await Promise.all([
+      this.peopleByIds(subs.map((s) => s.personId)),
+      this.academiesByIds(subs.map((s) => s.academyId)),
+    ]);
+    return subs.map(({ personId, academyId, ...s }) => ({
+      ...s,
+      person: people.get(personId) ?? null,
+      academy: academies.get(academyId) ?? null,
+    }));
+  }
+
   // ── helpers ─────────────────────────────────────────────────────────
+
+  private async academiesByIds(ids: string[]) {
+    const unique = [...new Set(ids)];
+    if (!unique.length) return new Map<string, { id: string; name: string }>();
+    const academies = await this.prisma.academy.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, name: true },
+    });
+    return new Map(academies.map((a) => [a.id, a]));
+  }
 
   private async peopleByIds(ids: string[]) {
     const unique = [...new Set(ids)];
