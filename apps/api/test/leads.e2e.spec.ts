@@ -60,9 +60,17 @@ describe("leads /pro e2e", () => {
     const address = app.getHttpServer().address();
     baseUrl = `http://127.0.0.1:${address.port}`;
 
-    const admin = await prisma.person.findFirstOrThrow({
-      where: { roles: { some: { role: "ADMIN", status: "APPROVED" } } },
+    // Admin PROPIO del spec: un findFirst sin orderBy sobre cualquier
+    // ADMIN puede tomar la fixture de otro spec paralelo (RCD/GE/CRM/GP
+    // Admin) que ese spec borra en su afterAll → person desaparece →
+    // 401 en todos los requests admin. Autocontenido = cero flake.
+    const admin = await prisma.person.create({
+      data: {
+        name: "Admin Leads Test",
+        roles: { create: [{ role: "ADMIN", status: "APPROVED" }] },
+      },
     });
+    personIds.push(admin.id);
     adminSession = await auth.issueSession(admin.id);
 
     const dancer = await prisma.person.create({
@@ -76,6 +84,12 @@ describe("leads /pro e2e", () => {
   });
 
   afterAll(async () => {
+    // Si beforeAll no llegó a inicializar prisma (timeout de boot), no
+    // hay nada creado por este spec — cerrar la app si existe y salir.
+    if (!prisma) {
+      await app?.close();
+      return;
+    }
     const leads = await prisma.lead.findMany({
       where: { email: { in: leadEmails } },
       select: { id: true, personId: true },
@@ -126,8 +140,9 @@ describe("leads /pro e2e", () => {
     });
 
     it("notifica a los ADMIN aprobados al crear lead nuevo", async () => {
+      // El admin propio del spec — determinista bajo paralelismo.
       const admin = await prisma.person.findFirstOrThrow({
-        where: { roles: { some: { role: "ADMIN", status: "APPROVED" } } },
+        where: { name: "Admin Leads Test" },
       });
       const notif = await prisma.notification.findFirst({
         where: { personId: admin.id, type: "lead.new" },

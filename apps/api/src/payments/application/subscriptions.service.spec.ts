@@ -11,6 +11,7 @@ import type { NotificationsService } from "../../notifications/domain/notificati
 import type { PaymentGateway } from "../domain/ports";
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
+import { StubGateway } from "../infrastructure/stub.gateway";
 import { SubscriptionsService } from "./subscriptions.service";
 
 // SubscriptionsService — fake SubscriptionProvider (name "FLOW" para pasar
@@ -61,6 +62,12 @@ function matchWhere(row: Row, where: Row): boolean {
         if (!(c.in as unknown[]).includes(v)) return false;
       } else if ("not" in c) {
         if (c.not === null ? v === null : v === c.not) return false;
+      } else if ("lte" in c) {
+        if (
+          !(v instanceof Date) ||
+          v.getTime() > (c.lte as Date).getTime()
+        )
+          return false;
       } else if ("startsWith" in c) {
         if (typeof v !== "string" || !v.startsWith(c.startsWith as string))
           return false;
@@ -344,6 +351,9 @@ function mkPrisma() {
         gatewayTxs.push(data);
         return data;
       }),
+      findMany: vi.fn(async ({ where }: { where: Row }) =>
+        gatewayTxs.filter((t) => matchWhere(t, where)),
+      ),
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prisma),
@@ -539,7 +549,7 @@ describe("SubscriptionsService", () => {
         new GatewayTransactionsService(prisma),
       );
       await expect(stubSvc.subscribe("p1", "plan1", true)).rejects.toThrow(
-        "suscripciones requieren gateway Flow",
+        "no soporta suscripciones",
       );
     });
 
@@ -731,6 +741,10 @@ describe("SubscriptionsService", () => {
         correlationId: expect.any(String),
         immediate: true,
       });
+      // Persistencia temprana: el id remoto se escribe en su propia
+      // escritura justo tras createSubscription — aunque la transición
+      // de estado falle, el sweep de huérfanas puede rastrearla.
+      expect(fx.subs[0]!.flowSubscriptionId).toBe("fsub-1");
     });
 
     it("ACTIVATING expirada que commiteó ACTIVE entremedio → 409, NO se pisa ni crea fila", async () => {
@@ -1343,6 +1357,115 @@ describe("SubscriptionsService", () => {
       const ev = fx.events.find((e) => e.type === "RENEWAL_FAILED");
       expect(ev?.actor).toBe("cron");
     });
+
+    // ─── Sweep de subs huérfanas (crash entre subscription/create y
+    // la persistencia local) ───
+    const auditCreate = (subscriptionId: string, over: Row = {}) =>
+      fx.gatewayTxs.push({
+        provider: "FLOW",
+        direction: "OUTBOUND",
+        endpoint: "subscription/create",
+        ok: true,
+        responseBody: { subscriptionId },
+        createdAt: new Date(Date.now() - 10 * 60_000), // fuera del grace
+        ...over,
+      });
+
+    it("create auditado sin fila local + remota activa → cancel inmediata", async () => {
+      auditCreate("fsub-huerfana");
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-huerfana",
+        planId: "omni_plan1",
+        status: 1,
+        invoices: [],
+      });
+      const r = await svc.reconcileAll();
+      expect(r.checked).toBe(0);
+      expect(flow.cancelSubscription).toHaveBeenCalledWith("fsub-huerfana", {
+        correlationId: expect.any(String),
+        immediate: true,
+      });
+    });
+
+    it("create auditado con sub local ACTIVE → sin cancel (cobertura viva)", async () => {
+      fx.subs.push(
+        mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" }),
+      );
+      auditCreate("fsub-1");
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-1",
+        planId: "omni_plan1",
+        status: 1,
+        invoices: [],
+      });
+      await svc.reconcileAll();
+      expect(flow.cancelSubscription).not.toHaveBeenCalled();
+    });
+
+    it("ACTIVATING vieja con flowSubscriptionId + remota activa → cancel remota + local CANCELED", async () => {
+      const stale = mkSub({
+        status: "ACTIVATING",
+        flowSubscriptionId: "fsub-stuck",
+        createdAt: new Date(Date.now() - 20 * 60_000),
+      });
+      fx.subs.push(stale);
+      auditCreate("fsub-stuck");
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-stuck",
+        planId: "omni_plan1",
+        status: 1,
+        invoices: [],
+      });
+      await svc.reconcileAll();
+      expect(flow.cancelSubscription).toHaveBeenCalledWith("fsub-stuck", {
+        correlationId: expect.any(String),
+        immediate: true,
+      });
+      const row = fx.subs.find((s) => s.id === stale.id)!;
+      expect(row.status).toBe("CANCELED");
+      expect(row.canceledAt).toBeInstanceOf(Date);
+    });
+
+    it("fila local CANCELED con link + remota activa → cancel inmediata (cancel durante la ventana)", async () => {
+      fx.subs.push(
+        mkSub({ status: "CANCELED", flowSubscriptionId: "fsub-race" }),
+      );
+      auditCreate("fsub-race");
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-race",
+        planId: "omni_plan1",
+        status: 1,
+        invoices: [],
+      });
+      await svc.reconcileAll();
+      expect(flow.cancelSubscription).toHaveBeenCalledWith("fsub-race", {
+        correlationId: expect.any(String),
+        immediate: true,
+      });
+    });
+
+    it("idempotente: remota ya cancelada (status 4) → no llama cancel", async () => {
+      auditCreate("fsub-dead");
+      flow.getSubscription.mockResolvedValue({
+        subscriptionId: "fsub-dead",
+        planId: "omni_plan1",
+        status: 4,
+        invoices: [],
+      });
+      await svc.reconcileAll();
+      expect(flow.getSubscription).toHaveBeenCalledWith(
+        "fsub-dead",
+        expect.anything(),
+      );
+      expect(flow.cancelSubscription).not.toHaveBeenCalled();
+    });
+
+    it("grace period: create auditado muy reciente (en vuelo) → no se toca", async () => {
+      auditCreate("fsub-inflight", { createdAt: new Date() });
+      await svc.reconcileAll();
+      expect(flow.getSubscription).not.toHaveBeenCalled();
+      expect(flow.cancelSubscription).not.toHaveBeenCalled();
+    });
   });
 
   describe("subscriptionWebhook", () => {
@@ -1445,6 +1568,131 @@ describe("SubscriptionsService", () => {
           { name: "n", price: 1 },
         ),
       ).rejects.toThrow("flow 500");
+    });
+  });
+
+  // El StubGateway real como SubscriptionProvider: ejerce el flujo
+  // completo de suscripciones en localhost sin credenciales Flow —
+  // needs_card → customer-return → ACTIVE → settle del primer invoice.
+  describe("StubGateway como SubscriptionProvider", () => {
+    let stub: StubGateway;
+    let stubSvc: SubscriptionsService;
+
+    beforeEach(() => {
+      stub = new StubGateway();
+      const params = mkParams();
+      const prisma = fx.prisma as unknown as PrismaService;
+      const paramsSvc = params as unknown as ParamsService;
+      const notif = notifications as unknown as NotificationsService;
+      stubSvc = new SubscriptionsService(
+        prisma,
+        stub as unknown as PaymentGateway,
+        paramsSvc,
+        new PaymentSettlementService(prisma, paramsSvc, notif),
+        notif,
+        new GatewayTransactionsService(prisma),
+      );
+    });
+
+    it("subscribe sin tarjeta → needs_card con registerUrl al callback local", async () => {
+      const r = await stubSvc.subscribe("p1", "plan1", true);
+      expect(r.kind).toBe("needs_card");
+      if (r.kind !== "needs_card") return;
+      const url = new URL(r.registerUrl);
+      expect(url.pathname).toBe("/api/payments/flow/customer-return");
+      expect(url.searchParams.get("token")).toMatch(/^stub_reg_/);
+      const sub = fx.subs[0]!;
+      expect(sub.status).toBe("PENDING_CARD");
+      expect(fx.plans.get("plan1")!.flowPlanId).toBe("omni_plan1");
+    });
+
+    it("flujo completo: customer-return con token stub → ACTIVE + invoice inicial liquidado", async () => {
+      const r = await stubSvc.subscribe("p1", "plan1", true);
+      if (r.kind !== "needs_card") throw new Error("expected needs_card");
+      const token = new URL(r.registerUrl).searchParams.get("token")!;
+
+      const back = await stubSvc.customerReturn(token);
+      expect(back).toEqual({ ok: true, academyId: "ac1" });
+
+      const sub = fx.subs[0]!;
+      expect(sub.status).toBe("ACTIVE");
+      expect(sub.flowSubscriptionId).toMatch(/^stub_sub_/);
+      expect(sub.nextInvoiceAt).toBeInstanceOf(Date);
+
+      // El invoice inicial (pagado en la simulación) se liquidó: Payment
+      // PAID con gateway STUB + enrollment materializado + ledger.
+      const payment = [...fx.payments.values()][0]!;
+      expect(payment.orderType).toBe("MEMBERSHIP");
+      expect(payment.status).toBe("PAID");
+      expect(payment.gateway).toBe("STUB");
+      expect(payment.amount).toBe(10500);
+      expect(fx.enrollments).toHaveLength(1);
+      expect(fx.enrollments[0]).toMatchObject({
+        academyId: "ac1",
+        personId: "p1",
+        status: "ACTIVE",
+      });
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({ type: "membership.subscription_started" }),
+      );
+    });
+
+    it("customer con tarjeta ya registrada → subscribed directo", async () => {
+      // Armar el customer en el stub: createCustomer + register +
+      // getRegisterStatus (lo que haría el browser al volver de Flow).
+      const c = await stub.createCustomer({
+        email: "fan@example.cl",
+        name: "Fan Uno",
+        externalId: "p1",
+      });
+      const { registerUrl } = await stub.registerCustomerCard({
+        customerId: c.customerId,
+        returnUrl: "http://localhost/cb",
+      });
+      await stub.getRegisterStatus(
+        new URL(registerUrl).searchParams.get("token")!,
+      );
+      fx.persons.get("p1")!.flowCustomerId = c.customerId;
+
+      const r = await stubSvc.subscribe("p1", "plan1", true);
+      expect(r.kind).toBe("subscribed");
+      expect(fx.subs[0]!.status).toBe("ACTIVE");
+    });
+
+    it("cancel → CANCEL_PENDING y el remoto queda cancel_at_period_end", async () => {
+      const c = await stub.createCustomer({
+        email: "fan@example.cl",
+        name: "Fan Uno",
+        externalId: "p1",
+      });
+      const { registerUrl } = await stub.registerCustomerCard({
+        customerId: c.customerId,
+        returnUrl: "http://localhost/cb",
+      });
+      await stub.getRegisterStatus(
+        new URL(registerUrl).searchParams.get("token")!,
+      );
+      fx.persons.get("p1")!.flowCustomerId = c.customerId;
+      const r = await stubSvc.subscribe("p1", "plan1", true);
+      if (r.kind !== "subscribed") throw new Error("expected subscribed");
+
+      const res = await stubSvc.cancel("p1", r.subscriptionId);
+      expect(res.status).toBe("CANCEL_PENDING");
+      const remote = await stub.getSubscription(
+        fx.subs[0]!.flowSubscriptionId as string,
+      );
+      expect(Number(remote.cancel_at_period_end)).toBe(1);
+      expect(Number(remote.status)).toBe(1);
+    });
+
+    it("reconcileAll con stub: sub remota perdida (restart) → local converge a CANCELED", async () => {
+      fx.subs.push(
+        mkSub({ status: "ACTIVE", flowSubscriptionId: "stub_sub_gone" }),
+      );
+      const r = await stubSvc.reconcileAll();
+      expect(r.checked).toBe(1);
+      expect(fx.subs[0]!.status).toBe("CANCELED");
     });
   });
 });

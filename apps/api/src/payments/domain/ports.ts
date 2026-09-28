@@ -91,10 +91,11 @@ export interface SubscriptionCallOpts {
 }
 
 /**
- * Puerto opcional: solo las pasarelas con motor de suscripciones lo
- * implementan (hoy Flow; StubGateway no). Los consumers resuelven el
- * PAYMENT_GATEWAY inyectado y verifican que sea un SubscriptionProvider
- * (p.ej. `gateway.name === "FLOW"` + cast) antes de usarlo.
+ * Puerto opcional: las pasarelas con motor de suscripciones lo
+ * implementan (Flow en sandbox/prod; StubGateway en dev — simulación en
+ * memoria). Los consumers resuelven el PAYMENT_GATEWAY inyectado y
+ * verifican capability por presencia de métodos (p.ej. `typeof
+ * gateway.createSubscription === "function"`), nunca por `name`.
  */
 export interface SubscriptionProvider {
   /** plans/get → si no existe, plans/create (idempotente por planId). */

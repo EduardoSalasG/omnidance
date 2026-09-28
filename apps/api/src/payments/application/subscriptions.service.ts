@@ -36,6 +36,11 @@ const INTERVAL_COUNT: Record<string, number> = {
 // una fresca del mismo plan se reutiliza (idempotencia del retry).
 const PENDING_CARD_TTL_MS = 15 * 60_000;
 
+// Grace del orphan sweep: un subscription/create auditado más joven que
+// esto puede ser un request en vuelo (aún no persiste flowSubscriptionId)
+// — no es candidato a huérfana hasta que la ventana haya pasado.
+const ORPHAN_SWEEP_GRACE_MS = 2 * 60_000;
+
 // Ventana del reminder pre-cobro: avisa el día anterior (nextInvoiceAt
 // dentro de las próximas 24h, nunca por cobros ya pasados).
 const REMINDER_WINDOW_MS = 24 * 60 * 60_000;
@@ -98,8 +103,9 @@ function toPublicSub(s: SubRow) {
  * `PaymentSettlementService.settleMembership` (misma fuente de verdad
  * que el checkout manual: extiende endsAt, emite eventos, notifica).
  *
- * Solo funciona con el gateway FLOW — el stub no implementa
- * SubscriptionProvider (declarado en el puerto).
+ * Funciona con cualquier gateway que implemente SubscriptionProvider
+ * (Flow en sandbox/prod; StubGateway en dev — simula el motor completo
+ * en memoria, ver stub.gateway.ts).
  */
 @Injectable()
 export class SubscriptionsService {
@@ -116,12 +122,22 @@ export class SubscriptionsService {
   ) {}
 
   /**
-   * Port opcional: solo Flow implementa SubscriptionProvider. El check
-   * por name evita depender del adapter concreto (hexagonal).
+   * Port opcional: capability check por presencia de métodos, no por
+   * name — cualquier adapter que implemente SubscriptionProvider vale
+   * (Flow; StubGateway en dev), sin depender del concreto (hexagonal).
    */
-  private flow(): SubscriptionProvider {
-    if (this.gateway.name !== "FLOW") {
-      throw new BadRequestException("suscripciones requieren gateway Flow");
+  private supportsSubscriptions(): boolean {
+    return (
+      typeof (this.gateway as Partial<SubscriptionProvider>)
+        .createSubscription === "function"
+    );
+  }
+
+  private provider(): SubscriptionProvider {
+    if (!this.supportsSubscriptions()) {
+      throw new BadRequestException(
+        "este gateway no soporta suscripciones",
+      );
     }
     return this.gateway as unknown as SubscriptionProvider;
   }
@@ -141,9 +157,9 @@ export class SubscriptionsService {
     plan: { flowPlanId: string | null; academy: { name: string } },
     next: { name: string; price: number },
   ): Promise<void> {
-    if (!plan.flowPlanId || this.gateway.name !== "FLOW") return;
+    if (!plan.flowPlanId || !this.supportsSubscriptions()) return;
     const fee = await this.params.getNumber("service_fee.membership_clp", 500);
-    await this.flow().syncPlan(
+    await this.provider().syncPlan(
       {
         planId: plan.flowPlanId,
         name: `${plan.academy.name} — ${next.name}`,
@@ -197,6 +213,9 @@ export class SubscriptionsService {
     if (!intervalCount) {
       throw new BadRequestException("este plan no admite cobro recurrente");
     }
+    // Capability check ANTES de la tx: con un gateway sin motor de
+    // suscripciones no se crea una fila PENDING_CARD muerta.
+    const provider = this.provider();
 
     // Sección crítica (serializada por advisory lock): re-check de sub
     // viva + elección de la PENDING_CARD. Una PENDING_CARD FRESCA del
@@ -280,7 +299,6 @@ export class SubscriptionsService {
     });
 
     const correlationId = randomUUID();
-    const flow = this.flow();
 
     // Plan espejo en Flow — lazy create en el primer subscribe.
     let flowPlanId = plan.flowPlanId;
@@ -290,7 +308,7 @@ export class SubscriptionsService {
         "service_fee.membership_clp",
         500,
       );
-      await flow.ensurePlan(
+      await provider.ensurePlan(
         {
           planId: flowPlanId,
           name: `${plan.academy.name} — ${plan.name}`,
@@ -316,7 +334,7 @@ export class SubscriptionsService {
           "necesitas un email en tu cuenta para suscribirte",
         );
       }
-      const c = await flow.createCustomer(
+      const c = await provider.createCustomer(
         { email: person.email, name: person.name, externalId: personId },
         { correlationId },
       );
@@ -327,9 +345,9 @@ export class SubscriptionsService {
       });
     }
 
-    const customer = await flow.getCustomer(customerId, { correlationId });
+    const customer = await provider.getCustomer(customerId, { correlationId });
     if (!customer.creditCardType) {
-      const { registerUrl } = await flow.registerCustomerCard(
+      const { registerUrl } = await provider.registerCustomerCard(
         {
           customerId,
           returnUrl: `${this.apiUrl}/api/payments/flow/customer-return`,
@@ -424,10 +442,10 @@ export class SubscriptionsService {
     subId: string,
     p: { flowPlanId: string; customerId: string; correlationId: string },
   ): Promise<{ active: MembershipSubscription; fs: FlowSubscription }> {
-    const flow = this.flow();
+    const provider = this.provider();
     let fs: FlowSubscription;
     try {
-      fs = await flow.createSubscription(
+      fs = await provider.createSubscription(
         {
           planId: p.flowPlanId,
           customerId: p.customerId,
@@ -444,6 +462,20 @@ export class SubscriptionsService {
         .catch(() => {});
       throw e;
     }
+
+    // Persistencia temprana del id remoto, INCONDICIONAL sobre la fila:
+    // si el proceso muere o la fila se movió antes de la transición de
+    // estado, el flowSubscriptionId ya quedó para que el sweep de
+    // huérfanas (reconcileAll) la rastree. Si esta escritura falla, la
+    // transición condicional de abajo también fallará (count===0) y la
+    // compensación cancela la remota — el sweep la rescatará igual vía
+    // la auditoría del create.
+    await this.prisma.membershipSubscription
+      .update({
+        where: { id: subId },
+        data: { flowSubscriptionId: fs.subscriptionId },
+      })
+      .catch(() => {});
 
     // Coerción defensiva: Flow puede devolver status como string ("4")
     // igual que en getRegisterStatus. NaN cae en el warn y se trata como
@@ -472,7 +504,7 @@ export class SubscriptionsService {
       // La sub ya no estaba ACTIVATING (cancel concurrente, crash+retry)
       // o el update falló: la sub Flow quedó huérfana → cancel inmediata
       // best-effort para no dejar un cobro sin reflejo local.
-      await flow
+      await provider
         .cancelSubscription(fs.subscriptionId, {
           correlationId: p.correlationId,
           immediate: true,
@@ -502,15 +534,15 @@ export class SubscriptionsService {
   async customerReturn(token: string): Promise<CustomerReturnResult> {
     const correlationId = randomUUID();
     await this.gatewayTx.record({
-      provider: "FLOW",
+      provider: this.gateway.name,
       direction: "INBOUND_WEBHOOK",
       endpoint: "customer/register-return",
       correlationId,
       requestBody: { token },
       ok: true,
     });
-    const flow = this.flow();
-    const reg = await flow.getRegisterStatus(token, { correlationId });
+    const provider = this.provider();
+    const reg = await provider.getRegisterStatus(token, { correlationId });
     if (reg.status !== 1 || !reg.customerId) {
       return { ok: false, academyId: null };
     }
@@ -593,7 +625,7 @@ export class SubscriptionsService {
    */
   async subscriptionWebhook(token: string | null): Promise<void> {
     await this.gatewayTx.record({
-      provider: "FLOW",
+      provider: this.gateway.name,
       direction: "INBOUND_WEBHOOK",
       endpoint: "subscription/callback",
       correlationId: randomUUID(),
@@ -631,9 +663,9 @@ export class SubscriptionsService {
     if (!sub || sub.personId !== personId) {
       throw new NotFoundException("suscripción no encontrada");
     }
-    if (sub.flowSubscriptionId && this.gateway.name === "FLOW") {
+    if (sub.flowSubscriptionId && this.supportsSubscriptions()) {
       try {
-        const fs = await this.flow().getSubscription(
+        const fs = await this.provider().getSubscription(
           sub.flowSubscriptionId,
           { correlationId: randomUUID() },
         );
@@ -676,7 +708,7 @@ export class SubscriptionsService {
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
 
-    await this.flow().cancelSubscription(sub.flowSubscriptionId, {
+    await this.provider().cancelSubscription(sub.flowSubscriptionId, {
       correlationId: randomUUID(),
     });
     await this.prisma.membershipSubscription.update({
@@ -740,8 +772,8 @@ export class SubscriptionsService {
   async reconcileAll(
     actor = "reconcile",
   ): Promise<{ checked: number; settled: number }> {
-    if (this.gateway.name !== "FLOW") return { checked: 0, settled: 0 };
-    const flow = this.flow();
+    if (!this.supportsSubscriptions()) return { checked: 0, settled: 0 };
+    const provider = this.provider();
     const subs = await this.prisma.membershipSubscription.findMany({
       where: {
         flowSubscriptionId: { not: null },
@@ -751,7 +783,7 @@ export class SubscriptionsService {
     let settled = 0;
     for (const sub of subs) {
       try {
-        const fs = await flow.getSubscription(sub.flowSubscriptionId!, {
+        const fs = await provider.getSubscription(sub.flowSubscriptionId!, {
           correlationId: randomUUID(),
         });
         settled += await this.reconcileSubscription(sub, fs, actor);
@@ -761,7 +793,89 @@ export class SubscriptionsService {
         );
       }
     }
+    await this.sweepOrphanSubscriptions(provider);
     return { checked: subs.length, settled };
+  }
+
+  /**
+   * Sweep de suscripciones huérfanas: contrasta los `subscription/create`
+   * exitosos auditados en GatewayTransaction contra las filas locales.
+   * Un id remoto sin cobertura local viva significa que el proceso murió
+   * entre el create y la persistencia (o la fila se canceló en la
+   * ventana) → la remota sigue cobrando sin reflejo: se cancela de forma
+   * inmediata.
+   *
+   * Cobertura viva = fila local con ese flowSubscriptionId en
+   * ACTIVE/CANCEL_PENDING (las reconcilia reconcileSubscription) o
+   * ACTIVATING fresca (request en vuelo — además el grace por createdAt
+   * de la auditoría ya la excluye). Un crash en el round-trip del create
+   * deja el id solo en la auditoría: este sweep es la última red.
+   */
+  private async sweepOrphanSubscriptions(
+    provider: SubscriptionProvider,
+  ): Promise<void> {
+    const txs = await this.prisma.gatewayTransaction.findMany({
+      where: {
+        provider: this.gateway.name,
+        direction: "OUTBOUND",
+        endpoint: "subscription/create",
+        ok: true,
+        createdAt: { lte: new Date(Date.now() - ORPHAN_SWEEP_GRACE_MS) },
+      },
+      select: { responseBody: true },
+    });
+    const remoteIds = new Set<string>();
+    for (const t of txs) {
+      const id = (
+        t.responseBody as { subscriptionId?: unknown } | null
+      )?.subscriptionId;
+      if (typeof id === "string" && id) remoteIds.add(id);
+    }
+    if (!remoteIds.size) return;
+    const linked = await this.prisma.membershipSubscription.findMany({
+      where: { flowSubscriptionId: { in: [...remoteIds] } },
+    });
+    const byRemote = new Map(
+      linked.map((s) => [s.flowSubscriptionId!, s] as const),
+    );
+    for (const remoteId of remoteIds) {
+      const local = byRemote.get(remoteId);
+      if (
+        local &&
+        (local.status === "ACTIVE" || local.status === "CANCEL_PENDING")
+      ) {
+        continue; // cobertura viva — reconcileSubscription la cubre
+      }
+      if (
+        local?.status === "ACTIVATING" &&
+        Date.now() - local.createdAt.getTime() < PENDING_CARD_TTL_MS
+      ) {
+        continue; // request en vuelo
+      }
+      try {
+        const fs = await provider.getSubscription(remoteId, {
+          correlationId: randomUUID(),
+        });
+        if (Number(fs.status) === 4) continue; // remota ya cancelada
+        await provider.cancelSubscription(remoteId, {
+          correlationId: randomUUID(),
+          immediate: true,
+        });
+        this.logger.warn(
+          `sub remota huérfana ${remoteId} cancelada (local: ${local?.id ?? "sin fila"})`,
+        );
+        if (local?.status === "ACTIVATING") {
+          await this.prisma.membershipSubscription.updateMany({
+            where: { id: local.id, status: "ACTIVATING" },
+            data: { status: "CANCELED", canceledAt: new Date() },
+          });
+        }
+      } catch (e) {
+        this.logger.error(
+          `orphan sweep ${remoteId}: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
   }
 
   /**
@@ -841,7 +955,7 @@ export class SubscriptionsService {
             amount,
             fee: 0, // costo pasarela: lo persiste el settle (paymentData.fee)
             net: amount,
-            gateway: "FLOW",
+            gateway: this.gateway.name,
             gatewayRef:
               inv.payment?.flowOrder != null
                 ? String(inv.payment.flowOrder)
