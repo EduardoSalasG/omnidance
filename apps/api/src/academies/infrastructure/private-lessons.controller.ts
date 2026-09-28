@@ -99,7 +99,9 @@ export class PrivateLessonsController {
         personId: req.person!.id,
         scheduledAt: new Date(dto.scheduledAt),
         price: dto.price ?? 0,
-        commissionPct: 0,
+        // Snapshot de la comisión vigente del instructor — el owner
+        // puede cambiarla después sin retroactuar sobre esta clase.
+        commissionPct: instructor.commissionPct ?? 0,
         status: "REQUESTED",
       },
     });
@@ -109,7 +111,8 @@ export class PrivateLessonsController {
   @Get("academies/:id/private-lessons")
   @UseGuards(SessionGuard)
   async list(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireManage(id, req.person!);
+    const me = req.person!;
+    const { academy } = await this.access.requireManage(id, me);
     const lessons = await this.prisma.privateLesson.findMany({
       where: { academyId: id },
       orderBy: { scheduledAt: "asc" },
@@ -123,22 +126,54 @@ export class PrivateLessonsController {
       select: { id: true, name: true },
     });
     const byId = new Map(people.map((p) => [p.id, p]));
-    return lessons.map((l) => ({
-      ...l,
-      person: byId.get(l.personId) ?? { id: l.personId, name: null },
-      instructor: byId.get(l.instructorId) ?? { id: l.instructorId, name: null },
-    }));
+
+    // La comisión es del acuerdo academia↔instructor: owner/ADMIN la ven
+    // en todas las filas; un instructor solo en las suyas.
+    const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
+      "admin.access",
+    ]);
+    const seesCommission = (l: (typeof lessons)[number]) =>
+      isAdmin || academy.ownerId === me.id || l.instructorId === me.id;
+
+    return lessons.map((l) => {
+      const base = {
+        ...l,
+        person: byId.get(l.personId) ?? { id: l.personId, name: null },
+        instructor: byId.get(l.instructorId) ?? {
+          id: l.instructorId,
+          name: null,
+        },
+      };
+      if (seesCommission(l)) return base;
+      const { commissionPct: _c, ...rest } = base;
+      return rest;
+    });
   }
 
-  /** Mis clases privadas: como alumno (default) o como instructor. */
+  /**
+   * Mis clases privadas: como alumno (default) o como instructor. La rama
+   * instructor agrega commissionClp/netClp calculados (la UI no hace
+   * aritmética de negocio); la rama alumno NO expone nada de la comisión
+   * — es un acuerdo academia↔instructor.
+   */
   @Get("private-lessons/mine")
   @UseGuards(SessionGuard)
-  mine(@Query("as") asRole: string | undefined, @Req() req: Request) {
+  async mine(@Query("as") asRole: string | undefined, @Req() req: Request) {
     const personId = req.person!.id;
-    return this.prisma.privateLesson.findMany({
+    const lessons = await this.prisma.privateLesson.findMany({
       where:
         asRole === "instructor" ? { instructorId: personId } : { personId },
       orderBy: { scheduledAt: "desc" },
+    });
+    if (asRole === "instructor") {
+      return lessons.map((l) => {
+        const commissionClp = Math.round((l.price * l.commissionPct) / 100);
+        return { ...l, commissionClp, netClp: l.price - commissionClp };
+      });
+    }
+    return lessons.map((l) => {
+      const { commissionPct: _c, ...rest } = l;
+      return rest;
     });
   }
 

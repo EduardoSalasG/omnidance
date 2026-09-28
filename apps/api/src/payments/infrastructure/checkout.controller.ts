@@ -26,6 +26,10 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
   CheckoutService,
+  ClassAlreadyBookedError,
+  ClassNotFoundError,
+  ClassNotPurchasableError,
+  ClassSoldOutError,
   DoorSoldOutError,
   EventNotFoundError,
   InvalidDiscountError,
@@ -109,6 +113,11 @@ class CheckoutSeriesPassDto {
 class CheckoutMembershipDto {
   @IsString()
   planId!: string;
+}
+
+class CheckoutClassDto {
+  @IsString()
+  classId!: string;
 }
 
 class CheckoutMembershipSubscriptionDto {
@@ -217,6 +226,55 @@ export class CheckoutController {
         throw new NotFoundException(e.message);
       }
       if (e instanceof PlanNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Revisión de orden para comprar una clase suelta / taller (spec
+   * academy-workshops): desglose de precio, cupo restante y si el viewer
+   * ya tiene reserva. Nada se cobra acá — es el paso previo al
+   * POST /checkout/class.
+   */
+  @Get("class-quote")
+  @UseGuards(SessionGuard)
+  async classQuote(@Req() req: Request, @Query("classId") classId: string) {
+    try {
+      return await this.checkout.classQuote(req.person!.id, classId);
+    } catch (e) {
+      if (e instanceof ClassNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof ClassNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Clase suelta / taller pago: cobra el dropInPrice de la serie y el
+   * webhook materializa el ClassBooking pagado al PAID (paymentId
+   * poblado — no consume cuota del plan ni exige inscripción).
+   */
+  @Post("class")
+  @UseGuards(SessionGuard)
+  async class(@Req() req: Request, @Body() dto: CheckoutClassDto) {
+    try {
+      return await this.checkout.purchaseClass(req.person!.id, dto);
+    } catch (e) {
+      if (e instanceof ClassNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (
+        e instanceof ClassSoldOutError ||
+        e instanceof ClassAlreadyBookedError
+      ) {
+        throw new ConflictException(e.message);
+      }
+      if (e instanceof ClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
       throw e;

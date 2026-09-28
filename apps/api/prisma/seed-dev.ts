@@ -242,15 +242,15 @@ export async function seedDev(prisma: PrismaClient) {
   );
 
   // Equipo de instructores — AcademyInstructor habilita requireManage.
-  for (const [academyId, personId] of [
-    [muvet.id, vale.id],
-    [muvet.id, rodrigo.id],
-    [tumbao.id, vale.id],
+  for (const [academyId, personId, commissionPct] of [
+    [muvet.id, vale.id, 25],
+    [muvet.id, rodrigo.id, 30],
+    [tumbao.id, vale.id, null],
   ] as const) {
     await prisma.academyInstructor.upsert({
       where: { academyId_personId: { academyId, personId } },
-      update: {},
-      create: { academyId, personId },
+      update: { commissionPct },
+      create: { academyId, personId, commissionPct },
     });
   }
 

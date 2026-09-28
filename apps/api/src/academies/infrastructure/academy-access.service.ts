@@ -26,7 +26,9 @@ export class AcademyAccess {
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const academy = await this.prisma.academy.findUnique({
       where: { id: academyId },
-      include: { instructors: { select: { personId: true } } },
+      include: {
+        instructors: { select: { personId: true, commissionPct: true } },
+      },
     });
     if (!academy) throw new NotFoundException("academia no encontrada");
     return {

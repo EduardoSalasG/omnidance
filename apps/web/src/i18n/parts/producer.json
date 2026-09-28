@@ -176,6 +176,13 @@
         "APPROVED": "Aprobado",
         "PAID": "Pagado"
       }
+    },
+    "export": {
+      "title": "Exportar CSV",
+      "hint": "Descarga los datos operativos del evento para cuadrar en planilla.",
+      "sales": "Ventas",
+      "checkins": "Check-ins",
+      "guestlist": "Listas de invitados"
     }
   }
 }

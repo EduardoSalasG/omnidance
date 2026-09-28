@@ -17,7 +17,13 @@ interface FakeFriendship {
 interface FakeTicket {
   eventId: string;
   ownerId: string;
-  status: "ACTIVE" | "USED" | "CANCELLED";
+  status: "ACTIVE" | "USED" | "CANCELLED" | "TRANSFERRED";
+  buyerId?: string;
+  listPrice?: number;
+  serviceFee?: number;
+  paymentId?: string | null;
+  claimToken?: string | null;
+  createdAt?: Date;
 }
 
 interface FakePerson {
@@ -26,10 +32,88 @@ interface FakePerson {
   photoUrl: string | null;
 }
 
+interface FakeEvent {
+  id: string;
+  producerId: string;
+}
+
+interface FakeCheckin {
+  eventId: string;
+  personId: string;
+  method: string;
+  inAt: Date;
+  outAt: Date | null;
+  voidedAt: Date | null;
+  note: string | null;
+}
+
+interface FakeGuestEntry {
+  personId: string;
+  status: string;
+  createdAt: Date;
+}
+
+interface FakeGuestList {
+  id: string;
+  eventId: string;
+  ownerId: string;
+  label: string | null;
+  entries: FakeGuestEntry[];
+}
+
+interface FakePayment {
+  id: string;
+  channel: string;
+}
+
+interface FakeRole {
+  key: string;
+  isSuperuser: boolean;
+  permissionKeys: string[];
+}
+
 class FakePrisma {
   friendships: FakeFriendship[] = [];
   tickets: FakeTicket[] = [];
+  events: FakeEvent[] = [];
+  checkins: FakeCheckin[] = [];
+  guestLists: FakeGuestList[] = [];
+  payments: FakePayment[] = [];
+  roles: FakeRole[] = [];
   people = new Map<string, FakePerson>();
+
+  event = {
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.events.find((e) => e.id === where.id) ?? null,
+  };
+
+  checkin = {
+    findMany: async ({ where }: { where: { eventId: string } }) =>
+      this.checkins.filter((c) => c.eventId === where.eventId),
+  };
+
+  guestList = {
+    findMany: async ({ where }: { where: { eventId: string } }) =>
+      this.guestLists.filter((l) => l.eventId === where.eventId),
+  };
+
+  payment = {
+    findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
+      this.payments.filter((p) => where.id.in.includes(p.id)),
+  };
+
+  role = {
+    findMany: async ({ where }: { where: { key: { in: string[] } } }) =>
+      this.roles
+        .filter((r) => where.key.in.includes(r.key))
+        .map((r) => ({
+          key: r.key,
+          isSuperuser: r.isSuperuser,
+          permissions: r.permissionKeys.map((permissionKey) => ({
+            permissionKey,
+          })),
+        })),
+  };
 
   friendship = {
     findMany: async ({
@@ -56,14 +140,19 @@ class FakePrisma {
       where,
       distinct,
     }: {
-      where: { eventId: string; ownerId: { in: string[] }; status: string };
+      where: {
+        eventId: string;
+        ownerId?: { in: string[] };
+        status?: string;
+      };
       distinct?: string[];
     }) => {
       const rows = this.tickets.filter(
         (t) =>
           t.eventId === where.eventId &&
-          t.status === where.status &&
-          where.ownerId.in.includes(t.ownerId),
+          (where.status === undefined || t.status === where.status) &&
+          (where.ownerId === undefined ||
+            where.ownerId.in.includes(t.ownerId)),
       );
       // distinct: ["ownerId"] → una fila por dueño.
       if (distinct?.includes("ownerId")) {
@@ -93,8 +182,8 @@ class FakePrisma {
   };
 }
 
-const reqAs = (personId: string) =>
-  ({ person: { id: personId } }) as unknown as Request;
+const reqAs = (personId: string, roles: string[] = []) =>
+  ({ person: { id: personId, roles } }) as unknown as Request;
 
 describe("EventsController.friendsGoing", () => {
   let prisma: FakePrisma;
@@ -160,5 +249,195 @@ describe("EventsController.friendsGoing", () => {
 
     prisma.friendships.push({ aId: "me", bId: "cami", status: "ACCEPTED" });
     expect(await ctrl.friendsGoing("ev-1", reqAs("me"))).toEqual([]);
+  });
+});
+
+// EventsController.exportCsv — exporte operativo del productor: tres
+// datasets (sales/checkins/guestlist), auth owner/admin, CSV con BOM +
+// escaping. Sin claimToken ni ids internos de persona.
+
+function fakeRes() {
+  const headers: Record<string, string> = {};
+  return {
+    headers,
+    res: {
+      setHeader: (k: string, v: string) => {
+        headers[k.toLowerCase()] = v;
+      },
+    } as never,
+  };
+}
+
+const rows = (csv: string) => csv.replace(/^﻿/, "").trim().split("\r\n");
+
+describe("EventsController.exportCsv", () => {
+  let prisma: FakePrisma;
+  let ctrl: EventsController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      { getProducerParams: async () => null } as never,
+    );
+    prisma.events.push({ id: "ev-1", producerId: "prod-1" });
+    prisma.people.set("prod-1", { id: "prod-1", name: "Prod", photoUrl: null });
+    prisma.people.set("buyer", { id: "buyer", name: "Ana, Compra", photoUrl: null });
+    prisma.people.set("asist", { id: "asist", name: "Luis Asiste", photoUrl: null });
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+  });
+
+  it("owner descarga sales con nombres, canal desde Payment y sin claimToken", async () => {
+    prisma.payments.push({ id: "pay-1", channel: "WEB" });
+    prisma.tickets.push({
+      eventId: "ev-1",
+      ownerId: "asist",
+      buyerId: "buyer",
+      listPrice: 10000,
+      serviceFee: 500,
+      status: "ACTIVE",
+      paymentId: "pay-1",
+      claimToken: "secret-token",
+      createdAt: new Date("2026-09-01T20:00:00Z"),
+    });
+
+    const { res, headers } = fakeRes();
+    const csv = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+
+    expect(headers["content-type"]).toContain("text/csv");
+    expect(headers["content-disposition"]).toContain("attachment");
+    expect(csv.charCodeAt(0)).toBe(0xfeff); // BOM
+    const [head, row] = rows(csv);
+    expect(head).toBe(
+      "fecha,comprador,asistente,precio_lista,cargo_servicio,total,estado,canal,payment_id",
+    );
+    // "Ana, Compra" lleva coma → quoted
+    expect(row).toBe(
+      '2026-09-01T20:00:00.000Z,"Ana, Compra",Luis Asiste,10000,500,10500,ACTIVE,WEB,pay-1',
+    );
+    expect(csv).not.toContain("secret-token");
+    expect(csv).not.toContain("buyer"); // ids internos no salen
+  });
+
+  it("ticket sin paymentId → canal y payment_id vacíos", async () => {
+    prisma.tickets.push({
+      eventId: "ev-1",
+      ownerId: "asist",
+      buyerId: "buyer",
+      listPrice: 8000,
+      serviceFee: 0,
+      status: "USED",
+      paymentId: null,
+      createdAt: new Date("2026-09-01T21:00:00Z"),
+    });
+    const { res } = fakeRes();
+    const csv = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+    expect(rows(csv)[1]).toMatch(/,USED,,$/);
+  });
+
+  it("checkins: incluye anulados con anulado=si y nota", async () => {
+    prisma.checkins.push(
+      {
+        eventId: "ev-1",
+        personId: "asist",
+        method: "SCAN",
+        inAt: new Date("2026-09-01T23:00:00Z"),
+        outAt: null,
+        voidedAt: null,
+        note: null,
+      },
+      {
+        eventId: "ev-1",
+        personId: "buyer",
+        method: "MANUAL",
+        inAt: new Date("2026-09-01T23:30:00Z"),
+        outAt: new Date("2026-09-02T02:00:00Z"),
+        voidedAt: new Date("2026-09-02T01:00:00Z"),
+        note: "cortesía",
+      },
+    );
+    const { res } = fakeRes();
+    const csv = await ctrl.exportCsv("ev-1", "checkins", reqAs("prod-1"), res);
+    const [head, r1, r2] = rows(csv);
+    expect(head).toBe("entrada,salida,metodo,persona,anulado,nota");
+    expect(r1).toBe(
+      "2026-09-01T23:00:00.000Z,,SCAN,Luis Asiste,,",
+    );
+    expect(r2).toBe(
+      '2026-09-01T23:30:00.000Z,2026-09-02T02:00:00.000Z,MANUAL,"Ana, Compra",si,cortesía',
+    );
+  });
+
+  it("guestlist: una fila por entrada con lista, dueño e invitado", async () => {
+    prisma.people.set("owner-gl", { id: "owner-gl", name: "Cumpleañera", photoUrl: null });
+    prisma.guestLists.push({
+      id: "gl-1",
+      eventId: "ev-1",
+      ownerId: "owner-gl",
+      label: "Cumple de X",
+      entries: [
+        { personId: "asist", status: "ARRIVED", createdAt: new Date("2026-08-30T10:00:00Z") },
+        { personId: "buyer", status: "PENDING", createdAt: new Date("2026-08-30T11:00:00Z") },
+      ],
+    });
+    const { res } = fakeRes();
+    const csv = await ctrl.exportCsv("ev-1", "guestlist", reqAs("prod-1"), res);
+    const [head, r1, r2] = rows(csv);
+    expect(head).toBe("lista,dueno_lista,invitado,estado,creado");
+    expect(r1).toBe(
+      "Cumple de X,Cumpleañera,Luis Asiste,ARRIVED,2026-08-30T10:00:00.000Z",
+    );
+    expect(r2).toContain('"Ana, Compra",PENDING');
+  });
+
+  it("admin.access (isSuperuser) descarga aunque no sea owner", async () => {
+    const { res } = fakeRes();
+    const csv = await ctrl.exportCsv(
+      "ev-1",
+      "sales",
+      reqAs("otro", ["ADMIN"]),
+      res,
+    );
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+  });
+
+  it("otro productor (no owner, sin admin) → 403", async () => {
+    const { res } = fakeRes();
+    await expect(
+      ctrl.exportCsv("ev-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("evento inexistente → 404", async () => {
+    const { res } = fakeRes();
+    await expect(
+      ctrl.exportCsv("nope", "sales", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("dataset inválido o ausente → 400", async () => {
+    const { res } = fakeRes();
+    await expect(
+      ctrl.exportCsv("ev-1", "nudes", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 400 });
+    await expect(
+      ctrl.exportCsv("ev-1", undefined as unknown as string, reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("escaping: comillas internas se duplican", async () => {
+    prisma.people.set("quot", { id: "quot", name: 'DJ "Nico"', photoUrl: null });
+    prisma.checkins.push({
+      eventId: "ev-1",
+      personId: "quot",
+      method: "SCAN",
+      inAt: new Date("2026-09-01T23:00:00Z"),
+      outAt: null,
+      voidedAt: null,
+      note: null,
+    });
+    const { res } = fakeRes();
+    const csv = await ctrl.exportCsv("ev-1", "checkins", reqAs("prod-1"), res);
+    expect(rows(csv)[1]).toContain('"DJ ""Nico"""');
   });
 });

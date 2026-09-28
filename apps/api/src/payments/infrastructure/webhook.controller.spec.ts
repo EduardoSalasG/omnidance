@@ -10,6 +10,7 @@ import type { SubscriptionsService } from "../application/subscriptions.service"
 // que payouts.controller.spec.ts).
 import "../../auth/infrastructure/auth.controller";
 import { PaymentsController } from "./webhook.controller";
+import { randomUUID } from "node:crypto";
 import {
   encodeMembershipRef,
   encodeSeriesPassRef,
@@ -45,6 +46,17 @@ function matchWhere(row: Row, where: Row): boolean {
       if (
         "contains" in c &&
         !(typeof v === "string" && v.includes(c.contains as string))
+      )
+        return false;
+      // Objeto anidado sin operador (p.ej. slot: { academyId }) →
+      // matcheo recursivo sobre la relación materializada del fake.
+      if (
+        !("in" in c) &&
+        !("startsWith" in c) &&
+        !("contains" in c) &&
+        v !== null &&
+        typeof v === "object" &&
+        !matchWhere(v as Row, c)
       )
         return false;
       continue;
@@ -133,6 +145,14 @@ class FakePrisma {
       this.plans.filter((p) => matchWhere(p, where)),
   };
 
+  classes: Row[] = [];
+  class = {
+    // Filtra por slot.academyId (paymentsByAcademy) y por id in (el
+    // withContextNames resuelve serie/academia de órdenes WORKSHOP).
+    findMany: async ({ where }: { where: Row }) =>
+      this.classes.filter((c) => matchWhere(c, where)),
+  };
+
   paymentEvent = {
     findMany: async ({ where }: { where: { paymentId: string } }) =>
       this.paymentEvents
@@ -198,6 +218,22 @@ describe("PaymentsController — vistas de auditoría", () => {
       { id: "plan-1", name: "Mensual Full", academyId: "ac-1" },
       { id: "plan-2", name: "Trimestral", academyId: "ac-2" },
     );
+    prisma.classes.push(
+      {
+        id: "cls-1",
+        slot: {
+          academyId: "ac-1",
+          series: { name: "Taller Shines" },
+        },
+      },
+      {
+        id: "cls-2",
+        slot: {
+          academyId: "ac-2",
+          series: { name: "Taller ajeno" },
+        },
+      },
+    );
     prisma.payments.push(
       mkPayment({ id: "p-tkt", eventId: "evt-1" }),
       mkPayment({
@@ -226,6 +262,21 @@ describe("PaymentsController — vistas de auditoría", () => {
         id: "p-legacy",
         eventId: null,
         refId: encodeTicketOrderRef("evt-2"),
+      }),
+      // WORKSHOP: clase suelta/taller pago — refId wks_<classId>_.
+      mkPayment({
+        id: "p-wks",
+        orderType: "WORKSHOP",
+        refId: `wks_cls-1_${randomUUID()}`,
+        eventId: null,
+        amount: 9000,
+      }),
+      mkPayment({
+        id: "p-wks-ajena",
+        personId: "u2",
+        orderType: "WORKSHOP",
+        refId: `wks_cls-2_${randomUUID()}`,
+        eventId: null,
       }),
     );
     prisma.paymentEvents.push(
@@ -258,6 +309,7 @@ describe("PaymentsController — vistas de auditoría", () => {
     it("devuelve solo los pagos del autenticado, recientes primero", async () => {
       const rows = await ctrl.myPayments(req("u1"));
       expect(rows.map((r) => r.id)).toEqual([
+        "p-wks",
         "p-legacy",
         "p-sp",
         "p-mem",
@@ -323,13 +375,19 @@ describe("PaymentsController — vistas de auditoría", () => {
   });
 
   describe("paymentsByAcademy (GET /payments/by-academy/:academyId)", () => {
-    it("owner ve solo MEMBERSHIP de sus planes (decode mem_<planId>_)", async () => {
+    it("owner ve MEMBERSHIP de sus planes + WORKSHOP de sus clases", async () => {
       const rows = await ctrl.paymentsByAcademy(
         req("u-owner", ["ACADEMY_OWNER"]),
         "ac-1",
       );
-      expect(rows.map((r) => r.id)).toEqual(["p-mem"]);
-      expect(rows[0].academyName).toBe("Academia X");
+      expect(rows.map((r) => r.id)).toEqual(["p-wks", "p-mem"]);
+      const wks = rows.find((r) => r.id === "p-wks")!;
+      expect(wks.seriesName).toBe("Taller Shines");
+      expect(wks.academyName).toBe("Academia X");
+      expect(wks.classId).toBe("cls-1");
+      expect(rows.find((r) => r.id === "p-mem")!.academyName).toBe(
+        "Academia X",
+      );
     });
 
     it("no-owner → 403 (aunque sea owner de otra academia)", async () => {
@@ -340,7 +398,7 @@ describe("PaymentsController — vistas de auditoría", () => {
 
     it("admin.access ve cualquier academia", async () => {
       const rows = await ctrl.paymentsByAcademy(req("adm", ["ADMIN"]), "ac-1");
-      expect(rows).toHaveLength(1);
+      expect(rows.map((r) => r.id)).toEqual(["p-wks", "p-mem"]);
     });
 
     it("academia inexistente → 404; sin planes → []", async () => {

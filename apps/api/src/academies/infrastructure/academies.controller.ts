@@ -225,6 +225,14 @@ class UpdateAcademySettingsDto {
   whatsapp?: string | null;
 }
 
+class UpdateInstructorDto {
+  /** % de comisión de la academia sobre sus clases particulares (0-100). */
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  commissionPct!: number;
+}
+
 /** "" → null; trim. Campos de texto libre del perfil público. */
 function cleanText(
   v: string | null | undefined,
@@ -629,6 +637,37 @@ export class AcademiesController {
       whatsapp: cleanWhatsapp(dto.whatsapp),
     };
     return this.prisma.academy.update({ where: { id }, data });
+  }
+
+  /**
+   * Comisión del instructor (solo owner/ADMIN): % que la academia retiene
+   * del precio de cada clase particular suya. Se snapshottea a
+   * PrivateLesson.commissionPct al crear la solicitud — cambiarlo no
+   * retroactúa sobre lecciones ya pedidas.
+   */
+  @Patch(":id/instructors/:personId")
+  @UseGuards(SessionGuard)
+  async updateInstructor(
+    @Param("id") id: string,
+    @Param("personId") personId: string,
+    @Body() dto: UpdateInstructorDto,
+    @Req() req: Request,
+  ) {
+    await this.access.requireAdminister(id, req.person!);
+    const pct = dto.commissionPct;
+    if (!Number.isInteger(pct) || pct < 0 || pct > 100) {
+      throw new BadRequestException("commissionPct debe ser entero 0-100");
+    }
+    const instructor = await this.prisma.academyInstructor.findUnique({
+      where: { academyId_personId: { academyId: id, personId } },
+    });
+    if (!instructor) {
+      throw new NotFoundException("instructor no encontrado en la academia");
+    }
+    return this.prisma.academyInstructor.update({
+      where: { academyId_personId: { academyId: id, personId } },
+      data: { commissionPct: pct },
+    });
   }
 
   // ─── planes ───

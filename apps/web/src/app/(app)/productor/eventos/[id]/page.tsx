@@ -15,6 +15,7 @@ import { SuggestionsSection } from "@/components/producer/suggestions-section";
 import { ReservationsSection } from "@/components/producer/reservations-section";
 import { RatingsSection } from "@/components/producer/ratings-section";
 import { LiveSection } from "@/components/producer/live-section";
+import { ExportSection } from "@/components/producer/export-section";
 import {
   CANCELLABLE_STATUSES,
   EDITABLE_STATUSES,
@@ -373,6 +374,7 @@ export default function ProducerEventDetailPage({
             tableSeatsTotal={event.tableSeatsTotal ?? null}
           />
           <RatingsSection eventId={eventId} />
+          {canManage && <ExportSection eventId={eventId} />}
         </>
       )}
 

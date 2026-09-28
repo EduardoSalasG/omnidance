@@ -79,6 +79,8 @@ interface FakeBooking {
   enrollmentId: string | null;
   cancelledAt: Date | null;
   refunded: boolean;
+  // Orden WORKSHOP que pagó el asiento — no consume cuota.
+  paymentId: string | null;
   createdAt: Date;
 }
 
@@ -165,6 +167,7 @@ class FakePrisma {
       enrollmentId: null,
       cancelledAt: null,
       refunded: true,
+      paymentId: null,
       createdAt,
       ...extra,
     });
@@ -185,7 +188,11 @@ class FakePrisma {
               b.classId === c.id &&
               (b.status === "BOOKED" || b.status === "WAITLIST"),
           )
-          .map((b) => ({ personId: b.personId, status: b.status })),
+          .map((b) => ({
+            personId: b.personId,
+            status: b.status,
+            paymentId: b.paymentId,
+          })),
         attendances: [],
       };
     },
@@ -232,6 +239,7 @@ class FakePrisma {
       personId?: string;
       status?: string | { in: string[] };
       refunded?: boolean;
+      paymentId?: string | null;
       OR?: Array<Record<string, unknown>>;
       class?: {
         date?: { gte?: Date; lt?: Date; lte?: Date };
@@ -253,6 +261,8 @@ class FakePrisma {
     if (where.personId !== undefined && b.personId !== where.personId)
       return false;
     if (where.refunded !== undefined && b.refunded !== where.refunded)
+      return false;
+    if (where.paymentId !== undefined && b.paymentId !== where.paymentId)
       return false;
     if (where.status !== undefined) {
       if (typeof where.status === "string") {
@@ -330,6 +340,7 @@ class FakePrisma {
         personId: string;
         status: FakeBooking["status"];
         enrollmentId?: string | null;
+        paymentId?: string | null;
       };
     }) => {
       const row: FakeBooking = {
@@ -338,6 +349,7 @@ class FakePrisma {
         enrollmentId: null,
         cancelledAt: null,
         refunded: true,
+        paymentId: null,
         ...data,
       };
       this.bookings.push(row);
@@ -894,5 +906,78 @@ describe("política de cancelación (cutoff 1h)", () => {
     prisma.addBooking("cls-1", "per-1", "WAITLIST");
     const res = await ctrl.cancel("cls-1", reqAs("per-1"));
     expect(res.refunded).toBe(true);
+  });
+
+  it("asiento pagado (paymentId) → refunded:false siempre, el cupo se libera", async () => {
+    prisma.addClass("cls-1");
+    prisma.addEnrollment("per-2");
+    prisma.addBooking("cls-1", "per-1", "BOOKED", new Date(), {
+      paymentId: "pay-wk1",
+    });
+    prisma.addBooking("cls-1", "per-2", "WAITLIST");
+
+    const res = await ctrl.cancel("cls-1", reqAs("per-1"));
+    // No hay crédito que devolver — la devolución monetaria es manual.
+    expect(res.refunded).toBe(false);
+    expect(prisma.bookings.find((b) => b.personId === "per-2")!.status).toBe(
+      "BOOKED",
+    );
+  });
+});
+
+describe("asiento pagado vs cuota del plan", () => {
+  let prisma: FakePrisma;
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
+  let ctrl: ClassesController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    notifications = { notifySafe: vi.fn(async () => undefined) };
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      {} as AcademyAccess,
+      fakeParams(),
+    );
+    prisma.addClass("cls-1");
+    prisma.addClass("cls-2");
+  });
+
+  it("una reserva pagada NO consume la cuota semanal", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
+      type: "MONTHLY",
+      weeklyClasses: 1,
+      classCount: null,
+    });
+    // Asiento comprado en cls-1 — la cuota sigue intacta.
+    prisma.addBooking("cls-1", "per-1", "BOOKED", new Date(), {
+      paymentId: "pay-wk1",
+    });
+    const res = await ctrl.book("cls-2", reqAs("per-1"));
+    expect(res.status).toBe("BOOKED");
+  });
+
+  it("cuota agotada no bloquea ver la ficha: myCredits used=limit y una compra posterior no altera used", async () => {
+    prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
+      type: "MONTHLY",
+      weeklyClasses: 1,
+      classCount: null,
+    });
+    prisma.addBooking("cls-1", "per-1", "BOOKED"); // consume la cuota
+    prisma.addBooking("cls-2", "per-1", "BOOKED", new Date(), {
+      paymentId: "pay-wk2", // comprada suelta — no suma al conteo
+    });
+    const res = await ctrl.detail("cls-1", reqAs("per-1"));
+    expect(res.myCredits).toEqual({ kind: "WEEKLY", used: 1, limit: 1 });
+  });
+
+  it("detail expone myBookingPaid cuando la reserva es una compra", async () => {
+    prisma.addClass("cls-1");
+    prisma.addBooking("cls-1", "per-1", "BOOKED", new Date(), {
+      paymentId: "pay-wk1",
+    });
+    const res = await ctrl.detail("cls-1", reqAs("per-1"));
+    expect(res.myBooking).toBe("BOOKED");
+    expect(res.myBookingPaid).toBe(true);
   });
 });

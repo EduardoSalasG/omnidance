@@ -77,3 +77,25 @@ export function decodeMembershipRef(refId: string): MembershipRef | null {
   if (!planId || !uid) return null;
   return { planId, uid };
 }
+
+// ─── Clase suelta / taller (WORKSHOP) ───
+// Formato: wks_<classId>_<uuid>. Como MEMBERSHIP, el contexto solo viaja
+// en el refId — el settle decodifica la clase y crea el ClassBooking con
+// paymentId (asiento pagado: no consume cuota ni exige inscripción).
+export interface ClassDropinRef {
+  classId: string;
+  uid: string;
+}
+
+export function encodeClassRef(classId: string): string {
+  return `wks_${classId}_${randomUUID()}`;
+}
+
+export function decodeClassRef(refId: string): ClassDropinRef | null {
+  const parts = refId.split("_");
+  if (parts.length < 3 || parts[0] !== "wks") return null;
+  const [, classId, ...rest] = parts;
+  const uid = rest.join("_");
+  if (!classId || !uid) return null;
+  return { classId, uid };
+}

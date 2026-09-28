@@ -12,6 +12,7 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -28,7 +29,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import type { EventStatus, EventType, Genre, Prisma } from "@prisma/client";
 import { EVENT_RECENT_LOOKBACK_MS } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
@@ -306,6 +307,18 @@ class AddStaffDto {
   role?: StaffRole;
 }
 
+/** Celda CSV: quotea si contiene , " \n \r; comillas internas → "". */
+function csvCell(v: unknown): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** CSV con BOM UTF-8 (Excel es-CL) + CRLF. */
+function toCsv(headers: string[], rows: unknown[][]): string {
+  const lines = [headers, ...rows].map((r) => r.map(csvCell).join(","));
+  return String.fromCharCode(0xfeff) + lines.join("\r\n") + "\r\n";
+}
+
 @Controller("events")
 export class EventsController {
   constructor(
@@ -448,6 +461,149 @@ export class EventsController {
           : null,
       passes: passCount,
     };
+  }
+
+  /**
+   * GET /events/:id/export.csv?dataset=sales|checkins|guestlist —
+   * descarga CSV operativa del evento (cuadratura post-evento en
+   * planilla). Owner o admin — mismo patrón que /live. BOM UTF-8 para
+   * Excel es-CL; nunca expone claimToken ni ids internos de persona.
+   */
+  @Get(":id/export.csv")
+  @UseGuards(SessionGuard)
+  async exportCsv(
+    @Param("id") id: string,
+    @Query("dataset") dataset: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const event = await this.findEventOr404(id);
+    await this.requireOwnerOrAdmin(event.producerId, req.person!);
+    if (
+      dataset !== "sales" &&
+      dataset !== "checkins" &&
+      dataset !== "guestlist"
+    ) {
+      throw new BadRequestException("dataset inválido");
+    }
+
+    const csv =
+      dataset === "sales"
+        ? await this.exportSales(id)
+        : dataset === "checkins"
+          ? await this.exportCheckins(id)
+          : await this.exportGuestlist(id);
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${id}-${dataset}.csv"`,
+    );
+    return csv;
+  }
+
+  /** Una fila por Ticket — incluye cancelados, la cuadratura los mira. */
+  private async exportSales(eventId: string): Promise<string> {
+    const tickets = await this.prisma.ticket.findMany({
+      where: { eventId },
+      orderBy: { createdAt: "asc" },
+    });
+    const payIds = [
+      ...new Set(
+        tickets.map((t) => t.paymentId).filter((p): p is string => !!p),
+      ),
+    ];
+    const payments = payIds.length
+      ? await this.prisma.payment.findMany({
+          where: { id: { in: payIds } },
+          select: { id: true, channel: true },
+        })
+      : [];
+    const channel = new Map(payments.map((p) => [p.id, p.channel]));
+    const names = await this.personNames(
+      tickets.flatMap((t) => [t.buyerId, t.ownerId]),
+    );
+    return toCsv(
+      [
+        "fecha",
+        "comprador",
+        "asistente",
+        "precio_lista",
+        "cargo_servicio",
+        "total",
+        "estado",
+        "canal",
+        "payment_id",
+      ],
+      tickets.map((t) => [
+        t.createdAt.toISOString(),
+        names.get(t.buyerId) ?? "?",
+        names.get(t.ownerId) ?? "?",
+        t.listPrice,
+        t.serviceFee,
+        t.listPrice + t.serviceFee,
+        t.status,
+        (t.paymentId && channel.get(t.paymentId)) ?? "",
+        t.paymentId ?? "",
+      ]),
+    );
+  }
+
+  /** Una fila por Checkin — incluye anulados con anulado=si. */
+  private async exportCheckins(eventId: string): Promise<string> {
+    const checkins = await this.prisma.checkin.findMany({
+      where: { eventId },
+      orderBy: { inAt: "asc" },
+    });
+    const names = await this.personNames(checkins.map((c) => c.personId));
+    return toCsv(
+      ["entrada", "salida", "metodo", "persona", "anulado", "nota"],
+      checkins.map((c) => [
+        c.inAt.toISOString(),
+        c.outAt?.toISOString() ?? "",
+        c.method,
+        names.get(c.personId) ?? "?",
+        c.voidedAt ? "si" : "",
+        c.note ?? "",
+      ]),
+    );
+  }
+
+  /** Una fila por GuestListEntry de las listas del evento. */
+  private async exportGuestlist(eventId: string): Promise<string> {
+    const lists = await this.prisma.guestList.findMany({
+      where: { eventId },
+      include: { entries: { orderBy: { createdAt: "asc" } } },
+    });
+    const names = await this.personNames([
+      ...lists.map((l) => l.ownerId),
+      ...lists.flatMap((l) => l.entries.map((e) => e.personId)),
+    ]);
+    return toCsv(
+      ["lista", "dueno_lista", "invitado", "estado", "creado"],
+      lists.flatMap((l) =>
+        l.entries.map((e) => [
+          l.label ?? "",
+          names.get(l.ownerId) ?? "?",
+          names.get(e.personId) ?? "?",
+          e.status,
+          e.createdAt.toISOString(),
+        ]),
+      ),
+    );
+  }
+
+  /** Join manual a Person (FKs escalares) → mapa id→nombre. */
+  private async personNames(ids: string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids)];
+    if (!unique.length) return new Map();
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, name: true },
+    });
+    return new Map(
+      people.map((p) => [p.id, p.name ?? "?"] as [string, string]),
+    );
   }
 
   /**

@@ -25,6 +25,9 @@ type ClassDetail = {
   spotsLeft: number;
   waitlistCount: number;
   myBooking: "BOOKED" | "WAITLIST" | null;
+  // Asiento comprado suelto (orden WORKSHOP) — no se devuelve el pago
+  // al cancelar (gestión manual con la academia).
+  myBookingPaid: boolean;
   attended: boolean;
   // Inscripción vigente en la academia — habilita reservar.
   enrolled: boolean;
@@ -147,7 +150,9 @@ export default async function ClaseDetailPage({
               del ClassCard; se re-sincroniza vía router.refresh() tras
               reservar/cancelar en la barra de acción. */}
           {cls.myBooking === "BOOKED" ? (
-            <Badge variant="neon">{t.booked}</Badge>
+            <Badge variant="neon">
+              {cls.myBookingPaid ? t.paidTag : t.booked}
+            </Badge>
           ) : cls.myBooking === "WAITLIST" ? (
             <Badge variant="outline">{t.waitlist}</Badge>
           ) : null}
@@ -263,6 +268,7 @@ export default async function ClaseDetailPage({
       <ClassBookingCta
         classId={cls.id}
         initialBooking={cls.myBooking}
+        initialPaid={cls.myBookingPaid}
         enrolled={cls.enrolled}
         academyId={cls.academy.id}
         spotsLeft={cls.spotsLeft}
@@ -271,6 +277,7 @@ export default async function ClaseDetailPage({
         myCredits={cls.myCredits}
         cancelRefundMinutes={cls.cancelRefundMinutes}
         startsAtIso={startsAtIso}
+        dropInPrice={cls.series.dropInPrice}
         closedLabel={
           cls.cancelled ? t.cancelledTag : isPast ? t.pastTag : undefined
         }

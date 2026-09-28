@@ -35,6 +35,15 @@ type PrivateLesson = {
   instructor?: { id: string; name: string | null };
 };
 
+// Rama as=instructor de GET /private-lessons/mine — el server calcula
+// comisión y neto (la comisión es del acuerdo academia↔instructor; el
+// alumno nunca la ve).
+type InstructorLesson = PrivateLesson & {
+  commissionPct: number;
+  commissionClp: number;
+  netClp: number;
+};
+
 type Me = { id: string; name: string | null; roles: string[] };
 
 /** GET /academies/:id (requireManage) incluye instructors:[{personId}]. */
@@ -107,6 +116,11 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   const [mine, setMine] = useState<PrivateLesson[]>([]);
   const [mineState, setMineState] = useState<LoadState>("loading");
 
+  // ─── vista instructor (mis clases como profesor, con neto) ───
+  const [mineInstructor, setMineInstructor] = useState<InstructorLesson[]>(
+    [],
+  );
+
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [reschedId, setReschedId] = useState<string | null>(null);
@@ -153,6 +167,19 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     }
   }, []);
 
+  // Mis clases como instructor — [] es el caso común (alumno puro) y la
+  // sección no se monta; errores se ignoran (la vista staff sigue).
+  const loadMineInstructor = useCallback(async () => {
+    try {
+      const res = await apiFetch("/private-lessons/mine?as=instructor");
+      if (res.ok) {
+        setMineInstructor((await res.json()) as InstructorLesson[]);
+      }
+    } catch {
+      // best-effort
+    }
+  }, []);
+
   const loadStaff = useCallback(async () => {
     if (!academy) return;
     setStaffState("loading");
@@ -171,7 +198,8 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
 
   useEffect(() => {
     void loadMine();
-  }, [loadMine]);
+    void loadMineInstructor();
+  }, [loadMine, loadMineInstructor]);
 
   useEffect(() => {
     void loadStaff();
@@ -458,6 +486,71 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                 })}
               </ul>
             ))}
+        </section>
+      )}
+
+      {mineInstructor.length > 0 && (
+        <section
+          aria-label={t.instructorTitle}
+          className="flex flex-col gap-3"
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-semibold">{t.instructorTitle}</h2>
+            <p className="flex items-baseline gap-1 text-sm text-white/60">
+              {t.monthNet}:
+              <PriceTag
+                amount={mineInstructor
+                  .filter((l) => {
+                    if (l.status !== "CONFIRMED" && l.status !== "DONE") {
+                      return false;
+                    }
+                    const d = new Date(l.scheduledAt);
+                    const now = new Date();
+                    return (
+                      d.getFullYear() === now.getFullYear() &&
+                      d.getMonth() === now.getMonth()
+                    );
+                  })
+                  .reduce((sum, l) => sum + l.netClp, 0)}
+              />
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {mineInstructor.map((l) => (
+              <li key={l.id}>
+                <Card className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {academyNames.get(l.academyId) ?? shortId(l.academyId)}
+                    </p>
+                    <p className="text-xs text-white/60">
+                      {df.format(new Date(l.scheduledAt))}
+                    </p>
+                    {l.price > 0 && (
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-white/50">
+                        <PriceTag amount={l.price} />
+                        <span>
+                          {t.commissionLine.replace(
+                            "{pct}",
+                            String(l.commissionPct),
+                          )}{" "}
+                          (−
+                          <PriceTag amount={l.commissionClp} />)
+                        </span>
+                        <span className="font-medium text-white/70">
+                          {t.netLine}{" "}
+                          <PriceTag amount={l.netClp} />
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant={statusVariant(l.status)}>
+                    {statusLabel(l.status)}
+                  </Badge>
+                </Card>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
