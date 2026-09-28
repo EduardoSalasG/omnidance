@@ -24,6 +24,7 @@ import { PaymentSettlementService } from "../application/payment-settlement.serv
 import { SubscriptionsService } from "../application/subscriptions.service";
 import {
   decodeClassRef,
+  decodePrivateRef,
   decodeMembershipRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
@@ -208,10 +209,11 @@ export class PaymentsController {
 
   /**
    * GET /payments/by-academy/:academyId — cobros MEMBERSHIP de los planes
-   * + WORKSHOP (clases sueltas/talleres pagos) de la academia. La orden
-   * no tiene columna de academia: el refId (mem_<planId>_<uid> /
-   * wks_<classId>_<uid>) decodifica al plan o a la clase (slot →
-   * academyId) — el filtro `refId startsWith` es el mismo decode+belongs
+   * + WORKSHOP (clases sueltas/talleres pagos) + PRIVATE (clase
+   * particular comprable) de la academia. La orden no tiene columna de
+   * academia: el refId (mem_<planId>_<uid> / wks_<classId>_<uid> /
+   * pvt_<academyId>_<uid>) decodifica al plan, la clase o la academia
+   * misma — el filtro `refId startsWith` es el mismo decode+belongs
    * de payouts, resuelto en SQL. Owner de la academia o admin.access
    * (no existe permiso academies.manage — la administración financiera
    * de la academia es owner|admin, como canAdministerAcademy).
@@ -249,10 +251,14 @@ export class PaymentsController {
     const or = [
       ...plans.map((p) => ({ refId: { startsWith: `mem_${p.id}_` } })),
       ...classes.map((c) => ({ refId: { startsWith: `wks_${c.id}_` } })),
+      // PRIVATE: el refId codifica la academia misma (pvt_<academyId>_).
+      { refId: { startsWith: `pvt_${academy.id}_` } },
     ];
-    if (!or.length) return [];
     const payments = await this.prisma.payment.findMany({
-      where: { orderType: { in: ["MEMBERSHIP", "WORKSHOP"] }, OR: or },
+      where: {
+        orderType: { in: ["MEMBERSHIP", "WORKSHOP", "PRIVATE"] },
+        OR: or,
+      },
       orderBy: { createdAt: "desc" },
       take: AUDIT_TAKE,
       include: { _count: { select: { events: true } } },
@@ -368,6 +374,7 @@ export class PaymentsController {
     const seriesIds = new Set<string>();
     const planIds = new Set<string>();
     const classIds = new Set<string>();
+    const academyIdsFromPayments = new Set<string>();
     for (const p of payments) {
       const eventId =
         p.eventId ??
@@ -386,6 +393,11 @@ export class PaymentsController {
       if (p.orderType === "WORKSHOP") {
         const classId = decodeClassRef(p.refId)?.classId;
         if (classId) classIds.add(classId);
+      }
+      // PRIVATE: el refId codifica la academia directamente (pvt_).
+      if (p.orderType === "PRIVATE") {
+        const academyId = decodePrivateRef(p.refId)?.academyId;
+        if (academyId) academyIdsFromPayments.add(academyId);
       }
     }
     const [events, series, plans, classes] = await Promise.all([
@@ -433,6 +445,7 @@ export class PaymentsController {
       ...new Set([
         ...plans.map((p) => p.academyId),
         ...classes.map((c) => c.slot.academyId),
+        ...academyIdsFromPayments,
       ]),
     ];
     const academies = academyIds.length
@@ -456,6 +469,10 @@ export class PaymentsController {
         p.orderType === "WORKSHOP"
           ? classOf.get(decodeClassRef(p.refId)?.classId ?? "")
           : undefined;
+      const pvtAcademyId =
+        p.orderType === "PRIVATE"
+          ? decodePrivateRef(p.refId)?.academyId
+          : undefined;
       const eventId =
         p.eventId ??
         (p.orderType === "TICKET"
@@ -478,16 +495,17 @@ export class PaymentsController {
         // Ids de contexto: la UI linkea el pago a su evento/academia
         // (p.ej. /perfil/pagos → ficha donde vive la gestión del plan).
         eventId: eventId ?? null,
-        academyId: plan?.academyId ?? wksClass?.slot.academyId ?? null,
+        academyId:
+          plan?.academyId ?? wksClass?.slot.academyId ?? pvtAcademyId ?? null,
         classId: wksClass?.id ?? null,
         eventName: eventId ? (eventNameOf.get(eventId) ?? null) : null,
         seriesName: seriesId
           ? (seriesNameOf.get(seriesId) ?? null)
           : (wksClass?.slot.series.name ?? null),
         academyName:
-          plan || wksClass
+          plan || wksClass || pvtAcademyId
             ? (academyNameOf.get(
-                plan?.academyId ?? wksClass?.slot.academyId ?? "",
+                plan?.academyId ?? wksClass?.slot.academyId ?? pvtAcademyId ?? "",
               ) ?? null)
             : null,
         planName: plan?.name ?? null,

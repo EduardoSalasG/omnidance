@@ -5,6 +5,7 @@ import { PrismaService } from "../../prisma.service";
 import {
   decodeClassRef,
   decodeMembershipRef,
+  decodePrivateRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
 } from "../domain/order-ref";
@@ -212,6 +213,13 @@ export class PaymentSettlementService {
     // el asiento pagado se materializa como ClassBooking con paymentId.
     if (payment.orderType === "WORKSHOP") {
       return this.settleClassDropin(payment, meta);
+    }
+
+    // PRIVATE (clase particular comprable): refId pvt_<academyId>_<uuid>;
+    // la lección nace "por asignar" — sin instructor ni fecha (spec
+    // private-lesson-product).
+    if (payment.orderType === "PRIVATE") {
+      return this.settlePrivateLesson(payment, meta);
     }
 
     return this.settleTicket(payment, meta);
@@ -878,6 +886,103 @@ export class PaymentSettlementService {
           seriesName: cls.slot.series.name,
           academyId: cls.slot.academyId,
           bookingStatus,
+          amount: payment.amount,
+        },
+      });
+      if (mismatch) {
+        await this.notifyAdminsAmountMismatch(payment, mismatch);
+      }
+    }
+
+    return { ok: true, status: "PAID" };
+  }
+
+  /**
+   * Liquidación PRIVATE (clase particular comprable): refId
+   * pvt_<academyId>_<uuid>. Al PAID crea la PrivateLesson "por asignar"
+   * (REQUESTED, instructorId/scheduledAt null, price = lista pagada sin
+   * fee) y avisa al owner que tiene una clase vendida pendiente de
+   * asignación. Mismo claim atómico que las otras ramas.
+   */
+  private async settlePrivateLesson(
+    payment: Payment,
+    meta: SettleMeta,
+  ): Promise<SettleResult> {
+    const order = decodePrivateRef(payment.refId);
+    if (!order) {
+      throw new BadRequestException("pago sin contexto de orden private");
+    }
+    const academy = await this.prisma.academy.findUnique({
+      where: { id: order.academyId },
+      select: { id: true, name: true, ownerId: true },
+    });
+    if (!academy) {
+      throw new BadRequestException("academia de la orden private no existe");
+    }
+
+    const gw = extractGatewayFields(meta.gatewayData);
+    let paidNow = false;
+    let mismatch: AmountMismatch | null = null;
+    let lessonId: string | null = null;
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
+        data: { status: "PAID", ...(gw ?? {}) },
+      });
+      if (claimed.count === 0) return;
+      paidNow = true;
+
+      mismatch = await this.emitSettleEvents(tx, payment, meta, gw, {
+        academyId: academy.id,
+      });
+
+      // El precio de la lección es la lista (sin cargo de servicio) — la
+      // comisión del instructor se calcula sobre ese monto al assign.
+      const lesson = await tx.privateLesson.create({
+        data: {
+          academyId: academy.id,
+          personId: payment.personId,
+          instructorId: null,
+          scheduledAt: null,
+          price: payment.unitListPrice ?? payment.amount,
+          commissionPct: 0,
+          paymentId: payment.id,
+          status: "REQUESTED",
+        },
+      });
+      lessonId = lesson.id;
+    });
+
+    if (paidNow) {
+      const clp = new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(payment.amount);
+      await this.notifications.notifySafe(payment.personId, {
+        category: "TRANSACTIONAL",
+        type: "payment.paid",
+        title: "Pago confirmado — tu clase particular está en agenda",
+        body: `${academy.name} · ${clp}`,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          academyId: academy.id,
+          lessonId,
+          amount: payment.amount,
+        },
+      });
+      await this.notifications.notifySafe(academy.ownerId, {
+        category: "OPERATIONAL",
+        type: "academy.private_lesson.sold",
+        title: "Clase particular vendida — asigna fecha e instructor",
+        body: `${academy.name} · ${clp}`,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          academyId: academy.id,
+          lessonId,
+          buyerId: payment.personId,
           amount: payment.amount,
         },
       });

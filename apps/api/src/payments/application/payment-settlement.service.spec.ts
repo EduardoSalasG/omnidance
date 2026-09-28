@@ -50,6 +50,7 @@ function mkPrisma() {
   const enrollments: Row[] = [];
   const tickets: Row[] = [];
   const bookings: Row[] = [];
+  const lessons: Row[] = [];
   const admins: { personId: string }[] = [];
 
   const prisma = {
@@ -184,12 +185,34 @@ function mkPrisma() {
     seriesPass: {
       upsert: vi.fn(async ({ create }: { create: Row }) => create),
     },
+    academy: {
+      findUnique: vi.fn(async () => ({
+        id: "ac1",
+        name: "Academia X",
+        ownerId: "owner1",
+      })),
+    },
+    privateLesson: {
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        lessons.push(data);
+        return data;
+      }),
+    },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prisma),
     // pg_advisory_xact_lock del ledger — no-op en el fake.
     $executeRaw: vi.fn(async () => 0),
   };
-  return { prisma, payments, events, enrollments, tickets, bookings, admins };
+  return {
+    prisma,
+    payments,
+    events,
+    enrollments,
+    tickets,
+    bookings,
+    lessons,
+    admins,
+  };
 }
 
 function mkNotifications() {
@@ -457,6 +480,61 @@ describe("PaymentSettlementService", () => {
       const payment = seed(wksPayment());
       await svc.settle(payment, "FAILED", { actor: "webhook" });
       expect(fx.bookings).toHaveLength(0);
+    });
+  });
+
+  describe("settle PRIVATE (clase particular comprable)", () => {
+    const pvtPayment = () =>
+      mkPayment({
+        orderType: "PRIVATE",
+        refId: `pvt_ac1_${randomUUID()}`,
+        amount: 40500,
+        net: 40500,
+        unitListPrice: 40000,
+      });
+
+    it("PAID → PrivateLesson REQUESTED sin instructor/fecha + SETTLED + notify owner", async () => {
+      const payment = seed(pvtPayment());
+      const out = await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: { ...GATEWAY_DATA, amount: 40500 },
+      });
+
+      expect(out).toEqual({ ok: true, status: "PAID" });
+      expect(eventTypes()).toEqual(["STATUS_CONFIRMED", "SETTLED"]);
+      expect(fx.lessons).toHaveLength(1);
+      expect(fx.lessons[0]).toMatchObject({
+        academyId: "ac1",
+        personId: "p1",
+        instructorId: null,
+        scheduledAt: null,
+        price: 40000,
+        paymentId: "pay1",
+        status: "REQUESTED",
+      });
+      // owner notificado (hay que asignar) + comprador (pago ok)
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "owner1",
+        expect.objectContaining({ type: "academy.private_lesson.sold" }),
+      );
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({ type: "payment.paid" }),
+      );
+    });
+
+    it("re-notificación PAID → duplicated, sin duplicar lección", async () => {
+      const payment = seed(pvtPayment());
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+      const out = await svc.settle(payment, "PAID", { actor: "webhook" });
+      expect(out.duplicated).toBe(true);
+      expect(fx.lessons).toHaveLength(1);
+    });
+
+    it("FAILED → no crea lección", async () => {
+      const payment = seed(pvtPayment());
+      await svc.settle(payment, "FAILED", { actor: "webhook" });
+      expect(fx.lessons).toHaveLength(0);
     });
   });
 

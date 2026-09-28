@@ -20,19 +20,21 @@ type LoadState = "loading" | "ready" | "error";
 /**
  * PrivateLesson — espejo del schema + join manual del controller.
  * GET /academies/:id/private-lessons agrega `person`/`instructor`
- * ({id, name}); GET /private-lessons/mine devuelve la fila cruda.
+ * ({id, name} | null); GET /private-lessons/mine devuelve la fila cruda.
+ * instructorId/scheduledAt son nullables desde private-lesson-product:
+ * una lección comprada nace "por asignar" hasta que el owner agenda.
  * status es String libre: REQUESTED | CONFIRMED | DONE | CANCELLED.
  */
 type PrivateLesson = {
   id: string;
   academyId: string;
-  instructorId: string; // personId del instructor
+  instructorId: string | null; // personId del instructor; null = por asignar
   personId: string; // alumno
-  scheduledAt: string; // ISO
+  scheduledAt: string | null; // ISO; null = por agendar
   price: number;
   status: string;
   person?: { id: string; name: string | null };
-  instructor?: { id: string; name: string | null };
+  instructor?: { id: string; name: string | null } | null;
 };
 
 // Rama as=instructor de GET /private-lessons/mine — el server calcula
@@ -56,7 +58,12 @@ type DirectoryAcademy = {
   instructors: { id: string; personId: string; name: string | null }[];
 };
 
-type LessonAction = "confirm" | "cancel" | "done" | "reschedule";
+type LessonAction =
+  | "confirm"
+  | "cancel"
+  | "done"
+  | "reschedule"
+  | "assign";
 
 type Props = {
   /**
@@ -64,7 +71,7 @@ type Props = {
    * Sin academy → solo vista alumno.
    */
   academy?: Academy;
-  /** Academias ya cargadas en la página — options del select de solicitud. */
+  /** Academias ya cargadas en la página — resuelven nombres de academia. */
   academies?: Academy[];
 };
 
@@ -93,15 +100,12 @@ function shortId(id: string) {
 /**
  * Clases particulares 1:1. Dos vistas según el contexto de la página:
  * - staff (academy): GET /academies/:id/private-lessons + PATCH
- *   /private-lessons/:id {action} — confirm/done/reschedule para instructor
- *   de la clase u owner(ADMIN); cancel para alumno u owner (el instructor
- *   no cancela, igual que el controller).
- * - alumno: GET /private-lessons/mine + cancel propia (REQUESTED/CONFIRMED)
- *   + form POST /academies/:id/private-lessons {instructorId, scheduledAt,
- *   price?}. El select de academia/instructor se alimenta de GET /academies
- *   (directorio autenticado con nombres de instructor); las academias staff
- *   que no estén en el directorio resuelven instructores vía GET
- *   /academies/:id (requireManage).
+ *   /private-lessons/:id {action} — assign (owner: instructor+fecha a las
+ *   compradas "por asignar"), confirm/done/reschedule para instructor de
+ *   la clase u owner(ADMIN); cancel para alumno u owner.
+ * - alumno: GET /private-lessons/mine + cancel propia (REQUESTED/CONFIRMED).
+ *   El alumno ya no solicita — compra la particular como producto desde el
+ *   perfil de la academia (POST /checkout/private-class).
  */
 export function PrivateLessons({ academy, academies = [] }: Props) {
   const tc = useTranslations("common");
@@ -126,18 +130,18 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   const [reschedId, setReschedId] = useState<string | null>(null);
   const [reschedWhen, setReschedWhen] = useState("");
 
-  // ─── formulario de solicitud ───
-  const [reqAcademyId, setReqAcademyId] = useState("");
+  // ─── asignación (owner): lección comprada sin instructor/fecha ───
+  const [assignId, setAssignId] = useState<string | null>(null);
+  const [assignInstructorId, setAssignInstructorId] = useState("");
+  const [assignWhen, setAssignWhen] = useState("");
+
+  // Instructores de la academia del contexto staff — para el select de
+  // asignación. El directorio trae nombres; si no, GET /academies/:id
+  // (requireManage) da los personIds y se resuelve con instructorNames.
   const [directory, setDirectory] = useState<DirectoryAcademy[]>([]);
-  const [instructors, setInstructors] = useState<
+  const [academyInstructors, setAcademyInstructors] = useState<
     { personId: string; name?: string | null }[]
   >([]);
-  const [instrLoading, setInstrLoading] = useState(false);
-  const [reqInstructorId, setReqInstructorId] = useState("");
-  const [reqWhen, setReqWhen] = useState("");
-  const [reqPrice, setReqPrice] = useState("");
-  const [reqBusy, setReqBusy] = useState(false);
-  const [reqError, setReqError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch("/me")
@@ -151,6 +155,25 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       .then(setDirectory)
       .catch(() => setDirectory([]));
   }, []);
+
+  useEffect(() => {
+    if (!academy) return;
+    const dir = directory.find((a) => a.id === academy.id);
+    if (dir) {
+      setAcademyInstructors(dir.instructors);
+      return;
+    }
+    apiFetch(`/academies/${academy.id}`)
+      .then(async (res) =>
+        res.ok ? ((await res.json()) as AcademyDetail) : null,
+      )
+      .then((detail) =>
+        setAcademyInstructors(
+          (detail?.instructors ?? []).map((i) => ({ personId: i.personId })),
+        ),
+      )
+      .catch(() => {});
+  }, [academy, directory]);
 
   const loadMine = useCallback(async () => {
     setMineState("loading");
@@ -205,12 +228,14 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     void loadStaff();
   }, [loadStaff]);
 
-  // Nombres de instructor cosechados del join de la lista staff (+ yo mismo):
-  // GET /academies/:id solo devuelve personIds, sin nombres.
+  // Nombres de instructor cosechados del join de la lista staff (+ yo
+  // mismo): GET /academies/:id solo devuelve personIds, sin nombres.
   const instructorNames = useMemo(() => {
     const map = new Map<string, string>();
     for (const l of lessons) {
-      if (l.instructor?.name) map.set(l.instructorId, l.instructor.name);
+      if (l.instructor?.name && l.instructorId) {
+        map.set(l.instructorId, l.instructor.name);
+      }
     }
     if (me?.id && me.name) map.set(me.id, me.name);
     return map;
@@ -224,46 +249,10 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     return map;
   }, [directory, academies, academy]);
 
-  // Academias del form: el directorio (todas las activas) cuando cargó;
-  // si falla, las academias prop de la página (contexto staff).
-  const formAcademies = directory.length
-    ? directory
-    : academies.map((a) => ({ id: a.id, name: a.name, instructors: [] }));
-
-  // Instructores de la academia elegida: del directorio si está (ya trae
-  // nombres); si no, GET /academies/:id (contexto staff — requireManage).
-  useEffect(() => {
-    setInstructors([]);
-    setReqInstructorId("");
-    if (!reqAcademyId) return;
-    const dir = directory.find((a) => a.id === reqAcademyId);
-    if (dir) {
-      setInstructors(dir.instructors);
-      return;
-    }
-    let cancelled = false;
-    setInstrLoading(true);
-    apiFetch(`/academies/${reqAcademyId}`)
-      .then(async (res) =>
-        res.ok ? ((await res.json()) as AcademyDetail) : null,
-      )
-      .then((detail) => {
-        if (cancelled) return;
-        setInstructors(detail?.instructors ?? []);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setInstrLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reqAcademyId, directory]);
-
   async function act(
     id: string,
     action: LessonAction,
-    scheduledAt?: string,
+    extra?: { scheduledAt?: string; instructorId?: string },
   ): Promise<void> {
     setBusyId(id);
     setFeedback(null);
@@ -273,17 +262,23 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          ...(scheduledAt ? { scheduledAt } : {}),
+          ...(extra?.scheduledAt ? { scheduledAt: extra.scheduledAt } : {}),
+          ...(extra?.instructorId
+            ? { instructorId: extra.instructorId }
+            : {}),
         }),
       });
       if (!res.ok) {
         setFeedback((await readError(res)) ?? tc("error"));
         return;
       }
-      setFeedback(t.updated);
+      setFeedback(action === "assign" ? t.assigned : t.updated);
       setReschedId(null);
       setReschedWhen("");
-      await Promise.all([loadStaff(), loadMine()]);
+      setAssignId(null);
+      setAssignInstructorId("");
+      setAssignWhen("");
+      await Promise.all([loadStaff(), loadMine(), loadMineInstructor()]);
     } catch {
       setFeedback(tc("error"));
     } finally {
@@ -296,45 +291,18 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     void act(id, "cancel");
   }
 
-  async function submitRequest(e: React.FormEvent): Promise<void> {
+  function submitAssign(e: React.FormEvent, id: string): void {
     e.preventDefault();
-    if (!reqAcademyId || !reqInstructorId || !reqWhen) return;
-    setReqBusy(true);
-    setReqError(null);
-    setFeedback(null);
-    try {
-      const res = await apiFetch(
-        `/academies/${reqAcademyId}/private-lessons`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            instructorId: reqInstructorId,
-            scheduledAt: new Date(reqWhen).toISOString(),
-            ...(reqPrice.trim()
-              ? { price: Number.parseInt(reqPrice, 10) || 0 }
-              : {}),
-          }),
-        },
-      );
-      if (!res.ok) {
-        setReqError((await readError(res)) ?? tc("error"));
-        return;
-      }
-      setFeedback(t.requested);
-      setReqInstructorId("");
-      setReqWhen("");
-      setReqPrice("");
-      await loadMine();
-    } catch {
-      setReqError(tc("error"));
-    } finally {
-      setReqBusy(false);
-    }
+    if (!assignInstructorId || !assignWhen) return;
+    void act(id, "assign", {
+      instructorId: assignInstructorId,
+      scheduledAt: new Date(assignWhen).toISOString(),
+    });
   }
 
   /**
    * Matriz de acciones del controller:
+   * assign → solo owner(ADMIN), sobre REQUESTED sin instructor/fecha.
    * confirm/done/reschedule → instructor de la clase u owner(ADMIN).
    * cancel → alumno (REQUESTED/CONFIRMED) u owner (cualquier no cancelada);
    * el instructor no cancela. En UI solo se ofrece cancelar estados activos.
@@ -345,10 +313,12 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     const isInstructor = !!me && l.instructorId === me.id;
     const isStudent = !!me && l.personId === me.id;
     const active = l.status === "REQUESTED" || l.status === "CONFIRMED";
+    const unassigned = !l.instructorId || !l.scheduledAt;
     return {
-      confirm: (isOwner || isInstructor) && l.status === "REQUESTED",
+      assign: isOwner && l.status === "REQUESTED" && unassigned,
+      confirm: (isOwner || isInstructor) && l.status === "REQUESTED" && !unassigned,
       done: (isOwner || isInstructor) && l.status === "CONFIRMED",
-      reschedule: (isOwner || isInstructor) && active,
+      reschedule: (isOwner || isInstructor) && active && !!l.scheduledAt,
       cancel: active && (isOwner || isStudent),
     };
   }
@@ -356,8 +326,20 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   function rescheduleSubmit(e: React.FormEvent, id: string): void {
     e.preventDefault();
     if (!reschedWhen) return;
-    void act(id, "reschedule", new Date(reschedWhen).toISOString());
+    void act(id, "reschedule", {
+      scheduledAt: new Date(reschedWhen).toISOString(),
+    });
   }
+
+  const lessonWhen = (l: PrivateLesson) =>
+    l.scheduledAt ? df.format(new Date(l.scheduledAt)) : t.toSchedule;
+
+  const lessonInstructor = (l: PrivateLesson) =>
+    l.instructorId
+      ? (instructorNames.get(l.instructorId) ??
+        l.instructor?.name ??
+        t.instructorFallback.replace("{id}", shortId(l.instructorId)))
+      : t.toAssign;
 
   return (
     <div className="flex flex-col gap-6">
@@ -392,18 +374,37 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                             {statusLabel(l.status)}
                           </Badge>
                           <span className="font-medium tabular-nums">
-                            {df.format(new Date(l.scheduledAt))}
+                            {lessonWhen(l)}
                           </span>
                           {l.price > 0 && <PriceTag amount={l.price} />}
                         </div>
                         <p className="text-xs text-white/60">
                           {t.student}:{" "}
                           {l.person?.name ?? shortId(l.personId)} ·{" "}
-                          {t.instructor}:{" "}
-                          {l.instructor?.name ?? shortId(l.instructorId)}
+                          {t.instructor}: {lessonInstructor(l)}
                         </p>
-                        {(a.confirm || a.done || a.reschedule || a.cancel) && (
+                        {(a.assign ||
+                          a.confirm ||
+                          a.done ||
+                          a.reschedule ||
+                          a.cancel) && (
                           <div className="flex flex-wrap gap-2">
+                            {a.assign && (
+                              <Button
+                                size="sm"
+                                disabled={busyId === l.id}
+                                aria-expanded={assignId === l.id}
+                                onClick={() => {
+                                  setAssignId(
+                                    assignId === l.id ? null : l.id,
+                                  );
+                                  setAssignInstructorId("");
+                                  setAssignWhen("");
+                                }}
+                              >
+                                {t.assign}
+                              </Button>
+                            )}
                             {a.confirm && (
                               <Button
                                 size="sm"
@@ -480,6 +481,67 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                             </Button>
                           </form>
                         )}
+                        {assignId === l.id && (
+                          <form
+                            onSubmit={(e) => submitAssign(e, l.id)}
+                            className="flex flex-wrap items-end gap-2"
+                          >
+                            <label className="flex flex-col gap-1">
+                              <span className="text-xs text-white/50">
+                                {t.instructor}
+                                <span aria-hidden="true" className="text-neon"> *</span>
+                              </span>
+                              <select
+                                className={inputCls}
+                                value={assignInstructorId}
+                                onChange={(e) =>
+                                  setAssignInstructorId(e.target.value)
+                                }
+                                required
+                              >
+                                <option value="" disabled>
+                                  —
+                                </option>
+                                {academyInstructors.map((i) => (
+                                  <option key={i.personId} value={i.personId}>
+                                    {i.name ??
+                                      instructorNames.get(i.personId) ??
+                                      t.instructorFallback.replace(
+                                        "{id}",
+                                        shortId(i.personId),
+                                      )}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="flex flex-col gap-1">
+                              <span className="text-xs text-white/50">
+                                {t.scheduledAt}
+                                <span aria-hidden="true" className="text-neon"> *</span>
+                              </span>
+                              <input
+                                type="datetime-local"
+                                className={inputCls}
+                                value={assignWhen}
+                                onChange={(e) =>
+                                  setAssignWhen(e.target.value)
+                                }
+                                required
+                              />
+                            </label>
+                            <Button
+                              type="submit"
+                              size="sm"
+                              disabled={
+                                busyId === l.id ||
+                                !assignInstructorId ||
+                                !assignWhen
+                              }
+                            >
+                              {t.assignSave}
+                            </Button>
+                          </form>
+                        )}
                       </Card>
                     </li>
                   );
@@ -501,9 +563,13 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
               <PriceTag
                 amount={mineInstructor
                   .filter((l) => {
-                    if (l.status !== "CONFIRMED" && l.status !== "DONE") {
+                    if (
+                      l.status !== "CONFIRMED" &&
+                      l.status !== "DONE"
+                    ) {
                       return false;
                     }
+                    if (!l.scheduledAt) return false;
                     const d = new Date(l.scheduledAt);
                     const now = new Date();
                     return (
@@ -523,9 +589,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                     <p className="truncate font-medium">
                       {academyNames.get(l.academyId) ?? shortId(l.academyId)}
                     </p>
-                    <p className="text-xs text-white/60">
-                      {df.format(new Date(l.scheduledAt))}
-                    </p>
+                    <p className="text-xs text-white/60">{lessonWhen(l)}</p>
                     {l.price > 0 && (
                       <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-white/50">
                         <PriceTag amount={l.price} />
@@ -586,11 +650,8 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                             shortId(l.academyId)}
                         </p>
                         <p className="text-xs text-white/60">
-                          {df.format(new Date(l.scheduledAt))} ·{" "}
-                          {t.instructor}:{" "}
-                          {instructorNames.get(l.instructorId) ??
-                            l.instructor?.name ??
-                            shortId(l.instructorId)}
+                          {lessonWhen(l)} · {t.instructor}:{" "}
+                          {lessonInstructor(l)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -615,106 +676,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
               })}
             </ul>
           ))}
-
-        {formAcademies.length > 0 ? (
-          <Card>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-              {t.requestTitle}
-            </h3>
-            <form
-              onSubmit={submitRequest}
-              className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
-            >
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
-                  {t.academy}
-                  <span aria-hidden="true" className="text-neon"> *</span>
-                </span>
-                <select
-                  className={inputCls}
-                  value={reqAcademyId}
-                  onChange={(e) => setReqAcademyId(e.target.value)}
-                  required
-                >
-                  <option value="" disabled>
-                    —
-                  </option>
-                  {formAcademies.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
-                  {t.instructor}
-                  <span aria-hidden="true" className="text-neon"> *</span>
-                </span>
-                <select
-                  className={inputCls}
-                  value={reqInstructorId}
-                  onChange={(e) => setReqInstructorId(e.target.value)}
-                  disabled={!reqAcademyId || instrLoading}
-                  required
-                >
-                  <option value="" disabled>
-                    {instrLoading ? tc("loading") : "—"}
-                  </option>
-                  {instructors.map((i) => (
-                    <option key={i.personId} value={i.personId}>
-                      {i.name ??
-                        instructorNames.get(i.personId) ??
-                        t.instructorFallback.replace(
-                          "{id}",
-                          shortId(i.personId),
-                        )}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
-                  {t.scheduledAt}
-                  <span aria-hidden="true" className="text-neon"> *</span>
-                </span>
-                <input
-                  type="datetime-local"
-                  className={inputCls}
-                  value={reqWhen}
-                  onChange={(e) => setReqWhen(e.target.value)}
-                  required
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
-                  {t.priceOptional}
-                </span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  step={1}
-                  className={inputCls}
-                  value={reqPrice}
-                  onChange={(e) => setReqPrice(e.target.value)}
-                />
-              </label>
-              {reqError && (
-                <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-                  {reqError}
-                </p>
-              )}
-              <div className="sm:col-span-2">
-                <Button type="submit" size="sm" disabled={reqBusy}>
-                  {reqBusy ? tc("loading") : t.submit}
-                </Button>
-              </div>
-            </form>
-          </Card>
-        ) : (
-          <p className="text-xs text-white/50">{t.noAcademies}</p>
-        )}
       </section>
 
       <p role="status" aria-live="polite" className="text-sm text-neon">

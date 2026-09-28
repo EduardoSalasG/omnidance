@@ -6,15 +6,18 @@ import type { PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import {
   decodeClassRef,
+  decodePrivateRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
 } from "../domain/order-ref";
 import {
   CheckoutService,
+  AcademyNotFoundError,
   EventNotFoundError,
   InvalidDiscountError,
   PresaleSoldOutError,
   PresaleUnavailableError,
+  PrivateClassNotPurchasableError,
   SeriesInactiveError,
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
@@ -114,6 +117,7 @@ function mkPrisma() {
       findUnique: vi.fn(async (): Promise<{ id: string } | null> => null),
     },
     class: { findUnique: vi.fn() },
+    academy: { findUnique: vi.fn() },
     classBooking: {
       count: vi.fn(async () => 0),
       findFirst: vi.fn(
@@ -983,5 +987,89 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
     expect(q.spotsLeft).toBe(7);
     expect(q.alreadyBooked).toBe(false);
     expect(fx.payments).toHaveLength(0);
+  });
+});
+
+describe("CheckoutService private-class (clase particular comprable)", () => {
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  const mkAcademy = (over: Record<string, unknown> = {}) => ({
+    id: "ac-1",
+    name: "Mambo Madness",
+    active: true,
+    privateLessonPrice: 40000,
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.academy.findUnique.mockResolvedValue(mkAcademy());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  it("quote: desglose con fee del param membership, sin crear orden", async () => {
+    pf.numbers.set("service_fee.membership_clp", 500);
+    const q = await svc.privateClassQuote("per-1", "ac-1");
+    expect(q.listPrice).toBe(40000);
+    expect(q.serviceFee).toBe(500);
+    expect(q.total).toBe(40500);
+    expect(q.academy).toMatchObject({ id: "ac-1", name: "Mambo Madness" });
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("academia inexistente → AcademyNotFoundError", async () => {
+    fx.prisma.academy.findUnique.mockResolvedValue(null);
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "nope" }),
+    ).rejects.toBeInstanceOf(AcademyNotFoundError);
+  });
+
+  it("academia inactiva o sin privateLessonPrice → PrivateClassNotPurchasableError", async () => {
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ active: false }),
+    );
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "ac-1" }),
+    ).rejects.toBeInstanceOf(PrivateClassNotPurchasableError);
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ privateLessonPrice: null }),
+    );
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "ac-1" }),
+    ).rejects.toBeInstanceOf(PrivateClassNotPurchasableError);
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ privateLessonPrice: 0 }),
+    );
+    await expect(
+      svc.privateClassQuote("per-1", "ac-1"),
+    ).rejects.toBeInstanceOf(PrivateClassNotPurchasableError);
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("crea Payment PRIVATE: refId pvt_<academyId>_, unit economics, orden a la pasarela", async () => {
+    pf.numbers.set("service_fee.membership_clp", 500);
+    const res = await svc.purchasePrivateClass("per-1", {
+      academyId: "ac-1",
+    });
+    const p = fx.payments[0]!;
+    expect(p.orderType).toBe("PRIVATE");
+    expect(p.unitListPrice).toBe(40000);
+    expect(p.unitServiceFee).toBe(500);
+    expect(p.amount).toBe(40500);
+    expect(p.quantity).toBe(1);
+    expect(res.paymentUrl).toContain("pay.example");
+    expect(gw.createOrder).toHaveBeenCalledOnce();
+    expect(decodePrivateRef(p.refId as string)?.academyId).toBe("ac-1");
   });
 });

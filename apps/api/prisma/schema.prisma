@@ -659,6 +659,10 @@ model Academy {
   lng       Float?
   instagram String? // handle público de contacto (sin @)
   whatsapp  String? // teléfono de contacto para wa.me (E.164 sin "+")
+  // Precio único (CLP) de la clase particular vendida como producto —
+  // null = la academia no vende particulares. El owner asigna fecha e
+  // instructor post-compra (spec private-lesson-product).
+  privateLessonPrice Int?
   createdAt DateTime @default(now())
 
   instructors  AcademyInstructor[]
@@ -873,11 +877,15 @@ model Attendance {
 model PrivateLesson {
   id           String   @id @default(cuid())
   academyId    String
-  instructorId String
+  // null = comprada pero aún sin asignar (el owner elige instructor+fecha)
+  instructorId String?
   personId     String // alumno
-  scheduledAt  DateTime
+  // null = pendiente de agendar (spec private-lesson-product)
+  scheduledAt  DateTime?
   price        Int
-  commissionPct Int    @default(0) // comisión de la academia
+  commissionPct Int    @default(0) // comisión de la academia (snapshot al assign)
+  // Compra que la originó (null = creada manual por staff)
+  paymentId    String?
   status       String   @default("REQUESTED") // REQUESTED | CONFIRMED | DONE | CANCELLED
   createdAt    DateTime @default(now())
 }

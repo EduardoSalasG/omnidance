@@ -46,6 +46,17 @@ export function AcademySettings({ academy }: { academy: Academy }) {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  // Precio de la clase particular (private-lesson-product): null/vacío =
+  // la academia no vende particulares.
+  const [lessonPrice, setLessonPrice] = useState(
+    academy.privateLessonPrice != null
+      ? String(academy.privateLessonPrice)
+      : "",
+  );
+  const [currentLessonPrice, setCurrentLessonPrice] = useState<
+    number | null
+  >(academy.privateLessonPrice ?? null);
+
   // Comisión por instructor (PATCH /academies/:id/instructors/:personId).
   const [instructors, setInstructors] = useState<
     { personId: string; name: string | null; commissionPct: number | null }[]
@@ -142,6 +153,13 @@ export function AcademySettings({ academy }: { academy: Academy }) {
     const trimmed = quorum.trim();
     const parsed = trimmed === "" ? null : Number.parseInt(trimmed, 10);
     const next = parsed !== null && Number.isFinite(parsed) ? parsed : null;
+    const priceRaw = lessonPrice.trim();
+    const priceParsed =
+      priceRaw === "" ? null : Number.parseInt(priceRaw, 10);
+    const nextPrice =
+      priceParsed !== null && Number.isFinite(priceParsed) && priceParsed >= 0
+        ? priceParsed
+        : null;
     setBusy(true);
     setError(null);
     setFeedback(null);
@@ -149,13 +167,17 @@ export function AcademySettings({ academy }: { academy: Academy }) {
       const res = await apiFetch(`/academies/${academy.id}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultQuorum: next }),
+        body: JSON.stringify({
+          defaultQuorum: next,
+          privateLessonPrice: nextPrice,
+        }),
       });
       if (!res.ok) {
         setError((await readError(res)) ?? t("saveError"));
         return;
       }
       setCurrent(next);
+      setCurrentLessonPrice(nextPrice);
       setFeedback(t("saved"));
     } catch {
       setError(t("saveError"));
@@ -187,6 +209,24 @@ export function AcademySettings({ academy }: { academy: Academy }) {
             {t("defaultQuorumCurrent", {
               value: current ?? DEFAULT_QUORUM_FALLBACK,
             })}
+          </span>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-white/50">
+            {t("privateLessonPrice")}
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            className={`${inputCls} sm:max-w-40`}
+            value={lessonPrice}
+            onChange={(e) => setLessonPrice(e.target.value)}
+          />
+          <span className="text-xs text-white/40">
+            {t("privateLessonPriceHint")}{" "}
+            {currentLessonPrice != null && `$${currentLessonPrice.toLocaleString("es-CL")}`}
           </span>
         </label>
         {error && (

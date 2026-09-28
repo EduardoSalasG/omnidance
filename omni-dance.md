@@ -623,6 +623,7 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 
 - `instructor` = rol de `person`: puede ser dueño de academia, profe en una o más academias, o **independiente** (= academia de uno)
 - **Clases privadas como producto vendible de la academia**: `private_lesson` (instructor, alumno, slot, precio, estado) — la academia lo administra y cobra comisión
+- Compra online (private-lesson-product): la academia fija un precio único (`Academy.privateLessonPrice`) y el alumno lo compra desde el perfil (`POST /checkout/private-class`, orden `PRIVATE`); el pago crea la `private_lesson` en REQUESTED sin instructor ni fecha — el owner los asigna después (`action=assign` → CONFIRMED + snapshot de comisión). El alumno no elige fecha ni instructor al comprar.
 
 ### Talleres pagos
 
@@ -817,7 +818,7 @@ Wireframe — Mi QR:
 | Planes | CRUD de `membership_plan`, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático |
 | Horarios | `class_slot` semanal: cupos, reservas, lista de espera, instructor asignado |
 | Asistencia | Check-in QR del alumno, registro manual |
-| Clases privadas | `private_lesson`: instructor, alumno, slot, precio, comisión |
+| Clases privadas | `private_lesson`: instructor, alumno, slot, precio, comisión — compra online como producto (`Academy.privateLessonPrice`, orden PRIVATE), el owner asigna instructor+fecha post-pago |
 | Talleres | Crear taller pago, ventas, asistencia |
 | Contenido | Links de videos por clase (YouTube/Vimeo privado), quién puede ver qué |
 | CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (trial expira, asistencia cayó) |

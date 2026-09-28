@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import type { Request } from "express";
 import "../../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver classes.controller.spec)
 import type { PrismaService } from "../../prisma.service";
+import type { NotificationsService } from "../../notifications/domain/notifications.service";
 import { AcademyAccess } from "./academy-access.service";
 import { PrivateLessonsController } from "./private-lessons.controller";
 import { AcademiesController } from "./academies.controller";
@@ -10,11 +11,14 @@ import { AcademiesController } from "./academies.controller";
 // /academies/:id/instructors/:personId (owner/admin), snapshot del
 // commissionPct al crear la PrivateLesson, y netClp/commissionClp en
 // GET /private-lessons/mine?as=instructor (el alumno no ve la comisión).
+// private-lesson-product: particular comprable (assign por el owner,
+// POST solo-staff, joins toleran instructorId/scheduledAt null).
 
 interface FakeAcademy {
   id: string;
   ownerId: string;
   active: boolean;
+  privateLessonPrice?: number | null;
 }
 
 interface FakeInstructor {
@@ -26,11 +30,12 @@ interface FakeInstructor {
 interface FakeLesson {
   id: string;
   academyId: string;
-  instructorId: string;
+  instructorId: string | null;
   personId: string;
-  scheduledAt: Date;
+  scheduledAt: Date | null;
   price: number;
   commissionPct: number;
+  paymentId?: string | null;
   status: string;
   createdAt: Date;
 }
@@ -66,6 +71,18 @@ class FakePrisma {
             return row;
           }),
       };
+    },
+    update: async ({
+      where,
+      data,
+    }: {
+      where: { id: string };
+      data: Partial<FakeAcademy>;
+    }) => {
+      const a = this.academies.find((x) => x.id === where.id);
+      if (!a) throw new Error("P2025");
+      Object.assign(a, data);
+      return a;
     },
   };
 
@@ -127,6 +144,20 @@ class FakePrisma {
       this.lessons.push(l);
       return l;
     },
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.lessons.find((l) => l.id === where.id) ?? null,
+    update: async ({
+      where,
+      data,
+    }: {
+      where: { id: string };
+      data: Partial<FakeLesson>;
+    }) => {
+      const l = this.lessons.find((x) => x.id === where.id);
+      if (!l) throw new Error("P2025");
+      Object.assign(l, data);
+      return l;
+    },
     findMany: async ({
       where,
     }: {
@@ -171,13 +202,21 @@ describe("comisión del instructor en clases particulares", () => {
   let prisma: FakePrisma;
   let lessons: PrivateLessonsController;
   let academies: AcademiesController;
+  const notified: { personId: string; type: string }[] = [];
+  const notifications: { notifySafe: (p: string, i: { type: string }) => Promise<void> } = {
+    notifySafe: async (personId, input) => {
+      notified.push({ personId, type: input.type });
+    },
+  };
 
   beforeEach(() => {
+    notified.length = 0;
     prisma = new FakePrisma();
     const access = new AcademyAccess(prisma as unknown as PrismaService);
     lessons = new PrivateLessonsController(
       prisma as unknown as PrismaService,
       access,
+      notifications as unknown as NotificationsService,
     );
     academies = new AcademiesController(
       prisma as unknown as PrismaService,
@@ -246,6 +285,8 @@ describe("comisión del instructor en clases particulares", () => {
   });
 
   it("request() snapshot: la lección copia el commissionPct vigente", async () => {
+    // POST es staff-only desde private-lesson-product — el owner crea la
+    // lección manual; el snapshot de comisión es el mismo.
     const lesson = await lessons.request(
       "ac-1",
       {
@@ -253,7 +294,7 @@ describe("comisión del instructor en clases particulares", () => {
         scheduledAt: new Date("2026-10-01T20:00:00Z").toISOString(),
         price: 40000,
       },
-      reqAs("alumno"),
+      reqAs("owner"),
     );
     expect(lesson.commissionPct).toBe(25);
 
@@ -295,5 +336,161 @@ describe("comisión del instructor en clases particulares", () => {
       }
     ).instructors.find((i) => i.personId === "inst");
     expect(inst?.commissionPct).toBe(25);
+  });
+});
+
+describe("private-lesson-product", () => {
+  let prisma: FakePrisma;
+  let lessons: PrivateLessonsController;
+  let academies: AcademiesController;
+  const notified: { personId: string; type: string }[] = [];
+  const notifications = {
+    notifySafe: async (personId: string, input: { type: string }) => {
+      notified.push({ personId, type: input.type });
+    },
+  };
+
+  const pendingLesson = (): FakeLesson => ({
+    id: "les-p",
+    academyId: "ac-1",
+    instructorId: null,
+    personId: "alumno",
+    scheduledAt: null,
+    price: 40000,
+    commissionPct: 0,
+    paymentId: "pay-1",
+    status: "REQUESTED",
+    createdAt: new Date(),
+  });
+
+  beforeEach(() => {
+    notified.length = 0;
+    prisma = new FakePrisma();
+    const access = new AcademyAccess(prisma as unknown as PrismaService);
+    lessons = new PrivateLessonsController(
+      prisma as unknown as PrismaService,
+      access,
+      notifications as unknown as NotificationsService,
+    );
+    academies = new AcademiesController(
+      prisma as unknown as PrismaService,
+      access,
+      {} as never,
+    );
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", active: true });
+    prisma.instructors.push(
+      { academyId: "ac-1", personId: "inst", commissionPct: 25 },
+      { academyId: "ac-2", personId: "ajeno", commissionPct: 10 },
+    );
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+    prisma.lessons.push(pendingLesson());
+  });
+
+  it("owner asigna instructor+fecha → CONFIRMED + snapshot comisión + notifica", async () => {
+    const when = new Date("2026-10-05T21:00:00Z").toISOString();
+    const res = await lessons.act(
+      "les-p",
+      { action: "assign", instructorId: "inst", scheduledAt: when },
+      reqAs("owner"),
+    );
+    expect(res.status).toBe("CONFIRMED");
+    expect(res.instructorId).toBe("inst");
+    expect(res.commissionPct).toBe(25);
+    expect(res.scheduledAt).toEqual(new Date(when));
+    expect(notified.map((n) => n.personId).sort()).toEqual([
+      "alumno",
+      "inst",
+    ]);
+  });
+
+  it("assign: instructor no-owner y alumno → 403; instructor ajeno → 404; sin campos → 400", async () => {
+    const when = new Date("2026-10-05T21:00:00Z").toISOString();
+    await expect(
+      lessons.act(
+        "les-p",
+        { action: "assign", instructorId: "inst", scheduledAt: when },
+        reqAs("inst"),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      lessons.act(
+        "les-p",
+        { action: "assign", instructorId: "inst", scheduledAt: when },
+        reqAs("alumno"),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      lessons.act(
+        "les-p",
+        { action: "assign", instructorId: "ajeno", scheduledAt: when },
+        reqAs("owner"),
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      lessons.act("les-p", { action: "assign" }, reqAs("owner")),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("assign sobre lección CONFIRMED → 409", async () => {
+    prisma.lessons[0]!.status = "CONFIRMED";
+    await expect(
+      lessons.act(
+        "les-p",
+        {
+          action: "assign",
+          instructorId: "inst",
+          scheduledAt: new Date().toISOString(),
+        },
+        reqAs("owner"),
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("POST request: alumno externo → 403; owner crea manual con snapshot", async () => {
+    await expect(
+      lessons.request(
+        "ac-1",
+        {
+          instructorId: "inst",
+          scheduledAt: new Date().toISOString(),
+          price: 1000,
+        },
+        reqAs("alumno"),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    const res = await lessons.request(
+      "ac-1",
+      {
+        instructorId: "inst",
+        scheduledAt: new Date("2026-10-01T20:00:00Z").toISOString(),
+        price: 40000,
+      },
+      reqAs("owner"),
+    );
+    expect(res.commissionPct).toBe(25);
+  });
+
+  it("list tolera instructorId/scheduledAt null (lección por asignar)", async () => {
+    const rows = await lessons.list("ac-1", reqAs("owner"));
+    const pending = rows.find((l) => l.id === "les-p")!;
+    expect(pending.instructor).toBeNull();
+    expect(pending.scheduledAt).toBeNull();
+    expect(pending.person?.name).toBe("Nombre alumno");
+  });
+
+  it("settings: privateLessonPrice editable por owner, 403 al resto", async () => {
+    const res = await academies.updateSettings(
+      "ac-1",
+      { privateLessonPrice: 40000 },
+      reqAs("owner"),
+    );
+    expect(res.privateLessonPrice).toBe(40000);
+    await expect(
+      academies.updateSettings(
+        "ac-1",
+        { privateLessonPrice: 1 },
+        reqAs("alumno"),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });

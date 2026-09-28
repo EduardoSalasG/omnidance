@@ -5,6 +5,7 @@ import { PricingService, type Quote } from "../domain/pricing.service";
 import {
   encodeClassRef,
   encodeMembershipRef,
+  encodePrivateRef,
   encodeSeriesPassRef,
   encodeTicketOrderRef,
 } from "../domain/order-ref";
@@ -138,6 +139,21 @@ export class ClassAlreadyBookedError extends Error {
   }
 }
 
+export class AcademyNotFoundError extends Error {
+  constructor() {
+    super("academia no encontrada");
+    this.name = "AcademyNotFoundError";
+  }
+}
+
+/** La academia no vende particulares: inactiva o sin privateLessonPrice. */
+export class PrivateClassNotPurchasableError extends Error {
+  constructor() {
+    super("la academia no vende clases particulares");
+    this.name = "PrivateClassNotPurchasableError";
+  }
+}
+
 export class PlanNotPurchasableError extends Error {
   constructor() {
     super("este plan no está disponible para compra online");
@@ -198,6 +214,10 @@ export interface PurchaseMembershipInput {
 
 export interface PurchaseClassInput {
   classId: string;
+}
+
+export interface PurchasePrivateClassInput {
+  academyId: string;
 }
 
 export interface PurchaseTicketResult {
@@ -976,6 +996,117 @@ export class CheckoutService {
     const payment = await this.prisma.payment.create({
       data: {
         orderType: "WORKSHOP",
+        refId,
+        personId,
+        eventId: null,
+        discountCodeId: null,
+        amount: quote.total,
+        fee: 0, // costo pasarela: desconocido hasta la liquidación
+        net: quote.total,
+        quantity: 1,
+        unitListPrice: quote.listPrice,
+        unitServiceFee: quote.serviceFee,
+        gateway: this.gateway.name,
+      },
+    });
+
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const order = await this.gateway.createOrder({
+      refId,
+      amount: quote.total,
+      email: person?.email ?? "",
+      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+    });
+
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { gatewayRef: order.gatewayRef },
+    });
+
+    return {
+      paymentUrl: order.paymentUrl,
+      paymentId: payment.id,
+      quote,
+      quantity: 1,
+    };
+  }
+
+  /** Academia vendible para particular: activa + privateLessonPrice > 0. */
+  private async purchasableAcademy(academyId: string) {
+    const academy = await this.prisma.academy.findUnique({
+      where: { id: academyId },
+      select: {
+        id: true,
+        name: true,
+        active: true,
+        privateLessonPrice: true,
+      },
+    });
+    if (!academy) throw new AcademyNotFoundError();
+    if (!academy.active || !academy.privateLessonPrice) {
+      throw new PrivateClassNotPurchasableError();
+    }
+    return { academy, listPrice: academy.privateLessonPrice };
+  }
+
+  /**
+   * Revisión previa a comprar una clase particular (spec
+   * private-lesson-product): desglose de precio (precio único de la
+   * academia + cargo de servicio del param de membresías — misma línea de
+   * negocio academy). No crea orden ni toca la pasarela.
+   */
+  async privateClassQuote(personId: string, academyId: string) {
+    void personId;
+    const { academy, listPrice } = await this.purchasableAcademy(academyId);
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.membership_clp",
+      500,
+    );
+    const quote = this.pricing.quote({
+      listPrice,
+      serviceFeeClp,
+      discount: null,
+    });
+    return {
+      ...quote,
+      academy: { id: academy.id, name: academy.name },
+      gateway: this.gateway.name,
+    };
+  }
+
+  /**
+   * Checkout de clase particular (spec private-lesson-product): el alumno
+   * paga por adelantado y el owner de la academia asigna fecha e
+   * instructor post-compra. Crea la orden PENDING (orderType PRIVATE,
+   * refId pvt_<academyId>_<uuid>) y delega el cobro; el settle
+   * materializa la PrivateLesson "por asignar" al PAID.
+   */
+  async purchasePrivateClass(
+    personId: string,
+    input: PurchasePrivateClassInput,
+  ): Promise<PurchaseTicketResult> {
+    const { academy, listPrice } = await this.purchasableAcademy(
+      input.academyId,
+    );
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.membership_clp",
+      500,
+    );
+    const quote = this.pricing.quote({
+      listPrice,
+      serviceFeeClp,
+      discount: null,
+    });
+
+    const refId = encodePrivateRef(academy.id);
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { email: true },
+    });
+
+    const payment = await this.prisma.payment.create({
+      data: {
+        orderType: "PRIVATE",
         refId,
         personId,
         eventId: null,

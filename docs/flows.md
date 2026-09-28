@@ -401,6 +401,62 @@ sequenceDiagram
 
 `Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido — misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) — el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId, fee % global).
 
+## Clase suelta / taller — compra → asiento pagado (WORKSHOP)
+
+```mermaid
+sequenceDiagram
+    actor U as Alumno
+    participant API as CheckoutService
+    participant GW as Pasarela
+    participant WH as WebhookController
+    participant DB as Postgres
+
+    Note over U: ficha /clases/:id sin inscripción/cuota y con<br/>ClassSeries.dropInPrice → CTA "comprar solo esta clase"
+    U->>API: GET /checkout/class-quote?classId=:id
+    U->>API: POST /checkout/class {classId}
+    API->>DB: clase futura + dropInPrice>0 + cupo libre (409 llena)
+    API->>GW: createOrder (refId wks_<classId>_<uuid>, orderType WORKSHOP)
+    API-->>U: {paymentUrl, paymentId}
+    GW->>WH: POST /payments/webhook PAID
+    WH->>DB: tx: paidNow + ClassBooking BOOKED con paymentId<br/>(upsert sobre WAITLIST/CANCELLED propio; 409 si llena)
+    WH->>DB: notifySafe payment.class_dropin
+```
+
+- El asiento pagado **no consume cuota** del plan (`resolveQuota` excluye bookings con `paymentId`); convive con una membresía sin interacción.
+- Devenga a la academia en payouts (`wks_` → class → slot.academyId, fee % global).
+
+## Clase particular — compra como producto → asignación por el owner (PRIVATE)
+
+```mermaid
+sequenceDiagram
+    actor U as Alumno
+    participant API as CheckoutService
+    participant GW as Pasarela
+    participant WH as WebhookController
+    participant PL as PrivateLessonsController
+    participant DB as Postgres
+
+    Note over U: perfil /academias/:id — card "Clase particular" junto<br/>a los planes cuando Academy.privateLessonPrice > 0
+    U->>API: GET /checkout/private-class-quote?academyId=:id
+    U->>API: POST /checkout/private-class {academyId}
+    API->>DB: academia activa + privateLessonPrice>0 (404/400)
+    API->>GW: createOrder (refId pvt_<academyId>_<uuid>, orderType PRIVATE)
+    API-->>U: {paymentUrl, paymentId}
+    GW->>WH: POST /payments/webhook PAID
+    WH->>DB: tx: paidNow + PrivateLesson REQUESTED<br/>sin instructor ni fecha, paymentId, price=unitListPrice
+    WH->>DB: notifySafe payment.paid al alumno<br/>+ academy.private_lesson.purchased al owner
+
+    participant O as Owner
+    O->>PL: PATCH /private-lessons/:id<br/>{action:"assign", instructorId, scheduledAt}
+    PL->>DB: REQUESTED→CONFIRMED + instructorId + scheduledAt<br/>+ snapshot AcademyInstructor.commissionPct
+    PL->>DB: notifySafe academy.private_lesson.assigned<br/>a alumno e instructor
+```
+
+- La fecha **la define el owner** post-compra ("por agendar" en `/clases/particular` mientras `scheduledAt=null`); el instructor puede reagendar después. La distinción con WORKSHOP es el aforo: taller = varios asistentes con fecha fija; particular = 1 alumno, se coordina tras el pago.
+- `POST /academies/:id/private-lessons` queda **staff-only** para clases manuales (cortesía/convenio, opcional `personId`); el alumno compra, no solicita.
+- `Academy.privateLessonPrice = null` → la academia no vende particulares (card oculta, checkout 400).
+- Devenga a la academia en payouts — el refId `pvt_` codifica la academia directamente (incluso si no tiene eventos/planes/clases).
+
 ## Reserva de clase — cuota del plan + cancelación con corte
 
 ```mermaid
