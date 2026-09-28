@@ -75,6 +75,8 @@ export type MembershipPlan = {
   type: PlanType;
   price: number;
   classCount: number | null;
+  // Cuota semanal del plan (planes por tiempo); null = ilimitado.
+  weeklyClasses: number | null;
   periodDays: number | null;
   description: string[];
   active: boolean;

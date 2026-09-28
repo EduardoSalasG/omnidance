@@ -401,6 +401,43 @@ sequenceDiagram
 
 `Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido — misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) — el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId, fee % global).
 
+## Reserva de clase — cuota del plan + cancelación con corte
+
+```mermaid
+sequenceDiagram
+    actor U as Alumno
+    participant API as ClassesController
+    participant DB as Postgres
+
+    U->>API: POST /classes/:id/book
+    API->>DB: tx: inscripción vigente + cuota (resolveQuota)<br/>semanal → pack → ilimitado
+    alt sin inscripción vigente
+        API-->>U: 403
+    else cupo libre y cuota agotada
+        API-->>U: 409 "agotaste tus clases de esta semana"
+    else cupo libre
+        API->>DB: BOOKED + enrollmentId (qué plan consumió)
+    else clase llena
+        API->>DB: WAITLIST — no consume cuota
+    end
+
+    U->>API: DELETE /classes/:id/book
+    API->>DB: params classes.cancel_refund_minutes (def 60)
+    Note over API: inicio = Class.date (00:00 UTC) + slot.startTime
+    alt a tiempo (now ≤ inicio − corte) o era WAITLIST
+        API->>DB: CANCELLED, refunded=true, cancelledAt — el crédito vuelve
+    else dentro del corte
+        API->>DB: CANCELLED, refunded=false, cancelledAt —<br/>el crédito se consume igual
+    end
+    API->>DB: waitlist: promueve al primero CON cuota vigente<br/>(los sin cuota quedan en espera) + notifySafe
+```
+
+- **Consume crédito**: `BOOKED` + `CANCELLED` con `refunded=false`. `WAITLIST` y `CANCELLED` con `refunded=true` no consumen.
+- **Semana de la cuota**: ISO lun–dom sobre `Class.date` (UTC); el pack cuenta desde `Enrollment.startedAt` sin caducidad.
+- **Cancelación por la academia** (desactivar serie / borrar slot) siempre marca `refunded=true` — nadie pierde crédito por una decisión ajena.
+- "La clase ya pasó" se evalúa contra el inicio real (`date + startTime`), no contra la medianoche del día — reservar el mismo día sí funciona.
+- UI: `GET /classes/:id` expone `myCredits {kind, used, limit}` + `cancelRefundMinutes`; el sheet de cancelar declara la consecuencia antes de confirmar y `/classes/mine` adjunta `credits` por card.
+
 ## Suscripción de academia — alta y renovación (Flow)
 
 ```mermaid

@@ -518,9 +518,11 @@ export class ClassSeriesController {
         where: { id: { in: classIds } },
         data: { cancelled: true },
       });
+      // Cancelación del lado de la academia → el crédito siempre se
+      // devuelve (refunded:true), nunca quema la cuota del alumno.
       await tx.classBooking.updateMany({
         where: { classId: { in: classIds }, status: { in: ["BOOKED", "WAITLIST"] } },
-        data: { status: "CANCELLED" },
+        data: { status: "CANCELLED", cancelledAt: new Date(), refunded: true },
       });
       return tx.classSeries.update({
         where: { id: seriesId },
@@ -558,7 +560,7 @@ export class ClassSeriesController {
       });
       await tx.classBooking.updateMany({
         where: { classId: { in: ids }, status: { in: ["BOOKED", "WAITLIST"] } },
-        data: { status: "CANCELLED" },
+        data: { status: "CANCELLED", cancelledAt: new Date(), refunded: true },
       });
       return tx.classSlot.delete({ where: { id: slotId } });
     });

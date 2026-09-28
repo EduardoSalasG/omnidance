@@ -90,6 +90,12 @@ class CreatePlanDto {
   @IsInt()
   classesPerPeriod?: number;
 
+  /** Cuota semanal del plan (1 clase/semana → 1). Ausente = ilimitado. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  weeklyClasses?: number;
+
   @IsOptional()
   @IsInt()
   periodDays?: number;
@@ -120,6 +126,12 @@ class UpdatePlanDto {
   @IsOptional()
   @IsInt()
   classCount?: number | null;
+
+  /** `null` explícito convierte el plan en ilimitado semanal. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  weeklyClasses?: number | null;
 
   @IsOptional()
   @IsInt()
@@ -495,6 +507,7 @@ export class AcademiesController {
             type: true,
             price: true,
             classCount: true,
+            weeklyClasses: true,
             periodDays: true,
             description: true,
           },
@@ -635,6 +648,7 @@ export class AcademiesController {
         type: dto.type,
         price: dto.price,
         classCount: dto.classCount ?? dto.classesPerPeriod ?? null,
+        weeklyClasses: dto.weeklyClasses ?? null,
         periodDays: dto.periodDays ?? null,
         description:
           dto.description?.map((d) => d.trim()).filter(Boolean) ?? [],
@@ -705,6 +719,9 @@ export class AcademiesController {
       ...(dto.price !== undefined ? { price: dto.price } : {}),
       ...(dto.classCount !== undefined
         ? { classCount: dto.classCount }
+        : {}),
+      ...(dto.weeklyClasses !== undefined
+        ? { weeklyClasses: dto.weeklyClasses }
         : {}),
       ...(dto.periodDays !== undefined
         ? { periodDays: dto.periodDays }

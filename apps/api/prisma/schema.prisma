@@ -695,7 +695,10 @@ model MembershipPlan {
   name        String
   type        PlanType
   price       Int
-  classCount  Int? // para CLASS_PACK
+  classCount  Int? // para CLASS_PACK (total del pack por vigencia)
+  // Cuota semanal para planes por tiempo (MONTHLY/QUARTERLY/SEMIANNUAL):
+  // N clases por semana ISO. null = ilimitado (o plan sin cupo semanal).
+  weeklyClasses Int?
   periodDays  Int? // para PERIOD
   // Bullets de venta en la ficha pública (una línea del textarea del
   // staff = un ítem del <ul>).
@@ -830,12 +833,22 @@ model Class {
 
 // Reserva de cupo con lista de espera: BOOKED ocupa cupo; si la clase se
 // llena entra como WAITLIST (orden = createdAt) y se promueve al liberarse.
+// Consume crédito de la cuota del plan (weeklyClasses / classCount) solo en
+// BOOKED o CANCELLED con refunded=false — WAITLIST no consume, y una
+// cancelación dentro de la ventana (o hecha por la academia) devuelve.
 model ClassBooking {
   id        String   @id @default(cuid())
   class     Class    @relation(fields: [classId], references: [id])
   classId   String
   personId  String
   status    String   @default("BOOKED") // BOOKED | WAITLIST | CANCELLED
+  // Auditoría del consumo: qué inscripción respondió por la cuota (semana
+  // o pack). null en reservas anteriores a la cuota o planes ilimitados.
+  enrollmentId String?
+  cancelledAt  DateTime?
+  // El cancel devolvió el crédito (dentro de la ventana o cancelación de
+  // la academia). Default true para filas migradas: no punitivo.
+  refunded     Boolean   @default(true)
   createdAt DateTime @default(now())
 
   @@unique([classId, personId])

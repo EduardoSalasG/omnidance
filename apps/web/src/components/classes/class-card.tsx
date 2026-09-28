@@ -22,6 +22,13 @@ export type ClassCardData = {
   myBooking: "BOOKED" | "WAITLIST" | null;
   // Inscripción vigente en la academia de la clase — habilita reservar.
   enrolled: boolean;
+  // Cuota del plan del viewer para la semana/academia de esta clase
+  // (solo /classes/mine la adjunta; null = ilimitado o sin cuota).
+  credits?: {
+    kind: "WEEKLY" | "PACK";
+    used: number | null;
+    limit: number | null;
+  } | null;
   academy: { id: string; name: string };
   instructor: { id: string; name: string | null } | null;
   // Todo slot pertenece a una serie — series nunca es null.
@@ -104,6 +111,21 @@ export function ClassCard({
           {cls.instructor?.name && (
             <p className="mt-1.5 truncate text-xs text-white/50">
               {cls.instructor.name}
+            </p>
+          )}
+          {/* Créditos del plan — solo en "Mis clases" (mine adjunta la
+              cuota de la semana de la clase). */}
+          {cls.credits?.limit != null && (
+            <p className="mt-1 text-xs font-medium text-neon/80">
+              {cls.credits.kind === "PACK"
+                ? t("creditsPackShort", {
+                    used: cls.credits.used ?? 0,
+                    limit: cls.credits.limit,
+                  })
+                : t("creditsWeeklyShort", {
+                    used: cls.credits.used ?? 0,
+                    limit: cls.credits.limit,
+                  })}
             </p>
           )}
         </Link>

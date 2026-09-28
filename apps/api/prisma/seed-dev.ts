@@ -269,6 +269,10 @@ export async function seedDev(prisma: PrismaClient) {
     price: number,
     extra: {
       classCount?: number;
+      // Clases/semana que consume la cuota del plan (planes por tiempo);
+      // ausente = ilimitado. Se fuerza null explícito al re-sembrar para
+      // que renombrar/achicar un plan no deje cuota obsoleta.
+      weeklyClasses?: number;
       periodDays?: number;
       // Bullets de venta — un ítem por línea del <ul> de la ficha.
       description?: string[];
@@ -278,12 +282,24 @@ export async function seedDev(prisma: PrismaClient) {
       () => prisma.membershipPlan.findFirst({ where: { academyId, name } }),
       () =>
         prisma.membershipPlan.create({
-          data: { academyId, name, type, price, ...extra },
+          data: {
+            academyId,
+            name,
+            type,
+            price,
+            ...extra,
+            weeklyClasses: extra.weeklyClasses ?? null,
+          },
         }),
       (p) =>
         prisma.membershipPlan.update({
           where: { id: p.id },
-          data: { type, price, ...extra },
+          data: {
+            type,
+            price,
+            ...extra,
+            weeklyClasses: extra.weeklyClasses ?? null,
+          },
         }),
     );
 
@@ -780,6 +796,7 @@ export async function seedDev(prisma: PrismaClient) {
     // ilimitado: 3×60k−10% y 6×60k−10% — incentivo por compromiso).
     if (a.name === "Mambo Madness") {
       await plan(academy.id, "Mensual — 1 clase semanal", "MONTHLY", 40000, {
+        weeklyClasses: 1,
         description: [
           "1 clase por semana a elección",
           "Válido hasta fin del mes calendario",
@@ -814,12 +831,14 @@ export async function seedDev(prisma: PrismaClient) {
       });
     } else {
       await plan(academy.id, "Mensual — 1 clase semanal", "MONTHLY", 25000, {
+        weeklyClasses: 1,
         description: [
           "1 clase por semana a elección",
           "Válido hasta fin del mes calendario",
         ],
       });
       await plan(academy.id, "Mensual — 2 clases semanales", "MONTHLY", 40000, {
+        weeklyClasses: 2,
         description: [
           "2 clases por semana a elección",
           "Válido hasta fin del mes calendario",

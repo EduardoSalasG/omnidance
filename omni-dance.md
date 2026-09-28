@@ -614,6 +614,8 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 ### Horarios y asistencia
 
 - `class_slot`: horario con cupos + reserva + lista de espera de clase
+- **Cuota del plan**: los planes por tiempo llevan `weeklyClasses` (clases por semana ISO; `null` = ilimitado); los packs llevan `classCount` total. Reservar exige inscripción vigente + cuota disponible; la lista de espera no consume crédito hasta promover, y al promover se salta a quien no tenga saldo.
+- **Cancelación de reserva**: siempre libera el cupo físico; el crédito vuelve solo si se cancela antes del corte `classes.cancel_refund_minutes` (default 60, param operativo). Después del corte el alumno puede cancelar pero la clase se consume igual. Cancelaciones originadas por la academia siempre devuelven el crédito.
 - Check-in de asistencia con el **mismo QR personal** → `attendance` alimenta score de fidelidad
 - Horarios por instructor (`academy_instructor`)
 
