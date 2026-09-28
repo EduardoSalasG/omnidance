@@ -18,6 +18,7 @@ import type { EnrollmentStatus } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
+import { ParamsService } from "../../params/params.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { effectiveCapacity } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
@@ -33,6 +34,43 @@ import {
 // reservar exige inscripción vigente).
 const BOOKABLE_ENROLLMENT: EnrollmentStatus[] = ["ACTIVE", "TRIAL", "ONLINE"];
 
+// Semana de la cuota: ISO lun–dom sobre Class.date (medianoche UTC del día
+// de la clase — no hora local: la diferencia solo aparecería en una clase
+// que cruza el lunes ~21:00 hora Chile, caso prácticamente inexistente).
+function isoWeekRange(date: Date): { start: Date; end: Date } {
+  const day = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+  const dow = (day.getUTCDay() + 6) % 7; // lunes = 0
+  const start = new Date(day.getTime() - dow * 86_400_000);
+  return { start, end: new Date(start.getTime() + 7 * 86_400_000) };
+}
+
+// Inicio real de la clase: Class.date (medianoche UTC del día) +
+// slot.startTime "HH:mm". El check "la clase ya pasó" y el corte de
+// devolución operan sobre este instante — no sobre la medianoche del día.
+function classStart(date: Date, startTime: string): Date {
+  const [h, m] = startTime.split(":").map(Number);
+  return new Date(date.getTime() + ((h || 0) * 60 + (m || 0)) * 60_000);
+}
+
+type QuotaResolution =
+  | {
+      ok: true;
+      kind: "WEEKLY" | "PACK" | "UNLIMITED";
+      enrollmentId: string;
+      used: number | null;
+      limit: number | null;
+    }
+  | {
+      ok: false;
+      reason: "exhausted";
+      kind: "WEEKLY" | "PACK";
+      used: number;
+      limit: number;
+    }
+  | { ok: false; reason: "no_enrollment" };
+
 
 /**
  * Vista alumno: explorar clases próximas (por día/estilo/nivel/academia)
@@ -46,7 +84,162 @@ export class ClassesController {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly access: AcademyAccess,
+    private readonly params: ParamsService,
   ) {}
+
+  // Reservas que consumen crédito: BOOKED + CANCELLED sin refund
+  // (cancelación tardía — la clase se perdió). WAITLIST no consume;
+  // CANCELLED con refunded=true devuelve. Ver resolveQuota.
+
+  /**
+   * Qué inscripción responde por la cuota de una reserva en `classDate`.
+   * Orden: plan semanal con saldo → pack con saldo → ilimitado. Una fila
+   * con plan null (inscripción legacy/administrativa) cuenta ilimitada.
+   */
+  private async resolveQuota(
+    tx: Pick<PrismaService, "enrollment" | "classBooking">,
+    personId: string,
+    academyId: string,
+    classDate: Date,
+  ): Promise<QuotaResolution> {
+    const enrollments = await tx.enrollment.findMany({
+      where: {
+        personId,
+        academyId,
+        status: { in: BOOKABLE_ENROLLMENT },
+      },
+      select: {
+        id: true,
+        startedAt: true,
+        plan: {
+          select: { type: true, weeklyClasses: true, classCount: true },
+        },
+      },
+    });
+    if (!enrollments.length) return { ok: false, reason: "no_enrollment" };
+
+    const countIn = async (range: { gte: Date; lt?: Date }) =>
+      tx.classBooking.count({
+        where: {
+          personId,
+          class: {
+            slot: { academyId },
+            date: { gte: range.gte, ...(range.lt ? { lt: range.lt } : {}) },
+          },
+          OR: [
+            { status: "BOOKED" },
+            { status: "CANCELLED", refunded: false },
+          ],
+        },
+      });
+
+    const { start, end } = isoWeekRange(classDate);
+    let packFallback: QuotaResolution | null = null;
+    let unlimited: QuotaResolution | null = null;
+    let exhausted: QuotaResolution | null = null;
+
+    for (const e of enrollments) {
+      const plan = e.plan;
+      if (plan?.weeklyClasses != null) {
+        const used = await countIn({ gte: start, lt: end });
+        if (used < plan.weeklyClasses) {
+          return {
+            ok: true,
+            kind: "WEEKLY",
+            enrollmentId: e.id,
+            used,
+            limit: plan.weeklyClasses,
+          };
+        }
+        exhausted ??= {
+          ok: false,
+          reason: "exhausted",
+          kind: "WEEKLY",
+          used,
+          limit: plan.weeklyClasses,
+        };
+        continue;
+      }
+      if (plan?.type === "CLASS_PACK" && plan.classCount != null) {
+        const used = await countIn({ gte: e.startedAt });
+        if (used < plan.classCount && !packFallback) {
+          packFallback = {
+            ok: true,
+            kind: "PACK",
+            enrollmentId: e.id,
+            used,
+            limit: plan.classCount,
+          };
+        } else if (used >= plan.classCount) {
+          exhausted ??= {
+            ok: false,
+            reason: "exhausted",
+            kind: "PACK",
+            used,
+            limit: plan.classCount,
+          };
+        }
+        continue;
+      }
+      // Sin cuota definida (plan ilimitado o inscripción sin plan).
+      unlimited ??= {
+        ok: true,
+        kind: "UNLIMITED",
+        enrollmentId: e.id,
+        used: null,
+        limit: null,
+      };
+    }
+    if (packFallback) return packFallback;
+    if (unlimited) return unlimited;
+    return exhausted ?? { ok: false, reason: "no_enrollment" };
+  }
+
+  /**
+   * Promueve al primer WAITLIST **con crédito disponible** (orden
+   * createdAt). Un candidato sin cuota o sin inscripción vigente queda en
+   * espera y se evalúa el siguiente — el cupo no se regala a quien ya no
+   * puede pagarlo con su plan.
+   */
+  private async promoteWaitlist(
+    tx: Pick<PrismaService, "enrollment" | "classBooking">,
+    cls: {
+      id: string;
+      date: Date;
+      slot: {
+        academyId: string;
+        series: { name: string };
+        academy: { name: string };
+      };
+    },
+  ) {
+    const waiters = await tx.classBooking.findMany({
+      where: { classId: cls.id, status: "WAITLIST" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, personId: true },
+    });
+    for (const w of waiters) {
+      const q = await this.resolveQuota(
+        tx,
+        w.personId,
+        cls.slot.academyId,
+        cls.date,
+      );
+      if (!q.ok) continue; // sin cuota/inscripción → queda en espera
+      await tx.classBooking.update({
+        where: { id: w.id },
+        data: { status: "BOOKED", enrollmentId: q.enrollmentId },
+      });
+      await this.notifications.notifySafe(w.personId, {
+        category: "SOCIAL",
+        type: "class.waitlist.promoted",
+        title: `Se liberó un cupo en ${cls.slot.series.name ?? cls.slot.academy.name ?? "tu clase"}`,
+        data: { classId: cls.id, bookingId: w.id },
+      });
+      return;
+    }
+  }
+
 
   /** Catálogos públicos para los filtros del explorador (lectura). */
   @Get("catalogs")
@@ -181,9 +374,35 @@ export class ClassesController {
       .map((r) => r.class)
       .filter((c) => !classEnded(c));
     const instructorName = await this.instructorNames(classes);
-    return classes.map((c) =>
-      classCardItem(c, me, enrolledIds, instructorName),
-    );
+    // Créditos del plan vigente por (academia, semana ISO de la clase) —
+    // mismo resolveQuota de la ficha; el card muestra "n/m esta semana".
+    const creditsByKey = new Map<
+      string,
+      { kind: string; used: number | null; limit: number | null } | null
+    >();
+    for (const c of classes) {
+      const key = `${c.slot.academy.id}:${isoWeekRange(c.date).start.getTime()}`;
+      if (creditsByKey.has(key)) continue;
+      const q = await this.resolveQuota(
+        this.prisma,
+        me,
+        c.slot.academy.id,
+        c.date,
+      );
+      creditsByKey.set(
+        key,
+        "kind" in q && q.kind !== "UNLIMITED"
+          ? { kind: q.kind, used: q.used, limit: q.limit }
+          : null,
+      );
+    }
+    return classes.map((c) => ({
+      ...classCardItem(c, me, enrolledIds, instructorName),
+      credits:
+        creditsByKey.get(
+          `${c.slot.academy.id}:${isoWeekRange(c.date).start.getTime()}`,
+        ) ?? null,
+    }));
   }
 
   /**
@@ -460,6 +679,19 @@ export class ClassesController {
       seriesQuorum: cls.slot.series.quorum,
       academyDefaultQuorum: cls.slot.academy.defaultQuorum,
     });
+
+    // Créditos del plan vigente para esta clase (el CTA y el copy de
+    // cancelación lo muestran) + ventana de devolución operativa.
+    const [quota, cancelRefundMinutes] = await Promise.all([
+      this.resolveQuota(this.prisma, me, cls.slot.academyId, cls.date),
+      this.params.getNumber("classes.cancel_refund_minutes", 60),
+    ]);
+    // Spec class-credits: null si ilimitado o sin inscripción — el front
+    // distingue "no inscrito" con el flag `enrolled` aparte.
+    const myCredits =
+      "kind" in quota && quota.kind !== "UNLIMITED"
+        ? { kind: quota.kind, used: quota.used, limit: quota.limit }
+        : null;
     return {
       id: cls.id,
       date: cls.date,
@@ -474,6 +706,8 @@ export class ClassesController {
       myBooking: mine?.status ?? null,
       attended: cls.attendances.length > 0,
       enrolled: !!enrollment,
+      cancelRefundMinutes,
+      myCredits,
       academy: cls.slot.academy,
       instructor,
       series: {
@@ -605,6 +839,7 @@ export class ClassesController {
         slot: {
           select: {
             capacity: true,
+            startTime: true,
             academyId: true,
             series: { select: { quorum: true } },
             academy: { select: { defaultQuorum: true } },
@@ -614,23 +849,24 @@ export class ClassesController {
     });
     if (!cls) throw new NotFoundException("clase no encontrada");
     if (cls.cancelled) throw new BadRequestException("la clase fue cancelada");
-    if (cls.date < new Date()) {
+    // "Ya pasó" = el inicio real (día + hora), no la medianoche UTC —
+    // una clase de hoy 20:00 se puede reservar hasta que empiece.
+    if (classStart(cls.date, cls.slot.startTime) < new Date()) {
       throw new BadRequestException("la clase ya pasó");
     }
 
     return this.prisma.$transaction(async (tx) => {
       // Regla de producto: reservar exige inscripción vigente en la
-      // academia. Dentro de la tx para que una desinscripción
-      // concurrente no deje pasar la reserva.
-      const enrollment = await tx.enrollment.findFirst({
-        where: {
-          personId: me,
-          academyId: cls.slot.academyId,
-          status: { in: BOOKABLE_ENROLLMENT },
-        },
-        select: { id: true },
-      });
-      if (!enrollment) {
+      // academia + crédito disponible en la cuota del plan (semana ISO o
+      // pack). Dentro de la tx para que una desinscripción concurrente
+      // no deje pasar la reserva.
+      const quota = await this.resolveQuota(
+        tx,
+        me,
+        cls.slot.academyId,
+        cls.date,
+      );
+      if (!quota.ok && quota.reason === "no_enrollment") {
         throw new ForbiddenException(
           "necesitas una inscripción vigente en la academia",
         );
@@ -654,21 +890,49 @@ export class ClassesController {
       });
       const status = booked < quorum ? "BOOKED" : "WAITLIST";
 
+      // La cuota solo se exige para ocupar cupo real — entrar a la
+      // waitlist no consume ni bloquea (se re-chequea al promover).
+      if (status === "BOOKED" && !quota.ok) {
+        throw new ConflictException(
+          `agotaste tus ${quota.limit} clases de esta semana`,
+        );
+      }
+
       if (existing) {
         return tx.classBooking.update({
           where: { id: existing.id },
-          data: { status, createdAt: new Date() },
+          data: {
+            status,
+            createdAt: new Date(),
+            cancelledAt: null,
+            refunded: true,
+            enrollmentId:
+              status === "BOOKED" && quota.ok ? quota.enrollmentId : null,
+          },
         });
       }
       return tx.classBooking.create({
-        data: { classId, personId: me, status },
+        data: {
+          classId,
+          personId: me,
+          status,
+          enrollmentId:
+            status === "BOOKED" && quota.ok ? quota.enrollmentId : null,
+        },
       });
     });
   }
 
   /**
-   * Cancelar mi reserva. Si era BOOKED, el primer WAITLIST se promueve
-   * a BOOKED y se le notifica.
+   * Cancelar mi reserva. Política de crédito (spec class-credit-
+   * cancellation): dentro de la ventana `classes.cancel_refund_minutes`
+   * (default 60) antes del inicio, la clase se devuelve (`refunded:true`);
+   * pasado el corte el alumno puede cancelar igual — libera el asiento —
+   * pero pierde la clase (`refunded:false`). Una WAITLIST cancelada nunca
+   * consumió → refunded:true siempre.
+   *
+   * Si era BOOKED, el primer WAITLIST con cuota se promueve y se le
+   * notifica.
    */
   @Delete(":id/book")
   @HttpCode(200)
@@ -680,44 +944,48 @@ export class ClassesController {
     if (!booking || booking.status === "CANCELLED") {
       throw new NotFoundException("no tienes reserva activa en esta clase");
     }
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        date: true,
+        slot: {
+          select: {
+            startTime: true,
+            academyId: true,
+            series: { select: { name: true } },
+            academy: { select: { name: true } },
+          },
+        },
+      },
+    });
+    if (!cls) throw new NotFoundException("clase no encontrada");
+
+    const cutoffMin = await this.params.getNumber(
+      "classes.cancel_refund_minutes",
+      60,
+    );
+    const start = classStart(cls.date, cls.slot.startTime);
+    const refunded =
+      booking.status === "WAITLIST" ||
+      Date.now() <= start.getTime() - cutoffMin * 60_000;
 
     return this.prisma.$transaction(async (tx) => {
       const cancelled = await tx.classBooking.update({
         where: { id: booking.id },
-        data: { status: "CANCELLED" },
+        data: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          refunded,
+        },
       });
 
+      // El asiento se libera siempre — la política solo decide el
+      // crédito. La promoción re-chequea cuota del candidato.
       if (booking.status === "BOOKED") {
-        const next = await tx.classBooking.findFirst({
-          where: { classId, status: "WAITLIST" },
-          orderBy: { createdAt: "asc" },
-        });
-        if (next) {
-          await tx.classBooking.update({
-            where: { id: next.id },
-            data: { status: "BOOKED" },
-          });
-          const cls = await tx.class.findUnique({
-            where: { id: classId },
-            select: {
-              date: true,
-              slot: {
-                select: {
-                  series: { select: { name: true } },
-                  academy: { select: { name: true } },
-                },
-              },
-            },
-          });
-          await this.notifications.notifySafe(next.personId, {
-            category: "SOCIAL",
-            type: "class.waitlist.promoted",
-            title: `Se liberó un cupo en ${cls?.slot.series.name ?? cls?.slot.academy.name ?? "tu clase"}`,
-            data: { classId, bookingId: next.id },
-          });
-        }
+        await this.promoteWaitlist(tx, cls);
       }
-      return cancelled;
+      return { ...cancelled, refunded };
     });
   }
 }

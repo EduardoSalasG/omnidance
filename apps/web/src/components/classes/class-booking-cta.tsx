@@ -10,6 +10,14 @@ import { readError } from "@/components/academy/shared";
 
 type Booking = "BOOKED" | "WAITLIST" | null;
 
+/** Créditos del plan vigente sobre esta clase (myCredits del API):
+    WEEKLY = cuota de la semana ISO; PACK = saldo del pack. */
+export type ClassCredits = {
+  kind: "WEEKLY" | "PACK";
+  used: number | null;
+  limit: number | null;
+} | null;
+
 /**
  * Acción de la ficha de clase en barra fija sobre la BottomNav — mismo
  * patrón que la ficha de evento (cupos a la izquierda, acción a la
@@ -26,6 +34,9 @@ export function ClassBookingCta({
   spotsLeft,
   capacity,
   waitlistCount,
+  myCredits = null,
+  cancelRefundMinutes = 60,
+  startsAtIso,
   closedLabel,
 }: {
   classId: string;
@@ -38,6 +49,12 @@ export function ClassBookingCta({
   spotsLeft: number;
   capacity: number;
   waitlistCount: number;
+  /** Cuota del plan del viewer (null = ilimitado o sin cuota). */
+  myCredits?: ClassCredits;
+  /** Ventana de devolución (min antes del inicio) — param operativo. */
+  cancelRefundMinutes?: number;
+  /** Instante real de inicio (date + startTime) — base del corte. */
+  startsAtIso?: string;
   /** Clase cancelada o ya pasada — la barra muestra un aviso y la ficha
       queda solo informativa (sin acción ni zona destructiva). */
   closedLabel?: string;
@@ -94,6 +111,7 @@ export function ClassBookingCta({
   async function cancel() {
     setBusy(true);
     setNotice(null);
+    const wasBooked = booking === "BOOKED";
     try {
       const res = await apiFetch(`/classes/${classId}/book`, {
         method: "DELETE",
@@ -102,8 +120,20 @@ export function ClassBookingCta({
         setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
+      const body = (await res.json().catch(() => ({}))) as {
+        refunded?: boolean;
+      };
       setBooking(null);
-      setNotice({ text: t("cancelledOk"), error: false });
+      // WAITLIST nunca consumió → copy neutro. BOOKED refleja si la
+      // clase volvió al plan o quedó consumida.
+      setNotice({
+        text: !wasBooked
+          ? t("cancelledOk")
+          : body.refunded === false
+            ? t("cancelledNoRefund")
+            : t("cancelledRefunded"),
+        error: false,
+      });
       router.refresh();
     } catch {
       setNotice({ text: t("error"), error: true });
@@ -113,6 +143,15 @@ export function ClassBookingCta({
   }
 
   const full = spotsLeft <= 0;
+  const creditsLeft =
+    myCredits?.limit != null && myCredits.used != null
+      ? Math.max(myCredits.limit - myCredits.used, 0)
+      : null;
+  // Fuera del corte, cancelar libera el asiento pero consume el crédito.
+  const refundable =
+    !startsAtIso ||
+    Date.now() <=
+      new Date(startsAtIso).getTime() - cancelRefundMinutes * 60_000;
 
   if (closedLabel) {
     return (
@@ -185,13 +224,32 @@ export function ClassBookingCta({
                       {spotsLeft} / {capacity}
                     </span>
                   )}
+                  {/* Créditos del plan — referencia de decisión junto al
+                      cupo; 0/0 no existe (sin cuota → myCredits null). */}
+                  {creditsLeft != null && (
+                    <span className="block text-xs text-white/50">
+                      {myCredits?.kind === "PACK"
+                        ? t("creditsPack", {
+                            left: creditsLeft,
+                            limit: myCredits.limit ?? 0,
+                          })
+                        : t("creditsWeekly", {
+                            left: creditsLeft,
+                            limit: myCredits?.limit ?? 0,
+                          })}
+                    </span>
+                  )}
                 </div>
                 <Button
-                  disabled={busy}
+                  disabled={busy || (!full && creditsLeft === 0)}
                   onClick={() => void book()}
                   className="shrink-0"
                 >
-                  {full ? t("joinWaitlist") : t("book")}
+                  {full
+                    ? t("joinWaitlist")
+                    : creditsLeft === 0
+                      ? t("creditsExhausted")
+                      : t("book")}
                 </Button>
               </div>
             )}
@@ -241,7 +299,14 @@ export function ClassBookingCta({
             <h2 id="cancel-booking-title" className="text-lg font-semibold">
               {t("cancelBooking")}
             </h2>
-            <p className="text-sm text-white/70">{t("cancelConfirm")}</p>
+            {/* El copy declara la consecuencia antes de confirmar: dentro
+                de la ventana el crédito vuelve al plan; fuera, el cupo
+                se libera pero la clase se consume. */}
+            <p className="text-sm text-white/70">
+              {t("cancelConfirm")}{" "}
+              {booking === "BOOKED" &&
+                (refundable ? t("cancelRefundable") : t("cancelLate"))}
+            </p>
             <div className="flex items-center justify-end gap-3">
               <Button
                 type="button"

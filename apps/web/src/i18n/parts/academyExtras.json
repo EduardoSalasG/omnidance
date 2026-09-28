@@ -108,7 +108,9 @@
     "editPlan": "Editar plan",
     "planActive": "Plan activo (visible para comprar)",
     "planInactive": "Inactivo",
-    "planTypeLocked": "El tipo no se puede cambiar: el plan tiene cobro recurrente en Flow"
+    "planTypeLocked": "El tipo no se puede cambiar: el plan tiene cobro recurrente en Flow",
+    "planWeeklyClasses": "Clases por semana (vacío = ilimitado)",
+    "planWeeklyCount": "{count, plural, one {# clase/semana} other {# clases/semana}}"
   },
   "academySeries": {
     "capacityOptional": "default",

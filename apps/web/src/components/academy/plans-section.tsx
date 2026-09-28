@@ -36,6 +36,7 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
   const [type, setType] = useState<PlanType>("MONTHLY");
   const [price, setPrice] = useState("");
   const [classCount, setClassCount] = useState("");
+  const [weeklyClasses, setWeeklyClasses] = useState("");
   const [periodDays, setPeriodDays] = useState("");
   const [description, setDescription] = useState("");
   const [active, setActive] = useState(true);
@@ -48,6 +49,7 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
     setType(p.type);
     setPrice(String(p.price));
     setClassCount(p.classCount != null ? String(p.classCount) : "");
+    setWeeklyClasses(p.weeklyClasses != null ? String(p.weeklyClasses) : "");
     setPeriodDays(p.periodDays != null ? String(p.periodDays) : "");
     setDescription(p.description.join("\n"));
     setActive(p.active);
@@ -60,6 +62,7 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
     setType("MONTHLY");
     setPrice("");
     setClassCount("");
+    setWeeklyClasses("");
     setPeriodDays("");
     setDescription("");
     setActive(true);
@@ -86,6 +89,11 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
               ? { classCount: Number.parseInt(classCount, 10) }
               : editingPlan
                 ? { classCount: null }
+                : {}),
+            ...(weeklyClasses.trim()
+              ? { weeklyClasses: Number.parseInt(weeklyClasses, 10) }
+              : editingPlan
+                ? { weeklyClasses: null }
                 : {}),
             ...(periodDays.trim()
               ? { periodDays: Number.parseInt(periodDays, 10) }
@@ -128,6 +136,11 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
                   {p.classCount != null && (
                     <p className="text-xs text-white/50">
                       {t("planClasses")}: {p.classCount}
+                    </p>
+                  )}
+                  {p.weeklyClasses != null && (
+                    <p className="text-xs text-white/50">
+                      {t("planWeeklyCount", { count: p.weeklyClasses })}
                     </p>
                   )}
                   {p.description.length > 0 && (
@@ -233,6 +246,26 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
               onChange={(e) => setClassCount(e.target.value)}
             />
           </label>
+          {/* Cuota semanal: solo la usan los planes por tiempo
+              (mensual/trimestral/semestral); packs llevan classCount. */}
+          {(type === "MONTHLY" ||
+            type === "QUARTERLY" ||
+            type === "SEMIANNUAL") && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-white/50">
+                {t("planWeeklyClasses")}
+              </span>
+              <input
+                className={inputCls}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={weeklyClasses}
+                onChange={(e) => setWeeklyClasses(e.target.value)}
+              />
+            </label>
+          )}
           {/* Vigencia custom: solo el tipo PERIOD la usa (los calendario
               se derivan del tipo al pagar). */}
           {type === "PERIOD" && (

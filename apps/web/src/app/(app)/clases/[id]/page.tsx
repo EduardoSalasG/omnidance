@@ -28,6 +28,14 @@ type ClassDetail = {
   attended: boolean;
   // Inscripción vigente en la academia — habilita reservar.
   enrolled: boolean;
+  // Ventana de devolución (param classes.cancel_refund_minutes) y cuota
+  // del plan vigente sobre esta clase — null si ilimitado/sin cuota.
+  cancelRefundMinutes: number;
+  myCredits: {
+    kind: "WEEKLY" | "PACK";
+    used: number | null;
+    limit: number | null;
+  } | null;
   academy: { id: string; name: string };
   instructor: {
     id: string;
@@ -102,6 +110,12 @@ export default async function ClaseDetailPage({
   const full = cls.spotsLeft <= 0;
   const isPast = new Date(cls.date).getTime() < Date.now() - 24 * 60 * 60 * 1000;
   const dateLabel = `${dayFmt.format(new Date(cls.date))} · ${cls.startTime}–${cls.endTime}`;
+  // Inicio real de la clase (día UTC + HH:mm) — base del corte de
+  // devolución en el sheet de cancelación.
+  const [sh, sm] = cls.startTime.split(":").map(Number);
+  const startsAtIso = new Date(
+    new Date(cls.date).getTime() + ((sh || 0) * 60 + (sm || 0)) * 60_000,
+  ).toISOString();
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6">
@@ -254,6 +268,9 @@ export default async function ClaseDetailPage({
         spotsLeft={cls.spotsLeft}
         capacity={cls.capacity}
         waitlistCount={cls.waitlistCount}
+        myCredits={cls.myCredits}
+        cancelRefundMinutes={cls.cancelRefundMinutes}
+        startsAtIso={startsAtIso}
         closedLabel={
           cls.cancelled ? t.cancelledTag : isPast ? t.pastTag : undefined
         }

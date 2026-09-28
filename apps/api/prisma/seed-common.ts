@@ -87,6 +87,7 @@ export const PARAM_DEFAULTS: Array<{
   { key: "service_fee.series_pass_clp", value: 500, description: "Cargo por servicio del pase de serie (CLP)" },
   { key: "platform_fee.default_pct", value: 0, description: "Comisión de plataforma sobre ventas (%) — se descuenta del gross al liquidar; override por productor y por evento" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
+  { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota — después la reserva se puede cancelar pero la clase se pierde" },
 ];
 
 /** Catálogo de badges — las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */

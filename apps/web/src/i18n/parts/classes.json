@@ -29,6 +29,15 @@
     "capacityLabel": "Cupos",
     "dropIn": "Clase suelta",
     "upcomingSessions": "Próximas clases de la serie",
-    "viewPlans": "Ver planes"
+    "viewPlans": "Ver planes",
+    "creditsWeekly": "Te quedan {left} de {limit} clases esta semana",
+    "creditsPack": "Te quedan {left} de {limit} clases de tu pack",
+    "creditsWeeklyShort": "{used}/{limit} esta semana",
+    "creditsPackShort": "{used}/{limit} del pack",
+    "creditsExhausted": "Sin clases",
+    "cancelRefundable": "La clase vuelve a tu plan si cancelas ahora.",
+    "cancelLate": "Liberas el cupo, pero la clase se descuenta de tu plan.",
+    "cancelledRefunded": "Reserva cancelada — recuperaste la clase",
+    "cancelledNoRefund": "Reserva cancelada — la clase se descontó de tu plan"
   }
 }

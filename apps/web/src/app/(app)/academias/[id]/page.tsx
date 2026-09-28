@@ -42,6 +42,7 @@ type AcademyProfile = {
     type: string;
     price: number;
     classCount: number | null;
+    weeklyClasses: number | null;
     periodDays: number | null;
     description: string[];
   }[];
@@ -327,6 +328,9 @@ export default async function AcademiaDetailPage({
                         {(t.planTypes as Record<string, string>)[p.type] ??
                           p.type}
                         {p.classCount ? ` · ${p.classCount} clases` : ""}
+                        {p.weeklyClasses
+                          ? ` · ${p.weeklyClasses === 1 ? "1 clase/semana" : `${p.weeklyClasses} clases/semana`}`
+                          : ""}
                       </p>
                     </div>
                     {/* Precio real cobrado (plan + cargo de servicio) —
