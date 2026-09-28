@@ -126,21 +126,25 @@ function CheckoutReturn() {
           <h1 className="text-2xl font-bold">{t("returnPaidTitle")}</h1>
           <PriceTag amount={phase.amount} className="text-lg" />
           {/* MEMBERSHIP → Mis academias (la vigencia nueva); WORKSHOP →
-              Mis clases (ahí aparece la reserva del asiento comprado). */}
+              Mis clases (ahí aparece la reserva del asiento comprado);
+              PRIVATE → Mis clases particulares (queda "por agendar" hasta
+              que el owner asigne fecha e instructor). */}
           <Button
             href={
               phase.orderType === "MEMBERSHIP"
                 ? "/academias"
                 : phase.orderType === "WORKSHOP"
                   ? "/clases"
-                  : "/entradas"
+                  : phase.orderType === "PRIVATE"
+                    ? "/clases/particular"
+                    : "/entradas"
             }
             size="lg"
             className="w-full"
           >
             {phase.orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : phase.orderType === "WORKSHOP"
+              : phase.orderType === "WORKSHOP" || phase.orderType === "PRIVATE"
                 ? t("returnToClasses")
                 : tw("title")}
           </Button>
@@ -162,7 +166,7 @@ function CheckoutReturn() {
             href={
               orderType === "MEMBERSHIP"
                 ? "/academias"
-                : orderType === "WORKSHOP"
+                : orderType === "WORKSHOP" || orderType === "PRIVATE"
                   ? "/clases"
                   : "/eventos"
             }
@@ -171,7 +175,7 @@ function CheckoutReturn() {
           >
             {orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : orderType === "WORKSHOP"
+              : orderType === "WORKSHOP" || orderType === "PRIVATE"
                 ? t("returnToClasses")
                 : t("returnToEvents")}
           </Button>
@@ -209,7 +213,7 @@ function CheckoutReturn() {
             href={
               orderType === "MEMBERSHIP"
                 ? "/academias"
-                : orderType === "WORKSHOP"
+                : orderType === "WORKSHOP" || orderType === "PRIVATE"
                   ? "/clases"
                   : "/entradas"
             }
@@ -218,7 +222,7 @@ function CheckoutReturn() {
           >
             {orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : orderType === "WORKSHOP"
+              : orderType === "WORKSHOP" || orderType === "PRIVATE"
                 ? t("returnToClasses")
                 : tw("title")}
           </Button>

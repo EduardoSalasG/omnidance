@@ -185,6 +185,7 @@ export async function seedDev(prisma: PrismaClient) {
   const muvetData = {
     name: "MuéveteOnTour",
     ownerId: muvetOwner.id,
+    privateLessonPrice: 25000,
     description:
       "Escuela de salsa cubana y bachata — organiza además las sociales Muévete. Formación por niveles con enfoque en pista.",
     address: "Av. Providencia 1650, Providencia",
@@ -203,6 +204,9 @@ export async function seedDev(prisma: PrismaClient) {
           address: a.address ?? muvetData.address,
           lat: a.lat ?? muvetData.lat,
           lng: a.lng ?? muvetData.lng,
+          // Clase particular vendible desde el perfil (producto, precio
+          // único; null = la academia no la vende).
+          privateLessonPrice: a.privateLessonPrice ?? 25000,
         },
       }),
   );
@@ -218,6 +222,7 @@ export async function seedDev(prisma: PrismaClient) {
     name: "Academia Tumbao",
     ownerId: tumbaoOwner.id,
     defaultQuorum: 12,
+    privateLessonPrice: 20000,
     description:
       "Academia de bachata y ritmos latinos — grupos reducidos, técnica y musicalidad desde el primer día.",
     address: "Av. Irarrázaval 2828, Ñuñoa",
@@ -237,6 +242,7 @@ export async function seedDev(prisma: PrismaClient) {
           address: a.address ?? tumbaoData.address,
           lat: a.lat ?? tumbaoData.lat,
           lng: a.lng ?? tumbaoData.lng,
+          privateLessonPrice: a.privateLessonPrice ?? 20000,
         },
       }),
   );

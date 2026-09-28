@@ -1492,6 +1492,47 @@
         }
       }
     },
+    "/api/checkout/private-class-quote": {
+      "get": {
+        "operationId": "CheckoutController_privateClassQuote",
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/private-class": {
+      "post": {
+        "operationId": "CheckoutController_privateClass",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutPrivateClassDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/checkout/membership-subscription": {
       "post": {
         "operationId": "CheckoutController_membershipSubscription",
@@ -4603,6 +4644,10 @@
         "properties": {}
       },
       "CheckoutClassDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CheckoutPrivateClassDto": {
         "type": "object",
         "properties": {}
       },

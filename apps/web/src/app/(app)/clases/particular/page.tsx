@@ -6,9 +6,10 @@ import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
  * /clases/particular — clases particulares 1:1 del lado alumno:
- * "mis solicitudes" + form de request (la vista learner de
- * PrivateLessons, sin `academy`). La bandeja staff
- * (confirmar/reagendar/cancelar) sigue en /academia/particulares.
+ * bandeja de estado de las particulares compradas ("por agendar" hasta
+ * que el owner asigne fecha e instructor). La compra ocurre desde el
+ * perfil de la academia (producto junto a los planes); la bandeja staff
+ * (asignar/confirmar/reagendar) sigue en /academia/particulares.
  */
 export default function ClaseParticularPage() {
   const t = useTranslations("academyExtras.lessons");

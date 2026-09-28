@@ -223,6 +223,12 @@ class UpdateAcademySettingsDto {
   @IsString()
   @MaxLength(20)
   whatsapp?: string | null;
+
+  /** Precio único (CLP) de la clase particular; null desactiva la venta. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  privateLessonPrice?: number | null;
 }
 
 class UpdateInstructorDto {
@@ -500,6 +506,7 @@ export class AcademiesController {
         lng: true,
         instagram: true,
         whatsapp: true,
+        privateLessonPrice: true,
         instructors: { select: { personId: true } },
         classSeries: {
           where: { active: true },
@@ -594,6 +601,7 @@ export class AcademiesController {
       lng: academy.lng,
       instagram: academy.instagram,
       whatsapp: academy.whatsapp,
+      privateLessonPrice: academy.privateLessonPrice,
       styles: [...styles.values()].sort((x, y) =>
         x.name.localeCompare(y.name, "es"),
       ),
@@ -635,6 +643,7 @@ export class AcademiesController {
       lng: dto.lng,
       instagram: cleanInstagram(dto.instagram),
       whatsapp: cleanWhatsapp(dto.whatsapp),
+      privateLessonPrice: dto.privateLessonPrice,
     };
     return this.prisma.academy.update({ where: { id }, data });
   }

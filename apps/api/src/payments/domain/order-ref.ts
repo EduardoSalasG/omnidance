@@ -99,3 +99,25 @@ export function decodeClassRef(refId: string): ClassDropinRef | null {
   if (!classId || !uid) return null;
   return { classId, uid };
 }
+
+// ─── Clase particular (PRIVATE) ───
+// Formato: pvt_<academyId>_<uuid>. El contexto solo viaja en el refId — el
+// settle crea la PrivateLesson "por asignar" (sin instructor ni fecha; el
+// owner de la academia los define post-compra).
+export interface PrivateLessonRef {
+  academyId: string;
+  uid: string;
+}
+
+export function encodePrivateRef(academyId: string): string {
+  return `pvt_${academyId}_${randomUUID()}`;
+}
+
+export function decodePrivateRef(refId: string): PrivateLessonRef | null {
+  const parts = refId.split("_");
+  if (parts.length < 3 || parts[0] !== "pvt") return null;
+  const [, academyId, ...rest] = parts;
+  const uid = rest.join("_");
+  if (!academyId || !uid) return null;
+  return { academyId, uid };
+}

@@ -11,6 +11,7 @@ import {
   SubscriptionManage,
   type SubscriptionInfo,
 } from "@/components/academy/subscription-manage";
+import { BuyPrivateClass } from "@/components/academy/buy-private-class";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,8 @@ type AcademyProfile = {
   lng: number | null;
   instagram: string | null;
   whatsapp: string | null;
+  /** Precio único de la clase particular; null = la academia no la vende. */
+  privateLessonPrice: number | null;
   styles: { id: string; name: string; genre: string | null }[];
   instructors: {
     personId: string;
@@ -290,7 +293,8 @@ export default async function AcademiaDetailPage({
         </Card>
       )}
 
-      {academy.plans.length > 0 && (
+      {(academy.plans.length > 0 ||
+        (academy.privateLessonPrice ?? 0) > 0) && (
         <Card>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t.profile.plans}
@@ -360,6 +364,30 @@ export default async function AcademiaDetailPage({
                 </li>
               );
             })}
+            {/* Clase particular — producto comprable (private-lesson-
+                product): paga por adelantado, la academia asigna
+                instructor y fecha. Misma grilla que los planes. */}
+            {(academy.privateLessonPrice ?? 0) > 0 && (
+              <li className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-medium">{t.profile.privateLesson}</p>
+                    <p className="mt-0.5 text-xs text-white/50">
+                      {t.profile.privateLessonDesc}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <PriceTag
+                      amount={academy.privateLessonPrice! + membershipFee}
+                    />
+                    <p className="mt-0.5 text-[10px] text-white/40">
+                      {mc.feeIncluded}
+                    </p>
+                  </div>
+                </div>
+                <BuyPrivateClass academyId={academy.id} />
+              </li>
+            )}
           </ul>
         </Card>
       )}

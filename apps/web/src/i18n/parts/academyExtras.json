@@ -34,7 +34,9 @@
       "saveError": "No se pudo guardar la configuración",
       "instructors": "Comisión de instructores",
       "instructorsHint": "% que la academia retiene del precio de cada clase particular del instructor. Se aplica a las solicitudes nuevas.",
-      "commissionSaved": "Comisión actualizada."
+      "commissionSaved": "Comisión actualizada.",
+      "privateLessonPrice": "Precio de clase particular (CLP)",
+      "privateLessonPriceHint": "Vacío = la academia no vende clases particulares. El alumno paga por adelantado y tú asignas fecha e instructor después."
     },
     "publicProfile": {
       "title": "Perfil público",
@@ -104,7 +106,10 @@
       "classesEmpty": "Sin clases programadas próximamente.",
       "buyPlan": "Comprar plan",
       "extendPlan": "Extender vigencia",
-      "planActive": "Plan activo"
+      "planActive": "Plan activo",
+      "privateLesson": "Clase particular",
+      "privateLessonDesc": "1 alumno · el instructor y la fecha los asigna la academia tras tu compra",
+      "buyPrivate": "Comprar clase particular"
     },
     "viewsLabel": "Vistas",
     "scopesLabel": "Sección",
@@ -148,21 +153,21 @@
   "academyExtras": {
     "lessons": {
       "title": "Clases particulares",
-      "mineTitle": "Mis solicitudes",
-      "requestTitle": "Solicitar clase particular",
-      "fallbackCta": "¿No calza ninguna?",
-      "fallbackAction": "Solicita una clase particular",
+      "mineTitle": "Mis clases particulares",
       "academy": "Academia",
       "instructor": "Instructor/a",
       "instructorFallback": "Instructor {id}",
       "scheduledAt": "Fecha y hora",
       "newDate": "Nueva fecha y hora",
-      "priceOptional": "Precio sugerido (opcional)",
-      "submit": "Enviar solicitud",
+      "toSchedule": "Por agendar",
+      "toAssign": "Por asignar",
+      "assign": "Asignar",
+      "assignTitle": "Por asignar",
+      "assignSave": "Confirmar asignación",
+      "assigned": "Clase asignada.",
       "student": "Alumno/a",
       "empty": "Sin clases particulares en esta academia.",
-      "emptyMine": "Aún no has solicitado clases particulares.",
-      "noAcademies": "No hay academias disponibles para solicitar una clase particular.",
+      "emptyMine": "Aún no tienes clases particulares.",
       "status": {
         "REQUESTED": "Solicitada",
         "CONFIRMED": "Confirmada",

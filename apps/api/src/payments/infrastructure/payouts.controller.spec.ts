@@ -13,7 +13,7 @@ import type { ProducerFeeDefaults } from "../../params/params.service";
 // undefined. Cargar auth.controller antes rompe el ciclo a favor del test.
 import "../../auth/infrastructure/auth.controller";
 import { AdminPayoutsController } from "./payouts.controller";
-import { encodeSeriesPassRef } from "../domain/order-ref";
+import { encodePrivateRef, encodeSeriesPassRef } from "../domain/order-ref";
 
 // AdminPayoutsController.generate → computeSettlement (regla v1):
 // - PRODUCER: tickets PAID de sus eventos + SERIES_PASS cuyo refId decodifica
@@ -62,7 +62,7 @@ function matchWhere(row: Row, where: Row): boolean {
 }
 
 interface FakePayment {
-  orderType: "TICKET" | "SERIES_PASS" | "MEMBERSHIP";
+  orderType: "TICKET" | "SERIES_PASS" | "MEMBERSHIP" | "WORKSHOP" | "PRIVATE";
   status: "PENDING" | "PAID" | "FAILED";
   eventId: string | null;
   refId: string;
@@ -264,6 +264,19 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
       mkPayment({ eventId: "evt-acad", amount: 8000, fee: 200 }),
       mkPayment({ eventId: "evt-acad-p", amount: 9000 }),
       mkPayment({ eventId: "evt-venue", amount: 4000, fee: 50 }),
+      // PRIVATE (clase particular comprable): refId pvt_<academyId>_ — se
+      // atribuye a la academia aunque no tenga eventos/planes/clases.
+      mkPayment({
+        orderType: "PRIVATE",
+        refId: encodePrivateRef("ac-1"),
+        amount: 25000,
+        fee: 500,
+      }),
+      mkPayment({
+        orderType: "PRIVATE",
+        refId: encodePrivateRef("ac-ajena"),
+        amount: 30000,
+      }),
     );
   });
 
@@ -339,11 +352,25 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
       { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
       adminReq,
     );
-    // evt-acad (8000) sí; evt-acad-p (9000) tiene productor → no devenga aquí.
-    expect(payout.gross).toBe(8000);
-    // platformFeePct 20 del evento → 1600; net = 8000 − 200 − 1600.
+    // evt-acad (8000) sí; evt-acad-p (9000) tiene productor → no devenga
+    // aquí; el PRIVATE de ac-1 (25000) sí entra por refId, el de ac-ajena no.
+    expect(payout.gross).toBe(33000);
+    // platformFeePct 20 del evento → 1600; PRIVATE usa el param global (0 por
+    // defecto) → net = 33000 − 700 − 1600.
     expect(payout.platformFee).toBe(1600);
-    expect(payout.net).toBe(6200);
+    expect(payout.net).toBe(30700);
+  });
+
+  it("ACADEMY sin eventos/clases/planes igual liquida su PRIVATE (refId pvt_)", async () => {
+    pf.numbers.set("platform_fee.default_pct", 10);
+    const payout = await ctrl.generate(
+      { actorType: "ACADEMY", actorId: "ac-ajena", ...DTO },
+      adminReq,
+    );
+    // ac-ajena no tiene eventos ni clases — solo el pago PRIVATE de 30000.
+    expect(payout.gross).toBe(30000);
+    expect(payout.platformFee).toBe(3000);
+    expect(payout.net).toBe(27000);
   });
 
   it("ACADEMY: evento sin platformFeePct usa el param global", async () => {
@@ -353,7 +380,8 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
       { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
       adminReq,
     );
-    expect(payout.platformFee).toBe(800); // 8000 * 10%
+    // evt-acad 8000*10% + PRIVATE 25000*10% (línea academy al param global).
+    expect(payout.platformFee).toBe(3300);
   });
 
   it("VENUE: mismo patrón que ACADEMY (venueId + producerId null)", async () => {

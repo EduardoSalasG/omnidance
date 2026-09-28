@@ -25,6 +25,7 @@ import {
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
+  AcademyNotFoundError,
   CheckoutService,
   ClassAlreadyBookedError,
   ClassNotFoundError,
@@ -37,6 +38,7 @@ import {
   PresaleClosedError,
   PresaleSoldOutError,
   PresaleUnavailableError,
+  PrivateClassNotPurchasableError,
   SeriesInactiveError,
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
@@ -118,6 +120,11 @@ class CheckoutMembershipDto {
 class CheckoutClassDto {
   @IsString()
   classId!: string;
+}
+
+class CheckoutPrivateClassDto {
+  @IsString()
+  academyId!: string;
 }
 
 class CheckoutMembershipSubscriptionDto {
@@ -275,6 +282,54 @@ export class CheckoutController {
         throw new ConflictException(e.message);
       }
       if (e instanceof ClassNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Revisión de orden para comprar una clase particular (spec
+   * private-lesson-product): precio único de la academia + cargo de
+   * servicio. Nada se cobra acá — paso previo a POST /checkout/private-class.
+   */
+  @Get("private-class-quote")
+  @UseGuards(SessionGuard)
+  async privateClassQuote(
+    @Req() req: Request,
+    @Query("academyId") academyId: string,
+  ) {
+    try {
+      return await this.checkout.privateClassQuote(req.person!.id, academyId);
+    } catch (e) {
+      if (e instanceof AcademyNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof PrivateClassNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Clase particular comprable: cobra el privateLessonPrice de la academia
+   * y el webhook materializa la PrivateLesson "por asignar" al PAID
+   * (REQUESTED, sin instructor ni fecha — el owner los define después).
+   */
+  @Post("private-class")
+  @UseGuards(SessionGuard)
+  async privateClass(
+    @Req() req: Request,
+    @Body() dto: CheckoutPrivateClassDto,
+  ) {
+    try {
+      return await this.checkout.purchasePrivateClass(req.person!.id, dto);
+    } catch (e) {
+      if (e instanceof AcademyNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof PrivateClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
       throw e;

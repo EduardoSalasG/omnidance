@@ -25,9 +25,16 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 
-const LESSON_ACTIONS = ["confirm", "cancel", "done", "reschedule"] as const;
+const LESSON_ACTIONS = [
+  "confirm",
+  "cancel",
+  "done",
+  "reschedule",
+  "assign",
+] as const;
 type LessonAction = (typeof LESSON_ACTIONS)[number];
 
 class RequestPrivateLessonDto {
@@ -43,16 +50,26 @@ class RequestPrivateLessonDto {
   @IsInt()
   @Min(0)
   price?: number;
+
+  /** Alumno de la lección (creación manual staff) — default: el actor. */
+  @IsOptional()
+  @IsString()
+  personId?: string;
 }
 
 class PrivateLessonActionDto {
   @IsIn(LESSON_ACTIONS)
   action!: LessonAction;
 
-  /** Requerido solo para action=reschedule. */
+  /** Requerido solo para action=reschedule/assign. */
   @IsOptional()
   @IsISO8601()
   scheduledAt?: string;
+
+  /** personId del instructor — requerido solo para action=assign. */
+  @IsOptional()
+  @IsString()
+  instructorId?: string;
 }
 
 /**
@@ -67,9 +84,16 @@ export class PrivateLessonsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AcademyAccess,
+    private readonly notifications: NotificationsService,
   ) {}
 
-  /** Alumno solicita una clase privada con un instructor de la academia. */
+  /**
+   * Creación manual de clase particular por staff (owner/instructor/admin).
+   * Desde private-lesson-product el alumno no solicita — compra el producto
+   * (POST /checkout/private-class) y el owner asigna instructor+fecha vía
+   * PATCH action=assign. Este endpoint queda para clases manuales (cortesía,
+   * convenio).
+   */
   @Post("academies/:id/private-lessons")
   @UseGuards(SessionGuard)
   async request(
@@ -77,7 +101,7 @@ export class PrivateLessonsController {
     @Body() dto: RequestPrivateLessonDto,
     @Req() req: Request,
   ) {
-    const { academy } = await this.access.loadContext(id);
+    const { academy } = await this.access.requireManage(id, req.person!);
     if (!academy.active) {
       throw new BadRequestException("la academia está inactiva");
     }
@@ -96,7 +120,7 @@ export class PrivateLessonsController {
       data: {
         academyId: id,
         instructorId: instructor.personId,
-        personId: req.person!.id,
+        personId: dto.personId ?? req.person!.id,
         scheduledAt: new Date(dto.scheduledAt),
         price: dto.price ?? 0,
         // Snapshot de la comisión vigente del instructor — el owner
@@ -120,7 +144,13 @@ export class PrivateLessonsController {
     const people = await this.prisma.person.findMany({
       where: {
         id: {
-          in: [...new Set(lessons.flatMap((l) => [l.personId, l.instructorId]))],
+          in: [
+            ...new Set(
+              lessons.flatMap((l) =>
+                l.instructorId ? [l.personId, l.instructorId] : [l.personId],
+              ),
+            ),
+          ],
         },
       },
       select: { id: true, name: true },
@@ -139,10 +169,11 @@ export class PrivateLessonsController {
       const base = {
         ...l,
         person: byId.get(l.personId) ?? { id: l.personId, name: null },
-        instructor: byId.get(l.instructorId) ?? {
-          id: l.instructorId,
-          name: null,
-        },
+        // null = comprada pero aún sin instructor asignado
+        // (private-lesson-product) — la UI muestra "por asignar".
+        instructor: l.instructorId
+          ? (byId.get(l.instructorId) ?? { id: l.instructorId, name: null })
+          : null,
       };
       if (seesCommission(l)) return base;
       const { commissionPct: _c, ...rest } = base;
@@ -257,6 +288,63 @@ export class PrivateLessonsController {
           where: { id },
           data: { status: "CANCELLED" },
         });
+      }
+      case "assign": {
+        // private-lesson-product: el owner asigna instructor+fecha a una
+        // lección comprada "por asignar" → CONFIRMED + snapshot de la
+        // comisión vigente del instructor + notifica a ambas partes.
+        if (!isOwner) {
+          throw new ForbiddenException("solo el owner asigna la clase");
+        }
+        if (!dto.instructorId || !dto.scheduledAt) {
+          throw new BadRequestException(
+            "instructorId y scheduledAt son requeridos para assign",
+          );
+        }
+        if (lesson.status !== "REQUESTED") {
+          throw new ConflictException(
+            `no se puede asignar una clase en estado ${lesson.status}`,
+          );
+        }
+        const instructor = await this.prisma.academyInstructor.findFirst({
+          where: {
+            academyId: lesson.academyId,
+            OR: [{ personId: dto.instructorId }, { id: dto.instructorId }],
+          },
+        });
+        if (!instructor) {
+          throw new NotFoundException(
+            "instructor no encontrado en la academia",
+          );
+        }
+        const updated = await this.prisma.privateLesson.update({
+          where: { id },
+          data: {
+            instructorId: instructor.personId,
+            scheduledAt: new Date(dto.scheduledAt),
+            commissionPct: instructor.commissionPct ?? 0,
+            status: "CONFIRMED",
+          },
+        });
+        const df = new Intl.DateTimeFormat("es-CL", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(updated.scheduledAt!);
+        await this.notifications.notifySafe(lesson.personId, {
+          category: "TRANSACTIONAL",
+          type: "academy.private_lesson.assigned",
+          title: "Tu clase particular quedó agendada",
+          body: df,
+          data: { lessonId: lesson.id, academyId: lesson.academyId },
+        });
+        await this.notifications.notifySafe(instructor.personId, {
+          category: "OPERATIONAL",
+          type: "academy.private_lesson.assigned",
+          title: "Te asignaron una clase particular",
+          body: df,
+          data: { lessonId: lesson.id, academyId: lesson.academyId },
+        });
+        return updated;
       }
       case "reschedule": {
         if (!isOwner && !isInstructor) {

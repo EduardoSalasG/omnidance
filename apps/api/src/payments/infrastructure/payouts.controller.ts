@@ -28,6 +28,7 @@ import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { ParamsService } from "../../params/params.service";
 import {
   decodeClassRef,
+  decodePrivateRef,
   decodeMembershipRef,
   decodeSeriesPassRef,
 } from "../domain/order-ref";
@@ -277,13 +278,20 @@ export class AdminPayoutsController {
               ),
             ]
           : [new Set<string>(), new Set<string>()];
-      if (!events.length && !planIds.size && !classIds.size) {
+      // ACADEMY nunca corta aquí: una orden PRIVATE (pvt_<academyId>_)
+      // puede pertenecerle aunque no tenga eventos/planes/clases.
+      if (
+        actorType !== "ACADEMY" &&
+        !events.length &&
+        !planIds.size &&
+        !classIds.size
+      ) {
         return { gross: 0, net: 0, platformFee: 0 };
       }
 
       const payments = await this.prisma.payment.findMany({
         where: {
-          orderType: { in: ["TICKET", "MEMBERSHIP", "WORKSHOP"] },
+          orderType: { in: ["TICKET", "MEMBERSHIP", "WORKSHOP", "PRIVATE"] },
           status: "PAID",
           createdAt: { gte: periodStart, lte: periodEnd },
           OR: [
@@ -292,6 +300,9 @@ export class AdminPayoutsController {
               : []),
             ...(planIds.size ? [{ orderType: "MEMBERSHIP" }] : []),
             ...(classIds.size ? [{ orderType: "WORKSHOP" }] : []),
+            // PRIVATE: el refId decodifica directo a academyId — se filtra
+            // en el loop (no cabe en el OR sin columna de academia).
+            ...(actorType === "ACADEMY" ? [{ orderType: "PRIVATE" }] : []),
           ],
         },
         select: {
@@ -307,13 +318,17 @@ export class AdminPayoutsController {
       let platformFee = 0;
       for (const p of payments) {
         const isAcademyLine =
-          p.orderType === "MEMBERSHIP" || p.orderType === "WORKSHOP";
+          p.orderType === "MEMBERSHIP" ||
+          p.orderType === "WORKSHOP" ||
+          p.orderType === "PRIVATE";
         const belongs =
           p.orderType === "MEMBERSHIP"
             ? planIds.has(decodeMembershipRef(p.refId)?.planId ?? "")
             : p.orderType === "WORKSHOP"
               ? classIds.has(decodeClassRef(p.refId)?.classId ?? "")
-              : p.eventId != null && pctByEvent.has(p.eventId);
+              : p.orderType === "PRIVATE"
+                ? decodePrivateRef(p.refId)?.academyId === actorId
+                : p.eventId != null && pctByEvent.has(p.eventId);
         if (!belongs) continue;
         gross += p.amount;
         fees += p.fee;

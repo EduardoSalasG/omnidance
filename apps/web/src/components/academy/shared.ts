@@ -40,6 +40,9 @@ export type Academy = {
   lng?: number | null;
   instagram?: string | null;
   whatsapp?: string | null;
+  // Precio de la clase particular vendida como producto (PATCH settings;
+  // null = no se vende). El owner asigna instructor+fecha post-compra.
+  privateLessonPrice?: number | null;
 };
 
 export type AcademyDashboard = {
