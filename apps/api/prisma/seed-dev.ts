@@ -776,7 +776,8 @@ export async function seedDev(prisma: PrismaClient) {
     // Planes de membresía — regla general: 1 clase/semana $25.000,
     // 2 clases/semana $40.000. Mambo Madness es premium: 1 clase $40.000,
     // ilimitado $60.000, VIP $99.000 (ilimitado + 1 particular), y es la
-    // única con trimestral/semestral ilimitados (lineal: 3x y 6x).
+    // única con trimestral/semestral ilimitados (~10% off vs. mensual
+    // ilimitado: 3×60k−10% y 6×60k−10% — incentivo por compromiso).
     if (a.name === "Mambo Madness") {
       await plan(academy.id, "Mensual — 1 clase semanal", "MONTHLY", 40000, {
         description: [
@@ -797,17 +798,18 @@ export async function seedDev(prisma: PrismaClient) {
           "Válido hasta fin del mes calendario",
         ],
       });
-      await plan(academy.id, "Trimestral ilimitado", "QUARTERLY", 180000, {
+      await plan(academy.id, "Trimestral ilimitado", "QUARTERLY", 162000, {
         description: [
           "Todas las clases por 3 meses, sin límite",
           "Válido hasta fin del 3er mes calendario",
+          "Ahorras $18.000 vs. el mensual ilimitado",
         ],
       });
-      await plan(academy.id, "Semestral ilimitado", "SEMIANNUAL", 360000, {
+      await plan(academy.id, "Semestral ilimitado", "SEMIANNUAL", 324000, {
         description: [
           "Todas las clases por 6 meses, sin límite",
           "Válido hasta fin del 6º mes calendario",
-          "El mejor valor por mes",
+          "Ahorras $36.000 vs. el mensual ilimitado — el mejor valor por mes",
         ],
       });
     } else {
