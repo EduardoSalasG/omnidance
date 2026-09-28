@@ -475,6 +475,34 @@
         }
       }
     },
+    "/api/events/series/{seriesId}/export.csv": {
+      "get": {
+        "operationId": "EventsController_exportSeriesCsv",
+        "parameters": [
+          {
+            "name": "seriesId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events": {
       "get": {
         "operationId": "EventsController_list",

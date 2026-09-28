@@ -185,7 +185,11 @@
       "instructorTitle": "Mis clases como instructor",
       "monthNet": "Neto del mes",
       "commissionLine": "Comisión {pct}%",
-      "netLine": "Neto"
+      "netLine": "Neto",
+      "payCommission": "Liquidar comisión",
+      "commissionPaid": "Comisión liquidada",
+      "commissionPending": "Comisión pendiente",
+      "confirmPayCommission": "¿Marcar la comisión como pagada al instructor? Registra la liquidación (el pago se hace por fuera)."
     },
     "videos": {
       "title": "Videos",

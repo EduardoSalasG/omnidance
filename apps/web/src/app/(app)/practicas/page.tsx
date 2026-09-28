@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -61,7 +61,16 @@ function groupByDay(practices: Practice[]) {
  * /eventos: vista Todas/Mías por query param, chips de estilo, cards
  * compactas agrupadas por día (Hoy/Mañana). Crear vive en /practicas/nueva.
  */
+// useSearchParams exige Suspense en el componente client-side.
 export default function PracticasPage() {
+  return (
+    <Suspense>
+      <PracticasInner />
+    </Suspense>
+  );
+}
+
+function PracticasInner() {
   const t = useTranslations("practices");
   const te = useTranslations("events");
   const tc = useTranslations("common");

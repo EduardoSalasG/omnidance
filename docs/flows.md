@@ -455,7 +455,8 @@ sequenceDiagram
 - La fecha **la define el owner** post-compra ("por agendar" en `/clases/particular` mientras `scheduledAt=null`); el instructor puede reagendar después. La distinción con WORKSHOP es el aforo: taller = varios asistentes con fecha fija; particular = 1 alumno, se coordina tras el pago.
 - `POST /academies/:id/private-lessons` queda **staff-only** para clases manuales (cortesía/convenio, opcional `personId`); el alumno compra, no solicita.
 - `Academy.privateLessonPrice = null` → la academia no vende particulares (card oculta, checkout 400).
-- Devenga a la academia en payouts — el refId `pvt_` codifica la academia directamente (incluso si no tiene eventos/planes/clases).
+- Devenga a la academia en payouts — el refId `pvt_` codifica la academia directamente (incluso si no tiene eventos/planes/clases). Una particular **cancelada** no devenga: el pago se excluye de `by-academy`/payouts y el owner recibe `academy.private_lesson.cancelled_paid` (la devolución al alumno es manual vía Flow).
+- Liquidación de la comisión academia→instructor: `PATCH /private-lessons/:id {action:"pay-commission"}` (owner/ADMIN) marca `PrivateLesson.commissionPaidAt` sobre CONFIRMED/DONE con comisión >0 — la plataforma no transfiere, el owner paga por fuera (criterio Payout). Notifica `private_lesson.commission_paid` al instructor; `mine?as=instructor` expone `commissionPaidAt`.
 
 ## Reserva de clase — cuota del plan + cancelación con corte
 

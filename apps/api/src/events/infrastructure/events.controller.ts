@@ -502,8 +502,66 @@ export class EventsController {
     return csv;
   }
 
+  /**
+   * GET /events/series/:seriesId/export.csv?dataset=sales|checkins|guestlist —
+   * mismo CSV que el export por evento pero agregando todas las fechas de
+   * la serie, con columna `evento` al inicio (nombre de la instancia).
+   * Owner de la serie o admin.
+   */
+  @Get("series/:seriesId/export.csv")
+  @UseGuards(SessionGuard)
+  async exportSeriesCsv(
+    @Param("seriesId") seriesId: string,
+    @Query("dataset") dataset: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const series = await this.prisma.eventSeries.findUnique({
+      where: { id: seriesId },
+    });
+    if (!series) throw new NotFoundException("serie no encontrada");
+    await this.requireOwnerOrAdmin(series.producerId, req.person!);
+    if (
+      dataset !== "sales" &&
+      dataset !== "checkins" &&
+      dataset !== "guestlist"
+    ) {
+      throw new BadRequestException("dataset inválido");
+    }
+
+    const events = await this.prisma.event.findMany({
+      where: { seriesId },
+      select: { id: true, name: true, startsAt: true },
+      orderBy: { startsAt: "asc" },
+    });
+    const scope = { in: events.map((e) => e.id) };
+    const labelByEvent = new Map(
+      events.map((e) => [
+        e.id,
+        `${e.name} (${e.startsAt.toISOString().slice(0, 10)})`,
+      ]),
+    );
+
+    const csv =
+      dataset === "sales"
+        ? await this.exportSales(scope, labelByEvent)
+        : dataset === "checkins"
+          ? await this.exportCheckins(scope, labelByEvent)
+          : await this.exportGuestlist(scope, labelByEvent);
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="serie-${seriesId}-${dataset}.csv"`,
+    );
+    return csv;
+  }
+
   /** Una fila por Ticket — incluye cancelados, la cuadratura los mira. */
-  private async exportSales(eventId: string): Promise<string> {
+  private async exportSales(
+    eventId: string | { in: string[] },
+    labelByEvent?: Map<string, string>,
+  ): Promise<string> {
     const tickets = await this.prisma.ticket.findMany({
       where: { eventId },
       orderBy: { createdAt: "asc" },
@@ -523,8 +581,11 @@ export class EventsController {
     const names = await this.personNames(
       tickets.flatMap((t) => [t.buyerId, t.ownerId]),
     );
+    const evCol = (id: string) =>
+      labelByEvent ? [labelByEvent.get(id) ?? ""] : [];
     return toCsv(
       [
+        ...(labelByEvent ? ["evento"] : []),
         "fecha",
         "comprador",
         "asistente",
@@ -536,6 +597,7 @@ export class EventsController {
         "payment_id",
       ],
       tickets.map((t) => [
+        ...evCol(t.eventId),
         t.createdAt.toISOString(),
         names.get(t.buyerId) ?? "?",
         names.get(t.ownerId) ?? "?",
@@ -550,15 +612,27 @@ export class EventsController {
   }
 
   /** Una fila por Checkin — incluye anulados con anulado=si. */
-  private async exportCheckins(eventId: string): Promise<string> {
+  private async exportCheckins(
+    eventId: string | { in: string[] },
+    labelByEvent?: Map<string, string>,
+  ): Promise<string> {
     const checkins = await this.prisma.checkin.findMany({
       where: { eventId },
       orderBy: { inAt: "asc" },
     });
     const names = await this.personNames(checkins.map((c) => c.personId));
     return toCsv(
-      ["entrada", "salida", "metodo", "persona", "anulado", "nota"],
+      [
+        ...(labelByEvent ? ["evento"] : []),
+        "entrada",
+        "salida",
+        "metodo",
+        "persona",
+        "anulado",
+        "nota",
+      ],
       checkins.map((c) => [
+        ...(labelByEvent ? [labelByEvent.get(c.eventId) ?? ""] : []),
         c.inAt.toISOString(),
         c.outAt?.toISOString() ?? "",
         c.method,
@@ -570,7 +644,10 @@ export class EventsController {
   }
 
   /** Una fila por GuestListEntry de las listas del evento. */
-  private async exportGuestlist(eventId: string): Promise<string> {
+  private async exportGuestlist(
+    eventId: string | { in: string[] },
+    labelByEvent?: Map<string, string>,
+  ): Promise<string> {
     const lists = await this.prisma.guestList.findMany({
       where: { eventId },
       include: { entries: { orderBy: { createdAt: "asc" } } },
@@ -580,9 +657,17 @@ export class EventsController {
       ...lists.flatMap((l) => l.entries.map((e) => e.personId)),
     ]);
     return toCsv(
-      ["lista", "dueno_lista", "invitado", "estado", "creado"],
+      [
+        ...(labelByEvent ? ["evento"] : []),
+        "lista",
+        "dueno_lista",
+        "invitado",
+        "estado",
+        "creado",
+      ],
       lists.flatMap((l) =>
         l.entries.map((e) => [
+          ...(labelByEvent ? [labelByEvent.get(l.eventId) ?? ""] : []),
           l.label ?? "",
           names.get(l.ownerId) ?? "?",
           names.get(e.personId) ?? "?",

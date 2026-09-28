@@ -884,6 +884,10 @@ model PrivateLesson {
   scheduledAt  DateTime?
   price        Int
   commissionPct Int    @default(0) // comisión de la academia (snapshot al assign)
+  // Liquidación de la comisión academia→instructor: la plataforma no
+  // transfiere — el owner marca commissionPaidAt cuando paga por fuera
+  // (mismo criterio que Payout.evidenceUrl). null = pendiente.
+  commissionPaidAt DateTime?
   // Compra que la originó (null = creada manual por staff)
   paymentId    String?
   status       String   @default("REQUESTED") // REQUESTED | CONFIRMED | DONE | CANCELLED
