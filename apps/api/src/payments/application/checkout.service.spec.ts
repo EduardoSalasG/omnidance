@@ -5,6 +5,7 @@ import type { ProducerFeeDefaults } from "../../params/params.service";
 import type { PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import {
+  decodeClassRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
 } from "../domain/order-ref";
@@ -111,6 +112,13 @@ function mkPrisma() {
     eventSeries: { findUnique: vi.fn() },
     seriesPass: {
       findUnique: vi.fn(async (): Promise<{ id: string } | null> => null),
+    },
+    class: { findUnique: vi.fn() },
+    classBooking: {
+      count: vi.fn(async () => 0),
+      findFirst: vi.fn(
+        async (): Promise<{ id: string; status: string } | null> => null,
+      ),
     },
     membershipPlan: { findUnique: vi.fn() },
     enrollment: {
@@ -857,5 +865,123 @@ describe("CheckoutService.membershipQuote", () => {
     fx.prisma.membershipSubscription.findFirst.mockResolvedValue(sub);
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.subscription?.id).toBe("sub-1");
+  });
+});
+
+describe("CheckoutService.purchaseClass / classQuote", () => {
+  // Clase suelta / taller pago: orden WORKSHOP con refId wks_<classId>_.
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  // Clase futura con dropInPrice — slot con cadena de capacidad completa.
+  const mkClass = (over: Record<string, unknown> = {}) => ({
+    id: "cls-1",
+    date: new Date(Date.now() + 24 * 60 * 60 * 1000), // mañana
+    cancelled: false,
+    capacity: null,
+    slot: {
+      startTime: "20:00",
+      capacity: 10,
+      academyId: "ac-1",
+      series: {
+        id: "ser-1",
+        name: "Taller de Shines",
+        dropInPrice: 9000,
+        quorum: null,
+      },
+      academy: { defaultQuorum: null },
+    },
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.class.findUnique.mockResolvedValue(mkClass());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  const buy = () => svc.purchaseClass("per-1", { classId: "cls-1" });
+
+  it("clase inexistente → error 404 de dominio", async () => {
+    fx.prisma.class.findUnique.mockResolvedValue(null);
+    await expect(buy()).rejects.toThrow("clase no encontrada");
+  });
+
+  it("clase cancelada o sin dropInPrice → no vendible", async () => {
+    fx.prisma.class.findUnique.mockResolvedValue(
+      mkClass({ cancelled: true }),
+    );
+    await expect(buy()).rejects.toThrow("clase no disponible");
+
+    const noPrice = mkClass();
+    (noPrice.slot.series as Record<string, unknown>).dropInPrice = null;
+    fx.prisma.class.findUnique.mockResolvedValue(noPrice);
+    await expect(buy()).rejects.toThrow("clase no disponible");
+  });
+
+  it("clase ya iniciada → no vendible", async () => {
+    // date = medianoche UTC de hoy + startTime 00:00 → ya pasó.
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    fx.prisma.class.findUnique.mockResolvedValue(
+      mkClass({
+        date: today,
+        slot: {
+          ...mkClass().slot,
+          startTime: "00:00",
+        },
+      }),
+    );
+    await expect(buy()).rejects.toThrow("clase no disponible");
+  });
+
+  it("cupo agotado → 409", async () => {
+    fx.prisma.classBooking.count.mockResolvedValue(10); // capacity 10
+    await expect(buy()).rejects.toThrow("cupo agotado");
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("viewer ya reservó esa clase → 409", async () => {
+    fx.prisma.classBooking.findFirst.mockResolvedValue({
+      id: "bk-1",
+      status: "BOOKED",
+    });
+    await expect(buy()).rejects.toThrow("ya tienes una reserva");
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("crea Payment WORKSHOP: refId wks_, unit economics, fee del param membership", async () => {
+    pf.numbers.set("service_fee.membership_clp", 500);
+    const res = await buy();
+    const p = fx.payments[0];
+    expect(p.orderType).toBe("WORKSHOP");
+    expect(p.quantity).toBe(1);
+    expect(p.unitListPrice).toBe(9000);
+    expect(p.unitServiceFee).toBe(500);
+    expect(p.amount).toBe(res.quote.total);
+    expect(res.quote.listPrice).toBe(9000);
+    expect(res.paymentUrl).toContain("pay.example");
+    const ref = decodeClassRef(p.refId as string);
+    expect(ref?.classId).toBe("cls-1");
+  });
+
+  it("classQuote: desglose + spotsLeft + alreadyBooked sin crear orden", async () => {
+    fx.prisma.classBooking.count.mockResolvedValue(3);
+    const q = await svc.classQuote("per-1", "cls-1");
+    expect(q.listPrice).toBe(9000);
+    expect(q.serviceFee).toBe(500);
+    expect(q.total).toBe(9500);
+    expect(q.spotsLeft).toBe(7);
+    expect(q.alreadyBooked).toBe(false);
+    expect(fx.payments).toHaveLength(0);
   });
 });

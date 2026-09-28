@@ -3,6 +3,7 @@ import { PrismaService } from "../../prisma.service";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PricingService, type Quote } from "../domain/pricing.service";
 import {
+  encodeClassRef,
   encodeMembershipRef,
   encodeSeriesPassRef,
   encodeTicketOrderRef,
@@ -14,6 +15,10 @@ import {
 } from "../domain/membership-vigency";
 import { isRedeemable } from "../../discounts/domain/discounts.service";
 import { ParamsService } from "../../params/params.service";
+import {
+  classStart,
+  effectiveCapacity,
+} from "../../academies/domain/academy.service";
 import { SERVICE_FEE } from "@omnidance/shared";
 
 // Una orden PENDING solo reserva cupo mientras el pago puede completarse;
@@ -104,6 +109,35 @@ export class PlanNotFoundError extends Error {
   }
 }
 
+export class ClassNotFoundError extends Error {
+  constructor() {
+    super("clase no encontrada");
+    this.name = "ClassNotFoundError";
+  }
+}
+
+/** La clase no se vende suelta: cancelada, ya iniciada o sin dropInPrice. */
+export class ClassNotPurchasableError extends Error {
+  constructor() {
+    super("clase no disponible para compra");
+    this.name = "ClassNotPurchasableError";
+  }
+}
+
+export class ClassSoldOutError extends Error {
+  constructor() {
+    super("cupo agotado para esta clase");
+    this.name = "ClassSoldOutError";
+  }
+}
+
+export class ClassAlreadyBookedError extends Error {
+  constructor() {
+    super("ya tienes una reserva en esta clase");
+    this.name = "ClassAlreadyBookedError";
+  }
+}
+
 export class PlanNotPurchasableError extends Error {
   constructor() {
     super("este plan no está disponible para compra online");
@@ -160,6 +194,10 @@ export interface PurchaseSeriesPassInput {
 
 export interface PurchaseMembershipInput {
   planId: string;
+}
+
+export interface PurchaseClassInput {
+  classId: string;
 }
 
 export interface PurchaseTicketResult {
@@ -778,6 +816,198 @@ export class CheckoutService {
       currentEndsAt: enrollment?.endsAt?.toISOString() ?? null,
       subscription: subscription ?? null,
       gateway: this.gateway.name,
+    };
+  }
+
+  /**
+   * Clase vendible suelta (spec academy-workshops): existe, no cancelada,
+   * aún no inicia y su serie tiene dropInPrice. La capacidad efectiva usa
+   * la misma cadena que el roster: class → slot → series → academy → 20.
+   */
+  private async purchasableClass(classId: string) {
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        date: true,
+        cancelled: true,
+        capacity: true,
+        slot: {
+          select: {
+            startTime: true,
+            endTime: true,
+            capacity: true,
+            academyId: true,
+            series: {
+              select: {
+                id: true,
+                name: true,
+                dropInPrice: true,
+                quorum: true,
+              },
+            },
+            academy: {
+              select: { id: true, name: true, defaultQuorum: true },
+            },
+          },
+        },
+      },
+    });
+    if (!cls) throw new ClassNotFoundError();
+    const listPrice = cls.slot.series.dropInPrice;
+    if (
+      cls.cancelled ||
+      listPrice == null ||
+      classStart(cls.date, cls.slot.startTime) <= new Date()
+    ) {
+      throw new ClassNotPurchasableError();
+    }
+    return { cls, listPrice };
+  }
+
+  /**
+   * Revisión previa a comprar una clase suelta/taller: desglose de precio
+   * (precio de la serie + cargo de servicio del param de membresías —
+   * misma línea de negocio academy), cupo restante y si el viewer ya
+   * tiene reserva. Mismas reglas de dominio que purchaseClass; no crea
+   * orden ni toca la pasarela.
+   */
+  async classQuote(personId: string, classId: string) {
+    const { cls, listPrice } = await this.purchasableClass(classId);
+    const capacity = effectiveCapacity({
+      classCapacity: cls.capacity,
+      slotCapacity: cls.slot.capacity,
+      seriesQuorum: cls.slot.series.quorum,
+      academyDefaultQuorum: cls.slot.academy.defaultQuorum,
+    });
+    const [booked, mine] = await Promise.all([
+      this.prisma.classBooking.count({
+        where: { classId: cls.id, status: "BOOKED" },
+      }),
+      this.prisma.classBooking.findFirst({
+        where: {
+          classId: cls.id,
+          personId,
+          status: { in: ["BOOKED", "WAITLIST"] },
+        },
+        select: { status: true },
+      }),
+    ]);
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.membership_clp",
+      500,
+    );
+    const quote = this.pricing.quote({
+      listPrice,
+      serviceFeeClp,
+      discount: null,
+    });
+    return {
+      ...quote,
+      serviceFee: quote.serviceFee,
+      spotsLeft: Math.max(capacity - booked, 0),
+      alreadyBooked: !!mine,
+      class: {
+        id: cls.id,
+        date: cls.date,
+        startTime: cls.slot.startTime,
+        endTime: cls.slot.endTime,
+      },
+      series: { id: cls.slot.series.id, name: cls.slot.series.name },
+      academy: { id: cls.slot.academy.id, name: cls.slot.academy.name },
+      gateway: this.gateway.name,
+    };
+  }
+
+  /**
+   * Checkout de clase suelta / taller pago (spec academy-workshops):
+   * valida vendibilidad, cupo y duplicidad, crea la orden PENDING
+   * (orderType WORKSHOP, refId wks_<classId>_<uuid>) y delega el cobro.
+   * El ClassBooking pagado lo emite el settle al PAID — ocupa cupo físico
+   * pero nunca consume cuota del plan ni exige inscripción.
+   */
+  async purchaseClass(
+    personId: string,
+    input: PurchaseClassInput,
+  ): Promise<PurchaseTicketResult> {
+    const { cls, listPrice } = await this.purchasableClass(input.classId);
+    const capacity = effectiveCapacity({
+      classCapacity: cls.capacity,
+      slotCapacity: cls.slot.capacity,
+      seriesQuorum: cls.slot.series.quorum,
+      academyDefaultQuorum: cls.slot.academy.defaultQuorum,
+    });
+    const [booked, mine] = await Promise.all([
+      this.prisma.classBooking.count({
+        where: { classId: cls.id, status: "BOOKED" },
+      }),
+      this.prisma.classBooking.findFirst({
+        where: {
+          classId: cls.id,
+          personId,
+          status: { in: ["BOOKED", "WAITLIST"] },
+        },
+        select: { id: true },
+      }),
+    ]);
+    if (mine) throw new ClassAlreadyBookedError();
+    // Las órdenes PENDING no reservan cupo físico (a diferencia de la
+    // preventa): el asiento se materializa al PAID. Si el cupo se agotó
+    // entre el click y el pago, el settle deja la reserva en WAITLIST —
+    // pagó, queda en cola, y la academia gestiona el aforo.
+    if (booked >= capacity) throw new ClassSoldOutError();
+
+    const serviceFeeClp = await this.params.getNumber(
+      "service_fee.membership_clp",
+      500,
+    );
+    const quote = this.pricing.quote({
+      listPrice,
+      serviceFeeClp,
+      discount: null,
+    });
+
+    const refId = encodeClassRef(cls.id);
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { email: true },
+    });
+
+    const payment = await this.prisma.payment.create({
+      data: {
+        orderType: "WORKSHOP",
+        refId,
+        personId,
+        eventId: null,
+        discountCodeId: null,
+        amount: quote.total,
+        fee: 0, // costo pasarela: desconocido hasta la liquidación
+        net: quote.total,
+        quantity: 1,
+        unitListPrice: quote.listPrice,
+        unitServiceFee: quote.serviceFee,
+        gateway: this.gateway.name,
+      },
+    });
+
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const order = await this.gateway.createOrder({
+      refId,
+      amount: quote.total,
+      email: person?.email ?? "",
+      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+    });
+
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { gatewayRef: order.gatewayRef },
+    });
+
+    return {
+      paymentUrl: order.paymentUrl,
+      paymentId: payment.id,
+      quote,
+      quantity: 1,
     };
   }
 }

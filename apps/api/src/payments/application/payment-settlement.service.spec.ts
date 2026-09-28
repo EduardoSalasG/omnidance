@@ -49,6 +49,7 @@ function mkPrisma() {
   const events: Row[] = [];
   const enrollments: Row[] = [];
   const tickets: Row[] = [];
+  const bookings: Row[] = [];
   const admins: { personId: string }[] = [];
 
   const prisma = {
@@ -158,6 +159,28 @@ function mkPrisma() {
     classSeries: {
       findUnique: vi.fn(async () => ({ name: "Serie Bachata" })),
     },
+    class: {
+      findUnique: vi.fn(async () => ({
+        id: "cls1",
+        capacity: null,
+        slot: {
+          academyId: "ac1",
+          capacity: 10,
+          startTime: "20:00",
+          series: { name: "Taller Shines", quorum: null },
+          academy: { defaultQuorum: null },
+        },
+      })),
+    },
+    classBooking: {
+      count: vi.fn(async () => 0),
+      findUnique: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        bookings.push(data);
+        return data;
+      }),
+      update: vi.fn(async ({ data }: { data: Row }) => data),
+    },
     seriesPass: {
       upsert: vi.fn(async ({ create }: { create: Row }) => create),
     },
@@ -166,7 +189,7 @@ function mkPrisma() {
     // pg_advisory_xact_lock del ledger — no-op en el fake.
     $executeRaw: vi.fn(async () => 0),
   };
-  return { prisma, payments, events, enrollments, tickets, admins };
+  return { prisma, payments, events, enrollments, tickets, bookings, admins };
 }
 
 function mkNotifications() {
@@ -380,6 +403,60 @@ describe("PaymentSettlementService", () => {
         "p1",
         expect.objectContaining({ type: "payment.paid" }),
       );
+    });
+  });
+
+  describe("settle WORKSHOP (clase suelta)", () => {
+    const wksPayment = () =>
+      mkPayment({
+        orderType: "WORKSHOP",
+        refId: `wks_cls1_${randomUUID()}`,
+        amount: 9500,
+        net: 9500,
+      });
+
+    it("PAID con cupo → ClassBooking BOOKED con paymentId + SETTLED", async () => {
+      const payment = seed(wksPayment());
+      const out = await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: { ...GATEWAY_DATA, amount: 9500 },
+      });
+
+      expect(out).toEqual({ ok: true, status: "PAID" });
+      expect(eventTypes()).toEqual(["STATUS_CONFIRMED", "SETTLED"]);
+      expect(fx.bookings).toHaveLength(1);
+      expect(fx.bookings[0]).toMatchObject({
+        classId: "cls1",
+        personId: "p1",
+        status: "BOOKED",
+        paymentId: "pay1",
+      });
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({ type: "payment.paid" }),
+      );
+    });
+
+    it("PAID sin cupo → la reserva queda WAITLIST (pagó, queda en cola)", async () => {
+      fx.prisma.classBooking.count.mockResolvedValue(10); // capacidad 10
+      const payment = seed(wksPayment());
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+      expect(fx.bookings[0].status).toBe("WAITLIST");
+      expect(fx.bookings[0].paymentId).toBe("pay1");
+    });
+
+    it("re-notificación PAID → duplicated, sin re-crear reserva", async () => {
+      const payment = seed(wksPayment());
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+      const out = await svc.settle(payment, "PAID", { actor: "webhook" });
+      expect(out.duplicated).toBe(true);
+      expect(fx.bookings).toHaveLength(1);
+    });
+
+    it("FAILED → no crea reserva", async () => {
+      const payment = seed(wksPayment());
+      await svc.settle(payment, "FAILED", { actor: "webhook" });
+      expect(fx.bookings).toHaveLength(0);
     });
   });
 

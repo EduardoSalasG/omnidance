@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, PriceTag } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
 
 type Booking = "BOOKED" | "WAITLIST" | null;
@@ -29,6 +29,7 @@ export type ClassCredits = {
 export function ClassBookingCta({
   classId,
   initialBooking,
+  initialPaid = false,
   enrolled,
   academyId,
   spotsLeft,
@@ -37,11 +38,17 @@ export function ClassBookingCta({
   myCredits = null,
   cancelRefundMinutes = 60,
   startsAtIso,
+  dropInPrice = null,
   closedLabel,
 }: {
   classId: string;
   initialBooking: Booking;
-  /** Inscripción vigente en la academia — sin ella no se puede reservar. */
+  /** El asiento vigente fue comprado suelto (taller/clase) — la
+      cancelación libera el cupo pero no devuelve el pago (gestión
+      manual de la academia). */
+  initialPaid?: boolean;
+  /** Inscripción vigente en la academia — sin ella no se puede reservar
+      por plan (pero sí comprar suelta si hay dropInPrice). */
   enrolled: boolean;
   /** Academia dueña de la clase — el CTA "sin inscripción" lleva a su
       ficha, donde están los planes comprables. */
@@ -55,6 +62,9 @@ export function ClassBookingCta({
   cancelRefundMinutes?: number;
   /** Instante real de inicio (date + startTime) — base del corte. */
   startsAtIso?: string;
+  /** Precio de clase suelta (ClassSeries.dropInPrice) — habilita la
+      compra WORKSHOP desde la barra. */
+  dropInPrice?: number | null;
   /** Clase cancelada o ya pasada — la barra muestra un aviso y la ficha
       queda solo informativa (sin acción ni zona destructiva). */
   closedLabel?: string;
@@ -63,6 +73,7 @@ export function ClassBookingCta({
   const tc = useTranslations("common");
   const router = useRouter();
   const [booking, setBooking] = useState<Booking>(initialBooking);
+  const [paid] = useState(initialPaid);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const dialogRef = useDialogFocus<HTMLDivElement>(confirming);
@@ -125,13 +136,16 @@ export function ClassBookingCta({
       };
       setBooking(null);
       // WAITLIST nunca consumió → copy neutro. BOOKED refleja si la
-      // clase volvió al plan o quedó consumida.
+      // clase volvió al plan o quedó consumida; asiento pagado → la
+      // devolución del dinero es gestión manual, no del sistema.
       setNotice({
         text: !wasBooked
           ? t("cancelledOk")
-          : body.refunded === false
-            ? t("cancelledNoRefund")
-            : t("cancelledRefunded"),
+          : paid
+            ? t("cancelledPaid")
+            : body.refunded === false
+              ? t("cancelledNoRefund")
+              : t("cancelledRefunded"),
         error: false,
       });
       router.refresh();
@@ -142,7 +156,41 @@ export function ClassBookingCta({
     }
   }
 
+  /**
+   * Compra de clase suelta / taller (orderType WORKSHOP): crea la orden
+   * y redirige a la pasarela — el asiento lo materializa el settle al
+   * PAID (paymentId, sin consumir cuota del plan).
+   */
+  async function buy() {
+    setBusy(true);
+    setNotice(null);
+    try {
+      const res = await apiFetch("/checkout/class", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classId }),
+      });
+      if (!res.ok) {
+        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
+        return;
+      }
+      const order = (await res.json()) as { paymentUrl?: string };
+      if (!order.paymentUrl) {
+        setNotice({ text: t("error"), error: true });
+        return;
+      }
+      window.location.assign(order.paymentUrl);
+    } catch {
+      setNotice({ text: t("error"), error: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const full = spotsLeft <= 0;
+  // La compra suelta existe solo si hay precio y cupo (el backend la
+  // rechaza con cupo agotado — el asiento cae a WAITLIST al settle).
+  const buyable = dropInPrice != null && !full;
   const creditsLeft =
     myCredits?.limit != null && myCredits.used != null
       ? Math.max(myCredits.limit - myCredits.used, 0)
@@ -182,10 +230,10 @@ export function ClassBookingCta({
                 {notice.text}
               </p>
             )}
-            {!enrolled ? (
-              // Sin inscripción: el escape es la ficha de la academia,
-              // donde están los planes comprables — la barra conserva
-              // la gramática info-izquierda / acción-derecha.
+            {!enrolled && !buyable ? (
+              // Sin inscripción ni compra suelta: el escape es la ficha
+              // de la academia, donde están los planes comprables — la
+              // barra conserva la gramática info-izquierda / acción-derecha.
               <div className="flex items-center justify-between gap-4">
                 <p className="min-w-0 text-sm text-white/60">
                   {t("requiresEnrollment")}
@@ -197,6 +245,36 @@ export function ClassBookingCta({
                   {t("viewPlans")}
                 </Button>
               </div>
+            ) : !enrolled && buyable ? (
+              // Sin inscripción pero la clase se vende suelta (taller):
+              // la compra es la acción primaria; los planes quedan como
+              // camino secundario (un plan rinde si vuelve seguido).
+              <>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <span className="block text-xs uppercase tracking-wide text-white/50">
+                      {t("dropIn")}
+                    </span>
+                    <PriceTag
+                      amount={dropInPrice ?? 0}
+                      className="text-lg"
+                    />
+                  </div>
+                  <Button
+                    disabled={busy}
+                    onClick={() => void buy()}
+                    className="shrink-0"
+                  >
+                    {t("buyClass")}
+                  </Button>
+                </div>
+                <a
+                  href={`/academias/${academyId}`}
+                  className="text-xs text-white/50 underline-offset-4 hover:underline"
+                >
+                  {t("orViewPlans")}
+                </a>
+              </>
             ) : (
               <div className="flex items-center justify-between gap-4">
                 {/* Cupo junto a la acción — la urgencia es referencia de
@@ -241,14 +319,20 @@ export function ClassBookingCta({
                   )}
                 </div>
                 <Button
-                  disabled={busy || (!full && creditsLeft === 0)}
-                  onClick={() => void book()}
+                  disabled={
+                    busy || (!full && creditsLeft === 0 && !buyable)
+                  }
+                  onClick={() =>
+                    void (creditsLeft === 0 && buyable ? buy() : book())
+                  }
                   className="shrink-0"
                 >
                   {full
                     ? t("joinWaitlist")
                     : creditsLeft === 0
-                      ? t("creditsExhausted")
+                      ? buyable
+                        ? t("buyClass")
+                        : t("creditsExhausted")
                       : t("book")}
                 </Button>
               </div>
@@ -305,7 +389,11 @@ export function ClassBookingCta({
             <p className="text-sm text-white/70">
               {t("cancelConfirm")}{" "}
               {booking === "BOOKED" &&
-                (refundable ? t("cancelRefundable") : t("cancelLate"))}
+                (paid
+                  ? t("cancelPaid")
+                  : refundable
+                    ? t("cancelRefundable")
+                    : t("cancelLate"))}
             </p>
             <div className="flex items-center justify-end gap-3">
               <Button

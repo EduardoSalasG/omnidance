@@ -41,6 +41,19 @@ function matchWhere(row: Row, where: Row): boolean {
         return false;
       if ("lte" in c && (!(v instanceof Date) || v > (c.lte as Date)))
         return false;
+      // Objeto anidado sin operador (p.ej. slot: { academyId }) →
+      // matcheo recursivo sobre la relación materializada del fake.
+      if (
+        !("in" in c) &&
+        !("not" in c) &&
+        !("gte" in c) &&
+        !("lte" in c) &&
+        v !== null &&
+        typeof v === "object" &&
+        !(v instanceof Date) &&
+        !matchWhere(v as Row, c)
+      )
+        return false;
       continue;
     }
     if (v !== cond) return false;
@@ -95,6 +108,14 @@ class FakePrisma {
   membershipPlan = {
     findMany: async ({ where }: { where: Row }) =>
       this.membershipPlans.filter((p) => matchWhere(p, where)),
+  };
+
+  classes: Row[] = [];
+  class = {
+    // ACADEMY WORKSHOP: clase → slot.academyId (misma derivación que el
+    // refId wks_).
+    findMany: async ({ where }: { where: Row }) =>
+      this.classes.filter((c) => matchWhere(c, where)),
   };
 
   payment = {

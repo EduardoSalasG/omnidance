@@ -20,7 +20,10 @@ import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { ParamsService } from "../../params/params.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
-import { effectiveCapacity } from "../domain/academy.service";
+import {
+  classStart,
+  effectiveCapacity,
+} from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
 import {
   CLASS_CARD_SELECT,
@@ -44,14 +47,6 @@ function isoWeekRange(date: Date): { start: Date; end: Date } {
   const dow = (day.getUTCDay() + 6) % 7; // lunes = 0
   const start = new Date(day.getTime() - dow * 86_400_000);
   return { start, end: new Date(start.getTime() + 7 * 86_400_000) };
-}
-
-// Inicio real de la clase: Class.date (medianoche UTC del día) +
-// slot.startTime "HH:mm". El check "la clase ya pasó" y el corte de
-// devolución operan sobre este instante — no sobre la medianoche del día.
-function classStart(date: Date, startTime: string): Date {
-  const [h, m] = startTime.split(":").map(Number);
-  return new Date(date.getTime() + ((h || 0) * 60 + (m || 0)) * 60_000);
 }
 
 type QuotaResolution =
@@ -126,6 +121,9 @@ export class ClassesController {
             slot: { academyId },
             date: { gte: range.gte, ...(range.lt ? { lt: range.lt } : {}) },
           },
+          // Un asiento pagado (clase suelta / taller, orderType WORKSHOP)
+          // ocupa cupo físico pero NO consume crédito del plan.
+          paymentId: null,
           OR: [
             { status: "BOOKED" },
             { status: "CANCELLED", refunded: false },
@@ -618,7 +616,7 @@ export class ClassesController {
         },
         bookings: {
           where: { status: { in: ["BOOKED", "WAITLIST"] } },
-          select: { personId: true, status: true },
+          select: { personId: true, status: true, paymentId: true },
         },
         attendances: {
           where: { personId: me },
@@ -704,6 +702,9 @@ export class ClassesController {
       spotsLeft: Math.max(capacity - booked, 0),
       waitlistCount: cls.bookings.filter((b) => b.status === "WAITLIST").length,
       myBooking: mine?.status ?? null,
+      // Asiento comprado suelto (taller/clase) — el CTA cambia el copy
+      // ("comprado" vs "reservado") y la cancelación no devuelve dinero.
+      myBookingPaid: !!mine?.paymentId,
       attended: cls.attendances.length > 0,
       enrolled: !!enrollment,
       cancelRefundMinutes,
@@ -892,7 +893,9 @@ export class ClassesController {
 
       // La cuota solo se exige para ocupar cupo real — entrar a la
       // waitlist no consume ni bloquea (se re-chequea al promover).
-      if (status === "BOOKED" && !quota.ok) {
+      // Re-activar un asiento pagado cancelado tampoco: el pago ya
+      // ocurrió, el cupo no vuelve a consumir crédito.
+      if (status === "BOOKED" && !existing?.paymentId && !quota.ok) {
         throw new ConflictException(
           `agotaste tus ${quota.limit} clases de esta semana`,
         );
@@ -906,6 +909,8 @@ export class ClassesController {
             createdAt: new Date(),
             cancelledAt: null,
             refunded: true,
+            // paymentId se preserva: un asiento pagado que se reactiva
+            // sigue siendo compra — no consume crédito del plan.
             enrollmentId:
               status === "BOOKED" && quota.ok ? quota.enrollmentId : null,
           },
@@ -966,9 +971,13 @@ export class ClassesController {
       60,
     );
     const start = classStart(cls.date, cls.slot.startTime);
+    // Asiento pagado: la cancelación libera el cupo pero nunca "devuelve
+    // el crédito" — no consumió cuota; la devolución del dinero es gestión
+    // manual de la academia (acuerdo comercial, no regla del sistema).
     const refunded =
       booking.status === "WAITLIST" ||
-      Date.now() <= start.getTime() - cutoffMin * 60_000;
+      (!booking.paymentId &&
+        Date.now() <= start.getTime() - cutoffMin * 60_000);
 
     return this.prisma.$transaction(async (tx) => {
       const cancelled = await tx.classBooking.update({

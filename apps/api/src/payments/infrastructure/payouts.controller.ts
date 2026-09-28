@@ -27,6 +27,7 @@ import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { ParamsService } from "../../params/params.service";
 import {
+  decodeClassRef,
   decodeMembershipRef,
   decodeSeriesPassRef,
 } from "../domain/order-ref";
@@ -87,11 +88,13 @@ class PayPayoutDto {
  *   (eventos producidos directamente por la academia — si hay productor,
  *   el productor ya devenga) + payments PAID con orderType MEMBERSHIP cuyo
  *   refId (mem_<planId>_<uuid>) decodifica a un MembershipPlan de la
- *   academia (venta de planes online).
+ *   academia (venta de planes online) + payments PAID con orderType
+ *   WORKSHOP cuyo refId (wks_<classId>_<uuid>) decodifica a una Class de
+ *   la academia (venta de clases sueltas/talleres).
  * - VENUE: mismo patrón con venueId = actorId AND producerId = null.
  * - SERIES_PASS nunca aplica a ACADEMY/VENUE (EventSeries.producerId es
- *   required — siempre hay productor que devenga); MEMBERSHIP solo a
- *   ACADEMY.
+ *   required — siempre hay productor que devenga); MEMBERSHIP y WORKSHOP
+ *   solo a ACADEMY.
  * gross = Σ amount; net = gross − Σ fee (costo pasarela).
  */
 @Controller("admin/payouts")
@@ -249,27 +252,38 @@ export class AdminPayoutsController {
         events.map((e) => [e.id, e.platformFeePct ?? globalPct]),
       );
 
-      // MEMBERSHIP (solo ACADEMY): la orden no tiene columna de academia —
-      // el refId (mem_<planId>_<uuid>) decodifica al plan y de ahí al
-      // academyId. Los planes no tienen fee propio → % global.
-      const planIds =
+      // MEMBERSHIP + WORKSHOP (solo ACADEMY): la orden no tiene columna
+      // de academia — el refId (mem_<planId>_<uuid> / wks_<classId>_<uuid>)
+      // decodifica al plan o a la clase (slot → academyId). Ni planes ni
+      // clases sueltas tienen fee propio → % global.
+      const [planIds, classIds] =
         actorType === "ACADEMY"
-          ? new Set(
-              (
-                await this.prisma.membershipPlan.findMany({
-                  where: { academyId: actorId },
-                  select: { id: true },
-                })
-              ).map((p) => p.id),
-            )
-          : new Set<string>();
-      if (!events.length && !planIds.size) {
+          ? [
+              new Set(
+                (
+                  await this.prisma.membershipPlan.findMany({
+                    where: { academyId: actorId },
+                    select: { id: true },
+                  })
+                ).map((p) => p.id),
+              ),
+              new Set(
+                (
+                  await this.prisma.class.findMany({
+                    where: { slot: { academyId: actorId } },
+                    select: { id: true },
+                  })
+                ).map((c) => c.id),
+              ),
+            ]
+          : [new Set<string>(), new Set<string>()];
+      if (!events.length && !planIds.size && !classIds.size) {
         return { gross: 0, net: 0, platformFee: 0 };
       }
 
       const payments = await this.prisma.payment.findMany({
         where: {
-          orderType: { in: ["TICKET", "MEMBERSHIP"] },
+          orderType: { in: ["TICKET", "MEMBERSHIP", "WORKSHOP"] },
           status: "PAID",
           createdAt: { gte: periodStart, lte: periodEnd },
           OR: [
@@ -277,6 +291,7 @@ export class AdminPayoutsController {
               ? [{ eventId: { in: events.map((e) => e.id) } }]
               : []),
             ...(planIds.size ? [{ orderType: "MEMBERSHIP" }] : []),
+            ...(classIds.size ? [{ orderType: "WORKSHOP" }] : []),
           ],
         },
         select: {
@@ -291,14 +306,18 @@ export class AdminPayoutsController {
       let fees = 0;
       let platformFee = 0;
       for (const p of payments) {
-        const isMembership = p.orderType === "MEMBERSHIP";
-        const belongs = isMembership
-          ? planIds.has(decodeMembershipRef(p.refId)?.planId ?? "")
-          : p.eventId != null && pctByEvent.has(p.eventId);
+        const isAcademyLine =
+          p.orderType === "MEMBERSHIP" || p.orderType === "WORKSHOP";
+        const belongs =
+          p.orderType === "MEMBERSHIP"
+            ? planIds.has(decodeMembershipRef(p.refId)?.planId ?? "")
+            : p.orderType === "WORKSHOP"
+              ? classIds.has(decodeClassRef(p.refId)?.classId ?? "")
+              : p.eventId != null && pctByEvent.has(p.eventId);
         if (!belongs) continue;
         gross += p.amount;
         fees += p.fee;
-        const pct = isMembership
+        const pct = isAcademyLine
           ? globalPct
           : (pctByEvent.get(p.eventId ?? "") ?? 0);
         platformFee += Math.round((p.amount * pct) / 100);

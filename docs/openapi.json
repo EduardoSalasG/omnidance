@@ -447,6 +447,34 @@
         }
       }
     },
+    "/api/events/{id}/export.csv": {
+      "get": {
+        "operationId": "EventsController_exportCsv",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events": {
       "get": {
         "operationId": "EventsController_list",
@@ -1412,6 +1440,47 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CheckoutMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/class-quote": {
+      "get": {
+        "operationId": "CheckoutController_classQuote",
+        "parameters": [
+          {
+            "name": "classId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/class": {
+      "post": {
+        "operationId": "CheckoutController_class",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutClassDto"
               }
             }
           }
@@ -2685,6 +2754,44 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateAcademySettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/instructors/{personId}": {
+      "patch": {
+        "operationId": "AcademiesController_updateInstructor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstructorDto"
               }
             }
           }
@@ -4495,6 +4602,10 @@
         "type": "object",
         "properties": {}
       },
+      "CheckoutClassDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CheckoutMembershipSubscriptionDto": {
         "type": "object",
         "properties": {}
@@ -4560,6 +4671,10 @@
         "properties": {}
       },
       "UpdateAcademySettingsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateInstructorDto": {
         "type": "object",
         "properties": {}
       },

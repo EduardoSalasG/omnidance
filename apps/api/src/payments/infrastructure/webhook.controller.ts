@@ -23,6 +23,7 @@ import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PaymentSettlementService } from "../application/payment-settlement.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import {
+  decodeClassRef,
   decodeMembershipRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
@@ -207,9 +208,10 @@ export class PaymentsController {
 
   /**
    * GET /payments/by-academy/:academyId — cobros MEMBERSHIP de los planes
-   * de la academia. La orden no tiene columna de academia: el refId
-   * (mem_<planId>_<uid>) decodifica al plan y de ahí al academyId — el
-   * filtro `refId startsWith mem_<planId>_` es el mismo decode+belongs
+   * + WORKSHOP (clases sueltas/talleres pagos) de la academia. La orden
+   * no tiene columna de academia: el refId (mem_<planId>_<uid> /
+   * wks_<classId>_<uid>) decodifica al plan o a la clase (slot →
+   * academyId) — el filtro `refId startsWith` es el mismo decode+belongs
    * de payouts, resuelto en SQL. Owner de la academia o admin.access
    * (no existe permiso academies.manage — la administración financiera
    * de la academia es owner|admin, como canAdministerAcademy).
@@ -234,18 +236,23 @@ export class PaymentsController {
         "requiere ser el owner de la academia o admin",
       );
     }
-    const plans = await this.prisma.membershipPlan.findMany({
-      where: { academyId: academy.id },
-      select: { id: true },
-    });
-    if (!plans.length) return [];
+    const [plans, classes] = await Promise.all([
+      this.prisma.membershipPlan.findMany({
+        where: { academyId: academy.id },
+        select: { id: true },
+      }),
+      this.prisma.class.findMany({
+        where: { slot: { academyId: academy.id } },
+        select: { id: true },
+      }),
+    ]);
+    const or = [
+      ...plans.map((p) => ({ refId: { startsWith: `mem_${p.id}_` } })),
+      ...classes.map((c) => ({ refId: { startsWith: `wks_${c.id}_` } })),
+    ];
+    if (!or.length) return [];
     const payments = await this.prisma.payment.findMany({
-      where: {
-        orderType: "MEMBERSHIP",
-        OR: plans.map((p) => ({
-          refId: { startsWith: `mem_${p.id}_` },
-        })),
-      },
+      where: { orderType: { in: ["MEMBERSHIP", "WORKSHOP"] }, OR: or },
       orderBy: { createdAt: "desc" },
       take: AUDIT_TAKE,
       include: { _count: { select: { events: true } } },
@@ -360,6 +367,7 @@ export class PaymentsController {
     const eventIds = new Set<string>();
     const seriesIds = new Set<string>();
     const planIds = new Set<string>();
+    const classIds = new Set<string>();
     for (const p of payments) {
       const eventId =
         p.eventId ??
@@ -375,8 +383,12 @@ export class PaymentsController {
         const planId = decodeMembershipRef(p.refId)?.planId;
         if (planId) planIds.add(planId);
       }
+      if (p.orderType === "WORKSHOP") {
+        const classId = decodeClassRef(p.refId)?.classId;
+        if (classId) classIds.add(classId);
+      }
     }
-    const [events, series, plans] = await Promise.all([
+    const [events, series, plans, classes] = await Promise.all([
       eventIds.size
         ? this.prisma.event.findMany({
             where: { id: { in: [...eventIds] } },
@@ -395,13 +407,33 @@ export class PaymentsController {
             select: { id: true, name: true, academyId: true },
           })
         : [],
+      // WORKSHOP: la academia y la serie se derivan de la clase
+      // (slot → academyId / series.name).
+      classIds.size
+        ? this.prisma.class.findMany({
+            where: { id: { in: [...classIds] } },
+            select: {
+              id: true,
+              slot: {
+                select: {
+                  academyId: true,
+                  series: { select: { name: true } },
+                },
+              },
+            },
+          })
+        : [],
     ]);
     const eventNameOf = new Map(events.map((e) => [e.id, e.name]));
     const seriesNameOf = new Map(series.map((s) => [s.id, s.name]));
     const planOf = new Map(plans.map((p) => [p.id, p]));
+    const classOf = new Map(classes.map((c) => [c.id, c]));
 
     const academyIds = [
-      ...new Set(plans.map((p) => p.academyId)),
+      ...new Set([
+        ...plans.map((p) => p.academyId),
+        ...classes.map((c) => c.slot.academyId),
+      ]),
     ];
     const academies = academyIds.length
       ? await this.prisma.academy.findMany({
@@ -419,6 +451,10 @@ export class PaymentsController {
       const plan =
         p.orderType === "MEMBERSHIP"
           ? planOf.get(decodeMembershipRef(p.refId)?.planId ?? "")
+          : undefined;
+      const wksClass =
+        p.orderType === "WORKSHOP"
+          ? classOf.get(decodeClassRef(p.refId)?.classId ?? "")
           : undefined;
       const eventId =
         p.eventId ??
@@ -442,12 +478,18 @@ export class PaymentsController {
         // Ids de contexto: la UI linkea el pago a su evento/academia
         // (p.ej. /perfil/pagos → ficha donde vive la gestión del plan).
         eventId: eventId ?? null,
-        academyId: plan?.academyId ?? null,
+        academyId: plan?.academyId ?? wksClass?.slot.academyId ?? null,
+        classId: wksClass?.id ?? null,
         eventName: eventId ? (eventNameOf.get(eventId) ?? null) : null,
-        seriesName: seriesId ? (seriesNameOf.get(seriesId) ?? null) : null,
-        academyName: plan
-          ? (academyNameOf.get(plan.academyId) ?? null)
-          : null,
+        seriesName: seriesId
+          ? (seriesNameOf.get(seriesId) ?? null)
+          : (wksClass?.slot.series.name ?? null),
+        academyName:
+          plan || wksClass
+            ? (academyNameOf.get(
+                plan?.academyId ?? wksClass?.slot.academyId ?? "",
+              ) ?? null)
+            : null,
         planName: plan?.name ?? null,
       };
     });

@@ -125,16 +125,24 @@ function CheckoutReturn() {
           <Badge variant="neon">{t("success")}</Badge>
           <h1 className="text-2xl font-bold">{t("returnPaidTitle")}</h1>
           <PriceTag amount={phase.amount} className="text-lg" />
-          {/* MEMBERSHIP: la compra fue un plan de academia — el destino
-              natural es Mis academias (ahí se ve la vigencia nueva). */}
+          {/* MEMBERSHIP → Mis academias (la vigencia nueva); WORKSHOP →
+              Mis clases (ahí aparece la reserva del asiento comprado). */}
           <Button
-            href={phase.orderType === "MEMBERSHIP" ? "/academias" : "/entradas"}
+            href={
+              phase.orderType === "MEMBERSHIP"
+                ? "/academias"
+                : phase.orderType === "WORKSHOP"
+                  ? "/clases"
+                  : "/entradas"
+            }
             size="lg"
             className="w-full"
           >
             {phase.orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : tw("title")}
+              : phase.orderType === "WORKSHOP"
+                ? t("returnToClasses")
+                : tw("title")}
           </Button>
           <Link
             href="/eventos"
@@ -151,13 +159,21 @@ function CheckoutReturn() {
           <h1 className="text-2xl font-bold">{t("returnFailedTitle")}</h1>
           <p className="text-sm text-white/60">{t("returnFailedDesc")}</p>
           <Button
-            href={orderType === "MEMBERSHIP" ? "/academias" : "/eventos"}
+            href={
+              orderType === "MEMBERSHIP"
+                ? "/academias"
+                : orderType === "WORKSHOP"
+                  ? "/clases"
+                  : "/eventos"
+            }
             size="lg"
             className="w-full"
           >
             {orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : t("returnToEvents")}
+              : orderType === "WORKSHOP"
+                ? t("returnToClasses")
+                : t("returnToEvents")}
           </Button>
         </>
       )}
@@ -190,11 +206,21 @@ function CheckoutReturn() {
           <h1 className="text-xl font-bold">{t("returnPendingTitle")}</h1>
           <p className="text-sm text-white/60">{t("returnPendingDesc")}</p>
           <Button
-            href={orderType === "MEMBERSHIP" ? "/academias" : "/entradas"}
+            href={
+              orderType === "MEMBERSHIP"
+                ? "/academias"
+                : orderType === "WORKSHOP"
+                  ? "/clases"
+                  : "/entradas"
+            }
             size="lg"
             className="w-full"
           >
-            {orderType === "MEMBERSHIP" ? t("returnToAcademies") : tw("title")}
+            {orderType === "MEMBERSHIP"
+              ? t("returnToAcademies")
+              : orderType === "WORKSHOP"
+                ? t("returnToClasses")
+                : tw("title")}
           </Button>
         </>
       )}
@@ -213,13 +239,21 @@ function CheckoutReturn() {
           <Badge variant="live">{tc("error")}</Badge>
           <h1 className="text-xl font-bold">{t("returnErrorTitle")}</h1>
           <Button
-            href={orderType === "MEMBERSHIP" ? "/academias" : "/eventos"}
+            href={
+              orderType === "MEMBERSHIP"
+                ? "/academias"
+                : orderType === "WORKSHOP"
+                  ? "/clases"
+                  : "/eventos"
+            }
             size="lg"
             className="w-full"
           >
             {orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : t("returnToEvents")}
+              : orderType === "WORKSHOP"
+                ? t("returnToClasses")
+                : t("returnToEvents")}
           </Button>
         </>
       )}

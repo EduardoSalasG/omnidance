@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import type { Payment, Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import {
+  decodeClassRef,
   decodeMembershipRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
@@ -14,6 +15,7 @@ import {
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import { sanitizeGatewayPayload } from "../infrastructure/gateway-transactions.service";
 import { ParamsService } from "../../params/params.service";
+import { effectiveCapacity } from "../../academies/domain/academy.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { SERVICE_FEE } from "@omnidance/shared";
 
@@ -204,6 +206,12 @@ export class PaymentSettlementService {
     // el settle decodifica el plan y materializa/renueva el Enrollment.
     if (payment.orderType === "MEMBERSHIP") {
       return this.settleMembership(payment, meta);
+    }
+
+    // WORKSHOP (clase suelta / taller pago): refId wks_<classId>_<uuid>;
+    // el asiento pagado se materializa como ClassBooking con paymentId.
+    if (payment.orderType === "WORKSHOP") {
+      return this.settleClassDropin(payment, meta);
     }
 
     return this.settleTicket(payment, meta);
@@ -737,6 +745,139 @@ export class PaymentSettlementService {
           planName: plan.name,
           academyId: plan.academyId,
           academyName: plan.academy.name,
+          amount: payment.amount,
+        },
+      });
+      if (mismatch) {
+        await this.notifyAdminsAmountMismatch(payment, mismatch);
+      }
+    }
+
+    return { ok: true, status: "PAID" };
+  }
+
+  /**
+   * Liquidación de clase suelta / taller (spec academy-workshops) al
+   * PAID: marca el Payment y materializa el ClassBooking con paymentId —
+   * ocupa cupo físico, nunca consume cuota del plan ni exige
+   * inscripción. Si el cupo se llenó entre el checkout y el pago la
+   * reserva entra como WAITLIST (pagó → queda en cola; la academia
+   * gestiona el aforo o la devolución manual). Si ya existía una reserva
+   * CANCELLED la reactiva como pagada. Idempotente igual que las otras
+   * ramas: el claim atómico →PAID deduplica el efecto.
+   */
+  private async settleClassDropin(
+    payment: Payment,
+    meta: SettleMeta,
+  ): Promise<SettleResult> {
+    const order = decodeClassRef(payment.refId);
+    if (!order) {
+      throw new BadRequestException("pago sin contexto de orden workshop");
+    }
+    const cls = await this.prisma.class.findUnique({
+      where: { id: order.classId },
+      select: {
+        id: true,
+        capacity: true,
+        slot: {
+          select: {
+            academyId: true,
+            capacity: true,
+            series: { select: { name: true, quorum: true } },
+            academy: { select: { defaultQuorum: true } },
+          },
+        },
+      },
+    });
+    if (!cls) {
+      throw new BadRequestException("clase de la orden workshop no existe");
+    }
+    const capacity = effectiveCapacity({
+      classCapacity: cls.capacity,
+      slotCapacity: cls.slot.capacity,
+      seriesQuorum: cls.slot.series.quorum,
+      academyDefaultQuorum: cls.slot.academy.defaultQuorum,
+    });
+
+    const gw = extractGatewayFields(meta.gatewayData);
+    let paidNow = false;
+    let mismatch: AmountMismatch | null = null;
+    let bookingStatus: "BOOKED" | "WAITLIST" = "BOOKED";
+    await this.prisma.$transaction(async (tx) => {
+      // claim atómico →PAID (idéntico a las otras ramas): el perdedor de
+      // la carrera ve count=0 y no duplica eventos ni reserva.
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
+        data: { status: "PAID", ...(gw ?? {}) },
+      });
+      if (claimed.count === 0) return;
+      paidNow = true;
+
+      mismatch = await this.emitSettleEvents(tx, payment, meta, gw, {
+        classId: cls.id,
+        academyId: cls.slot.academyId,
+      });
+
+      const booked = await tx.classBooking.count({
+        where: { classId: cls.id, status: "BOOKED" },
+      });
+      bookingStatus = booked < capacity ? "BOOKED" : "WAITLIST";
+
+      // @@unique(classId,personId): si ya hay fila (p.ej. reserva de plan
+      // cancelada, o asiento de una compra anterior) la reactiva como
+      // pagada — el pago nuevo manda sobre el enrollmentId.
+      const existing = await tx.classBooking.findUnique({
+        where: {
+          classId_personId: { classId: cls.id, personId: payment.personId },
+        },
+        select: { id: true, status: true },
+      });
+      if (existing) {
+        await tx.classBooking.update({
+          where: { id: existing.id },
+          data: {
+            status: bookingStatus,
+            cancelledAt: null,
+            paymentId: payment.id,
+            enrollmentId: null,
+          },
+        });
+      } else {
+        await tx.classBooking.create({
+          data: {
+            classId: cls.id,
+            personId: payment.personId,
+            status: bookingStatus,
+            paymentId: payment.id,
+            enrollmentId: null,
+          },
+        });
+      }
+    });
+
+    if (paidNow) {
+      const clp = new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(payment.amount);
+      await this.notifications.notifySafe(payment.personId, {
+        category: "TRANSACTIONAL",
+        type: "payment.paid",
+        title:
+          bookingStatus === "BOOKED"
+            ? "Pago confirmado — tu cupo está reservado"
+            : "Pago confirmado — quedaste en lista de espera",
+        body: cls.slot.series.name
+          ? `${cls.slot.series.name} · ${clp}`
+          : clp,
+        data: {
+          paymentId: payment.id,
+          refId: payment.refId,
+          classId: cls.id,
+          seriesName: cls.slot.series.name,
+          academyId: cls.slot.academyId,
+          bookingStatus,
           amount: payment.amount,
         },
       });
