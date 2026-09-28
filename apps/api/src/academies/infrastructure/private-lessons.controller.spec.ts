@@ -35,6 +35,7 @@ interface FakeLesson {
   scheduledAt: Date | null;
   price: number;
   commissionPct: number;
+  commissionPaidAt?: Date | null;
   paymentId?: string | null;
   status: string;
   createdAt: Date;
@@ -492,5 +493,118 @@ describe("private-lesson-product", () => {
         reqAs("alumno"),
       ),
     ).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+// Liquidación de la comisión (academia→instructor): la plataforma no
+// transfiere — el owner marca `commissionPaidAt` cuando paga por fuera
+// (mismo criterio que Payout evidenceUrl), y el instructor lo ve.
+describe("pay-commission — liquidación de la comisión", () => {
+  let prisma: FakePrisma;
+  let lessons: PrivateLessonsController;
+  const notified: { personId: string; type: string }[] = [];
+  const notifications = {
+    notifySafe: async (personId: string, input: { type: string }) => {
+      notified.push({ personId, type: input.type });
+    },
+  };
+
+  const confirmed = (): FakeLesson => ({
+    id: "les-c",
+    academyId: "ac-1",
+    instructorId: "inst",
+    personId: "alumno",
+    scheduledAt: new Date("2026-10-05T21:00:00Z"),
+    price: 40000,
+    commissionPct: 25,
+    commissionPaidAt: null,
+    paymentId: "pay-1",
+    status: "CONFIRMED",
+    createdAt: new Date(),
+  });
+
+  beforeEach(() => {
+    notified.length = 0;
+    prisma = new FakePrisma();
+    const access = new AcademyAccess(prisma as unknown as PrismaService);
+    lessons = new PrivateLessonsController(
+      prisma as unknown as PrismaService,
+      access,
+      notifications as unknown as NotificationsService,
+    );
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", active: true });
+    prisma.instructors.push({
+      academyId: "ac-1",
+      personId: "inst",
+      commissionPct: 25,
+    });
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+    prisma.lessons.push(confirmed());
+  });
+
+  it("owner marca la comisión pagada → commissionPaidAt + notifica al instructor", async () => {
+    const res = await lessons.act(
+      "les-c",
+      { action: "pay-commission" },
+      reqAs("owner"),
+    );
+    expect(res.commissionPaidAt).toBeInstanceOf(Date);
+    expect(notified).toEqual([
+      { personId: "inst", type: "private_lesson.commission_paid" },
+    ]);
+  });
+
+  it("idempotencia no: ya pagada → 409; instructor/alumno → 403; admin sí", async () => {
+    await lessons.act("les-c", { action: "pay-commission" }, reqAs("owner"));
+    await expect(
+      lessons.act("les-c", { action: "pay-commission" }, reqAs("owner")),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(
+      lessons.act("les-c", { action: "pay-commission" }, reqAs("inst")),
+    ).rejects.toMatchObject({ status: 403 });
+
+    prisma.lessons[0]!.commissionPaidAt = null;
+    const res = await lessons.act(
+      "les-c",
+      { action: "pay-commission" },
+      reqAs("root", ["ADMIN"]),
+    );
+    expect(res.commissionPaidAt).toBeInstanceOf(Date);
+  });
+
+  it("sin instructor asignado o sin comisión → 409 (nada que liquidar)", async () => {
+    prisma.lessons[0]!.instructorId = null;
+    await expect(
+      lessons.act("les-c", { action: "pay-commission" }, reqAs("owner")),
+    ).rejects.toMatchObject({ status: 409 });
+
+    prisma.lessons[0]!.instructorId = "inst";
+    prisma.lessons[0]!.commissionPct = 0;
+    await expect(
+      lessons.act("les-c", { action: "pay-commission" }, reqAs("owner")),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("lección CANCELLED → 409", async () => {
+    prisma.lessons[0]!.status = "CANCELLED";
+    await expect(
+      lessons.act("les-c", { action: "pay-commission" }, reqAs("owner")),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("mine?as=instructor y list del owner exponen commissionPaidAt", async () => {
+    await lessons.act("les-c", { action: "pay-commission" }, reqAs("owner"));
+
+    const instRows = await lessons.mine("instructor", reqAs("inst"));
+    // La union de `mine` incluye la rama alumno (sin campos de comisión)
+    // — casteo al shape instructor para la aserción.
+    expect(
+      (instRows[0] as { commissionPaidAt?: Date }).commissionPaidAt,
+    ).toBeInstanceOf(Date);
+
+    const list = await lessons.list("ac-1", reqAs("owner"));
+    expect(
+      (list[0] as { commissionPaidAt?: Date }).commissionPaidAt,
+    ).toBeInstanceOf(Date);
   });
 });

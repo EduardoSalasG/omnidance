@@ -306,6 +306,7 @@ export class AdminPayoutsController {
           ],
         },
         select: {
+          id: true,
           orderType: true,
           eventId: true,
           refId: true,
@@ -313,6 +314,23 @@ export class AdminPayoutsController {
           fee: true,
         },
       });
+      // Una particular cancelada (alumno u owner) no devenga: la academia
+      // debe devolver el pago fuera de la app (Flow) — liquidarla igual
+      // le pagaría dos veces.
+      const privateIds = payments
+        .filter((p) => p.orderType === "PRIVATE")
+        .map((p) => p.id);
+      const cancelledLessons = new Set(
+        (
+          await this.prisma.privateLesson.findMany({
+            where: {
+              paymentId: { in: privateIds },
+              status: "CANCELLED",
+            },
+            select: { paymentId: true },
+          })
+        ).map((l) => l.paymentId),
+      );
       let gross = 0;
       let fees = 0;
       let platformFee = 0;
@@ -327,7 +345,8 @@ export class AdminPayoutsController {
             : p.orderType === "WORKSHOP"
               ? classIds.has(decodeClassRef(p.refId)?.classId ?? "")
               : p.orderType === "PRIVATE"
-                ? decodePrivateRef(p.refId)?.academyId === actorId
+                ? decodePrivateRef(p.refId)?.academyId === actorId &&
+                  !cancelledLessons.has(p.id)
                 : p.eventId != null && pctByEvent.has(p.eventId);
         if (!belongs) continue;
         gross += p.amount;

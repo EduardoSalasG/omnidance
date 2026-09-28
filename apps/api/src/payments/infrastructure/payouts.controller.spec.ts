@@ -62,6 +62,7 @@ function matchWhere(row: Row, where: Row): boolean {
 }
 
 interface FakePayment {
+  id: string;
   orderType: "TICKET" | "SERIES_PASS" | "MEMBERSHIP" | "WORKSHOP" | "PRIVATE";
   status: "PENDING" | "PAID" | "FAILED";
   eventId: string | null;
@@ -90,6 +91,7 @@ class FakePrisma {
   events: Row[] = [];
   series: Row[] = [];
   membershipPlans: Row[] = [];
+  privateLessons: Row[] = [];
   payments: FakePayment[] = [];
   payouts: FakePayout[] = [];
   auditLogs: Row[] = [];
@@ -116,6 +118,13 @@ class FakePrisma {
     // refId wks_).
     findMany: async ({ where }: { where: Row }) =>
       this.classes.filter((c) => matchWhere(c, where)),
+  };
+
+  // PRIVATE cancelada no devenga — el controller consulta la lección por
+  // paymentId y excluye status CANCELLED.
+  privateLesson = {
+    findMany: async ({ where }: { where: Row }) =>
+      this.privateLessons.filter((l) => matchWhere(l, where)),
   };
 
   payment = {
@@ -197,7 +206,9 @@ const DTO = {
   periodEnd: "2025-11-30T23:59:59Z",
 };
 
+let paymentSeq = 0;
 const mkPayment = (over: Partial<FakePayment>): FakePayment => ({
+  id: `pay-${++paymentSeq}`,
   orderType: "TICKET",
   status: "PAID",
   eventId: null,
@@ -371,6 +382,22 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
     expect(payout.gross).toBe(30000);
     expect(payout.platformFee).toBe(3000);
     expect(payout.net).toBe(27000);
+  });
+
+  it("ACADEMY: particular cancelada no devenga (el owner debe devolver el pago)", async () => {
+    const cancelled = prisma.payments.find(
+      (p) => p.orderType === "PRIVATE" && p.refId.includes("ac-ajena"),
+    )!;
+    prisma.privateLessons.push({
+      paymentId: cancelled.id,
+      status: "CANCELLED",
+    });
+    const payout = await ctrl.generate(
+      { actorType: "ACADEMY", actorId: "ac-ajena", ...DTO },
+      adminReq,
+    );
+    expect(payout.gross).toBe(0);
+    expect(payout.net).toBe(0);
   });
 
   it("ACADEMY: evento sin platformFeePct usa el param global", async () => {

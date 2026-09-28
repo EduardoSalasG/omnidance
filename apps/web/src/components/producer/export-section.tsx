@@ -11,7 +11,16 @@ const DATASETS = ["sales", "checkins", "guestlist"] as const;
  * sesión); `download` evita el NavPendingOverlay y no navega.
  * Solo se monta cuando el viewer es owner/admin (gate de la página).
  */
-export function ExportSection({ eventId }: { eventId: string }) {
+export function ExportSection({
+  eventId,
+  seriesId,
+  seriesName,
+}: {
+  eventId: string;
+  /** Presente → ofrece el export agregado de la serie (columna `evento`). */
+  seriesId?: string | null;
+  seriesName?: string | null;
+}) {
   const t = useTranslations("producer");
   return (
     <Card>
@@ -31,6 +40,25 @@ export function ExportSection({ eventId }: { eventId: string }) {
           </a>
         ))}
       </div>
+      {seriesId && (
+        <>
+          <p className="mb-3 mt-5 text-xs text-white/40">
+            {t("export.seriesHint", { name: seriesName ?? "" })}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {DATASETS.map((d) => (
+              <a
+                key={d}
+                href={`/api/events/series/${seriesId}/export.csv?dataset=${d}`}
+                download
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-neon/30 bg-neon/5 px-4 text-sm font-semibold text-neon transition-colors hover:border-neon/60"
+              >
+                {t(`export.series.${d}`)}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
     </Card>
   );
 }

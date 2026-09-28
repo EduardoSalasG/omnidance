@@ -182,7 +182,13 @@
       "hint": "Descarga los datos operativos del evento para cuadrar en planilla.",
       "sales": "Ventas",
       "checkins": "Check-ins",
-      "guestlist": "Listas de invitados"
+      "guestlist": "Listas de invitados",
+      "seriesHint": "O agrega todas las fechas de la serie «{name}» (columna «evento»).",
+      "series": {
+        "sales": "Ventas de la serie",
+        "checkins": "Check-ins de la serie",
+        "guestlist": "Listas de la serie"
+      }
     }
   }
 }

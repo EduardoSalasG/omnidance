@@ -374,7 +374,13 @@ export default function ProducerEventDetailPage({
             tableSeatsTotal={event.tableSeatsTotal ?? null}
           />
           <RatingsSection eventId={eventId} />
-          {canManage && <ExportSection eventId={eventId} />}
+          {canManage && (
+            <ExportSection
+              eventId={eventId}
+              seriesId={event.seriesId ?? event.series?.id ?? null}
+              seriesName={event.series?.name ?? null}
+            />
+          )}
         </>
       )}
 

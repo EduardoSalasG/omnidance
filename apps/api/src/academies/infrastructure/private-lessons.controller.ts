@@ -34,6 +34,7 @@ const LESSON_ACTIONS = [
   "done",
   "reschedule",
   "assign",
+  "pay-commission",
 ] as const;
 type LessonAction = (typeof LESSON_ACTIONS)[number];
 
@@ -176,7 +177,7 @@ export class PrivateLessonsController {
           : null,
       };
       if (seesCommission(l)) return base;
-      const { commissionPct: _c, ...rest } = base;
+      const { commissionPct: _c, commissionPaidAt: _p, ...rest } = base;
       return rest;
     });
   }
@@ -196,15 +197,54 @@ export class PrivateLessonsController {
         asRole === "instructor" ? { instructorId: personId } : { personId },
       orderBy: { scheduledAt: "desc" },
     });
+    // Nombres de la contraparte: el alumno ve el instructor, el
+    // instructor ve el alumno (join null-safe: la comprada sin asignar
+    // no tiene instructor todavía).
+    const counterpartIds = [
+      ...new Set(
+        lessons.flatMap((l) =>
+          asRole === "instructor"
+            ? [l.personId]
+            : l.instructorId
+              ? [l.instructorId]
+              : [],
+        ),
+      ),
+    ];
+    const people = counterpartIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: counterpartIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const byId = new Map(people.map((p) => [p.id, p]));
+    const counterpartOf = (l: (typeof lessons)[number]) =>
+      asRole === "instructor"
+        ? {
+            person: byId.get(l.personId) ?? { id: l.personId, name: null },
+          }
+        : {
+            instructor: l.instructorId
+              ? (byId.get(l.instructorId) ?? {
+                  id: l.instructorId,
+                  name: null,
+                })
+              : null,
+          };
     if (asRole === "instructor") {
       return lessons.map((l) => {
         const commissionClp = Math.round((l.price * l.commissionPct) / 100);
-        return { ...l, commissionClp, netClp: l.price - commissionClp };
+        return {
+          ...l,
+          ...counterpartOf(l),
+          commissionClp,
+          netClp: l.price - commissionClp,
+        };
       });
     }
     return lessons.map((l) => {
-      const { commissionPct: _c, ...rest } = l;
-      return rest;
+      const { commissionPct: _c, commissionPaidAt: _p, ...rest } = l;
+      return { ...rest, ...counterpartOf(l) };
     });
   }
 
@@ -284,10 +324,27 @@ export class PrivateLessonsController {
             `el alumno solo cancela en REQUESTED/CONFIRMED (estado ${lesson.status})`,
           );
         }
-        return this.prisma.privateLesson.update({
+        const cancelled = await this.prisma.privateLesson.update({
           where: { id },
           data: { status: "CANCELLED" },
         });
+        // Lección pagada cancelada: la devolución del dinero es manual
+        // (Flow) — se avisa al owner y el pago se excluye del payout de
+        // la academia (payouts.controller).
+        if (cancelled.paymentId && academy?.ownerId) {
+          await this.notifications.notifySafe(academy.ownerId, {
+            category: "OPERATIONAL",
+            type: "academy.private_lesson.cancelled_paid",
+            title: "Clase particular pagada cancelada",
+            body: "Corresponde devolver el pago al alumno",
+            data: {
+              lessonId: lesson.id,
+              academyId: lesson.academyId,
+              paymentId: cancelled.paymentId,
+            },
+          });
+        }
+        return cancelled;
       }
       case "assign": {
         // private-lesson-product: el owner asigna instructor+fecha a una
@@ -364,6 +421,43 @@ export class PrivateLessonsController {
           where: { id },
           data: { scheduledAt: new Date(dto.scheduledAt) },
         });
+      }
+      case "pay-commission": {
+        // Liquidación de la comisión academia→instructor: la plataforma
+        // no transfiere — el owner marca commissionPaidAt cuando paga
+        // por fuera (transferencia/efectivo, mismo criterio que Payout).
+        if (!isOwner) {
+          throw new ForbiddenException("solo el owner liquida la comisión");
+        }
+        if (
+          !lesson.instructorId ||
+          lesson.commissionPct <= 0 ||
+          !["CONFIRMED", "DONE"].includes(lesson.status)
+        ) {
+          throw new ConflictException(
+            "la clase no tiene comisión pendiente de liquidar",
+          );
+        }
+        if (lesson.commissionPaidAt) {
+          throw new ConflictException("la comisión ya fue liquidada");
+        }
+        const updated = await this.prisma.privateLesson.update({
+          where: { id },
+          data: { commissionPaidAt: new Date() },
+        });
+        const clp = new Intl.NumberFormat("es-CL", {
+          style: "currency",
+          currency: "CLP",
+          maximumFractionDigits: 0,
+        }).format(Math.round((lesson.price * lesson.commissionPct) / 100));
+        await this.notifications.notifySafe(lesson.instructorId, {
+          category: "OPERATIONAL",
+          type: "private_lesson.commission_paid",
+          title: "Te liquidaron la comisión de una clase particular",
+          body: clp,
+          data: { lessonId: lesson.id, academyId: lesson.academyId },
+        });
+        return updated;
       }
     }
   }

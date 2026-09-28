@@ -35,6 +35,10 @@ type PrivateLesson = {
   status: string;
   person?: { id: string; name: string | null };
   instructor?: { id: string; name: string | null } | null;
+  // Solo vienen en la vista staff para owner/admin/instructor de la clase
+  // (la comisión es del acuerdo academia↔instructor — el alumno no la ve).
+  commissionPct?: number;
+  commissionPaidAt?: string | null;
 };
 
 // Rama as=instructor de GET /private-lessons/mine — el server calcula
@@ -44,6 +48,7 @@ type InstructorLesson = PrivateLesson & {
   commissionPct: number;
   commissionClp: number;
   netClp: number;
+  commissionPaidAt: string | null;
 };
 
 type Me = { id: string; name: string | null; roles: string[] };
@@ -63,7 +68,8 @@ type LessonAction =
   | "cancel"
   | "done"
   | "reschedule"
-  | "assign";
+  | "assign"
+  | "pay-commission";
 
 type Props = {
   /**
@@ -320,7 +326,20 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       done: (isOwner || isInstructor) && l.status === "CONFIRMED",
       reschedule: (isOwner || isInstructor) && active && !!l.scheduledAt,
       cancel: active && (isOwner || isStudent),
+      // Liquidación de la comisión academia→instructor: solo el owner la
+      // marca (el pago real es por fuera — transferencia/efectivo).
+      payCommission:
+        isOwner &&
+        !!l.instructorId &&
+        (l.commissionPct ?? 0) > 0 &&
+        !l.commissionPaidAt &&
+        (l.status === "CONFIRMED" || l.status === "DONE"),
     };
+  }
+
+  function payCommission(l: PrivateLesson): void {
+    if (!window.confirm(t.confirmPayCommission)) return;
+    void act(l.id, "pay-commission");
   }
 
   function rescheduleSubmit(e: React.FormEvent, id: string): void {
@@ -387,6 +406,8 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                           a.confirm ||
                           a.done ||
                           a.reschedule ||
+                          a.payCommission ||
+                          l.commissionPaidAt ||
                           a.cancel) && (
                           <div className="flex flex-wrap gap-2">
                             {a.assign && (
@@ -439,6 +460,21 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                               >
                                 {t.reschedule}
                               </Button>
+                            )}
+                            {a.payCommission && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={busyId === l.id}
+                                onClick={() => payCommission(l)}
+                              >
+                                {t.payCommission}
+                              </Button>
+                            )}
+                            {l.commissionPaidAt && (
+                              <Badge variant="outline" className="self-center">
+                                {t.commissionPaid}
+                              </Badge>
                             )}
                             {a.cancel && (
                               <Button
@@ -589,7 +625,10 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                     <p className="truncate font-medium">
                       {academyNames.get(l.academyId) ?? shortId(l.academyId)}
                     </p>
-                    <p className="text-xs text-white/60">{lessonWhen(l)}</p>
+                    <p className="text-xs text-white/60">
+                      {lessonWhen(l)} · {t.student}:{" "}
+                      {l.person?.name ?? shortId(l.personId)}
+                    </p>
                     {l.price > 0 && (
                       <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-white/50">
                         <PriceTag amount={l.price} />
@@ -605,6 +644,17 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                           {t.netLine}{" "}
                           <PriceTag amount={l.netClp} />
                         </span>
+                        {/* Liquidación de la comisión — el instructor ve
+                            si la academia ya la pagó (marca del owner). */}
+                        {l.commissionPct > 0 && (
+                          <Badge
+                            variant={l.commissionPaidAt ? "neon" : "muted"}
+                          >
+                            {l.commissionPaidAt
+                              ? t.commissionPaid
+                              : t.commissionPending}
+                          </Badge>
+                        )}
                       </p>
                     )}
                   </div>

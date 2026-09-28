@@ -35,6 +35,14 @@ interface FakePerson {
 interface FakeEvent {
   id: string;
   producerId: string;
+  seriesId?: string;
+  name?: string;
+  startsAt?: Date;
+}
+
+interface FakeSeries {
+  id: string;
+  producerId: string;
 }
 
 interface FakeCheckin {
@@ -72,10 +80,15 @@ interface FakeRole {
   permissionKeys: string[];
 }
 
+// eventId puede ser string o { in: string[] } (scope del export por serie).
+const matchEventId = (v: string, cond: string | { in: string[] }) =>
+  typeof cond === "object" ? cond.in.includes(v) : v === cond;
+
 class FakePrisma {
   friendships: FakeFriendship[] = [];
   tickets: FakeTicket[] = [];
   events: FakeEvent[] = [];
+  eventSeriesRows: FakeSeries[] = [];
   checkins: FakeCheckin[] = [];
   guestLists: FakeGuestList[] = [];
   payments: FakePayment[] = [];
@@ -85,16 +98,33 @@ class FakePrisma {
   event = {
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.events.find((e) => e.id === where.id) ?? null,
+    findMany: async ({ where }: { where: { seriesId?: string } }) =>
+      this.events.filter(
+        (e) => where.seriesId === undefined || e.seriesId === where.seriesId,
+      ),
+  };
+
+  eventSeries = {
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.eventSeriesRows.find((s) => s.id === where.id) ?? null,
   };
 
   checkin = {
-    findMany: async ({ where }: { where: { eventId: string } }) =>
-      this.checkins.filter((c) => c.eventId === where.eventId),
+    findMany: async ({
+      where,
+    }: {
+      where: { eventId: string | { in: string[] } };
+    }) =>
+      this.checkins.filter((c) => matchEventId(c.eventId, where.eventId)),
   };
 
   guestList = {
-    findMany: async ({ where }: { where: { eventId: string } }) =>
-      this.guestLists.filter((l) => l.eventId === where.eventId),
+    findMany: async ({
+      where,
+    }: {
+      where: { eventId: string | { in: string[] } };
+    }) =>
+      this.guestLists.filter((l) => matchEventId(l.eventId, where.eventId)),
   };
 
   payment = {
@@ -141,7 +171,7 @@ class FakePrisma {
       distinct,
     }: {
       where: {
-        eventId: string;
+        eventId: string | { in: string[] };
         ownerId?: { in: string[] };
         status?: string;
       };
@@ -149,7 +179,7 @@ class FakePrisma {
     }) => {
       const rows = this.tickets.filter(
         (t) =>
-          t.eventId === where.eventId &&
+          matchEventId(t.eventId, where.eventId) &&
           (where.status === undefined || t.status === where.status) &&
           (where.ownerId === undefined ||
             where.ownerId.in.includes(t.ownerId)),
@@ -439,5 +469,140 @@ describe("EventsController.exportCsv", () => {
     const { res } = fakeRes();
     const csv = await ctrl.exportCsv("ev-1", "checkins", reqAs("prod-1"), res);
     expect(rows(csv)[1]).toContain('"DJ ""Nico"""');
+  });
+});
+
+describe("EventsController.exportSeriesCsv", () => {
+  let prisma: FakePrisma;
+  let ctrl: EventsController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      { getProducerParams: async () => null } as never,
+    );
+    prisma.eventSeriesRows.push({ id: "ser-1", producerId: "prod-1" });
+    prisma.events.push(
+      {
+        id: "ev-a",
+        producerId: "prod-1",
+        seriesId: "ser-1",
+        name: "Gozadera",
+        startsAt: new Date("2026-09-05T00:00:00Z"),
+      },
+      {
+        id: "ev-b",
+        producerId: "prod-1",
+        seriesId: "ser-1",
+        name: "Gozadera",
+        startsAt: new Date("2026-09-12T00:00:00Z"),
+      },
+      { id: "ev-ajeno", producerId: "prod-1" }, // standalone, fuera de serie
+    );
+    prisma.people.set("prod-1", { id: "prod-1", name: "Prod", photoUrl: null });
+    prisma.people.set("asist", { id: "asist", name: "Luis Asiste", photoUrl: null });
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+  });
+
+  it("owner agrega los eventos de la serie con columna evento", async () => {
+    prisma.checkins.push(
+      {
+        eventId: "ev-a",
+        personId: "asist",
+        method: "SCAN",
+        inAt: new Date("2026-09-05T23:00:00Z"),
+        outAt: null,
+        voidedAt: null,
+        note: null,
+      },
+      {
+        eventId: "ev-b",
+        personId: "asist",
+        method: "MANUAL",
+        inAt: new Date("2026-09-12T23:00:00Z"),
+        outAt: null,
+        voidedAt: null,
+        note: null,
+      },
+      {
+        eventId: "ev-ajeno",
+        personId: "asist",
+        method: "SCAN",
+        inAt: new Date("2026-09-20T23:00:00Z"),
+        outAt: null,
+        voidedAt: null,
+        note: null,
+      },
+    );
+    const { res, headers } = fakeRes();
+    const csv = await ctrl.exportSeriesCsv(
+      "ser-1",
+      "checkins",
+      reqAs("prod-1"),
+      res,
+    );
+    expect(headers["content-disposition"]).toContain("serie-ser-1");
+    const [head, r1, r2] = rows(csv);
+    expect(head).toBe("evento,entrada,salida,metodo,persona,anulado,nota");
+    expect(r1).toContain("Gozadera (2026-09-05),");
+    expect(r2).toContain("Gozadera (2026-09-12),");
+    expect(csv).not.toContain("2026-09-20"); // evento fuera de la serie
+  });
+
+  it("sales de la serie agrega ambas fechas", async () => {
+    prisma.tickets.push(
+      {
+        eventId: "ev-a",
+        ownerId: "asist",
+        buyerId: "asist",
+        listPrice: 10000,
+        serviceFee: 500,
+        status: "USED",
+        paymentId: null,
+        createdAt: new Date("2026-09-05T20:00:00Z"),
+      },
+      {
+        eventId: "ev-b",
+        ownerId: "asist",
+        buyerId: "asist",
+        listPrice: 10000,
+        serviceFee: 500,
+        status: "ACTIVE",
+        paymentId: null,
+        createdAt: new Date("2026-09-12T20:00:00Z"),
+      },
+    );
+    const { res } = fakeRes();
+    const csv = await ctrl.exportSeriesCsv(
+      "ser-1",
+      "sales",
+      reqAs("prod-1"),
+      res,
+    );
+    const [head, ...body] = rows(csv);
+    expect(head.startsWith("evento,")).toBe(true);
+    expect(body).toHaveLength(2);
+  });
+
+  it("serie inexistente → 404; otro productor → 403; dataset inválido → 400", async () => {
+    const { res } = fakeRes();
+    await expect(
+      ctrl.exportSeriesCsv("nope", "sales", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      ctrl.exportSeriesCsv("ser-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      ctrl.exportSeriesCsv("ser-1", "nudes", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 400 });
+    // admin siempre puede
+    const csv = await ctrl.exportSeriesCsv(
+      "ser-1",
+      "sales",
+      reqAs("otro", ["ADMIN"]),
+      res,
+    );
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
   });
 });

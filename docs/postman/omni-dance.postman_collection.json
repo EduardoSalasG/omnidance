@@ -1702,6 +1702,39 @@
           }
         },
         {
+          "name": "GET /api/events/series/{seriesId}/export.csv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/series/{seriesId}/export.csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "series",
+                "{seriesId}",
+                "export.csv"
+              ],
+              "variable": [
+                {
+                  "key": "seriesId",
+                  "value": ":seriesId"
+                }
+              ],
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/events",
           "request": {
             "method": "GET",
