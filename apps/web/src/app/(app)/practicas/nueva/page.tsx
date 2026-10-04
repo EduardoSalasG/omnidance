@@ -27,6 +27,12 @@ export default function NuevaPracticaPage() {
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(false);
+  // Éxito breve antes del redirect — la key practices.created existía
+  // sin uso; el detalle destino no puede anunciar la creación.
+  const [created, setCreated] = useState(false);
+  // Fallo de GET /styles — el select quedaría solo con "Cualquiera"
+  // sin aviso; la práctica se puede publicar igual sin estilo.
+  const [stylesError, setStylesError] = useState(false);
 
   const [name, setName] = useState("");
   // Dirección libre — parque, plaza o studio; sin catálogo de venues.
@@ -48,10 +54,13 @@ export default function NuevaPracticaPage() {
     // Catálogo de estilos para el foco de la práctica (público, ~10 filas).
     apiFetch("/styles")
       .then(async (res) => {
-        if (res.ok)
+        if (res.ok) {
           setStyles((await res.json()) as { id: string; name: string }[]);
+        } else {
+          setStylesError(true);
+        }
       })
-      .catch(() => {});
+      .catch(() => setStylesError(true));
   }, []);
 
   async function createPractice(e: React.FormEvent) {
@@ -86,9 +95,11 @@ export default function NuevaPracticaPage() {
         setFormError(true);
         return;
       }
-      const created = (await res.json()) as { id: string };
-      // Directo al detalle: la práctica recién creada ya vive como evento.
-      router.push(`/eventos/${created.id}`);
+      const createdEv = (await res.json()) as { id: string };
+      // Feedback de éxito antes del redirect al detalle (la práctica
+      // recién creada ya vive como evento).
+      setCreated(true);
+      setTimeout(() => router.push(`/eventos/${createdEv.id}`), 1200);
     } catch {
       setFormError(true);
     } finally {
@@ -101,6 +112,15 @@ export default function NuevaPracticaPage() {
   )
     .toISOString()
     .slice(0, 10);
+
+  // "Hasta" ≤ "Desde" = cruza medianoche (el submit le suma +24h) —
+  // el hint lo hace explícito en vez de corregir en silencio.
+  const crossesMidnight = Boolean(
+    date &&
+      startTime &&
+      endTime &&
+      new Date(`${date}T${endTime}`) <= new Date(`${date}T${startTime}`),
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6">
@@ -116,7 +136,15 @@ export default function NuevaPracticaPage() {
         </Card>
       )}
 
-      {!!me && (
+      {created && (
+        <Card className="p-6 text-center">
+          <p role="status" className="text-lg font-bold text-neon">
+            {t("created")}
+          </p>
+        </Card>
+      )}
+
+      {!!me && !created && (
         <form onSubmit={createPractice} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="text-white/70">
@@ -178,6 +206,11 @@ export default function NuevaPracticaPage() {
                 </option>
               ))}
             </select>
+            {stylesError && (
+              <span className="text-[11px] text-amber-300/80">
+                {t("stylesLoadError")}
+              </span>
+            )}
           </label>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -236,6 +269,11 @@ export default function NuevaPracticaPage() {
                 onChange={(e) => setEndTime(e.target.value)}
                 className={inputCls}
               />
+              {crossesMidnight && (
+                <span className="text-[11px] text-white/40">
+                  {t("endsNextDay")}
+                </span>
+              )}
             </label>
           </div>
 

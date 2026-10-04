@@ -351,7 +351,13 @@ function PracticasInner() {
         ) : visible.length === 0 ? (
           <Card className="flex flex-col items-start gap-3">
             <p role="status" className="text-white/60">
-              {view === "mias" ? t("mineEmpty") : t("empty")}
+              {/* Con filtro de estilo activo "no hay prácticas" es
+                  falso — existen, solo no de ese estilo. */}
+              {styleFilter
+                ? t("emptyFiltered")
+                : view === "mias"
+                  ? t("mineEmpty")
+                  : t("empty")}
             </p>
             {/* Sin dead-end: organizar es la conducta que la spec gamifica */}
             <Button

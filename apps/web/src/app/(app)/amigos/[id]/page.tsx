@@ -39,7 +39,7 @@ type PersonProfile = {
   upcomingEvents?: UpcomingEvent[];
 };
 
-type PageState = "loading" | "ready" | "unauth" | "error";
+type PageState = "loading" | "ready" | "unauth" | "notfound" | "error";
 
 export default function AmigoPerfilPage({
   params,
@@ -67,6 +67,12 @@ export default function AmigoPerfilPage({
       const res = await apiFetch(`/people/${id}`);
       if (res.status === 401) {
         setState("unauth");
+        return;
+      }
+      // 404 = persona que no existe — no es un fallo transitorio:
+      // estado propio sin retry (reintentar daría lo mismo).
+      if (res.status === 404) {
+        setState("notfound");
         return;
       }
       if (!res.ok) {
@@ -161,6 +167,16 @@ export default function AmigoPerfilPage({
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       {state === "loading" && <SkeletonList />}
+      {state === "notfound" && (
+        <Card className="flex flex-col items-start gap-3">
+          <p role="status" className="text-white/60">
+            {t("notFound")}
+          </p>
+          <Button href="/amigos" variant="secondary" size="sm">
+            {tc("back")}
+          </Button>
+        </Card>
+      )}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-white/50">

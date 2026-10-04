@@ -116,6 +116,7 @@
       "contactWebsite": "Sitio web de la academia: {host}",
       "buyPlan": "Comprar plan",
       "extendPlan": "Extender vigencia",
+      "trialAssigned": "Se asigna en la academia",
       "planActive": "Plan activo",
       "privateLesson": "Clase particular",
       "privateLessonDesc": "1 alumno · el instructor y la fecha los asigna la academia tras tu compra",
@@ -128,7 +129,8 @@
     "planInactive": "Inactivo",
     "planTypeLocked": "El tipo no se puede cambiar: el plan tiene cobro recurrente en Flow",
     "planWeeklyClasses": "Clases por semana (vacío = ilimitado)",
-    "planWeeklyCount": "{count, plural, one {# clase/semana} other {# clases/semana}}"
+    "planWeeklyCount": "{count, plural, one {# clase/semana} other {# clases/semana}}",
+    "planClassCount": "{count, plural, one {# clase} other {# clases}}"
   },
   "academySeries": {
     "capacityOptional": "default",

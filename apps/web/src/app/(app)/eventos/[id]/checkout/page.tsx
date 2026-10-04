@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import messages from "../../../../../../messages/es-CL.json";
+import { messages } from "@/i18n/messages";
 import { Button } from "@/components/ui";
 import { CheckoutClient } from "./checkout-client";
 
@@ -51,7 +51,7 @@ export default async function CheckoutPage({
 }: {
   params: { id: string };
 }) {
-  const t = messages.events;
+  const t = messages.events as Record<string, string>;
   const event = await getEvent(params.id);
 
   if (event === "error") {

@@ -64,6 +64,8 @@
       "submit": "Activar mi cuenta",
       "success": "Listo — tu cuenta ya está activa",
       "error": "No pudimos guardar — intenta de nuevo",
+      "phoneTaken": "Este teléfono ya está registrado en otra cuenta.",
+      "passwordShort": "La contraseña debe tener al menos 8 caracteres.",
       "loadError": "No pudimos cargar tus datos."
     }
   }

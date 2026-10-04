@@ -61,6 +61,7 @@ type VenueT = (typeof messages)["venuePublic"] & Record<string, string>;
 type EventsT = (typeof messages)["events"] & {
   genre: Record<string, string>;
   filterAll: string;
+  filterByStyle: string;
   emptyFiltered: string;
   viewList: string;
   viewCalendar: string;
@@ -119,8 +120,14 @@ export async function generateMetadata({
 }: {
   params: { id: string };
 }): Promise<Metadata> {
+  const tv = messages.venuePublic as VenueT;
   const venue = await getVenue(params.id);
-  return { title: venue === "error" ? "Locales" : `${venue.name} — locales` };
+  return {
+    title:
+      venue === "error"
+        ? tv.metaTitleFallback
+        : tv.metaTitle.replace("{name}", venue.name),
+  };
 }
 
 export default async function VenueProfilePage({
@@ -322,9 +329,11 @@ export default async function VenueProfilePage({
           {venue.address && (
             <a
               href={
+                // URL universal de Google Maps — sin API key, el SO la
+                // abre en la app de mapas instalada (igual que /eventos/:id).
                 venue.lat != null && venue.lng != null
-                  ? `https://maps.apple.com/?daddr=${venue.lat},${venue.lng}`
-                  : `https://maps.apple.com/?daddr=${encodeURIComponent(venue.address)}`
+                  ? `https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`
+                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue.address)}`
               }
               target="_blank"
               rel="noopener noreferrer"
@@ -409,7 +418,7 @@ export default async function VenueProfilePage({
         {/* Estilos — multiselect chips (unión), preservan vista/semana/día */}
         {venue.events.length > 0 && (
           <nav
-            aria-label="Filtrar por estilo"
+            aria-label={te.filterByStyle}
             className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6"
           >
             <Link

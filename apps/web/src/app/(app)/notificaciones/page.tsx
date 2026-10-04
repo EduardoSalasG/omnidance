@@ -118,6 +118,8 @@ export default function NotificacionesPage() {
   const router = useRouter();
   const [state, setState] = useState<PageState>("loading");
   const [items, setItems] = useState<NotificationItem[]>([]);
+  // Busy del "marcar todas" — deshabilita el botón mientras vuela.
+  const [markingAll, setMarkingAll] = useState(false);
   // Lente: roles de /me + modo consumer — el centro filtra por dominio
   // (social ↔ academia); lo transversal (account.*, crm.*) va en ambas.
   const [meRoles, setMeRoles] = useState<string[] | null>(null);
@@ -186,12 +188,16 @@ export default function NotificacionesPage() {
   }
 
   async function markAll() {
+    if (markingAll) return;
+    setMarkingAll(true);
     const now = new Date().toISOString();
     setItems((prev) => prev.map((it) => ({ ...it, readAt: it.readAt ?? now })));
     try {
       await apiFetch("/notifications/read-all", { method: "POST" });
     } catch {
       void load();
+    } finally {
+      setMarkingAll(false);
     }
   }
 
@@ -212,14 +218,21 @@ export default function NotificacionesPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
-      <header className="flex items-center justify-between gap-4">
-        {unreadCount > 0 && <Badge variant="neon">{unreadCount}</Badge>}
-        {unreadCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={markAll}>
+      {/* Header solo cuando hay no-leídas — vacío reservaba una franja
+          muerta sobre la lista. */}
+      {unreadCount > 0 && (
+        <header className="flex items-center justify-between gap-4">
+          <Badge variant="neon">{unreadCount}</Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={markingAll}
+            onClick={markAll}
+          >
             {t("markAll")}
           </Button>
-        )}
-      </header>
+        </header>
+      )}
 
       {state === "loading" && <SkeletonList items={4} lines={1} />}
       {state === "error" && (

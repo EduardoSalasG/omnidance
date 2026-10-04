@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Badge, Button, LevelBars } from "@/components/ui";
+import { Badge, Button, LevelBars, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -152,10 +152,21 @@ export function ClassCard({
           <div className="flex shrink-0 flex-col items-center gap-1 self-start py-0.5">
             {!cls.enrolled ? (
               // Academia ajena (vista explore): sin inscripción vigente
-              // no hay reserva — el API lo rechazaría con 403.
-              <span className="text-center text-xs leading-tight text-white/40">
-                {t("requiresEnrollment")}
-              </span>
+              // no hay reserva — el API lo rechazaría con 403. Pero si
+              // la serie vende clase suelta (dropInPrice), el precio
+              // informa mejor que el candado.
+              cls.series.dropInPrice != null ? (
+                <span className="flex flex-col items-center gap-0.5">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+                    {t("dropIn")}
+                  </span>
+                  <PriceTag amount={cls.series.dropInPrice} />
+                </span>
+              ) : (
+                <span className="text-center text-xs leading-tight text-white/40">
+                  {t("requiresEnrollment")}
+                </span>
+              )
             ) : full ? (
               <Button
                 size="sm"

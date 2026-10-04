@@ -1,5 +1,7 @@
 {
   "venuePublic": {
+    "metaTitle": "{name} — locales",
+    "metaTitleFallback": "Locales",
     "address": "Dirección",
     "directions": "Cómo llegar a esta dirección",
     "hours": "Horarios",

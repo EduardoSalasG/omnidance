@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
-import messages from "../../../../messages/es-CL.json";
+import { messages } from "@/i18n/messages";
 import { EventCard, type EventCardData } from "@/components/events/event-card";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
@@ -28,8 +28,17 @@ import {
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 
+// El merge i18n devuelve Dict — las claves se declaran explícitas
+// (mismo patrón que locales/[id]).
+type EventsT = Record<string, string> & {
+  genre: Record<string, string>;
+  type: Record<string, string>;
+  showTeam: Record<string, string>;
+};
+const eventsDict = messages.events as EventsT;
+
 export const metadata: Metadata = {
-  title: "Eventos de salsa y bachata esta semana",
+  title: eventsDict.metaTitle,
   alternates: { canonical: "/eventos" },
 };
 
@@ -73,7 +82,7 @@ const weekdayNameFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "long",
 });
 
-function dayLabel(iso: string, t: typeof messages.events): string {
+function dayLabel(iso: string, t: EventsT): string {
   const today = dayKey(new Date().toISOString());
   const tomorrow = dayKey(new Date(Date.now() + 86400000).toISOString());
   const key = dayKey(iso);
@@ -129,8 +138,8 @@ export default async function EventosPage({
     upto?: string;
   };
 }) {
-  const t = messages.events;
-  const tc = messages.common;
+  const t = eventsDict;
+  const tc = messages.common as Record<string, string>;
   // El middleware exige sesión para esta ruta — todo visitante está
   // autenticado (no hay ramas anónimas).
   const [res, myTickets] = await Promise.all([
@@ -441,12 +450,12 @@ export default async function EventosPage({
         {view !== "map" && (
           <>
             <nav
-              aria-label="Filtrar por estilo"
+              aria-label={t.filterByStyle}
               className="no-scrollbar -mx-6 flex gap-2 overflow-x-auto px-6"
             >
               <SegmentedMulti
                 tour="ev-genres"
-                ariaLabel="Géneros"
+                ariaLabel={t.genresLabel}
                 focusKey={[...genreSet].at(-1) ?? "all"}
                 items={[
                   {

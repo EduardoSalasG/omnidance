@@ -86,6 +86,24 @@ async function getMembershipFee(): Promise<number> {
   return Number.isFinite(fee) && fee >= 0 ? fee : 500;
 }
 
+// website es texto libre: puede venir sin protocolo o malformado —
+// `new URL` en render SSR lanzaría y rompería la ficha. Se prueba
+// tal cual y luego con https:// prefijado; si nada resuelve, null
+// (el ícono de sitio web no se muestra).
+function resolveWebsite(raw: string): { href: string; host: string } | null {
+  for (const candidate of [raw, `https://${raw}`]) {
+    try {
+      const u = new URL(candidate);
+      if (u.hostname) {
+        return { href: u.href, host: u.hostname.replace(/^www\./, "") };
+      }
+    } catch {
+      // probar la siguiente forma
+    }
+  }
+  return null;
+}
+
 // Class.date llega a medianoche UTC — formatear en UTC para no correr
 // el día (misma convención que /clases).
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
@@ -129,6 +147,7 @@ export default async function AcademiaDetailPage({
         academy.myEnrollment.status
       ]
     : null;
+  const website = academy.website ? resolveWebsite(academy.website) : null;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-6 pt-6 sm:px-6">
@@ -184,7 +203,7 @@ export default async function AcademiaDetailPage({
           </p>
         )}
         {/* Contacto — iconos públicos (Instagram/WhatsApp/sitio web) */}
-        {(academy.instagram || academy.whatsapp || academy.website) && (
+        {(academy.instagram || academy.whatsapp || website) && (
           <div className="flex flex-wrap gap-2">
             {academy.instagram && (
               <a
@@ -237,16 +256,16 @@ export default async function AcademiaDetailPage({
                 </svg>
               </a>
             )}
-            {academy.website && (
+            {website && (
               <a
-                href={academy.website}
+                href={website.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={t.profile.contactWebsite.replace(
                   "{host}",
-                  new URL(academy.website).hostname.replace(/^www\./, ""),
+                  website.host,
                 )}
-                title={new URL(academy.website).hostname.replace(/^www\./, "")}
+                title={website.host}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-night-700 bg-night-800 text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
               >
                 <svg
@@ -344,6 +363,9 @@ export default async function AcademiaDetailPage({
             privateLesson: t.profile.privateLesson,
             privateLessonDesc: t.profile.privateLessonDesc,
             feeIncluded: mc.feeIncluded,
+            trialAssigned: t.profile.trialAssigned,
+            planClassCount: t.planClassCount,
+            planWeeklyCount: t.planWeeklyCount,
             more: t.profile.morePlans,
             fewer: t.profile.fewerPlans,
             planTypeLabels: t.planTypes as Record<string, string>,

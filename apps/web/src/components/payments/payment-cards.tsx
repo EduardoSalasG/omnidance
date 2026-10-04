@@ -165,7 +165,9 @@ function PaymentCard({
                           #{e.seq}
                         </span>
                         <span className="min-w-0 flex-1 truncate font-medium text-white/80">
-                          {e.type}
+                          {t.has(`ledger.type.${e.type}`)
+                            ? t(`ledger.type.${e.type}`)
+                            : e.type}
                         </span>
                         <span className="shrink-0 text-white/50">
                           {e.actor} ·{" "}
