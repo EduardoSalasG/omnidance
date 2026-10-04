@@ -13,7 +13,7 @@ El bailarín declara su género y en qué estilos baila con qué rol (leader/fol
 #### Scenario: Bailarín declara género
 
 - WHEN un usuario autenticado guarda género `M`/`F`/`OTHER` en su perfil
-- THEN `PATCH /api/me/profile` persiste el valor y `GET /api/me` lo devuelve
+- THEN `PATCH /api/me` persiste el valor (`null` lo limpia) y `GET /api/me` lo devuelve
 
 #### Scenario: Sin género declarado
 
@@ -22,7 +22,7 @@ El bailarín declara su género y en qué estilos baila con qué rol (leader/fol
 
 ### Requirement: Estilos con rol de baile
 
-El perfil MUST permitir declarar por cada `Style` del catálogo un `DanceRole` (`LEADER | FOLLOWER | SWITCH`) y nivel opcional. `PATCH /api/me/profile` SHALL reemplazar el set completo de `PersonStyleRole` de forma idempotente. `GET /api/styles` SHALL devolver el catálogo agrupado/por género para el picker.
+El perfil MUST permitir declarar por cada `Style` del catálogo un `DanceRole` (`LEADER | FOLLOWER | SWITCH`) y nivel opcional. `PUT /api/me/style-roles` SHALL reemplazar el set completo de `PersonStyleRole` de forma idempotente. `GET /api/styles` SHALL devolver el catálogo ordenado por género para el picker.
 
 #### Scenario: Declarar estilos y roles
 

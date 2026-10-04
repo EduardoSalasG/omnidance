@@ -114,15 +114,20 @@ export class EventAnalyticsController {
       }
     }
 
+    // K-anonymity por dimensión (mismo criterio que dj summary): una
+    // dim con <3 valores no-nulos devuelve null — su promedio expondría
+    // la evaluación individual de esa persona.
     const byDim = {} as Record<AnalyticsDim, number | null>;
     for (const dim of ANALYTICS_DIMS) {
       const values = ratings
         .map((r) => r[dim])
         .filter((v): v is number => v != null);
-      byDim[dim] = values.length
-        ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) /
-          10
-        : null;
+      byDim[dim] =
+        values.length >= EXPOSURE_THRESHOLD
+          ? Math.round(
+              (values.reduce((a, b) => a + b, 0) / values.length) * 10,
+            ) / 10
+          : null;
     }
 
     return {

@@ -305,7 +305,7 @@ describe("PeopleController", () => {
       expect(notifications.notifySafe).not.toHaveBeenCalled();
     });
 
-    it("ya evaluado por el viewer → no sale ni dispara fan-out", async () => {
+    it("ya evaluado por el viewer → no sale en pending pero el fan-out igual corre (por los demás asistentes)", async () => {
       prisma.events.push({
         id: "ev-1",
         name: "La Gozadera",
@@ -316,7 +316,9 @@ describe("PeopleController", () => {
       prisma.ratings.push({ eventId: "ev-1", raterId: "me" });
 
       expect(await ctrl.pendingSurveys(reqAs("me"))).toEqual([]);
-      expect(notifications.notifySafe).not.toHaveBeenCalled();
+      // el claim sí ocurre — otro asistente podría no haber abierto la app;
+      // aquí "me" es el único asistente, así que se le notifica (recordatorio)
+      expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
     });
 
     it("check-in anulado → []", async () => {

@@ -212,9 +212,30 @@ describe("EventAnalyticsController.analytics", () => {
     expect(res.genderSplit).toEqual({ M: 1, F: 2, OTHER: 0, unknown: 1 });
     expect(res.roleSplit).toEqual({ leader: 1, follower: 1, both: 1 });
     expect(res.ratings!.count).toBe(3);
-    expect(res.ratings!.byDim.overall).toBe(4.5); // (4+5)/2, null excluido
+    // overall tiene solo 2 valores no-nulos <3 → null (k-anonymity por dim)
+    expect(res.ratings!.byDim.overall).toBeNull();
     expect(res.ratings!.byDim.music).toBeCloseTo(3.7, 1);
+    expect(res.ratings!.byDim.organization).toBeCloseTo(3.7, 1);
     expect(res.ratings!.byDim.occupation).toBeNull(); // sin valores → null
+  });
+
+  it("pocas evaluaciones → count visible pero byDim todo null", async () => {
+    prisma.checkins.push(
+      { eventId: "ev-1", personId: "a", voidedAt: null },
+      { eventId: "ev-1", personId: "b", voidedAt: null },
+      { eventId: "ev-1", personId: "c", voidedAt: null },
+    );
+    prisma.people.set("a", mkAttendee("a", "M"));
+    prisma.people.set("b", mkAttendee("b", "F"));
+    prisma.people.set("c", mkAttendee("c", "F"));
+    // 2 evaluaciones: su promedio expondría puntajes individuales
+    prisma.ratings.push(mkRating("ev-1", 5), mkRating("ev-1", 4));
+
+    const res = await ctrl.analytics("ev-1", reqAs("prod-1"));
+    expect(res.ratings!.count).toBe(2);
+    expect(Object.values(res.ratings!.byDim).every((v) => v === null)).toBe(
+      true,
+    );
   });
 
   it("géneros heredados de la serie cuando el evento no declara", async () => {
