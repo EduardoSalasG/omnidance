@@ -631,8 +631,9 @@ sequenceDiagram
     API->>DB: universo (checkins+payments del actor) → upsert RelationshipScore
     Note over API: score=min(100, att*10+spend/1000+ref*15)<br/>segment NEW|AT_RISK|BRINGS_PEOPLE|CORE
     P->>API: POST /crm/people/tags + campañas DRAFT
+    P->>API: POST /crm/campaigns/preview → {count} (sin enviar)
     P->>API: POST /crm/campaigns/:id/send
-    API->>DB: resuelve segmento (tags|segment|personIds)<br/>→ notifySafe ×N (+DiscountCode CAMPAIGN si aplica)
+    API->>DB: resuelve segmento (tags|segment|personIds<br/>|allStudents|enrollmentStatus|planId|seriesId)<br/>→ notifySafe ×N (+DiscountCode CAMPAIGN si aplica)
     CRON->>API: diario 09:00 → evaluateAllActiveTriggers
     API->>DB: WINBACK: inactivos > crm.winback_days → notify<br/>(cooldown anti-spam 7d)
 ```

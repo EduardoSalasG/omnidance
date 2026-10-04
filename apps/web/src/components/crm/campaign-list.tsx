@@ -86,6 +86,20 @@ export function CampaignList({
 
   function audienceLabel(c: CrmCampaign): string {
     const parts: string[] = [];
+    if (c.segment?.allStudents) parts.push(t("campaigns.allStudents"));
+    if (c.segment?.enrollmentStatus?.length) {
+      parts.push(
+        c.segment.enrollmentStatus
+          .map((s) =>
+            t.has(`campaigns.enrollmentStatus.${s}`)
+              ? t(`campaigns.enrollmentStatus.${s}`)
+              : s,
+          )
+          .join(", "),
+      );
+    }
+    if (c.segment?.planId) parts.push(t("campaigns.byPlan"));
+    if (c.segment?.seriesId) parts.push(t("campaigns.bySeries"));
     if (c.segment?.segment) {
       parts.push(
         t.has(`segments.${c.segment.segment}`)
@@ -95,7 +109,9 @@ export function CampaignList({
     }
     if (c.segment?.tags?.length) parts.push(c.segment.tags.join(", "));
     if (c.segment?.personIds?.length) {
-      parts.push(`${c.segment.personIds.length} id`);
+      parts.push(
+        `${t("campaigns.pickPeople")} (${c.segment.personIds.length})`,
+      );
     }
     return parts.join(" + ") || t("campaigns.audienceAll");
   }
