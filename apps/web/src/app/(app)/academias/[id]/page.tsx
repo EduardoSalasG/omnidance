@@ -183,7 +183,7 @@ export default async function AcademiaDetailPage({
             {academy.address}
           </p>
         )}
-        {/* Contacto — Instagram/WhatsApp/sitio web públicos */}
+        {/* Contacto — iconos públicos (Instagram/WhatsApp/sitio web) */}
         {(academy.instagram || academy.whatsapp || academy.website) && (
           <div className="flex flex-wrap gap-2">
             {academy.instagram && (
@@ -191,7 +191,12 @@ export default async function AcademiaDetailPage({
                 href={`https://instagram.com/${academy.instagram}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-night-700 bg-night-800 px-3 text-sm text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+                aria-label={t.profile.contactInstagram.replace(
+                  "{handle}",
+                  academy.instagram,
+                )}
+                title={`@${academy.instagram}`}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-night-700 bg-night-800 text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
               >
                 <svg
                   aria-hidden
@@ -207,7 +212,6 @@ export default async function AcademiaDetailPage({
                   <circle cx="12" cy="12" r="4" />
                   <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
                 </svg>
-                @{academy.instagram}
               </a>
             )}
             {academy.whatsapp && (
@@ -215,7 +219,9 @@ export default async function AcademiaDetailPage({
                 href={`https://wa.me/${academy.whatsapp}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-night-700 bg-night-800 px-3 text-sm text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+                aria-label={t.profile.contactWhatsapp}
+                title="WhatsApp"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-night-700 bg-night-800 text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
               >
                 <svg
                   aria-hidden
@@ -229,7 +235,6 @@ export default async function AcademiaDetailPage({
                 >
                   <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                 </svg>
-                WhatsApp
               </a>
             )}
             {academy.website && (
@@ -237,7 +242,12 @@ export default async function AcademiaDetailPage({
                 href={academy.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-night-700 bg-night-800 px-3 text-sm text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+                aria-label={t.profile.contactWebsite.replace(
+                  "{host}",
+                  new URL(academy.website).hostname.replace(/^www\./, ""),
+                )}
+                title={new URL(academy.website).hostname.replace(/^www\./, "")}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-night-700 bg-night-800 text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
               >
                 <svg
                   aria-hidden
@@ -252,7 +262,6 @@ export default async function AcademiaDetailPage({
                   <circle cx="12" cy="12" r="10" />
                   <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                 </svg>
-                {new URL(academy.website).hostname.replace(/^www\./, "")}
               </a>
             )}
           </div>
