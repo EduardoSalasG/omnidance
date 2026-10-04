@@ -5,7 +5,7 @@ import academyExtrasPart from "@/i18n/parts/academyExtras.json";
 import subscriptionsPart from "@/i18n/parts/subscriptions.json";
 import membershipCheckoutPart from "@/i18n/parts/membershipCheckout.json";
 import { Badge, Button, Card, PriceTag } from "@/components/ui";
-import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
+import { InstructorsSection } from "@/components/academy/instructors-section";
 import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
 import {
   SubscriptionManage,
@@ -274,23 +274,12 @@ export default async function AcademiaDetailPage({
       )}
 
       {academy.instructors.length > 0 && (
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-            {t.profile.instructors}
-          </h2>
-          <ul className="flex flex-col gap-3">
-            {academy.instructors.map((i) => (
-              <li key={i.personId} className="flex items-center gap-3">
-                <PartnerAvatar
-                  name={i.name ?? "—"}
-                  photoUrl={i.photoUrl}
-                  size="md"
-                />
-                <p className="font-medium">{i.name ?? "—"}</p>
-              </li>
-            ))}
-          </ul>
-        </Card>
+        <InstructorsSection
+          instructors={academy.instructors}
+          title={t.profile.instructors}
+          moreLabel={t.profile.moreInstructors}
+          fewerLabel={t.profile.fewerInstructors}
+        />
       )}
 
       {(academy.plans.length > 0 ||
