@@ -933,6 +933,13 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     let venuePayoutId: string;
 
     beforeAll(async () => {
+      // Tasa determinista del passthrough (modelo SaaS — el costo Flow se
+      // descuenta del payout ACADEMY como línea GATEWAY_FEE_PASSTHROUGH).
+      await prisma.platformParam.upsert({
+        where: { key: "gateway_fee.academy_passthrough_pct" },
+        update: { value: 3.19 },
+        create: { key: "gateway_fee.academy_passthrough_pct", value: 3.19 },
+      });
       await prisma.payment.createMany({
         data: [
           {
@@ -1032,7 +1039,14 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       // solo el ticket de 7000 (fee 100): excluye evento con productor,
       // PENDING y orderType != TICKET
       expect(body.gross).toBe(7000);
-      expect(body.net).toBe(6900);
+      // Modelo SaaS: sin platformFee ni fee real del pago — solo el
+      // passthrough Flow como línea explícita: round(7000 × 3.19%) = 223.
+      expect(body.platformFee).toBe(0);
+      expect(body.gatewayFee).toBe(223);
+      expect(body.net).toBe(7000 - 223);
+      expect(body.lines).toEqual([
+        { type: "GATEWAY_FEE_PASSTHROUGH", amount: 223 },
+      ]);
     });
 
     it("generate VENUE → mismo patrón con venueId + producerId null", async () => {

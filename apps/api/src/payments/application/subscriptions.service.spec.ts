@@ -572,12 +572,13 @@ describe("SubscriptionsService", () => {
       expect(sub.planId).toBe("plan1");
       expect(sub.academyId).toBe("ac1");
 
-      // plan espejo lazy: ensurePlan con price + fee e interval mensual
+      // plan espejo lazy: ensurePlan con el precio del plan (SIN fee —
+      // modelo SaaS) e interval mensual
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         {
           planId: "omni_plan1",
           name: "Academia X — Mensual",
-          amount: 10500,
+          amount: 10000,
           intervalCount: 1,
         },
         { correlationId: expect.any(String) },
@@ -1520,7 +1521,7 @@ describe("SubscriptionsService", () => {
   });
 
   describe("syncMirrorPlan", () => {
-    it("plan con espejo → plans/edit con nombre compuesto y amount = price + fee", async () => {
+    it("plan con espejo → plans/edit con nombre compuesto y amount = price (SIN fee)", async () => {
       await svc.syncMirrorPlan(
         { flowPlanId: "omni_plan1", academy: { name: "Academia Tumbao" } },
         { name: "Mensual Pro", price: 40000 },
@@ -1530,7 +1531,9 @@ describe("SubscriptionsService", () => {
         {
           planId: "omni_plan1",
           name: "Academia Tumbao — Mensual Pro",
-          amount: 40500, // 40000 + service_fee.membership_clp (500 default)
+          // 40000 — sin service_fee.membership_clp (inerte en el modelo
+          // SaaS: el costo Flow se liquida en el payout de la academia).
+          amount: 40000,
         },
         expect.objectContaining({ correlationId: expect.any(String) }),
       );
@@ -1631,7 +1634,9 @@ describe("SubscriptionsService", () => {
       expect(payment.orderType).toBe("MEMBERSHIP");
       expect(payment.status).toBe("PAID");
       expect(payment.gateway).toBe("STUB");
-      expect(payment.amount).toBe(10500);
+      // 10000 = precio del plan sin cargo de servicio (modelo SaaS —
+      // el plan espejo del stub cobra el mismo amount que ensurePlan).
+      expect(payment.amount).toBe(10000);
       expect(fx.enrollments).toHaveLength(1);
       expect(fx.enrollments[0]).toMatchObject({
         academyId: "ac1",

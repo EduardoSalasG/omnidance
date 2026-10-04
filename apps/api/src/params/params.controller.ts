@@ -22,6 +22,9 @@ const PUBLIC_KEYS = new Set([
   "service_fee.presale_clp",
   "service_fee.door_app_clp",
   "service_fee.door_cash_clp",
+  // Deprecated (modelo SaaS, spec academy-saas-billing): las órdenes de
+  // academia ya no cobran cargo — el key sigue expuesto para clientes
+  // legacy pero ningún checkout lo aplica.
   "service_fee.membership_clp",
   "session.cooldown_minutes",
   "qr.rotation_seconds",

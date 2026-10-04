@@ -820,16 +820,15 @@ export class CheckoutService {
       );
     }
 
-    // Precio del plan desde DB (nunca del cliente) + cargo de servicio
-    // parametrizable; sin descuentos ni duplicidad de orden PENDING en v1 —
-    // re-comprar con orden en curso solo genera otra orden abandonable.
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.membership_clp",
-      500,
-    );
+    // Precio del plan desde DB (nunca del cliente). SIN cargo de servicio:
+    // modelo SaaS (spec academy-saas-billing) — la academia paga su
+    // suscripción y vende sin comisión al alumno; el costo Flow se liquida
+    // en su payout (línea GATEWAY_FEE_PASSTHROUGH). Defensivo en código:
+    // no depende del param service_fee.membership_clp (deprecated para
+    // órdenes de academia), el fee es 0 para MEMBERSHIP siempre.
     const quote = this.pricing.quote({
       listPrice: plan.price,
-      serviceFeeClp,
+      serviceFeeClp: 0,
       discount: null,
     });
 
@@ -914,10 +913,11 @@ export class CheckoutService {
       );
     }
 
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.membership_clp",
-      500,
-    );
+    // Sin cargo de servicio en productos de academia (modelo SaaS — spec
+    // academy-saas-billing): el alumno paga solo lo que la academia fija;
+    // el costo Flow se liquida en su payout. Defensivo: no lee el param
+    // service_fee.membership_clp (deprecated para órdenes de academia).
+    const serviceFeeClp = 0;
 
     // TRIAL nunca extiende la vigencia vigente — se materializa como
     // enrollment independiente desde now; sin lookups de vigencia/suscripción.
@@ -1048,10 +1048,10 @@ export class CheckoutService {
 
   /**
    * Revisión previa a comprar una clase suelta/taller: desglose de precio
-   * (precio de la serie + cargo de servicio del param de membresías —
-   * misma línea de negocio academy), cupo restante y si el viewer ya
-   * tiene reserva. Mismas reglas de dominio que purchaseClass; no crea
-   * orden ni toca la pasarela.
+   * (solo el dropInPrice de la serie — sin cargo de servicio en el modelo
+   * SaaS de academia), cupo restante y si el viewer ya tiene reserva.
+   * Mismas reglas de dominio que purchaseClass; no crea orden ni toca la
+   * pasarela.
    */
   async classQuote(personId: string, classId: string) {
     const { cls, listPrice } = await this.purchasableClass(classId);
@@ -1074,10 +1074,9 @@ export class CheckoutService {
         select: { status: true },
       }),
     ]);
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.membership_clp",
-      500,
-    );
+    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // la clase suelta cobra solo el dropInPrice de la serie.
+    const serviceFeeClp = 0;
     const quote = this.pricing.quote({
       listPrice,
       serviceFeeClp,
@@ -1138,10 +1137,9 @@ export class CheckoutService {
     // pagó, queda en cola, y la academia gestiona el aforo.
     if (booked >= capacity) throw new ClassSoldOutError();
 
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.membership_clp",
-      500,
-    );
+    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // la orden WORKSHOP cobra solo el dropInPrice.
+    const serviceFeeClp = 0;
     const quote = this.pricing.quote({
       listPrice,
       serviceFeeClp,
@@ -1217,17 +1215,16 @@ export class CheckoutService {
 
   /**
    * Revisión previa a comprar una clase particular (spec
-   * private-lesson-product): desglose de precio (precio único de la
-   * academia + cargo de servicio del param de membresías — misma línea de
-   * negocio academy). No crea orden ni toca la pasarela.
+   * private-lesson-product): desglose de precio (solo el
+   * privateLessonPrice único de la academia — sin cargo de servicio en
+   * el modelo SaaS de academia). No crea orden ni toca la pasarela.
    */
   async privateClassQuote(personId: string, academyId: string) {
     void personId;
     const { academy, listPrice } = await this.purchasableAcademy(academyId);
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.membership_clp",
-      500,
-    );
+    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // la particular cobra solo el privateLessonPrice de la academia.
+    const serviceFeeClp = 0;
     const quote = this.pricing.quote({
       listPrice,
       serviceFeeClp,
@@ -1254,10 +1251,9 @@ export class CheckoutService {
     const { academy, listPrice } = await this.purchasableAcademy(
       input.academyId,
     );
-    const serviceFeeClp = await this.params.getNumber(
-      "service_fee.membership_clp",
-      500,
-    );
+    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // la orden PRIVATE cobra solo el privateLessonPrice.
+    const serviceFeeClp = 0;
     const quote = this.pricing.quote({
       listPrice,
       serviceFeeClp,
