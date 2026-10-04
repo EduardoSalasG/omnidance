@@ -17,6 +17,15 @@ type Plan = {
 
 const VISIBLE_PLANS = 2;
 
+// Resuelve el plural ICU simple de parts ("{count, plural, one {# X}
+// other {# X}}") sin librería — los labels llegan como props
+// serializables desde la página server.
+function countLabel(tpl: string, count: number): string {
+  const m = /\bone\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}/.exec(tpl);
+  if (!m) return tpl.replace("{count}", String(count));
+  return (count === 1 ? m[1] : m[2]).replaceAll("#", String(count));
+}
+
 /** Sección "Planes" de la ficha pública /academias/:id — 2 visibles; el
     resto tras "ver más" (misma progressive disclosure que Profesores).
     El card de clase particular queda siempre visible: es otro producto,
@@ -52,6 +61,12 @@ export function ProfilePlansSection({
     privateLesson: string;
     privateLessonDesc: string;
     feeIncluded: string;
+    /** Plan TRIAL sin precio: no se compra — texto informativo. */
+    trialAssigned: string;
+    /** Plural ICU "{count} clase(s)". */
+    planClassCount: string;
+    /** Plural ICU "{count} clase(s)/semana". */
+    planWeeklyCount: string;
     /** "Ver {count} más". */
     more: string;
     fewer: string;
@@ -67,15 +82,17 @@ export function ProfilePlansSection({
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
         {labels.title}
       </h2>
-      <ul className="flex flex-col gap-3">
+      {/* Ítems planos con dividers — son filas de la Card padre, no
+          cards anidadas (borde+dentro-de-borde ensuciaba la jerarquía). */}
+      <ul className="flex flex-col divide-y divide-night-700">
         {visible.map((p) => {
           const isActivePlan = p.id === activePlanId;
           const subscribedToPlan = p.id === subscribedPlanId;
+          // TRIAL sin precio no se compra (el backend rechaza el
+          // checkout) — la academia lo asigna desde su consola.
+          const freeTrial = p.type === "TRIAL" && p.price <= 0;
           return (
-            <li
-              key={p.id}
-              className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4"
-            >
+            <li key={p.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2 font-medium">
@@ -86,19 +103,24 @@ export function ProfilePlansSection({
                   </p>
                   <p className="mt-0.5 text-xs text-white/50">
                     {labels.planTypeLabels[p.type] ?? p.type}
-                    {p.classCount ? ` · ${p.classCount} clases` : ""}
+                    {p.classCount
+                      ? ` · ${countLabel(labels.planClassCount, p.classCount)}`
+                      : ""}
                     {p.weeklyClasses
-                      ? ` · ${p.weeklyClasses === 1 ? "1 clase/semana" : `${p.weeklyClasses} clases/semana`}`
+                      ? ` · ${countLabel(labels.planWeeklyCount, p.weeklyClasses)}`
                       : ""}
                   </p>
                 </div>
                 {/* Precio real cobrado (plan + cargo de servicio) —
-                    mismo total que el breakdown del checkout. */}
+                    mismo total que el breakdown del checkout. El trial
+                    gratis no suma fee: no hay cobro. */}
                 <div className="shrink-0 text-right">
-                  <PriceTag amount={p.price + membershipFee} />
-                  <p className="mt-0.5 text-[10px] text-white/40">
-                    {labels.feeIncluded}
-                  </p>
+                  <PriceTag amount={p.price + (freeTrial ? 0 : membershipFee)} />
+                  {!freeTrial && (
+                    <p className="mt-0.5 text-[10px] text-white/40">
+                      {labels.feeIncluded}
+                    </p>
+                  )}
                 </div>
               </div>
               {p.description.length > 0 && (
@@ -108,13 +130,17 @@ export function ProfilePlansSection({
                   ))}
                 </ul>
               )}
-              {!subscribedToPlan && (
-                <Button
-                  href={`/academias/${academyId}/checkout?plan=${p.id}`}
-                  className="w-full"
-                >
-                  {isActivePlan ? labels.extendPlan : labels.buyPlan}
-                </Button>
+              {freeTrial ? (
+                <p className="text-sm text-white/50">{labels.trialAssigned}</p>
+              ) : (
+                !subscribedToPlan && (
+                  <Button
+                    href={`/academias/${academyId}/checkout?plan=${p.id}`}
+                    className="w-full"
+                  >
+                    {isActivePlan ? labels.extendPlan : labels.buyPlan}
+                  </Button>
+                )
               )}
             </li>
           );
@@ -123,7 +149,7 @@ export function ProfilePlansSection({
             product): paga por adelantado, la academia asigna
             instructor y fecha. Misma grilla que los planes. */}
         {(privateLessonPrice ?? 0) > 0 && (
-          <li className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4">
+          <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium">{labels.privateLesson}</p>

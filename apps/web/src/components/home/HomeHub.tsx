@@ -15,7 +15,8 @@ import {
 } from "@/components/classes/class-card";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 
-import { localDayKey } from "@/lib/calendar";
+import { GENRE_TEXT, localDayKey } from "@/lib/calendar";
+import type { GenreKey } from "@/lib/calendar";
 import {
   OnboardingRunner,
   type TourStep,
@@ -94,15 +95,8 @@ const classUtcDayFmt = new Intl.DateTimeFormat("es-CL", {
   timeZone: "UTC",
 });
 
-// Género como texto coloreado — misma paleta que la cartelera.
-const GENRE_TEXT: Record<string, string> = {
-  SALSA: "text-orange-400",
-  BACHATA: "text-fuchsia-300",
-  CUBANO: "text-amber-300",
-};
-
-const genreLabel = (g: string) =>
-  g === "OTHER" ? "Otro" : g.charAt(0) + g.slice(1).toLowerCase();
+const genreLabel = (g: string, otherLabel: string) =>
+  g === "OTHER" ? otherLabel : g.charAt(0) + g.slice(1).toLowerCase();
 
 /**
  * La escena de esta noche para el bailarín: el evento principal (donde
@@ -180,8 +174,11 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           {heroEvent.genres.length > 0 && (
             <span className="flex flex-wrap gap-x-2 text-xs font-medium">
               {heroEvent.genres.map((g) => (
-                <span key={g} className={GENRE_TEXT[g] ?? "text-white/50"}>
-                  {genreLabel(g)}
+                <span
+                  key={g}
+                  className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}
+                >
+                  {genreLabel(g, t("genre.other"))}
                 </span>
               ))}
             </span>
@@ -409,15 +406,11 @@ export function HomeHub() {
   }, [me, activeRole, viewMode, statsRetry]);
 
   // null hasta que el fetch de ESTA lente resuelva — los heroes que
-  // dependen de stats (dancer/staff/dj/venue) nunca ven datos ajenos.
+  // dependen de stats nunca ven datos ajenos. El efecto fetchea
+  // /home/stats para TODA lente → el gate aplica a todas (sin la
+  // lista parcial, KpiGrid aparecía tarde en producer/academy/admin).
   const stats = statsSlot?.key === lensKey ? statsSlot.data : null;
-  const statsPending =
-    me !== null &&
-    statsSlot?.key !== lensKey &&
-    (activeRole === "DANCER" ||
-      activeRole === "STAFF" ||
-      activeRole === "DJ" ||
-      activeRole === "VENUE_MANAGER");
+  const statsPending = me !== null && statsSlot?.key !== lensKey;
 
   if (!checked) {
     return (

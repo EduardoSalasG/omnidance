@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import messages from "../../../../../messages/es-CL.json";
+import { messages } from "@/i18n/messages";
 import {
   aggregateMix,
   Badge,
@@ -17,12 +17,15 @@ import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
 import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
 import { PracticeBar } from "@/components/social/PracticeBar";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
+import { GENRE_TEXT } from "@/lib/calendar";
+import type { GenreKey } from "@/lib/calendar";
 
-// Misma paleta que la cartelera (eventos/page.tsx).
-const GENRE_TEXT: Record<string, string> = {
-  SALSA: "text-orange-400",
-  BACHATA: "text-fuchsia-300",
-  CUBANO: "text-amber-300",
+// El merge i18n devuelve Dict — las claves se declaran explícitas
+// (mismo patrón que locales/[id]).
+type EventsT = Record<string, string> & {
+  genre: Record<string, string>;
+  type: Record<string, string>;
+  showTeam: Record<string, string>;
 };
 
 export const dynamic = "force-dynamic";
@@ -159,9 +162,9 @@ export default async function EventoDetailPage({
 }: {
   params: { id: string };
 }) {
-  const t = messages.events;
-  const tc = messages.common;
-  const tg = messages.gamification;
+  const t = messages.events as EventsT;
+  const tc = messages.common as Record<string, string>;
+  const tg = messages.gamification as Record<string, string>;
   const [event, missions, myTicket, friendsGoing] = await Promise.all([
     getEvent(params.id),
     getMissions(params.id),
@@ -289,8 +292,8 @@ export default async function EventoDetailPage({
             {orderedGenres.map((g, i) => (
               <span key={g}>
                 {i > 0 && <span className="text-white/30"> · </span>}
-                <span className={GENRE_TEXT[g] ?? "text-white/50"}>
-                  {t.genre[g as keyof typeof t.genre] ?? g}
+                <span className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}>
+                  {t.genre[g] ?? g}
                 </span>
               </span>
             ))}

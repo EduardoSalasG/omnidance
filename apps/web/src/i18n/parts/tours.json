@@ -26,7 +26,7 @@
       },
       "s6": {
         "title": "Tus amigos",
-        "desc": "Suma a tu crew: ve quién va a cada evento, marca que estás disponible para bailar y regálales entradas desde el checkout."
+        "desc": "Suma a tu crew: ve quién va a cada evento, mira sus próximas salidas y regálales entradas desde el checkout."
       },
       "s7": {
         "title": "Tu perfil",
@@ -120,7 +120,7 @@
       },
       "s3": {
         "title": "Tu lista",
-        "desc": "Solicitudes pendientes y tus amigos. Entra a su perfil para ver su disponibilidad para bailar y su actividad."
+        "desc": "Solicitudes pendientes y tus amigos. Entra a su perfil para ver sus estilos y a qué eventos va."
       }
     },
     "bailes": {

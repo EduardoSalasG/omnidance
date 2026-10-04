@@ -19,7 +19,8 @@ import { OnboardingRunner, type TourStep } from "@/components/onboarding/Onboard
 type Me = {
   id: string;
   name: string;
-  email: string;
+  // Person.email es nullable en el schema (cuentas solo-teléfono).
+  email: string | null;
   photoUrl: string | null;
   instagram?: string | null;
   roles: string[];
@@ -212,16 +213,7 @@ export default function PerfilPage() {
 
   async function logout() {
     try {
-      const res = await apiFetch("/auth/logout", { method: "POST" });
-      if (res.status === 404) {
-        // Endpoint aún no existe — limpieza client-side de cookies
-        for (const c of document.cookie.split(";")) {
-          const name = c.split("=")[0].trim();
-          if (name) {
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-          }
-        }
-      }
+      await apiFetch("/auth/logout", { method: "POST" });
     } catch {
       // Igual redirigimos — la cookie expirará o se limpiará en el login
     }
@@ -304,7 +296,9 @@ export default function PerfilPage() {
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold">{me.name}</p>
-            <p className="truncate text-sm text-white/50">{me.email}</p>
+            <p className="truncate text-sm text-white/50">
+              {me.email ?? "—"}
+            </p>
             {(me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" })))
               .length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -432,7 +426,9 @@ export default function PerfilPage() {
                     {b.badge.name}
                   </span>
                   <Badge variant="muted" className="w-fit">
-                    {b.badge.category}
+                    {tg.has(`badgeCategory.${b.badge.category}`)
+                      ? tg(`badgeCategory.${b.badge.category}`)
+                      : b.badge.category}
                   </Badge>
                 </li>
               ))}

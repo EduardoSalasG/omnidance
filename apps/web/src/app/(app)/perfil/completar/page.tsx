@@ -59,6 +59,12 @@ export default function CompletarPerfilPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Password opcional: solo se valida el mínimo si la escribió (con
+    // minLength nativo, 1–7 chars bloqueaba el submit sin explicación).
+    if (password && password.length < 8) {
+      setError(t("complete.passwordShort"));
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -71,6 +77,12 @@ export default function CompletarPerfilPage() {
           ...(password ? { password } : {}),
         }),
       });
+      // 409 = teléfono ya registrado en otra cuenta (people.controller
+      // distingue el caso con ConflictException("phone_exists")).
+      if (res.status === 409) {
+        setError(t("complete.phoneTaken"));
+        return;
+      }
       if (!res.ok) throw new Error();
       setPhase("done");
       // La sesión ya no es demo — /inicio carga la app completa.
@@ -138,6 +150,7 @@ export default function CompletarPerfilPage() {
                   autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  disabled={saving}
                   className={inputCls}
                 />
               </label>
@@ -152,6 +165,7 @@ export default function CompletarPerfilPage() {
                   autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  disabled={saving}
                   className={inputCls}
                 />
               </label>
@@ -161,10 +175,10 @@ export default function CompletarPerfilPage() {
                 </span>
                 <input
                   type="password"
-                  minLength={8}
                   autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={saving}
                   className={inputCls}
                 />
                 <span className="text-[11px] text-white/40">

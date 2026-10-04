@@ -25,7 +25,21 @@
     },
     "ledger": {
       "toggle": "Auditoría ({count})",
-      "empty": "Sin eventos registrados"
+      "empty": "Sin eventos registrados",
+      "type": {
+        "ORDER_CREATED": "Orden creada",
+        "GATEWAY_REQUEST": "Enviado al medio de pago",
+        "WEBHOOK_RECEIVED": "Respuesta del medio de pago",
+        "STATUS_CONFIRMED": "Estado confirmado",
+        "SETTLED": "Pago confirmado",
+        "RENEWAL_SETTLED": "Renovación cobrada",
+        "FAILED": "Pago fallido",
+        "SUBSCRIPTION_CREATED": "Suscripción creada",
+        "SUBSCRIPTION_CANCELED": "Suscripción cancelada",
+        "RENEWAL_FAILED": "Renovación fallida",
+        "AMOUNT_MISMATCH": "Monto distinto al esperado",
+        "IMPORTED": "Registro importado"
+      }
     },
     "sub": {
       "title": "Suscripciones",

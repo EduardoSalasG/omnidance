@@ -73,6 +73,9 @@ export default function AmigosPage() {
   // Mi id — para construir el link de invitación a mi perfil.
   const [meId, setMeId] = useState<string | null>(null);
   const [inviteCopied, setInviteCopied] = useState(false);
+  // Fallo real de copia al portapapeles — visible (el catch antes era
+  // silencioso y el botón parecía no hacer nada).
+  const [inviteErr, setInviteErr] = useState(false);
   // "Tus amigos van a" — agenda social de amigos (tickets activos).
   const [friendEvents, setFriendEvents] = useState<FriendEvent[]>([]);
   const [query, setQuery] = useState("");
@@ -82,6 +85,8 @@ export default function AmigosPage() {
   const [actionErr, setActionErr] = useState(false);
   // Descarta respuestas de búsqueda que llegan fuera de orden.
   const searchSeq = useRef(0);
+  // Ref del buscador — el CTA del empty state lo enfoca.
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -312,8 +317,14 @@ export default function AmigosPage() {
                   await navigator.clipboard.writeText(url);
                   setInviteCopied(true);
                   setTimeout(() => setInviteCopied(false), 2500);
-                } catch {
-                  // Share cancelado o clipboard bloqueado — no es error.
+                } catch (err) {
+                  // Cancelar el share nativo (AbortError) no es error —
+                  // el aviso es solo para cuando la copia falla de verdad.
+                  if (err instanceof DOMException && err.name === "AbortError") {
+                    return;
+                  }
+                  setInviteErr(true);
+                  setTimeout(() => setInviteErr(false), 3000);
                 }
               }}
               className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-night-700 bg-night-800 px-4 text-sm font-medium text-neon transition-colors hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
@@ -335,7 +346,13 @@ export default function AmigosPage() {
             </button>
           )}
         </div>
+        {inviteErr && (
+          <p role="alert" className="text-sm text-red-400">
+            {t("inviteError")}
+          </p>
+        )}
         <input
+          ref={searchRef}
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -505,10 +522,19 @@ export default function AmigosPage() {
               {t("list")}
             </h2>
             {data.friends.length === 0 ? (
-              <Card className="py-10 text-center">
+              <Card className="flex flex-col items-center gap-3 py-10 text-center">
                 <p role="status" className="text-white/60">
                   {t("empty")}
                 </p>
+                {/* Sin dead-end: el buscador de arriba es la acción —
+                    el CTA lo enfoca en vez de duplicarlo. */}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => searchRef.current?.focus()}
+                >
+                  {t("emptyCta")}
+                </Button>
               </Card>
             ) : (
               <ul className="flex flex-col gap-2">
