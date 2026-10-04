@@ -32,4 +32,4 @@
 
 - [x] 4.1 `tsc` API+web, vitest checkout (39/39)
 - [x] 4.2 E2E stub: compra qty=3 → webhook → 2 reclamables con claimToken; GET público claim-info; segundo usuario reclama → ownership + token quemado + notificación al comprador; doble reclamo 404; self-claim 409
-- [ ] 4.3 `impeccable detect` sobre UI tocada; commit → dev → push
+- [x] 4.3 `impeccable detect` sobre UI tocada; commit → dev → push

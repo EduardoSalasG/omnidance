@@ -37,5 +37,5 @@
 
 - [x] 4.1 Seed: `privateLessonPrice` en academias demo; suite completa +
   `tsc` api/web + build.
-- [ ] 4.2 `openspec validate --strict`; regen openapi/postman; docs
+- [x] 4.2 `openspec validate --strict`; regen openapi/postman; docs
   (architecture/flows/omni-dance.md si aplica); handoff; commit.

@@ -6,7 +6,7 @@
 - [x] `(app)` group: resto de rutas con BottomNav + RealtimeProvider + skip-link
 - [x] `/inicio` → HomeHub; `/` con sesión → redirect server a `/inicio`
 - [x] Referencias "home" de la app apuntan a `/inicio` (BottomNav, CTAs, sw.js fallback)
-- [ ] Verificación: typecheck + build + smoke de `/`, `/inicio`, `/login`
+- [x] Verificación: typecheck + build + smoke de `/`, `/inicio`, `/login`
 
 ## 2. BottomNav 5 tabs + "Más" role-gated
 
@@ -14,7 +14,7 @@
 - [x] Hoja "Más": dialog accesible (focus trap/restore, Escape, overlay, slide-up, reduced-motion)
 - [x] Items filtrados por `me.roles` (consumidor base + staff/productor/academia/admin según rol)
 - [x] Claves i18n nav.* nuevas
-- [ ] Verificación: typecheck + revisión de gating por rol
+- [x] Verificación: typecheck + revisión de gating por rol
 
 ## 3. Fix push iOS
 
@@ -28,9 +28,9 @@
 - [x] Escena minimalista (dynamic ssr:false, reduced-motion estático, DPR cap, dispose)
 - [x] Restyle conversion-first (1 promesa, 1 CTA, aire)
 - [x] three agregado a apps/web (versión estable >7 días)
-- [ ] Verificación: typecheck + smoke visual
+- [x] Verificación: typecheck + smoke visual
 
 ## 5. Cierre
 
-- [ ] tsc limpio web · build verde · smoke páginas clave
+- [x] tsc limpio web · build verde · smoke páginas clave
 - [x] Commit(s) por scope
