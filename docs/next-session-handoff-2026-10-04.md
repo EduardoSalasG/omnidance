@@ -65,6 +65,32 @@ higiene de OpenSpec y los exportes PDF.
 - Fix UI: card de "Mis academias" en `/academias` — sin "Reservar
   clase", todo el card navega a la ficha (stretched link; videos z-10).
 
+## Sesión tarde — pipeline multi-agente (2 features)
+
+- **Clase de prueba comprable** (`trial-plan-purchase` → archivado,
+  spec canónica `payments/trial-plan-purchase`): `checkout.service` y
+  `membershipQuote` ya no rechazan `TRIAL`; requiere `price > 0` (la
+  gratis sigue por asignación staff). `settleMembership` crea siempre
+  Enrollment TRIAL nuevo — un ACTIVE vigente queda intacto; re-compra
+  = fila histórica. Quote TRIAL parte de `now`, `currentEndsAt` null
+  (fix de review). Notif `payment.membership` con title
+  `Clase de prueba comprada`. Commits `a4226f3`, `092b785`, `0218d5d`.
+  Sin cambios web (`recurring:false` → compra única).
+- **Audiencias CRM por grupo** (`academy-audience-groups` → archivado,
+  spec `crm/campaign-audience`): `CampaignSegment` suma `allStudents`,
+  `enrollmentStatus[]`, `planId`, `seriesId` (solo ACADEMY, 400 en otro
+  actor; pertenencia validada). `POST /crm/campaigns/preview` → `{count}`
+  sin side-effects. Form: sección Alumnos (chips estados + selects
+  plan/serie), picker de personas (checkboxes → `personIds`), contador
+  debounced 300ms. Lista: `audienceLabel` cubre los criterios nuevos.
+  Commits `cb80a56`, `016dc29`, `90c3899`. 10/10 specs CRM + 30/30 e2e
+  gap-crm (4 nuevos del preview).
+- Reviews de ambos changes: PASS_WITH_NOTES, hallazgos integrados por
+  el orquestador. Limitación del picker documentada: lista el universo
+  `/crm/people` (score/tag) — un inscrito sin score no es seleccionable
+  individualmente (sí por `allStudents`). `personIds` no valida
+  pertenencia al actor (pre-existente; fix separado si se decide).
+
 ## Pendientes
 
 1. **Validación Flow sandbox real** — sigue bloqueando producción
