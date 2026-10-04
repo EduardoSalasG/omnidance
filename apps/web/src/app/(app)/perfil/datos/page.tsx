@@ -8,6 +8,7 @@ import { Badge, Button, Card, LevelBars } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 type DanceRole = "LEADER" | "FOLLOWER" | "SWITCH";
+type Gender = "M" | "F" | "OTHER";
 
 type StyleRole = {
   role: DanceRole;
@@ -31,6 +32,7 @@ type Me = {
   instagram: string | null;
   createdAt: string;
   verifiedAt: string | null;
+  gender: Gender | null;
   styleRoles: StyleRole[];
   enrollments: EnrollmentRow[];
 };
@@ -47,6 +49,7 @@ type StyleRoleDraft = {
 };
 
 const DANCE_ROLES: DanceRole[] = ["LEADER", "FOLLOWER", "SWITCH"];
+const GENDERS: Gender[] = ["M", "F", "OTHER"];
 const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"];
 // Nivel autodeclarado → order de la escala de clases (Iniciación=0 …
 // Avanzado=3) para pintarlo con las mismas barras que ClassCard.
@@ -129,6 +132,85 @@ function EditField({
   );
 }
 
+// Segmented control del género (nullable): tap en la opción activa la
+// desmarca → "sin declarar" (PATCH /me con gender null). Radiogroup con
+// roving tabindex — las flechas mueven la selección, un solo tab stop.
+function GenderGroup({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: Gender; label: string }[];
+  value: Gender | null;
+  onChange: (v: Gender | null) => void;
+}) {
+  const [focusIdx, setFocusIdx] = useState<number | null>(null);
+  const groupRef = useRef<HTMLDivElement>(null);
+  const checkedIdx = value ? options.findIndex((o) => o.value === value) : -1;
+  const tabbable = focusIdx ?? (checkedIdx >= 0 ? checkedIdx : 0);
+
+  function pick(idx: number) {
+    const v = options[idx].value;
+    onChange(v === value ? null : v);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, idx: number) {
+    const delta =
+      e.key === "ArrowRight" || e.key === "ArrowDown"
+        ? 1
+        : e.key === "ArrowLeft" || e.key === "ArrowUp"
+          ? -1
+          : 0;
+    if (delta === 0) return;
+    e.preventDefault();
+    const next = (idx + delta + options.length) % options.length;
+    setFocusIdx(next);
+    onChange(options[next].value);
+    groupRef.current
+      ?.querySelectorAll<HTMLButtonElement>('[role="radio"]')
+      [next]?.focus();
+  }
+
+  return (
+    <div ref={groupRef} role="radiogroup" aria-label={label}>
+      <span className="text-xs uppercase tracking-wide text-white/45">
+        {label}
+      </span>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        {options.map((o, idx) => {
+          const active = o.value === value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              tabIndex={idx === tabbable ? 0 : -1}
+              onClick={() => pick(idx)}
+              onKeyDown={(e) => onKeyDown(e, idx)}
+              onFocus={() => setFocusIdx(idx)}
+              onBlur={(e) => {
+                if (!e.currentTarget.parentElement?.contains(e.relatedTarget)) {
+                  setFocusIdx(null);
+                }
+              }}
+              className={`flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:active:scale-100 ${
+                active
+                  ? "border-neon bg-neon text-night-950"
+                  : "border-night-700 bg-night-800 text-white/70 hover:text-white"
+              }`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const selectCls =
   "min-h-11 min-w-0 rounded-lg border border-night-700 bg-night-900 px-3 text-sm text-white focus:border-neon focus:outline-none";
 
@@ -151,9 +233,11 @@ export default function DatosPage() {
   >("idle");
 
   // "Tu baile": modo edición con borrador local; Guardar hace
-  // PUT /me/style-roles (reemplazo total).
+  // PUT /me/style-roles (reemplazo total) + PATCH /me del género si
+  // cambió (write-paths independientes — uno no pisa al otro).
   const [srEditing, setSrEditing] = useState(false);
   const [srDraft, setSrDraft] = useState<StyleRoleDraft[]>([]);
+  const [genderDraft, setGenderDraft] = useState<Gender | null>(null);
   const [stylesCat, setStylesCat] = useState<
     { id: string; name: string }[] | null
   >(null);
@@ -249,6 +333,7 @@ export default function DatosPage() {
 
   function startStyleRoleEdit() {
     if (!me) return;
+    setGenderDraft(me.gender ?? null);
     setSrDraft(
       me.styleRoles.map((sr) => ({
         key: keySeq.current++,
@@ -280,6 +365,22 @@ export default function DatosPage() {
     setSrSaving(true);
     setSrErr(false);
     try {
+      // Género primero: PATCH /me solo si cambió — el PATCH deja
+      // styleRoles intactos (campos independientes del mismo recurso).
+      if (genderDraft !== (me?.gender ?? null)) {
+        const gres = await apiFetch("/me", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gender: genderDraft }),
+        });
+        if (!gres.ok) {
+          setSrErr(true);
+          return;
+        }
+        // El PATCH ya quedó en el server — aunque el PUT de estilos
+        // falle después, el género mostrado refleja lo persistido.
+        setMe((m) => (m ? { ...m, gender: genderDraft } : m));
+      }
       const items = srDraft
         .filter((r) => r.styleId)
         .map((r) => ({
@@ -297,7 +398,9 @@ export default function DatosPage() {
         return;
       }
       const json = (await res.json()) as { styleRoles: StyleRole[] };
-      setMe((m) => (m ? { ...m, styleRoles: json.styleRoles } : m));
+      setMe((m) =>
+        m ? { ...m, gender: genderDraft, styleRoles: json.styleRoles } : m,
+      );
       setSrEditing(false);
     } catch {
       setSrErr(true);
@@ -516,6 +619,20 @@ export default function DatosPage() {
           </h2>
           {srEditing ? (
             <>
+              <div className="mt-3">
+                <GenderGroup
+                  label={t("datos.gender")}
+                  options={GENDERS.map((g) => ({
+                    value: g,
+                    label: t(`datos.genderOptions.${g}`),
+                  }))}
+                  value={genderDraft}
+                  onChange={setGenderDraft}
+                />
+                <p className="mt-1.5 text-xs text-white/40">
+                  {t("datos.genderHint")}
+                </p>
+              </div>
               <ul className="mt-3 flex flex-col gap-2">
                 {srDraft.map((r) => (
                   <li
@@ -627,6 +744,16 @@ export default function DatosPage() {
             </>
           ) : (
             <>
+              <div className="mt-2">
+                <Field
+                  label={t("datos.gender")}
+                  value={
+                    me.gender
+                      ? t(`datos.genderOptions.${me.gender}`)
+                      : t("datos.genderEmpty")
+                  }
+                />
+              </div>
               {me.styleRoles.length === 0 ? (
                 <p className="mt-3 text-sm text-white/60">
                   {t("datos.socialEmpty")}

@@ -67,6 +67,7 @@
       "suggestions": "Sugerencias para el DJ",
       "reservations": "Reservas de mesa",
       "ratings": "Evaluación del evento",
+      "analytics": "Analítica del evento",
       "payments": "Pagos"
     },
     "stats": {
@@ -155,12 +156,32 @@
         "venue": "Local"
       },
       "dims": {
+        "overall": "En general",
         "music": "Música",
         "occupation": "Ocupación",
         "organization": "Organización",
         "floorComfort": "Comodidad de pista",
         "temperature": "Temperatura",
         "lightingSound": "Luces y sonido"
+      }
+    },
+    "eventAnalytics": {
+      "attendees": "{count, plural, one {# asistente} other {# asistentes}}",
+      "insufficient": "Datos insuficientes — se necesitan al menos 3 asistentes para mostrar composición y evaluaciones.",
+      "genderSplit": "Por género",
+      "roleSplit": "Por rol de baile",
+      "ratingsTitle": "Evaluación promedio",
+      "ratingsCount": "{count, plural, one {# evaluación} other {# evaluaciones}}",
+      "gender": {
+        "M": "Hombres",
+        "F": "Mujeres",
+        "OTHER": "Otro",
+        "unknown": "Sin declarar"
+      },
+      "roles": {
+        "leader": "Leaders",
+        "follower": "Followers",
+        "both": "Ambos roles"
       }
     },
     "payoutsPage": {

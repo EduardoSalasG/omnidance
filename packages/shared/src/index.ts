@@ -179,7 +179,7 @@ export const NOTIFICATION_LENS_TYPES = {
   academy: { prefixes: ["class."], exact: ["payment.series_pass"] },
   social: {
     prefixes: ["session.", "friend.", "ticket.", "waitlist."],
-    exact: ["payment.paid", "payment.failed"],
+    exact: ["payment.paid", "payment.failed", "event.survey"],
   },
 } as const;
 export const NOTIFICATION_LENSES = ["social", "academy"] as const;

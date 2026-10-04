@@ -1,0 +1,37 @@
+{
+  "survey": {
+    "prompt": "¿Cómo estuvo {name}?",
+    "cardCta": "Evaluar",
+    "sectionLabel": "Encuestas pendientes",
+    "title": "¿Cómo estuvo {name}?",
+    "fallbackTitle": "Cuéntanos cómo estuvo",
+    "subtitle": "Tu evaluación es privada — el productor solo ve promedios.",
+    "overall": "En general",
+    "overallRequired": "Puntúa la experiencia general para enviar",
+    "more": "Evaluar más",
+    "less": "Evaluar menos",
+    "submit": "Enviar evaluación",
+    "thanks": "¡Gracias! Tu evaluación quedó registrada",
+    "expired": "La ventana para evaluar este evento ya cerró",
+    "forbidden": "Solo quienes hicieron check-in pueden evaluar el evento",
+    "error": "No pudimos enviar tu evaluación — intenta de nuevo",
+    "backToEvent": "Ver evento",
+    "backHome": "Volver al inicio",
+    "dims": {
+      "music": "Música",
+      "occupation": "Ocupación",
+      "organization": "Organización",
+      "floorComfort": "Comodidad de pista",
+      "temperature": "Temperatura",
+      "lightingSound": "Luces y sonido"
+    },
+    "scale": {
+      "music": { "low": "Mala", "high": "Increíble" },
+      "occupation": { "low": "Vacío", "high": "Llenísimo" },
+      "organization": { "low": "Desordenada", "high": "Impecable" },
+      "floorComfort": { "low": "Incómoda", "high": "Muy cómoda" },
+      "temperature": { "low": "Helada", "high": "Sofocante" },
+      "lightingSound": { "low": "Mala", "high": "Excelente" }
+    }
+  }
+}
