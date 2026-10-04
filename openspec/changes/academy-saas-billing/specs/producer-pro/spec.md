@@ -10,14 +10,23 @@ venta.
 
 ### Requirement: Tiers del productor
 
-`Producer.proTier` SHALL ser `FREE` (default) o `PRO` (suscripción
-mensual activa vía Flow). Productores existentes al despliegue SHALL
-quedar `FREE`.
+`Producer.proTier` SHALL ser `FREE` (default) o un tier Pro:
+`PRO_STARTER` (facturación ≤$2,5M/mes), `PRO_GROWTH` (≤$8M/mes) o
+`PRO_BIG` (> $8M, contratación manual). La facturación SHALL medirse
+como la media de ventas brutas de los últimos 90 días. Productores
+existentes al despliegue SHALL quedar `FREE`. Precios por ciclo
+(mensual, semestral −2%, anual −4%) en `PlatformParam`.
 
 #### Scenario: Migración sin fricción
 
 - **GIVEN** productor existente pre-despliegue **THEN** `proTier=FREE`
   y ninguna feature que ya usaba se bloquea.
+
+#### Scenario: Tier por facturación
+
+- **GIVEN** productor con media de $1,8M/mes en ventas **WHEN**
+  contrata Pro **THEN** califica `PRO_STARTER`; si crece sobre $2,5M
+  la próxima renovación exige `PRO_GROWTH`.
 
 ### Requirement: Features Pro
 

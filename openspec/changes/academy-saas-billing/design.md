@@ -4,26 +4,48 @@
 
 | Decisión | Resolución |
 |---|---|
-| Estructura de tiers | 3 tiers por alumnos activos + semestral −10% / anual −15% / trial 30d |
+| Estructura de tiers | 3 tiers por alumnos activos + semestral −2% / anual −4% / trial 30d |
 | Objetivo de pricing | ≈8-9% de la facturación de la academia (ticket $25-35k/alumno-mes) |
 | Fee al comprador en productos academia | **Eliminado** — la academia absorbe el costo Flow en su payout |
-| Productor | `platformFeePct` por venta se mantiene + suscripción Producer Pro |
+| Productor | `platformFeePct` por venta se mantiene + suscripción Producer Pro con tiers por facturación |
 | Mora academia | 5 días gracia → día 6 bloqueo total (consola, directorio, reservas) |
 | Metered por alumno | Descartado v1 — monto variable complica la suscripción fija Flow |
 
 ## Pricing propuesto (params editables en /admin)
 
-| Tier | Max alumnos activos | Mensual | Semestral (−10%) | Anual (−15%) |
+### Academia
+
+| Tier | Max alumnos activos | Mensual | Semestral (−2%) | Anual (−4%) |
 |---|---|---|---|---|
-| `STARTER` | 50 | $49.990 | $44.990/mes | $42.490/mes |
-| `PRO` | 150 | $99.990 | $89.990/mes | $84.990/mes |
-| `STUDIO` | 400 | $189.990 | $170.990/mes | $161.490/mes |
+| `STARTER` | 50 | $49.990 | $48.990/mes | $47.990/mes |
+| `PRO` | 150 | $99.990 | $97.990/mes | $95.990/mes |
+| `STUDIO` | 400 | $189.990 | $185.990/mes | $181.990/mes |
 | `ENTERPRISE` | ilimitado | a convenir | — | — |
 
-Regla: ≈8.5% de facturación para la academia típica de cada banda; al
-tope del tier el % efectivo cae (descuento por volumen implícito que
-incentiva crecer dentro del plan). Precios en `PlatformParam`
-(`academy_tier.starter_monthly_clp`, etc.) para ajuste sin deploy.
+Regla: ≈8.5% de facturación para la academia típica del piso de cada
+banda; al tope el % efectivo cae (descuento por volumen implícito).
+Precios en `PlatformParam` (`academy_tier.starter_monthly_clp`, etc.).
+
+### Producer Pro
+
+Tier por facturación mensual de ventas (media últimos 90 días).
+Objetivo ~10% de facturación para el productor del piso de la banda;
+igual que academias, el % efectivo cae al tope:
+
+| Tier | Facturación mensual | Mensual | Semestral (−2%) | Anual (−4%) |
+|---|---|---|---|---|
+| `PRO_STARTER` | ≤$2,5M | $99.990 | $97.990/mes | $95.990/mes |
+| `PRO_GROWTH` | ≤$8M | $249.990 | $244.990/mes | $239.990/mes |
+| `PRO_BIG` | >$8M | a convenir | — | — |
+
+Medidor: `SUM(payments brutos del productor en 90d)/3`. Enforcement
+suave: exceder el límite marca "upgrade requerido" para la próxima
+renovación — nunca corta la operación ni las features en curso.
+Precios en `PlatformParam` (`producer_tier.*_monthly_clp`).
+
+Nota de take total: el Pro se suma al `platformFeePct` por venta —
+un productor Starter con 8% comisión + Pro queda ~12-14% de take.
+Registrado como punto de revisión comercial antes del lanzamiento.
 
 "Alumnos activos" = `Enrollment` en `ACTIVE|TRIAL|ONLINE` de esa
 academia (misma definición que usa el CRM).
