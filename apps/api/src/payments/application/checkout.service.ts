@@ -799,6 +799,31 @@ export class CheckoutService {
       500,
     );
 
+    // TRIAL nunca extiende la vigencia vigente — se materializa como
+    // enrollment independiente desde now; sin lookups de vigencia/suscripción.
+    if (plan.type === "TRIAL") {
+      return {
+        plan: {
+          id: plan.id,
+          name: plan.name,
+          type: plan.type,
+          price: plan.price,
+          classCount: plan.classCount,
+          periodDays: plan.periodDays,
+          description: plan.description,
+        },
+        academy: { id: plan.academy.id, name: plan.academy.name },
+        serviceFeeClp,
+        totalClp: plan.price + serviceFeeClp,
+        recurring: false,
+        vigenciaEndsAt:
+          membershipEndsAt(plan, new Date())?.toISOString() ?? null,
+        currentEndsAt: null,
+        subscription: null,
+        gateway: this.gateway.name,
+      };
+    }
+
     const [enrollment, subscription] = await Promise.all([
       this.prisma.enrollment.findFirst({
         where: {
