@@ -635,7 +635,10 @@ export class PaymentSettlementService {
    * materializa/renueva el Enrollment de (academia, persona). Si el
    * enrollment vigente aún tiene fecha futura, la compra extiende desde
    * el día siguiente a su vencimiento (membershipBase); si no, parte hoy
-   * y reinicia startedAt. Idempotente igual que el pase de serie.
+   * y reinicia startedAt. Excepción: plan TRIAL siempre crea una fila
+   * TRIAL nueva — nunca toca ni degrada la inscripción vigente (una
+   * alumna ACTIVE que compra una prueba conserva su ACTIVE). Idempotente
+   * igual que el pase de serie.
    *
    * Público: el reconcile de suscripciones (T6/T7) lo invoca directo con
    * `meta = { actor: "cron", kind: "renewal", gatewayData }` — un cobro
@@ -688,6 +691,22 @@ export class PaymentSettlementService {
       // Enrollment no tiene @@unique(academyId,personId) — el histórico
       // se permite por diseño (el alta staff ya hace check manual de
       // duplicados). findFirst + update/create dentro de la tx.
+      if (plan.type === "TRIAL") {
+        // La prueba comprada nunca toca la inscripción vigente: se crea
+        // una fila TRIAL aparte y la ACTIVE/ONLINE del alumno queda
+        // intacta. La re-compra acumula otra fila TRIAL (sin @@unique).
+        await tx.enrollment.create({
+          data: {
+            academyId: plan.academyId,
+            personId: payment.personId,
+            planId: plan.id,
+            status: "TRIAL",
+            startedAt: now,
+            endsAt: membershipEndsAt(plan, now),
+          },
+        });
+        return;
+      }
       const existing = await tx.enrollment.findFirst({
         where: {
           academyId: plan.academyId,
@@ -744,7 +763,7 @@ export class PaymentSettlementService {
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.membership",
-        title: "Plan activo",
+        title: plan.type === "TRIAL" ? "Clase de prueba comprada" : "Plan activo",
         body: `${plan.name} · ${plan.academy.name} · ${clp}`,
         data: {
           paymentId: payment.id,

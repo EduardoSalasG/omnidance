@@ -140,17 +140,26 @@ function mkPrisma() {
       findMany: vi.fn(async () => admins),
     },
     membershipPlan: {
-      findUnique: vi.fn(async () => ({
-        id: "plan1",
-        name: "Mensual",
-        type: "MONTHLY",
-        periodDays: null,
-        academyId: "ac1",
-        academy: { name: "Academia X" },
-      })),
+      findUnique: vi.fn(
+        async (): Promise<{
+          id: string;
+          name: string;
+          type: string;
+          periodDays: number | null;
+          academyId: string;
+          academy: { name: string };
+        } | null> => ({
+          id: "plan1",
+          name: "Mensual",
+          type: "MONTHLY",
+          periodDays: null,
+          academyId: "ac1",
+          academy: { name: "Academia X" },
+        }),
+      ),
     },
     enrollment: {
-      findFirst: vi.fn(async () => null),
+      findFirst: vi.fn(async (): Promise<Row | null> => null),
       create: vi.fn(async ({ data }: { data: Row }) => {
         enrollments.push(data);
         return data;
@@ -318,6 +327,96 @@ describe("PaymentSettlementService", () => {
       });
       expect(eventTypes()).toEqual(["STATUS_CONFIRMED", "RENEWAL_SETTLED"]);
       expect(fx.events[1].actor).toBe("cron");
+    });
+
+    it("plan TRIAL → crea Enrollment TRIAL nuevo (sin findFirst/update) + notif 'Clase de prueba comprada'", async () => {
+      // La alumna ya tiene una inscripción ACTIVE vigente — el settle
+      // TRIAL ni la lee: siempre crea una fila aparte.
+      fx.prisma.enrollment.findFirst.mockResolvedValue({
+        id: "enr-active",
+        status: "ACTIVE",
+        startedAt: new Date(Date.now() - 30 * 86_400_000),
+        endsAt: new Date(Date.now() + 30 * 86_400_000),
+      });
+      fx.prisma.membershipPlan.findUnique.mockResolvedValue({
+        id: "plantrial",
+        name: "Clase de prueba",
+        type: "TRIAL",
+        periodDays: null,
+        academyId: "ac1",
+        academy: { name: "Academia X" },
+      });
+      const payment = seed(
+        mkPayment({ refId: `mem_plantrial_${randomUUID()}` }),
+      );
+
+      const out = await svc.settle(payment, "PAID", { actor: "webhook" });
+
+      expect(out).toEqual({ ok: true, status: "PAID" });
+      expect(fx.enrollments).toHaveLength(1);
+      expect(fx.enrollments[0]).toMatchObject({
+        academyId: "ac1",
+        personId: "p1",
+        planId: "plantrial",
+        status: "TRIAL",
+        endsAt: null, // sin periodDays → la prueba queda sin fecha
+      });
+      // la vigente quedó intacta: ni siquiera se consultó ni actualizó
+      expect(fx.prisma.enrollment.findFirst).not.toHaveBeenCalled();
+      expect(fx.prisma.enrollment.update).not.toHaveBeenCalled();
+
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({
+          type: "payment.membership",
+          title: "Clase de prueba comprada",
+        }),
+      );
+      const notif = notifications.notifySafe.mock.calls.find(
+        ([, input]) => input.type === "payment.membership",
+      )![1] as { body?: string };
+      expect(notif.body).toBe("Clase de prueba · Academia X · $10.500");
+    });
+
+    it("plan TRIAL con periodDays → endsAt = now + periodDays", async () => {
+      fx.prisma.membershipPlan.findUnique.mockResolvedValue({
+        id: "plantrial",
+        name: "Semana de prueba",
+        type: "TRIAL",
+        periodDays: 7,
+        academyId: "ac1",
+        academy: { name: "Academia X" },
+      });
+      const payment = seed(
+        mkPayment({ refId: `mem_plantrial_${randomUUID()}` }),
+      );
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+      const endsAt = fx.enrollments[0].endsAt as Date;
+      const delta = endsAt.getTime() - Date.now();
+      expect(delta).toBeGreaterThan(6 * 86_400_000);
+      expect(delta).toBeLessThanOrEqual(7 * 86_400_000);
+    });
+
+    it("re-compra del plan TRIAL → cada liquidación crea su propia fila TRIAL", async () => {
+      fx.prisma.membershipPlan.findUnique.mockResolvedValue({
+        id: "plantrial",
+        name: "Clase de prueba",
+        type: "TRIAL",
+        periodDays: null,
+        academyId: "ac1",
+        academy: { name: "Academia X" },
+      });
+      const p1 = seed(mkPayment({ refId: `mem_plantrial_${randomUUID()}` }));
+      const p2 = seed(
+        mkPayment({ id: "pay2", refId: `mem_plantrial_${randomUUID()}` }),
+      );
+      await svc.settle(p1, "PAID", { actor: "webhook" });
+      await svc.settle(p2, "PAID", { actor: "webhook" });
+      expect(fx.enrollments).toHaveLength(2);
+      expect(fx.enrollments.map((e) => e.status)).toEqual([
+        "TRIAL",
+        "TRIAL",
+      ]);
     });
 
     it("sin gatewayData → los campos gateway quedan en null", async () => {

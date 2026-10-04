@@ -15,6 +15,8 @@ import {
   AcademyNotFoundError,
   EventNotFoundError,
   InvalidDiscountError,
+  PlanNotFoundError,
+  PlanNotPurchasableError,
   PresaleSoldOutError,
   PresaleUnavailableError,
   PrivateClassNotPurchasableError,
@@ -814,18 +816,36 @@ describe("CheckoutService.membershipQuote", () => {
     );
   });
 
-  it("400: TRIAL y plan inactivo no son cotizables", async () => {
-    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
-      mkPlan({ type: "TRIAL" }),
-    );
-    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
-      "este plan no está disponible para compra online",
-    );
+  it("400: plan inactivo no es cotizable", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(
       mkPlan({ active: false }),
     );
     await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
       "este plan no está disponible para compra online",
+    );
+  });
+
+  it("TRIAL activo con price > 0 → cotiza como compra única (recurring false)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000 }),
+    );
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.plan.type).toBe("TRIAL");
+    expect(q.recurring).toBe(false);
+    expect(q.totalClp).toBe(5500); // 5000 + fee default 500
+    // sin periodDays configurado → la prueba queda sin fecha
+    expect(q.vigenciaEndsAt).toBeNull();
+  });
+
+  it("TRIAL con price 0 → PlanNotPurchasableError (la gratis es asignación staff)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 0 }),
+    );
+    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toBeInstanceOf(
+      PlanNotPurchasableError,
+    );
+    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
+      "la clase de prueba gratis la asigna la academia",
     );
   });
 
@@ -869,6 +889,114 @@ describe("CheckoutService.membershipQuote", () => {
     fx.prisma.membershipSubscription.findFirst.mockResolvedValue(sub);
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.subscription?.id).toBe("sub-1");
+  });
+});
+
+describe("CheckoutService.purchaseMembership", () => {
+  // Orden MEMBERSHIP one-off: valida plan+academia y crea el Payment
+  // PENDING delegando el cobro. El Enrollment lo emite el webhook.
+  // TRIAL se vende online solo con price > 0 (la gratis es staff).
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  const mkPlan = (over: Record<string, unknown> = {}) => ({
+    id: "plan-1",
+    active: true,
+    type: "MONTHLY",
+    price: 15000,
+    academy: { active: true },
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  const buy = (planId = "plan-1") =>
+    svc.purchaseMembership("per-1", { planId });
+
+  it("plan inexistente o academia inactiva → PlanNotFoundError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(null);
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotFoundError);
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ academy: { active: false } }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotFoundError);
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("plan inactivo → PlanNotPurchasableError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ active: false }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("MONTHLY → Payment MEMBERSHIP PENDING con refId mem_<planId>_", async () => {
+    const res = await buy();
+    const p = fx.payments[0]!;
+    expect(p.orderType).toBe("MEMBERSHIP");
+    expect(p.amount).toBe(res.quote.total); // 15000 + 500 fee
+    expect((p.refId as string).startsWith("mem_plan-1_")).toBe(true);
+    expect(gw.createOrder).toHaveBeenCalledOnce();
+  });
+
+  it("TRIAL con price > 0 vende a persona sin inscripción (compra única)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000 }),
+    );
+    const res = await buy();
+    const p = fx.payments[0]!;
+    expect(p.orderType).toBe("MEMBERSHIP");
+    expect(res.quote.listPrice).toBe(5000);
+    expect(res.quote.total).toBe(5500);
+    expect(res.paymentUrl).toContain("pay.example");
+  });
+
+  it("TRIAL con price > 0 también vende a alumna con enrollment ACTIVE previo", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000 }),
+    );
+    // la compra no valida enrollment — la alumna inscrita también puede
+    // comprar la prueba (el settle crea una fila TRIAL aparte).
+    fx.prisma.enrollment.findFirst.mockResolvedValue({
+      endsAt: new Date(Date.now() + 30 * 86_400_000),
+    });
+    const res = await buy();
+    expect(res.quote.total).toBe(5500);
+    expect(fx.payments).toHaveLength(1);
+  });
+
+  it("TRIAL con price 0 → PlanNotPurchasableError (la gratis es asignación staff)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 0 }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
+    await expect(buy()).rejects.toThrow(
+      "la clase de prueba gratis la asigna la academia",
+    );
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("TRIAL inactivo → PlanNotPurchasableError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000, active: false }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
+    expect(fx.payments).toHaveLength(0);
   });
 });
 

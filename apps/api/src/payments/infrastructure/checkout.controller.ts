@@ -221,7 +221,8 @@ export class CheckoutController {
 
   /**
    * Plan de academia: cobra el precio del plan en DB y el webhook emite/
-   * renueva el Enrollment al PAID. TRIAL y planes inactivos no se venden.
+   * renueva el Enrollment al PAID. Planes inactivos no se venden; TRIAL
+   * se vende solo con price > 0 (la prueba gratis es asignación staff).
    */
   @Post("membership")
   @UseGuards(SessionGuard)
