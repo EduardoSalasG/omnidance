@@ -191,6 +191,9 @@ export async function seedDev(prisma: PrismaClient) {
     address: "Av. Providencia 1650, Providencia",
     lat: -33.4264,
     lng: -70.6155,
+    instagram: "mueveteontour",
+    whatsapp: "56912345678",
+    website: "https://mueveteontour.cl",
   };
   const muvet = await ensure(
     () => prisma.academy.findFirst({ where: { name: "MuéveteOnTour" } }),
@@ -204,6 +207,9 @@ export async function seedDev(prisma: PrismaClient) {
           address: a.address ?? muvetData.address,
           lat: a.lat ?? muvetData.lat,
           lng: a.lng ?? muvetData.lng,
+          instagram: a.instagram ?? muvetData.instagram,
+          whatsapp: a.whatsapp ?? muvetData.whatsapp,
+          website: a.website ?? muvetData.website,
           // Clase particular vendible desde el perfil (producto, precio
           // único; null = la academia no la vende).
           privateLessonPrice: a.privateLessonPrice ?? 25000,
@@ -228,6 +234,9 @@ export async function seedDev(prisma: PrismaClient) {
     address: "Av. Irarrázaval 2828, Ñuñoa",
     lat: -33.4546,
     lng: -70.5980,
+    instagram: "academiatumbao",
+    whatsapp: "56987654321",
+    website: "https://tumbao.dance",
   };
   const tumbao = await ensure(
     () => prisma.academy.findFirst({ where: { name: "Academia Tumbao" } }),
@@ -242,6 +251,9 @@ export async function seedDev(prisma: PrismaClient) {
           address: a.address ?? tumbaoData.address,
           lat: a.lat ?? tumbaoData.lat,
           lng: a.lng ?? tumbaoData.lng,
+          instagram: a.instagram ?? tumbaoData.instagram,
+          whatsapp: a.whatsapp ?? tumbaoData.whatsapp,
+          website: a.website ?? tumbaoData.website,
           privateLessonPrice: a.privateLessonPrice ?? 20000,
         },
       }),
@@ -732,6 +744,12 @@ export async function seedDev(prisma: PrismaClient) {
 
   for (const [aIdx, a] of ACADEMY_SEED.entries()) {
     const loc = ACADEMY_LOCS[aIdx % ACADEMY_LOCS.length];
+    // Handle/URL demo derivados del nombre — determinísticos por academia.
+    const slug = a.name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^a-z0-9]+/g, "");
     const academyData = {
       name: a.name,
       ownerId: academiasOwner.id,
@@ -740,6 +758,9 @@ export async function seedDev(prisma: PrismaClient) {
       address: loc.address,
       lat: loc.lat,
       lng: loc.lng,
+      instagram: slug,
+      whatsapp: `569${String(20000000 + aIdx * 137).slice(0, 8)}`,
+      website: `https://${slug}.cl`,
     };
     const academy = await ensure(
       () => prisma.academy.findFirst({ where: { name: a.name } }),
@@ -754,6 +775,9 @@ export async function seedDev(prisma: PrismaClient) {
             address: existing.address ?? academyData.address,
             lat: existing.lat ?? academyData.lat,
             lng: existing.lng ?? academyData.lng,
+            instagram: existing.instagram ?? academyData.instagram,
+            whatsapp: existing.whatsapp ?? academyData.whatsapp,
+            website: existing.website ?? academyData.website,
           },
         }),
     );
