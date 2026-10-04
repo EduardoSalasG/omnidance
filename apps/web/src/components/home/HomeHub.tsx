@@ -30,6 +30,11 @@ type Me = {
 
 type NextItem = { id: string; name: string; when: string; place: string | null };
 
+/** GET /me/pending-surveys — evento con check-in propio, terminado hace
+    <24h y aún sin evaluar. También dispara el fan-out lazy de la
+    notificación event.survey en el API. */
+type PendingSurvey = { eventId: string; name: string; endsAt: string };
+
 // Evento de la escena nocturna — lo que decide "¿salgo hoy?":
 // género, precio, amigos que van, preventas restantes.
 type TonightEvent = {
@@ -323,9 +328,14 @@ export function HomeHub() {
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
+  const ts = useTranslations("survey");
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
+  // Encuestas post-social pendientes — global por persona (cualquier
+  // lente evalúa); null hasta que el fetch resuelve → la card no
+  // reserva espacio ni flashea vacía.
+  const [surveys, setSurveys] = useState<PendingSurvey[] | null>(null);
   // Stats versionados por lente: {key: "ROLE:mode"} — al cambiar de
   // lente el slot viejo no se muestra nunca (cero flash de KPIs/hero
   // ajenos); mientras resuelve el fetch de la lente actual → spinner.
@@ -356,6 +366,23 @@ export function HomeHub() {
       cancelled = true;
     };
   }, []);
+
+  // Encuestas pendientes: una vez por sesión (no por lente — el
+  // endpoint es global). Falla en silencio: la card simplemente no
+  // aparece, nunca bloquea el hub.
+  useEffect(() => {
+    if (!me) return;
+    let cancelled = false;
+    apiFetch("/me/pending-surveys")
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        setSurveys((await res.json()) as PendingSurvey[]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [me]);
 
   // KPIs del home: un solo request agregado por lente (+ modo consumer).
   useEffect(() => {
@@ -557,6 +584,32 @@ export function HomeHub() {
             {t("retry")}
           </button>
         </div>
+      )}
+
+      {/* Encuestas post-social — timely, arriba del contenido de lente.
+          Cualquier rol las ve (un productor que bailó también evalúa);
+          sin items no se renderiza nada (cero hueco). */}
+      {surveys !== null && surveys.length > 0 && (
+        <section
+          aria-label={ts("sectionLabel")}
+          className="flex flex-col gap-2"
+        >
+          {surveys.map((s) => (
+            <Link
+              key={s.eventId}
+              href={`/eventos/${s.eventId}/evaluar`}
+              className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-night-800/70 px-5 py-4 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+            >
+              <span className="min-w-0 truncate text-base font-semibold">
+                {ts("prompt", { name: s.name })}
+              </span>
+              <span className="shrink-0 text-sm font-semibold text-neon">
+                {ts("cardCta")}
+                <span aria-hidden> →</span>
+              </span>
+            </Link>
+          ))}
+        </section>
       )}
 
       {dancerSocial ? (

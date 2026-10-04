@@ -43,11 +43,6 @@ export default function AdminPage() {
             title={t("modules.catalogs")}
             desc={t("modules.catalogsDesc")}
           />
-          <ModuleCard
-            href="/analitica/usuarios"
-            title={t("modules.analyticsUser")}
-            desc={t("modules.analyticsUserDesc")}
-          />
         </ModuleGrid>
       </AdminGate>
     </main>

@@ -68,6 +68,8 @@ function hrefFor(n: NotificationItem): string | null {
       return eventId ? `/eventos/${eventId}` : "/eventos";
     case "payment.failed":
       return eventId ? `/eventos/${eventId}` : null;
+    case "event.survey":
+      return eventId ? `/eventos/${eventId}/evaluar` : null;
     case "session.invite":
     case "session.confirmed":
     case "session.declined":

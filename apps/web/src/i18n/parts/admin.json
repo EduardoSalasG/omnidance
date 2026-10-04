@@ -156,8 +156,7 @@
     "modules": {
       "datos": "Datos",
       "datosDesc": "Explora eventos, clases, pagos y más",
-      "analyticsUser": "Analítica por usuario",
-      "analyticsUserDesc": "Insights de negocio por persona y rol"
+      "analyticsUser": "Analítica por usuario"
     },
     "roles": {
       "superuser": "Superusuario",

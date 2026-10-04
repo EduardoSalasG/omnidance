@@ -8,6 +8,9 @@ export type StarRatingProps = {
   value?: number | null;
   onSelect?: (score: number) => void;
   busy?: boolean;
+  /** aria-label del radiogroup/img — default "¿Cómo estuvo el baile?"
+      (sesiones); la encuesta de evento pasa el nombre de la dimensión. */
+  ariaLabel?: string;
 };
 
 const STARS = [1, 2, 3, 4, 5] as const;
@@ -23,6 +26,7 @@ export function StarRating({
   value = null,
   onSelect,
   busy = false,
+  ariaLabel,
 }: StarRatingProps) {
   const t = useTranslations("sessions");
   const [preview, setPreview] = useState<number | null>(null);
@@ -43,7 +47,11 @@ export function StarRating({
       <div
         className="flex items-center"
         role="img"
-        aria-label={t("rating", { value: value ?? 0 })}
+        aria-label={
+          ariaLabel
+            ? `${ariaLabel}: ${t("rating", { value: value ?? 0 })}`
+            : t("rating", { value: value ?? 0 })
+        }
       >
         {STARS.map((star) => (
           <span key={star} aria-hidden="true" className={starCls(star <= active)}>
@@ -89,7 +97,7 @@ export function StarRating({
       ref={groupRef}
       className="flex items-center"
       role="radiogroup"
-      aria-label={t("ratePrompt")}
+      aria-label={ariaLabel ?? t("ratePrompt")}
     >
       {STARS.map((star) => (
         <button

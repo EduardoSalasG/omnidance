@@ -295,10 +295,25 @@ type DrawerSpec = {
 };
 
 type DrawerGroupSpec = {
-  // clave i18n de nav.* para el header del grupo
-  labelNs: "nav" | "producer" | "academy" | "admin";
+  // clave i18n para el header del grupo (nav.*, o el title del dominio
+  // cuando el grupo es mono-módulo — p.ej. "Analítica").
+  labelNs: "nav" | "producer" | "academy" | "admin" | "analytics";
   labelKey: string;
   items: DrawerSpec[];
+};
+
+// Grupo "Analítica" del drawer — módulo transversal a los roles con
+// analítica (no vive bajo el dominio de ninguna consola).
+const ANALYTICS_DRAWER_GROUP = (items: DrawerSpec[]): DrawerGroupSpec => ({
+  labelNs: "analytics",
+  labelKey: "title",
+  items,
+});
+const ANALYTICS_DRAWER_ITEM: DrawerSpec = {
+  href: "/analitica",
+  ns: "analytics",
+  key: "title",
+  icon: ICONS.slider,
 };
 
 // Sheet del bailarín — módulos secundarios por lente (social/academia).
@@ -365,15 +380,10 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "title",
           icon: ICONS.slider,
         },
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM]),
     {
       labelNs: "nav",
       labelKey: "socialSection",
@@ -436,14 +446,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.play,
         },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
       ],
     },
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM]),
   ],
   INSTRUCTOR: [
     {
@@ -508,20 +513,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
   ],
   SUPPORT: [],
-  VENUE_MANAGER: [
-    {
-      labelNs: "nav",
-      labelKey: "consoleSection",
-      items: [
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
-      ],
-    },
-  ],
+  VENUE_MANAGER: [ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM])],
   ADMIN: [
     {
       labelNs: "admin",
@@ -563,20 +555,17 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "title",
           icon: ICONS.tag,
         },
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
-        {
-          href: "/analitica/usuarios",
-          ns: "admin",
-          key: "modules.analyticsUser",
-          icon: ICONS.users,
-        },
       ],
     },
+    ANALYTICS_DRAWER_GROUP([
+      ANALYTICS_DRAWER_ITEM,
+      {
+        href: "/analitica/usuarios",
+        ns: "admin",
+        key: "modules.analyticsUser",
+        icon: ICONS.users,
+      },
+    ]),
     {
       labelNs: "nav",
       labelKey: "socialSection",
