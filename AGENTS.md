@@ -44,6 +44,17 @@ Para una modificación acotada, verifica primero la superficie afectada (`pnpm -
 
 ## Flujo de trabajo
 
+### Gates obligatorios (no saltarse)
+
+Estos pasos se incumplieron en sesiones reales — son gates, no sugerencias:
+
+- **G0 — Skills antes de actuar**: al iniciar sesión invoca `using-superpowers` ANTES de la primera acción (incluida explorar o leer archivos). Antes de implementar, invoca la skill de proceso que aplique: `openspec-new-change` para features/cambios de comportamiento, `systematic-debugging` para bugs, `test-driven-development` antes de escribir código de implementación, `brainstorming` cuando el pedido es ambiguo o creativo. Saltárselas "porque el cambio es chico" es exactamente el patrón que falló.
+- **G1 — Índice del grafo**: tras leer el handoff, corre `list_projects`/`index_status` en codebase-memory-mcp. Si el proyecto no está indexado o está stale tras un cambio grande externo, `index_repository`. Todo discovery estructural posterior va por `search_graph`/`trace_path`/`get_code_snippet`; grep/glob queda reservado a literales, configs y no-código. `check_index_coverage` sobre las rutas evidenciadas antes de claims negativos o exhaustivos.
+- **G2 — Spec antes de commit**: ningún feature o cambio de comportamiento se commitea sin su change en `openspec/changes/` (creado con `openspec-new-change`, con proposal/tasks/deltas) y `openspec validate --changes` verde. Al completar el trabajo el change se archiva (sin `--skip-specs` cuando tiene deltas) para que la spec canónica quede sincronizada — si el cambio no toca comportamiento (docs, refactor interno, fix de test), el change puede omitirse, pero hay que decirlo explícitamente.
+- **G3 — Evidencia antes de declarar verde**: invoca `verification-before-completion` antes de afirmar que algo funciona o está completo — corre los comandos reales (typecheck, tests, smoke) y cita el output; nunca "debería pasar".
+
+### Secuencia
+
 1. **Al iniciar sesión**: lee el `docs/next-session-handoff-*.md` más reciente y compáralo con `git status` / commits recientes; reporta divergencias. El handoff es contexto de planificación — valida contra el código real antes de confiar en afirmaciones estructurales.
 2. **Discovery estructural con Codebase Memory primero** (search_graph, trace_path, get_code_snippet); grep/glob solo para literales, no-código, o cuando el índice esté incompleto — verifica coverage antes de claims negativos o exhaustivos.
 3. **Diseño antes de código** en cambios no triviales: alcance, módulos afectados, riesgos, contratos, impacto en datos/docs, criterios de aceptación.
