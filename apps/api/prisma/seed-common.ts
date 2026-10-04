@@ -1,7 +1,7 @@
 // Baseline compartida por seed-dev y seed-prod: catálogo RBAC, permisos,
 // grants, estilos y parámetros de plataforma. Todo idempotente — upserts
 // por clave natural; find-or-create donde el schema no tiene unique.
-import { PrismaClient, Genre } from "@prisma/client";
+import { PrismaClient, Genre, Gender } from "@prisma/client";
 
 // Catálogo RBAC vivo en DB. Los roles solo se asignan por admin
 // (POST /admin/users/:personId/roles) — no hay auto-solicitud.
@@ -111,11 +111,12 @@ export async function ensurePerson(
   email: string,
   name: string,
   roles: Array<{ role: string; status?: "PENDING" | "SANDBOX" | "APPROVED" }>,
+  gender?: Gender,
 ) {
   const person = await prisma.person.upsert({
     where: { email },
-    update: { name },
-    create: { email, name },
+    update: { name, gender },
+    create: { email, name, gender },
   });
   for (const r of roles) {
     await prisma.personRole.upsert({
