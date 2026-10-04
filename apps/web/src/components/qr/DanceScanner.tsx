@@ -186,7 +186,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
               <li key={e.id}>
                 <Link
                   href={`/qr?modo=escanear&event=${encodeURIComponent(e.id)}`}
-                  className="block transition-transform active:scale-[0.98] motion-reduce:transition-none"
+                  className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:transition-none"
                 >
                   <Card className="transition-colors hover:border-neon/50">
                     <div className="flex flex-wrap items-center gap-2">

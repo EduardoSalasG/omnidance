@@ -136,7 +136,7 @@ function PaymentCard({
               type="button"
               onClick={() => void toggleLedger()}
               aria-expanded={expanded}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-white/60 transition-colors hover:border-white/25 hover:text-white"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-white/60 transition-colors hover:border-white/25 hover:text-white"
             >
               <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
               {t("ledger.toggle", { count: p.eventCount })}
@@ -161,13 +161,13 @@ function PaymentCard({
                         key={e.id}
                         className="flex items-baseline gap-2 text-xs"
                       >
-                        <span className="shrink-0 tabular-nums text-white/40">
+                        <span className="shrink-0 tabular-nums text-white/50">
                           #{e.seq}
                         </span>
                         <span className="min-w-0 flex-1 truncate font-medium text-white/80">
                           {e.type}
                         </span>
-                        <span className="shrink-0 text-white/40">
+                        <span className="shrink-0 text-white/50">
                           {e.actor} ·{" "}
                           {paymentDateTimeFmt.format(new Date(e.createdAt))}
                         </span>

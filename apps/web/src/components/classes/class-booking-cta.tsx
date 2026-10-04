@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -382,12 +383,12 @@ export function ClassBookingCta({
                         {t("buyClass")}
                       </Button>
                     </div>
-                    <a
+                    <Link
                       href={`/academias/${academyId}`}
-                      className="text-xs text-white/50 underline-offset-4 hover:underline"
+                      className="inline-flex min-h-11 items-center text-xs text-white/50 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                     >
                       {t("orViewPlans")}
-                    </a>
+                    </Link>
                   </>
                 ) : (
                   <div className="flex items-center justify-between gap-4">
@@ -401,7 +402,7 @@ export function ClassBookingCta({
                         <span className="text-sm font-semibold text-white/60">
                           {t("full")}
                           {waitlistCount > 0 && (
-                            <span className="text-white/40">
+                            <span className="text-white/50">
                               {" "}
                               · {t("waitlistCount", { count: waitlistCount })}
                             </span>
@@ -474,7 +475,7 @@ export function ClassBookingCta({
             type="button"
             disabled={busy}
             onClick={() => setConfirming(true)}
-            className="rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
             {t("cancelBooking")}
           </button>

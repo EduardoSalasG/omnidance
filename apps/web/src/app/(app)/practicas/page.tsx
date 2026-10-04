@@ -296,7 +296,7 @@ function PracticasInner() {
             <Link
               key={id}
               href={hrefFor({ style: styleFilter === id ? undefined : id })}
-              aria-pressed={styleFilter === id}
+              aria-current={styleFilter === id ? "true" : undefined}
               className={chipClass(styleFilter === id)}
             >
               {name}

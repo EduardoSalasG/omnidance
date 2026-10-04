@@ -177,7 +177,9 @@ export type SegmentedMultiItem = SegmentedItem & {
  * materializa (scale+fade), y un anillo `border-neon` itinerante se
  * desliza al último ítem activado (`focusKey`) — el movimiento del
  * resaltado se ve igual que en los toggles exclusivos, sin fingir una
- * selección única que no existe. Los items llevan aria-pressed.
+ * selección única que no existe. Los items son Links (la selección
+ * es navegación de URL) — el estado activo va en aria-current, no
+ * aria-pressed (reservado a botones toggle).
  */
 export function SegmentedMulti({
   items,
@@ -225,7 +227,7 @@ export function SegmentedMulti({
             data-seg-item=""
             data-tour={item.tour}
             aria-label={item.ariaLabel}
-            aria-pressed={item.active}
+            aria-current={item.active ? "true" : undefined}
             className={`${itemBaseCls} ${item.icon ? "h-11 w-11" : "px-4"} ${
               item.active ? "text-neon" : "text-white/60 hover:text-white"
             }`}

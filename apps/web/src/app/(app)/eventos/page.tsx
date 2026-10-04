@@ -7,6 +7,7 @@ import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
 import { Button } from "@/components/ui";
 import { Segmented, SegmentedMulti } from "@/components/ui/segmented";
+import { EscapableDetails } from "@/components/ui/escapable-details";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import toursI18n from "@/i18n/parts/tours.json";
 import {
@@ -471,12 +472,13 @@ export default async function EventosPage({
               />
             </nav>
 
-            {/* Locales — dropdown tipo chip (sin JS). key por venue: al
-            navegar a otro local el <details> se remonta cerrado —
-            el estado open no es controlado por React y sin key
-            sobrevive a la navegación client-side. */}
+            {/* Locales — dropdown tipo chip (click-afuera por capa CSS;
+            Escape vía wrapper client). key por venue: al navegar a
+            otro local el <details> se remonta cerrado — el estado
+            open no es controlado por React y sin key sobrevive a la
+            navegación client-side. */}
         <div className="flex items-center" data-tour="ev-venues">
-          <details key={venueId ?? "all"} className="venue-filter relative">
+          <EscapableDetails key={venueId ?? "all"} className="venue-filter relative">
             <summary
               className={`${chipClass(!!venueId)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
             >
@@ -510,7 +512,7 @@ export default async function EventosPage({
                 </li>
               ))}
             </ul>
-          </details>
+          </EscapableDetails>
         </div>
           </>
         )}
@@ -555,7 +557,7 @@ export default async function EventosPage({
               <div className="h-[68dvh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-night-700">
                 <EventsMap venues={mapVenues} />
               </div>
-              <p className="mt-3 text-center text-xs text-white/40">
+              <p className="mt-3 text-center text-xs text-white/50">
                 {t.mapHint}
               </p>
             </>
@@ -627,7 +629,7 @@ export default async function EventosPage({
                     ))}
                   </span>
                   {cell.events.length > 3 && (
-                    <span className="text-[10px] leading-none text-white/40">
+                    <span className="text-[10px] leading-none text-white/50">
                       {t.more.replace("{count}", String(cell.events.length - 3))}
                     </span>
                   )}
