@@ -67,11 +67,21 @@ export default function EventsMapInner({ venues }: { venues: MapVenue[] }) {
         >
           <Tooltip
             permanent
+            interactive
             direction="top"
             offset={[0, -10]}
             className="venue-map-label"
           >
-            {v.name}
+            <button
+              type="button"
+              className="cursor-pointer underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(v.href ?? `/locales/${v.id}`);
+              }}
+            >
+              {v.name}
+            </button>
           </Tooltip>
         </CircleMarker>
       ))}
