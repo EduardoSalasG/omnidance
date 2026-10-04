@@ -91,6 +91,38 @@ higiene de OpenSpec y los exportes PDF.
   individualmente (sí por `allStudents`). `personIds` no valida
   pertenencia al actor (pre-existente; fix separado si se decide).
 
+## Sesión noche — barrido OpenSpec + feature survey completo
+
+- **12 changes stale auditados y archivados** (batches A/B/C con
+  veredicto por evidencia): ~80 requirements canonizados. Deltas
+  corregidos a la realidad donde mentían (nav-reorg sheet/prácticas/
+  TicketWallet/Rsvp-repurposed, song-suggestions 1xpersona/evento,
+  table-reservations autenticados, params s=/v= de /clases).
+- **`crm-personids-scoping`** (mini-change): personIds intersectado con
+  el universo del actor — archivado en `crm/campaign-audience`.
+- **`dancer-profile-survey-analytics` IMPLEMENTADO** (0/18 → archivado,
+  3 specs canónicas: `dancer-dance-profile`, `post-event-survey`,
+  `event-analytics`):
+  - `Person.gender` M/F/OTHER (nullable) + `EventRating.overall` +
+    `Event.surveyNotifiedAt` — migración `20261004173000` aplicada.
+  - `PATCH /me` con gender; `GET /me/pending-surveys` con fan-out lazy
+    (claim `updateMany` atómico → notifySafe `event.survey` a todos los
+    asistentes una sola vez); `GET /events/:id/analytics` (owner/admin):
+    attendees + genderSplit + roleSplit + byDim, **k-anonymity ≥3 por
+    dimensión** (fix del review — el promedio de 1-2 evals exponía
+    puntajes individuales).
+  - Web: género en `/perfil/datos` (solo modo social — gap conocido:
+    en modo academia no hay UI), card en `/inicio` cualquier lente,
+    `/eventos/[id]/evaluar` (overall obligatorio + dims expandibles),
+    sección Analítica en `/productor/eventos/[id]`, sidebar con grupo
+    "Analítica" propio (card quitada de `/admin`).
+  - Commits: `ce57e93` `678966c` `531669f` `d5b9cd3` + openspec.
+  - **Flags del review documentados**: fan-out es 1-shot lazy — si el
+    request muere a mitad del loop el flag ya quedó (trade-off aceptado);
+    el fan-out notifica también a quien ya evaluó (recordatorio); no hay
+    prefill de evaluación existente en `/evaluar` (re-envío = upsert).
+- `pwa-shell-nav` sigue abierto (19/20) — solo falta confirmar push iOS.
+
 ## Pendientes
 
 1. **Validación Flow sandbox real** — sigue bloqueando producción
