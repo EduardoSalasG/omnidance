@@ -452,7 +452,43 @@ export class CrmService {
     actorId: string,
     segment: CampaignSegment,
   ): Promise<string[]> {
-    const ids = new Set<string>(segment.personIds ?? []);
+    const ids = new Set<string>();
+
+    // personIds solo alcanza dentro del universo del actor (score ∪ tag;
+    // ACADEMY además enrollment ∪ booking) — un id ajeno se descarta sin
+    // error. Sin esto, cualquier personId conocido era notificable.
+    if (segment.personIds?.length) {
+      const universeQueries: Promise<Array<{ personId: string }>>[] = [
+        this.prisma.relationshipScore.findMany({
+          where: { actorType, actorId },
+          select: { personId: true },
+        }),
+        this.prisma.actorTag.findMany({
+          where: { actorType, actorId },
+          select: { personId: true },
+        }),
+      ];
+      if (actorType === "ACADEMY") {
+        universeQueries.push(
+          this.prisma.enrollment.findMany({
+            where: { academyId: actorId },
+            select: { personId: true },
+          }),
+          this.prisma.classBooking.findMany({
+            where: { class: { slot: { academyId: actorId } } },
+            select: { personId: true },
+          }),
+        );
+      }
+      const universe = new Set(
+        (await Promise.all(universeQueries))
+          .flat()
+          .map((r) => r.personId),
+      );
+      for (const id of segment.personIds) {
+        if (universe.has(id)) ids.add(id);
+      }
+    }
 
     if (segment.tags?.length) {
       const tags = await this.prisma.actorTag.findMany({

@@ -209,8 +209,31 @@ describe("CrmService — audiencias por grupo (ACADEMY)", () => {
       personIds: ["p-extra", "p-active"], // p-active ya alcanzada
       tags: ["VIP"],
     });
-    // 3 alumnos + p-booker (serie) + p-extra + p-tagged
-    expect(res.count).toBe(6);
+    // 3 alumnos + p-booker (serie) + p-tagged — p-extra no tiene
+    // universo con la academia (ni enrollment/tag/score) y se descarta
+    expect(res.count).toBe(5);
+  });
+
+  it("personIds se intersecta con el universo del actor", async () => {
+    // p-trial está inscrito → alcanzable por personIds aunque sin score/tag
+    // p-stranger no pertenece a la academia en absoluto → fuera
+    const res = await svc.previewCampaign("ACADEMY", ACADEMY, {
+      personIds: ["p-trial", "p-stranger"],
+    });
+    expect(res.count).toBe(1);
+  });
+
+  it("personIds alcanza a alguien solo taggeado", async () => {
+    prisma.actorTags.push({
+      actorType: "ACADEMY",
+      actorId: ACADEMY,
+      personId: "p-tagged",
+      tag: "VIP",
+    });
+    const res = await svc.previewCampaign("ACADEMY", ACADEMY, {
+      personIds: ["p-tagged"],
+    });
+    expect(res.count).toBe(1);
   });
 
   it("preview no crea campaña ni notifica", async () => {
