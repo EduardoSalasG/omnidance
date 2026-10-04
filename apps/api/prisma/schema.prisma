@@ -1120,6 +1120,10 @@ model Payout {
   periodEnd   DateTime
   gross       Int
   platformFee Int         @default(0) // comisión plataforma descontada en esta liquidación
+  // Costo de pasarela descontado como línea GATEWAY_FEE_PASSTHROUGH —
+  // solo liquidaciones ACADEMY (modelo SaaS: la academia vende sin
+  // comisión pero absorbe el costo Flow, tasa gateway_fee.academy_passthrough_pct).
+  gatewayFee  Int         @default(0)
   net         Int
   status      PayoutStatus @default(PENDING)
   evidenceUrl String? // comprobante de transferencia

@@ -161,12 +161,14 @@ export class SubscriptionsService {
     next: { name: string; price: number },
   ): Promise<void> {
     if (!plan.flowPlanId || !this.supportsSubscriptions()) return;
-    const fee = await this.params.getNumber("service_fee.membership_clp", 500);
+    // Sin cargo de servicio en el monto espejo (modelo SaaS — spec
+    // academy-saas-billing): Flow cobra al alumno solo plan.price; el
+    // costo de pasarela se liquida en el payout de la academia.
     await this.provider().syncPlan(
       {
         planId: plan.flowPlanId,
         name: `${plan.academy.name} — ${next.name}`,
-        amount: next.price + fee,
+        amount: next.price,
       },
       { correlationId: randomUUID() },
     );
@@ -315,15 +317,13 @@ export class SubscriptionsService {
     let flowPlanId = plan.flowPlanId;
     if (!flowPlanId) {
       flowPlanId = `omni_${plan.id}`;
-      const fee = await this.params.getNumber(
-        "service_fee.membership_clp",
-        500,
-      );
+      // Sin cargo de servicio en el monto espejo (modelo SaaS — spec
+      // academy-saas-billing): Flow cobra al alumno solo plan.price.
       await provider.ensurePlan(
         {
           planId: flowPlanId,
           name: `${plan.academy.name} — ${plan.name}`,
-          amount: plan.price + fee,
+          amount: plan.price,
           intervalCount,
         },
         { correlationId },
@@ -970,14 +970,10 @@ export class SubscriptionsService {
           sub.lastInvoiceId = invId;
           continue;
         }
-        const amount =
-          inv.amount > 0
-            ? inv.amount
-            : (plan?.price ?? 0) +
-              (await this.params.getNumber(
-                "service_fee.membership_clp",
-                500,
-              ));
+        // Fallback sin cargo de servicio (modelo SaaS — spec
+        // academy-saas-billing): si Flow no reporta monto, el Payment
+        // local registra solo el precio del plan.
+        const amount = inv.amount > 0 ? inv.amount : (plan?.price ?? 0);
         const payment = await this.prisma.payment.create({
           data: {
             orderType: "MEMBERSHIP",

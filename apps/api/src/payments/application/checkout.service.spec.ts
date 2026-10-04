@@ -940,7 +940,8 @@ describe("CheckoutService.membershipQuote", () => {
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.plan.type).toBe("TRIAL");
     expect(q.recurring).toBe(false);
-    expect(q.totalClp).toBe(5500); // 5000 + fee default 500
+    expect(q.serviceFeeClp).toBe(0); // sin cargo de servicio (modelo SaaS)
+    expect(q.totalClp).toBe(5000); // total = precio del plan
     // sin periodDays configurado → la prueba queda sin fecha
     expect(q.vigenciaEndsAt).toBeNull();
   });
@@ -957,13 +958,15 @@ describe("CheckoutService.membershipQuote", () => {
     );
   });
 
-  it("MONTHLY: recurring, total = price + fee, vigencia = fin de mes", async () => {
+  it("MONTHLY: recurring, total = price SIN fee (param legacy queda inerte), vigencia = fin de mes", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    // Defensivo: aunque el param legacy conserve un valor, la orden
+    // MEMBERSHIP nunca cobra cargo de servicio (spec academy-saas-billing).
     pf.numbers.set("service_fee.membership_clp", 700);
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.recurring).toBe(true);
-    expect(q.totalClp).toBe(15700);
-    expect(q.serviceFeeClp).toBe(700);
+    expect(q.totalClp).toBe(15000);
+    expect(q.serviceFeeClp).toBe(0);
     expect(q.vigenciaEndsAt).not.toBeNull();
     expect(q.gateway).toBe("STUB");
     expect(q.subscription).toBeNull();
@@ -1083,7 +1086,9 @@ describe("CheckoutService.purchaseMembership", () => {
     const res = await buy();
     const p = fx.payments[0]!;
     expect(p.orderType).toBe("MEMBERSHIP");
-    expect(p.amount).toBe(res.quote.total); // 15000 + 500 fee
+    expect(res.quote.serviceFee).toBe(0); // modelo SaaS: sin cargo
+    expect(p.amount).toBe(15000); // total = precio del plan
+    expect(p.amount).toBe(res.quote.total);
     expect((p.refId as string).startsWith("mem_plan-1_")).toBe(true);
     expect(gw.createOrder).toHaveBeenCalledOnce();
   });
@@ -1096,7 +1101,8 @@ describe("CheckoutService.purchaseMembership", () => {
     const p = fx.payments[0]!;
     expect(p.orderType).toBe("MEMBERSHIP");
     expect(res.quote.listPrice).toBe(5000);
-    expect(res.quote.total).toBe(5500);
+    expect(res.quote.serviceFee).toBe(0);
+    expect(res.quote.total).toBe(5000); // sin fee (modelo SaaS)
     expect(res.paymentUrl).toContain("pay.example");
   });
 
@@ -1110,7 +1116,7 @@ describe("CheckoutService.purchaseMembership", () => {
       endsAt: new Date(Date.now() + 30 * 86_400_000),
     });
     const res = await buy();
-    expect(res.quote.total).toBe(5500);
+    expect(res.quote.total).toBe(5000); // sin fee (modelo SaaS)
     expect(fx.payments).toHaveLength(1);
   });
 
@@ -1239,14 +1245,17 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
     expect(fx.payments).toHaveLength(0);
   });
 
-  it("crea Payment WORKSHOP: refId wks_, unit economics, fee del param membership", async () => {
+  it("crea Payment WORKSHOP: refId wks_, unit economics, SIN fee (param legacy inerte)", async () => {
+    // Defensivo: el param legacy service_fee.membership_clp no aplica a
+    // órdenes de academia (spec academy-saas-billing).
     pf.numbers.set("service_fee.membership_clp", 500);
     const res = await buy();
     const p = fx.payments[0];
     expect(p.orderType).toBe("WORKSHOP");
     expect(p.quantity).toBe(1);
     expect(p.unitListPrice).toBe(9000);
-    expect(p.unitServiceFee).toBe(500);
+    expect(p.unitServiceFee).toBe(0);
+    expect(p.amount).toBe(9000);
     expect(p.amount).toBe(res.quote.total);
     expect(res.quote.listPrice).toBe(9000);
     expect(res.paymentUrl).toContain("pay.example");
@@ -1254,12 +1263,12 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
     expect(ref?.classId).toBe("cls-1");
   });
 
-  it("classQuote: desglose + spotsLeft + alreadyBooked sin crear orden", async () => {
+  it("classQuote: desglose sin fee + spotsLeft + alreadyBooked sin crear orden", async () => {
     fx.prisma.classBooking.count.mockResolvedValue(3);
     const q = await svc.classQuote("per-1", "cls-1");
     expect(q.listPrice).toBe(9000);
-    expect(q.serviceFee).toBe(500);
-    expect(q.total).toBe(9500);
+    expect(q.serviceFee).toBe(0);
+    expect(q.total).toBe(9000);
     expect(q.spotsLeft).toBe(7);
     expect(q.alreadyBooked).toBe(false);
     expect(fx.payments).toHaveLength(0);
@@ -1294,12 +1303,12 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     );
   });
 
-  it("quote: desglose con fee del param membership, sin crear orden", async () => {
+  it("quote: desglose SIN fee (param legacy inerte), sin crear orden", async () => {
     pf.numbers.set("service_fee.membership_clp", 500);
     const q = await svc.privateClassQuote("per-1", "ac-1");
     expect(q.listPrice).toBe(40000);
-    expect(q.serviceFee).toBe(500);
-    expect(q.total).toBe(40500);
+    expect(q.serviceFee).toBe(0);
+    expect(q.total).toBe(40000);
     expect(q.academy).toMatchObject({ id: "ac-1", name: "Mambo Madness" });
     expect(fx.payments).toHaveLength(0);
     expect(gw.createOrder).not.toHaveBeenCalled();
@@ -1348,7 +1357,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     expect(gw.createOrder).not.toHaveBeenCalled();
   });
 
-  it("crea Payment PRIVATE: refId pvt_<academyId>_, unit economics, orden a la pasarela", async () => {
+  it("crea Payment PRIVATE: refId pvt_<academyId>_, unit economics SIN fee, orden a la pasarela", async () => {
     pf.numbers.set("service_fee.membership_clp", 500);
     const res = await svc.purchasePrivateClass("per-1", {
       academyId: "ac-1",
@@ -1356,8 +1365,8 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     const p = fx.payments[0]!;
     expect(p.orderType).toBe("PRIVATE");
     expect(p.unitListPrice).toBe(40000);
-    expect(p.unitServiceFee).toBe(500);
-    expect(p.amount).toBe(40500);
+    expect(p.unitServiceFee).toBe(0);
+    expect(p.amount).toBe(40000);
     expect(p.quantity).toBe(1);
     expect(res.paymentUrl).toContain("pay.example");
     expect(gw.createOrder).toHaveBeenCalledOnce();

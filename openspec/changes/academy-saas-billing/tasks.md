@@ -67,12 +67,12 @@
 
 ## S4 — Fee de comprador en productos academia → 0
 
-- [ ] `checkout.service` no aplica `service_fee` a MEMBERSHIP/WORKSHOP/
+- [x] `checkout.service` no aplica `service_fee` a MEMBERSHIP/WORKSHOP/
       PRIVATE (params a 0 + código defensivo)
-- [ ] Checkout UI: sin línea "cargo por servicio" en quote/breakdown
-- [ ] Payout de academia: línea `GATEWAY_FEE_PASSTHROUGH`
+- [x] Checkout UI: sin línea "cargo por servicio" en quote/breakdown
+- [x] Payout de academia: línea `GATEWAY_FEE_PASSTHROUGH`
       (`gateway_fee.academy_passthrough_pct` ≈3.19) separada del net
-- [ ] Specs/e2e de payout actualizados
+- [x] Specs/e2e de payout actualizados
 
 ## S5 — Producer Pro
 
