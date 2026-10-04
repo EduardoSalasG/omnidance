@@ -1,5 +1,8 @@
 {
   "checkout": {
-    "returnToClasses": "Ir a Mis clases"
+    "returnToClasses": "Ir a Mis clases",
+    "stillPendingTitle": "Pago en revisión",
+    "stillPendingDesc": "El pago sigue en revisión — te avisamos cuando se confirme.",
+    "stillPendingRetry": "Reintentar consulta"
   }
 }

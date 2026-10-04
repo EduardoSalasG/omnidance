@@ -42,7 +42,14 @@ type MyTicket = {
   listPrice: number;
   serviceFee: number;
   claimToken: string | null;
-  event: { id: string; name: string; startsAt: string; venue: { name: string } };
+  // event = null cuando el evento fue eliminado tras la compra —
+  // TicketWallet lo muestra como ticket huérfano (sin link).
+  event: {
+    id: string;
+    name: string;
+    startsAt: string;
+    venue: { name: string } | null;
+  } | null;
 };
 type VenueRow = {
   id: string;

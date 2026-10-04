@@ -43,6 +43,7 @@
     "orViewPlans": "o ve los planes de la academia",
     "cancelPaid": "El cupo se libera; la devolución del pago se coordina con la academia.",
     "cancelledPaid": "Reserva cancelada — la devolución del pago se gestiona con la academia",
-    "paidTag": "Comprado"
+    "paidTag": "Comprado",
+    "privateTray": "Mis particulares"
   }
 }

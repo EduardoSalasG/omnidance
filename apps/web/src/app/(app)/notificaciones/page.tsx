@@ -59,6 +59,8 @@ const eventDateFmt = new Intl.DateTimeFormat("es-CL", {
 function hrefFor(n: NotificationItem): string | null {
   const eventId =
     typeof n.data?.eventId === "string" ? n.data.eventId : null;
+  const classId =
+    typeof n.data?.classId === "string" ? n.data.classId : null;
   switch (n.type) {
     case "payment.paid":
       return "/eventos?view=mios";
@@ -76,8 +78,22 @@ function hrefFor(n: NotificationItem): string | null {
       return "/bailes";
     case "friend.request":
       return "/amigos";
-    default:
-      return null;
+    // Bandeja de particulares del alumno (asignada, cancelada pagada,
+    // comprada) — /clases/particular.
+    case "academy.private_lesson.assigned":
+    case "academy.private_lesson.cancelled_paid":
+    case "academy.private_lesson.purchased":
+      return "/clases/particular";
+    case "class.waitlist.promoted":
+      return classId ? `/clases/${classId}` : "/clases";
+    case "class.series.resumed":
+      return "/clases";
+    default: {
+      // Fallback genérico: la API puede mandar el destino resuelto en
+      // data.path (p.ej. account.complete_profile → /perfil/completar).
+      const path = typeof n.data?.path === "string" ? n.data.path : null;
+      return path !== null && path.startsWith("/") ? path : null;
+    }
   }
 }
 

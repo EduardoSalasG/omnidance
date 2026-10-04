@@ -12,6 +12,9 @@ type Phase =
   | { kind: "idle" }
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string }
+  // El polling se agotó sin webhook (~30s): el pago puede confirmar
+  // igual — el pase aparece en Mis entradas al llegar.
+  | { kind: "stillPending"; paymentId: string; paymentUrl: string }
   | { kind: "success" }
   | { kind: "failed" };
 
@@ -43,6 +46,7 @@ export function SeriesPassCta({
 }: SeriesPassCtaProps) {
   const tc = useTranslations("common");
   const tco = useTranslations("checkout");
+  const tw = useTranslations("wallet");
 
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [notice, setNotice] = useState<Notice>(null);
@@ -50,7 +54,10 @@ export function SeriesPassCta({
 
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
-  const busy = phase.kind === "processing" || phase.kind === "awaiting";
+  const busy =
+    phase.kind === "processing" ||
+    phase.kind === "awaiting" ||
+    phase.kind === "stillPending";
 
   // Polling del pago mientras esperamos confirmación (stub o retorno gateway)
   useEffect(() => {
@@ -68,7 +75,16 @@ export function SeriesPassCta({
           else if (payment.status === "FAILED") setPhase({ kind: "failed" });
         })
         .catch(() => undefined);
-      if (attempts >= POLL_MAX_ATTEMPTS) clearInterval(interval);
+      if (attempts >= POLL_MAX_ATTEMPTS) {
+        clearInterval(interval);
+        // Sin confirmación tras ~30s — no dejar "awaiting" eterno:
+        // mismo estado stillPending que /checkout/return.
+        setPhase({
+          kind: "stillPending",
+          paymentId,
+          paymentUrl: phase.paymentUrl,
+        });
+      }
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
@@ -247,6 +263,41 @@ export function SeriesPassCta({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Polling agotado sin webhook: el pase puede confirmar igual —
+          aparece en Mis entradas cuando llegue la confirmación. */}
+      {phase.kind === "stillPending" && (
+        <div className="flex flex-col gap-3 border-t border-night-700 pt-3">
+          <p role="status" className="text-sm text-white/70">
+            {tco("stillPendingTitle")} — {tco("stillPendingDesc")}
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              href="/eventos?view=mios"
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+            >
+              {tw("title")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="flex-1"
+              onClick={() =>
+                setPhase({
+                  kind: "awaiting",
+                  paymentId: phase.paymentId,
+                  paymentUrl: phase.paymentUrl,
+                })
+              }
+            >
+              {tco("stillPendingRetry")}
+            </Button>
+          </div>
         </div>
       )}
     </Card>

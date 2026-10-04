@@ -18,6 +18,9 @@ type Phase =
   | { kind: "form" }
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string; quote: Quote }
+  // El polling se agotó sin respuesta del webhook (~30s): el pago puede
+  // confirmar igual — el ticket aparece en la wallet al llegar.
+  | { kind: "stillPending"; paymentId: string; paymentUrl: string; quote: Quote }
   | { kind: "success"; paymentId: string }
   | { kind: "failed" };
 
@@ -103,7 +106,10 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
 
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
-  const busy = phase.kind === "processing" || phase.kind === "awaiting";
+  const busy =
+    phase.kind === "processing" ||
+    phase.kind === "awaiting" ||
+    phase.kind === "stillPending";
 
   // Canal de venta: puerta-app cuando el evento está en vivo o ya sin
   // preventa (misma resolución que el server: LIVE o post-corte vende a
@@ -119,7 +125,10 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   const listPrice = doorChannel
     ? event.doorPrice!
     : (event.presalePrice ?? 0);
-  const quote = phase.kind === "awaiting" ? phase.quote : null;
+  const quote =
+    phase.kind === "awaiting" || phase.kind === "stillPending"
+      ? phase.quote
+      : null;
   const unit = quote ?? {
     listPrice,
     discount: 0,
@@ -153,7 +162,18 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           else if (payment.status === "FAILED") setPhase({ kind: "failed" });
         })
         .catch(() => undefined);
-      if (attempts >= POLL_MAX_ATTEMPTS) clearInterval(interval);
+      if (attempts >= POLL_MAX_ATTEMPTS) {
+        clearInterval(interval);
+        // Sin confirmación tras ~30s — no dejar al usuario esperando
+        // un spinner eterno: mismo estado stillPending del retorno
+        // del gateway (/checkout/return).
+        setPhase({
+          kind: "stillPending",
+          paymentId,
+          paymentUrl: phase.paymentUrl,
+          quote: phase.quote,
+        });
+      }
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
@@ -680,6 +700,35 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                 </div>
               </div>
             )}
+          </Card>
+        )}
+
+        {/* Polling agotado sin webhook: el pago puede confirmar igual —
+            la entrada aparece en Mis entradas cuando llegue. */}
+        {phase.kind === "stillPending" && (
+          <Card className="flex flex-col items-center gap-4 text-center">
+            <Badge variant="muted">{t("stillPendingTitle")}</Badge>
+            <p role="status" className="text-white/70">
+              {t("stillPendingDesc")}
+            </p>
+            <Button href="/eventos?view=mios" className="w-full">
+              {tw("title")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setPhase({
+                  kind: "awaiting",
+                  paymentId: phase.paymentId,
+                  paymentUrl: phase.paymentUrl,
+                  quote: phase.quote,
+                })
+              }
+            >
+              {t("stillPendingRetry")}
+            </Button>
           </Card>
         )}
       </form>

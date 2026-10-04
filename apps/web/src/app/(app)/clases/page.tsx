@@ -748,6 +748,13 @@ function ClasesInner() {
                   </svg>
                 </div>
               )}
+              {/* Bandeja de particulares — entrada visible desde /clases
+                  (además del sheet del "+" en lente academia). */}
+              {scope === "mias" && (
+                <Link href="/clases/particular" className={chipClass(false)}>
+                  {t("privateTray")}
+                </Link>
+              )}
             </div>
           </>
         )}

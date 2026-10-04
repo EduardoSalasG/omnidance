@@ -12,6 +12,9 @@ type Phase =
   | { kind: "form" }
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string }
+  // El polling se agotó sin webhook (~30s): el pago puede confirmar
+  // igual — la vigencia aparece en la ficha de la academia al llegar.
+  | { kind: "stillPending"; paymentId: string; paymentUrl: string }
   // needs_card: el usuario aún no salta a Flow — ve el interstitial que
   // explica que la tarjeta se registra en la página oficial de Flow.
   | { kind: "card_redirect"; registerUrl: string }
@@ -63,6 +66,7 @@ export function MembershipCheckoutClient({
   const busy =
     phase.kind === "processing" ||
     phase.kind === "awaiting" ||
+    phase.kind === "stillPending" ||
     phase.kind === "activating" ||
     phase.kind === "card_redirect";
   const isStub =
@@ -72,8 +76,10 @@ export function MembershipCheckoutClient({
   const checkoutHref = `${academyHref}/checkout?plan=${quote.plan.id}`;
 
   // Polling del pago (stub dev): al PAID vuelve a la ficha — el webhook
-  // ya materializó el Enrollment y el badge cambia solo.
-  function startPolling(paymentId: string) {
+  // ya materializó el Enrollment y el badge cambia solo. Si se agota
+  // sin respuesta, stillPending (mismo patrón que /checkout/return):
+  // la confirmación puede llegar después por webhook.
+  function startPolling(paymentId: string, paymentUrl: string) {
     let attempts = 0;
     const interval = setInterval(() => {
       attempts += 1;
@@ -90,7 +96,10 @@ export function MembershipCheckoutClient({
           }
         })
         .catch(() => undefined);
-      if (attempts >= POLL_MAX_ATTEMPTS) clearInterval(interval);
+      if (attempts >= POLL_MAX_ATTEMPTS) {
+        clearInterval(interval);
+        setPhase({ kind: "stillPending", paymentId, paymentUrl });
+      }
     }, POLL_INTERVAL_MS);
   }
 
@@ -129,7 +138,7 @@ export function MembershipCheckoutClient({
           paymentId: data.paymentId,
           paymentUrl: data.paymentUrl,
         });
-        startPolling(data.paymentId);
+        startPolling(data.paymentId, data.paymentUrl);
       } else {
         window.location.href = data.paymentUrl;
       }
@@ -422,6 +431,35 @@ export function MembershipCheckoutClient({
               </div>
             </div>
           )}
+        </Card>
+      )}
+
+      {/* Polling agotado sin webhook: el cobro puede confirmar igual —
+          la vigencia aparece en la ficha de la academia al llegar. */}
+      {phase.kind === "stillPending" && (
+        <Card className="flex flex-col items-center gap-4 text-center">
+          <Badge variant="muted">{tco("stillPendingTitle")}</Badge>
+          <p role="status" className="text-sm text-white/70">
+            {tco("stillPendingDesc")}
+          </p>
+          <Button href={academyHref} className="w-full">
+            {t("backToAcademy")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              startPolling(phase.paymentId, phase.paymentUrl);
+              setPhase({
+                kind: "awaiting",
+                paymentId: phase.paymentId,
+                paymentUrl: phase.paymentUrl,
+              });
+            }}
+          >
+            {tco("stillPendingRetry")}
+          </Button>
         </Card>
       )}
 
