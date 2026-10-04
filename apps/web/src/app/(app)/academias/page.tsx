@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, Segmented, SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  PlayIcon,
+  RefreshIcon,
+  Segmented,
+  SkeletonList,
+} from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { planDateFmt } from "@/components/academy/shared";
 
@@ -254,7 +262,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
                   rel="noopener noreferrer"
                   className="relative z-10 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-neon underline-offset-4 hover:underline"
                 >
-                  <span aria-hidden>▸</span>
+                  <PlayIcon className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">{v.title}</span>
                 </a>
               </li>
@@ -594,7 +602,7 @@ function AcademiasInner() {
             size="sm"
             onClick={() => void load()}
           >
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

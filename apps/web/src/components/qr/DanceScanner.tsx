@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 
 // Cámara solo en cliente — evita cualquier acceso a window en SSR.
@@ -46,6 +46,9 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [camKey, setCamKey] = useState(0);
+  // Re-dispara la inicialización desde el estado de error — sin reload
+  // de página (conserva el ?event= de la ruta vía la prop eventId).
+  const [bootNonce, setBootNonce] = useState(0);
 
   const busyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,6 +57,11 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   // en vivo/publicado para elegir dónde bailar.
   useEffect(() => {
     let cancelled = false;
+    // Re-init limpio: un scan a medio volar no bloquea el próximo
+    // onScan y ningún feedback viejo queda pintado.
+    setPhase("checking");
+    setFeedback(null);
+    busyRef.current = false;
 
     (async () => {
       const auth = await apiFetch("/qr/mine").catch(() => null);
@@ -84,7 +92,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [eventId]);
+  }, [eventId, bootNonce]);
 
   const showFeedback = useCallback((next: Feedback) => {
     setFeedback(next);
@@ -162,10 +170,10 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
         <Button
           variant="secondary"
           size="lg"
-          aria-label={tCommon("retry")}
-          onClick={() => window.location.reload()}
+          onClick={() => setBootNonce((n) => n + 1)}
         >
-          ↻
+          <RefreshIcon />
+          {tCommon("retry")}
         </Button>
       </div>
     );

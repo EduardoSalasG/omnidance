@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, RefreshIcon } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { inputCls } from "@/components/academy/shared";
 
@@ -113,7 +113,7 @@ export default function CompletarPerfilPage() {
                 setBootNonce((n) => n + 1);
               }}
             >
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
             <Button variant="ghost" href="/login">
               {tc("login")}

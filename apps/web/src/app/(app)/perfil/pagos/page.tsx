@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, Spinner } from "@/components/ui";
+import { Badge, Button, Card, RefreshIcon, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { PaymentCards } from "@/components/payments/payment-cards";
 import type { PaymentAuditRow } from "@/components/payments/shared";
@@ -130,7 +130,7 @@ export default function PerfilPagosPage() {
               {tc("error")}
             </p>
             <Button variant="secondary" onClick={() => void boot()}>
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </>
         ) : (

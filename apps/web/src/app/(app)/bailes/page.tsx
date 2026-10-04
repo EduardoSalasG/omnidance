@@ -5,7 +5,13 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, SkeletonList } from "@/components/ui";
+import {
+  Button,
+  RefreshIcon,
+  SkeletonList,
+  StarIcon,
+  XIcon,
+} from "@/components/ui";
 import { EventDate } from "@/components/ui/EventDate";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
@@ -213,7 +219,7 @@ function Bailes() {
           <span className="truncate">
             {eventName ? t("filteredEvent", { name: eventName }) : t("filtered")}
           </span>
-          <span aria-hidden="true">✕</span>
+          <XIcon className="h-3.5 w-3.5" />
           <span className="sr-only">{t("clearFilter")}</span>
         </Link>
       )}
@@ -233,10 +239,10 @@ function Bailes() {
           <Button
             variant="secondary"
             size="lg"
-            aria-label={tCommon("retry")}
             onClick={() => void fetchSessions()}
           >
-            ↻
+            <RefreshIcon />
+            {tCommon("retry")}
           </Button>
         </div>
       ) : phase === "loading" ? (
@@ -360,8 +366,9 @@ function Bailes() {
                   </div>
                   {lastAvg !== null && (
                     <div className="flex items-baseline gap-1.5">
-                      <dd className="font-semibold tabular-nums text-neon">
-                        ★ {lastAvg.toFixed(1)}
+                      <dd className="inline-flex items-center gap-1 font-semibold tabular-nums text-neon">
+                        <StarIcon filled className="h-4 w-4" />
+                        {lastAvg.toFixed(1)}
                       </dd>
                       <dt className="text-white/60">{t("avgGiven")}</dt>
                     </div>
@@ -382,8 +389,9 @@ function Bailes() {
                         <span className="min-w-0 truncate">
                           {t("bestDance", { name: bestDance.partner.name })}
                         </span>
-                        <span className="shrink-0 font-semibold tabular-nums text-neon">
-                          ★ {bestDance.myRating!.global}
+                        <span className="inline-flex shrink-0 items-center gap-1 font-semibold tabular-nums text-neon">
+                          <StarIcon filled className="h-4 w-4" />
+                          {bestDance.myRating!.global}
                         </span>
                       </p>
                     )}

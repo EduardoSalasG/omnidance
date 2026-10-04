@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   EventDate,
+  RefreshIcon,
   Segmented,
   SkeletonList,
 } from "@/components/ui";
@@ -325,7 +326,7 @@ function PracticasInner() {
                 setMineNonce((n) => n + 1);
               }}
             >
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </div>
         ) : view === "mias" && mine === null ? (
@@ -345,7 +346,7 @@ function PracticasInner() {
                 void load();
               }}
             >
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </div>
         ) : visible.length === 0 ? (

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Spinner } from "@/components/ui";
+import { Button, CheckIcon, Spinner } from "@/components/ui";
 
 export type PracticeBarProps = {
   eventId: string;
@@ -65,8 +65,9 @@ export function PracticeBar({ eventId, initialCount }: PracticeBarProps) {
             ? t("goingCount", { count })
             : `${t("practiceFree")} · ${t("goingCount", { count })}`}
         </span>
-        <span className="text-lg font-semibold text-neon">
-          {going ? `✓ ${t("youreGoing")}` : t("free")}
+        <span className="inline-flex items-center gap-1.5 text-lg font-semibold text-neon">
+          {going && <CheckIcon className="h-4 w-4" />}
+          {going ? t("youreGoing") : t("free")}
         </span>
       </div>
       {unauth ? (

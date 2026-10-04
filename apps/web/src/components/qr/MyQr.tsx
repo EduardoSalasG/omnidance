@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import QRCode from "qrcode";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, RefreshIcon } from "@/components/ui";
 
 /**
  * QR personal rotativo (TOTP ~30s server-side; se re-emite cada 50s).
@@ -116,7 +116,7 @@ export function MyQr({ compact = false }: { compact?: boolean }) {
               {t("loadError")}
             </p>
             <Button size="sm" onClick={retry}>
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </div>
         )}

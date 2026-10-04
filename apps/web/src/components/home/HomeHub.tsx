@@ -8,6 +8,8 @@ import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { ChevronRightIcon } from "@/components/ui/icons";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import {
   ClassCard,
@@ -127,15 +129,12 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           href="/eventos"
           className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
         >
-          <span className="text-xs font-semibold uppercase tracking-wide text-neon">
-            {t("tonight")}
-          </span>
           <span className="text-xl font-bold leading-tight">
             {t("noEventTonight")}
           </span>
           <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
             {t("seeEvents")}
-            <span aria-hidden>→</span>
+            <ChevronRightIcon />
           </span>
         </Link>
         <Button href="/qr" variant="secondary" className="mt-3 w-full">
@@ -153,19 +152,27 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
   return (
     <section aria-label={heroEvent.name} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-neon">
-          {isTonight
-            ? heroEvent.live
-              ? t("live")
-              : t("tonight")
-            : dayFmt.format(start)}
-        </span>
         <Link
           href={`/eventos/${heroEvent.id}`}
           className="flex flex-col gap-2.5 rounded-lg transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
         >
-          <span className="text-xl font-bold leading-tight">
-            {heroEvent.name}
+          {/* Estado temporal como badge junto al título — sin kicker:
+              el heading habla solo. */}
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <span className="text-xl font-bold leading-tight">
+              {heroEvent.name}
+            </span>
+            {isTonight ? (
+              heroEvent.live ? (
+                <Badge variant="live">{t("live")}</Badge>
+              ) : (
+                <Badge variant="neon">{t("tonight")}</Badge>
+              )
+            ) : (
+              <Badge variant="outline" className="normal-case tracking-normal">
+                {dayFmt.format(start)}
+              </Badge>
+            )}
           </span>
           <span className="text-sm text-white/60">
             {timeFmt.format(start)}
@@ -234,7 +241,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           {heroEvent.hasTicket ? t("myQr") : t("buyPresale")}
-          <span aria-hidden>→</span>
+          <ChevronRightIcon />
         </Link>
       </div>
 
@@ -259,8 +266,9 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
                       {e.venueName ? ` · ${e.venueName}` : ""}
                     </span>
                   </span>
-                  <span className="shrink-0 text-xs font-semibold text-neon">
-                    {t("myQr")} →
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-neon">
+                    {t("myQr")}
+                    <ChevronRightIcon className="h-3.5 w-3.5" />
                   </span>
                 </Link>
               </li>
@@ -295,9 +303,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
                         : ""}
                     </span>
                   </span>
-                  <span aria-hidden className="shrink-0 text-white/40">
-                    →
-                  </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-white/40" />
                 </Link>
               </li>
             ))}
@@ -596,9 +602,9 @@ export function HomeHub() {
               <span className="min-w-0 truncate text-base font-semibold">
                 {ts("prompt", { name: s.name })}
               </span>
-              <span className="shrink-0 text-sm font-semibold text-neon">
+              <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-neon">
                 {ts("cardCta")}
-                <span aria-hidden> →</span>
+                <ChevronRightIcon />
               </span>
             </Link>
           ))}
@@ -634,7 +640,7 @@ export function HomeHub() {
                 <span className="text-sm text-white/60">{hero.desc}</span>
                 <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
                   {hero.cta}
-                  <span aria-hidden>→</span>
+                  <ChevronRightIcon />
                 </span>
               </Link>
               {hero.secondary && (
@@ -682,9 +688,7 @@ export function HomeHub() {
           className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-sm text-white/55 transition-colors hover:border-neon/40 hover:text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           <span>{t("switchRoleHint")}</span>
-          <span aria-hidden className="text-neon">
-            →
-          </span>
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-neon" />
         </Link>
       )}
 

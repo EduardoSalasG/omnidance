@@ -12,7 +12,7 @@ import {
 } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 
@@ -243,7 +243,7 @@ export default function PerfilPage() {
                 setBootNonce((n) => n + 1);
               }}
             >
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </>
         ) : (

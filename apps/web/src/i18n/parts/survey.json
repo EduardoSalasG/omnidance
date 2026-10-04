@@ -15,6 +15,7 @@
     "expired": "La ventana para evaluar este evento ya cerró",
     "forbidden": "Solo quienes hicieron check-in pueden evaluar el evento",
     "error": "No pudimos enviar tu evaluación — intenta de nuevo",
+    "loginRequired": "Inicia sesión para evaluar el evento",
     "backToEvent": "Ver evento",
     "dims": {
       "music": "Música",

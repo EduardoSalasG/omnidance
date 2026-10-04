@@ -4,12 +4,14 @@ import { notFound } from "next/navigation";
 import { messages } from "@/i18n/messages";
 import {
   aggregateMix,
+  ArrowUpRightIcon,
   Badge,
   Button,
   Card,
   EventDate,
   GenreMixBar,
   PriceTag,
+  RefreshIcon,
 } from "@/components/ui";
 import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
@@ -178,7 +180,9 @@ export default async function EventoDetailPage({
         <p role="alert" className="text-white/60">{t.loadError}</p>
         <div className="flex flex-wrap justify-center gap-3">
           {/* Server page: el retry es recargar la misma ruta. */}
-          <Button href={`/eventos/${params.id}`}>↻ {tc.retry}</Button>
+          <Button href={`/eventos/${params.id}`}>
+            <RefreshIcon /> {tc.retry}
+          </Button>
           <Button href="/eventos" variant="secondary">
             {t.backToList}
           </Button>
@@ -353,9 +357,10 @@ export default async function EventoDetailPage({
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-0.5 inline-flex min-h-11 items-center text-xs font-medium text-neon hover:underline"
+                className="mt-0.5 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-neon hover:underline"
               >
-                {t.howToGet} →
+                {t.howToGet}
+                <ArrowUpRightIcon className="h-3.5 w-3.5" />
               </a>
             </div>
           </div>

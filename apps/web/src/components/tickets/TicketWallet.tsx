@@ -7,9 +7,11 @@ import type { TicketStatus } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import {
+  ArrowUpRightIcon,
   Badge,
   Button,
   Card,
+  ChevronRightIcon,
   EventDate,
   PriceTag,
   Spinner,
@@ -225,7 +227,7 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
                     className="flex min-h-11 items-center justify-between rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-4 text-sm font-medium text-[#25D366] transition-colors hover:bg-[#25D366]/20"
                   >
                     <span>{t("sendClaimLink")}</span>
-                    <span aria-hidden="true">↗</span>
+                    <ArrowUpRightIcon />
                   </a>
                   <p className="text-xs text-white/50">{t("claimHint")}</p>
                 </>
@@ -236,7 +238,7 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
                   className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
                 >
                   <span>{t("showQrHint")}</span>
-                  <span aria-hidden="true">→</span>
+                  <ChevronRightIcon />
                 </Link>
               )}
               {ticket.status === "ACTIVE" && (

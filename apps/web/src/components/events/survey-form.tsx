@@ -156,8 +156,12 @@ export function SurveyForm({
   } else if (phase === "unauth") {
     content = (
       <Card className="flex flex-col items-center gap-4 py-8 text-center">
+        <p className="text-sm text-white/70">{t("loginRequired")}</p>
         <Button href="/login" size="lg" className="w-full">
           {tc("login")}
+        </Button>
+        <Button href={`/eventos/${eventId}`} variant="ghost" size="sm">
+          {t("backToEvent")}
         </Button>
       </Card>
     );
