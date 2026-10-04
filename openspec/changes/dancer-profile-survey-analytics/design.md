@@ -44,3 +44,50 @@
 
 - e2e: PATCH profile (gender + styleRoles replace), GET styles, survey gate por check-in + ventana + upsert + overall, analytics endpoint (403 no-owner, k-anonymity, proporciones), trigger de notificación.
 - Suite completa + tsc + i18n audit + probes.
+
+## Addendum del orquestador — decisiones resueltas (post-auditoría 2026-10-04)
+
+La auditoría de código mostró que buena parte de la infra ya existe; estas
+decisiones atan las ambigüedades ANTES de despachar implementación:
+
+1. **No existe `PATCH /me/profile`** — `gender` va en `PATCH /me` (DTO
+   existente, junto a instagram/name/phone); los styleRoles siguen por
+   `PUT /me/style-roles` (ya hace replace-set transaccional idempotente).
+   Sin endpoint duplicado ni doble write-path.
+2. **`overall` es una dim más, opcional en API** (`@IsInt @Min(1) @Max(5)`,
+   igual que las otras); la encuesta web lo exige en UI. La gate de
+   Checkin no-voided y la ventana 24h YA existen — no duplicar.
+3. **`GET /me/pending-surveys`** — endpoint propio en `people.controller`
+   (global, no por lente): eventos con checkin no-voided del viewer,
+   `now ∈ (endsAt, endsAt+24h]` y sin `EventRating` propia →
+   `[{eventId, name, endsAt}]`.
+4. **Fan-out lazy vive en `pending-surveys`**: por cada evento elegible,
+   claim atómico `updateMany({id, surveyNotifiedAt:null} → set)` — el
+   request ganador hace `notifySafe` a TODOS los asistentes (checkin
+   no-voided, `distinct personId`). Nada de findUnique+update (race).
+   Notif: `type: "event.survey"`, category SOCIAL, `data: {eventId}`.
+5. **`hrefFor` en `/notificaciones`**: case `event.survey` →
+   `/eventos/${eventId}/evaluar`.
+6. **Card `/inicio`**: `HomeHub` muestra la card si pending-surveys
+   devuelve items — cualquier lente (un producer que bailó también
+   evalúa). Sin fetch si el campo viene vacío.
+7. **Ventana de rating sin cota inferior**: se permite evaluar durante
+   el evento (LIVE) — la ventana existente `now ≤ endsAt+24h` queda.
+8. **`GET /styles`**: `orderBy [{genre},{name}]`, shape plano intacto.
+9. **Analytics shape** `GET /events/:id/analytics` (owner del evento o
+   admin): `{attendees, genderSplit:{M,F,OTHER,unknown}, roleSplit:
+   {leader,follower,both}, ratings:{count, byDim:{overall, music,
+   venue, dj, production, organization, floorComfort, lightingSound}}}`
+   — `genderSplit`/`roleSplit`/`ratings` devuelven `null` si
+   `attendees < EXPOSURE_THRESHOLD` (3) — mismo umbral k-anonymity que
+   ratings summary (la composición de 1-2 asistentes también expone).
+   RoleSplit: herencia de serie cuando la clase/evento la define
+   (mismo mecanismo que los styleRoles del evento si existe).
+10. **Sidebar**: NO crear `/productor/analitica` — `/analitica` ya lista
+    los eventos del producer. Mover el item fuera del grupo admin a un
+    grupo propio "Analítica"; quitar la card analítica de `/admin`.
+11. **`people.controller.spec.ts` nuevo** (patrón TestingModule+Prisma
+    de `events.controller.spec.ts`); `HomeModule`/`PeopleModule` que
+    haga el fan-out importa `NotificationsModule` (no @Global).
+12. **Slice order**: S1 schema+seed → S2 API (perfil+encuesta+analytics)
+    → S3 web → verificación del orquestador. Implementación serial.
