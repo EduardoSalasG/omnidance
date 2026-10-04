@@ -36,7 +36,7 @@ Al terminar el evento SHALL notificarse a cada asistente (`notifySafe`: in-app +
 
 ### Requirement: Formulario de puntajes
 
-La encuesta SHALL usar el control de estrellas 1-5: `overall` obligatorio + hasta 3 dimensiones visibles por defecto (Música, Gente, Temperatura) con etiquetas bipolares en los extremos ("Vacío↔Lleno", "Frío↔Caluroso"), y "Evaluar más" opcional que revela `organization`, `floorComfort`, `lightingSound`. Sin texto libre. Segundo envío actualiza la evaluación existente.
+La encuesta SHALL usar el control de estrellas 1-5: `overall` obligatorio + 2 dimensiones visibles por defecto (`music`, `occupation`) con etiquetas bipolares en los extremos, y "Evaluar más" opcional que revela `organization`, `floorComfort`, `temperature`, `lightingSound`. Sin texto libre. Segundo envío actualiza la evaluación existente.
 
 #### Scenario: Envío mínimo
 

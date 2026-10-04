@@ -367,8 +367,10 @@ describe("dancer-profile-survey-analytics e2e", () => {
     // d=SWITCH en bachata (género fuera del evento) → no cuenta.
     expect(body.roleSplit).toEqual({ leader: 1, follower: 1, both: 1 });
     expect(body.ratings.count).toBe(1);
-    expect(body.ratings.byDim.overall).toBe(5);
-    expect(body.ratings.byDim.music).toBe(4);
+    // k-anonymity por dim: <3 valores → promedio oculto (expondría la
+    // evaluación individual de esa persona)
+    expect(body.ratings.byDim.overall).toBeNull();
+    expect(body.ratings.byDim.music).toBeNull();
     expect(body.ratings.byDim.temperature).toBeNull();
   });
 });

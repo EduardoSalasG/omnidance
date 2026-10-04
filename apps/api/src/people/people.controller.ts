@@ -261,7 +261,11 @@ export class PeopleController {
     ]);
     const rated = new Set(ratings.map((r) => r.eventId));
     const pending = events.filter((e) => !rated.has(e.id));
-    for (const event of pending) {
+    // El fan-out corre sobre TODOS los eventos en ventana (no solo los
+    // pendientes del viewer): si el único asistente que reabre la app
+    // ya evaluó durante el LIVE, el claim igual debe ocurrir para que
+    // el resto reciba su notificación.
+    for (const event of events) {
       const claim = await this.prisma.event.updateMany({
         where: { id: event.id, surveyNotifiedAt: null },
         data: { surveyNotifiedAt: now },
@@ -272,15 +276,19 @@ export class PeopleController {
         distinct: ["personId"],
         select: { personId: true },
       });
-      for (const attendee of attendees) {
-        await this.notifications.notifySafe(attendee.personId, {
-          category: "SOCIAL",
-          type: "event.survey",
-          title: "Cuéntanos cómo estuvo",
-          body: event.name,
-          data: { eventId: event.id },
-        });
-      }
+      // Trade-off conocido: el flag ya quedó — si el request muere a la
+      // mitad del fan-out, los restantes no se re-notifican (lazy 1-shot).
+      await Promise.allSettled(
+        attendees.map((attendee) =>
+          this.notifications.notifySafe(attendee.personId, {
+            category: "SOCIAL",
+            type: "event.survey",
+            title: "Cuéntanos cómo estuvo",
+            body: event.name,
+            data: { eventId: event.id },
+          }),
+        ),
+      );
     }
     return pending.map((e) => ({
       eventId: e.id,

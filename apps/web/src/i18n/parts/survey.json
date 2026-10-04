@@ -16,7 +16,6 @@
     "forbidden": "Solo quienes hicieron check-in pueden evaluar el evento",
     "error": "No pudimos enviar tu evaluación — intenta de nuevo",
     "backToEvent": "Ver evento",
-    "backHome": "Volver al inicio",
     "dims": {
       "music": "Música",
       "occupation": "Ocupación",
