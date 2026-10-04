@@ -242,7 +242,7 @@ export class ClassSeriesController {
     @Body() dto: CreateSeriesDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     const dates = monthDates(dto.month);
     if (dates.length === 0) {
       throw new BadRequestException("month inválido");
@@ -322,7 +322,7 @@ export class ClassSeriesController {
     @Body() dto: UpdateSeriesDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     const prev = await this.findSeriesOr404(id, seriesId);
     const reactivated = dto.active === true && !prev.active;
 
@@ -501,7 +501,7 @@ export class ClassSeriesController {
     @Param("seriesId") seriesId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     await this.findSeriesOr404(id, seriesId);
 
     return this.prisma.$transaction(async (tx) => {
@@ -542,7 +542,7 @@ export class ClassSeriesController {
     @Param("slotId") slotId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: slotId, academyId: id },
     });

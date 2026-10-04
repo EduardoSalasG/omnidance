@@ -110,6 +110,21 @@ export class PlanNotFoundError extends Error {
   }
 }
 
+/**
+ * La academia está bloqueada por suscripción impaga (spec
+ * academy-saas-billing, S3): ningún pago nuevo hacia ella — membresía,
+ * clase suelta, particular ni suscripción recurrente. El controller lo
+ * traduce a 400 `{error:"academy.unavailable"}` con copy honesto (la
+ * falta es del owner, no del alumno).
+ */
+export class AcademyUnavailableError extends Error {
+  readonly code = "academy.unavailable";
+  constructor() {
+    super("la academia no está disponible por el momento");
+    this.name = "AcademyUnavailableError";
+  }
+}
+
 export class ClassNotFoundError extends Error {
   constructor() {
     super("clase no encontrada");
@@ -789,10 +804,13 @@ export class CheckoutService {
         active: true,
         type: true,
         price: true,
-        academy: { select: { active: true } },
+        academy: { select: { active: true, billingBlockedAt: true } },
       },
     });
     if (!plan || !plan.academy.active) throw new PlanNotFoundError();
+    if (plan.academy.billingBlockedAt != null) {
+      throw new AcademyUnavailableError();
+    }
     if (!plan.active) throw new PlanNotPurchasableError();
     // La prueba gratis no pasa por la pasarela (no cobra CLP 0):
     // sigue siendo asignación staff. Solo el TRIAL con precio se vende.
@@ -878,10 +896,15 @@ export class CheckoutService {
         classCount: true,
         periodDays: true,
         description: true,
-        academy: { select: { id: true, name: true, active: true } },
+        academy: {
+          select: { id: true, name: true, active: true, billingBlockedAt: true },
+        },
       },
     });
     if (!plan || !plan.academy.active) throw new PlanNotFoundError();
+    if (plan.academy.billingBlockedAt != null) {
+      throw new AcademyUnavailableError();
+    }
     if (!plan.active) throw new PlanNotPurchasableError();
     // Misma regla que purchaseMembership: TRIAL solo se vende con
     // price > 0 (la gratis es asignación staff).
@@ -1001,13 +1024,17 @@ export class CheckoutService {
               },
             },
             academy: {
-              select: { id: true, name: true, defaultQuorum: true },
+              select: { id: true, name: true, defaultQuorum: true, billingBlockedAt: true },
             },
           },
         },
       },
     });
     if (!cls) throw new ClassNotFoundError();
+    // Academia bloqueada por mora (S3): la clase no se vende suelta.
+    if (cls.slot.academy.billingBlockedAt != null) {
+      throw new AcademyUnavailableError();
+    }
     const listPrice = cls.slot.series.dropInPrice;
     if (
       cls.cancelled ||
@@ -1174,9 +1201,14 @@ export class CheckoutService {
         name: true,
         active: true,
         privateLessonPrice: true,
+        billingBlockedAt: true,
       },
     });
     if (!academy) throw new AcademyNotFoundError();
+    // Academia bloqueada por mora (S3): no vende particulares nuevos.
+    if (academy.billingBlockedAt != null) {
+      throw new AcademyUnavailableError();
+    }
     if (!academy.active || !academy.privateLessonPrice) {
       throw new PrivateClassNotPurchasableError();
     }

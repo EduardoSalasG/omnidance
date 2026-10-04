@@ -50,21 +50,26 @@ export class StylesController {
     const [academies, upcomingClasses, upcomingEvents] = await Promise.all([
       // Academias activas con una serie activa del estilo (todo slot
       // pertenece a una serie — el estilo vive en series.styleId).
+      // Bloqueadas por mora (billingBlockedAt, S3) fuera del landing.
       this.prisma.academy.findMany({
         where: {
           active: true,
+          billingBlockedAt: null,
           classSeries: { some: { styleId: style.id, active: true } },
         },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       }),
       // Próximas clases materializadas del estilo (vía la serie del
-      // slot), no canceladas.
+      // slot), no canceladas — academia bloqueada por mora fuera (S3).
       this.prisma.class.findMany({
         where: {
           cancelled: false,
           date: { gte: now },
-          slot: { series: { styleId: style.id } },
+          slot: {
+            academy: { billingBlockedAt: null },
+            series: { styleId: style.id },
+          },
         },
         orderBy: { date: "asc" },
         take: 10,

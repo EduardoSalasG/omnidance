@@ -233,6 +233,11 @@ function mkPrisma() {
       ),
     },
     academy: {
+      findMany: vi.fn(async ({ where }: { where?: Row }) =>
+        [...academies.values()].filter(
+          (a) => !where || matchWhere(a, where),
+        ),
+      ),
       update: vi.fn(
         async ({ where, data }: { where: { id: string }; data: Row }) => {
           const a = academies.get(where.id);
@@ -1382,6 +1387,79 @@ describe("PlatformSubscriptionsService", () => {
       academy.billingGraceUntil = new Date(Date.now() + 2.5 * DAY);
       const view = await svc.academyBillingView(academy as never);
       expect(view.graceDaysLeft).toBe(3);
+    });
+  });
+
+  describe("enforceAcademyBlocks (job diario S3)", () => {
+    it("gracia vencida → billingBlockedAt + notify academy.billing_blocked al owner", async () => {
+      const academy = fx.academies.get("ac1")!;
+      academy.billingGraceUntil = new Date(Date.now() - DAY); // venció ayer
+
+      const r = await svc.enforceAcademyBlocks();
+
+      expect(r.blocked).toBe(1);
+      expect(academy.billingBlockedAt).toBeInstanceOf(Date);
+      expect(fx.sentNotifs).toContainEqual(
+        expect.objectContaining({
+          personId: "p1",
+          type: "academy.billing_blocked",
+          category: "TRANSACTIONAL",
+          data: expect.objectContaining({ academyId: "ac1" }),
+        }),
+      );
+    });
+
+    it("gracia vigente → no bloquea ni notifica", async () => {
+      const academy = fx.academies.get("ac1")!;
+      academy.billingGraceUntil = new Date(Date.now() + 2 * DAY);
+
+      const r = await svc.enforceAcademyBlocks();
+
+      expect(r.blocked).toBe(0);
+      expect(academy.billingBlockedAt).toBeNull();
+      expect(
+        fx.sentNotifs.filter((n) => n.type === "academy.billing_blocked"),
+      ).toHaveLength(0);
+    });
+
+    it("idempotente: segunda corrida no re-bloquea ni re-notifica", async () => {
+      const academy = fx.academies.get("ac1")!;
+      academy.billingGraceUntil = new Date(Date.now() - DAY);
+
+      await svc.enforceAcademyBlocks();
+      const blockedAt = academy.billingBlockedAt;
+      const r = await svc.enforceAcademyBlocks();
+
+      expect(r.blocked).toBe(0);
+      expect(academy.billingBlockedAt).toBe(blockedAt);
+      expect(
+        fx.sentNotifs.filter((n) => n.type === "academy.billing_blocked"),
+      ).toHaveLength(1);
+    });
+
+    it("sin gracia (academia sana) → no-op", async () => {
+      const r = await svc.enforceAcademyBlocks();
+      expect(r.blocked).toBe(0);
+      expect(fx.academies.get("ac1")!.billingBlockedAt).toBeNull();
+    });
+
+    it("solo bloquea las vencidas — una gracia vigente convive", async () => {
+      fx.academies.set("ac2", {
+        ...mkAcademy({ id: "ac2", ownerId: "p1", name: "Academia Y" }),
+        billingGraceUntil: new Date(Date.now() + 2 * DAY),
+      });
+      fx.academies.get("ac1")!.billingGraceUntil = new Date(
+        Date.now() - DAY,
+      );
+
+      const r = await svc.enforceAcademyBlocks();
+
+      expect(r.blocked).toBe(1);
+      expect(fx.academies.get("ac1")!.billingBlockedAt).toBeInstanceOf(Date);
+      expect(fx.academies.get("ac2")!.billingBlockedAt).toBeNull();
+      expect(
+        fx.sentNotifs.filter((n) => n.type === "academy.billing_blocked"),
+      ).toHaveLength(1);
     });
   });
 });

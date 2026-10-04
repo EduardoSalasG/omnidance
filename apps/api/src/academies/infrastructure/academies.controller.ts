@@ -314,12 +314,15 @@ export class AcademiesController {
    * (alguna inscripción del autenticado, cualquier estado — "Mis
    * academias" vs "Explorar" lo resuelve el front con esto). Datos
    * públicos de negocio — sin métricas ni datos de alumnos.
+   * Las academias bloqueadas por mora (billingBlockedAt, spec
+   * academy-saas-billing) quedan fuera del directorio — el alumno las
+   * sigue viendo en /academies/enrolled con su flag.
    */
   @Get()
   @UseGuards(SessionGuard)
   async directory(@Req() req: Request) {
     const academies = await this.prisma.academy.findMany({
-      where: { active: true },
+      where: { active: true, billingBlockedAt: null },
       orderBy: { name: "asc" },
       select: {
         id: true,
@@ -422,6 +425,10 @@ export class AcademiesController {
             address: true,
             lat: true,
             lng: true,
+            // Mora SaaS (S3): la academia bloqueada SIGUE listándose en
+            // "mis academias" — el flag le permite a la UI marcarla
+            // ("no disponible") sin castigar el historial del alumno.
+            billingBlockedAt: true,
           },
         },
         plan: { select: { name: true, type: true } },
@@ -471,7 +478,10 @@ export class AcademiesController {
     }
     return enrollments.map((e) => ({
       id: e.id,
-      academy: e.academy,
+      academy: {
+        ...e.academy,
+        billingBlocked: e.academy.billingBlockedAt != null,
+      },
       status: e.status,
       plan: e.plan,
       startedAt: e.startedAt,
@@ -544,6 +554,10 @@ export class AcademiesController {
         whatsapp: true,
         website: true,
         privateLessonPrice: true,
+        // Mora SaaS (S3): la ficha pública sigue respondiendo pero el
+        // flag `billingBlocked` le dice a la UI que la muestre como "no
+        // disponible" (sin CTAs de compra/reserva — S6).
+        billingBlockedAt: true,
         instructors: { select: { personId: true } },
         classSeries: {
           where: { active: true },
@@ -640,6 +654,7 @@ export class AcademiesController {
       whatsapp: academy.whatsapp,
       website: academy.website,
       privateLessonPrice: academy.privateLessonPrice,
+      billingBlocked: academy.billingBlockedAt != null,
       styles: [...styles.values()].sort((x, y) =>
         x.name.localeCompare(y.name, "es"),
       ),
@@ -671,7 +686,7 @@ export class AcademiesController {
     @Body() dto: UpdateAcademySettingsDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     const data: Prisma.AcademyUpdateInput = {
       // undefined = no enviado → no toca; null explícito limpia el override.
       defaultQuorum: dto.defaultQuorum,
@@ -701,7 +716,7 @@ export class AcademiesController {
     @Body() dto: UpdateInstructorDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     const pct = dto.commissionPct;
     if (!Number.isInteger(pct) || pct < 0 || pct > 100) {
       throw new BadRequestException("commissionPct debe ser entero 0-100");
@@ -727,7 +742,7 @@ export class AcademiesController {
     @Body() dto: CreatePlanDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     return this.prisma.membershipPlan.create({
       data: {
         academyId: id,
@@ -770,7 +785,7 @@ export class AcademiesController {
     @Body() dto: UpdatePlanDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
     const plan = await this.prisma.membershipPlan.findFirst({
       where: { id: planId, academyId: id },
       include: { academy: { select: { name: true } } },
@@ -835,7 +850,7 @@ export class AcademiesController {
     @Body() dto: CreateEnrollmentDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireAdministerWrite(id, req.person!);
 
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId },
@@ -1168,7 +1183,7 @@ export class EnrollmentsController {
       where: { id },
     });
     if (!enrollment) throw new NotFoundException("enrollment no encontrado");
-    await this.access.requireAdminister(enrollment.academyId, req.person!);
+    await this.access.requireAdministerWrite(enrollment.academyId, req.person!);
     try {
       assertEnrollmentTransition(enrollment.status, dto.status);
     } catch (e) {

@@ -47,13 +47,20 @@
 
 ## S3 — Enforcement de mora
 
-- [ ] Job diario: `billingGraceUntil < now` → `billingBlockedAt`
-- [ ] Guard: mutaciones de consola academia → 403 `billing.blocked`
-      (read-only permitido)
-- [ ] Explore/discover: `GET /academies` + `/classes/browse` excluyen
-      academias bloqueadas
-- [ ] `POST /classes/:id/book` + checkout academy → 400/403 con copy
-      "academia no disponible" (alumno no castigado: historial visible)
+- [x] Job diario: `billingGraceUntil < now` → `billingBlockedAt`
+      (`PlatformSubscriptionsService.enforceAcademyBlocks`, mismo tick del
+      cron 09:00 — updateMany condicional + notify `academy.billing_blocked`)
+- [x] Guard: mutaciones de consola academia → 403 `billing.blocked`
+      (read-only permitido) — centralizado en
+      `AcademyAccess.requireManageWrite/requireAdministerWrite`; billing
+      (subscribe/PATCH/cancel + GET billing) queda en `requireAdminister`
+- [x] Explore/discover: `GET /academies` + `/classes/browse` +
+      `GET /styles/:id/landing` + sugerencia "próxima clase" de /home
+      excluyen academias bloqueadas (`billingBlockedAt: null`)
+- [x] `POST /classes/:id/book` + checkout academy (membership, clase
+      suelta, particular, membership-subscription) → 400/403 con copy
+      "academia no disponible" (alumno no castigado: historial visible —
+      enrolled/mine/profile exponen `billingBlocked:true`)
 - [x] `RENEWAL_SETTLED` → `billingBlockedAt = null` + gracia reset
       (implementado en S2 vía `settlePlatformSub` — el cobro recuperado
       desbloquea sin esperar al job)

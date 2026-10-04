@@ -17,10 +17,11 @@ function mkSubs() {
   };
 }
 
-/** PlatformSubscriptionsService stub — mismo contrato reconcileAll. */
+/** PlatformSubscriptionsService stub — reconcileAll + enforceAcademyBlocks. */
 function mkPlatSubs() {
   return {
     reconcileAll: vi.fn(async () => ({ checked: 0, settled: 0 })),
+    enforceAcademyBlocks: vi.fn(async () => ({ blocked: 0 })),
   };
 }
 
@@ -44,6 +45,31 @@ describe("SubscriptionsScheduler", () => {
       tick();
       expect(subs.reconcileAll).toHaveBeenCalledWith("cron");
       expect(platSubs.reconcileAll).toHaveBeenCalledWith("cron");
+      // S3: el mismo tick corre el bloqueo por gracia vencida.
+      expect(platSubs.enforceAcademyBlocks).toHaveBeenCalled();
+    } finally {
+      process.env.NODE_ENV = prev;
+    }
+  });
+
+  it("un enforceAcademyBlocks que rechaza no rompe el scheduler", async () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    try {
+      const platSubs = {
+        ...mkPlatSubs(),
+        enforceAcademyBlocks: vi.fn(async () => {
+          throw new Error("db caída");
+        }),
+      };
+      new SubscriptionsScheduler(
+        mkSubs() as never,
+        platSubs as never,
+      ).onModuleInit();
+      const tick = scheduleMock.mock.calls[0]![1] as () => void;
+      expect(() => tick()).not.toThrow();
+      await new Promise((r) => setTimeout(r, 10));
+      expect(platSubs.enforceAcademyBlocks).toHaveBeenCalled();
     } finally {
       process.env.NODE_ENV = prev;
     }

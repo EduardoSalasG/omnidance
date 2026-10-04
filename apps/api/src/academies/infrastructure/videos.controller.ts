@@ -56,7 +56,8 @@ export class VideosController {
     @Body() dto: CreateVideoDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!); // solo owner/ADMIN
+    // solo owner/ADMIN — mutación: academia bloqueada por mora → 403 (S3).
+    await this.access.requireAdministerWrite(id, req.person!);
 
     if (dto.classId) {
       const cls = await this.prisma.class.findFirst({
@@ -137,7 +138,8 @@ export class VideosController {
     @Param("videoId") videoId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!); // solo owner/ADMIN
+    // solo owner/ADMIN — mutación: academia bloqueada por mora → 403 (S3).
+    await this.access.requireAdministerWrite(id, req.person!);
     const video = await this.prisma.video.findFirst({
       where: { id: videoId, academyId: id },
     });

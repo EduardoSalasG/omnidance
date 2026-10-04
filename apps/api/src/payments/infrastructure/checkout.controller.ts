@@ -26,6 +26,7 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
   AcademyNotFoundError,
+  AcademyUnavailableError,
   CheckoutService,
   ClassAlreadyBookedError,
   ClassNotFoundError,
@@ -143,6 +144,15 @@ export class CheckoutController {
     private readonly subscriptions: SubscriptionsService,
   ) {}
 
+  /**
+   * Academia bloqueada por mora (spec academy-saas-billing, S3): 400
+   * con código estable `academy.unavailable` + copy honesto — la UI
+   * distingue "no disponible" de un error de validación genérico.
+   */
+  private static unavailable(e: AcademyUnavailableError): never {
+    throw new BadRequestException({ error: e.code, message: e.message });
+  }
+
   @Post("ticket")
   @UseGuards(SessionGuard)
   async ticket(@Req() req: Request, @Body() dto: CheckoutTicketDto) {
@@ -241,6 +251,9 @@ export class CheckoutController {
       if (e instanceof PlanNotFoundError) {
         throw new NotFoundException(e.message);
       }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
       if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -261,6 +274,9 @@ export class CheckoutController {
     } catch (e) {
       if (e instanceof PlanNotFoundError) {
         throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
       }
       if (e instanceof PlanNotPurchasableError) {
         throw new BadRequestException(e.message);
@@ -283,6 +299,9 @@ export class CheckoutController {
     } catch (e) {
       if (e instanceof ClassNotFoundError) {
         throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
       }
       if (e instanceof ClassNotPurchasableError) {
         throw new BadRequestException(e.message);
@@ -311,6 +330,9 @@ export class CheckoutController {
       ) {
         throw new ConflictException(e.message);
       }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
       if (e instanceof ClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -335,6 +357,9 @@ export class CheckoutController {
       if (e instanceof AcademyNotFoundError) {
         throw new NotFoundException(e.message);
       }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
       if (e instanceof PrivateClassNotPurchasableError) {
         throw new BadRequestException(e.message);
       }
@@ -358,6 +383,9 @@ export class CheckoutController {
     } catch (e) {
       if (e instanceof AcademyNotFoundError) {
         throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
       }
       if (e instanceof PrivateClassNotPurchasableError) {
         throw new BadRequestException(e.message);

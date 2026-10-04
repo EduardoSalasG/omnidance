@@ -102,7 +102,8 @@ export class PrivateLessonsController {
     @Body() dto: RequestPrivateLessonDto,
     @Req() req: Request,
   ) {
-    const { academy } = await this.access.requireManage(id, req.person!);
+    // Mutación de staff — academia bloqueada por mora → 403 (S3).
+    const { academy } = await this.access.requireManageWrite(id, req.person!);
     if (!academy.active) {
       throw new BadRequestException("la academia está inactiva");
     }
@@ -266,7 +267,7 @@ export class PrivateLessonsController {
 
     const academy = await this.prisma.academy.findUnique({
       where: { id: lesson.academyId },
-      select: { ownerId: true },
+      select: { ownerId: true, billingBlockedAt: true },
     });
     const me = req.person!;
     const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
@@ -277,6 +278,21 @@ export class PrivateLessonsController {
     const isStudent = lesson.personId === me.id;
     if (!isOwner && !isInstructor && !isStudent) {
       throw new ForbiddenException("sin acceso a esta clase privada");
+    }
+
+    // Academia bloqueada por mora (S3): las acciones de staff
+    // (confirm/done/reschedule/assign/pay-commission) quedan read-only;
+    // el alumno conserva `cancel` de su propia clase — no se castiga al
+    // alumno por la mora del owner.
+    if (
+      academy?.billingBlockedAt != null &&
+      !(dto.action === "cancel" && isStudent && !isOwner && !isInstructor)
+    ) {
+      throw new ForbiddenException({
+        error: "billing.blocked",
+        message:
+          "la academia está bloqueada por suscripción impaga — regulariza el pago para volver a operar",
+      });
     }
 
     switch (dto.action) {

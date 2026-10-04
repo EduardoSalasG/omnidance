@@ -18,7 +18,14 @@ export const CLASS_CARD_SELECT = {
         include: { type: { select: { id: true, name: true } } },
       },
       academy: {
-        select: { id: true, name: true, defaultQuorum: true },
+        select: {
+          id: true,
+          name: true,
+          defaultQuorum: true,
+          // Mora SaaS (S3): el card viaja con el flag para que la UI
+          // marque "no disponible" en reservas/historial del alumno.
+          billingBlockedAt: true,
+        },
       },
       series: {
         select: {
@@ -92,7 +99,12 @@ export type ClassCardRow = {
     endTime: string;
     capacity: number | null;
     types: { type: { id: string; name: string } }[];
-    academy: { id: string; name: string; defaultQuorum: number | null };
+    academy: {
+      id: string;
+      name: string;
+      defaultQuorum: number | null;
+      billingBlockedAt: Date | null;
+    };
     series: {
       id: string;
       name: string;
@@ -134,7 +146,10 @@ export function classCardItem(
       .length,
     myBooking: mine?.status ?? null,
     enrolled: enrolledIds.has(c.slot.academy.id),
-    academy: c.slot.academy,
+    academy: {
+      ...c.slot.academy,
+      billingBlocked: c.slot.academy.billingBlockedAt != null,
+    },
     instructor: c.instructorId
       ? {
           id: c.instructorId,
