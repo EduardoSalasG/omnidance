@@ -174,6 +174,35 @@ export class CheckoutController {
   }
 
   /**
+   * Preview de código de descuento para el checkout de tickets: valida
+   * vigencia/cupo/scope del código contra el evento y estima el descuento
+   * de la orden sobre el canal vigente (preventa/puerta). Sin side-effects
+   * — no crea orden ni consume uso; el checkout lo llama al "Aplicar" para
+   * mostrar el total con descuento antes de pagar.
+   */
+  @Get("discount-quote")
+  @UseGuards(SessionGuard)
+  async discountQuote(
+    @Query("eventId") eventId?: string,
+    @Query("code") code?: string,
+  ) {
+    if (!eventId || !code?.trim()) {
+      throw new BadRequestException("eventId y code son requeridos");
+    }
+    try {
+      return await this.checkout.discountQuote({
+        eventId,
+        code: code.trim(),
+      });
+    } catch (e) {
+      if (e instanceof EventNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
    * Pase mensual de serie: cubre todos los eventos de la serie en el mes.
    * El pase se emite cuando el webhook confirma el pago (upsert por
    * serie+persona+mes).

@@ -183,6 +183,7 @@ const mkEvent = (over: Record<string, unknown> = {}) => ({
   status: "PUBLISHED",
   // mañana 22:00 — la preventa sigue abierta (corte: 19:00 del día)
   startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  endsAt: new Date(Date.now() + 26 * 60 * 60 * 1000),
   presalePrice: 10000,
   presaleCap: null,
   doorPrice: null,
@@ -688,6 +689,112 @@ describe("CheckoutService.purchaseTicket", () => {
     await buy({ songSuggestion: "   " });
     expect(fx.prisma.songSuggestion.create).not.toHaveBeenCalled();
     expect(fx.prisma.songSuggestion.deleteMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("CheckoutService.discountQuote", () => {
+  // Preview de código para el checkout (GET /checkout/discount-quote):
+  // valida redimibilidad y estima el descuento de la orden sobre el
+  // canal vigente — nunca crea Payment ni consume uso del código.
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  const quote = (code = "X") =>
+    svc.discountQuote({ eventId: "evt-1", code });
+
+  it("evento inexistente → EventNotFoundError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(null);
+    await expect(quote()).rejects.toBeInstanceOf(EventNotFoundError);
+  });
+
+  it("código inexistente → valid:false reason UNKNOWN, sin side-effects", async () => {
+    const res = await quote("NOPE");
+    expect(res).toEqual({
+      valid: false,
+      discountClp: 0,
+      reason: "UNKNOWN",
+    });
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("código expirado / agotado / fuera de scope → invalid con su reason", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ expiresAt: new Date(Date.now() - 1000) }),
+    );
+    expect((await quote()).reason).toBe("EXPIRED");
+
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ maxUses: 3, usedCount: 3 }),
+    );
+    expect((await quote()).reason).toBe("EXHAUSTED");
+
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ eventId: "evt-otro" }),
+    );
+    expect((await quote()).reason).toBe("SCOPE_MISMATCH");
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("percentOff válido → discountClp sobre la lista de preventa", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 50 }),
+    );
+    const res = await quote();
+    expect(res).toEqual({ valid: true, discountClp: 5000 });
+  });
+
+  it("amountOff queda capeado en el precio de lista", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ amountOff: 15000 }),
+    );
+    const res = await quote();
+    expect(res.discountClp).toBe(10000);
+  });
+
+  it("post-corte con doorPrice → el descuento se estima sobre el precio puerta", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        // ayer → el cutoff de las 19:00 de ese día ya pasó; termina mañana
+        startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+        endsAt: new Date(Date.now() + 60 * 60 * 1000),
+        doorPrice: 8000,
+      }),
+    );
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 25 }),
+    );
+    const res = await quote();
+    expect(res.discountClp).toBe(2000); // 25% de 8000, no de 10000
+  });
+
+  it("evento terminado → valid pero discountClp 0 (el POST da su propio error)", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(Date.now() - 26 * 60 * 60 * 1000),
+        endsAt: new Date(Date.now() - 60 * 60 * 1000),
+      }),
+    );
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 50 }),
+    );
+    const res = await quote();
+    expect(res).toEqual({ valid: true, discountClp: 0 });
   });
 });
 

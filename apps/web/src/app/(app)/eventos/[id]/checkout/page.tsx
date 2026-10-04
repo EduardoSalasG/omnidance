@@ -16,6 +16,14 @@ export type CheckoutEvent = {
   status: string;
   presalePrice: number | null;
   doorPrice: number | null;
+  /** Instante del corte de preventa (ISO, lo calcula el API con
+      presale.cutoff_hour) — el estimado preventa/puerta lo usa tal cual. */
+  presaleEndsAt: string | null;
+  /** Cargo por servicio de preventa propio del evento (null = default
+      de plataforma — los overrides de productor/param no son públicos). */
+  serviceFeeClp: number | null;
+  /** Cargo por servicio de puerta-app propio del evento (null = default). */
+  doorAppFeeClp: number | null;
   /** Mesas reservables del evento; null = sin servicio de mesas. */
   tablesTotal: number | null;
   /** Máx. personas por reserva de mesa (null = sin tope propio). */

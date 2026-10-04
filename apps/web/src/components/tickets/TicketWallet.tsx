@@ -6,7 +6,14 @@ import { useTranslations } from "next-intl";
 import type { TicketStatus } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  PriceTag,
+  Spinner,
+} from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { sortWalletTickets } from "./wallet-sort";
 
@@ -307,7 +314,8 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
                   disabled={transferring}
                   className="flex-1"
                 >
-                  {transferring ? tc("loading") : t("transferSubmit")}
+                  {transferring && <Spinner size="sm" />}
+                  {t("transferSubmit")}
                 </Button>
                 <Button
                   type="button"

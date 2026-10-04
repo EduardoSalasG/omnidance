@@ -983,9 +983,16 @@ export class EventsController {
     const { _count, ...rest } = event;
     const tablesActive = tablesAgg?._count ?? 0;
     const seatsUsed = tablesAgg?._sum.partySize ?? 0;
+    // Corte de preventa — mismo cálculo que CheckoutService.purchaseTicket
+    // (presale.cutoff_hour del día del evento, hora local del server). El
+    // checkout lo usa para estimar preventa vs puerta sin replicar la regla.
+    const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
+    const presaleEndsAt = new Date(event.startsAt);
+    presaleEndsAt.setHours(cutoffHour, 0, 0, 0);
     return {
       ...rest,
       host,
+      presaleEndsAt,
       rsvpCount: _count.rsvps,
       tablesLeft:
         event.tablesTotal != null

@@ -1,6 +1,12 @@
 {
   "checkout": {
     "returnToClasses": "Ir a Mis clases",
+    "returnToPrivate": "Ir a Mis particulares",
+    "tryAgain": "Intentar de nuevo",
+    "discountApply": "Aplicar",
+    "discountApplied": "Código {code} aplicado",
+    "songLabel": "¿Qué canción no puede faltar?",
+    "songOptional": "opcional",
     "stillPendingTitle": "Pago en revisión",
     "stillPendingDesc": "El pago sigue en revisión — te avisamos cuando se confirme.",
     "stillPendingRetry": "Reintentar consulta",

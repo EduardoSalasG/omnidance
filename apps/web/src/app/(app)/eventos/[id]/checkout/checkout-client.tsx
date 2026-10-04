@@ -4,7 +4,14 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { SERVICE_FEE } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  PriceTag,
+  Spinner,
+} from "@/components/ui";
 import type { CheckoutEvent } from "./page";
 
 type Quote = {
@@ -65,6 +72,14 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   const [error, setError] = useState<FormError>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState("");
+  // Descuento validado por GET /checkout/discount-quote (preview antes
+  // de generar la orden). Se limpia al editar el código.
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    clp: number;
+  } | null>(null);
+  const [discountBusy, setDiscountBusy] = useState(false);
+  const [songSuggestion, setSongSuggestion] = useState("");
   const [simulating, setSimulating] = useState(false);
 
   // Cantidad de la orden (1–10): 1 propia + asignadas a amigos +
@@ -117,13 +132,18 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     phase.kind === "awaiting" ||
     phase.kind === "stillPending";
 
-  // Canal de venta: puerta-app cuando el evento está en vivo o ya sin
-  // preventa (misma resolución que el server: LIVE o post-corte vende a
-  // doorPrice). Solo mueve el texto explicativo — el precio real lo
-  // decide el quote del API.
+  // Canal de venta: puerta-app cuando el evento está en vivo o la
+  // preventa ya cortó — misma resolución que el server (LIVE, o
+  // PUBLISHED post-corte vende a doorPrice + fee DOOR). El instante de
+  // corte viene del detalle (presaleEndsAt — el server lo calcula con
+  // el PlatformParam presale.cutoff_hour, sin replicar la regla acá).
+  // Solo mueve el estimado local — el precio real lo decide el quote.
+  const cutoffPassed =
+    event.presaleEndsAt != null &&
+    Date.now() >= new Date(event.presaleEndsAt).getTime();
   const doorChannel =
     event.doorPrice != null &&
-    (event.status === "LIVE" || event.presalePrice == null);
+    (event.status === "LIVE" || (event.status === "PUBLISHED" && cutoffPassed));
 
   // Breakdown: estimado local hasta que el POST devuelva el quote real.
   // El quote del API trae montos unitarios + total de la orden; acá cada
@@ -135,19 +155,24 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     phase.kind === "awaiting" || phase.kind === "stillPending"
       ? phase.quote
       : null;
-  const unit = quote ?? {
-    listPrice,
-    discount: 0,
-    serviceFee: listPrice > 0 ? SERVICE_FEE.PRESALE_CLP : 0,
-    total: 0,
-  };
+  // Estimado con descuento aplicado: el fee del canal (override propio
+  // del evento o default de plataforma) y la regla del server "entrada
+  // en $0 no cobra fee". Overrides de productor/PlatformParam no son
+  // públicos — el quote del POST sigue siendo la fuente de verdad.
+  const estDiscount = appliedDiscount?.clp ?? 0;
+  const estFee =
+    listPrice - estDiscount > 0
+      ? doorChannel
+        ? (event.doorAppFeeClp ?? SERVICE_FEE.DOOR_APP_CLP)
+        : (event.serviceFeeClp ?? SERVICE_FEE.PRESALE_CLP)
+      : 0;
   const breakdown = quote
     ? quote // el API ya devuelve el total de la orden completa
     : {
-        listPrice: unit.listPrice,
-        discount: 0,
-        serviceFee: unit.serviceFee,
-        total: (unit.listPrice + unit.serviceFee) * quantity,
+        listPrice,
+        discount: estDiscount,
+        serviceFee: estFee,
+        total: (listPrice + estFee) * quantity - estDiscount,
       };
 
   // Polling del pago mientras esperamos confirmación (stub o retorno del gateway)
@@ -185,6 +210,51 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     return () => clearInterval(interval);
   }, [phase]);
 
+  // Enter dentro del form NO debe generar la orden — los inputs de
+  // búsqueda/código/canción son auxiliares; el submit real es solo el
+  // botón "Ir a pagar". En el input de código Enter equivale a Aplicar.
+  function preventEnterSubmit(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") e.preventDefault();
+  }
+
+  // Preview del código: valida contra el evento y muestra el descuento
+  // estimado en el breakdown ANTES de pagar (sin side-effects en el API).
+  async function applyDiscountCode() {
+    const code = discountCode.trim();
+    if (!code || discountBusy || busy) return;
+    setDiscountBusy(true);
+    setError(null);
+    setServerError(null);
+    setAppliedDiscount(null);
+    try {
+      const res = await apiFetch(
+        `/checkout/discount-quote?eventId=${encodeURIComponent(event.id)}&code=${encodeURIComponent(code)}`,
+      );
+      if (res.status === 401) {
+        setError("loginRequired");
+        return;
+      }
+      if (!res.ok) {
+        setError("generic");
+        return;
+      }
+      const data = (await res.json()) as {
+        valid: boolean;
+        discountClp: number;
+        reason?: string;
+      };
+      if (!data.valid) {
+        setError("invalidCode");
+        return;
+      }
+      setAppliedDiscount({ code, clp: data.discountClp });
+    } catch {
+      setError("generic");
+    } finally {
+      setDiscountBusy(false);
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
@@ -200,6 +270,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           eventId: event.id,
           quantity,
           ...(discountCode.trim() ? { discountCode: discountCode.trim() } : {}),
+          ...(songSuggestion.trim()
+            ? { songSuggestion: songSuggestion.trim() }
+            : {}),
           ...(giftIds.size ? { recipientIds: [...giftIds] } : {}),
           ...(wantsTable && hasTables && tableAvailable
             ? { tablePartySize: partySize }
@@ -424,6 +497,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               type="search"
               value={giftQuery}
               onChange={(e) => setGiftQuery(e.target.value)}
+              onKeyDown={preventEnterSubmit}
               placeholder={t("giftSearchPlaceholder")}
               aria-label={t("giftTitle")}
               disabled={busy}
@@ -504,7 +578,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-base font-semibold">{t("tableTitle")}</h2>
               <div
-                role="group"
+                role="radiogroup"
                 aria-label={t("tableTitle")}
                 className="flex shrink-0 rounded-full border border-night-700 p-1"
               >
@@ -512,10 +586,11 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                   <button
                     key={String(v)}
                     type="button"
+                    role="radio"
                     disabled={busy}
-                    aria-pressed={wantsTable === v}
+                    aria-checked={wantsTable === v}
                     onClick={() => setWantsTable(v)}
-                    className={`min-h-9 min-w-14 rounded-full px-4 text-sm font-medium transition-colors active:scale-[0.97] disabled:opacity-50 ${
+                    className={`min-h-11 min-w-14 rounded-full px-4 text-sm font-medium transition-colors active:scale-[0.97] disabled:opacity-50 ${
                       wantsTable === v
                         ? "bg-neon text-night-950"
                         : "text-white/60 hover:text-white"
@@ -609,7 +684,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             </div>
             <div className="mt-1 flex items-center justify-between border-t border-night-700 pt-4">
               <dt className="text-base font-semibold">{t("total")}</dt>
-              <dd>
+              <dd aria-live="polite">
                 <PriceTag amount={breakdown.total} className="text-2xl" />
               </dd>
             </div>
@@ -619,23 +694,84 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </p>
         </Card>
 
-        {/* Código de descuento */}
-        <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("discountCode")}</span>
+        {/* Código de descuento — "Aplicar" valida sin generar la orden
+            (GET /checkout/discount-quote) y el estimado del breakdown
+            muestra el total con descuento antes de pagar. */}
+        <div className="flex flex-col gap-2">
+          <label htmlFor="checkout-discount" className="text-sm text-white/70">
+            {t("discountCode")}
+          </label>
+          <div className="flex items-stretch gap-2">
+            <input
+              id="checkout-discount"
+              type="text"
+              value={discountCode}
+              onChange={(e) => {
+                setDiscountCode(e.target.value);
+                // El preview deja de corresponder al código escrito
+                setAppliedDiscount(null);
+                if (error === "invalidCode") setError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void applyDiscountCode();
+                }
+              }}
+              placeholder={t("discountPlaceholder")}
+              disabled={busy}
+              autoComplete="off"
+              aria-invalid={error === "invalidCode" || undefined}
+              aria-describedby={
+                error === "invalidCode" ? "checkout-discount-error" : undefined
+              }
+              className="min-h-12 flex-1 rounded-xl border border-night-700 bg-night-900 px-4 py-3 uppercase text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              className="shrink-0"
+              disabled={busy || discountBusy || !discountCode.trim()}
+              onClick={() => void applyDiscountCode()}
+            >
+              {discountBusy && <Spinner size="sm" />}
+              {t("discountApply")}
+            </Button>
+          </div>
+          {appliedDiscount && (
+            <p role="status" className="text-xs text-neon">
+              {t("discountApplied", { code: appliedDiscount.code })}
+            </p>
+          )}
+        </div>
+
+        {/* Canción pedida al DJ (opcional, máx. 140) — viaja en la orden
+            y el top-N del evento la cuenta solo con ticket pagado. */}
+        <div className="flex flex-col gap-2">
+          <label htmlFor="checkout-song" className="text-sm text-white/70">
+            {t("songLabel")}
+            <span className="text-white/40"> · {t("songOptional")}</span>
+          </label>
           <input
+            id="checkout-song"
             type="text"
-            value={discountCode}
-            onChange={(e) => setDiscountCode(e.target.value)}
-            placeholder={t("discountPlaceholder")}
+            value={songSuggestion}
+            onChange={(e) => setSongSuggestion(e.target.value)}
+            onKeyDown={preventEnterSubmit}
+            maxLength={140}
             disabled={busy}
             autoComplete="off"
-            aria-invalid={error === "invalidCode" || undefined}
-            aria-describedby={
-              error === "invalidCode" ? "checkout-discount-error" : undefined
-            }
-            className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 uppercase text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
+            aria-describedby="checkout-song-count"
+            className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
           />
-        </label>
+          <p
+            id="checkout-song-count"
+            aria-live="polite"
+            className="text-right text-xs text-white/40 tabular-nums"
+          >
+            {songSuggestion.length}/140
+          </p>
+        </div>
 
         {/* Errores del contrato */}
         {error === "invalidCode" && (
@@ -689,6 +825,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </div>
         ) : (
           <Button type="submit" size="lg" disabled={busy}>
+            {phase.kind === "processing" && <Spinner size="sm" />}
             {phase.kind === "processing" ? t("processing") : t("pay")}
           </Button>
         )}
@@ -832,7 +969,7 @@ function CheckoutSuccess({
         </Card>
       )}
 
-      <Button href="/entradas" size="lg">
+      <Button href="/eventos?view=mios" size="lg">
         {tw("title")}
       </Button>
     </main>
