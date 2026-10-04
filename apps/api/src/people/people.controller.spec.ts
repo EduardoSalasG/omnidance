@@ -1,0 +1,362 @@
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import type { Request } from "express";
+import type { PrismaService } from "../prisma.service";
+import "../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver events.controller.spec)
+import { PeopleController, UpdateMeDto } from "./people.controller";
+import type { NotificationsService } from "../notifications/domain/notifications.service";
+import { plainToInstance } from "class-transformer";
+import { validate } from "class-validator";
+
+// PeopleController — PATCH /me (gender), GET /me (expone gender) y
+// GET /me/pending-surveys (ventana post-evento + fan-out lazy único
+// por evento vía claim atómico de surveyNotifiedAt).
+
+interface FakePerson {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  photoUrl: string | null;
+  instagram: string | null;
+  gender: string | null;
+  createdAt: Date;
+  verifiedAt: Date | null;
+  isDemoAccount: boolean;
+  pendingProfileAt: Date | null;
+  onboarding: unknown;
+  roles: { role: string; status: string }[];
+  styleRoles: {
+    role: string;
+    level: string | null;
+    style: { id: string; name: string; genre: string };
+  }[];
+}
+
+interface FakeCheckin {
+  eventId: string;
+  personId: string;
+  voidedAt: Date | null;
+}
+
+interface FakeEvent {
+  id: string;
+  name: string;
+  endsAt: Date;
+  surveyNotifiedAt: Date | null;
+}
+
+interface FakeRating {
+  eventId: string;
+  raterId: string;
+}
+
+class FakePrisma {
+  people = new Map<string, FakePerson>();
+  checkins: FakeCheckin[] = [];
+  events: FakeEvent[] = [];
+  ratings: FakeRating[] = [];
+  personUpdates: Record<string, unknown>[] = [];
+
+  person = {
+    findUniqueOrThrow: async ({ where }: { where: { id: string } }) => {
+      const p = this.people.get(where.id);
+      if (!p) throw new Error("not found");
+      return p;
+    },
+    update: async ({
+      where,
+      data,
+    }: {
+      where: { id: string };
+      data: Record<string, unknown>;
+    }) => {
+      this.personUpdates.push(data);
+      const p = this.people.get(where.id)!;
+      Object.assign(p, data);
+      return p;
+    },
+  };
+
+  enrollment = {
+    findMany: async () => [],
+  };
+
+  checkin = {
+    findMany: async ({
+      where,
+      distinct,
+    }: {
+      where: { personId?: string; eventId?: string; voidedAt?: null };
+      distinct?: string[];
+    }) => {
+      let rows = this.checkins.filter(
+        (c) =>
+          (where.personId === undefined || c.personId === where.personId) &&
+          (where.eventId === undefined || c.eventId === where.eventId) &&
+          (where.voidedAt === null ? c.voidedAt === null : true),
+      );
+      if (distinct?.includes("personId")) {
+        const seen = new Set<string>();
+        rows = rows.filter(
+          (r) => !seen.has(r.personId) && seen.add(r.personId),
+        );
+      }
+      return rows;
+    },
+  };
+
+  event = {
+    findMany: async ({
+      where,
+      orderBy,
+    }: {
+      where: { id: { in: string[] }; endsAt: { lt: Date; gte: Date } };
+      orderBy?: { endsAt: "desc" };
+    }) => {
+      const rows = this.events.filter(
+        (e) =>
+          where.id.in.includes(e.id) &&
+          e.endsAt < where.endsAt.lt &&
+          e.endsAt >= where.endsAt.gte,
+      );
+      if (orderBy?.endsAt === "desc") {
+        rows.sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime());
+      }
+      return rows;
+    },
+    updateMany: async ({
+      where,
+      data,
+    }: {
+      where: { id: string; surveyNotifiedAt: null };
+      data: { surveyNotifiedAt: Date };
+    }) => {
+      // Claim atómico: solo gana si el flag sigue en null.
+      const e = this.events.find((x) => x.id === where.id);
+      if (!e || e.surveyNotifiedAt !== null) return { count: 0 };
+      Object.assign(e, data);
+      return { count: 1 };
+    },
+  };
+
+  eventRating = {
+    findMany: async ({
+      where,
+    }: {
+      where: { raterId: string; eventId: { in: string[] } };
+    }) =>
+      this.ratings.filter(
+        (r) =>
+          r.raterId === where.raterId && where.eventId.in.includes(r.eventId),
+      ),
+  };
+}
+
+const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
+  id,
+  name: `Persona ${id}`,
+  email: null,
+  phone: null,
+  photoUrl: null,
+  instagram: null,
+  gender,
+  createdAt: new Date("2026-01-01"),
+  verifiedAt: null,
+  isDemoAccount: false,
+  pendingProfileAt: null,
+  onboarding: {},
+  roles: [],
+  styleRoles: [],
+});
+
+const reqAs = (personId: string) =>
+  ({ person: { id: personId, roles: [] } }) as unknown as Request;
+
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3600 * 1000);
+
+describe("PeopleController", () => {
+  let prisma: FakePrisma;
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
+  let ctrl: PeopleController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    notifications = { notifySafe: vi.fn(async () => {}) };
+    ctrl = new PeopleController(
+      prisma as unknown as PrismaService,
+      { hashPassword: async () => "hash" } as never,
+      notifications as unknown as NotificationsService,
+    );
+    prisma.people.set("me", mkPerson("me"));
+  });
+
+  describe("PATCH /me gender", () => {
+    it("persiste el género autodeclarado", async () => {
+      await ctrl.updateMe(reqAs("me"), { gender: "F" });
+      expect(prisma.personUpdates.at(-1)).toEqual({ gender: "F" });
+      expect(prisma.people.get("me")!.gender).toBe("F");
+    });
+
+    it("null limpia el género (prefiere no declarar)", async () => {
+      prisma.people.get("me")!.gender = "M";
+      await ctrl.updateMe(reqAs("me"), { gender: null });
+      expect(prisma.personUpdates.at(-1)).toEqual({ gender: null });
+      expect(prisma.people.get("me")!.gender).toBeNull();
+    });
+
+    it("no toca gender si el campo no viene", async () => {
+      prisma.people.get("me")!.gender = "M";
+      await ctrl.updateMe(reqAs("me"), { name: "Nuevo Nombre" });
+      expect(prisma.personUpdates.at(-1)).toEqual({ name: "Nuevo Nombre" });
+      expect(prisma.people.get("me")!.gender).toBe("M");
+    });
+
+    it("valor fuera del enum → error de validación (400 en el pipe)", async () => {
+      const errors = await validate(
+        plainToInstance(UpdateMeDto, { gender: "X" }),
+      );
+      expect(errors.some((e) => e.property === "gender")).toBe(true);
+    });
+  });
+
+  describe("GET /me", () => {
+    it("expone gender junto a styleRoles", async () => {
+      prisma.people.get("me")!.gender = "OTHER";
+      const res = await ctrl.me(reqAs("me"));
+      expect(res.gender).toBe("OTHER");
+      expect(res.styleRoles).toEqual([]);
+    });
+  });
+
+  describe("GET /me/pending-surveys", () => {
+    it("evento elegible: devuelve la entrada y fan-out a todos los asistentes una vez", async () => {
+      prisma.events.push({
+        id: "ev-1",
+        name: "La Gozadera",
+        endsAt: hoursAgo(2),
+        surveyNotifiedAt: null,
+      });
+      prisma.checkins.push(
+        { eventId: "ev-1", personId: "me", voidedAt: null },
+        { eventId: "ev-1", personId: "otro", voidedAt: null },
+        { eventId: "ev-1", personId: "otro", voidedAt: null }, // 2do check-in
+        { eventId: "ev-1", personId: "anulado", voidedAt: new Date() },
+      );
+
+      const res = await ctrl.pendingSurveys(reqAs("me"));
+      expect(res).toEqual([
+        {
+          eventId: "ev-1",
+          name: "La Gozadera",
+          endsAt: prisma.events[0].endsAt,
+        },
+      ]);
+      // Fan-out: me + otro (distinct, sin voided) → 2 notificaciones.
+      expect(notifications.notifySafe).toHaveBeenCalledTimes(2);
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "otro",
+        expect.objectContaining({
+          category: "SOCIAL",
+          type: "event.survey",
+          data: { eventId: "ev-1" },
+        }),
+      );
+      expect(prisma.events[0].surveyNotifiedAt).not.toBeNull();
+    });
+
+    it("trigger idempotente: 2 requests → 1 fan-out por evento", async () => {
+      prisma.events.push({
+        id: "ev-1",
+        name: "La Gozadera",
+        endsAt: hoursAgo(2),
+        surveyNotifiedAt: null,
+      });
+      prisma.checkins.push(
+        { eventId: "ev-1", personId: "me", voidedAt: null },
+        { eventId: "ev-1", personId: "otro", voidedAt: null },
+      );
+
+      await ctrl.pendingSurveys(reqAs("me"));
+      await ctrl.pendingSurveys(reqAs("otro"));
+      expect(notifications.notifySafe).toHaveBeenCalledTimes(2);
+    });
+
+    it("fuera de ventana (terminó hace 30h) y en curso → []", async () => {
+      prisma.events.push(
+        {
+          id: "ev-old",
+          name: "Viejo",
+          endsAt: hoursAgo(30),
+          surveyNotifiedAt: null,
+        },
+        {
+          id: "ev-live",
+          name: "En curso",
+          endsAt: hoursAgo(-1),
+          surveyNotifiedAt: null,
+        },
+      );
+      prisma.checkins.push(
+        { eventId: "ev-old", personId: "me", voidedAt: null },
+        { eventId: "ev-live", personId: "me", voidedAt: null },
+      );
+
+      expect(await ctrl.pendingSurveys(reqAs("me"))).toEqual([]);
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+    });
+
+    it("ya evaluado por el viewer → no sale ni dispara fan-out", async () => {
+      prisma.events.push({
+        id: "ev-1",
+        name: "La Gozadera",
+        endsAt: hoursAgo(2),
+        surveyNotifiedAt: null,
+      });
+      prisma.checkins.push({ eventId: "ev-1", personId: "me", voidedAt: null });
+      prisma.ratings.push({ eventId: "ev-1", raterId: "me" });
+
+      expect(await ctrl.pendingSurveys(reqAs("me"))).toEqual([]);
+      expect(notifications.notifySafe).not.toHaveBeenCalled();
+    });
+
+    it("check-in anulado → []", async () => {
+      prisma.events.push({
+        id: "ev-1",
+        name: "La Gozadera",
+        endsAt: hoursAgo(2),
+        surveyNotifiedAt: null,
+      });
+      prisma.checkins.push({
+        eventId: "ev-1",
+        personId: "me",
+        voidedAt: new Date(),
+      });
+
+      expect(await ctrl.pendingSurveys(reqAs("me"))).toEqual([]);
+    });
+
+    it("ordena más reciente primero", async () => {
+      prisma.events.push(
+        {
+          id: "ev-1",
+          name: "Antigua",
+          endsAt: hoursAgo(20),
+          surveyNotifiedAt: new Date(),
+        },
+        {
+          id: "ev-2",
+          name: "Reciente",
+          endsAt: hoursAgo(3),
+          surveyNotifiedAt: new Date(),
+        },
+      );
+      prisma.checkins.push(
+        { eventId: "ev-1", personId: "me", voidedAt: null },
+        { eventId: "ev-2", personId: "me", voidedAt: null },
+      );
+
+      const res = await ctrl.pendingSurveys(reqAs("me"));
+      expect(res.map((e) => e.eventId)).toEqual(["ev-2", "ev-1"]);
+    });
+  });
+});
