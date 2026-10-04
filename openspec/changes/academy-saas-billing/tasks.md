@@ -2,12 +2,20 @@
 
 ## S1 — Datos + catálogo
 
-- [ ] `AcademyPlan` model + seed de tiers/params (precios como `PlatformParam`)
-- [ ] `Academy`: `planId`, `subscriptionId`, `billingCycle`,
-      `billingGraceUntil`, `billingBlockedAt`, `trialEndsAt`
-- [ ] `Producer.proTier` + `proSubscriptionId`
-- [ ] Migración versionada + backfill (academias existentes → trial 60d;
-      productores → FREE)
+- [x] ~~`AcademyPlan` model~~ → enums `AcademyTier`/`BillingCycle`/
+      `ProducerProTier`/`PlatformSubKind` + seed de `PlatformParam`
+      (`academy_tier.*`, `producer_tier.*`, `academy_billing.*`,
+      `gateway_fee.academy_passthrough_pct`) — precios/límites por params,
+      no por tabla
+- [x] `Academy`: `tier`, `billingCycle`, `billingGraceUntil`,
+      `billingBlockedAt`, `trialEndsAt` — la suscripción vive en el modelo
+      `PlatformSubscription` (no `planId`/`subscriptionId` sueltos)
+- [x] ~~`Producer.proTier` + `proSubscriptionId`~~ → `Person.proTier`
+      (`ProducerProTier @default(FREE)` — no hay tabla Producer; producerId =
+      personId del rol PRODUCER) + `PlatformSubscription.kind=PRODUCER`
+- [x] Migración versionada (`…_saas-billing`, create-only) + backfill
+      (academias existentes → `trialEndsAt` = now + 60d; productores → FREE
+      vía default del enum, sin UPDATE)
 
 ## S2 — Facturación de la suscripción
 

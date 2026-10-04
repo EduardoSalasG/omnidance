@@ -45,6 +45,9 @@ model Person {
   verifiedAt    DateTime?
   onboarding    Json?   // {tourKey: ISO timestamp} — tours de primera visita ya vistos
   flowCustomerId String? // customerId en Flow — se crea on-demand al suscribirse
+  // Tier Producer Pro (spec academy-saas-billing) — solo aplica a personas
+  // con rol PRODUCER; no hay tabla Producer, el productor es esta Person.
+  proTier       ProducerProTier @default(FREE)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -55,6 +58,8 @@ model Person {
   pushTokens     PushToken[]
   eventDjs       EventDj[]
   rsvps          Rsvp[]
+  platformSubscriptionsPayer      PlatformSubscription[] @relation("PlatformSubscriptionPayer")
+  platformSubscriptionsAsProducer PlatformSubscription[] @relation("PlatformSubscriptionProducer")
 }
 
 // Catálogo de roles vivo en DB — se administran desde /admin, no desde código.
@@ -656,6 +661,41 @@ model HappyHourWindow {
 
 // ═══════════════════ ACADEMIAS ═══════════════════
 
+// Tiers SaaS de la academia (spec academy-saas-billing). Precios por ciclo
+// y límites de alumnos activos viven en PlatformParam (academy_tier.*) —
+// ENTERPRISE es "a convenir", sin params ni auto-selección.
+enum AcademyTier {
+  STARTER
+  PRO
+  STUDIO
+  ENTERPRISE
+}
+
+// Ciclo de facturación de suscripciones de plataforma (academia y Producer
+// Pro): semestral −2% y anual −4% sobre el mensual.
+enum BillingCycle {
+  MONTHLY
+  SEMIANNUAL
+  ANNUAL
+}
+
+// Tier Producer Pro por facturación mensual (media últimos 90d): PRO_STARTER
+// ≤$2,5M, PRO_GROWTH ≤$8M, PRO_BIG >$8M (a convenir). Precios en
+// PlatformParam (producer_tier.*).
+enum ProducerProTier {
+  FREE
+  PRO_STARTER
+  PRO_GROWTH
+  PRO_BIG
+}
+
+// Tipo de suscriptor en PlatformSubscription: ACADEMY → academyId non-null;
+// PRODUCER → producerId non-null (persona con rol PRODUCER).
+enum PlatformSubKind {
+  ACADEMY
+  PRODUCER
+}
+
 model Academy {
   id        String  @id @default(cuid())
   name      String
@@ -673,6 +713,18 @@ model Academy {
   // null = la academia no vende particulares. El owner asigna fecha e
   // instructor post-compra (spec private-lesson-product).
   privateLessonPrice Int?
+  // ─── Suscripción SaaS de la plataforma (spec academy-saas-billing) ───
+  // tier/ciclo contratados — null = sin suscripción (trial, grace o churn).
+  tier            AcademyTier?
+  billingCycle    BillingCycle?
+  // Trial de onboarding: 30d academias nuevas; backfill 60d a las existentes
+  // al despliegue (grace de lanzamiento).
+  trialEndsAt       DateTime?
+  // Fin de los 5 días de gracia tras una invoice impaga.
+  billingGraceUntil DateTime?
+  // non-null = academia bloqueada por mora (consola read-only, fuera de
+  // explorar, sin reservas nuevas). RENEWAL_SETTLED lo limpia.
+  billingBlockedAt  DateTime?
   createdAt DateTime @default(now())
 
   instructors  AcademyInstructor[]
@@ -680,6 +732,7 @@ model Academy {
   classSlots   ClassSlot[]
   classSeries  ClassSeries[]
   enrollments  Enrollment[]
+  platformSubscriptions PlatformSubscription[]
 }
 
 model AcademyInstructor {
@@ -1329,4 +1382,42 @@ model MembershipSubscription {
   @@index([personId])
   @@index([academyId])
   @@index([status, nextInvoiceAt])
+}
+
+/// Suscripción DE la plataforma (spec academy-saas-billing): la academia
+/// paga su tier SaaS y el productor paga Producer Pro. Distinta de
+/// MembershipSubscription (alumno → academia) y del legado
+/// AcademySubscription (sin uso — no tocar).
+/// Cardinalidad según kind: ACADEMY → academyId non-null / producerId null;
+/// PRODUCER → producerId non-null (Person con rol PRODUCER — no hay tabla
+/// Producer, igual que EventSeries.producerId) / academyId null.
+model PlatformSubscription {
+  id        String          @id @default(cuid())
+  kind      PlatformSubKind
+  academy   Academy?        @relation(fields: [academyId], references: [id])
+  academyId String?
+  // El productor suscrito — Person con rol PRODUCER (producerId = personId).
+  producer   Person? @relation("PlatformSubscriptionProducer", fields: [producerId], references: [id])
+  producerId String?
+  // Quien paga la suscripción (owner de la academia o el propio productor).
+  person    Person @relation("PlatformSubscriptionPayer", fields: [personId], references: [id])
+  personId  String
+  // Tier contratado, según kind: STARTER|PRO|STUDIO|ENTERPRISE (ACADEMY) o
+  // PRO_STARTER|PRO_GROWTH|PRO_BIG (PRODUCER). String y no enum para no
+  // duplicar los dos dominios; precios/límites en PlatformParam.
+  tierCode           String
+  billingCycle       BillingCycle
+  flowSubscriptionId String?       @unique
+  // Mismo ciclo de vida que MembershipSubscription:
+  // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
+  status          String    @default("PENDING_CARD")
+  nextInvoiceAt   DateTime? // de Flow next_invoice_date — alimenta el reminder
+  lastInvoiceId   String?   // dedup de renovaciones ya liquidadas
+  reminderSentFor DateTime? // nextInvoiceAt ya recordado (dedup alerta)
+  createdAt       DateTime  @default(now())
+  canceledAt      DateTime?
+
+  @@index([kind, academyId])
+  @@index([kind, producerId])
+  @@index([personId])
 }

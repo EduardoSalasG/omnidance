@@ -12,8 +12,9 @@ herramientas premium.
 
 ## Qué cambia
 
-- **Academia**: `AcademySubscription` con tiers por alumnos activos;
-  cobro recurrente vía `Subscription`/Flow (infra existente).
+- **Academia**: `PlatformSubscription` (kind=ACADEMY) con tiers por
+  alumnos activos; cobro recurrente vía el mismo motor Flow de
+  `MembershipSubscription` (infra existente).
   El cargo de servicio al comprador en productos de academia desaparece;
   la academia absorbe el costo Flow (~3.19%) en su payout.
   Mora: 5 días gracia → bloqueo (sin consola, fuera de explorar, sin
