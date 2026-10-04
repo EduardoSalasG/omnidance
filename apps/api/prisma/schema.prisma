@@ -23,6 +23,12 @@ enum EntityType {
   EMPRESA
 }
 
+enum Gender {
+  M
+  F
+  OTHER
+}
+
 model Person {
   id            String   @id @default(cuid())
   email         String?  @unique
@@ -30,6 +36,7 @@ model Person {
   name          String
   photoUrl      String?
   instagram     String?  // handle público autodeclarado (sin @) — se muestra en el perfil de amistad
+  gender        Gender?  // autodeclarado — solo alimenta analítica agregada, nunca se expone individual
   passwordHash  String?  // scrypt$N$r$p$salt$hash — null = solo magic link
   qrSecret      String   @default(cuid()) // semilla del QR rotativo (TOTP-like)
   isLightAccount Boolean @default(false) // cuenta creada en puerta (nombre+teléfono)
@@ -253,6 +260,7 @@ model Event {
   primeThreshold Int?     // null → ~20% del aforo esperado
   happyHourMinutes Int @default(30)
   photosUrl   String?     // Drive del fotógrafo
+  surveyNotifiedAt DateTime? // fan-out de la encuesta post-evento ya disparado (dedupe lazy)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -502,6 +510,7 @@ model EventRating {
   id            String   @id @default(cuid())
   eventId       String
   raterId       String
+  overall       Int?     // → experiencia general del evento
   music         Int?     // → DJ
   occupation    Int?     // → productor
   organization  Int?     // → productor

@@ -2,7 +2,7 @@
 // Idempotente: personas/venues/series/eventos se resuelven por clave natural
 // y las fechas se refrescan en cada corrida para que la demo no envejezca.
 import { randomBytes, scryptSync } from "node:crypto";
-import { Genre, Prisma, PrismaClient } from "@prisma/client";
+import { Gender, Genre, Prisma, PrismaClient } from "@prisma/client";
 import {
   BadgeAwarder,
   buildBadgeStats,
@@ -57,8 +57,12 @@ export async function seedDev(prisma: PrismaClient) {
   );
 
   // ─── Personas multi-rol — emails dev permiten login por magic link ───
-  const person = (slug: string, name: string, roles: { role: string }[]) =>
-    ensurePerson(prisma, `${slug}@${DEV_DOMAIN}`, name, roles);
+  const person = (
+    slug: string,
+    name: string,
+    roles: { role: string }[],
+    gender?: Gender,
+  ) => ensurePerson(prisma, `${slug}@${DEV_DOMAIN}`, name, roles, gender);
 
   const carlos = await person("carlos", "Carlos Andrés", [{ role: "PRODUCER" }]);
   const ardilla = await person("ardilla", "Ardilla", [
@@ -78,14 +82,14 @@ export async function seedDev(prisma: PrismaClient) {
     { role: "PRODUCER" },
   ]);
   // Cuenta consumidora — flujo completo: RSVP, compra, QR, sesiones, ratings.
-  const dancer = await person("dancer", "Bailarín Demo", [{ role: "DANCER" }]);
+  const dancer = await person("dancer", "Bailarín Demo", [{ role: "DANCER" }], Gender.M);
   // Staff de puerta aprobado — consola /staff operable sin pasar por /admin.
   const staff = await person("staff", "Staff Puerta", [{ role: "STAFF" }]);
   // Instructor de academia — consola /academia/clases con sus clases asignadas.
   const vale = await person("profe", "Valeska Torres", [
     { role: "INSTRUCTOR" },
     { role: "DANCER" },
-  ]);
+  ], Gender.F);
   const rodrigo = await person("rodrigo", "Rodrigo Fuentes", [
     { role: "INSTRUCTOR" },
     { role: "DANCER" },
@@ -102,16 +106,17 @@ export async function seedDev(prisma: PrismaClient) {
   await person("soporte", "Soporte Omnidance", [{ role: "SUPPORT" }]);
 
   // Alumnos de la academia — enrollments, reservas, asistencias, historial.
-  const alumno = (slug: string, name: string) =>
-    person(slug, name, [{ role: "DANCER" }]);
-  const camila = await alumno("camila", "Camila Rojas");
-  const josefa = await alumno("josefa", "Josefa Martínez");
-  const diego = await alumno("diego", "Diego Sanhueza");
-  const francisca = await alumno("francisca", "Francisca León");
-  const sebastian = await alumno("sebastian", "Sebastián Pino");
-  const antonia = await alumno("antonia", "Antonia Reyes");
+  const alumno = (slug: string, name: string, gender?: Gender) =>
+    person(slug, name, [{ role: "DANCER" }], gender);
+  const camila = await alumno("camila", "Camila Rojas", Gender.F);
+  const josefa = await alumno("josefa", "Josefa Martínez", Gender.F);
+  const diego = await alumno("diego", "Diego Sanhueza", Gender.M);
+  const francisca = await alumno("francisca", "Francisca León", Gender.OTHER);
+  const sebastian = await alumno("sebastian", "Sebastián Pino", Gender.M);
+  const antonia = await alumno("antonia", "Antonia Reyes", Gender.F);
+  // Felipe sin género declarado — alimenta el bucket "unknown" de la analítica.
   const felipe = await alumno("felipe", "Felipe Contreras");
-  const daniela = await alumno("daniela", "Daniela Fuentes");
+  const daniela = await alumno("daniela", "Daniela Fuentes", Gender.F);
 
   // ─── Venues ───
   const venue = (
@@ -2330,6 +2335,7 @@ export async function seedDev(prisma: PrismaClient) {
   // venue. ≥3 evaluaciones por edición para que los promedios superen
   // la k-anonymity del resumen. Sin texto libre, rater privado.
   type EventDims = {
+    overall?: number;
     music?: number;
     occupation?: number;
     organization?: number;
@@ -2340,23 +2346,23 @@ export async function seedDev(prisma: PrismaClient) {
   const rateEvent = (eventId: string, raterId: string, dims: EventDims) =>
     prisma.eventRating.upsert({
       where: { eventId_raterId: { eventId, raterId } },
-      update: {},
+      update: dims,
       create: { eventId, raterId, ...dims },
     });
   const eventRaters = [dancer, camila, josefa, diego, antonia, daniela];
   const prevDims: EventDims[] = [
-    { music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 3, lightingSound: 4 },
-    { music: 4, occupation: 5, organization: 4, floorComfort: 5, temperature: 4, lightingSound: 5 },
-    { music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 4, lightingSound: 4 },
-    { music: 4, occupation: 4, organization: 4, floorComfort: 4, temperature: 2, lightingSound: 4 },
-    { music: 5, occupation: 5, organization: 5, floorComfort: 5, temperature: 3, lightingSound: 5 },
-    { music: 4, occupation: 4, organization: 4, floorComfort: 3, temperature: 3, lightingSound: 4 },
+    { overall: 5, music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 3, lightingSound: 4 },
+    { overall: 4, music: 4, occupation: 5, organization: 4, floorComfort: 5, temperature: 4, lightingSound: 5 },
+    { overall: 5, music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 4, lightingSound: 4 },
+    { overall: 3, music: 4, occupation: 4, organization: 4, floorComfort: 4, temperature: 2, lightingSound: 4 },
+    { overall: 5, music: 5, occupation: 5, organization: 5, floorComfort: 5, temperature: 3, lightingSound: 5 },
+    { overall: 4, music: 4, occupation: 4, organization: 4, floorComfort: 3, temperature: 3, lightingSound: 4 },
   ];
   const ed2Dims: EventDims[] = [
-    { music: 5, occupation: 5, organization: 5, floorComfort: 5, temperature: 4, lightingSound: 5 },
-    { music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 3, lightingSound: 4 },
-    { music: 4, occupation: 5, organization: 4, floorComfort: 5, temperature: 4, lightingSound: 5 },
-    { music: 5, occupation: 4, organization: 4, floorComfort: 4, temperature: 3, lightingSound: 4 },
+    { overall: 5, music: 5, occupation: 5, organization: 5, floorComfort: 5, temperature: 4, lightingSound: 5 },
+    { overall: 4, music: 5, occupation: 4, organization: 5, floorComfort: 4, temperature: 3, lightingSound: 4 },
+    { overall: 5, music: 4, occupation: 5, organization: 4, floorComfort: 5, temperature: 4, lightingSound: 5 },
+    { overall: 4, music: 5, occupation: 4, organization: 4, floorComfort: 4, temperature: 3, lightingSound: 4 },
   ];
   for (const [i, p] of eventRaters.entries()) {
     await rateEvent(prevEdition.id, p.id, prevDims[i]);
@@ -2365,10 +2371,11 @@ export async function seedDev(prisma: PrismaClient) {
   // Edición -3 queda bajo el umbral (2 evaluaciones) — demuestra el
   // estado "insuficientes evaluaciones" de la consola del DJ.
   await rateEvent(edition3.id, dancer.id, {
+    overall: 4,
     music: 4,
     organization: 4,
   });
-  await rateEvent(edition3.id, camila.id, { music: 5, floorComfort: 4 });
+  await rateEvent(edition3.id, camila.id, { overall: 5, music: 5, floorComfort: 4 });
 
   // Operación en curso del evento LIVE: check-ins de pista (SCAN) y un
   // par de ventas manuales de puerta (MANUAL, sin Payment) + una venta
