@@ -388,16 +388,30 @@ export default async function AcademiaDetailPage({
         {academy.classes.length === 0 ? (
           <p className="text-sm text-white/50">{t.profile.classesEmpty}</p>
         ) : (
-          <ul className="flex flex-col gap-3">
-            {academy.classes.map((c) => (
-              <li key={c.id}>
-                <ClassCard
-                  cls={c}
-                  when={`${dayFmt.format(new Date(c.date))} · ${c.startTime}–${c.endTime}`}
-                />
-              </li>
-            ))}
-          </ul>
+          <>
+            {/* Las 2 próximas; el resto vive en /clases?s=explorar con el
+                filtro de academia — la ficha no es el explorador. */}
+            <ul className="flex flex-col gap-3">
+              {academy.classes.slice(0, 2).map((c) => (
+                <li key={c.id}>
+                  <ClassCard
+                    cls={c}
+                    when={`${dayFmt.format(new Date(c.date))} · ${c.startTime}–${c.endTime}`}
+                  />
+                </li>
+              ))}
+            </ul>
+            {academy.classes.length > 2 && (
+              <Button
+                href={`/clases?s=explorar&academy=${academy.id}`}
+                variant="ghost"
+                size="sm"
+                className="mt-3 self-start"
+              >
+                {t.profile.moreClasses}
+              </Button>
+            )}
+          </>
         )}
       </section>
     </main>
