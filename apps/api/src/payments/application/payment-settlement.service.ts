@@ -1,10 +1,16 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
-import type { Payment, Prisma } from "@prisma/client";
+import type {
+  AcademyTier,
+  Payment,
+  Prisma,
+  ProducerProTier,
+} from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import {
   decodeClassRef,
   decodeMembershipRef,
+  decodePlatformSubRef,
   decodePrivateRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
@@ -13,6 +19,10 @@ import {
   membershipBase,
   membershipEndsAt,
 } from "../domain/membership-vigency";
+import {
+  ACADEMY_TIERS,
+  PRODUCER_PRO_TIERS,
+} from "../domain/platform-tiers";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import { sanitizeGatewayPayload } from "../infrastructure/gateway-transactions.service";
 import { ParamsService } from "../../params/params.service";
@@ -220,6 +230,12 @@ export class PaymentSettlementService {
     // private-lesson-product).
     if (payment.orderType === "PRIVATE") {
       return this.settlePrivateLesson(payment, meta);
+    }
+
+    // PLATFORM_SUB (suscripción SaaS de la plataforma — spec
+    // academy-saas-billing): refId platsub_<subId>_<invoiceId>.
+    if (payment.orderType === "PLATFORM_SUB") {
+      return this.settlePlatformSub(payment, meta);
     }
 
     return this.settleTicket(payment, meta);
@@ -1005,6 +1021,151 @@ export class PaymentSettlementService {
           amount: payment.amount,
         },
       });
+      if (mismatch) {
+        await this.notifyAdminsAmountMismatch(payment, mismatch);
+      }
+    }
+
+    return { ok: true, status: "PAID" };
+  }
+
+  /**
+   * Liquidación PLATFORM_SUB (spec academy-saas-billing): invoice pagada
+   * de una `PlatformSubscription` — refId `platsub_<subId>_<invoiceId>`.
+   * Lo invoca el reconcile de `PlatformSubscriptionsService` con
+   * `meta.kind:"renewal"` (evento RENEWAL_SETTLED); también responde si
+   * cualquier camino genérico (webhook/polling) liquida la orden.
+   *
+   * Efectos dentro de la tx del →PAID:
+   * - ACADEMY: limpia `billingGraceUntil`/`billingBlockedAt` (un cobro
+   *   recuperado desbloquea la academia automáticamente) y sincroniza
+   *   `tier`/`billingCycle` con lo contratado en la suscripción.
+   * - PRODUCER: restaura `Person.proTier` al tier de la suscripción.
+   * Mismo claim atómico →PAID que las otras ramas (idempotente).
+   */
+  async settlePlatformSub(
+    payment: Payment,
+    meta: SettleMeta = { actor: "system" },
+  ): Promise<SettleResult> {
+    const order = decodePlatformSubRef(payment.refId);
+    if (!order) {
+      throw new BadRequestException(
+        "pago sin contexto de suscripción de plataforma",
+      );
+    }
+    const sub = await this.prisma.platformSubscription.findUnique({
+      where: { id: order.subscriptionId },
+      include: {
+        academy: {
+          select: {
+            id: true,
+            name: true,
+            billingGraceUntil: true,
+            billingBlockedAt: true,
+          },
+        },
+      },
+    });
+    if (!sub) {
+      throw new BadRequestException(
+        "suscripción de la orden platform no existe",
+      );
+    }
+
+    const gw = extractGatewayFields(meta.gatewayData);
+    const wasDelinquent =
+      sub.academy != null &&
+      (sub.academy.billingBlockedAt != null ||
+        sub.academy.billingGraceUntil != null);
+    let paidNow = false;
+    let mismatch: AmountMismatch | null = null;
+    await this.prisma.$transaction(async (tx) => {
+      // claim atómico →PAID (idéntico a las otras ramas): el perdedor de
+      // la carrera ve count=0 y no duplica eventos ni efectos.
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: "PAID" } },
+        data: { status: "PAID", ...(gw ?? {}) },
+      });
+      if (claimed.count === 0) return;
+      paidNow = true;
+
+      mismatch = await this.emitSettleEvents(tx, payment, meta, gw, {
+        subscriptionId: sub.id,
+        subscriptionKind: sub.kind,
+        academyId: sub.academyId,
+        producerId: sub.producerId,
+        invoiceId: order.invoiceId,
+      });
+
+      if (sub.kind === "ACADEMY" && sub.academyId) {
+        // Desbloqueo por pago recuperado + sync del plan contratado.
+        // tierCode es String por diseño (dos dominios en una tabla) —
+        // solo se proyecta si es un AcademyTier válido.
+        const tier = ACADEMY_TIERS.has(sub.tierCode)
+          ? (sub.tierCode as AcademyTier)
+          : undefined;
+        await tx.academy.update({
+          where: { id: sub.academyId },
+          data: {
+            billingGraceUntil: null,
+            billingBlockedAt: null,
+            tier,
+            billingCycle: sub.billingCycle,
+          },
+        });
+      }
+      if (
+        sub.kind === "PRODUCER" &&
+        sub.producerId &&
+        PRODUCER_PRO_TIERS.has(sub.tierCode)
+      ) {
+        await tx.person.update({
+          where: { id: sub.producerId },
+          data: { proTier: sub.tierCode as ProducerProTier },
+        });
+      }
+    });
+
+    if (paidNow) {
+      const clp = new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(payment.amount);
+      if (sub.kind === "ACADEMY") {
+        await this.notifications.notifySafe(sub.personId, {
+          category: "TRANSACTIONAL",
+          type: "academy.billing_settled",
+          title: wasDelinquent ? "Suscripción al día" : "Suscripción pagada",
+          body: wasDelinquent
+            ? `${sub.academy?.name ?? "Tu academia"} vuelve a operar con normalidad`
+            : `${sub.academy?.name ?? "Academia"} · ${sub.tierCode} · ${clp}`,
+          data: {
+            paymentId: payment.id,
+            refId: payment.refId,
+            subscriptionId: sub.id,
+            academyId: sub.academyId,
+            invoiceId: order.invoiceId,
+            amount: payment.amount,
+            recovered: wasDelinquent,
+          },
+        });
+      } else {
+        await this.notifications.notifySafe(sub.personId, {
+          category: "TRANSACTIONAL",
+          type: "producer.pro_settled",
+          title: "Producer Pro pagado",
+          body: `${sub.tierCode} · ${clp}`,
+          data: {
+            paymentId: payment.id,
+            refId: payment.refId,
+            subscriptionId: sub.id,
+            producerId: sub.producerId,
+            invoiceId: order.invoiceId,
+            amount: payment.amount,
+          },
+        });
+      }
       if (mismatch) {
         await this.notifyAdminsAmountMismatch(payment, mismatch);
       }

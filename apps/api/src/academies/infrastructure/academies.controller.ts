@@ -30,6 +30,7 @@ import type { Request } from "express";
 import type { EnrollmentStatus, PlanType, Prisma } from "@prisma/client";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
+import { ParamsService } from "../../params/params.service";
 import { SubscriptionsService } from "../../payments/application/subscriptions.service";
 import {
   assertEnrollmentTransition,
@@ -303,6 +304,7 @@ export class AcademiesController {
     private readonly prisma: PrismaService,
     private readonly access: AcademyAccess,
     private readonly subscriptions: SubscriptionsService,
+    private readonly params: ParamsService,
   ) {}
 
   /**
@@ -483,11 +485,22 @@ export class AcademiesController {
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("academies.create")
   @AllowSandbox() // spec: owners SANDBOX crean academia demo antes del APPROVED
-  create(@Body() dto: CreateAcademyDto, @Req() req: Request) {
+  async create(@Body() dto: CreateAcademyDto, @Req() req: Request) {
     // isDemo: el schema no tiene la columna — academias de owners no
     // APPROVED quedan indistinguibles (gap reportado).
+    // Trial SaaS (spec academy-saas-billing): `academy_billing.trial_days`
+    // días gratis desde la creación; las academias existentes recibieron
+    // la grace de lanzamiento por backfill (migration_grace_days).
+    const trialDays = await this.params.getNumber(
+      "academy_billing.trial_days",
+      30,
+    );
     return this.prisma.academy.create({
-      data: { name: dto.name, ownerId: req.person!.id },
+      data: {
+        name: dto.name,
+        ownerId: req.person!.id,
+        trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60_000),
+      },
     });
   }
 

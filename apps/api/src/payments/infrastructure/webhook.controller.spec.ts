@@ -5,6 +5,7 @@ import type { PrismaService } from "../../prisma.service";
 import type { PaymentGateway } from "../domain/ports";
 import type { PaymentSettlementService } from "../application/payment-settlement.service";
 import type { SubscriptionsService } from "../application/subscriptions.service";
+import type { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
 // Ciclo session.guard ⇄ auth.controller (SESSION_COOKIE): cargar
 // auth.controller antes rompe el ciclo a favor del test (mismo patrón
 // que payouts.controller.spec.ts).
@@ -194,6 +195,7 @@ function mkCtrl(prisma: FakePrisma) {
     {} as unknown as PaymentGateway,
     {} as unknown as PaymentSettlementService,
     {} as unknown as SubscriptionsService,
+    {} as unknown as PlatformSubscriptionsService,
   );
 }
 

@@ -121,3 +121,30 @@ export function decodePrivateRef(refId: string): PrivateLessonRef | null {
   if (!academyId || !uid) return null;
   return { academyId, uid };
 }
+
+// ─── Suscripción de plataforma (PLATFORM_SUB) ───
+// Formato: platsub_<platformSubscriptionId>_<invoiceId>. Cobros de la
+// suscripción SaaS de la plataforma (academia / Producer Pro — spec
+// academy-saas-billing): cada invoice Flow pagada genera un Payment con
+// este refId; el reconcile lo usa como dedup y el settle decodifica la
+// suscripción para aplicar los efectos (limpiar gracia/bloqueo, proTier).
+export interface PlatformSubRef {
+  subscriptionId: string;
+  invoiceId: string;
+}
+
+export function encodePlatformSubRef(
+  subscriptionId: string,
+  invoiceId: string,
+): string {
+  return `platsub_${subscriptionId}_${invoiceId}`;
+}
+
+export function decodePlatformSubRef(refId: string): PlatformSubRef | null {
+  const parts = refId.split("_");
+  if (parts.length < 3 || parts[0] !== "platsub") return null;
+  const [, subscriptionId, ...rest] = parts;
+  const invoiceId = rest.join("_");
+  if (!subscriptionId || !invoiceId) return null;
+  return { subscriptionId, invoiceId };
+}

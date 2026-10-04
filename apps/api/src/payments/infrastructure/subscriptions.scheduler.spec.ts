@@ -17,17 +17,25 @@ function mkSubs() {
   };
 }
 
+/** PlatformSubscriptionsService stub — mismo contrato reconcileAll. */
+function mkPlatSubs() {
+  return {
+    reconcileAll: vi.fn(async () => ({ checked: 0, settled: 0 })),
+  };
+}
+
 describe("SubscriptionsScheduler", () => {
   beforeEach(() => {
     scheduleMock.mockClear();
   });
 
-  it("registra cron '0 9 * * *' cuyo tick dispara reconcileAll('cron')", async () => {
+  it("registra cron '0 9 * * *' cuyo tick dispara reconcileAll('cron') en ambos servicios", async () => {
     const prev = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
     try {
       const subs = mkSubs();
-      new SubscriptionsScheduler(subs as never).onModuleInit();
+      const platSubs = mkPlatSubs();
+      new SubscriptionsScheduler(subs as never, platSubs as never).onModuleInit();
       expect(scheduleMock).toHaveBeenCalledWith(
         "0 9 * * *",
         expect.any(Function),
@@ -35,6 +43,7 @@ describe("SubscriptionsScheduler", () => {
       const tick = scheduleMock.mock.calls[0]![1] as () => void;
       tick();
       expect(subs.reconcileAll).toHaveBeenCalledWith("cron");
+      expect(platSubs.reconcileAll).toHaveBeenCalledWith("cron");
     } finally {
       process.env.NODE_ENV = prev;
     }
@@ -49,7 +58,10 @@ describe("SubscriptionsScheduler", () => {
           throw new Error("flow caído");
         }),
       };
-      new SubscriptionsScheduler(subs as never).onModuleInit();
+      new SubscriptionsScheduler(
+        subs as never,
+        mkPlatSubs() as never,
+      ).onModuleInit();
       const tick = scheduleMock.mock.calls[0]![1] as () => void;
       expect(() => tick()).not.toThrow();
       // el catch interno absorbe el rechazo — esperar el tick async
@@ -64,7 +76,10 @@ describe("SubscriptionsScheduler", () => {
     const prev = process.env.NODE_ENV;
     process.env.NODE_ENV = "test";
     try {
-      new SubscriptionsScheduler(mkSubs() as never).onModuleInit();
+      new SubscriptionsScheduler(
+        mkSubs() as never,
+        mkPlatSubs() as never,
+      ).onModuleInit();
       expect(scheduleMock).not.toHaveBeenCalled();
     } finally {
       process.env.NODE_ENV = prev;

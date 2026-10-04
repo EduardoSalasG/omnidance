@@ -1,4 +1,4 @@
-{
+﻿{
   "openapi": "3.0.0",
   "paths": {
     "/api/health": {
@@ -1818,6 +1818,27 @@
         }
       }
     },
+    "/api/payments/flow/platform-customer-return": {
+      "post": {
+        "operationId": "PaymentsController_platformCustomerReturn",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/payments/subscription-webhook": {
       "post": {
         "operationId": "PaymentsController_subscriptionWebhook",
@@ -2089,6 +2110,76 @@
         ],
         "responses": {
           "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producers/{id}/pro/subscribe": {
+      "post": {
+        "operationId": "ProducerProController_subscribe",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeProducerProDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producers/{id}/pro/cancel": {
+      "post": {
+        "operationId": "ProducerProController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producers/{id}/pro": {
+      "get": {
+        "operationId": "ProducerProController_view",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         }
@@ -3174,6 +3265,106 @@
     "/api/academies/{id}/dashboard": {
       "get": {
         "operationId": "AcademiesController_dashboard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/subscribe": {
+      "post": {
+        "operationId": "AcademyBillingController_subscribe",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeAcademyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/subscription": {
+      "patch": {
+        "operationId": "AcademyBillingController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAcademySubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/subscription/cancel": {
+      "post": {
+        "operationId": "AcademyBillingController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/billing": {
+      "get": {
+        "operationId": "AcademyBillingController_billing",
         "parameters": [
           {
             "name": "id",
@@ -4839,6 +5030,10 @@
         "type": "object",
         "properties": {}
       },
+      "SubscribeProducerProDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateDiscountCodeDto": {
         "type": "object",
         "properties": {}
@@ -4896,6 +5091,14 @@
         "properties": {}
       },
       "CreateEnrollmentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SubscribeAcademyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateAcademySubscriptionDto": {
         "type": "object",
         "properties": {}
       },

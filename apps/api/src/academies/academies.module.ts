@@ -5,6 +5,7 @@ import { ParamsModule } from "../params/params.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { PrismaModule } from "../prisma.module";
 import { AcademyAccess } from "./infrastructure/academy-access.service";
+import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
 import {
   AcademiesController,
   EnrollmentsController,
@@ -25,6 +26,7 @@ import { VideosController } from "./infrastructure/videos.controller";
   ],
   controllers: [
     AcademiesController,
+    AcademyBillingController,
     EnrollmentsController,
     AttendanceController,
     ClassesController,
