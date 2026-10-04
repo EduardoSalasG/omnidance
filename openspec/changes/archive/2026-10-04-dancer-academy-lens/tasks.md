@@ -10,4 +10,4 @@
 - [x] Seed: ediciones pasadas + sesiones del clique repartidas por semana
 - [x] Seed: Season activa + PointLedger + PersonBadge(featured) + Streak WEEKLY_OUT
 - [x] Seed: Enrollment del dancer demo si falta — ya existía (Muvet ACTIVE desde hace 60d)
-- [ ] Verificación: tsc api+web, tests, seed, impeccable detect, diff, commit+push
+- [x] Verificación: tsc api+web, tests, seed, impeccable detect, diff, commit+push
