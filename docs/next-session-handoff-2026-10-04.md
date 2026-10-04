@@ -143,7 +143,24 @@ higiene de OpenSpec y los exportes PDF.
   radiogroup de mesa + total aria-live, `stub://` en drop-in/particular,
   `Payment.eventId` expuesto, return con tryAgain.
   OpenAPI/Postman regen `9a738e7` (197 paths).
-- **F4/F5** — en curso (a11y transversal + menor/i18n/glyphs).
+- **F4** `608e684` — a11y: touch ≥44px, focus-visible en cards/links,
+  contraste /40|45→/50, StarRating APG correcto (arrows navegan,
+  Enter/Space confirma — ya no POSTea por flecha), calendario locales
+  con SR, Escape cierra dropdown, X en sheet.
+- **F5a** `552f4b7`+`e84cb7b` — i18n hardcodeados→catálogo (events/
+  locales/payments.ledger 12 tipos traducidos), imports a `@/i18n/messages`
+  unificados, tours sin prometer availability, TRIAL gratis sin CTA
+  ni fee, empties honestos, 409 phone_exists, Apple→Google Maps.
+- **F5b** `f9f4315` — átomo `components/ui/icons` compartido; cero
+  glyphs-como-icono en superficie dancer; hero sin kicker (Badge
+  inline); retries re-ejecutan loaders (no reload); busy con Spinner
+  en SessionCard.
+- **Verificación cierre**: tsc web+api limpios, web tests 3/3,
+  impeccable `[]`, i18n ALL_KEYS_OK, tree limpio.
+- **Restos menores conocidos**: HomeHub muestra "Tu sesión expiró" en
+  error 5xx (copy engañoso, sin retry); glyphs en consolas producer/
+  CRM/admin/landing quedan para la auditoría de esos roles;
+  `Segmented` bounce-easing es física intencional (no bug).
 - **Backlog usuario**: bloqueo de usuarios (API lista, sin UI),
   `sessions.declare` retro-declarar, N+1 videos /academias, recorte
   select público de eventos.
