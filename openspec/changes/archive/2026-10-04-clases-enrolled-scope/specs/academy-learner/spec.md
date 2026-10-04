@@ -42,7 +42,7 @@
 
 ### Requirement: /clases separa "mis academias" de "explorar"
 
-La página `/clases` SHALL tener vistas `list | calendar | history | explore`. `list` y `calendar` SHALL mostrar solo clases de academias con inscripción vigente (`browse?scope=enrolled`); `explore` SHALL mostrar todas las academias (`browse` sin scope). `history` SHALL seguir incluyendo todas las clases pasadas del alumno, esté inscrito actualmente o no.
+La página `/clases` SHALL tener scopes `s=mias | explorar | historial` (con layout `v=list | calendar` en mias/explorar). `mias` SHALL mostrar solo clases de academias con inscripción vigente (`browse?scope=enrolled`); `explorar` SHALL mostrar todas las academias (`browse` sin scope). `historial` SHALL seguir incluyendo todas las clases pasadas del alumno, esté inscrito actualmente o no.
 
 #### Scenario: Lista por defecto acotada
 
@@ -51,7 +51,7 @@ La página `/clases` SHALL tener vistas `list | calendar | history | explore`. `
 
 #### Scenario: Explorar sin inscripción en una academia
 
-- WHEN un alumno abre view=explore y una clase es de una academia sin inscripción vigente
+- WHEN un alumno abre s=explorar y una clase es de una academia sin inscripción vigente
 - THEN la card muestra un estado "requiere inscripción" en vez del botón Reservar
 
 #### Scenario: Sin inscripciones vigentes
@@ -61,7 +61,7 @@ La página `/clases` SHALL tener vistas `list | calendar | history | explore`. `
 
 ### Requirement: Filtro Todas | Reservadas en lista y calendario
 
-Las vistas `list` y `calendar` SHALL ofrecer un filtro segmentado `scope=todas|reservadas`. `reservadas` SHALL listar las reservas futuras del alumno (BOOKED/WAITLIST) como cards wallet con link al QR — la vista `mine` desaparece y `view=mine` legado SHALL redirigir a `list + scope=reservadas`.
+El scope `mias` (en layouts list y calendar) SHALL ofrecer un filtro segmentado `scope=todas|reservadas`. `reservadas` SHALL listar las reservas futuras del alumno (BOOKED/WAITLIST) como cards wallet con link al QR — la vista `mine` desaparece y `view=mine` legado SHALL redirigir a `s=mias + scope=reservadas`.
 
 #### Scenario: Ver solo lo reservado en lista
 
