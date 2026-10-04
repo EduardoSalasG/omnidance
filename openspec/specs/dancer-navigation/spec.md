@@ -1,10 +1,9 @@
-# dancer-navigation
+# dancer-navigation Specification
 
 ## Purpose
-
 Navegación del rol DANCER: bottom bar de 5 ítems con botón central `+` que abre un sheet de acciones (Mi QR destacado + módulos secundarios), reemplazando el drawer lateral para este rol.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Bottom bar del bailarín
 
@@ -19,7 +18,7 @@ El bottom bar del rol DANCER SHALL tener exactamente 5 ítems: Inicio (`/inicio`
 #### Scenario: Botón central abre el sheet
 
 - WHEN el bailarín toca el botón `+` del bottom bar
-- THEN se abre un sheet sobre el contenido con el QR personal destacado y accesos a Bailes, Prácticas, Viajes y Notificaciones
+- THEN se abre un sheet sobre el contenido con el QR personal destacado y accesos a Bailes y Prácticas
 - AND el botón `+` no produce navegación
 
 ### Requirement: Sheet de acciones del bailarín
@@ -29,7 +28,7 @@ El sheet MUST presentar el QR personal como elemento destacado (el más grande/p
 #### Scenario: Acceso al QR desde el sheet
 
 - WHEN el sheet está abierto
-- THEN el QR personal del usuario se muestra destacado y los accesos Bailes/Prácticas/Viajes/Notificaciones navegan a su ruta
+- THEN el QR personal del usuario se muestra destacado y los accesos Bailes/Prácticas navegan a su ruta
 
 #### Scenario: Cierre del sheet
 
@@ -58,15 +57,3 @@ La ruta `/entradas` MUST dejar de estar en el bottom bar, el sheet y el drawer d
 
 - WHEN un bailarín navega por bottom bar, sheet o drawer
 - THEN ningún destino apunta a `/entradas`
-
-## REMOVED Requirements
-
-### Requirement: QR como tab central del bottom bar
-
-**Reason**: el QR pasa al sheet del botón `+`, que lo muestra destacado sin ocupar un slot de navegación.
-**Migration**: quien usaba el tab QR ahora lo obtiene con un toque en `+`.
-
-### Requirement: Drawer lateral para DANCER
-
-**Reason**: 4 destinos secundarios no justifican un drawer completo; el sheet los cubre con menos chrome.
-**Migration**: Bailes, Prácticas, Viajes y Notificaciones viven en el sheet del `+`.
