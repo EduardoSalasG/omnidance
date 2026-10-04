@@ -333,6 +333,9 @@ export class PaymentsController {
       status: payment.status,
       amount: payment.amount,
       createdAt: payment.createdAt,
+      // TICKET: el return del checkout reintenta contra el checkout del
+      // evento al fallar — el dueño del pago ya conoce este id.
+      eventId: payment.eventId,
     };
   }
 

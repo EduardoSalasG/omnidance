@@ -229,6 +229,19 @@ export interface PurchaseTicketResult {
 }
 
 /**
+ * Preview de código de descuento (GET /checkout/discount-quote): valida
+ * existencia/vigencia/cupo/scope y estima el descuento de la ORDEN sobre
+ * el precio del canal vigente — sin side-effects (no crea Payment ni
+ * consume uso del código). `reason` replica el vocabulario de
+ * InvalidDiscountError para logging/telemetría del cliente.
+ */
+export interface DiscountQuoteResult {
+  valid: boolean;
+  discountClp: number;
+  reason?: "EXPIRED" | "EXHAUSTED" | "SCOPE_MISMATCH" | "UNKNOWN";
+}
+
+/**
  * Caso de uso del checkout de preventa: valida evento/cap/descuento, crea
  * la orden PENDING (con contexto desnormalizado en Payment), registra la
  * sugerencia de canción y delega el cobro a la pasarela configurada.
@@ -576,6 +589,90 @@ export class CheckoutService {
       quote,
       quantity,
     };
+  }
+
+  /**
+   * Cotización de un código de descuento para el checkout de tickets:
+   * responde si el código es redimible en este evento y el descuento
+   * estimado de la orden sobre el precio del canal vigente (misma
+   * resolución preventa/puerta que purchaseTicket). Sin side-effects —
+   * el cliente lo usa para mostrar el total con descuento ANTES de
+   * generar la orden. Un evento que ya no vende (terminado o sin canal
+   * abierto) devuelve discountClp 0: el POST manda su propio error.
+   */
+  async discountQuote(input: {
+    eventId: string;
+    code: string;
+  }): Promise<DiscountQuoteResult> {
+    const event = await this.prisma.event.findUnique({
+      where: { id: input.eventId },
+      select: {
+        id: true,
+        status: true,
+        startsAt: true,
+        endsAt: true,
+        presalePrice: true,
+        doorPrice: true,
+        seriesId: true,
+      },
+    });
+    if (!event) throw new EventNotFoundError();
+
+    const code = await this.prisma.discountCode.findUnique({
+      where: { code: input.code.trim() },
+      select: {
+        percentOff: true,
+        amountOff: true,
+        maxUses: true,
+        usedCount: true,
+        expiresAt: true,
+        eventId: true,
+        seriesId: true,
+      },
+    });
+    if (!code) return { valid: false, discountClp: 0, reason: "UNKNOWN" };
+    const check = isRedeemable(code, {
+      now: new Date(),
+      eventId: event.id,
+      seriesId: event.seriesId ?? undefined,
+    });
+    if (!check.ok) {
+      return { valid: false, discountClp: 0, reason: check.reason };
+    }
+
+    // Misma regla de canal que purchaseTicket: preventa hasta el corte
+    // (presale.cutoff_hour del día del evento), puerta app en LIVE o
+    // post-corte; evento terminado no cotiza.
+    const now = new Date();
+    let listPrice: number | null = null;
+    if (now < event.endsAt) {
+      const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
+      const cutoff = new Date(event.startsAt);
+      cutoff.setHours(cutoffHour, 0, 0, 0);
+      if (
+        event.status === "PUBLISHED" &&
+        event.presalePrice != null &&
+        now < cutoff
+      ) {
+        listPrice = event.presalePrice;
+      } else if (
+        event.doorPrice != null &&
+        (event.status === "LIVE" ||
+          (event.status === "PUBLISHED" && now >= cutoff))
+      ) {
+        listPrice = event.doorPrice;
+      }
+    }
+    if (listPrice == null) return { valid: true, discountClp: 0 };
+
+    // El descuento se aplica una vez por orden (= unit.discount del
+    // pricing, no por ticket) — igual que el total de purchaseTicket.
+    const unit = this.pricing.quote({
+      listPrice,
+      serviceFeeClp: 0,
+      discount: code,
+    });
+    return { valid: true, discountClp: unit.discount };
   }
 
   /**

@@ -730,3 +730,52 @@ describe("EventsController.exportSeriesPdf", () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 });
+
+// EventsController.detail — presaleEndsAt: el instante de corte de la
+// preventa expuesto al cliente (misma regla que CheckoutService.purchaseTicket:
+// presale.cutoff_hour del PlatformParam, hora local del día del evento).
+// El checkout lo usa para estimar preventa vs puerta sin replicar la regla.
+describe("EventsController.detail — presaleEndsAt", () => {
+  let prisma: FakePrisma;
+  let ctrl: EventsController;
+  const numbers = new Map<string, number>();
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    numbers.clear();
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      {
+        getProducerParams: async () => null,
+        getNumber: async (k: string, fb: number) => numbers.get(k) ?? fb,
+      } as never,
+    );
+    prisma.events.push(
+      Object.assign(
+        {
+          id: "ev-1",
+          producerId: "prod-1",
+          // sábado 5-sep-2026 23:00 local → el corte cae ese día a las 19:00
+          startsAt: new Date(2026, 8, 5, 23, 0, 0),
+        },
+        { _count: { rsvps: 0 } },
+      ),
+    );
+  });
+
+  it("expone presaleEndsAt = cutoff_hour (19) del día del evento, hora local", async () => {
+    const res = (await ctrl.detail("ev-1")) as { presaleEndsAt: Date };
+    const ends = new Date(res.presaleEndsAt);
+    expect(ends.getFullYear()).toBe(2026);
+    expect(ends.getMonth()).toBe(8);
+    expect(ends.getDate()).toBe(5);
+    expect(ends.getHours()).toBe(19);
+    expect(ends.getMinutes()).toBe(0);
+  });
+
+  it("respeta presale.cutoff_hour del PlatformParam", async () => {
+    numbers.set("presale.cutoff_hour", 21);
+    const res = (await ctrl.detail("ev-1")) as { presaleEndsAt: Date };
+    expect(new Date(res.presaleEndsAt).getHours()).toBe(21);
+  });
+});

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Badge, Button, Card, PriceTag, Spinner } from "@/components/ui";
 
 type PaymentStatus = "PENDING" | "PAID" | "FAILED";
 type Phase =
@@ -40,6 +40,8 @@ function CheckoutReturn() {
   // de failed/stillPending/error lo usan para mandar al destino correcto
   // (MEMBERSHIP → academias, no a eventos).
   const [orderType, setOrderType] = useState<string | null>(null);
+  // TICKET: el id del evento — habilita "intentar de nuevo" → checkout.
+  const [eventId, setEventId] = useState<string | null>(null);
 
   useEffect(() => {
     if (sub === "ok") {
@@ -73,8 +75,10 @@ function CheckoutReturn() {
           status: PaymentStatus;
           orderType: string;
           amount: number;
+          eventId: string | null;
         };
         setOrderType(payment.orderType);
+        setEventId(payment.eventId ?? null);
         if (payment.status === "PAID") {
           setPhase({
             kind: "paid",
@@ -111,10 +115,7 @@ function CheckoutReturn() {
     >
       {phase.kind === "verifying" && (
         <>
-          <p
-            aria-hidden
-            className="h-8 w-8 animate-spin rounded-full border-2 border-night-700 border-t-neon motion-reduce:animate-none"
-          />
+          <Spinner size="lg" />
           <h1 className="text-xl font-bold">{t("returnVerifying")}</h1>
           <p className="text-sm text-white/60">{t("pending")}</p>
         </>
@@ -137,16 +138,18 @@ function CheckoutReturn() {
                   ? "/clases"
                   : phase.orderType === "PRIVATE"
                     ? "/clases/particular"
-                    : "/entradas"
+                    : "/eventos?view=mios"
             }
             size="lg"
             className="w-full"
           >
             {phase.orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : phase.orderType === "WORKSHOP" || phase.orderType === "PRIVATE"
+              : phase.orderType === "WORKSHOP"
                 ? t("returnToClasses")
-                : tw("title")}
+                : phase.orderType === "PRIVATE"
+                  ? t("returnToPrivate")
+                  : tw("title")}
           </Button>
           <Link
             href="/eventos"
@@ -162,22 +165,40 @@ function CheckoutReturn() {
           <Badge variant="live">{t("failed")}</Badge>
           <h1 className="text-2xl font-bold">{t("returnFailedTitle")}</h1>
           <p className="text-sm text-white/60">{t("returnFailedDesc")}</p>
+          {/* TICKET: reintento directo al checkout del evento — la orden
+              fallida no cobró ni reservó cupo. */}
+          {orderType === "TICKET" && eventId && (
+            <Button
+              href={`/eventos/${eventId}/checkout`}
+              size="lg"
+              className="w-full"
+            >
+              {t("tryAgain")}
+            </Button>
+          )}
           <Button
             href={
               orderType === "MEMBERSHIP"
                 ? "/academias"
-                : orderType === "WORKSHOP" || orderType === "PRIVATE"
+                : orderType === "WORKSHOP"
                   ? "/clases"
-                  : "/eventos"
+                  : orderType === "PRIVATE"
+                    ? "/clases/particular"
+                    : "/eventos"
+            }
+            variant={
+              orderType === "TICKET" && eventId ? "secondary" : "primary"
             }
             size="lg"
             className="w-full"
           >
             {orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : orderType === "WORKSHOP" || orderType === "PRIVATE"
+              : orderType === "WORKSHOP"
                 ? t("returnToClasses")
-                : t("returnToEvents")}
+                : orderType === "PRIVATE"
+                  ? t("returnToPrivate")
+                  : t("returnToEvents")}
           </Button>
         </>
       )}
@@ -213,18 +234,22 @@ function CheckoutReturn() {
             href={
               orderType === "MEMBERSHIP"
                 ? "/academias"
-                : orderType === "WORKSHOP" || orderType === "PRIVATE"
+                : orderType === "WORKSHOP"
                   ? "/clases"
-                  : "/entradas"
+                  : orderType === "PRIVATE"
+                    ? "/clases/particular"
+                    : "/eventos?view=mios"
             }
             size="lg"
             className="w-full"
           >
             {orderType === "MEMBERSHIP"
               ? t("returnToAcademies")
-              : orderType === "WORKSHOP" || orderType === "PRIVATE"
+              : orderType === "WORKSHOP"
                 ? t("returnToClasses")
-                : tw("title")}
+                : orderType === "PRIVATE"
+                  ? t("returnToPrivate")
+                  : tw("title")}
           </Button>
         </>
       )}
@@ -248,7 +273,9 @@ function CheckoutReturn() {
                 ? "/academias"
                 : orderType === "WORKSHOP"
                   ? "/clases"
-                  : "/eventos"
+                  : orderType === "PRIVATE"
+                    ? "/clases/particular"
+                    : "/eventos"
             }
             size="lg"
             className="w-full"
@@ -257,7 +284,9 @@ function CheckoutReturn() {
               ? t("returnToAcademies")
               : orderType === "WORKSHOP"
                 ? t("returnToClasses")
-                : t("returnToEvents")}
+                : orderType === "PRIVATE"
+                  ? t("returnToPrivate")
+                  : t("returnToEvents")}
           </Button>
         </>
       )}

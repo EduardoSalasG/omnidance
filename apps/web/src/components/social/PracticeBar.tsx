@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
 
 export type PracticeBarProps = {
   eventId: string;
@@ -18,7 +18,6 @@ export type PracticeBarProps = {
  */
 export function PracticeBar({ eventId, initialCount }: PracticeBarProps) {
   const t = useTranslations("events");
-  const tc = useTranslations("common");
   // null = resolviendo sesión/estado; undefined nunca se usa.
   const [state, setState] = useState<{ going: boolean; count: number } | null>(
     null,
@@ -76,7 +75,7 @@ export function PracticeBar({ eventId, initialCount }: PracticeBarProps) {
         </Button>
       ) : state === null ? (
         <Button size="lg" disabled>
-          {tc("loading")}
+          <Spinner size="sm" />
         </Button>
       ) : going ? (
         <div className="flex shrink-0 flex-col items-end gap-1">
