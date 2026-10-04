@@ -129,7 +129,7 @@ higiene de OpenSpec y los exportes PDF.
    (credenciales + tarjeta + checkout en browser del usuario).
 2. **Confirmar push iOS en iPhone del usuario** — única tarea viva de
    `pwa-shell-nav` (el detalle del error ya se muestra en UI).
-3. `dancer-profile-survey-analytics` — feature completo pendiente en
-   OpenSpec (18 tasks).
+3. ~~`dancer-profile-survey-analytics`~~ — implementado y archivado esta
+   sesión (ver arriba). Gap conocido: género solo editable en modo social.
 4. Nota ops: correr `pnpm test` con la API dev arriba produce timeouts
    de e2e espurios (misma DB) — apagar `dev:api` antes de la suite.
