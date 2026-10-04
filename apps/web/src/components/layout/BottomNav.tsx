@@ -14,6 +14,7 @@ import {
   type SheetItem,
 } from "./DancerActionsSheet";
 import { ModeToggle } from "./ModeToggle";
+import { ChevronRightIcon } from "@/components/ui/icons";
 
 // Chrome de app: appbar sticky (hamburguesa → drawer lateral con los
 // módulos del rol agrupados por dominio | título de sección estilo nav
@@ -1109,8 +1110,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           className="mx-auto flex max-w-lg items-center justify-between gap-3 border-b border-neon/30 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon transition-colors hover:bg-neon/15"
         >
           <span className="truncate">{tpr("pendingBanner")}</span>
-          <span className="shrink-0 font-semibold">
-            {tpr("pendingBannerCta")} →
+          <span className="inline-flex shrink-0 items-center gap-1 font-semibold">
+            {tpr("pendingBannerCta")}
+            <ChevronRightIcon />
           </span>
         </Link>
       )}

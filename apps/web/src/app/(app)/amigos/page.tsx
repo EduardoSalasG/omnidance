@@ -10,7 +10,14 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate, SkeletonList } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  RefreshIcon,
+  SkeletonList,
+} from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
@@ -72,6 +79,9 @@ export default function AmigosPage() {
   const [data, setData] = useState<FriendsData>(EMPTY_DATA);
   // Mi id — para construir el link de invitación a mi perfil.
   const [meId, setMeId] = useState<string | null>(null);
+  // /me falló — el botón "Invitar por link" no puede construirse; se
+  // muestra un retry en su lugar en vez de desaparecer en silencio.
+  const [meFailed, setMeFailed] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   // Fallo real de copia al portapapeles — visible (el catch antes era
   // silencioso y el botón parecía no hacer nada).
@@ -87,6 +97,22 @@ export default function AmigosPage() {
   const searchSeq = useRef(0);
   // Ref del buscador — el CTA del empty state lo enfoca.
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // /me es best-effort pero su fallo queda visible: sin meId el link de
+  // invitación no existe, así que el retry vive donde iría ese botón.
+  const loadMe = useCallback(async () => {
+    setMeFailed(false);
+    try {
+      const r = await apiFetch("/me");
+      if (r.ok) {
+        setMeId(((await r.json()) as { id: string }).id);
+      } else {
+        setMeFailed(true);
+      }
+    } catch {
+      setMeFailed(true);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -107,16 +133,12 @@ export default function AmigosPage() {
           if (r.ok) setFriendEvents((await r.json()) as FriendEvent[]);
         })
         .catch(() => {});
-      apiFetch("/me")
-        .then(async (r) => {
-          if (r.ok) setMeId(((await r.json()) as { id: string }).id);
-        })
-        .catch(() => {});
+      void loadMe();
       setState("ready");
     } catch {
       setState("error");
     }
-  }, []);
+  }, [loadMe]);
 
   useEffect(() => {
     void load();
@@ -304,7 +326,7 @@ export default function AmigosPage() {
           >
             {t("addTitle")}
           </h2>
-          {meId && (
+          {meId ? (
             <button
               type="button"
               onClick={async () => {
@@ -344,7 +366,18 @@ export default function AmigosPage() {
               </svg>
               {inviteCopied ? t("inviteCopied") : t("invite")}
             </button>
-          )}
+          ) : meFailed ? (
+            /* /me falló: sin meId no hay link — feedback + retry en el
+               mismo slot en vez de desaparecer el CTA en silencio. */
+            <button
+              type="button"
+              onClick={() => void loadMe()}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-night-700 px-4 text-sm font-medium text-white/60 transition-colors hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <RefreshIcon />
+              {tc("retry")}
+            </button>
+          ) : null}
         </div>
         {inviteErr && (
           <p role="alert" className="text-sm text-red-400">

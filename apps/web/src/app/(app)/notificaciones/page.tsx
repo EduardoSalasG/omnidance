@@ -7,8 +7,8 @@ import { apiFetch } from "@/lib/api";
 import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { notificationLens } from "@/lib/notification-lens";
-import { Badge, Button, Card } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, ChevronRightIcon } from "@/components/ui";
+import { RefreshIcon, SkeletonList } from "@/components/ui";
 
 type NotificationItem = {
   id: string;
@@ -248,7 +248,7 @@ export default function NotificacionesPage() {
               void load();
             }}
           >
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -312,12 +312,7 @@ export default function NotificacionesPage() {
                       </span>
                     </span>
                     {href && (
-                      <span
-                        aria-hidden="true"
-                        className="mt-0.5 shrink-0 self-center text-white/30"
-                      >
-                        ›
-                      </span>
+                      <ChevronRightIcon className="mt-0.5 h-5 w-5 shrink-0 self-center text-white/30" />
                     )}
                   </button>
                 </li>

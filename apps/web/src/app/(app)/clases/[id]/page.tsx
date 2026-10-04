@@ -3,7 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import messages from "../../../../../messages/es-CL.json";
 import classesPart from "@/i18n/parts/classes.json";
-import { Badge, Button, Card, LevelBars, PriceTag } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  LevelBars,
+  PriceTag,
+  RefreshIcon,
+} from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ClassBookingCta } from "@/components/classes/class-booking-cta";
 
@@ -105,7 +112,9 @@ export default async function ClaseDetailPage({
         <p role="alert" className="text-white/60">{tc.error}</p>
         <div className="flex flex-wrap justify-center gap-3">
           {/* Server page: el retry es recargar la misma ruta. */}
-          <Button href={`/clases/${params.id}`}>↻ {tc.retry}</Button>
+          <Button href={`/clases/${params.id}`}>
+            <RefreshIcon /> {tc.retry}
+          </Button>
           <Button href="/clases" variant="secondary">
             {tc.back}
           </Button>

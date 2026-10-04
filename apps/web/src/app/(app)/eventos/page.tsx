@@ -5,7 +5,7 @@ import { messages } from "@/i18n/messages";
 import { EventCard, type EventCardData } from "@/components/events/event-card";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
-import { Button } from "@/components/ui";
+import { Button, ChevronDownIcon, RefreshIcon } from "@/components/ui";
 import { Segmented, SegmentedMulti } from "@/components/ui/segmented";
 import { EscapableDetails } from "@/components/ui/escapable-details";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
@@ -538,7 +538,7 @@ export default async function EventosPage({
               {t.loadError}
             </p>
             <Button href={hrefFor({})} variant="secondary" size="sm">
-              ↻ {tc.retry}
+              <RefreshIcon /> {tc.retry}
             </Button>
           </div>
         ) : (
@@ -552,7 +552,7 @@ export default async function EventosPage({
             {t.loadError}
           </p>
           <Button href={hrefFor({})} variant="secondary" size="sm">
-            ↻ {tc.retry}
+            <RefreshIcon /> {tc.retry}
           </Button>
         </div>
       ) : view === "map" ? (
@@ -714,9 +714,10 @@ export default async function EventosPage({
           {hasLater && (
             <Link
               href={hrefFor({ upto: String(upto + 1) })}
-              className="flex min-h-12 items-center justify-center rounded-full border border-white/15 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.98]"
+              className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-white/15 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.98]"
             >
-              {t.loadLater} ↓
+              {t.loadLater}
+              <ChevronDownIcon />
             </Link>
           )}
         </div>

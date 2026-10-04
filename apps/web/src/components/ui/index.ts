@@ -34,6 +34,18 @@ export type {
 
 export { NavPendingOverlay } from "./nav-pending";
 
+export {
+  ChevronRightIcon,
+  ChevronDownIcon,
+  RefreshIcon,
+  ArrowUpRightIcon,
+  CheckIcon,
+  XIcon,
+  PlayIcon,
+  StarIcon,
+} from "./icons";
+export type { IconProps } from "./icons";
+
 export { GenreMixBar, aggregateMix } from "./GenreMixBar";
 export type { GenreMixBlock } from "./GenreMixBar";
 

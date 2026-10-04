@@ -8,9 +8,11 @@ import {
   Badge,
   Button,
   Card,
+  CheckIcon,
   EventDate,
   PriceTag,
   Spinner,
+  XIcon,
 } from "@/components/ui";
 import type { CheckoutEvent } from "./page";
 
@@ -485,7 +487,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                           className="flex min-h-9 items-center gap-2 rounded-full bg-neon/15 px-3 text-sm font-medium text-neon transition-colors hover:bg-neon/25 disabled:opacity-50"
                         >
                           {f.person!.name}
-                          <span aria-hidden="true">✕</span>
+                          <XIcon className="h-3.5 w-3.5" />
                         </button>
                       </li>
                     );
@@ -542,7 +544,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                           }`}
                         >
                           {f.person!.name}
-                          {checked && <span aria-hidden="true">✓</span>}
+                          {checked && (
+                            <CheckIcon className="h-4 w-4 shrink-0" />
+                          )}
                         </button>
                       </li>
                     );

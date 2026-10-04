@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Segmented, SkeletonList } from "@/components/ui";
+import {
+  Button,
+  Card,
+  ChevronDownIcon,
+  RefreshIcon,
+  Segmented,
+  SkeletonList,
+} from "@/components/ui";
 import {
   OnboardingRunner,
   type TourStep,
@@ -793,7 +800,7 @@ function ClasesInner() {
                 size="sm"
                 onClick={() => void loadHistory()}
               >
-                ↻ {tc("retry")}
+                <RefreshIcon /> {tc("retry")}
               </Button>
             </div>
           )}
@@ -992,7 +999,7 @@ function ClasesInner() {
                 size="sm"
                 onClick={() => void loadMine()}
               >
-                ↻ {tc("retry")}
+                <RefreshIcon /> {tc("retry")}
               </Button>
             </div>
           )}
@@ -1032,7 +1039,7 @@ function ClasesInner() {
                 size="sm"
                 onClick={() => void loadBrowse()}
               >
-                ↻ {tc("retry")}
+                <RefreshIcon /> {tc("retry")}
               </Button>
             </div>
           )}
@@ -1080,9 +1087,10 @@ function ClasesInner() {
                 {hasLater && (
                   <Link
                     href={hrefFor({ upto: String(upto + 1) })}
-                    className="flex min-h-12 items-center justify-center rounded-full border border-white/15 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.98]"
+                    className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-white/15 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.98]"
                   >
-                    {te("loadLater")} ↓
+                    {te("loadLater")}
+                    <ChevronDownIcon />
                   </Link>
                 )}
               </div>

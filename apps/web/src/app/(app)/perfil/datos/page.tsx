@@ -4,7 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useViewMode } from "@/lib/view-mode";
-import { Badge, Button, Card, LevelBars } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CheckIcon,
+  LevelBars,
+  RefreshIcon,
+  XIcon,
+} from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 type DanceRole = "LEADER" | "FOLLOWER" | "SWITCH";
@@ -442,7 +450,7 @@ export default function DatosPage() {
                 setBootNonce((n) => n + 1);
               }}
             >
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </>
         ) : (
@@ -551,8 +559,9 @@ export default function DatosPage() {
           </p>
         )}
         {me.verifiedAt && !personalEditing && (
-          <p className="pt-2 text-xs font-medium text-neon">
-            ✓ {t("datos.verified")}
+          <p className="flex items-center gap-1 pt-2 text-xs font-medium text-neon">
+            <CheckIcon className="h-3.5 w-3.5" />
+            {t("datos.verified")}
           </p>
         )}
         {personalEditing ? (
@@ -710,7 +719,7 @@ export default function DatosPage() {
                         }
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white/50 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                       >
-                        ✕
+                        <XIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </li>

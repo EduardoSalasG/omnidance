@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { StarIcon } from "@/components/ui";
 
 export type StarRatingProps = {
   /** Puntaje ya registrado. Si no hay onSelect, se muestra solo lectura. */
@@ -72,7 +73,7 @@ export function StarRating({
       >
         {STARS.map((star) => (
           <span key={star} aria-hidden="true" className={starCls(star <= active)}>
-            {star <= active ? "★" : "☆"}
+            <StarIcon filled={star <= active} className="h-7 w-7" />
           </span>
         ))}
       </div>
@@ -144,7 +145,7 @@ export function StarRating({
           aria-label={`${star} / 5`}
           className={`${starCls(star <= active)} disabled:pointer-events-none`}
         >
-          {star <= active ? "★" : "☆"}
+          <StarIcon filled={star <= active} className="h-7 w-7" />
         </button>
       ))}
     </div>

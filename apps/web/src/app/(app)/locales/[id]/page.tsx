@@ -9,6 +9,7 @@ import {
   EventDate,
   GenreMixBar,
   PriceTag,
+  RefreshIcon,
   aggregateMix,
 } from "@/components/ui";
 import type { GenreMixBlock } from "@/components/ui";
@@ -146,7 +147,8 @@ export default async function VenueProfilePage({
   const t = messages.venuePublic as VenueT;
   const te = messages.events as EventsT;
   const tc = messages.common as { error: string; retry: string; back: string };
-  const isAuthed = cookies().has("omnidance_session");
+  // Sin isAuthed: el grupo (app) ya exige sesión por middleware — las
+  // cards de evento siempre linkean al detalle.
   const venue = await getVenue(params.id);
 
   if (venue === "error") {
@@ -155,7 +157,9 @@ export default async function VenueProfilePage({
         <p role="alert" className="text-white/60">{tc.error}</p>
         <div className="flex flex-wrap justify-center gap-3">
           {/* Server page: el retry es recargar la misma ruta. */}
-          <Button href={`/locales/${params.id}`}>↻ {tc.retry}</Button>
+          <Button href={`/locales/${params.id}`}>
+            <RefreshIcon /> {tc.retry}
+          </Button>
           <Button href="/eventos" variant="secondary">
             {tc.back}
           </Button>
@@ -553,16 +557,12 @@ export default async function VenueProfilePage({
                   <ul className="flex flex-col gap-3">
                     {selectedEvents.map((e) => (
                       <li key={e.id}>
-                        {isAuthed ? (
-                          <Link
-                            href={`/eventos/${e.id}`}
-                            className="block rounded-2xl"
-                          >
-                            {eventCard(e)}
-                          </Link>
-                        ) : (
-                          <div>{eventCard(e)}</div>
-                        )}
+                        <Link
+                          href={`/eventos/${e.id}`}
+                          className="block rounded-2xl"
+                        >
+                          {eventCard(e)}
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -580,16 +580,12 @@ export default async function VenueProfilePage({
                 <ul className="flex flex-col gap-3">
                   {g.items.map((e) => (
                     <li key={e.id}>
-                      {isAuthed ? (
-                        <Link
-                          href={`/eventos/${e.id}`}
-                          className="block rounded-2xl"
-                        >
-                          {eventCard(e)}
-                        </Link>
-                      ) : (
-                        <div>{eventCard(e)}</div>
-                      )}
+                      <Link
+                        href={`/eventos/${e.id}`}
+                        className="block rounded-2xl"
+                      >
+                        {eventCard(e)}
+                      </Link>
                     </li>
                   ))}
                 </ul>

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, Spinner } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { PartnerAvatar } from "./PartnerAvatar";
 import { StarRating } from "./StarRating";
@@ -39,6 +39,19 @@ export function SessionCard({
 }: SessionCardProps) {
   const t = useTranslations("sessions");
   const [ratingOpen, setRatingOpen] = useState(false);
+  // Qué acción pidió el usuario — el Spinner va en ese botón mientras
+  // el padre mantiene busy (ambos quedan disabled igual).
+  const [pendingAction, setPendingAction] = useState<SessionAction | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!busy) setPendingAction(null);
+  }, [busy]);
+
+  function act(action: SessionAction) {
+    setPendingAction(action);
+    onAct?.(action);
+  }
 
   const invitee = isInvitee(session);
   const name = session.partner?.name ?? "?";
@@ -117,8 +130,9 @@ export function SessionCard({
             size="lg"
             className="flex-1"
             disabled={busy}
-            onClick={() => onAct?.("confirm")}
+            onClick={() => act("confirm")}
           >
+            {busy && pendingAction === "confirm" && <Spinner size="sm" />}
             {t("confirm")}
           </Button>
           <Button
@@ -126,8 +140,9 @@ export function SessionCard({
             size="lg"
             className="flex-1"
             disabled={busy}
-            onClick={() => onAct?.("decline")}
+            onClick={() => act("decline")}
           >
+            {busy && pendingAction === "decline" && <Spinner size="sm" />}
             {t("decline")}
           </Button>
         </div>
@@ -140,8 +155,9 @@ export function SessionCard({
             variant="ghost"
             size="sm"
             disabled={busy}
-            onClick={() => onAct?.("discard")}
+            onClick={() => act("discard")}
           >
+            {busy && pendingAction === "discard" && <Spinner size="sm" />}
             {t("discard")}
           </Button>
         </div>
@@ -173,7 +189,10 @@ export function SessionCard({
         ) : ratingOpen ? (
           <div className="mt-3">
             <p className="text-sm text-white/60">{t("ratePrompt")}</p>
-            <StarRating busy={busy} onSelect={(score) => onRate?.(score)} />
+            <div className="flex items-center gap-2">
+              <StarRating busy={busy} onSelect={(score) => onRate?.(score)} />
+              {busy && <Spinner size="sm" />}
+            </div>
           </div>
         ) : (
           <div className="mt-3 flex justify-end">

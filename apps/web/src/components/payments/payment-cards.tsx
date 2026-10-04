@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, PriceTag, SkeletonText } from "@/components/ui";
+import {
+  Badge,
+  Card,
+  ChevronDownIcon,
+  PriceTag,
+  SkeletonText,
+} from "@/components/ui";
 import {
   PAYMENT_STATUS_VARIANT,
   paymentContext,
@@ -138,7 +144,11 @@ function PaymentCard({
               aria-expanded={expanded}
               className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-white/60 transition-colors hover:border-white/25 hover:text-white"
             >
-              <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+              <ChevronDownIcon
+                className={`h-3.5 w-3.5 transition-transform motion-reduce:transition-none ${
+                  expanded ? "" : "-rotate-90"
+                }`}
+              />
               {t("ledger.toggle", { count: p.eventCount })}
             </button>
             {expanded && (
