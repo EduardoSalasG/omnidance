@@ -693,7 +693,7 @@ enum PlanType {
   SINGLE     // clase única — fin del día de compra
   CLASS_PACK // pack N clases — sin fecha (consumo no auditado en v1)
   PERIOD     // periodDays corridos desde startedAt
-  TRIAL      // prueba — no se vende, la asigna staff
+  TRIAL      // prueba — se vende con price > 0; la gratis la asigna staff
 }
 
 model MembershipPlan {
