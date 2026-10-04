@@ -81,7 +81,6 @@
       "planSince": "Plan desde el {start}",
       "planUntil": "Pagado hasta el {end}",
       "planExpired": "Plan vencido el {end}",
-      "reserveCta": "Reservar clase",
       "status": {
         "ACTIVE": "Activa",
         "ONLINE": "Online",

@@ -120,7 +120,9 @@ function PinIcon({ className }: { className?: string }) {
 }
 
 /** Card de una inscripción: estado, plan, progreso del mes y videos.
-    El nombre navega a la ficha pública de la academia. */
+    El card completo navega a la ficha pública de la academia — el nombre
+    es un stretched link (after:inset-0) y los links internos (videos)
+    quedan por encima con z-10. */
 function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
   // `tl` (no `t`): el audit i18n indexa por nombre de variable y el
   // archivo ya tiene un `t` con ns "academy" — mismo motivo que `tp`/`tv`.
@@ -145,11 +147,11 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
       : "muted";
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
+    <Card className="relative flex flex-col gap-3 p-4 transition-colors hover:border-neon/40">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href={`/academias/${enrollment.academy.id}`}
-          className="font-semibold underline-offset-4 transition-colors hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          className="font-semibold underline-offset-4 transition-colors after:absolute after:inset-0 after:content-[''] hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           {enrollment.academy.name}
         </Link>
@@ -250,7 +252,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
                   href={v.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-neon underline-offset-4 hover:underline"
+                  className="relative z-10 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-neon underline-offset-4 hover:underline"
                 >
                   <span aria-hidden>▸</span>
                   <span className="truncate">{v.title}</span>
@@ -260,14 +262,6 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
           )}
         </ul>
       )}
-
-      <Link
-        href="/clases"
-        className="mt-auto inline-flex min-h-11 items-center gap-1.5 self-start text-sm font-semibold text-neon"
-      >
-        {tl("reserveCta")}
-        <span aria-hidden>→</span>
-      </Link>
     </Card>
   );
 }
