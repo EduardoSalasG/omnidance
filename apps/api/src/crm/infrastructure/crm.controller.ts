@@ -83,13 +83,18 @@ class CreateCampaignDto extends ActorRefDto {
   @IsNotEmpty()
   name!: string;
 
-  /** {tags?: string[], segment?: string, personIds?: string[]} */
+  /** {tags?, segment?, personIds?} + solo ACADEMY: {allStudents?, enrollmentStatus?, planId?, seriesId?} */
   @IsObject()
   segment!: Record<string, unknown>;
 
   /** {type:"NOTIFY",title,body?} | {type:"DISCOUNT_CODE",percentOff?|amountOff?,maxUses?,expiresAt?} */
   @IsObject()
   action!: Record<string, unknown>;
+}
+
+class PreviewCampaignDto extends ActorRefDto {
+  @IsObject()
+  segment!: Record<string, unknown>;
 }
 
 class CreateTriggerDto extends ActorRefDto {
@@ -186,6 +191,25 @@ export class CrmController {
         dto.name,
         dto.segment,
         dto.action,
+      );
+    } catch (e) {
+      mapCrmError(e);
+    }
+  }
+
+  /** Conteo de audiencia sin crear campaña ni enviar — preview del form. */
+  @Post("campaigns/preview")
+  @HttpCode(200)
+  async previewCampaign(
+    @Body() dto: PreviewCampaignDto,
+    @Req() req: Request,
+  ) {
+    await this.assertActorAccess(req, dto.actorType, dto.actorId);
+    try {
+      return await this.crm.previewCampaign(
+        dto.actorType,
+        dto.actorId,
+        dto.segment,
       );
     } catch (e) {
       mapCrmError(e);

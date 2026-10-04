@@ -4416,6 +4416,27 @@
         }
       }
     },
+    "/api/crm/campaigns/preview": {
+      "post": {
+        "operationId": "CrmController_previewCampaign",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewCampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/crm/campaigns/{id}/send": {
       "post": {
         "operationId": "CrmController_sendCampaign",
@@ -4888,6 +4909,10 @@
         "properties": {}
       },
       "CreateCampaignDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PreviewCampaignDto": {
         "type": "object",
         "properties": {}
       },
