@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { messages } from "@/i18n/messages";
 import {
+  Button,
   Card,
   EventDate,
   GenreMixBar,
@@ -96,13 +97,15 @@ function dayLabel(key: string, te: EventsT): string {
   return dayFmt.format(new Date(`${key}T12:00:00`));
 }
 
-async function getVenue(id: string): Promise<VenueProfile> {
+// Solo un 404 real es not-found: 5xx/red es un fallo de carga y la
+// página muestra error con retry — esconderlo como "no existe" miente.
+async function getVenue(id: string): Promise<VenueProfile | "error"> {
   const res = await fetch(`${API_URL}/api/venues/${id}?days=62`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
   if (res?.status === 404) notFound();
-  if (!res?.ok) notFound();
+  if (!res?.ok) return "error";
   return (await res.json()) as VenueProfile;
 }
 
@@ -112,7 +115,7 @@ export async function generateMetadata({
   params: { id: string };
 }): Promise<Metadata> {
   const venue = await getVenue(params.id);
-  return { title: `${venue.name} — locales` };
+  return { title: venue === "error" ? "Locales" : `${venue.name} — locales` };
 }
 
 export default async function VenueProfilePage({
@@ -130,8 +133,24 @@ export default async function VenueProfilePage({
 }) {
   const t = messages.venuePublic as VenueT;
   const te = messages.events as EventsT;
+  const tc = messages.common as { error: string; retry: string; back: string };
   const isAuthed = cookies().has("omnidance_session");
   const venue = await getVenue(params.id);
+
+  if (venue === "error") {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
+        <p role="alert" className="text-white/60">{tc.error}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          {/* Server page: el retry es recargar la misma ruta. */}
+          <Button href={`/locales/${params.id}`}>↻ {tc.retry}</Button>
+          <Button href="/eventos" variant="secondary">
+            {tc.back}
+          </Button>
+        </div>
+      </main>
+    );
+  }
 
   const vista = searchParams?.vista === "calendario" ? "calendario" : "lista";
 

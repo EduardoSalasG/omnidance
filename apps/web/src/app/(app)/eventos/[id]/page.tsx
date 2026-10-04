@@ -160,6 +160,7 @@ export default async function EventoDetailPage({
   params: { id: string };
 }) {
   const t = messages.events;
+  const tc = messages.common;
   const tg = messages.gamification;
   const [event, missions, myTicket, friendsGoing] = await Promise.all([
     getEvent(params.id),
@@ -171,10 +172,14 @@ export default async function EventoDetailPage({
   if (event === "error") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p className="text-white/60">{t.loadError}</p>
-        <Button href="/eventos" variant="secondary">
-          {t.backToList}
-        </Button>
+        <p role="alert" className="text-white/60">{t.loadError}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          {/* Server page: el retry es recargar la misma ruta. */}
+          <Button href={`/eventos/${params.id}`}>↻ {tc.retry}</Button>
+          <Button href="/eventos" variant="secondary">
+            {t.backToList}
+          </Button>
+        </div>
       </main>
     );
   }

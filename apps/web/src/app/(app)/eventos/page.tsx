@@ -5,6 +5,7 @@ import messages from "../../../../messages/es-CL.json";
 import { EventCard, type EventCardData } from "@/components/events/event-card";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { TicketWallet } from "@/components/tickets/TicketWallet";
+import { Button } from "@/components/ui";
 import { Segmented, SegmentedMulti } from "@/components/ui/segmented";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import toursI18n from "@/i18n/parts/tours.json";
@@ -91,13 +92,15 @@ function groupByDay(events: EventListItem[]) {
     .map(([key, items]) => ({ key, label: items[0].startsAt, items }));
 }
 
-/** Tickets del usuario — cookie forward; la vista mios los muestra. */
-async function getMyTickets(): Promise<MyTicket[]> {
+/** Tickets del usuario — cookie forward; la vista mios los muestra.
+    null = fallo de carga (no confundir con "sin entradas": un 500/red
+    no puede renderizar el empty de la wallet). */
+async function getMyTickets(): Promise<MyTicket[] | null> {
   const res = await fetch(`${API_URL}/api/tickets/mine`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
-  if (!res?.ok) return [];
+  if (!res?.ok) return null;
   return (await res.json()) as MyTicket[];
 }
 
@@ -126,13 +129,17 @@ export default async function EventosPage({
   };
 }) {
   const t = messages.events;
+  const tc = messages.common;
   // El middleware exige sesión para esta ruta — todo visitante está
   // autenticado (no hay ramas anónimas).
   const [res, myTickets] = await Promise.all([
-    fetch(`${API_URL}/api/events`, { cache: "no-store" }),
+    fetch(`${API_URL}/api/events`, { cache: "no-store" }).catch(() => null),
     getMyTickets(),
   ]);
-  const all: EventListItem[] = res.ok ? await res.json() : [];
+  // Fallo de carga ≠ cartelera vacía: el empty diría "no hay eventos"
+  // cuando el problema es el API/red.
+  const eventsError = !res?.ok;
+  const all: EventListItem[] = res?.ok ? await res.json() : [];
 
   // Género multiselect: ?genre=SALSA,BACHATA — unión (cualquiera matchea).
   const genreSet = new Set(
@@ -509,7 +516,35 @@ export default async function EventosPage({
         )}
       </header>
 
-      {view === "map" ? (
+      {view === "mios" ? (
+        /* "Mis entradas" fusionada con /entradas: gestión completa
+           (estado, precio, QR, regalar) en la misma vista. Fallo de
+           /tickets/mine → error con retry (link = misma ruta), nunca
+           el empty falso de la wallet. */
+        myTickets === null ? (
+          <div className="flex items-center gap-3">
+            <p role="alert" className="text-sm text-white/60">
+              {t.loadError}
+            </p>
+            <Button href={hrefFor({})} variant="secondary" size="sm">
+              ↻ {tc.retry}
+            </Button>
+          </div>
+        ) : (
+          <TicketWallet tickets={myTickets} />
+        )
+      ) : eventsError ? (
+        /* 500/red en /events no es cartelera vacía — error honesto
+           con retry a la misma ruta (conserva vista y filtros). */
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-white/60">
+            {t.loadError}
+          </p>
+          <Button href={hrefFor({})} variant="secondary" size="sm">
+            ↻ {tc.retry}
+          </Button>
+        </div>
+      ) : view === "map" ? (
         <section aria-label={t.viewMap}>
           {mapVenues.length === 0 ? (
             <p className="text-white/60">
@@ -637,10 +672,6 @@ export default async function EventosPage({
             </section>
           )}
         </section>
-      ) : view === "mios" ? (
-        /* "Mis entradas" fusionada con /entradas: gestión completa
-           (estado, precio, QR, regalar) en la misma vista. */
-        <TicketWallet tickets={myTickets} />
       ) : filtered.length === 0 ? (
         <p className="text-white/60">
           {genreSet.size || venueId ? t.emptyFiltered : t.empty}

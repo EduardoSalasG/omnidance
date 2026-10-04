@@ -25,6 +25,7 @@ type Phase = "loading" | "form" | "done" | "error";
  */
 export default function CompletarPerfilPage() {
   const t = useTranslations("profile");
+  const tc = useTranslations("common");
   const router = useRouter();
 
   const [phase, setPhase] = useState<Phase>("loading");
@@ -33,6 +34,8 @@ export default function CompletarPerfilPage() {
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Re-dispara la carga de /me desde el error — vive en el useEffect.
+  const [bootNonce, setBootNonce] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +55,7 @@ export default function CompletarPerfilPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, bootNonce]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,9 +87,27 @@ export default function CompletarPerfilPage() {
       {phase === "loading" && <PageLoading />}
 
       {phase === "error" && (
-        <p role="alert" className="text-center text-sm text-red-400">
-          {t("complete.error")}
-        </p>
+        /* Error de CARGA (/me), no de guardado: copy propia + retry +
+           salida a /login (un 401 también aterriza acá). */
+        <div className="flex flex-col items-center gap-4 text-center">
+          <p role="alert" className="text-sm text-white/70">
+            {t("complete.loadError")}
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setPhase("loading");
+                setBootNonce((n) => n + 1);
+              }}
+            >
+              ↻ {tc("retry")}
+            </Button>
+            <Button variant="ghost" href="/login">
+              {tc("login")}
+            </Button>
+          </div>
+        </div>
       )}
 
       {phase === "done" && (

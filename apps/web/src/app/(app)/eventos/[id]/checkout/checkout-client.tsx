@@ -24,7 +24,13 @@ type Phase =
   | { kind: "success"; paymentId: string }
   | { kind: "failed" };
 
-type FormError = "invalidCode" | "soldOut" | "loginRequired" | "generic" | null;
+type FormError =
+  | "invalidCode"
+  | "soldOut"
+  | "tablesSoldOut"
+  | "loginRequired"
+  | "generic"
+  | null;
 
 type FriendItem = {
   id: string;
@@ -225,7 +231,19 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         return;
       }
       if (res.status === 409) {
-        setError("soldOut");
+        // El 409 agrupa sold-out de entradas y de mesas — el mensaje
+        // del API distingue ("sin cupo en mesas…" = TableSoldOutError).
+        const body = (await res.json().catch(() => null)) as {
+          message?: string | string[];
+        } | null;
+        const msg = Array.isArray(body?.message)
+          ? body.message.join(" ")
+          : body?.message;
+        setError(
+          typeof msg === "string" && msg.startsWith("sin cupo en mesas")
+            ? "tablesSoldOut"
+            : "soldOut",
+        );
         setPhase({ kind: "form" });
         return;
       }
@@ -632,6 +650,11 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {error === "soldOut" && (
           <p role="alert" className="text-sm text-red-400">
             {t("soldOut")}
+          </p>
+        )}
+        {error === "tablesSoldOut" && (
+          <p role="alert" className="text-sm text-red-400">
+            {t("tablesSoldOut")}
           </p>
         )}
         {serverError && (
