@@ -147,11 +147,11 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
       : "muted";
 
   return (
-    <Card className="relative flex flex-col gap-3 p-4 transition-colors hover:border-neon/40">
+    <Card className="relative flex flex-col gap-3 p-4 transition-all hover:border-neon/40 has-[a:active]:scale-[0.99]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
           href={`/academias/${enrollment.academy.id}`}
-          className="font-semibold underline-offset-4 transition-colors after:absolute after:inset-0 after:content-[''] hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          className="font-semibold after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           {enrollment.academy.name}
         </Link>
