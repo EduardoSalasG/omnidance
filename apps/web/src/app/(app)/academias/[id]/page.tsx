@@ -402,14 +402,15 @@ export default async function AcademiaDetailPage({
               ))}
             </ul>
             {academy.classes.length > 2 && (
-              <Button
-                href={`/clases?s=explorar&academy=${academy.id}`}
-                variant="ghost"
-                size="sm"
-                className="mt-3 self-start"
-              >
-                {t.profile.moreClasses}
-              </Button>
+              <div className="mt-3 flex justify-center">
+                <Button
+                  href={`/clases?s=explorar&academy=${academy.id}`}
+                  variant="ghost"
+                  size="sm"
+                >
+                  {t.profile.moreClasses}
+                </Button>
+              </div>
             )}
           </>
         )}
