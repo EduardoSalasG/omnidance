@@ -3,6 +3,7 @@
     "returnToClasses": "Ir a Mis clases",
     "stillPendingTitle": "Pago en revisión",
     "stillPendingDesc": "El pago sigue en revisión — te avisamos cuando se confirme.",
-    "stillPendingRetry": "Reintentar consulta"
+    "stillPendingRetry": "Reintentar consulta",
+    "tablesSoldOut": "Sin cupo en mesas para este evento."
   }
 }

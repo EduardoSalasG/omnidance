@@ -71,6 +71,9 @@ export default function PerfilPage() {
 
   const [state, setState] = useState<PageState>("loading");
   const [me, setMe] = useState<Me | null>(null);
+  // Re-dispara el boot completo (/me + gamificación) desde el error —
+  // la carga vive en el useEffect, el nonce la re-ejecuta.
+  const [bootNonce, setBootNonce] = useState(0);
   const [streak, setStreak] = useState<Streak | null>(null);
   const [badges, setBadges] = useState<BadgeItem[]>([]);
   // Gamificación es one-shot y solo para lentes no-ADMIN: si el usuario
@@ -134,7 +137,7 @@ export default function PerfilPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [bootNonce]);
 
   // Cambio de lente ADMIN → otra sin recargar: trae la gamificación
   // que el load inicial omitió (one-shot por gamifFetched).
@@ -237,9 +240,20 @@ export default function PerfilPage() {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
         {state === "error" ? (
-          <p role="alert" className="text-white/50">
-            {tc("error")}
-          </p>
+          <>
+            <p role="alert" className="text-white/50">
+              {tc("error")}
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setState("loading");
+                setBootNonce((n) => n + 1);
+              }}
+            >
+              ↻ {tc("retry")}
+            </Button>
+          </>
         ) : (
           <PageLoading />
         )}

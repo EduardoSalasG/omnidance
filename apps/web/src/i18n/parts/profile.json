@@ -63,7 +63,8 @@
       "passwordHint": "mínimo 8 caracteres — también puedes entrar siempre por link a tu correo",
       "submit": "Activar mi cuenta",
       "success": "Listo — tu cuenta ya está activa",
-      "error": "No pudimos guardar — intenta de nuevo"
+      "error": "No pudimos guardar — intenta de nuevo",
+      "loadError": "No pudimos cargar tus datos."
     }
   }
 }

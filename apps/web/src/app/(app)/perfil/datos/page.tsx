@@ -221,6 +221,9 @@ export default function DatosPage() {
 
   const [state, setState] = useState<PageState>("loading");
   const [me, setMe] = useState<Me | null>(null);
+  // Re-dispara la carga de /me desde el error — vive en el useEffect,
+  // el nonce la re-ejecuta.
+  const [bootNonce, setBootNonce] = useState(0);
 
   // Datos personales: modo edición — nombre, teléfono e Instagram son
   // editables (PATCH /me); email/fecha verificación son de solo lectura.
@@ -271,7 +274,7 @@ export default function DatosPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [bootNonce]);
 
   function startPersonalEdit() {
     if (!me) return;
@@ -428,9 +431,20 @@ export default function DatosPage() {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
         {state === "error" ? (
-          <p role="alert" className="text-white/50">
-            {tc("error")}
-          </p>
+          <>
+            <p role="alert" className="text-white/50">
+              {tc("error")}
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setState("loading");
+                setBootNonce((n) => n + 1);
+              }}
+            >
+              ↻ {tc("retry")}
+            </Button>
+          </>
         ) : (
           <PageLoading />
         )}

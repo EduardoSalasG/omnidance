@@ -223,9 +223,21 @@ export default function NotificacionesPage() {
 
       {state === "loading" && <SkeletonList items={4} lines={1} />}
       {state === "error" && (
-        <p role="alert" className="text-white/50">
-          {tc("error")}
-        </p>
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-white/60">
+            {tc("error")}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setState("loading");
+              void load();
+            }}
+          >
+            ↻ {tc("retry")}
+          </Button>
+        </div>
       )}
 
       {state === "ready" &&

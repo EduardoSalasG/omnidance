@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, Segmented, SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, Segmented, SkeletonList } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { planDateFmt } from "@/components/academy/shared";
 
@@ -339,20 +339,30 @@ function AcademiasInner() {
   const [enrollments, setEnrollments] = useState<Enrollment[] | null>(null);
   const [state, setState] = useState<LoadState>("loading");
 
-  useEffect(() => {
-    void Promise.all([
-      apiFetch("/academies").then(async (res) => {
-        if (!res.ok) throw new Error(String(res.status));
-        setAcademies((await res.json()) as DirectoryAcademy[]);
-      }),
-      apiFetch("/academies/enrolled").then(async (res) => {
-        if (!res.ok) throw new Error(String(res.status));
-        setEnrollments((await res.json()) as Enrollment[]);
-      }),
-    ])
-      .then(() => setState("ready"))
-      .catch(() => setState("error"));
+  // Boot: directorio + inscripciones en paralelo — el retry del estado
+  // de error vuelve a disparar el mismo Promise.all.
+  const load = useCallback(async () => {
+    setState("loading");
+    try {
+      await Promise.all([
+        apiFetch("/academies").then(async (res) => {
+          if (!res.ok) throw new Error(String(res.status));
+          setAcademies((await res.json()) as DirectoryAcademy[]);
+        }),
+        apiFetch("/academies/enrolled").then(async (res) => {
+          if (!res.ok) throw new Error(String(res.status));
+          setEnrollments((await res.json()) as Enrollment[]);
+        }),
+      ]);
+      setState("ready");
+    } catch {
+      setState("error");
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   // Scope: por defecto "mias" si hay inscripciones; sin ellas la vista
   // útil es el directorio — evita una pantalla vacía de entrada.
@@ -575,9 +585,18 @@ function AcademiasInner() {
 
       {state === "loading" && <SkeletonList />}
       {state === "error" && (
-        <p role="alert" className="text-sm text-white/60">
-          {tc("error")}
-        </p>
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-white/60">
+            {tc("error")}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => void load()}
+          >
+            ↻ {tc("retry")}
+          </Button>
+        </div>
       )}
 
       {state === "ready" &&
@@ -614,9 +633,17 @@ function AcademiasInner() {
                   ))}
               </ul>
             ) : (
-              <p className="text-sm text-white/60">
-                {t("directoryEmpty")}
-              </p>
+              /* Vacío honesto del scope "mias": no es que el directorio
+                 esté vacío — la persona no tiene inscripciones. El CTA
+                 lleva a explorar (patrón emptyMine de /clases). */
+              <Card className="flex flex-col items-center gap-4 py-10 text-center">
+                <p role="status" className="text-white/70">
+                  {t("myAcademiesEmpty")}
+                </p>
+                <Button href={hrefFor({ s: "explorar" })}>
+                  {t("viewExplore")}
+                </Button>
+              </Card>
             )}
           </section>
         ) : (

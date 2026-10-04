@@ -102,10 +102,14 @@ export default async function ClaseDetailPage({
   if (cls === "error") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p className="text-white/60">{tc.error}</p>
-        <Button href="/clases" variant="secondary">
-          {tc.back}
-        </Button>
+        <p role="alert" className="text-white/60">{tc.error}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          {/* Server page: el retry es recargar la misma ruta. */}
+          <Button href={`/clases/${params.id}`}>↻ {tc.retry}</Button>
+          <Button href="/clases" variant="secondary">
+            {tc.back}
+          </Button>
+        </div>
       </main>
     );
   }

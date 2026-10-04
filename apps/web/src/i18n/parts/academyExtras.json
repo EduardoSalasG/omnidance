@@ -98,6 +98,7 @@
     "filterStyle": "Estilo",
     "exploreEmpty": "No hay más academias por explorar.",
     "exploreEmptyFiltered": "Ninguna academia coincide con los filtros.",
+    "myAcademiesEmpty": "Aún no tienes inscripciones en academias.",
     "noLocation": "Sin ubicación publicada",
     "profile": {
       "about": "Sobre la academia",

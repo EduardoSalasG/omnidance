@@ -85,6 +85,10 @@ function PracticasInner() {
   const [practices, setPractices] = useState<Practice[]>([]);
   // "Mis prácticas" carga bajo demanda (endpoint con sesión).
   const [mine, setMine] = useState<Practice[] | null>(null);
+  // Fallo de /practices/mine: antes se tragaba como setMine([]) y la
+  // vista "mías" mentía un empty. mineNonce re-dispara el efecto.
+  const [mineError, setMineError] = useState(false);
+  const [mineNonce, setMineNonce] = useState(0);
   // undefined = cargando; null = sin sesión.
   const [me, setMe] = useState<Me | null | undefined>(undefined);
 
@@ -112,13 +116,24 @@ function PracticasInner() {
   // Mis prácticas: solo cuando se pide la vista y hay sesión resuelta.
   useEffect(() => {
     if (view !== "mias" || !me || mine !== null) return;
+    let stale = false;
     apiFetch("/practices/mine")
       .then(async (res) => {
-        if (res.ok) setMine((await res.json()) as Practice[]);
-        else setMine([]);
+        if (stale) return;
+        if (res.ok) {
+          setMine((await res.json()) as Practice[]);
+          setMineError(false);
+        } else {
+          setMineError(true);
+        }
       })
-      .catch(() => setMine([]));
-  }, [view, me, mine]);
+      .catch(() => {
+        if (!stale) setMineError(true);
+      });
+    return () => {
+      stale = true;
+    };
+  }, [view, me, mine, mineNonce]);
 
   const pool = view === "mias" ? (mine ?? []) : practices;
   const visible = styleFilter
@@ -297,14 +312,42 @@ function PracticasInner() {
               {tc("login")}
             </Button>
           </Card>
+        ) : view === "mias" && mine === null && mineError ? (
+          <div className="flex items-center gap-3">
+            <p role="alert" className="text-sm text-white/60">
+              {tc("error")}
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setMineError(false);
+                setMineNonce((n) => n + 1);
+              }}
+            >
+              ↻ {tc("retry")}
+            </Button>
+          </div>
         ) : view === "mias" && mine === null ? (
           <SkeletonList />
         ) : view === "todas" && state === "loading" ? (
           <SkeletonList />
         ) : view === "todas" && state === "error" ? (
-          <p role="alert" className="text-white/60">
-            {tc("error")}
-          </p>
+          <div className="flex items-center gap-3">
+            <p role="alert" className="text-sm text-white/60">
+              {tc("error")}
+            </p>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setState("loading");
+                void load();
+              }}
+            >
+              ↻ {tc("retry")}
+            </Button>
+          </div>
         ) : visible.length === 0 ? (
           <Card className="flex flex-col items-start gap-3">
             <p role="status" className="text-white/60">
