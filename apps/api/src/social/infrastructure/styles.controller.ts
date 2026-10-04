@@ -22,7 +22,7 @@ export class StylesController {
   list() {
     return this.prisma.style.findMany({
       select: { id: true, name: true, genre: true },
-      orderBy: { name: "asc" },
+      orderBy: [{ genre: "asc" }, { name: "asc" }],
     });
   }
 

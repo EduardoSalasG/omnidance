@@ -24,9 +24,11 @@ import {
   MinLength,
   ValidateNested,
 } from "class-validator";
+import { Gender } from "@prisma/client";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { AuthService } from "../auth/domain/auth.service";
+import { NotificationsService } from "../notifications/domain/notifications.service";
 import { PrismaService } from "../prisma.service";
 
 class CompleteProfileDto {
@@ -45,7 +47,7 @@ class CompleteProfileDto {
   password?: string;
 }
 
-class UpdateMeDto {
+export class UpdateMeDto {
   // Handle de Instagram autodeclarado — público por naturaleza (se muestra
   // en el perfil de amistad). "" o null limpia el campo.
   @IsOptional()
@@ -65,12 +67,21 @@ class UpdateMeDto {
   @IsString()
   @MaxLength(20)
   phone?: string | null;
+
+  // Género autodeclarado — solo alimenta analítica agregada (k-anonymity
+  // en /events/:id/analytics). null limpia (no declarar).
+  @IsOptional()
+  @IsIn([Gender.M, Gender.F, Gender.OTHER])
+  gender?: Gender | null;
 }
 
 // Nivel autodeclarado del bailarín — valores sembrados por el seed y
 // elegidos en /perfil/datos ("Tu baile").
 const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"] as const;
 const DANCE_ROLES = ["LEADER", "FOLLOWER", "SWITCH"] as const;
+
+// Ventana de encuesta post-evento — la misma de POST /events/:id/ratings.
+const SURVEY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 class StyleRoleItemDto {
   @IsString()
@@ -104,6 +115,7 @@ export class PeopleController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auth: AuthService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   @Get("me")
@@ -146,6 +158,7 @@ export class PeopleController {
       phone: person.phone,
       photoUrl: person.photoUrl,
       instagram: person.instagram,
+      gender: person.gender,
       createdAt: person.createdAt,
       verifiedAt: person.verifiedAt,
       roles: person.roles
@@ -177,6 +190,7 @@ export class PeopleController {
       instagram?: string | null;
       name?: string;
       phone?: string | null;
+      gender?: Gender | null;
     } = {};
     if (dto.instagram !== undefined) {
       const handle = (dto.instagram ?? "").trim().replace(/^@+/, "");
@@ -207,8 +221,72 @@ export class PeopleController {
         data.phone = digits;
       }
     }
+    if (dto.gender !== undefined) {
+      data.gender = dto.gender; // null = prefiere no declarar
+    }
     await this.prisma.person.update({ where: { id: personId }, data });
     return { ok: true };
+  }
+
+  /**
+   * GET /me/pending-surveys — eventos evaluables del viewer: check-in
+   * válido, terminados hace <24h y sin EventRating propia. Más reciente
+   * primero. Además dispara el fan-out lazy de la encuesta: el primer
+   * request que encuentra un evento elegible reclama
+   * `surveyNotifiedAt` (updateMany atómico — sin findUnique+update por
+   * race) y notifica a TODOS los asistentes una sola vez por evento.
+   */
+  @Get("me/pending-surveys")
+  @UseGuards(SessionGuard)
+  async pendingSurveys(@Req() req: Request) {
+    const personId = req.person!.id;
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - SURVEY_WINDOW_MS);
+    const checkins = await this.prisma.checkin.findMany({
+      where: { personId, voidedAt: null },
+      select: { eventId: true },
+    });
+    if (checkins.length === 0) return [];
+    const eventIds = [...new Set(checkins.map((c) => c.eventId))];
+    const [events, ratings] = await Promise.all([
+      this.prisma.event.findMany({
+        where: { id: { in: eventIds }, endsAt: { lt: now, gte: windowStart } },
+        orderBy: { endsAt: "desc" },
+        select: { id: true, name: true, endsAt: true },
+      }),
+      this.prisma.eventRating.findMany({
+        where: { raterId: personId, eventId: { in: eventIds } },
+        select: { eventId: true },
+      }),
+    ]);
+    const rated = new Set(ratings.map((r) => r.eventId));
+    const pending = events.filter((e) => !rated.has(e.id));
+    for (const event of pending) {
+      const claim = await this.prisma.event.updateMany({
+        where: { id: event.id, surveyNotifiedAt: null },
+        data: { surveyNotifiedAt: now },
+      });
+      if (claim.count !== 1) continue; // otro request ya fan-out (o va en ello)
+      const attendees = await this.prisma.checkin.findMany({
+        where: { eventId: event.id, voidedAt: null },
+        distinct: ["personId"],
+        select: { personId: true },
+      });
+      for (const attendee of attendees) {
+        await this.notifications.notifySafe(attendee.personId, {
+          category: "SOCIAL",
+          type: "event.survey",
+          title: "Cuéntanos cómo estuvo",
+          body: event.name,
+          data: { eventId: event.id },
+        });
+      }
+    }
+    return pending.map((e) => ({
+      eventId: e.id,
+      name: e.name,
+      endsAt: e.endsAt,
+    }));
   }
 
   /**
