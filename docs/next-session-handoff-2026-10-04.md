@@ -51,6 +51,20 @@ higiene de OpenSpec y los exportes PDF.
 - `openapi.json`/`postman` regenerados (**193 paths**, +2).
 - `docs/architecture.md` actualizado (línea events).
 
+## Remediación de proceso (misma sesión)
+
+- Se creó `producer-exports-pdf` retroactivamente (el feature PDF se
+  había implementado sin change OpenSpec) y se archivaron
+  `producer-exports` + `producer-exports-pdf` — la spec canónica
+  `openspec/specs/events/producer-export/spec.md` ahora cubre CSV, PDF,
+  serie y serializadores compartidos (7 requirements). `validate
+  --changes`: 15/15.
+- Root cause del lock stale de `openspec archive`: el archivo quedó
+  commiteado con un pid muerto — se quitó del tracking y se agregó a
+  `.gitignore`.
+- Fix UI: card de "Mis academias" en `/academias` — sin "Reservar
+  clase", todo el card navega a la ficha (stretched link; videos z-10).
+
 ## Pendientes
 
 1. **Validación Flow sandbox real** — sigue bloqueando producción

@@ -13,3 +13,4 @@ prisma/migrations/dev*
 next-env.d.ts
 .impeccable/
 .superpowers/
+.openspec-archive.lock
