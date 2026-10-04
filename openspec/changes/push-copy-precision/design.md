@@ -19,7 +19,7 @@ TRANSACTIONAL / pagos (`payment-settlement.service.ts`):
 
 | type / contexto | title nuevo | body nuevo |
 |---|---|---|
-| `payment.paid` ticket | `Ticket listo` | `${event.name}` |
+| `payment.paid` ticket | `Ticket listo` | `${event.name} · ${quantity} entrada(s) · ${clp}` |
 | `payment.paid` clase BOOKED | `Cupo reservado` | `${series.name} · ${clp}` |
 | `payment.paid` clase WAITLIST | `En lista de espera` | `${series.name} · ${clp}` |
 | `payment.series_pass` | `Pase de serie activo` | `${series.name} · ${order.month}` |
@@ -28,7 +28,7 @@ TRANSACTIONAL / pagos (`payment-settlement.service.ts`):
 | `payment.failed` | `Pago fallido` | `${event.name}` (sin "Para ") |
 | `payment.amount_mismatch` (admin) | `Monto distinto al de la orden` | igual: `Pago ${refId}: esperado $X · reportado $Y` |
 | `table.requested` (venue) | `Nueva solicitud de mesa` | igual: `${buyer} · ${n} personas · ${event}` |
-| `ticket.gifted` | `${buyerName} te regaló una entrada` | igual: `Para ${event.name}` |
+| `ticket.gifted` | `${buyerName} te regaló una entrada` | igual: `Para ${event.name} — ya está en Mis entradas` |
 
 Suscripciones (`subscriptions.service.ts`):
 

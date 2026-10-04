@@ -464,11 +464,18 @@ export class PaymentSettlementService {
     });
 
     if (paidNow) {
+      const clp = new Intl.NumberFormat("es-CL", {
+        style: "currency",
+        currency: "CLP",
+        maximumFractionDigits: 0,
+      }).format(payment.amount);
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.paid",
         title: "Ticket listo",
-        body: event ? `${event.name}` : undefined,
+        body: event
+          ? `${event.name} · ${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`
+          : `${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`,
         data: {
           paymentId: payment.id,
           refId: payment.refId,
