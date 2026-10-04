@@ -88,6 +88,37 @@ export const PARAM_DEFAULTS: Array<{
   { key: "platform_fee.default_pct", value: 0, description: "Comisión de plataforma sobre ventas (%) — se descuenta del gross al liquidar; override por productor y por evento" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
   { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota — después la reserva se puede cancelar pero la clase se pierde" },
+  // ─── SaaS billing (spec academy-saas-billing) ───
+  // Tiers de academia: límite de alumnos activos por tier (ENTERPRISE = sin límite, contratación manual).
+  { key: "academy_tier.starter_max_students", value: 50, description: "Máximo de alumnos activos del tier STARTER de academia" },
+  { key: "academy_tier.pro_max_students", value: 150, description: "Máximo de alumnos activos del tier PRO de academia" },
+  { key: "academy_tier.studio_max_students", value: 400, description: "Máximo de alumnos activos del tier STUDIO de academia" },
+  // Precios por tier y ciclo (CLP/mes): semestral −2%, anual −4% sobre el mensual.
+  { key: "academy_tier.starter_monthly_clp", value: 49990, description: "Precio mensual tier STARTER de academia (CLP)" },
+  { key: "academy_tier.starter_semiannual_clp", value: 48990, description: "Precio mensual cobrando semestral tier STARTER de academia (CLP)" },
+  { key: "academy_tier.starter_annual_clp", value: 47990, description: "Precio mensual cobrando anual tier STARTER de academia (CLP)" },
+  { key: "academy_tier.pro_monthly_clp", value: 99990, description: "Precio mensual tier PRO de academia (CLP)" },
+  { key: "academy_tier.pro_semiannual_clp", value: 97990, description: "Precio mensual cobrando semestral tier PRO de academia (CLP)" },
+  { key: "academy_tier.pro_annual_clp", value: 95990, description: "Precio mensual cobrando anual tier PRO de academia (CLP)" },
+  { key: "academy_tier.studio_monthly_clp", value: 189990, description: "Precio mensual tier STUDIO de academia (CLP)" },
+  { key: "academy_tier.studio_semiannual_clp", value: 185990, description: "Precio mensual cobrando semestral tier STUDIO de academia (CLP)" },
+  { key: "academy_tier.studio_annual_clp", value: 181990, description: "Precio mensual cobrando anual tier STUDIO de academia (CLP)" },
+  // Ciclo de facturación de academia: trial de onboarding, grace de
+  // lanzamiento para las existentes y gracia por mora antes del bloqueo.
+  { key: "academy_billing.trial_days", value: 30, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },
+  { key: "academy_billing.migration_grace_days", value: 60, description: "Días de grace de lanzamiento para academias existentes al despliegue SaaS" },
+  { key: "academy_billing.grace_days", value: 5, description: "Días calendario de gracia tras invoice impaga antes del bloqueo por mora" },
+  // Tiers Producer Pro: límite de facturación mensual (media 90d) por tier (PRO_BIG = a convenir).
+  { key: "producer_tier.starter_max_monthly_clp", value: 2500000, description: "Facturación mensual máxima del tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.growth_max_monthly_clp", value: 8000000, description: "Facturación mensual máxima del tier PRO_GROWTH (CLP)" },
+  { key: "producer_tier.starter_monthly_clp", value: 99990, description: "Precio mensual tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.starter_semiannual_clp", value: 97990, description: "Precio mensual cobrando semestral tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.starter_annual_clp", value: 95990, description: "Precio mensual cobrando anual tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.growth_monthly_clp", value: 249990, description: "Precio mensual tier PRO_GROWTH (CLP)" },
+  { key: "producer_tier.growth_semiannual_clp", value: 244990, description: "Precio mensual cobrando semestral tier PRO_GROWTH (CLP)" },
+  { key: "producer_tier.growth_annual_clp", value: 239990, description: "Precio mensual cobrando anual tier PRO_GROWTH (CLP)" },
+  // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
+  { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
 ];
 
 /** Catálogo de badges — las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */

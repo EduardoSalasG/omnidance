@@ -50,18 +50,24 @@ Registrado como punto de revisión comercial antes del lanzamiento.
 "Alumnos activos" = `Enrollment` en `ACTIVE|TRIAL|ONLINE` de esa
 academia (misma definición que usa el CRM).
 
-## Modelo de datos
+## Modelo de datos (implementado en S1)
 
-- `AcademyPlan` (catálogo): `code` (STARTER/PRO/STUDIO/ENTERPRISE),
-  `maxActiveStudents`, `monthlyClp`, `semiannualClp`, `annualClp`,
-  `active`. Seed con los precios de arriba.
-- `Academy.subscriptionId → Subscription` (reuse del modelo existente —
-  Flow `subscriptionId`, invoices, RENEWAL_SETTLED/RENEWAL_FAILED en el
-  ledger). `Academy.planId`, `Academy.billingCycle`
-  (MONTHLY/SEMIANNUAL/ANNUAL), `Academy.billingGraceUntil`,
-  `Academy.billingBlockedAt`, `Academy.trialEndsAt`.
-- `Producer.proSubscriptionId → Subscription?` (opcional),
-  `Producer.proTier` (FREE/PRO).
+- Catálogo de tiers **sin tabla propia**: enums `AcademyTier`,
+  `BillingCycle`, `ProducerProTier`, `PlatformSubKind` + precios/límites en
+  `PlatformParam` (`academy_tier.*`, `producer_tier.*`, `academy_billing.*`)
+  — editables en /admin sin migración. ~~`AcademyPlan` model~~ descartado:
+  una tabla duplicaría lo que params ya resuelve (4 tiers, sin admin UI de
+  catálogo propio).
+- `PlatformSubscription` (nuevo): suscripción DE la plataforma — `kind`
+  ACADEMY|PRODUCER, `academyId`/`producerId`/`personId` (quien paga),
+  `tierCode`, `billingCycle`, `flowSubscriptionId`, mismo ciclo de vida
+  `PENDING_CARD → … → CANCELED` que `MembershipSubscription` (motor Flow
+  compartido). Distinto del legado `AcademySubscription` (sin uso).
+- `Academy`: `tier`, `billingCycle`, `billingGraceUntil`,
+  `billingBlockedAt`, `trialEndsAt`.
+- `Person.proTier` (`FREE` default) — no hay tabla `Producer`: producerId
+  en todo el schema es personId del rol PRODUCER (`EventSeries.producerId`,
+  `ProducerParams.producerId`). `PlatformSubscription.producer → Person`.
 
 El trial de 30d no exige tarjeta upfront (decisión: baja fricción —
 el owner activa y configura; el bloqueo del día 6 aplica solo a quien
@@ -95,11 +101,12 @@ ya tuvo suscripción pagada impaga).
 
 ## Producer Pro
 
-- `Producer.proTier=PRO` habilita: analítica avanzada, CRM, exports,
+- `proTier` ≠ `FREE` habilita: analítica avanzada, CRM, exports,
   gestión de staff/listas — el gating exacto se fija en los specs;
   el ticketing base (publicar, vender, check-in) queda FREE siempre.
-- Suscripción mensual `producer_tier.pro_monthly_clp` (precio por
-  definir en implementación — param). Mismo motor Subscription/Flow.
+- Suscripción con tier según facturación (params `producer_tier.*` ya
+  sembrados: starter 99.990 / growth 249.990 mensual). Mismo motor
+  Flow que `MembershipSubscription` (vía `PlatformSubscription`).
 - Mora Producer Pro: solo pierde las features Pro (nunca le bloquea
   vender — el marketplace no se corta).
 
