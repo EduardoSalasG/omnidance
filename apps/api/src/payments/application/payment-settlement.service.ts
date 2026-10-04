@@ -181,8 +181,8 @@ export class PaymentSettlementService {
         await this.notifications.notifySafe(payment.personId, {
           category: "TRANSACTIONAL",
           type: "payment.failed",
-          title: "Tu pago no pudo procesarse",
-          body: failedEvent ? `Para ${failedEvent.name}` : undefined,
+          title: "Pago fallido",
+          body: failedEvent ? `${failedEvent.name}` : undefined,
           data: {
             paymentId: payment.id,
             refId: payment.refId,
@@ -283,7 +283,7 @@ export class PaymentSettlementService {
       await this.notifications.notifySafe(admin.personId, {
         category: "OPERATIONAL",
         type: "payment.amount_mismatch",
-        title: "La pasarela reportó un monto distinto al de la orden",
+        title: "Monto distinto al de la orden",
         body: `Pago ${payment.refId}: esperado $${mismatch.expected} · reportado $${mismatch.reported}`,
         data: {
           paymentId: payment.id,
@@ -464,18 +464,11 @@ export class PaymentSettlementService {
     });
 
     if (paidNow) {
-      const clp = new Intl.NumberFormat("es-CL", {
-        style: "currency",
-        currency: "CLP",
-        maximumFractionDigits: 0,
-      }).format(payment.amount);
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.paid",
-        title: "Pago confirmado — tu ticket está listo",
-        body: event
-          ? `${event.name} · ${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`
-          : `${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${clp}`,
+        title: "Ticket listo",
+        body: event ? `${event.name}` : undefined,
         data: {
           paymentId: payment.id,
           refId: payment.refId,
@@ -612,8 +605,8 @@ export class PaymentSettlementService {
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.series_pass",
-        title: "Pago confirmado — tu pase de serie está activo",
-        body: series ? `Para ${series.name} · ${order.month}` : undefined,
+        title: "Pase de serie activo",
+        body: series ? `${series.name} · ${order.month}` : undefined,
         data: {
           paymentId: payment.id,
           refId: payment.refId,
@@ -744,7 +737,7 @@ export class PaymentSettlementService {
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.membership",
-        title: "Pago confirmado — tu plan está activo",
+        title: "Plan activo",
         body: `${plan.name} · ${plan.academy.name} · ${clp}`,
         data: {
           paymentId: payment.id,
@@ -874,8 +867,8 @@ export class PaymentSettlementService {
         type: "payment.paid",
         title:
           bookingStatus === "BOOKED"
-            ? "Pago confirmado — tu cupo está reservado"
-            : "Pago confirmado — quedaste en lista de espera",
+            ? "Cupo reservado"
+            : "En lista de espera",
         body: cls.slot.series.name
           ? `${cls.slot.series.name} · ${clp}`
           : clp,
@@ -962,7 +955,7 @@ export class PaymentSettlementService {
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.paid",
-        title: "Pago confirmado — tu clase particular está en agenda",
+        title: "Clase particular comprada",
         body: `${academy.name} · ${clp}`,
         data: {
           paymentId: payment.id,
@@ -975,8 +968,8 @@ export class PaymentSettlementService {
       await this.notifications.notifySafe(academy.ownerId, {
         category: "OPERATIONAL",
         type: "academy.private_lesson.sold",
-        title: "Clase particular vendida — asigna fecha e instructor",
-        body: `${academy.name} · ${clp}`,
+        title: "Clase particular vendida",
+        body: `${academy.name} · ${clp} — asigna fecha e instructor`,
         data: {
           paymentId: payment.id,
           refId: payment.refId,

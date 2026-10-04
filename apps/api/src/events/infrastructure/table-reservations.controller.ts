@@ -189,7 +189,7 @@ export class TableReservationsController {
       await this.notifications.notifySafe(reservation.personId, {
         category: "TRANSACTIONAL",
         type: "table.confirmed",
-        title: "Tu reserva de mesa fue confirmada",
+        title: "Mesa confirmada",
         body: `${updated.partySize} personas${updated.tableNo ? ` · Mesa ${updated.tableNo}` : ""} · ${event?.name ?? "evento"}`,
         data: {
           reservationId: updated.id,
@@ -206,7 +206,7 @@ export class TableReservationsController {
       await this.notifications.notifySafe(reservation.personId, {
         category: "TRANSACTIONAL",
         type: "table.cancelled",
-        title: "Tu reserva de mesa no pudo confirmarse",
+        title: "Mesa no confirmada",
         body: event?.name ?? undefined,
         data: {
           reservationId: updated.id,

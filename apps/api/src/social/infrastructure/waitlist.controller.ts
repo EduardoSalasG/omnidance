@@ -131,8 +131,8 @@ export class WaitlistController {
     await this.notifications.notifySafe(promoted.personId, {
       category: "SOCIAL",
       type: "waitlist.promoted",
-      title: "Se liberó un cupo — avanzaste en la lista de espera",
-      body: `Para ${event.name}`,
+      title: "Cupo liberado",
+      body: `${event.name}`,
       data: {
         eventId,
         eventName: event.name,

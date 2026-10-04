@@ -120,7 +120,7 @@ export class TicketsController {
     await this.notifications.notifySafe(ticket.ownerId, {
       category: "TRANSACTIONAL",
       type: "ticket.claimed",
-      title: `${claimantName} reclamó la entrada que le regalaste`,
+      title: `${claimantName} reclamó tu entrada`,
       body: event?.name ? `Para ${event.name}` : undefined,
       data: {
         ticketId: ticket.id,
