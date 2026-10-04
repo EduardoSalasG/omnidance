@@ -16,8 +16,9 @@ de alumnos activos y precios por ciclo de facturación.
 - **ENTERPRISE** — sin límite, contratación manual (no
   auto-seleccionable).
 
-Los precios por tier y ciclo (mensual, semestral −10%, anual −15%)
-SHALL vivir en `PlatformParam` para ajuste sin deploy. "Alumnos
+Los precios por tier y ciclo (mensual, semestral −2% sobre el mensual,
+anual −4% sobre el mensual) SHALL vivir en `PlatformParam` para ajuste
+sin deploy. "Alumnos
 activos" SHALL ser `Enrollment` en `ACTIVE|TRIAL|ONLINE` de la
 academia.
 
