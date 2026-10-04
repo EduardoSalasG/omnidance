@@ -659,6 +659,7 @@ model Academy {
   lng       Float?
   instagram String? // handle público de contacto (sin @)
   whatsapp  String? // teléfono de contacto para wa.me (E.164 sin "+")
+  website   String? // URL pública del sitio (normalizada a https://…)
   // Precio único (CLP) de la clase particular vendida como producto —
   // null = la academia no vende particulares. El owner asigna fecha e
   // instructor post-compra (spec private-lesson-product).

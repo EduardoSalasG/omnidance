@@ -224,6 +224,12 @@ class UpdateAcademySettingsDto {
   @MaxLength(20)
   whatsapp?: string | null;
 
+  /** URL del sitio web público — se normaliza a https://… */
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  website?: string | null;
+
   /** Precio único (CLP) de la clase particular; null desactiva la venta. */
   @IsOptional()
   @IsInt()
@@ -272,6 +278,23 @@ function cleanWhatsapp(
     throw new BadRequestException("whatsapp inválido");
   }
   return d;
+}
+
+/** URL del sitio web → normalizada a http(s) absoluta; "" → null. */
+function cleanWebsite(
+  v: string | null | undefined,
+): string | null | undefined {
+  if (v === undefined) return undefined;
+  const t = (v ?? "").trim();
+  if (t === "") return null;
+  const withScheme = /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  try {
+    const url = new URL(withScheme);
+    if (!url.hostname.includes(".")) throw new Error("no host");
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    throw new BadRequestException("website inválido");
+  }
 }
 
 @Controller("academies")
@@ -506,6 +529,7 @@ export class AcademiesController {
         lng: true,
         instagram: true,
         whatsapp: true,
+        website: true,
         privateLessonPrice: true,
         instructors: { select: { personId: true } },
         classSeries: {
@@ -601,6 +625,7 @@ export class AcademiesController {
       lng: academy.lng,
       instagram: academy.instagram,
       whatsapp: academy.whatsapp,
+      website: academy.website,
       privateLessonPrice: academy.privateLessonPrice,
       styles: [...styles.values()].sort((x, y) =>
         x.name.localeCompare(y.name, "es"),
@@ -643,6 +668,7 @@ export class AcademiesController {
       lng: dto.lng,
       instagram: cleanInstagram(dto.instagram),
       whatsapp: cleanWhatsapp(dto.whatsapp),
+      website: cleanWebsite(dto.website),
       privateLessonPrice: dto.privateLessonPrice,
     };
     return this.prisma.academy.update({ where: { id }, data });

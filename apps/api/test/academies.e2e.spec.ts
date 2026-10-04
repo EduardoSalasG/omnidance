@@ -797,4 +797,53 @@ describe("academies e2e", () => {
       });
     });
   });
+
+  describe("PATCH /api/academies/:id/settings — website", () => {
+    it("owner guarda dominio sin esquema → normaliza a https://", async () => {
+      const res = await patch(
+        `/api/academies/${ids.academyId}/settings`,
+        { website: "academiatest.cl" },
+        ownerSession,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).website).toBe("https://academiatest.cl");
+    });
+
+    it("GET /profile público expone el website", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/profile`,
+        outsiderSession,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).website).toBe("https://academiatest.cl");
+    });
+
+    it("website inválido → 400", async () => {
+      const res = await patch(
+        `/api/academies/${ids.academyId}/settings`,
+        { website: "not a url" },
+        ownerSession,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it('"" limpia el website', async () => {
+      const res = await patch(
+        `/api/academies/${ids.academyId}/settings`,
+        { website: "" },
+        ownerSession,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).website).toBeNull();
+    });
+
+    it("outsider no puede editar → 403", async () => {
+      const res = await patch(
+        `/api/academies/${ids.academyId}/settings`,
+        { website: "x.cl" },
+        outsiderSession,
+      );
+      expect(res.status).toBe(403);
+    });
+  });
 });
