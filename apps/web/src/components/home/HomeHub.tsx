@@ -131,7 +131,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
       <section aria-label={t("tonight")}>
         <Link
           href="/eventos"
-          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
         >
           <span className="text-xs font-semibold uppercase tracking-wide text-neon">
             {t("tonight")}
@@ -168,7 +168,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
         </span>
         <Link
           href={`/eventos/${heroEvent.id}`}
-          className="flex flex-col gap-2.5 transition-transform active:scale-[0.99]"
+          className="flex flex-col gap-2.5 rounded-lg transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
         >
           <span className="text-xl font-bold leading-tight">
             {heroEvent.name}
@@ -234,7 +234,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           href={
             heroEvent.hasTicket ? "/qr" : `/eventos/${heroEvent.id}`
           }
-          className="mt-1 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon"
+          className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           {heroEvent.hasTicket ? t("myQr") : t("buyPresale")}
           <span aria-hidden>→</span>
@@ -243,7 +243,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
 
       {myEntries.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/45">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
             {t("myEntries")}
           </h3>
           <ul className="flex flex-col gap-2">
@@ -251,7 +251,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
               <li key={e.id}>
                 <Link
                   href="/qr"
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neon/30 bg-night-800/50 px-4 py-3 transition-colors hover:border-neon/60"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neon/30 bg-night-800/50 px-4 py-3 transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">
@@ -274,7 +274,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
 
       {more.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/45">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
             {isTonight ? t("moreTonight") : t("upcoming")}
           </h3>
           <ul className="flex flex-col gap-2">
@@ -282,7 +282,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
               <li key={e.id}>
                 <Link
                   href={`/eventos/${e.id}`}
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">
@@ -563,7 +563,7 @@ export function HomeHub() {
           {t("hi", { name: me.name.split(" ")[0] })}
         </h2>
         {dancerSocial && (
-          <p className="text-xs capitalize text-white/45">
+          <p className="text-xs capitalize text-white/50">
             {fullDayFmt.format(new Date())}
           </p>
         )}
@@ -598,7 +598,7 @@ export function HomeHub() {
             <Link
               key={s.eventId}
               href={`/eventos/${s.eventId}/evaluar`}
-              className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-night-800/70 px-5 py-4 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+              className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-night-800/70 px-5 py-4 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
             >
               <span className="min-w-0 truncate text-base font-semibold">
                 {ts("prompt", { name: s.name })}
@@ -633,7 +633,7 @@ export function HomeHub() {
             <section aria-label={hero.title}>
               <Link
                 href={hero.href}
-                className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+                className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
                 <span className="text-xl font-bold leading-tight">
                   {hero.title}
@@ -686,7 +686,7 @@ export function HomeHub() {
       {multiRole && (
         <Link
           href="/perfil"
-          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-sm text-white/55 transition-colors hover:border-neon/40 hover:text-white/80"
+          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-sm text-white/55 transition-colors hover:border-neon/40 hover:text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           <span>{t("switchRoleHint")}</span>
           <span aria-hidden className="text-neon">

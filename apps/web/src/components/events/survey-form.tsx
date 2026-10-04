@@ -60,7 +60,7 @@ function DimRow({
       />
       {/* Extremos bipolares: texto de los polos 1 y 5 — el promedio lo
           interpreta la analítica, la escala vive solo en UI. */}
-      <span className="flex justify-between text-xs text-white/40">
+      <span className="flex justify-between text-xs text-white/50">
         <span>{t(`scale.${dim}.low`)}</span>
         <span>{t(`scale.${dim}.high`)}</span>
       </span>
@@ -175,6 +175,9 @@ export function SurveyForm({
           <StarRating
             value={overall}
             busy={busy}
+            required
+            invalid={showRequired}
+            ariaDescribedBy={showRequired ? "overall-required" : undefined}
             ariaLabel={t("overall")}
             onSelect={(v) => {
               setOverall(v);
@@ -182,7 +185,11 @@ export function SurveyForm({
             }}
           />
           {showRequired && (
-            <p role="alert" className="mt-1 text-xs text-amber-300">
+            <p
+              id="overall-required"
+              role="alert"
+              className="mt-1 text-xs text-amber-300"
+            >
               {t("overallRequired")}
             </p>
           )}

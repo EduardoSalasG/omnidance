@@ -77,7 +77,7 @@ const ENROLLMENT_VARIANT: Record<string, "neon" | "outline" | "muted"> = {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1">
-      <span className="shrink-0 text-xs uppercase tracking-wide text-white/45">
+      <span className="shrink-0 text-xs uppercase tracking-wide text-white/50">
         {label}
       </span>
       <span className="min-w-0 truncate text-right text-sm">{value}</span>
@@ -111,7 +111,7 @@ function EditField({
     <div className="flex items-baseline justify-between gap-4 py-1">
       <label
         htmlFor={id}
-        className="shrink-0 text-xs uppercase tracking-wide text-white/45"
+        className="shrink-0 text-xs uppercase tracking-wide text-white/50"
       >
         {label}
       </label>
@@ -126,7 +126,7 @@ function EditField({
           if (e.key === "Enter") onEnter();
           if (e.key === "Escape") onEscape();
         }}
-        className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white placeholder:text-white/40 focus:outline-none"
+        className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white placeholder:text-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-neon/50"
       />
     </div>
   );
@@ -175,7 +175,7 @@ function GenderGroup({
 
   return (
     <div ref={groupRef} role="radiogroup" aria-label={label}>
-      <span className="text-xs uppercase tracking-wide text-white/45">
+      <span className="text-xs uppercase tracking-wide text-white/50">
         {label}
       </span>
       <div className="mt-1.5 flex flex-wrap gap-2">
@@ -643,7 +643,7 @@ export default function DatosPage() {
                   value={genderDraft}
                   onChange={setGenderDraft}
                 />
-                <p className="mt-1.5 text-xs text-white/40">
+                <p className="mt-1.5 text-xs text-white/50">
                   {t("datos.genderHint")}
                 </p>
               </div>

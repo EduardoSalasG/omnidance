@@ -77,6 +77,11 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
+// Nombre completo del día para lectores de pantalla — la celda del
+// calendario solo muestra el número (mismo patrón que /eventos).
+const weekdayNameFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "long",
+});
 
 function groupByDay(events: VenueEvent[]) {
   const groups = new Map<string, VenueEvent[]>();
@@ -233,7 +238,7 @@ export default async function VenueProfilePage({
   const monthLabel = monthFmt.format(monthCursor);
 
   const iconBtn = (active: boolean) =>
-    `inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
+    `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
       active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
     }`;
 
@@ -363,7 +368,7 @@ export default async function VenueProfilePage({
             </p>
           )}
           {venue.capacity != null && (
-            <p className="mt-1 text-xs text-white/40">
+            <p className="mt-1 text-xs text-white/50">
               {t.capacity.replace(
                 "{count}",
                 venue.capacity.toLocaleString("es-CL"),
@@ -422,7 +427,7 @@ export default async function VenueProfilePage({
                 <Link
                   key={g}
                   href={hrefFor({ genre: [...next].join(",") || undefined })}
-                  aria-pressed={active}
+                  aria-current={active ? "true" : undefined}
                   className={chipClass(active)}
                 >
                   {te.genre[g]}
@@ -474,8 +479,12 @@ export default async function VenueProfilePage({
               {cells.map((cell) => {
                 const isToday = cell.key === todayKey;
                 const isSelected = cell.key === selectedDay;
+                const dayName = weekdayNameFmt.format(
+                  new Date(`${cell.key}T12:00:00`),
+                );
                 const inner = (
                   <>
+                    <span className="sr-only">{dayName}</span>
                     <span
                       className={`text-sm font-semibold ${
                         isToday ? "text-neon" : isSelected ? "text-white" : "text-white/70"
@@ -494,7 +503,7 @@ export default async function VenueProfilePage({
                       ))}
                     </span>
                     {cell.events.length > 3 && (
-                      <span className="text-[10px] leading-none text-white/40">
+                      <span className="text-[10px] leading-none text-white/50">
                         {te.more.replace("{count}", String(cell.events.length - 3))}
                       </span>
                     )}
@@ -511,6 +520,7 @@ export default async function VenueProfilePage({
                   <Link
                     key={cell.key}
                     href={hrefFor({ dia: cell.key })}
+                    aria-label={`${dayName} ${cell.day}`}
                     aria-current={isSelected ? "date" : undefined}
                     className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
                   >
@@ -555,7 +565,7 @@ export default async function VenueProfilePage({
           <div className="flex flex-col gap-6">
             {groupByDay(filtered).map((g) => (
               <section key={g.key}>
-                <h3 className="mb-2 text-xs font-semibold capitalize tracking-wide text-white/45">
+                <h3 className="mb-2 text-xs font-semibold capitalize tracking-wide text-white/50">
                   {dayLabel(g.key, te)}
                 </h3>
                 <ul className="flex flex-col gap-3">

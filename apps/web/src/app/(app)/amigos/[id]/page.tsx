@@ -330,7 +330,7 @@ export default function AmigoPerfilPage({
                 type="button"
                 disabled={busy}
                 onClick={() => setConfirmRemove(true)}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
                 {t("remove")}
               </button>
