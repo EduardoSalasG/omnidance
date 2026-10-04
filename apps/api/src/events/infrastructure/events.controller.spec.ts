@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+import { StreamableFile } from "@nestjs/common";
 import type { Request } from "express";
 import type { PrismaService } from "../../prisma.service";
 import "../../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver classes.controller.spec)
@@ -43,6 +44,7 @@ interface FakeEvent {
 interface FakeSeries {
   id: string;
   producerId: string;
+  name?: string;
 }
 
 interface FakeCheckin {
@@ -604,5 +606,127 @@ describe("EventsController.exportSeriesCsv", () => {
       res,
     );
     expect(csv.charCodeAt(0)).toBe(0xfeff);
+  });
+});
+
+// EventsController.exportPdf / exportSeriesPdf — mismo dataset y auth que
+// el CSV, pero serializado como reporte imprimible (buildTablePdf) y
+// servido como StreamableFile (un Buffer desnudo Nest lo serializa JSON).
+
+const isPdf = (b: unknown) =>
+  b instanceof StreamableFile && b.getStream() !== undefined;
+
+describe("EventsController.exportPdf", () => {
+  let prisma: FakePrisma;
+  let ctrl: EventsController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      { getProducerParams: async () => null } as never,
+    );
+    prisma.events.push({
+      id: "ev-1",
+      producerId: "prod-1",
+      name: "Noche de Salsa",
+      startsAt: new Date("2026-09-05T23:00:00Z"),
+    });
+    prisma.people.set("prod-1", { id: "prod-1", name: "Prod", photoUrl: null });
+    prisma.people.set("asist", { id: "asist", name: "Luis Asiste", photoUrl: null });
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+  });
+
+  it("owner descarga un PDF de ventas (magic bytes + content-type)", async () => {
+    prisma.tickets.push({
+      eventId: "ev-1",
+      ownerId: "asist",
+      buyerId: "asist",
+      listPrice: 10000,
+      serviceFee: 500,
+      status: "ACTIVE",
+      paymentId: null,
+      claimToken: "secret-token",
+      createdAt: new Date("2026-09-01T20:00:00Z"),
+    });
+    const { res, headers } = fakeRes();
+    const pdf = await ctrl.exportPdf("ev-1", "sales", reqAs("prod-1"), res);
+    expect(headers["content-type"]).toBe("application/pdf");
+    expect(headers["content-disposition"]).toContain("ev-1-sales.pdf");
+    expect(isPdf(pdf)).toBe(true);
+  });
+
+  it("misma frontera que el CSV: stranger 403, evento 404, dataset 400", async () => {
+    const { res } = fakeRes();
+    await expect(
+      ctrl.exportPdf("ev-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      ctrl.exportPdf("nope", "sales", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      ctrl.exportPdf("ev-1", "nudes", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("checkins y guestlist también generan PDF", async () => {
+    const { res } = fakeRes();
+    expect(
+      isPdf(await ctrl.exportPdf("ev-1", "checkins", reqAs("prod-1"), res)),
+    ).toBe(true);
+    expect(
+      isPdf(await ctrl.exportPdf("ev-1", "guestlist", reqAs("prod-1"), res)),
+    ).toBe(true);
+  });
+});
+
+describe("EventsController.exportSeriesPdf", () => {
+  let prisma: FakePrisma;
+  let ctrl: EventsController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      { getProducerParams: async () => null } as never,
+    );
+    prisma.eventSeriesRows.push({
+      id: "ser-1",
+      producerId: "prod-1",
+      name: "Gozadera",
+    });
+    prisma.events.push({
+      id: "ev-a",
+      producerId: "prod-1",
+      seriesId: "ser-1",
+      name: "Gozadera",
+      startsAt: new Date("2026-09-05T00:00:00Z"),
+    });
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+  });
+
+  it("owner descarga el PDF agregado de la serie", async () => {
+    const { res, headers } = fakeRes();
+    const pdf = await ctrl.exportSeriesPdf(
+      "ser-1",
+      "checkins",
+      reqAs("prod-1"),
+      res,
+    );
+    expect(headers["content-type"]).toBe("application/pdf");
+    expect(headers["content-disposition"]).toContain(
+      "serie-ser-1-checkins.pdf",
+    );
+    expect(isPdf(pdf)).toBe(true);
+  });
+
+  it("serie inexistente → 404; otro productor → 403", async () => {
+    const { res } = fakeRes();
+    await expect(
+      ctrl.exportSeriesPdf("nope", "sales", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 404 });
+    await expect(
+      ctrl.exportSeriesPdf("ser-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+    ).rejects.toMatchObject({ status: 403 });
   });
 });

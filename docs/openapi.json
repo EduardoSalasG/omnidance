@@ -475,9 +475,65 @@
         }
       }
     },
+    "/api/events/{id}/export.pdf": {
+      "get": {
+        "operationId": "EventsController_exportPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events/series/{seriesId}/export.csv": {
       "get": {
         "operationId": "EventsController_exportSeriesCsv",
+        "parameters": [
+          {
+            "name": "seriesId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/series/{seriesId}/export.pdf": {
+      "get": {
+        "operationId": "EventsController_exportSeriesPdf",
         "parameters": [
           {
             "name": "seriesId",

@@ -672,6 +672,12 @@ describe("cuota de créditos (book)", () => {
       date: soon.date,
       slot: { startTime: soon.startTime },
     });
+    // cls-2 el mismo día: la cuota semanal se mide por semana ISO — con
+    // "mañana" el test cruzaba el corte y fallaba los domingos.
+    prisma.addClass("cls-2", {
+      date: soon.date,
+      slot: { startTime: soon.startTime },
+    });
     prisma.addEnrollment("per-1", "acad-1", "ACTIVE", {
       type: "MONTHLY",
       weeklyClasses: 1,

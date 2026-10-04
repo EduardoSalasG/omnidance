@@ -13,6 +13,7 @@ import {
   Query,
   Req,
   Res,
+  StreamableFile,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -40,6 +41,7 @@ import {
   roleKeysHavePermission,
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { buildTablePdf } from "../../common/pdf-report";
 
 // Valores del enum EventType del schema (no confundir con la spec: PRACTICA,
 // no PRACTICE).
@@ -319,6 +321,36 @@ function toCsv(headers: string[], rows: unknown[][]): string {
   return String.fromCharCode(0xfeff) + lines.join("\r\n") + "\r\n";
 }
 
+/** Datasets exportables (CSV y PDF comparten la misma tabla). */
+const EXPORT_DATASETS = ["sales", "checkins", "guestlist"] as const;
+type ExportDataset = (typeof EXPORT_DATASETS)[number];
+const DATASET_TITLES: Record<ExportDataset, string> = {
+  sales: "Ventas",
+  checkins: "Check-ins",
+  guestlist: "Listas de invitados",
+};
+interface ExportTable {
+  headers: string[];
+  rows: unknown[][];
+  /** Líneas de resumen que el PDF muestra sobre la tabla. */
+  summary: string[];
+}
+
+function assertDataset(d: string): asserts d is ExportDataset {
+  if (!EXPORT_DATASETS.includes(d as ExportDataset)) {
+    throw new BadRequestException("dataset inválido");
+  }
+}
+
+/** $ es-CL para resúmenes del PDF ($10.500). */
+const clp = (n: number) => `$${n.toLocaleString("es-CL")}`;
+
+const fmtCl = (d: Date) =>
+  new Intl.DateTimeFormat("es-CL", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(d);
+
 @Controller("events")
 export class EventsController {
   constructor(
@@ -479,27 +511,48 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
-    if (
-      dataset !== "sales" &&
-      dataset !== "checkins" &&
-      dataset !== "guestlist"
-    ) {
-      throw new BadRequestException("dataset inválido");
-    }
+    assertDataset(dataset);
 
-    const csv =
-      dataset === "sales"
-        ? await this.exportSales(id)
-        : dataset === "checkins"
-          ? await this.exportCheckins(id)
-          : await this.exportGuestlist(id);
-
+    const table = await this.exportDataset(dataset, id);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="${id}-${dataset}.csv"`,
     );
-    return csv;
+    return toCsv(table.headers, table.rows);
+  }
+
+  /**
+   * GET /events/:id/export.pdf?dataset=sales|checkins|guestlist — misma
+   * tabla que el CSV pero como reporte imprimible (título, fecha,
+   * resumen con totales). Owner o admin.
+   */
+  @Get(":id/export.pdf")
+  @UseGuards(SessionGuard)
+  async exportPdf(
+    @Param("id") id: string,
+    @Query("dataset") dataset: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const event = await this.findEventOr404(id);
+    await this.requireOwnerOrAdmin(event.producerId, req.person!);
+    assertDataset(dataset);
+
+    const table = await this.exportDataset(dataset, id);
+    const pdf = await buildTablePdf({
+      title: `${DATASET_TITLES[dataset]} — ${event.name}`,
+      subtitle: `${fmtCl(event.startsAt)} · generado ${fmtCl(new Date())}`,
+      summary: table.summary,
+      headers: table.headers,
+      rows: table.rows,
+    });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${id}-${dataset}.pdf"`,
+    );
+    return new StreamableFile(pdf);
   }
 
   /**
@@ -516,52 +569,98 @@ export class EventsController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const series = await this.prisma.eventSeries.findUnique({
-      where: { id: seriesId },
-    });
-    if (!series) throw new NotFoundException("serie no encontrada");
+    const series = await this.findSeriesOr404(seriesId);
     await this.requireOwnerOrAdmin(series.producerId, req.person!);
-    if (
-      dataset !== "sales" &&
-      dataset !== "checkins" &&
-      dataset !== "guestlist"
-    ) {
-      throw new BadRequestException("dataset inválido");
-    }
+    assertDataset(dataset);
 
-    const events = await this.prisma.event.findMany({
-      where: { seriesId },
-      select: { id: true, name: true, startsAt: true },
-      orderBy: { startsAt: "asc" },
-    });
-    const scope = { in: events.map((e) => e.id) };
-    const labelByEvent = new Map(
-      events.map((e) => [
-        e.id,
-        `${e.name} (${e.startsAt.toISOString().slice(0, 10)})`,
-      ]),
-    );
-
-    const csv =
-      dataset === "sales"
-        ? await this.exportSales(scope, labelByEvent)
-        : dataset === "checkins"
-          ? await this.exportCheckins(scope, labelByEvent)
-          : await this.exportGuestlist(scope, labelByEvent);
-
+    const { scope, labelByEvent } = await this.seriesScope(seriesId);
+    const table = await this.exportDataset(dataset, scope, labelByEvent);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="serie-${seriesId}-${dataset}.csv"`,
     );
-    return csv;
+    return toCsv(table.headers, table.rows);
+  }
+
+  /**
+   * GET /events/series/:seriesId/export.pdf?dataset=sales|checkins|guestlist —
+   * reporte PDF agregado de todas las fechas de la serie (columna
+   * `evento`). Owner de la serie o admin.
+   */
+  @Get("series/:seriesId/export.pdf")
+  @UseGuards(SessionGuard)
+  async exportSeriesPdf(
+    @Param("seriesId") seriesId: string,
+    @Query("dataset") dataset: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const series = await this.findSeriesOr404(seriesId);
+    await this.requireOwnerOrAdmin(series.producerId, req.person!);
+    assertDataset(dataset);
+
+    const { events, scope, labelByEvent } = await this.seriesScope(seriesId);
+    const table = await this.exportDataset(dataset, scope, labelByEvent);
+    const pdf = await buildTablePdf({
+      title: `${DATASET_TITLES[dataset]} — Serie «${series.name}»`,
+      subtitle: `${events.length} fechas · generado ${fmtCl(new Date())}`,
+      summary: table.summary,
+      headers: table.headers,
+      rows: table.rows,
+    });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="serie-${seriesId}-${dataset}.pdf"`,
+    );
+    return new StreamableFile(pdf);
+  }
+
+  private async findSeriesOr404(seriesId: string) {
+    const series = await this.prisma.eventSeries.findUnique({
+      where: { id: seriesId },
+    });
+    if (!series) throw new NotFoundException("serie no encontrada");
+    return series;
+  }
+
+  /** Eventos de la serie → scope `{in}` + etiqueta `nombre (YYYY-MM-DD)`. */
+  private async seriesScope(seriesId: string) {
+    const events = await this.prisma.event.findMany({
+      where: { seriesId },
+      select: { id: true, name: true, startsAt: true },
+      orderBy: { startsAt: "asc" },
+    });
+    return {
+      events,
+      scope: { in: events.map((e) => e.id) },
+      labelByEvent: new Map(
+        events.map((e) => [
+          e.id,
+          `${e.name} (${e.startsAt.toISOString().slice(0, 10)})`,
+        ]),
+      ),
+    };
+  }
+
+  private exportDataset(
+    dataset: ExportDataset,
+    eventId: string | { in: string[] },
+    labelByEvent?: Map<string, string>,
+  ): Promise<ExportTable> {
+    return dataset === "sales"
+      ? this.exportSales(eventId, labelByEvent)
+      : dataset === "checkins"
+        ? this.exportCheckins(eventId, labelByEvent)
+        : this.exportGuestlist(eventId, labelByEvent);
   }
 
   /** Una fila por Ticket — incluye cancelados, la cuadratura los mira. */
   private async exportSales(
     eventId: string | { in: string[] },
     labelByEvent?: Map<string, string>,
-  ): Promise<string> {
+  ): Promise<ExportTable> {
     const tickets = await this.prisma.ticket.findMany({
       where: { eventId },
       orderBy: { createdAt: "asc" },
@@ -583,8 +682,12 @@ export class EventsController {
     );
     const evCol = (id: string) =>
       labelByEvent ? [labelByEvent.get(id) ?? ""] : [];
-    return toCsv(
-      [
+    const cancelled = tickets.filter((t) => t.status === "CANCELLED").length;
+    const gross = tickets
+      .filter((t) => t.status !== "CANCELLED")
+      .reduce((s, t) => s + t.listPrice + t.serviceFee, 0);
+    return {
+      headers: [
         ...(labelByEvent ? ["evento"] : []),
         "fecha",
         "comprador",
@@ -596,7 +699,7 @@ export class EventsController {
         "canal",
         "payment_id",
       ],
-      tickets.map((t) => [
+      rows: tickets.map((t) => [
         ...evCol(t.eventId),
         t.createdAt.toISOString(),
         names.get(t.buyerId) ?? "?",
@@ -608,21 +711,26 @@ export class EventsController {
         (t.paymentId && channel.get(t.paymentId)) ?? "",
         t.paymentId ?? "",
       ]),
-    );
+      summary: [
+        `${tickets.length} tickets · recaudado ${clp(gross)} (precio + cargo, sin cancelados)`,
+        ...(cancelled ? [`${cancelled} cancelados incluidos en la tabla`] : []),
+      ],
+    };
   }
 
   /** Una fila por Checkin — incluye anulados con anulado=si. */
   private async exportCheckins(
     eventId: string | { in: string[] },
     labelByEvent?: Map<string, string>,
-  ): Promise<string> {
+  ): Promise<ExportTable> {
     const checkins = await this.prisma.checkin.findMany({
       where: { eventId },
       orderBy: { inAt: "asc" },
     });
     const names = await this.personNames(checkins.map((c) => c.personId));
-    return toCsv(
-      [
+    const voided = checkins.filter((c) => c.voidedAt).length;
+    return {
+      headers: [
         ...(labelByEvent ? ["evento"] : []),
         "entrada",
         "salida",
@@ -631,7 +739,7 @@ export class EventsController {
         "anulado",
         "nota",
       ],
-      checkins.map((c) => [
+      rows: checkins.map((c) => [
         ...(labelByEvent ? [labelByEvent.get(c.eventId) ?? ""] : []),
         c.inAt.toISOString(),
         c.outAt?.toISOString() ?? "",
@@ -640,14 +748,18 @@ export class EventsController {
         c.voidedAt ? "si" : "",
         c.note ?? "",
       ]),
-    );
+      summary: [
+        `${checkins.length} check-ins` +
+          (voided ? ` · ${voided} anulados (incluidos en la tabla)` : ""),
+      ],
+    };
   }
 
   /** Una fila por GuestListEntry de las listas del evento. */
   private async exportGuestlist(
     eventId: string | { in: string[] },
     labelByEvent?: Map<string, string>,
-  ): Promise<string> {
+  ): Promise<ExportTable> {
     const lists = await this.prisma.guestList.findMany({
       where: { eventId },
       include: { entries: { orderBy: { createdAt: "asc" } } },
@@ -656,8 +768,9 @@ export class EventsController {
       ...lists.map((l) => l.ownerId),
       ...lists.flatMap((l) => l.entries.map((e) => e.personId)),
     ]);
-    return toCsv(
-      [
+    const entries = lists.reduce((s, l) => s + l.entries.length, 0);
+    return {
+      headers: [
         ...(labelByEvent ? ["evento"] : []),
         "lista",
         "dueno_lista",
@@ -665,7 +778,7 @@ export class EventsController {
         "estado",
         "creado",
       ],
-      lists.flatMap((l) =>
+      rows: lists.flatMap((l) =>
         l.entries.map((e) => [
           ...(labelByEvent ? [labelByEvent.get(l.eventId) ?? ""] : []),
           l.label ?? "",
@@ -675,7 +788,8 @@ export class EventsController {
           e.createdAt.toISOString(),
         ]),
       ),
-    );
+      summary: [`${entries} invitados en ${lists.length} listas`],
+    };
   }
 
   /** Join manual a Person (FKs escalares) → mapa id→nombre. */
