@@ -1,19 +1,18 @@
-# song-suggestions
+# events/song-suggestions Specification
 
 ## Purpose
-
 Sugerencia de canción opcional en el checkout de preventa, agregada como top-N para el DJ y el productor — habilita el momento "la canción más pedida suena a las X" (spec §8, §13 DJ, decisión §18: 1 por ticket, deduplicada por canción).
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Sugerir canción en el checkout
 
-El sistema SHALL aceptar un campo opcional `songSuggestion` al crear el checkout de ticket. La sugerencia queda ligada al comprador y al evento — máximo una por ticket.
+El sistema SHALL aceptar un campo opcional `songSuggestion` al crear el checkout de ticket. La sugerencia queda ligada al comprador y al evento — máximo una activa por persona/evento (una compra posterior reemplaza la anterior).
 
 #### Scenario: sugerencia con checkout
 
 - **WHEN** el comprador envía `POST /checkout/ticket` con `songSuggestion` no vacío
-- **THEN** al confirmarse el pago la sugerencia queda registrada para el evento (1 por ticket)
+- **THEN** al confirmarse el pago la sugerencia queda registrada para el evento (1 activa por persona/evento)
 
 #### Scenario: sin sugerencia
 

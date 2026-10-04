@@ -44,11 +44,11 @@ El productor del evento (o admin) SHALL poder listar las reservas y cambiar su e
 - **WHEN** el solicitante envía `DELETE /table-reservations/:id` sobre su propia reserva
 - **THEN** la reserva pasa a `CANCELLED` y libera el cupo
 
-### Requirement: Visibilidad para amigos
+### Requirement: Visibilidad del listado confirmado
 
-Los asistentes al evento SHALL poder ver qué reservas confirmadas existen (nombre + cantidad), para organizar el punto de encuentro — sin exponer datos sensibles.
+Cualquier usuario autenticado SHALL poder ver qué reservas confirmadas existen (nombre + cantidad), para organizar el punto de encuentro — sin exponer ids ni datos sensibles.
 
 #### Scenario: listado del evento
 
-- **WHEN** un asistente consulta `GET /events/:id/table-reservations`
+- **WHEN** un usuario autenticado consulta `GET /events/:id/table-reservations`
 - **THEN** recibe las reservas `CONFIRMED` con nombre del solicitante y cantidad de personas
