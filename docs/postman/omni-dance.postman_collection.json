@@ -1702,6 +1702,38 @@
           }
         },
         {
+          "name": "GET /api/events/{id}/export.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/export.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "export.pdf"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/events/series/{seriesId}/export.csv",
           "request": {
             "method": "GET",
@@ -1717,6 +1749,39 @@
                 "series",
                 "{seriesId}",
                 "export.csv"
+              ],
+              "variable": [
+                {
+                  "key": "seriesId",
+                  "value": ":seriesId"
+                }
+              ],
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/series/{seriesId}/export.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/series/{seriesId}/export.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "series",
+                "{seriesId}",
+                "export.pdf"
               ],
               "variable": [
                 {

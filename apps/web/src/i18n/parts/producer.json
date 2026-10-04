@@ -178,8 +178,8 @@
       }
     },
     "export": {
-      "title": "Exportar CSV",
-      "hint": "Descarga los datos operativos del evento para cuadrar en planilla.",
+      "title": "Exportar",
+      "hint": "CSV para cuadrar en planilla · PDF como reporte imprimible con resumen.",
       "sales": "Ventas",
       "checkins": "Check-ins",
       "guestlist": "Listas de invitados",

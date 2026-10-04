@@ -1,0 +1,63 @@
+# Handoff — 2026-10-04: limpieza OpenSpec + exportes PDF
+
+Sesión sobre `dev` cerrando dos pendientes del handoff `…-28e.md`: la
+higiene de OpenSpec y los exportes PDF.
+
+## Completado
+
+- **OpenSpec: `validate --changes` 15/15 verde** (antes 17/29).
+  - 14 changes archivados a `changes/archive/2026-10-04-*`: 10 completados
+    sin deltas (`--skip-specs`) + `admin-user-intel` (implementación
+    verificada en código — user-intel/browse controllers, e2e, páginas
+    `/admin/usuarios`, `/analitica/usuarios`, `/admin/datos`, PillTabs —
+    solo faltaba marcar tasks) + 3 con deltas reales aplicados a
+    `openspec/specs/` (private-lesson-product, dancer-academy-lens,
+    multi-ticket-claim-links — todos aterrizados en git).
+  - `pwa-shell-nav`: queda activo con `skip_specs: true` — única tarea
+    real pendiente: confirmar el error push en el iPhone del usuario.
+  - `dancer-profile-survey-analytics` (0/18): sigue activo, trabajo real
+    pendiente (género/styleRoles, encuestas post-evento).
+- **Exportes PDF** (spec §11 "CSV/PDF por evento y por serie"):
+  - `GET /events/:id/export.pdf?dataset=sales|checkins|guestlist` y
+    `GET /events/series/:seriesId/export.pdf?dataset=…` — mismo auth y
+    datasets que el CSV; reporte imprimible A4 con título, fecha/scope,
+    resumen (tickets+recaudado sin cancelados / check-ins+anulados /
+    invitados+listas), tabla con header repetido y «Página X de Y».
+  - Refactor: `exportSales/Checkins/Guestlist` retornan
+    `{headers, rows, summary}` compartidos; CSV y PDF son serializadores.
+  - `src/common/pdf-report.ts` (`buildTablePdf`) + `pdfkit@0.20.2`.
+    OJO: pdfkit ≥0.16 ignora `lineBreak:false` y asigna `width` por
+    defecto → todo `text()` puede paginar implícitamente. Por eso las
+    celdas se truncan manual (`widthOfString`+«…») y se dibujan con
+    `lineBreak:false` sin `width` (sin wrapper → cero paginación propia).
+  - Respuesta vía `StreamableFile` — un Buffer desnudo en passthrough
+    Nest lo serializa como JSON.
+  - UI: `ExportSection` ahora lista cada dataset con botones CSV+PDF
+    (evento y serie); i18n actualizado.
+- **Fix flake preexistente**: `classes.controller.spec` "cancelación
+  tardía SÍ consume" fallaba los domingos — `cls-soon` (hoy) y `cls-2`
+  (mañana) cruzan la semana ISO y la cuota semanal no se heredaba.
+  `cls-2` ahora comparte fecha con `cls-soon`.
+
+## Verificación
+
+- Suite API: **1229 tests verde** (la primera corrida mostró timeouts de
+  5s en 6 e2e — era contención con el dev server vivo contra la misma
+  DB; con la API apagada los 131 tests de esos 5 archivos pasan).
+- `tsc --noEmit` api + web limpio.
+- Smoke live (`node apps/api/scripts/smoke-export-pdf.cjs`, nuevo):
+  pdf owner 200 con `%PDF-` real / stranger 403 / dataset 400 /
+  evento+serie 404 / sin sesión 401 / serie pdf 200; CSV intacto con BOM.
+- `openapi.json`/`postman` regenerados (**193 paths**, +2).
+- `docs/architecture.md` actualizado (línea events).
+
+## Pendientes
+
+1. **Validación Flow sandbox real** — sigue bloqueando producción
+   (credenciales + tarjeta + checkout en browser del usuario).
+2. **Confirmar push iOS en iPhone del usuario** — única tarea viva de
+   `pwa-shell-nav` (el detalle del error ya se muestra en UI).
+3. `dancer-profile-survey-analytics` — feature completo pendiente en
+   OpenSpec (18 tasks).
+4. Nota ops: correr `pnpm test` con la API dev arriba produce timeouts
+   de e2e espurios (misma DB) — apagar `dev:api` antes de la suite.
