@@ -26,6 +26,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   const [lng, setLng] = useState(academy.lng != null ? String(academy.lng) : "");
   const [instagram, setInstagram] = useState(academy.instagram ?? "");
   const [whatsapp, setWhatsapp] = useState(academy.whatsapp ?? "");
+  const [website, setWebsite] = useState(academy.website ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -76,6 +77,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
           lng: lngN,
           instagram,
           whatsapp,
+          website,
         }),
       });
       if (!res.ok) {
@@ -167,6 +169,18 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
             />
           </label>
         </div>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-white/50">{t("website")}</span>
+          <input
+            type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            className={inputCls}
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder={t("websitePlaceholder")}
+          />
+        </label>
         {error && (
           <p role="alert" className="text-sm text-red-400">
             {error}

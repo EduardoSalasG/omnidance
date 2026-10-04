@@ -52,6 +52,8 @@
       "instagramPlaceholder": "@academia",
       "whatsapp": "WhatsApp",
       "whatsappPlaceholder": "+56 9 1234 5678",
+      "website": "Sitio web",
+      "websitePlaceholder": "miacademia.cl",
       "saved": "Perfil guardado.",
       "saveError": "No se pudo guardar el perfil",
       "invalidCoords": "Coordenadas inválidas"
