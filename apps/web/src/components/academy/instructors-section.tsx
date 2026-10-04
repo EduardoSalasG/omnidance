@@ -46,15 +46,16 @@ export function InstructorsSection({
         ))}
       </ul>
       {more > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="mt-3 self-start"
-          aria-expanded={all}
-          onClick={() => setAll((v) => !v)}
-        >
-          {all ? fewerLabel : moreLabel.replace("{count}", String(more))}
-        </Button>
+        <div className="mt-3 flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-expanded={all}
+            onClick={() => setAll((v) => !v)}
+          >
+            {all ? fewerLabel : moreLabel.replace("{count}", String(more))}
+          </Button>
+        </div>
       )}
     </Card>
   );
