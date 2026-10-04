@@ -359,7 +359,7 @@ export class SessionsController {
           title:
             action === "confirm"
               ? `${actorName} aceptó bailar contigo`
-              : `${actorName} no pudo bailar esta vez`,
+              : `${actorName} no pudo bailar`,
           data: { sessionId: id },
         });
       }

@@ -79,7 +79,7 @@ export class FriendsController {
     await this.notifications.notifySafe(dto.personId, {
       category: "SOCIAL",
       type: "friend.request",
-      title: `${requester?.name ?? "Alguien"} te envió una solicitud de amistad`,
+      title: `${requester?.name ?? "Alguien"} te envió solicitud de amistad`,
       data: { friendshipId: friendship.id },
     });
 

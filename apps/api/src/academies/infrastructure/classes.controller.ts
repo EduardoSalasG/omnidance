@@ -231,7 +231,8 @@ export class ClassesController {
       await this.notifications.notifySafe(w.personId, {
         category: "SOCIAL",
         type: "class.waitlist.promoted",
-        title: `Se liberó un cupo en ${cls.slot.series.name ?? cls.slot.academy.name ?? "tu clase"}`,
+        title: "Conseguiste cupo",
+        body: cls.slot.series.name ?? cls.slot.academy.name,
         data: { classId: cls.id, bookingId: w.id },
       });
       return;

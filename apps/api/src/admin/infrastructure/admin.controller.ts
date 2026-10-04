@@ -404,7 +404,7 @@ export class AdminController {
       category: "OPERATIONAL",
       type: "account.complete_profile",
       title: "Completa tu perfil",
-      body: "Faltan algunos datos para activar tu cuenta — tócalos en tu perfil para continuar.",
+      body: "Faltan datos para activar tu cuenta",
       data: { path: "/perfil/completar" },
     });
 

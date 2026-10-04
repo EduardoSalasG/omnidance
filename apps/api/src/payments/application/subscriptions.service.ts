@@ -404,7 +404,7 @@ export class SubscriptionsService {
       await this.notifications.notifySafe(personId, {
         category: "TRANSACTIONAL",
         type: "membership.subscription_started",
-        title: "Tu suscripción está activa",
+        title: "Suscripción activa",
         body: `${plan.name} · ${plan.academy.name}`,
         data: {
           subscriptionId: sub.id,
@@ -603,7 +603,7 @@ export class SubscriptionsService {
       await this.notifications.notifySafe(person.id, {
         category: "TRANSACTIONAL",
         type: "membership.subscription_started",
-        title: "Tu suscripción está activa",
+        title: "Suscripción activa",
         body: `${sub.plan.name} · ${sub.plan.academy.name}`,
         data: { subscriptionId: sub.id, academyId: sub.academyId },
       });
@@ -752,8 +752,8 @@ export class SubscriptionsService {
       type: "membership.subscription_canceled",
       title: "Suscripción cancelada",
       body: plan
-        ? `${plan.name} · ${plan.academy.name} — conservas el acceso hasta el fin del período pagado`
-        : "Conservas el acceso hasta el fin del período pagado",
+        ? `${plan.name} · ${plan.academy.name} — acceso hasta fin del período pagado`
+        : "Acceso hasta fin del período pagado",
       data: {
         subscriptionId: sub.id,
         planId: sub.planId,
@@ -1028,7 +1028,7 @@ export class SubscriptionsService {
       await this.notifications.notifySafe(sub.personId, {
         category: "TRANSACTIONAL",
         type: "membership.renewal_reminder",
-        title: "Mañana se renueva tu suscripción",
+        title: "Renovación mañana",
         body: plan
           ? `${plan.name} · ${plan.academy.name}`
           : "Se cobrará el próximo período de tu plan",
@@ -1097,10 +1097,10 @@ export class SubscriptionsService {
         await this.notifications.notifySafe(sub.personId, {
           category: "TRANSACTIONAL",
           type: "membership.renewal_failed",
-          title: "No pudimos cobrar tu suscripción",
+          title: "Cobro fallido",
           body: plan
-            ? `${plan.name} · ${plan.academy.name} — reintentaremos el cobro; revisa tu tarjeta`
-            : "Reintentaremos el cobro; revisa tu tarjeta registrada",
+            ? `${plan.name} · ${plan.academy.name} — reintentaremos; revisa tu tarjeta`
+            : "Reintentaremos el cobro — revisa tu tarjeta",
           data: {
             subscriptionId: sub.id,
             planId: sub.planId,

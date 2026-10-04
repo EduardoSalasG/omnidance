@@ -440,3 +440,46 @@ describe("NotificationsService push tokens", () => {
     );
   });
 });
+
+// Convención push-copy (openspec push-copy-precision): title = outcome
+// corto — sin prefijos de categoría ("Pago confirmado —"), sin punto
+// final, ≤ 40 chars sin interpolar. Spot-check sobre los literales que
+// emiten los call sites cubiertos por la tabla verbatim.
+describe("push-copy: convención de titles", () => {
+  const titles = [
+    "Ticket listo",
+    "Cupo reservado",
+    "En lista de espera",
+    "Pase de serie activo",
+    "Plan activo",
+    "Clase particular comprada",
+    "Pago fallido",
+    "Monto distinto al de la orden",
+    "Suscripción activa",
+    "Suscripción cancelada",
+    "Renovación mañana",
+    "Cobro fallido",
+    "Conseguiste cupo",
+    "Cupo liberado",
+    "Mesa confirmada",
+    "Mesa no confirmada",
+    "Nueva solicitud de mesa",
+    "Clase particular agendada",
+    "Clase particular asignada",
+    "Clase particular cancelada",
+    "Clase particular vendida",
+    "Comisión liquidada",
+    "Completa tu perfil",
+  ];
+
+  it.each(titles)("title %j tiene ≤ 40 chars y no termina en punto", (t) => {
+    expect(t.length).toBeLessThanOrEqual(40);
+    expect(t.endsWith(".")).toBe(false);
+  });
+
+  it("ningún title usa el prefijo 'Pago confirmado —'", () => {
+    for (const t of titles) {
+      expect(t.startsWith("Pago confirmado")).toBe(false);
+    }
+  });
+});

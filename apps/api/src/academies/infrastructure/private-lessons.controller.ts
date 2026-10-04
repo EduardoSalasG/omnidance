@@ -335,8 +335,8 @@ export class PrivateLessonsController {
           await this.notifications.notifySafe(academy.ownerId, {
             category: "OPERATIONAL",
             type: "academy.private_lesson.cancelled_paid",
-            title: "Clase particular pagada cancelada",
-            body: "Corresponde devolver el pago al alumno",
+            title: "Clase particular cancelada",
+            body: "Reembolsar el pago al alumno",
             data: {
               lessonId: lesson.id,
               academyId: lesson.academyId,
@@ -390,14 +390,14 @@ export class PrivateLessonsController {
         await this.notifications.notifySafe(lesson.personId, {
           category: "TRANSACTIONAL",
           type: "academy.private_lesson.assigned",
-          title: "Tu clase particular quedó agendada",
+          title: "Clase particular agendada",
           body: df,
           data: { lessonId: lesson.id, academyId: lesson.academyId },
         });
         await this.notifications.notifySafe(instructor.personId, {
           category: "OPERATIONAL",
           type: "academy.private_lesson.assigned",
-          title: "Te asignaron una clase particular",
+          title: "Clase particular asignada",
           body: df,
           data: { lessonId: lesson.id, academyId: lesson.academyId },
         });
@@ -453,7 +453,7 @@ export class PrivateLessonsController {
         await this.notifications.notifySafe(lesson.instructorId, {
           category: "OPERATIONAL",
           type: "private_lesson.commission_paid",
-          title: "Te liquidaron la comisión de una clase particular",
+          title: "Comisión liquidada",
           body: clp,
           data: { lessonId: lesson.id, academyId: lesson.academyId },
         });
