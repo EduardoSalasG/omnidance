@@ -35,11 +35,16 @@ export type CrmPersonRow = {
 
 // ─── Campaigns ───
 
-/** CampaignSegment del service — los criterios presentes se unen (OR). */
+/** CampaignSegment del service — los criterios presentes se unen (OR).
+ *  Los criterios de alumnos solo valen para actorType ACADEMY (400 si no). */
 export type CampaignSegment = {
   tags?: string[];
   segment?: string;
   personIds?: string[];
+  allStudents?: boolean;
+  enrollmentStatus?: string[];
+  planId?: string;
+  seriesId?: string;
 };
 
 export type CampaignAction =
