@@ -1,0 +1,159 @@
+"use client";
+
+import { useState } from "react";
+import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { BuyPrivateClass } from "./buy-private-class";
+
+type Plan = {
+  id: string;
+  name: string;
+  type: string;
+  price: number;
+  classCount: number | null;
+  weeklyClasses: number | null;
+  periodDays: number | null;
+  description: string[];
+};
+
+const VISIBLE_PLANS = 2;
+
+/** Sección "Planes" de la ficha pública /academias/:id — 2 visibles; el
+    resto tras "ver más" (misma progressive disclosure que Profesores).
+    El card de clase particular queda siempre visible: es otro producto,
+    no un plan. OJO: `plans-section.tsx` es la consola de gestión
+    (/academia/planes) — este es solo la vista pública.
+    Todos los labels llegan como strings (props server→client
+    serializables); `planTypeLabels` es el catálogo academy.planTypes. */
+export function ProfilePlansSection({
+  academyId,
+  plans,
+  privateLessonPrice,
+  membershipFee,
+  activePlanId,
+  subscribedPlanId,
+  labels,
+}: {
+  academyId: string;
+  plans: Plan[];
+  /** Precio de la clase particular; null/0 = la academia no la vende. */
+  privateLessonPrice: number | null;
+  /** Cargo de servicio de membresía — el precio mostrado es el total real. */
+  membershipFee: number;
+  /** Plan vigente del viewer (enrollment ACTIVE/ONLINE). */
+  activePlanId: string | null;
+  /** Plan con suscripción Flow viva — su CTA se oculta (la gestión vive
+      en SubscriptionManage; un segundo "Comprar" cobraría dos veces). */
+  subscribedPlanId: string | null;
+  labels: {
+    title: string;
+    planActive: string;
+    buyPlan: string;
+    extendPlan: string;
+    privateLesson: string;
+    privateLessonDesc: string;
+    feeIncluded: string;
+    /** "Ver {count} más". */
+    more: string;
+    fewer: string;
+    planTypeLabels: Record<string, string>;
+  };
+}) {
+  const [all, setAll] = useState(false);
+  const more = Math.max(0, plans.length - VISIBLE_PLANS);
+  const visible = all ? plans : plans.slice(0, VISIBLE_PLANS);
+
+  return (
+    <Card>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+        {labels.title}
+      </h2>
+      <ul className="flex flex-col gap-3">
+        {visible.map((p) => {
+          const isActivePlan = p.id === activePlanId;
+          const subscribedToPlan = p.id === subscribedPlanId;
+          return (
+            <li
+              key={p.id}
+              className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="flex flex-wrap items-center gap-2 font-medium">
+                    {p.name}
+                    {isActivePlan && (
+                      <Badge variant="neon">{labels.planActive}</Badge>
+                    )}
+                  </p>
+                  <p className="mt-0.5 text-xs text-white/50">
+                    {labels.planTypeLabels[p.type] ?? p.type}
+                    {p.classCount ? ` · ${p.classCount} clases` : ""}
+                    {p.weeklyClasses
+                      ? ` · ${p.weeklyClasses === 1 ? "1 clase/semana" : `${p.weeklyClasses} clases/semana`}`
+                      : ""}
+                  </p>
+                </div>
+                {/* Precio real cobrado (plan + cargo de servicio) —
+                    mismo total que el breakdown del checkout. */}
+                <div className="shrink-0 text-right">
+                  <PriceTag amount={p.price + membershipFee} />
+                  <p className="mt-0.5 text-[10px] text-white/40">
+                    {labels.feeIncluded}
+                  </p>
+                </div>
+              </div>
+              {p.description.length > 0 && (
+                <ul className="list-disc space-y-1 pl-5 text-sm text-white/70">
+                  {p.description.map((d, i) => (
+                    <li key={i}>{d}</li>
+                  ))}
+                </ul>
+              )}
+              {!subscribedToPlan && (
+                <Button
+                  href={`/academias/${academyId}/checkout?plan=${p.id}`}
+                  className="w-full"
+                >
+                  {isActivePlan ? labels.extendPlan : labels.buyPlan}
+                </Button>
+              )}
+            </li>
+          );
+        })}
+        {/* Clase particular — producto comprable (private-lesson-
+            product): paga por adelantado, la academia asigna
+            instructor y fecha. Misma grilla que los planes. */}
+        {(privateLessonPrice ?? 0) > 0 && (
+          <li className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium">{labels.privateLesson}</p>
+                <p className="mt-0.5 text-xs text-white/50">
+                  {labels.privateLessonDesc}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <PriceTag amount={privateLessonPrice! + membershipFee} />
+                <p className="mt-0.5 text-[10px] text-white/40">
+                  {labels.feeIncluded}
+                </p>
+              </div>
+            </div>
+            <BuyPrivateClass academyId={academyId} />
+          </li>
+        )}
+      </ul>
+      {more > 0 && (
+        <div className="mt-3 flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-expanded={all}
+            onClick={() => setAll((v) => !v)}
+          >
+            {all ? labels.fewer : labels.more.replace("{count}", String(more))}
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}

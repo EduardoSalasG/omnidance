@@ -103,6 +103,8 @@
       "moreInstructors": "Ver {count} más",
       "fewerInstructors": "Ver menos",
       "plans": "Planes",
+      "morePlans": "Ver {count} más",
+      "fewerPlans": "Ver menos",
       "classes": "Próximas clases",
       "classesEmpty": "Sin clases programadas próximamente.",
       "moreClasses": "Explorar más clases",

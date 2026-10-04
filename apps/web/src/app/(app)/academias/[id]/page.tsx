@@ -4,14 +4,14 @@ import messages from "../../../../../messages/es-CL.json";
 import academyExtrasPart from "@/i18n/parts/academyExtras.json";
 import subscriptionsPart from "@/i18n/parts/subscriptions.json";
 import membershipCheckoutPart from "@/i18n/parts/membershipCheckout.json";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import { InstructorsSection } from "@/components/academy/instructors-section";
 import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
 import {
   SubscriptionManage,
   type SubscriptionInfo,
 } from "@/components/academy/subscription-manage";
-import { BuyPrivateClass } from "@/components/academy/buy-private-class";
+import { ProfilePlansSection } from "@/components/academy/profile-plans-section";
 
 export const dynamic = "force-dynamic";
 
@@ -284,101 +284,38 @@ export default async function AcademiaDetailPage({
 
       {(academy.plans.length > 0 ||
         (academy.privateLessonPrice ?? 0) > 0) && (
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-            {t.profile.plans}
-          </h2>
-          <ul className="flex flex-col gap-3">
-            {academy.plans.map((p) => {
-              // El plan vigente se marca; el resto sigue comprable
-              // (renovar/extiende la vigencia al pagar).
-              const isActivePlan =
-                (academy.myEnrollment?.status === "ACTIVE" ||
-                  academy.myEnrollment?.status === "ONLINE") &&
-                academy.myEnrollment.plan?.id === p.id;
-              // Si el plan ya tiene suscripción viva no se ofrece CTA —
-              // el bloque SubscriptionManage de arriba es su gestión y un
-              // segundo "Comprar" cobraría el mismo período dos veces.
-              const subscribedToPlan =
-                academy.mySubscription?.planId === p.id &&
-                ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD", "ACTIVATING"].includes(
-                  academy.mySubscription.status,
-                );
-              return (
-                <li
-                  key={p.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="flex flex-wrap items-center gap-2 font-medium">
-                        {p.name}
-                        {isActivePlan && (
-                          <Badge variant="neon">{t.profile.planActive}</Badge>
-                        )}
-                      </p>
-                      <p className="mt-0.5 text-xs text-white/50">
-                        {(t.planTypes as Record<string, string>)[p.type] ??
-                          p.type}
-                        {p.classCount ? ` · ${p.classCount} clases` : ""}
-                        {p.weeklyClasses
-                          ? ` · ${p.weeklyClasses === 1 ? "1 clase/semana" : `${p.weeklyClasses} clases/semana`}`
-                          : ""}
-                      </p>
-                    </div>
-                    {/* Precio real cobrado (plan + cargo de servicio) —
-                        mismo total que el breakdown del checkout. */}
-                    <div className="shrink-0 text-right">
-                      <PriceTag amount={p.price + membershipFee} />
-                      <p className="mt-0.5 text-[10px] text-white/40">
-                        {mc.feeIncluded}
-                      </p>
-                    </div>
-                  </div>
-                  {p.description.length > 0 && (
-                    <ul className="list-disc space-y-1 pl-5 text-sm text-white/70">
-                      {p.description.map((d, i) => (
-                        <li key={i}>{d}</li>
-                      ))}
-                    </ul>
-                  )}
-                  {!subscribedToPlan && (
-                    <Button
-                      href={`/academias/${academy.id}/checkout?plan=${p.id}`}
-                      className="w-full"
-                    >
-                      {isActivePlan ? t.profile.extendPlan : t.profile.buyPlan}
-                    </Button>
-                  )}
-                </li>
-              );
-            })}
-            {/* Clase particular — producto comprable (private-lesson-
-                product): paga por adelantado, la academia asigna
-                instructor y fecha. Misma grilla que los planes. */}
-            {(academy.privateLessonPrice ?? 0) > 0 && (
-              <li className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium">{t.profile.privateLesson}</p>
-                    <p className="mt-0.5 text-xs text-white/50">
-                      {t.profile.privateLessonDesc}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <PriceTag
-                      amount={academy.privateLessonPrice! + membershipFee}
-                    />
-                    <p className="mt-0.5 text-[10px] text-white/40">
-                      {mc.feeIncluded}
-                    </p>
-                  </div>
-                </div>
-                <BuyPrivateClass academyId={academy.id} />
-              </li>
-            )}
-          </ul>
-        </Card>
+        <ProfilePlansSection
+          academyId={academy.id}
+          plans={academy.plans}
+          privateLessonPrice={academy.privateLessonPrice}
+          membershipFee={membershipFee}
+          activePlanId={
+            academy.myEnrollment?.status === "ACTIVE" ||
+            academy.myEnrollment?.status === "ONLINE"
+              ? (academy.myEnrollment.plan?.id ?? null)
+              : null
+          }
+          subscribedPlanId={
+            academy.mySubscription &&
+            ["ACTIVE", "CANCEL_PENDING", "PENDING_CARD", "ACTIVATING"].includes(
+              academy.mySubscription.status,
+            )
+              ? academy.mySubscription.planId
+              : null
+          }
+          labels={{
+            title: t.profile.plans,
+            planActive: t.profile.planActive,
+            buyPlan: t.profile.buyPlan,
+            extendPlan: t.profile.extendPlan,
+            privateLesson: t.profile.privateLesson,
+            privateLessonDesc: t.profile.privateLessonDesc,
+            feeIncluded: mc.feeIncluded,
+            more: t.profile.morePlans,
+            fewer: t.profile.fewerPlans,
+            planTypeLabels: t.planTypes as Record<string, string>,
+          }}
+        />
       )}
 
       <section aria-label={t.profile.classes}>
