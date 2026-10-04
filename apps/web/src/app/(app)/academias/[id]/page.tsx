@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import messages from "../../../../../messages/es-CL.json";
 import academyExtrasPart from "@/i18n/parts/academyExtras.json";
 import subscriptionsPart from "@/i18n/parts/subscriptions.json";
-import membershipCheckoutPart from "@/i18n/parts/membershipCheckout.json";
 import { Badge, Button, Card } from "@/components/ui";
 import { InstructorsSection } from "@/components/academy/instructors-section";
 import { ClassCard, type ClassCardData } from "@/components/classes/class-card";
@@ -71,21 +70,6 @@ async function getProfile(id: string): Promise<AcademyProfile | "error"> {
   return (await res.json()) as AcademyProfile;
 }
 
-// Cargo de servicio de membresía — GET /api/params/public (whitelist).
-// El disclosure de suscripción debe mostrar el total real que Flow
-// debita (precio + fee — mismo amount del plan espejo en
-// subscriptions.service.ts). Si el endpoint falla se usa el mismo
-// fallback que el service (500).
-async function getMembershipFee(): Promise<number> {
-  const res = await fetch(`${API_URL}/api/params/public`, {
-    cache: "no-store",
-  }).catch(() => null);
-  if (!res?.ok) return 500;
-  const params = (await res.json()) as Record<string, unknown>;
-  const fee = Number(params["service_fee.membership_clp"]);
-  return Number.isFinite(fee) && fee >= 0 ? fee : 500;
-}
-
 // website es texto libre: puede venir sin protocolo o malformado —
 // `new URL` en render SSR lanzaría y rompería la ficha. Se prueba
 // tal cual y luego con https:// prefijado; si nada resuelve, null
@@ -125,11 +109,7 @@ export default async function AcademiaDetailPage({
   const t = { ...messages.academy, ...academyExtrasPart.academy };
   const tc = messages.common;
   const ts = subscriptionsPart.subscriptions;
-  const mc = membershipCheckoutPart.membershipCheckout;
-  const [academy, membershipFee] = await Promise.all([
-    getProfile(params.id),
-    getMembershipFee(),
-  ]);
+  const academy = await getProfile(params.id);
 
   if (academy === "error") {
     return (
@@ -308,8 +288,11 @@ export default async function AcademiaDetailPage({
           subscription={academy.mySubscription}
           accessUntil={academy.myEnrollment?.endsAt ?? null}
           nextAmount={
-            (academy.plans.find((p) => p.id === academy.mySubscription!.planId)
-              ?.price ?? 0) + membershipFee
+            // Sin cargo de servicio (modelo SaaS): Flow cobra solo el
+            // precio del plan — mismo amount del plan espejo en
+            // subscriptions.service.ts.
+            academy.plans.find((p) => p.id === academy.mySubscription!.planId)
+              ?.price ?? 0
           }
         />
       )}
@@ -340,7 +323,6 @@ export default async function AcademiaDetailPage({
           academyId={academy.id}
           plans={academy.plans}
           privateLessonPrice={academy.privateLessonPrice}
-          membershipFee={membershipFee}
           activePlanId={
             academy.myEnrollment?.status === "ACTIVE" ||
             academy.myEnrollment?.status === "ONLINE"
@@ -362,7 +344,6 @@ export default async function AcademiaDetailPage({
             extendPlan: t.profile.extendPlan,
             privateLesson: t.profile.privateLesson,
             privateLessonDesc: t.profile.privateLessonDesc,
-            feeIncluded: mc.feeIncluded,
             trialAssigned: t.profile.trialAssigned,
             planClassCount: t.planClassCount,
             planWeeklyCount: t.planWeeklyCount,

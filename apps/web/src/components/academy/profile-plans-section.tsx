@@ -37,7 +37,6 @@ export function ProfilePlansSection({
   academyId,
   plans,
   privateLessonPrice,
-  membershipFee,
   activePlanId,
   subscribedPlanId,
   labels,
@@ -46,8 +45,6 @@ export function ProfilePlansSection({
   plans: Plan[];
   /** Precio de la clase particular; null/0 = la academia no la vende. */
   privateLessonPrice: number | null;
-  /** Cargo de servicio de membresía — el precio mostrado es el total real. */
-  membershipFee: number;
   /** Plan vigente del viewer (enrollment ACTIVE/ONLINE). */
   activePlanId: string | null;
   /** Plan con suscripción Flow viva — su CTA se oculta (la gestión vive
@@ -60,7 +57,6 @@ export function ProfilePlansSection({
     extendPlan: string;
     privateLesson: string;
     privateLessonDesc: string;
-    feeIncluded: string;
     /** Plan TRIAL sin precio: no se compra — texto informativo. */
     trialAssigned: string;
     /** Plural ICU "{count} clase(s)". */
@@ -111,16 +107,11 @@ export function ProfilePlansSection({
                       : ""}
                   </p>
                 </div>
-                {/* Precio real cobrado (plan + cargo de servicio) —
-                    mismo total que el breakdown del checkout. El trial
-                    gratis no suma fee: no hay cobro. */}
+                {/* Precio real cobrado — sin cargo de servicio (modelo
+                    SaaS: la academia vende sin comisión), mismo total
+                    que el breakdown del checkout. */}
                 <div className="shrink-0 text-right">
-                  <PriceTag amount={p.price + (freeTrial ? 0 : membershipFee)} />
-                  {!freeTrial && (
-                    <p className="mt-0.5 text-[10px] text-white/40">
-                      {labels.feeIncluded}
-                    </p>
-                  )}
+                  <PriceTag amount={p.price} />
                 </div>
               </div>
               {p.description.length > 0 && (
@@ -158,10 +149,7 @@ export function ProfilePlansSection({
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <PriceTag amount={privateLessonPrice! + membershipFee} />
-                <p className="mt-0.5 text-[10px] text-white/40">
-                  {labels.feeIncluded}
-                </p>
+                <PriceTag amount={privateLessonPrice!} />
               </div>
             </div>
             <BuyPrivateClass academyId={academyId} />
