@@ -123,6 +123,47 @@ higiene de OpenSpec y los exportes PDF.
     prefill de evaluación existente en `/evaluar` (re-envío = upsert).
 - `pwa-shell-nav` sigue abierto (19/20) — solo falta confirmar push iOS.
 
+## Sesión noche 2 — auditoría DANCER/ALUMNO + pivote SaaS
+
+**Auditoría UX completa** (4 auditores paralelos + pase transversal):
+~90 hallazgos sobre las ~24 rutas del rol. Cierre por slices en serie:
+
+- **F1** `f9a4587` — crash `ticket.event===null` (TicketWallet+detalle+
+  test wallet-sort), `stillPending` con timeout en los 3 checkouts,
+  `/clases/particular` alcanzable (sheet academia + chip en /clases +
+  deep-links notifs + fallback `data.path`).
+- **F2** `ccc23b8` — error+retry en ~8 páginas, error-vs-empty en
+  /eventos y /locales/[id] (500→404 arreglado), MyQr con estado de
+  error (pantalla de puerta), copys (mias academias, completar loadError,
+  tablesSoldOut).
+- **F3** `93dad39` — checkout: Enter ya no envía la orden, endpoint
+  `GET /checkout/discount-quote` (preview del código antes de pagar),
+  `presaleEndsAt` expuesto en `GET /events/:id` (estimado correcto
+  post-corte 19:00), `songSuggestion` opcional en checkout (max 140),
+  radiogroup de mesa + total aria-live, `stub://` en drop-in/particular,
+  `Payment.eventId` expuesto, return con tryAgain.
+  OpenAPI/Postman regen `9a738e7` (197 paths).
+- **F4/F5** — en curso (a11y transversal + menor/i18n/glyphs).
+- **Backlog usuario**: bloqueo de usuarios (API lista, sin UI),
+  `sessions.declare` retro-declarar, N+1 videos /academias, recorte
+  select público de eventos.
+
+**Pivote de monetización** — change `academy-saas-billing` spec'd y
+validado (`eaf758e`, 7 tasks S1-S7, pendiente de implementar):
+- Academia: suscripción por tier de alumnos activos (STARTER ≤50 /
+  PRO ≤150 / STUDIO ≤400 + Enterprise), ~8.5% de facturación como
+  objetivo, semestral −10%/anual −15%, trial 30d. Cobro vía motor
+  Subscription/Flow existente. Mora: 5d gracia → `billingBlockedAt`
+  (consola read-only, fuera de explorar, sin reservas/compras — el
+  alumno conserva historial). Academias existentes: 60d grace.
+- Fee comprador en productos academia → $0; academia absorbe Flow
+  (~3.19%) como línea `GATEWAY_FEE_PASSTHROUGH` en su payout.
+- Productor: `platformFeePct` intacto + suscripción **Producer Pro**
+  opcional (features premium; la mora solo degrada features, nunca
+  corta la venta). Precio Pro pendiente de definir.
+- Pricing tiers pendiente de ajuste fino del usuario (baseline en
+  design.md; alternativa metered ~$2.500/alumno documentada).
+
 ## Pendientes
 
 1. **Validación Flow sandbox real** — sigue bloqueando producción
