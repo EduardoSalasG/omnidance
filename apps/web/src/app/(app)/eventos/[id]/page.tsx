@@ -145,11 +145,13 @@ async function hasActiveTicket(eventId: string): Promise<boolean> {
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
   if (!res?.ok) return false;
+  // event puede ser null (evento eliminado tras la compra) — el API
+  // devuelve `byId.get(t.eventId) ?? null` en /tickets/mine.
   const rows = (await res.json()) as {
-    event: { id: string };
+    event: { id: string } | null;
     status: string;
   }[];
-  return rows.some((r) => r.event.id === eventId && r.status === "ACTIVE");
+  return rows.some((r) => r.event?.id === eventId && r.status === "ACTIVE");
 }
 
 export default async function EventoDetailPage({

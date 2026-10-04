@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
+import { sortWalletTickets } from "./wallet-sort";
 
 export type WalletTicket = {
   id: string;
@@ -16,13 +17,14 @@ export type WalletTicket = {
   serviceFee: number;
   /** Link reclamable (compra multi-entrada sin asignar) — null tras reclamo */
   claimToken: string | null;
+  /** null cuando el evento fue eliminado tras la compra (ticket huérfano) */
   event: {
     id: string;
     name: string;
     startsAt: string;
     // Eventos standalone (p.ej. galas de academia) pueden no tener venue.
     venue: { name: string } | null;
-  };
+  } | null;
 };
 
 const STATUS_VARIANT: Record<TicketStatus, BadgeVariant> = {
@@ -115,7 +117,10 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
 
   function waHref(ticket: WalletTicket): string {
     const url = `${window.location.origin}/reclamar/${ticket.claimToken}`;
-    const text = tcClaim("waMessage", { event: ticket.event.name, url });
+    const text = tcClaim("waMessage", {
+      event: ticket.event?.name ?? t("eventRemoved"),
+      url,
+    });
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
   }
 
@@ -131,11 +136,7 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
   }
 
   // Más futuro/reciente primero — lo próximo es lo que se usa en puerta.
-  const sorted = [...items].sort(
-    (a, b) =>
-      new Date(b.event.startsAt).getTime() -
-      new Date(a.event.startsAt).getTime(),
-  );
+  const sorted = sortWalletTickets(items);
 
   if (sorted.length === 0) {
     return (
@@ -162,19 +163,30 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
             <Card className="flex flex-col gap-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex min-w-0 flex-col gap-1">
-                  <Link
-                    href={`/eventos/${ticket.event.id}`}
-                    className="text-lg font-semibold hover:text-neon"
-                  >
-                    {ticket.event.name}
-                  </Link>
-                  <EventDate
-                    start={ticket.event.startsAt}
-                    className="text-sm text-white/60"
-                  />
-                  {ticket.event.venue && (
-                    <p className="text-sm text-white/50">
-                      {ticket.event.venue.name}
+                  {ticket.event ? (
+                    <>
+                      <Link
+                        href={`/eventos/${ticket.event.id}`}
+                        className="text-lg font-semibold hover:text-neon"
+                      >
+                        {ticket.event.name}
+                      </Link>
+                      <EventDate
+                        start={ticket.event.startsAt}
+                        className="text-sm text-white/60"
+                      />
+                      {ticket.event.venue && (
+                        <p className="text-sm text-white/50">
+                          {ticket.event.venue.name}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    /* Ticket huérfano: el evento se eliminó tras la
+                        compra — sin link, pero el QR/estado sigue
+                        visible y usable en puerta. */
+                    <p className="text-lg font-semibold text-white/50">
+                      {t("eventRemoved")}
                     </p>
                   )}
                 </div>
@@ -256,7 +268,9 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
               {t("transferTitle")}
             </h2>
             <p className="mt-1 text-sm text-white/60">{t("transferDesc")}</p>
-            <p className="mt-3 text-sm font-medium">{transferFor.event.name}</p>
+            <p className="mt-3 text-sm font-medium">
+              {transferFor.event?.name ?? t("eventRemoved")}
+            </p>
             <form onSubmit={submitTransfer} className="mt-4 flex flex-col gap-4">
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm text-white/70">

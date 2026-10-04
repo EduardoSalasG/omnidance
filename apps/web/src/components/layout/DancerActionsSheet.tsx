@@ -113,8 +113,9 @@ export function DancerActionsSheet({
           </Link>
         )}
 
-        {/* Módulos secundarios — la lente academia del bailarín no tiene
-            (sus módulos ya son tabs): el sheet queda solo con el QR. */}
+        {/* Módulos secundarios de la lente activa — social lleva
+            Bailes/Prácticas; academia lleva la bandeja de particulares.
+            Si la lente no tiene ítems, el sheet queda solo con el QR. */}
         {items.length > 0 && (
           <nav aria-label={t("moreMenu")} className="mt-5">
             <ul className="grid grid-cols-2 gap-2">
