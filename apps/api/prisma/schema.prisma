@@ -1066,7 +1066,7 @@ enum PaymentStatus {
 
 model Payment {
   id        String        @id @default(cuid())
-  orderType String // TICKET | SERIES_PASS | MEMBERSHIP | PRIVATE_LESSON | WORKSHOP
+  orderType String // TICKET | SERIES_PASS | MEMBERSHIP | WORKSHOP | PRIVATE | PLATFORM_SUB
   refId     String @unique // correlación con la pasarela (webhook lo busca por refId)
   personId  String
   eventId   String? // contexto desnormalizado de la compra
@@ -1407,6 +1407,12 @@ model PlatformSubscription {
   // duplicar los dos dominios; precios/límites en PlatformParam.
   tierCode           String
   billingCycle       BillingCycle
+  // Cambio de plan pendiente (downgrade/cambio de ciclo): se aplica al
+  // iniciarse el próximo ciclo — el reconcile cancela la Flow sub al fin de
+  // período y crea la nueva sobre el plan del tier pendiente. null = nada
+  // pendiente (upgrade aplica inmediato, no usa estos campos).
+  pendingTierCode      String?
+  pendingBillingCycle  BillingCycle?
   flowSubscriptionId String?       @unique
   // Mismo ciclo de vida que MembershipSubscription:
   // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)

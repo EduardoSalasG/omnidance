@@ -21,7 +21,9 @@ import {
 import { CheckoutService } from "./application/checkout.service";
 import { PaymentSettlementService } from "./application/payment-settlement.service";
 import { SubscriptionsService } from "./application/subscriptions.service";
+import { PlatformSubscriptionsService } from "./application/platform-subscriptions.service";
 import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
+import { ProducerProController } from "./infrastructure/producer-pro.controller";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
 
@@ -34,11 +36,13 @@ import { NotificationsModule } from "../notifications/notifications.module";
     AdminPayoutsController,
     MePayoutsController,
     SubscriptionsController,
+    ProducerProController,
   ],
   providers: [
     CheckoutService,
     PaymentSettlementService,
     SubscriptionsService,
+    PlatformSubscriptionsService,
     SubscriptionsScheduler,
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
@@ -56,6 +60,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
     GatewayTransactionsService,
     PaymentSettlementService,
     SubscriptionsService,
+    PlatformSubscriptionsService,
   ],
 })
 export class PaymentsModule {}

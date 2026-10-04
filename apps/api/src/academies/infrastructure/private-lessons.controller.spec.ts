@@ -223,6 +223,7 @@ describe("comisión del instructor en clases particulares", () => {
       prisma as unknown as PrismaService,
       access,
       {} as never, // SubscriptionsService — no se usa en estos endpoints
+      {} as never, // ParamsService — idem
     );
     prisma.academies.push({ id: "ac-1", ownerId: "owner", active: true });
     prisma.instructors.push({
@@ -376,6 +377,7 @@ describe("private-lesson-product", () => {
     academies = new AcademiesController(
       prisma as unknown as PrismaService,
       access,
+      {} as never,
       {} as never,
     );
     prisma.academies.push({ id: "ac-1", ownerId: "owner", active: true });

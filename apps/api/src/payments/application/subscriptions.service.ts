@@ -21,6 +21,7 @@ import {
 } from "../domain/ports";
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
+import { ensureFlowCustomer } from "./flow-customer";
 
 // PlanType recurrente → interval_count de Flow (interval=3 mensual fijo):
 // MONTHLY cobra cada mes, QUARTERLY cada 3, SEMIANNUAL cada 6.
@@ -34,7 +35,8 @@ const INTERVAL_COUNT: Record<string, number> = {
 // PENDING_CARD/ACTIVATING más vieja que esto se considera intento
 // muerto (crash del request o abandono del disclaimer) y se reemplaza;
 // una fresca del mismo plan se reutiliza (idempotencia del retry).
-const PENDING_CARD_TTL_MS = 15 * 60_000;
+// Exportada: PlatformSubscriptionsService aplica la misma política.
+export const PENDING_CARD_TTL_MS = 15 * 60_000;
 
 // Grace del orphan sweep: un subscription/create auditado más joven que
 // esto puede ser un request en vuelo (aún no persiste flowSubscriptionId)
@@ -43,7 +45,8 @@ const ORPHAN_SWEEP_GRACE_MS = 2 * 60_000;
 
 // Ventana del reminder pre-cobro: avisa el día anterior (nextInvoiceAt
 // dentro de las próximas 24h, nunca por cobros ya pasados).
-const REMINDER_WINDOW_MS = 24 * 60 * 60_000;
+// Exportada: PlatformSubscriptionsService aplica la misma política.
+export const REMINDER_WINDOW_MS = 24 * 60 * 60_000;
 
 export type SubscribeResult =
   | { kind: "needs_card"; registerUrl: string; subscriptionId: string }
@@ -323,27 +326,14 @@ export class SubscriptionsService {
       });
     }
 
-    // Customer en Flow — lazy create; sin email no se puede registrar.
-    const person = await this.prisma.person.findUniqueOrThrow({
-      where: { id: personId },
-    });
-    let customerId = person.flowCustomerId;
-    if (!customerId) {
-      if (!person.email) {
-        throw new BadRequestException(
-          "necesitas un email en tu cuenta para suscribirte",
-        );
-      }
-      const c = await provider.createCustomer(
-        { email: person.email, name: person.name, externalId: personId },
-        { correlationId },
-      );
-      customerId = c.customerId;
-      await this.prisma.person.update({
-        where: { id: personId },
-        data: { flowCustomerId: customerId },
-      });
-    }
+    // Customer en Flow — lazy create (helper compartido con las subs de
+    // plataforma); sin email no se puede registrar.
+    const { customerId } = await ensureFlowCustomer(
+      this.prisma,
+      provider,
+      personId,
+      { correlationId },
+    );
 
     const customer = await provider.getCustomer(customerId, { correlationId });
     if (!customer.creditCardType) {
@@ -810,6 +800,11 @@ export class SubscriptionsService {
    * ACTIVATING fresca (request en vuelo — además el grace por createdAt
    * de la auditoría ya la excluye). Un crash en el round-trip del create
    * deja el id solo en la auditoría: este sweep es la última red.
+   *
+   * El barrido cubre AMBAS tablas: `subscription/create` es el mismo
+   * endpoint auditado para membresías y para PlatformSubscription
+   * (academy-saas-billing) — sin la cobertura de la segunda tabla, el
+   * sweep cancelaría las subs de plataforma vivas por "huérfanas".
    */
   private async sweepOrphanSubscriptions(
     provider: SubscriptionProvider,
@@ -832,14 +827,36 @@ export class SubscriptionsService {
       if (typeof id === "string" && id) remoteIds.add(id);
     }
     if (!remoteIds.size) return;
-    const linked = await this.prisma.membershipSubscription.findMany({
-      where: { flowSubscriptionId: { in: [...remoteIds] } },
-    });
+    const [linked, linkedPlatform] = await Promise.all([
+      this.prisma.membershipSubscription.findMany({
+        where: { flowSubscriptionId: { in: [...remoteIds] } },
+      }),
+      this.prisma.platformSubscription.findMany({
+        where: { flowSubscriptionId: { in: [...remoteIds] } },
+      }),
+    ]);
     const byRemote = new Map(
       linked.map((s) => [s.flowSubscriptionId!, s] as const),
     );
+    const platformByRemote = new Map(
+      linkedPlatform.map((s) => [s.flowSubscriptionId!, s] as const),
+    );
     for (const remoteId of remoteIds) {
       const local = byRemote.get(remoteId);
+      const platformLocal = platformByRemote.get(remoteId);
+      if (
+        platformLocal &&
+        (platformLocal.status === "ACTIVE" ||
+          platformLocal.status === "CANCEL_PENDING")
+      ) {
+        continue; // cobertura viva en la tabla de plataforma
+      }
+      if (
+        platformLocal?.status === "ACTIVATING" &&
+        Date.now() - platformLocal.createdAt.getTime() < PENDING_CARD_TTL_MS
+      ) {
+        continue; // request en vuelo
+      }
       if (
         local &&
         (local.status === "ACTIVE" || local.status === "CANCEL_PENDING")
@@ -862,11 +879,17 @@ export class SubscriptionsService {
           immediate: true,
         });
         this.logger.warn(
-          `sub remota huérfana ${remoteId} cancelada (local: ${local?.id ?? "sin fila"})`,
+          `sub remota huérfana ${remoteId} cancelada (local: ${local?.id ?? platformLocal?.id ?? "sin fila"})`,
         );
         if (local?.status === "ACTIVATING") {
           await this.prisma.membershipSubscription.updateMany({
             where: { id: local.id, status: "ACTIVATING" },
+            data: { status: "CANCELED", canceledAt: new Date() },
+          });
+        }
+        if (platformLocal?.status === "ACTIVATING") {
+          await this.prisma.platformSubscription.updateMany({
+            where: { id: platformLocal.id, status: "ACTIVATING" },
             data: { status: "CANCELED", canceledAt: new Date() },
           });
         }

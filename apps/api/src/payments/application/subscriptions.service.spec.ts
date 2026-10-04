@@ -323,6 +323,12 @@ function mkPrisma() {
       ),
     },
     personRole: { findMany: vi.fn(async () => [] as Row[]) },
+    // PlatformSubscription (saas-billing): el orphan sweep de subs cubre
+    // ambas tablas — sin filas acá, siempre vacío.
+    platformSubscription: {
+      findMany: vi.fn(async () => [] as Row[]),
+      updateMany: vi.fn(async () => ({ count: 0 })),
+    },
     notification: {
       // Dedup de renewal_failed: filtra por personId/type y, si viene,
       // por data.path + equals (filtro JSON de Prisma sobre Postgres).

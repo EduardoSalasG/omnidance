@@ -19,15 +19,31 @@
 
 ## S2 — Facturación de la suscripción
 
-- [ ] `POST /academies/:id/subscribe` (tier + ciclo) → checkout Flow
-      suscripción → `Subscription` existente
-- [ ] `PATCH /academies/:id/subscription` (cambio de tier/ciclo; prorateo
-      manual v1 o aplica en próxima renovación)
-- [ ] `POST /academies/:id/subscription/cancel` (efecto al fin del ciclo)
-- [ ] `GET /academies/:id/billing` — estado: tier, alumnos activos vs
-      límite, próxima facturación, días de gracia restantes
-- [ ] Tier enforcement al suscribir: `activeStudents > tier.max` → 400
-      con copy honesto (debe bajar alumnos o subir de tier)
+- [x] `POST /academies/:id/subscribe` (tier + ciclo) → registro de
+      tarjeta Flow → `PlatformSubscription` PENDING_CARD →
+      `POST /api/payments/flow/platform-customer-return` (callback del
+      disclaimer) → subscription/create → ACTIVE
+- [x] `PATCH /academies/:id/subscription` — upgrade de tier inmediato
+      (swap Flow: cancel remota inmediata + create en el plan nuevo,
+      cobra el ciclo completo — prorateo manual v1); downgrade/cambio de
+      ciclo queda en `pendingTierCode`/`pendingBillingCycle` + cancel
+      remota a fin de período y el reconcile recrea la sub en el plan
+      pendiente
+- [x] `POST /academies/:id/subscription/cancel` (efecto al fin del ciclo)
+- [x] `GET /academies/:id/billing` — estado: tier, alumnos activos vs
+      límite, próxima facturación, trial, días de gracia restantes,
+      bloqueo e invoices (Payment PLATFORM_SUB)
+- [x] Tier enforcement al suscribir y al cambiar tier:
+      `activeStudents > tier.max` → 400 `{error:"tier_limit", active,
+      max}` con copy honesto (debe bajar alumnos o subir de tier)
+- [x] Reconcile recurrente (webhook subscription/callback compartido +
+      cron 09:00): invoices pagadas → Payment `platsub_<subId>_<inv>` +
+      RENEWAL_SETTLED (dedup `lastInvoiceId`/refId); mora →
+      `billingGraceUntil = now + academy_billing.grace_days` + notify +
+      RENEWAL_FAILED; Producer Pro → `POST /producers/:id/pro/subscribe|
+      cancel` + `GET /producers/:id/pro` con tier por facturación 90d
+- [x] `POST /academies` siembra `trialEndsAt` = now +
+      `academy_billing.trial_days`
 
 ## S3 — Enforcement de mora
 
@@ -38,7 +54,9 @@
       academias bloqueadas
 - [ ] `POST /classes/:id/book` + checkout academy → 400/403 con copy
       "academia no disponible" (alumno no castigado: historial visible)
-- [ ] `RENEWAL_SETTLED` → `billingBlockedAt = null` + gracia reset
+- [x] `RENEWAL_SETTLED` → `billingBlockedAt = null` + gracia reset
+      (implementado en S2 vía `settlePlatformSub` — el cobro recuperado
+      desbloquea sin esperar al job)
 
 ## S4 — Fee de comprador en productos academia → 0
 
@@ -51,7 +69,9 @@
 
 ## S5 — Producer Pro
 
-- [ ] `POST /producers/:id/pro/subscribe|cancel` (mismo motor)
+- [x] `POST /producers/:id/pro/subscribe|cancel` + `GET /producers/:id/pro`
+      (mismo motor — implementado en S2; el tier se calcula por
+      facturación media 90d contra `producer_tier.*_max_monthly_clp`)
 - [ ] Gating: features premium (definir lista: analítica avanzada + CRM +
       exports + multi-staff) → 402/403 con CTA a Pro
 - [ ] `platformFeePct` intacto (comisión por venta sigue siendo la

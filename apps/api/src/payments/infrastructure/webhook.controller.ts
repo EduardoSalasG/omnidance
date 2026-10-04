@@ -22,6 +22,7 @@ import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
 import { PaymentSettlementService } from "../application/payment-settlement.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
+import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
 import {
   decodeClassRef,
   decodePrivateRef,
@@ -64,6 +65,7 @@ export class PaymentsController {
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly settlement: PaymentSettlementService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly platformSubs: PlatformSubscriptionsService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -133,15 +135,51 @@ export class PaymentsController {
   }
 
   /**
+   * Retorno del disclaimer de tarjeta para suscripciones DE PLATAFORMA
+   * (academia SaaS / Producer Pro — spec academy-saas-billing). Endpoint
+   * propio porque el token de getRegisterStatus se consume una sola vez:
+   * cada dominio resuelve sus pendientes en su callback. Mismo contrato
+   * que customer-return: nunca error HTTP — el redirect es la respuesta.
+   * Academia → su ficha (?sub=ok|error); productor → /productor?pro=ok.
+   */
+  @Post("flow/platform-customer-return")
+  async platformCustomerReturn(
+    @Body() body: FlowTokenDto,
+    @Res() res: Response,
+  ) {
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const errorTo = (academyId?: string | null) =>
+      academyId
+        ? `${webUrl}/academias/${academyId}?sub=error`
+        : `${webUrl}/perfil?sub=error`;
+    if (!body.token) return res.redirect(303, errorTo());
+    try {
+      const r = await this.platformSubs.customerReturn(body.token);
+      if (!r.ok) return res.redirect(303, errorTo());
+      const okTo =
+        r.kind === "ACADEMY" && r.academyId
+          ? `${webUrl}/academias/${r.academyId}?sub=ok`
+          : `${webUrl}/productor?pro=ok`;
+      return res.redirect(303, okTo);
+    } catch {
+      return res.redirect(303, errorTo());
+    }
+  }
+
+  /**
    * urlCallback de los Flow-plans de suscripción (registrado en
    * plans/create). Público: registra el INBOUND en GatewayTransaction y
    * dispara reconcileAll fire-and-forget — responde 200 siempre (Flow
-   * reintenta ante no-200 y repetiría el barrido completo).
+   * reintenta ante no-200 y repetiría el barrido completo). El callback
+   * es compartido: barre membresías de alumnos Y suscripciones de
+   * plataforma (mismo token-gating anti-amplificación dentro de cada
+   * service).
    */
   @Post("subscription-webhook")
   @HttpCode(200)
   async subscriptionWebhook(@Body() body: FlowTokenDto) {
     await this.subscriptions.subscriptionWebhook(body.token ?? null);
+    await this.platformSubs.subscriptionWebhook(body.token ?? null);
     return { ok: true };
   }
 

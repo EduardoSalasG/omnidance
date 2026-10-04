@@ -17,6 +17,7 @@ import { PricingService } from "../src/payments/domain/pricing.service";
 import { StubGateway } from "../src/payments/infrastructure/stub.gateway";
 import { PaymentSettlementService } from "../src/payments/application/payment-settlement.service";
 import { SubscriptionsService } from "../src/payments/application/subscriptions.service";
+import { PlatformSubscriptionsService } from "../src/payments/application/platform-subscriptions.service";
 import { GatewayTransactionsService } from "../src/payments/infrastructure/gateway-transactions.service";
 import { encodeTicketOrderRef } from "../src/payments/domain/order-ref";
 import { PrismaService } from "../src/prisma.service";
@@ -88,6 +89,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
         { provide: PAYMENT_GATEWAY, useClass: StubGateway },
         PaymentSettlementService,
         SubscriptionsService,
+        PlatformSubscriptionsService,
         GatewayTransactionsService,
       ],
     }).compile();
