@@ -1504,6 +1504,34 @@
         }
       }
     },
+    "/api/checkout/discount-quote": {
+      "get": {
+        "operationId": "CheckoutController_discountQuote",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/checkout/series-pass": {
       "post": {
         "operationId": "CheckoutController_seriesPass",
