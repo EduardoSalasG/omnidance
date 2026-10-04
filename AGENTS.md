@@ -90,6 +90,7 @@ Estos pasos se incumplieron en sesiones reales — son gates, no sugerencias:
   - **Navegación** entre rutas o por `searchParams`: `NavPendingOverlay` (montado en `(app)/layout.tsx`, cubre toda la app) arma un overlay al click en link interno, lo muestra solo si la navegación supera 200ms y lo retira al pintar. No crear loading ad-hoc por página.
   - Feedback de **acción** (botón presionado, submit, guardar): `Spinner` inline **inmediato** — ahí la latencia la pide el usuario, no el sistema.
   - Nunca `<Spinner>` desnudo a nivel panel ni "Cargando…" de texto plano sin delay. Nunca forzar duración mínima larga (≥1s) para "que se aprecie": penaliza el caso común rápido. Si un indicador ya se mostró, basta un mínimo ~400ms anti-parpadeo.
+- **Skills de diseño**: cualquier trabajo de UI pasa por `impeccable` (context por sesión, `craft-floor.md` antes de editar, `detect --json` al terminar) y `apple-design` cuando toque motion física, materiales o tipografía — detalle en "Orquestación multi-agente" §6.
 
 ### Documentación
 
@@ -100,15 +101,25 @@ Estos pasos se incumplieron en sesiones reales — son gates, no sugerencias:
   - `node apps/api/scripts/export-api-docs.cjs` (API viva) → regenera `docs/openapi.json` + `docs/postman/omni-dance.postman_collection.json`. Commitear los regenerados junto al cambio de endpoints.
   - `docs/architecture.md` (módulos, RBAC, params, wiring, modelo) y `docs/flows.md` (secuencias/estados en mermaid) — actualizar el diagrama/sección que el cambio vuelva inexacto.
 
-## Roles de colaboración (multi-agente)
+## Orquestación multi-agente
 
-1. **Diseño**: alcance, dependencias, riesgos, aceptación.
-2. **Implementación**: código + pruebas + docs asociados.
-3. **Revisión técnica**: regresiones, drift de contrato, migraciones omitidas, i18n faltante.
-4. **QA funcional**: flujo completo end-to-end, desktop y móvil.
-5. **Release**: checklist, promoción `dev → main`, supervisión del deploy.
+El agente principal **orquesta**; los subagentes **ejecutan**. Pipeline por feature:
 
-Paraleliza con subagentes solo tareas independientes (sin estado compartido ni dependencias secuenciales).
+1. **Orquestador — contexto pesado, nunca delegado**: handoff + grafo Codebase Memory (G1) + change OpenSpec completo (G2: proposal, spec deltas con scenarios, design, tasks). Los tasks del change son los requisitos vinculantes del implementador. Todas las decisiones de diseño y ambigüedades se resuelven **antes** de despachar.
+2. **Detección de choques**: si dos pedidos tocan archivos compartidos (`schema.prisma`, i18n parts, `globals.css`, lockfile, specs canónicas), se secuencian o el orquestador integra los puntos comunes. Migraciones de DB pasan solo por el orquestador, una a la vez.
+3. **Dispatch**: un subagente implementador por task con **brief autocontenido** — los subagentes no heredan la conversación ni el MCP; todo va en el prompt: paths exactos, snippets, decisiones tomadas, convenciones, evidencia del grafo (tier, generation, coverage, call-chains). Implementadores **en serie** sobre el mismo working tree (git index, lockfile). En paralelo solo van: investigaciones read-only, reviews, o scopes 100% disjuntos.
+4. **Review por task**: tras cada implementación, subagente reviewer read-only sobre el diff — exige spec-compliance **y** calidad; ambas son gate.
+5. **Integración (orquestador)**: revisa diffs, corre typecheck/tests, archiva el change OpenSpec, regenera docs API si tocó endpoints, escribe handoff. El implementador commitea solo su task y **nunca pushea**; los commits de integración son del orquestador.
+6. **Front además**: antes de editar UI se lee `craft-floor.md` del skill `impeccable` y sus bans van en el brief; `apple-design` aplica a motion física (springs, sheets, momentum), materiales translúcidos y tipografía. Autoridad visual = sistema incumbente (`apps/web/src/ui`, tokens, globals.css); superficie nueva o redesign pasa por `init`/`shape` con el usuario primero. Al terminar UI cambiada, el orquestador corre `impeccable detect --json <targets>` **una vez** sobre el diff y corrige el batch.
+7. **Excepción de tamaño**: tweaks acotados (1-2 archivos, cambio trivial) los hace el orquestador directo — despachar cuesta más que el cambio.
+
+Roles de colaboración dentro del pipeline: Diseño (orquestador + usuario) → Implementación (subagente) → Revisión técnica (subagente reviewer: regresiones, drift de contrato, migraciones omitidas, i18n faltante) → QA funcional (orquestador o usuario, desktop y móvil) → Release (orquestador: checklist, promoción `dev → main`, supervisión del deploy).
+
+## Límites
+
+- **Siempre**: tests con el código, i18n por catálogo, migración versionada por cambio de schema, validación zod en contratos, diff revisado antes de commit.
+- **Preguntar primero**: operaciones destructivas de datos, nuevas dependencias, cambios de contrato público, promover `dev → main`, side effects fuera del repo (push, deploy, notificaciones reales).
+- **Nunca**: secretos/JWT/hashes en código, logs o commits; ratings o evaluaciones individuales expuestos; guards ad-hoc de roles; cambios de schema sin migración; editar migraciones ya aplicadas; commits con co-autoría de agente.
 
 ## Ramas y entrega
 
