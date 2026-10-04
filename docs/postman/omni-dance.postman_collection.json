@@ -3300,6 +3300,37 @@
           }
         },
         {
+          "name": "GET /api/checkout/discount-quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/discount-quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "discount-quote"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "code",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /api/checkout/series-pass",
           "request": {
             "method": "POST",
