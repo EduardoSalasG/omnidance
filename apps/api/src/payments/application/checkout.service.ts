@@ -155,8 +155,8 @@ export class PrivateClassNotPurchasableError extends Error {
 }
 
 export class PlanNotPurchasableError extends Error {
-  constructor() {
-    super("este plan no está disponible para compra online");
+  constructor(message = "este plan no está disponible para compra online") {
+    super(message);
     this.name = "PlanNotPurchasableError";
   }
 }
@@ -673,10 +673,12 @@ export class CheckoutService {
   }
 
   /**
-   * Checkout de plan de academia: valida plan+academia activos, rechaza
-   * TRIAL (se asigna por staff, no se vende), crea la orden PENDING
-   * (orderType MEMBERSHIP) y delega el cobro. El Enrollment lo emite el
-   * webhook al PAID — renovación incluida (extiende la vigencia vigente).
+   * Checkout de plan de academia: valida plan+academia activos y crea la
+   * orden PENDING (orderType MEMBERSHIP) delegando el cobro. TRIAL se
+   * vende online solo con price > 0 — la prueba gratis sigue siendo
+   * asignación staff (la pasarela no cobra CLP 0). El Enrollment lo
+   * emite el webhook al PAID — renovación incluida (extiende la
+   * vigencia vigente); en TRIAL crea una fila nueva sin tocar la vigente.
    * Lanza errores de dominio — el controller los mapea a HTTP.
    */
   async purchaseMembership(
@@ -694,8 +696,13 @@ export class CheckoutService {
       },
     });
     if (!plan || !plan.academy.active) throw new PlanNotFoundError();
-    if (!plan.active || plan.type === "TRIAL") {
-      throw new PlanNotPurchasableError();
+    if (!plan.active) throw new PlanNotPurchasableError();
+    // La prueba gratis no pasa por la pasarela (no cobra CLP 0):
+    // sigue siendo asignación staff. Solo el TRIAL con precio se vende.
+    if (plan.type === "TRIAL" && plan.price <= 0) {
+      throw new PlanNotPurchasableError(
+        "la clase de prueba gratis la asigna la academia, no se vende online",
+      );
     }
 
     // Precio del plan desde DB (nunca del cliente) + cargo de servicio
@@ -778,8 +785,13 @@ export class CheckoutService {
       },
     });
     if (!plan || !plan.academy.active) throw new PlanNotFoundError();
-    if (!plan.active || plan.type === "TRIAL") {
-      throw new PlanNotPurchasableError();
+    if (!plan.active) throw new PlanNotPurchasableError();
+    // Misma regla que purchaseMembership: TRIAL solo se vende con
+    // price > 0 (la gratis es asignación staff).
+    if (plan.type === "TRIAL" && plan.price <= 0) {
+      throw new PlanNotPurchasableError(
+        "la clase de prueba gratis la asigna la academia, no se vende online",
+      );
     }
 
     const serviceFeeClp = await this.params.getNumber(

@@ -389,17 +389,17 @@ sequenceDiagram
 
     Note over U: entrada 1: ficha /academias/:id (card de plan → Comprar)<br/>entrada 2: /clases/:id sin inscripción → "Ver planes"
     U->>API: POST /checkout/membership {planId}
-    API->>DB: plan activo + academia activa (TRIAL no se vende → 400)
+    API->>DB: plan activo + academia activa (TRIAL solo con price>0;<br/>la gratis es asignación staff → 400)
     API->>DB: params service_fee.membership_clp + precio del plan
     API->>GW: createOrder (refId mem_<planId>_<uuid>)
     API-->>U: {paymentUrl, paymentId}
     GW->>WH: POST /payments/webhook PAID
-    WH->>DB: tx: paidNow + Enrollment findFirst→update/create<br/>(ACTIVE, planId, endsAt por tipo calendario)
+    WH->>DB: tx: paidNow + Enrollment findFirst→update/create<br/>(ACTIVE, planId, endsAt por tipo calendario)<br/>TRIAL → create fila TRIAL nueva, nunca toca la vigente
     WH->>DB: notifySafe payment.membership
-    Note over WH,DB: vigencia: MONTHLY fin de mes · QUARTERLY 3er mes ·<br/>SEMIANNUAL 6º · SINGLE día+1 · PERIOD +periodDays<br/>renovación: base = endsAt vigente + 1d
+    Note over WH,DB: vigencia: MONTHLY fin de mes · QUARTERLY 3er mes ·<br/>SEMIANNUAL 6º · SINGLE día+1 · PERIOD +periodDays<br/>TRIAL +periodDays si configurado, si no sin fecha<br/>renovación: base = endsAt vigente + 1d
 ```
 
-`Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido — misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) — el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId, fee % global).
+`Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido — misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) — el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow), salvo plan TRIAL que siempre crea una fila `status: TRIAL` nueva sin tocar la inscripción vigente (la re-compra acumula filas). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId, fee % global).
 
 ## Clase suelta / taller — compra → asiento pagado (WORKSHOP)
 

@@ -52,6 +52,8 @@ export function membershipBase(now: Date, currentEndsAt: Date | null): Date {
  *  - SEMIANNUAL → fin del 6º mes calendario
  *  - SINGLE     → mediodía CL del día siguiente (cubre la clase nocturna)
  *  - PERIOD     → base + periodDays (misma derivación que el alta staff)
+ *  - TRIAL      → base + periodDays si el owner lo configuró; si no, null
+ *    (igual que el alta staff: la prueba queda sin fecha)
  *  - CLASS_PACK → null (sin fecha — vence por consumo, no auditado en v1)
  */
 export function membershipEndsAt(
@@ -69,6 +71,7 @@ export function membershipEndsAt(
     case "SINGLE":
       return new Date(Date.UTC(y, m - 1, day + 1, 15));
     case "PERIOD":
+    case "TRIAL":
       return plan.periodDays
         ? new Date(base.getTime() + plan.periodDays * DAY_MS)
         : null;

@@ -68,6 +68,15 @@ describe("membershipEndsAt", () => {
     expect(membershipEndsAt(plan("PERIOD"), oct12)).toBeNull();
   });
 
+  it("TRIAL con periodDays → base + periodDays (la prueba comprada expira)", () => {
+    const end = membershipEndsAt(plan("TRIAL", 7), oct12)!;
+    expect(end.getTime()).toBe(oct12.getTime() + 7 * 86_400_000);
+  });
+
+  it("TRIAL sin periodDays → null (igual que el alta staff)", () => {
+    expect(membershipEndsAt(plan("TRIAL"), oct12)).toBeNull();
+  });
+
   it("CLASS_PACK → null (sin fecha — vence por consumo)", () => {
     expect(membershipEndsAt(plan("CLASS_PACK"), oct12)).toBeNull();
   });
