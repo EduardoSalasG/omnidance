@@ -13,6 +13,7 @@ import {
 import {
   CheckoutService,
   AcademyNotFoundError,
+  AcademyUnavailableError,
   EventNotFoundError,
   InvalidDiscountError,
   PlanNotFoundError,
@@ -968,6 +969,22 @@ describe("CheckoutService.membershipQuote", () => {
     expect(q.subscription).toBeNull();
   });
 
+  it("academia bloqueada por mora → AcademyUnavailableError (S3)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({
+        academy: { id: "ac-1", name: "Academia X", active: true, billingBlockedAt: new Date() },
+      }),
+    );
+    const err = await svc
+      .membershipQuote("p1", "plan-1")
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AcademyUnavailableError);
+    expect((err as AcademyUnavailableError).code).toBe("academy.unavailable");
+    expect((err as AcademyUnavailableError).message).toContain(
+      "no está disponible",
+    );
+  });
+
   it("enrollment vigente → currentEndsAt y la vigencia extiende desde ahí", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
     const endsAt = new Date(Date.now() + 10 * 86_400_000);
@@ -1051,6 +1068,17 @@ describe("CheckoutService.purchaseMembership", () => {
     expect(fx.payments).toHaveLength(0);
   });
 
+  it("academia bloqueada por mora → AcademyUnavailableError, sin orden (S3)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({
+        academy: { active: true, billingBlockedAt: new Date() },
+      }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(AcademyUnavailableError);
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
   it("MONTHLY → Payment MEMBERSHIP PENDING con refId mem_<planId>_", async () => {
     const res = await buy();
     const p = fx.payments[0]!;
@@ -1130,7 +1158,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
         dropInPrice: 9000,
         quorum: null,
       },
-      academy: { defaultQuorum: null },
+      academy: { defaultQuorum: null, billingBlockedAt: null },
     },
     ...over,
   });
@@ -1181,6 +1209,19 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
       }),
     );
     await expect(buy()).rejects.toThrow("clase no disponible");
+  });
+
+  it("academia bloqueada por mora → AcademyUnavailableError en quote y compra (S3)", async () => {
+    const cls = mkClass();
+    (cls.slot.academy as Record<string, unknown>).billingBlockedAt =
+      new Date();
+    fx.prisma.class.findUnique.mockResolvedValue(cls);
+    await expect(buy()).rejects.toBeInstanceOf(AcademyUnavailableError);
+    await expect(svc.classQuote("per-1", "cls-1")).rejects.toBeInstanceOf(
+      AcademyUnavailableError,
+    );
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
   });
 
   it("cupo agotado → 409", async () => {
@@ -1236,6 +1277,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     name: "Mambo Madness",
     active: true,
     privateLessonPrice: 40000,
+    billingBlockedAt: null,
     ...over,
   });
 
@@ -1290,6 +1332,20 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
       svc.privateClassQuote("per-1", "ac-1"),
     ).rejects.toBeInstanceOf(PrivateClassNotPurchasableError);
     expect(fx.payments).toHaveLength(0);
+  });
+
+  it("academia bloqueada por mora → AcademyUnavailableError en quote y compra (S3)", async () => {
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ billingBlockedAt: new Date() }),
+    );
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "ac-1" }),
+    ).rejects.toBeInstanceOf(AcademyUnavailableError);
+    await expect(
+      svc.privateClassQuote("per-1", "ac-1"),
+    ).rejects.toBeInstanceOf(AcademyUnavailableError);
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
   });
 
   it("crea Payment PRIVATE: refId pvt_<academyId>_, unit economics, orden a la pasarela", async () => {

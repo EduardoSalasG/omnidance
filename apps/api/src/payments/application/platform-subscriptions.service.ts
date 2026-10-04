@@ -1771,6 +1771,57 @@ export class PlatformSubscriptionsService {
     });
   }
 
+  // ─── Enforcement S3 — bloqueo por gracia vencida ──────────────────
+
+  /**
+   * Job diario (cron 09:00, `SubscriptionsScheduler`): academias con
+   * `billingGraceUntil` vencido y aún sin bloqueo pasan a
+   * `billingBlockedAt = now`. El filtro del updateMany repite la
+   * condición — si un RENEWAL_SETTLED limpió los campos entre el
+   * findMany y el update, count=0 y no se notifica un bloqueo falso.
+   * El owner recibe `academy.billing_blocked` una sola vez por episodio
+   * (la condición excluye las ya bloqueadas → el barrido es idempotente).
+   * El desbloqueo NO espera al job: `settlePlatformSub` limpia ambos
+   * campos al liquidar la renovación.
+   */
+  async enforceAcademyBlocks(): Promise<{ blocked: number }> {
+    const now = new Date();
+    const expired = await this.prisma.academy.findMany({
+      where: {
+        billingGraceUntil: { lt: now },
+        billingBlockedAt: null,
+      },
+      select: { id: true, name: true, ownerId: true },
+    });
+    let blocked = 0;
+    for (const academy of expired) {
+      const marked = await this.prisma.academy.updateMany({
+        where: {
+          id: academy.id,
+          billingGraceUntil: { lt: now },
+          billingBlockedAt: null,
+        },
+        data: { billingBlockedAt: now },
+      });
+      if (marked.count === 0) continue; // regularizó entre el read y el write
+      blocked += marked.count;
+      await this.notifications.notifySafe(academy.ownerId, {
+        category: "TRANSACTIONAL",
+        type: "academy.billing_blocked",
+        title: "Academia bloqueada por suscripción impaga",
+        body: `${academy.name} quedó en solo lectura — regulariza el pago para volver a operar`,
+        data: {
+          academyId: academy.id,
+          blockedAt: now.toISOString(),
+        },
+      });
+    }
+    if (blocked > 0) {
+      this.logger.log(`enforcement mora: ${blocked} academia(s) bloqueadas`);
+    }
+    return { blocked };
+  }
+
   // ─── helpers internos ─────────────────────────────────────────────
 
   /**

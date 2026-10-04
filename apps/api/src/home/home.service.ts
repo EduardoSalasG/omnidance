@@ -384,7 +384,10 @@ export class HomeService {
           date: { gte: new Date() },
           slot: {
             academyId: { in: academyIds },
-            academy: { active: true },
+            // Sugerencia "próxima clase": academia bloqueada por mora no
+            // es reservable (S3) — no se sugiere; las reservas ya hechas
+            // (myBookings) sí siguen listándose con su flag.
+            academy: { active: true, billingBlockedAt: null },
             series: { active: true },
           },
         },

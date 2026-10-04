@@ -51,12 +51,17 @@ interface FakeClass {
       style: { id: string; name: string; genre: string | null } | null;
       types: { type: { id: string; name: string } }[];
     };
-    academy: { id: string; name: string; defaultQuorum: number | null };
+    academy: {
+      id: string;
+      name: string;
+      defaultQuorum: number | null;
+      billingBlockedAt: Date | null;
+    };
   };
 }
 
 type FakeClassInput = Omit<Partial<FakeClass>, "slot"> & {
-  slot?: Partial<FakeClass["slot"]> & {
+  slot?: Omit<Partial<FakeClass["slot"]>, "series" | "academy"> & {
     series?: Partial<FakeClass["slot"]["series"]>;
     academy?: Partial<FakeClass["slot"]["academy"]>;
   };
@@ -128,6 +133,7 @@ class FakePrisma {
           id: "acad-1",
           name: "Academia X",
           defaultQuorum: null,
+          billingBlockedAt: null,
           ...overAcademy,
         },
       },
@@ -489,6 +495,20 @@ describe("ClassesController.book", () => {
     await expect(ctrl.book("cls-x", reqAs("per-1"))).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it("academia bloqueada por mora → 400 academy.unavailable (S3)", async () => {
+    prisma.addClass("cls-blocked", {
+      slot: { academy: { billingBlockedAt: new Date() } },
+    });
+    const err = await ctrl
+      .book("cls-blocked", reqAs("per-1"))
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(BadRequestException);
+    expect(
+      (err as BadRequestException).getResponse(),
+    ).toMatchObject({ error: "academy.unavailable" });
+    expect(prisma.bookings).toHaveLength(0);
   });
 
   it("clase cancelada → BadRequestException", async () => {

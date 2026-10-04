@@ -131,7 +131,10 @@ describe("ClassSeriesController — cancelación por la academia devuelve crédi
     prisma = new FakePrisma();
     ctrl = new ClassSeriesController(
       prisma as unknown as PrismaService,
-      { requireAdminister: vi.fn(async () => undefined) } as unknown as AcademyAccess,
+      {
+        requireAdminister: vi.fn(async () => undefined),
+        requireAdministerWrite: vi.fn(async () => undefined),
+      } as unknown as AcademyAccess,
       { notifySafe: vi.fn() } as unknown as NotificationsService,
     );
     prisma.series.set("ser-1", { id: "ser-1", academyId: "acad-1" });

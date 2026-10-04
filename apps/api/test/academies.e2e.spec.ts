@@ -136,6 +136,20 @@ describe("academies e2e", () => {
     await prisma.membershipPlan.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
+    // Suscripciones SaaS (POST /:id/subscribe crea una PENDING_CARD):
+    // FK a Academy y Person — antes de borrar ambas.
+    await prisma.platformSubscription.deleteMany({
+      where: {
+        OR: [
+          {
+            academyId: {
+              in: [ids.academyId, ids.createdAcademyId].filter(Boolean),
+            },
+          },
+          { personId: { in: createdPersonIds } },
+        ],
+      },
+    });
     await prisma.academyInstructor.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
@@ -794,6 +808,221 @@ describe("academies e2e", () => {
         expect(res.status).toBe(201);
         const body = await res.json();
         expect(body.status).toBe("BOOKED");
+      });
+    });
+
+    /**
+     * Enforcement de mora (spec academy-saas-billing, S3): con
+     * `billingBlockedAt` seteado la consola queda read-only (403
+     * billing.blocked en mutaciones, GETs abiertos), la academia sale
+     * de exploración (directorio/browse/landing) y las compras nuevas
+     * del alumno rechazan con 400 academy.unavailable — pero el alumno
+     * conserva su historial e inscripción, y el owner conserva los
+     * endpoints de billing para pagar y desbloquearse.
+     */
+    describe("academia bloqueada por mora (S3)", () => {
+      let blockedClassId: string;
+
+      beforeAll(async () => {
+        const cls = await prisma.class.create({
+          data: {
+            classSlotId: ids.slotId,
+            date: new Date(Date.now() + 6 * 86_400_000),
+          },
+        });
+        blockedClassId = cls.id;
+        await prisma.academy.update({
+          where: { id: ids.academyId },
+          data: { billingBlockedAt: new Date() },
+        });
+      });
+
+      afterAll(async () => {
+        await prisma.academy.update({
+          where: { id: ids.academyId },
+          data: { billingBlockedAt: null, billingGraceUntil: null },
+        });
+      });
+
+      // ─── exploración ───
+
+      it("GET /academies (directorio) la excluye", async () => {
+        const res = await get("/api/academies", outsiderSession);
+        expect(res.status).toBe(200);
+        const list = await res.json();
+        expect(
+          list.some((a: { id: string }) => a.id === ids.academyId),
+        ).toBe(false);
+      });
+
+      it("GET /academies/:id/profile → 200 con billingBlocked:true", async () => {
+        const res = await get(
+          `/api/academies/${ids.academyId}/profile`,
+          outsiderSession,
+        );
+        expect(res.status).toBe(200);
+        expect((await res.json()).billingBlocked).toBe(true);
+      });
+
+      it("GET /classes/browse la excluye (scope global y enrolled)", async () => {
+        const global = await get("/api/classes/browse?days=30", outsiderSession);
+        expect(
+          (await global.json()).some(
+            (c: { id: string }) => c.id === blockedClassId,
+          ),
+        ).toBe(false);
+        const enrolled = await get(
+          "/api/classes/browse?scope=enrolled&days=30",
+          studentSession,
+        );
+        expect(
+          (await enrolled.json()).some(
+            (c: { id: string }) => c.id === blockedClassId,
+          ),
+        ).toBe(false);
+      });
+
+      // ─── preservación del alumno ───
+
+      it("GET /academies/enrolled la sigue listando con billingBlocked:true", async () => {
+        const res = await get("/api/academies/enrolled", studentSession);
+        expect(res.status).toBe(200);
+        const enr = (await res.json()).find(
+          (e: { academy: { id: string } }) => e.academy.id === ids.academyId,
+        );
+        expect(enr).toBeTruthy();
+        expect(enr.academy.billingBlocked).toBe(true);
+      });
+
+      it("GET /classes/mine conserva historial y reservas vigentes con flag", async () => {
+        const past = await get("/api/classes/mine?scope=past", studentSession);
+        expect(past.status).toBe(200);
+        const pastList = await past.json();
+        const attended = pastList.find(
+          (r: { id: string }) => r.id === attendedClassId,
+        );
+        expect(attended).toBeTruthy();
+        expect(attended.academy.billingBlocked).toBe(true);
+
+        const mine = await get("/api/classes/mine", studentSession);
+        const upcoming = (await mine.json()).find(
+          (r: { academy: { id: string } }) => r.academy.id === ids.academyId,
+        );
+        expect(upcoming).toBeTruthy(); // su BOOKED de la clase futura
+        expect(upcoming.academy.billingBlocked).toBe(true);
+      });
+
+      it("POST /classes/:id/book → 400 academy.unavailable", async () => {
+        const res = await post(
+          `/api/classes/${blockedClassId}/book`,
+          {},
+          studentSession,
+        );
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body.error).toBe("academy.unavailable");
+        expect(body.message).toContain("no está disponible");
+      });
+
+      // ─── consola read-only ───
+
+      it("GETs de consola siguen abiertos (detalle + dashboard)", async () => {
+        const det = await get(`/api/academies/${ids.academyId}`, ownerSession);
+        expect(det.status).toBe(200);
+        const dash = await get(
+          `/api/academies/${ids.academyId}/dashboard`,
+          ownerSession,
+        );
+        expect(dash.status).toBe(200);
+      });
+
+      it("PATCH settings → 403 {error:'billing.blocked'}", async () => {
+        const res = await patch(
+          `/api/academies/${ids.academyId}/settings`,
+          { description: "intento" },
+          ownerSession,
+        );
+        expect(res.status).toBe(403);
+        expect((await res.json()).error).toBe("billing.blocked");
+      });
+
+      it("POST plans → 403 billing.blocked", async () => {
+        const res = await post(
+          `/api/academies/${ids.academyId}/plans`,
+          { name: "X", type: "MONTHLY", price: 1 },
+          ownerSession,
+        );
+        expect(res.status).toBe(403);
+        expect((await res.json()).error).toBe("billing.blocked");
+      });
+
+      it("POST series → 403 billing.blocked", async () => {
+        const res = await post(
+          `/api/academies/${ids.academyId}/series`,
+          {
+            name: "Serie Bloqueada",
+            month: "2025-07",
+            slots: [{ weekday: 3, startTime: "19:00", endTime: "20:00" }],
+          },
+          ownerSession,
+        );
+        expect(res.status).toBe(403);
+        expect((await res.json()).error).toBe("billing.blocked");
+      });
+
+      it("POST attendance → 403 (owner e instructor quedan read-only)", async () => {
+        for (const session of [ownerSession, instructorSession]) {
+          const res = await post(
+            `/api/academies/${ids.academyId}/attendance`,
+            { slotId: ids.slotId, personId: ids.studentId },
+            session,
+          );
+          expect(res.status).toBe(403);
+          expect((await res.json()).error).toBe("billing.blocked");
+        }
+      });
+
+      it("PATCH /enrollments/:id → 403 billing.blocked", async () => {
+        const res = await patch(
+          `/api/enrollments/${ids.enrollmentId}`,
+          { status: "PAUSED" },
+          ownerSession,
+        );
+        expect(res.status).toBe(403);
+        expect((await res.json()).error).toBe("billing.blocked");
+      });
+
+      it("POST videos → 403 billing.blocked", async () => {
+        const res = await post(
+          `/api/academies/${ids.academyId}/videos`,
+          { url: "https://youtube.com/watch?v=x", title: "Clase" },
+          ownerSession,
+        );
+        expect(res.status).toBe(403);
+        expect((await res.json()).error).toBe("billing.blocked");
+      });
+
+      // ─── billing sigue abierto (el owner paga para desbloquearse) ───
+
+      it("GET /academies/:id/billing → 200 para el owner bloqueado", async () => {
+        const res = await get(
+          `/api/academies/${ids.academyId}/billing`,
+          ownerSession,
+        );
+        expect(res.status).toBe(200);
+        expect((await res.json()).blocked).toBe(true);
+      });
+
+      it("POST /academies/:id/subscribe no da 403 billing.blocked", async () => {
+        const res = await post(
+          `/api/academies/${ids.academyId}/subscribe`,
+          { tier: "STARTER", cycle: "MONTHLY", acceptRecurring: true },
+          ownerSession,
+        );
+        // Pasa el gate de acceso — falla después en el gateway stub
+        // (sin motor de suscripciones), nunca por billing.blocked.
+        expect(res.status).toBe(400);
+        expect((await res.json()).error).not.toBe("billing.blocked");
       });
     });
   });

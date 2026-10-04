@@ -212,6 +212,14 @@ export class SubscriptionsService {
     if (!plan || !plan.active || !plan.academy.active) {
       throw new NotFoundException("plan no disponible");
     }
+    // Academia bloqueada por mora (spec academy-saas-billing, S3): no
+    // hay suscripciones nuevas — mismo código/copy que el checkout.
+    if (plan.academy.billingBlockedAt != null) {
+      throw new BadRequestException({
+        error: "academy.unavailable",
+        message: "la academia no está disponible por el momento",
+      });
+    }
     const intervalCount = INTERVAL_COUNT[plan.type];
     if (!intervalCount) {
       throw new BadRequestException("este plan no admite cobro recurrente");

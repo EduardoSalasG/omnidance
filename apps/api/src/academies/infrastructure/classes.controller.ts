@@ -300,7 +300,9 @@ export class ClassesController {
             : academyId
               ? { academyId }
               : {}),
-          academy: { active: true },
+          // Academias bloqueadas por mora (S3) fuera de explorar —
+          // también bajo scope=enrolled: sus clases no son reservables.
+          academy: { active: true, billingBlockedAt: null },
           series: {
             active: true,
             ...(styleId ? { styleId } : {}),
@@ -844,12 +846,22 @@ export class ClassesController {
             startTime: true,
             academyId: true,
             series: { select: { quorum: true } },
-            academy: { select: { defaultQuorum: true } },
+            academy: {
+              select: { defaultQuorum: true, billingBlockedAt: true },
+            },
           },
         },
       },
     });
     if (!cls) throw new NotFoundException("clase no encontrada");
+    // Academia bloqueada por mora (S3): no hay reservas nuevas — copy
+    // honesto para el alumno (la falta es del owner, no de él).
+    if (cls.slot.academy.billingBlockedAt != null) {
+      throw new BadRequestException({
+        error: "academy.unavailable",
+        message: "la academia no está disponible por el momento",
+      });
+    }
     if (cls.cancelled) throw new BadRequestException("la clase fue cancelada");
     // "Ya pasó" = el inicio real (día + hora), no la medianoche UTC —
     // una clase de hoy 20:00 se puede reservar hasta que empiece.

@@ -12,6 +12,9 @@ import { PlatformSubscriptionsService } from "../application/platform-subscripti
  * día siguiente, mora (grace de academia) y aplicación de cambios de plan
  * pendientes. Es la red de seguridad del webhook (subscription/callback
  * dispara el mismo barrido fire-and-forget) y del refresh de las vistas.
+ * En el mismo tick corre `enforceAcademyBlocks` (S3): academias con
+ * `billingGraceUntil` vencido pasan a `billingBlockedAt` — el desbloqueo
+ * no depende del cron, lo hace `settlePlatformSub` al RENEWAL_SETTLED.
  */
 @Injectable()
 export class SubscriptionsScheduler implements OnModuleInit {
@@ -36,6 +39,12 @@ export class SubscriptionsScheduler implements OnModuleInit {
       this.platformSubs.reconcileAll("cron").catch((e: unknown) => {
         this.logger.error(
           "reconcileAll de suscripciones de plataforma falló",
+          e instanceof Error ? e.stack : String(e),
+        );
+      });
+      this.platformSubs.enforceAcademyBlocks().catch((e: unknown) => {
+        this.logger.error(
+          "enforceAcademyBlocks falló",
           e instanceof Error ? e.stack : String(e),
         );
       });
