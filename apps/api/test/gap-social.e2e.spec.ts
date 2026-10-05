@@ -128,97 +128,44 @@ describe("spec-gap-closure: declare + friendships e2e", () => {
     await app.close();
   });
 
-  // ═══════════════════════ DECLARE ═══════════════════════
-  describe("POST /api/sessions/declare", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("POST", "/api/sessions/declare", {
-        eventId: ids.eventId,
-        personId: ids.cId,
-      });
-      expect(res.status).toBe(401);
-    });
-
-    it("persona inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/sessions/declare",
-        { eventId: ids.eventId, personId: "persona-fantasma" },
-        sessionA,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("evento inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/sessions/declare",
-        { eventId: "evt-fantasma", personId: ids.cId },
-        sessionA,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("auto-declaración → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/sessions/declare",
-        { eventId: ids.eventId, personId: ids.aId },
-        sessionA,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("declaración exitosa → 201 INVITED retroDeclared:true + notifica", async () => {
+  // ═══ rutas eliminadas (remove-social-blocks-invites): solo QR ═══
+  describe("rutas de invitación eliminadas", () => {
+    it("POST /api/sessions/declare → 404", async () => {
       const res = await req(
         "POST",
         "/api/sessions/declare",
         { eventId: ids.eventId, personId: ids.cId },
         sessionA,
       );
-      expect(res.status).toBe(201);
-      const session = await res.json();
-      expect(session.status).toBe("INVITED");
-      expect(session.retroDeclared).toBe(true);
-      expect(session.inviterId).toBe(ids.aId);
-      expect(session.inviteeId).toBe(ids.cId);
-      expect(session.inviter.name).toBe("Gap A");
-
-      const notif = await prisma.notification.findFirst({
-        where: { personId: ids.cId, type: "session.invite" },
-      });
-      expect(notif).toBeTruthy();
+      expect(res.status).toBe(404);
     });
 
-    it("re-declarar el mismo par dentro del cooldown → 409", async () => {
+    it("POST /api/sessions/invite → 404", async () => {
       const res = await req(
         "POST",
-        "/api/sessions/declare",
-        { eventId: ids.eventId, personId: ids.cId },
+        "/api/sessions/invite",
+        { qrToken: "x", eventId: ids.eventId },
         sessionA,
       );
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(404);
     });
+  });
 
-    it("una sesión declarada CONFIRMED es rateable igual que una escaneada", async () => {
-      const declared = await prisma.danceSession.findFirst({
-        where: {
+  describe("POST /api/sessions/:id/rate", () => {
+    it("una sesión CONFIRMED es rateable por sus participantes", async () => {
+      const session = await prisma.danceSession.create({
+        data: {
+          eventId: ids.eventId,
           inviterId: ids.aId,
           inviteeId: ids.cId,
-          retroDeclared: true,
+          status: "CONFIRMED",
+          confirmedAt: new Date(),
         },
-      });
-      expect(declared).toBeTruthy();
-
-      // confirm/decline se eliminaron con el ciclo de invitación — el pase
-      // a CONFIRMED lo hace el flujo que la resuelva; aquí se fija el estado.
-      await prisma.danceSession.update({
-        where: { id: declared!.id },
-        data: { status: "CONFIRMED", confirmedAt: new Date() },
       });
 
       const rate = await req(
         "POST",
-        `/api/sessions/${declared!.id}/rate`,
+        `/api/sessions/${session.id}/rate`,
         { score: 4 },
         sessionA,
       );

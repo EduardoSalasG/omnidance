@@ -144,10 +144,9 @@ No hay ciclo invitación/confirm/rechazo: se eliminó por decisión de producto 
 
 **Regla Prime Time:** el **contador** y el **premio/reveal** usan sesiones confirmadas (y evaluadas, para el reveal) — el escaneo ya nace confirmado, así que cuenta de inmediato.
 
-### Bailes sin escanear (declaración retroactiva)
+### Bailes sin escanear — eliminados
 
-- Se puede declarar un baile manualmente eligiendo a la persona (`POST /sessions/declare` → queda INVITED; su mecanismo de resolución quedó como backlog tras eliminar confirm/decline)
-- **No cuenta para Prime Time** — el escaneo en vivo es lo que alimenta el reveal
+- La declaración retroactiva (`POST /sessions/declare`) se **eliminó** junto al ciclo de invitaciones: los bailes solo se registran por escaneo QR en pista. Las sesiones históricas INVITED quedan como dato (visibles como expiradas; el inviter aún puede descartarlas).
 
 **Insight clave:** el escaneo no es solo captura de datos, es el *gesto social de bailar* digitalizado — resolver el momento de pedir un baile es el incentivo intrínseco.
 
@@ -1084,7 +1083,7 @@ Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia)
 ## 18. Decisiones tomadas (iteración v2)
 
 - Invitación de baile: expira al **cierre del evento + 24h de gracia**
-- Bailes sin escanear: **permitidos** vía declaración retroactiva con confirmación mutua; **excluidos de Prime Time**
+- Bailes sin escanear: **eliminados** (declaración retroactiva retirada — solo escaneo QR en pista)
 - Ratings diferidos: **editables mientras la ventana esté abierta** (24h), bloqueados al cerrar
 - Roadmap: **ticketing primero** (fase 1), sesiones en fase 2
 - Comercial: **% diferenciado por canal** (cargo al comprador en preventa / comisión al productor en puerta); **sin reembolsos**, tickets transferibles
