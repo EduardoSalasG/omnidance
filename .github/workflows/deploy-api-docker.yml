@@ -268,8 +268,11 @@ jobs:
               docker compose logs --tail=50 api || true
 
               for attempt in $(seq 1 60); do
+                # El cold start de Nest toma ~5-10s — los primeros
+                # intentos fallan y es esperado.
                 echo "Health check attempt $attempt/60 ..."
                 if curl -fsS --max-time 5 --connect-timeout 2 http://127.0.0.1:3002/api/health > /dev/null; then
+                  echo "API healthy after $attempt attempt(s)."
                   break
                 fi
 
@@ -292,6 +295,7 @@ jobs:
                 docker compose logs --tail=100 api || true
                 exit 1
               fi
+              echo "Protected route /api/me correctly returns 401."
 
               echo "--- pruning dangling images ---"
               docker image prune -f
