@@ -1,0 +1,228 @@
+name: Deploy omnidance API
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-omnidance-api-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omnidance-api
+  CONTAINER_DIR: /opt/apps/omnidance
+  # Variable de repositorio (Settings → Variables): host público del API,
+  # p.ej. api.omnidance.cl — sin https://.
+  PUBLIC_API_HOST: ${{ vars.PUBLIC_API_HOST }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @omnidance/shared build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @omnidance/api prisma generate
+
+      - name: Run API tests
+        run: pnpm --filter @omnidance/api test
+
+      - name: Run API build
+        run: pnpm --filter @omnidance/api build
+
+      - name: Normalize image name
+        run: |
+          IMAGE_NAME=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "API_IMAGE=$IMAGE_NAME:${{ github.sha }}" >> $GITHUB_ENV
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u "${{ github.actor }}" \
+            --password-stdin
+
+      - name: Build and push Docker image
+        run: |
+          docker buildx build \
+            --provenance=false \
+            --push \
+            -f apps/api/Dockerfile \
+            -t $IMAGE_NAME:${{ github.sha }} \
+            -t $IMAGE_NAME:latest \
+            .
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/oracle_deploy_key
+          chmod 600 ~/.ssh/oracle_deploy_key
+          cat > ~/.ssh/config <<SSHCONF
+          Host *
+            StrictHostKeyChecking accept-new
+            ServerAliveInterval 15
+            ServerAliveCountMax 60
+          SSHCONF
+          chmod 600 ~/.ssh/config
+
+      - name: Copy docker-compose.yml to server
+        run: |
+          ssh -i ~/.ssh/oracle_deploy_key \
+            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "mkdir -p ${{ env.CONTAINER_DIR }}"
+          ssh -i ~/.ssh/oracle_deploy_key \
+            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "cat > ${{ env.CONTAINER_DIR }}/docker-compose.yml" \
+            < apps/api/docker-compose.yml
+
+      - name: Deploy on Oracle VM
+        run: |
+          ssh -i ~/.ssh/oracle_deploy_key \
+            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
+              set -e
+
+              cd "${{ env.CONTAINER_DIR }}"
+
+              exec 9>/tmp/oracle-docker-deploy.lock
+              flock -w 900 9 || {
+                echo "Could not acquire server deploy lock"
+                exit 1
+              }
+
+              echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io \
+                -u "${{ secrets.GHCR_USERNAME }}" \
+                --password-stdin
+
+              export API_IMAGE="${{ env.API_IMAGE }}"
+              if [ -z "$API_IMAGE" ]; then
+                echo "API_IMAGE is not set"
+                exit 1
+              fi
+
+              MIGRATION_DATABASE_URL="${{ secrets.MIGRATION_DATABASE_URL }}"
+              if [ -z "$MIGRATION_DATABASE_URL" ]; then
+                MIGRATION_DATABASE_URL=$(grep '^DATABASE_URL=' .env | cut -d '=' -f2-)
+                echo "Warning: MIGRATION_DATABASE_URL secret not set; using DATABASE_URL from .env"
+              fi
+              if [ -z "$MIGRATION_DATABASE_URL" ]; then
+                echo "MIGRATION_DATABASE_URL is not set in GitHub secrets or .env"
+                exit 1
+              fi
+
+              echo "--- pulling exact API image: $API_IMAGE ---"
+              docker pull "$API_IMAGE"
+
+              echo "--- running prisma migrations one-shot ---"
+              docker rm -f omnidance-migrate 2>/dev/null || true
+              if ! timeout 300 docker run \
+                --name omnidance-migrate \
+                --rm \
+                --env-file .env \
+                -e DATABASE_URL="$MIGRATION_DATABASE_URL" \
+                -w /app/apps/api \
+                "$API_IMAGE" \
+                npx prisma migrate deploy; then
+                echo "Migration failed or timed out"
+                docker rm -f omnidance-migrate 2>/dev/null || true
+                exit 1
+              fi
+
+              echo "--- seeding baseline data one-shot (SEED_ENV=prod) ---"
+              docker rm -f omnidance-seed 2>/dev/null || true
+              if ! timeout 300 docker run \
+                --name omnidance-seed \
+                --rm \
+                --env-file .env \
+                -e SEED_ENV=prod \
+                -e SEED_ADMIN_EMAIL="${{ secrets.SEED_ADMIN_EMAIL }}" \
+                -e DATABASE_URL="$MIGRATION_DATABASE_URL" \
+                -w /app/apps/api \
+                "$API_IMAGE" \
+                npx tsx prisma/seed.ts; then
+                echo "Seed failed or timed out"
+                docker rm -f omnidance-seed 2>/dev/null || true
+                exit 1
+              fi
+
+              echo "--- recreating API with new image ---"
+              docker compose up -d --force-recreate --remove-orphans api
+
+              echo "--- API startup logs ---"
+              docker compose logs --tail=50 api || true
+
+              for attempt in $(seq 1 60); do
+                echo "Health check attempt $attempt/60 ..."
+                if curl -fsS --max-time 5 --connect-timeout 2 http://127.0.0.1:4000/api/health > /dev/null; then
+                  break
+                fi
+
+                if [ "$attempt" -eq 60 ]; then
+                  echo "API failed health check after deploy."
+                  docker compose ps
+                  docker compose logs --tail=100 api || true
+                  exit 1
+                fi
+
+                sleep 2
+              done
+
+              # Un 200 de health puede venir de una imagen vieja. Esta ruta
+              # protegida debe existir y rechazar la sonda anónima.
+              route_status=$(curl -s -o /dev/null --max-time 5 --connect-timeout 2 -w "%{http_code}" http://127.0.0.1:4000/api/me)
+              if [ "$route_status" != "401" ]; then
+                echo "Expected /api/me to return 401 after deploy; received $route_status."
+                docker compose ps
+                docker compose logs --tail=100 api || true
+                exit 1
+              fi
+
+              echo "--- pruning dangling images ---"
+              docker image prune -f
+          EOF
+
+      - name: Reload Nginx and verify its API upstream
+        if: env.PUBLIC_API_HOST != ''
+        run: |
+          ssh -i ~/.ssh/oracle_deploy_key \
+            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            << 'EOF'
+              set -e
+
+              sudo systemctl reload nginx
+
+              # Valida el vhost HTTPS real de Nginx. El puerto 80 redirige
+              # a HTTPS, así que una sonda HTTP daría 301 en vez del 401
+              # anónimo esperado del backend.
+              proxy_status=$(curl -ks -o /dev/null -w "%{http_code}" \
+                --resolve "${{ env.PUBLIC_API_HOST }}:443:127.0.0.1" \
+                "https://${{ env.PUBLIC_API_HOST }}/api/me")
+              if [ "$proxy_status" != "401" ]; then
+                echo "Expected Nginx to proxy /api/me with a 401; received $proxy_status."
+                sudo nginx -T
+                exit 1
+              fi
+          EOF

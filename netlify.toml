@@ -1,0 +1,25 @@
+# Frontend Next.js → Netlify. El runtime de Next (@netlify/plugin-nextjs)
+# se aplica automáticamente al detectar apps/web/.next; se declara
+# explícito porque la raíz es un monorepo pnpm.
+[build]
+  # shared compila primero: la web importa @omnidance/shared (dist).
+  command = "pnpm --filter @omnidance/shared build && pnpm --filter @omnidance/web build"
+  publish = "apps/web/.next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  PNPM_VERSION = "10.12.1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Env vars (Netlify UI → Site settings → Environment variables):
+#   API_PROXY_TARGET             — URL pública del API (https://api.…).
+#                                  next.config.mjs proxea /api/* y
+#                                  /socket.io/* a ese origen (same-origin:
+#                                  cookies Lax sin cross-site; socket.io
+#                                  queda en polling por el proxy).
+#   NEXT_PUBLIC_CARTO_BASEMAP_KEY— key pública del basemap (mapa academias).
+#   NEXT_PUBLIC_VAPID_PUBLIC_KEY — key pública web-push.
+#   NEXT_PUBLIC_WEB_URL          — URL pública del sitio.
+#   NEXT_PUBLIC_API_URL          — dejar VACÍA (relativa = same-origin).

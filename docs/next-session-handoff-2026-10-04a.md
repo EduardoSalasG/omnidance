@@ -296,3 +296,28 @@ varían por academia; todas ofrecen clase de prueba y clase suelta.
 
 Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
 `[]`, SSR autenticado de `/academias/:id` confirma tag neon + nombres.
+
+## CI/CD (mismo patrón que video-repo)
+
+- **API → GitHub Actions**: `.github/workflows/deploy-api-docker.yml` —
+  push a `main` → test+build → imagen `ghcr.io/<owner>/omnidance-api:<sha>`
+  → SSH a la VM → `migrate deploy` + seed prod one-shot → recreate →
+  health gate (`/api/health` 200 + `/api/me` 401) → nginx reload + sonda
+  HTTPS por `vars.PUBLIC_API_HOST`.
+- **`apps/api/Dockerfile`**: multi-stage node:22-slim; openssl en builder
+  ANTES de install (sin él el postinstall de prisma genera engine
+  openssl-1.1.x y el runtime openssl-3 no lo encuentra — verificado con
+  build+run real: health 200, /me 401, migrate deploy OK).
+- **`apps/api/docker-compose.yml`**: servicio `api` 127.0.0.1:4000,
+  env_file .env, healthcheck curl. Prod no lleva DB ni Redis (REDIS_URL
+  no se usa en runtime).
+- **Front → Netlify**: `netlify.toml` (`shared build → web build`,
+  publish `apps/web/.next`, plugin nextjs). Env vars en Netlify UI:
+  `API_PROXY_TARGET` (rewrites same-origin → API), `NEXT_PUBLIC_*`.
+  socket.io queda en polling por el proxy (ya es así en dev).
+- **Docs**: `docs/ci-cd.md` = checklist completo (secrets GH, vars,
+  .env de la VM incl. PAYMENT_GATEWAY=flow fail-close, nginx, Netlify).
+- Infra/tooling — sin cambio de comportamiento → sin change OpenSpec.
+- **Pendiente del usuario**: provisionar secrets/vars en GitHub, crear
+  sitio Netlify + env vars, preparar `.env` en la VM y el vhost nginx.
+  Primer push a `main` con todo listo dispara el primer deploy.
