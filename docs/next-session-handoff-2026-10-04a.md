@@ -205,3 +205,21 @@ validate strict verde. **Smoke manual pendiente** con sesión real:
 particular sin agendar visible arriba de reservadas, cancelación,
 terminales en historial, staff /academia/particulares intacto,
 notificación private_lesson navega a reservadas.
+
+## loading-states ronda 3 (`a4c1d2e`) — barrido del patrón amigos
+
+Revisión sistemática de las ~65 páginas buscando el patrón residual
+(fetch encadenado + skeleton-que-colapsa en sección opcional).
+**Único caso real: `/bailes`** — la racha esperaba a /sessions para
+fetchear (waterfall) y el bloque mejor-baile+racha colapsaba si
+resolvía <2 semanas. Fix: fetch paralelo + bloque que aparece una
+sola vez (sin skeleton provisional).
+
+Verificados limpios: practicas, amigos/[id], notificaciones,
+staff/[eventId], venue (master-detail gated), dj, analitica (+usuario),
+admin/parametros + usuarios/[id], consola academia (dashboard, videos,
+teaching-classes, private-lessons), academia hub, eventos (SSR — sin
+flash posible). Los skeletons `=== "loading"` restantes viven en slots
+persistentes (la sección siempre existe → el placeholder se llena).
+
+Verificación: tsc web limpio, vitest 3/3, impeccable detect `[]`.
