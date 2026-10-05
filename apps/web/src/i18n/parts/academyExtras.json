@@ -167,7 +167,6 @@
   "academyExtras": {
     "lessons": {
       "title": "Clases particulares",
-      "mineTitle": "Mis clases particulares",
       "academy": "Academia",
       "instructor": "Instructor/a",
       "instructorFallback": "Instructor {id}",
@@ -181,7 +180,6 @@
       "assigned": "Clase asignada.",
       "student": "Alumno/a",
       "empty": "Sin clases particulares en esta academia.",
-      "emptyMine": "Aún no tienes clases particulares.",
       "status": {
         "REQUESTED": "Solicitada",
         "CONFIRMED": "Confirmada",
@@ -194,7 +192,6 @@
       "reschedule": "Reagendar",
       "saveReschedule": "Guardar nueva fecha",
       "confirmCancel": "¿Cancelar esta clase particular?",
-      "requested": "Solicitud enviada.",
       "updated": "Clase actualizada.",
       "instructorTitle": "Mis clases como instructor",
       "monthNet": "Neto del mes",

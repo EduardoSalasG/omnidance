@@ -73,6 +73,10 @@ class FakePrisma {
           }),
       };
     },
+    findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
+      this.academies
+        .filter((a) => where.id.in.includes(a.id))
+        .map((a) => ({ id: a.id, name: a.name })),
     update: async ({
       where,
       data,

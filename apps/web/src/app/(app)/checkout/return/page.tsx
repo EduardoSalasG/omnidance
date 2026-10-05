@@ -128,8 +128,8 @@ function CheckoutReturn() {
           <PriceTag amount={phase.amount} className="text-lg" />
           {/* MEMBERSHIP → Mis academias (la vigencia nueva); WORKSHOP →
               Mis clases (ahí aparece la reserva del asiento comprado);
-              PRIVATE → Mis clases particulares (queda "por agendar" hasta
-              que el owner asigne fecha e instructor). */}
+              PRIVATE → reservadas de /clases (la particular queda "por
+              agendar" hasta que el owner asigne fecha e instructor). */}
           <Button
             href={
               phase.orderType === "MEMBERSHIP"
@@ -137,7 +137,7 @@ function CheckoutReturn() {
                 : phase.orderType === "WORKSHOP"
                   ? "/clases"
                   : phase.orderType === "PRIVATE"
-                    ? "/clases/particular"
+                    ? "/clases?scope=reservadas"
                     : "/eventos?view=mios"
             }
             size="lg"
@@ -183,7 +183,7 @@ function CheckoutReturn() {
                 : orderType === "WORKSHOP"
                   ? "/clases"
                   : orderType === "PRIVATE"
-                    ? "/clases/particular"
+                    ? "/clases?scope=reservadas"
                     : "/eventos"
             }
             variant={
@@ -237,7 +237,7 @@ function CheckoutReturn() {
                 : orderType === "WORKSHOP"
                   ? "/clases"
                   : orderType === "PRIVATE"
-                    ? "/clases/particular"
+                    ? "/clases?scope=reservadas"
                     : "/eventos?view=mios"
             }
             size="lg"
@@ -274,7 +274,7 @@ function CheckoutReturn() {
                 : orderType === "WORKSHOP"
                   ? "/clases"
                   : orderType === "PRIVATE"
-                    ? "/clases/particular"
+                    ? "/clases?scope=reservadas"
                     : "/eventos"
             }
             size="lg"

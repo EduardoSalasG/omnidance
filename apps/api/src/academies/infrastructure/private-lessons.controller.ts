@@ -212,6 +212,13 @@ export class PrivateLessonsController {
         ),
       ),
     ];
+    // Academias de las lecciones — la card del alumno (reservadas de
+    // /clases) muestra el nombre sin fetch extra del directorio.
+    const academies = await this.prisma.academy.findMany({
+      where: { id: { in: [...new Set(lessons.map((l) => l.academyId))] } },
+      select: { id: true, name: true },
+    });
+    const academyById = new Map(academies.map((a) => [a.id, a]));
     const people = counterpartIds.length
       ? await this.prisma.person.findMany({
           where: { id: { in: counterpartIds } },
@@ -245,7 +252,11 @@ export class PrivateLessonsController {
     }
     return lessons.map((l) => {
       const { commissionPct: _c, commissionPaidAt: _p, ...rest } = l;
-      return { ...rest, ...counterpartOf(l) };
+      return {
+        ...rest,
+        ...counterpartOf(l),
+        academy: academyById.get(l.academyId) ?? { id: l.academyId, name: null },
+      };
     });
   }
 
