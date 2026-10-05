@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
@@ -138,6 +139,8 @@ function UserDetailPanel({ personId }: { personId: string }) {
   const [state, setState] = useState<LoadState>("loading");
   const [actionError, setActionError] = useState(false);
   const [acting, setActing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const router = useRouter();
   const [newRole, setNewRole] = useState("");
 
   const roleLabel = useCallback(
@@ -234,6 +237,31 @@ function UserDetailPanel({ personId }: { personId: string }) {
       }),
     );
   };
+
+  // Hard delete en cascada (DELETE /admin/users/:personId) - pensado
+  // para cuentas de prueba/duplicadas; auditado server-side.
+  async function deleteUser() {
+    if (!detail || deleting) return;
+    if (!window.confirm(t("users.delete.confirm", { name: detail.person.name }))) {
+      return;
+    }
+    setDeleting(true);
+    setActionError(false);
+    try {
+      const res = await apiFetch(`/admin/users/${personId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setActionError(true);
+        setDeleting(false);
+        return;
+      }
+      router.push("/admin/usuarios");
+    } catch {
+      setActionError(true);
+      setDeleting(false);
+    }
+  }
 
   if (state === "loading") {
     return <SkeletonList />;
@@ -451,6 +479,22 @@ function UserDetailPanel({ personId }: { personId: string }) {
       >
         {t("users.viewAnalytics")}
       </Button>
+
+      {/* Zona de peligro - hard delete en cascada, auditado */}
+      <Card className="flex flex-col gap-3 border-red-500/40">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-red-400/80">
+          {t("users.delete.title")}
+        </h2>
+        <p className="text-sm text-white/60">{t("users.delete.body")}</p>
+        <Button
+          variant="secondary"
+          onClick={() => void deleteUser()}
+          disabled={deleting}
+          className="self-start border-red-500/50 text-red-300 hover:bg-red-500/10"
+        >
+          {deleting ? tc("loading") : t("users.delete.cta")}
+        </Button>
+      </Card>
     </div>
   );
 }

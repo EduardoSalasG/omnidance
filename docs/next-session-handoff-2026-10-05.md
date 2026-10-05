@@ -132,3 +132,23 @@ se quieren como selección personal.
 
 Verificado: 1429/1429 tests API (los e2e siembran dev completo),
 `tsc --noEmit` web OK, openspec validate OK.
+
+## Feature: borrar usuario en cascada desde admin (change admin-user-delete)
+
+Motivo: re-testear onboarding en prod con email real - exige liberar
+el email de la cuenta previa.
+
+- `DELETE /api/admin/users/:personId` (permiso `admin.access`):
+  transacción que borra las 9 filas con FK a `Person` (PersonRole,
+  FiscalProfile, PersonStyleRole, Rsvp, EventDj, Notification,
+  PushToken, PlatformSubscription payer; `producerId` → null) y luego
+  la `Person`. Audita `USER_DELETE`. Self-delete → 400; fantasma → 404.
+  Ids sin FK (tickets, audit, sesiones) quedan como huella - mismo
+  criterio que una baja de negocio.
+- Ficha `/admin/usuarios/[personId]`: card "Zona de peligro" con
+  confirm + redirect al listado.
+- Acceso admin en prod: magic link a `SEED_ADMIN_EMAIL` (la cuenta
+  que creó el seed prod tiene ADMIN APPROVED) → `/admin/usuarios`.
+
+Verificado: 1434/1434 tests API (+5 e2e de cascada), `tsc --noEmit`
+web OK, i18n audit ALL_KEYS_OK, openspec validate OK.

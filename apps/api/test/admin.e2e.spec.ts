@@ -200,4 +200,71 @@ describe("admin role assignment e2e", () => {
       expect(res.status).toBe(404);
     });
   });
+
+  describe("DELETE /api/admin/users/:personId (cascada)", () => {
+    it("sin sesión → 401", async () => {
+      const res = await del(`/api/admin/users/${ids.dancerId}`);
+      expect(res.status).toBe(401);
+    });
+
+    it("sin rol ADMIN → 403", async () => {
+      const res = await del(
+        `/api/admin/users/${ids.dancerId}`,
+        dancerSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("borrarse a sí mismo → 400", async () => {
+      const admin = await prisma.person.findFirstOrThrow({
+        where: { email: "admin@omnidance.dev" },
+      });
+      const res = await del(`/api/admin/users/${admin.id}`, adminSession);
+      expect(res.status).toBe(400);
+    });
+
+    it("persona inexistente → 404", async () => {
+      const res = await del(
+        "/api/admin/users/persona-fantasma",
+        adminSession,
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it("admin borra → persona y filas con FK eliminadas, email liberado", async () => {
+      const style = await prisma.style.findFirstOrThrow();
+      const victim = await prisma.person.create({
+        data: {
+          name: "Victima Cascade",
+          email: "victima-cascade@omnidance.dev",
+          roles: { create: [{ role: "DANCER", status: "APPROVED" }] },
+          styleRoles: {
+            create: [{ styleId: style.id, role: "LEADER" }],
+          },
+        },
+      });
+      const res = await del(`/api/admin/users/${victim.id}`, adminSession);
+      expect(res.status).toBe(200);
+
+      const gone = await prisma.person.findUnique({
+        where: { id: victim.id },
+      });
+      expect(gone).toBeNull();
+      const orphans = await prisma.personStyleRole.count({
+        where: { personId: victim.id },
+      });
+      expect(orphans).toBe(0);
+      const roleOrphans = await prisma.personRole.count({
+        where: { personId: victim.id },
+      });
+      expect(roleOrphans).toBe(0);
+
+      // El email queda libre para re-registro (caso de uso: re-testear
+      // onboarding con el mismo correo).
+      const recycled = await prisma.person.create({
+        data: { name: "Reciclada", email: "victima-cascade@omnidance.dev" },
+      });
+      createdPersonIds.push(recycled.id);
+    });
+  });
 });

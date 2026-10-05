@@ -203,6 +203,56 @@ export class AdminController {
     return { ok: true };
   }
 
+  /**
+   * Borra la persona en cascada (hard delete). Pensado para cuentas de
+   * prueba/duplicadas: elimina primero las filas con FK declarada a
+   * Person (roles, estilos, RSVPs, gigs DJ, notificaciones, push
+   * tokens, perfil fiscal, suscripciones de plataforma) y luego la
+   * Person. El resto del dominio referencia por id sin FK
+   * (Ticket.ownerId, AuditLog.actorId, sesiones, prácticas…) - quedan
+   * como huella histórica, igual que una baja de negocio.
+   * No permite borrar la propia cuenta del admin en sesión.
+   */
+  @Delete("users/:personId")
+  async deleteUser(
+    @Param("personId") personId: string,
+    @Req() req: Request,
+  ) {
+    if (personId === req.person!.id) {
+      throw new BadRequestException(
+        "no puedes eliminar tu propia cuenta",
+      );
+    }
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true, email: true, name: true },
+    });
+    if (!person) throw new NotFoundException("usuario no encontrado");
+
+    await this.prisma.$transaction([
+      this.prisma.platformSubscription.updateMany({
+        where: { producerId: personId },
+        data: { producerId: null },
+      }),
+      this.prisma.platformSubscription.deleteMany({
+        where: { personId },
+      }),
+      this.prisma.personRole.deleteMany({ where: { personId } }),
+      this.prisma.fiscalProfile.deleteMany({ where: { personId } }),
+      this.prisma.personStyleRole.deleteMany({ where: { personId } }),
+      this.prisma.rsvp.deleteMany({ where: { personId } }),
+      this.prisma.eventDj.deleteMany({ where: { personId } }),
+      this.prisma.notification.deleteMany({ where: { personId } }),
+      this.prisma.pushToken.deleteMany({ where: { personId } }),
+      this.prisma.person.delete({ where: { id: personId } }),
+    ]);
+    await this.audit(req, "USER_DELETE", "Person", personId, {
+      email: person.email,
+      name: person.name,
+    });
+    return { ok: true };
+  }
+
   // ── Catálogo RBAC (roles, permisos, grants) ───────────────────────────
 
   @Get("roles")
