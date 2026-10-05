@@ -185,3 +185,16 @@ corregido y regenerados los 4 PNG (commit `98ad610`).
 - **Verificación prod**: `api.../api/health` 200, `api.../api/me` 401, `omnidance.netlify.app` 200, proxy same-origin 200, manifest nuevo servido (handle_links), `/bienvenida` guard OK (307 a login).
 - **Incluye**: /bienvenida + reminder perfil, 409 phone_exists, catálogo de estilos depurado, DELETE admin en cascada, fix cookie magic link (WEB_URL), iconos morados + O centrada, InstallPrompt PWA, workflow_dispatch, em-dashes fuera.
 - **QA pendiente**: flujo register → bienvenida en prod; install prompt en Android/iOS reales; magic link en PWA instalada (Android). Flow sigue con credenciales placeholder.
+
+## v0.2.1 (mismo día)
+
+- Tag `v0.2.1` en `3432594`; fix CI post-tag en `a33f9ab` (comilla
+  suelta en el extractor de `SEED_ADMIN_EMAIL` rompió el script remoto
+  con `unexpected EOF` - el tag queda en el commit de versión, el fix
+  es infra-only).
+- Deploy verde: run `37348224627` (seed omitido, healthy al intento 4).
+- **Dato prod pendiente**: `Person.email` del admin quedó con comillas
+  + espacios (seed corrió con el valor crudo del `.env`). Reparar en
+  Neon SQL Editor - SQL exacto en `docs/ci-cd.md` (sección
+  troubleshooting, "Email del admin con comillas en la DB"). Sin eso el
+  magic link del admin no lo encuentra.
