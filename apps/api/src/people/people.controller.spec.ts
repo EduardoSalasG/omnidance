@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Request } from "express";
+import { CONSENT_VERSION } from "@omnidance/shared";
 import type { PrismaService } from "../prisma.service";
 import "../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver events.controller.spec)
 import { PeopleController, UpdateMeDto } from "./people.controller";
@@ -26,6 +27,8 @@ interface FakePerson {
   onboarding: unknown;
   proTier: string;
   proTrialEndsAt: Date | null;
+  consentVersion: string | null;
+  consentAcceptedAt: Date | null;
   roles: { role: string; status: string }[];
   styleRoles: {
     role: string;
@@ -169,6 +172,8 @@ const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
   onboarding: {},
   proTier: "FREE",
   proTrialEndsAt: null,
+  consentVersion: null,
+  consentAcceptedAt: null,
   roles: [],
   styleRoles: [],
 });
@@ -269,6 +274,28 @@ describe("PeopleController", () => {
       ];
       const res = await ctrl.me(reqAs("me"));
       expect("effectivePro" in res).toBe(false);
+    });
+
+    // Spec legal-consent: GET /me expone el consentimiento para que el
+    // front decida el banner de re-aceptación.
+    it("expone consentVersion/consentAcceptedAt", async () => {
+      const res = await ctrl.me(reqAs("me"));
+      expect(res.consentVersion).toBeNull();
+      expect(res.consentAcceptedAt).toBeNull();
+    });
+  });
+
+  describe("POST /me/consent", () => {
+    it("estampa la versión vigente y el timestamp", async () => {
+      const res = await ctrl.consent(reqAs("me"), { version: "0.0-vieja" });
+      const me = prisma.people.get("me")!;
+      // Siempre la versión del servidor — nunca la que envía el cliente.
+      expect(me.consentVersion).toBe(CONSENT_VERSION);
+      expect(me.consentAcceptedAt).toBeInstanceOf(Date);
+      expect(res).toMatchObject({
+        ok: true,
+        consentVersion: CONSENT_VERSION,
+      });
     });
   });
 

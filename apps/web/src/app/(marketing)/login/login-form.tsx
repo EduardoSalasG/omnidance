@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -50,7 +51,9 @@ export default function LoginForm({
   next?: string;
 }) {
   const t = useTranslations("login");
+  const tc = useTranslations("consent");
   const [mode, setMode] = useState<Mode>(initialMode ?? "password");
+  const [consent, setConsent] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -81,13 +84,26 @@ export default function LoginForm({
       }
     }
 
+    // Consentimiento (spec legal-consent): obligatorio para registrar y
+    // para pedir magic link — el atributo `required` del checkbox ya
+    // bloquea el submit nativo; este check cubre submits programáticos.
+    if (mode !== "password" && !consent) {
+      setError(tc("checkboxRequired"));
+      return;
+    }
+
     setLoading(true);
     const body =
       mode === "register"
-        ? { email, name: name.trim() || email.split("@")[0], password }
+        ? {
+            email,
+            name: name.trim() || email.split("@")[0],
+            password,
+            consent,
+          }
         : mode === "password"
           ? { email, password }
-          : { email };
+          : { email, consent };
     const endpoint =
       mode === "register"
         ? "/auth/register"
@@ -255,6 +271,58 @@ export default function LoginForm({
                   className={inputClass}
                 />
               </Field>
+            )}
+
+            {/* Consentimiento legal (spec legal-consent): solo en alta
+                (register) y pedido de magic link — quien entra con
+                contraseña ya tiene cuenta; las legadas re-aceptan por el
+                aviso in-app (POST /me/consent). Links a pestaña nueva
+                para no perder el formulario. */}
+            {mode !== "password" && (
+              <label className="flex cursor-pointer items-start gap-3 text-left">
+                <input
+                  type="checkbox"
+                  required
+                  checked={consent}
+                  onChange={(e) => {
+                    setConsent(e.target.checked);
+                    if (e.target.checked && error === tc("checkboxRequired")) {
+                      setError(null);
+                    }
+                  }}
+                  aria-invalid={
+                    error === tc("checkboxRequired") ? true : undefined
+                  }
+                  aria-describedby={error ? "login-error" : undefined}
+                  className="mt-0.5 size-5 shrink-0 accent-neon focus-visible:ring-2 focus-visible:ring-neon/50"
+                />
+                <span className="text-sm leading-snug text-white/70">
+                  {tc.rich("checkboxLabel", {
+                    terms: (chunks) => (
+                      <Link
+                        href="/terminos"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-medium text-neon underline-offset-4 hover:underline"
+                      >
+                        {chunks}
+                      </Link>
+                    ),
+                    privacy: (chunks) => (
+                      <Link
+                        href="/privacidad"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-medium text-neon underline-offset-4 hover:underline"
+                      >
+                        {chunks}
+                      </Link>
+                    ),
+                  })}
+                </span>
+              </label>
             )}
 
             {error && (

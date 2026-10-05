@@ -1,6 +1,7 @@
 import { ChromeShell } from "@/components/layout/ChromeShell";
 import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import { NavPendingOverlay } from "@/components/ui/nav-pending";
+import { ConsentBanner } from "@/components/legal/ConsentBanner";
 import baseMessages from "../../../messages/es-CL.json";
 
 // Grupo (app): superficies autenticadas con chrome de app — skip-link,
@@ -24,6 +25,10 @@ export default function AppLayout({
           link interno lento (toda la app autenticada lo hereda). */}
       <NavPendingOverlay>
         <ChromeShell>{children}</ChromeShell>
+        {/* Aviso legal no bloqueante (spec legal-consent): visible solo
+            cuando /me reporta consentimiento ausente o de versión
+            antigua. */}
+        <ConsentBanner />
       </NavPendingOverlay>
     </RealtimeProvider>
   );

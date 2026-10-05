@@ -16,6 +16,9 @@ export interface AuthRepo {
     passwordHash: string,
   ): Promise<Person>;
   setPassword(personId: string, passwordHash: string): Promise<void>;
+  // Estampa la aceptación de Términos+Privacidad (spec legal-consent):
+  // consentAcceptedAt=now y consentVersion=CONSENT_VERSION vigente.
+  recordConsent(personId: string): Promise<void>;
   findById(
     id: string,
   ): Promise<(Person & { roles: { role: string; status: string }[] }) | null>;

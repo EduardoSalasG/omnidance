@@ -12,13 +12,13 @@ sequenceDiagram
     participant M as Mailer (Resend / dev-log)
     participant DB as Postgres
 
-    U->>W: ingresa email
-    W->>A: POST /auth/magic-link {email}
+    U->>W: ingresa email + acepta Términos/Privacidad (checkbox)
+    W->>A: POST /auth/magic-link {email, consent:true}
     A->>DB: upsert Person + crea MagicLink(token, exp)
-    A->>M: envía link /auth/verify?token=…
+    A->>M: envía link /auth/verify?token=… (consent viaja en el token)
     M-->>U: email
     U->>A: GET /auth/verify?token=…
-    A->>DB: consume token (1 uso, no expirado)
+    A->>DB: consume token (1 uso, no expirado) + estampa consentVersion/consentAcceptedAt
     A->>A: mint JWT (jose) — personId
     A-->>W: Set-Cookie omnidance_session (HttpOnly)
     W->>A: GET /me → {person, roles, roleStates}

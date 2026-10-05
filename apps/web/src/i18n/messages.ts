@@ -12,6 +12,7 @@ import crm from "./parts/crm.json";
 import dj from "./parts/dj.json";
 import events from "./parts/events.json";
 import landing from "./parts/landing.json";
+import legal from "./parts/legal.json";
 import locales from "./parts/locales.json";
 import membershipCheckout from "./parts/membershipCheckout.json";
 import payments from "./parts/payments.json";
@@ -62,6 +63,7 @@ const parts = [
   dj,
   events,
   landing,
+  legal,
   locales,
   membershipCheckout,
   payments,

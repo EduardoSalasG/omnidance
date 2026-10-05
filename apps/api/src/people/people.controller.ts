@@ -25,6 +25,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Gender } from "@prisma/client";
+import { CONSENT_VERSION } from "@omnidance/shared";
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { AuthService } from "../auth/domain/auth.service";
@@ -111,6 +112,16 @@ class OnboardingDto {
   tour!: string;
 }
 
+class ConsentDto {
+  // Versión que el cliente dice aceptar — informativa: el servidor
+  // siempre estampa la vigente (CONSENT_VERSION). Se acepta para que el
+  // front pueda declarar qué vio, y para compat si el shape crece.
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  version?: string;
+}
+
 @Controller()
 export class PeopleController {
   constructor(
@@ -181,6 +192,11 @@ export class PeopleController {
         : {}),
       styleRoles: person.styleRoles,
       enrollments,
+      // Consentimiento legal (spec legal-consent): el front muestra el
+      // aviso de aceptación si consentAcceptedAt es null o la versión
+      // difiere de CONSENT_VERSION (shared).
+      consentAcceptedAt: person.consentAcceptedAt,
+      consentVersion: person.consentVersion,
       // Flags de ciclo de vida: demo (lead /pro, solo lectura) y
       // pendingProfile (admin convirtió el lead — falta completar datos).
       isDemo: person.isDemoAccount,
@@ -355,6 +371,28 @@ export class PeopleController {
       },
     });
     return { ok: true, styleRoles };
+  }
+
+  /**
+   * POST /me/consent — registra la aceptación de Términos+Privacidad de
+   * la versión vigente (aviso in-app para cuentas legadas o tras un
+   * cambio de versión). Siempre estampa CONSENT_VERSION del servidor:
+   * aceptar una versión antigua no tiene sentido.
+   */
+  @Post("me/consent")
+  @HttpCode(200)
+  @UseGuards(SessionGuard)
+  async consent(@Req() req: Request, @Body() _dto: ConsentDto) {
+    const personId = req.person!.id;
+    const person = await this.prisma.person.update({
+      where: { id: personId },
+      data: {
+        consentAcceptedAt: new Date(),
+        consentVersion: CONSENT_VERSION,
+      },
+      select: { consentAcceptedAt: true, consentVersion: true },
+    });
+    return { ok: true, ...person };
   }
 
   /** Marca un tour de primera visita como visto (merge sobre el JSON). */

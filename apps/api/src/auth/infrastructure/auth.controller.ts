@@ -13,7 +13,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import {
@@ -47,12 +47,22 @@ export function setSessionCookie(res: Response, token: string): void {
   });
 }
 
-class MagicLinkDto {
+// `consent?: boolean` (spec legal-consent): el front lo manda true cuando
+// la persona marcó el checkbox de Términos+Privacidad. No es obligatorio
+// a nivel API — cuentas legadas pasan por el aviso in-app (POST
+// /me/consent). Si llega true se estampa al crear la sesión.
+class ConsentField {
+  @IsOptional()
+  @IsBoolean()
+  consent?: boolean;
+}
+
+class MagicLinkDto extends ConsentField {
   @IsEmail()
   email!: string;
 }
 
-class PasswordLoginDto {
+class PasswordLoginDto extends ConsentField {
   @IsEmail()
   email!: string;
 
@@ -133,7 +143,12 @@ export class AuthController {
   @HttpCode(202)
   @Throttle(AUTH_THROTTLE)
   async magicLink(@Body() dto: MagicLinkDto) {
-    const token = await this.auth.createMagicToken(dto.email.toLowerCase());
+    // El consentimiento viaja como claim del token: al abrir el link
+    // (verify) se estampa en la Person junto a la sesión.
+    const token = await this.auth.createMagicToken(
+      dto.email.toLowerCase(),
+      dto.consent === true,
+    );
     const apiUrl = process.env.API_URL ?? "http://localhost:4000";
     const link = `${apiUrl}/api/auth/verify?token=${token}`;
     await this.mailer.send(
@@ -173,6 +188,7 @@ export class AuthController {
     // Login exitoso limpia los fallos previos de la ventana.
     loginAttempts.delete(key);
 
+    if (dto.consent === true) await this.repo.recordConsent(person.id);
     const session = await this.auth.issueSession(person.id);
     this.setSessionCookie(res, session);
     return { ok: true };
@@ -196,6 +212,7 @@ export class AuthController {
       dto.name.trim(),
       passwordHash,
     );
+    if (dto.consent === true) await this.repo.recordConsent(person.id);
     await this.sendWelcome(email, person.name);
     const session = await this.auth.issueSession(person.id);
     this.setSessionCookie(res, session);
@@ -217,10 +234,12 @@ export class AuthController {
   @Get("verify")
   async verify(@Query("token") token: string, @Res() res: Response) {
     try {
-      const { email } = await this.auth.verifyMagicToken(token);
+      const { email, consent } = await this.auth.verifyMagicToken(token);
       // Si el correo no existía, el upsert crea la cuenta → bienvenida.
       const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
+      // Checkbox marcado al pedir el link → se estampa al crear sesión.
+      if (consent) await this.repo.recordConsent(person.id);
       if (!existed) await this.sendWelcome(email, person.name);
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";

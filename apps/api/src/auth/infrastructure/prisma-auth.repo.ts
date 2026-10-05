@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Person } from "@prisma/client";
+import { CONSENT_VERSION } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import type { AuthRepo } from "../domain/ports";
 
@@ -51,6 +52,18 @@ export class PrismaAuthRepo implements AuthRepo {
       where: { id: personId },
       data: { passwordHash },
     });
+  }
+
+  recordConsent(personId: string) {
+    return this.prisma.person
+      .update({
+        where: { id: personId },
+        data: {
+          consentAcceptedAt: new Date(),
+          consentVersion: CONSENT_VERSION,
+        },
+      })
+      .then(() => {});
   }
 
   findById(id: string) {

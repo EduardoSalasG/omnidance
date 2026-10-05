@@ -56,7 +56,7 @@ src/<dominio>/
 | Módulo | Rutas | Guard |
 |---|---|---|
 | auth | `/api/auth/*` magic-link, session, logout | — |
-| people | `/api/me` perfil + roleStates + gender; `GET /me/pending-surveys` (eventos evaluables en ventana 24h; el primer request reclama `surveyNotifiedAt` y hace fan-out `event.survey` a todos los asistentes con check-in válido) | SessionGuard |
+| people | `/api/me` perfil + roleStates + gender + `consentVersion`/`consentAcceptedAt` (consentimiento legal — ver abajo); `POST /me/consent` (estampa `CONSENT_VERSION` vigente); `GET /me/pending-surveys` (eventos evaluables en ventana 24h; el primer request reclama `surveyNotifiedAt` y hace fan-out `event.survey` a todos los asistentes con check-in válido) | SessionGuard |
 | events | `/api/events*` catálogo público con `?genre=&venue=&week=this`; `genres` resueltos (evento o heredados de serie); consola productor: `/events/mine` (+stats vendidas/bruto/check-ins), `/events/:id/live` (ventas por canal, check-ins, ocupación — owner/admin), `/events/:id/export.csv|export.pdf?dataset=sales|checkins|guestlist` (CSV operativo / PDF imprimible con resumen — owner/admin; BOM UTF-8, sin claimToken) y `/events/series/:seriesId/export.csv|export.pdf` (mismos datasets agregados por serie con columna `evento`), `/events/:id/ratings/summary` (agregado k≥3), `/events/:id/analytics` (attendees + genderSplit/roleSplit + ratings por dim — null bajo k≥3, owner/admin), `/dj/gigs*` (gigs + sugerencias + rating de música del DJ asignado) | público / SessionGuard / `events.manage` |
 | qr | `/api/qr/mine` QR rotativo | SessionGuard |
 | sessions | `/api/sessions/*` registrar por QR (`scan`)/declarar retro (`declare`)/puntuar/descartar | SessionGuard + wiring notify+badges |
@@ -74,16 +74,24 @@ src/<dominio>/
 ## Cuentas demo (leads /pro)
 
 - `Person.isDemoAccount` marca cuentas creadas por `POST /leads/:id/demo`.
-- **Barrera de escritura en `SessionGuard`**: demo + método mutador → `403 demo_mode`, salvo whitelist self-scoped (`/auth/logout`, `/auth/password`, `/notifications/*`, `/push-tokens`, `/me/complete-profile`). Los GETs pasan con sus roles APPROVED — el demo navega su consola sin ensuciar data productiva.
+- **Barrera de escritura en `SessionGuard`**: demo + método mutador → `403 demo_mode`, salvo whitelist self-scoped (`/auth/logout`, `/auth/password`, `/notifications/*`, `/push-tokens`, `/me/complete-profile`, `/me/consent`). Los GETs pasan con sus roles APPROVED — el demo navega su consola sin ensuciar data productiva.
 - **Promoción demo→real**: `POST /auth/magic-link` → `GET /auth/verify` hace `upsertByEmail`, que marca `verifiedAt` y apaga `isDemoAccount` (el magic link prueba posesión del correo) — **excepto** si `pendingProfileAt` está set (conversión admin): ahí solo se verifica el correo y la barrera sigue activa hasta `/me/complete-profile`.
 - **Conversión admin**: `POST /api/admin/leads/:id/convert` (`admin.access`, audita `LEAD_CONVERT`) — crea la `Person` si no existe (o usa la demo ligada), setea `pendingProfileAt` + `isDemoAccount`, envía magic link por email + notificación in-app `account.complete_profile`; lead → `CONTACTED`. Si el email ya es cuenta real → enlaza y `CONVERTED` directo (`alreadyReal`). Teléfono ya registrado en otra cuenta → `409 phone_exists` (`Person.phone` es unique — en `demo` y `complete-profile` también se pre-chequea).
 - **Cierre del ciclo**: `POST /api/me/complete-profile` (SessionGuard, whitelisted en la barrera) — name/phone (+password opcional) → limpia `pendingProfileAt`, apaga `isDemoAccount`, lead ligado → `CONVERTED`. `/api/me` expone `isDemo` + `pendingProfile`.
 - Web: banner persistente bajo el appbar cuando `pendingProfile` → `/perfil/completar` (form name/phone/password); botón "Convertir a usuario real" en filas de leads de `/admin/datos` (visible solo si `demoPending` o sin cuenta).
 - El explorador admin muestra badge "demo" en filas de `people` y `demoPending` en `leads`; `demoToken` nunca sale en respuestas.
 
+## Consentimiento legal (spec legal-consent)
+
+- `Person.consentVersion` + `Person.consentAcceptedAt` registran la aceptación de Términos+Privacidad; la versión vigente es `CONSENT_VERSION` en `@omnidance/shared` — al publicar una versión nueva, las Person con versión distinta vuelven a ver el aviso.
+- El flag `consent:true` viaja en el body de `POST /auth/register`, `/auth/login` y `/auth/magic-link` (en magic link como claim del JWT → se estampa en `GET /auth/verify`); si llega, se estampa al crear la sesión. El checkbox del form es obligatorio solo para alta/pedido de link — el login con contraseña no lo muestra.
+- Cuentas legadas: `GET /me` expone ambos campos y el front muestra un banner no bloqueante (`ConsentBanner` en el layout (app)) → `POST /me/consent` estampa la versión vigente.
+- Páginas públicas `/terminos` y `/privacidad` (grupo (marketing), texto en `i18n/parts/legal.json`), enlazadas desde el checkbox del login, el banner y el footer de las landings.
+- El explorador admin muestra badge "demo" en filas de `people` y `demoPending` en `leads`; `demoToken` nunca sale en respuestas.
+
 ## Frontera anónima (web)
 
-- `apps/web/src/middleware.ts`: sin cookie `omnidance_session`, toda ruta de `(app)` → `/login?next=<ruta>`. Públicas: `/`, `/pro`, `/login`, `/eventos` (solo lista), `opengraph-image`, `twitter-image` — el resto de estáticos queda fuera por el matcher (`api`, `_next`, archivos con extensión).
+- `apps/web/src/middleware.ts`: sin cookie `omnidance_session`, toda ruta de `(app)` → `/login?next=<ruta>`. Públicas: `/`, `/pro`, `/login`, `/terminos`, `/privacidad`, `/eventos` (solo lista), `opengraph-image`, `twitter-image` — el resto de estáticos queda fuera por el matcher (`api`, `_next`, archivos con extensión).
 - `/eventos` sin sesión: solo eventos de la semana, sin links al detalle, con CTA a login — "ver sin entrar a la app". `BottomNav` no renderiza chrome cuando `/me` resuelve anónimo (`meChecked && !me`) y marca `html[data-anon]` para que `ChromeShell` no reserve el padding de la tab bar.
 - Tras login, `?next=` devuelve a la ruta pedida (solo rutas internas — sin open redirect).
 - Estilos: `EventSeries.genres` + `Event.genres` (Genre[]: SALSA/BACHATA/CUBANO; vacío en evento → hereda la serie). En la UI `CUBANO` se muestra como "Timba" — el nombre que usa la escena.

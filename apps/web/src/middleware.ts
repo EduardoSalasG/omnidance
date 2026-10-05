@@ -8,6 +8,10 @@ const PUBLIC_PATHS = new Set([
   "/",
   "/pro",
   "/login",
+  // Páginas legales (spec legal-consent) — deben leerse sin sesión,
+  // incluidas desde el checkbox de consentimiento del login.
+  "/terminos",
+  "/privacidad",
   "/opengraph-image",
   "/twitter-image",
 ]);

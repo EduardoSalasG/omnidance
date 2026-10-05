@@ -52,6 +52,11 @@ model Person {
   // productores registrados (ProducerParams) — nadie pierde features que
   // ya usaba al desplegar. isProActive = proTier != FREE || trial vigente.
   proTrialEndsAt DateTime?
+  // Consentimiento legal (spec legal-consent): versión aceptada
+  // (CONSENT_VERSION vigente en @omnidance/shared) + timestamp. null =
+  // cuenta legada que aún no acepta → el front muestra el aviso.
+  consentVersion    String?
+  consentAcceptedAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
