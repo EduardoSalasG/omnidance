@@ -108,15 +108,28 @@ export function ProfilePlansSection({
                       <Badge variant="neon">{labels.planActive}</Badge>
                     )}
                   </p>
-                  <p className="mt-0.5 text-xs text-white/50">
-                    {labels.planTypeLabels[p.type] ?? p.type}
-                    {p.classCount
-                      ? ` · ${countLabel(labels.planClassCount, p.classCount)}`
-                      : ""}
-                    {p.weeklyClasses
-                      ? ` · ${countLabel(labels.planWeeklyCount, p.weeklyClasses)}`
-                      : ""}
-                  </p>
+                  {/* Tipo como tag verde — el nombre del plan es categoría
+                      propia de la academia; la línea gris queda solo para
+                      cuotas (N clases, N/semana). */}
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <Badge variant="neon">
+                      {labels.planTypeLabels[p.type] ?? p.type}
+                    </Badge>
+                    {(p.classCount || p.weeklyClasses) && (
+                      <span className="text-xs text-white/50">
+                        {[
+                          p.classCount
+                            ? countLabel(labels.planClassCount, p.classCount)
+                            : "",
+                          p.weeklyClasses
+                            ? countLabel(labels.planWeeklyCount, p.weeklyClasses)
+                            : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {/* Precio real cobrado — sin cargo de servicio (modelo
                     SaaS: la academia vende sin comisión), mismo total
