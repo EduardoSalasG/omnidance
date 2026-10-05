@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useViewMode } from "@/lib/view-mode";
 import { GenderGroup, type Gender } from "@/components/profile/GenderGroup";
+import { isProfileStyleVisible } from "@/lib/profile-styles";
 import {
   Badge,
   Button,
@@ -570,11 +571,19 @@ export default function DatosPage() {
                       className={`${selectCls} w-full`}
                     >
                       <option value="">{t("datos.chooseStyle")}</option>
-                      {(stylesCat ?? []).map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
+                      {(stylesCat ?? [])
+                        // El picker acota el catálogo (lib/profile-styles);
+                        // un estilo oculto ya elegido sigue visible como
+                        // opción para que la fila no quede vacía.
+                        .filter(
+                          (s) =>
+                            s.id === r.styleId || isProfileStyleVisible(s.name),
+                        )
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
                     </select>
                     <div className="flex items-center gap-2">
                       <select

@@ -41,10 +41,8 @@ export const ROLE_GRANTS: Record<string, string[]> = {
 // Catálogo de estilos - data de producto, no demo (aplica a prod también).
 export const STYLE_CATALOG = [
   { name: "Salsa cubana (casino)", genre: Genre.CUBANO },
-  { name: "Salsa on2", genre: Genre.SALSA },
   { name: "Salsa on1", genre: Genre.SALSA },
   { name: "Bachata sensual", genre: Genre.BACHATA },
-  { name: "Bachata dominicana", genre: Genre.BACHATA },
   { name: "Bachata tradicional", genre: Genre.BACHATA },
   { name: "Bachata moderna", genre: Genre.BACHATA },
   { name: "Cubano", genre: Genre.CUBANO },
