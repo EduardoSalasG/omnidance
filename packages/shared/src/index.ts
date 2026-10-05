@@ -225,3 +225,9 @@ export const SESSION_RULES = {
 // Ventana "reciente" para listar eventos/prácticas: un evento que empezó
 // hace menos de 12h sigue siendo descubrible (fiestas que cruzan medianoche).
 export const EVENT_RECENT_LOOKBACK_MS = 12 * 60 * 60 * 1000;
+
+// ─── Legal ───────────────────────────────────────────────
+// Versión vigente de Términos + Privacidad (spec legal-consent). Al
+// publicar una versión nueva se sube este string: las Person con
+// consentVersion distinta vuelven a ver el aviso de aceptación.
+export const CONSENT_VERSION = "2026-10";

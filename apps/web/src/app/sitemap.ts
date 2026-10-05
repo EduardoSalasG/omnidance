@@ -13,6 +13,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/pro",
     "/eventos",
     "/login",
+    "/terminos",
+    "/privacidad",
   ].map((path) => ({ url: `${WEB_URL}${path}`, lastModified }));
 
   for (const e of events) {

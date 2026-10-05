@@ -37,6 +37,9 @@ const DEMO_ALLOWED_WRITES = [
   // Cierre del flujo de conversión de lead — es justamente la escritura
   // que apaga isDemoAccount.
   /^\/api\/me\/complete-profile$/,
+  // Aceptación legal self-scoped (spec legal-consent): la cuenta demo
+  // también debe poder registrarla si el aviso aparece.
+  /^\/api\/me\/consent$/,
 ];
 
 @Injectable()

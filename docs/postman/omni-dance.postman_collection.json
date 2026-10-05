@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:4100"
+      "value": "http://localhost:4000"
     }
   ],
   "item": [
@@ -298,6 +298,38 @@
                 "api",
                 "me",
                 "style-roles"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/consent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/consent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "consent"
               ]
             },
             "body": {
