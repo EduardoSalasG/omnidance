@@ -24,6 +24,8 @@ interface FakePerson {
   isDemoAccount: boolean;
   pendingProfileAt: Date | null;
   onboarding: unknown;
+  proTier: string;
+  proTrialEndsAt: Date | null;
   roles: { role: string; status: string }[];
   styleRoles: {
     role: string;
@@ -165,6 +167,8 @@ const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
   isDemoAccount: false,
   pendingProfileAt: null,
   onboarding: {},
+  proTier: "FREE",
+  proTrialEndsAt: null,
   roles: [],
   styleRoles: [],
 });
@@ -225,6 +229,46 @@ describe("PeopleController", () => {
       const res = await ctrl.me(reqAs("me"));
       expect(res.gender).toBe("OTHER");
       expect(res.styleRoles).toEqual([]);
+    });
+
+    // Estado Producer Pro (S5): solo personas con rol PRODUCER APPROVED
+    // reciben proTier/proTrialEndsAt/effectivePro — el front gatea el
+    // paywall sin llamada extra.
+    it("persona sin rol PRODUCER → no expone campos Pro", async () => {
+      const res = await ctrl.me(reqAs("me"));
+      expect("effectivePro" in res).toBe(false);
+      expect("proTier" in res).toBe(false);
+      expect("proTrialEndsAt" in res).toBe(false);
+    });
+
+    it("PRODUCER FREE sin trial → effectivePro false", async () => {
+      const me = prisma.people.get("me")!;
+      me.roles = [{ role: "PRODUCER", status: "APPROVED" }];
+      const res = await ctrl.me(reqAs("me"));
+      expect(res).toMatchObject({
+        proTier: "FREE",
+        proTrialEndsAt: null,
+        effectivePro: false,
+      });
+    });
+
+    it("PRODUCER con trial vigente o tier pago → effectivePro true", async () => {
+      const me = prisma.people.get("me")!;
+      me.roles = [{ role: "PRODUCER", status: "APPROVED" }];
+      me.proTrialEndsAt = new Date(Date.now() + 90 * 24 * 3600 * 1000);
+      expect((await ctrl.me(reqAs("me"))).effectivePro).toBe(true);
+
+      me.proTier = "PRO_STARTER";
+      me.proTrialEndsAt = null;
+      expect((await ctrl.me(reqAs("me"))).effectivePro).toBe(true);
+    });
+
+    it("rol PRODUCER no aprobado (PENDING) → sin campos Pro", async () => {
+      prisma.people.get("me")!.roles = [
+        { role: "PRODUCER", status: "PENDING" },
+      ];
+      const res = await ctrl.me(reqAs("me"));
+      expect("effectivePro" in res).toBe(false);
     });
   });
 

@@ -31,6 +31,10 @@ interface FakePerson {
   id: string;
   name: string;
   photoUrl: string | null;
+  // Gating Producer Pro (S5) — solo se consultan cuando el caller es el
+  // productor dueño del recurso.
+  proTier?: string;
+  proTrialEndsAt?: Date | null;
 }
 
 interface FakeEvent {
@@ -211,11 +215,43 @@ class FakePrisma {
       }
       return rows;
     },
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.people.get(where.id) ?? null,
+  };
+
+  staffAssignment = {
+    upsert: async ({
+      where,
+      create,
+      update,
+    }: {
+      where: { eventId_personId: { eventId: string; personId: string } };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }) => ({ id: "sa-1", ...create, ...update, ...where.eventId_personId }),
   };
 }
 
 const reqAs = (personId: string, roles: string[] = []) =>
   ({ person: { id: personId, roles } }) as unknown as Request;
+
+/** Body de respuesta de una HttpException. */
+const errBody = (e: unknown): Record<string, unknown> =>
+  ((e as { getResponse?: () => unknown }).getResponse?.() ?? {}) as Record<
+    string,
+    unknown
+  >;
+
+// Productor con Pro vigente vía trial de lanzamiento (S5) — el default de
+// los seeds; los tests de gating lo sobrescriben.
+const mkProducer = (id: string, over: Partial<FakePerson> = {}): FakePerson => ({
+  id,
+  name: "Prod",
+  photoUrl: null,
+  proTier: "FREE",
+  proTrialEndsAt: new Date(Date.now() + 90 * 24 * 3600 * 1000),
+  ...over,
+});
 
 describe("EventsController.friendsGoing", () => {
   let prisma: FakePrisma;
@@ -313,7 +349,7 @@ describe("EventsController.exportCsv", () => {
       { getProducerParams: async () => null } as never,
     );
     prisma.events.push({ id: "ev-1", producerId: "prod-1" });
-    prisma.people.set("prod-1", { id: "prod-1", name: "Prod", photoUrl: null });
+    prisma.people.set("prod-1", mkProducer("prod-1"));
     prisma.people.set("buyer", { id: "buyer", name: "Ana, Compra", photoUrl: null });
     prisma.people.set("asist", { id: "asist", name: "Luis Asiste", photoUrl: null });
     prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
@@ -472,6 +508,56 @@ describe("EventsController.exportCsv", () => {
     const csv = await ctrl.exportCsv("ev-1", "checkins", reqAs("prod-1"), res);
     expect(rows(csv)[1]).toContain('"DJ ""Nico"""');
   });
+
+  // ─── Gating Producer Pro (S5): exports son feature Pro ───
+
+  it("owner FREE sin trial → 403 pro.required (csv y pdf)", async () => {
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
+    );
+    const { res } = fakeRes();
+    const err = await ctrl
+      .exportCsv("ev-1", "sales", reqAs("prod-1"), res)
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 403 });
+    expect(errBody(err)).toMatchObject({
+      error: "pro.required",
+      upgrade: true,
+    });
+    await expect(
+      ctrl.exportPdf("ev-1", "sales", reqAs("prod-1"), res),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("owner FREE con trial vigente → exporta; PRO_* → exporta", async () => {
+    const { res } = fakeRes();
+    // trial vigente ya es el default del seed (mkProducer)
+    const csv = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "PRO_GROWTH", proTrialEndsAt: null }),
+    );
+    const csv2 = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+    expect(csv2.charCodeAt(0)).toBe(0xfeff);
+  });
+
+  it("admin descarga aunque el owner sea FREE sin trial", async () => {
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
+    );
+    const { res } = fakeRes();
+    const csv = await ctrl.exportCsv(
+      "ev-1",
+      "sales",
+      reqAs("soporte", ["ADMIN"]),
+      res,
+    );
+    expect(csv.charCodeAt(0)).toBe(0xfeff);
+  });
 });
 
 describe("EventsController.exportSeriesCsv", () => {
@@ -502,7 +588,7 @@ describe("EventsController.exportSeriesCsv", () => {
       },
       { id: "ev-ajeno", producerId: "prod-1" }, // standalone, fuera de serie
     );
-    prisma.people.set("prod-1", { id: "prod-1", name: "Prod", photoUrl: null });
+    prisma.people.set("prod-1", mkProducer("prod-1"));
     prisma.people.set("asist", { id: "asist", name: "Luis Asiste", photoUrl: null });
     prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
   });
@@ -607,6 +693,18 @@ describe("EventsController.exportSeriesCsv", () => {
     );
     expect(csv.charCodeAt(0)).toBe(0xfeff);
   });
+
+  it("owner FREE sin trial → 403 pro.required también en export de serie", async () => {
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
+    );
+    const { res } = fakeRes();
+    const err = await ctrl
+      .exportSeriesCsv("ser-1", "sales", reqAs("prod-1"), res)
+      .catch((e: unknown) => e);
+    expect(errBody(err).error).toBe("pro.required");
+  });
 });
 
 // EventsController.exportPdf / exportSeriesPdf — mismo dataset y auth que
@@ -632,7 +730,7 @@ describe("EventsController.exportPdf", () => {
       name: "Noche de Salsa",
       startsAt: new Date("2026-09-05T23:00:00Z"),
     });
-    prisma.people.set("prod-1", { id: "prod-1", name: "Prod", photoUrl: null });
+    prisma.people.set("prod-1", mkProducer("prod-1"));
     prisma.people.set("asist", { id: "asist", name: "Luis Asiste", photoUrl: null });
     prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
   });
@@ -702,6 +800,7 @@ describe("EventsController.exportSeriesPdf", () => {
       name: "Gozadera",
       startsAt: new Date("2026-09-05T00:00:00Z"),
     });
+    prisma.people.set("prod-1", mkProducer("prod-1"));
     prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
   });
 
@@ -777,5 +876,53 @@ describe("EventsController.detail — presaleEndsAt", () => {
     numbers.set("presale.cutoff_hour", 21);
     const res = (await ctrl.detail("ev-1")) as { presaleEndsAt: Date };
     expect(new Date(res.presaleEndsAt).getHours()).toBe(21);
+  });
+});
+
+// EventsController.addStaff — gestión multi-staff es feature Producer Pro
+// (S5): el owner FREE sin trial recibe 403 pro.required; con trial/tier
+// Pro o siendo admin, el upsert sigue.
+describe("EventsController.addStaff — gating Producer Pro", () => {
+  let prisma: FakePrisma;
+  let ctrl: EventsController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      { getProducerParams: async () => null } as never,
+    );
+    prisma.events.push({ id: "ev-1", producerId: "prod-1" });
+    prisma.people.set("prod-1", mkProducer("prod-1"));
+    prisma.people.set("door", { id: "door", name: "Puerta", photoUrl: null });
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+  });
+
+  const dto = { personId: "door", role: "DOOR" as const };
+
+  it("owner FREE sin trial → 403 pro.required", async () => {
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
+    );
+    const err = await ctrl
+      .addStaff("ev-1", dto, reqAs("prod-1"))
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 403 });
+    expect(errBody(err).error).toBe("pro.required");
+  });
+
+  it("owner con trial vigente → asigna staff", async () => {
+    const res = await ctrl.addStaff("ev-1", dto, reqAs("prod-1"));
+    expect(res).toMatchObject({ eventId: "ev-1", personId: "door" });
+  });
+
+  it("admin asigna staff aunque el owner sea FREE", async () => {
+    prisma.people.set(
+      "prod-1",
+      mkProducer("prod-1", { proTier: "FREE", proTrialEndsAt: null }),
+    );
+    const res = await ctrl.addStaff("ev-1", dto, reqAs("soporte", ["ADMIN"]));
+    expect(res).toMatchObject({ personId: "door" });
   });
 });

@@ -9,6 +9,7 @@ import {
 import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
+import { assertProducerPro } from "../../common/producer-pro";
 import {
   assertProducerOrAdmin,
   EXPOSURE_THRESHOLD,
@@ -50,6 +51,12 @@ export class EventAnalyticsController {
     });
     if (!event) throw new NotFoundException("evento no encontrado");
     await assertProducerOrAdmin(this.prisma, event, req.person!);
+    // Feature Pro (S5): la analítica avanzada exige Producer Pro cuando
+    // el caller es el productor dueño; un admin viendo el evento de otro
+    // sigue sin gate.
+    if (event.producerId === req.person!.id) {
+      await assertProducerPro(this.prisma, event.producerId);
+    }
 
     const checkins = await this.prisma.checkin.findMany({
       where: { eventId, voidedAt: null },

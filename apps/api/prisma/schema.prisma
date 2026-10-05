@@ -48,6 +48,10 @@ model Person {
   // Tier Producer Pro (spec academy-saas-billing) — solo aplica a personas
   // con rol PRODUCER; no hay tabla Producer, el productor es esta Person.
   proTier       ProducerProTier @default(FREE)
+  // Trial de lanzamiento del gating Pro (S5): backfill +90d a los
+  // productores registrados (ProducerParams) — nadie pierde features que
+  // ya usaba al desplegar. isProActive = proTier != FREE || trial vigente.
+  proTrialEndsAt DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

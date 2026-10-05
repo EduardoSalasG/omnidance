@@ -503,6 +503,7 @@ describe("PlatformSubscriptionsService", () => {
       email: "owner@example.cl",
       flowCustomerId: null,
       proTier: "FREE",
+      proTrialEndsAt: null,
     });
     const prisma = fx.prisma as unknown as PrismaService;
     const paramsSvc = {
@@ -1387,6 +1388,40 @@ describe("PlatformSubscriptionsService", () => {
       academy.billingGraceUntil = new Date(Date.now() + 2.5 * DAY);
       const view = await svc.academyBillingView(academy as never);
       expect(view.graceDaysLeft).toBe(3);
+    });
+  });
+
+  describe("producerProView (S5)", () => {
+    it("FREE sin trial → effectivePro false + proTrialEndsAt null", async () => {
+      const view = await svc.producerProView("p1");
+      expect(view).toMatchObject({
+        proTier: "FREE",
+        proTrialEndsAt: null,
+        effectivePro: false,
+        status: null,
+        monthlyGross: 0,
+      });
+    });
+
+    it("FREE con trial vigente → effectivePro true", async () => {
+      fx.persons.get("p1")!.proTrialEndsAt = new Date(Date.now() + 60 * DAY);
+      const view = await svc.producerProView("p1");
+      expect(view.effectivePro).toBe(true);
+      expect(view.proTrialEndsAt).toBeInstanceOf(Date);
+    });
+
+    it("FREE con trial vencido → effectivePro false", async () => {
+      fx.persons.get("p1")!.proTrialEndsAt = new Date(Date.now() - DAY);
+      const view = await svc.producerProView("p1");
+      expect(view.effectivePro).toBe(false);
+    });
+
+    it("tier pago → effectivePro true aunque el trial ya venció", async () => {
+      const p = fx.persons.get("p1")!;
+      p.proTier = "PRO_STARTER";
+      p.proTrialEndsAt = new Date(Date.now() - DAY);
+      const view = await svc.producerProView("p1");
+      expect(view.effectivePro).toBe(true);
     });
   });
 

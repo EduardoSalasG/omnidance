@@ -79,10 +79,18 @@
 - [x] `POST /producers/:id/pro/subscribe|cancel` + `GET /producers/:id/pro`
       (mismo motor — implementado en S2; el tier se calcula por
       facturación media 90d contra `producer_tier.*_max_monthly_clp`)
-- [ ] Gating: features premium (definir lista: analítica avanzada + CRM +
-      exports + multi-staff) → 402/403 con CTA a Pro
-- [ ] `platformFeePct` intacto (comisión por venta sigue siendo la
-      monetización core del productor)
+- [x] Gating: features premium (analítica avanzada `GET
+      /events/:id/analytics`, exports CSV/PDF de evento y serie, CRM del
+      productor completo vía actorType PRODUCER, `POST /events/:id/staff`
+      multi-staff) → 403 `{error:"pro.required", upgrade:true}` cuando el
+      actor es el productor sin Pro efectivo — `isProActive`:
+      `proTier != FREE || proTrialEndsAt > now`. Admin operando recursos
+      ajenos y actores ACADEMY no se gatean. Grandfathering:
+      `Person.proTrialEndsAt` con backfill +90d a productores registrados
+      (`ProducerParams`). `GET /producers/:id/pro` y `GET /me` exponen
+      `effectivePro`/`proTrialEndsAt` para el paywall del front (S6).
+- [x] `platformFeePct` intacto (comisión por venta sigue siendo la
+      monetización core del productor — sin cambios en pricing/settlement)
 
 ## S6 — Consola + bailarín
 
