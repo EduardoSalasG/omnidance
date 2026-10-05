@@ -11,6 +11,24 @@ Dominios:
   el host publica 3002)
 - Web: `https://omnidance.netlify.app`
 
+## Checklist primer deploy (en orden)
+
+1. **Neon**: crear DB `omnidance` y copiar la connection string
+   (directa o pooled — pooled recomendada para runtime).
+2. **GitHub secrets** (repo → Settings → Secrets): `ORACLE_SSH_KEY`,
+   `ORACLE_USER`, `ORACLE_HOST`, `GHCR_PAT`, `GHCR_USERNAME`,
+   `MIGRATION_DATABASE_URL` (endpoint **directo** de Neon),
+   `SEED_ADMIN_EMAIL`.
+3. **VM**: `/opt/apps/omnidance/.env` completo (bloque de abajo — ojo:
+   `PAYMENT_GATEWAY=flow` + `FLOW_*` son **fail-close obligatorios**,
+   sin ellos el API no levanta).
+4. **Nginx**: vhost `api.omnidance.eduardosalasg.dev` → `127.0.0.1:3002`
+   + TLS (certbot).
+5. **Netlify**: sitio conectado al repo + env vars (`API_PROXY_TARGET`,
+   `NEXT_PUBLIC_*`); `NEXT_PUBLIC_API_URL` **vacía**.
+6. **Push a `main`** → el workflow hace el resto: tests → imagen GHCR →
+   SSH → migrate+seed one-shot → recreate → health gate + sonda HTTPS.
+
 ## DB (Neon)
 
 1. Crear proyecto Neon → base **`omnidance`**.
@@ -49,7 +67,7 @@ a `api.omnidance.eduardosalasg.dev`.
 | `ORACLE_HOST` | IP/host de la VM |
 | `GHCR_PAT` | PAT con `read:packages` para `docker login` en la VM |
 | `GHCR_USERNAME` | Usuario dueño del PAT |
-| `MIGRATION_DATABASE_URL` | Endpoint **directo** de Neon para los one-shots de migración/seed (opcional: también se lee del `.env` de la VM; si falta se usa `DATABASE_URL` con warning) |
+| `MIGRATION_DATABASE_URL` | Endpoint **directo** de Neon para los one-shots de migración/seed (opcional: también se lee del `.env` de la VM; si falta se usa `DATABASE_URL` con warning). **Precedencia: secret GH > `.env`** — un secret con la URL pooled pisa un `.env` correcto |
 | `SEED_ADMIN_EMAIL` | Email del admin que crea el seed prod |
 
 ### `/opt/apps/omnidance/.env` en la VM (una vez)
@@ -58,7 +76,9 @@ El deploy usa `/opt/apps/omnidance` (mismo patrón que video-repo) — el
 usuario SSH ya tiene ownership del directorio, sin sudo en el pipeline.
 
 ```env
-# Neon — la connection string que da el dashboard (pooled recomendado)
+# Neon — la connection string que da el dashboard (pooled recomendado
+# para runtime; directa también sirve — sin pooler los advisory locks
+# funcionan siempre).
 DATABASE_URL="postgresql://<user>:<pass>@<host>-pooler.<region>.neon.tech/omnidance?sslmode=require"
 # Opcional: endpoint directo (mismo host sin -pooler) para los
 # one-shots de migrate/seed del workflow — hace deterministas los
@@ -84,7 +104,10 @@ RESEND_API_KEY="…"
 EMAIL_FROM="OmniDance <noreply@…>"
 MAIL_FROM="noreply@…"
 
-# Web push
+# Web push — opcional: sin keys el sender es no-op seguro y el front
+# oculta el opt-in. Para activarlo: `cd apps/api && npx web-push
+# generate-vapid-keys`; la PÚBLICA va también a Netlify como
+# NEXT_PUBLIC_VAPID_PUBLIC_KEY (misma key en ambos lados).
 WEB_PUSH_VAPID_PUBLIC_KEY="…"
 WEB_PUSH_VAPID_PRIVATE_KEY="…"
 WEB_PUSH_VAPID_SUBJECT="mailto:contacto@…"
@@ -111,6 +134,29 @@ contenedor — el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,
    nginx` se recarga, si no, el vhost es estático y la sonda HTTPS
    igual valida el upstream.
 3. Postgres NO va en la VM (Neon). El compose de prod solo tiene `api`.
+
+### Troubleshooting deploy
+
+- **`Error: P1002 — Timed out trying to acquire a postgres advisory
+  lock`**: otra sesión tiene el lock de `prisma migrate`. Causa típica:
+  un contenedor viejo en crash-loop reintentando, o una sesión zombie
+  que el pooler de Neon mantiene viva server-side. Fix, en orden:
+  1. En la VM: `docker rm -f omnidance-api` — mata el contenedor y sus
+     sesiones DB.
+  2. Si persiste, Neon SQL Editor:
+     `SELECT pid FROM pg_locks WHERE locktype = 'advisory'` →
+     `SELECT pg_terminate_backend(<pid>)` (o restart del compute
+     desde el dashboard, que cierra todas las sesiones).
+  - Incidente real: run 37319881110 (2026-10-05) — un contenedor con el
+    entrypoint viejo (migrate-on-boot) quedó en crash-loop ~8h
+    sosteniendo el lock; el one-shot del workflow fallaba aun por el
+    endpoint directo. Por eso migrate NO corre en el boot del
+    contenedor.
+- **`PAYMENT_GATEWAY=flow con FLOW_API_KEY/FLOW_SECRET es requerido`**
+  (crash-loop del contenedor): fail-close intencional — el StubGateway
+  acepta webhooks sin firma y está deshabilitado en producción. Falta
+  `FLOW_API_KEY`/`FLOW_SECRET_KEY` (sandbox.flow.cl → Mis datos →
+  Integraciones) en el `.env`.
 
 ## Frontend — `netlify.toml`
 
