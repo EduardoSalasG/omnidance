@@ -20,10 +20,17 @@ import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 // Ventana post-evento para evaluar: hasta ~24h después de endsAt (spec §5).
 const RATING_WINDOW_MS = 24 * 60 * 60 * 1000;
 // k-anonymity: los promedios solo se exponen con ≥3 evaluaciones totales.
-const EXPOSURE_THRESHOLD = 3;
+// Compartido con el agregado de música del DJ (dj.controller).
+export const EXPOSURE_THRESHOLD = 3;
 
 // Dimensiones 1-5, todas opcionales; sin texto libre (spec: solo puntajes).
 class RateEventDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  overall?: number;
+
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -62,6 +69,7 @@ class RateEventDto {
 }
 
 const RATING_DIMS = [
+  "overall",
   "music",
   "occupation",
   "organization",
@@ -71,7 +79,24 @@ const RATING_DIMS = [
 ] as const;
 type RatingDim = (typeof RATING_DIMS)[number];
 
-type PersonCtx = { id: string; roles: string[] };
+export type PersonCtx = { id: string; roles: string[] };
+
+/** productor del evento o admin.access — permiso desde DB, nunca rol literal. */
+export async function assertProducerOrAdmin(
+  prisma: PrismaService,
+  event: { producerId: string | null },
+  person: PersonCtx,
+): Promise<void> {
+  if (event.producerId === person.id) return;
+  if (
+    await roleKeysHavePermission(prisma, person.roles, ["admin.access"])
+  ) {
+    return;
+  }
+  throw new ForbiddenException(
+    "solo el productor del evento o un admin puede ver el resumen",
+  );
+}
 
 @Controller("events")
 @UseGuards(SessionGuard)
@@ -141,11 +166,12 @@ export class EventRatingsController {
       select: { id: true, producerId: true },
     });
     if (!event) throw new NotFoundException("evento no encontrado");
-    await this.assertProducerOrAdmin(event, req.person!);
+    await assertProducerOrAdmin(this.prisma, event, req.person!);
 
     const ratings = await this.prisma.eventRating.findMany({
       where: { eventId },
       select: {
+        overall: true,
         music: true,
         occupation: true,
         organization: true,
@@ -188,21 +214,5 @@ export class EventRatingsController {
         },
       },
     };
-  }
-
-  /** productor del evento o admin.access — permiso desde DB, nunca rol literal. */
-  private async assertProducerOrAdmin(
-    event: { producerId: string | null },
-    person: PersonCtx,
-  ): Promise<void> {
-    if (event.producerId === person.id) return;
-    if (
-      await roleKeysHavePermission(this.prisma, person.roles, ["admin.access"])
-    ) {
-      return;
-    }
-    throw new ForbiddenException(
-      "solo el productor del evento o un admin puede ver el resumen",
-    );
   }
 }

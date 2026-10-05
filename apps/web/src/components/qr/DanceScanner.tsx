@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 
 // Cámara solo en cliente — evita cualquier acceso a window en SSR.
 const QrScanner = dynamic(() => import("@/components/sessions/QrScanner"), {
@@ -23,16 +24,17 @@ type EventListItem = {
   startsAt: string;
   endsAt: string;
   series: { name: string } | null;
-  venue: { name: string };
+  // Eventos standalone (p.ej. galas de academia) pueden no tener venue.
+  venue: { name: string } | null;
 };
 
 const FEEDBACK_MS = 2600;
 
 /**
- * Flujo de escaneo para invitar a bailar. Vive dentro del hub /qr —
+ * Flujo de escaneo para registrar un baile. Vive dentro del hub /qr —
  * el header/bottom-nav los da el chrome de la app, no el componente.
  * Sin `eventId` muestra el picker de eventos en vivo/publicados;
- * con `eventId` abre la cámara y postea /sessions/invite.
+ * con `eventId` abre la cámara y postea /sessions/scan.
  */
 export function DanceScanner({ eventId }: { eventId?: string }) {
   const t = useTranslations("sessions");
@@ -44,14 +46,22 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [camKey, setCamKey] = useState(0);
+  // Re-dispara la inicialización desde el estado de error — sin reload
+  // de página (conserva el ?event= de la ruta vía la prop eventId).
+  const [bootNonce, setBootNonce] = useState(0);
 
   const busyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auth primero (invitar requiere sesión); sin eventId se lista qué está
+  // Auth primero (registrar requiere sesión); sin eventId se lista qué está
   // en vivo/publicado para elegir dónde bailar.
   useEffect(() => {
     let cancelled = false;
+    // Re-init limpio: un scan a medio volar no bloquea el próximo
+    // onScan y ningún feedback viejo queda pintado.
+    setPhase("checking");
+    setFeedback(null);
+    busyRef.current = false;
 
     (async () => {
       const auth = await apiFetch("/qr/mine").catch(() => null);
@@ -82,7 +92,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [eventId]);
+  }, [eventId, bootNonce]);
 
   const showFeedback = useCallback((next: Feedback) => {
     setFeedback(next);
@@ -100,7 +110,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       busyRef.current = true;
 
       try {
-        const res = await apiFetch("/sessions/invite", {
+        const res = await apiFetch("/sessions/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ qrToken, eventId }),
@@ -142,7 +152,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   if (phase === "unauth") {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
-        <p className="text-lg font-semibold">{t("scanToInvite")}</p>
+        <p className="text-lg font-semibold">{t("scanToDance")}</p>
         <Button href="/login" size="lg">
           {tCommon("login")}
         </Button>
@@ -160,10 +170,10 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
         <Button
           variant="secondary"
           size="lg"
-          aria-label={tCommon("retry")}
-          onClick={() => window.location.reload()}
+          onClick={() => setBootNonce((n) => n + 1)}
         >
-          ↻
+          <RefreshIcon />
+          {tCommon("retry")}
         </Button>
       </div>
     );
@@ -184,7 +194,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
               <li key={e.id}>
                 <Link
                   href={`/qr?modo=escanear&event=${encodeURIComponent(e.id)}`}
-                  className="block transition-transform active:scale-[0.98] motion-reduce:transition-none"
+                  className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:transition-none"
                 >
                   <Card className="transition-colors hover:border-neon/50">
                     <div className="flex flex-wrap items-center gap-2">
@@ -195,7 +205,8 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
                     </div>
                     <h3 className="mt-1 text-lg font-semibold">{e.name}</h3>
                     <p className="text-sm text-white/60">
-                      <EventDate start={e.startsAt} /> · {e.venue.name}
+                      <EventDate start={e.startsAt} />
+                      {e.venue ? ` · ${e.venue.name}` : ""}
                     </p>
                   </Card>
                 </Link>
@@ -213,9 +224,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       <div className="relative flex-1 overflow-hidden rounded-2xl border border-night-700 bg-night-950">
         {phase === "checking" ? (
           <div className="flex h-full items-center justify-center">
-            <p role="status" className="text-white/50">
-              {tCommon("loading")}
-            </p>
+            <Spinner size="lg" className="page-loading" />
           </div>
         ) : phase === "scan" ? (
           <QrScanner
@@ -256,7 +265,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
             >
               <p className="text-xl font-bold">
                 {feedback.kind === "sent"
-                  ? t("inviteSent")
+                  ? t("danceRegistered")
                   : feedback.kind === "cooldown"
                     ? t("cooldown")
                     : tCommon("error")}
@@ -272,7 +281,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       </div>
 
       <p className="px-6 pt-4 text-center text-lg font-semibold">
-        {t("scanToInvite")}
+        {t("scanToDance")}
       </p>
     </div>
   );

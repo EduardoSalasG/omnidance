@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
+import { PageLoading } from "@/components/ui/spinner";
 
 /**
  * /dj — consola del rol DJ. GET /dj/gigs devuelve los gigs donde el DJ
@@ -57,12 +59,82 @@ function parseSuggestions(data: unknown): {
 }
 
 const num = new Intl.NumberFormat("es-CL");
+const scoreFmt = new Intl.NumberFormat("es-CL", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 // Historial: solo fecha (sin hora) — los gigs pasados no necesitan el slot.
 const pastFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
   year: "numeric",
 });
+
+type GigRatingResponse = {
+  exposed: boolean;
+  count: number;
+  music: { avg: number; count: number } | null;
+};
+
+/**
+ * Evaluación agregada de la música de un gig pasado
+ * (GET /dj/gigs/:id/rating). Bajo el umbral de k-anonymity muestra un
+ * estado discreto — nunca el promedio con pocas evaluaciones.
+ */
+function GigRating({ eventId }: { eventId: string }) {
+  const t = useTranslations("dj");
+  const [rating, setRating] = useState<GigRatingResponse | null>(null);
+  // null = pending → slot reservado en la fila; failed → colapsa
+  // (rating privado — sin estado de error ruidoso en el historial).
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    apiFetch(`/dj/gigs/${eventId}/rating`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!alive) return;
+        if (d) setRating(d as GigRatingResponse);
+        else setFailed(true);
+      })
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [eventId]);
+
+  // Dato opcional inline: nada hasta resolver — aparece una vez si hay
+  // rating; un skeleton que colapsa al vacío sería flash.
+  if (!rating) return null;
+  if (!rating.exposed || !rating.music) {
+    return (
+      <span className="text-xs text-white/40" title={t("rating.fewHint")}>
+        {t("rating.few", { count: rating.count })}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums text-neon"
+      title={t("rating.title", { count: rating.music.count })}
+    >
+      <svg
+        aria-hidden
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="h-3.5 w-3.5"
+      >
+        <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z" />
+      </svg>
+      {scoreFmt.format(rating.music.avg)}
+      <span className="sr-only">
+        {t("rating.title", { count: rating.music.count })}
+      </span>
+    </span>
+  );
+}
 
 type SugPhase = "loading" | "error" | "forbidden" | "ready";
 
@@ -102,11 +174,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
 
   return (
     <section aria-label={t("suggestions.title")} className="flex flex-col gap-3">
-      {phase === "loading" && (
-        <p role="status" className="text-sm text-white/50">
-          {tc("loading")}
-        </p>
-      )}
+      {phase === "loading" && <SkeletonList items={2} lines={1} />}
 
       {phase === "error" && (
         <div className="flex items-center gap-3">
@@ -114,7 +182,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
             {t("suggestions.error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -269,15 +337,15 @@ export default function DjPage() {
 
   if (phase === "loading") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-        <p className="pt-6 text-sm text-white/50">{tc("loading")}</p>
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+        <PageLoading />
       </main>
     );
   }
 
   if (phase === "unauth") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Button href="/login" size="lg" className="self-start">
           {tc("login")}
         </Button>
@@ -287,7 +355,7 @@ export default function DjPage() {
 
   if (phase === "error") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-white/70">{t("loadError")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
@@ -300,7 +368,7 @@ export default function DjPage() {
 
   if (phase === "forbidden") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="py-6 text-center">
           <p className="text-sm text-white/70">{t("forbidden")}</p>
         </Card>
@@ -309,7 +377,7 @@ export default function DjPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       {/* Próximos gigs — cards expandibles con sugerencias del público. */}
       <section aria-labelledby="dj-upcoming">
         <h2
@@ -370,12 +438,15 @@ export default function DjPage() {
                     </span>
                   )}
                 </span>
-                <time
-                  dateTime={new Date(g.startsAt).toISOString()}
-                  className="shrink-0 text-xs tabular-nums text-white/50"
-                >
-                  {pastFmt.format(new Date(g.startsAt))}
-                </time>
+                <span className="flex shrink-0 items-center gap-3">
+                  <GigRating eventId={g.eventId} />
+                  <time
+                    dateTime={new Date(g.startsAt).toISOString()}
+                    className="text-xs tabular-nums text-white/50"
+                  >
+                    {pastFmt.format(new Date(g.startsAt))}
+                  </time>
+                </span>
               </li>
             ))}
           </ul>

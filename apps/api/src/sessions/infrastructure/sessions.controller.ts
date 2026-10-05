@@ -28,20 +28,12 @@ import {
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { GamificationService } from "../../gamification/domain/gamification.service";
 
-class InviteDto {
+class ScanDto {
   @IsString()
   qrToken!: string;
 
   @IsString()
   eventId!: string;
-}
-
-class DeclareDto {
-  @IsString()
-  eventId!: string;
-
-  @IsString()
-  personId!: string;
 }
 
 class RateDto {
@@ -81,8 +73,14 @@ export class SessionsController {
     private readonly gamification: GamificationService,
   ) {}
 
-  @Post("invite")
-  async invite(@Req() req: Request, @Body() dto: InviteDto) {
+  /**
+   * Registro de baile por escaneo QR en pista — el único alta de
+   * DanceSession "en vivo": el QR rotativo de la pareja acredita la
+   * presencia mutua, así que la sesión nace CONFIRMED. No hay ciclo
+   * invite/confirm/decline (remove-social-blocks-invites).
+   */
+  @Post("scan")
+  async scan(@Req() req: Request, @Body() dto: ScanDto) {
     const inviterId = req.person!.id;
 
     let inviteeId: string;
@@ -92,48 +90,85 @@ export class SessionsController {
       throw new BadRequestException("qrToken inválido o expirado");
     }
 
-    return this.createSessionInvite(inviterId, inviteeId, dto.eventId, false);
+    return this.createScannedSession(inviterId, inviteeId, dto.eventId);
   }
 
   /**
-   * Declaración retroactiva (spec-gap-closure: sessions/retro-declared):
-   * mismo flujo que invite pero sin QR — la persona se elige manualmente.
-   * Cuenta para perfil/historial/streaks, nunca para Prime Time
-   * (retroDeclared:true — el repo de gamificación lo filtra).
+   * Escaneo QR: crea la sesión directamente CONFIRMED (el escaneo en
+   * persona es la confirmación — no hay handshake posterior), notifica a
+   * la pareja escaneada y acredita actividad de ambos en gamificación.
    */
-  @Post("declare")
-  async declare(@Req() req: Request, @Body() dto: DeclareDto) {
-    const inviterId = req.person!.id;
-
-    const invitee = await this.prisma.person.findUnique({
-      where: { id: dto.personId },
-      select: { id: true },
-    });
-    if (!invitee) throw new NotFoundException("persona no encontrada");
-
-    return this.createSessionInvite(inviterId, dto.personId, dto.eventId, true);
-  }
-
-  /**
-   * Flujo compartido invite/declare: valida evento, enforcement de bloqueos
-   * (silencioso — spec §4), cooldown del par, estilo por bloque horario,
-   * creación INVITED y notificación a la contraparte.
-   */
-  private async createSessionInvite(
+  private async createScannedSession(
     inviterId: string,
     inviteeId: string,
     eventId: string,
-    retroDeclared: boolean,
   ) {
+    const { styleId } = await this.validatePairAndStyle(
+      inviterId,
+      inviteeId,
+      eventId,
+    );
+
+    const now = new Date();
+    const session = await this.prisma.danceSession.create({
+      data: {
+        eventId,
+        inviterId,
+        inviteeId,
+        styleId,
+        status: "CONFIRMED",
+        confirmedAt: now,
+      },
+    });
+
+    // La persona escaneada recibe nombre/foto de quien la registró.
+    const inviter = await this.prisma.person.findUnique({
+      where: { id: inviterId },
+      select: { name: true, photoUrl: true },
+    });
+
+    await this.notifications.notifySafe(inviteeId, {
+      category: "SOCIAL",
+      type: "session.confirmed",
+      title: `${inviter?.name ?? "Alguien"} registró un baile contigo`,
+      data: { sessionId: session.id },
+    });
+
+    // Confirmed desde el origen: evalúa badges de ambos y acredita los
+    // puntos de temporada (mismo hook que tenía el confirm del ciclo
+    // de invitación).
+    await this.safeEvaluateBadges(inviterId);
+    await this.safeEvaluateBadges(inviteeId);
+    await this.safeAccrue(
+      inviterId,
+      "session_confirmed",
+      "session",
+      session.id,
+    );
+    await this.safeAccrue(
+      inviteeId,
+      "session_confirmed",
+      "session",
+      session.id,
+    );
+
+    return { ...session, inviter };
+  }
+
+  /**
+   * Validación del escaneo: evento existe, cooldown del par
+   * (~4min, ambas direcciones) y estilo inferido por bloque horario.
+   */
+  private async validatePairAndStyle(
+    inviterId: string,
+    inviteeId: string,
+    eventId: string,
+  ): Promise<{ styleId: string | null }> {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       select: { id: true },
     });
     if (!event) throw new NotFoundException("evento no encontrado");
-
-    // Enforcement de bloqueos: si el invitee bloqueó al inviter se rechaza
-    // con un error genérico — NUNCA revelar la existencia del bloqueo.
-    await this.assertNotBlocked(inviterId, inviteeId);
 
     // última sesión "viva" del par (INVITED/CONFIRMED), en cualquier dirección
     const lastPair = await this.prisma.danceSession.findFirst({
@@ -176,42 +211,7 @@ export class SessionsController {
       select: { styleId: true },
     });
 
-    const session = await this.prisma.danceSession.create({
-      data: {
-        eventId,
-        inviterId,
-        inviteeId,
-        styleId: block?.styleId ?? null,
-        retroDeclared,
-      },
-    });
-
-    // el invitee necesita nombre/foto de quien invita para identificarlo en pista
-    const inviter = await this.prisma.person.findUnique({
-      where: { id: inviterId },
-      select: { name: true, photoUrl: true },
-    });
-
-    await this.notifications.notifySafe(inviteeId, {
-      category: "SOCIAL",
-      type: "session.invite",
-      title: `${inviter?.name ?? "Alguien"} te invitó a bailar`,
-      data: { sessionId: session.id },
-    });
-
-    return { ...session, inviter };
-  }
-
-  @Post(":id/confirm")
-  @HttpCode(200)
-  confirm(@Req() req: Request, @Param("id") id: string) {
-    return this.act(id, req.person!.id, "confirm");
-  }
-
-  @Post(":id/decline")
-  @HttpCode(200)
-  decline(@Req() req: Request, @Param("id") id: string) {
-    return this.act(id, req.person!.id, "decline");
+    return { styleId: block?.styleId ?? null };
   }
 
   @Post(":id/discard")
@@ -242,6 +242,21 @@ export class SessionsController {
       },
     });
 
+    // Ficha mínima de los eventos para agrupar el historial por noche —
+    // DanceSession.eventId es escalar (sin relación), lookup manual.
+    const eventIds = [...new Set(rows.map((s) => s.eventId))];
+    const events = await this.prisma.event.findMany({
+      where: { id: { in: eventIds } },
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        startsAt: true,
+        venue: { select: { name: true } },
+      },
+    });
+    const eventById = new Map(events.map((e) => [e.id, e]));
+
     const counterpartIds = [
       ...new Set(
         rows.map((s) => (s.inviterId === me ? s.inviteeId : s.inviterId)),
@@ -261,6 +276,7 @@ export class SessionsController {
         ...s,
         status: this.sessions.effectiveStatus(s, now),
         role: iAmInviter ? ("inviter" as const) : ("invitee" as const),
+        event: eventById.get(s.eventId) ?? null,
         partner,
         myRating: ratings[0] ?? null,
       };
@@ -330,64 +346,9 @@ export class SessionsController {
         },
       });
 
-      if (action === "confirm" || action === "decline") {
-        const actor = await this.prisma.person.findUnique({
-          where: { id: actorId },
-          select: { name: true },
-        });
-        const actorName = actor?.name ?? "Tu pareja de baile";
-        await this.notifications.notifySafe(session.inviterId, {
-          category: "SOCIAL",
-          type:
-            action === "confirm" ? "session.confirmed" : "session.declined",
-          title:
-            action === "confirm"
-              ? `${actorName} aceptó bailar contigo`
-              : `${actorName} no pudo bailar esta vez`,
-          data: { sessionId: id },
-        });
-      }
-      if (action === "confirm") {
-        // La sesión ya cuenta como actividad confirmada: evalúa badges de
-        // ambos y acredita los puntos de temporada (retro-declaradas también
-        // suman — solo Prime Time las excluye).
-        await this.safeEvaluateBadges(session.inviterId);
-        await this.safeEvaluateBadges(session.inviteeId);
-        await this.safeAccrue(
-          session.inviterId,
-          "session_confirmed",
-          "session",
-          id,
-        );
-        await this.safeAccrue(
-          session.inviteeId,
-          "session_confirmed",
-          "session",
-          id,
-        );
-      }
-
       return updated;
     } catch (e) {
       this.toHttp(e);
-    }
-  }
-
-  /**
-   * Enforcement de user-blocks (spec-gap-closure: safety/user-blocks):
-   * si el invitee bloqueó al inviter → 403 genérico. La dirección importa:
-   * el bloqueo solo impide invitar a quien te bloqueó, no al revés.
-   */
-  private async assertNotBlocked(
-    inviterId: string,
-    inviteeId: string,
-  ): Promise<void> {
-    const blocked = await this.prisma.userBlock.findFirst({
-      where: { blockerId: inviteeId, blockedId: inviterId },
-      select: { id: true },
-    });
-    if (blocked) {
-      throw new ForbiddenException("no se puede enviar la invitación");
     }
   }
 

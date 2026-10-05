@@ -4,6 +4,7 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { SocialModule } from "../src/social/social.module";
+import { EventsModule } from "../src/events/events.module";
 import { PrismaService } from "../src/prisma.service";
 
 describe("social e2e", () => {
@@ -50,7 +51,7 @@ describe("social e2e", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SocialModule, AuthModule],
+      imports: [SocialModule, EventsModule, AuthModule],
     }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix("api");
@@ -125,11 +126,9 @@ describe("social e2e", () => {
     });
     await prisma.guestList.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.waitlist.deleteMany({ where: { eventId: ids.eventId } });
-    await prisma.rsvp.deleteMany({ where: { eventId: { in: eventIds } } });
     await prisma.scheduleBlock.deleteMany({
       where: { eventId: { in: ids.practiceEventIds } },
     });
-    await prisma.trip.deleteMany({ where: { personId: { in: peopleIds } } });
     await prisma.ticket.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
     await prisma.style.delete({ where: { id: ids.styleId } });
@@ -144,146 +143,6 @@ describe("social e2e", () => {
     await app.close();
   });
 
-  // ═══════════════════════ RSVP ═══════════════════════
-  describe("PUT /api/events/:eventId/rsvp", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("PUT", `/api/events/${ids.eventId}/rsvp`, {
-        status: "GOING",
-      });
-      expect(res.status).toBe(401);
-    });
-
-    it("status inválido → 400", async () => {
-      const res = await req(
-        "PUT",
-        `/api/events/${ids.eventId}/rsvp`,
-        { status: "MAYBE" },
-        dancerSession,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("evento inexistente → 404", async () => {
-      const res = await req(
-        "PUT",
-        "/api/events/evt-no-existe/rsvp",
-        { status: "GOING" },
-        dancerSession,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("GOING → 200 y crea el rsvp", async () => {
-      const res = await req(
-        "PUT",
-        `/api/events/${ids.eventId}/rsvp`,
-        { status: "GOING" },
-        dancerSession,
-      );
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.status).toBe("GOING");
-      expect(body.eventId).toBe(ids.eventId);
-      expect(body.personId).toBe(ids.dancerId);
-    });
-
-    it("segunda persona GOING → 200", async () => {
-      const res = await req(
-        "PUT",
-        `/api/events/${ids.eventId}/rsvp`,
-        { status: "GOING" },
-        dancer2Session,
-      );
-      expect(res.status).toBe(200);
-    });
-
-    it("re-PUT con INTERESTED hace upsert (una sola fila)", async () => {
-      const res = await req(
-        "PUT",
-        `/api/events/${ids.eventId}/rsvp`,
-        { status: "INTERESTED" },
-        dancerSession,
-      );
-      expect(res.status).toBe(200);
-      expect((await res.json()).status).toBe("INTERESTED");
-      const count = await prisma.rsvp.count({
-        where: { eventId: ids.eventId, personId: ids.dancerId },
-      });
-      expect(count).toBe(1);
-    });
-  });
-
-  describe("GET /api/events/:eventId/rsvps", () => {
-    it("público: devuelve solo contadores", async () => {
-      const res = await fetch(
-        `${baseUrl}/api/events/${ids.eventId}/rsvps`,
-      );
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body).toEqual({ going: 1, interested: 1 });
-    });
-  });
-
-  describe("GET /api/events/:eventId/attendees", () => {
-    it("sin sesión → 401", async () => {
-      const res = await fetch(
-        `${baseUrl}/api/events/${ids.eventId}/attendees`,
-      );
-      expect(res.status).toBe(401);
-    });
-
-    it("devuelve solo GOING con personId, name y photoUrl", async () => {
-      const res = await fetch(
-        `${baseUrl}/api/events/${ids.eventId}/attendees`,
-        { headers: { cookie: `omnidance_session=${dancerSession}` } },
-      );
-      expect(res.status).toBe(200);
-      const list = await res.json();
-      expect(Array.isArray(list)).toBe(true);
-      expect(list).toHaveLength(1);
-      expect(list[0]).toMatchObject({
-        personId: ids.dancer2Id,
-        name: "Bailarín Social Dos",
-      });
-      expect(list[0]).toHaveProperty("photoUrl");
-    });
-  });
-
-  describe("DELETE /api/events/:eventId/rsvp", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("DELETE", `/api/events/${ids.eventId}/rsvp`);
-      expect(res.status).toBe(401);
-    });
-
-    it("borra el propio RSVP", async () => {
-      const res = await req(
-        "DELETE",
-        `/api/events/${ids.eventId}/rsvp`,
-        undefined,
-        dancerSession,
-      );
-      expect(res.status).toBe(200);
-      const gone = await prisma.rsvp.findUnique({
-        where: {
-          eventId_personId: {
-            eventId: ids.eventId,
-            personId: ids.dancerId,
-          },
-        },
-      });
-      expect(gone).toBeNull();
-    });
-
-    it("segundo DELETE → 404", async () => {
-      const res = await req(
-        "DELETE",
-        `/api/events/${ids.eventId}/rsvp`,
-        undefined,
-        dancerSession,
-      );
-      expect(res.status).toBe(404);
-    });
-  });
 
   // ═══════════════════════ GUEST LISTS ═══════════════════════
   describe("POST /api/events/:eventId/guest-lists", () => {
@@ -629,7 +488,6 @@ describe("social e2e", () => {
     it("sin sesión → 401", async () => {
       const res = await req("POST", "/api/practices", {
         name: "x",
-        venueId: ids.venueId,
         startsAt: future(48),
         endsAt: future(50),
       });
@@ -642,7 +500,6 @@ describe("social e2e", () => {
         "/api/practices",
         {
           name: "Práctica mala",
-          venueId: ids.venueId,
           startsAt: future(50),
           endsAt: future(48),
         },
@@ -666,28 +523,12 @@ describe("social e2e", () => {
       expect(event.venueId).toBeNull();
     });
 
-    it("venue inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/practices",
-        {
-          name: "Práctica venue fantasma",
-          venueId: "venue-fantasma",
-          startsAt: future(48),
-          endsAt: future(50),
-        },
-        dancerSession,
-      );
-      expect(res.status).toBe(404);
-    });
-
     it("capacity 0 → 400", async () => {
       const res = await req(
         "POST",
         "/api/practices",
         {
           name: "Práctica cap 0",
-          venueId: ids.venueId,
           startsAt: future(48),
           endsAt: future(50),
           capacity: 0,
@@ -703,7 +544,6 @@ describe("social e2e", () => {
         "/api/practices",
         {
           name: "Práctica style fantasma",
-          venueId: ids.venueId,
           startsAt: future(48),
           endsAt: future(50),
           style: "estilo-que-no-existe",
@@ -713,17 +553,18 @@ describe("social e2e", () => {
       expect(res.status).toBe(400);
     });
 
-    it("válida → 201, Event PRACTICA/PUBLISHED, hostId=creador, host con RSVP GOING y ScheduleBlock del estilo", async () => {
+    it("válida → 201, Event PRACTICA/PUBLISHED, hostId=creador y ScheduleBlock del estilo", async () => {
       const res = await req(
         "POST",
         "/api/practices",
         {
           name: "Práctica de casino en el parque",
-          venueId: ids.venueId,
           startsAt: future(48),
           endsAt: future(50),
           capacity: 12,
           style: ids.styleId,
+          venueText: "Parque de los Reyes",
+          description: "Trae agua y zapatillas cómodas",
         },
         dancerSession,
       );
@@ -733,20 +574,21 @@ describe("social e2e", () => {
       expect(event.type).toBe("PRACTICA");
       expect(event.status).toBe("PUBLISHED");
       expect(event.hostId).toBe(ids.dancerId);
-      expect(event.venueId).toBe(ids.venueId);
+      expect(event.venueId).toBeNull();
       expect(event.capacity).toBe(12);
-
-      const rsvp = await prisma.rsvp.findUnique({
-        where: {
-          eventId_personId: { eventId: event.id, personId: ids.dancerId },
-        },
-      });
-      expect(rsvp?.status).toBe("GOING");
+      expect(event.description).toBe("Trae agua y zapatillas cómodas");
 
       const block = await prisma.scheduleBlock.findFirst({
         where: { eventId: event.id },
       });
       expect(block?.styleId).toBe(ids.styleId);
+
+      // El detalle público expone host resuelto + descripción (ficha práctica)
+      const detail = await (
+        await fetch(`${baseUrl}/api/events/${event.id}`)
+      ).json();
+      expect(detail.description).toBe("Trae agua y zapatillas cómodas");
+      expect(detail.host?.id).toBe(ids.dancerId);
     });
   });
 
@@ -762,13 +604,17 @@ describe("social e2e", () => {
       expect(mine).toBeTruthy();
       expect(mine.type).toBe("PRACTICA");
       expect(mine.hostId).toBe(ids.dancerId);
-      expect(mine.venue.name).toBe("Venue Social Test");
-      // la práctica sin local aparece con venue null
+      // las prácticas no se vinculan a Venue — el lugar es venueText
+      expect(mine.venueText).toBe("Parque de los Reyes");
+      expect(mine).not.toHaveProperty("venue");
+      // estilo foco materializado como ScheduleBlock → expuesto como style
+      expect(mine.style?.id).toBe(ids.styleId);
+      // la práctica sin lugar declarado llega con venueText null
       const noVenue = list.find(
         (e: { id: string }) => e.id === ids.practiceNoVenueId,
       );
       expect(noVenue).toBeTruthy();
-      expect(noVenue.venue).toBeNull();
+      expect(noVenue.venueText).toBeNull();
       // ningún evento que no sea práctica se cuela
       expect(
         list.every((e: { type: string }) => e.type === "PRACTICA"),
@@ -776,84 +622,114 @@ describe("social e2e", () => {
     });
   });
 
-  // ═══════════════════════ TRIPS ═══════════════════════
-  describe("POST /api/trips", () => {
-    const future = (h: number) =>
-      new Date(Date.now() + h * 3600 * 1000).toISOString();
-
+  describe("RSVP /api/practices/:id/rsvp", () => {
     it("sin sesión → 401", async () => {
-      const res = await req("POST", "/api/trips", {
-        city: "Valparaíso",
-        startsAt: future(200),
-        endsAt: future(250),
+      const res = await req("POST", `/api/practices/${ids.practiceEventIds[0]}/rsvp`, {
+        going: true,
       });
       expect(res.status).toBe(401);
     });
 
-    it("rango inválido → 400", async () => {
+    it("evento que no es PRACTICA → 404", async () => {
       const res = await req(
         "POST",
-        "/api/trips",
-        { city: "Valparaíso", startsAt: future(250), endsAt: future(200) },
+        `/api/practices/${ids.eventId}/rsvp`,
+        { going: true },
         dancerSession,
       );
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(404);
     });
 
-    it("eventId fantasma → 400", async () => {
+    it("voy → going:true y el listado público sube rsvpCount", async () => {
       const res = await req(
         "POST",
-        "/api/trips",
-        {
-          city: "Buenos Aires",
-          startsAt: future(200),
-          endsAt: future(250),
-          eventId: "evt-fantasma",
-        },
-        dancerSession,
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        { going: true },
+        dancer2Session,
       );
-      expect(res.status).toBe(400);
-    });
-
-    it("válido → 201 con destination=city", async () => {
-      const res = await req(
-        "POST",
-        "/api/trips",
-        {
-          city: "Valparaíso",
-          startsAt: future(200),
-          endsAt: future(250),
-          eventId: ids.eventId,
-        },
-        dancerSession,
-      );
-      expect(res.status).toBe(201);
+      expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.destination).toBe("Valparaíso");
-      expect(body.personId).toBe(ids.dancerId);
-      expect(body.eventId).toBe(ids.eventId);
+      expect(body.going).toBe(true);
+      expect(body.count).toBe(1);
+
+      const list = await (
+        await fetch(`${baseUrl}/api/practices`)
+      ).json();
+      const p = list.find(
+        (e: { id: string }) => e.id === ids.practiceEventIds[0],
+      );
+      expect(p.rsvpCount).toBe(1);
+    });
+
+    it("GET /rsvp refleja el estado propio", async () => {
+      const res = await req(
+        "GET",
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        undefined,
+        dancer2Session,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).going).toBe(true);
+    });
+
+    it("quitar el voy es idempotente y baja el conteo", async () => {
+      const res = await req(
+        "POST",
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        { going: false },
+        dancer2Session,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.going).toBe(false);
+      expect(body.count).toBe(0);
+      // segunda vez sin RSVP — no explota
+      const again = await req(
+        "POST",
+        `/api/practices/${ids.practiceEventIds[0]}/rsvp`,
+        { going: false },
+        dancer2Session,
+      );
+      expect(again.status).toBe(200);
     });
   });
 
-  describe("GET /api/trips/mine", () => {
+  describe("GET /api/practices/mine", () => {
     it("sin sesión → 401", async () => {
-      const res = await fetch(`${baseUrl}/api/trips/mine`);
+      const res = await req("GET", "/api/practices/mine");
       expect(res.status).toBe(401);
     });
 
-    it("devuelve solo los trips propios", async () => {
-      const res = await fetch(`${baseUrl}/api/trips/mine`, {
-        headers: { cookie: `omnidance_session=${dancerSession}` },
-      });
-      expect(res.status).toBe(200);
-      const trips = await res.json();
-      expect(trips.length).toBeGreaterThanOrEqual(1);
+    it("devuelve las que organizo + las que voy, con flag going", async () => {
+      // dancer2 va a la práctica del parque (sin venue, host=dancer)
+      await req(
+        "POST",
+        `/api/practices/${ids.practiceNoVenueId}/rsvp`,
+        { going: true },
+        dancer2Session,
+      );
+
+      const mias = await (
+        await req("GET", "/api/practices/mine", undefined, dancer2Session)
+      ).json();
+      const joined = mias.find(
+        (e: { id: string }) => e.id === ids.practiceNoVenueId,
+      );
+      expect(joined?.going).toBe(true);
+      // dancer2 no organiza nada → la práctica de dancer no aparece
       expect(
-        trips.every(
-          (t: { personId: string }) => t.personId === ids.dancerId,
-        ),
-      ).toBe(true);
-      expect(trips[0].destination).toBe("Valparaíso");
+        mias.some((e: { id: string }) => e.id === ids.practiceEventIds[0]),
+      ).toBe(false);
+
+      // dancer es host de ambas → aparecen con going=false (host ≠ RSVP)
+      const delHost = await (
+        await req("GET", "/api/practices/mine", undefined, dancerSession)
+      ).json();
+      const propia = delHost.find(
+        (e: { id: string }) => e.id === ids.practiceEventIds[0],
+      );
+      expect(propia).toBeTruthy();
+      expect(propia.going).toBe(false);
     });
   });
 });

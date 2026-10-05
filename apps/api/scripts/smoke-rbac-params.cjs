@@ -117,12 +117,12 @@ async function main() {
   );
   const permsRes = await call("GET", "/admin/permissions", adminTok);
   check("GET /admin/permissions → 200", permsRes.status === 200, `(${permsRes.body?.length} perms)`);
+  // auto-solicitud de roles eliminada: el catálogo público y la cola de
+  // solicitudes ya no existen — los roles solo los asigna el admin.
   const catalogRes = await call("GET", "/roles/catalog");
-  check("GET /roles/catalog público", catalogRes.status === 200, `(${catalogRes.body?.length} requestable)`);
-  check(
-    "ADMIN no es requestable",
-    !catalogRes.body?.some((r) => r.key === "ADMIN"),
-  );
+  check("GET /roles/catalog removido → 404", catalogRes.status === 404);
+  const requestsRes = await call("GET", "/admin/role-requests", adminTok);
+  check("GET /admin/role-requests removido → 404", requestsRes.status === 404);
 
   // 7. permisos dinámicos: revocar grant → 403 inmediato (invalidación de
   // cache en el endpoint); re-otorgar → vuelve a pasar el guard.

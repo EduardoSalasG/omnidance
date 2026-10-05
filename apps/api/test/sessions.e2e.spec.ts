@@ -3,7 +3,6 @@ import { Test } from "@nestjs/testing";
 import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { SessionsModule } from "../src/sessions/sessions.module";
 import { AuthModule } from "../src/auth/auth.module";
-import { QrModule } from "../src/qr/qr.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { QrService } from "../src/qr/domain/qr.service";
 import { PrismaService } from "../src/prisma.service";
@@ -58,7 +57,7 @@ describe("sessions e2e", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [SessionsModule, AuthModule, QrModule],
+      imports: [SessionsModule, AuthModule],
     }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix("api");
@@ -106,6 +105,23 @@ describe("sessions e2e", () => {
     aSession = await auth.issueSession(aId);
     bSession = await auth.issueSession(bId);
     cSession = await auth.issueSession(cId);
+
+    // Sesión CONFIRMED base A→B (escaneada hace >4min → el cooldown del
+    // par ya expiró y los tests de scan pueden operar sobre el mismo par).
+    const s1 = await makeSession({
+      inviterId: aId,
+      inviteeId: bId,
+      status: "CONFIRMED",
+      scannedAt: new Date(Date.now() - 10 * 60 * 1000),
+    });
+    ids.s1Id = s1.id;
+
+    // INVITED vencida (>24h sin resolver) → se expone como EXPIRED en /mine.
+    await makeSession({
+      inviterId: cId,
+      inviteeId: aId,
+      scannedAt: new Date(Date.now() - 25 * 3600 * 1000),
+    });
   });
 
   afterAll(async () => {
@@ -128,9 +144,9 @@ describe("sessions e2e", () => {
     await app.close();
   });
 
-  describe("POST /api/sessions/invite", () => {
+  describe("POST /api/sessions/scan", () => {
     it("sin sesión → 401", async () => {
-      const res = await post("/api/sessions/invite", {
+      const res = await post("/api/sessions/scan", {
         qrToken: "x",
         eventId: ids.eventId,
       });
@@ -139,17 +155,17 @@ describe("sessions e2e", () => {
 
     it("qrToken inválido → 400", async () => {
       const res = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: "token-basura", eventId: ids.eventId },
         aSession,
       );
       expect(res.status).toBe(400);
     });
 
-    it("auto-invitación → 400", async () => {
+    it("auto-escaneo → 400", async () => {
       const { token } = await qr.mint(aId);
       const res = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: token, eventId: ids.eventId },
         aSession,
       );
@@ -159,25 +175,25 @@ describe("sessions e2e", () => {
     it("evento inexistente → 404", async () => {
       const { token } = await qr.mint(bId);
       const res = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: token, eventId: "evt-no-existe" },
         aSession,
       );
       expect(res.status).toBe(404);
     });
 
-    it("scan válido → 201 INVITED con inviter {name, photoUrl}", async () => {
+    it("scan válido → 201 CONFIRMED con confirmedAt e inviter", async () => {
       const { token } = await qr.mint(bId);
       const res = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: token, eventId: ids.eventId },
         aSession,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
       createdSessionIds.push(body.id);
-      ids.s1Id = body.id;
-      expect(body.status).toBe("INVITED");
+      expect(body.status).toBe("CONFIRMED");
+      expect(body.confirmedAt).toBeTruthy();
       expect(body.inviterId).toBe(aId);
       expect(body.inviteeId).toBe(bId);
       expect(body.eventId).toBe(ids.eventId);
@@ -185,10 +201,10 @@ describe("sessions e2e", () => {
       expect(body.inviter).toHaveProperty("photoUrl");
     });
 
-    it("re-invite dentro del cooldown ~4min → 409 (ambas direcciones)", async () => {
+    it("re-scan dentro del cooldown ~4min → 409 (ambas direcciones)", async () => {
       const tokenAB = await qr.mint(bId);
       const res1 = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: tokenAB.token, eventId: ids.eventId },
         aSession,
       );
@@ -196,7 +212,7 @@ describe("sessions e2e", () => {
 
       const tokenBA = await qr.mint(aId);
       const res2 = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: tokenBA.token, eventId: ids.eventId },
         bSession,
       );
@@ -204,104 +220,46 @@ describe("sessions e2e", () => {
     });
 
     it("pasado el cooldown (scannedAt >4min) → 201 de nuevo", async () => {
+      const last = await prisma.danceSession.findFirstOrThrow({
+        where: { inviterId: aId, inviteeId: bId, status: "CONFIRMED" },
+        orderBy: { scannedAt: "desc" },
+      });
       await prisma.danceSession.update({
-        where: { id: ids.s1Id },
+        where: { id: last.id },
         data: { scannedAt: new Date(Date.now() - 5 * 60 * 1000) },
       });
       const { token } = await qr.mint(bId);
       const res = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: token, eventId: ids.eventId },
         aSession,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
       createdSessionIds.push(body.id);
-      expect(body.status).toBe("INVITED");
-    });
-  });
-
-  describe("POST /api/sessions/:id/confirm", () => {
-    it("inviter no puede confirmar → 403", async () => {
-      const res = await post(
-        `/api/sessions/${ids.s1Id}/confirm`,
-        {},
-        aSession,
-      );
-      expect(res.status).toBe(403);
-    });
-
-    it("tercero no puede confirmar → 403", async () => {
-      const res = await post(
-        `/api/sessions/${ids.s1Id}/confirm`,
-        {},
-        cSession,
-      );
-      expect(res.status).toBe(403);
-    });
-
-    it("invitee confirma → 200 CONFIRMED con confirmedAt", async () => {
-      const res = await post(
-        `/api/sessions/${ids.s1Id}/confirm`,
-        {},
-        bSession,
-      );
-      expect(res.status).toBe(200);
-      const body = await res.json();
       expect(body.status).toBe("CONFIRMED");
-      expect(body.confirmedAt).toBeTruthy();
     });
 
-    it("confirmar dos veces → 409", async () => {
-      const res = await post(
-        `/api/sessions/${ids.s1Id}/confirm`,
-        {},
-        bSession,
-      );
-      expect(res.status).toBe(409);
-    });
-
-    it("invitación expirada (>24h sin confirmar) → 409", async () => {
-      const old = await makeSession({
-        inviterId: cId,
-        inviteeId: aId,
-        scannedAt: new Date(Date.now() - 25 * 3600 * 1000),
-      });
-      const res = await post(`/api/sessions/${old.id}/confirm`, {}, aSession);
-      expect(res.status).toBe(409);
-    });
-
-    it("sesión inexistente → 404", async () => {
-      const res = await post("/api/sessions/no-existe/confirm", {}, aSession);
-      expect(res.status).toBe(404);
-    });
-  });
-
-  describe("POST /api/sessions/:id/decline", () => {
-    it("inviter no puede declinar → 403", async () => {
-      const s = await makeSession({ inviterId: bId, inviteeId: cId });
-      const res = await post(`/api/sessions/${s.id}/decline`, {}, bSession);
-      expect(res.status).toBe(403);
-    });
-
-    it("invitee declina → 200 DECLINED", async () => {
-      const s = await makeSession({ inviterId: aId, inviteeId: cId });
-      const res = await post(`/api/sessions/${s.id}/decline`, {}, cSession);
-      expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.status).toBe("DECLINED");
-    });
-
-    it("sesión DECLINED no bloquea nueva invitación del par", async () => {
-      const { token } = await qr.mint(cId);
-      const res = await post(
+    it("ciclo de invitación eliminado → invite/confirm/decline responden 404", async () => {
+      const { token } = await qr.mint(bId);
+      const invite = await post(
         "/api/sessions/invite",
         { qrToken: token, eventId: ids.eventId },
         aSession,
       );
-      expect(res.status).toBe(201);
-      const body = await res.json();
-      createdSessionIds.push(body.id);
+      expect(invite.status).toBe(404);
+      const confirm = await post(
+        `/api/sessions/${ids.s1Id}/confirm`,
+        {},
+        bSession,
+      );
+      expect(confirm.status).toBe(404);
+      const decline = await post(
+        `/api/sessions/${ids.s1Id}/decline`,
+        {},
+        bSession,
+      );
+      expect(decline.status).toBe(404);
     });
   });
 

@@ -5,6 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { MyQr } from "@/components/qr/MyQr";
 import { DanceScanner } from "@/components/qr/DanceScanner";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
 
 // Hub de superficies QR: "Mi QR" (mostrar) y "Escanear" (invitar) en una
 // sola vista con segmented control. ?modo=escanear o ?event= abren en
@@ -35,6 +39,7 @@ function QrHub() {
   const tNav = useTranslations("nav");
   const tQr = useTranslations("qr");
   const tStaff = useTranslations("staff");
+  const tt = useTranslations("tours.qr");
   const params = useSearchParams();
   const eventId = params.get("event") ?? undefined;
   const modoParam = params.get("modo");
@@ -90,6 +95,7 @@ function QrHub() {
         <div
           role="radiogroup"
           aria-labelledby="qr-hub-title"
+          data-tour="qr-mode"
           className="relative grid grid-cols-2 rounded-full border border-night-700 bg-night-800 p-1"
         >
           <span
@@ -124,9 +130,33 @@ function QrHub() {
         {mode === "escanear" ? (
           <DanceScanner eventId={eventId} />
         ) : mode === "mio" ? (
-          <MyQr />
+          <div data-tour="qr-code">
+            <MyQr />
+          </div>
         ) : null}
       </section>
+
+      {mode === "mio" && (
+        <OnboardingRunner
+          tour="qr"
+          steps={
+            [
+              {
+                element: "[data-tour='qr-code']",
+                title: tt("s1.title"),
+                description: tt("s1.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='qr-mode']",
+                title: tt("s2.title"),
+                description: tt("s2.desc"),
+                side: "bottom",
+              },
+            ] satisfies TourStep[]
+          }
+        />
+      )}
     </main>
   );
 }

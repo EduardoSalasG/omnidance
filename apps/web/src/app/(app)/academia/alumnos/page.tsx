@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { useMe } from "@/lib/me-context";
+import { Button, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { StudentsSection } from "@/components/academy/students-section";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -18,7 +20,7 @@ export default function AcademiaAlumnosPage() {
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
@@ -43,20 +45,12 @@ function StudentsModule({
   const tc = useTranslations("common");
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [error, setError] = useState(false);
-  const [canAdminister, setCanAdminister] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) =>
-        res.ok ? ((await res.json()) as { id: string; roles: string[] }) : null,
-      )
-      .then((me) =>
-        setCanAdminister(
-          !!me && (me.roles.includes("ADMIN") || me.id === ownerId),
-        ),
-      )
-      .catch(() => setCanAdminister(false));
-  }, [ownerId]);
+  // Permiso desde el /me compartido — null mientras resuelve (el reload
+  // espera), false si no es admin/owner.
+  const { me, loading: meLoading } = useMe();
+  const canAdminister: boolean | null = meLoading
+    ? null
+    : !!me && (me.roles.includes("ADMIN") || me.id === ownerId);
 
   const reload = useCallback(async () => {
     // Los planes solo se usan en el form de alta (owner/admin); el
@@ -91,17 +85,13 @@ function StudentsModule({
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );
   }
   if (plans === null) {
-    return (
-      <p role="status" className="text-sm text-white/60">
-        {tc("loading")}
-      </p>
-    );
+    return <SkeletonList />;
   }
   return (
     <StudentsSection

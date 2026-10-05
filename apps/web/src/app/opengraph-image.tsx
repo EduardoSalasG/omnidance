@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Omnidance — la escena SBK de Santiago";
+export const alt = "Omnidance, la escena SBK de Santiago";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -24,7 +24,7 @@ export default function OpengraphImage() {
           style={{
             fontSize: 96,
             fontWeight: 800,
-            color: "#a3e635",
+            color: "#a78bfa",
             letterSpacing: "-0.03em",
           }}
         >

@@ -1,0 +1,17 @@
+# Contexto de build Docker (imagen API) — mantener mínimo.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/.env
+**/.env.*
+!.env.example
+.git
+.github
+docs
+openspec
+*.md
+!packages/**/README.md
+Dockerfile
+docker-compose*.yml

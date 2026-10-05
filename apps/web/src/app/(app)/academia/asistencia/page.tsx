@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AttendanceSection } from "@/components/academy/attendance-section";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -18,7 +19,7 @@ export default function AcademiaAsistenciaPage() {
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
@@ -59,17 +60,13 @@ function AttendanceModule({ academyId }: { academyId: string }) {
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );
   }
   if (slots === null) {
-    return (
-      <p role="status" className="text-sm text-white/60">
-        {tc("loading")}
-      </p>
-    );
+    return <SkeletonList />;
   }
   return (
     <AttendanceSection

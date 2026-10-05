@@ -8,16 +8,11 @@ export default function AdminPage() {
   const t = useTranslations("admin");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
       <p className="text-sm text-white/60">{t("hubDesc")}</p>
 
       <AdminGate>
         <ModuleGrid>
-          <ModuleCard
-            href="/admin/solicitudes"
-            title={t("modules.requests")}
-            desc={t("modules.requestsDesc")}
-          />
           <ModuleCard
             href="/admin/roles"
             title={t("modules.roles")}
@@ -32,6 +27,11 @@ export default function AdminPage() {
             href="/admin/usuarios"
             title={t("modules.users")}
             desc={t("modules.usersDesc")}
+          />
+          <ModuleCard
+            href="/admin/datos"
+            title={t("modules.datos")}
+            desc={t("modules.datosDesc")}
           />
           <ModuleCard
             href="/admin/auditoria"

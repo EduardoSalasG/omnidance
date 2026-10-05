@@ -3,7 +3,15 @@
 //   apps/api/src/academies/infrastructure/academies.controller.ts
 //   apps/api/src/academies/infrastructure/attendance.controller.ts
 
-export const PLAN_TYPES = ["MONTHLY", "CLASS_PACK", "PERIOD", "TRIAL"] as const;
+export const PLAN_TYPES = [
+  "MONTHLY",
+  "QUARTERLY",
+  "SEMIANNUAL",
+  "SINGLE",
+  "CLASS_PACK",
+  "PERIOD",
+  "TRIAL",
+] as const;
 export type PlanType = (typeof PLAN_TYPES)[number];
 
 // Espejo de ENROLLMENT_STATUSES del controller (CANCELLED no existe en el enum).
@@ -25,6 +33,25 @@ export type Academy = {
   // Quórum default de la academia (PATCH /academies/:id/settings).
   // Opcional hasta que el backend exponga la columna en GET /academies/mine.
   defaultQuorum?: number | null;
+  // Perfil público editable vía PATCH /academies/:id/settings.
+  description?: string | null;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  instagram?: string | null;
+  whatsapp?: string | null;
+  website?: string | null;
+  // Precio de la clase particular vendida como producto (PATCH settings;
+  // null = no se vende). El owner asigna instructor+fecha post-compra.
+  privateLessonPrice?: number | null;
+  // Suscripción SaaS de la plataforma (spec academy-saas-billing):
+  // GET /academies/mine devuelve la fila completa — tier/ciclo, trial,
+  // gracia y bloqueo por mora alimentan el banner de la consola.
+  tier?: string | null;
+  billingCycle?: string | null;
+  trialEndsAt?: string | null;
+  billingGraceUntil?: string | null;
+  billingBlockedAt?: string | null;
 };
 
 export type AcademyDashboard = {
@@ -38,6 +65,20 @@ export type AcademyDashboard = {
   totalStudents: number;
   plansCount: number;
   attendanceLast30d: number;
+  // Spec §13: "asistencia de hoy, clases del día" en el dashboard.
+  attendanceToday: number;
+  todayClasses: TodayClass[];
+};
+
+// Clase del día en el dashboard de la academia (GET /academies/:id/dashboard).
+export type TodayClass = {
+  id: string;
+  startTime: string; // "19:00"
+  endTime: string;
+  seriesName: string | null;
+  instructorName: string | null;
+  bookedCount: number;
+  capacity: number | null;
 };
 
 export type MembershipPlan = {
@@ -46,8 +87,14 @@ export type MembershipPlan = {
   type: PlanType;
   price: number;
   classCount: number | null;
+  // Cuota semanal del plan (planes por tiempo); null = ilimitado.
+  weeklyClasses: number | null;
   periodDays: number | null;
+  description: string[];
   active: boolean;
+  // Espejo en Flow (omni_<id>) — presente cuando algún subscribe lo
+  // materializó; si existe, PATCH no permite cambiar `type`.
+  flowPlanId?: string | null;
 };
 
 // GET /academies/:id/students — person viene del join manual del controller;
@@ -58,14 +105,20 @@ export type Student = {
   plan: { name: string } | null;
   status: EnrollmentStatus;
   startsAt: string | null;
+  /** "Pagado hasta" — vigencia del plan; null = sin fecha registrada. */
+  endsAt: string | null;
 };
 
+// GET /academies/:id/slots — todo slot pertenece a una serie (invariante
+// de schema); capacity null = hereda el quórum de la serie/academia.
 export type ClassSlot = {
   id: string;
   weekday: number; // 0-6, domingo = 0
   startTime: string; // "19:00"
   endTime: string;
-  capacity: number;
+  capacity: number | null;
+  series: { id: string; name: string };
+  types: { type: { id: string; name: string } }[];
 };
 
 // GET /academies/:id/attendance — person viene del join manual del controller
@@ -122,6 +175,8 @@ export type StudentProfile = {
   person: { id: string; name: string | null };
   plan: { name: string } | null;
   enrollmentStatus: string;
+  enrollmentStartedAt: string | null;
+  enrollmentEndsAt: string | null;
   history: {
     classId: string;
     date: string;
@@ -144,6 +199,14 @@ export const classDayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
   timeZone: "UTC",
+});
+
+// Vigencia del enrollment (startedAt/endsAt llegan como ISO real, no
+// medianoche UTC — formatear en zona local, distinto de classDayFmt).
+export const planDateFmt = new Intl.DateTimeFormat("es-CL", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
 });
 
 // Fallback visible cuando el API no entrega nombre (personId crudo).

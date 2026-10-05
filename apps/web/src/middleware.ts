@@ -1,0 +1,42 @@
+import { NextRequest, NextResponse } from "next/server";
+
+// Frontera anónima: sin cookie de sesión solo se ven las landings
+// (/, /pro) y el login. TODO lo demás de la app redirige a
+// /login?next=<ruta original> — la cartelera y los perfiles de local
+// también requieren sesión.
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/pro",
+  "/login",
+  // Páginas legales (spec legal-consent) — deben leerse sin sesión,
+  // incluidas desde el checkbox de consentimiento del login.
+  "/terminos",
+  "/privacidad",
+  "/opengraph-image",
+  "/twitter-image",
+]);
+
+// Prefijos públicos: /reclamar/<token> es la landing de invitación —
+// el destinatario la abre desde WhatsApp sin sesión; el reclamo en sí
+// (POST) exige sesión vía SessionGuard del API.
+const PUBLIC_PREFIXES = ["/reclamar"];
+
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+  if (req.cookies.has("omnidance_session")) return NextResponse.next();
+
+  const login = req.nextUrl.clone();
+  login.pathname = "/login";
+  login.search = `?next=${encodeURIComponent(pathname + req.nextUrl.search)}`;
+  return NextResponse.redirect(login);
+}
+
+// Excluye /api, internals de Next y todo archivo con extensión
+// (manifest.json, íconos, robots.txt, sitemap.xml, sw.js).
+export const config = {
+  matcher: ["/((?!api|_next|.*\\..*).*)"],
+};

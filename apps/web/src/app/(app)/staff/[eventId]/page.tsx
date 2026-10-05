@@ -12,7 +12,7 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, EventDate } from "@/components/ui";
+import { Badge, Button, EventDate, SkeletonList } from "@/components/ui";
 
 // La cámara solo existe en el cliente — sin SSR.
 const Scanner = dynamic(
@@ -128,6 +128,9 @@ export default function DoorConsolePage({
   const [view, setView] = useState<View>("scan");
   const [checkins, setCheckins] = useState<ListedCheckin[]>([]);
   const [eventName, setEventName] = useState<string | null>(null);
+  // Pending → skeleton de ancho fijo en el slot del título; resuelto
+  // sin nombre → header vacío (mismo fallback de antes).
+  const [eventNameDone, setEventNameDone] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [offline, setOffline] = useState(false);
   const [cameraError, setCameraError] = useState(false);
@@ -199,13 +202,17 @@ export default function DoorConsolePage({
   // Nombre del evento para el header (endpoint público, best-effort).
   useEffect(() => {
     let cancelled = false;
+    setEventNameDone(false);
     apiFetch(`/events/${eventId}`)
       .then(async (res) => {
         if (!res.ok || cancelled) return;
         const e = (await res.json()) as { name?: string };
         if (e.name) setEventName(e.name);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setEventNameDone(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -354,7 +361,17 @@ export default function DoorConsolePage({
           ‹ {t("title")}
         </Link>
         <h1 className="min-w-0 flex-1 truncate text-center text-sm font-semibold">
-          {eventName ?? ""}
+          {eventName ??
+            (eventNameDone ? (
+              ""
+            ) : (
+              /* Skeleton de ancho fijo en el slot del título — span
+                 porque h1 solo admite phrasing content. */
+              <span
+                aria-hidden="true"
+                className="page-loading inline-block h-4 w-32 animate-pulse rounded-lg bg-night-800 align-middle motion-reduce:animate-none"
+              />
+            ))}
         </h1>
         <div className="flex min-h-11 items-baseline gap-1.5">
           <span className="text-2xl font-black text-neon">{count}</span>
@@ -385,8 +402,10 @@ export default function DoorConsolePage({
       )}
 
       {gate === "loading" && (
-        <div className="flex flex-1 items-center justify-center p-6">
-          <p className="text-white/60">{tc("loading")}</p>
+        /* Filas de asistentes en vuelo → SkeletonList (layout conocido),
+           nunca spinner desnudo a nivel panel. */
+        <div className="flex-1 px-4 py-3">
+          <SkeletonList items={4} lines={1} />
         </div>
       )}
 

@@ -22,10 +22,37 @@ const PUBLIC_KEYS = new Set([
   "service_fee.presale_clp",
   "service_fee.door_app_clp",
   "service_fee.door_cash_clp",
+  // Deprecated (modelo SaaS, spec academy-saas-billing): las órdenes de
+  // academia ya no cobran cargo — el key sigue expuesto para clientes
+  // legacy pero ningún checkout lo aplica.
+  "service_fee.membership_clp",
   "session.cooldown_minutes",
   "qr.rotation_seconds",
   "prime_time.window_minutes",
   "prime_time.threshold_pct",
+  // Catálogo público de tiers SaaS (spec academy-saas-billing): precios y
+  // límites que muestra el checkout de contratación. academy_billing.* y
+  // gateway_fee.* quedan internos (lógica de mora/payout, no pricing).
+  "academy_tier.starter_max_students",
+  "academy_tier.pro_max_students",
+  "academy_tier.studio_max_students",
+  "academy_tier.starter_monthly_clp",
+  "academy_tier.starter_semiannual_clp",
+  "academy_tier.starter_annual_clp",
+  "academy_tier.pro_monthly_clp",
+  "academy_tier.pro_semiannual_clp",
+  "academy_tier.pro_annual_clp",
+  "academy_tier.studio_monthly_clp",
+  "academy_tier.studio_semiannual_clp",
+  "academy_tier.studio_annual_clp",
+  "producer_tier.starter_max_monthly_clp",
+  "producer_tier.growth_max_monthly_clp",
+  "producer_tier.starter_monthly_clp",
+  "producer_tier.starter_semiannual_clp",
+  "producer_tier.starter_annual_clp",
+  "producer_tier.growth_monthly_clp",
+  "producer_tier.growth_semiannual_clp",
+  "producer_tier.growth_annual_clp",
 ]);
 
 @Controller("params")

@@ -1,11 +1,20 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { useMe } from "@/lib/me-context";
+import {
+  BackLink,
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  RefreshIcon,
+  SkeletonList,
+} from "@/components/ui";
 import { EventForm } from "@/components/producer/event-form";
 import {
   EVENT_STATUS_VARIANT,
@@ -19,6 +28,12 @@ import {
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
+const clp = new Intl.NumberFormat("es-CL", {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
+
 /**
  * /productor/eventos — lista de mis eventos + formulario de creación.
  * GET /events/mine devuelve todos los estados del productor autenticado.
@@ -28,9 +43,27 @@ function ProducerEvents() {
   const te = useTranslations("events");
   const tc = useTranslations("common");
 
-  const [gate, setGate] = useState<Gate>("loading");
-  const [events, setEvents] = useState<EventListItem[]>([]);
+  // /me compartido (MeProvider) — el gate se deriva del contexto y los
+  // datos se piden en paralelo desde el mount (un no-productor recibe
+  // 403 de /events/mine → el gate por rol decide, se descarta).
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const gate: Gate = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : !me
+        ? "unauth"
+        : !me.roles.some((r) => PRODUCER_ROLES.has(r))
+          ? "notProducer"
+          : "ready";
+  const [events, setEvents] = useState<EventListItem[] | null>(null);
   const [eventsError, setEventsError] = useState(false);
+  const [eventsNonce, setEventsNonce] = useState(0);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [styles, setStyles] = useState<Style[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -41,45 +74,40 @@ function ProducerEvents() {
     if (crearParam) setShowForm(true);
   }, [crearParam]);
 
-  const boot = useCallback(async () => {
-    setGate("loading");
-    try {
-      const me = await apiFetch("/me");
-      if (me.status === 401) {
-        setGate("unauth");
-        return;
-      }
-      if (!me.ok) {
-        setGate("error");
-        return;
-      }
-      const data = (await me.json()) as { id: string; roles: string[] };
-      if (!data.roles.some((r) => PRODUCER_ROLES.has(r))) {
-        setGate("notProducer");
-        return;
-      }
-
-      const [evRes, vRes, sRes] = await Promise.all([
-        apiFetch("/events/mine"),
-        apiFetch("/venues"),
-        apiFetch("/styles"),
-      ]);
-      if (evRes.ok) {
-        setEvents((await evRes.json()) as EventListItem[]);
-      } else {
-        setEventsError(true);
-      }
-      if (vRes.ok) setVenues((await vRes.json()) as Venue[]);
-      if (sRes.ok) setStyles((await sRes.json()) as Style[]);
-      setGate("ready");
-    } catch {
-      setGate("error");
-    }
-  }, []);
-
   useEffect(() => {
-    void boot();
-  }, [boot]);
+    let cancelled = false;
+    apiFetch("/events/mine")
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setEventsError(true);
+          return;
+        }
+        setEventsError(false);
+        setEvents((await res.json()) as EventListItem[]);
+      })
+      .catch(() => {
+        if (!cancelled) setEventsError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventsNonce]);
+
+  // Catálogos del formulario — fetch único, no reintentan con el listado.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([apiFetch("/venues"), apiFetch("/styles")])
+      .then(async ([vRes, sRes]) => {
+        if (cancelled) return;
+        if (vRes.ok) setVenues((await vRes.json()) as Venue[]);
+        if (sRes.ok) setStyles((await sRes.json()) as Style[]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submitCreate(payload: EventPayload): Promise<string | null> {
     try {
@@ -92,7 +120,7 @@ function ProducerEvents() {
         return (await readError(res)) ?? tc("error");
       }
       const created = (await res.json()) as EventListItem;
-      setEvents((evs) => [created, ...evs]);
+      setEvents((evs) => [created, ...(evs ?? [])]);
       setShowForm(false);
       setNotice(t("created"));
       return null;
@@ -101,7 +129,7 @@ function ProducerEvents() {
     }
   }
 
-  const mine = [...events].sort(
+  const mine = [...(events ?? [])].sort(
     (a, b) =>
       new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime(),
   );
@@ -119,13 +147,8 @@ function ProducerEvents() {
   ];
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-8 p-6">
-      <Link
-        href="/productor"
-        className="inline-flex min-h-11 w-fit items-center text-sm text-white/60 hover:text-white"
-      >
-        ← {t("title")}
-      </Link>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
+      <BackLink href="/productor">{t("title")}</BackLink>
 
       <div className="flex items-center justify-end gap-3">
         {gate === "ready" && (
@@ -147,7 +170,7 @@ function ProducerEvents() {
         )}
       </div>
 
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+      {gate === "loading" && <SkeletonList items={3} />}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -167,8 +190,8 @@ function ProducerEvents() {
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{tc("error")}</p>
-          <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+          <Button variant="secondary" onClick={() => void refreshMe()}>
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -193,13 +216,23 @@ function ProducerEvents() {
               <p role="alert" className="text-sm text-red-400">
                 {tc("error")}
               </p>
-              <Button size="sm" variant="ghost" onClick={() => void boot()}>
-                ↻ {tc("retry")}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setEvents(null);
+                  setEventsError(false);
+                  setEventsNonce((n) => n + 1);
+                }}
+              >
+                <RefreshIcon /> {tc("retry")}
               </Button>
             </div>
           )}
 
-          {!eventsError && mine.length === 0 && (
+          {!eventsError && events === null && <SkeletonList items={3} />}
+
+          {!eventsError && events !== null && mine.length === 0 && (
             <Card className="flex flex-col items-center gap-4 py-10 text-center">
               <p role="status" className="text-white/70">
                 {t("emptyEvents")}
@@ -244,6 +277,15 @@ function ProducerEvents() {
                         )}
                         {ev.series?.name && <span>{ev.series.name}</span>}
                       </div>
+                      {ev.stats && (
+                        <p className="text-xs tabular-nums text-white/60">
+                          {t("stats.sold", { count: ev.stats.sold })}
+                          {" · "}
+                          {clp.format(ev.stats.grossClp)}
+                          {" · "}
+                          {t("stats.checkins", { count: ev.stats.checkins })}
+                        </p>
+                      )}
                     </Card>
                   </Link>
                 </li>

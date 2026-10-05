@@ -15,6 +15,7 @@ import {
 } from "../../common/rbac/roles.guard";
 import { RequireRoles } from "../../common/rbac/roles.decorator";
 import { PrismaService } from "../../prisma.service";
+import { EXPOSURE_THRESHOLD } from "./event-ratings.controller";
 
 const TOP_N = 20;
 
@@ -140,5 +141,43 @@ export class DjController {
       .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title))
       .slice(0, TOP_N);
     return { total, ranking };
+  }
+
+  /**
+   * GET /api/dj/gigs/:eventId/rating — evaluación agregada de la música
+   * del evento para el DJ asignado (spec §13: vista ligera del DJ —
+   * "su evaluación agregada de música por evento"). Misma k-anonymity
+   * que /events/:id/ratings/summary: bajo el umbral no se expone
+   * promedio, solo {exposed:false,count}.
+   */
+  @Get("gigs/:eventId/rating")
+  async rating(@Param("eventId") eventId: string, @Req() req: Request) {
+    const me = req.person!;
+    const event = await this.prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, djs: { select: { personId: true } } },
+    });
+    if (!event) throw new NotFoundException("evento no encontrado");
+
+    const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
+      "admin.access",
+    ]);
+    if (!isAdmin && !event.djs.some((d) => d.personId === me.id)) {
+      throw new ForbiddenException(
+        "solo un DJ del evento puede ver su evaluación",
+      );
+    }
+
+    const ratings = await this.prisma.eventRating.findMany({
+      where: { eventId, music: { not: null } },
+      select: { music: true },
+    });
+    const count = ratings.length;
+    if (count < EXPOSURE_THRESHOLD) {
+      return { exposed: false, count, music: null };
+    }
+    const avg =
+      ratings.reduce((a, r) => a + (r.music as number), 0) / count;
+    return { exposed: true, count, music: { avg, count } };
   }
 }

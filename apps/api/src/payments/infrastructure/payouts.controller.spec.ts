@@ -13,15 +13,20 @@ import type { ProducerFeeDefaults } from "../../params/params.service";
 // undefined. Cargar auth.controller antes rompe el ciclo a favor del test.
 import "../../auth/infrastructure/auth.controller";
 import { AdminPayoutsController } from "./payouts.controller";
-import { encodeSeriesPassRef } from "../domain/order-ref";
+import { encodePrivateRef, encodeSeriesPassRef } from "../domain/order-ref";
 
-// AdminPayoutsController.generate → computeSettlement (regla v1):
+// AdminPayoutsController.generate → computeSettlement:
 // - PRODUCER: tickets PAID de sus eventos + SERIES_PASS cuyo refId decodifica
-//   a una EventSeries suya.
-// - ACADEMY/VENUE: tickets PAID de eventos con academyId/venueId = actor y
-//   producerId = null (si hay productor, él devenga).
-// - platformFeePct efectivo por evento: override del evento → default del
-//   productor → param global. net = gross − fees − platformFee.
+//   a una EventSeries suya. platformFeePct efectivo por evento:
+//   override del evento → default del productor → param global.
+//   net = gross − fees − platformFee (regla legacy, sin cambio).
+// - VENUE: tickets PAID de eventos con venueId = actor y producerId null,
+//   misma regla legacy.
+// - ACADEMY (modelo SaaS, spec academy-saas-billing): mismas líneas que
+//   VENUE + MEMBERSHIP/WORKSHOP/PRIVATE por refId, pero SIN platformFee —
+//   solo descuenta GATEWAY_FEE_PASSTHROUGH = round(gross ×
+//   gateway_fee.academy_passthrough_pct / 100), línea explícita en
+//   Payout.gatewayFee + lines[] del response.
 // PrismaService se simula in-memory con matching mínimo de `where`.
 
 type Row = Record<string, unknown>;
@@ -41,6 +46,19 @@ function matchWhere(row: Row, where: Row): boolean {
         return false;
       if ("lte" in c && (!(v instanceof Date) || v > (c.lte as Date)))
         return false;
+      // Objeto anidado sin operador (p.ej. slot: { academyId }) →
+      // matcheo recursivo sobre la relación materializada del fake.
+      if (
+        !("in" in c) &&
+        !("not" in c) &&
+        !("gte" in c) &&
+        !("lte" in c) &&
+        v !== null &&
+        typeof v === "object" &&
+        !(v instanceof Date) &&
+        !matchWhere(v as Row, c)
+      )
+        return false;
       continue;
     }
     if (v !== cond) return false;
@@ -49,7 +67,8 @@ function matchWhere(row: Row, where: Row): boolean {
 }
 
 interface FakePayment {
-  orderType: "TICKET" | "SERIES_PASS";
+  id: string;
+  orderType: "TICKET" | "SERIES_PASS" | "MEMBERSHIP" | "WORKSHOP" | "PRIVATE";
   status: "PENDING" | "PAID" | "FAILED";
   eventId: string | null;
   refId: string;
@@ -66,6 +85,8 @@ interface FakePayout {
   periodEnd: Date;
   gross: number;
   platformFee: number;
+  /** Línea GATEWAY_FEE_PASSTHROUGH — solo payouts ACADEMY (modelo SaaS). */
+  gatewayFee: number;
   net: number;
   status: string;
   paidAt: Date | null;
@@ -76,6 +97,8 @@ interface FakePayout {
 class FakePrisma {
   events: Row[] = [];
   series: Row[] = [];
+  membershipPlans: Row[] = [];
+  privateLessons: Row[] = [];
   payments: FakePayment[] = [];
   payouts: FakePayout[] = [];
   auditLogs: Row[] = [];
@@ -89,6 +112,26 @@ class FakePrisma {
   eventSeries = {
     findMany: async ({ where }: { where: Row }) =>
       this.series.filter((s) => matchWhere(s, where)),
+  };
+
+  membershipPlan = {
+    findMany: async ({ where }: { where: Row }) =>
+      this.membershipPlans.filter((p) => matchWhere(p, where)),
+  };
+
+  classes: Row[] = [];
+  class = {
+    // ACADEMY WORKSHOP: clase → slot.academyId (misma derivación que el
+    // refId wks_).
+    findMany: async ({ where }: { where: Row }) =>
+      this.classes.filter((c) => matchWhere(c, where)),
+  };
+
+  // PRIVATE cancelada no devenga — el controller consulta la lección por
+  // paymentId y excluye status CANCELLED.
+  privateLesson = {
+    findMany: async ({ where }: { where: Row }) =>
+      this.privateLessons.filter((l) => matchWhere(l, where)),
   };
 
   payment = {
@@ -114,6 +157,7 @@ class FakePrisma {
         | "periodEnd"
         | "gross"
         | "platformFee"
+        | "gatewayFee"
         | "net"
       >;
     }) => {
@@ -170,7 +214,9 @@ const DTO = {
   periodEnd: "2025-11-30T23:59:59Z",
 };
 
+let paymentSeq = 0;
 const mkPayment = (over: Partial<FakePayment>): FakePayment => ({
+  id: `pay-${++paymentSeq}`,
   orderType: "TICKET",
   status: "PAID",
   eventId: null,
@@ -237,6 +283,19 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
       mkPayment({ eventId: "evt-acad", amount: 8000, fee: 200 }),
       mkPayment({ eventId: "evt-acad-p", amount: 9000 }),
       mkPayment({ eventId: "evt-venue", amount: 4000, fee: 50 }),
+      // PRIVATE (clase particular comprable): refId pvt_<academyId>_ — se
+      // atribuye a la academia aunque no tenga eventos/planes/clases.
+      mkPayment({
+        orderType: "PRIVATE",
+        refId: encodePrivateRef("ac-1"),
+        amount: 25000,
+        fee: 500,
+      }),
+      mkPayment({
+        orderType: "PRIVATE",
+        refId: encodePrivateRef("ac-ajena"),
+        amount: 30000,
+      }),
     );
   });
 
@@ -307,29 +366,93 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
     expect(prisma.auditLogs).toHaveLength(1);
   });
 
-  it("ACADEMY: solo eventos propios sin productor; platformFeePct del evento aplica", async () => {
+  it("ACADEMY (modelo SaaS): solo eventos propios sin productor; descuenta GATEWAY_FEE_PASSTHROUGH, nunca platformFee", async () => {
     const payout = await ctrl.generate(
       { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
       adminReq,
     );
-    // evt-acad (8000) sí; evt-acad-p (9000) tiene productor → no devenga aquí.
-    expect(payout.gross).toBe(8000);
-    // platformFeePct 20 del evento → 1600; net = 8000 − 200 − 1600.
-    expect(payout.platformFee).toBe(1600);
-    expect(payout.net).toBe(6200);
+    // evt-acad (8000) sí; evt-acad-p (9000) tiene productor → no devenga
+    // aquí; el PRIVATE de ac-1 (25000) sí entra por refId, el de ac-ajena no.
+    expect(payout.gross).toBe(33000);
+    // Modelo SaaS: la academia no paga comisión por venta (paga su
+    // suscripción) — platformFeePct del evento y el param global son
+    // inertes para ACADEMY. Solo el costo Flow como línea explícita:
+    // round(33000 × 3.19%) = 1053; el fee real del Payment (700) NO se
+    // usa — la tasa viene del param, no del pago.
+    expect(payout.platformFee).toBe(0);
+    expect(payout.gatewayFee).toBe(1053);
+    expect(payout.net).toBe(33000 - 1053);
+    // La deducción viaja como línea tipada — nunca escondida en net.
+    expect(payout.lines).toEqual([
+      { type: "GATEWAY_FEE_PASSTHROUGH", amount: 1053 },
+    ]);
   });
 
-  it("ACADEMY: evento sin platformFeePct usa el param global", async () => {
-    prisma.events.find((e) => e.id === "evt-acad")!.platformFeePct = null;
-    pf.numbers.set("platform_fee.default_pct", 10);
+  it("ACADEMY sin eventos/clases/planes igual liquida su PRIVATE (refId pvt_)", async () => {
+    pf.numbers.set("platform_fee.default_pct", 10); // inerte para ACADEMY
+    const payout = await ctrl.generate(
+      { actorType: "ACADEMY", actorId: "ac-ajena", ...DTO },
+      adminReq,
+    );
+    // ac-ajena no tiene eventos ni clases — solo el pago PRIVATE de 30000.
+    expect(payout.gross).toBe(30000);
+    expect(payout.platformFee).toBe(0); // platform_fee.default_pct no aplica
+    expect(payout.gatewayFee).toBe(957); // round(30000 × 3.19%)
+    expect(payout.net).toBe(29043);
+  });
+
+  it("ACADEMY: particular cancelada no devenga (el owner debe devolver el pago)", async () => {
+    const cancelled = prisma.payments.find(
+      (p) => p.orderType === "PRIVATE" && p.refId.includes("ac-ajena"),
+    )!;
+    prisma.privateLessons.push({
+      paymentId: cancelled.id,
+      status: "CANCELLED",
+    });
+    const payout = await ctrl.generate(
+      { actorType: "ACADEMY", actorId: "ac-ajena", ...DTO },
+      adminReq,
+    );
+    expect(payout.gross).toBe(0);
+    expect(payout.net).toBe(0);
+    expect(payout.lines).toEqual([]); // sin bruto → sin líneas de descuento
+  });
+
+  it("ACADEMY: la tasa del passthrough viene de gateway_fee.academy_passthrough_pct", async () => {
+    pf.numbers.set("gateway_fee.academy_passthrough_pct", 5);
     const payout = await ctrl.generate(
       { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
       adminReq,
     );
-    expect(payout.platformFee).toBe(800); // 8000 * 10%
+    // 33000 × 5% = 1650 — parametrizable desde /admin sin deploy.
+    expect(payout.gatewayFee).toBe(1650);
+    expect(payout.net).toBe(31350);
+    expect(payout.lines).toEqual([
+      { type: "GATEWAY_FEE_PASSTHROUGH", amount: 1650 },
+    ]);
   });
 
-  it("VENUE: mismo patrón que ACADEMY (venueId + producerId null)", async () => {
+  it("PRODUCER: sin línea GATEWAY_FEE_PASSTHROUGH — solo PLATFORM_FEE en el desglose", async () => {
+    pf.producers.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: null,
+      doorCashFeeClp: null,
+      platformFeePct: 5,
+    });
+    pf.numbers.set("gateway_fee.academy_passthrough_pct", 5);
+    const payout = await ctrl.generate(
+      { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
+      adminReq,
+    );
+    expect(payout.platformFee).toBe(2500);
+    expect(payout.gatewayFee).toBe(0);
+    expect(payout.net).toBe(40000 - 400 - 2500); // Σ fee real, no %
+    expect(payout.lines).toEqual([
+      { type: "PLATFORM_FEE", amount: 2500 },
+    ]);
+  });
+
+  it("VENUE: regla legacy intacta (Σ fee real + platformFeePct, sin passthrough)", async () => {
     pf.numbers.set("platform_fee.default_pct", 10);
     const payout = await ctrl.generate(
       { actorType: "VENUE", actorId: "ven-1", ...DTO },

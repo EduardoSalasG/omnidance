@@ -4,12 +4,16 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PaymentsModule } from "../src/payments/payments.module";
+import { NotificationsModule } from "../src/notifications/notifications.module";
 import { PrismaService } from "../src/prisma.service";
 // Controllers nuevos aún no registrados en EventsModule (wiring pendiente):
 // se montan directo en el test module para cubrir el contrato HTTP.
 import { EventRatingsController } from "../src/events/infrastructure/event-ratings.controller";
 import { TableReservationsController } from "../src/events/infrastructure/table-reservations.controller";
 import { SongSuggestionsController } from "../src/events/infrastructure/song-suggestions.controller";
+import { EventsController } from "../src/events/infrastructure/events.controller";
+import { ProducerController } from "../src/events/infrastructure/producer.controller";
+import { ParamsModule } from "../src/params/params.module";
 
 describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () => {
   let app: INestApplication;
@@ -47,6 +51,8 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
     suggestEventId: "", // PUBLISHED con preventa + DJ asignado
     reservationId: "",
   };
+  // eventos creados por los tests de herencia — se limpian en afterAll
+  const extraEventIds: string[] = [];
 
   const req = (
     method: string,
@@ -72,11 +78,13 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [PaymentsModule, AuthModule],
+      imports: [PaymentsModule, AuthModule, NotificationsModule, ParamsModule],
       controllers: [
         EventRatingsController,
         TableReservationsController,
         SongSuggestionsController,
+        EventsController,
+        ProducerController,
       ],
       providers: [PrismaService],
     }).compile();
@@ -210,6 +218,7 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       ids.lowEventId,
       ids.draftEventId,
       ids.suggestEventId,
+      ...extraEventIds,
     ];
     await prisma.eventRating.deleteMany({
       where: { eventId: { in: eventIds } },
@@ -222,6 +231,9 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       where: { eventId: { in: eventIds } },
     });
     await prisma.ticket.deleteMany({ where: { eventId: { in: eventIds } } });
+    await prisma.paymentEvent.deleteMany({
+      where: { payment: { personId: { in: peopleIds } } },
+    });
     await prisma.payment.deleteMany({
       where: { personId: { in: peopleIds } },
     });
@@ -232,6 +244,9 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       where: { eventId: { in: eventIds } },
     });
     await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
+    await prisma.producerParams.deleteMany({
+      where: { producerId: { in: peopleIds } },
+    });
     await prisma.venue.delete({ where: { id: ids.venueId } });
     await prisma.personRole.deleteMany({
       where: { personId: { in: peopleIds } },
@@ -525,7 +540,36 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       expect(res.status).toBe(400);
     });
 
-    it("productor confirma con tableNo → 200", async () => {
+    it("productor confirma con tableNo + ajusta partySize → 200", async () => {
+      const res = await req(
+        "PATCH",
+        `/api/table-reservations/${ids.reservationId}`,
+        { status: "CONFIRMED", tableNo: "M-7", partySize: 5 },
+        sessions.producer,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.status).toBe("CONFIRMED");
+      expect(body.tableNo).toBe("M-7");
+      // el tamaño solicitado era 4 — el productor lo ajusta (disclaimer del checkout)
+      expect(body.partySize).toBe(5);
+    });
+
+    it("al confirmar, el solicitante recibe notificación con el tamaño FINAL", async () => {
+      const notif = await prisma.notification.findFirst({
+        where: { personId: ids.aId, type: "table.confirmed" },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(notif).toBeTruthy();
+      // 5 (el valor confirmado por el productor), no 4 (el solicitado)
+      expect(notif!.body).toContain("5");
+      expect(notif!.body).toContain("M-7");
+    });
+
+    it("re-editar una ya CONFIRMED no re-notifica al solicitante", async () => {
+      const before = await prisma.notification.count({
+        where: { personId: ids.aId, type: "table.confirmed" },
+      });
       const res = await req(
         "PATCH",
         `/api/table-reservations/${ids.reservationId}`,
@@ -533,9 +577,10 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
         sessions.producer,
       );
       expect(res.status).toBe(200);
-      const body = await res.json();
-      expect(body.status).toBe("CONFIRMED");
-      expect(body.tableNo).toBe("M-7");
+      const after = await prisma.notification.count({
+        where: { personId: ids.aId, type: "table.confirmed" },
+      });
+      expect(after).toBe(before);
     });
 
     it("listado público-auth: solo CONFIRMED con nombre + partySize + tableNo", async () => {
@@ -549,7 +594,7 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       const list = await res.json();
       expect(list).toHaveLength(1);
       expect(list[0].person.name).toContain("GE Bailarín A");
-      expect(list[0].partySize).toBe(4);
+      expect(list[0].partySize).toBe(5); // ajustado por el productor
       expect(list[0].tableNo).toBe("M-7");
       // sin datos sensibles del solicitante
       expect(list[0].person).not.toHaveProperty("id");
@@ -784,6 +829,167 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
         sessions.admin,
       );
       expect(byAdmin.status).toBe(200);
+    });
+  });
+
+  // ═══════════ DEFAULTS DE MESAS + HERENCIA EVENTO ═══════════
+  describe("producer table-params + herencia en eventos", () => {
+    const mkEventDto = (name: string) => ({
+      name,
+      startsAt: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+      endsAt: new Date(Date.now() + 52 * 3600 * 1000).toISOString(),
+    });
+
+    it("dancer sin rol productor → 403 en GET/PUT table-params", async () => {
+      const get = await req(
+        "GET",
+        "/api/producer/table-params",
+        undefined,
+        sessions.a,
+      );
+      expect(get.status).toBe(403);
+      const put = await req(
+        "PUT",
+        "/api/producer/table-params",
+        { tablesTotal: 5 },
+        sessions.a,
+      );
+      expect(put.status).toBe(403);
+    });
+
+    it("PUT guarda defaults del productor y GET los devuelve", async () => {
+      const put = await req(
+        "PUT",
+        "/api/producer/table-params",
+        { tablesTotal: 6, tableSeatMax: 4, tableSeatsTotal: 30 },
+        sessions.producer,
+      );
+      expect(put.status).toBe(200);
+      const body = await put.json();
+      expect(body).toMatchObject({
+        tablesTotal: 6,
+        tableSeatMax: 4,
+        tableSeatsTotal: 30,
+      });
+
+      const get = await req(
+        "GET",
+        "/api/producer/table-params",
+        undefined,
+        sessions.producer,
+      );
+      expect(get.status).toBe(200);
+      expect(await get.json()).toMatchObject({
+        tablesTotal: 6,
+        tableSeatMax: 4,
+        tableSeatsTotal: 30,
+      });
+    });
+
+    it("PUT con campos inválidos → 400", async () => {
+      const res = await req(
+        "PUT",
+        "/api/producer/table-params",
+        { tableSeatMax: 0 },
+        sessions.producer,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("POST /events sin campos de mesa → hereda los defaults del productor", async () => {
+      const res = await req(
+        "POST",
+        "/api/events",
+        mkEventDto(`GE Hereda ${suffix}`),
+        sessions.producer,
+      );
+      expect(res.status).toBe(201);
+      const ev = await res.json();
+      extraEventIds.push(ev.id);
+      expect(ev).toMatchObject({
+        tablesTotal: 6,
+        tableSeatMax: 4,
+        tableSeatsTotal: 30,
+      });
+    });
+
+    it("POST /events con overrides → ganan sobre el default del productor", async () => {
+      const res = await req(
+        "POST",
+        "/api/events",
+        {
+          ...mkEventDto(`GE Override ${suffix}`),
+          tablesTotal: 2,
+          tableSeatMax: 10,
+          tableSeatsTotal: 12,
+        },
+        sessions.producer,
+      );
+      expect(res.status).toBe(201);
+      const ev = await res.json();
+      extraEventIds.push(ev.id);
+      expect(ev).toMatchObject({
+        tablesTotal: 2,
+        tableSeatMax: 10,
+        tableSeatsTotal: 12,
+      });
+    });
+
+    it("POST /events con tablesTotal:null → sin servicio aunque haya default", async () => {
+      const res = await req(
+        "POST",
+        "/api/events",
+        { ...mkEventDto(`GE Sin Mesas ${suffix}`), tablesTotal: null },
+        sessions.producer,
+      );
+      expect(res.status).toBe(201);
+      const ev = await res.json();
+      extraEventIds.push(ev.id);
+      expect(ev.tablesTotal).toBeNull();
+      expect(ev.tableSeatMax).toBeNull();
+      expect(ev.tableSeatsTotal).toBeNull();
+    });
+
+    it("PATCH tablesTotal:null apaga el servicio; límites null vuelven al default", async () => {
+      // evento con overrides propios
+      const create = await req(
+        "POST",
+        "/api/events",
+        {
+          ...mkEventDto(`GE Patch ${suffix}`),
+          tablesTotal: 5,
+          tableSeatMax: 2,
+          tableSeatsTotal: 10,
+        },
+        sessions.producer,
+      );
+      const ev = await create.json();
+      extraEventIds.push(ev.id);
+
+      // null en límites → vuelven a heredar el default del productor (4/30)
+      const inherit = await req(
+        "PATCH",
+        `/api/events/${ev.id}`,
+        { tableSeatMax: null, tableSeatsTotal: null },
+        sessions.producer,
+      );
+      expect(inherit.status).toBe(200);
+      const inh = await inherit.json();
+      expect(inh).toMatchObject({
+        tablesTotal: 5,
+        tableSeatMax: 4,
+        tableSeatsTotal: 30,
+      });
+
+      // tablesTotal:null → apaga el servicio
+      const off = await req(
+        "PATCH",
+        `/api/events/${ev.id}`,
+        { tablesTotal: null },
+        sessions.producer,
+      );
+      expect(off.status).toBe(200);
+      expect((await off.json()).tablesTotal).toBeNull();
     });
   });
 });

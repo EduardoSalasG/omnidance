@@ -5,21 +5,18 @@ import { SessionsModule } from "../src/sessions/sessions.module";
 import { AuthModule } from "../src/auth/auth.module";
 import { NotificationsModule } from "../src/notifications/notifications.module";
 import { AuthService } from "../src/auth/domain/auth.service";
-import { QrService } from "../src/qr/domain/qr.service";
 import { PrismaService } from "../src/prisma.service";
-// Controllers nuevos aún no registrados en SocialModule (wiring del padre
-// pendiente): se montan directo en el test module para cubrir el contrato.
-import { BlocksController } from "../src/social/infrastructure/blocks.controller";
+// Controllers montados directo en el test module para cubrir el contrato.
 import { FriendsController } from "../src/social/infrastructure/friends.controller";
+import { PeopleController } from "../src/social/infrastructure/people.controller";
 
-describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
+describe("spec-gap-closure: declare + friendships e2e", () => {
   let app: INestApplication;
   let baseUrl: string;
   let prisma: PrismaService;
   const auth = new AuthService(
     process.env.JWT_SECRET ?? "dev-secret-change-me",
   );
-  const qr = new QrService(process.env.QR_SECRET ?? "dev-qr-secret-change-me");
 
   let sessionA: string;
   let sessionB: string;
@@ -53,7 +50,7 @@ describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [SessionsModule, AuthModule, NotificationsModule],
-      controllers: [BlocksController, FriendsController],
+      controllers: [FriendsController, PeopleController],
       providers: [PrismaService],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -116,9 +113,6 @@ describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
     await prisma.danceSession.deleteMany({
       where: { eventId: ids.eventId },
     });
-    await prisma.userBlock.deleteMany({
-      where: { blockerId: { in: people } },
-    });
     await prisma.friendship.deleteMany({
       where: { OR: [{ aId: { in: people } }, { bId: { in: people } }] },
     });
@@ -134,263 +128,44 @@ describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
     await app.close();
   });
 
-  // ═══════════════════════ BLOCKS ═══════════════════════
-  describe("POST /api/blocks", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("POST", "/api/blocks", { personId: ids.bId });
-      expect(res.status).toBe(401);
-    });
-
-    it("auto-bloqueo → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/blocks",
-        { personId: ids.bId },
-        sessionB,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("persona inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/blocks",
-        { personId: "persona-fantasma" },
-        sessionB,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("B bloquea a A → 201; repetir → 200 idempotente sin duplicar", async () => {
-      const res1 = await req(
-        "POST",
-        "/api/blocks",
-        { personId: ids.aId },
-        sessionB,
-      );
-      expect(res1.status).toBe(201);
-
-      const res2 = await req(
-        "POST",
-        "/api/blocks",
-        { personId: ids.aId },
-        sessionB,
-      );
-      expect(res2.status).toBe(200);
-
-      const count = await prisma.userBlock.count({
-        where: { blockerId: ids.bId, blockedId: ids.aId },
-      });
-      expect(count).toBe(1);
-    });
-  });
-
-  describe("enforcement silencioso en invite/declare", () => {
-    it("A invita a B (B bloqueó a A) → 403 genérico, sin sesión ni notificación", async () => {
-      const { token } = await qr.mint(ids.bId);
-      const res = await req(
-        "POST",
-        "/api/sessions/invite",
-        { qrToken: token, eventId: ids.eventId },
-        sessionA,
-      );
-      expect(res.status).toBe(403);
-      const body = await res.json();
-      expect(body.message).toBe("no se puede enviar la invitación");
-      expect(body.message).not.toMatch(/bloque/i);
-
-      const sessions = await prisma.danceSession.count({
-        where: { inviterId: ids.aId, inviteeId: ids.bId },
-      });
-      expect(sessions).toBe(0);
-      const notifs = await prisma.notification.count({
-        where: { personId: ids.bId, type: "session.invite" },
-      });
-      expect(notifs).toBe(0);
-    });
-
-    it("A declara a B (B bloqueó a A) → 403 igual que el QR", async () => {
-      const res = await req(
-        "POST",
-        "/api/sessions/declare",
-        { eventId: ids.eventId, personId: ids.bId },
-        sessionA,
-      );
-      expect(res.status).toBe(403);
-      expect((await res.json()).message).toBe(
-        "no se puede enviar la invitación",
-      );
-    });
-
-    it("dirección correcta: D bloquea a C, pero D SÍ puede invitar a C", async () => {
-      const res1 = await req(
-        "POST",
-        "/api/blocks",
-        { personId: ids.cId },
-        sessionD,
-      );
-      expect(res1.status).toBe(201);
-
-      const { token } = await qr.mint(ids.cId);
-      const res2 = await req(
-        "POST",
-        "/api/sessions/invite",
-        { qrToken: token, eventId: ids.eventId },
-        sessionD,
-      );
-      expect(res2.status).toBe(201);
-      expect((await res2.json()).status).toBe("INVITED");
-    });
-  });
-
-  describe("GET /api/blocks", () => {
-    it("lista solo mis bloqueos con person {id,name,photoUrl}", async () => {
-      const res = await req("GET", "/api/blocks", undefined, sessionB);
-      expect(res.status).toBe(200);
-      const list = await res.json();
-      const blockA = list.find(
-        (b: { blockedId: string }) => b.blockedId === ids.aId,
-      );
-      expect(blockA).toBeDefined();
-      expect(blockA.person).toMatchObject({ id: ids.aId, name: "Gap A" });
-      expect(blockA.person).toHaveProperty("photoUrl");
-
-      // A no ve el bloqueo de B (silencioso)
-      const resA = await req("GET", "/api/blocks", undefined, sessionA);
-      const listA = await resA.json();
-      expect(
-        listA.some((b: { blockedId: string }) => b.blockedId === ids.bId),
-      ).toBe(false);
-    });
-  });
-
-  describe("DELETE /api/blocks/:personId", () => {
-    it("bloqueo inexistente → 404", async () => {
-      const res = await req(
-        "DELETE",
-        `/api/blocks/${ids.cId}`,
-        undefined,
-        sessionB,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("B desbloquea a A → A puede invitarla de nuevo", async () => {
-      const res = await req(
-        "DELETE",
-        `/api/blocks/${ids.aId}`,
-        undefined,
-        sessionB,
-      );
-      expect(res.status).toBe(200);
-
-      const { token } = await qr.mint(ids.bId);
-      const res2 = await req(
-        "POST",
-        "/api/sessions/invite",
-        { qrToken: token, eventId: ids.eventId },
-        sessionA,
-      );
-      expect(res2.status).toBe(201);
-      const session = await res2.json();
-      expect(session.status).toBe("INVITED");
-      expect(session.retroDeclared).toBe(false);
-    });
-  });
-
-  // ═══════════════════════ DECLARE ═══════════════════════
-  describe("POST /api/sessions/declare", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("POST", "/api/sessions/declare", {
-        eventId: ids.eventId,
-        personId: ids.cId,
-      });
-      expect(res.status).toBe(401);
-    });
-
-    it("persona inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/sessions/declare",
-        { eventId: ids.eventId, personId: "persona-fantasma" },
-        sessionA,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("evento inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/sessions/declare",
-        { eventId: "evt-fantasma", personId: ids.cId },
-        sessionA,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("auto-declaración → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/sessions/declare",
-        { eventId: ids.eventId, personId: ids.aId },
-        sessionA,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("declaración exitosa → 201 INVITED retroDeclared:true + notifica", async () => {
+  // ═══ rutas eliminadas (remove-social-blocks-invites): solo QR ═══
+  describe("rutas de invitación eliminadas", () => {
+    it("POST /api/sessions/declare → 404", async () => {
       const res = await req(
         "POST",
         "/api/sessions/declare",
         { eventId: ids.eventId, personId: ids.cId },
         sessionA,
       );
-      expect(res.status).toBe(201);
-      const session = await res.json();
-      expect(session.status).toBe("INVITED");
-      expect(session.retroDeclared).toBe(true);
-      expect(session.inviterId).toBe(ids.aId);
-      expect(session.inviteeId).toBe(ids.cId);
-      expect(session.inviter.name).toBe("Gap A");
-
-      const notif = await prisma.notification.findFirst({
-        where: { personId: ids.cId, type: "session.invite" },
-      });
-      expect(notif).toBeTruthy();
+      expect(res.status).toBe(404);
     });
 
-    it("re-declarar el mismo par dentro del cooldown → 409", async () => {
+    it("POST /api/sessions/invite → 404", async () => {
       const res = await req(
         "POST",
-        "/api/sessions/declare",
-        { eventId: ids.eventId, personId: ids.cId },
+        "/api/sessions/invite",
+        { qrToken: "x", eventId: ids.eventId },
         sessionA,
       );
-      expect(res.status).toBe(409);
+      expect(res.status).toBe(404);
     });
+  });
 
-    it("la contraparte confirma → CONFIRMED y rateable igual que escaneada", async () => {
-      const declared = await prisma.danceSession.findFirst({
-        where: {
+  describe("POST /api/sessions/:id/rate", () => {
+    it("una sesión CONFIRMED es rateable por sus participantes", async () => {
+      const session = await prisma.danceSession.create({
+        data: {
+          eventId: ids.eventId,
           inviterId: ids.aId,
           inviteeId: ids.cId,
-          retroDeclared: true,
+          status: "CONFIRMED",
+          confirmedAt: new Date(),
         },
       });
-      expect(declared).toBeTruthy();
-
-      const res = await req(
-        "POST",
-        `/api/sessions/${declared!.id}/confirm`,
-        {},
-        sessionC,
-      );
-      expect(res.status).toBe(200);
-      expect((await res.json()).status).toBe("CONFIRMED");
 
       const rate = await req(
         "POST",
-        `/api/sessions/${declared!.id}/rate`,
+        `/api/sessions/${session.id}/rate`,
         { score: 4 },
         sessionA,
       );
@@ -626,6 +401,108 @@ describe("spec-gap-closure: blocks + declare + friendships e2e", () => {
         sessionA,
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  // ═══ friends/upcoming-events + people/:id agenda (tickets, solo amigos) ═══
+  describe("agenda de amigos (upcoming events)", () => {
+    let evId: string;
+    let vId: string;
+
+    beforeAll(async () => {
+      // B↔D amigos aceptados (D bloqueó a C en tests previos — no sirve);
+      // D tiene ticket ACTIVE a un evento futuro.
+      await prisma.friendship.create({
+        data: { aId: ids.bId, bId: ids.dId, status: "ACCEPTED" },
+      });
+      const venue = await prisma.venue.create({
+        data: { name: "GS Venue", address: "x" },
+      });
+      vId = venue.id;
+      const ev = await prisma.event.create({
+        data: {
+          name: "GS Social",
+          type: "SOCIAL",
+          status: "PUBLISHED",
+          venueId: vId,
+          startsAt: new Date(Date.now() + 3 * 86400000),
+          endsAt: new Date(Date.now() + 3 * 86400000 + 4 * 3600000),
+        },
+      });
+      evId = ev.id;
+      await prisma.ticket.create({
+        data: {
+          eventId: evId,
+          ownerId: ids.dId,
+          buyerId: ids.dId,
+          listPrice: 5000,
+          serviceFee: 500,
+          status: "ACTIVE",
+        },
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.ticket.deleteMany({ where: { eventId: evId } });
+      await prisma.event.deleteMany({ where: { id: evId } });
+      await prisma.venue.deleteMany({ where: { id: vId } });
+      await prisma.friendship.deleteMany({
+        where: { aId: ids.bId, bId: ids.dId },
+      });
+    });
+
+    it("sin sesión → 401", async () => {
+      const res = await req("GET", "/api/friends/upcoming-events");
+      expect(res.status).toBe(401);
+    });
+
+    it("amigo ve el evento con el amigo que va", async () => {
+      const res = await req(
+        "GET",
+        "/api/friends/upcoming-events",
+        undefined,
+        sessionB,
+      );
+      expect(res.status).toBe(200);
+      const list = await res.json();
+      expect(list).toHaveLength(1);
+      expect(list[0].event.id).toBe(evId);
+      expect(list[0].friends.map((f: { id: string }) => f.id)).toContain(
+        ids.dId,
+      );
+    });
+
+    it("sin amigos con tickets → []", async () => {
+      const res = await req(
+        "GET",
+        "/api/friends/upcoming-events",
+        undefined,
+        sessionC,
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual([]);
+    });
+
+    it("people/:id expone upcomingEvents solo a amigos", async () => {
+      const asFriend = await req(
+        "GET",
+        `/api/people/${ids.dId}`,
+        undefined,
+        sessionB,
+      );
+      expect(asFriend.status).toBe(200);
+      const friend = await asFriend.json();
+      expect(friend.upcomingEvents).toHaveLength(1);
+      expect(friend.upcomingEvents[0].id).toBe(evId);
+
+      const asStranger = await req(
+        "GET",
+        `/api/people/${ids.dId}`,
+        undefined,
+        sessionA,
+      );
+      const stranger = await asStranger.json();
+      expect(stranger.upcomingEvents).toBeUndefined();
     });
   });
 });

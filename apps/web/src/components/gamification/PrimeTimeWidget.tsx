@@ -16,6 +16,9 @@ const POLL_MS = 30_000;
 export function PrimeTimeWidget({ eventId }: { eventId: string }) {
   const t = useTranslations("gamification");
   const [data, setData] = useState<PrimeTime | null>(null);
+  // Distingue pending de fallo: pending → slot skeleton; fallo del
+  // endpoint → el widget queda oculto (backend aún no disponible).
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,11 +26,18 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
     async function load() {
       try {
         const res = await apiFetch(`/events/${eventId}/prime-time`);
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) {
+          setFailed(true);
+          return;
+        }
         const json = (await res.json()) as PrimeTime;
-        if (!cancelled) setData(json);
+        if (!cancelled) {
+          setData(json);
+          setFailed(false);
+        }
       } catch {
-        // Backend de gamificación aún no disponible — el widget queda oculto
+        if (!cancelled) setFailed(true);
       }
     }
 
@@ -39,7 +49,14 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
     };
   }, [eventId]);
 
-  // Sin datos todavía (o endpoint caído): no renderizar nada — no rompe la página del evento
+  // Endpoint caído (o aún no implementado): no renderizar nada — no
+  // rompe la página del evento. Un poll posterior que responda bien
+  // vuelve a montar el widget.
+  if (!data && failed) return null;
+
+  // Fetch en vuelo → nada: el widget es opcional (no todo evento tiene
+  // Prime Time) — un card skeleton que colapsa al vacío es el flash que
+  // evitamos; aparecer una sola vez con contenido es correcto.
   if (!data) return null;
 
   const pct =

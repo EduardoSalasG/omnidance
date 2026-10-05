@@ -4,12 +4,26 @@
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",
       "PERIOD": "Por periodo",
-      "TRIAL": "De prueba"
+      "TRIAL": "De prueba",
+      "QUARTERLY": "Trimestral",
+      "SEMIANNUAL": "Semestral",
+      "SINGLE": "Clase única"
     },
     "studentStatus": "Estado de {name}",
     "modules": {
       "myClasses": "Mis clases",
-      "myClassesDesc": "Clases que impartes, roster y quórum"
+      "myClassesDesc": "Clases que impartes, roster y quórum",
+      "crm": "CRM",
+      "crmDesc": "Relación con tus alumnos",
+      "payments": "Cobros",
+      "paymentsDesc": "Membresías cobradas a tus alumnos"
+    },
+    "today": {
+      "title": "Clases de hoy",
+      "unnamed": "Clase",
+      "attendance": "{count, plural, one {# asistencia hoy} other {# asistencias hoy}}",
+      "booked": "{count} reservados",
+      "bookedOf": "{booked}/{capacity} reservados"
     },
     "settings": {
       "title": "Configuración",
@@ -17,11 +31,38 @@
       "defaultQuorumHint": "Vacío = 20 por defecto. Las series sin quórum propio heredan este valor.",
       "defaultQuorumCurrent": "Actual: {value}",
       "saved": "Configuración guardada.",
-      "saveError": "No se pudo guardar la configuración"
+      "saveError": "No se pudo guardar la configuración",
+      "instructors": "Comisión de instructores",
+      "instructorsHint": "% que la academia retiene del precio de cada clase particular del instructor. Se aplica a las solicitudes nuevas.",
+      "commissionSaved": "Comisión actualizada.",
+      "privateLessonPrice": "Precio de clase particular (CLP)",
+      "privateLessonPriceHint": "Vacío = la academia no vende clases particulares. El alumno paga por adelantado y tú asignas fecha e instructor después."
+    },
+    "publicProfile": {
+      "title": "Perfil público",
+      "desc": "Lo que ven los bailarines en la ficha y el mapa de academias.",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Qué imparte la academia, su propuesta…",
+      "address": "Dirección",
+      "addressPlaceholder": "Av. Ejemplo 123, Santiago",
+      "lat": "Latitud",
+      "lng": "Longitud",
+      "coordsHint": "Coordenadas para el mapa. Vacías = la academia no aparece en el mapa.",
+      "instagram": "Instagram",
+      "instagramPlaceholder": "@academia",
+      "whatsapp": "WhatsApp",
+      "whatsappPlaceholder": "+56 9 1234 5678",
+      "website": "Sitio web",
+      "websitePlaceholder": "miacademia.cl",
+      "saved": "Perfil guardado.",
+      "saveError": "No se pudo guardar el perfil",
+      "invalidCoords": "Coordenadas inválidas"
     },
     "studentProfile": {
       "plan": "Plan",
       "enrollmentStatus": "Estado de inscripción",
+      "startsAt": "Inicio",
+      "endsAt": "Pagado hasta",
       "history": "Historial de clases",
       "upcoming": "Próximas clases reservadas",
       "emptyHistory": "Sin clases registradas.",
@@ -33,7 +74,65 @@
         "cancelled": "Cancelada"
       },
       "viewProfile": "Ver perfil de {name}"
-    }
+    },
+    "learner": {
+      "myAcademies": "Mis academias",
+      "enrolledBadge": "Inscrita",
+      "academyUnavailable": "No disponible",
+      "attendance30d": "{count, plural, one {# asistencia este mes} other {# asistencias este mes}}",
+      "planRange": "Del {start} al {end}",
+      "planSince": "Plan desde el {start}",
+      "planUntil": "Pagado hasta el {end}",
+      "planExpired": "Plan vencido el {end}",
+      "status": {
+        "ACTIVE": "Activa",
+        "ONLINE": "Online",
+        "TRIAL": "De prueba",
+        "PAUSED": "Pausada",
+        "FROZEN": "Congelada"
+      }
+    },
+    "viewExplore": "Explorar",
+    "viewMap": "Mapa",
+    "viewList": "Lista",
+    "searchName": "Buscar por nombre",
+    "filterStyle": "Estilo",
+    "exploreEmpty": "No hay más academias por explorar.",
+    "exploreEmptyFiltered": "Ninguna academia coincide con los filtros.",
+    "myAcademiesEmpty": "Aún no tienes inscripciones en academias.",
+    "noLocation": "Sin ubicación publicada",
+    "profile": {
+      "about": "Sobre la academia",
+      "instructors": "Profesores",
+      "moreInstructors": "Ver {count} más",
+      "fewerInstructors": "Ver menos",
+      "plans": "Planes",
+      "morePlans": "Ver {count} más",
+      "fewerPlans": "Ver menos",
+      "classes": "Próximas clases",
+      "classesEmpty": "Sin clases programadas próximamente.",
+      "moreClasses": "Explorar más clases",
+      "contactInstagram": "Instagram de la academia: @{handle}",
+      "contactWhatsapp": "WhatsApp de la academia",
+      "contactWebsite": "Sitio web de la academia: {host}",
+      "buyPlan": "Comprar plan",
+      "extendPlan": "Extender vigencia",
+      "trialAssigned": "Se asigna en la academia",
+      "planActive": "Plan activo",
+      "privateLesson": "Clase particular",
+      "privateLessonDesc": "1 alumno · el instructor y la fecha los asigna la academia tras tu compra",
+      "buyPrivate": "Comprar clase particular",
+      "unavailable": "La academia no está disponible por el momento"
+    },
+    "viewsLabel": "Vistas",
+    "scopesLabel": "Sección",
+    "editPlan": "Editar plan",
+    "planActive": "Plan activo (visible para comprar)",
+    "planInactive": "Inactivo",
+    "planTypeLocked": "El tipo no se puede cambiar: el plan tiene cobro recurrente en Flow",
+    "planWeeklyClasses": "Clases por semana (vacío = ilimitado)",
+    "planWeeklyCount": "{count, plural, one {# clase/semana} other {# clases/semana}}",
+    "planClassCount": "{count, plural, one {# clase} other {# clases}}"
   },
   "academySeries": {
     "capacityOptional": "default",
@@ -41,7 +140,12 @@
     "slotAdded": "Horario agregado",
     "quorum": "Quórum",
     "quorumHint": "Opcional — vacío hereda el quórum por defecto de la academia.",
-    "quorumValue": "Quórum {value}"
+    "quorumValue": "Quórum {value}",
+    "dropIn": "Clase suelta (CLP)",
+    "dropInHint": "Vacío = la clase no se vende suelta.",
+    "dropInValue": "Suelta {value}",
+    "slotTypes": "Modalidad",
+    "slotTypesHint": "vacío = hereda la serie"
   },
   "instructor": {
     "title": "Mis clases",
@@ -63,19 +167,19 @@
   "academyExtras": {
     "lessons": {
       "title": "Clases particulares",
-      "mineTitle": "Mis solicitudes",
-      "requestTitle": "Solicitar clase particular",
       "academy": "Academia",
       "instructor": "Instructor/a",
       "instructorFallback": "Instructor {id}",
       "scheduledAt": "Fecha y hora",
       "newDate": "Nueva fecha y hora",
-      "priceOptional": "Precio sugerido (opcional)",
-      "submit": "Enviar solicitud",
+      "toSchedule": "Por agendar",
+      "toAssign": "Por asignar",
+      "assign": "Asignar",
+      "assignTitle": "Por asignar",
+      "assignSave": "Confirmar asignación",
+      "assigned": "Clase asignada.",
       "student": "Alumno/a",
       "empty": "Sin clases particulares en esta academia.",
-      "emptyMine": "Aún no has solicitado clases particulares.",
-      "noAcademies": "No hay academias disponibles para solicitar una clase particular.",
       "status": {
         "REQUESTED": "Solicitada",
         "CONFIRMED": "Confirmada",
@@ -88,8 +192,16 @@
       "reschedule": "Reagendar",
       "saveReschedule": "Guardar nueva fecha",
       "confirmCancel": "¿Cancelar esta clase particular?",
-      "requested": "Solicitud enviada.",
-      "updated": "Clase actualizada."
+      "updated": "Clase actualizada.",
+      "instructorTitle": "Mis clases como instructor",
+      "monthNet": "Neto del mes",
+      "commissionLine": "Comisión {pct}%",
+      "netLine": "Neto",
+      "payCommission": "Liquidar comisión",
+      "commissionPaid": "Comisión liquidada",
+      "commissionPending": "Comisión pendiente",
+      "confirmPayCommission": "¿Marcar la comisión como pagada al instructor? Registra la liquidación (el pago se hace por fuera).",
+      "price": "Precio"
     },
     "videos": {
       "title": "Videos",

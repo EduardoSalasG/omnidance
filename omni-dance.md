@@ -30,7 +30,7 @@ Plataforma integral para el ecosistema SBK (salsa, bachata, cubano) que conecta 
 | 3 | **Instructores** | `person` con rol `instructor`: puede ser dueño de academia, impartir clases EN academias (`academy_instructor`), o independiente (= academia de uno). Clases privadas se venden vía gestión de academia | ✅ Modelado |
 | 4 | **Prácticas sociales** | Micro-encuentros modelo Nomadtable — ver §8 | ✅ Modelado |
 | 5 | **Congresos/festivales + competencias** | Multi-día con workshops + fiestas (`event_day`, pass por jornada) + competencias con scoring en vivo (ver §8) | ⏸️ Segunda prioridad — pendiente de refinar |
-| 6 | **Pareja de práctica** | Matchmaking: "busco follower on2, intermedio, Ñuñoa" → `practice_partner_request` | Pendiente (fase futura) |
+| 6 | **Pareja de práctica** | Matchmaking: "busco follower on2, intermedio, Ñuñoa" | ❌ Feature retirada (modelo eliminado — nunca tuvo UI) |
 | 7 | **Capa media** | Fotos (Drive link ya definido), videos de shows, entrevistas | Parcial |
 | 8 | **Arriendo de espacios** | Venue ↔ academia para galas/prácticas — `venue_rental` | Parcial |
 
@@ -133,33 +133,30 @@ Plataforma integral para el ecosistema SBK (salsa, bachata, cubano) que conecta 
 
 **Regla: 1 sesión = 1 canción. Se crea solo por QR.**
 
-### Flujo como invitación
+### Flujo como registro directo
 
-1. Persona A toca **"Nuevo baile"** → cámara
-2. Escanea el **QR personal** de B (id público)
-3. Se crea sesión como **invitación pendiente** en el teléfono de B (timestamp = hora del escaneo → define el género por bloque horario)
-4. B confirma con **1 tap** (durante la canción, en la mesa, o al día siguiente)
-5. Sin confirmación → la sesión expira al **cierre del evento + 24h de gracia** y no cuenta
+1. Persona A toca **"Escanear"** → cámara
+2. Escanea el **QR personal** de B (id público, rotativo)
+3. Se crea la sesión **CONFIRMED al instante** — el QR rotativo acredita que ambas personas están en la pista; el escaneo ES la confirmación (timestamp = hora del escaneo → define el género por bloque horario)
+4. B recibe notificación "A registró un baile contigo" con foto + nombre — puede verificar en un local oscuro que es la persona frente a ella
 
-**Regla Prime Time:** el **contador** cuenta sesiones confirmadas (feedback inmediato al escanear); el **premio/reveal** usa solo sesiones confirmadas **y evaluadas** antes del reveal. Confirmaciones post-00:00 alimentan perfil, historial y post-midnight.
+No hay ciclo invitación/confirm/rechazo: se eliminó por decisión de producto (menos superficie de abuso — las invitaciones podían enviarse a desconocidos; los bailes solo nacen del escaneo en persona). Las `DanceSession` históricas INVITED/DECLINED se conservan como dato.
 
-### Bailes sin escanear (declaración retroactiva)
+**Regla Prime Time:** el **contador** y el **premio/reveal** usan sesiones confirmadas (y evaluadas, para el reveal) — el escaneo ya nace confirmado, así que cuenta de inmediato.
 
-- Se puede declarar un baile manualmente eligiendo a la persona; requiere **confirmación mutua**
-- Cuenta para perfil, historial y post-midnight
-- **No cuenta para Prime Time** — el escaneo en vivo es lo que alimenta el reveal
+### Bailes sin escanear — eliminados
 
-**Insight clave:** el escaneo no es solo captura de datos, es la *invitación de baile digital* — resolver el gesto social de pedir un baile es el incentivo intrínseco.
+- La declaración retroactiva (`POST /sessions/declare`) se **eliminó** junto al ciclo de invitaciones: los bailes solo se registran por escaneo QR en pista. Las sesiones históricas INVITED quedan como dato (visibles como expiradas; el inviter aún puede descartarlas).
+
+**Insight clave:** el escaneo no es solo captura de datos, es el *gesto social de bailar* digitalizado — resolver el momento de pedir un baile es el incentivo intrínseco.
 
 **Reglas finas del core loop:**
 
-- **Decline silencioso**: B puede rechazar la invitación — el invitante solo ve "no se pudo", nunca "te rechazó" (protege el gesto social)
-- **Descartar**: A puede cancelar su propia invitación pendiente (escaneo erróneo) — también silencioso
-- **Cooldown ~4 min**: tras una sesión creada entre A→B, no se puede crear otra invitación entre ellos por ~4 min (duración típica de una canción) — evita sesiones duplicadas inmediatas
-- **La invitación muestra foto + nombre de quien invita** — B puede verificar en un local oscuro que es la persona frente a ella, no un screenshot remoto
-- **Solo se puntúan sesiones confirmadas** — una invitación expirada/rechazada/descartada nunca genera rating
+- **Descartar**: A puede descartar su propia invitación pendiente (declaración errónea) — también silencioso
+- **Cooldown ~4 min**: tras una sesión creada entre A→B, no se puede crear otra entre ellos por ~4 min (duración típica de una canción) — evita sesiones duplicadas inmediatas
+- **Solo se puntúan sesiones confirmadas** — una sesión expirada/descartada nunca genera rating
 
-**Safety:** `user_block` — cualquier bailarín puede bloquear a otra persona → no puede volver a invitarte ni escanearte. Importa especialmente para followers que reciben invitaciones no deseadas. Silencioso: el bloqueado solo ve que la invitación "no se puede enviar".
+**Safety:** el sistema de bloqueo de personas (`user_block`) se eliminó junto al ciclo de invitaciones — su superficie de enforcement desapareció cuando el alta de bailes quedó solo-por-QR en persona.
 
 ### Estilo de la sesión
 
@@ -305,7 +302,7 @@ Misión = **condición verificable por data + recompensa**. El productor elige d
 | Madrugador | Check-in antes de 23:00 | Todos llegan tarde | Entrada a sorteo / cortesía del local |
 | Baila diverso | N sesiones con N parejas **distintas** | Bailar siempre con los mismos | Badge / puntos de temporada |
 | Primera vez contigo | Sesión con alguien con quien nunca bailaste (sin sesiones previas) | Cliques cerrados | Badge / sorteo |
-| Invitación follower | Una follower **crea** la invitación (escanea ella) | Norma "el leader pide" desequilibra la pista | Badge / puntos |
+| Invitación follower | Una follower **registra** el baile (escanea ella) | Norma "el leader pide" desequilibra la pista | Badge / puntos |
 | Explorador de estilos | Sesiones en salsa Y bachata en la misma noche | Gente que solo baila un género | Badge |
 | Resistente | Sesiones confirmadas post-02:00 | Éxodo masivo ~01:30 | Sorteo / puntos |
 | Cierra tu noche | Todas las evaluaciones pendientes completadas | Ratings sin cerrar | Desbloquea score final |
@@ -436,13 +433,12 @@ Micro-encuentros de baile **creados por cualquier bailarín** — no requieren a
 
 - **Crear práctica**: título, lugar (parque/plaza/venue/academia), hora, género/estilo foco, aforo chico (~8-15), gratis, first-come
 - **Host** = el creador: fija tono, recibe gente, trae parlante. Check-in igual por QR
-- **"Disponible para bailar"**: toggle de disponibilidad → feed de quién quiere practicar ahora/cerca
+- **"Disponible para bailar"**: *feature retirada* (el toggle de disponibilidad y las solicitudes de pareja se eliminaron — nunca tuvieron UI)
 - **Coordinación**: chat ligero por práctica (v1: comentarios del evento o link a WhatsApp; chat real es scope pesado)
-- **Trip matching**: "voy a Valpo el finde / al congreso de Buenos Aires" → match con bailarines locales o asistentes al mismo evento (la escena viaja harto a congresos)
 - **Venues como hosts de prácticas**: Tierra Dura está muerto de día → prácticas de tarde = tráfico + consumo (métrica Local Pro). Academias igual
 - **Safety**: perfiles verificados, reportar, opción "práctica solo mujeres" — crítico en parques con desconocidos
 - **Gamificación**: badge "organizador de prácticas", misión "organiza una práctica", prácticas cuentan como actividad (check-in ligero, sin sesiones Prime Time)
-- **Futuro (premium bailarín)**: boost de perfil en "disponible para bailar", ver quién vio tu perfil — mapea al tier premium tipo Nomadtable Plus
+- **Futuro (premium bailarín)**: boost de perfil, ver quién vio tu perfil — mapea al tier premium tipo Nomadtable Plus
 
 ### Congresos y competencias (segunda prioridad — pendiente de refinar)
 
@@ -466,7 +462,7 @@ Micro-encuentros de baile **creados por cualquier bailarín** — no requieren a
 
 1. Compra preventa → QR activo
 2. Llega → staff escanea → check-in automático + "Ya llegué" + notificación a amigos
-3. En pista: escanea para invitar, o muestra su QR y confirma invitaciones con 1 tap
+3. En pista: escanea el QR de su pareja para registrar el baile
 4. Puntúa en vivo hasta ~00:00 (empujado por DJ/productor) o deja pendientes
 5. **00:00 — reveal Prime Time** (anuncio del DJ + notificación/pantalla en app)
 6. Sigue la noche; ratings diferidos post-midnight
@@ -480,6 +476,8 @@ Micro-encuentros de baile **creados por cualquier bailarín** — no requieren a
 - Videos (si la academia sube y el alumno paga): solo clases asistidas, sin descarga ni share
 - Score interno de academia visible en versión suave (etiquetas)
 - Progreso personal no competitivo
+- `/clases` prioriza las academias del alumno: lista y calendario muestran solo clases de academias con inscripción vigente (`activa`/`trial`/`online`); la vista **Explorar** muestra todas las academias
+- **Reservar exige inscripción vigente** en la academia de la clase (sin ella el CTA es "requiere inscripción" y el API responde 403) — la academia inscribe al alumno, no hay auto-inscripción
 
 ---
 
@@ -531,7 +529,7 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 | Perfil | Qué recauda omni por ellos | Liquidación |
 |---|---|---|
 | **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: bruto cobrado − $0 comisión (el cargo lo paga el comprador) → transferencia + comprobante |
-| **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado |
+| **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado: **bruto − tarifa Flow** (`GATEWAY_FEE_PASSTHROUGH`, ~3,19%); **sin comisión ni cargo al comprador** — la academia monetiza vía suscripción SaaS (ver abajo) |
 | **Instructor** | Clases privadas (vía academia — liquida a través de la academia, que cobra su comisión) | Dentro del payout de la academia, desglosado |
 | **Venue** | Futuro: arriendos (`venue_rental`), cortesías cobradas | `payout` cuando aplique |
 | **omni-dance** | Cargos de servicio, suscripciones SaaS, futuro premium bailarín | Es nuestra plata — no se liquida, se factura |
@@ -539,6 +537,29 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 **Flujo fiscal**: omni-dance emite boleta/factura por **su cargo de servicio + SaaS**; cada actor emite por **su precio de lista** (el dinero que recaudamos en su nombre). El desglose queda en el `payout` — el actor ve exactamente qué facturar.
 
 **Estados del `payout`**: `pending → approved → paid` con evidencia de transferencia; todo auditado.
+
+### Modelo SaaS — suscripción de academia y Producer Pro (implementado oct-2026)
+
+El cargo por venta desaparece para la academia: pasa a **suscripción mensual por tier de alumnos activos** (spec `academy-billing`, precios en `PlatformParam` — `academy_tier.*`, ajustables desde `/admin` sin deploy; referencia de mercado: BoxMagic).
+
+| Tier | Alumnos activos | Mensual | Semestral (−2%) | Anual (−4%) |
+|---|---|---|---|---|
+| STARTER | ≤50 | $49.990 | $48.990 | $47.990 |
+| PRO | ≤150 | $99.990 | $97.990 | $95.990 |
+| STUDIO | ≤400 | $189.990 | $185.990 | $181.990 |
+| ENTERPRISE | ilimitado | contratación manual | — | — |
+
+- El precio apunta al **~8–9% de la facturación típica** de cada banda (ticket mensual $25–35k/alumno); al tope del tier el % efectivo cae → descuento por volumen implícito.
+- Cobro: suscripción recurrente Flow (`PlatformSubscription`, mismo motor que membresías de alumnos). Trial 30d; al superar el límite del tier el sistema exige subir en la próxima compra (`tier_limit` 400).
+- **Mora**: renovación fallida → 5 días de gracia → día 6 bloqueo (`billingBlockedAt`): consola read-only, academia y clases fuera de explorar, sin reservas ni compras nuevas — **el alumno conserva todo su historial**. Un pago recuperado desbloquea solo (`RENEWAL_SETTLED`).
+- Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
+
+**Productor**: mantiene `platformFeePct` por venta (la monetización core del ticketing) **+ Producer Pro opcional** — suscripción por tier de facturación mensual media (90d): `PRO_STARTER ≤$2,5M → $99.990`, `PRO_GROWTH ≤$8M → $249.990` (ciclos con −2%/−4%), `PRO_BIG` manual. Pro desbloquea analítica avanzada, exports CSV/PDF, CRM y multi-staff — el ticketing base, venta y check-in **nunca se cortan** por la suscripción. Trial de lanzamiento: +90d a productores registrados.
+
+**Contexto competitivo (evaluado oct-2026, decisión: no competir en precio)**:
+- **BoxMagic** (gestión deportiva): ~$39.900+IVA hasta 120 clientes — referencia del pricing de tiers.
+- **Membrezia** (cobranza pura, multi-vertical): 0,6 UF (~$28.200 c/IVA) hasta 150 clientes / 1 UF (~$47.000) hasta 300 — pero el dinero va a la pasarela de la propia org (paga su ~3% aparte) y **no** incluye gestión, clases, check-in ni marketplace. Para una academia de 60 alumnos el costo total queda ~$85k vs ~$107k con STARTER — más caro nuestro en sticker, con mucho más producto.
+- Decisión: **sin tier Lite** — el cliente que compara solo precio de sticker no es el segmento objetivo; el producto compite en gestión completa + liquidez del marketplace. Gaps identificados si se revisa: recordatorios WhatsApp (hoy push/email), integración SII/boletas, plata directa a cuenta de la org (nuestro payout es la contrapartida del onboarding sin pasarela propia). Referencia completa de features/precios de ambos en `docs/competitive-references.md`.
 
 ### Flujo de ingreso en puerta (staff)
 
@@ -613,6 +634,8 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 ### Horarios y asistencia
 
 - `class_slot`: horario con cupos + reserva + lista de espera de clase
+- **Cuota del plan**: los planes por tiempo llevan `weeklyClasses` (clases por semana ISO; `null` = ilimitado); los packs llevan `classCount` total. Reservar exige inscripción vigente + cuota disponible; la lista de espera no consume crédito hasta promover, y al promover se salta a quien no tenga saldo.
+- **Cancelación de reserva**: siempre libera el cupo físico; el crédito vuelve solo si se cancela antes del corte `classes.cancel_refund_minutes` (default 60, param operativo). Después del corte el alumno puede cancelar pero la clase se consume igual. Cancelaciones originadas por la academia siempre devuelven el crédito.
 - Check-in de asistencia con el **mismo QR personal** → `attendance` alimenta score de fidelidad
 - Horarios por instructor (`academy_instructor`)
 
@@ -620,6 +643,7 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 
 - `instructor` = rol de `person`: puede ser dueño de academia, profe en una o más academias, o **independiente** (= academia de uno)
 - **Clases privadas como producto vendible de la academia**: `private_lesson` (instructor, alumno, slot, precio, estado) — la academia lo administra y cobra comisión
+- Compra online (private-lesson-product): la academia fija un precio único (`Academy.privateLessonPrice`) y el alumno lo compra desde el perfil (`POST /checkout/private-class`, orden `PRIVATE`); el pago crea la `private_lesson` en REQUESTED sin instructor ni fecha — el owner los asigna después (`action=assign` → CONFIRMED + snapshot de comisión). El alumno no elige fecha ni instructor al comprar.
 
 ### Talleres pagos
 
@@ -671,10 +695,10 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 `song_suggestion` (event, person, canción — del checkout; top-N para DJ/productor, habilita "la más pedida suena a las X"),
 `season` (leaderboard por estilo+rol), `night_summary`, `happy_hour_window` (sesiones cuentan doble para contador),
 `academy`, `academy_instructor` (profe en N academias / dueño / independiente=academia de uno), `enrollment` (activo/pausado/trial/congelado/online), `membership_plan` (mensual/pack clases/periodo/trial), `class_slot` (horario+cupos+reserva+lista espera), `class`, `attendance`, `private_lesson`, `academy_score`, `video`, `subscription`,
-`practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), `availability_toggle` ("disponible para bailar"), `trip` (viaje futuro → match con locales/congreso), `user_verification`, `report`,
-`event_day` (congresos multi-día), `practice_partner_request` (buscar pareja de práctica), `venue_rental` (local↔academia para galas/prácticas),
+`practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), ~~`availability_toggle`~~ (retirado), `user_verification`, `report`,
+`event_day` (congresos multi-día), ~~`practice_partner_request`~~ (retirado), `venue_rental` (local↔academia para galas/prácticas),
 **CRM transversal**: `relationship_score` (actor→person, privado por actor: academy/producer/venue/dj/instructor_score), `campaign` (actor, segmento, acción, resultado), `discount_code` (descuento/cortesía/comp), `actor_tag` (nota manual actor→person), `referral` (quién trajo a quién), `crm_trigger` (regla automática: win-back, trial expira, regular no compró),
-**Transaccional**: `rsvp` ("voy" — mencionado en features pero faltaba como entidad), `payment` (orden/ticket, pasarela, fee, neto — la liquidación lo necesita), `payout` (liquidación a productor/academia: periodo, monto, estado), `notification` (push/in-app; preferencias por categoría: social / transaccional / marketing-CRM), `user_block` (bloquear a alguien → no puede invitarte a sesión ni escanearte — safety del lado follower), `analytics_event` (append-only de eventos de producto → materialized views para Pro/CRM), `fiscal_profile` (RUT, razón social, empresa/persona, giro — requerido en todo rol que recibe liquidaciones o emite documentos)
+**Transaccional**: `rsvp` ("voy" — mencionado en features pero faltaba como entidad), `payment` (orden/ticket, pasarela, fee, neto — la liquidación lo necesita), `payout` (liquidación a productor/academia: periodo, monto, estado), `notification` (push/in-app; preferencias por categoría: social / transaccional / marketing-CRM), ~~`user_block`~~ (retirado junto al ciclo de invitaciones), `analytics_event` (append-only de eventos de producto → materialized views para Pro/CRM), `fiscal_profile` (RUT, razón social, empresa/persona, giro — requerido en todo rol que recibe liquidaciones o emite documentos)
 
 ---
 
@@ -690,7 +714,7 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 | Landing de evento | Lineup (DJ, sets, shows, cumpleañeros), quién va + amigos con mesa, leaderboard de la serie, comprar / guest list / reservar mesa, carta, fotos (Drive), sugerir canción |
 | Checkout preventa | Ticket + cargo de servicio, reserva de mesa opcional, sugerir canción opcional |
 | Mi QR | QR rotativo + badge destacado / corona 👑 — la pantalla que muestras en puerta y en pista |
-| En vivo | Nuevo baile (cámara), Mi QR, invitaciones pendientes (1 tap), contador Prime Time, progreso de la noche |
+| En vivo | Escanear QR (registrar baile), Mi QR, contador Prime Time, progreso de la noche |
 | Cola de ratings | "Bailes pendientes de puntuar" — 4 filas × 5 estrellas por sesión |
 | Score final | Card compartible de la noche (desbloqueada al cerrar ratings) → ruleta |
 | Perfil | Reputación agregada por estilo+rol, badges, streaks, puntos de temporada, nivel de comunidad |
@@ -699,8 +723,6 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 | Pasaporte | Colección de badges y sellos con progreso |
 | Misiones | Activas con barra de progreso, disponibles, cumplidas |
 | Prácticas | Explorar prácticas cercanas, crear práctica (host), chat/comentarios de coordinación |
-| Disponible para bailar | Toggle de disponibilidad + feed de quién quiere practicar ahora |
-| Viajes | "Voy a X ciudad/congreso" → match con locales y asistentes al mismo evento |
 | Notificaciones | Preferencias por categoría: social / transaccional / marketing |
 
 Wireframe — pantalla "En vivo" (la pantalla de la noche):
@@ -815,7 +837,7 @@ Wireframe — Mi QR:
 | Planes | CRUD de `membership_plan`, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático |
 | Horarios | `class_slot` semanal: cupos, reservas, lista de espera, instructor asignado |
 | Asistencia | Check-in QR del alumno, registro manual |
-| Clases privadas | `private_lesson`: instructor, alumno, slot, precio, comisión |
+| Clases privadas | `private_lesson`: instructor, alumno, slot, precio, comisión — compra online como producto (`Academy.privateLessonPrice`, orden PRIVATE), el owner asigna instructor+fecha post-pago |
 | Talleres | Crear taller pago, ventas, asistencia |
 | Contenido | Links de videos por clase (YouTube/Vimeo privado), quién puede ver qué |
 | CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (trial expira, asistencia cayó) |
@@ -901,7 +923,7 @@ El score sin acción es decoración. Estas son las piezas del CRM que no estaban
 |---|---|---|
 | **0** | Perfiles + QR personal, eventos/series, calendario, RSVP + amigos, check-in "Ya llegué" | Adopción base |
 | **1** | Ticketing preventa (Flow) + escaneo staff en puerta + check-in automático + gift/transferencia de tickets | **Revenue real + base instalada** |
-| **2** | Sesiones (invitación→confirmación, retro-declaración), ratings híbridos, progreso de la noche | **¿La gente escanea?** |
+| **2** | Sesiones (escaneo QR → confirmada al instante, retro-declaración), ratings híbridos, progreso de la noche | **¿La gente escanea?** |
 | **3** | Ranking Prime Time + reveal en vivo, rankings públicos (productor/local/DJ), métricas básicas productor | El incentivo y el pitch B2B |
 | **4** | SaaS Productor Pro / Local Pro (analíticas) | Monetización B2B |
 | **5** | Academias: score fidelidad → mensualidades → talleres → videos | Segundo producto |
@@ -985,8 +1007,8 @@ Cuando haya tracción, la app Expo puede compartir API y design tokens con la PW
 ### Backend
 
 - **NestJS (TypeScript)** en la VM de Oracle — **arquitectura hexagonal** (ports & adapters): dominio puro sin framework, puertos para DB/pasarela/push, adapters Postgres/Flow/WebPush. **SOLID + clean code** — con 1 dev, la mantenibilidad ES la velocidad
-- **API REST** para CRUD + **WebSockets** (gateway de Nest) para tiempo real: contador Prime Time, invitaciones de baile, check-ins en vivo → Redis pub/sub
-- **Jobs en Redis** (BullMQ): notificaciones, `crm_trigger`, liquidaciones, cierre de ventanas de rating, expiración de invitaciones
+- **API REST** para CRUD + **WebSockets** (gateway de Nest) para tiempo real: contador Prime Time, notificaciones de bailes registrados, check-ins en vivo → Redis pub/sub
+- **Jobs en Redis** (BullMQ): notificaciones, `crm_trigger`, liquidaciones, cierre de ventanas de rating
 - **QR rotativo**: token firmado tipo TOTP (~30s de ventana) — verificable offline por staff con datos cacheados
 
 ### Notificaciones (sistema propio)
@@ -995,7 +1017,7 @@ In-app (centro de notificaciones) + **Web Push (VAPID, gratis)**. Habilita todo 
 
 | Tipo | Ejemplos |
 |---|---|
-| Social | "X llegó al evento", "Y te invitó a bailar" (invitación pendiente), actividad de amigos |
+| Social | "X llegó al evento", "Y registró un baile contigo", actividad de amigos |
 | Transaccional | "Te puntuaron" (anónimo), "Ganaste el Prime Time", "Badge desbloqueado", resumen de la noche + ratings pendientes |
 | CRM/marketing | Campañas segmentadas, win-back, "tu trial expira", "regular que no compró preventa" |
 | Operacional | Staff: sync offline; productor: "se agotó la preventa" |
@@ -1018,7 +1040,7 @@ Preferencias por categoría — el usuario apaga marketing sin perder transaccio
 
 ### Integraciones externas
 
-Flow (pagos + webhooks) · Google Drive (fotos) · YouTube/Vimeo (videos/streaming embebido) · futuro: Webpay Oneclick/Khipu para mensualidades de academia
+Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia) · Google Drive (fotos) · YouTube/Vimeo (videos/streaming embebido) · futuro: Webpay Oneclick/Khipu si el volumen justifica migrar de pasarela
 
 ### Riesgos técnicos conocidos
 
@@ -1061,7 +1083,7 @@ Flow (pagos + webhooks) · Google Drive (fotos) · YouTube/Vimeo (videos/streami
 ## 18. Decisiones tomadas (iteración v2)
 
 - Invitación de baile: expira al **cierre del evento + 24h de gracia**
-- Bailes sin escanear: **permitidos** vía declaración retroactiva con confirmación mutua; **excluidos de Prime Time**
+- Bailes sin escanear: **eliminados** (declaración retroactiva retirada — solo escaneo QR en pista)
 - Ratings diferidos: **editables mientras la ventana esté abierta** (24h), bloqueados al cerrar
 - Roadmap: **ticketing primero** (fase 1), sesiones en fase 2
 - Comercial: **% diferenciado por canal** (cargo al comprador en preventa / comisión al productor en puerta); **sin reembolsos**, tickets transferibles
@@ -1085,7 +1107,7 @@ Flow (pagos + webhooks) · Google Drive (fotos) · YouTube/Vimeo (videos/streami
 - **Stack técnico definido**: backend **NestJS + arquitectura hexagonal + SOLID/clean code**; frontend **Next.js + React PWA** (una sola app, todas las superficies); **Expo/RN como fase posterior opcional** (el checkout debe funcionar sin instalar); **Postgres** + Redis; design system **atomic design, dark-first**
 - Prime Time: **umbral escalado por aforo** (~20% del aforo esperado), configurable por productor dentro de límites de admin
 - Notificaciones: **sistema propio** — in-app + Web Push; habilita CRM/campaigns, "te puntuaron", "ganaste", etc. Preferencias por categoría
-- Core loop: **decline silencioso** (B) + **descartar** (A cancela su invitación), **cooldown ~4 min** entre sesiones del mismo par, invitación muestra foto+nombre, solo se puntúan sesiones confirmadas
+- Core loop: **alta solo por escaneo QR** (sesión nace confirmada) + **descartar** (A cancela su declaración pendiente), **cooldown ~4 min** entre sesiones del mismo par, notificación a la pareja escaneada con foto+nombre, solo se puntúan sesiones confirmadas
 - **Todos entran con cuenta** — no hay anónimos en puerta: staff crea cuenta ligera al momento, asocia entrada pagada o vende en app; casos borde se resuelven con `discount_code`
 - `discount_code` con **tipos predeterminados** (cumpleaños, cortesía, caso_borde_puerta, campaign, winback, staff_comp) + tracking completo de usos
 - **Sin reembolsos de ningún tipo** — cancelación → productor honra ticket en fecha reprogramada o emite cortesía (⚠️ validar ley del consumidor)

@@ -17,6 +17,7 @@ import type { Request } from "express";
 import { PrismaService } from "../../prisma.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 
 class RequestReservationDto {
   @IsInt()
@@ -31,6 +32,12 @@ class ManageReservationDto {
   @IsOptional()
   @IsString()
   tableNo?: string;
+
+  /** Ajuste del tamaño al confirmar — la disponibilidad es referencial. */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  partySize?: number;
 }
 
 type PersonCtx = { id: string; roles: string[] };
@@ -41,7 +48,10 @@ type PersonCtx = { id: string; roles: string[] };
  */
 @Controller()
 export class TableReservationsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /** Solicitar reserva — una activa (REQUESTED|CONFIRMED) por persona/evento. */
   @Post("events/:id/table-reservations")
@@ -157,20 +167,56 @@ export class TableReservationsController {
 
     const event = await this.prisma.event.findUnique({
       where: { id: reservation.eventId },
-      select: { producerId: true },
+      select: { producerId: true, name: true },
     });
     await this.assertProducerOrAdmin(
       event ?? { producerId: null },
       req.person!,
     );
 
-    return this.prisma.tableReservation.update({
+    const updated = await this.prisma.tableReservation.update({
       where: { id },
       data: {
         status: dto.status,
         ...(dto.tableNo !== undefined ? { tableNo: dto.tableNo } : {}),
+        ...(dto.partySize !== undefined ? { partySize: dto.partySize } : {}),
       },
     });
+
+    // Aviso al solicitante solo en la transición real (REQUESTED →
+    // CONFIRMED/CANCELLED) — re-ediciones de una ya confirmada no re-notifican.
+    if (dto.status === "CONFIRMED" && reservation.status !== "CONFIRMED") {
+      await this.notifications.notifySafe(reservation.personId, {
+        category: "TRANSACTIONAL",
+        type: "table.confirmed",
+        title: "Mesa confirmada",
+        body: `${updated.partySize} personas${updated.tableNo ? ` · Mesa ${updated.tableNo}` : ""} · ${event?.name ?? "evento"}`,
+        data: {
+          reservationId: updated.id,
+          eventId: reservation.eventId,
+          eventName: event?.name ?? null,
+          partySize: updated.partySize,
+          tableNo: updated.tableNo,
+        },
+      });
+    } else if (
+      dto.status === "CANCELLED" &&
+      reservation.status !== "CANCELLED"
+    ) {
+      await this.notifications.notifySafe(reservation.personId, {
+        category: "TRANSACTIONAL",
+        type: "table.cancelled",
+        title: "Mesa no confirmada",
+        body: event?.name ?? undefined,
+        data: {
+          reservationId: updated.id,
+          eventId: reservation.eventId,
+          eventName: event?.name ?? null,
+        },
+      });
+    }
+
+    return updated;
   }
 
   /** Cancelación por el solicitante — libera el cupo (soft-cancel). */

@@ -38,6 +38,7 @@ import {
   CrmService,
   type CrmTriggerKey,
 } from "../domain/crm.service";
+import { assertProducerPro } from "../../common/producer-pro";
 
 // CRM transversal — todos los endpoints exigen el permiso crm.manage
 // (PRODUCER / ACADEMY_OWNER / staff delegado) Y acceso puntual al actor
@@ -83,13 +84,18 @@ class CreateCampaignDto extends ActorRefDto {
   @IsNotEmpty()
   name!: string;
 
-  /** {tags?: string[], segment?: string, personIds?: string[]} */
+  /** {tags?, segment?, personIds?} + solo ACADEMY: {allStudents?, enrollmentStatus?, planId?, seriesId?} */
   @IsObject()
   segment!: Record<string, unknown>;
 
   /** {type:"NOTIFY",title,body?} | {type:"DISCOUNT_CODE",percentOff?|amountOff?,maxUses?,expiresAt?} */
   @IsObject()
   action!: Record<string, unknown>;
+}
+
+class PreviewCampaignDto extends ActorRefDto {
+  @IsObject()
+  segment!: Record<string, unknown>;
 }
 
 class CreateTriggerDto extends ActorRefDto {
@@ -192,6 +198,25 @@ export class CrmController {
     }
   }
 
+  /** Conteo de audiencia sin crear campaña ni enviar — preview del form. */
+  @Post("campaigns/preview")
+  @HttpCode(200)
+  async previewCampaign(
+    @Body() dto: PreviewCampaignDto,
+    @Req() req: Request,
+  ) {
+    await this.assertActorAccess(req, dto.actorType, dto.actorId);
+    try {
+      return await this.crm.previewCampaign(
+        dto.actorType,
+        dto.actorId,
+        dto.segment,
+      );
+    } catch (e) {
+      mapCrmError(e);
+    }
+  }
+
   @Post("campaigns/:id/send")
   @HttpCode(200)
   async sendCampaign(@Param("id") id: string, @Req() req: Request) {
@@ -282,9 +307,12 @@ export class CrmController {
 
   /**
    * Acceso al CRM de un actor (además del permiso crm.manage del guard):
-   * - PRODUCER → el caller es el propio productor (actorId = personId).
-   * - ACADEMY  → el caller es owner de la academia (actorId = academyId).
-   * - o rol con permiso admin.access (soporte/plataforma).
+   * - PRODUCER → el caller es el propio productor (actorId = personId) y
+   *   tiene Producer Pro vigente (S5: el CRM del productor es feature Pro
+   *   — aplica a lecturas y escrituras; 403 `pro.required` si no).
+   * - ACADEMY  → el caller es owner de la academia (actorId = academyId);
+   *   su billing se gatea por la suscripción de academia, no por Pro.
+   * - o rol con permiso admin.access (soporte/plataforma) — sin gate Pro.
    */
   private async assertActorAccess(
     req: Request,
@@ -292,7 +320,10 @@ export class CrmController {
     actorId: string,
   ): Promise<void> {
     const caller = req.person!;
-    if (actorType === "PRODUCER" && caller.id === actorId) return;
+    if (actorType === "PRODUCER" && caller.id === actorId) {
+      await assertProducerPro(this.prisma, actorId);
+      return;
+    }
     if (actorType === "ACADEMY") {
       const owned = await this.prisma.academy.findFirst({
         where: { id: actorId, ownerId: caller.id },

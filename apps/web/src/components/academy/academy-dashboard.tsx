@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
 import type {
   Academy,
   AcademyDashboard as AcademyDashboardData,
@@ -49,7 +49,11 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="text-lg font-semibold">{academy.name}</h2>
-        {dashboard && (
+        {dashboard === null ? (
+          !dashError && (
+            <Skeleton className="page-loading h-4 w-56 self-center" />
+          )
+        ) : (
           <p className="text-sm text-white/50">
             {t("students")} {dashboard.totalStudents} · {t("plans")}{" "}
             {dashboard.plansCount} · {t("attendance")}{" "}
@@ -66,9 +70,25 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
               {tc("error")}
             </p>
             <Button variant="secondary" size="sm" onClick={() => void refresh()}>
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </div>
+        ) : dashboard === null ? (
+          /* KPIs en vuelo → skeleton con la misma grilla; nunca "—"
+             como placeholder de un conteo real. */
+          <ul
+            aria-hidden="true"
+            className="page-loading grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+          >
+            {STAT_KEYS.map((k) => (
+              <li key={k}>
+                <Card className="flex h-full flex-col gap-1 p-4">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-8 w-12" />
+                </Card>
+              </li>
+            ))}
+          </ul>
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {STAT_KEYS.map((k) => (
@@ -78,7 +98,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
                     {t(`stats.${k}`)}
                   </span>
                   <span className="text-3xl font-bold leading-none text-neon">
-                    {dashboard ? dashboard.studentsByStatus[k] : "—"}
+                    {dashboard.studentsByStatus[k]}
                   </span>
                 </Card>
               </li>
@@ -86,6 +106,50 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
           </ul>
         )}
       </section>
+
+      {/* Hoy — clases del día + asistencia marcada (spec §13). */}
+      {dashboard && dashboard.todayClasses.length > 0 && (
+        <section aria-label={t("today.title")}>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              {t("today.title")}
+            </h3>
+            <p className="text-xs tabular-nums text-white/50">
+              {t("today.attendance", { count: dashboard.attendanceToday })}
+            </p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {dashboard.todayClasses.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3"
+              >
+                <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
+                  {c.startTime}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {c.seriesName ?? t("today.unnamed")}
+                  </span>
+                  {c.instructorName && (
+                    <span className="block truncate text-xs text-white/50">
+                      {c.instructorName}
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-white/50">
+                  {c.capacity != null
+                    ? t("today.bookedOf", {
+                        booked: c.bookedCount,
+                        capacity: c.capacity,
+                      })
+                    : t("today.booked", { count: c.bookedCount })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

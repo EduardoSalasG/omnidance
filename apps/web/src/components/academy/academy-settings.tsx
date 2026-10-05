@@ -3,10 +3,19 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { inputCls, readError, type Academy } from "./shared";
 
-type Me = { id: string; roles: string[] };
+// GET /academies/:id (manage) — instructors incluye commissionPct desde
+// role-console-polish; los nombres se resuelven via GET /academies
+// (directorio autenticado).
+type ManageInstructor = { personId: string; commissionPct: number | null };
+type ManageDetail = { instructors?: ManageInstructor[] };
+type DirectoryAcademy = {
+  id: string;
+  instructors?: { personId: string; name: string | null }[];
+};
 
 // Quórum por defecto cuando la academia no tiene uno configurado
 // (Academy.defaultQuorum === null) — mismo fallback del backend.
@@ -23,7 +32,9 @@ export function AcademySettings({ academy }: { academy: Academy }) {
   const t = useTranslations("academy.settings");
   const tc = useTranslations("common");
 
-  const [me, setMe] = useState<Me | null>(null);
+  // /me compartido — la guard owner/ADMIN gatea el card completo
+  // (instructores nunca lo ven); mientras resuelve, null = oculto.
+  const { me, loading: meLoading } = useMe();
   const [quorum, setQuorum] = useState(
     academy.defaultQuorum != null ? String(academy.defaultQuorum) : "",
   );
@@ -36,15 +47,99 @@ export function AcademySettings({ academy }: { academy: Academy }) {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) => (res.ok ? ((await res.json()) as Me) : null))
-      .then(setMe)
-      .catch(() => {});
-  }, []);
+  // Precio de la clase particular (private-lesson-product): null/vacío =
+  // la academia no vende particulares.
+  const [lessonPrice, setLessonPrice] = useState(
+    academy.privateLessonPrice != null
+      ? String(academy.privateLessonPrice)
+      : "",
+  );
+  const [currentLessonPrice, setCurrentLessonPrice] = useState<
+    number | null
+  >(academy.privateLessonPrice ?? null);
+
+  // Comisión por instructor (PATCH /academies/:id/instructors/:personId).
+  const [instructors, setInstructors] = useState<
+    { personId: string; name: string | null; commissionPct: number | null }[]
+  >([]);
+  const [commissionDraft, setCommissionDraft] = useState<
+    Record<string, string>
+  >({});
+  const [commissionBusy, setCommissionBusy] = useState<string | null>(null);
 
   const canAdminister =
-    !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
+    !meLoading &&
+    !!me &&
+    (me.roles.includes("ADMIN") || me.id === academy.ownerId);
+
+  // Instructores + comisión — solo si ya sabemos que es owner/admin
+  // (evita el fetch manage a instructores puros, que daría datos ajenos).
+  useEffect(() => {
+    if (!canAdminister) return;
+    Promise.all([
+      apiFetch(`/academies/${academy.id}`).then((r) =>
+        r.ok ? (r.json() as Promise<ManageDetail>) : null,
+      ),
+      apiFetch("/academies").then((r) =>
+        r.ok ? (r.json() as Promise<DirectoryAcademy[]>) : [],
+      ),
+    ])
+      .then(([detail, directory]) => {
+        const nameOf = new Map(
+          (directory ?? [])
+            .find((a) => a.id === academy.id)
+            ?.instructors?.map((i) => [i.personId, i.name] as const) ?? [],
+        );
+        const rows = (detail?.instructors ?? []).map((i) => ({
+          personId: i.personId,
+          name: nameOf.get(i.personId) ?? null,
+          commissionPct: i.commissionPct,
+        }));
+        setInstructors(rows);
+        setCommissionDraft(
+          Object.fromEntries(
+            rows.map((r) => [r.personId, String(r.commissionPct ?? 0)]),
+          ),
+        );
+      })
+      .catch(() => {});
+  }, [canAdminister, academy.id]);
+
+  async function saveCommission(personId: string): Promise<void> {
+    const raw = (commissionDraft[personId] ?? "").trim();
+    const pct = raw === "" ? 0 : Number.parseInt(raw, 10);
+    if (!Number.isInteger(pct) || pct < 0 || pct > 100) {
+      setError(t("saveError"));
+      return;
+    }
+    setCommissionBusy(personId);
+    setError(null);
+    try {
+      const res = await apiFetch(
+        `/academies/${academy.id}/instructors/${personId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ commissionPct: pct }),
+        },
+      );
+      if (!res.ok) {
+        setError((await readError(res)) ?? t("saveError"));
+        return;
+      }
+      setInstructors((rows) =>
+        rows.map((r) =>
+          r.personId === personId ? { ...r, commissionPct: pct } : r,
+        ),
+      );
+      setFeedback(t("commissionSaved"));
+    } catch {
+      setError(t("saveError"));
+    } finally {
+      setCommissionBusy(null);
+    }
+  }
+
   if (!canAdminister) return null;
 
   async function submit(e: React.FormEvent): Promise<void> {
@@ -52,6 +147,13 @@ export function AcademySettings({ academy }: { academy: Academy }) {
     const trimmed = quorum.trim();
     const parsed = trimmed === "" ? null : Number.parseInt(trimmed, 10);
     const next = parsed !== null && Number.isFinite(parsed) ? parsed : null;
+    const priceRaw = lessonPrice.trim();
+    const priceParsed =
+      priceRaw === "" ? null : Number.parseInt(priceRaw, 10);
+    const nextPrice =
+      priceParsed !== null && Number.isFinite(priceParsed) && priceParsed >= 0
+        ? priceParsed
+        : null;
     setBusy(true);
     setError(null);
     setFeedback(null);
@@ -59,13 +161,17 @@ export function AcademySettings({ academy }: { academy: Academy }) {
       const res = await apiFetch(`/academies/${academy.id}/settings`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ defaultQuorum: next }),
+        body: JSON.stringify({
+          defaultQuorum: next,
+          privateLessonPrice: nextPrice,
+        }),
       });
       if (!res.ok) {
         setError((await readError(res)) ?? t("saveError"));
         return;
       }
       setCurrent(next);
+      setCurrentLessonPrice(nextPrice);
       setFeedback(t("saved"));
     } catch {
       setError(t("saveError"));
@@ -99,6 +205,24 @@ export function AcademySettings({ academy }: { academy: Academy }) {
             })}
           </span>
         </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-white/50">
+            {t("privateLessonPrice")}
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={1}
+            className={`${inputCls} sm:max-w-40`}
+            value={lessonPrice}
+            onChange={(e) => setLessonPrice(e.target.value)}
+          />
+          <span className="text-xs text-white/40">
+            {t("privateLessonPriceHint")}{" "}
+            {currentLessonPrice != null && `$${currentLessonPrice.toLocaleString("es-CL")}`}
+          </span>
+        </label>
         {error && (
           <p role="alert" className="text-sm text-red-400">
             {error}
@@ -115,6 +239,54 @@ export function AcademySettings({ academy }: { academy: Academy }) {
           )}
         </div>
       </form>
+
+      {instructors.length > 0 && (
+        <div className="mt-4 border-t border-night-700 pt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+            {t("instructors")}
+          </h3>
+          <p className="mt-1 text-xs text-white/40">
+            {t("instructorsHint")}
+          </p>
+          <ul className="mt-3 flex flex-col gap-2">
+            {instructors.map((i) => (
+              <li
+                key={i.personId}
+                className="flex flex-wrap items-center gap-2"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm">
+                  {i.name ?? i.personId.slice(0, 8)}
+                </span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={100}
+                  step={1}
+                  aria-label={`${i.name ?? i.personId} %`}
+                  className={`${inputCls} w-20`}
+                  value={commissionDraft[i.personId] ?? "0"}
+                  onChange={(e) =>
+                    setCommissionDraft((d) => ({
+                      ...d,
+                      [i.personId]: e.target.value,
+                    }))
+                  }
+                />
+                <span className="text-xs text-white/40">%</span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={commissionBusy === i.personId}
+                  onClick={() => void saveCommission(i.personId)}
+                >
+                  {tc("save")}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Card>
   );
 }

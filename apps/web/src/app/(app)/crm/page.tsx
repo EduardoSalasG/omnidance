@@ -8,6 +8,7 @@ import {
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { PeopleTable } from "@/components/crm/people-table";
+import { ProPaywall } from "@/components/producer/pro-paywall";
 
 // Hub del CRM: personas del actor + acceso a campañas y triggers.
 export default function CrmPage() {
@@ -15,7 +16,7 @@ export default function CrmPage() {
   const ctx = useCrmContext();
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
       <CrmNav active="people" />
 
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
@@ -24,7 +25,13 @@ export default function CrmPage() {
         <>
           <ActorPicker ctx={ctx} />
           {ctx.actor ? (
-            <PeopleTable actor={ctx.actor} />
+            ctx.proBlocked ? (
+              // El CRM del productor es feature Producer Pro — el API
+              // responde 403 pro.required en todos sus endpoints.
+              <ProPaywall />
+            ) : (
+              <PeopleTable actor={ctx.actor} />
+            )
           ) : (
             <p className="text-white/60">{t("pickActor")}</p>
           )}

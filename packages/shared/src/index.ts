@@ -168,6 +168,36 @@ export const NOTIFICATION_CATEGORIES = [
 ] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
+// Lente de una notificación según su `type` namespaced. La `category`
+// (SOCIAL/TRANSACTIONAL/…) no mapea a la lente — TRANSACTIONAL mezcla
+// tickets de eventos (social) con pases de serie (academia). Los tipos
+// sin dominio de lente (account.*, crm.*, lead.*) son "any": se muestran
+// y cuentan en ambas lentes. Compartido front/back: /notificaciones
+// filtra la lista y GET /notifications?lens= acota el unreadCount del
+// badge del appbar.
+export const NOTIFICATION_LENS_TYPES = {
+  academy: { prefixes: ["class."], exact: ["payment.series_pass"] },
+  social: {
+    prefixes: ["session.", "friend.", "ticket.", "waitlist."],
+    exact: ["payment.paid", "payment.failed", "event.survey"],
+  },
+} as const;
+export const NOTIFICATION_LENSES = ["social", "academy"] as const;
+export type NotificationLensFilter = (typeof NOTIFICATION_LENSES)[number];
+export type NotificationLens = NotificationLensFilter | "any";
+
+export function notificationLens(type: string): NotificationLens {
+  const inScope = (scope: {
+    prefixes: readonly string[];
+    exact: readonly string[];
+  }) =>
+    scope.prefixes.some((p) => type.startsWith(p)) ||
+    scope.exact.includes(type);
+  if (inScope(NOTIFICATION_LENS_TYPES.academy)) return "academy";
+  if (inScope(NOTIFICATION_LENS_TYPES.social)) return "social";
+  return "any";
+}
+
 // ─── Constantes de negocio ───────────────────────────────
 export const SERVICE_FEE = {
   PRESALE_CLP: 500,
@@ -195,3 +225,9 @@ export const SESSION_RULES = {
 // Ventana "reciente" para listar eventos/prácticas: un evento que empezó
 // hace menos de 12h sigue siendo descubrible (fiestas que cruzan medianoche).
 export const EVENT_RECENT_LOOKBACK_MS = 12 * 60 * 60 * 1000;
+
+// ─── Legal ───────────────────────────────────────────────
+// Versión vigente de Términos + Privacidad (spec legal-consent). Al
+// publicar una versión nueva se sube este string: las Person con
+// consentVersion distinta vuelven a ver el aviso de aceptación.
+export const CONSENT_VERSION = "2026-10";

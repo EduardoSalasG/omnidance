@@ -13,6 +13,11 @@
       "error": "No pudimos cargar las sugerencias.",
       "forbidden": "No tienes acceso a las sugerencias de este evento.",
       "total": "{count, plural, one {# sugerencia del público} other {# sugerencias del público}}"
+    },
+    "rating": {
+      "title": "{count, plural, one {Evaluación de la música: # evaluación} other {Evaluación de la música: # evaluaciones}}",
+      "few": "{count, plural, one {# evaluación} other {# evaluaciones}}",
+      "fewHint": "El promedio se muestra a partir de 3 evaluaciones"
     }
   }
 }

@@ -1,5 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
+import {
+  CLASS_CARD_SELECT,
+  classCardItem,
+  type ClassCardRow,
+} from "../academies/infrastructure/class-card-projection";
 
 /**
  * KPIs del home por rol activo. Ventanas "rolling" (últimos 7/30 días,
@@ -23,14 +28,69 @@ type NextItem = {
   place: string | null;
 };
 
+// Evento de "esta noche" enriquecido para el home del bailarín:
+// lo que decide si sale — género, precio, amigos, escasez de preventa.
+export type TonightEvent = {
+  id: string;
+  name: string;
+  startsAt: string;
+  live: boolean;
+  venueId: string | null;
+  venueName: string | null;
+  genres: string[];
+  presalePrice: number | null;
+  doorPrice: number | null;
+  hasTicket: boolean;
+  friendsGoing: number;
+  // preventas restantes según el mismo criterio del checkout
+  // (tickets no CANCELLED contra presaleCap); null si no hay cap.
+  presaleLeft: number | null;
+};
+
+/** Shape del card de clase (ClassCardData en web) — el mismo que
+    devuelven GET /classes/browse y GET /classes/mine. */
+type ClassCardStats = {
+  id: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  weekday: number;
+  capacity: number;
+  bookedCount: number;
+  spotsLeft: number;
+  waitlistCount: number;
+  myBooking: string | null;
+  enrolled: boolean;
+  academy: { id: string; name: string };
+  instructor: { id: string; name: string | null } | null;
+  series: {
+    id: string;
+    name: string;
+    level: { id: string; name: string; order: number } | null;
+    style: { id: string; name: string; genre: string | null } | null;
+    dropInPrice: number | null;
+    types: { id: string; name: string }[];
+  };
+};
+
 export type HomeStats = {
   kpis: Kpi[];
   tonight?: Tonight | null;
-  nextClass?: NextItem | null;
+  scene?: {
+    events: TonightEvent[];
+    upcoming: TonightEvent[];
+    mine: TonightEvent[];
+  } | null;
+  /** Próxima clase de las academias del learner. */
+  nextClass?: ClassCardStats | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
+  /** Reservas activas del learner (BOOKED/WAITLIST) en clases futuras —
+      "tus próximas clases" del home Academia. */
+  myClasses?: ClassCardStats[];
   needsAcademy?: boolean;
 };
+
 
 const DAY = 86_400_000;
 const inDays = (n: number) => new Date(Date.now() + n * DAY);
@@ -113,8 +173,164 @@ export class HomeService {
     };
   }
 
+  /**
+   * Escena de "esta noche" para el home del bailarín: eventos PUBLISHED
+   * que empiezan antes del corte (mañana ~mediodía UTC ≈ 8-9am Chile —
+   * cubre sociales que cruzan medianoche) + eventos LIVE aún abiertos.
+   * Cada evento lleva: géneros (evento→serie), precios, si tengo entrada,
+   * cuántos amigos van y preventas restantes.
+   */
+  private async tonightSceneFor(
+    personId: string,
+  ): Promise<{
+    events: TonightEvent[];
+    upcoming: TonightEvent[];
+    mine: TonightEvent[];
+  } | null> {
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setUTCDate(cutoff.getUTCDate() + 1);
+    cutoff.setUTCHours(12, 0, 0, 0);
+
+    const select = {
+      id: true,
+      name: true,
+      startsAt: true,
+      status: true,
+      genres: true,
+      presalePrice: true,
+      doorPrice: true,
+      presaleCap: true,
+      venue: { select: { id: true, name: true } },
+      series: { select: { genres: true } },
+    } as const;
+
+    const soon = await this.prisma.event.findMany({
+      where: {
+        OR: [
+          { status: "LIVE", endsAt: { gte: now } },
+          { status: "PUBLISHED", startsAt: { gte: now, lte: cutoff } },
+        ],
+      },
+      orderBy: { startsAt: "asc" },
+      take: 6,
+      select,
+    });
+
+    // Noche vacía → la invitación concreta es el próximo evento, no
+    // un callejón "nada publicado": próximos 3 publicados.
+    const next =
+      soon.length === 0
+        ? await this.prisma.event.findMany({
+            where: { status: "PUBLISHED", startsAt: { gt: now } },
+            orderBy: { startsAt: "asc" },
+            take: 3,
+            select,
+          })
+        : [];
+
+    // Mis entradas futuras fuera de la ventana de "esta noche" — la
+    // franja "Tus entradas" existe siempre, no solo cuando hay noche.
+    // Ticket.eventId es scalar (sin relación): ids primero, eventos después.
+    const myTicketRows = await this.prisma.ticket.findMany({
+      where: { ownerId: personId, status: "ACTIVE" },
+      select: { eventId: true },
+    });
+    const myEventIds = [...new Set(myTicketRows.map((r) => r.eventId))];
+    const myEvents = myEventIds.length
+      ? await this.prisma.event.findMany({
+          where: {
+            id: { in: myEventIds },
+            startsAt: { gt: now },
+            status: { in: ["PUBLISHED", "LIVE"] },
+          },
+          orderBy: { startsAt: "asc" },
+          take: 3,
+          select,
+        })
+      : [];
+
+    const all = [...soon, ...next, ...myEvents];
+    if (all.length === 0) return null;
+
+    const ids = [...new Set(all.map((e) => e.id))];
+    const [mine, friendships, sold] = await Promise.all([
+      this.prisma.ticket.findMany({
+        where: { ownerId: personId, status: "ACTIVE", eventId: { in: ids } },
+        select: { eventId: true },
+      }),
+      this.prisma.friendship.findMany({
+        where: {
+          status: "ACCEPTED",
+          OR: [{ aId: personId }, { bId: personId }],
+        },
+        select: { aId: true, bId: true },
+      }),
+      this.prisma.ticket.groupBy({
+        by: ["eventId"],
+        where: { eventId: { in: ids }, status: { not: "CANCELLED" } },
+        _count: { _all: true },
+      }),
+    ]);
+
+    // Amigos = la otra punta de la amistad aceptada (a↔b).
+    const friendIds = friendships.map((f) =>
+      f.aId === personId ? f.bId : f.aId,
+    );
+    const friendTickets = friendIds.length
+      ? await this.prisma.ticket.groupBy({
+          by: ["eventId"],
+          where: {
+            eventId: { in: ids },
+            status: "ACTIVE",
+            ownerId: { in: friendIds },
+          },
+          _count: { _all: true },
+        })
+      : [];
+
+    const withTicket = new Set(mine.map((t) => t.eventId));
+    const soldBy = new Map(sold.map((s) => [s.eventId, s._count._all]));
+    const friendsBy = new Map(
+      friendTickets.map((s) => [s.eventId, s._count._all]),
+    );
+
+    const enrich = (
+      list: typeof all,
+    ): TonightEvent[] =>
+      list
+        .map((e) => ({
+          id: e.id,
+          name: e.name,
+          startsAt: e.startsAt.toISOString(),
+          live: e.status === "LIVE",
+          venueId: e.venue?.id ?? null,
+          venueName: e.venue?.name ?? null,
+          genres:
+            e.genres.length > 0
+              ? e.genres
+              : (e.series?.genres ?? []),
+          presalePrice: e.presalePrice,
+          doorPrice: e.doorPrice,
+          hasTicket: withTicket.has(e.id),
+          friendsGoing: friendsBy.get(e.id) ?? 0,
+          presaleLeft:
+            e.presaleCap != null && e.presalePrice != null
+              ? Math.max(0, e.presaleCap - (soldBy.get(e.id) ?? 0))
+              : null,
+        }))
+        // El evento donde ya tengo entrada encabeza la escena.
+        .sort((a, b) => Number(b.hasTicket) - Number(a.hasTicket));
+
+    return {
+      events: enrich(soon),
+      upcoming: enrich(next),
+      mine: enrich(myEvents),
+    };
+  }
+
   private async dancerSocialStats(personId: string): Promise<HomeStats> {
-    const [streak, points, badges, dances7d, tonight] = await Promise.all([
+    const [streak, points, badges, dances7d, scene] = await Promise.all([
       this.prisma.streak.findFirst({
         where: { personId, type: "WEEKLY_OUT" },
         select: { count: true },
@@ -131,7 +347,7 @@ export class HomeService {
           scannedAt: { gte: daysAgo(7) },
         },
       }),
-      this.tonightFor(personId),
+      this.tonightSceneFor(personId),
     ]);
     return {
       kpis: [
@@ -140,7 +356,7 @@ export class HomeService {
         { key: "badges", value: badges },
         { key: "dances7d", value: dances7d },
       ],
-      tonight,
+      scene,
     };
   }
 
@@ -153,51 +369,86 @@ export class HomeService {
       return { kpis: [], needsAcademy: true };
     }
     const academyIds = enrollments.map((e) => e.academyId);
-    const [attendance30d, classesNext7d, nextClassRow] = await Promise.all([
+    // "Clases tomadas este mes" = asistencias del mes calendario en curso
+    // (el learner piensa en meses, no en ventanas rolling de 30d).
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+    const [classesMonth, nextClassRow, myBookings] = await Promise.all([
       this.prisma.attendance.count({
-        where: { personId, checkedAt: { gte: daysAgo(30) } },
-      }),
-      this.prisma.class.count({
-        where: {
-          cancelled: false,
-          date: { gte: new Date(), lte: inDays(7) },
-          slot: { academyId: { in: academyIds } },
-        },
+        where: { personId, checkedAt: { gte: monthStart } },
       }),
       this.prisma.class.findFirst({
         where: {
           cancelled: false,
           date: { gte: new Date() },
-          slot: { academyId: { in: academyIds } },
-        },
-        orderBy: { date: "asc" },
-        select: {
-          id: true,
-          date: true,
           slot: {
-            select: {
-              startTime: true,
-              academy: { select: { name: true } },
-            },
+            academyId: { in: academyIds },
+            // Sugerencia "próxima clase": academia bloqueada por mora no
+            // es reservable (S3) — no se sugiere; las reservas ya hechas
+            // (myBookings) sí siguen listándose con su flag.
+            academy: { active: true, billingBlockedAt: null },
+            series: { active: true },
           },
         },
+        orderBy: { date: "asc" },
+        select: CLASS_CARD_SELECT,
+      }),
+      // Sus próximas reservas — "qué tengo esta semana" del learner.
+      this.prisma.classBooking.findMany({
+        where: {
+          personId,
+          status: { in: ["BOOKED", "WAITLIST"] },
+          class: { date: { gte: new Date() }, cancelled: false },
+        },
+        orderBy: { class: { date: "asc" } },
+        take: 3,
+        select: { class: { select: CLASS_CARD_SELECT } },
       }),
     ]);
+    const enrolledIds = new Set(academyIds);
+    const cardClasses = [
+      ...(nextClassRow ? [nextClassRow] : []),
+      ...myBookings.map((b) => b.class),
+    ];
+    const instructorName = await this.instructorNames(cardClasses);
     return {
       kpis: [
         { key: "enrollments", value: enrollments.length },
-        { key: "attendance30d", value: attendance30d },
-        { key: "classes7d", value: classesNext7d },
+        { key: "classesMonth", value: classesMonth },
       ],
       nextClass: nextClassRow
-        ? {
-            id: nextClassRow.id,
-            name: nextClassRow.slot.academy.name,
-            when: nextClassRow.date,
-            place: nextClassRow.slot.startTime,
-          }
+        ? this.toClassCard(nextClassRow, personId, enrolledIds, instructorName)
         : null,
+      myClasses: myBookings.map((b) =>
+        this.toClassCard(b.class, personId, enrolledIds, instructorName),
+      ),
     };
+  }
+
+  /** Nombres de instructores (override de instancia) en batch. */
+  private async instructorNames(classes: { instructorId: string | null }[]) {
+    const ids = [
+      ...new Set(classes.map((c) => c.instructorId).filter(Boolean)),
+    ] as string[];
+    const people = ids.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true },
+        })
+      : [];
+    return new Map<string, string | null>(people.map((i) => [i.id, i.name]));
+  }
+
+  /** Proyección de una Class al shape del card (ClassCardData en web) —
+      delega en la proyección compartida del módulo academies. */
+  private toClassCard(
+    c: ClassCardRow,
+    personId: string,
+    enrolledIds: Set<string>,
+    instructorName: Map<string, string | null>,
+  ): ClassCardStats {
+    return classCardItem(c, personId, enrolledIds, instructorName);
   }
 
   private async producerStats(personId: string): Promise<HomeStats> {

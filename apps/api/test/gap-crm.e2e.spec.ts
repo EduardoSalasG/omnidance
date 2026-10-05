@@ -118,6 +118,13 @@ describe("gap-closure: CRM transversal e2e", () => {
       ]);
     ids.producerId = producer.id;
     ids.producer2Id = producer2.id;
+    // El CRM del actor PRODUCER es feature Producer Pro (S5) — ambos
+    // productores del fixture necesitan tier vigente para operar su propio
+    // actor (sus 403 esperados son por ownership ajeno, no por el gate).
+    await prisma.person.updateMany({
+      where: { id: { in: [producer.id, producer2.id] } },
+      data: { proTier: "PRO_STARTER" },
+    });
     ids.academyOwnerId = academyOwner.id;
     ids.dancerId = dancer.id;
     ids.adminId = admin.id;
@@ -629,6 +636,79 @@ describe("gap-closure: CRM transversal e2e", () => {
         `/api/crm/campaigns/${campaign!.id}/send`,
         {},
         sessionProducer2,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("POST /campaigns/preview: allStudents cuenta inscritos sin side-effects", async () => {
+      const campaignsBefore = await prisma.campaign.count({
+        where: { actorId: ids.academyId },
+      });
+      const notifsBefore = await prisma.notification.count({
+        where: { personId: ids.newId, type: "crm.campaign" },
+      });
+      const res = await req(
+        "POST",
+        "/api/crm/campaigns/preview",
+        {
+          actorType: "ACADEMY",
+          actorId: ids.academyId,
+          segment: { allStudents: true },
+        },
+        sessionAcademyOwner,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).count).toBeGreaterThanOrEqual(1);
+      // sin side-effects: ni campaña creada ni notificación enviada
+      expect(
+        await prisma.campaign.count({ where: { actorId: ids.academyId } }),
+      ).toBe(campaignsBefore);
+      expect(
+        await prisma.notification.count({
+          where: { personId: ids.newId, type: "crm.campaign" },
+        }),
+      ).toBe(notifsBefore);
+    });
+
+    it("preview con enrollmentStatus sin coincidencias → count 0", async () => {
+      const res = await req(
+        "POST",
+        "/api/crm/campaigns/preview",
+        {
+          actorType: "ACADEMY",
+          actorId: ids.academyId,
+          segment: { enrollmentStatus: ["TRIAL"] },
+        },
+        sessionAcademyOwner,
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).count).toBe(0);
+    });
+
+    it("preview con criterios de academia sobre actor PRODUCER → 400", async () => {
+      const res = await req(
+        "POST",
+        "/api/crm/campaigns/preview",
+        {
+          actorType: "PRODUCER",
+          actorId: ids.producerId,
+          segment: { allStudents: true },
+        },
+        sessionProducer,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("preview de academia por quien no la administra → 403", async () => {
+      const res = await req(
+        "POST",
+        "/api/crm/campaigns/preview",
+        {
+          actorType: "ACADEMY",
+          actorId: ids.academyId,
+          segment: { allStudents: true },
+        },
+        sessionProducer,
       );
       expect(res.status).toBe(403);
     });

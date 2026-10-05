@@ -1,0 +1,201 @@
+{
+  "tours": {
+    "next": "Siguiente",
+    "prev": "Anterior",
+    "done": "Entendido",
+    "home": {
+      "s1": {
+        "title": "Tu pulso en la escena",
+        "desc": "Racha de semanas, puntos, insignias y bailes — tu actividad real de un vistazo."
+      },
+      "s2": {
+        "title": "Social ↔ Academia",
+        "desc": "Dos mundos en una app: Social para eventos, bailes y amigos; Academia para clases y tu aprendizaje. Cámbialo acá."
+      },
+      "s3": {
+        "title": "La campana",
+        "desc": "Acá llega todo: entradas que te regalaron, reservas de mesa confirmadas, solicitudes de amistad y avisos de tus eventos."
+      },
+      "s4": {
+        "title": "La cartelera",
+        "desc": "Todos los sociales de Santiago: filtra por estilo o local, compra tu preventa y pide mesa para tu grupo."
+      },
+      "s5": {
+        "title": "El botón +",
+        "desc": "Tu QR (tu entrada en la puerta y cómo sumas bailes en la pista), tu historial de Bailes y las Prácticas informales de la comunidad."
+      },
+      "s6": {
+        "title": "Tus amigos",
+        "desc": "Suma a tu crew: ve quién va a cada evento, mira sus próximas salidas y regálales entradas desde el checkout."
+      },
+      "s7": {
+        "title": "Tu perfil",
+        "desc": "Foto, estilos que bailas y tus lentes: si también eres profe, DJ, productor o de una academia, cambia de vista acá."
+      },
+      "academy": {
+        "s1": {
+          "title": "Tu aprendizaje",
+          "desc": "Asistencias, clases tomadas y tu progreso como alumno — de un vistazo."
+        },
+        "s2": {
+          "title": "Social ↔ Academia",
+          "desc": "Estás en modo Academia — vuelve a Social para la cartelera de eventos, tus bailes y tu crew."
+        },
+        "s3": {
+          "title": "La campana",
+          "desc": "Acá llegan los avisos: reservas de clase, confirmaciones y novedades de tus academias."
+        },
+        "s4": {
+          "title": "Clases",
+          "desc": "Explora clases y particulares de todas las academias, reserva tu cupo y revisa tu historial."
+        },
+        "s5": {
+          "title": "El botón +",
+          "desc": "Tu QR personal — también es tu credencial en clases y sociales."
+        },
+        "s6": {
+          "title": "Academias",
+          "desc": "El directorio de la escena: descubre academias, mira sus clases e inscríbete. Si ya estás en una, acá vive Mi Aprendizaje."
+        },
+        "s7": {
+          "title": "Tu perfil",
+          "desc": "Foto, estilos y tus lentes — vuelve a la vista Social cuando quieras salir a bailar."
+        }
+      }
+    },
+    "eventos": {
+      "s1": {
+        "title": "Filtra por estilo",
+        "desc": "¿Salsa, bachata o timba? Toca un chip para ver solo esas noches — puedes combinar varios."
+      },
+      "s2": {
+        "title": "Por local",
+        "desc": "¿Hinchas de un lugar? Mira solo su cartelera — y entra a su perfil para ver dirección y cómo llegar."
+      },
+      "s3": {
+        "title": "Tres formas de ver",
+        "desc": "Lista, calendario semanal o mapa de locales — elige cómo explorar la escena."
+      },
+      "s4": {
+        "title": "Mis entradas",
+        "desc": "El ícono de ticket lleva a tu billetera: tus entradas con QR, las que compraste y las que te regalaron."
+      },
+      "s5": {
+        "title": "Toca un evento",
+        "desc": "Cada card lleva al detalle: lineup, planificación de la noche y precios. En el checkout puedes regalar entradas a tus amigos o pedir mesa."
+      }
+    },
+    "clases": {
+      "s1": {
+        "title": "Lista o calendario",
+        "desc": "Lista agrupada por día o calendario semanal — también dentro de Explorar, para ver la semana completa de la escena."
+      },
+      "s2": {
+        "title": "Explorar academias",
+        "desc": "Todas las clases de la escena, no solo las de tus academias. Para reservar necesitas inscripción vigente."
+      },
+      "s3": {
+        "title": "Explora y reserva",
+        "desc": "Filtra por día, estilo y nivel — cada card muestra el cupo y reservas con un toque."
+      }
+    },
+    "qr": {
+      "s1": {
+        "title": "Tu QR personal",
+        "desc": "Se renueva solo para que nadie lo copie. En la puerta es tu entrada; en la pista, suma bailes con tu pareja."
+      },
+      "s2": {
+        "title": "Modo escáner",
+        "desc": "Cambia a Escanear para sumar un baile con el QR de tu pareja — queda en tu historial de Bailes."
+      }
+    },
+    "amigos": {
+      "s1": {
+        "title": "Suma a tu crew",
+        "desc": "Búscalos por nombre o comparte tu link de invitación — quien lo abre cae directo a agregarte."
+      },
+      "s2": {
+        "title": "Tus amigos van a",
+        "desc": "Los eventos donde alguien de tu crew ya tiene entrada — para no caer solo a la pista."
+      },
+      "s3": {
+        "title": "Tu lista",
+        "desc": "Solicitudes pendientes y tus amigos. Entra a su perfil para ver sus estilos y a qué eventos va."
+      }
+    },
+    "bailes": {
+      "s1": {
+        "title": "Por confirmar",
+        "desc": "Las invitaciones de baile vivas de la noche — acéptalas o déjalas pasar, sin que nadie se entere."
+      },
+      "s2": {
+        "title": "Tu último social",
+        "desc": "Cuántos bailes, cuántas parejas distintas, tu promedio y el mejor baile de la noche — tu retrospectiva."
+      },
+      "s3": {
+        "title": "Tu historial",
+        "desc": "Todas tus noches agrupadas por evento: quién te sacó a bailar, a quién evaluaste y cuánto bailaste."
+      }
+    },
+    "practicas": {
+      "s1": {
+        "title": "Todas o las tuyas",
+        "desc": "Filtra entre todas las prácticas de la comunidad y solo las que organizas o a las que vas — y por estilo."
+      },
+      "s2": {
+        "title": "Arma la tuya",
+        "desc": "¿Juntarse a entrenar, repasar una clase o previa antes del social? Crea tu práctica con cupo y lugar."
+      },
+      "s3": {
+        "title": "Las prácticas",
+        "desc": "Agrupadas por día: hora, lugar, quién organiza y cuántos van. Toca una para confirmar tu asistencia."
+      }
+    },
+    "perfil": {
+      "s1": {
+        "title": "Tu identidad",
+        "desc": "Foto, nombre e Instagram — lo que ven tus amigos y quienes bailan contigo."
+      },
+      "s2": {
+        "title": "Interactuar como",
+        "desc": "Cambia el lente de toda la app: bailarín, staff, productor, academia… el nav y el inicio se transforman."
+      },
+      "s3": {
+        "title": "Racha e insignias",
+        "desc": "Se ganan bailando: semanas seguidas en la pista y logros por conductas reales — no hay ranking público."
+      }
+    },
+    "productor": {
+      "s1": {
+        "title": "El +",
+        "desc": "Crea tu evento: fecha, local, precios, lineup, aforo — y mesas reservables con su tope por mesa y cupo sentable."
+      },
+      "s2": {
+        "title": "Tus eventos",
+        "desc": "Publicados, borradores y las acciones de cada noche: staff de puerta, pases y las solicitudes de reserva de mesa — revísalas y confirma el tamaño final."
+      },
+      "s3": {
+        "title": "Liquidaciones",
+        "desc": "Lo recaudado menos fees — lo que te toca transferir."
+      },
+      "s4": {
+        "title": "Todos los módulos",
+        "desc": "Códigos de descuento, listas de puerta, analítica y tus parámetros — incluidos los defaults de mesas que heredan tus eventos."
+      }
+    },
+    "academia": {
+      "s1": {
+        "title": "Tu academia",
+        "desc": "El hub operativo: clases, alumnos, planes y videos en un solo lugar."
+      },
+      "s2": {
+        "title": "Asistencia",
+        "desc": "Marca presente a tus alumnos en cada clase — es tu tab directo."
+      },
+      "s3": {
+        "title": "Todos los módulos",
+        "desc": "Horarios, particulares, series y videos también desde el menú lateral."
+      }
+    }
+  }
+}

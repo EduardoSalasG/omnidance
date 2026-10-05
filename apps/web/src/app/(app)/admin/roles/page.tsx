@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Card, CheckIcon, SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { PermissionRow, RoleRow } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -12,7 +12,7 @@ export default function RolesPage() {
   const t = useTranslations("admin");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
       <ConsoleHeader backHref="/admin" backLabel={t("title")} />
       <AdminGate>
         <RolesPanel />
@@ -25,8 +25,12 @@ function RolesPanel() {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
 
-  const [roles, setRoles] = useState<RoleRow[]>([]);
-  const [permissions, setPermissions] = useState<PermissionRow[]>([]);
+  // null = el Promise.all de catálogos sigue en vuelo → skeleton;
+  // [] post-fetch sería una lista realmente vacía.
+  const [roles, setRoles] = useState<RoleRow[] | null>(null);
+  const [permissions, setPermissions] = useState<PermissionRow[] | null>(
+    null,
+  );
 
   const [acting, setActing] = useState<string | null>(null);
   const [actionError, setActionError] = useState(false);
@@ -60,7 +64,7 @@ function RolesPanel() {
       });
       if (!res.ok) return setActionError(true);
       setRoles((rs) =>
-        rs.map((r) =>
+        (rs ?? []).map((r) =>
           r.key !== roleKey
             ? r
             : {
@@ -89,6 +93,9 @@ function RolesPanel() {
       )}
 
       <section className="flex flex-col gap-3">
+        {roles === null || permissions === null ? (
+          <SkeletonList items={3} />
+        ) : (
         <ul className="flex flex-col gap-3">
           {roles.map((r) => (
             <li key={r.key}>
@@ -126,13 +133,13 @@ function RolesPanel() {
                             void togglePermission(r.key, p.key, !granted)
                           }
                           title={p.description ?? p.key}
-                          className={`min-h-[44px] rounded-full border px-3 font-mono text-xs transition ${
+                          className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3 font-mono text-xs transition ${
                             granted
                               ? "border-neon bg-neon/15 text-neon"
                               : "border-white/15 text-white/50"
                           }`}
                         >
-                          {granted ? "✓ " : ""}
+                          {granted && <CheckIcon className="h-3.5 w-3.5" />}
                           {p.key}
                         </button>
                       );
@@ -143,6 +150,7 @@ function RolesPanel() {
             </li>
           ))}
         </ul>
+        )}
       </section>
     </>
   );

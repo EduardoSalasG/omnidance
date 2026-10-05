@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Person } from "@prisma/client";
+import { CONSENT_VERSION } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import type { AuthRepo } from "../domain/ports";
 
@@ -7,13 +8,25 @@ import type { AuthRepo } from "../domain/ports";
 export class PrismaAuthRepo implements AuthRepo {
   constructor(private readonly prisma: PrismaService) {}
 
-  upsertByEmail(email: string): Promise<Person> {
-    return this.prisma.person.upsert({
-      where: { email },
-      update: {},
-      create: {
+  async upsertByEmail(email: string): Promise<Person> {
+    const existing = await this.prisma.person.findUnique({ where: { email } });
+    if (existing) {
+      return this.prisma.person.update({
+        where: { email },
+        data: {
+          // El magic link prueba posesión del correo. La promoción
+          // demo→real se salta si el admin la convirtió y falta el
+          // perfil (pendingProfileAt) — eso lo cierra /me/complete-profile.
+          verifiedAt: new Date(),
+          ...(existing.pendingProfileAt ? {} : { isDemoAccount: false }),
+        },
+      });
+    }
+    return this.prisma.person.create({
+      data: {
         email,
         name: email.split("@")[0],
+        verifiedAt: new Date(),
         roles: { create: { role: "DANCER", status: "APPROVED" } },
       },
     });
@@ -39,6 +52,18 @@ export class PrismaAuthRepo implements AuthRepo {
       where: { id: personId },
       data: { passwordHash },
     });
+  }
+
+  recordConsent(personId: string) {
+    return this.prisma.person
+      .update({
+        where: { id: personId },
+        data: {
+          consentAcceptedAt: new Date(),
+          consentVersion: CONSENT_VERSION,
+        },
+      })
+      .then(() => {});
   }
 
   findById(id: string) {

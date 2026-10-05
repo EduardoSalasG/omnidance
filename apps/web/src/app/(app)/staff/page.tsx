@@ -1,10 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { useMe } from "@/lib/me-context";
+import {
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  RefreshIcon,
+  SkeletonList,
+} from "@/components/ui";
 
 // Roles que habilitan la consola de puerta (espejo de StaffGuard en la API).
 const DOOR_ROLES = new Set(["STAFF", "ADMIN"]);
@@ -26,7 +34,7 @@ type StaffEvent = {
   startsAt: string;
   endsAt: string;
   series: { name: string } | null;
-  venue: { name: string; address: string | null };
+  venue: { name: string; address: string | null } | null;
 };
 
 type Gate = "loading" | "unauth" | "notStaff" | "error" | "ready";
@@ -36,49 +44,57 @@ export default function StaffPage() {
   const tc = useTranslations("common");
   const te = useTranslations("events");
 
-  const [gate, setGate] = useState<Gate>("loading");
-  const [events, setEvents] = useState<StaffEvent[]>([]);
+  // /me compartido (MeProvider) — sin fetch propio de sesión: la lista
+  // se pide en paralelo desde el mount y el gate se deriva del contexto.
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const gate: Gate = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : !me
+        ? "unauth"
+        : !me.roles.some((r) => DOOR_ROLES.has(r))
+          ? "notStaff"
+          : "ready";
 
-  const boot = useCallback(async () => {
-    setGate("loading");
-    try {
-      const me = await apiFetch("/me");
-      if (me.status === 401) {
-        setGate("unauth");
-        return;
-      }
-      if (!me.ok) {
-        setGate("error");
-        return;
-      }
-      const data = (await me.json()) as { id: string; roles: string[] };
-      if (!data.roles.some((r) => DOOR_ROLES.has(r))) {
-        setGate("notStaff");
-        return;
-      }
-      // v1: staff ve todos los eventos PUBLISHED/LIVE del endpoint público.
-      // TODO: filtrar por StaffAssignment cuando la API exponga "mis turnos".
-      const res = await apiFetch("/events");
-      if (!res.ok) {
-        setGate("error");
-        return;
-      }
-      setEvents((await res.json()) as StaffEvent[]);
-      setGate("ready");
-    } catch {
-      // Fetch rechazado = red caída o API apagada.
-      // TODO(offline-first): cachear último listado en IndexedDB.
-      setGate("error");
-    }
-  }, []);
+  const [events, setEvents] = useState<StaffEvent[] | null>(null);
+  const [eventsError, setEventsError] = useState(false);
+  const [eventsNonce, setEventsNonce] = useState(0);
 
+  // v1: staff ve todos los eventos PUBLISHED/LIVE del endpoint público.
+  // TODO: filtrar por StaffAssignment cuando la API exponga "mis turnos".
   useEffect(() => {
-    void boot();
-  }, [boot]);
+    let cancelled = false;
+    apiFetch("/events")
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setEventsError(true);
+          return;
+        }
+        setEventsError(false);
+        setEvents((await res.json()) as StaffEvent[]);
+      })
+      .catch(() => {
+        // Fetch rechazado = red caída o API apagada.
+        // TODO(offline-first): cachear último listado en IndexedDB.
+        if (!cancelled) setEventsError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventsNonce]);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-      {gate === "loading" && <p className="text-white/60">{tc("loading")}</p>}
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+      {(gate === "loading" || (gate === "ready" && events === null && !eventsError)) && (
+        <SkeletonList items={3} />
+      )}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -98,13 +114,31 @@ export default function StaffPage() {
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{tc("error")}</p>
-          <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+          <Button variant="secondary" onClick={() => void refreshMe()}>
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
 
-      {gate === "ready" &&
+      {gate === "ready" && eventsError && (
+        <div className="flex flex-col items-start gap-4">
+          <p role="alert" className="text-white/70">
+            {tc("error")}
+          </p>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setEvents(null);
+              setEventsError(false);
+              setEventsNonce((n) => n + 1);
+            }}
+          >
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
+      )}
+
+      {gate === "ready" && events !== null &&
         (events.length === 0 ? (
           <p className="text-white/60">{te("empty")}</p>
         ) : (
@@ -129,8 +163,8 @@ export default function StaffPage() {
                       </div>
                       <h2 className="text-lg font-semibold">{e.name}</h2>
                       <p className="text-sm text-white/60">
-                        <EventDate start={e.startsAt} end={e.endsAt} /> ·{" "}
-                        {e.venue.name}
+                        <EventDate start={e.startsAt} end={e.endsAt} />
+                        {e.venue && ` · ${e.venue.name}`}
                       </p>
                     </div>
                   </Card>

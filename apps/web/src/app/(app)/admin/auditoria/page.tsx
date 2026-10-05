@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge } from "@/components/ui";
+import { Badge, SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { AuditRow } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -17,7 +17,7 @@ export default function AuditoriaPage() {
   const t = useTranslations("admin");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
       <ConsoleHeader backHref="/admin" backLabel={t("title")} />
       <AdminGate>
         <AuditPanel />
@@ -30,7 +30,8 @@ function AuditPanel() {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
 
-  const [audit, setAudit] = useState<AuditRow[]>([]);
+  // null = fetch en vuelo → skeleton; [] post-fetch = empty-state real.
+  const [audit, setAudit] = useState<AuditRow[] | null>(null);
   const [actionError, setActionError] = useState(false);
 
   const load = useCallback(async () => {
@@ -52,7 +53,9 @@ function AuditPanel() {
       )}
 
       <section className="flex flex-col gap-3">
-        {audit.length === 0 ? (
+        {audit === null ? (
+          <SkeletonList items={4} lines={1} />
+        ) : audit.length === 0 ? (
           <p role="status" className="text-white/60">
             {t("audit.empty")}
           </p>

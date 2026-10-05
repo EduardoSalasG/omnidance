@@ -12,6 +12,8 @@ describe("GET /api/events", () => {
   let baseUrl: string;
   let prisma: PrismaService;
   let eventId: string;
+  let practiceId: string;
+  let venueId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -26,23 +28,53 @@ describe("GET /api/events", () => {
 
     const suffix = Date.now().toString(36);
     const venue = await prisma.venue.create({
-      data: { name: `Venue E2E ${suffix}`, address: "Santiago" },
+      data: {
+        name: `Venue E2E ${suffix}`,
+        address: "Santiago",
+        lat: -33.42,
+        lng: -70.64,
+      },
     });
+    venueId = venue.id;
     const event = await prisma.event.create({
       data: {
         name: `Social E2E ${suffix}`,
         type: "SOCIAL",
         status: "PUBLISHED",
+        genres: ["SALSA"],
         startsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
         endsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000 + 6 * 3600 * 1000),
         venueId: venue.id,
+        tablesTotal: 3,
+        tableSeatMax: 4,
+        tableSeatsTotal: 10,
       },
     });
     eventId = event.id;
+    // 1 activa (ocupa 4 asientos) + 1 cancelada (no ocupa)
+    // → tablesLeft = 2, seatsLeft = 6
+    await prisma.tableReservation.createMany({
+      data: [
+        { eventId: event.id, personId: "e2e-a", partySize: 4, status: "CONFIRMED" },
+        { eventId: event.id, personId: "e2e-b", partySize: 2, status: "CANCELLED" },
+      ],
+    });
+    const practice = await prisma.event.create({
+      data: {
+        name: `Práctica E2E ${suffix}`,
+        type: "PRACTICA",
+        status: "PUBLISHED",
+        startsAt: new Date(Date.now() + 3 * 24 * 3600 * 1000),
+        endsAt: new Date(Date.now() + 3 * 24 * 3600 * 1000 + 2 * 3600 * 1000),
+      },
+    });
+    practiceId = practice.id;
   });
 
   afterAll(async () => {
-    await prisma.event.deleteMany({ where: { id: eventId } });
+    await prisma.tableReservation.deleteMany({ where: { eventId } });
+    await prisma.event.deleteMany({ where: { id: { in: [eventId, practiceId] } } });
+    await prisma.venue.deleteMany({ where: { id: venueId } });
     await app.close();
   });
 
@@ -60,6 +92,21 @@ describe("GET /api/events", () => {
     expect(["PUBLISHED", "LIVE"]).toContain(mine.status);
   });
 
+  it("no incluye prácticas — viven en /practices", async () => {
+    const res = await fetch(`${baseUrl}/api/events`);
+    const events = await res.json();
+    expect(events.some((e: { id: string }) => e.id === practiceId)).toBe(false);
+    expect(events.every((e: { type: string }) => e.type !== "PRACTICA")).toBe(true);
+  });
+
+  it("expone lat/lng del venue para 'cerca de ti'", async () => {
+    const res = await fetch(`${baseUrl}/api/events`);
+    const events = await res.json();
+    const mine = events.find((e: { id: string }) => e.id === eventId);
+    expect(mine.venue.lat).toBeCloseTo(-33.42);
+    expect(mine.venue.lng).toBeCloseTo(-70.64);
+  });
+
   it("detalle incluye djs y venue", async () => {
     const res = await fetch(`${baseUrl}/api/events/${eventId}`);
     expect(res.status).toBe(200);
@@ -72,5 +119,80 @@ describe("GET /api/events", () => {
   it("id inexistente → 404", async () => {
     const res = await fetch(`${baseUrl}/api/events/no-existe`);
     expect(res.status).toBe(404);
+  });
+
+  it("detalle expone disponibilidad de mesas dinámica (REQUESTED/CONFIRMED ocupan, CANCELLED libera)", async () => {
+    const res = await fetch(`${baseUrl}/api/events/${eventId}`);
+    const detail = await res.json();
+    expect(detail.tablesTotal).toBe(3);
+    expect(detail.tablesLeft).toBe(2); // 3 total − 1 CONFIRMED (la CANCELLED no cuenta)
+    // cupo sentable: 10 total − 4 personas de la CONFIRMED (la CANCELLED
+    // de 2 no consume) → seatsLeft = 6. El tope por mesa viaja también.
+    expect(detail.tableSeatMax).toBe(4);
+    expect(detail.tableSeatsTotal).toBe(10);
+    expect(detail.seatsLeft).toBe(6);
+  });
+
+  it("evento sin tablesTotal → disponibilidad null (no ofrece mesas)", async () => {
+    const res = await fetch(`${baseUrl}/api/events/${practiceId}`);
+    const detail = await res.json();
+    expect(detail.tablesTotal).toBeNull();
+    expect(detail.tablesLeft).toBeNull();
+    expect(detail.seatsLeft).toBeNull();
+  });
+
+  it("?genre= filtra por género propio o heredado de la serie", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=SALSA`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    const mine = events.find((e: { id: string }) => e.id === eventId);
+    expect(mine).toBeTruthy();
+    expect(mine.genres).toContain("SALSA");
+    // Ningún evento sin salsa en sus géneros resueltos.
+    expect(events.every((e: { genres: string[] }) => e.genres.includes("SALSA"))).toBe(true);
+  });
+
+  it("?genre= acepta lista CSV (unión de géneros)", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=SALSA,BACHATA`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    expect(events.length).toBeGreaterThan(0);
+    expect(
+      events.every((e: { genres: string[] }) =>
+        e.genres.some((g) => ["SALSA", "BACHATA"].includes(g)),
+      ),
+    ).toBe(true);
+  });
+
+  it("?genre= CSV con miembro inválido → 400", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=SALSA,HACK`);
+    expect(res.status).toBe(400);
+  });
+
+  it("?genre= inválido → 400", async () => {
+    const res = await fetch(`${baseUrl}/api/events?genre=HACK`);
+    expect(res.status).toBe(400);
+  });
+
+  it("?venue= filtra por local", async () => {
+    const res = await fetch(`${baseUrl}/api/events?venue=${venueId}`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    expect(events.length).toBeGreaterThan(0);
+    expect(
+      events.every((e: { venue?: { id: string } }) => e.venue?.id === venueId),
+    ).toBe(true);
+  });
+
+  it("?week=this solo devuelve eventos de los próximos 7 días", async () => {
+    const res = await fetch(`${baseUrl}/api/events?week=this`);
+    expect(res.status).toBe(200);
+    const events = await res.json();
+    const limit = Date.now() + 7 * 24 * 3600 * 1000;
+    expect(
+      events.every(
+        (e: { startsAt: string }) => new Date(e.startsAt).getTime() <= limit,
+      ),
+    ).toBe(true);
   });
 });

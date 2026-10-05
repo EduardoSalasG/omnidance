@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, type BadgeVariant } from "@/components/ui";
+import { Badge, Button, Card, type BadgeVariant, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
-import { ConsoleHeader } from "@/components/console/console-header";
 import {
   classDayFmt,
+  planDateFmt,
   shortId,
   type Academy,
   type StudentProfile,
@@ -49,8 +50,7 @@ export default function AcademiaAlumnoPage({
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <ConsoleHeader backHref="/academia/alumnos" backLabel={t("students")} />
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <AcademyGate>
         {({ academy }) => (
           <ProfileModule
@@ -107,11 +107,7 @@ function ProfileModule({
   }, [load]);
 
   if (state === "loading") {
-    return (
-      <p role="status" className="text-sm text-white/60">
-        {tc("loading")}
-      </p>
-    );
+    return <SkeletonList />;
   }
   if (state === "forbidden") {
     return (
@@ -127,7 +123,7 @@ function ProfileModule({
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );
@@ -152,6 +148,15 @@ function ProfileModule({
             {tp("enrollmentStatus")}: {statusLabel(profile.enrollmentStatus)}
           </Badge>
         </div>
+        {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
+          <p className="text-xs text-white/50">
+            {profile.enrollmentStartedAt &&
+              `${tp("startsAt")}: ${planDateFmt.format(new Date(profile.enrollmentStartedAt))}`}
+            {profile.enrollmentStartedAt && profile.enrollmentEndsAt && " · "}
+            {profile.enrollmentEndsAt &&
+              `${tp("endsAt")}: ${planDateFmt.format(new Date(profile.enrollmentEndsAt))}`}
+          </p>
+        )}
       </Card>
 
       {/* Historial */}

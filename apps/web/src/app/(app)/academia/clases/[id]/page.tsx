@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
-import { ConsoleHeader } from "@/components/console/console-header";
+import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { QuorumBar } from "@/components/academy/quorum-bar";
 import {
   classDayFmt,
@@ -71,14 +71,8 @@ export default function AcademiaClaseRosterPage({
   }, [load]);
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <ConsoleHeader backHref="/academia/clases" backLabel={t("title")} />
-
-      {state === "loading" && (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+      {state === "loading" && <SkeletonList />}
       {state === "unauth" && (
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{t("loginRequired")}</p>
@@ -96,7 +90,7 @@ export default function AcademiaClaseRosterPage({
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

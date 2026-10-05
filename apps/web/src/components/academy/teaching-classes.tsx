@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button } from "@/components/ui";
+import { Badge, Button, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { QuorumBar } from "./quorum-bar";
 import {
   classDayFmt,
@@ -59,11 +60,7 @@ export function TeachingClasses() {
   }, [load]);
 
   if (state === "loading") {
-    return (
-      <p role="status" className="text-sm text-white/60">
-        {tc("loading")}
-      </p>
-    );
+    return <SkeletonList />;
   }
   if (state === "unauth") {
     return (
@@ -83,7 +80,7 @@ export function TeachingClasses() {
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

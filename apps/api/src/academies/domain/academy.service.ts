@@ -20,6 +20,17 @@ export interface AcademyContext {
 export const DEFAULT_CLASS_QUORUM = 20;
 
 /**
+ * Inicio real de la clase: Class.date (medianoche UTC del día) +
+ * slot.startTime "HH:mm". El check "la clase ya pasó", el corte de
+ * devolución y la venta de clase suelta operan sobre este instante —
+ * no sobre la medianoche del día.
+ */
+export function classStart(date: Date, startTime: string): Date {
+  const [h, m] = startTime.split(":").map(Number);
+  return new Date(date.getTime() + ((h || 0) * 60 + (m || 0)) * 60_000);
+}
+
+/**
  * Quórum efectivo de una clase (cupos). Cadena de herencia:
  * class.capacity → slot.capacity → series.quorum → academy.defaultQuorum → 20.
  */

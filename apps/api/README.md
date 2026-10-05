@@ -50,7 +50,7 @@ Swagger UI: http://localhost:4000/api/docs · JSON: `/api/docs-json`.
 | `events` | Series de eventos, eventos, DJs asignados, sugerencias de canciones, mesas, ratings agregados |
 | `payments` | Checkout Flow, tickets, webhooks (fail-close en prod), liquidaciones con comisión plataforma |
 | `checkins` | Check-in de puerta por QR rotativo TOTP, venta en puerta |
-| `social` | Amigos, RSVPs, guest lists, waitlist de evento, entry passes, prácticas, venues + consola venue, trips, blocks |
+| `social` | Amigos, RSVPs, guest lists, waitlist de evento, entry passes, prácticas, venues + consola venue, blocks |
 | `gamification` | Badges, misiones, streaks, puntos — conductas, nunca puntajes |
 | `sessions` | Sesiones de baile por QR, ratings privados |
 | `crm` | Scores/tags/campañas por actor (productor, academia, venue) |

@@ -6,12 +6,18 @@ import { PrismaService } from "../prisma.service";
 // y cambian solo por /admin — 30s de TTL es tolerancia sobrada.
 const CACHE_TTL_MS = 30_000;
 
-/** Defaults de fees configurables por productor (null = hereda global). */
+/** Defaults configurables por productor (null = hereda global / sin config). */
 export interface ProducerFeeDefaults {
   serviceFeeClp: number | null;
   doorAppFeeClp: number | null;
   doorCashFeeClp: number | null;
   platformFeePct: number | null;
+  /** Defaults de mesas (spec checkout-table-reservation): los edita el
+   *  propio productor; el evento los hereda al crear/editar. Opcionales —
+   *  los consumidores de fees no los necesitan. */
+  tablesTotal?: number | null;
+  tableSeatMax?: number | null;
+  tableSeatsTotal?: number | null;
 }
 
 @Injectable()
@@ -65,6 +71,9 @@ export class ParamsService {
           doorAppFeeClp: row.doorAppFeeClp,
           doorCashFeeClp: row.doorCashFeeClp,
           platformFeePct: row.platformFeePct,
+          tablesTotal: row.tablesTotal,
+          tableSeatMax: row.tableSeatMax,
+          tableSeatsTotal: row.tableSeatsTotal,
         }
       : null;
     this.producerCache.set(producerId, { value, at: Date.now() });

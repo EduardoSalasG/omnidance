@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CheckIcon,
+  RefreshIcon,
+} from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
@@ -33,7 +40,7 @@ export default function AdminCatalogosPage() {
   const t = useTranslations("admin");
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
       <ConsoleHeader backHref="/admin" backLabel={t("title")} />
       <AdminGate>
         <CatalogsPanel />
@@ -225,16 +232,12 @@ function CatalogSection({
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
 
-      {items === null && !loadError && (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
-      )}
+      {items === null && !loadError && <SkeletonList />}
 
       {items !== null && (
         <>
@@ -394,7 +397,11 @@ function CatalogSection({
         </p>
       )}
       {saved && (
-        <p role="status" className="text-sm text-neon">
+        <p
+          role="status"
+          className="inline-flex items-center gap-1.5 text-sm text-neon"
+        >
+          <CheckIcon className="h-4 w-4" />
           {t("saved")}
         </p>
       )}

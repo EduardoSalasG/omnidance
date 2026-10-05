@@ -8,6 +8,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -47,10 +48,13 @@ export class GamificationController {
     private readonly prisma: PrismaService,
   ) {}
 
-  /** Racha semanal: semanas consecutivas con ≥1 check-in o sesión CONFIRMED. */
+  /**
+   * Racha semanal del autenticado. `mode=academy` → semanas con ≥1
+   * asistencia a clase; default (social) → ≥1 check-in o sesión CONFIRMED.
+   */
   @Get("me/streak")
-  streak(@Req() req: Request) {
-    return this.gamification.streakFor(req.person!.id);
+  streak(@Req() req: Request, @Query("mode") mode?: string) {
+    return this.gamification.streakFor(req.person!.id, { mode });
   }
 
   /** Badges ganados (award lazy: evalúa reglas de conducta al consultar). */

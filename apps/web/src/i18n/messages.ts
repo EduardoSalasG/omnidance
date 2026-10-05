@@ -1,16 +1,30 @@
 import base from "../../messages/es-CL.json";
+import academyBilling from "./parts/academyBilling.json";
 import academyExtras from "./parts/academyExtras.json";
 import admin from "./parts/admin.json";
+import analytics from "./parts/analytics.json";
+import claim from "./parts/claim.json";
+import checkout from "./parts/checkout.json";
+import classes from "./parts/classes.json";
 import common from "./parts/common.json";
 import consumer from "./parts/consumer.json";
 import crm from "./parts/crm.json";
-import landing from "./parts/landing.json";
-import producer from "./parts/producer.json";
-import realtime from "./parts/realtime.json";
-import seo from "./parts/seo.json";
 import dj from "./parts/dj.json";
-import venue from "./parts/venue.json";
+import events from "./parts/events.json";
+import landing from "./parts/landing.json";
+import legal from "./parts/legal.json";
+import locales from "./parts/locales.json";
+import membershipCheckout from "./parts/membershipCheckout.json";
+import payments from "./parts/payments.json";
+import producer from "./parts/producer.json";
+import profile from "./parts/profile.json";
+import realtime from "./parts/realtime.json";
+import subscriptions from "./parts/subscriptions.json";
 import support from "./parts/support.json";
+import survey from "./parts/survey.json";
+import tours from "./parts/tours.json";
+import venue from "./parts/venue.json";
+import wallet from "./parts/wallet.json";
 
 type Dict = Record<string, unknown>;
 
@@ -36,18 +50,32 @@ function merge(a: Dict, b: Dict): Dict {
 }
 
 const parts = [
+  academyBilling,
   academyExtras,
   admin,
+  analytics,
+  claim,
+  checkout,
+  classes,
   common,
   consumer,
   crm,
-  landing,
-  producer,
-  realtime,
-  seo,
   dj,
-  venue,
+  events,
+  landing,
+  legal,
+  locales,
+  membershipCheckout,
+  payments,
+  producer,
+  profile,
+  realtime,
+  subscriptions,
   support,
+  survey,
+  tours,
+  venue,
+  wallet,
 ] as Dict[];
 
 /** Diccionario completo: base + parts. Compartido por request.ts y layout. */

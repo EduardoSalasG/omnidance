@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Inject,
+  Logger,
   Post,
   Query,
   Req,
@@ -12,21 +13,56 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsOptional, IsString, MinLength } from "class-validator";
+import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
+import {
+  throttleAuthLimit,
+  throttleTtlMs,
+} from "../../common/throttle.config";
 import { AuthService } from "../domain/auth.service";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
 import { SessionGuard } from "./session.guard";
+import { magicLinkEmailHtml, welcomeEmailHtml } from "./emails";
 
 export const SESSION_COOKIE = "omnidance_session";
 
-class MagicLinkDto {
+// Cookie de sesión compartida: la usa este controller (login/register) y
+// el acceso demo de leads (POST /leads/:id/demo). Misma config siempre.
+export function setSessionCookie(res: Response, token: string): void {
+  res.cookie(SESSION_COOKIE, token, {
+    httpOnly: true,
+    // SESSION_SAMESITE=none + secure para acceso cross-site (p.ej.
+    // dev tunnels: web y API en hosts distintos).
+    sameSite: (process.env.SESSION_SAMESITE ?? "lax") as
+      | "lax"
+      | "strict"
+      | "none",
+    secure:
+      process.env.SESSION_SAMESITE === "none" ||
+      process.env.SESSION_SECURE === "true" ||
+      process.env.NODE_ENV === "production",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+}
+
+// `consent?: boolean` (spec legal-consent): el front lo manda true cuando
+// la persona marcó el checkbox de Términos+Privacidad. No es obligatorio
+// a nivel API — cuentas legadas pasan por el aviso in-app (POST
+// /me/consent). Si llega true se estampa al crear la sesión.
+class ConsentField {
+  @IsOptional()
+  @IsBoolean()
+  consent?: boolean;
+}
+
+class MagicLinkDto extends ConsentField {
   @IsEmail()
   email!: string;
 }
 
-class PasswordLoginDto {
+class PasswordLoginDto extends ConsentField {
   @IsEmail()
   email!: string;
 
@@ -67,30 +103,65 @@ function recordFailure(key: string) {
   recentFailures(key).push(Date.now());
 }
 
+// Límite estricto anti spam/fuerza bruta (spec api-hardening): pocos
+// intentos por IP en magic-link/login/register. Se resuelve por request
+// → respeta THROTTLE_AUTH_LIMIT/THROTTLE_TTL_MS de env en runtime.
+const AUTH_THROTTLE = {
+  default: {
+    limit: () => throttleAuthLimit(),
+    ttl: () => throttleTtlMs(),
+  },
+};
+
 @Controller("auth")
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly auth: AuthService,
     @Inject(MAILER) private readonly mailer: Mailer,
     @Inject(AUTH_REPO) private readonly repo: AuthRepo,
   ) {}
 
+  /** Bienvenida best-effort: el alta nunca falla por el correo. */
+  private async sendWelcome(email: string, name: string) {
+    try {
+      const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+      await this.mailer.send(
+        email,
+        `Bienvenido a la pista, ${name.split(" ")[0] || name} 🕺`,
+        welcomeEmailHtml(name, webUrl),
+      );
+    } catch (err) {
+      this.logger.warn(
+        `welcome email a ${email} falló: ${(err as Error).message}`,
+      );
+    }
+  }
+
   @Post("magic-link")
   @HttpCode(202)
+  @Throttle(AUTH_THROTTLE)
   async magicLink(@Body() dto: MagicLinkDto) {
-    const token = await this.auth.createMagicToken(dto.email.toLowerCase());
+    // El consentimiento viaja como claim del token: al abrir el link
+    // (verify) se estampa en la Person junto a la sesión.
+    const token = await this.auth.createMagicToken(
+      dto.email.toLowerCase(),
+      dto.consent === true,
+    );
     const apiUrl = process.env.API_URL ?? "http://localhost:4000";
     const link = `${apiUrl}/api/auth/verify?token=${token}`;
     await this.mailer.send(
       dto.email,
       "Tu acceso a Omnidance",
-      `<p>Entra a Omnidance con este link (válido 15 min):</p><p><a href="${link}">${link}</a></p>`,
+      magicLinkEmailHtml(link),
     );
     return { sent: true };
   }
 
   @Post("login")
   @HttpCode(200)
+  @Throttle(AUTH_THROTTLE)
   async login(
     @Body() dto: PasswordLoginDto,
     @Req() req: Request,
@@ -117,6 +188,7 @@ export class AuthController {
     // Login exitoso limpia los fallos previos de la ventana.
     loginAttempts.delete(key);
 
+    if (dto.consent === true) await this.repo.recordConsent(person.id);
     const session = await this.auth.issueSession(person.id);
     this.setSessionCookie(res, session);
     return { ok: true };
@@ -124,6 +196,7 @@ export class AuthController {
 
   @Post("register")
   @HttpCode(201)
+  @Throttle(AUTH_THROTTLE)
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -139,6 +212,8 @@ export class AuthController {
       dto.name.trim(),
       passwordHash,
     );
+    if (dto.consent === true) await this.repo.recordConsent(person.id);
+    await this.sendWelcome(email, person.name);
     const session = await this.auth.issueSession(person.id);
     this.setSessionCookie(res, session);
     return { ok: true };
@@ -159,11 +234,17 @@ export class AuthController {
   @Get("verify")
   async verify(@Query("token") token: string, @Res() res: Response) {
     try {
-      const { email } = await this.auth.verifyMagicToken(token);
+      const { email, consent } = await this.auth.verifyMagicToken(token);
+      // Si el correo no existía, el upsert crea la cuenta → bienvenida.
+      const existed = await this.repo.findByEmail(email);
       const person = await this.repo.upsertByEmail(email);
+      // Checkbox marcado al pedir el link → se estampa al crear sesión.
+      if (consent) await this.repo.recordConsent(person.id);
+      if (!existed) await this.sendWelcome(email, person.name);
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-      this.setSessionCookie(res, session).redirect(webUrl);
+      this.setSessionCookie(res, session);
+      res.redirect(webUrl);
     } catch {
       throw new UnauthorizedException("Link inválido o expirado");
     }
@@ -176,20 +257,7 @@ export class AuthController {
     return { ok: true };
   }
 
-  private setSessionCookie(res: Response, session: string): Response {
-    return res.cookie(SESSION_COOKIE, session, {
-      httpOnly: true,
-      // SESSION_SAMESITE=none + secure para acceso cross-site (p.ej.
-      // dev tunnels: web y API en hosts distintos).
-      sameSite: (process.env.SESSION_SAMESITE ?? "lax") as
-        | "lax"
-        | "strict"
-        | "none",
-      secure:
-        process.env.SESSION_SAMESITE === "none" ||
-        process.env.SESSION_SECURE === "true" ||
-        process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
+  private setSessionCookie(res: Response, session: string): void {
+    setSessionCookie(res, session);
   }
 }
