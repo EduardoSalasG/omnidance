@@ -215,28 +215,32 @@ jobs:
                 SEED_ADMIN_EMAIL=$(grep '^SEED_ADMIN_EMAIL=' .env | head -1 | cut -d '=' -f2-)
               fi
 
-              # El seed es idempotente pero solo hace falta cuando la DB
-              # está vacía (baseline) o falta el admin — si ya hay roles
-              # y no hay email configurado, se omite para no bloquear el
-              # deploy.
+              # Completitud = baseline (roles) + al menos un ADMIN
+              # aprobado. Solo corre el seed cuando falta algo — la data
+              # completa no se reescribe en cada deploy (los params
+              # editados desde /admin quedan intactos).
               echo "--- checking baseline data ---"
               docker rm -f omnidance-check 2>/dev/null || true
-              BASELINE_ROLES=$(timeout 90 docker run \
+              BASELINE=$(timeout 90 docker run \
                 --name omnidance-check \
                 --rm \
                 --env-file .env \
                 -e DATABASE_URL="$MIGRATION_DATABASE_URL" \
                 -w /app/apps/api \
                 "$API_IMAGE" \
-                node -e 'const{PrismaClient}=require("@prisma/client");const p=new PrismaClient();p.role.count().then(c=>console.log(c)).catch(()=>console.log(-1)).finally(()=>p.$disconnect())' \
+                node -e 'const{PrismaClient}=require("@prisma/client");const p=new PrismaClient();Promise.all([p.role.count(),p.personRole.count({where:{role:"ADMIN",status:"APPROVED"}})]).then(([r,a])=>console.log(r+":"+a)).catch(()=>console.log("-1")).finally(()=>p.$disconnect())' \
                 | tail -1)
               docker rm -f omnidance-check 2>/dev/null || true
+              BASELINE_ROLES="${BASELINE%%:*}"
+              BASELINE_ADMIN="${BASELINE##*:}"
 
-              if [ "$BASELINE_ROLES" != "0" ] && [ "$BASELINE_ROLES" != "-1" ] && [ -z "$SEED_ADMIN_EMAIL" ]; then
-                echo "DB con baseline ($BASELINE_ROLES roles) y sin SEED_ADMIN_EMAIL — seed omitido"
+              if [ "$BASELINE_ROLES" != "0" ] && [ "$BASELINE_ROLES" != "-1" ] && [ "$BASELINE_ADMIN" != "0" ] && [ "$BASELINE_ADMIN" != "-1" ]; then
+                echo "DB completa ($BASELINE_ROLES roles, $BASELINE_ADMIN admin) — seed omitido"
+              elif [ "$BASELINE_ROLES" != "0" ] && [ "$BASELINE_ROLES" != "-1" ] && [ -z "$SEED_ADMIN_EMAIL" ]; then
+                echo "WARN: baseline OK pero sin ADMIN aprobado y sin SEED_ADMIN_EMAIL — seed omitido (setear el email para crearlo)"
               else
                 if [ -z "$SEED_ADMIN_EMAIL" ]; then
-                  echo "ERROR: DB vacía y SEED_ADMIN_EMAIL no está en GitHub secrets ni en .env"
+                  echo "ERROR: DB sin baseline/admin y SEED_ADMIN_EMAIL no está en GitHub secrets ni en .env"
                   exit 1
                 fi
                 echo "--- seeding baseline data one-shot (SEED_ENV=prod) ---"
