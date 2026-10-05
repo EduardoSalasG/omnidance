@@ -15,7 +15,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public");
 
 const NIGHT = [0x0a, 0x0a, 0x0f];
-const NEON = [0xa3, 0xe6, 0x35];
+const NEON = [0xa7, 0x8b, 0xfa];
 
 // Geometría en el viewBox 512 del SVG: rect rx=96; la "O" (system-ui 800,
 // font-size 300, baseline middle en y=58%) se aproxima con un anillo
