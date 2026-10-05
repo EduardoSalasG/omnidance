@@ -11,6 +11,7 @@ import consumer from "./parts/consumer.json";
 import crm from "./parts/crm.json";
 import dj from "./parts/dj.json";
 import events from "./parts/events.json";
+import install from "./parts/install.json";
 import landing from "./parts/landing.json";
 import legal from "./parts/legal.json";
 import locales from "./parts/locales.json";
@@ -63,6 +64,7 @@ const parts = [
   crm,
   dj,
   events,
+  install,
   landing,
   legal,
   locales,
