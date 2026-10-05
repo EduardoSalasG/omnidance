@@ -286,11 +286,19 @@ export default function PerfilPage() {
           <section aria-hidden="true">
             <Skeleton className="page-loading mb-3 h-4 w-36" />
             <ul className="grid grid-cols-2 gap-3">
-              {[0, 1, 2, 3].map((i) => (
-                <li key={i}>
-                  <Skeleton className="page-loading h-[68px] w-full rounded-xl" />
-                </li>
-              ))}
+              {/* El skeleton debe medir lo mismo que la grilla real:
+                  social trae 4 KPIs (racha/puntos/insignias/bailes),
+                  academia solo 2 (inscripciones/clases del mes) — con 4
+                  placeholders la sección encogía al asentar y la racha
+                  se movía (mismo flash que el pop-in original). */}
+              {Array.from(
+                { length: viewMode === "academy" ? 2 : 4 },
+                (_, i) => (
+                  <li key={i}>
+                    <Skeleton className="page-loading h-[68px] w-full rounded-xl" />
+                  </li>
+                ),
+              )}
             </ul>
           </section>
         )}
@@ -421,11 +429,15 @@ export default function PerfilPage() {
           <section aria-hidden="true">
             <Skeleton className="page-loading mb-3 h-4 w-36" />
             <ul className="grid grid-cols-2 gap-3">
-              {[0, 1, 2, 3].map((i) => (
-                <li key={i}>
-                  <Skeleton className="page-loading h-[68px] w-full rounded-xl" />
-                </li>
-              ))}
+              {/* Mismo conteo por modo que el shell: academy = 2 KPIs. */}
+              {Array.from(
+                { length: viewMode === "academy" ? 2 : 4 },
+                (_, i) => (
+                  <li key={i}>
+                    <Skeleton className="page-loading h-[68px] w-full rounded-xl" />
+                  </li>
+                ),
+              )}
             </ul>
           </section>
         ) : (
