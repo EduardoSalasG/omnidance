@@ -45,7 +45,9 @@ const OWN_KEYS = new Set([
   Symbol.for("splat") as unknown as string,
 ]);
 
-export const redactMeta = format((info) => {
+// Anotación explícita: el tipo inferido (logform.FormatWrap) apunta a
+// una dependencia transitiva no hoisteada por pnpm → TS2742 en tsc.
+export const redactMeta: ReturnType<typeof format> = format((info) => {
   for (const key of Object.keys(info)) {
     if (OWN_KEYS.has(key)) continue;
     info[key] = SENSITIVE_KEY.test(key) ? MASK : redactValue(info[key]);

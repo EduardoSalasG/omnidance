@@ -14,7 +14,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { IsEmail, IsString, MinLength } from "class-validator";
+import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
+import {
+  throttleAuthLimit,
+  throttleTtlMs,
+} from "../../common/throttle.config";
 import { AuthService } from "../domain/auth.service";
 import type { Mailer, AuthRepo } from "../domain/ports";
 import { MAILER, AUTH_REPO } from "../domain/ports";
@@ -88,6 +93,16 @@ function recordFailure(key: string) {
   recentFailures(key).push(Date.now());
 }
 
+// Límite estricto anti spam/fuerza bruta (spec api-hardening): pocos
+// intentos por IP en magic-link/login/register. Se resuelve por request
+// → respeta THROTTLE_AUTH_LIMIT/THROTTLE_TTL_MS de env en runtime.
+const AUTH_THROTTLE = {
+  default: {
+    limit: () => throttleAuthLimit(),
+    ttl: () => throttleTtlMs(),
+  },
+};
+
 @Controller("auth")
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
@@ -116,6 +131,7 @@ export class AuthController {
 
   @Post("magic-link")
   @HttpCode(202)
+  @Throttle(AUTH_THROTTLE)
   async magicLink(@Body() dto: MagicLinkDto) {
     const token = await this.auth.createMagicToken(dto.email.toLowerCase());
     const apiUrl = process.env.API_URL ?? "http://localhost:4000";
@@ -130,6 +146,7 @@ export class AuthController {
 
   @Post("login")
   @HttpCode(200)
+  @Throttle(AUTH_THROTTLE)
   async login(
     @Body() dto: PasswordLoginDto,
     @Req() req: Request,
@@ -163,6 +180,7 @@ export class AuthController {
 
   @Post("register")
   @HttpCode(201)
+  @Throttle(AUTH_THROTTLE)
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
