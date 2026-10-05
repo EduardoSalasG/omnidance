@@ -5,18 +5,28 @@ import type { ProducerFeeDefaults } from "../../params/params.service";
 import type { PaymentGateway } from "../domain/ports";
 import { PricingService } from "../domain/pricing.service";
 import {
+  decodeClassRef,
+  decodePrivateRef,
   decodeSeriesPassRef,
   decodeTicketOrderRef,
 } from "../domain/order-ref";
 import {
   CheckoutService,
+  AcademyNotFoundError,
+  AcademyUnavailableError,
   EventNotFoundError,
   InvalidDiscountError,
+  PlanNotFoundError,
+  PlanNotPurchasableError,
   PresaleSoldOutError,
   PresaleUnavailableError,
+  PrivateClassNotPurchasableError,
   SeriesInactiveError,
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
+  RecipientError,
+  PresaleClosedError,
+  DoorSoldOutError,
 } from "./checkout.service";
 
 // CheckoutService — orquestación del checkout de preventa / pase de serie.
@@ -36,9 +46,13 @@ function mkPrisma() {
     [];
   const prisma = {
     event: { findUnique: vi.fn() },
-    ticket: { count: vi.fn(async () => 0) },
+    checkin: { count: vi.fn(async () => 0) },
+    ticket: {
+      count: vi.fn(async () => 0),
+      findMany: vi.fn(async () => [] as { ownerId: string }[]),
+    },
     payment: {
-      count: vi.fn(
+      aggregate: vi.fn(
         async (args?: {
           where: {
             orderType?: string;
@@ -48,7 +62,7 @@ function mkPrisma() {
           };
         }) => {
           void args;
-          return 0;
+          return { _sum: { quantity: 0 } };
         },
       ),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
@@ -76,6 +90,17 @@ function mkPrisma() {
     },
     person: {
       findUnique: vi.fn(async () => ({ email: "fan@example.cl" })),
+      findMany: vi.fn(
+        async ({
+          where,
+        }: {
+          where: { id: { in: string[] } };
+        }): Promise<{ id: string; name: string }[]> =>
+          where.id.in.map((id) => ({ id, name: `Persona ${id}` })),
+      ),
+    },
+    friendship: {
+      findMany: vi.fn(async () => [] as { aId: string; bId: string }[]),
     },
     songSuggestion: {
       deleteMany: vi.fn(async () => ({ count: 0 })),
@@ -93,6 +118,25 @@ function mkPrisma() {
     eventSeries: { findUnique: vi.fn() },
     seriesPass: {
       findUnique: vi.fn(async (): Promise<{ id: string } | null> => null),
+    },
+    class: { findUnique: vi.fn() },
+    academy: { findUnique: vi.fn() },
+    classBooking: {
+      count: vi.fn(async () => 0),
+      findFirst: vi.fn(
+        async (): Promise<{ id: string; status: string } | null> => null,
+      ),
+    },
+    membershipPlan: { findUnique: vi.fn() },
+    enrollment: {
+      findFirst: vi.fn(
+        async (): Promise<{ endsAt: Date | null } | null> => null,
+      ),
+    },
+    membershipSubscription: {
+      findFirst: vi.fn(
+        async (): Promise<Record<string, unknown> | null> => null,
+      ),
     },
   };
   return { prisma, payments, songSuggestions };
@@ -138,8 +182,14 @@ type PrismaMock = ReturnType<typeof mkPrisma>["prisma"];
 const mkEvent = (over: Record<string, unknown> = {}) => ({
   id: "evt-1",
   status: "PUBLISHED",
+  // mañana 22:00 — la preventa sigue abierta (corte: 19:00 del día)
+  startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  endsAt: new Date(Date.now() + 26 * 60 * 60 * 1000),
   presalePrice: 10000,
   presaleCap: null,
+  doorPrice: null,
+  doorCap: null,
+  doorAppFeeClp: null,
   seriesId: null,
   serviceFeeClp: null,
   producerId: "prod-1",
@@ -199,19 +249,42 @@ describe("CheckoutService.purchaseTicket", () => {
     await expect(buy()).rejects.toBeInstanceOf(PresaleUnavailableError);
   });
 
+  it("pasado el corte (19:00 del día del evento) → PresaleClosedError", async () => {
+    // startsAt ayer → el corte de las 19:00 de ese día ya pasó (determinista:
+    // now-1h a la 1AM deja el cutoff del mismo día en el futuro)
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000) }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PresaleClosedError);
+  });
+
+  it("el corte respeta presale.cutoff_hour del PlatformParam", async () => {
+    // evento mañana — cualquier cutoff razonable queda abierto
+    pf.numbers.set("presale.cutoff_hour", 23);
+    await buy(); // no lanza
+    expect(pf.params.getNumber).toHaveBeenCalledWith(
+      "presale.cutoff_hour",
+      19,
+    );
+  });
+
   it("cap: vendidos + órdenes PENDING en vuelo >= presaleCap → PresaleSoldOutError", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
     fx.prisma.ticket.count.mockResolvedValue(3);
-    fx.prisma.payment.count.mockResolvedValue(2);
+    fx.prisma.payment.aggregate.mockResolvedValue({
+      _sum: { quantity: 2 },
+    });
     await expect(buy()).rejects.toBeInstanceOf(PresaleSoldOutError);
   });
 
   it("cap: el conteo de PENDING solo mira órdenes recientes (TTL 30min) del evento", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
     fx.prisma.ticket.count.mockResolvedValue(3);
-    fx.prisma.payment.count.mockResolvedValue(1); // 3 + 1 < 5 → vende
+    fx.prisma.payment.aggregate.mockResolvedValue({
+      _sum: { quantity: 1 },
+    }); // 3 + 1 < 5 → vende
     await buy();
-    const where = fx.prisma.payment.count.mock.calls[0]![0]!.where;
+    const where = fx.prisma.payment.aggregate.mock.calls[0]![0]!.where;
     expect(where.orderType).toBe("TICKET");
     expect(where.status).toBe("PENDING");
     expect(where.eventId).toBe("evt-1");
@@ -219,6 +292,244 @@ describe("CheckoutService.purchaseTicket", () => {
     const gt = where.createdAt!.gt!.getTime();
     expect(Date.now() - gt).toBeGreaterThanOrEqual(30 * 60 * 1000);
     expect(Date.now() - gt).toBeLessThan(30 * 60 * 1000 + 5000);
+  });
+
+  // ─── Canal puerta-app (LIVE / post-corte) ───
+
+  it("evento LIVE con doorPrice → vende a precio puerta y persiste channel DOOR", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+      }),
+    );
+    const res = await buy();
+    expect(res.quote.listPrice).toBe(7000);
+    // fee de puerta app: default shared DOOR_APP_CLP = 700
+    expect(res.quote.serviceFee).toBe(700);
+    expect(res.quote.total).toBe(7700);
+    const p = fx.payments[0]!;
+    expect(p.channel).toBe("DOOR");
+    expect(p.unitListPrice).toBe(7000);
+    expect(p.unitServiceFee).toBe(700);
+  });
+
+  it("evento LIVE sin doorPrice → PresaleUnavailableError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ status: "LIVE", doorPrice: null }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PresaleUnavailableError);
+  });
+
+  it("PUBLISHED post-corte con doorPrice → canal DOOR (la app vende a precio puerta)", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        // ayer → el cutoff de las 19:00 de ese día ya pasó (determinista)
+        startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+        doorPrice: 8000,
+      }),
+    );
+    const res = await buy();
+    expect(res.quote.listPrice).toBe(8000);
+    expect(fx.payments[0]!.channel).toBe("DOOR");
+  });
+
+  it("PUBLISHED post-corte sin doorPrice → PresaleClosedError (sin puerta app)", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000) }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PresaleClosedError);
+  });
+
+  it("doorCap: ventas staff (MANUAL) + órdenes DOOR alcanzan el cap → DoorSoldOutError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+        doorCap: 10,
+      }),
+    );
+    fx.prisma.checkin.count.mockResolvedValue(8); // staff ya registró 8 en puerta
+    fx.prisma.payment.aggregate.mockResolvedValue({ _sum: { quantity: 1 } });
+    await expect(buy({ quantity: 2 })).rejects.toBeInstanceOf(
+      DoorSoldOutError,
+    );
+  });
+
+  it("doorCap: cabe justo → vende", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+        doorCap: 10,
+      }),
+    );
+    fx.prisma.checkin.count.mockResolvedValue(8);
+    const res = await buy({ quantity: 2 }); // 8 + 0 + 2 = 10 = cap
+    expect(res.quantity).toBe(2);
+  });
+
+  it("fee puerta: override del evento (doorAppFeeClp) gana a productor y global", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+        doorAppFeeClp: 900,
+      }),
+    );
+    pf.producers.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: 400,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+    });
+    pf.numbers.set("service_fee.door_app_clp", 300);
+    const res = await buy();
+    expect(res.quote.serviceFee).toBe(900);
+  });
+
+  it("fee puerta: sin override del evento gana ProducerParams.doorAppFeeClp", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        startsAt: new Date(Date.now() - 60 * 60 * 1000),
+        doorPrice: 7000,
+      }),
+    );
+    pf.producers.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: 400,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+    });
+    pf.numbers.set("service_fee.door_app_clp", 300);
+    const res = await buy();
+    expect(res.quote.serviceFee).toBe(400);
+  });
+
+  it("órdenes PRESALE siguen persistiendo channel PRESALE + precios unitarios", async () => {
+    await buy();
+    const p = fx.payments[0]!;
+    expect(p.channel).toBe("PRESALE");
+    expect(p.unitListPrice).toBe(10000);
+    expect(p.unitServiceFee).toBe(500);
+  });
+
+  // ─── Regalo multi-entrada (recipientIds) ───
+
+  it("regalo a amigo: quantity=2, recipients persistidos, amount doble", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    const res = await buy({ recipientIds: ["per-2"] });
+    expect(res.quantity).toBe(2);
+    // unit: 10000 + 500 fee → total de la orden = 21000
+    expect(res.quote.total).toBe(21000);
+    const payment = fx.payments[0]!;
+    expect(payment.quantity).toBe(2);
+    expect(payment.recipients).toEqual(["per-2"]);
+    expect(payment.amount).toBe(21000);
+  });
+
+  it("destinatario inexistente → RecipientError", async () => {
+    fx.prisma.person.findMany.mockResolvedValue([]); // nadie encontrado
+    await expect(buy({ recipientIds: ["ghost-1"] })).rejects.toBeInstanceOf(
+      RecipientError,
+    );
+  });
+
+  it("destinatario no amigo → RecipientError nombrando a la persona", async () => {
+    // friendship.findMany queda [] (default) → no ACCEPTED
+    await expect(buy({ recipientIds: ["per-2"] })).rejects.toBeInstanceOf(
+      RecipientError,
+    );
+    await expect(
+      buy({ recipientIds: ["per-2"] }),
+    ).rejects.toThrow("Persona per-2 no es tu amigo");
+  });
+
+  it("destinatario con entrada ACTIVE ya → RecipientError", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    fx.prisma.ticket.findMany.mockResolvedValue([{ ownerId: "per-2" }]);
+    await expect(
+      buy({ recipientIds: ["per-2"] }),
+    ).rejects.toThrow("ya tiene una entrada");
+  });
+
+  it("recipientIds con duplicados y el propio comprador se normalizan", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    const res = await buy({
+      recipientIds: ["per-1", "per-2", "per-2"],
+    });
+    expect(res.quantity).toBe(2); // self filtrado + dedupe
+    expect(fx.payments[0]!.recipients).toEqual(["per-2"]);
+  });
+
+  // ─── Cantidad de la orden (quantity + reclamables) ───
+
+  it("quantity sin amigos: orden de 3 → 1 propia + 2 reclamables, total ×3", async () => {
+    const res = await buy({ quantity: 3 });
+    expect(res.quantity).toBe(3);
+    expect(res.quote.total).toBe(3 * 10500);
+    const payment = fx.payments[0]!;
+    expect(payment.quantity).toBe(3);
+    expect(payment.recipients).toBeUndefined(); // sin asignados → NULL
+  });
+
+  it("quantity + amigos: 4 entradas, 1 asignada → recipients + sobrantes reclamables", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    const res = await buy({ quantity: 4, recipientIds: ["per-2"] });
+    expect(res.quantity).toBe(4);
+    expect(fx.payments[0]!.recipients).toEqual(["per-2"]);
+    expect(res.quote.total).toBe(4 * 10500);
+  });
+
+  it("más amigos que entradas → RecipientError", async () => {
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+      { aId: "per-1", bId: "per-3" },
+    ]);
+    await expect(
+      buy({ quantity: 2, recipientIds: ["per-2", "per-3"] }),
+    ).rejects.toThrow("más amigos que entradas");
+  });
+
+  it("quantity > 10 clampea a 10; quantity 0/ausente queda en 1", async () => {
+    const res = await buy({ quantity: 99 });
+    expect(res.quantity).toBe(10);
+    const res2 = await buy({ quantity: 0 });
+    expect(res2.quantity).toBe(1);
+    const res3 = await buy();
+    expect(res3.quantity).toBe(1);
+  });
+
+  it("cap: quantity 3 con 4 vendidos y cap 5 → PresaleSoldOutError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
+    fx.prisma.ticket.count.mockResolvedValue(4);
+    await expect(buy({ quantity: 3 })).rejects.toBeInstanceOf(
+      PresaleSoldOutError,
+    );
+  });
+
+  it("cap: 4 vendidos + orden de 2 entradas > cap 5 → PresaleSoldOutError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ presaleCap: 5 }));
+    fx.prisma.ticket.count.mockResolvedValue(4);
+    fx.prisma.friendship.findMany.mockResolvedValue([
+      { aId: "per-1", bId: "per-2" },
+    ]);
+    await expect(buy({ recipientIds: ["per-2"] })).rejects.toBeInstanceOf(
+      PresaleSoldOutError,
+    );
   });
 
   // ─── Cadena de resolución del service fee ───
@@ -382,6 +693,112 @@ describe("CheckoutService.purchaseTicket", () => {
   });
 });
 
+describe("CheckoutService.discountQuote", () => {
+  // Preview de código para el checkout (GET /checkout/discount-quote):
+  // valida redimibilidad y estima el descuento de la orden sobre el
+  // canal vigente — nunca crea Payment ni consume uso del código.
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  const quote = (code = "X") =>
+    svc.discountQuote({ eventId: "evt-1", code });
+
+  it("evento inexistente → EventNotFoundError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(null);
+    await expect(quote()).rejects.toBeInstanceOf(EventNotFoundError);
+  });
+
+  it("código inexistente → valid:false reason UNKNOWN, sin side-effects", async () => {
+    const res = await quote("NOPE");
+    expect(res).toEqual({
+      valid: false,
+      discountClp: 0,
+      reason: "UNKNOWN",
+    });
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("código expirado / agotado / fuera de scope → invalid con su reason", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ expiresAt: new Date(Date.now() - 1000) }),
+    );
+    expect((await quote()).reason).toBe("EXPIRED");
+
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ maxUses: 3, usedCount: 3 }),
+    );
+    expect((await quote()).reason).toBe("EXHAUSTED");
+
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ eventId: "evt-otro" }),
+    );
+    expect((await quote()).reason).toBe("SCOPE_MISMATCH");
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("percentOff válido → discountClp sobre la lista de preventa", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 50 }),
+    );
+    const res = await quote();
+    expect(res).toEqual({ valid: true, discountClp: 5000 });
+  });
+
+  it("amountOff queda capeado en el precio de lista", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ amountOff: 15000 }),
+    );
+    const res = await quote();
+    expect(res.discountClp).toBe(10000);
+  });
+
+  it("post-corte con doorPrice → el descuento se estima sobre el precio puerta", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        // ayer → el cutoff de las 19:00 de ese día ya pasó; termina mañana
+        startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+        endsAt: new Date(Date.now() + 60 * 60 * 1000),
+        doorPrice: 8000,
+      }),
+    );
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 25 }),
+    );
+    const res = await quote();
+    expect(res.discountClp).toBe(2000); // 25% de 8000, no de 10000
+  });
+
+  it("evento terminado → valid pero discountClp 0 (el POST da su propio error)", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(Date.now() - 26 * 60 * 60 * 1000),
+        endsAt: new Date(Date.now() - 60 * 60 * 1000),
+      }),
+    );
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 50 }),
+    );
+    const res = await quote();
+    expect(res).toEqual({ valid: true, discountClp: 0 });
+  });
+});
+
 describe("CheckoutService.purchaseSeriesPass", () => {
   let fx: ReturnType<typeof mkPrisma>;
   let pf: ReturnType<typeof mkParams>;
@@ -465,5 +882,494 @@ describe("CheckoutService.purchaseSeriesPass", () => {
     const ref = decodeSeriesPassRef(p.refId as string);
     expect(ref?.seriesId).toBe("ser-1");
     expect(ref?.month).toBe("2025-11");
+  });
+});
+
+describe("CheckoutService.membershipQuote", () => {
+  // Revisión de orden del checkout de membresía — sin cobro: precio,
+  // fee, total real, vigencia resultante y suscripción viva del plan.
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let svc: CheckoutService;
+
+  const mkPlan = (over: Record<string, unknown> = {}) => ({
+    id: "plan-1",
+    name: "Mensual",
+    active: true,
+    type: "MONTHLY",
+    price: 15000,
+    classCount: null,
+    periodDays: null,
+    description: ["2 clases por semana"],
+    academy: { id: "ac-1", name: "Academia X", active: true },
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    const { gateway } = mkGateway();
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  it("404: plan inexistente → PlanNotFoundError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(null);
+    await expect(svc.membershipQuote("p1", "plan-x")).rejects.toThrow(
+      "plan no encontrado",
+    );
+  });
+
+  it("400: plan inactivo no es cotizable", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ active: false }),
+    );
+    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
+      "este plan no está disponible para compra online",
+    );
+  });
+
+  it("TRIAL activo con price > 0 → cotiza como compra única (recurring false)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000 }),
+    );
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.plan.type).toBe("TRIAL");
+    expect(q.recurring).toBe(false);
+    expect(q.serviceFeeClp).toBe(0); // sin cargo de servicio (modelo SaaS)
+    expect(q.totalClp).toBe(5000); // total = precio del plan
+    // sin periodDays configurado → la prueba queda sin fecha
+    expect(q.vigenciaEndsAt).toBeNull();
+  });
+
+  it("TRIAL con price 0 → PlanNotPurchasableError (la gratis es asignación staff)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 0 }),
+    );
+    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toBeInstanceOf(
+      PlanNotPurchasableError,
+    );
+    await expect(svc.membershipQuote("p1", "plan-1")).rejects.toThrow(
+      "la clase de prueba gratis la asigna la academia",
+    );
+  });
+
+  it("MONTHLY: recurring, total = price SIN fee (param legacy queda inerte), vigencia = fin de mes", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    // Defensivo: aunque el param legacy conserve un valor, la orden
+    // MEMBERSHIP nunca cobra cargo de servicio (spec academy-saas-billing).
+    pf.numbers.set("service_fee.membership_clp", 700);
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.recurring).toBe(true);
+    expect(q.totalClp).toBe(15000);
+    expect(q.serviceFeeClp).toBe(0);
+    expect(q.vigenciaEndsAt).not.toBeNull();
+    expect(q.gateway).toBe("STUB");
+    expect(q.subscription).toBeNull();
+  });
+
+  it("academia bloqueada por mora → AcademyUnavailableError (S3)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({
+        academy: { id: "ac-1", name: "Academia X", active: true, billingBlockedAt: new Date() },
+      }),
+    );
+    const err = await svc
+      .membershipQuote("p1", "plan-1")
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AcademyUnavailableError);
+    expect((err as AcademyUnavailableError).code).toBe("academy.unavailable");
+    expect((err as AcademyUnavailableError).message).toContain(
+      "no está disponible",
+    );
+  });
+
+  it("enrollment vigente → currentEndsAt y la vigencia extiende desde ahí", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    const endsAt = new Date(Date.now() + 10 * 86_400_000);
+    fx.prisma.enrollment.findFirst.mockResolvedValue({ endsAt });
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.currentEndsAt).toBe(endsAt.toISOString());
+    // MONTHLY extiende al fin del mes de (endsAt + 1d) → debe ser
+    // estrictamente posterior al endsAt vigente.
+    expect(new Date(q.vigenciaEndsAt!).getTime()).toBeGreaterThan(
+      endsAt.getTime(),
+    );
+  });
+
+  it("CLASS_PACK: no recurrente, sin vigenciaEndsAt", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "CLASS_PACK", classCount: 8 }),
+    );
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.recurring).toBe(false);
+    expect(q.vigenciaEndsAt).toBeNull();
+  });
+
+  it("devuelve la suscripción viva del plan si existe", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    const sub = { id: "sub-1", status: "ACTIVE", nextInvoiceAt: new Date() };
+    fx.prisma.membershipSubscription.findFirst.mockResolvedValue(sub);
+    const q = await svc.membershipQuote("p1", "plan-1");
+    expect(q.subscription?.id).toBe("sub-1");
+  });
+});
+
+describe("CheckoutService.purchaseMembership", () => {
+  // Orden MEMBERSHIP one-off: valida plan+academia y crea el Payment
+  // PENDING delegando el cobro. El Enrollment lo emite el webhook.
+  // TRIAL se vende online solo con price > 0 (la gratis es staff).
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  const mkPlan = (over: Record<string, unknown> = {}) => ({
+    id: "plan-1",
+    active: true,
+    type: "MONTHLY",
+    price: 15000,
+    academy: { active: true },
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  const buy = (planId = "plan-1") =>
+    svc.purchaseMembership("per-1", { planId });
+
+  it("plan inexistente o academia inactiva → PlanNotFoundError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(null);
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotFoundError);
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ academy: { active: false } }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotFoundError);
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("plan inactivo → PlanNotPurchasableError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ active: false }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("academia bloqueada por mora → AcademyUnavailableError, sin orden (S3)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({
+        academy: { active: true, billingBlockedAt: new Date() },
+      }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(AcademyUnavailableError);
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("MONTHLY → Payment MEMBERSHIP PENDING con refId mem_<planId>_", async () => {
+    const res = await buy();
+    const p = fx.payments[0]!;
+    expect(p.orderType).toBe("MEMBERSHIP");
+    expect(res.quote.serviceFee).toBe(0); // modelo SaaS: sin cargo
+    expect(p.amount).toBe(15000); // total = precio del plan
+    expect(p.amount).toBe(res.quote.total);
+    expect((p.refId as string).startsWith("mem_plan-1_")).toBe(true);
+    expect(gw.createOrder).toHaveBeenCalledOnce();
+  });
+
+  it("TRIAL con price > 0 vende a persona sin inscripción (compra única)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000 }),
+    );
+    const res = await buy();
+    const p = fx.payments[0]!;
+    expect(p.orderType).toBe("MEMBERSHIP");
+    expect(res.quote.listPrice).toBe(5000);
+    expect(res.quote.serviceFee).toBe(0);
+    expect(res.quote.total).toBe(5000); // sin fee (modelo SaaS)
+    expect(res.paymentUrl).toContain("pay.example");
+  });
+
+  it("TRIAL con price > 0 también vende a alumna con enrollment ACTIVE previo", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000 }),
+    );
+    // la compra no valida enrollment — la alumna inscrita también puede
+    // comprar la prueba (el settle crea una fila TRIAL aparte).
+    fx.prisma.enrollment.findFirst.mockResolvedValue({
+      endsAt: new Date(Date.now() + 30 * 86_400_000),
+    });
+    const res = await buy();
+    expect(res.quote.total).toBe(5000); // sin fee (modelo SaaS)
+    expect(fx.payments).toHaveLength(1);
+  });
+
+  it("TRIAL con price 0 → PlanNotPurchasableError (la gratis es asignación staff)", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 0 }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
+    await expect(buy()).rejects.toThrow(
+      "la clase de prueba gratis la asigna la academia",
+    );
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("TRIAL inactivo → PlanNotPurchasableError", async () => {
+    fx.prisma.membershipPlan.findUnique.mockResolvedValue(
+      mkPlan({ type: "TRIAL", price: 5000, active: false }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PlanNotPurchasableError);
+    expect(fx.payments).toHaveLength(0);
+  });
+});
+
+describe("CheckoutService.purchaseClass / classQuote", () => {
+  // Clase suelta / taller pago: orden WORKSHOP con refId wks_<classId>_.
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  // Clase futura con dropInPrice — slot con cadena de capacidad completa.
+  const mkClass = (over: Record<string, unknown> = {}) => ({
+    id: "cls-1",
+    date: new Date(Date.now() + 24 * 60 * 60 * 1000), // mañana
+    cancelled: false,
+    capacity: null,
+    slot: {
+      startTime: "20:00",
+      capacity: 10,
+      academyId: "ac-1",
+      series: {
+        id: "ser-1",
+        name: "Taller de Shines",
+        dropInPrice: 9000,
+        quorum: null,
+      },
+      academy: { defaultQuorum: null, billingBlockedAt: null },
+    },
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.class.findUnique.mockResolvedValue(mkClass());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  const buy = () => svc.purchaseClass("per-1", { classId: "cls-1" });
+
+  it("clase inexistente → error 404 de dominio", async () => {
+    fx.prisma.class.findUnique.mockResolvedValue(null);
+    await expect(buy()).rejects.toThrow("clase no encontrada");
+  });
+
+  it("clase cancelada o sin dropInPrice → no vendible", async () => {
+    fx.prisma.class.findUnique.mockResolvedValue(
+      mkClass({ cancelled: true }),
+    );
+    await expect(buy()).rejects.toThrow("clase no disponible");
+
+    const noPrice = mkClass();
+    (noPrice.slot.series as Record<string, unknown>).dropInPrice = null;
+    fx.prisma.class.findUnique.mockResolvedValue(noPrice);
+    await expect(buy()).rejects.toThrow("clase no disponible");
+  });
+
+  it("clase ya iniciada → no vendible", async () => {
+    // date = medianoche UTC de hoy + startTime 00:00 → ya pasó.
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    fx.prisma.class.findUnique.mockResolvedValue(
+      mkClass({
+        date: today,
+        slot: {
+          ...mkClass().slot,
+          startTime: "00:00",
+        },
+      }),
+    );
+    await expect(buy()).rejects.toThrow("clase no disponible");
+  });
+
+  it("academia bloqueada por mora → AcademyUnavailableError en quote y compra (S3)", async () => {
+    const cls = mkClass();
+    (cls.slot.academy as Record<string, unknown>).billingBlockedAt =
+      new Date();
+    fx.prisma.class.findUnique.mockResolvedValue(cls);
+    await expect(buy()).rejects.toBeInstanceOf(AcademyUnavailableError);
+    await expect(svc.classQuote("per-1", "cls-1")).rejects.toBeInstanceOf(
+      AcademyUnavailableError,
+    );
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("cupo agotado → 409", async () => {
+    fx.prisma.classBooking.count.mockResolvedValue(10); // capacity 10
+    await expect(buy()).rejects.toThrow("cupo agotado");
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("viewer ya reservó esa clase → 409", async () => {
+    fx.prisma.classBooking.findFirst.mockResolvedValue({
+      id: "bk-1",
+      status: "BOOKED",
+    });
+    await expect(buy()).rejects.toThrow("ya tienes una reserva");
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("crea Payment WORKSHOP: refId wks_, unit economics, SIN fee (param legacy inerte)", async () => {
+    // Defensivo: el param legacy service_fee.membership_clp no aplica a
+    // órdenes de academia (spec academy-saas-billing).
+    pf.numbers.set("service_fee.membership_clp", 500);
+    const res = await buy();
+    const p = fx.payments[0];
+    expect(p.orderType).toBe("WORKSHOP");
+    expect(p.quantity).toBe(1);
+    expect(p.unitListPrice).toBe(9000);
+    expect(p.unitServiceFee).toBe(0);
+    expect(p.amount).toBe(9000);
+    expect(p.amount).toBe(res.quote.total);
+    expect(res.quote.listPrice).toBe(9000);
+    expect(res.paymentUrl).toContain("pay.example");
+    const ref = decodeClassRef(p.refId as string);
+    expect(ref?.classId).toBe("cls-1");
+  });
+
+  it("classQuote: desglose sin fee + spotsLeft + alreadyBooked sin crear orden", async () => {
+    fx.prisma.classBooking.count.mockResolvedValue(3);
+    const q = await svc.classQuote("per-1", "cls-1");
+    expect(q.listPrice).toBe(9000);
+    expect(q.serviceFee).toBe(0);
+    expect(q.total).toBe(9000);
+    expect(q.spotsLeft).toBe(7);
+    expect(q.alreadyBooked).toBe(false);
+    expect(fx.payments).toHaveLength(0);
+  });
+});
+
+describe("CheckoutService private-class (clase particular comprable)", () => {
+  let fx: ReturnType<typeof mkPrisma>;
+  let pf: ReturnType<typeof mkParams>;
+  let gw: ReturnType<typeof mkGateway>;
+  let svc: CheckoutService;
+
+  const mkAcademy = (over: Record<string, unknown> = {}) => ({
+    id: "ac-1",
+    name: "Mambo Madness",
+    active: true,
+    privateLessonPrice: 40000,
+    billingBlockedAt: null,
+    ...over,
+  });
+
+  beforeEach(() => {
+    fx = mkPrisma();
+    pf = mkParams();
+    gw = mkGateway();
+    fx.prisma.academy.findUnique.mockResolvedValue(mkAcademy());
+    svc = new CheckoutService(
+      fx.prisma as unknown as PrismaService,
+      gw.gateway,
+      new PricingService(),
+      pf.params as unknown as ParamsService,
+    );
+  });
+
+  it("quote: desglose SIN fee (param legacy inerte), sin crear orden", async () => {
+    pf.numbers.set("service_fee.membership_clp", 500);
+    const q = await svc.privateClassQuote("per-1", "ac-1");
+    expect(q.listPrice).toBe(40000);
+    expect(q.serviceFee).toBe(0);
+    expect(q.total).toBe(40000);
+    expect(q.academy).toMatchObject({ id: "ac-1", name: "Mambo Madness" });
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("academia inexistente → AcademyNotFoundError", async () => {
+    fx.prisma.academy.findUnique.mockResolvedValue(null);
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "nope" }),
+    ).rejects.toBeInstanceOf(AcademyNotFoundError);
+  });
+
+  it("academia inactiva o sin privateLessonPrice → PrivateClassNotPurchasableError", async () => {
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ active: false }),
+    );
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "ac-1" }),
+    ).rejects.toBeInstanceOf(PrivateClassNotPurchasableError);
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ privateLessonPrice: null }),
+    );
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "ac-1" }),
+    ).rejects.toBeInstanceOf(PrivateClassNotPurchasableError);
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ privateLessonPrice: 0 }),
+    );
+    await expect(
+      svc.privateClassQuote("per-1", "ac-1"),
+    ).rejects.toBeInstanceOf(PrivateClassNotPurchasableError);
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("academia bloqueada por mora → AcademyUnavailableError en quote y compra (S3)", async () => {
+    fx.prisma.academy.findUnique.mockResolvedValue(
+      mkAcademy({ billingBlockedAt: new Date() }),
+    );
+    await expect(
+      svc.purchasePrivateClass("per-1", { academyId: "ac-1" }),
+    ).rejects.toBeInstanceOf(AcademyUnavailableError);
+    await expect(
+      svc.privateClassQuote("per-1", "ac-1"),
+    ).rejects.toBeInstanceOf(AcademyUnavailableError);
+    expect(fx.payments).toHaveLength(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+  });
+
+  it("crea Payment PRIVATE: refId pvt_<academyId>_, unit economics SIN fee, orden a la pasarela", async () => {
+    pf.numbers.set("service_fee.membership_clp", 500);
+    const res = await svc.purchasePrivateClass("per-1", {
+      academyId: "ac-1",
+    });
+    const p = fx.payments[0]!;
+    expect(p.orderType).toBe("PRIVATE");
+    expect(p.unitListPrice).toBe(40000);
+    expect(p.unitServiceFee).toBe(0);
+    expect(p.amount).toBe(40000);
+    expect(p.quantity).toBe(1);
+    expect(res.paymentUrl).toContain("pay.example");
+    expect(gw.createOrder).toHaveBeenCalledOnce();
+    expect(decodePrivateRef(p.refId as string)?.academyId).toBe("ac-1");
   });
 });

@@ -112,7 +112,7 @@ export function NotificationToast() {
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]"
+      className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-[calc(3.5rem+0.5rem+env(safe-area-inset-top))]"
     >
       <div
         className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-night-700 bg-night-900/95 p-4 shadow-2xl shadow-black/50 backdrop-blur transition-all duration-300 ease-out motion-reduce:transition-none ${

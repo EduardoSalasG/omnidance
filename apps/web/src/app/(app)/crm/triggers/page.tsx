@@ -11,6 +11,7 @@ import {
 } from "@/components/crm/crm-context";
 import { TriggerForm } from "@/components/crm/trigger-form";
 import { TriggerList } from "@/components/crm/trigger-list";
+import { ProPaywall } from "@/components/producer/pro-paywall";
 import type { CrmTrigger } from "@/components/crm/types";
 import { CRM_TRIGGER_KEYS, actorKey } from "@/components/crm/types";
 
@@ -32,7 +33,7 @@ export default function CrmTriggersPage() {
   const remaining = CRM_TRIGGER_KEYS.length - existingKeys.length;
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6 pb-24">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
       <h1 className="text-2xl font-bold">{t("triggers.title")}</h1>
       <CrmNav active="triggers" />
 
@@ -43,6 +44,10 @@ export default function CrmTriggersPage() {
           <ActorPicker ctx={ctx} />
           {!ctx.actor ? (
             <p className="text-white/60">{t("pickActor")}</p>
+          ) : ctx.proBlocked ? (
+            // El CRM del productor es feature Producer Pro — el API
+            // responde 403 pro.required en todos sus endpoints.
+            <ProPaywall />
           ) : (
             <>
               <div className="flex items-center justify-end gap-3">

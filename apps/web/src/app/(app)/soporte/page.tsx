@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, ChevronLeftIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
+import { Spinner } from "@/components/ui/spinner";
 import type {
   PaymentStatus,
   RoleStatus,
@@ -220,7 +222,7 @@ export default function SoportePage() {
 
   if (gate === "forbidden") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="py-6 text-center">
           <p className="text-sm text-white/70">{t("forbidden")}</p>
         </Card>
@@ -231,7 +233,7 @@ export default function SoportePage() {
   const trimmed = query.trim();
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       {/* Buscador */}
       <section aria-label={t("search")} className="flex flex-col gap-3">
         <input
@@ -245,11 +247,7 @@ export default function SoportePage() {
         {trimmed.length > 0 && trimmed.length < MIN_CHARS && (
           <p className="text-sm text-white/50">{t("minChars")}</p>
         )}
-        {searching && (
-          <p role="status" className="text-sm text-white/50">
-            {tc("loading")}
-          </p>
-        )}
+        {searching && <Spinner size="sm" className="page-loading" />}
         {searchErr && (
           <p role="alert" className="text-sm text-red-400">
             {t("searchError")}
@@ -271,14 +269,10 @@ export default function SoportePage() {
             onClick={closeDetail}
             className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
-            <span aria-hidden="true">‹</span> {t("backToResults")}
+            <ChevronLeftIcon /> {t("backToResults")}
           </button>
 
-          {detailPhase === "loading" && (
-            <p role="status" className="text-sm text-white/50">
-              {tc("loading")}
-            </p>
-          )}
+          {detailPhase === "loading" && <SkeletonList />}
           {detailPhase === "error" && (
             <Card className="flex flex-col items-center gap-3 py-6 text-center">
               <p role="alert" className="text-sm text-white/70">

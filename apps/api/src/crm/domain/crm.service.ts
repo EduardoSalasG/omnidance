@@ -1,6 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { randomBytes } from "crypto";
-import type { Campaign, CrmTrigger, Prisma } from "@prisma/client";
+import type {
+  Campaign,
+  CrmTrigger,
+  EnrollmentStatus,
+  Prisma,
+} from "@prisma/client";
+import { ENROLLMENT_STATUSES } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { ParamsService } from "../../params/params.service";
@@ -30,11 +36,16 @@ export class CrmDomainError extends Error {
   }
 }
 
-/** Segmento de campaña — los criterios presentes se unen (OR lógico). */
+/** Segmento de campaña — los criterios presentes se unen (OR lógico).
+ *  allStudents/enrollmentStatus/planId/seriesId solo valen para ACADEMY. */
 export interface CampaignSegment {
   tags?: string[];
   segment?: string;
   personIds?: string[];
+  allStudents?: boolean;
+  enrollmentStatus?: string[];
+  planId?: string;
+  seriesId?: string;
 }
 
 export type CampaignAction =
@@ -342,14 +353,14 @@ export class CrmService {
 
   // ═══════════════════ CAMPAIGNS ═══════════════════
 
-  createCampaign(
+  async createCampaign(
     actorType: string,
     actorId: string,
     name: string,
     segment: unknown,
     action: unknown,
   ) {
-    const parsedSegment = this.parseSegment(segment);
+    const parsedSegment = await this.parseSegment(segment, actorType, actorId);
     const parsedAction = this.parseAction(action);
     return this.prisma.campaign.create({
       data: {
@@ -389,7 +400,11 @@ export class CrmService {
       throw new CrmDomainError("CONFLICT", "la campaña ya fue enviada");
     }
 
-    const segment = this.parseSegment(campaign.segment);
+    const segment = await this.parseSegment(
+      campaign.segment,
+      campaign.actorType,
+      campaign.actorId,
+    );
     const action = this.parseAction(campaign.action);
     const personIds = await this.resolveSegment(
       campaign.actorType,
@@ -437,7 +452,43 @@ export class CrmService {
     actorId: string,
     segment: CampaignSegment,
   ): Promise<string[]> {
-    const ids = new Set<string>(segment.personIds ?? []);
+    const ids = new Set<string>();
+
+    // personIds solo alcanza dentro del universo del actor (score ∪ tag;
+    // ACADEMY además enrollment ∪ booking) — un id ajeno se descarta sin
+    // error. Sin esto, cualquier personId conocido era notificable.
+    if (segment.personIds?.length) {
+      const universeQueries: Promise<Array<{ personId: string }>>[] = [
+        this.prisma.relationshipScore.findMany({
+          where: { actorType, actorId },
+          select: { personId: true },
+        }),
+        this.prisma.actorTag.findMany({
+          where: { actorType, actorId },
+          select: { personId: true },
+        }),
+      ];
+      if (actorType === "ACADEMY") {
+        universeQueries.push(
+          this.prisma.enrollment.findMany({
+            where: { academyId: actorId },
+            select: { personId: true },
+          }),
+          this.prisma.classBooking.findMany({
+            where: { class: { slot: { academyId: actorId } } },
+            select: { personId: true },
+          }),
+        );
+      }
+      const universe = new Set(
+        (await Promise.all(universeQueries))
+          .flat()
+          .map((r) => r.personId),
+      );
+      for (const id of segment.personIds) {
+        if (universe.has(id)) ids.add(id);
+      }
+    }
 
     if (segment.tags?.length) {
       const tags = await this.prisma.actorTag.findMany({
@@ -455,7 +506,68 @@ export class CrmService {
       for (const s of scores) ids.add(s.personId);
     }
 
+    // Criterios de academia (OR entre sí y con el resto) — parseSegment
+    // garantiza que solo llegan con actorType ACADEMY.
+    const academyQueries: Promise<Array<{ personId: string }>>[] = [];
+    if (segment.allStudents) {
+      academyQueries.push(
+        this.prisma.enrollment.findMany({
+          where: { academyId: actorId },
+          select: { personId: true },
+        }),
+      );
+    }
+    if (segment.enrollmentStatus?.length) {
+      academyQueries.push(
+        this.prisma.enrollment.findMany({
+          where: {
+            academyId: actorId,
+            status: { in: segment.enrollmentStatus as EnrollmentStatus[] },
+          },
+          select: { personId: true },
+        }),
+      );
+    }
+    if (segment.planId) {
+      academyQueries.push(
+        this.prisma.enrollment.findMany({
+          where: { academyId: actorId, planId: segment.planId },
+          select: { personId: true },
+        }),
+      );
+    }
+    if (segment.seriesId) {
+      academyQueries.push(
+        this.prisma.classBooking.findMany({
+          where: {
+            status: { not: "CANCELLED" },
+            class: {
+              slot: { seriesId: segment.seriesId, academyId: actorId },
+            },
+          },
+          select: { personId: true },
+        }),
+      );
+    }
+    for (const rows of await Promise.all(academyQueries)) {
+      for (const r of rows) ids.add(r.personId);
+    }
+
     return [...ids];
+  }
+
+  /**
+   * Preview de audiencia: resuelve el segmento a un conteo sin crear
+   * campaña ni notificar (lo usa el form de campañas en vivo).
+   */
+  async previewCampaign(
+    actorType: string,
+    actorId: string,
+    segment: unknown,
+  ): Promise<{ count: number }> {
+    const parsed = await this.parseSegment(segment, actorType, actorId);
+    const resolved = await this.resolveSegment(actorType, actorId, parsed);
+    return { count: resolved.length };
   }
 
   private async createCampaignCode(
@@ -477,7 +589,11 @@ export class CrmService {
     return created.code;
   }
 
-  private parseSegment(raw: unknown): CampaignSegment {
+  private async parseSegment(
+    raw: unknown,
+    actorType: string,
+    actorId: string,
+  ): Promise<CampaignSegment> {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       throw new CrmDomainError("BAD_REQUEST", "segment debe ser un objeto");
     }
@@ -494,10 +610,83 @@ export class CrmService {
     if (s.segment !== undefined && typeof s.segment !== "string") {
       throw new CrmDomainError("BAD_REQUEST", "segment.segment debe ser string");
     }
+    if (s.allStudents !== undefined && typeof s.allStudents !== "boolean") {
+      throw new CrmDomainError(
+        "BAD_REQUEST",
+        "segment.allStudents debe ser boolean",
+      );
+    }
+    if (s.enrollmentStatus !== undefined) {
+      if (!this.isStringArray(s.enrollmentStatus)) {
+        throw new CrmDomainError(
+          "BAD_REQUEST",
+          "segment.enrollmentStatus debe ser string[]",
+        );
+      }
+      for (const st of s.enrollmentStatus) {
+        if (!(ENROLLMENT_STATUSES as readonly string[]).includes(st)) {
+          throw new CrmDomainError(
+            "BAD_REQUEST",
+            `enrollmentStatus inválido: ${st}`,
+          );
+        }
+      }
+    }
+    if (s.planId !== undefined && typeof s.planId !== "string") {
+      throw new CrmDomainError("BAD_REQUEST", "segment.planId debe ser string");
+    }
+    if (s.seriesId !== undefined && typeof s.seriesId !== "string") {
+      throw new CrmDomainError(
+        "BAD_REQUEST",
+        "segment.seriesId debe ser string",
+      );
+    }
+
+    // Los criterios de alumnos solo aplican a academias — el resto → 400.
+    const hasAcademyCriteria =
+      s.allStudents !== undefined ||
+      s.enrollmentStatus !== undefined ||
+      s.planId !== undefined ||
+      s.seriesId !== undefined;
+    if (hasAcademyCriteria && actorType !== "ACADEMY") {
+      throw new CrmDomainError(
+        "BAD_REQUEST",
+        "los criterios de alumnos solo aplican a actorType ACADEMY",
+      );
+    }
+    if (s.planId) {
+      const plan = await this.prisma.membershipPlan.findFirst({
+        where: { id: s.planId, academyId: actorId },
+        select: { id: true },
+      });
+      if (!plan) {
+        throw new CrmDomainError(
+          "BAD_REQUEST",
+          "planId no pertenece a la academia",
+        );
+      }
+    }
+    if (s.seriesId) {
+      const series = await this.prisma.classSeries.findFirst({
+        where: { id: s.seriesId, academyId: actorId },
+        select: { id: true },
+      });
+      if (!series) {
+        throw new CrmDomainError(
+          "BAD_REQUEST",
+          "seriesId no pertenece a la academia",
+        );
+      }
+    }
+
     return {
       tags: s.tags,
       segment: s.segment,
       personIds: s.personIds,
+      allStudents: s.allStudents,
+      enrollmentStatus: s.enrollmentStatus,
+      planId: s.planId,
+      seriesId: s.seriesId,
     };
   }
 

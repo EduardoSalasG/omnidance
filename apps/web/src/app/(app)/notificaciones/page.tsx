@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { useMe } from "@/lib/me-context";
+import { useActiveRole } from "@/lib/active-role";
+import { useViewMode } from "@/lib/view-mode";
+import { notificationLens } from "@/lib/notification-lens";
+import { Badge, Button, Card, ChevronRightIcon } from "@/components/ui";
+import { RefreshIcon, SkeletonList } from "@/components/ui";
 
 type NotificationItem = {
   id: string;
@@ -13,6 +19,15 @@ type NotificationItem = {
   body?: string | null;
   readAt: string | null;
   createdAt: string;
+  /** Contexto estructurado del emisor (eventId, eventStartsAt, …). */
+  data?: {
+    eventId?: string | null;
+    eventName?: string | null;
+    eventStartsAt?: string | null;
+    seriesId?: string | null;
+    sessionId?: string | null;
+    [k: string]: unknown;
+  } | null;
 };
 
 type PageState = "loading" | "ready" | "unauth" | "error";
@@ -32,6 +47,56 @@ const dateFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
+// Meta de los cards con evento: "sáb 15 jun · 21:00".
+const eventDateFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
+/** Deep link por tipo — el tap marca leída y navega al contexto. */
+function hrefFor(n: NotificationItem): string | null {
+  const eventId =
+    typeof n.data?.eventId === "string" ? n.data.eventId : null;
+  const classId =
+    typeof n.data?.classId === "string" ? n.data.classId : null;
+  switch (n.type) {
+    case "payment.paid":
+      return "/eventos?view=mios";
+    case "ticket.gifted":
+    case "ticket.claimed":
+    case "waitlist.promoted":
+      return eventId ? `/eventos/${eventId}` : "/eventos";
+    case "payment.failed":
+      return eventId ? `/eventos/${eventId}` : null;
+    case "event.survey":
+      return eventId ? `/eventos/${eventId}/evaluar` : null;
+    case "session.invite":
+    case "session.confirmed":
+    case "session.declined":
+      return "/bailes";
+    case "friend.request":
+      return "/amigos";
+    // Particular del alumno (asignada, cancelada pagada, comprada) —
+    // vive dentro de reservadas de /clases (sin bandeja separada).
+    case "academy.private_lesson.assigned":
+    case "academy.private_lesson.cancelled_paid":
+    case "academy.private_lesson.purchased":
+      return "/clases?scope=reservadas";
+    case "class.waitlist.promoted":
+      return classId ? `/clases/${classId}` : "/clases";
+    case "class.series.resumed":
+      return "/clases";
+    default: {
+      // Fallback genérico: la API puede mandar el destino resuelto en
+      // data.path (p.ej. account.complete_profile → /perfil/completar).
+      const path = typeof n.data?.path === "string" ? n.data.path : null;
+      return path !== null && path.startsWith("/") ? path : null;
+    }
+  }
+}
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -51,12 +116,30 @@ function relativeTime(iso: string): string {
 export default function NotificacionesPage() {
   const t = useTranslations("notifications");
   const tc = useTranslations("common");
+  const router = useRouter();
   const [state, setState] = useState<PageState>("loading");
   const [items, setItems] = useState<NotificationItem[]>([]);
+  // Busy del "marcar todas" — deshabilita el botón mientras vuela.
+  const [markingAll, setMarkingAll] = useState(false);
+  // Lente: roles de /me (contexto compartido) + modo consumer — el
+  // centro filtra por dominio (social ↔ academia); lo transversal
+  // (account.*, crm.*) va en ambas.
+  const { me, loading: meLoading } = useMe();
+  const meRoles = me?.roles ?? null;
+  const activeRole = useActiveRole(meRoles);
+  const viewMode = useViewMode();
+  const lens: "social" | "academy" =
+    activeRole === "ACADEMY_OWNER" ||
+    activeRole === "INSTRUCTOR" ||
+    (activeRole === "DANCER" && viewMode === "academy")
+      ? "academy"
+      : "social";
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch("/notifications?limit=50");
+      // ?lens= delega el filtro al servidor — la lista ya viene acotada
+      // (el filter client-side queda como red de seguridad para "any").
+      const res = await apiFetch(`/notifications?limit=50&lens=${lens}`);
       if (res.status === 401) {
         setState("unauth");
         return;
@@ -65,42 +148,67 @@ export default function NotificacionesPage() {
         setState("error");
         return;
       }
-      setItems(parseNotifications(await res.json()));
+      const list = parseNotifications(await res.json());
+      setItems(list);
       setState("ready");
+      // Leer al entrar: todo queda leído en el servidor, pero la lista
+      // conserva el highlight de no-leída durante esta visita (ves qué
+      // llegó nuevo; a la próxima visita ya está todo leído).
+      if (list.some((n) => !n.readAt)) {
+        apiFetch("/notifications/read-all", { method: "POST" }).catch(
+          () => {},
+        );
+      }
     } catch {
       setState("error");
     }
-  }, []);
+  }, [lens]);
 
+  // El primer load espera a que /me resuelva: disparar con la lente por
+  // defecto y re-disparar al conocer los roles reemplazaba la lista
+  // entera (fetch doble + flash de notificaciones de otra lente).
   useEffect(() => {
+    if (meLoading) return;
     void load();
-  }, [load]);
+  }, [load, meLoading]);
 
   async function markRead(n: NotificationItem) {
-    if (n.readAt) return;
-    const now = new Date().toISOString();
-    // Optimista: marcar leída de inmediato
-    setItems((prev) =>
-      prev.map((it) => (it.id === n.id ? { ...it, readAt: now } : it)),
-    );
-    try {
-      await apiFetch(`/notifications/${n.id}/read`, { method: "POST" });
-    } catch {
-      // Si falla, el próximo load() restaura el estado real
+    if (!n.readAt) {
+      const now = new Date().toISOString();
+      // Optimista: marcar leída de inmediato
+      setItems((prev) =>
+        prev.map((it) => (it.id === n.id ? { ...it, readAt: now } : it)),
+      );
+      try {
+        await apiFetch(`/notifications/${n.id}/read`, { method: "POST" });
+      } catch {
+        // Si falla, el próximo load() restaura el estado real
+      }
     }
+    const href = hrefFor(n);
+    if (href) router.push(href);
   }
 
   async function markAll() {
+    if (markingAll) return;
+    setMarkingAll(true);
     const now = new Date().toISOString();
     setItems((prev) => prev.map((it) => ({ ...it, readAt: it.readAt ?? now })));
     try {
       await apiFetch("/notifications/read-all", { method: "POST" });
     } catch {
       void load();
+    } finally {
+      setMarkingAll(false);
     }
   }
 
-  const unreadCount = items.filter((it) => !it.readAt).length;
+  // Solo las notificaciones de la lente activa (transversales = "any").
+  const visible = items.filter((n) => {
+    const l = notificationLens(n.type);
+    return l === "any" || l === lens;
+  });
+  const unreadCount = visible.filter((it) => !it.readAt).length;
 
   if (state === "unauth") {
     return (
@@ -111,29 +219,44 @@ export default function NotificacionesPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
-      <header className="flex items-center justify-between gap-4">
-        {unreadCount > 0 && <Badge variant="neon">{unreadCount}</Badge>}
-        {unreadCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={markAll}>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
+      {/* Header solo cuando hay no-leídas — vacío reservaba una franja
+          muerta sobre la lista. */}
+      {unreadCount > 0 && (
+        <header className="flex items-center justify-between gap-4">
+          <Badge variant="neon">{unreadCount}</Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={markingAll}
+            onClick={markAll}
+          >
             {t("markAll")}
           </Button>
-        )}
-      </header>
-
-      {state === "loading" && (
-        <p role="status" className="text-white/50">
-          {tc("loading")}
-        </p>
+        </header>
       )}
+
+      {state === "loading" && <SkeletonList items={4} lines={1} />}
       {state === "error" && (
-        <p role="alert" className="text-white/50">
-          {tc("error")}
-        </p>
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-white/60">
+            {tc("error")}
+          </p>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setState("loading");
+              void load();
+            }}
+          >
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
       )}
 
       {state === "ready" &&
-        (items.length === 0 ? (
+        (visible.length === 0 ? (
           <Card className="py-12 text-center">
             <p role="status" className="text-white/60">
               {t("empty")}
@@ -141,8 +264,13 @@ export default function NotificacionesPage() {
           </Card>
         ) : (
           <ul className="flex flex-col gap-3">
-            {items.map((n) => {
+            {visible.map((n) => {
               const unread = !n.readAt;
+              const href = hrefFor(n);
+              const eventAt =
+                typeof n.data?.eventStartsAt === "string"
+                  ? n.data.eventStartsAt
+                  : null;
               return (
                 <li key={n.id}>
                   <button
@@ -176,10 +304,18 @@ export default function NotificacionesPage() {
                           {n.body}
                         </span>
                       )}
+                      {eventAt && (
+                        <span className="mt-0.5 block text-xs font-medium text-neon/80">
+                          {eventDateFmt.format(new Date(eventAt))}
+                        </span>
+                      )}
                       <span className="mt-1 block text-xs text-white/50">
                         {relativeTime(n.createdAt)}
                       </span>
                     </span>
+                    {href && (
+                      <ChevronRightIcon className="mt-0.5 h-5 w-5 shrink-0 self-center text-white/30" />
+                    )}
                   </button>
                 </li>
               );

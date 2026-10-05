@@ -136,6 +136,228 @@
             "description": ""
           }
         }
+      },
+      "patch": {
+        "operationId": "PeopleController_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/pending-surveys": {
+      "get": {
+        "operationId": "PeopleController_pendingSurveys",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/style-roles": {
+      "put": {
+        "operationId": "PeopleController_updateStyleRoles",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStyleRolesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/consent": {
+      "post": {
+        "operationId": "PeopleController_consent",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/onboarding": {
+      "post": {
+        "operationId": "PeopleController_completeOnboarding",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/complete-profile": {
+      "post": {
+        "operationId": "PeopleController_completeProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "unread",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lens",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/notifications/read-all": {
+      "post": {
+        "operationId": "NotificationsController_readAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "post": {
+        "operationId": "NotificationsController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/push-tokens": {
+      "post": {
+        "operationId": "PushTokensController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/push-tokens/{token}": {
+      "delete": {
+        "operationId": "PushTokensController_remove",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
       }
     },
     "/api/qr/mine": {
@@ -194,7 +416,16 @@
     "/api/gamification/me/streak": {
       "get": {
         "operationId": "GamificationController_streak",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "mode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -336,10 +567,167 @@
         }
       }
     },
+    "/api/events/{id}/live": {
+      "get": {
+        "operationId": "EventsController_live",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/export.csv": {
+      "get": {
+        "operationId": "EventsController_exportCsv",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/export.pdf": {
+      "get": {
+        "operationId": "EventsController_exportPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/series/{seriesId}/export.csv": {
+      "get": {
+        "operationId": "EventsController_exportSeriesCsv",
+        "parameters": [
+          {
+            "name": "seriesId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/series/{seriesId}/export.pdf": {
+      "get": {
+        "operationId": "EventsController_exportSeriesPdf",
+        "parameters": [
+          {
+            "name": "seriesId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dataset",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events": {
       "get": {
         "operationId": "EventsController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "genre",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "venue",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "week",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -407,6 +795,26 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/friends-going": {
+      "get": {
+        "operationId": "EventsController_friendsGoing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -552,10 +960,60 @@
         }
       }
     },
+    "/api/events/{id}/analytics": {
+      "get": {
+        "operationId": "EventAnalyticsController_analytics",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/producer/fee-params": {
       "get": {
         "operationId": "ProducerController_feeParams",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/table-params": {
+      "get": {
+        "operationId": "ProducerController_getTableParams",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "ProducerController_setTableParams",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProducerTableParamsDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -741,54 +1199,12 @@
         }
       }
     },
-    "/api/sessions/invite": {
-      "post": {
-        "operationId": "SessionsController_invite",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InviteDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/sessions/declare": {
-      "post": {
-        "operationId": "SessionsController_declare",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeclareDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/sessions/{id}/confirm": {
-      "post": {
-        "operationId": "SessionsController_confirm",
+    "/api/dj/gigs/{eventId}/rating": {
+      "get": {
+        "operationId": "DjController_rating",
         "parameters": [
           {
-            "name": "id",
+            "name": "eventId",
             "required": true,
             "in": "path",
             "schema": {
@@ -803,21 +1219,22 @@
         }
       }
     },
-    "/api/sessions/{id}/decline": {
+    "/api/sessions/scan": {
       "post": {
-        "operationId": "SessionsController_decline",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
+        "operationId": "SessionsController_scan",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanDto"
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "200": {
+          "201": {
             "description": ""
           }
         }
@@ -886,106 +1303,6 @@
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/notifications": {
-      "get": {
-        "operationId": "NotificationsController_list",
-        "parameters": [
-          {
-            "name": "unread",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/notifications/read-all": {
-      "post": {
-        "operationId": "NotificationsController_readAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/notifications/{id}/read": {
-      "post": {
-        "operationId": "NotificationsController_read",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/push-tokens": {
-      "post": {
-        "operationId": "PushTokensController_register",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterPushTokenDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/push-tokens/{token}": {
-      "delete": {
-        "operationId": "PushTokensController_remove",
-        "parameters": [
-          {
-            "name": "token",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": ""
@@ -1147,6 +1464,34 @@
         }
       }
     },
+    "/api/checkout/discount-quote": {
+      "get": {
+        "operationId": "CheckoutController_discountQuote",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/checkout/series-pass": {
       "post": {
         "operationId": "CheckoutController_seriesPass",
@@ -1163,6 +1508,188 @@
         },
         "responses": {
           "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/membership-quote": {
+      "get": {
+        "operationId": "CheckoutController_membershipQuote",
+        "parameters": [
+          {
+            "name": "planId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/membership": {
+      "post": {
+        "operationId": "CheckoutController_membership",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/class-quote": {
+      "get": {
+        "operationId": "CheckoutController_classQuote",
+        "parameters": [
+          {
+            "name": "classId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/class": {
+      "post": {
+        "operationId": "CheckoutController_class",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutClassDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/private-class-quote": {
+      "get": {
+        "operationId": "CheckoutController_privateClassQuote",
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/private-class": {
+      "post": {
+        "operationId": "CheckoutController_privateClass",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutPrivateClassDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/checkout/membership-subscription": {
+      "post": {
+        "operationId": "CheckoutController_membershipSubscription",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutMembershipSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/tickets/claim/{token}": {
+      "get": {
+        "operationId": "TicketsController_claimInfo",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "TicketsController_claim",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         }
@@ -1230,9 +1757,163 @@
         }
       }
     },
+    "/api/payments/flow/customer-return": {
+      "post": {
+        "operationId": "PaymentsController_customerReturn",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/flow/platform-customer-return": {
+      "post": {
+        "operationId": "PaymentsController_platformCustomerReturn",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/subscription-webhook": {
+      "post": {
+        "operationId": "PaymentsController_subscriptionWebhook",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlowTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/mine": {
+      "get": {
+        "operationId": "PaymentsController_myPayments",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/by-event/{eventId}": {
+      "get": {
+        "operationId": "PaymentsController_paymentsByEvent",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/by-academy/{academyId}": {
+      "get": {
+        "operationId": "PaymentsController_paymentsByAcademy",
+        "parameters": [
+          {
+            "name": "academyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/events": {
+      "get": {
+        "operationId": "PaymentsController_paymentEvents",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/payments/{id}": {
       "get": {
         "operationId": "PaymentsController_getPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/tickets": {
+      "get": {
+        "operationId": "PaymentsController_paymentTickets",
         "parameters": [
           {
             "name": "id",
@@ -1343,6 +2024,127 @@
         }
       }
     },
+    "/api/subscriptions/mine": {
+      "get": {
+        "operationId": "SubscriptionsController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/subscriptions/{id}": {
+      "get": {
+        "operationId": "SubscriptionsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/subscriptions/{id}/cancel": {
+      "post": {
+        "operationId": "SubscriptionsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producers/{id}/pro/subscribe": {
+      "post": {
+        "operationId": "ProducerProController_subscribe",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeProducerProDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producers/{id}/pro/cancel": {
+      "post": {
+        "operationId": "ProducerProController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producers/{id}/pro": {
+      "get": {
+        "operationId": "ProducerProController_view",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/discount-codes": {
       "post": {
         "operationId": "DiscountsController_create",
@@ -1403,105 +2205,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/rsvp": {
-      "put": {
-        "operationId": "RsvpController_set",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetRsvpDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      },
-      "delete": {
-        "operationId": "RsvpController_remove",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/rsvps": {
-      "get": {
-        "operationId": "RsvpController_counts",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/events/{eventId}/attendees": {
-      "get": {
-        "operationId": "RsvpController_attendees",
-        "parameters": [
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/me/rsvp": {
-      "get": {
-        "operationId": "MeRsvpController_mine",
-        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -1705,6 +2408,55 @@
         }
       }
     },
+    "/api/practices/mine": {
+      "get": {
+        "operationId": "PracticesController_mine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/practices/{id}/rsvp": {
+      "get": {
+        "operationId": "PracticesController_myRsvp",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "PracticesController_rsvp",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/styles": {
       "get": {
         "operationId": "StylesController_list",
@@ -1729,93 +2481,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/trips": {
-      "post": {
-        "operationId": "TripsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTripDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/trips/mine": {
-      "get": {
-        "operationId": "TripsController_mine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/trips/matches": {
-      "get": {
-        "operationId": "TripsController_matches",
-        "parameters": [
-          {
-            "name": "destination",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "eventId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/venues": {
-      "get": {
-        "operationId": "VenuesController_list",
-        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -1892,28 +2557,9 @@
         }
       }
     },
-    "/api/partner-requests": {
-      "post": {
-        "operationId": "PartnerRequestsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePartnerRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
+    "/api/venues": {
       "get": {
-        "operationId": "PartnerRequestsController_feed",
+        "operationId": "VenuesController_list",
         "parameters": [],
         "responses": {
           "200": {
@@ -1922,9 +2568,9 @@
         }
       }
     },
-    "/api/partner-requests/{id}/close": {
-      "post": {
-        "operationId": "PartnerRequestsController_close",
+    "/api/venues/{id}": {
+      "get": {
+        "operationId": "VenuesController_detail",
         "parameters": [
           {
             "name": "id",
@@ -1933,83 +2579,11 @@
             "schema": {
               "type": "string"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/availability": {
-      "post": {
-        "operationId": "AvailabilityController_set",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetAvailabilityDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
-      "get": {
-        "operationId": "AvailabilityController_feed",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/blocks": {
-      "post": {
-        "operationId": "BlocksController_block",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BlockDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
-      "get": {
-        "operationId": "BlocksController_mine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/blocks/{personId}": {
-      "delete": {
-        "operationId": "BlocksController_unblock",
-        "parameters": [
+          },
           {
-            "name": "personId",
+            "name": "days",
             "required": true,
-            "in": "path",
+            "in": "query",
             "schema": {
               "type": "string"
             }
@@ -2112,6 +2686,17 @@
         }
       }
     },
+    "/api/friends/upcoming-events": {
+      "get": {
+        "operationId": "FriendsController_upcomingEvents",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/people/search": {
       "get": {
         "operationId": "PeopleController_search",
@@ -2204,9 +2789,40 @@
         }
       }
     },
+    "/api/academies/enrolled": {
+      "get": {
+        "operationId": "AcademiesController_enrolled",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/academies/{id}": {
       "get": {
         "operationId": "AcademiesController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/profile": {
+      "get": {
+        "operationId": "AcademiesController_profile",
         "parameters": [
           {
             "name": "id",
@@ -2243,6 +2859,44 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UpdateAcademySettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/instructors/{personId}": {
+      "patch": {
+        "operationId": "AcademiesController_updateInstructor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstructorDto"
               }
             }
           }
@@ -2295,6 +2949,44 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/plans/{planId}": {
+      "patch": {
+        "operationId": "AcademiesController_updatePlan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "planId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -2381,34 +3073,6 @@
       }
     },
     "/api/academies/{id}/slots": {
-      "post": {
-        "operationId": "AcademiesController_createSlot",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSlotDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
       "get": {
         "operationId": "AcademiesController_listSlots",
         "parameters": [
@@ -2431,6 +3095,106 @@
     "/api/academies/{id}/dashboard": {
       "get": {
         "operationId": "AcademiesController_dashboard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/subscribe": {
+      "post": {
+        "operationId": "AcademyBillingController_subscribe",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeAcademyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/subscription": {
+      "patch": {
+        "operationId": "AcademyBillingController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAcademySubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/subscription/cancel": {
+      "post": {
+        "operationId": "AcademyBillingController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/billing": {
+      "get": {
+        "operationId": "AcademyBillingController_billing",
         "parameters": [
           {
             "name": "id",
@@ -2596,6 +3360,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "scope",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2608,7 +3380,16 @@
     "/api/classes/mine": {
       "get": {
         "operationId": "ClassesController_mine",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "scope",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -2620,6 +3401,26 @@
       "get": {
         "operationId": "ClassesController_teaching",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/classes/{id}": {
+      "get": {
+        "operationId": "ClassesController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -2885,6 +3686,24 @@
       }
     },
     "/api/private-lessons/{id}": {
+      "get": {
+        "operationId": "PrivateLessonsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
       "patch": {
         "operationId": "PrivateLessonsController_act",
         "parameters": [
@@ -2976,57 +3795,6 @@
           },
           {
             "name": "videoId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/admin/role-requests": {
-      "get": {
-        "operationId": "AdminController_listRoleRequests",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/admin/role-requests/{personRoleId}/approve": {
-      "post": {
-        "operationId": "AdminController_approve",
-        "parameters": [
-          {
-            "name": "personRoleId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/admin/role-requests/{personRoleId}/reject": {
-      "post": {
-        "operationId": "AdminController_reject",
-        "parameters": [
-          {
-            "name": "personRoleId",
             "required": true,
             "in": "path",
             "schema": {
@@ -3190,6 +3958,26 @@
         }
       }
     },
+    "/api/admin/leads/{id}/convert": {
+      "post": {
+        "operationId": "AdminController_convertLead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/admin/audit": {
       "get": {
         "operationId": "AdminController_auditLog",
@@ -3198,6 +3986,46 @@
             "name": "limit",
             "required": true,
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/browse/{entity}": {
+      "get": {
+        "operationId": "BrowseController_browse",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/payments/{id}/verify-chain": {
+      "get": {
+        "operationId": "BrowseController_verifyChain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -3503,38 +4331,6 @@
         }
       }
     },
-    "/api/roles/catalog": {
-      "get": {
-        "operationId": "RolesController_catalog",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/roles/request": {
-      "post": {
-        "operationId": "RolesController_request",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestRoleDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/support/users": {
       "get": {
         "operationId": "SupportController_search",
@@ -3561,6 +4357,46 @@
         "parameters": [
           {
             "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/users/{personId}/detail": {
+      "get": {
+        "operationId": "UserIntelController_detail",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/users/{personId}/analytics": {
+      "get": {
+        "operationId": "UserIntelController_analytics",
+        "parameters": [
+          {
+            "name": "personId",
             "required": true,
             "in": "path",
             "schema": {
@@ -3671,6 +4507,27 @@
       "get": {
         "operationId": "CrmController_listCampaigns",
         "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/crm/campaigns/preview": {
+      "post": {
+        "operationId": "CrmController_previewCampaign",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewCampaignDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": ""
@@ -3831,6 +4688,37 @@
           }
         }
       }
+    },
+    "/api/leads": {
+      "post": {
+        "operationId": "LeadsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/leads/{id}/demo": {
+      "post": {
+        "operationId": "LeadsController_demo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
     }
   },
   "info": {
@@ -3866,6 +4754,30 @@
         "type": "object",
         "properties": {}
       },
+      "UpdateMeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateStyleRolesDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ConsentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "OnboardingDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CompleteProfileDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RegisterPushTokenDto": {
+        "type": "object",
+        "properties": {}
+      },
       "RecalcProgressDto": {
         "type": "object",
         "properties": {}
@@ -3886,6 +4798,10 @@
         "type": "object",
         "properties": {}
       },
+      "ProducerTableParamsDto": {
+        "type": "object",
+        "properties": {}
+      },
       "RequestReservationDto": {
         "type": "object",
         "properties": {}
@@ -3894,19 +4810,11 @@
         "type": "object",
         "properties": {}
       },
-      "InviteDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "DeclareDto": {
+      "ScanDto": {
         "type": "object",
         "properties": {}
       },
       "RateDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "RegisterPushTokenDto": {
         "type": "object",
         "properties": {}
       },
@@ -3934,11 +4842,31 @@
         "type": "object",
         "properties": {}
       },
+      "CheckoutMembershipDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CheckoutClassDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CheckoutPrivateClassDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CheckoutMembershipSubscriptionDto": {
+        "type": "object",
+        "properties": {}
+      },
       "TransferTicketDto": {
         "type": "object",
         "properties": {}
       },
       "WebhookDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "FlowTokenDto": {
         "type": "object",
         "properties": {}
       },
@@ -3950,11 +4878,11 @@
         "type": "object",
         "properties": {}
       },
-      "CreateDiscountCodeDto": {
+      "SubscribeProducerProDto": {
         "type": "object",
         "properties": {}
       },
-      "SetRsvpDto": {
+      "CreateDiscountCodeDto": {
         "type": "object",
         "properties": {}
       },
@@ -3970,23 +4898,7 @@
         "type": "object",
         "properties": {}
       },
-      "CreateTripDto": {
-        "type": "object",
-        "properties": {}
-      },
       "SetRentalStatusDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreatePartnerRequestDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "SetAvailabilityDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "BlockDto": {
         "type": "object",
         "properties": {}
       },
@@ -4002,7 +4914,15 @@
         "type": "object",
         "properties": {}
       },
+      "UpdateInstructorDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CreatePlanDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdatePlanDto": {
         "type": "object",
         "properties": {}
       },
@@ -4010,7 +4930,11 @@
         "type": "object",
         "properties": {}
       },
-      "CreateSlotDto": {
+      "SubscribeAcademyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateAcademySubscriptionDto": {
         "type": "object",
         "properties": {}
       },
@@ -4074,10 +4998,6 @@
         "type": "object",
         "properties": {}
       },
-      "RequestRoleDto": {
-        "type": "object",
-        "properties": {}
-      },
       "CreateTagDto": {
         "type": "object",
         "properties": {}
@@ -4087,6 +5007,10 @@
         "properties": {}
       },
       "CreateCampaignDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PreviewCampaignDto": {
         "type": "object",
         "properties": {}
       },

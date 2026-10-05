@@ -11,3 +11,6 @@ coverage/
 prisma/migrations/dev*
 *.tsbuildinfo
 next-env.d.ts
+.impeccable/
+.superpowers/
+.openspec-archive.lock

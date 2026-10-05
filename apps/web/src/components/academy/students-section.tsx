@@ -4,15 +4,31 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate, type BadgeVariant } from "@/components/ui";
+import { Badge, Button, Card, EventDate, type BadgeVariant, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import {
   ENROLLMENT_STATUSES,
   inputCls,
+  planDateFmt,
   readError,
   type EnrollmentStatus,
   type MembershipPlan,
   type Student,
 } from "./shared";
+
+// <input type="date"> trabaja en fecha local YYYY-MM-DD; endsAt llega ISO.
+const toDateInput = (iso: string) => {
+  const d = new Date(iso);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+};
+
+// Un "YYYY-MM-DD" del input se manda como mediodía local — si se envía
+// crudo el server lo parsea como medianoche UTC y el día se corre en
+// zonas negativas (CLT = UTC-3/-4).
+const fromDateInput = (v: string) =>
+  new Date(`${v}T12:00:00`).toISOString();
 
 type Props = {
   academyId: string;
@@ -55,6 +71,7 @@ export function StudentsSection({
   const [planId, setPlanId] = useState("");
   const [status, setStatus] = useState<EnrollmentStatus>("ACTIVE");
   const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -110,6 +127,43 @@ export function StudentsSection({
     }
   }
 
+  /** Renovar/corregir "pagado hasta" — PATCH con el status actual
+      (mismo status es transición idempotente; el DTO lo exige). */
+  async function changeEndsAt(s: Student, value: string) {
+    setPatching(s.id);
+    setRowErrors((prev) => {
+      const copy = { ...prev };
+      delete copy[s.id];
+      return copy;
+    });
+    try {
+      const res = await apiFetch(`/enrollments/${s.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: s.status,
+          endsAt: value ? fromDateInput(value) : null,
+        }),
+      });
+      if (!res.ok) {
+        const msg = (await readError(res)) ?? tc("error");
+        setRowErrors((prev) => ({ ...prev, [s.id]: msg }));
+        return;
+      }
+      const updated = (await res.json()) as { endsAt: string | null };
+      setStudents((prev) =>
+        prev.map((x) =>
+          x.id === s.id ? { ...x, endsAt: updated.endsAt } : x,
+        ),
+      );
+      await onChanged();
+    } catch {
+      setRowErrors((prev) => ({ ...prev, [s.id]: tc("error") }));
+    } finally {
+      setPatching(null);
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -122,7 +176,8 @@ export function StudentsSection({
           personId: personId.trim(),
           planId,
           status,
-          ...(startsAt ? { startsAt } : {}),
+          ...(startsAt ? { startsAt: fromDateInput(startsAt) } : {}),
+          ...(endsAt ? { endsAt: fromDateInput(endsAt) } : {}),
         }),
       });
       if (!res.ok) {
@@ -131,6 +186,7 @@ export function StudentsSection({
       }
       setPersonId("");
       setStartsAt("");
+      setEndsAt("");
       await Promise.all([load(), onChanged()]);
     } catch {
       setFormError(tc("error"));
@@ -142,16 +198,14 @@ export function StudentsSection({
   return (
     <div className="flex flex-col gap-4">
       {loading ? (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
+        <SkeletonList items={3} lines={1} />
       ) : error ? (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-white/60">
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       ) : students.length === 0 ? (
@@ -181,6 +235,28 @@ export function StudentsSection({
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-white/50">
                   <span className="truncate">{s.plan?.name ?? "—"}</span>
                   {s.startsAt && <EventDate start={s.startsAt} />}
+                  {readOnly ? (
+                    s.endsAt && (
+                      <span>
+                        {tp("endsAt")}:{" "}
+                        {planDateFmt.format(new Date(s.endsAt))}
+                      </span>
+                    )
+                  ) : (
+                    <label className="flex items-center gap-1.5">
+                      <span>{tp("endsAt")}</span>
+                      <input
+                        type="date"
+                        aria-label={`${tp("endsAt")} — ${s.person.name ?? s.person.email ?? s.person.id}`}
+                        className={`${inputCls} w-auto px-2 py-1`}
+                        value={s.endsAt ? toDateInput(s.endsAt) : ""}
+                        disabled={patching === s.id}
+                        onChange={(e) =>
+                          void changeEndsAt(s, e.target.value)
+                        }
+                      />
+                    </label>
+                  )}
                   {!readOnly && (
                   <select
                     aria-label={t("studentStatus", {
@@ -279,6 +355,15 @@ export function StudentsSection({
               type="date"
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-white/50">{tp("endsAt")}</span>
+            <input
+              className={inputCls}
+              type="date"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
             />
           </label>
           {formError && (

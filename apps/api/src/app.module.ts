@@ -1,5 +1,12 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import {
+  throttleGlobalLimit,
+  throttleSkipIf,
+  throttleTtlMs,
+} from "./common/throttle.config";
 import { PrismaModule } from "./prisma.module";
 import { HealthController } from "./health.controller";
 import { AuthModule } from "./auth/auth.module";
@@ -19,11 +26,25 @@ import { GamificationModule } from "./gamification/gamification.module";
 import { ParamsModule } from "./params/params.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { HomeModule } from "./home/home.module";
+import { LeadsModule } from "./leads/leads.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Carga .env del paquete primero (gana) y cae al .env raíz del
+    // monorepo para vars compartidas (RESEND_API_KEY, WEB_URL…).
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [".env", "../../.env"],
+    }),
     PrismaModule,
+    // Rate limit global por IP (spec api-hardening). Límites estrictos
+    // de auth van por @Throttle en el controller; health/@SkipThrottle.
+    ThrottlerModule.forRoot({
+      skipIf: throttleSkipIf,
+      throttlers: [
+        { ttl: () => throttleTtlMs(), limit: () => throttleGlobalLimit() },
+      ],
+    }),
     AuthModule,
     PeopleModule,
     QrModule,
@@ -41,7 +62,9 @@ import { HomeModule } from "./home/home.module";
     CrmModule,
     HomeModule,
     AnalyticsModule,
+    LeadsModule,
   ],
   controllers: [HealthController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

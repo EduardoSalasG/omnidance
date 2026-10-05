@@ -1,0 +1,27 @@
+# Compose de producción del API — se copia a /opt/apps/omnidance en la VM
+# por el workflow deploy-api-docker.yml. Las credenciales van en .env
+# junto a este archivo (DATABASE_URL, JWT_SECRET, QR_SECRET, CORS_ORIGINS,
+# WEB_URL, FLOW_*, RESEND_API_KEY, VAPID, etc.).
+services:
+  api:
+    image: ${API_IMAGE:-ghcr.io/eduardosalasg/omnidance-api:latest}
+    container_name: omnidance-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+    ports:
+      - "127.0.0.1:4000:4000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "--max-time", "3", "http://127.0.0.1:4000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

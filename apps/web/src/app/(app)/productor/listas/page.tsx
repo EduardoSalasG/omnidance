@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { useMe } from "@/lib/me-context";
+import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 
@@ -47,7 +49,9 @@ function GuestLists() {
   const tac = useTranslations("academy");
   const tc = useTranslations("common");
 
-  const [meId, setMeId] = useState("");
+  // ownerId del /me compartido (ProducerGate ya validó la sesión).
+  const { me } = useMe();
+  const meId = me?.id ?? "";
   const [events, setEvents] = useState<EventOption[] | null>(null);
 
   const [listEventId, setListEventId] = useState("");
@@ -85,15 +89,8 @@ function GuestLists() {
   }, []);
 
   const boot = useCallback(async () => {
-    // /me para ownerId de nuevas listas + eventos para el selector.
-    const [meRes, evRes] = await Promise.all([
-      apiFetch("/me"),
-      apiFetch("/events"),
-    ]);
-    if (meRes.ok) {
-      const me = (await meRes.json()) as { id: string };
-      setMeId(me.id);
-    }
+    // Eventos para el selector (/me ya viene del contexto compartido).
+    const evRes = await apiFetch("/events");
     if (evRes.ok) {
       const evs = (await evRes.json()) as EventOption[];
       setEvents(evs);
@@ -163,7 +160,7 @@ function GuestLists() {
 
       <section className="flex flex-col gap-4">
         {events === null ? (
-          <p className="text-white/60">{tc("loading")}</p>
+          <SkeletonList items={2} lines={1} />
         ) : events.length === 0 ? (
           <p className="text-white/60">{te("empty")}</p>
         ) : (
@@ -223,9 +220,7 @@ function GuestLists() {
               </Card>
             )}
 
-            {listsLoading && (
-              <p className="text-white/60">{tc("loading")}</p>
-            )}
+            {listsLoading && <SkeletonList items={2} lines={1} />}
             {listsError && (
               <div className="flex items-center gap-3">
                 <p className="text-sm text-red-400">{tc("error")}</p>
@@ -234,7 +229,7 @@ function GuestLists() {
                   variant="ghost"
                   onClick={() => void loadLists(listEventId)}
                 >
-                  ↻ {tc("retry")}
+                  <RefreshIcon /> {tc("retry")}
                 </Button>
               </div>
             )}
@@ -333,7 +328,7 @@ function GuestLists() {
 
 export default function ProducerListsPage() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <ProducerGate>
         <GuestLists />
       </ProducerGate>

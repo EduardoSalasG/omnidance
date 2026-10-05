@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, EventDate } from "@/components/ui";
+import { Button, Card, EventDate, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import {
   inputCls,
   readError,
@@ -66,7 +67,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
 
   function slotText(s: ClassSlot | undefined): string {
     if (!s) return "—";
-    return `${t(`weekday.${s.weekday}`)} ${s.startTime}–${s.endTime}`;
+    return `${s.series.name} · ${t(`weekday.${s.weekday}`)} ${s.startTime}–${s.endTime}`;
   }
 
   async function submit(e: React.FormEvent) {
@@ -163,16 +164,14 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
       </Card>
 
       {loading ? (
-        <p role="status" className="text-sm text-white/60">
-          {tc("loading")}
-        </p>
+        <SkeletonList items={2} lines={1} />
       ) : error ? (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-white/60">
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       ) : items.length === 0 ? (

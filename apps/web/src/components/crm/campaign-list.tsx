@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import type { CrmActor, CrmCampaign } from "./types";
 import { actorQuery } from "./types";
 
@@ -85,6 +86,20 @@ export function CampaignList({
 
   function audienceLabel(c: CrmCampaign): string {
     const parts: string[] = [];
+    if (c.segment?.allStudents) parts.push(t("campaigns.allStudents"));
+    if (c.segment?.enrollmentStatus?.length) {
+      parts.push(
+        c.segment.enrollmentStatus
+          .map((s) =>
+            t.has(`campaigns.enrollmentStatus.${s}`)
+              ? t(`campaigns.enrollmentStatus.${s}`)
+              : s,
+          )
+          .join(", "),
+      );
+    }
+    if (c.segment?.planId) parts.push(t("campaigns.byPlan"));
+    if (c.segment?.seriesId) parts.push(t("campaigns.bySeries"));
     if (c.segment?.segment) {
       parts.push(
         t.has(`segments.${c.segment.segment}`)
@@ -94,7 +109,9 @@ export function CampaignList({
     }
     if (c.segment?.tags?.length) parts.push(c.segment.tags.join(", "));
     if (c.segment?.personIds?.length) {
-      parts.push(`${c.segment.personIds.length} id`);
+      parts.push(
+        `${t("campaigns.pickPeople")} (${c.segment.personIds.length})`,
+      );
     }
     return parts.join(" + ") || t("campaigns.audienceAll");
   }
@@ -113,7 +130,7 @@ export function CampaignList({
   }
 
   if (items === null && !error) {
-    return <p className="text-white/60">{tc("loading")}</p>;
+    return <SkeletonList />;
   }
 
   return (
@@ -127,7 +144,7 @@ export function CampaignList({
             {tc("error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

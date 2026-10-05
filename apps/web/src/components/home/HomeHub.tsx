@@ -1,42 +1,69 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { ChevronRightIcon } from "@/components/ui/icons";
+import { PageLoading } from "@/components/ui/spinner";
+import {
+  ClassCard,
+  type ClassCardData,
+} from "@/components/classes/class-card";
+import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 
-type Me = {
+import { GENRE_TEXT, localDayKey } from "@/lib/calendar";
+import type { GenreKey } from "@/lib/calendar";
+import {
+  OnboardingRunner,
+  type TourStep,
+} from "@/components/onboarding/OnboardingRunner";
+
+type Me = import("@/lib/me-context").MeContextData;
+
+type NextItem = { id: string; name: string; when: string; place: string | null };
+
+/** GET /me/pending-surveys — evento con check-in propio, terminado hace
+    <24h y aún sin evaluar. También dispara el fan-out lazy de la
+    notificación event.survey en el API. */
+type PendingSurvey = { eventId: string; name: string; endsAt: string };
+
+// Evento de la escena nocturna — lo que decide "¿salgo hoy?":
+// género, precio, amigos que van, preventas restantes.
+type TonightEvent = {
   id: string;
   name: string;
-  roles: string[];
-  roleStates?: { role: string; status: string }[];
+  startsAt: string;
+  live: boolean;
+  venueId: string | null;
+  venueName: string | null;
+  genres: string[];
+  presalePrice: number | null;
+  doorPrice: number | null;
+  hasTicket: boolean;
+  friendsGoing: number;
+  presaleLeft: number | null;
 };
 
-type Kpi = { key: string; value: number; format?: "clp" };
-type NextItem = { id: string; name: string; when: string; place: string | null };
 type HomeStats = {
   kpis: Kpi[];
-  tonight?: {
-    id: string;
-    name: string;
-    startsAt: string;
-    venueName: string | null;
-    presalePrice: number | null;
-    hasTicket: boolean;
+  scene?: {
+    events: TonightEvent[];
+    upcoming: TonightEvent[];
+    mine: TonightEvent[];
   } | null;
-  nextClass?: NextItem | null;
+  nextClass?: ClassCardData | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
+  myClasses?: ClassCardData[];
   needsAcademy?: boolean;
 };
-
-// KPIs que representan trabajo pendiente — se destacan con borde de
-// acento para que el dashboard "grite" lo accionable.
-const ATTENTION_KEYS = new Set(["pendingRoles", "pendingPayouts"]);
 
 const clp = new Intl.NumberFormat("es-CL", {
   style: "currency",
@@ -52,32 +79,233 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
+const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+// Class.date llega como ISO a medianoche UTC — el día calendario se
+// formatea en UTC (mismo criterio que /clases, no el dayFmt local).
+const classUtcDayFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
 
-function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
+const genreLabel = (g: string, otherLabel: string) =>
+  g === "OTHER" ? otherLabel : g.charAt(0) + g.slice(1).toLowerCase();
+
+/**
+ * La escena de esta noche para el bailarín: el evento principal (donde
+ * tiene entrada, o el primero de la noche) con lo que decide — género,
+ * precio honesto, amigos que van, preventas restantes — y debajo el
+ * resto de la noche en filas compactas. El hero deja de ser "una card
+ * de texto" y pasa a responder "¿salgo hoy?".
+ */
+function TonightScene({ stats }: { stats: HomeStats | null }) {
   const t = useTranslations("home");
-  if (kpis.length === 0) return null;
+  const tq = useTranslations("qr");
+  const tonightEvents = stats?.scene?.events ?? [];
+  const upcoming = stats?.scene?.upcoming ?? [];
+  // La noche primero; si está vacía, el próximo evento es la invitación.
+  const isTonight = tonightEvents.length > 0;
+  const heroEvent = tonightEvents[0] ?? upcoming[0] ?? null;
+  const more = isTonight ? tonightEvents.slice(1) : upcoming.slice(1);
+  // Entradas propias fuera de la escena del hero — la franja "Tus
+  // entradas" confirma lo comprado sin competir con la decisión de hoy.
+  const myEntries = (stats?.scene?.mine ?? []).filter(
+    (e) => e.id !== heroEvent?.id,
+  );
+
+  if (!heroEvent) {
+    return (
+      <section aria-label={t("tonight")}>
+        <Link
+          href="/eventos"
+          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+        >
+          <span className="text-xl font-bold leading-tight">
+            {t("noEventTonight")}
+          </span>
+          <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+            {t("seeEvents")}
+            <ChevronRightIcon />
+          </span>
+        </Link>
+        <Button href="/qr" variant="secondary" className="mt-3 w-full">
+          {tq("title")}
+        </Button>
+      </section>
+    );
+  }
+
+  const start = new Date(heroEvent.startsAt);
+  const buyable =
+    !heroEvent.hasTicket &&
+    (heroEvent.presalePrice != null || heroEvent.doorPrice != null);
+
   return (
-    <section aria-label={label}>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
-        {label}
-      </h2>
-      <ul className="grid grid-cols-2 gap-3">
-        {kpis.map((k) => (
-          <li
-            key={k.key}
-            className={`rounded-xl border bg-night-800/60 px-4 py-3 ${
-              ATTENTION_KEYS.has(k.key) && k.value > 0
-                ? "border-neon/60"
-                : "border-night-700"
-            }`}
-          >
-            <span className="block text-2xl font-bold tabular-nums">
-              {k.format === "clp" ? clp.format(k.value) : k.value}
+    <section aria-label={heroEvent.name} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5">
+        <Link
+          href={`/eventos/${heroEvent.id}`}
+          className="flex flex-col gap-2.5 rounded-lg transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+        >
+          {/* Estado temporal como badge junto al título — sin kicker:
+              el heading habla solo. */}
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <span className="text-xl font-bold leading-tight">
+              {heroEvent.name}
             </span>
-            <span className="text-xs text-white/50">{t(`kpi.${k.key}`)}</span>
-          </li>
-        ))}
-      </ul>
+            {isTonight ? (
+              heroEvent.live ? (
+                <Badge variant="live">{t("live")}</Badge>
+              ) : (
+                <Badge variant="neon">{t("tonight")}</Badge>
+              )
+            ) : (
+              <Badge variant="outline" className="normal-case tracking-normal">
+                {dayFmt.format(start)}
+              </Badge>
+            )}
+          </span>
+          <span className="text-sm text-white/60">
+            {timeFmt.format(start)}
+            {heroEvent.venueName ? ` · ${heroEvent.venueName}` : ""}
+          </span>
+          {heroEvent.genres.length > 0 && (
+            <span className="flex flex-wrap gap-x-2 text-xs font-medium">
+              {heroEvent.genres.map((g) => (
+                <span
+                  key={g}
+                  className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}
+                >
+                  {genreLabel(g, t("genre.other"))}
+                </span>
+              ))}
+            </span>
+          )}
+        </Link>
+
+        {heroEvent.hasTicket ? (
+          <p className="text-sm font-medium text-neon">
+            {t("hasTicketTonight")}
+          </p>
+        ) : (
+          buyable && (
+            <p className="text-sm">
+              {heroEvent.presalePrice != null && (
+                <>
+                  <span className="text-white/50">{t("presaleLabel")} </span>
+                  <span className="font-semibold text-neon">
+                    {clp.format(heroEvent.presalePrice)}
+                  </span>
+                </>
+              )}
+              {heroEvent.presalePrice != null &&
+                heroEvent.doorPrice != null && (
+                  <span className="text-white/30"> · </span>
+                )}
+              {heroEvent.doorPrice != null && (
+                <span className="text-white/50">
+                  {t("doorLabel")} {clp.format(heroEvent.doorPrice)}
+                </span>
+              )}
+            </p>
+          )
+        )}
+
+        {heroEvent.friendsGoing > 0 && (
+          <p className="text-sm text-white/70">
+            {t("friendsGoing", { count: heroEvent.friendsGoing })}
+          </p>
+        )}
+
+        {heroEvent.presaleLeft != null &&
+          heroEvent.presaleLeft <= 15 &&
+          !heroEvent.hasTicket && (
+            <p className="text-xs font-semibold text-amber-300">
+              {t("presaleLeft", { count: heroEvent.presaleLeft })}
+            </p>
+          )}
+
+        <Link
+          href={
+            heroEvent.hasTicket ? "/qr" : `/eventos/${heroEvent.id}`
+          }
+          className="mt-1 inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        >
+          {heroEvent.hasTicket ? t("myQr") : t("buyPresale")}
+          <ChevronRightIcon />
+        </Link>
+      </div>
+
+      {myEntries.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+            {t("myEntries")}
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {myEntries.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href="/qr"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neon/30 bg-night-800/50 px-4 py-3 transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {e.name}
+                    </span>
+                    <span className="block truncate text-xs text-white/50">
+                      {dayFmt.format(new Date(e.startsAt))}
+                      {e.venueName ? ` · ${e.venueName}` : ""}
+                    </span>
+                  </span>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-neon">
+                    {t("myQr")}
+                    <ChevronRightIcon className="h-3.5 w-3.5" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {more.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+            {isTonight ? t("moreTonight") : t("upcoming")}
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {more.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/eventos/${e.id}`}
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">
+                      {e.name}
+                    </span>
+                    <span className="block truncate text-xs text-white/50">
+                      {isTonight
+                        ? timeFmt.format(new Date(e.startsAt))
+                        : dayFmt.format(new Date(e.startsAt))}
+                      {e.venueName ? ` · ${e.venueName}` : ""}
+                      {e.friendsGoing > 0
+                        ? ` · ${t("friendsGoing", { count: e.friendsGoing })}`
+                        : ""}
+                    </span>
+                  </span>
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-white/40" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }
@@ -94,64 +322,149 @@ export function HomeHub() {
   const t = useTranslations("home");
   const tc = useTranslations("common");
   const te = useTranslations("events");
-  const tq = useTranslations("qr");
   const tst = useTranslations("staff");
   const ta = useTranslations("academy");
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
+  const tt = useTranslations("tours.home");
+  const ts = useTranslations("survey");
 
-  const [me, setMe] = useState<Me | null>(null);
-  const [checked, setChecked] = useState(false);
-  const [stats, setStats] = useState<HomeStats | null>(null);
+  // /me compartido (MeProvider del layout) — el hub ya no fetchea la
+  // sesión: las encuestas y los stats se disparan en paralelo con /me
+  // (especulativo — sin sesión las respuestas 401 se descartan) en vez
+  // de esperarla: dos waterfalls menos en la página de aterrizaje.
+  const {
+    me,
+    loading: meLoading,
+    error: meFetchFailed,
+    refresh: refreshMe,
+  } = useMe();
+  const checked = !meLoading;
+  // Causa del fallo de /me: "session" (sin usuario → copy de reingreso)
+  // vs "server" (5xx/red → error genérico + reintento). Antes cualquier
+  // fallo caía en "Tu sesión expiró" — copy deshonesto en un 500.
+  const meError: "session" | "server" | null = meLoading
+    ? null
+    : meFetchFailed
+      ? "server"
+      : !me
+        ? "session"
+        : null;
+  // Sesión resuelta sin usuario — los fetches especulativos se detienen.
+  const noSession = !meLoading && !meFetchFailed && !me;
+  // Encuestas post-social pendientes — global por persona (cualquier
+  // lente evalúa); null hasta que el fetch resuelve → la card no
+  // reserva espacio ni flashea vacía.
+  const [surveys, setSurveys] = useState<PendingSurvey[] | null>(null);
+  // Stats versionados por lente: {key: "ROLE:mode"} — al cambiar de
+  // lente el slot viejo no se muestra nunca (cero flash de KPIs/hero
+  // ajenos); mientras resuelve el fetch de la lente actual → spinner.
+  const [statsSlot, setStatsSlot] = useState<{
+    key: string;
+    data: HomeStats | null;
+    error?: boolean;
+  } | null>(null);
+  // Contador de reintento: el efecto de stats lo escucha para refetchear.
+  const [statsRetry, setStatsRetry] = useState(0);
   const activeRole = useActiveRole(me?.roles);
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
+  const lensKey = `${activeRole}:${viewMode}`;
 
+  // Encuestas pendientes: una vez por sesión (no por lente — el
+  // endpoint es global). Falla en silencio: la card simplemente no
+  // aparece, nunca bloquea el hub. Disparo especulativo en paralelo con
+  // /me — el ref evita re-fetch cuando la sesión resuelve después.
+  const surveysFetched = useRef(false);
   useEffect(() => {
+    if (noSession || surveysFetched.current) return;
+    surveysFetched.current = true;
     let cancelled = false;
-    apiFetch("/me")
-      .then(async (res) => {
-        if (cancelled) return;
-        if (res.ok) setMe((await res.json()) as Me);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setChecked(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // KPIs del home: un solo request agregado por lente (+ modo consumer).
-  useEffect(() => {
-    if (!me) return;
-    let cancelled = false;
-    setStats(null);
-    apiFetch(`/home/stats?role=${activeRole}&mode=${viewMode}`)
+    apiFetch("/me/pending-surveys")
       .then(async (res) => {
         if (cancelled || !res.ok) return;
-        setStats((await res.json()) as HomeStats);
+        setSurveys((await res.json()) as PendingSurvey[]);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [me, activeRole, viewMode]);
+  }, [noSession]);
+
+  // KPIs del home: un solo request agregado por lente (+ modo consumer).
+  // Disparo especulativo en paralelo con /me usando la lente guardada;
+  // el slot con key evita re-fetch cuando la sesión resuelve después.
+  useEffect(() => {
+    if (noSession) return;
+    const key = `${activeRole}:${viewMode}`;
+    if (statsSlot?.key === key) return;
+    let cancelled = false;
+    apiFetch(`/home/stats?role=${activeRole}&mode=${viewMode}`)
+      .then(async (res) => {
+        if (cancelled) return;
+        // Error de red/500 → data null + flag: el home muestra aviso con
+        // reintento en vez de disfrazar el fallo de "sin datos".
+        setStatsSlot({
+          key,
+          data: res.ok ? ((await res.json()) as HomeStats) : null,
+          error: !res.ok,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setStatsSlot({ key, data: null, error: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [noSession, activeRole, viewMode, statsRetry, statsSlot]);
+
+  // null hasta que el fetch de ESTA lente resuelva — los heroes que
+  // dependen de stats nunca ven datos ajenos. El efecto fetchea
+  // /home/stats para TODA lente → el gate aplica a todas (sin la
+  // lista parcial, KpiGrid aparecía tarde en producer/academy/admin).
+  const stats = statsSlot?.key === lensKey ? statsSlot.data : null;
+  const statsPending = me !== null && statsSlot?.key !== lensKey;
 
   if (!checked) {
+    // Boot de sesión — PageLoading (beacon compartido, aparición
+    // diferida), nunca un spinner desnudo a nivel página.
     return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <p className="text-sm text-white/50">{tc("loading")}</p>
+      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col p-6">
+        <PageLoading />
       </main>
     );
   }
 
-  // Cookie presente pero sesión expirada — CTA de re-login.
+  // Cookie presente pero sesión expirada — contexto + CTA de re-login
+  // (sin appbar en este estado: el h1 vive acá, no en el chrome). Si el
+  // fallo fue de servidor/red el copy es honesto y ofrece reintentar.
   if (!me) {
+    if (meError === "server") {
+      return (
+        <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
+          <Card className="flex flex-col items-center gap-3 py-6 text-center">
+            <h1 className="text-xl font-bold">{t("serverError")}</h1>
+            <p role="alert" className="text-sm text-white/60">
+              {t("serverErrorDesc")}
+            </p>
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => void refreshMe()}
+            >
+              {t("retry")}
+            </Button>
+          </Card>
+        </main>
+      );
+    }
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
+          <h1 className="text-xl font-bold">{t("sessionExpired")}</h1>
+          <p className="text-sm text-white/60">
+            {t("sessionExpiredDesc")}
+          </p>
           <Button href="/login" size="lg" className="w-full">
             {tc("login")}
           </Button>
@@ -160,53 +473,30 @@ export function HomeHub() {
     );
   }
 
-  // Hero = acción principal. DANCER: "Esta noche" real (stats.tonight) o
-  // próxima clase en modo Academia; management: su consola. DJ/VENUE
-  // comparten el hero de consumo sin el QR personal.
-  const hero: Hero = (() => {
-    if (activeRole === "DANCER") {
-      if (dancerAcademy) {
-        if (stats?.needsAcademy || stats?.kpis.length === 0) {
-          return {
-            href: "/academias",
-            title: t("modeAcademy"),
-            desc: t("academyEmpty"),
-            cta: t("findAcademy"),
-          };
-        }
-        const nc = stats?.nextClass;
-        return nc
-          ? {
-              href: "/academia",
-              title: nc.name,
-              desc: `${t("nextClass")} — ${dayFmt.format(new Date(nc.when))}${nc.place ? ` · ${nc.place}` : ""}`,
-              cta: t("academyHeroCta"),
-            }
-          : {
-              href: "/academias",
-              title: t("modeAcademy"),
-              desc: t("academyHeroDesc"),
-              cta: t("findAcademy"),
-            };
-      }
-      const tonight = stats?.tonight;
-      if (tonight) {
+  // Hero = acción principal para lentes de gestión y la CTA del
+  // bailarín-academia hacia /clases. El bailarín-social no pasa por
+  // acá: su superficie es TonightScene (la escena completa de la noche).
+  const hero: Hero | null = (() => {
+    if (dancerAcademy) {
+      if (stats?.needsAcademy || stats?.kpis.length === 0) {
         return {
-          href: tonight.hasTicket ? "/qr" : `/eventos/${tonight.id}`,
-          title: tonight.name,
-          desc: `${t("tonight")} · ${timeFmt.format(new Date(tonight.startsAt))}${tonight.venueName ? ` · ${tonight.venueName}` : ""}${tonight.hasTicket ? ` — ${t("hasTicketTonight")}` : ""}`,
-          cta: tonight.hasTicket ? t("myQr") : t("buyPresale"),
-          secondary: tonight.hasTicket
-            ? { href: `/eventos/${tonight.id}`, label: t("viewEvent") }
-            : undefined,
+          href: "/academias",
+          title: t("modeAcademy"),
+          desc: t("academyEmpty"),
+          cta: t("findAcademy"),
         };
       }
+      // Learner inscrito: sin hero — su superficie es "Tus próximas
+      // clases" + el tab Clases del nav; el card promo era ruido.
+      return null;
+    }
+    if (activeRole === "DANCER") {
+      // Lente social: no se renderiza (TonightScene la reemplaza).
       return {
         href: "/eventos",
-        title: t("tonight"),
-        desc: stats ? t("noEventTonight") : t("dancerHeroDesc"),
+        title: te("title"),
+        desc: t("dancerHeroDesc"),
         cta: t("seeEvents"),
-        secondary: { href: "/qr", label: tq("title") },
       };
     }
     switch (activeRole) {
@@ -275,51 +565,265 @@ export function HomeHub() {
 
   const kpiLabel = activeRole === "DANCER" ? t("insights") : t("overview");
 
+  // Mientras los stats de la lente no resuelven, el hub entero espera:
+  // pintar "Hola" primero y el resto después produce carga a pedazos —
+  // la regla es UI final o spinner, nunca progresiva.
+  if (statsPending) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col p-6">
+        <PageLoading />
+      </main>
+    );
+  }
+
+  const statsError = statsSlot?.key === lensKey && statsSlot.error;
+  const dancerSocial = activeRole === "DANCER" && !dancerAcademy;
+  // Home social: 2 insights máximo — los que leen actividad (racha,
+  // bailes 7d) y con valor > 0. El resto se muestra en /perfil.
+  const socialKpis = (stats?.kpis ?? []).filter(
+    (k) => (k.key === "streak" || k.key === "dances7d") && k.value > 0,
+  );
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
-      <header className="flex flex-col gap-3 pt-4">
+      <header className="flex flex-col gap-1 pt-4">
         <h2 className="text-lg font-medium">
           {t("hi", { name: me.name.split(" ")[0] })}
         </h2>
+        {dancerSocial && (
+          <p className="text-xs capitalize text-white/50">
+            {fullDayFmt.format(new Date())}
+          </p>
+        )}
       </header>
 
-      {stats && stats.kpis.length > 0 && (
-        <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+      {/* Fallo de stats ≠ "sin datos": aviso honesto con reintento. */}
+      {statsError && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+        >
+          {t("statsError")}
+          <button
+            type="button"
+            onClick={() => {
+              setStatsSlot(null);
+              setStatsRetry((r) => r + 1);
+            }}
+            className="min-h-11 shrink-0 rounded-full border border-amber-300/40 px-4 font-semibold transition-colors hover:bg-amber-300/10"
+          >
+            {t("retry")}
+          </button>
+        </div>
       )}
 
-      <section aria-label={hero.title}>
-        <Link
-          href={hero.href}
-          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon active:scale-[0.99]"
+      {/* Encuestas post-social — timely, arriba del contenido de lente.
+          Cualquier rol las ve (un productor que bailó también evalúa);
+          sin items no se renderiza nada (cero hueco). */}
+      {surveys !== null && surveys.length > 0 && (
+        <section
+          aria-label={ts("sectionLabel")}
+          className="flex flex-col gap-2"
         >
-          <span className="text-xl font-bold leading-tight">{hero.title}</span>
-          <span className="text-sm text-white/60">{hero.desc}</span>
-          <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
-            {hero.cta}
-            <span aria-hidden>→</span>
-          </span>
-        </Link>
-        {hero.secondary && (
-          <Button
-            href={hero.secondary.href}
-            variant="secondary"
-            className="mt-3 w-full"
-          >
-            {hero.secondary.label}
-          </Button>
-        )}
-      </section>
+          {surveys.map((s) => (
+            <Link
+              key={s.eventId}
+              href={`/eventos/${s.eventId}/evaluar`}
+              className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-night-800/70 px-5 py-4 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+            >
+              <span className="min-w-0 truncate text-base font-semibold">
+                {ts("prompt", { name: s.name })}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-neon">
+                {ts("cardCta")}
+                <ChevronRightIcon />
+              </span>
+            </Link>
+          ))}
+        </section>
+      )}
+
+      {dancerSocial ? (
+        <>
+          {/* Tu actividad primero — solo 2 señales rápidas (racha +
+              bailes recientes, las que leen "actividad"); la grilla
+              completa de la lente vive en /perfil. KPIs en cero se
+              ocultan: un valle emocional, no una invitación. */}
+          {stats && socialKpis.length > 0 && (
+            <KpiGrid kpis={socialKpis} label={kpiLabel} />
+          )}
+          <TonightScene stats={stats} />
+        </>
+      ) : (
+        <>
+          {stats && stats.kpis.length > 0 && (
+            <KpiGrid kpis={stats.kpis} label={kpiLabel} />
+          )}
+
+          {hero && (
+            <section aria-label={hero.title}>
+              <Link
+                href={hero.href}
+                className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+              >
+                <span className="text-xl font-bold leading-tight">
+                  {hero.title}
+                </span>
+                <span className="text-sm text-white/60">{hero.desc}</span>
+                <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
+                  {hero.cta}
+                  <ChevronRightIcon />
+                </span>
+              </Link>
+              {hero.secondary && (
+                <Button
+                  href={hero.secondary.href}
+                  variant="secondary"
+                  className="mt-3 w-full"
+                >
+                  {hero.secondary.label}
+                </Button>
+              )}
+            </section>
+          )}
+
+          {/* Tus próximas clases — reservas del learner (BOOKED/
+              WAITLIST), máx 3, mismo ClassCard de /clases: el badge
+              Reservado/En espera va arriba a la derecha. */}
+          {dancerAcademy && (stats?.myClasses?.length ?? 0) > 0 && (
+            <section aria-label={t("myClassesTitle")}>
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                {t("myClassesTitle")}
+              </h2>
+              <ul className="flex flex-col gap-3">
+                {stats!.myClasses!.map((c) => (
+                  <li key={c.id}>
+                    <ClassCard
+                      cls={c}
+                      when={`${
+                        c.date.slice(0, 10) === localDayKey(new Date())
+                          ? te("today")
+                          : classUtcDayFmt.format(new Date(c.date))
+                      } · ${c.startTime}–${c.endTime}`}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
 
       {multiRole && (
         <Link
           href="/perfil"
-          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-sm text-white/55 transition-colors hover:border-neon/40 hover:text-white/80"
+          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-sm text-white/55 transition-colors hover:border-neon/40 hover:text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           <span>{t("switchRoleHint")}</span>
-          <span aria-hidden className="text-neon">
-            →
-          </span>
+          <ChevronRightIcon className="h-4 w-4 shrink-0 text-neon" />
         </Link>
+      )}
+
+      {/* Tour de primera visita — lente social del bailarín (los tabs
+          referenciados son los de esa lente). */}
+      {activeRole === "DANCER" && !dancerAcademy && (
+        <OnboardingRunner
+          tour="home"
+          steps={[
+            {
+              element: "[data-tour='home-stats']",
+              title: tt("s1.title"),
+              description: tt("s1.desc"),
+            },
+            {
+              element: "[data-tour='appbar-mode']",
+              title: tt("s2.title"),
+              description: tt("s2.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='appbar-bell']",
+              title: tt("s3.title"),
+              description: tt("s3.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='nav-events']",
+              title: tt("s4.title"),
+              description: tt("s4.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-more']",
+              title: tt("s5.title"),
+              description: tt("s5.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-friends']",
+              title: tt("s6.title"),
+              description: tt("s6.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-profile']",
+              title: tt("s7.title"),
+              description: tt("s7.desc"),
+              side: "top",
+            },
+          ] satisfies TourStep[]}
+        />
+      )}
+
+      {/* Tour de la lente Academia del bailarín — Mi Aprendizaje:
+          tabs Clases / + (QR) / Academias / Perfil. */}
+      {activeRole === "DANCER" && dancerAcademy && (
+        <OnboardingRunner
+          tour="home-academy"
+          steps={[
+            {
+              element: "[data-tour='home-stats']",
+              title: tt("academy.s1.title"),
+              description: tt("academy.s1.desc"),
+            },
+            {
+              element: "[data-tour='appbar-mode']",
+              title: tt("academy.s2.title"),
+              description: tt("academy.s2.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='appbar-bell']",
+              title: tt("academy.s3.title"),
+              description: tt("academy.s3.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='nav-classes']",
+              title: tt("academy.s4.title"),
+              description: tt("academy.s4.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-more']",
+              title: tt("academy.s5.title"),
+              description: tt("academy.s5.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-academies']",
+              title: tt("academy.s6.title"),
+              description: tt("academy.s6.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-profile']",
+              title: tt("academy.s7.title"),
+              description: tt("academy.s7.desc"),
+              side: "top",
+            },
+          ] satisfies TourStep[]}
+        />
       )}
     </main>
   );

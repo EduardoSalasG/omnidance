@@ -1,14 +1,25 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { Notification, PushToken } from "@prisma/client";
 import {
+  notificationLens,
+  type NotificationLensFilter,
+} from "@omnidance/shared";
+import {
   NotificationDomainError,
   NotificationsService,
 } from "./notifications.service";
 import type {
   CreateNotificationData,
-  ListNotificationsOptions,
   NotificationsRepo,
+  ResolvedListOptions,
 } from "./ports";
+
+// Mismo criterio que lensWhere del repo Prisma: la lente excluye los
+// types de la opuesta; los "any" cuentan en ambas.
+function matchesLens(type: string, lens?: NotificationLensFilter) {
+  const l = notificationLens(type);
+  return !lens || l === "any" || l === lens;
+}
 
 // ─── Fake repo in-memory ───
 class FakeNotificationsRepo implements NotificationsRepo {
@@ -39,21 +50,25 @@ class FakeNotificationsRepo implements NotificationsRepo {
 
   async listNotifications(
     personId: string,
-    opts: Required<ListNotificationsOptions>,
+    opts: ResolvedListOptions,
   ) {
     return this.notifications
       .filter(
         (n) =>
           n.personId === personId &&
-          (!opts.unread || n.readAt === null),
+          (!opts.unread || n.readAt === null) &&
+          matchesLens(n.type, opts.lens),
       )
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, opts.limit);
   }
 
-  async countUnread(personId: string) {
+  async countUnread(personId: string, lens?: NotificationLensFilter) {
     return this.notifications.filter(
-      (n) => n.personId === personId && n.readAt === null,
+      (n) =>
+        n.personId === personId &&
+        n.readAt === null &&
+        matchesLens(n.type, lens),
     ).length;
   }
 
@@ -232,6 +247,61 @@ describe("NotificationsService.listForPerson", () => {
     const limited = await svc.listForPerson("per-1", { limit: 10 });
     expect(limited.notifications).toHaveLength(10);
   });
+
+  it("lens=social excluye tipos de academia y unreadCount se acota igual", async () => {
+    await svc.notify("per-1", {
+      category: "SOCIAL",
+      type: "session.invite",
+      title: "te invitaron",
+    });
+    await svc.notify("per-1", {
+      category: "TRANSACTIONAL",
+      type: "payment.series_pass",
+      title: "pase de serie",
+    });
+    await svc.notify("per-1", {
+      category: "OPERATIONAL",
+      type: "account.complete_profile",
+      title: "completa tu perfil",
+    });
+
+    const res = await svc.listForPerson("per-1", { lens: "social" });
+    expect(res.notifications.map((n) => n.type)).toEqual([
+      "account.complete_profile",
+      "session.invite",
+    ]);
+    expect(res.unreadCount).toBe(2);
+  });
+
+  it("lens=academy excluye tipos sociales; los 'any' quedan en ambas", async () => {
+    await svc.notify("per-1", {
+      category: "SOCIAL",
+      type: "ticket.gifted",
+      title: "te regalaron",
+    });
+    await svc.notify("per-1", {
+      category: "TRANSACTIONAL",
+      type: "payment.paid",
+      title: "pago ok",
+    });
+    await svc.notify("per-1", {
+      category: "TRANSACTIONAL",
+      type: "class.waitlist.promoted",
+      title: "entras a la clase",
+    });
+    await svc.notify("per-1", {
+      category: "OPERATIONAL",
+      type: "crm.campaign",
+      title: "campaña",
+    });
+
+    const res = await svc.listForPerson("per-1", { lens: "academy" });
+    expect(res.notifications.map((n) => n.type)).toEqual([
+      "crm.campaign",
+      "class.waitlist.promoted",
+    ]);
+    expect(res.unreadCount).toBe(2);
+  });
 });
 
 describe("NotificationsService.markRead", () => {
@@ -368,5 +438,48 @@ describe("NotificationsService push tokens", () => {
     await expect(svc.markRead("p", "x")).rejects.toBeInstanceOf(
       NotificationDomainError,
     );
+  });
+});
+
+// Convención push-copy (openspec push-copy-precision): title = outcome
+// corto — sin prefijos de categoría ("Pago confirmado —"), sin punto
+// final, ≤ 40 chars sin interpolar. Spot-check sobre los literales que
+// emiten los call sites cubiertos por la tabla verbatim.
+describe("push-copy: convención de titles", () => {
+  const titles = [
+    "Ticket listo",
+    "Cupo reservado",
+    "En lista de espera",
+    "Pase de serie activo",
+    "Plan activo",
+    "Clase particular comprada",
+    "Pago fallido",
+    "Monto distinto al de la orden",
+    "Suscripción activa",
+    "Suscripción cancelada",
+    "Renovación mañana",
+    "Cobro fallido",
+    "Conseguiste cupo",
+    "Cupo liberado",
+    "Mesa confirmada",
+    "Mesa no confirmada",
+    "Nueva solicitud de mesa",
+    "Clase particular agendada",
+    "Clase particular asignada",
+    "Clase particular cancelada",
+    "Clase particular vendida",
+    "Comisión liquidada",
+    "Completa tu perfil",
+  ];
+
+  it.each(titles)("title %j tiene ≤ 40 chars y no termina en punto", (t) => {
+    expect(t.length).toBeLessThanOrEqual(40);
+    expect(t.endsWith(".")).toBe(false);
+  });
+
+  it("ningún title usa el prefijo 'Pago confirmado —'", () => {
+    for (const t of titles) {
+      expect(t.startsWith("Pago confirmado")).toBe(false);
+    }
   });
 });

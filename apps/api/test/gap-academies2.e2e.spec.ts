@@ -4,6 +4,7 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { AcademiesModule } from "../src/academies/academies.module";
+import { NotificationsModule } from "../src/notifications/notifications.module";
 import { AcademyAccess } from "../src/academies/infrastructure/academy-access.service";
 import { PrivateLessonsController } from "../src/academies/infrastructure/private-lessons.controller";
 import { VideosController } from "../src/academies/infrastructure/videos.controller";
@@ -68,7 +69,7 @@ describe("academies gap: private lessons + videos e2e", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AcademiesModule, AuthModule],
+      imports: [AcademiesModule, AuthModule, NotificationsModule],
       controllers: [PrivateLessonsController, VideosController],
       providers: [PrismaService, AcademyAccess],
     }).compile();
@@ -145,9 +146,13 @@ describe("academies gap: private lessons + videos e2e", () => {
       },
     });
 
+    const series = await prisma.classSeries.create({
+      data: { academyId: academy.id, name: "Serie PL", month: "2025-06" },
+    });
     const slot = await prisma.classSlot.create({
       data: {
         academyId: academy.id,
+        seriesId: series.id,
         weekday: 3,
         startTime: "19:00",
         endTime: "20:00",
@@ -182,6 +187,9 @@ describe("academies gap: private lessons + videos e2e", () => {
     await prisma.classSlot.deleteMany({
       where: { academyId: { in: academyIds } },
     });
+    await prisma.classSeries.deleteMany({
+      where: { academyId: { in: academyIds } },
+    });
     await prisma.enrollment.deleteMany({
       where: { academyId: { in: academyIds } },
     });
@@ -211,15 +219,28 @@ describe("academies gap: private lessons + videos e2e", () => {
       expect(res.status).toBe(401);
     });
 
-    it("alumno solicita → 201 REQUESTED con commissionPct 0", async () => {
+    it("alumno intenta crear → 403 (staff-only desde private-lesson-product)", async () => {
       const res = await post(
         `/api/academies/${ids.academyId}/private-lessons`,
         {
           instructorId: ids.instructorId,
           scheduledAt: "2025-07-01T20:00:00Z",
-          price: 30000,
         },
         studentSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("staff crea clase manual para el alumno → 201 REQUESTED con commissionPct 0", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/private-lessons`,
+        {
+          instructorId: ids.instructorId,
+          personId: ids.studentId,
+          scheduledAt: "2025-07-01T20:00:00Z",
+          price: 30000,
+        },
+        ownerSession,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -237,9 +258,10 @@ describe("academies gap: private lessons + videos e2e", () => {
         `/api/academies/${ids.academyId}/private-lessons`,
         {
           instructorId: ids.instructorId,
+          personId: ids.studentId,
           scheduledAt: "2025-07-02T20:00:00Z",
         },
-        studentSession,
+        ownerSession,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -252,9 +274,10 @@ describe("academies gap: private lessons + videos e2e", () => {
         `/api/academies/${ids.academyId}/private-lessons`,
         {
           instructorId: ids.outsiderId,
+          personId: ids.studentId,
           scheduledAt: "2025-07-01T20:00:00Z",
         },
-        studentSession,
+        ownerSession,
       );
       expect(res.status).toBe(404);
     });
@@ -266,7 +289,7 @@ describe("academies gap: private lessons + videos e2e", () => {
           instructorId: ids.instructorId,
           scheduledAt: "2025-07-01T20:00:00Z",
         },
-        studentSession,
+        ownerSession,
       );
       expect(res.status).toBe(404);
     });
@@ -310,14 +333,21 @@ describe("academies gap: private lessons + videos e2e", () => {
   });
 
   describe("GET /api/private-lessons/mine", () => {
-    it("alumno (default as=student) ve sus clases", async () => {
-      const res = await get("/api/private-lessons/mine", studentSession);
+    it("alumno ve sus particulares mergeadas en /classes/mine", async () => {
+      const res = await get("/api/classes/mine", studentSession);
       expect(res.status).toBe(200);
       const list = await res.json();
-      expect(list.some((l: { id: string }) => l.id === ids.lessonId)).toBe(true);
-      expect(
-        list.every((l: { personId: string }) => l.personId === ids.studentId),
-      ).toBe(true);
+      const item = list.find(
+        (l: { id: string }) => l.id === ids.lessonId,
+      );
+      expect(item).toBeTruthy();
+      expect(item.series).toBeNull();
+      expect(item.myBooking).toBe("BOOKED");
+    });
+
+    it("mine sin as=instructor → 400 (la lectura alumno vive en /classes/mine)", async () => {
+      const res = await get("/api/private-lessons/mine", studentSession);
+      expect(res.status).toBe(400);
     });
 
     it("instructor con as=instructor ve las suyas", async () => {
@@ -425,6 +455,85 @@ describe("academies gap: private lessons + videos e2e", () => {
         ownerSession,
       );
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe("PATCH /api/private-lessons/:id action=assign", () => {
+    it("owner asigna instructor+fecha a una comprada sin asignar → 200 CONFIRMED + notifica", async () => {
+      // Lección comprada (settle PRIVATE): nace sin instructor ni fecha.
+      const purchased = await prisma.privateLesson.create({
+        data: {
+          academyId: ids.academyId,
+          personId: ids.studentId,
+          instructorId: null,
+          scheduledAt: null,
+          price: 25000,
+          status: "REQUESTED",
+        },
+      });
+      const res = await patch(
+        `/api/private-lessons/${purchased.id}`,
+        {
+          action: "assign",
+          instructorId: ids.instructorId,
+          scheduledAt: "2025-07-10T20:00:00Z",
+        },
+        ownerSession,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.status).toBe("CONFIRMED");
+      expect(body.instructorId).toBe(ids.instructorId);
+      expect(body.scheduledAt).toBe("2025-07-10T20:00:00.000Z");
+      const notif = await prisma.notification.findFirst({
+        where: {
+          personId: ids.studentId,
+          type: "academy.private_lesson.assigned",
+        },
+      });
+      expect(notif).toBeTruthy();
+    });
+
+    it("assign sin instructorId/scheduledAt → 400", async () => {
+      const pending = await prisma.privateLesson.create({
+        data: {
+          academyId: ids.academyId,
+          personId: ids.studentId,
+          instructorId: null,
+          scheduledAt: null,
+          price: 25000,
+          status: "REQUESTED",
+        },
+      });
+      const res = await patch(
+        `/api/private-lessons/${pending.id}`,
+        { action: "assign" },
+        ownerSession,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("instructor no puede asignar → 403", async () => {
+      const pending = await prisma.privateLesson.create({
+        data: {
+          academyId: ids.academyId,
+          personId: ids.studentId,
+          instructorId: null,
+          scheduledAt: null,
+          price: 25000,
+          status: "REQUESTED",
+        },
+      });
+      const res = await patch(
+        `/api/private-lessons/${pending.id}`,
+        {
+          action: "assign",
+          instructorId: ids.instructorId,
+          scheduledAt: "2025-07-10T20:00:00Z",
+        },
+        instructorSession,
+      );
+      expect(res.status).toBe(403);
     });
   });
 

@@ -100,6 +100,21 @@ export class PrismaGamificationRepo implements GamificationRepo {
     });
   }
 
+  async attendancesForPerson(personId: string) {
+    // academyId llega por el join class → slot (Attendance no lo guarda).
+    const rows = await this.prisma.attendance.findMany({
+      where: { personId },
+      select: {
+        checkedAt: true,
+        class: { select: { slot: { select: { academyId: true } } } },
+      },
+    });
+    return rows.map((r) => ({
+      checkedAt: r.checkedAt,
+      academyId: r.class.slot?.academyId ?? null,
+    }));
+  }
+
   peopleByIds(ids: string[]) {
     return this.prisma.person.findMany({
       where: { id: { in: ids } },

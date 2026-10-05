@@ -65,7 +65,7 @@ registrar ahí cada part nuevo. Auditoría: `node scripts/i18n-audit.cjs`
 | `/academias` | Directorio de academias |
 | `/clases` | Mis reservas + explorar con filtros (día/estilo/nivel) |
 | `/practicas` | Partners de práctica |
-| `/bailes`, `/viajes` | Sesiones y viajes a congresos |
+| `/bailes` | Historial de sesiones de baile |
 | `/escanear` | Scanner QR |
 | `/perfil`, `/notificaciones` | Cuenta (selector de lente) y bandeja |
 
@@ -79,7 +79,7 @@ registrar ahí cada part nuevo. Auditoría: `node scripts/i18n-audit.cjs`
 | `DJ` | `/dj` — gigs próximos + ranking de sugerencias |
 | `VENUE_MANAGER` | `/venue` — KPIs + arriendos del local |
 | `SUPPORT` | `/soporte` — buscador de usuarios + ficha read-only |
-| `ADMIN` | `/admin` — usuarios, roles/RBAC, solicitudes, params, catálogos, auditoría |
+| `ADMIN` | `/admin` — usuarios (asigna/revoca roles), roles/RBAC, params, catálogos, auditoría |
 | Varios | `/analitica` — KPIs por lente (admin/productor/academia/venue) · `/crm` + campañas/triggers |
 
 ## Testing y calidad

@@ -6,6 +6,11 @@ import { PAYMENT_GATEWAY, type PaymentGateway } from "./domain/ports";
 import { PricingService } from "./domain/pricing.service";
 import { StubGateway } from "./infrastructure/stub.gateway";
 import { FlowGateway } from "./infrastructure/flow.gateway";
+import {
+  GatewayTransactionsService,
+  type GatewayTxEntry,
+} from "./infrastructure/gateway-transactions.service";
+import { PrismaService } from "../prisma.service";
 import { CheckoutController } from "./infrastructure/checkout.controller";
 import { TicketsController } from "./infrastructure/tickets.controller";
 import { PaymentsController } from "./infrastructure/webhook.controller";
@@ -14,6 +19,12 @@ import {
   MePayoutsController,
 } from "./infrastructure/payouts.controller";
 import { CheckoutService } from "./application/checkout.service";
+import { PaymentSettlementService } from "./application/payment-settlement.service";
+import { SubscriptionsService } from "./application/subscriptions.service";
+import { PlatformSubscriptionsService } from "./application/platform-subscriptions.service";
+import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
+import { ProducerProController } from "./infrastructure/producer-pro.controller";
+import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
@@ -24,35 +35,79 @@ import { NotificationsModule } from "../notifications/notifications.module";
     PaymentsController,
     AdminPayoutsController,
     MePayoutsController,
+    SubscriptionsController,
+    ProducerProController,
   ],
   providers: [
     CheckoutService,
+    PaymentSettlementService,
+    SubscriptionsService,
+    PlatformSubscriptionsService,
+    SubscriptionsScheduler,
+    GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
       provide: PAYMENT_GATEWAY,
-      useFactory: (): PaymentGateway => {
-        const apiKey = process.env.FLOW_API_KEY;
-        const secret =
-          process.env.FLOW_SECRET ?? process.env.FLOW_SECRET_KEY;
-        if (process.env.PAYMENT_GATEWAY === "flow" && apiKey && secret) {
-          const apiUrl = process.env.API_URL ?? "http://localhost:4000";
-          return new FlowGateway(
-            apiKey,
-            secret,
-            process.env.FLOW_BASE_URL ?? "https://www.flow.cl/api",
-            `${apiUrl}/api/payments/webhook`,
-          );
-        }
-        // Fail-close: el stub acepta webhooks sin firma — jamás en producción.
-        if (process.env.NODE_ENV === "production") {
-          throw new Error(
-            "PAYMENT_GATEWAY=flow con FLOW_API_KEY/FLOW_SECRET es requerido en producción (StubGateway deshabilitado)",
-          );
-        }
-        return new StubGateway();
+      useFactory: (prisma: PrismaService): PaymentGateway => {
+        const txWriter = new GatewayTransactionsService(prisma);
+        return resolveGateway(process.env, (e) => txWriter.record(e));
       },
+      inject: [PrismaService],
     },
   ],
-  exports: [PAYMENT_GATEWAY],
+  exports: [
+    PAYMENT_GATEWAY,
+    GatewayTransactionsService,
+    PaymentSettlementService,
+    SubscriptionsService,
+    PlatformSubscriptionsService,
+  ],
 })
 export class PaymentsModule {}
+
+const SANDBOX_BASE_URL = "https://sandbox.flow.cl/api";
+
+/**
+ * Selección del gateway por env. PAYMENT_GATEWAY=flow + credenciales
+ * (FLOW_API_KEY / FLOW_SECRET_KEY — el alias FLOW_SECRET queda por
+ * compatibilidad) instancia FlowGateway; cualquier otro caso usa el
+ * StubGateway de desarrollo. Solo sandbox por ahora: FLOW_BASE_URL debe
+ * ser https://sandbox.flow.cl/api — producción se habilita tras validar
+ * el flujo end-to-end contra el sandbox.
+ */
+export function resolveGateway(
+  env: NodeJS.ProcessEnv,
+  onTx?: (e: GatewayTxEntry) => Promise<void>,
+): PaymentGateway {
+  const apiKey = env.FLOW_API_KEY;
+  const secret = env.FLOW_SECRET ?? env.FLOW_SECRET_KEY;
+  if (env.PAYMENT_GATEWAY === "flow") {
+    if (!apiKey || !secret) {
+      throw new Error(
+        "PAYMENT_GATEWAY=flow requiere FLOW_API_KEY y FLOW_SECRET_KEY (sandbox: sandbox.flow.cl → Mis datos → Integraciones)",
+      );
+    }
+    const baseUrl = env.FLOW_BASE_URL ?? SANDBOX_BASE_URL;
+    if (baseUrl !== SANDBOX_BASE_URL) {
+      throw new Error(
+        `FLOW_BASE_URL debe ser ${SANDBOX_BASE_URL} (integración en sandbox-only); recibido: ${baseUrl}`,
+      );
+    }
+    const apiUrl = env.API_URL ?? "http://localhost:4000";
+    return new FlowGateway(
+      apiKey,
+      secret,
+      baseUrl,
+      `${apiUrl}/api/payments/webhook`,
+      onTx,
+      `${apiUrl}/api/payments/subscription-webhook`,
+    );
+  }
+  // Fail-close: el stub acepta webhooks sin firma — jamás en producción.
+  if (env.NODE_ENV === "production") {
+    throw new Error(
+      "PAYMENT_GATEWAY=flow con FLOW_API_KEY/FLOW_SECRET es requerido en producción (StubGateway deshabilitado)",
+    );
+  }
+  return new StubGateway();
+}

@@ -23,7 +23,6 @@ export default function robots(): MetadataRoute.Robots {
         "/bailes",
         "/entradas",
         "/practicas",
-        "/viajes",
         "/checkout",
         "/*/checkout",
         "/api",

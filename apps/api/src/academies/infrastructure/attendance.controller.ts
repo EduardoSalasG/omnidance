@@ -49,7 +49,9 @@ export class AttendanceController {
     @Body() dto: RecordAttendanceDto,
     @Req() req: Request,
   ) {
-    await this.access.requireManage(id, req.person!); // owner/instructor/admin
+    // owner/instructor/admin — mutación de consola: academia bloqueada
+    // por mora (billingBlockedAt) → 403 billing.blocked (S3).
+    await this.access.requireManageWrite(id, req.person!);
 
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: dto.slotId, academyId: id },

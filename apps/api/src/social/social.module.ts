@@ -2,44 +2,33 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { PrismaModule } from "../prisma.module";
-import { AvailabilityController } from "./infrastructure/availability.controller";
-import { BlocksController } from "./infrastructure/blocks.controller";
 import { EventEntryPassesController } from "./infrastructure/entry-passes.controller";
 import { FriendsController } from "./infrastructure/friends.controller";
 import {
   EventGuestListsController,
   GuestListsController,
 } from "./infrastructure/guest-lists.controller";
-import { PartnerRequestsController } from "./infrastructure/partner-requests.controller";
 import { PeopleController } from "./infrastructure/people.controller";
 import { PracticesController } from "./infrastructure/practices.controller";
-import {
-  MeRsvpController,
-  RsvpController,
-} from "./infrastructure/rsvp.controller";
 import { StylesController } from "./infrastructure/styles.controller";
-import { TripsController } from "./infrastructure/trips.controller";
 import { VenueConsoleController } from "./infrastructure/venue-console.controller";
 import { VenuesController } from "./infrastructure/venues.controller";
 import { WaitlistController } from "./infrastructure/waitlist.controller";
 
-/** Social: RSVP, guest lists, waitlist, prácticas, trips, venues, matchmaking y disponibilidad. */
+/** Social: guest lists, waitlist, prácticas, venues, amistades y consola venue. */
 @Module({
   imports: [AuthModule, NotificationsModule, PrismaModule],
   controllers: [
-    RsvpController,
-    MeRsvpController,
     EventGuestListsController,
     GuestListsController,
     WaitlistController,
     PracticesController,
     StylesController,
-    TripsController,
-    VenuesController,
+    // VenueConsoleController ANTES de VenuesController: ambos comparten el
+    // prefijo "venues" y el público tiene @Get(":id") — si el público se
+    // registra primero, /venues/mine matcha ":id" y la consola queda 404.
     VenueConsoleController,
-    PartnerRequestsController,
-    AvailabilityController,
-    BlocksController,
+    VenuesController,
     FriendsController,
     PeopleController,
     EventEntryPassesController,

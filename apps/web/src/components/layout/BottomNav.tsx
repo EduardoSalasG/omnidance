@@ -1,27 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe, type MeContextData } from "@/lib/me-context";
+import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
+import {
+  DancerActionsSheet,
+  type SheetItem,
+} from "./DancerActionsSheet";
 import { ModeToggle } from "./ModeToggle";
+import { ChevronRightIcon } from "@/components/ui/icons";
 
-// Chrome de app: hamburguesa flotante (→ drawer lateral con los módulos
-// del rol agrupados por dominio) + large title iOS con la sección activa
-// + tab bar inferior con las funciones primarias del rol y Perfil como
-// quinto slot. Todo se oculta en contextos de pantalla completa
-// (consola staff de puerta). Login vive en (marketing) sin este chrome.
-// /qr sí muestra el nav — el escáner ocupa el área de contenido.
+// Chrome de app: appbar sticky (hamburguesa → drawer lateral con los
+// módulos del rol agrupados por dominio | título de sección estilo nav
+// bar iOS | campana de notificaciones) + tab bar inferior con las
+// funciones primarias del rol y Perfil como quinto slot. Todo se oculta
+// en contextos de pantalla completa (consola staff de puerta). Login
+// vive en (marketing) sin este chrome. /qr sí muestra el nav — el
+// escáner ocupa el área de contenido.
 export const CHROME_HIDDEN_PREFIXES = ["/staff/"];
 
 // Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
 const NOTIFICATION_EVENT = "omnidance:notification";
 
-type Me = { id: string; name: string; roles: string[] };
+type Me = MeContextData;
 
 // key = clave nav.* del label; "create" es especial: su label viene del
 // namespace producer (producer.createEvent), no de nav.
@@ -45,13 +53,16 @@ type TabKey =
   | "analytics"
   | "venue"
   | "dj"
-  | "support";
+  | "support"
+  | "more";
 
 type Tab = {
   href: string;
   key: TabKey;
   icon: (active: boolean) => React.ReactNode;
   center?: boolean;
+  // Tab de acción: abre el sheet del bailarín en vez de navegar.
+  sheet?: boolean;
 };
 
 function icon(path: string) {
@@ -87,8 +98,6 @@ const ICONS = {
   qr: "M3 3h6v6H3zM15 3h6v6H3zM3 15h6v6H3zM15 15h.01M18 15h.01M21 15h.01M15 18h.01M18 18h.01M21 18h.01M15 21h.01M18 21h.01M21 21h.01",
   practices:
     "M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0zM15 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0",
-  trips:
-    "M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z",
   staff:
     "M8 2h8a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2m3 10 2 2 4-4",
   producer: "m3 11 18-5v12L3 13v-2zM11.6 16.8a3 3 0 1 1-5.8-1.6",
@@ -145,10 +154,19 @@ const CLASSES_TAB: Tab = {
   key: "classes",
   icon: icon(ICONS.clock),
 };
-const TICKETS_TAB: Tab = {
-  href: "/entradas",
-  key: "tickets",
-  icon: icon(ICONS.tickets),
+const FRIENDS_TAB: Tab = {
+  href: "/amigos",
+  key: "friends",
+  icon: icon(ICONS.users),
+};
+// "+" central del bailarín — abre el DancerActionsSheet (QR + módulos
+// secundarios). href simbólico: renderTab lo pinta como <button>.
+const ACTIONS_TAB: Tab = {
+  href: "#acciones",
+  key: "more",
+  icon: icon(ICONS.plus),
+  center: true,
+  sheet: true,
 };
 const PAYOUTS_TAB: Tab = {
   href: "/productor/pagos",
@@ -184,15 +202,13 @@ const SUPPORT_TAB: Tab = {
   center: true,
 };
 
-// DANCER en modo Academia: Eventos se reemplaza por el directorio de
-// academias y Clases (explorar + mis reservas) es tab propio. QR se
-// mantiene — sirve para check-in de clases igual que en puerta — y va
-// siempre en el centro del bottom bar (regla global del QR).
-// Prácticas queda en el drawer (máximo 5 ítems en el bottom bar).
+// DANCER en modo Academia: mismo patrón — "+" central abre el sheet
+// (QR + módulos). Eventos se reemplaza por el directorio de academias
+// y Clases (explorar + mis reservas) es tab propio.
 const DANCER_ACADEMY_TABS: Tab[] = [
   HOME_TAB,
   CLASSES_TAB,
-  QR_TAB,
+  ACTIONS_TAB,
   ACADEMIAS_TAB,
 ];
 
@@ -201,7 +217,9 @@ const DANCER_ACADEMY_TABS: Tab[] = [
 // appbar (campana con badge), no en el bottom nav: los slots que
 // liberan los ocupa la función más usada de cada rol.
 const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
-  DANCER: [HOME_TAB, EVENTS_TAB, QR_TAB, TICKETS_TAB],
+  // Bailarín: [Inicio] [Eventos] [+] [Amigos] [Perfil]. El "+" abre el
+  // sheet con el QR destacado + módulos secundarios — sin drawer lateral.
+  DANCER: [HOME_TAB, EVENTS_TAB, ACTIONS_TAB, FRIENDS_TAB],
   STAFF: [
     HOME_TAB,
     { href: "/staff", key: "staff", icon: icon(ICONS.staff) },
@@ -272,30 +290,47 @@ type DrawerSpec = {
 };
 
 type DrawerGroupSpec = {
-  // clave i18n de nav.* para el header del grupo
-  labelNs: "nav" | "producer" | "academy" | "admin";
+  // clave i18n para el header del grupo (nav.*, o el title del dominio
+  // cuando el grupo es mono-módulo — p.ej. "Analítica").
+  labelNs: "nav" | "producer" | "academy" | "admin" | "analytics";
   labelKey: string;
   items: DrawerSpec[];
 };
 
+// Grupo "Analítica" del drawer — módulo transversal a los roles con
+// analítica (no vive bajo el dominio de ninguna consola).
+const ANALYTICS_DRAWER_GROUP = (items: DrawerSpec[]): DrawerGroupSpec => ({
+  labelNs: "analytics",
+  labelKey: "title",
+  items,
+});
+const ANALYTICS_DRAWER_ITEM: DrawerSpec = {
+  href: "/analitica",
+  ns: "analytics",
+  key: "title",
+  icon: ICONS.slider,
+};
+
+// Sheet del bailarín — módulos secundarios por lente (social/academia).
+// El QR va destacado dentro del sheet; estos son los ítems del grid.
+// ns/key resuelven vía labelFor como los ítems del drawer.
+const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
+  { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
+  {
+    href: "/practicas",
+    ns: "nav",
+    key: "practices",
+    icon: ICONS.practices,
+  },
+];
+// Lente academia del bailarín: /clases y /academias ya son tabs y las
+// particulares compradas aparecen en reservadas (sin bandeja separada)
+// — el sheet queda solo con el QR.
+const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [];
+
 const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
-  DANCER: [
-    {
-      labelNs: "nav",
-      labelKey: "socialSection",
-      items: [
-        { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
-        { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
-        {
-          href: "/practicas",
-          ns: "nav",
-          key: "practices",
-          icon: ICONS.practices,
-        },
-        { href: "/viajes", ns: "nav", key: "trips", icon: ICONS.trips },
-      ],
-    },
-  ],
+  // El bailarín no usa drawer: sus módulos viven en el sheet del "+".
+  DANCER: [],
   STAFF: [
     {
       labelNs: "nav",
@@ -340,15 +375,10 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "title",
           icon: ICONS.slider,
         },
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM]),
     {
       labelNs: "nav",
       labelKey: "socialSection",
@@ -410,14 +440,10 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.videos",
           icon: ICONS.play,
         },
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
+        { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM]),
   ],
   INSTRUCTOR: [
     {
@@ -482,31 +508,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
   ],
   SUPPORT: [],
-  VENUE_MANAGER: [
-    {
-      labelNs: "nav",
-      labelKey: "consoleSection",
-      items: [
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
-      ],
-    },
-  ],
+  VENUE_MANAGER: [ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM])],
   ADMIN: [
     {
       labelNs: "admin",
       labelKey: "title",
       items: [
-        {
-          href: "/admin/solicitudes",
-          ns: "admin",
-          key: "modules.requests",
-          icon: ICONS.users,
-        },
         {
           href: "/admin/roles",
           ns: "admin",
@@ -526,6 +533,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.users,
         },
         {
+          href: "/admin/datos",
+          ns: "admin",
+          key: "modules.datos",
+          icon: ICONS.list,
+        },
+        {
           href: "/admin/auditoria",
           ns: "admin",
           key: "modules.audit",
@@ -537,14 +550,17 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "title",
           icon: ICONS.tag,
         },
-        {
-          href: "/analitica",
-          ns: "analytics",
-          key: "title",
-          icon: ICONS.slider,
-        },
       ],
     },
+    ANALYTICS_DRAWER_GROUP([
+      ANALYTICS_DRAWER_ITEM,
+      {
+        href: "/analitica/usuarios",
+        ns: "admin",
+        key: "modules.analyticsUser",
+        icon: ICONS.users,
+      },
+    ]),
     {
       labelNs: "nav",
       labelKey: "socialSection",
@@ -556,44 +572,20 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   ],
 };
 
-// Drawer del DANCER en modo Academia — el dominio nightlife (bailes,
-// entradas, viajes) se reemplaza por el de aprendizaje. Prácticas queda
-// en ambos: es el puente entre clase y pista.
-const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [
-  {
-    labelNs: "academy",
-    labelKey: "title",
-    items: [
-      { href: "/academia", ns: "academy", key: "title", icon: ICONS.academy },
-      {
-        href: "/practicas",
-        ns: "nav",
-        key: "practices",
-        icon: ICONS.practices,
-      },
-      { href: "/academias", ns: "nav", key: "academies", icon: ICONS.academy },
-    ],
-  },
-  // En modo Academia el social no desaparece: eventos y amigos siguen a
-  // un toque en el drawer.
-  {
-    labelNs: "nav",
-    labelKey: "socialSection",
-    items: [
-      { href: "/eventos", ns: "nav", key: "events", icon: ICONS.events },
-      { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
-    ],
-  },
-];
+// El DANCER no usa drawer en ninguna lente — en modo Academia el sheet
+// del "+" lleva los módulos de aprendizaje (SHEET_ACADEMY_ITEMS).
+const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [];
 
 /** unreadCount acotado para el badge — 99+ como en el home hub. */
 function badgeText(count: number): string {
   return count > 99 ? "99+" : String(count);
 }
 
-export function BottomNav() {
+export function BottomNav({ children }: { children?: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("nav");
+  const tcg = useTranslations("common");
   // Labels fuera de nav.*: "create" (producer.createEvent) e ítems del
   // drawer que reutilizan los namespaces de cada dominio.
   const tp = useTranslations("producer");
@@ -617,47 +609,81 @@ export function BottomNav() {
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
-  const [me, setMe] = useState<Me | null>(null);
+  // meChecked: true cuando /me ya respondió (200 o 401): hasta entonces
+  // no se renderiza UI dependiente del rol — nada de chrome de otra
+  // lente por unos milisegundos.
+  const { me, loading: meLoading } = useMe();
+  const meChecked = !meLoading;
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Sheet de acciones del bailarín (botón "+" del tab bar).
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // Hide-on-scroll del appbar (patrón iOS).
+  const [barHidden, setBarHidden] = useState(false);
+  // ¿La sesión ya navegó dentro de la app? El ref persiste entre
+  // navegaciones client-side (este componente no remonta) y se resetea
+  // en recarga completa — proxy de "hay historial interno al que volver".
+  const entryPathRef = useRef(pathname);
+  const navigatedRef = useRef(false);
   // Lente activa — cambia cuando Perfil dispara setActiveRole.
   const activeRole = useActiveRole(me?.roles);
   // Modo consumer (solo aplica a DANCER): social ↔ academy.
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
+  // Acento verde SOLO para la lente academia: Mi Aprendizaje del bailarín
+  // o los roles ACADEMY_OWNER / INSTRUCTOR. Todo lo demás → morado
+  // (marca + social + gestión). Mientras /me no responde queda morado —
+  // el verde nunca flashea donde no corresponde.
+  const academyLens =
+    meChecked &&
+    (activeRole === "ACADEMY_OWNER" ||
+      activeRole === "INSTRUCTOR" ||
+      dancerAcademy);
 
-  // Baseline de no-leídas: solo si hay sesión. Un 401 deja unread en null
-  // (mismo patrón de catch silencioso que apiFetch("/me") en HomeHub).
+  // Baseline de no-leídas por lente: `?lens=` acota el unreadCount al
+  // dominio activo (los tipos "any" cuentan en ambas). Corre tras /me
+  // (sin sesión no se pide — un 401 dejaría unread en null igual) y se
+  // repite si la lente cambia (toggle Social/Academia del bailarín).
+  const notifLens: "social" | "academy" = academyLens ? "academy" : "social";
   useEffect(() => {
+    if (!meChecked || !me) return;
     let cancelled = false;
-    apiFetch("/notifications?limit=1")
+    apiFetch(`/notifications?limit=1&lens=${notifLens}`)
       .then(async (res) => {
         if (cancelled || !res.ok) return;
         const data = (await res.json()) as { unreadCount?: number };
         setUnread(data.unreadCount ?? 0);
       })
       .catch(() => {});
-    const onNotify = () => setUnread((u) => (u ?? 0) + 1);
+    const onNotify = (e: Event) => {
+      const n = (e as CustomEvent<{ type?: string }>).detail;
+      const l = n?.type ? notificationLens(n.type) : "any";
+      if (l === "any" || l === notifLens) setUnread((u) => (u ?? 0) + 1);
+    };
     window.addEventListener(NOTIFICATION_EVENT, onNotify);
     return () => {
       cancelled = true;
       window.removeEventListener(NOTIFICATION_EVENT, onNotify);
     };
-  }, []);
+  }, [meChecked, me, notifLens]);
 
-  // Roles para filtrar los ítems del drawer — una sola vez, con el
-  // mismo patrón de catch silencioso que el badge (401 → me queda null).
+  // /me viene del MeProvider del layout — sin fetch propio (antes cada
+  // consumidor duplicaba la llamada; ahora chrome y páginas resuelven
+  // juntos).
+
+  // data-mode en <html>: el acento sigue a la LENTE, no solo al toggle
+  // consumer — academy verde solo en lente academia, resto morado.
   useEffect(() => {
-    let cancelled = false;
-    apiFetch("/me")
-      .then(async (res) => {
-        if (cancelled || !res.ok) return;
-        setMe((await res.json()) as Me);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    document.documentElement.dataset.mode = academyLens
+      ? "academy"
+      : "social";
+  }, [academyLens]);
+
+  // data-anon en <html>: sin sesión ChromeShell no debe reservar el
+  // padding de la tab bar (la barra no se renderiza para anónimos).
+  useEffect(() => {
+    if (meChecked && !me) document.documentElement.dataset.anon = "true";
+    else delete document.documentElement.dataset.anon;
+  }, [meChecked, me]);
 
   // La página /notificaciones marca leídas por ítem sin emitir evento:
   // al entrar el badge se resetea (el socket lo vuelve a subir si llega
@@ -666,13 +692,46 @@ export function BottomNav() {
     if (pathname.startsWith("/notificaciones")) setUnread(0);
   }, [pathname]);
 
-  // Al navegar el drawer se cierra.
+  // Al navegar el drawer y el sheet se cierran.
   useEffect(() => {
+    if (pathname !== entryPathRef.current) navigatedRef.current = true;
     setDrawerOpen(false);
+    setSheetOpen(false);
+    setBarHidden(false);
   }, [pathname]);
 
+  // Hide-on-scroll estilo iOS: el appbar se desliza fuera al bajar por
+  // el contenido y reaparece al subir o al llegar al final. Histéresis
+  // de 4px contra flicker; nunca se oculta en el tope (rubber-band de
+  // iOS puede dar y<0) ni con el drawer abierto.
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const atBottom =
+        y + window.innerHeight >=
+        document.documentElement.scrollHeight - 8;
+      if (y <= 0 || atBottom) {
+        setBarHidden(false);
+      } else if (!drawerOpen && y > lastY + 4 && y > 64) {
+        setBarHidden(true);
+      } else if (y < lastY - 4) {
+        setBarHidden(false);
+      }
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [drawerOpen]);
+
+  // Contexto fullscreen (consola staff): solo el contenido, sin chrome.
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)))
-    return null;
+    return <>{children}</>;
+
+  // Anónimo confirmado (me resolvió y no hay sesión): sin appbar ni tab
+  // bar — la única ruta que llega acá es la cartelera pública /eventos;
+  // el resto de módulos los corta middleware.ts hacia /login.
+  if (meChecked && !me) return <>{children}</>;
 
   const badge = unread != null && unread > 0 ? unread : 0;
 
@@ -730,47 +789,137 @@ export function BottomNav() {
   // tabs + ítems del drawer de todos los roles (solo resuelve el nombre
   // de la ruta actual — /admin/usuarios → "Usuarios", /eventos/1 →
   // "Eventos"). Sin match (p.ej. /checkout) no se muestra nada.
-  const pageLabel = (() => {
-    const entries: [string, string][] = [
-      // /notificaciones ya no es tab: vive en la campana del appbar,
-      // pero el título contextual sigue resolviendo la ruta.
-      ["/notificaciones", t("notifications")],
-      ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
-      ...DANCER_ACADEMY_TABS.map(
-        (tab) => [tab.href, tabLabel(tab)] as [string, string],
-      ),
-      ...Object.values(DRAWER_BY_ROLE).flatMap((groups) =>
-        groups.flatMap((g) =>
-          g.items.map(
-            (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
-          ),
-        ),
-      ),
-      ...DANCER_ACADEMY_DRAWER.flatMap((g) =>
+  // navEntries también define las RAÍCES de sección: una ruta que no es
+  // raíz exacta es "empujada" y el appbar muestra ‹ back en el slot
+  // izquierdo (patrón iOS) en vez de la hamburguesa.
+  const navEntries: [string, string][] = [
+    // /notificaciones ya no es tab: vive en la campana del appbar,
+    // pero el título contextual sigue resolviendo la ruta.
+    ["/notificaciones", t("notifications")],
+    // Módulos del sheet del bailarín (ya no viven en el drawer).
+    ["/bailes", t("dances")],
+    ["/practicas", t("practices")],
+    ["/academia", tac("title")],
+    // /qr ya no es tab del bailarín (vive embebido en el sheet) —
+    // la ruta sigue existiendo (escáner desde /bailes, /practicas).
+    ["/qr", t("scan")],
+    ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
+    ...DANCER_ACADEMY_TABS.map(
+      (tab) => [tab.href, tabLabel(tab)] as [string, string],
+    ),
+    ...Object.values(DRAWER_BY_ROLE).flatMap((groups) =>
+      groups.flatMap((g) =>
         g.items.map(
           (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
         ),
       ),
-    ];
-    entries.sort((a, b) => b[0].length - a[0].length);
-    const hit = entries.find(
+    ),
+    ...DANCER_ACADEMY_DRAWER.flatMap((g) =>
+      g.items.map(
+        (it) => [it.href, labelFor(it.ns, it.key)] as [string, string],
+      ),
+    ),
+  ];
+  navEntries.sort((a, b) => b[0].length - a[0].length);
+  const pageLabel =
+    navEntries.find(
       ([href]) => pathname === href || pathname.startsWith(`${href}/`),
-    );
-    return hit?.[1] ?? null;
+    )?.[1] ?? null;
+
+  // Back del appbar (iOS): solo en rutas empujadas (no-raíz). Destino:
+  // router.back() si la sesión ya navegó dentro de la app; si la entrada
+  // fue directa (link externo, recarga, pestaña nueva) cae al padre
+  // jerárquico — raíz conocida o ruta superior — y como último recurso
+  // /inicio. El label queda solo en aria-label: el centro del appbar ya
+  // nombra la sección y un texto junto al ‹ rompería la simetría.
+  const rootHrefs = new Set(navEntries.map(([href]) => href));
+  const backFallback = (() => {
+    if (rootHrefs.has(pathname)) return null;
+    const parent = pathname.replace(/\/[^/]*$/, "");
+    if (rootHrefs.has(parent) || parent.split("/").filter(Boolean).length >= 2)
+      return parent;
+    return "/inicio";
   })();
+  // Rutas con back forzado — el perfil del local siempre vuelve a la
+  // vista de mapa de /eventos (su punto de entrada natural), sin
+  // importar cómo llegó la sesión.
+  const BACK_OVERRIDES: [string, string][] = [
+    ["/locales/", "/eventos?view=map"],
+  ];
+  const backOverride = BACK_OVERRIDES.find(([p]) =>
+    pathname.startsWith(p),
+  )?.[1];
+  const goBack = () => {
+    if (backOverride) {
+      router.push(backOverride);
+    } else if (
+      navigatedRef.current ||
+      document.referrer.startsWith(window.location.origin)
+    ) {
+      router.back();
+    } else if (backFallback) {
+      router.push(backFallback);
+    }
+  };
+
+  // /inicio es match exacto (prefijo "/" marcaría todo); el resto
+  // por prefijo — /productor/eventos solo se activa con ese
+  // prefijo, no con /productor ni /productor/pagos.
+  const isTabActive = (tab: Tab) =>
+    tab.href === "/inicio"
+      ? pathname === "/inicio"
+      : pathname.startsWith(tab.href);
+
+  // Índice del tab activo — alimenta la píldora deslizante del nav.
+  // -1 en rutas fuera del tab bar (p.ej. /checkout) → indicador oculto.
+  const activeIndex = allTabs.findIndex(isTabActive);
+
+  // Ítems del sheet del bailarín — labels resueltos como en el drawer.
+  const isDancer = activeRole === "DANCER";
+  const sheetItems: SheetItem[] = (
+    dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS
+  ).map((spec) => ({
+    href: spec.href,
+    label: labelFor(spec.ns, spec.key),
+    icon: icon(spec.icon)(pathname.startsWith(spec.href)),
+    active: pathname.startsWith(spec.href),
+  }));
 
   const renderTab = (tab: Tab) => {
-    // /inicio es match exacto (prefijo "/" marcaría todo); el resto
-    // por prefijo — /productor/eventos solo se activa con ese
-    // prefijo, no con /productor ni /productor/pagos.
-    const active =
-      tab.href === "/inicio"
-        ? pathname === "/inicio"
-        : pathname.startsWith(tab.href);
+    const active = isTabActive(tab);
+    if (tab.sheet) {
+      // Tab de acción: no navega — abre el sheet. Mismo look de botón
+      // central (círculo neon) que los tabs center de otros roles.
+      return (
+        <li key={tab.key} className="relative flex-1">
+          <button
+            type="button"
+            data-tour={`nav-${tab.key}`}
+            aria-haspopup="dialog"
+            aria-expanded={sheetOpen}
+            aria-label={tabLabel(tab)}
+            onClick={() => setSheetOpen((o) => !o)}
+            className="flex h-full min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium text-neon transition-colors active:scale-95"
+          >
+            <span
+              className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                sheetOpen
+                  ? "border-neon bg-neon text-night-950"
+                  : "border-neon/50 bg-neon/10 text-neon"
+              }`}
+            >
+              {tab.icon(true)}
+            </span>
+            {tabLabel(tab)}
+          </button>
+        </li>
+      );
+    }
     return (
-      <li key={tab.key} className="flex-1">
+      <li key={tab.key} className="relative flex-1">
         <Link
           href={tab.href}
+          data-tour={`nav-${tab.key}`}
           aria-current={active ? "page" : undefined}
           className={`flex h-full min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg text-[10px] font-medium transition-colors active:scale-95 ${
             tab.center
@@ -782,7 +931,9 @@ export function BottomNav() {
         >
           {tab.center ? (
             <span
-              className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+              className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
+                active ? "tab-pop " : ""
+              }${
                 active
                   ? "border-neon bg-neon text-night-950"
                   : "border-neon/50 bg-neon/10 text-neon"
@@ -791,7 +942,11 @@ export function BottomNav() {
               {tab.icon(true)}
             </span>
           ) : (
-            tab.icon(active)
+            // Pop al activarse — key por href para que la animación
+            // se dispare al ganar el estado activo.
+            <span className={active ? "tab-pop" : undefined}>
+              {tab.icon(active)}
+            </span>
           )}
           {tabLabel(tab)}
         </Link>
@@ -801,93 +956,160 @@ export function BottomNav() {
 
   return (
     <>
-      {/* Hamburguesa flotante — solo si el rol tiene módulos en el drawer */}
-      {hasDrawerItems && (
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={drawerOpen}
-          aria-controls="app-side-drawer"
-          aria-label={t("menu")}
-          onClick={() => setDrawerOpen((o) => !o)}
-          className="fixed left-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-night-700 bg-night-900/80 text-white/80 shadow-lg shadow-black/40 backdrop-blur transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-        >
-          <svg
-            aria-hidden
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            className="h-6 w-6"
-          >
-            <path d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      )}
-
-      {/* Título de sección estilo nav bar iOS: h1 centrado a la misma
-          altura que la hamburguesa — las páginas no repiten el título
-          de sección (solo títulos de contenido: detalle de evento,
-          estados de checkout). px-16 despeja el botón flotante.
-          Excepción: en /inicio con lente DANCER el slot lo ocupa el
-          switch Social/Academia; el h1 queda sr-only para no perder el
-          encabezado de la página. */}
-      {pathname === "/inicio" && activeRole === "DANCER" ? (
-        <>
-          {pageLabel && <h1 className="sr-only">{pageLabel}</h1>}
-          <div className="fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center px-16">
-            <ModeToggle />
-          </div>
-        </>
-      ) : (
-        pageLabel && (
-          <h1 className="pointer-events-none fixed inset-x-0 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 items-center justify-center truncate px-16 text-center text-lg font-semibold tracking-tight text-white">
-            {pageLabel}
-          </h1>
-        )
-      )}
-
-      {/* Campana de notificaciones — appbar derecha, espejo de la
-          hamburguesa. Mismo badge con tope 99+; el aria-label anuncia
-          el conteo. Solo con sesión (un 401 deja me en null). */}
-      {me && (
-        <Link
-          href="/notificaciones"
-          aria-label={
-            badge > 0
-              ? t("notificationsUnread", { count: badge })
-              : t("notificationsFull")
-          }
-          aria-current={
-            pathname.startsWith("/notificaciones") ? "page" : undefined
-          }
-          className={`fixed right-3 top-[calc(0.75rem+env(safe-area-inset-top))] z-40 flex h-11 w-11 items-center justify-center rounded-full border border-night-700 bg-night-900/80 shadow-lg shadow-black/40 backdrop-blur transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
-            pathname.startsWith("/notificaciones")
-              ? "text-neon"
-              : "text-white/80 hover:text-white"
-          }`}
-        >
-          <span className="relative">
-            {icon(ICONS.notifications)(false)}
-            {badge > 0 && (
-              <span
-                aria-hidden
-                className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-night-950"
+      {/* Appbar sticky — en el flujo del layout, con fondo sólido:
+          nunca se sobrepone al contenido. 3 slots de ancho fijo
+          (hamburguesa | título | campana) para que el título quede
+          centrado aunque falte un botón. En /inicio con lente DANCER
+          el slot central lo ocupa el switch Social/Academia y el h1
+          queda sr-only para conservar el encabezado de página. */}
+      <header
+        className={`appbar sticky top-0 z-40 bg-night-950/90 backdrop-blur pt-[env(safe-area-inset-top)]${
+          barHidden ? " appbar-hidden" : ""
+        }`}
+      >
+        <div className="mx-auto flex h-14 max-w-lg items-center px-3">
+          <div className="flex w-10 items-center">
+            {backFallback ? (
+              <button
+                type="button"
+                aria-label={tcg("back")}
+                onClick={goBack}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-95"
               >
-                {badgeText(badge)}
-              </span>
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-6 w-6"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+            ) : (
+              hasDrawerItems && (
+                <button
+                  type="button"
+                  data-tour="appbar-menu"
+                aria-haspopup="dialog"
+                aria-expanded={drawerOpen}
+                aria-controls="app-side-drawer"
+                aria-label={t("menu")}
+                onClick={() => setDrawerOpen((o) => !o)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                <svg
+                  aria-hidden
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  className="h-6 w-6"
+                >
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              )
             )}
+          </div>
+
+          <div className="flex flex-1 items-center justify-center px-2">
+            {pathname === "/inicio" && me && activeRole === "DANCER" ? (
+              <>
+                {pageLabel && <h1 className="sr-only">{pageLabel}</h1>}
+                <ModeToggle />
+              </>
+            ) : (
+              pageLabel && (
+                <h1 className="pointer-events-none truncate text-center text-lg font-semibold tracking-tight text-white">
+                  {pageLabel}
+                </h1>
+              )
+            )}
+          </div>
+
+          <div className="flex w-10 items-center justify-end">
+            {/* Campana — badge con tope 99+; solo con sesión. */}
+            {me && (
+              <Link
+                href="/notificaciones"
+                data-tour="appbar-bell"
+                aria-label={
+                  badge > 0
+                    ? t("notificationsUnread", { count: badge })
+                    : t("notificationsFull")
+                }
+                aria-current={
+                  pathname.startsWith("/notificaciones")
+                    ? "page"
+                    : undefined
+                }
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+                  pathname.startsWith("/notificaciones")
+                    ? "text-neon"
+                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <span className="relative">
+                  {icon(ICONS.notifications)(false)}
+                  {badge > 0 && (
+                    <span
+                      aria-hidden
+                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-night-950"
+                    >
+                      {badgeText(badge)}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Perfil pendiente (lead convertido por admin): banner persistente
+          hasta que complete sus datos — las escrituras ya están
+          bloqueadas server-side por la barrera demo. */}
+      {me?.pendingProfile && !pathname.startsWith("/perfil/completar") && (
+        <Link
+          href="/perfil/completar"
+          className="mx-auto flex max-w-lg items-center justify-between gap-3 border-b border-neon/30 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon transition-colors hover:bg-neon/15"
+        >
+          <span className="truncate">{tpr("pendingBanner")}</span>
+          <span className="inline-flex shrink-0 items-center gap-1 font-semibold">
+            {tpr("pendingBannerCta")}
+            <ChevronRightIcon />
           </span>
         </Link>
       )}
+
+      {children}
 
       <nav
         aria-label={t("main")}
         className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
       >
-        <ul className="mx-auto flex h-16 max-w-lg items-stretch justify-between">
-          {allTabs.map(renderTab)}
+        <ul className="relative mx-auto flex h-16 max-w-lg items-stretch justify-between">
+          {/* Píldora activa — se desliza al tab con transform puro;
+              se desvanece en rutas fuera del tab bar. */}
+          <span
+            aria-hidden
+            className="tab-indicator"
+            style={
+              {
+                "--tab-count": allTabs.length,
+                "--tab-index": Math.max(activeIndex, 0),
+                opacity: !meChecked || activeIndex < 0 ? 0 : 1,
+              } as React.CSSProperties
+            }
+          />
+          {/* Sin rol resuelto no se muestran tabs de otra lente — la
+              barra queda vacía un instante y luego monta la correcta. */}
+          {meChecked && allTabs.map(renderTab)}
         </ul>
       </nav>
 
@@ -897,6 +1119,17 @@ export function BottomNav() {
         groups={drawerGroups}
         roleLabel={me ? roleLabel : undefined}
       />
+
+      {/* Sheet de acciones — solo la lente bailarín; los demás roles
+          mantienen el drawer lateral. */}
+      {isDancer && (
+        <DancerActionsSheet
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          items={sheetItems}
+          scanHref={dancerAcademy ? undefined : "/qr?modo=escanear"}
+        />
+      )}
     </>
   );
 }

@@ -1,7 +1,7 @@
 export type PartnerAvatarProps = {
   name: string;
   photoUrl: string | null;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
 };
 
 /** Avatar de la pareja de baile: foto o inicial (mismo patrón que el lineup de eventos). */
@@ -11,7 +11,11 @@ export function PartnerAvatar({
   size = "md",
 }: PartnerAvatarProps) {
   const dims =
-    size === "lg" ? "h-16 w-16 text-2xl" : "h-12 w-12 text-base";
+    size === "lg"
+      ? "h-16 w-16 text-2xl"
+      : size === "sm"
+        ? "h-8 w-8 text-xs"
+        : "h-12 w-12 text-base";
 
   if (photoUrl) {
     return (

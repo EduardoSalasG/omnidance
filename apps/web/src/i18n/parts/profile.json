@@ -1,0 +1,72 @@
+{
+  "profile": {
+    "pendingBanner": "Completa tus datos para activar tu cuenta",
+    "pendingBannerCta": "Completar",
+    "datos": {
+      "title": "Mis datos",
+      "personal": "Datos personales",
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "memberSince": "Miembro desde",
+      "verified": "Cuenta verificada",
+      "noPhone": "Sin teléfono registrado",
+      "instagramEmpty": "Sin usuario",
+      "socialSection": "Tu baile",
+      "socialEmpty": "Aún no declaras tus estilos de baile",
+      "gender": "Género",
+      "genderEmpty": "Sin declarar",
+      "genderHint": "Solo alimenta métricas agregadas — nunca se muestra público.",
+      "genderOptions": {
+        "M": "Hombre",
+        "F": "Mujer",
+        "OTHER": "Otro"
+      },
+      "edit": "Editar",
+      "addStyle": "Agregar estilo",
+      "remove": "Quitar",
+      "chooseStyle": "Elige un estilo",
+      "chooseRole": "Rol",
+      "level": {
+        "none": "Sin nivel",
+        "principiante": "Principiante",
+        "intermedio": "Intermedio",
+        "avanzado": "Avanzado"
+      },
+      "saved": "Guardado",
+      "saveError": "No se pudo guardar — intenta de nuevo",
+      "academySection": "Tus academias",
+      "academyEmpty": "Sin inscripciones vigentes",
+      "danceRole": {
+        "LEADER": "Leader",
+        "FOLLOWER": "Follower",
+        "SWITCH": "Switch"
+      },
+      "enrollmentStatus": {
+        "ACTIVE": "Activa",
+        "TRIAL": "Prueba",
+        "ONLINE": "Online",
+        "PAUSED": "Pausada",
+        "FROZEN": "Congelada"
+      },
+      "plan": "Plan {name}",
+      "since": "Desde {date}",
+      "phonePlaceholder": "+56 9 1234 5678",
+      "nameRequired": "El nombre no puede quedar vacío"
+    },
+    "complete": {
+      "title": "Completa tu perfil",
+      "subtitle": "Confirma tus datos para activar tu cuenta y empezar a usar la app.",
+      "name": "Nombre",
+      "phone": "Teléfono",
+      "password": "Contraseña (opcional)",
+      "passwordHint": "mínimo 8 caracteres — también puedes entrar siempre por link a tu correo",
+      "submit": "Activar mi cuenta",
+      "success": "Listo — tu cuenta ya está activa",
+      "error": "No pudimos guardar — intenta de nuevo",
+      "phoneTaken": "Este teléfono ya está registrado en otra cuenta.",
+      "passwordShort": "La contraseña debe tener al menos 8 caracteres.",
+      "loadError": "No pudimos cargar tus datos."
+    }
+  }
+}

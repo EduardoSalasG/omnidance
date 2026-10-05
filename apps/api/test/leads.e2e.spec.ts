@@ -1,0 +1,673 @@
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { Test } from "@nestjs/testing";
+import { ValidationPipe, type INestApplication } from "@nestjs/common";
+import { AuthModule } from "../src/auth/auth.module";
+import { AuthService } from "../src/auth/domain/auth.service";
+import { AdminModule } from "../src/admin/admin.module";
+import { LeadsModule } from "../src/leads/leads.module";
+import { PeopleModule } from "../src/people/people.module";
+import { PrismaService } from "../src/prisma.service";
+
+describe("leads /pro e2e", () => {
+  let app: INestApplication;
+  let baseUrl: string;
+  let prisma: PrismaService;
+  const auth = new AuthService(
+    process.env.JWT_SECRET ?? "dev-secret-change-me",
+  );
+
+  let adminSession: string;
+  let dancerSession: string;
+
+  const leadEmails: string[] = [];
+  const personIds: string[] = [];
+
+  const req = (method: string, path: string, body?: unknown, session?: string) =>
+    fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        "content-type": "application/json",
+        ...(session ? { cookie: `omnidance_session=${session}` } : {}),
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+  const get = (path: string, session?: string) =>
+    req("GET", path, undefined, session);
+  const post = (path: string, body?: unknown, session?: string) =>
+    req("POST", path, body, session);
+
+  let phoneSeq = 0;
+  // Person.phone es unique — cada lead necesita un teléfono distinto.
+  const validLead = (email: string, extra: Record<string, unknown> = {}) => ({
+    name: "Lead Test",
+    email,
+    phone: `+56900${String(++phoneSeq).padStart(6, "0")}`,
+    roles: ["PRODUCER"],
+    intent: "CONTACT",
+    ...extra,
+  });
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [LeadsModule, AdminModule, AuthModule, PeopleModule],
+    }).compile();
+    app = moduleRef.createNestApplication();
+    app.setGlobalPrefix("api");
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    await app.init();
+    await app.listen(0);
+    prisma = app.get(PrismaService);
+    const address = app.getHttpServer().address();
+    baseUrl = `http://127.0.0.1:${address.port}`;
+
+    // Admin PROPIO del spec: un findFirst sin orderBy sobre cualquier
+    // ADMIN puede tomar la fixture de otro spec paralelo (RCD/GE/CRM/GP
+    // Admin) que ese spec borra en su afterAll → person desaparece →
+    // 401 en todos los requests admin. Autocontenido = cero flake.
+    const admin = await prisma.person.create({
+      data: {
+        name: "Admin Leads Test",
+        roles: { create: [{ role: "ADMIN", status: "APPROVED" }] },
+      },
+    });
+    personIds.push(admin.id);
+    adminSession = await auth.issueSession(admin.id);
+
+    const dancer = await prisma.person.create({
+      data: {
+        name: "Dancer Leads Test",
+        roles: { create: [{ role: "DANCER", status: "APPROVED" }] },
+      },
+    });
+    personIds.push(dancer.id);
+    dancerSession = await auth.issueSession(dancer.id);
+  });
+
+  afterAll(async () => {
+    // Si beforeAll no llegó a inicializar prisma (timeout de boot), no
+    // hay nada creado por este spec — cerrar la app si existe y salir.
+    if (!prisma) {
+      await app?.close();
+      return;
+    }
+    const leads = await prisma.lead.findMany({
+      where: { email: { in: leadEmails } },
+      select: { id: true, personId: true },
+    });
+    const demoPersonIds = leads
+      .map((l) => l.personId)
+      .filter((x): x is string => !!x);
+    // Persons creadas por magic-link verify quedan huérfanas del lead si
+    // un test aborta a mitad — limpiar también por email.
+    const emailPersons = await prisma.person.findMany({
+      where: { email: { in: leadEmails } },
+      select: { id: true },
+    });
+    const allIds = [
+      ...new Set([
+        ...personIds,
+        ...demoPersonIds,
+        ...emailPersons.map((p) => p.id),
+      ]),
+    ];
+    await prisma.notification.deleteMany({
+      where: { personId: { in: allIds } },
+    });
+    await prisma.personRole.deleteMany({
+      where: { personId: { in: allIds } },
+    });
+    await prisma.lead.deleteMany({ where: { email: { in: leadEmails } } });
+    await prisma.person.deleteMany({ where: { id: { in: allIds } } });
+    await app.close();
+  });
+
+  describe("POST /api/leads", () => {
+    it("lead válido → 201 con id + demoToken + accountExists:false", async () => {
+      leadEmails.push("lead-e2e-1@test.cl");
+      const res = await post("/api/leads", validLead("lead-e2e-1@test.cl"));
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.id).toBeTruthy();
+      expect(body.demoToken).toMatch(/^[0-9a-f]{48}$/);
+      expect(body.accountExists).toBe(false);
+
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      expect(lead.status).toBe("NEW");
+      expect(lead.roles).toEqual(["PRODUCER"]);
+      expect(lead.intent).toBe("CONTACT");
+    });
+
+    it("notifica a los ADMIN aprobados al crear lead nuevo", async () => {
+      // El admin propio del spec — determinista bajo paralelismo.
+      const admin = await prisma.person.findFirstOrThrow({
+        where: { name: "Admin Leads Test" },
+      });
+      const notif = await prisma.notification.findFirst({
+        where: { personId: admin.id, type: "lead.new" },
+        orderBy: { createdAt: "desc" },
+      });
+      expect(notif?.title).toContain("Lead Test");
+    });
+
+    it.each([
+      ["name", { name: "" }],
+      ["email", { email: "no-es-mail" }],
+      ["phone", { phone: "" }],
+      ["roles", { roles: [] }],
+      ["roles fuera de whitelist", { roles: ["HACKER"] }],
+      ["intent inválido", { intent: "HACK" }],
+    ])("sin %s válido → 400", async (_label, patch) => {
+      const res = await post(
+        "/api/leads",
+        validLead("lead-e2e-bad@test.cl", patch as Record<string, unknown>),
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("intent DEMO sin teléfono → 201 y lead.phone null", async () => {
+      leadEmails.push("lead-e2e-nophone@test.cl");
+      const res = await post(
+        "/api/leads",
+        validLead("lead-e2e-nophone@test.cl", {
+          intent: "DEMO",
+          phone: undefined,
+        }),
+      );
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.demoToken).toMatch(/^[0-9a-f]{48}$/);
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-nophone@test.cl" },
+      });
+      expect(lead.phone).toBeNull();
+      expect(lead.intent).toBe("DEMO");
+    });
+
+    it("re-envío con el mismo email hace upsert (mismo id, datos nuevos)", async () => {
+      const res = await post(
+        "/api/leads",
+        validLead("lead-e2e-1@test.cl", {
+          name: "Lead Test Actualizado",
+          roles: ["DJ", "ACADEMY_OWNER"],
+          intent: "DEMO",
+        }),
+      );
+      expect(res.status).toBe(201);
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      expect(lead.name).toBe("Lead Test Actualizado");
+      expect(lead.roles).toEqual(["DJ", "ACADEMY_OWNER"]);
+      expect(lead.intent).toBe("DEMO");
+    });
+
+    it("email de cuenta existente → accountExists:true y sin demoToken", async () => {
+      const existing = await prisma.person.findFirstOrThrow({
+        where: { email: "admin@omnidance.dev" },
+        select: { email: true },
+      });
+      const res = await post("/api/leads", validLead(existing.email!));
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.accountExists).toBe(true);
+      expect(body.demoToken).toBeNull();
+      await prisma.lead.delete({ where: { email: existing.email! } });
+    });
+  });
+
+  describe("POST /api/leads/:id/demo", () => {
+    it("sin token → 404 (el id solo no es credencial)", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      const res = await post(`/api/leads/${lead.id}/demo`, {});
+      expect(res.status).toBe(404);
+    });
+
+    it("token incorrecto → 404", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      const res = await post(`/api/leads/${lead.id}/demo`, {
+        token: "0".repeat(48),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("lead inexistente → 404", async () => {
+      const res = await post("/api/leads/no-existe/demo", {
+        token: "0".repeat(48),
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("token válido → 200, crea persona demo con roles y enlaza el lead", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      const res = await post(`/api/leads/${lead.id}/demo`, {
+        token: lead.demoToken,
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("set-cookie")).toContain("omnidance_session=");
+
+      const updated = await prisma.lead.findUniqueOrThrow({
+        where: { id: lead.id },
+      });
+      expect(updated.status).toBe("CONVERTED");
+      expect(updated.personId).toBeTruthy();
+
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: updated.personId! },
+        include: { roles: true },
+      });
+      expect(person.email).toBe("lead-e2e-1@test.cl");
+      expect(person.isDemoAccount).toBe(true);
+      expect(person.verifiedAt).toBeNull();
+      expect(person.roles.map((r) => `${r.role}:${r.status}`).sort()).toEqual([
+        "ACADEMY_OWNER:APPROVED",
+        "DJ:APPROVED",
+      ]);
+    });
+
+    it("lead DEMO sin teléfono activa y la persona queda con phone null", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-nophone@test.cl" },
+      });
+      const res = await post(`/api/leads/${lead.id}/demo`, {
+        token: lead.demoToken,
+      });
+      expect(res.status).toBe(200);
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { email: "lead-e2e-nophone@test.cl" },
+      });
+      expect(person.phone).toBeNull();
+      expect(person.isDemoAccount).toBe(true);
+    });
+
+    it("re-entrar con el mismo token reemite sesión (no duplica persona)", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      const res = await post(`/api/leads/${lead.id}/demo`, {
+        token: lead.demoToken,
+      });
+      expect(res.status).toBe(200);
+      const after = await prisma.lead.findUniqueOrThrow({
+        where: { id: lead.id },
+      });
+      expect(after.personId).toBe(lead.personId);
+    });
+
+    it("email ya registrado como persona → 409 account_exists", async () => {
+      // Lead creado antes de que existiera la persona: el demo choca.
+      const person = await prisma.person.create({
+        data: { name: "Colision Test", email: "lead-e2e-col@test.cl" },
+      });
+      personIds.push(person.id);
+      leadEmails.push("lead-e2e-col@test.cl");
+      const lead = await prisma.lead.create({
+        data: {
+          name: "Lead Colisión",
+          email: "lead-e2e-col@test.cl",
+          phone: "+569",
+          roles: ["DJ"],
+          intent: "DEMO",
+          demoToken: "a".repeat(48),
+        },
+      });
+      const res = await post(`/api/leads/${lead.id}/demo`, {
+        token: lead.demoToken,
+      });
+      expect(res.status).toBe(409);
+      const refreshed = await prisma.lead.findUniqueOrThrow({
+        where: { id: lead.id },
+      });
+      expect(refreshed.personId).toBeNull();
+    });
+  });
+
+  describe("sandbox de cuentas demo", () => {
+    let demoSession: string;
+
+    it("la sesión demo lee la app normalmente (GET → 200)", async () => {
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      demoSession = await auth.issueSession(lead.personId!);
+      const res = await get("/api/notifications", demoSession);
+      expect(res.status).toBe(200);
+    });
+
+    it("escritura de negocio → 403 demo_mode (barrera en SessionGuard)", async () => {
+      // El demo tiene PRODUCER APPROVED — sin la barrera esto llegaría a
+      // RolesGuard. El mensaje demo_mode prueba que bloqueó el guard.
+      const res = await post(
+        `/api/admin/users/x/roles`,
+        { role: "DJ", status: "APPROVED" },
+        demoSession,
+      );
+      expect(res.status).toBe(403);
+      expect((await res.json()).message).toContain("demo_mode");
+    });
+
+    it("whitelist self-scoped: logout y marcar leídas pasan", async () => {
+      const readAll = await post(
+        "/api/notifications/read-all",
+        {},
+        demoSession,
+      );
+      expect(readAll.status).not.toBe(403);
+      const logout = await post("/api/auth/logout", {}, demoSession);
+      expect(logout.status).toBe(200);
+    });
+
+    it("magic link promueve la cuenta demo a real (verifiedAt + isDemoAccount off)", async () => {
+      const token = await auth.createMagicToken("lead-e2e-1@test.cl");
+      const res = await fetch(`${baseUrl}/api/auth/verify?token=${token}`, {
+        redirect: "manual",
+      });
+      expect([200, 302]).toContain(res.status);
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { email: "lead-e2e-1@test.cl" },
+      });
+      expect(person.isDemoAccount).toBe(false);
+      expect(person.verifiedAt).not.toBeNull();
+      // Tras promoverse, la cuenta ya puede escribir como cualquier usuario.
+      const session = await auth.issueSession(person.id);
+      const blocked = await post(
+        `/api/admin/users/x/roles`,
+        { role: "DJ", status: "APPROVED" },
+        session,
+      );
+      // Ya no es demo_mode — ahora bloquea RBAC por permiso, no la barrera.
+      expect((await blocked.json()).message ?? "").not.toContain("demo_mode");
+    });
+  });
+
+  describe("GET /api/admin/browse/leads", () => {
+    it("sin sesión → 401", async () => {
+      const res = await get("/api/admin/browse/leads");
+      expect(res.status).toBe(401);
+    });
+
+    it("sin rol ADMIN → 403", async () => {
+      const res = await get("/api/admin/browse/leads", dancerSession);
+      expect(res.status).toBe(403);
+    });
+
+    it("admin lista leads y filtra por intent/status/q", async () => {
+      const res = await get("/api/admin/browse/leads", adminSession);
+      expect(res.status).toBe(200);
+      const rows = await res.json();
+      const mine = rows.find(
+        (r: { email: string }) => r.email === "lead-e2e-1@test.cl",
+      );
+      expect(mine).toBeTruthy();
+      expect(mine.status).toBe("CONVERTED");
+      expect(mine.demoToken).toBeUndefined(); // nunca exponer el token
+
+      const filtered = await get(
+        "/api/admin/browse/leads?intent=DEMO&status=CONVERTED&q=lead-e2e",
+        adminSession,
+      );
+      expect(filtered.status).toBe(200);
+      const filteredRows = await filtered.json();
+      expect(filteredRows.length).toBeGreaterThanOrEqual(1);
+      expect(
+        filteredRows.every(
+          (r: { intent: string; status: string }) =>
+            r.intent === "DEMO" && r.status === "CONVERTED",
+        ),
+      ).toBe(true);
+    });
+
+    it("intent fuera de whitelist → 400", async () => {
+      const res = await get(
+        "/api/admin/browse/leads?intent=HACK",
+        adminSession,
+      );
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("POST /api/admin/leads/:id/convert + complete-profile", () => {
+    const convEmail = "lead-e2e-conv@test.cl";
+    let convLeadId: string;
+    let convPersonId: string;
+    let convSession: string;
+
+    it("sin sesión → 401, sin admin → 403", async () => {
+      leadEmails.push(convEmail);
+      // Directo por Prisma: el spec ya consume el rate-limit de POST
+      // /leads (10/hora por IP) con los casos del endpoint público.
+      const lead = await prisma.lead.create({
+        data: {
+          name: "Lead Convert",
+          email: convEmail,
+          phone: `+56900${String(++phoneSeq).padStart(6, "0")}`,
+          roles: ["DJ"],
+          intent: "CONTACT",
+        },
+      });
+      convLeadId = lead.id;
+
+      const anon = await post(`/api/admin/leads/${lead.id}/convert`);
+      expect(anon.status).toBe(401);
+      const dancer = await post(
+        `/api/admin/leads/${lead.id}/convert`,
+        {},
+        dancerSession,
+      );
+      expect(dancer.status).toBe(403);
+    });
+
+    it("admin convierte: crea Person pendiente+demo, notifica y audita", async () => {
+      const res = await post(
+        `/api/admin/leads/${convLeadId}/convert`,
+        {},
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, alreadyReal: false });
+
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { id: convLeadId },
+      });
+      expect(lead.status).toBe("CONTACTED");
+      expect(lead.personId).toBeTruthy();
+      convPersonId = lead.personId!;
+
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: convPersonId },
+        include: { roles: true },
+      });
+      // Sigue demo (solo lectura) hasta completar el perfil.
+      expect(person.isDemoAccount).toBe(true);
+      expect(person.pendingProfileAt).not.toBeNull();
+      expect(person.verifiedAt).toBeNull();
+      expect(person.roles.map((r) => `${r.role}:${r.status}`)).toEqual([
+        "DJ:APPROVED",
+      ]);
+
+      const notif = await prisma.notification.findFirst({
+        where: { personId: convPersonId, type: "account.complete_profile" },
+      });
+      expect(notif).toBeTruthy();
+
+      const audit = await prisma.auditLog.findFirst({
+        where: { action: "LEAD_CONVERT", targetId: convLeadId },
+      });
+      expect(audit).toBeTruthy();
+    });
+
+    it("cuenta pendiente: lee, no escribe, /me expone los flags", async () => {
+      convSession = await auth.issueSession(convPersonId);
+      const me = await get("/api/me", convSession);
+      expect(me.status).toBe(200);
+      const meBody = await me.json();
+      expect(meBody.isDemo).toBe(true);
+      expect(meBody.pendingProfile).toBe(true);
+
+      const write = await post(
+        "/api/admin/users/x/roles",
+        { role: "DJ", status: "APPROVED" },
+        convSession,
+      );
+      expect(write.status).toBe(403);
+      expect((await write.json()).message).toContain("demo_mode");
+    });
+
+    it("magic link verifica el correo pero NO suelta la cuenta pendiente", async () => {
+      const token = await auth.createMagicToken(convEmail);
+      const res = await fetch(`${baseUrl}/api/auth/verify?token=${token}`, {
+        redirect: "manual",
+      });
+      expect([200, 302]).toContain(res.status);
+
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: convPersonId },
+      });
+      expect(person.verifiedAt).not.toBeNull();
+      // La barrera sigue activa — falta completar el perfil.
+      expect(person.isDemoAccount).toBe(true);
+      expect(person.pendingProfileAt).not.toBeNull();
+
+      const write = await post(
+        "/api/admin/users/x/roles",
+        { role: "DJ", status: "APPROVED" },
+        convSession,
+      );
+      expect((await write.json()).message).toContain("demo_mode");
+    });
+
+    it("complete-profile con datos inválidos → 400", async () => {
+      const bad = await post(
+        "/api/me/complete-profile",
+        { name: "X", phone: "" },
+        convSession,
+      );
+      expect(bad.status).toBe(400);
+    });
+
+    it("complete-profile cierra el ciclo: real, sin flags, lead CONVERTED", async () => {
+      const res = await post(
+        "/api/me/complete-profile",
+        {
+          name: "Convertida Real",
+          phone: "+56900999111",
+          password: "secreto123",
+        },
+        convSession,
+      );
+      expect(res.status).toBe(200);
+
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { id: convPersonId },
+      });
+      expect(person.isDemoAccount).toBe(false);
+      expect(person.pendingProfileAt).toBeNull();
+      expect(person.name).toBe("Convertida Real");
+      expect(person.phone).toBe("+56900999111");
+      expect(person.passwordHash).toBeTruthy();
+
+      const lead = await prisma.lead.findUniqueOrThrow({
+        where: { id: convLeadId },
+      });
+      expect(lead.status).toBe("CONVERTED");
+
+      // Ya escribe como usuario normal — bloquea RBAC, no la barrera.
+      const write = await post(
+        "/api/admin/users/x/roles",
+        { role: "DJ", status: "APPROVED" },
+        convSession,
+      );
+      expect((await write.json()).message ?? "").not.toContain("demo_mode");
+    });
+
+    it("cuenta sin pendiente → complete-profile da 403", async () => {
+      const res = await post(
+        "/api/me/complete-profile",
+        { name: "Dancer Normal", phone: "+56922222222" },
+        dancerSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("convert sobre cuenta real existente → alreadyReal + CONVERTED", async () => {
+      const person = await prisma.person.create({
+        data: { name: "Ya Real", email: "lead-e2e-real@test.cl" },
+      });
+      personIds.push(person.id);
+      leadEmails.push("lead-e2e-real@test.cl");
+      const lead = await prisma.lead.create({
+        data: {
+          name: "Lead Real",
+          email: "lead-e2e-real@test.cl",
+          phone: "+569",
+          roles: ["DJ"],
+          intent: "CONTACT",
+          demoToken: "b".repeat(48),
+        },
+      });
+      const res = await post(
+        `/api/admin/leads/${lead.id}/convert`,
+        {},
+        adminSession,
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ ok: true, alreadyReal: true });
+
+      const after = await prisma.lead.findUniqueOrThrow({
+        where: { id: lead.id },
+      });
+      expect(after.status).toBe("CONVERTED");
+      expect(after.personId).toBe(person.id);
+      // La cuenta real queda intacta — nunca se degrada a demo.
+      const untouched = await prisma.person.findUniqueOrThrow({
+        where: { id: person.id },
+      });
+      expect(untouched.isDemoAccount).toBe(false);
+      expect(untouched.pendingProfileAt).toBeNull();
+    });
+
+    it("browse/leads expone demoPending para habilitar el botón", async () => {
+      // Lead directo por Prisma — el spec ya gasta el cupo de POST
+      // /api/leads (10/hora por IP) en los tests de arriba.
+      leadEmails.push("lead-e2e-pending@test.cl");
+      const pending = await prisma.lead.create({
+        data: {
+          name: "Lead Pending",
+          email: "lead-e2e-pending@test.cl",
+          phone: "+56900pend1",
+          roles: ["DJ"],
+          intent: "CONTACT",
+          demoToken: "c".repeat(48),
+        },
+      });
+      await post(
+        `/api/admin/leads/${pending.id}/convert`,
+        {},
+        adminSession,
+      );
+
+      const res = await get("/api/admin/browse/leads", adminSession);
+      const body = await res.json();
+      expect(
+        res.status,
+        `browse/leads respondió ${res.status}: ${JSON.stringify(body)}`,
+      ).toBe(200);
+      const rows = body as { email: string; demoPending: boolean }[];
+      const row = rows.find(
+        (r: { email: string }) => r.email === "lead-e2e-pending@test.cl",
+      );
+      expect(row.demoPending).toBe(true);
+      const done = rows.find(
+        (r: { email: string }) => r.email === convEmail,
+      );
+      expect(done.demoPending).toBe(false);
+    });
+  });
+});

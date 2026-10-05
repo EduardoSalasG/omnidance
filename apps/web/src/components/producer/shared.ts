@@ -96,6 +96,8 @@ export type EventListItem = {
   seriesId?: string | null;
   series?: { id?: string; name: string } | null;
   venue?: { id?: string; name: string; address?: string | null } | null;
+  /** Pulso comercial por evento (GET /events/mine) — vendidas/bruto/check-ins. */
+  stats?: { sold: number; grossClp: number; checkins: number };
 };
 
 /** GET /events/:id — shape real del controller (select explícito). */
@@ -107,6 +109,12 @@ export type EventDetail = {
   startsAt: string;
   endsAt: string;
   capacity: number | null;
+  /** Mesas reservables de la noche; null = sin servicio de mesas. */
+  tablesTotal?: number | null;
+  /** Máx. personas por reserva de mesa (null = sin tope propio). */
+  tableSeatMax?: number | null;
+  /** Cupo sentable total en mesas — el checkout valida contra esto. */
+  tableSeatsTotal?: number | null;
   presalePrice: number | null;
   doorPrice: number | null;
   primeThreshold: number | null;
@@ -150,6 +158,12 @@ export type EventPayload = {
   startsAt?: string;
   endsAt?: string;
   capacity?: number;
+  /** Mesas reservables; null apaga el servicio (PATCH). */
+  tablesTotal?: number | null;
+  /** Tope por reserva; null = hereda default del productor. */
+  tableSeatMax?: number | null;
+  /** Cupo sentable total; null = hereda default del productor. */
+  tableSeatsTotal?: number | null;
   presalePrice?: number;
   doorPrice?: number;
   presaleCap?: number;

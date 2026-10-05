@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import messages from "../../../../../../messages/es-CL.json";
+import { messages } from "@/i18n/messages";
 import { Button } from "@/components/ui";
 import { CheckoutClient } from "./checkout-client";
 
@@ -10,10 +10,30 @@ const API_URL = process.env.API_URL ?? "http://localhost:4000";
 export type CheckoutEvent = {
   id: string;
   name: string;
+  type: string;
   startsAt: string;
+  endsAt: string;
+  status: string;
   presalePrice: number | null;
   doorPrice: number | null;
-  venue: { name: string; address: string | null };
+  /** Instante del corte de preventa (ISO, lo calcula el API con
+      presale.cutoff_hour) — el estimado preventa/puerta lo usa tal cual. */
+  presaleEndsAt: string | null;
+  /** Cargo por servicio de preventa propio del evento (null = default
+      de plataforma — los overrides de productor/param no son públicos). */
+  serviceFeeClp: number | null;
+  /** Cargo por servicio de puerta-app propio del evento (null = default). */
+  doorAppFeeClp: number | null;
+  /** Mesas reservables del evento; null = sin servicio de mesas. */
+  tablesTotal: number | null;
+  /** Máx. personas por reserva de mesa (null = sin tope propio). */
+  tableSeatMax: number | null;
+  /** tablesTotal − reservas activas; null cuando no hay servicio. */
+  tablesLeft: number | null;
+  /** Cupo sentable restante en mesas; null = sin cupo configurado. */
+  seatsLeft: number | null;
+  // Eventos standalone (p.ej. galas de academia) pueden no tener venue.
+  venue: { name: string; address: string | null } | null;
   series: { name: string } | null;
 };
 
@@ -31,13 +51,37 @@ export default async function CheckoutPage({
 }: {
   params: { id: string };
 }) {
-  const t = messages.events;
+  const t = messages.events as Record<string, string>;
   const event = await getEvent(params.id);
 
   if (event === "error") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
         <p className="text-white/60">{t.loadError}</p>
+        <Button href={`/eventos/${params.id}`} variant="secondary">
+          {t.backToList}
+        </Button>
+      </main>
+    );
+  }
+
+  // Deep-link a checkout de un evento terminado/cancelado, o de una
+  // práctica (gratis, sin ticket — spec §8): aviso, no compra.
+  const isPast =
+    event.status === "CANCELLED" ||
+    event.status === "CLOSED" ||
+    Date.now() >= new Date(event.endsAt).getTime();
+  const noTicket = isPast || event.type === "PRACTICA";
+  if (noTicket) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
+        <p className="text-white/60">
+          {event.status === "CANCELLED"
+            ? t.cancelled
+            : event.type === "PRACTICA"
+              ? t.practiceFree
+              : t.past}
+        </p>
         <Button href={`/eventos/${params.id}`} variant="secondary">
           {t.backToList}
         </Button>

@@ -41,6 +41,7 @@
       "doorPrice": "Precio en puerta (CLP)",
       "presaleCap": "Tope preventa",
       "doorCap": "Tope puerta",
+      "tablesTotal": "Mesas reservables",
       "primeThreshold": "Umbral Prime Time",
       "happyHourMinutes": "Minutos happy hour",
       "schedule": "Bloques horarios",
@@ -54,14 +55,46 @@
       "djsHelp": "IDs separados por coma o espacio. Al editar, la lista nueva reemplaza la actual.",
       "currentDjs": "DJs actuales",
       "optional": "opcional",
-      "datesInvalid": "Revisa las fechas: el término debe ser después del inicio."
+      "datesInvalid": "Revisa las fechas: el término debe ser después del inicio.",
+      "tableSeatMax": "Máx. personas por mesa",
+      "tableSeatsTotal": "Personas sentables en mesas",
+      "inheritsDefault": "Default del productor",
+      "tablesHint": "El cupo sentable es la capacidad real de las mesas — distinto al aforo general, usualmente menor. Vacío hereda tu default de Parámetros."
     },
     "sections": {
       "staff": "Staff de puerta",
       "passes": "Pases de entrada",
       "suggestions": "Sugerencias para el DJ",
       "reservations": "Reservas de mesa",
-      "ratings": "Evaluación del evento"
+      "ratings": "Evaluación del evento",
+      "analytics": "Analítica del evento",
+      "payments": "Pagos"
+    },
+    "stats": {
+      "sold": "{count, plural, one {# vendida} other {# vendidas}}",
+      "checkins": "{count, plural, one {# check-in} other {# check-ins}}"
+    },
+    "kpi": {
+      "title": "Tu pulso",
+      "upcoming": "Eventos próximos",
+      "sold": "Entradas vendidas",
+      "gross": "Recaudación bruta",
+      "checkins": "Check-ins",
+      "events": "Eventos",
+      "periodLast30d": "Últimos 30 días"
+    },
+    "live": {
+      "title": "En vivo",
+      "titlePast": "Operación del evento",
+      "presale": "Preventa",
+      "door": "Puerta",
+      "doorManual": "{count} en puerta manual",
+      "totalSold": "Vendidas",
+      "checkins": "check-ins",
+      "lastHour": "última hora",
+      "occupancy": "de {capacity} de aforo",
+      "passes": "{count, plural, one {# pase emitido} other {# pases emitidos}}",
+      "chartLabel": "Llegadas por hora"
     },
     "staffSection": {
       "add": "Agregar staff",
@@ -100,7 +133,10 @@
     "reservations": {
       "empty": "Sin reservas.",
       "partySize": "{count} personas",
+      "partySizeField": "Personas",
       "table": "Mesa",
+      "occupancy": "{used} de {total} mesas ocupadas",
+      "noTables": "Este evento no ofrece reservas de mesa.",
       "assignTable": "Nº de mesa",
       "confirm": "Confirmar",
       "cancel": "Cancelar",
@@ -108,7 +144,8 @@
         "REQUESTED": "Solicitada",
         "CONFIRMED": "Confirmada",
         "CANCELLED": "Cancelada"
-      }
+      },
+      "seatsOccupancy": "{used} de {total} asientos ocupados"
     },
     "ratings": {
       "notEnough": "Aún no hay suficientes evaluaciones para mostrar ({count}/3).",
@@ -119,12 +156,32 @@
         "venue": "Local"
       },
       "dims": {
+        "overall": "En general",
         "music": "Música",
         "occupation": "Ocupación",
         "organization": "Organización",
         "floorComfort": "Comodidad de pista",
         "temperature": "Temperatura",
         "lightingSound": "Luces y sonido"
+      }
+    },
+    "eventAnalytics": {
+      "attendees": "{count, plural, one {# asistente} other {# asistentes}}",
+      "insufficient": "Datos insuficientes — se necesitan al menos 3 asistentes para mostrar composición y evaluaciones.",
+      "genderSplit": "Por género",
+      "roleSplit": "Por rol de baile",
+      "ratingsTitle": "Evaluación promedio",
+      "ratingsCount": "{count, plural, one {# evaluación} other {# evaluaciones}}",
+      "gender": {
+        "M": "Hombres",
+        "F": "Mujeres",
+        "OTHER": "Otro",
+        "unknown": "Sin declarar"
+      },
+      "roles": {
+        "leader": "Leaders",
+        "follower": "Followers",
+        "both": "Ambos roles"
       }
     },
     "payoutsPage": {
@@ -140,6 +197,78 @@
         "APPROVED": "Aprobado",
         "PAID": "Pagado"
       }
+    },
+    "export": {
+      "title": "Exportar",
+      "hint": "CSV para cuadrar en planilla · PDF como reporte imprimible con resumen.",
+      "sales": "Ventas",
+      "checkins": "Check-ins",
+      "guestlist": "Listas de invitados",
+      "seriesHint": "O agrega todas las fechas de la serie «{name}» (columna «evento»).",
+      "series": {
+        "sales": "Ventas de la serie",
+        "checkins": "Check-ins de la serie",
+        "guestlist": "Listas de la serie"
+      }
+    },
+    "pro": {
+      "title": "Esta función es parte de Producer Pro",
+      "featureTitle": "{feature} es parte de Producer Pro",
+      "cta": "Ver planes",
+      "benefits": {
+        "analytics": "Analítica de eventos y asistentes",
+        "exports": "Exportaciones CSV y PDF",
+        "crm": "CRM de tus bailarines"
+      },
+      "sectionTitle": "Producer Pro",
+      "loadError": "No pudimos cargar tu suscripción.",
+      "status": {
+        "free": "Plan gratuito",
+        "trial": "Período de prueba",
+        "active": "Activa",
+        "cancelPending": "Se cancela",
+        "activating": "Activando"
+      },
+      "tiers": {
+        "FREE": "Plan gratuito",
+        "PRO_STARTER": "Producer Pro",
+        "PRO_GROWTH": "Producer Pro Growth",
+        "PRO_BIG": "Producer Pro a medida"
+      },
+      "trialDaysLeft": "{count, plural, one {Queda # día de prueba} other {Quedan # días de prueba}}",
+      "activeUntil": "Pro sigue activo hasta el {date}",
+      "cancelPendingNoDate": "Pro sigue activo hasta el fin del período pagado",
+      "nextCharge": "Próximo cobro: {date}",
+      "activatingHint": "Tu suscripción se está activando — se confirma con el primer cobro.",
+      "gross": "Facturación media mensual (últimos 90 días)",
+      "grossMax": "Tope del plan",
+      "cancel": "Cancelar Producer Pro",
+      "cancelConfirm": "¿Cancelar Producer Pro? Mantienes el acceso hasta el fin del período ya pagado.",
+      "cancelYes": "Sí, cancelar",
+      "cancelKeep": "Mantener Producer Pro",
+      "cancelOk": "Suscripción cancelada — Pro sigue activo hasta el fin del período.",
+      "pitch": "Producer Pro habilita la analítica avanzada, las exportaciones y el CRM de tus bailarines.",
+      "cardRedirectTitle": "Registra tu tarjeta",
+      "cardRedirectDesc": "Te llevamos a Flow (pasarela segura) para registrar tu tarjeta. El cobro se hace recién al confirmar el plan.",
+      "cardRedirectCta": "Continuar a Flow",
+      "cycle": {
+        "label": "Ciclo de facturación",
+        "MONTHLY": "Mensual",
+        "SEMIANNUAL": "Semestral",
+        "ANNUAL": "Anual"
+      },
+      "period": {
+        "MONTHLY": "mes",
+        "SEMIANNUAL": "semestre",
+        "ANNUAL": "año"
+      },
+      "perMonth": "{amount}/mes",
+      "consent": "Se te cobrará {amount} cada {period} de forma automática hasta que lo canceles.",
+      "subscribe": "Suscribirme por {amount}/{period}",
+      "subscribeNoPrice": "Precio no disponible",
+      "subscribeOk": "¡Producer Pro activado!",
+      "subscribeError": "No pudimos iniciar la suscripción — inténtalo de nuevo.",
+      "tierLimit": "Tu facturación supera el tope de los planes autogestionados — escríbenos para contratar Pro a medida."
     }
   }
 }

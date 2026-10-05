@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { useMe } from "@/lib/me-context";
+import {
+  ArrowUpRightIcon,
+  Badge,
+  Button,
+  Card,
+  RefreshIcon,
+} from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import academyExtras from "@/i18n/parts/academyExtras.json";
 import { inputCls, readError, type Academy } from "./shared";
 
@@ -27,7 +35,6 @@ type VideoItem = {
   locked?: boolean;
 };
 
-type Me = { id: string; roles: string[] };
 
 const linkBtnCls =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl " +
@@ -46,7 +53,7 @@ const linkBtnCls =
 export function Videos({ academy }: { academy: Academy }) {
   const tc = useTranslations("common");
 
-  const [me, setMe] = useState<Me | null>(null);
+  const { me } = useMe();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -61,13 +68,6 @@ export function Videos({ academy }: { academy: Academy }) {
 
   const canAdminister =
     !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
-
-  useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) => (res.ok ? ((await res.json()) as Me) : null))
-      .then(setMe)
-      .catch(() => {});
-  }, []);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -147,14 +147,12 @@ export function Videos({ academy }: { academy: Academy }) {
     <section aria-label={t.title} className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold">{t.title}</h2>
 
-      {state === "loading" && (
-        <p className="text-sm text-white/60">{tc("loading")}</p>
-      )}
+      {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (
         <div className="flex items-center gap-3">
           <p className="text-sm text-white/60">{tc("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -194,7 +192,7 @@ export function Videos({ academy }: { academy: Academy }) {
                           rel="noopener noreferrer"
                           className={linkBtnCls}
                         >
-                          ↗ {t.watch}
+                          <ArrowUpRightIcon /> {t.watch}
                         </a>
                       </div>
                     )}

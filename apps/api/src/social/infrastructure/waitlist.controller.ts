@@ -113,7 +113,7 @@ export class WaitlistController {
   async promote(@Param("eventId") eventId: string) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
-      select: { id: true },
+      select: { id: true, name: true, startsAt: true },
     });
     if (!event) throw new NotFoundException("evento no encontrado");
 
@@ -131,8 +131,13 @@ export class WaitlistController {
     await this.notifications.notifySafe(promoted.personId, {
       category: "SOCIAL",
       type: "waitlist.promoted",
-      title: "Se liberó un cupo — avanzaste en la lista de espera",
-      data: { eventId },
+      title: "Cupo liberado",
+      body: `${event.name}`,
+      data: {
+        eventId,
+        eventName: event.name,
+        eventStartsAt: event.startsAt.toISOString(),
+      },
     });
     return promoted;
   }

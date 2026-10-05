@@ -1,8 +1,11 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { ParamsModule } from "../params/params.module";
+import { PaymentsModule } from "../payments/payments.module";
 import { PrismaModule } from "../prisma.module";
 import { AcademyAccess } from "./infrastructure/academy-access.service";
+import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
 import {
   AcademiesController,
   EnrollmentsController,
@@ -14,9 +17,16 @@ import { PrivateLessonsController } from "./infrastructure/private-lessons.contr
 import { VideosController } from "./infrastructure/videos.controller";
 
 @Module({
-  imports: [AuthModule, NotificationsModule, PrismaModule],
+  imports: [
+    AuthModule,
+    NotificationsModule,
+    ParamsModule,
+    PaymentsModule,
+    PrismaModule,
+  ],
   controllers: [
     AcademiesController,
+    AcademyBillingController,
     EnrollmentsController,
     AttendanceController,
     ClassesController,

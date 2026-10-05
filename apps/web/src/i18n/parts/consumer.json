@@ -32,8 +32,31 @@
   "notifications": {
     "unread": "Sin leer"
   },
+  "qr": {
+    "loadError": "No pudimos generar tu QR."
+  },
   "practices": {
-    "venuePlaceholder": "Elige o escribe el lugar"
+    "venuePlaceholder": "Elige o escribe el lugar",
+    "emptyFiltered": "Ninguna práctica coincide con este estilo.",
+    "endsNextDay": "Termina al día siguiente",
+    "stylesLoadError": "No pudimos cargar los estilos — puedes publicar igual sin elegir uno."
+  },
+  "friends": {
+    "emptyCta": "Buscar amigos",
+    "inviteError": "No pudimos copiar el link — intenta de nuevo.",
+    "notFound": "No encontramos a esta persona."
+  },
+  "gamification": {
+    "badgeCategory": {
+      "MILESTONE": "Hito",
+      "CONDUCT": "Conducta",
+      "TEMPORARY_STATUS": "Temporal"
+    }
+  },
+  "home": {
+    "genre": {
+      "other": "Otro"
+    }
   },
   "profile": {
     "roleSandbox": "de prueba"

@@ -231,6 +231,183 @@
           }
         },
         {
+          "name": "PATCH /api/me",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/me/pending-surveys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/pending-surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "pending-surveys"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/me/style-roles",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/style-roles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "style-roles"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/consent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/consent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "consent"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/onboarding",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/onboarding",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "onboarding"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/complete-profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/complete-profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "complete-profile"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "GET /api/me/payouts",
           "request": {
             "method": "GET",
@@ -247,22 +424,149 @@
               ]
             }
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "notifications",
+      "item": [
         {
-          "name": "GET /api/me/rsvp",
+          "name": "GET /api/notifications",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/me/rsvp",
+              "raw": "{{baseUrl}}/api/notifications",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "me",
-                "rsvp"
+                "notifications"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "unread",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "lens",
+                  "value": "",
+                  "disabled": true
+                }
               ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/notifications/read-all",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/read-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "read-all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/notifications/{id}/read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications/{id}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notifications",
+                "{id}",
+                "read"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "push-tokens",
+      "item": [
+        {
+          "name": "POST /api/push-tokens",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/push-tokens",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "push-tokens"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/push-tokens/{token}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/push-tokens/{token}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "push-tokens",
+                "{token}"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": ":token"
+                }
+              ],
+              "query": []
             }
           }
         }
@@ -477,78 +781,6 @@
                   "language": "json"
                 }
               }
-            }
-          }
-        },
-        {
-          "name": "GET /api/admin/role-requests",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/role-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "role-requests"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /api/admin/role-requests/{personRoleId}/approve",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/role-requests/{personRoleId}/approve",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "role-requests",
-                "{personRoleId}",
-                "approve"
-              ],
-              "variable": [
-                {
-                  "key": "personRoleId",
-                  "value": ":personRoleId"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "POST /api/admin/role-requests/{personRoleId}/reject",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/admin/role-requests/{personRoleId}/reject",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "admin",
-                "role-requests",
-                "{personRoleId}",
-                "reject"
-              ],
-              "variable": [
-                {
-                  "key": "personRoleId",
-                  "value": ":personRoleId"
-                }
-              ],
-              "query": []
             }
           }
         },
@@ -771,6 +1003,33 @@
           }
         },
         {
+          "name": "POST /api/admin/leads/{id}/convert",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/leads/{id}/convert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "leads",
+                "{id}",
+                "convert"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/admin/audit",
           "request": {
             "method": "GET",
@@ -793,6 +1052,59 @@
                   "disabled": true
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/browse/{entity}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/browse/{entity}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "browse",
+                "{entity}"
+              ],
+              "variable": [
+                {
+                  "key": "entity",
+                  "value": ":entity"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/payments/{id}/verify-chain",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/payments/{id}/verify-chain",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "payments",
+                "{id}",
+                "verify-chain"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         },
@@ -1241,6 +1553,60 @@
               }
             }
           }
+        },
+        {
+          "name": "GET /api/admin/users/{personId}/detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{personId}/detail",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{personId}",
+                "detail"
+              ],
+              "variable": [
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/users/{personId}/analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{personId}/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{personId}",
+                "analytics"
+              ],
+              "variable": [
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
         }
       ]
     },
@@ -1262,6 +1628,14 @@
                 "gamification",
                 "me",
                 "streak"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -1465,6 +1839,162 @@
           }
         },
         {
+          "name": "GET /api/events/{id}/live",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/live",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "live"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/{id}/export.csv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/export.csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "export.csv"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/{id}/export.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/export.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "export.pdf"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/series/{seriesId}/export.csv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/series/{seriesId}/export.csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "series",
+                "{seriesId}",
+                "export.csv"
+              ],
+              "variable": [
+                {
+                  "key": "seriesId",
+                  "value": ":seriesId"
+                }
+              ],
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/series/{seriesId}/export.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/series/{seriesId}/export.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "series",
+                "{seriesId}",
+                "export.pdf"
+              ],
+              "variable": [
+                {
+                  "key": "seriesId",
+                  "value": ":seriesId"
+                }
+              ],
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/events",
           "request": {
             "method": "GET",
@@ -1477,6 +2007,24 @@
               "path": [
                 "api",
                 "events"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "genre",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "venue",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "week",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -1573,6 +2121,32 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/{id}/friends-going",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/friends-going",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "friends-going"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         },
@@ -1762,6 +2336,32 @@
           }
         },
         {
+          "name": "GET /api/events/{id}/analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/analytics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "analytics"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "POST /api/events/{id}/table-reservations",
           "request": {
             "method": "POST",
@@ -1895,124 +2495,6 @@
                 "events",
                 "{eventId}",
                 "checkins"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "PUT /api/events/{eventId}/rsvp",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/rsvp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "rsvp"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "DELETE /api/events/{eventId}/rsvp",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/rsvp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "rsvp"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "GET /api/events/{eventId}/rsvps",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/rsvps",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "rsvps"
-              ],
-              "variable": [
-                {
-                  "key": "eventId",
-                  "value": ":eventId"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "GET /api/events/{eventId}/attendees",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/events/{eventId}/attendees",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "events",
-                "{eventId}",
-                "attendees"
               ],
               "variable": [
                 {
@@ -2218,6 +2700,56 @@
               ]
             }
           }
+        },
+        {
+          "name": "GET /api/producer/table-params",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/producer/table-params",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producer",
+                "table-params"
+              ]
+            }
+          }
+        },
+        {
+          "name": "PUT /api/producer/table-params",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/producer/table-params",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producer",
+                "table-params"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -2355,6 +2887,33 @@
               "query": []
             }
           }
+        },
+        {
+          "name": "GET /api/dj/gigs/{eventId}/rating",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dj/gigs/{eventId}/rating",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dj",
+                "gigs",
+                "{eventId}",
+                "rating"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": ":eventId"
+                }
+              ],
+              "query": []
+            }
+          }
         }
       ]
     },
@@ -2362,7 +2921,7 @@
       "name": "sessions",
       "item": [
         {
-          "name": "POST /api/sessions/invite",
+          "name": "POST /api/sessions/scan",
           "request": {
             "method": "POST",
             "header": [
@@ -2372,14 +2931,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/sessions/invite",
+              "raw": "{{baseUrl}}/api/sessions/scan",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "sessions",
-                "invite"
+                "scan"
               ]
             },
             "body": {
@@ -2390,90 +2949,6 @@
                   "language": "json"
                 }
               }
-            }
-          }
-        },
-        {
-          "name": "POST /api/sessions/declare",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/sessions/declare",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sessions",
-                "declare"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "POST /api/sessions/{id}/confirm",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sessions/{id}/confirm",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sessions",
-                "{id}",
-                "confirm"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "POST /api/sessions/{id}/decline",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sessions/{id}/decline",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sessions",
-                "{id}",
-                "decline"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
             }
           }
         },
@@ -2566,146 +3041,6 @@
                   "language": "json"
                 }
               }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "notifications",
-      "item": [
-        {
-          "name": "GET /api/notifications",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/notifications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "notifications"
-              ],
-              "variable": [],
-              "query": [
-                {
-                  "key": "unread",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "limit",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /api/notifications/read-all",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/notifications/read-all",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "notifications",
-                "read-all"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /api/notifications/{id}/read",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/notifications/{id}/read",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "notifications",
-                "{id}",
-                "read"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "push-tokens",
-      "item": [
-        {
-          "name": "POST /api/push-tokens",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/push-tokens",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "push-tokens"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "DELETE /api/push-tokens/{token}",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/push-tokens/{token}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "push-tokens",
-                "{token}"
-              ],
-              "variable": [
-                {
-                  "key": "token",
-                  "value": ":token"
-                }
-              ],
-              "query": []
             }
           }
         }
@@ -2913,6 +3248,37 @@
           }
         },
         {
+          "name": "GET /api/checkout/discount-quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/discount-quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "discount-quote"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "code",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "POST /api/checkout/series-pass",
           "request": {
             "method": "POST",
@@ -2943,12 +3309,270 @@
               }
             }
           }
+        },
+        {
+          "name": "GET /api/checkout/membership-quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/membership-quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "membership-quote"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "planId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/checkout/membership",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/membership",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "membership"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/checkout/class-quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/class-quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "class-quote"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "classId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/checkout/class",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/class",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "class"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/checkout/private-class-quote",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/private-class-quote",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "private-class-quote"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "academyId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/checkout/private-class",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/private-class",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "private-class"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/checkout/membership-subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkout/membership-subscription",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkout",
+                "membership-subscription"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
     {
       "name": "tickets",
       "item": [
+        {
+          "name": "GET /api/tickets/claim/{token}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/claim/{token}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "claim",
+                "{token}"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": ":token"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/tickets/claim/{token}",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/claim/{token}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tickets",
+                "claim",
+                "{token}"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": ":token"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
         {
           "name": "GET /api/tickets/mine",
           "request": {
@@ -3045,6 +3669,200 @@
           }
         },
         {
+          "name": "POST /api/payments/flow/customer-return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/flow/customer-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "flow",
+                "customer-return"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/payments/flow/platform-customer-return",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/flow/platform-customer-return",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "flow",
+                "platform-customer-return"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/payments/subscription-webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/subscription-webhook",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "subscription-webhook"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/by-event/{eventId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/by-event/{eventId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "by-event",
+                "{eventId}"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": ":eventId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/by-academy/{academyId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/by-academy/{academyId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "by-academy",
+                "{academyId}"
+              ],
+              "variable": [
+                {
+                  "key": "academyId",
+                  "value": ":academyId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/{id}/events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{id}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{id}",
+                "events"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/payments/{id}",
           "request": {
             "method": "GET",
@@ -3058,6 +3876,205 @@
                 "api",
                 "payments",
                 "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/payments/{id}/tickets",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/{id}/tickets",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "{id}",
+                "tickets"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "subscriptions",
+      "item": [
+        {
+          "name": "GET /api/subscriptions/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/subscriptions/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/subscriptions/{id}/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions/{id}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "subscriptions",
+                "{id}",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "producers",
+      "item": [
+        {
+          "name": "POST /api/producers/{id}/pro/subscribe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/producers/{id}/pro/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producers",
+                "{id}",
+                "pro",
+                "subscribe"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/producers/{id}/pro/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/producers/{id}/pro/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producers",
+                "{id}",
+                "pro",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/producers/{id}/pro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/producers/{id}/pro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producers",
+                "{id}",
+                "pro"
               ],
               "variable": [
                 {
@@ -3290,6 +4307,76 @@
               ]
             }
           }
+        },
+        {
+          "name": "GET /api/practices/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/practices/{id}/rsvp",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "{id}",
+                "rsvp"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/practices/{id}/rsvp",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "{id}",
+                "rsvp"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
         }
       ]
     },
@@ -3342,120 +4429,8 @@
       ]
     },
     {
-      "name": "trips",
-      "item": [
-        {
-          "name": "POST /api/trips",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/trips",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "trips"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/trips/mine",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/trips/mine",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "trips",
-                "mine"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/trips/matches",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/trips/matches",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "trips",
-                "matches"
-              ],
-              "variable": [],
-              "query": [
-                {
-                  "key": "destination",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "eventId",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "from",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "to",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "venues",
       "item": [
-        {
-          "name": "GET /api/venues",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/venues",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "venues"
-              ]
-            }
-          }
-        },
         {
           "name": "GET /api/venues/mine",
           "request": {
@@ -3544,75 +4519,38 @@
               }
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "partner-requests",
-      "item": [
-        {
-          "name": "POST /api/partner-requests",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/partner-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "partner-requests"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
         },
         {
-          "name": "GET /api/partner-requests",
+          "name": "GET /api/venues",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/partner-requests",
+              "raw": "{{baseUrl}}/api/venues",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "partner-requests"
+                "venues"
               ]
             }
           }
         },
         {
-          "name": "POST /api/partner-requests/{id}/close",
+          "name": "GET /api/venues/{id}",
           "request": {
-            "method": "POST",
+            "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/partner-requests/{id}/close",
+              "raw": "{{baseUrl}}/api/venues/{id}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "partner-requests",
-                "{id}",
-                "close"
+                "venues",
+                "{id}"
               ],
               "variable": [
                 {
@@ -3620,138 +4558,13 @@
                   "value": ":id"
                 }
               ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "availability",
-      "item": [
-        {
-          "name": "POST /api/availability",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/availability",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "availability"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/availability",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/availability",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "availability"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "blocks",
-      "item": [
-        {
-          "name": "POST /api/blocks",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/blocks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "blocks"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/blocks",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/blocks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "blocks"
-              ]
-            }
-          }
-        },
-        {
-          "name": "DELETE /api/blocks/{personId}",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/blocks/{personId}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "blocks",
-                "{personId}"
-              ],
-              "variable": [
+              "query": [
                 {
-                  "key": "personId",
-                  "value": ":personId"
+                  "key": "days",
+                  "value": "",
+                  "disabled": true
                 }
-              ],
-              "query": []
+              ]
             }
           }
         }
@@ -3884,6 +4697,24 @@
               "query": []
             }
           }
+        },
+        {
+          "name": "GET /api/friends/upcoming-events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/upcoming-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "upcoming-events"
+              ]
+            }
+          }
         }
       ]
     },
@@ -4005,6 +4836,24 @@
           }
         },
         {
+          "name": "GET /api/academies/enrolled",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/enrolled",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "enrolled"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/academies/{id}",
           "request": {
             "method": "GET",
@@ -4018,6 +4867,32 @@
                 "api",
                 "academies",
                 "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "profile"
               ],
               "variable": [
                 {
@@ -4054,6 +4929,51 @@
                 {
                   "key": "id",
                   "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/academies/{id}/instructors/{personId}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/instructors/{personId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "instructors",
+                "{personId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "personId",
+                  "value": ":personId"
                 }
               ],
               "query": []
@@ -4132,6 +5052,51 @@
                 }
               ],
               "query": []
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/academies/{id}/plans/{planId}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/plans/{planId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "plans",
+                "{planId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "planId",
+                  "value": ":planId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -4233,46 +5198,6 @@
           }
         },
         {
-          "name": "POST /api/academies/{id}/slots",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/academies/{id}/slots",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "academies",
-                "{id}",
-                "slots"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
           "name": "GET /api/academies/{id}/slots",
           "request": {
             "method": "GET",
@@ -4313,6 +5238,139 @@
                 "academies",
                 "{id}",
                 "dashboard"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/subscribe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "subscribe"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/academies/{id}/subscription",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/subscription",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "subscription"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/subscription/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/subscription/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "subscription",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/billing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/billing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "billing"
               ],
               "variable": [
                 {
@@ -4845,6 +5903,11 @@
                   "key": "days",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "scope",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }
@@ -4864,6 +5927,14 @@
                 "api",
                 "classes",
                 "mine"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -4883,6 +5954,31 @@
                 "classes",
                 "teaching"
               ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/classes/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/classes/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         },
@@ -4988,6 +6084,31 @@
           }
         },
         {
+          "name": "GET /api/private-lessons/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/private-lessons/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "private-lessons",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "PATCH /api/private-lessons/{id}",
           "request": {
             "method": "PATCH",
@@ -5014,61 +6135,6 @@
                 }
               ],
               "query": []
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "roles",
-      "item": [
-        {
-          "name": "GET /api/roles/catalog",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/roles/catalog",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "roles",
-                "catalog"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /api/roles/request",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/roles/request",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "roles",
-                "request"
-              ]
             },
             "body": {
               "mode": "raw",
@@ -5300,6 +6366,39 @@
                 "crm",
                 "campaigns"
               ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/crm/campaigns/preview",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/campaigns/preview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "campaigns",
+                "preview"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -5541,6 +6640,54 @@
                   "disabled": true
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "leads",
+      "item": [
+        {
+          "name": "POST /api/leads",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/leads/{id}/demo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{id}/demo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{id}",
+                "demo"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         }

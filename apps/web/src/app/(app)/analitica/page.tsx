@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, SkeletonList, SkeletonText } from "@/components/ui";
 import { EVENT_STATUS_VARIANT } from "@/components/producer/shared";
 
 /**
@@ -166,15 +166,15 @@ export default function AnaliticaPage() {
 
   if (phase === "loading") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
-        <p className="pt-6 text-sm text-white/50">{tc("loading")}</p>
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+        <SkeletonList />
       </main>
     );
   }
 
   if (phase === "error") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-white/70">{t("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
@@ -187,7 +187,7 @@ export default function AnaliticaPage() {
 
   if (phase === "forbidden") {
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="py-6 text-center">
           <p className="text-sm text-white/70">{t("forbidden")}</p>
         </Card>
@@ -224,7 +224,7 @@ export default function AnaliticaPage() {
   })();
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <header className="flex flex-col gap-3 pt-4">
         <p className="text-sm text-white/50">{t("period")}</p>
 
@@ -256,9 +256,7 @@ export default function AnaliticaPage() {
         )}
       </header>
 
-      {summaryPhase === "loading" && (
-        <p className="text-sm text-white/50">{tc("loading")}</p>
-      )}
+      {summaryPhase === "loading" && <SkeletonText lines={3} />}
 
       {summaryPhase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">

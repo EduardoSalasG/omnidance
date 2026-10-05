@@ -1,20 +1,21 @@
 // Baseline compartida por seed-dev y seed-prod: catálogo RBAC, permisos,
 // grants, estilos y parámetros de plataforma. Todo idempotente — upserts
 // por clave natural; find-or-create donde el schema no tiene unique.
-import { PrismaClient, Genre } from "@prisma/client";
+import { PrismaClient, Genre, Gender } from "@prisma/client";
 
-// Catálogo RBAC vivo en DB. requestable: auto-solicitable desde /perfil;
+// Catálogo RBAC vivo en DB. Los roles solo se asignan por admin
+// (POST /admin/users/:personId/roles) — no hay auto-solicitud.
 // isSuperuser: pasa todo check de permisos (solo ADMIN — no editable por API).
 export const ROLE_CATALOG = [
-  { key: "DANCER", label: "Bailarín", requestable: true },
-  { key: "DJ", label: "DJ", requestable: true },
-  { key: "PRODUCER", label: "Productor", requestable: true },
-  { key: "STAFF", label: "Staff", requestable: true },
-  { key: "VENUE_MANAGER", label: "Dueño de local", requestable: true },
-  { key: "ACADEMY_OWNER", label: "Dueño de academia", requestable: true },
-  { key: "INSTRUCTOR", label: "Instructor", requestable: true },
-  { key: "SUPPORT", label: "Soporte", requestable: true },
-  { key: "ADMIN", label: "Administrador", requestable: false, isSuperuser: true },
+  { key: "DANCER", label: "Bailarín" },
+  { key: "DJ", label: "DJ" },
+  { key: "PRODUCER", label: "Productor" },
+  { key: "STAFF", label: "Staff" },
+  { key: "VENUE_MANAGER", label: "Dueño de local" },
+  { key: "ACADEMY_OWNER", label: "Dueño de academia" },
+  { key: "INSTRUCTOR", label: "Instructor" },
+  { key: "SUPPORT", label: "Soporte" },
+  { key: "ADMIN", label: "Administrador", isSuperuser: true },
 ] as const;
 
 // Permisos que las rutas exigen con @RequirePermissions + matriz rol→permiso.
@@ -26,12 +27,14 @@ export const PERMISSION_CATALOG = [
   { key: "academies.create", description: "Crear academia propia" },
   { key: "events.manage", description: "Crear y gestionar eventos propios (productor)" },
   { key: "crm.manage", description: "CRM del actor: scores, tags, campañas, triggers, payouts propios" },
+  { key: "venues.manage", description: "Consola del local: dashboard operativo, arriendos y cartas" },
 ] as const;
 
 export const ROLE_GRANTS: Record<string, string[]> = {
   STAFF: ["checkins.write", "social.manage"],
   PRODUCER: ["discounts.manage", "social.manage", "events.manage", "crm.manage"],
   ACADEMY_OWNER: ["academies.create", "crm.manage"],
+  VENUE_MANAGER: ["venues.manage"],
   // ADMIN: isSuperuser — pasa todo sin grants explícitos
 };
 
@@ -43,6 +46,9 @@ export const STYLE_CATALOG = [
   { name: "Bachata sensual", genre: Genre.BACHATA },
   { name: "Bachata dominicana", genre: Genre.BACHATA },
   { name: "Bachata tradicional", genre: Genre.BACHATA },
+  { name: "Bachata moderna", genre: Genre.BACHATA },
+  { name: "Cubano", genre: Genre.CUBANO },
+  { name: "Afrocubano", genre: Genre.CUBANO },
   { name: "Rueda de casino", genre: Genre.CUBANO },
   { name: "Timba", genre: Genre.CUBANO },
   { name: "Mambo on2", genre: Genre.SALSA },
@@ -81,6 +87,38 @@ export const PARAM_DEFAULTS: Array<{
   { key: "service_fee.series_pass_clp", value: 500, description: "Cargo por servicio del pase de serie (CLP)" },
   { key: "platform_fee.default_pct", value: 0, description: "Comisión de plataforma sobre ventas (%) — se descuenta del gross al liquidar; override por productor y por evento" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
+  { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota — después la reserva se puede cancelar pero la clase se pierde" },
+  // ─── SaaS billing (spec academy-saas-billing) ───
+  // Tiers de academia: límite de alumnos activos por tier (ENTERPRISE = sin límite, contratación manual).
+  { key: "academy_tier.starter_max_students", value: 50, description: "Máximo de alumnos activos del tier STARTER de academia" },
+  { key: "academy_tier.pro_max_students", value: 150, description: "Máximo de alumnos activos del tier PRO de academia" },
+  { key: "academy_tier.studio_max_students", value: 400, description: "Máximo de alumnos activos del tier STUDIO de academia" },
+  // Precios por tier y ciclo (CLP/mes): semestral −2%, anual −4% sobre el mensual.
+  { key: "academy_tier.starter_monthly_clp", value: 49990, description: "Precio mensual tier STARTER de academia (CLP)" },
+  { key: "academy_tier.starter_semiannual_clp", value: 48990, description: "Precio mensual cobrando semestral tier STARTER de academia (CLP)" },
+  { key: "academy_tier.starter_annual_clp", value: 47990, description: "Precio mensual cobrando anual tier STARTER de academia (CLP)" },
+  { key: "academy_tier.pro_monthly_clp", value: 99990, description: "Precio mensual tier PRO de academia (CLP)" },
+  { key: "academy_tier.pro_semiannual_clp", value: 97990, description: "Precio mensual cobrando semestral tier PRO de academia (CLP)" },
+  { key: "academy_tier.pro_annual_clp", value: 95990, description: "Precio mensual cobrando anual tier PRO de academia (CLP)" },
+  { key: "academy_tier.studio_monthly_clp", value: 189990, description: "Precio mensual tier STUDIO de academia (CLP)" },
+  { key: "academy_tier.studio_semiannual_clp", value: 185990, description: "Precio mensual cobrando semestral tier STUDIO de academia (CLP)" },
+  { key: "academy_tier.studio_annual_clp", value: 181990, description: "Precio mensual cobrando anual tier STUDIO de academia (CLP)" },
+  // Ciclo de facturación de academia: trial de onboarding, grace de
+  // lanzamiento para las existentes y gracia por mora antes del bloqueo.
+  { key: "academy_billing.trial_days", value: 30, description: "Días de trial de onboarding para academias nuevas (sin tarjeta upfront)" },
+  { key: "academy_billing.migration_grace_days", value: 60, description: "Días de grace de lanzamiento para academias existentes al despliegue SaaS" },
+  { key: "academy_billing.grace_days", value: 5, description: "Días calendario de gracia tras invoice impaga antes del bloqueo por mora" },
+  // Tiers Producer Pro: límite de facturación mensual (media 90d) por tier (PRO_BIG = a convenir).
+  { key: "producer_tier.starter_max_monthly_clp", value: 2500000, description: "Facturación mensual máxima del tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.growth_max_monthly_clp", value: 8000000, description: "Facturación mensual máxima del tier PRO_GROWTH (CLP)" },
+  { key: "producer_tier.starter_monthly_clp", value: 99990, description: "Precio mensual tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.starter_semiannual_clp", value: 97990, description: "Precio mensual cobrando semestral tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.starter_annual_clp", value: 95990, description: "Precio mensual cobrando anual tier PRO_STARTER (CLP)" },
+  { key: "producer_tier.growth_monthly_clp", value: 249990, description: "Precio mensual tier PRO_GROWTH (CLP)" },
+  { key: "producer_tier.growth_semiannual_clp", value: 244990, description: "Precio mensual cobrando semestral tier PRO_GROWTH (CLP)" },
+  { key: "producer_tier.growth_annual_clp", value: 239990, description: "Precio mensual cobrando anual tier PRO_GROWTH (CLP)" },
+  // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
+  { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
 ];
 
 /** Catálogo de badges — las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
@@ -91,6 +129,11 @@ export const BADGE_CATALOG = [
   { key: "maratonista", name: "Maratonista", category: "CONDUCT" },
   { key: "mariposa_social", name: "Mariposa social", category: "CONDUCT" },
   { key: "prime_time_crown", name: "Corona Prime Time", category: "TEMPORARY_STATUS" },
+  // Modo Academy — conducta del alumno (asistencia/constancia/exploración).
+  { key: "primera_clase", name: "Primera clase", category: "MILESTONE" },
+  { key: "alumno_constante", name: "Alumno constante", category: "MILESTONE" },
+  { key: "racha_academia", name: "Constancia de academia", category: "CONDUCT" },
+  { key: "explorador_academias", name: "Explorador de academias", category: "CONDUCT" },
 ] as const;
 
 /** Crea o confirma una persona con sus roles. Idempotente por email. */
@@ -99,11 +142,12 @@ export async function ensurePerson(
   email: string,
   name: string,
   roles: Array<{ role: string; status?: "PENDING" | "SANDBOX" | "APPROVED" }>,
+  gender?: Gender,
 ) {
   const person = await prisma.person.upsert({
     where: { email },
-    update: { name },
-    create: { email, name },
+    update: { name, gender },
+    create: { email, name, gender },
   });
   for (const r of roles) {
     await prisma.personRole.upsert({
@@ -127,7 +171,7 @@ export async function seedCommon(prisma: PrismaClient) {
       where: { key: r.key },
       update: {
         label: r.label,
-        requestable: r.requestable,
+        requestable: false,
         isSuperuser: "isSuperuser" in r,
       },
       create: { ...r, isSuperuser: "isSuperuser" in r },
@@ -172,6 +216,22 @@ export async function seedCommon(prisma: PrismaClient) {
       update: { order: l.order },
       create: l,
     });
+  }
+  // Rename "En Pareja" → "Pareja" (nombre corto del catálogo) — preserva
+  // el id y los ClassSeriesType existentes; si ambos ya existen no choca.
+  const legacyEnPareja = await prisma.classType.findUnique({
+    where: { name: "En Pareja" },
+  });
+  if (legacyEnPareja) {
+    const pareja = await prisma.classType.findUnique({
+      where: { name: "Pareja" },
+    });
+    if (!pareja) {
+      await prisma.classType.update({
+        where: { id: legacyEnPareja.id },
+        data: { name: "Pareja" },
+      });
+    }
   }
   for (const ct of CLASS_TYPE_CATALOG) {
     await prisma.classType.upsert({

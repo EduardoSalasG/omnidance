@@ -3,33 +3,68 @@ import {
   Body,
   ConflictException,
   Controller,
+  Get,
   NotFoundException,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
 import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
 } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import {
+  AcademyNotFoundError,
+  AcademyUnavailableError,
   CheckoutService,
+  ClassAlreadyBookedError,
+  ClassNotFoundError,
+  ClassNotPurchasableError,
+  ClassSoldOutError,
+  DoorSoldOutError,
   EventNotFoundError,
   InvalidDiscountError,
+  EventEndedError,
+  PresaleClosedError,
   PresaleSoldOutError,
   PresaleUnavailableError,
+  PrivateClassNotPurchasableError,
   SeriesInactiveError,
   SeriesNotFoundError,
   SeriesPassAlreadyOwnedError,
+  PlanNotFoundError,
+  PlanNotPurchasableError,
+  RecipientError,
+  TablePartyTooLargeError,
+  TableSoldOutError,
 } from "../application/checkout.service";
+import { SubscriptionsService } from "../application/subscriptions.service";
 
 class CheckoutTicketDto {
   @IsString()
   eventId!: string;
+
+  /**
+   * Cantidad de entradas de la orden (1–10). Cada ticket por sobre el
+   * propio puede asignarse a un amigo (recipientIds) o quedar reclamable
+   * por link — ver spec multi-ticket-claim-links.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  quantity?: number;
 
   @IsOptional()
   @IsString()
@@ -41,6 +76,31 @@ class CheckoutTicketDto {
   @IsString()
   @MaxLength(140)
   songSuggestion?: string;
+
+  /**
+   * Regalo multi-entrada: personIds de amigos (ACCEPTED) que reciben una
+   * entrada cada uno al confirmarse el pago. Máx. 9 → órdenes de hasta 10
+   * tickets. El servidor valida existencia, amistad y que no tengan ya
+   * entrada ACTIVE para el evento.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(9)
+  @IsString({ each: true })
+  recipientIds?: string[];
+
+  /**
+   * Reserva de mesa opcional (spec §13): personas del grupo. Viaja en la
+   * orden (Payment.tablePartySize) y el webhook materializa la
+   * TableReservation REQUESTED solo al PAID. Solo aplica si el evento
+   * tiene tablesTotal; el tope real lo valida el servicio contra
+   * tableSeatMax del evento.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  tablePartySize?: number;
 }
 
 class CheckoutSeriesPassDto {
@@ -53,9 +113,45 @@ class CheckoutSeriesPassDto {
   month!: string;
 }
 
+class CheckoutMembershipDto {
+  @IsString()
+  planId!: string;
+}
+
+class CheckoutClassDto {
+  @IsString()
+  classId!: string;
+}
+
+class CheckoutPrivateClassDto {
+  @IsString()
+  academyId!: string;
+}
+
+class CheckoutMembershipSubscriptionDto {
+  @IsString()
+  planId!: string;
+
+  /** Consentimiento explícito del cobro recurrente (aviso legal del checkout). */
+  @IsBoolean()
+  acceptRecurring!: boolean;
+}
+
 @Controller("checkout")
 export class CheckoutController {
-  constructor(private readonly checkout: CheckoutService) {}
+  constructor(
+    private readonly checkout: CheckoutService,
+    private readonly subscriptions: SubscriptionsService,
+  ) {}
+
+  /**
+   * Academia bloqueada por mora (spec academy-saas-billing, S3): 400
+   * con código estable `academy.unavailable` + copy honesto — la UI
+   * distingue "no disponible" de un error de validación genérico.
+   */
+  private static unavailable(e: AcademyUnavailableError): never {
+    throw new BadRequestException({ error: e.code, message: e.message });
+  }
 
   @Post("ticket")
   @UseGuards(SessionGuard)
@@ -66,14 +162,51 @@ export class CheckoutController {
       if (e instanceof EventNotFoundError) {
         throw new NotFoundException(e.message);
       }
-      if (e instanceof PresaleSoldOutError) {
+      if (
+        e instanceof PresaleSoldOutError ||
+        e instanceof DoorSoldOutError ||
+        e instanceof TableSoldOutError
+      ) {
         throw new ConflictException(e.message);
       }
       if (
         e instanceof PresaleUnavailableError ||
-        e instanceof InvalidDiscountError
+        e instanceof InvalidDiscountError ||
+        e instanceof RecipientError ||
+        e instanceof PresaleClosedError ||
+        e instanceof EventEndedError ||
+        e instanceof TablePartyTooLargeError
       ) {
         throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Preview de código de descuento para el checkout de tickets: valida
+   * vigencia/cupo/scope del código contra el evento y estima el descuento
+   * de la orden sobre el canal vigente (preventa/puerta). Sin side-effects
+   * — no crea orden ni consume uso; el checkout lo llama al "Aplicar" para
+   * mostrar el total con descuento antes de pagar.
+   */
+  @Get("discount-quote")
+  @UseGuards(SessionGuard)
+  async discountQuote(
+    @Query("eventId") eventId?: string,
+    @Query("code") code?: string,
+  ) {
+    if (!eventId || !code?.trim()) {
+      throw new BadRequestException("eventId y code son requeridos");
+    }
+    try {
+      return await this.checkout.discountQuote({
+        eventId,
+        code: code.trim(),
+      });
+    } catch (e) {
+      if (e instanceof EventNotFoundError) {
+        throw new NotFoundException(e.message);
       }
       throw e;
     }
@@ -101,5 +234,183 @@ export class CheckoutController {
       }
       throw e;
     }
+  }
+
+  /**
+   * Revisión de orden para la página de checkout de membresía: precio,
+   * cargo de servicio, total real, vigencia resultante y suscripción
+   * viva del viewer — nada se cobra acá, es el paso "review" previo al
+   * POST /checkout/membership (o /checkout/membership-subscription).
+   */
+  @Get("membership-quote")
+  @UseGuards(SessionGuard)
+  async membershipQuote(@Req() req: Request, @Query("planId") planId: string) {
+    try {
+      return await this.checkout.membershipQuote(req.person!.id, planId);
+    } catch (e) {
+      if (e instanceof PlanNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
+      if (e instanceof PlanNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Plan de academia: cobra el precio del plan en DB y el webhook emite/
+   * renueva el Enrollment al PAID. Planes inactivos no se venden; TRIAL
+   * se vende solo con price > 0 (la prueba gratis es asignación staff).
+   */
+  @Post("membership")
+  @UseGuards(SessionGuard)
+  async membership(@Req() req: Request, @Body() dto: CheckoutMembershipDto) {
+    try {
+      return await this.checkout.purchaseMembership(req.person!.id, dto);
+    } catch (e) {
+      if (e instanceof PlanNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
+      if (e instanceof PlanNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Revisión de orden para comprar una clase suelta / taller (spec
+   * academy-workshops): desglose de precio, cupo restante y si el viewer
+   * ya tiene reserva. Nada se cobra acá — es el paso previo al
+   * POST /checkout/class.
+   */
+  @Get("class-quote")
+  @UseGuards(SessionGuard)
+  async classQuote(@Req() req: Request, @Query("classId") classId: string) {
+    try {
+      return await this.checkout.classQuote(req.person!.id, classId);
+    } catch (e) {
+      if (e instanceof ClassNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
+      if (e instanceof ClassNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Clase suelta / taller pago: cobra el dropInPrice de la serie y el
+   * webhook materializa el ClassBooking pagado al PAID (paymentId
+   * poblado — no consume cuota del plan ni exige inscripción).
+   */
+  @Post("class")
+  @UseGuards(SessionGuard)
+  async class(@Req() req: Request, @Body() dto: CheckoutClassDto) {
+    try {
+      return await this.checkout.purchaseClass(req.person!.id, dto);
+    } catch (e) {
+      if (e instanceof ClassNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (
+        e instanceof ClassSoldOutError ||
+        e instanceof ClassAlreadyBookedError
+      ) {
+        throw new ConflictException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
+      if (e instanceof ClassNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Revisión de orden para comprar una clase particular (spec
+   * private-lesson-product): precio único de la academia + cargo de
+   * servicio. Nada se cobra acá — paso previo a POST /checkout/private-class.
+   */
+  @Get("private-class-quote")
+  @UseGuards(SessionGuard)
+  async privateClassQuote(
+    @Req() req: Request,
+    @Query("academyId") academyId: string,
+  ) {
+    try {
+      return await this.checkout.privateClassQuote(req.person!.id, academyId);
+    } catch (e) {
+      if (e instanceof AcademyNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
+      if (e instanceof PrivateClassNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Clase particular comprable: cobra el privateLessonPrice de la academia
+   * y el webhook materializa la PrivateLesson "por asignar" al PAID
+   * (REQUESTED, sin instructor ni fecha — el owner los define después).
+   */
+  @Post("private-class")
+  @UseGuards(SessionGuard)
+  async privateClass(
+    @Req() req: Request,
+    @Body() dto: CheckoutPrivateClassDto,
+  ) {
+    try {
+      return await this.checkout.purchasePrivateClass(req.person!.id, dto);
+    } catch (e) {
+      if (e instanceof AcademyNotFoundError) {
+        throw new NotFoundException(e.message);
+      }
+      if (e instanceof AcademyUnavailableError) {
+        CheckoutController.unavailable(e);
+      }
+      if (e instanceof PrivateClassNotPurchasableError) {
+        throw new BadRequestException(e.message);
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Suscripción recurrente a un plan de academia (motor Flow). Solo
+   * planes de tipo recurrente (MONTHLY/QUARTERLY/SEMIANNUAL). Devuelve
+   * `needs_card` + registerUrl si el customer aún no registra tarjeta en
+   * Flow (vuelve por POST /payments/flow/customer-return) o `subscribed`
+   * si Flow pudo crear la suscripción directo (cobra el 1er período ya).
+   */
+  @Post("membership-subscription")
+  @UseGuards(SessionGuard)
+  membershipSubscription(
+    @Req() req: Request,
+    @Body() dto: CheckoutMembershipSubscriptionDto,
+  ) {
+    return this.subscriptions.subscribe(
+      req.person!.id,
+      dto.planId,
+      dto.acceptRecurring,
+    );
   }
 }

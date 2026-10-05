@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronLeftIcon } from "@/components/ui/icons";
 
 // Header de módulo de consola: back link al hub + slot de acciones.
 // El back es un <a> real (iOS back) — no usa router.back() para que el
@@ -19,7 +20,7 @@ export function ConsoleHeader({
         href={backHref}
         className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
       >
-        <span aria-hidden="true">‹</span> {backLabel}
+        <ChevronLeftIcon /> {backLabel}
       </Link>
       {actions}
     </header>

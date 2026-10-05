@@ -16,7 +16,7 @@ import {
   roleKeysHavePermission,
   RolesGuard,
 } from "../../common/rbac/roles.guard";
-import { RequireRoles } from "../../common/rbac/roles.decorator";
+import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { PrismaService } from "../../prisma.service";
 
 class SetRentalStatusDto {
@@ -29,14 +29,15 @@ type SessionPerson = NonNullable<Request["person"]>;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Consola del venue (venue_manager): sus locales, dashboard operativo
- * (eventos, check-ins, arriendos de academias, cartas) y gestión del
- * estado de los VenueRental. ADMIN entra con bypass de ownership —
- * un rol con permiso admin.access (o isSuperuser) ve todos los venues.
+ * Consola del venue: sus locales, dashboard operativo (eventos,
+ * check-ins, arriendos de academias, cartas) y gestión del estado de
+ * los VenueRental. Exige el permiso `venues.manage` (grant de
+ * VENUE_MANAGER en seed); ADMIN entra con bypass de ownership — un rol
+ * con permiso admin.access (o isSuperuser) ve todos los venues.
  */
 @Controller("venues")
 @UseGuards(SessionGuard, RolesGuard)
-@RequireRoles("VENUE_MANAGER", "ADMIN")
+@RequirePermissions("venues.manage")
 export class VenueConsoleController {
   constructor(private readonly prisma: PrismaService) {}
 
@@ -119,16 +120,79 @@ export class VenueConsoleController {
       }),
     ]);
 
+    const allEventIds = eventIds.map((e) => e.id);
+
     // Solo check-ins no anulados — un voidedAt no es asistencia real.
-    const checkins = eventIds.length
-      ? await this.prisma.checkin.count({
+    // Se traen las filas (no solo count) para computar el flujo: hora
+    // peak de llegada y permanencia media (outAt - inAt), spec §13 Local.
+    const checkinRows = allEventIds.length
+      ? await this.prisma.checkin.findMany({
           where: {
-            eventId: { in: eventIds.map((e) => e.id) },
+            eventId: { in: allEventIds },
             inAt: { gte: since },
             voidedAt: null,
           },
+          select: { inAt: true, outAt: true },
         })
-      : 0;
+      : [];
+
+    // Reservas de mesa de los eventos futuros del venue — el local
+    // necesita saber qué mesas esperar cada noche (spec §13 Local).
+    // TableReservation.eventId/personId son escalares → nombres por join
+    // manual sobre los ids ya resueltos.
+    const upcomingIds = upcoming.map((e) => e.id);
+    const tableRows = upcomingIds.length
+      ? await this.prisma.tableReservation.findMany({
+          where: {
+            eventId: { in: upcomingIds },
+            status: { not: "CANCELLED" },
+          },
+          orderBy: { createdAt: "asc" },
+        })
+      : [];
+    const tablePeople = tableRows.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: [...new Set(tableRows.map((r) => r.personId))] } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameBy = new Map(tablePeople.map((p) => [p.id, p.name]));
+    const eventBy = new Map(upcoming.map((e) => [e.id, e]));
+    const tables = tableRows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      partySize: r.partySize,
+      tableNo: r.tableNo,
+      personName: nameBy.get(r.personId) ?? null,
+      event: {
+        id: r.eventId,
+        name: eventBy.get(r.eventId)?.name ?? "",
+        startsAt: eventBy.get(r.eventId)?.startsAt ?? null,
+      },
+    }));
+
+    // Flujo del público (30d): check-ins por hora local + permanencia
+    // media de quienes marcaron salida. peakHour = la hora con más
+    // llegadas acumuladas.
+    const byHour = new Array<number>(24).fill(0);
+    let staySum = 0;
+    let stayN = 0;
+    for (const c of checkinRows) {
+      byHour[c.inAt.getHours()] += 1;
+      if (c.outAt && c.outAt > c.inAt) {
+        staySum += c.outAt.getTime() - c.inAt.getTime();
+        stayN += 1;
+      }
+    }
+    const peakHour = checkinRows.length
+      ? byHour.indexOf(Math.max(...byHour))
+      : null;
+    const flow = {
+      byHour,
+      peakHour,
+      avgStayMinutes: stayN ? Math.round(staySum / stayN / 60_000) : null,
+      checkins: checkinRows.length,
+    };
 
     return {
       venue: {
@@ -138,9 +202,11 @@ export class VenueConsoleController {
         capacity: venue.capacity,
       },
       upcoming,
-      past30d: { events: pastCount, checkins },
+      past30d: { events: pastCount, checkins: checkinRows.length },
       rentals,
       menus,
+      tables,
+      flow,
     };
   }
 
