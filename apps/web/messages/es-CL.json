@@ -908,6 +908,8 @@
     "inviteCopied": "Link copiado",
     "goingTitle": "Tus amigos van a",
     "goingFriends": "{count, plural, one {# amigo va} other {# amigos van}}",
+    "goingMore": "Ver {count, plural, one {# evento más} other {# eventos más}}",
+    "goingLess": "Ver menos",
     "upcomingTitle": "Próximos eventos"
   },
   "classes": {
