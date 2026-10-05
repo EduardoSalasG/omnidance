@@ -559,6 +559,11 @@ El cargo por venta desaparece para la academia: pasa a **suscripción mensual po
 
 **Productor**: mantiene `platformFeePct` por venta (la monetización core del ticketing) **+ Producer Pro opcional** — suscripción por tier de facturación mensual media (90d): `PRO_STARTER ≤$2,5M → $99.990`, `PRO_GROWTH ≤$8M → $249.990` (ciclos con −2%/−4%), `PRO_BIG` manual. Pro desbloquea analítica avanzada, exports CSV/PDF, CRM y multi-staff — el ticketing base, venta y check-in **nunca se cortan** por la suscripción. Trial de lanzamiento: +90d a productores registrados.
 
+**Contexto competitivo (evaluado oct-2026, decisión: no competir en precio)**:
+- **BoxMagic** (gestión deportiva): ~$39.900+IVA hasta 120 clientes — referencia del pricing de tiers.
+- **Membrezia** (cobranza pura, multi-vertical): 0,6 UF (~$28.200 c/IVA) hasta 150 clientes / 1 UF (~$47.000) hasta 300 — pero el dinero va a la pasarela de la propia org (paga su ~3% aparte) y **no** incluye gestión, clases, check-in ni marketplace. Para una academia de 60 alumnos el costo total queda ~$85k vs ~$107k con STARTER — más caro nuestro en sticker, con mucho más producto.
+- Decisión: **sin tier Lite** — el cliente que compara solo precio de sticker no es el segmento objetivo; el producto compite en gestión completa + liquidez del marketplace. Gaps identificados si se revisa: recordatorios WhatsApp (hoy push/email), integración SII/boletas, plata directa a cuenta de la org (nuestro payout es la contrapartida del onboarding sin pasarela propia).
+
 ### Flujo de ingreso en puerta (staff)
 
 **Caso A — ticket en app:** bailarín muestra su QR personal → staff escanea → valida ticket / evento / no-usado → check-in automático + hora de llegada → "Ya llegué" + notificación a amigos.
