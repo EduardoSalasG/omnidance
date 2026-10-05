@@ -206,21 +206,53 @@ jobs:
                 exit 1
               fi
 
-              echo "--- seeding baseline data one-shot (SEED_ENV=prod) ---"
-              docker rm -f omnidance-seed 2>/dev/null || true
-              if ! timeout 300 docker run \
-                --name omnidance-seed \
+              # Email del admin: secret → .env (un -e vacío pisaría el
+              # valor del env-file, así que se resuelve antes).
+              SEED_ADMIN_EMAIL="$(echo '${{ secrets.SEED_ADMIN_EMAIL }}' | tr -d '[:space:]')"
+              if [ -z "$SEED_ADMIN_EMAIL" ]; then
+                SEED_ADMIN_EMAIL=$(grep '^SEED_ADMIN_EMAIL=' .env | head -1 | cut -d '=' -f2-)
+              fi
+
+              # El seed es idempotente pero solo hace falta cuando la DB
+              # está vacía (baseline) o falta el admin — si ya hay roles
+              # y no hay email configurado, se omite para no bloquear el
+              # deploy (mismo criterio que docker-entrypoint.sh).
+              echo "--- checking baseline data ---"
+              docker rm -f omnidance-check 2>/dev/null || true
+              BASELINE_ROLES=$(timeout 90 docker run \
+                --name omnidance-check \
                 --rm \
                 --env-file .env \
-                -e SEED_ENV=prod \
-                -e SEED_ADMIN_EMAIL="$(echo '${{ secrets.SEED_ADMIN_EMAIL }}' | tr -d '[:space:]')" \
                 -e DATABASE_URL="$MIGRATION_DATABASE_URL" \
                 -w /app/apps/api \
                 "$API_IMAGE" \
-                npx tsx prisma/seed.ts; then
-                echo "Seed failed or timed out"
+                node -e 'const{PrismaClient}=require("@prisma/client");const p=new PrismaClient();p.role.count().then(c=>console.log(c)).catch(()=>console.log(-1)).finally(()=>p.$disconnect())' \
+                | tail -1)
+              docker rm -f omnidance-check 2>/dev/null || true
+
+              if [ "$BASELINE_ROLES" != "0" ] && [ "$BASELINE_ROLES" != "-1" ] && [ -z "$SEED_ADMIN_EMAIL" ]; then
+                echo "DB con baseline ($BASELINE_ROLES roles) y sin SEED_ADMIN_EMAIL — seed omitido"
+              else
+                if [ -z "$SEED_ADMIN_EMAIL" ]; then
+                  echo "ERROR: DB vacía y SEED_ADMIN_EMAIL no está en GitHub secrets ni en .env"
+                  exit 1
+                fi
+                echo "--- seeding baseline data one-shot (SEED_ENV=prod) ---"
                 docker rm -f omnidance-seed 2>/dev/null || true
-                exit 1
+                if ! timeout 300 docker run \
+                  --name omnidance-seed \
+                  --rm \
+                  --env-file .env \
+                  -e SEED_ENV=prod \
+                  -e SEED_ADMIN_EMAIL="$SEED_ADMIN_EMAIL" \
+                  -e DATABASE_URL="$MIGRATION_DATABASE_URL" \
+                  -w /app/apps/api \
+                  "$API_IMAGE" \
+                  npx tsx prisma/seed.ts; then
+                  echo "Seed failed or timed out"
+                  docker rm -f omnidance-seed 2>/dev/null || true
+                  exit 1
+                fi
               fi
 
               echo "--- recreating API with new image ---"
