@@ -321,3 +321,46 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
 - **Pendiente del usuario**: provisionar secrets/vars en GitHub, crear
   sitio Netlify + env vars, preparar `.env` en la VM y el vhost nginx.
   Primer push a `main` con todo listo dispara el primer deploy.
+
+## Release v0.1.0 + boot Neon + e2e fixes (2026-10-05)
+
+- **Boot del contenedor refinado** (`apps/api/docker-entrypoint.sh`):
+  `prisma migrate deploy` por `MIGRATION_DATABASE_URL`/`DIRECT_DATABASE_URL`
+  (directo Neon, sin pooler) → cuenta `Role` → si 0/−1 corre
+  `SEED_ENV=prod` → arranca Nest. Verificado en Docker real: DB vacía
+  crea 14 migraciones + seed + health 200/me 401; DB con datos omite
+  seed. El workflow además corre migrate+seed one-shot antes del
+  recreate (fail temprano) — redundancia intencional e idempotente.
+- **Dockerfile runtime**: `COPY apps/api/src` (seed.ts vía tsx importa
+  `../src/*`); openssl en builder para engine prisma correcto.
+- **CI e2e**: el job ahora levanta `postgres:16-alpine` service +
+  `migrate deploy` + `SEED_ENV=prod` baseline antes de `pnpm test` —
+  los 27 e2e bootean Nest contra DATABASE_URL.
+- **e2e stale corregidos** (eran anteriores al gate Producer Pro S5):
+  `proTier:"PRO_STARTER"` en fixtures de productor de `gap-crm`,
+  `gap-producer`, `survey-analytics`; `gap-academies2` actualizado al
+  contrato nuevo (alumno lee particulares vía `/classes/mine`,
+  `mine` sin `as=instructor` → 400). Suite completa local: **63/63
+  archivos, 1426 tests verdes**.
+- **Release**: versiones 0.1.0 (root + api + web + shared),
+  `CHANGELOG.md` creado (Keep a Changelog). `dev → main` con
+  `--no-ff` (merge `87dfe57`), tag anotado **`v0.1.0`** sobre ese
+  commit, push de ambos, `main` sincronizado de vuelta a `dev` (FF).
+- **Pipeline**: run `37265404475` gatillado por el push a main.
+  Llegará hasta el paso SSH — falla ahí **hasta que el usuario
+  provisione** los secrets (`ORACLE_*`, `GHCR_*`,
+  `MIGRATION_DATABASE_URL`, `SEED_ADMIN_EMAIL`) y el `.env` de la VM
+  (`docs/ci-cd.md` tiene el checklist completo). Netlify igual:
+  conectar repo + env vars.
+
+### Lo que falta (lado usuario, docs/ci-cd.md)
+
+1. Neon: crear DB `omnidance`, copiar URLs pooled + directa.
+2. VM `/opt/apps/omnidance/.env` (DATABASE_URL pooled, DIRECT/… directo,
+   JWT_SECRET, QR_SECRET, WEB_URL, CORS_ORIGINS, API_URL, Flow keys,
+   Resend, VAPID, SEED_ADMIN_EMAIL, SESSION_SECURE/SAMESITE).
+3. GitHub secrets + var `PUBLIC_API_HOST` (ya hardcodeado en workflow
+   como env, el secret/var es opcional).
+4. Nginx vhost `api.omnidance.eduardosalasg.dev` → 127.0.0.1:4000 + TLS.
+5. Netlify: sitio `omnidance`, env vars, `API_PROXY_TARGET` ya va en
+   netlify.toml.
