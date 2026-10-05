@@ -44,6 +44,14 @@ export type Academy = {
   // Precio de la clase particular vendida como producto (PATCH settings;
   // null = no se vende). El owner asigna instructor+fecha post-compra.
   privateLessonPrice?: number | null;
+  // Suscripción SaaS de la plataforma (spec academy-saas-billing):
+  // GET /academies/mine devuelve la fila completa — tier/ciclo, trial,
+  // gracia y bloqueo por mora alimentan el banner de la consola.
+  tier?: string | null;
+  billingCycle?: string | null;
+  trialEndsAt?: string | null;
+  billingGraceUntil?: string | null;
+  billingBlockedAt?: string | null;
 };
 
 export type AcademyDashboard = {

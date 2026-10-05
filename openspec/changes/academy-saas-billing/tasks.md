@@ -94,10 +94,10 @@
 
 ## S6 — Consola + bailarín
 
-- [ ] `/academia` → sección "Suscripción": tier, alumnos vs límite,
+- [x] `/academia` → sección "Suscripción": tier, alumnos vs límite,
       renovación, cambiar plan, historial de invoices (del ledger)
-- [ ] Banner de gracia (5 días) + banner de bloqueo en consola
-- [ ] Checkout de contratación del plan (mismo interstitial pre-Flow)
+- [x] Banner de gracia (5 días) + banner de bloqueo en consola
+- [x] Checkout de contratación del plan (mismo interstitial pre-Flow)
 - [ ] Bailarín: academia bloqueada no aparece en explorar; ficha
       muestra "no disponible" sin CTA de compra; copy honesto
 - [ ] Productor: upgrade a Pro desde `/productor/parametros` o la

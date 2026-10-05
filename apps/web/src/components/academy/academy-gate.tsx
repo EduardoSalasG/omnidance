@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
+import { AcademyBillingBanner } from "./academy-billing-banner";
 import { inputCls, readError, type Academy } from "./shared";
 
 type Gate = "loading" | "unauth" | "empty" | "ready" | "error";
@@ -169,6 +170,10 @@ export function AcademyGate({
 
       {gate === "ready" && selected && (
         <>
+          {/* Mora SaaS: banner de gracia/bloqueo arriba de todo el
+              contenido de la consola (en /academia/suscripcion el
+              componente se auto-omite — el estado va detallado ahí). */}
+          <AcademyBillingBanner academy={selected} />
           {academies.length > 1 && (
             <label className="flex flex-col gap-1">
               <span className="sr-only">{t("title")}</span>

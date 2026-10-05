@@ -32,6 +32,9 @@ const MODULES = [
   // ActorPicker la resuelve via GET /academies/mine. Solo owner/ADMIN:
   // CRM_ROLES no incluye instructor (el card se filtra abajo).
   { href: "/crm", key: "crm", ownerOnly: true },
+  // Suscripción SaaS de la plataforma (academy-saas-billing): tier,
+  // ciclo, contratación Flow e invoices — requireAdminister → owner/ADMIN.
+  { href: "/academia/suscripcion", key: "subscription", ownerOnly: true },
 ] as const;
 
 /**
