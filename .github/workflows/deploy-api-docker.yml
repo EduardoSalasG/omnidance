@@ -132,9 +132,11 @@ jobs:
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
             'mkdir -p ${{ env.CONTAINER_DIR }}'
+          # Comillas simples: $HOME debe expandirse en la VM, no en el
+          # runner (con dobles llegaría /home/runner/… al remoto).
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
-            "cat > ${{ env.CONTAINER_DIR }}/docker-compose.yml" \
+            'cat > ${{ env.CONTAINER_DIR }}/docker-compose.yml' \
             < apps/api/docker-compose.yml
 
       - name: Deploy on Oracle VM
