@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  # Permite re-desplegar la misma imagen/.env sin commit vacío
+  # (p.ej. tras actualizar secrets o el .env de la VM).
+  workflow_dispatch:
 
 concurrency:
   group: deploy-omnidance-api-main
