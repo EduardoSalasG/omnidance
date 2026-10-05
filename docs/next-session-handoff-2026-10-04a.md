@@ -223,3 +223,50 @@ flash posible). Los skeletons `=== "loading"` restantes viven en slots
 persistentes (la sección siempre existe → el placeholder se llena).
 
 Verificación: tsc web limpio, vitest 3/3, impeccable detect `[]`.
+
+## Particular unificada como reserva (`particular-reserva-unificada`)
+
+Feedback del usuario sobre `particulares-en-reservadas`: el card de la
+particular debía ser el MISMO `ClassCard`, cancelar desde la ficha (no
+inline en la lista), una sola llamada para reservadas, y se cuestionó la
+duplicación de endpoints.
+
+**Decisión (evaluada y documentada en el proposal)**: el modelo
+`PrivateLesson` separado se MANTIENE — no es "una clase con aforo 1":
+se paga antes de agendarse (`scheduledAt` null), no tiene serie/slot/
+recurrencia, lleva comisiones y un ciclo REQUESTED→CONFIRMED→DONE
+distinto. Fusionarlo en `Class` exigiría slot/series fake o nullables
+estructurales en todo el dominio. Lo que converge es la **superficie
+alumno**:
+
+- **`GET /classes/mine`** mergea las particulares activas
+  (REQUESTED/CONFIRMED) en la misma respuesta — shape del card vía
+  `lessonCardItem` (`class-card-projection.ts`): `series:null`,
+  `capacity:1`, `myBooking:"BOOKED"`, `date`/`startTime` null cuando no
+  está agendada (`instantToCardDate` convierte el instante a la
+  convención medianoche-UTC del card, con offset Santiago por Intl).
+- **`?scope=past`** mergea DONE→"attended"/CANCELLED→"cancelled" (la
+  cancelada sin agendar se ubica por su día de compra).
+- **`GET /private-lessons/:id`** nuevo — detalle para alumno dueño /
+  instructor / owner / admin; la comisión solo viaja a los tres
+  últimos (el alumno nunca la ve).
+- **`/private-lessons/mine` pierde la rama alumno** — solo
+  `?as=instructor` (400 sin eso): una sola fuente de reservas del
+  learner, se eliminó la lectura duplicada.
+- **Web**: `LessonCardData` (series/date nullables) + unión
+  `MineCardData`; `ClassCard` renderiza la particular idéntica (título
+  "Clase particular", badge Reservado, link a la ficha). `/clases` hace
+  UN fetch; "Por agendar" agrupa las `date:null` arriba.
+- **`/clases/[id]`**: 404 de clase → fallback `GET /private-lessons/:id`
+  → ficha equivalente (academia, instructor o "por asignar", fecha o
+  "por agendar", precio, estado) + `PrivateLessonCancelCta` al pie
+  (zona destructiva + sheet de confirmación — mismo patrón que
+  `ClassBookingCta`; la devolución es manual, como reserva pagada).
+
+Verificación: tsc api+web limpio, vitest 63/63 (classes 41 +
+private-lessons 22, incl. merge mine/past, auth del detalle y comisión
+oculta al alumno), i18n ALL_KEYS_OK, impeccable detect `[]`, openspec
+validate verde, openapi.json+postman regenerados (198 paths),
+flows.md/architecture.md actualizados. **Smoke manual pendiente**:
+particular sin agendar arriba de reservadas, ficha + cancelación con
+sesión real, consola staff intacta.
