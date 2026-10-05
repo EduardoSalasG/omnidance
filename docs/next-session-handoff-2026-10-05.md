@@ -57,13 +57,26 @@ end-to-end (CI + VM + sonda HTTPS nginx).
   `NEXT_PUBLIC_CARTO_BASEMAP_KEY`, `NEXT_PUBLIC_WEB_URL`.
 - **Resend**: `RESEND_API_KEY`/`EMAIL_FROM`/`MAIL_FROM` en la VM —
   sin esto los magic links no llegan (login cojo).
-- **VAPID** (opcional): `npx web-push generate-vapid-keys` — privada
-  solo VM, pública también a Netlify.
+- ~~VAPID~~ — hecho el mismo día (ver "Post-handoff").
+
+## Post-handoff (misma sesión)
+
+- **VAPID habilitado**: usuario generó keys, `.env` VM + Netlify
+  pública; rerun `37326822526` recreó el contenedor y rebuild de
+  Netlify horneó la pública en el bundle.
+- **Verificación pública end-to-end**:
+  `api…/api/health` 200, `api…/api/me` 401, `omnidance.netlify.app`
+  200, `omnidance.netlify.app/api/health` 200 (proxy same-origin OK —
+  cookies first-party confirmadas).
+- `workflow_dispatch` agregado al workflow (commit `4ffaa09`, `dev`) —
+  permite redeploy manual sin commit una vez mergeado a `main`.
+- Health gate ahora imprime `API healthy after N attempt(s)` (commit
+  `8e9148c`, `dev`) — ya no parecen errores los attempts de cold start.
 
 ## Pendientes (repo)
 
-- Health gate: el loop podría imprimir "API healthy" al salir con
-  éxito — hoy el `break` es silencioso y los attempts fallidos se ven
-  como errores en el log. Cosmético.
 - Docs de referencia completas en `docs/ci-cd.md` (checklist primer
   deploy, troubleshooting P1002/Flow, precedencia de secrets).
+- `dev` adelanta a `main` en 2 commits cosméticos (`8e9148c` log del
+  health gate, `4ffaa09` workflow_dispatch) — mergearlos en el
+  próximo release, no ameritan deploy propio.
