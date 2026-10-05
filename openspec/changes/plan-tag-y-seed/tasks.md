@@ -15,4 +15,5 @@
 - [x] `pnpm exec tsc --noEmit` web + api
 - [x] openspec validate
 - [x] impeccable detect sobre el componente tocado
-- [ ] reseed + smoke visual de `/academias/:id` con sesión real
+- [x] reseed + smoke visual de `/academias/:id` con sesión real (2 corridas
+      idempotentes, tags neon confirmados en SSR)
