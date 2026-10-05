@@ -323,18 +323,10 @@ const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
     icon: ICONS.practices,
   },
 ];
-// Lente academia del bailarín: /clases y /academias ya son tabs —
-// el sheet solo añade la bandeja de particulares (no alcanzable por
-// tab ni link visible) junto al QR. /academia es consola del dueño
-// y /eventos pertenece a la lente social.
-const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [
-  {
-    href: "/clases/particular",
-    ns: "classes",
-    key: "privateTray",
-    icon: ICONS.dances,
-  },
-];
+// Lente academia del bailarín: /clases y /academias ya son tabs y las
+// particulares compradas aparecen en reservadas (sin bandeja separada)
+// — el sheet queda solo con el QR.
+const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [];
 
 const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   // El bailarín no usa drawer: sus módulos viven en el sheet del "+".
@@ -807,8 +799,6 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     // Módulos del sheet del bailarín (ya no viven en el drawer).
     ["/bailes", t("dances")],
     ["/practicas", t("practices")],
-    // Bandeja de particulares del bailarín (lente academia, sheet del +).
-    ["/clases/particular", labelFor("classes", "privateTray")],
     ["/academia", tac("title")],
     // /qr ya no es tab del bailarín (vive embebido en el sheet) —
     // la ruta sigue existiendo (escáner desde /bailes, /practicas).

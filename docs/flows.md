@@ -448,7 +448,7 @@ sequenceDiagram
     PL->>DB: notifySafe academy.private_lesson.assigned<br/>a alumno e instructor
 ```
 
-- La fecha **la define el owner** post-compra ("por agendar" en `/clases/particular` mientras `scheduledAt=null`); el instructor puede reagendar después. La distinción con WORKSHOP es el aforo: taller = varios asistentes con fecha fija; particular = 1 alumno, se coordina tras el pago.
+- La fecha **la define el owner** post-compra ("por agendar" en reservadas de `/clases` mientras `scheduledAt=null`); el instructor puede reagendar después. La distinción con WORKSHOP es el aforo: taller = varios asistentes con fecha fija; particular = 1 alumno, se coordina tras el pago.
 - `POST /academies/:id/private-lessons` queda **staff-only** para clases manuales (cortesía/convenio, opcional `personId`); el alumno compra, no solicita.
 - `Academy.privateLessonPrice = null` → la academia no vende particulares (card oculta, checkout 400).
 - Devenga a la academia en payouts — el refId `pvt_` codifica la academia directamente (incluso si no tiene eventos/planes/clases). Una particular **cancelada** no devenga: el pago se excluye de `by-academy`/payouts y el owner recibe `academy.private_lesson.cancelled_paid` (la devolución al alumno es manual vía Flow).

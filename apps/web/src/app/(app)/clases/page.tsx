@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
+  Badge,
   Button,
   Card,
   ChevronDownIcon,
@@ -47,6 +48,49 @@ type BrowseClass = ClassCardData;
 // GET /classes/mine — reserva activa del learner, mismo shape del card.
 // Los filtros de reservadas resuelven client-side (/mine no acepta params).
 type MyBooking = ClassCardData;
+
+// GET /private-lessons/mine (rama alumno) — una particular comprada ES
+// una reserva más: se mergea en "reservadas", sin bandeja separada
+// (particulares-en-reservadas).
+type MyLesson = {
+  id: string;
+  academyId: string;
+  academy: { id: string; name: string | null };
+  instructorId: string | null;
+  instructor: { id: string; name: string | null } | null;
+  scheduledAt: string | null;
+  price: number;
+  status: "REQUESTED" | "CONFIRMED" | "DONE" | "CANCELLED";
+  createdAt: string;
+};
+
+// Fila de "reservadas": reserva de clase o particular — ambas ordenan
+// por día+hora. `date` es ISO medianoche UTC del DÍA LOCAL (misma
+// convención que Class.date) para que classDayKey/dayFmt apliquen
+// sin caso especial; `time` es "HH:mm" local.
+type ReservedItem =
+  | { kind: "class"; booking: MyBooking; date: string; time: string }
+  | { kind: "lesson"; lesson: MyLesson; date: string; time: string };
+
+// Fila de historial: clase pasada o particular terminal.
+type HistoryRow =
+  | { kind: "class"; item: HistoryItem; date: string; time: string }
+  | { kind: "lesson"; lesson: MyLesson; date: string; time: string };
+
+/** scheduledAt ISO → fila de día: ISO medianoche-UTC del día local +
+    "HH:mm" local (misma convención que las Class). */
+function lessonRow(l: MyLesson, fallbackIso?: string) {
+  const d = new Date(l.scheduledAt ?? fallbackIso ?? l.createdAt);
+  return {
+    date: `${localDayKey(d)}T00:00:00.000Z`,
+    time: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
+  };
+}
+
+const lessonTimeFmt = new Intl.DateTimeFormat("es-CL", {
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 // GET /classes/mine?scope=past — historial del alumno (spec §9):
 // asistencia prevalece sobre la reserva de la misma clase.
@@ -98,6 +142,10 @@ function ClasesInner() {
   const tc = useTranslations("common");
   const te = useTranslations("events");
   const tt = useTranslations("tours.clases");
+  // Copys de la particular (estado, por agendar/asignar, cancelar) —
+  // mismo catálogo que la consola staff.
+  const tl = useTranslations("academyExtras.lessons");
+  const tap = useTranslations("academy.profile");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -193,6 +241,9 @@ function ClasesInner() {
 
   const [mine, setMine] = useState<MyBooking[] | null>(null);
   const [mineState, setMineState] = useState<LoadState>("loading");
+  // Particulares del alumno — se mergean en reservadas (activas) e
+  // historial (terminales). null = sin fetchear en esta vista.
+  const [lessons, setLessons] = useState<MyLesson[] | null>(null);
   const [classes, setClasses] = useState<BrowseClass[] | null>(null);
   const [browseState, setBrowseState] = useState<LoadState>("loading");
   const [history, setHistory] = useState<HistoryItem[] | null>(null);
@@ -210,11 +261,17 @@ function ClasesInner() {
   // busyId = classId en vuelo (book o cancel) — compartido entre vistas.
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Reservadas = clases reservadas + particulares compradas — un solo
+  // estado de carga (fetch paralelo; si una falla la vista reintenta
+  // completa — esconder una particular pagada sería peor).
   const loadMine = useCallback(async () => {
     setMineState("loading");
     try {
-      const res = await apiFetch("/classes/mine");
-      if (!res.ok) {
+      const [res, lessonsRes] = await Promise.all([
+        apiFetch("/classes/mine"),
+        apiFetch("/private-lessons/mine"),
+      ]);
+      if (!res.ok || !lessonsRes.ok) {
         setMineState("error");
         return;
       }
@@ -224,6 +281,7 @@ function ClasesInner() {
         `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`),
       );
       setMine(rows);
+      setLessons((await lessonsRes.json()) as MyLesson[]);
       setMineState("ready");
     } catch {
       setMineState("error");
@@ -310,12 +368,18 @@ function ClasesInner() {
   const loadHistory = useCallback(async () => {
     setHistoryState("loading");
     try {
-      const res = await apiFetch("/classes/mine?scope=past");
-      if (!res.ok) {
+      const [res, lessonsRes] = await Promise.all([
+        apiFetch("/classes/mine?scope=past"),
+        // Particulares terminales (DONE/CANCELLED) también son
+        // historial — misma fuente que reservadas, filtrada abajo.
+        apiFetch("/private-lessons/mine"),
+      ]);
+      if (!res.ok || !lessonsRes.ok) {
         setHistoryState("error");
         return;
       }
       setHistory((await res.json()) as HistoryItem[]);
+      setLessons((await lessonsRes.json()) as MyLesson[]);
       setHistoryState("ready");
     } catch {
       setHistoryState("error");
@@ -361,6 +425,30 @@ function ClasesInner() {
     }
   }
 
+  // Cancelar una particular propia (REQUESTED/CONFIRMED) — misma acción
+  // que tenía la bandeja (PATCH /private-lessons/:id action=cancel).
+  async function cancelLesson(l: MyLesson): Promise<void> {
+    if (!window.confirm(tl("confirmCancel"))) return;
+    setBusyId(l.id);
+    setNotice(null);
+    try {
+      const res = await apiFetch(`/private-lessons/${l.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      if (!res.ok) {
+        setNotice({ text: (await readError(res)) ?? t("error"), error: true });
+        return;
+      }
+      await loadMine();
+    } catch {
+      setNotice({ text: t("error"), error: true });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   // ─── Derivados de lista/calendario ───
   const now = Date.now();
   const pool = classes ?? [];
@@ -391,6 +479,53 @@ function ClasesInner() {
     (b) =>
       (!styleId || b.series.style?.id === styleId) &&
       (!levelId || b.series.level?.id === levelId),
+  );
+
+  // Particulares activas = una reserva más (REQUESTED/CONFIRMED). Sin
+  // fecha no pueden ordenarse → grupo "por agendar" fijado arriba; el
+  // pago nunca queda invisible. DONE/CANCELLED viven en el historial.
+  const activeLessons = (lessons ?? []).filter(
+    (l) => l.status === "REQUESTED" || l.status === "CONFIRMED",
+  );
+  const unscheduledLessons = activeLessons.filter(
+    (l) => l.scheduledAt === null,
+  );
+  const reservedItems: ReservedItem[] = [
+    ...filteredMine.map(
+      (b): ReservedItem => ({
+        kind: "class",
+        booking: b,
+        date: b.date,
+        time: b.startTime,
+      }),
+    ),
+    ...activeLessons
+      .filter((l) => l.scheduledAt !== null)
+      .map((l): ReservedItem => ({ kind: "lesson", lesson: l, ...lessonRow(l) })),
+  ].sort((a, b) =>
+    `${a.date.slice(0, 10)}T${a.time}`.localeCompare(
+      `${b.date.slice(0, 10)}T${b.time}`,
+    ),
+  );
+
+  // Historial mergeado: clases pasadas + particulares terminales
+  // (orden desc como el response del endpoint).
+  const historyRows: HistoryRow[] = [
+    ...(history ?? []).map(
+      (h): HistoryRow => ({
+        kind: "class",
+        item: h,
+        date: h.date,
+        time: h.startTime,
+      }),
+    ),
+    ...(lessons ?? [])
+      .filter((l) => l.status === "DONE" || l.status === "CANCELLED")
+      .map((l): HistoryRow => ({ kind: "lesson", lesson: l, ...lessonRow(l) })),
+  ].sort((a, b) =>
+    `${b.date.slice(0, 10)}T${b.time}`.localeCompare(
+      `${a.date.slice(0, 10)}T${a.time}`,
+    ),
   );
   // Opciones de los selects = solo lo que existe en el set sin
   // filtrar del scope (evita elegir un filtro sin resultados).
@@ -444,10 +579,10 @@ function ClasesInner() {
       )
       .map((c) => c.academy),
   );
-  const myByDay = new Map<string, MyBooking[]>();
-  for (const b of filteredMine) {
-    const key = classDayKey(b.date);
-    myByDay.set(key, [...(myByDay.get(key) ?? []), b]);
+  const myByDay = new Map<string, ReservedItem[]>();
+  for (const it of reservedItems) {
+    const key = classDayKey(it.date);
+    myByDay.set(key, [...(myByDay.get(key) ?? []), it]);
   }
   const cells =
     scope === "mias" && calScope === "reservadas"
@@ -496,9 +631,61 @@ function ClasesInner() {
     </li>
   );
 
-  // ─── Reservadas: mismo ClassCard del explorador (badge Reservado/
-  // En espera arriba a la derecha — ya tienen su cupo, sin CTA) ───
-  const renderMyCard = (b: MyBooking) => renderClassCard(b);
+  // Card de una particular dentro de reservadas/historial: academia +
+  // instructor (o "por asignar") + estado; cancelar mientras esté
+  // activa — una particular es una reserva más, no otra superficie.
+  const renderLessonCard = (l: MyLesson) => {
+    const active = l.status === "REQUESTED" || l.status === "CONFIRMED";
+    return (
+      <li key={l.id}>
+        <Card className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">
+              {tap("privateLesson")} ·{" "}
+              {l.academy.name ?? l.academy.id.slice(0, 8)}
+            </p>
+            <p className="text-xs text-white/60">
+              {l.scheduledAt
+                ? lessonTimeFmt.format(new Date(l.scheduledAt))
+                : tl("toSchedule")}
+              {" · "}
+              {l.instructor?.name ?? tl("toAssign")}
+            </p>
+          </div>
+          <Badge
+            variant={
+              l.status === "CONFIRMED"
+                ? "neon"
+                : l.status === "DONE"
+                  ? "muted"
+                  : l.status === "CANCELLED"
+                    ? "live"
+                    : "outline"
+            }
+          >
+            {tl(`status.${l.status}`)}
+          </Badge>
+          {active && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busyId === l.id}
+              onClick={() => void cancelLesson(l)}
+            >
+              {tl("cancel")}
+            </Button>
+          )}
+        </Card>
+      </li>
+    );
+  };
+
+  // ─── Reservadas: ClassCard del explorador para las reservas de
+  // clase; las particulares llevan su card compacto ───
+  const renderMyCard = (it: ReservedItem) =>
+    it.kind === "class"
+      ? renderClassCard(it.booking)
+      : renderLessonCard(it.lesson);
 
   const renderDayGroup = <T extends { date: string }>(
     g: { key: string; items: T[] },
@@ -755,13 +942,9 @@ function ClasesInner() {
                   </svg>
                 </div>
               )}
-              {/* Bandeja de particulares — entrada visible desde /clases
-                  (además del sheet del "+" en lente academia). */}
-              {scope === "mias" && (
-                <Link href="/clases/particular" className={chipClass(false)}>
-                  {t("privateTray")}
-                </Link>
-              )}
+              {/* Las particulares compradas aparecen dentro de
+                  reservadas — sin bandeja separada
+                  (particulares-en-reservadas). */}
             </div>
           </>
         )}
@@ -805,24 +988,32 @@ function ClasesInner() {
             </div>
           )}
           {historyState === "ready" &&
-            (history && history.length > 0 ? (
+            (historyRows.length > 0 ? (
               <div className="flex flex-col gap-5">
-                {groupByDay(history).map((g) =>
-                  renderDayGroup(g, (h: HistoryItem) => (
-                    <li key={h.id}>
-                      {/* Mismo card que el resto de la vista — el
-                          resultado (asististe/cancelaste) ocupa el slot
-                          de acción; no hay CTA en una clase pasada. */}
-                      <ClassCard
-                        cls={h}
-                        statusBadge={{
-                          label: t(`historyStatus.${h.status}`),
-                          variant:
-                            h.status === "attended" ? "neon" : "muted",
-                        }}
-                      />
-                    </li>
-                  )),
+                {groupByDay(historyRows).map((g) =>
+                  renderDayGroup(g, (r: HistoryRow) =>
+                    r.kind === "class" ? (
+                      <li key={r.item.id}>
+                        {/* Mismo card que el resto de la vista — el
+                            resultado (asististe/cancelaste) ocupa el slot
+                            de acción; no hay CTA en una clase pasada. */}
+                        <ClassCard
+                          cls={r.item}
+                          statusBadge={{
+                            label: t(`historyStatus.${r.item.status}`),
+                            variant:
+                              r.item.status === "attended"
+                                ? "neon"
+                                : "muted",
+                          }}
+                        />
+                      </li>
+                    ) : (
+                      /* Particular terminal (realizada/cancelada) —
+                          misma card compacta de reservadas. */
+                      renderLessonCard(r.lesson)
+                    ),
+                  ),
                 )}
               </div>
             ) : (
@@ -886,9 +1077,12 @@ function ClasesInner() {
               const isSelected = cell.key === selectedDay;
               const dots =
                 scope === "mias" && calScope === "reservadas"
-                  ? (cell.items as MyBooking[]).map((b) => ({
-                      id: b.id,
-                      genre: b.series.style?.genre,
+                  ? (cell.items as ReservedItem[]).map((it) => ({
+                      id: it.kind === "class" ? it.booking.id : it.lesson.id,
+                      genre:
+                        it.kind === "class"
+                          ? it.booking.series.style?.genre
+                          : null,
                     }))
                   : (cell.items as BrowseClass[]).map((c) => ({
                       id: c.id,
@@ -1004,9 +1198,22 @@ function ClasesInner() {
             </div>
           )}
           {mineState === "ready" &&
-            (filteredMine.length > 0 ? (
+            (reservedItems.length > 0 || unscheduledLessons.length > 0 ? (
               <div className="flex flex-col gap-5">
-                {groupByDay(filteredMine).map((g) =>
+                {/* Particulares compradas sin fecha — grupo fijo arriba
+                    (no ordenables por día; el pago nunca queda
+                    invisible). */}
+                {unscheduledLessons.length > 0 && (
+                  <section aria-label={tl("toSchedule")}>
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                      {tl("toSchedule")}
+                    </h3>
+                    <ul className="flex flex-col gap-2">
+                      {unscheduledLessons.map(renderLessonCard)}
+                    </ul>
+                  </section>
+                )}
+                {groupByDay(reservedItems).map((g) =>
                   renderDayGroup(g, renderMyCard),
                 )}
               </div>

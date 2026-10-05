@@ -79,12 +79,12 @@ function hrefFor(n: NotificationItem): string | null {
       return "/bailes";
     case "friend.request":
       return "/amigos";
-    // Bandeja de particulares del alumno (asignada, cancelada pagada,
-    // comprada) — /clases/particular.
+    // Particular del alumno (asignada, cancelada pagada, comprada) —
+    // vive dentro de reservadas de /clases (sin bandeja separada).
     case "academy.private_lesson.assigned":
     case "academy.private_lesson.cancelled_paid":
     case "academy.private_lesson.purchased":
-      return "/clases/particular";
+      return "/clases?scope=reservadas";
     case "class.waitlist.promoted":
       return classId ? `/clases/${classId}` : "/clases";
     case "class.series.resumed":

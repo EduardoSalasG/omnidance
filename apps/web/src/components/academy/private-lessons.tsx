@@ -71,11 +71,9 @@ type LessonAction =
   | "pay-commission";
 
 type Props = {
-  /**
-   * Academia seleccionada en la página → vista staff (lista + acciones).
-   * Sin academy → solo vista alumno.
-   */
-  academy?: Academy;
+  /** Academia de la consola staff (obligatoria — la vista alumno vive
+      en reservadas de /clases, particulares-en-reservadas). */
+  academy: Academy;
   /** Academias ya cargadas en la página — resuelven nombres de academia. */
   academies?: Academy[];
 };
@@ -103,14 +101,14 @@ function shortId(id: string) {
 }
 
 /**
- * Clases particulares 1:1. Dos vistas según el contexto de la página:
- * - staff (academy): GET /academies/:id/private-lessons + PATCH
- *   /private-lessons/:id {action} — assign (owner: instructor+fecha a las
- *   compradas "por asignar"), confirm/done/reschedule para instructor de
- *   la clase u owner(ADMIN); cancel para alumno u owner.
- * - alumno: GET /private-lessons/mine + cancel propia (REQUESTED/CONFIRMED).
- *   El alumno ya no solicita — compra la particular como producto desde el
- *   perfil de la academia (POST /checkout/private-class).
+ * Clases particulares 1:1 — vista staff de la consola (/academia/
+ * particulares): GET /academies/:id/private-lessons + PATCH
+ * /private-lessons/:id {action} — assign (owner: instructor+fecha a las
+ * compradas "por asignar"), confirm/done/reschedule para instructor de
+ * la clase u owner(ADMIN); cancel para alumno u owner. Además la vista
+ * "mis clases como instructor" (neto del mes).
+ * La vista alumno NO vive acá: sus particulares aparecen en reservadas
+ * de /clases (particulares-en-reservadas).
  */
 export function PrivateLessons({ academy, academies = [] }: Props) {
   const tc = useTranslations("common");
@@ -121,10 +119,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   // ─── vista staff ───
   const [lessons, setLessons] = useState<PrivateLesson[]>([]);
   const [staffState, setStaffState] = useState<LoadState>("loading");
-
-  // ─── vista alumno ───
-  const [mine, setMine] = useState<PrivateLesson[]>([]);
-  const [mineState, setMineState] = useState<LoadState>("loading");
 
   // ─── vista instructor (mis clases como profesor, con neto) ───
   // null = fetch en vuelo → skeleton en el slot (la sección va arriba
@@ -161,7 +155,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!academy) return;
     const dir = directory.find((a) => a.id === academy.id);
     if (dir) {
       setAcademyInstructors(dir.instructors);
@@ -179,21 +172,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       .catch(() => {});
   }, [academy, directory]);
 
-  const loadMine = useCallback(async () => {
-    setMineState("loading");
-    try {
-      const res = await apiFetch("/private-lessons/mine");
-      if (!res.ok) {
-        setMineState("error");
-        return;
-      }
-      setMine((await res.json()) as PrivateLesson[]);
-      setMineState("ready");
-    } catch {
-      setMineState("error");
-    }
-  }, []);
-
   // Mis clases como instructor — [] resuelto es el caso común (alumno
   // puro) y la sección no se monta; errores = [] también (la vista
   // staff sigue).
@@ -209,7 +187,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   }, []);
 
   const loadStaff = useCallback(async () => {
-    if (!academy) return;
     setStaffState("loading");
     try {
       const res = await apiFetch(`/academies/${academy.id}/private-lessons`);
@@ -225,9 +202,8 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   }, [academy]);
 
   useEffect(() => {
-    void loadMine();
     void loadMineInstructor();
-  }, [loadMine, loadMineInstructor]);
+  }, [loadMineInstructor]);
 
   useEffect(() => {
     void loadStaff();
@@ -283,7 +259,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       setAssignId(null);
       setAssignInstructorId("");
       setAssignWhen("");
-      await Promise.all([loadStaff(), loadMine(), loadMineInstructor()]);
+      await Promise.all([loadStaff(), loadMineInstructor()]);
     } catch {
       setFeedback(tc("error"));
     } finally {
@@ -314,7 +290,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
    */
   function staffActions(l: PrivateLesson) {
     const isOwner =
-      !!me && (me.roles.includes("ADMIN") || me.id === academy?.ownerId);
+      !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
     const isInstructor = !!me && l.instructorId === me.id;
     const isStudent = !!me && l.personId === me.id;
     const active = l.status === "REQUESTED" || l.status === "CONFIRMED";
@@ -361,8 +337,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      {academy && (
-        <section aria-label={t.title} className="flex flex-col gap-3">
+      <section aria-label={t.title} className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t.title}</h2>
           {staffState === "loading" && <SkeletonList items={2} lines={1} />}
           {staffState === "error" && (
@@ -583,8 +558,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                 })}
               </ul>
             ))}
-        </section>
-      )}
+      </section>
 
       {/* Sección instructor — opcional: nada mientras resuelve
           (aparece una vez si hay clases); skeleton-que-colapsa = flash. */}
@@ -668,66 +642,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
           </ul>
         </section>
       )}
-
-      <section aria-label={t.mineTitle} className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">{t.mineTitle}</h2>
-        {mineState === "loading" && <SkeletonList items={2} lines={1} />}
-        {mineState === "error" && (
-          <div className="flex items-center gap-3">
-            <p className="text-sm text-white/60">{tc("error")}</p>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void loadMine()}
-            >
-              <RefreshIcon /> {tc("retry")}
-            </Button>
-          </div>
-        )}
-        {mineState === "ready" &&
-          (mine.length === 0 ? (
-            <p className="text-sm text-white/50">{t.emptyMine}</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {mine.map((l) => {
-                const active =
-                  l.status === "REQUESTED" || l.status === "CONFIRMED";
-                return (
-                  <li key={l.id}>
-                    <Card className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">
-                          {academyNames.get(l.academyId) ??
-                            shortId(l.academyId)}
-                        </p>
-                        <p className="text-xs text-white/60">
-                          {lessonWhen(l)} · {t.instructor}:{" "}
-                          {lessonInstructor(l)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={statusVariant(l.status)}>
-                          {statusLabel(l.status)}
-                        </Badge>
-                        {l.price > 0 && <PriceTag amount={l.price} />}
-                        {active && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={busyId === l.id}
-                            onClick={() => cancel(l.id)}
-                          >
-                            {t.cancel}
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  </li>
-                );
-              })}
-            </ul>
-          ))}
-      </section>
 
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}
