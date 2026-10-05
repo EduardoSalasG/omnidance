@@ -356,7 +356,7 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
 ### Lo que falta (lado usuario, docs/ci-cd.md)
 
 1. Neon: crear DB `omnidance`, copiar URLs pooled + directa.
-2. VM `~/apps/omnidance/.env` (DATABASE_URL pooled, DIRECT/… directo,
+2. VM `/opt/apps/omnidance/.env` (DATABASE_URL pooled, DIRECT/… directo,
    JWT_SECRET, QR_SECRET, WEB_URL, CORS_ORIGINS, API_URL, Flow keys,
    Resend, VAPID, SEED_ADMIN_EMAIL, SESSION_SECURE/SAMESITE).
 3. GitHub secrets + var `PUBLIC_API_HOST` (ya hardcodeado en workflow
@@ -375,20 +375,22 @@ descubrió y arregló en cada run:
 2. **`ORACLE_USER`/`ORACLE_HOST` pegados con newline** rompían la
    continuación `\` y el comando remoto corría en el runner → todos
    los secrets escalares se normalizan con `tr -d '[:space:]'`.
-3. **`/opt/apps/omnidance` existe pero owned por root** y el deploy
-   user no tiene NOPASSWD para mkdir → `CONTAINER_DIR` movido a
-   `$HOME/apps/omnidance` (cero sudo). `.env` va ahí, no en /opt.
-4. **`$HOME` debe expandirse en la VM** → comandos ssh con comillas
-   simples (dobles expandían a `/home/runner/…` local).
-5. **nginx reload es `sudo -n` no-fatal** — el deploy user no tiene
-   sudo amplio; el vhost es estático y la sonda HTTPS es el gate real.
+3. **`/opt/apps/omnidance` al principio era owned por root** sin
+   NOPASSWD → el usuario corrigió los permisos del deploy user y
+   `CONTAINER_DIR` volvió a `/opt/apps/omnidance` (patrón video-repo).
+   `.env` va ahí.
+4. **Comandos ssh remotos van con comillas simples** — con dobles,
+   cualquier `$` se expandiría en el runner antes de llegar a la VM.
+5. **nginx reload es `sudo -n` no-fatal** — si el deploy user no tiene
+   NOPASSWD, avisa y sigue; el vhost es estático y la sonda HTTPS es
+   el gate real.
 6. **Puerto público del API: 3002** (host) → 4000 (contenedor);
    nginx `api.omnidance.eduardosalasg.dev` → `127.0.0.1:3002`.
 
 Estado final del pipeline: install → shared → prisma → migrate+seed
 → **1426 tests verdes** → build → imagen a GHCR → SSH → dir + compose
 → **gate `.env` con mensaje claro** (`ERROR: falta .env en
-~/apps/omnidance`). Todo lo que queda rojo es provisioning del
+/opt/apps/omnidance`). Todo lo que queda rojo es provisioning del
 usuario: Neon `omnidance` + `.env` + vhost nginx + Netlify.
 
 Tag `v0.1.0` quedó en el merge `87dfe57`; los merges posteriores a
