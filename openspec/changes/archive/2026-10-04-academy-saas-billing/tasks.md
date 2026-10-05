@@ -98,16 +98,17 @@
       renovación, cambiar plan, historial de invoices (del ledger)
 - [x] Banner de gracia (5 días) + banner de bloqueo en consola
 - [x] Checkout de contratación del plan (mismo interstitial pre-Flow)
-- [ ] Bailarín: academia bloqueada no aparece en explorar; ficha
+- [x] Bailarín: academia bloqueada no aparece en explorar; ficha
       muestra "no disponible" sin CTA de compra; copy honesto
-- [ ] Productor: upgrade a Pro desde `/productor/parametros` o la
-      superficie Pro bloqueada
+- [x] Productor: upgrade a Pro desde `/productor/parametros` o la
+      superficie Pro bloqueada (`ProPaywall` + `ProducerProSection`
+      + `pro.required` desde `isProRequired`)
 
 ## S7 — Cierre
 
-- [ ] Specs canónicas: `academy-billing`, `academy-access`,
-      `producer-pro`, ajuste a `payments/*`
-- [ ] `architecture.md`: modelo SaaS, enforcement, passthrough Flow
-- [ ] `omni-dance.md`: modelo de negocio actualizado
-- [ ] OpenAPI/Postman regen
-- [ ] Handoff actualizado
+- [x] Specs canónicas: `academy-billing`, `academy-learner`,
+      `producer-pro`, `payments/platform-saas` (vía archive)
+- [x] `architecture.md`: modelo SaaS, enforcement, passthrough Flow
+- [x] `omni-dance.md`: modelo de negocio actualizado
+- [x] OpenAPI/Postman regen (205 paths)
+- [x] Handoff actualizado

@@ -165,21 +165,47 @@ higiene de OpenSpec y los exportes PDF.
   `sessions.declare` retro-declarar, N+1 videos /academias, recorte
   select público de eventos.
 
-**Pivote de monetización** — change `academy-saas-billing` spec'd y
-validado (`eaf758e`, 7 tasks S1-S7, pendiente de implementar):
-- Academia: suscripción por tier de alumnos activos (STARTER ≤50 /
-  PRO ≤150 / STUDIO ≤400 + Enterprise), ~8.5% de facturación como
-  objetivo, semestral −10%/anual −15%, trial 30d. Cobro vía motor
-  Subscription/Flow existente. Mora: 5d gracia → `billingBlockedAt`
-  (consola read-only, fuera de explorar, sin reservas/compras — el
-  alumno conserva historial). Academias existentes: 60d grace.
-- Fee comprador en productos academia → $0; academia absorbe Flow
-  (~3.19%) como línea `GATEWAY_FEE_PASSTHROUGH` en su payout.
-- Productor: `platformFeePct` intacto + suscripción **Producer Pro**
-  opcional (features premium; la mora solo degrada features, nunca
-  corta la venta). Precio Pro pendiente de definir.
-- Pricing tiers pendiente de ajuste fino del usuario (baseline en
-  design.md; alternativa metered ~$2.500/alumno documentada).
+**Pivote de monetización** — `academy-saas-billing` IMPLEMENTADO
+completo y archivado (commits `eaf758e` spec, `e4db820` S1,
+`5d880c6` S2, `1d166aa` S3, `8a01e36`+`964cce5` S4, `b34c35c` S5,
+`890d919`+`8b4a8ff` S6; specs canónicas nuevas en `openspec/specs/`):
+- Academia: suscripción recurrente Flow (`PlatformSubscription
+  kind=ACADEMY`) por tier de alumnos activos — STARTER ≤50 $49.990 /
+  PRO ≤150 $99.990 / STUDIO ≤400 $189.990 + ENTERPRISE manual; ciclos
+  semestral −2% / anual −4%; trial 30d (existentes: backfill 60d).
+  `tier_limit` 400 si no cabe; downgrade/ciclo → pending al renovar.
+- Mora: renovación fallida → 5d gracia (`billingGraceUntil` + notif) →
+  job diario `enforceAcademyBlocks` → `billingBlockedAt`: consola
+  read-only (gate central en `AcademyAccess.*Write`), fuera de
+  explorar/browse/landing, sin reservas ni checkouts; endpoints de
+  billing exentos para poder pagar. `RENEWAL_SETTLED` desbloquea.
+- Alumno: `service_fee=0` en MEMBERSHIP/WORKSHOP/PRIVATE (defensivo
+  en 9 puntos); payout academia = bruto − `GATEWAY_FEE_PASSTHROUGH`
+  (`Payout.gatewayFee`, `gateway_fee.academy_passthrough_pct` 3.19).
+  `billingBlocked` expuesto en ficha/enrolled/class → UI disabled.
+- Productor: `platformFeePct` intacto + **Producer Pro**
+  (`PlatformSubscription kind=PRODUCER`, `Person.proTier`): tier por
+  facturación 90d — PRO_STARTER ≤$2,5M $99.990 / PRO_GROWTH ≤$8M
+  $249.990 / PRO_BIG manual; mismos descuentos de ciclo. Gate por
+  `isProActive` → 403 `pro.required` en analytics avanzada, exports
+  CSV/PDF, CRM con actor producer, multi-staff `POST /events/:id/staff`.
+  Grandfathering: `Person.proTrialEndsAt` +90d a productores con
+  `ProducerParams`. La mora de Pro **nunca** corta venta ni check-in.
+- Web: `/academia/suscripcion` (consola completa: tier/uso/invoices/
+  selector 3×3/checkout Flow/cambios/cancel) + banners gracia/bloqueo
+  (`academy-billing-banner` en `AcademyGate`); `ProducerProSection`
+  en `/productor/parametros` + `ProPaywall` en analytics/exports/
+  staff/CRM (proactive vía `effectivePro` de `/me` + fallback
+  `isProRequired`); ficha academy/clases con estados "no disponible".
+- Decisiones registradas: `platformFee=0` en eventos academy-produced
+  (suscripción reemplaza toda comisión); precios como `PlatformParam`
+  (ajustables en /admin); Pro se suma a la comisión — take efectivo
+  ~12-14% para STARTER (flag comercial documentado en design.md).
+- Verificación por slice: 1371→1405 tests API, e2e academy 74/74,
+  payments 316 + e2e 62, tsc api+web, impeccable `[]`, i18n OK.
+- Migraciones aplicadas a DB local: `…_saas-billing`,
+  `…_platform_sub_pending_change`, `…_payout_gateway_fee`,
+  `…_producer_pro_trial` (backfill: 3 productores con trial).
 
 ## Pendientes
 

@@ -532,7 +532,7 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 | Perfil | Qué recauda omni por ellos | Liquidación |
 |---|---|---|
 | **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: bruto cobrado − $0 comisión (el cargo lo paga el comprador) → transferencia + comprobante |
-| **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado |
+| **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado: **bruto − tarifa Flow** (`GATEWAY_FEE_PASSTHROUGH`, ~3,19%); **sin comisión ni cargo al comprador** — la academia monetiza vía suscripción SaaS (ver abajo) |
 | **Instructor** | Clases privadas (vía academia — liquida a través de la academia, que cobra su comisión) | Dentro del payout de la academia, desglosado |
 | **Venue** | Futuro: arriendos (`venue_rental`), cortesías cobradas | `payout` cuando aplique |
 | **omni-dance** | Cargos de servicio, suscripciones SaaS, futuro premium bailarín | Es nuestra plata — no se liquida, se factura |
@@ -540,6 +540,24 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 **Flujo fiscal**: omni-dance emite boleta/factura por **su cargo de servicio + SaaS**; cada actor emite por **su precio de lista** (el dinero que recaudamos en su nombre). El desglose queda en el `payout` — el actor ve exactamente qué facturar.
 
 **Estados del `payout`**: `pending → approved → paid` con evidencia de transferencia; todo auditado.
+
+### Modelo SaaS — suscripción de academia y Producer Pro (implementado oct-2026)
+
+El cargo por venta desaparece para la academia: pasa a **suscripción mensual por tier de alumnos activos** (spec `academy-billing`, precios en `PlatformParam` — `academy_tier.*`, ajustables desde `/admin` sin deploy; referencia de mercado: BoxMagic).
+
+| Tier | Alumnos activos | Mensual | Semestral (−2%) | Anual (−4%) |
+|---|---|---|---|---|
+| STARTER | ≤50 | $49.990 | $48.990 | $47.990 |
+| PRO | ≤150 | $99.990 | $97.990 | $95.990 |
+| STUDIO | ≤400 | $189.990 | $185.990 | $181.990 |
+| ENTERPRISE | ilimitado | contratación manual | — | — |
+
+- El precio apunta al **~8–9% de la facturación típica** de cada banda (ticket mensual $25–35k/alumno); al tope del tier el % efectivo cae → descuento por volumen implícito.
+- Cobro: suscripción recurrente Flow (`PlatformSubscription`, mismo motor que membresías de alumnos). Trial 30d; al superar el límite del tier el sistema exige subir en la próxima compra (`tier_limit` 400).
+- **Mora**: renovación fallida → 5 días de gracia → día 6 bloqueo (`billingBlockedAt`): consola read-only, academia y clases fuera de explorar, sin reservas ni compras nuevas — **el alumno conserva todo su historial**. Un pago recuperado desbloquea solo (`RENEWAL_SETTLED`).
+- Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
+
+**Productor**: mantiene `platformFeePct` por venta (la monetización core del ticketing) **+ Producer Pro opcional** — suscripción por tier de facturación mensual media (90d): `PRO_STARTER ≤$2,5M → $99.990`, `PRO_GROWTH ≤$8M → $249.990` (ciclos con −2%/−4%), `PRO_BIG` manual. Pro desbloquea analítica avanzada, exports CSV/PDF, CRM y multi-staff — el ticketing base, venta y check-in **nunca se cortan** por la suscripción. Trial de lanzamiento: +90d a productores registrados.
 
 ### Flujo de ingreso en puerta (staff)
 
