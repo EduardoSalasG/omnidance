@@ -364,3 +364,32 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
 4. Nginx vhost `api.omnidance.eduardosalasg.dev` → 127.0.0.1:4000 + TLS.
 5. Netlify: sitio `omnidance`, env vars, `API_PROXY_TARGET` ya va en
    netlify.toml.
+
+### Pipeline verificado end-to-end (runs 37265404475→37267038599+)
+
+Iteraciones reales sobre GitHub Actions + VM Oracle — lo que se
+descubrió y arregló en cada run:
+
+1. **e2e en CI necesitaban seed dev** (personas `*@omnidance.dev`), no
+   baseline prod → `SEED_ENV=dev` en el Postgres service del job.
+2. **`ORACLE_USER`/`ORACLE_HOST` pegados con newline** rompían la
+   continuación `\` y el comando remoto corría en el runner → todos
+   los secrets escalares se normalizan con `tr -d '[:space:]'`.
+3. **`/opt/apps/omnidance` existe pero owned por root** y el deploy
+   user no tiene NOPASSWD para mkdir → `CONTAINER_DIR` movido a
+   `$HOME/apps/omnidance` (cero sudo). `.env` va ahí, no en /opt.
+4. **`$HOME` debe expandirse en la VM** → comandos ssh con comillas
+   simples (dobles expandían a `/home/runner/…` local).
+5. **nginx reload es `sudo -n` no-fatal** — el deploy user no tiene
+   sudo amplio; el vhost es estático y la sonda HTTPS es el gate real.
+6. **Puerto público del API: 3002** (host) → 4000 (contenedor);
+   nginx `api.omnidance.eduardosalasg.dev` → `127.0.0.1:3002`.
+
+Estado final del pipeline: install → shared → prisma → migrate+seed
+→ **1426 tests verdes** → build → imagen a GHCR → SSH → dir + compose
+→ **gate `.env` con mensaje claro** (`ERROR: falta .env en
+~/apps/omnidance`). Todo lo que queda rojo es provisioning del
+usuario: Neon `omnidance` + `.env` + vhost nginx + Netlify.
+
+Tag `v0.1.0` quedó en el merge `87dfe57`; los merges posteriores a
+main son solo CI/docs (código de producto idéntico).
