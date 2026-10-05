@@ -15,6 +15,7 @@ import {
   Badge,
   Button,
   Card,
+  ChevronDownIcon,
   EventDate,
   RefreshIcon,
   Skeleton,
@@ -65,6 +66,9 @@ type PageState = "loading" | "ready" | "unauth" | "error";
 
 const DEBOUNCE_MS = 300;
 const MIN_CHARS = 2;
+// "Tus amigos van a" — la agenda puede ser larga y tapa la lista de
+// amigos (contenido principal): preview de 2, el resto tras "ver más".
+const GOING_PREVIEW = 2;
 
 const EMPTY_DATA: FriendsData = {
   friends: [],
@@ -96,6 +100,8 @@ export default function AmigosPage() {
   const [friendEvents, setFriendEvents] = useState<FriendEvent[] | null>(
     null,
   );
+  // Expande la sección más allá del preview de GOING_PREVIEW eventos.
+  const [goingExpanded, setGoingExpanded] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -455,7 +461,13 @@ export default function AmigosPage() {
                 {t("goingTitle")}
               </h2>
               <ul className="flex flex-col gap-2">
-                {friendEvents.map(({ event, friends }) => (
+                {/* Preview de 2 — el resto queda tras "ver más" (la
+                    agenda semanal puede ser larga y tapar la lista
+                    de amigos, que es el contenido principal). */}
+                {(goingExpanded
+                  ? friendEvents
+                  : friendEvents.slice(0, GOING_PREVIEW)
+                ).map(({ event, friends }) => (
                   <li key={event.id}>
                     <Link href={`/eventos/${event.id}`} className="block">
                       <Card className="flex items-center justify-between gap-3 transition-colors hover:border-neon/50">
@@ -498,6 +510,24 @@ export default function AmigosPage() {
                   </li>
                 ))}
               </ul>
+              {friendEvents.length > GOING_PREVIEW && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-expanded={goingExpanded}
+                  onClick={() => setGoingExpanded((v) => !v)}
+                  className="self-start"
+                >
+                  {goingExpanded
+                    ? t("goingLess")
+                    : t("goingMore", {
+                        count: friendEvents.length - GOING_PREVIEW,
+                      })}
+                  <ChevronDownIcon
+                    className={`h-4 w-4 transition-transform motion-reduce:transition-none ${goingExpanded ? "rotate-180" : ""}`}
+                  />
+                </Button>
+              )}
             </section>
           )}
 
