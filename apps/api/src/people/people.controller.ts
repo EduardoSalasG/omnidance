@@ -30,6 +30,7 @@ import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { AuthService } from "../auth/domain/auth.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
 import { PrismaService } from "../prisma.service";
+import { isProActive } from "../payments/domain/platform-tiers";
 
 class CompleteProfileDto {
   @IsString()
@@ -151,6 +152,12 @@ export class PeopleController {
         },
       }),
     ]);
+    // Estado Producer Pro (S5) — solo para personas con rol PRODUCER
+    // aprobado: el front gatea las features Pro sin llamada extra
+    // (paywall en analítica/exports/CRM cuando effectivePro es false).
+    const isProducer = person.roles.some(
+      (r) => r.role === "PRODUCER" && r.status === "APPROVED",
+    );
     return {
       id: person.id,
       name: person.name,
@@ -165,6 +172,13 @@ export class PeopleController {
         .filter((r) => r.status === "APPROVED")
         .map((r) => r.role),
       roleStates: person.roles,
+      ...(isProducer
+        ? {
+            proTier: person.proTier,
+            proTrialEndsAt: person.proTrialEndsAt,
+            effectivePro: isProActive(person),
+          }
+        : {}),
       styleRoles: person.styleRoles,
       enrollments,
       // Flags de ciclo de vida: demo (lead /pro, solo lectura) y

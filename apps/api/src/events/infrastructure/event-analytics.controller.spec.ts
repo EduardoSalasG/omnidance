@@ -27,6 +27,9 @@ interface FakePersonRow {
   id: string;
   gender: string | null;
   styleRoles: { role: string; style: { genre: string } }[];
+  // Gating Producer Pro (S5) — solo se consultan para el owner.
+  proTier?: string;
+  proTrialEndsAt?: Date | null;
 }
 
 interface FakeRating {
@@ -82,6 +85,8 @@ class FakePrisma {
   person = {
     findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
       [...this.people.values()].filter((p) => where.id.in.includes(p.id)),
+    findUnique: async ({ where }: { where: { id: string } }) =>
+      this.people.get(where.id) ?? null,
   };
 
   eventRating = {
@@ -105,6 +110,13 @@ class FakePrisma {
 
 const reqAs = (personId: string, roles: string[] = []) =>
   ({ person: { id: personId, roles } }) as unknown as Request;
+
+/** Body de respuesta de una HttpException (mismo helper que academy-access). */
+const errBody = (e: unknown): Record<string, unknown> =>
+  ((e as { getResponse?: () => unknown }).getResponse?.() ?? {}) as Record<
+    string,
+    unknown
+  >;
 
 const mkRating = (eventId: string, overall: number): FakeRating => ({
   eventId,
@@ -144,6 +156,15 @@ describe("EventAnalyticsController.analytics", () => {
       producerId: "prod-1",
       genres: ["SALSA"],
       series: null,
+    });
+    // Owner con trial Pro vigente (S5) — los tests de agregados ejercen
+    // el camino feliz; el gating se prueba aparte.
+    prisma.people.set("prod-1", {
+      id: "prod-1",
+      gender: null,
+      styleRoles: [],
+      proTier: "FREE",
+      proTrialEndsAt: new Date(Date.now() + 90 * 24 * 3600 * 1000),
     });
   });
 
@@ -254,5 +275,53 @@ describe("EventAnalyticsController.analytics", () => {
     // "a" lidera en bachata (género del evento); "b" solo lidera en salsa
     // (fuera del evento) → no cuenta.
     expect(res.roleSplit).toEqual({ leader: 1, follower: 0, both: 0 });
+  });
+
+  // ─── Gating Producer Pro (S5) ───
+
+  const setProState = (proTier: string, proTrialEndsAt: Date | null) => {
+    prisma.people.set("prod-1", {
+      ...prisma.people.get("prod-1")!,
+      proTier,
+      proTrialEndsAt,
+    });
+  };
+
+  it("owner FREE sin trial → 403 pro.required con upgrade", async () => {
+    setProState("FREE", null);
+    const err = await ctrl
+      .analytics("ev-1", reqAs("prod-1"))
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({ status: 403 });
+    expect(errBody(err)).toMatchObject({
+      error: "pro.required",
+      upgrade: true,
+    });
+  });
+
+  it("owner FREE con trial vencido → 403 pro.required", async () => {
+    setProState("FREE", new Date(Date.now() - 24 * 3600 * 1000));
+    const err = await ctrl
+      .analytics("ev-1", reqAs("prod-1"))
+      .catch((e: unknown) => e);
+    expect(errBody(err).error).toBe("pro.required");
+  });
+
+  it("owner FREE con trial vigente → pasa", async () => {
+    setProState("FREE", new Date(Date.now() + 24 * 3600 * 1000));
+    const res = await ctrl.analytics("ev-1", reqAs("prod-1"));
+    expect(res.attendees).toBe(0);
+  });
+
+  it("owner PRO_STARTER → pasa", async () => {
+    setProState("PRO_STARTER", null);
+    const res = await ctrl.analytics("ev-1", reqAs("prod-1"));
+    expect(res.attendees).toBe(0);
+  });
+
+  it("admin sobre evento ajeno no se gatea aunque el owner sea FREE", async () => {
+    setProState("FREE", null);
+    const res = await ctrl.analytics("ev-1", reqAs("soporte", ["ADMIN"]));
+    expect(res.attendees).toBe(0);
   });
 });

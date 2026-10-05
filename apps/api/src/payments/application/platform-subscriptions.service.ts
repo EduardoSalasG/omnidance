@@ -29,6 +29,7 @@ import {
   ACADEMY_TIERS,
   CYCLE_LABEL,
   CYCLE_MONTHS,
+  isProActive,
   platformPlanId,
   PRODUCER_PRO_TIERS,
   PRODUCER_TIER_RANK,
@@ -1210,11 +1211,13 @@ export class PlatformSubscriptionsService {
    * `GET /producers/:id/pro` — estado Producer Pro: tier vigente
    * (`Person.proTier`), suscripción, facturación media 90d vs límite del
    * tier y próxima facturación. Refresh activo igual que billing.
+   * `effectivePro`/`proTrialEndsAt` le dicen al front si las features Pro
+   * están habilitadas (tier pago o trial de lanzamiento, S5).
    */
   async producerProView(personId: string) {
     const person = await this.prisma.person.findUniqueOrThrow({
       where: { id: personId },
-      select: { proTier: true },
+      select: { proTier: true, proTrialEndsAt: true },
     });
     const subs = await this.prisma.platformSubscription.findMany({
       where: { producerId: personId, kind: "PRODUCER" },
@@ -1257,6 +1260,8 @@ export class PlatformSubscriptionsService {
       : null;
     return {
       proTier: person.proTier,
+      proTrialEndsAt: person.proTrialEndsAt,
+      effectivePro: isProActive(person),
       status: current?.status ?? null,
       subscriptionId: current?.id ?? null,
       tier: current?.tierCode ?? null,

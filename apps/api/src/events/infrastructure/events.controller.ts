@@ -42,6 +42,7 @@ import {
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { buildTablePdf } from "../../common/pdf-report";
+import { assertProducerPro } from "../../common/producer-pro";
 
 // Valores del enum EventType del schema (no confundir con la spec: PRACTICA,
 // no PRACTICE).
@@ -511,6 +512,7 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
+    await this.requireProSelf(event.producerId, req.person!);
     assertDataset(dataset);
 
     const table = await this.exportDataset(dataset, id);
@@ -537,6 +539,7 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
+    await this.requireProSelf(event.producerId, req.person!);
     assertDataset(dataset);
 
     const table = await this.exportDataset(dataset, id);
@@ -571,6 +574,7 @@ export class EventsController {
   ) {
     const series = await this.findSeriesOr404(seriesId);
     await this.requireOwnerOrAdmin(series.producerId, req.person!);
+    await this.requireProSelf(series.producerId, req.person!);
     assertDataset(dataset);
 
     const { scope, labelByEvent } = await this.seriesScope(seriesId);
@@ -598,6 +602,7 @@ export class EventsController {
   ) {
     const series = await this.findSeriesOr404(seriesId);
     await this.requireOwnerOrAdmin(series.producerId, req.person!);
+    await this.requireProSelf(series.producerId, req.person!);
     assertDataset(dataset);
 
     const { events, scope, labelByEvent } = await this.seriesScope(seriesId);
@@ -1260,7 +1265,9 @@ export class EventsController {
 
   /**
    * Asigna staff al evento: owner o admin. Upsert por (eventId, personId) —
-   * reenviar actualiza el rol sin duplicar la asignación.
+   * reenviar actualiza el rol sin duplicar la asignación. La gestión
+   * multi-staff es feature Producer Pro (S5): el owner sin Pro vigente
+   * recibe 403 `pro.required` (admin operando su evento no se gatea).
    */
   @Post(":id/staff")
   @UseGuards(SessionGuard)
@@ -1271,6 +1278,7 @@ export class EventsController {
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
+    await this.requireProSelf(event.producerId, req.person!);
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId },
       select: { id: true },
@@ -1347,6 +1355,21 @@ export class EventsController {
       return;
     }
     throw new ForbiddenException("solo el productor del evento o un admin");
+  }
+
+  /**
+   * Gating Producer Pro (S5): aplica solo cuando el caller ES el productor
+   * dueño del recurso — un admin operando el evento de otro pasa sin gate
+   * (soporte/plataforma), y un caller ajeno ya fue rechazado por
+   * requireOwnerOrAdmin.
+   */
+  private async requireProSelf(
+    producerId: string | null,
+    person: { id: string },
+  ): Promise<void> {
+    if (producerId != null && producerId === person.id) {
+      await assertProducerPro(this.prisma, producerId);
+    }
   }
 
   /**
