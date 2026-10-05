@@ -139,7 +139,9 @@ export default function LoginForm({
   const isRegister = mode === "register";
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
+    // flex-1 (no min-h-dvh): el alto restante lo da el layout tras el
+    // header — si no, la página sumaría viewport + barra.
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
       <h1 className="text-2xl font-bold">
         {isRegister ? t("registerTitle") : t("title")}
       </h1>
