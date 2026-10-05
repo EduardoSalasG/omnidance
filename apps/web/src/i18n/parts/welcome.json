@@ -1,0 +1,19 @@
+{
+  "welcome": {
+    "title": "Completa tu perfil",
+    "subtitle": "Unos datos rápidos para que tus amigos te encuentren y la app te conozca. Todo es opcional: puedes completarlo después en Perfil.",
+    "name": "Nombre",
+    "phone": "Teléfono",
+    "phonePlaceholder": "+56 9 1234 5678",
+    "phoneTaken": "Ese teléfono ya está registrado en otra cuenta",
+    "instagram": "Instagram",
+    "instagramPlaceholder": "tu.usuario",
+    "danceTitle": "Tu baile",
+    "danceHint": "Elige tus estilos y tu rol en la pista",
+    "danceEmpty": "No pudimos cargar los estilos. Puedes elegirlos después en Perfil.",
+    "levelLabel": "Nivel",
+    "submit": "Listo, vamos",
+    "skip": "Ahora no",
+    "saveError": "No pudimos guardar. Intenta de nuevo o continúa con “Ahora no”."
+  }
+}

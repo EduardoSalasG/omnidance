@@ -248,6 +248,15 @@ export class PeopleController {
         if (!/^\+?[0-9]{8,15}$/.test(digits)) {
           throw new BadRequestException("teléfono inválido");
         }
+        // Person.phone es unique - sin el check el update explotaba en
+        // 500 (P2002). Mismo contrato que POST /me/complete-profile.
+        const phoneTaken = await this.prisma.person.findUnique({
+          where: { phone: digits },
+          select: { id: true },
+        });
+        if (phoneTaken && phoneTaken.id !== personId) {
+          throw new ConflictException("phone_exists");
+        }
         data.phone = digits;
       }
     }

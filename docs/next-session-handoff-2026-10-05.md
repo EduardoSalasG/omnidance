@@ -77,6 +77,37 @@ end-to-end (CI + VM + sonda HTTPS nginx).
 
 - Docs de referencia completas en `docs/ci-cd.md` (checklist primer
   deploy, troubleshooting P1002/Flow, precedencia de secrets).
-- `dev` adelanta a `main` en 2 commits cosméticos (`8e9148c` log del
-  health gate, `4ffaa09` workflow_dispatch) - mergearlos en el
-  próximo release, no ameritan deploy propio.
+- `dev` adelanta a `main`: `8e9148c` (log health gate), `4ffaa09`
+  (workflow_dispatch), `f165624` (sweep em-dash + quitar hint de
+  métricas en género) y el feature nuevo abajo - promover todo junto
+  en el próximo release con bump MINOR + CHANGELOG.
+
+## Feature: paso post-registro `/bienvenida` (change post-signup-profile-setup)
+
+Pedido del usuario: signup corto como está; tras crear cuenta pedir
+sexo/Instagram/etc. en un paso propio salteable, con recordatorio sutil
+en `/perfil`.
+
+- `POST /auth/register` ok → redirect a `/bienvenida?next=…` (propaga
+  `next` validado; solo register, los otros modos no cambian).
+- `/bienvenida` (grupo (app)): nombre pre-llenado, teléfono, Instagram,
+  género (GenderGroup compartido, nullable/deseleccionable) y chips de
+  estilos con rol+nivel opcional. Todos los campos opcionales.
+  Submit = `PATCH /me` + `PUT /me/style-roles` condicional; "ahora no"
+  y submit marcan `onboarding["profile-setup"]` (POST /me/onboarding)
+  → `next || /inicio`. Guard: marca hecha → redirect; sin sesión → login.
+- Card "Completa tu perfil" en `/perfil` mientras falte teléfono,
+  Instagram, género o un estilo; dismiss persistente vía
+  `onboarding["profile-reminder"]`; CTA a `/perfil/datos`.
+- API: `PATCH /me` ahora responde 409 `phone_exists` si el teléfono
+  normalizado es de otra persona (antes P2002 → 500). Spec agregada.
+- `GenderGroup` extraído a `components/profile/GenderGroup.tsx`
+  (reusado por `/perfil/datos` y `/bienvenida`).
+- i18n: nuevo part `welcome.json`, keys `profile.reminder.*`.
+- Sin migración - `Person.onboarding` (JSON) guarda las marcas.
+
+Verificado: API tests 1429/1429 (63 archivos), `nest build` OK,
+`tsc --noEmit` web OK, `next build` OK (`/bienvenida` 4.52 kB),
+i18n audit ALL_KEYS_OK, openspec validate OK. Pendiente: QA funcional
+del flujo register → bienvenida → skip/save en navegador real, y
+archivar el change al cerrar release.

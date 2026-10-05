@@ -53,6 +53,12 @@
       "phonePlaceholder": "+56 9 1234 5678",
       "nameRequired": "El nombre no puede quedar vacío"
     },
+    "reminder": {
+      "title": "Completa tu perfil",
+      "body": "Te faltan datos como tu teléfono, género o tus estilos de baile.",
+      "cta": "Completar datos",
+      "dismiss": "No mostrar de nuevo"
+    },
     "complete": {
       "title": "Completa tu perfil",
       "subtitle": "Confirma tus datos para activar tu cuenta y empezar a usar la app.",
