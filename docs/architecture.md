@@ -288,6 +288,13 @@ Quedan FREE siempre: publicar/editar eventos, vender, check-in, `GET /events/min
 - **Canonical JSON**: `canonicalJson(v) = JSON.stringify(sortKeys(JSON.parse(JSON.stringify(v))))` — round-trip a JSON puro *antes* de ordenar keys (Date→ISO, Decimal→número, `toJSON` a su forma serializada: exactamente lo que `jsonb` persiste), keys por codepoint (determinista sin ICU). Sin esto, releer un payload y re-stringificarlo produciría otro string y `verifyPaymentChain` reportaría tampering falso.
 - **Verificación admin**: `GET /admin/payments/:id/verify-chain` re-calcula la cadena enlazada desde `GENESIS` → `{ok, events, firstBadSeq?}`; la evidencia completa se expone por `GET /payments/:id/events` (dueño/admin) y `browse payment-events` (admin).
 
+## Observabilidad (winston — spec observability)
+
+- **Backend**: `src/common/logging/logger.factory.ts` → `WinstonModule` en `main.ts` — todo `Logger` de Nest (servicios + logs internos del framework) sale por la misma instancia winston. Formato: `nestLike` con colores en dev, **JSON por línea** en `NODE_ENV=production` (stdout → cualquier collector). Nivel: `LOG_LEVEL`, default `debug` dev / `info` prod.
+- **Request middleware** (`request-logger.middleware.ts`, `app.use` en main.ts — cubre también 404s fuera del pipeline Nest): hereda `x-request-id` entrante o genera UUID, lo devuelve en el response header y lo propaga por `AsyncLocalStorage` (`log-context.ts`) — todo log dentro del request lleva `requestId` sin pasarlo por parámetros. En `res.finish` emite una línea resumen: `type:"http.request"`, method, path (sin query), status, durationMs, ip y `personId` si la sesión resolvió. Nivel por status: info <400 / warn 4xx / error ≥5xx. Excluye `/api/health`, `/api/docs*` y favicon.
+- **Redacción** (`redactMeta` + `redactValue`): claves cuyo nombre matchee `authorization|cookie|password|secret|token|jwt|session|qr` se enmascaran a `[redacted]` en cualquier nivel del meta — cinto y tirantes con la regla de no loggear credenciales ni payloads de QR. El código de negocio sigue obligado a no loggearlos; el redactor es la garantía ante errores.
+- En dev el `requestId` se hace visible anexándolo al contexto (`Clase#ab12cd34`); en prod va como campo `requestId` del JSON.
+
 ## Persistencia y seeds
 
 - **Prisma + Postgres** (`localhost:5433` en docker-compose dev).

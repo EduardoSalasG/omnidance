@@ -1,10 +1,17 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { WinstonModule } from "nest-winston";
 import { AppModule } from "./app.module";
+import { buildLogger } from "./common/logging/logger.factory";
+import { requestLoggerMiddleware } from "./common/logging/request-logger.middleware";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const winston = buildLogger();
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger({ instance: winston }),
+  });
+  app.use(requestLoggerMiddleware(winston));
   app.setGlobalPrefix("api");
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   // Whitelist de orígenes: auth por cookie no puede reflejar cualquier origen.

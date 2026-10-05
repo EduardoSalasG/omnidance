@@ -207,6 +207,25 @@ completo y archivado (commits `eaf758e` spec, `e4db820` S1,
   `…_platform_sub_pending_change`, `…_payout_gateway_fee`,
   `…_producer_pro_trial` (backfill: 3 productores con trial).
 
+## Sesión noche 3 — observabilidad winston (`api-observability`, archivado)
+
+- `winston@3.19` + `nest-winston@1.10.2` (v1 — la 2.x exige Nest ≥11).
+- `src/common/logging/`: `logger.factory` (nestLike dev / JSON prod,
+  `LOG_LEVEL` env, default debug/info), `log-context` (AsyncLocalStorage
+  → `requestId` en todos los logs del request), `request-logger.middleware`
+  (hereda/genera `x-request-id`, línea resumen por request con status/
+  duration/personId, niveles info/warn/error, excluye health+docs).
+- `redactMeta` enmascara claves `authorization|cookie|password|secret|
+  token|jwt|session|qr` a todo nivel — bug encontrado y corregido en
+  verificación: claves sensibles top-level del record no se enmascaraban.
+- Verificación: 11/11 tests nuevos, tsc limpio, formatos dev/prod
+  verificados con script tsx (requestId + `[redacted]` confirmados),
+  header echo en vivo en el dev server del usuario.
+- Nota ops: había **dos** dev servers compitiendo por :4000 (orphan +
+  el mío) — el watch reinicia sin matar al anterior y el segundo muere
+  con `EADDRINUSE`. Si aparece, matar el proceso huérfano (netstat -ano |
+  findstr :4000).
+
 ## Pendientes
 
 1. **Validación Flow sandbox real** — sigue bloqueando producción
