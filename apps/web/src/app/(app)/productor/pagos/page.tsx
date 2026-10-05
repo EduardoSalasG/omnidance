@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import {
   ArrowUpRightIcon,
   BackLink,
@@ -12,8 +13,8 @@ import {
   EventDate,
   PriceTag,
   RefreshIcon,
+  SkeletonList,
 } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
 import {
   PAYOUT_STATUS_VARIANT,
   PRODUCER_ROLES,
@@ -30,49 +31,53 @@ export default function ProducerPayoutsPage() {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
-  const [gate, setGate] = useState<Gate>("loading");
-  const [payouts, setPayouts] = useState<Payout[]>([]);
+  // /me compartido (MeProvider) — el gate se deriva del contexto y las
+  // liquidaciones se piden en paralelo desde el mount (un no-productor
+  // recibe 403 → el gate por rol decide, se descarta).
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const gate: Gate = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : !me
+        ? "unauth"
+        : !me.roles.some((r) => PRODUCER_ROLES.has(r))
+          ? "notProducer"
+          : "ready";
+  const [payouts, setPayouts] = useState<Payout[] | null>(null);
   const [listError, setListError] = useState(false);
-
-  const boot = useCallback(async () => {
-    setGate("loading");
-    try {
-      const me = await apiFetch("/me");
-      if (me.status === 401) {
-        setGate("unauth");
-        return;
-      }
-      if (!me.ok) {
-        setGate("error");
-        return;
-      }
-      const data = (await me.json()) as { id: string; roles: string[] };
-      if (!data.roles.some((r) => PRODUCER_ROLES.has(r))) {
-        setGate("notProducer");
-        return;
-      }
-
-      const res = await apiFetch("/me/payouts");
-      if (!res.ok) {
-        setListError(true);
-      } else {
-        setPayouts((await res.json()) as Payout[]);
-      }
-      setGate("ready");
-    } catch {
-      setGate("error");
-    }
-  }, []);
+  const [listNonce, setListNonce] = useState(0);
 
   useEffect(() => {
-    void boot();
-  }, [boot]);
+    let cancelled = false;
+    apiFetch("/me/payouts")
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setListError(true);
+          return;
+        }
+        setListError(false);
+        setPayouts((await res.json()) as Payout[]);
+      })
+      .catch(() => {
+        if (!cancelled) setListError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [listNonce]);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
       <BackLink href="/productor">{t("title")}</BackLink>
 
-      {gate === "loading" && <PageLoading />}
+      {gate === "loading" && <SkeletonList items={3} />}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -94,7 +99,7 @@ export default function ProducerPayoutsPage() {
           <p role="alert" className="text-white/70">
             {tc("error")}
           </p>
-          <Button variant="secondary" onClick={() => void boot()}>
+          <Button variant="secondary" onClick={() => void refreshMe()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
@@ -105,13 +110,25 @@ export default function ProducerPayoutsPage() {
           <p role="alert" className="text-sm text-red-400">
             {tc("error")}
           </p>
-          <Button size="sm" variant="ghost" onClick={() => void boot()}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setPayouts(null);
+              setListError(false);
+              setListNonce((n) => n + 1);
+            }}
+          >
             <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
 
-      {gate === "ready" && !listError && payouts.length === 0 && (
+      {gate === "ready" && !listError && payouts === null && (
+        <SkeletonList items={3} />
+      )}
+
+      {gate === "ready" && !listError && payouts !== null && payouts.length === 0 && (
         <Card className="flex flex-col items-center gap-4 py-10 text-center">
           <p role="status" className="text-white/70">
             {t("payoutsPage.empty")}
@@ -119,7 +136,7 @@ export default function ProducerPayoutsPage() {
         </Card>
       )}
 
-      {gate === "ready" && !listError && payouts.length > 0 && (
+      {gate === "ready" && !listError && payouts !== null && payouts.length > 0 && (
         <ul className="flex flex-col gap-3">
           {payouts.map((p) => (
             <li key={p.id}>

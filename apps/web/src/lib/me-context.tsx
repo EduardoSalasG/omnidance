@@ -11,17 +11,35 @@ import {
 } from "react";
 import { apiFetch } from "@/lib/api";
 
-// Respuesta de GET /me — subset que consumen las superficies de (app).
-// El endpoint devuelve más campos (styleRoles, enrollments, onboarding…);
-// las páginas que los necesitan (p.ej. /perfil/datos) siguen fetcheando
-// su propio contrato — este contexto solo deduplica el /me "común"
-// (identidad, roles/lente y consentimiento).
+// Respuesta de GET /me — contrato completo compartido por las
+// superficies de (app). Los campos que solo usan páginas puntuales
+// (styleRoles, enrollments…) van opcionales pero vienen siempre en el
+// payload: un solo fetch sirve a todas las páginas sin waterfall.
+export type MeStyleRole = {
+  role: "LEADER" | "FOLLOWER" | "SWITCH";
+  level: string | null;
+  style: { id: string; name: string; genre: string | null };
+};
+
+export type MeEnrollment = {
+  status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
+  startedAt: string;
+  academy: { id: string; name: string };
+  plan: { name: string } | null;
+};
+
 export type MeContextData = {
   id: string;
   name: string;
   email: string | null;
+  phone?: string | null;
   photoUrl: string | null;
   instagram?: string | null;
+  createdAt?: string;
+  verifiedAt?: string | null;
+  gender?: "M" | "F" | "OTHER" | null;
+  styleRoles?: MeStyleRole[];
+  enrollments?: MeEnrollment[];
   roles: string[];
   roleStates?: { role: string; status: string }[];
   consentAcceptedAt?: string | null;
@@ -29,6 +47,10 @@ export type MeContextData = {
   // Cuenta demo de lead pendiente de activación — el chrome pide
   // completar el perfil (POST /me/complete-profile la vuelve real).
   pendingProfile?: boolean;
+  // Producer Pro efectivo (suscripción o trial vigente) — gates Pro.
+  effectivePro?: boolean;
+  // Tours de primera visita ya vistos (POST /me/onboarding los marca).
+  onboarding?: Record<string, string>;
 };
 
 export type MeContextValue = {

@@ -3,9 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import {
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  RefreshIcon,
+  SkeletonCard,
+} from "@/components/ui";
 import { EventForm } from "@/components/producer/event-form";
 import { EventFeesSection } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
@@ -31,6 +38,7 @@ import {
 } from "@/components/producer/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "notFound" | "ready";
+type EventState = "loading" | "ok" | "notFound" | "error";
 
 /**
  * /productor/eventos/[id] — consola operativa del evento: estado, acciones
@@ -47,13 +55,22 @@ export default function ProducerEventDetailPage({
   const te = useTranslations("events");
   const tc = useTranslations("common");
 
-  const [gate, setGate] = useState<Gate>("loading");
-  const [meId, setMeId] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  // /me compartido (MeProvider) — gate derivado del contexto; el evento
+  // y los catálogos se piden en paralelo desde el mount, sin waterfall
+  // tras el fetch de sesión.
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const meId = me?.id ?? "";
+  const isAdmin = me?.roles.includes("ADMIN") ?? false;
   // Producer Pro (S6): effectivePro de /me gatea proactivamente las
   // features Pro (analítica/exports/staff) — el 403 pro.required queda
   // como fallback dentro de cada sección.
-  const [effectivePro, setEffectivePro] = useState<boolean | null>(null);
+  const effectivePro = me?.effectivePro ?? null;
+  const [eventState, setEventState] = useState<EventState>("loading");
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [styles, setStyles] = useState<Style[]>([]);
@@ -70,70 +87,67 @@ export default function ProducerEventDetailPage({
   const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel);
 
   const loadEvent = useCallback(async () => {
-    const res = await apiFetch(`/events/${eventId}`);
-    if (res.status === 404) {
-      setGate("notFound");
-      return;
-    }
-    if (!res.ok) {
-      setGate("error");
-      return;
-    }
-    setEvent((await res.json()) as EventDetail);
-  }, [eventId]);
-
-  const boot = useCallback(async () => {
-    setGate("loading");
     try {
-      const me = await apiFetch("/me");
-      if (me.status === 401) {
-        setGate("unauth");
+      const res = await apiFetch(`/events/${eventId}`);
+      if (res.status === 404) {
+        setEventState("notFound");
         return;
       }
-      if (!me.ok) {
-        setGate("error");
+      if (!res.ok) {
+        setEventState("error");
         return;
       }
-      const data = (await me.json()) as {
-        id: string;
-        roles: string[];
-        effectivePro?: boolean;
-      };
-      if (!data.roles.some((r) => PRODUCER_ROLES.has(r))) {
-        setGate("notProducer");
-        return;
-      }
-      setMeId(data.id);
-      setIsAdmin(data.roles.includes("ADMIN"));
-      setEffectivePro(data.effectivePro ?? null);
-
-      const [evRes, vRes, sRes, listRes] = await Promise.all([
-        apiFetch(`/events/${eventId}`),
-        apiFetch("/venues"),
-        apiFetch("/styles"),
-        apiFetch("/events"),
-      ]);
-      if (evRes.status === 404) {
-        setGate("notFound");
-        return;
-      }
-      if (!evRes.ok) {
-        setGate("error");
-        return;
-      }
-      setEvent((await evRes.json()) as EventDetail);
-      if (vRes.ok) setVenues((await vRes.json()) as Venue[]);
-      if (sRes.ok) setStyles((await sRes.json()) as Style[]);
-      if (listRes.ok) setMyEvents((await listRes.json()) as EventListItem[]);
-      setGate("ready");
+      setEvent((await res.json()) as EventDetail);
+      setEventState("ok");
     } catch {
-      setGate("error");
+      setEventState("error");
     }
   }, [eventId]);
 
   useEffect(() => {
-    void boot();
-  }, [boot]);
+    void loadEvent();
+  }, [loadEvent]);
+
+  // Catálogos del formulario/series — fetch único en paralelo.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      apiFetch("/venues"),
+      apiFetch("/styles"),
+      apiFetch("/events"),
+    ])
+      .then(async ([vRes, sRes, listRes]) => {
+        if (cancelled) return;
+        if (vRes.ok) setVenues((await vRes.json()) as Venue[]);
+        if (sRes.ok) setStyles((await sRes.json()) as Style[]);
+        if (listRes.ok)
+          setMyEvents((await listRes.json()) as EventListItem[]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const gate: Gate = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : !me
+        ? "unauth"
+        : !me.roles.some((r) => PRODUCER_ROLES.has(r))
+          ? "notProducer"
+          : eventState === "ok"
+            ? "ready"
+            : eventState === "loading"
+              ? "loading"
+              : eventState;
+
+  function retryBoot() {
+    setEventState("loading");
+    void refreshMe();
+    void loadEvent();
+  }
 
   // Escape cierra el diálogo de confirmación de cancelación.
   useEffect(() => {
@@ -240,7 +254,12 @@ export default function ProducerEventDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
-      {gate === "loading" && <PageLoading />}
+      {gate === "loading" && (
+        <div className="flex flex-col gap-6" aria-hidden="true">
+          <SkeletonCard lines={3} />
+          <SkeletonCard lines={2} />
+        </div>
+      )}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -271,7 +290,7 @@ export default function ProducerEventDetailPage({
           <p role="alert" className="text-white/70">
             {tc("error")}
           </p>
-          <Button variant="secondary" onClick={() => void boot()}>
+          <Button variant="secondary" onClick={retryBoot}>
             <RefreshIcon /> {tc("retry")}
           </Button>
         </div>

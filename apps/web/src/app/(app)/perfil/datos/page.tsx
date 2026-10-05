@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { useViewMode } from "@/lib/view-mode";
 import {
   Badge,
@@ -11,39 +12,12 @@ import {
   CheckIcon,
   LevelBars,
   RefreshIcon,
+  Skeleton,
   XIcon,
 } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
 
 type DanceRole = "LEADER" | "FOLLOWER" | "SWITCH";
 type Gender = "M" | "F" | "OTHER";
-
-type StyleRole = {
-  role: DanceRole;
-  level: string | null;
-  style: { id: string; name: string; genre: string | null };
-};
-
-type EnrollmentRow = {
-  status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
-  startedAt: string;
-  academy: { id: string; name: string };
-  plan: { name: string } | null;
-};
-
-type Me = {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  photoUrl: string | null;
-  instagram: string | null;
-  createdAt: string;
-  verifiedAt: string | null;
-  gender: Gender | null;
-  styleRoles: StyleRole[];
-  enrollments: EnrollmentRow[];
-};
 
 type PageState = "loading" | "ready" | "unauth" | "error";
 
@@ -227,11 +201,22 @@ export default function DatosPage() {
   const tc = useTranslations("common");
   const viewMode = useViewMode();
 
-  const [state, setState] = useState<PageState>("loading");
-  const [me, setMe] = useState<Me | null>(null);
-  // Re-dispara la carga de /me desde el error — vive en el useEffect,
-  // el nonce la re-ejecuta.
-  const [bootNonce, setBootNonce] = useState(0);
+  // /me compartido (MeProvider del layout) — sin fetch propio: la página
+  // hereda el dato ya resuelto al navegar desde /perfil (cero waterfall)
+  // y el retry de error re-ejecuta el fetch del contexto.
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const state: PageState = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : me
+        ? "ready"
+        : "unauth";
 
   // Datos personales: modo edición — nombre, teléfono, Instagram y
   // género son editables (PATCH /me); email/fecha verificación son de
@@ -256,34 +241,6 @@ export default function DatosPage() {
   const [srSaving, setSrSaving] = useState(false);
   const [srErr, setSrErr] = useState(false);
   const keySeq = useRef(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiFetch("/me")
-      .then(async (res) => {
-        if (cancelled) return;
-        if (res.status === 401) {
-          setState("unauth");
-          return;
-        }
-        if (!res.ok) {
-          setState("error");
-          return;
-        }
-        const json = (await res.json()) as Me;
-        setMe(json);
-        setNameInput(json.name);
-        setPhoneInput(json.phone ?? "");
-        setIgInput(json.instagram ?? "");
-        setState("ready");
-      })
-      .catch(() => {
-        if (!cancelled) setState("error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [bootNonce]);
 
   function startPersonalEdit() {
     if (!me) return;
@@ -338,17 +295,9 @@ export default function DatosPage() {
         setPersonalState("err");
         return;
       }
-      setMe((m) =>
-        m
-          ? {
-              ...m,
-              name,
-              instagram: ig || null,
-              phone: phone || null,
-              gender: genderDraft,
-            }
-          : m,
-      );
+      // Refresh silencioso del contexto — me previo sigue pintado, el
+      // refetch solo actualiza los campos (incluye styleRoles/etc.).
+      void refreshMe();
       setPersonalEditing(false);
       setPersonalState("saved");
       setTimeout(() => setPersonalState("idle"), 2500);
@@ -360,7 +309,7 @@ export default function DatosPage() {
   function startStyleRoleEdit() {
     if (!me) return;
     setSrDraft(
-      me.styleRoles.map((sr) => ({
+      (me.styleRoles ?? []).map((sr) => ({
         key: keySeq.current++,
         styleId: sr.style.id,
         role: sr.role,
@@ -406,8 +355,7 @@ export default function DatosPage() {
         setSrErr(true);
         return;
       }
-      const json = (await res.json()) as { styleRoles: StyleRole[] };
-      setMe((m) => (m ? { ...m, styleRoles: json.styleRoles } : m));
+      void refreshMe();
       setSrEditing(false);
     } catch {
       setSrErr(true);
@@ -431,27 +379,51 @@ export default function DatosPage() {
     );
   }
 
-  if (state === "loading" || state === "error" || !me) {
+  if (state === "error") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-        {state === "error" ? (
-          <>
-            <p role="alert" className="text-white/50">
-              {tc("error")}
-            </p>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setState("loading");
-                setBootNonce((n) => n + 1);
-              }}
-            >
-              <RefreshIcon /> {tc("retry")}
-            </Button>
-          </>
-        ) : (
-          <PageLoading />
-        )}
+        <p role="alert" className="text-white/50">
+          {tc("error")}
+        </p>
+        <Button variant="secondary" onClick={() => void refreshMe()}>
+          <RefreshIcon /> {tc("retry")}
+        </Button>
+      </main>
+    );
+  }
+
+  if (state === "loading" || !me) {
+    // Shell skeleton con la forma real de la página — nunca pantalla en
+    // blanco con spinner.
+    return (
+      <main
+        aria-busy="true"
+        aria-label={tc("loading")}
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6"
+      >
+        <Skeleton className="page-loading h-8 w-48" />
+        <Card aria-hidden="true">
+          <Skeleton className="page-loading h-4 w-32" />
+          <div className="mt-2 flex flex-col gap-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-baseline justify-between">
+                <Skeleton className="page-loading h-3 w-16" />
+                <Skeleton className="page-loading h-3 w-32" />
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card aria-hidden="true">
+          <Skeleton className="page-loading h-4 w-32" />
+          <div className="mt-3 flex flex-col gap-2">
+            {[0, 1].map((i) => (
+              <Skeleton
+                key={i}
+                className="page-loading h-[52px] w-full rounded-xl"
+              />
+            ))}
+          </div>
+        </Card>
       </main>
     );
   }
@@ -563,7 +535,7 @@ export default function DatosPage() {
           )}
           <Field
             label={t("datos.memberSince")}
-            value={dateFmt.format(new Date(me.createdAt))}
+            value={me.createdAt ? dateFmt.format(new Date(me.createdAt)) : "—"}
           />
         </div>
         {personalState === "saved" && (
@@ -625,13 +597,13 @@ export default function DatosPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
             {t("datos.academySection")}
           </h2>
-          {me.enrollments.length === 0 ? (
+          {(me.enrollments ?? []).length === 0 ? (
             <p className="mt-3 text-sm text-white/60">
               {t("datos.academyEmpty")}
             </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
-              {me.enrollments.map((e) => (
+              {(me.enrollments ?? []).map((e) => (
                 <li
                   key={e.academy.id}
                   className="flex items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/50 px-4 py-3"
@@ -776,13 +748,13 @@ export default function DatosPage() {
             </>
           ) : (
             <>
-              {me.styleRoles.length === 0 ? (
+              {(me.styleRoles ?? []).length === 0 ? (
                 <p className="mt-3 text-sm text-white/60">
                   {t("datos.socialEmpty")}
                 </p>
               ) : (
                 <ul className="mt-3 flex flex-col gap-2">
-                  {me.styleRoles.map((sr) => (
+                  {(me.styleRoles ?? []).map((sr) => (
                     <li
                       key={`${sr.style.id}-${sr.role}`}
                       className="flex items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/50 px-4 py-3"

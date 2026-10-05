@@ -5,12 +5,16 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { setActiveRole, useActiveRole, type AppRole } from "@/lib/active-role";
+import {
+  getStoredActiveRole,
+  setActiveRole,
+  useActiveRole,
+  type AppRole,
+} from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { useMe } from "@/lib/me-context";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 import { Badge, Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 
 type Streak = {
@@ -86,6 +90,12 @@ export default function PerfilPage() {
       : me
         ? "ready"
         : "unauth";
+  // Sesión resuelta sin usuario — los fetches especulativos se detienen.
+  // Mientras /me sigue en vuelo los datos se piden en paralelo (la lente
+  // viene de localStorage, no de me): sin esto KPIs/racha/insignias
+  // esperaban a /me para disparar → waterfall de dos round-trips y la
+  // grilla aparecía de golpe después del primer paint.
+  const noSession = !meLoading && !meError && !me;
   const [streak, setStreak] = useState<Streak | null>(null);
   // Fetch de racha falló → la card se oculta (mejor que un "0" falso o
   // un skeleton perpetuo).
@@ -115,7 +125,7 @@ export default function PerfilPage() {
   // clases del mes) según el view-mode activo.
   const [kpis, setKpis] = useState<Kpi[] | null>(null);
   useEffect(() => {
-    if (!me || currentLens !== "DANCER") {
+    if (noSession || currentLens !== "DANCER") {
       setKpis(null);
       return;
     }
@@ -130,14 +140,14 @@ export default function PerfilPage() {
     return () => {
       cancelled = true;
     };
-  }, [me, currentLens, viewMode]);
+  }, [noSession, currentLens, viewMode]);
 
   // Racha por modo: social = semanas saliendo; academy = semanas
   // asistiendo a clases. Re-fetchea al cambiar de modo — el número
   // viejo se limpia primero: mostrar el streak de social con el copy
   // de academia (o viceversa) sería un flash de dato ajeno.
   useEffect(() => {
-    if (!me || currentLens === "ADMIN") {
+    if (noSession || currentLens === "ADMIN") {
       setStreak(null);
       return;
     }
@@ -159,14 +169,14 @@ export default function PerfilPage() {
     return () => {
       stale = true;
     };
-  }, [me, currentLens, viewMode]);
+  }, [noSession, currentLens, viewMode]);
 
   // Insignias — ambos modos tienen catálogo propio (nightlife: sesiones/
   // check-ins; academy: asistencias/constancia). Lazy one-shot; badges
   // queda null mientras el fetch está en vuelo (→ skeleton, nunca el
   // empty-state prematuro).
   useEffect(() => {
-    if (!me || gamifFetched || currentLens === "ADMIN") {
+    if (noSession || gamifFetched || currentLens === "ADMIN") {
       return;
     }
     let stale = false;
@@ -184,7 +194,7 @@ export default function PerfilPage() {
     return () => {
       stale = true;
     };
-  }, [me, gamifFetched, currentLens, viewMode]);
+  }, [noSession, gamifFetched, currentLens, viewMode]);
 
   const visibleBadges = (badges ?? []).filter((b) =>
     viewMode === "academy"
@@ -209,24 +219,75 @@ export default function PerfilPage() {
     );
   }
 
-  if (state === "loading" || state === "error" || !me) {
+  if (state === "error") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-        {state === "error" ? (
-          <>
-            <p role="alert" className="text-white/50">
-              {tc("error")}
-            </p>
-            <Button
-              variant="secondary"
-              onClick={() => void refreshMe()}
-            >
-              <RefreshIcon /> {tc("retry")}
-            </Button>
-          </>
-        ) : (
-          <PageLoading />
+        <p role="alert" className="text-white/50">
+          {tc("error")}
+        </p>
+        <Button variant="secondary" onClick={() => void refreshMe()}>
+          <RefreshIcon /> {tc("retry")}
+        </Button>
+      </main>
+    );
+  }
+
+  if (state === "loading" || !me) {
+    // Shell skeleton con la forma real de la página — nunca pantalla en
+    // blanco con spinner. La lente guardada (localStorage) ya decide qué
+    // secciones esbozar: sin roles resueltos aún, resolveActiveRole cae
+    // a DANCER y un productor vería skeletons de secciones que nunca le
+    // aparecen → leer el storage directo.
+    const shellLens = picked ?? getStoredActiveRole() ?? "DANCER";
+    return (
+      <main
+        aria-busy="true"
+        aria-label={tc("loading")}
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6"
+      >
+        <Card className="flex items-center gap-4" aria-hidden="true">
+          <Skeleton className="page-loading h-16 w-16 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1">
+            <Skeleton className="page-loading h-5 w-40" />
+            <Skeleton className="page-loading mt-2 h-4 w-56" />
+            <Skeleton className="page-loading mt-3 h-6 w-44 rounded-full" />
+          </div>
+        </Card>
+        {shellLens === "DANCER" && (
+          <section aria-hidden="true">
+            <Skeleton className="page-loading mb-3 h-4 w-36" />
+            <ul className="grid grid-cols-2 gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <li key={i}>
+                  <Skeleton className="page-loading h-[68px] w-full rounded-xl" />
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
+        {shellLens !== "ADMIN" && (
+          <>
+            <Card aria-hidden="true">
+              <Skeleton className="page-loading h-4 w-24" />
+              <Skeleton className="page-loading mt-2 h-[3.75rem] w-24" />
+              <Skeleton className="page-loading mt-2 h-4 w-52" />
+            </Card>
+            <Card aria-hidden="true">
+              <Skeleton className="page-loading h-4 w-24" />
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton
+                    key={i}
+                    className="page-loading h-[74px] w-full rounded-xl"
+                  />
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
+        <Card aria-hidden="true">
+          <Skeleton className="page-loading h-4 w-24" />
+        </Card>
       </main>
     );
   }

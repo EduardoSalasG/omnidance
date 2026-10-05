@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -48,7 +49,9 @@ function GuestLists() {
   const tac = useTranslations("academy");
   const tc = useTranslations("common");
 
-  const [meId, setMeId] = useState("");
+  // ownerId del /me compartido (ProducerGate ya validó la sesión).
+  const { me } = useMe();
+  const meId = me?.id ?? "";
   const [events, setEvents] = useState<EventOption[] | null>(null);
 
   const [listEventId, setListEventId] = useState("");
@@ -86,15 +89,8 @@ function GuestLists() {
   }, []);
 
   const boot = useCallback(async () => {
-    // /me para ownerId de nuevas listas + eventos para el selector.
-    const [meRes, evRes] = await Promise.all([
-      apiFetch("/me"),
-      apiFetch("/events"),
-    ]);
-    if (meRes.ok) {
-      const me = (await meRes.json()) as { id: string };
-      setMeId(me.id);
-    }
+    // Eventos para el selector (/me ya viene del contexto compartido).
+    const evRes = await apiFetch("/events");
     if (evRes.ok) {
       const evs = (await evRes.json()) as EventOption[];
       setEvents(evs);

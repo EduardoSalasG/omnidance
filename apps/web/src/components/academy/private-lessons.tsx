@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { Skeleton, SkeletonList } from "@/components/ui";
@@ -50,8 +51,6 @@ type InstructorLesson = PrivateLesson & {
   netClp: number;
   commissionPaidAt: string | null;
 };
-
-type Me = { id: string; name: string | null; roles: string[] };
 
 /** GET /academies/:id (requireManage) incluye instructors:[{personId}]. */
 type AcademyDetail = Academy & { instructors?: { personId: string }[] };
@@ -116,7 +115,8 @@ function shortId(id: string) {
 export function PrivateLessons({ academy, academies = [] }: Props) {
   const tc = useTranslations("common");
 
-  const [me, setMe] = useState<Me | null>(null);
+  // /me compartido (MeProvider) — sin fetch propio.
+  const { me } = useMe();
 
   // ─── vista staff ───
   const [lessons, setLessons] = useState<PrivateLesson[]>([]);
@@ -152,10 +152,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   >([]);
 
   useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) => (res.ok ? ((await res.json()) as Me) : null))
-      .then(setMe)
-      .catch(() => {});
     apiFetch("/academies")
       .then(async (res) =>
         res.ok ? ((await res.json()) as DirectoryAcademy[]) : [],

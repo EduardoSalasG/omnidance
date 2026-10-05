@@ -1,39 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 type Gate = "loading" | "unauth" | "notAdmin" | "error" | "ready";
 
-// Gate de acceso admin: verifica sesión + rol ADMIN vía GET /api/me y renderiza
-// children solo cuando la verificación pasa. Los children se montan recién en
-// "ready", así que sus fetches de datos nunca corren para no-admins.
+// Gate de acceso admin: sesión + rol ADMIN del /me compartido (MeProvider)
+// y renderiza children solo cuando la verificación pasa. Los children se
+// montan recién en "ready", así que sus fetches de datos nunca corren
+// para no-admins.
 export function AdminGate({ children }: { children: React.ReactNode }) {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
 
-  const [gate, setGate] = useState<Gate>("loading");
-
-  const boot = useCallback(async () => {
-    setGate("loading");
-    try {
-      const me = await apiFetch("/me");
-      if (me.status === 401) return setGate("unauth");
-      if (!me.ok) return setGate("error");
-      const data = (await me.json()) as { id: string; roles: string[] };
-      if (!data.roles.includes("ADMIN")) return setGate("notAdmin");
-      setGate("ready");
-    } catch {
-      setGate("error");
-    }
-  }, []);
-
-  useEffect(() => {
-    void boot();
-  }, [boot]);
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const gate: Gate = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : !me
+        ? "unauth"
+        : !me.roles.includes("ADMIN")
+          ? "notAdmin"
+          : "ready";
 
   if (gate === "loading") {
     return <PageLoading />;
@@ -64,7 +60,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
         <p role="alert" className="text-white/70">
           {tc("error")}
         </p>
-        <Button variant="secondary" onClick={() => void boot()}>
+        <Button variant="secondary" onClick={() => void refreshMe()}>
           <RefreshIcon /> {tc("retry")}
         </Button>
       </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { Card } from "@/components/ui/Card";
@@ -24,12 +25,7 @@ import {
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
 
-type Me = {
-  id: string;
-  name: string;
-  roles: string[];
-  roleStates?: { role: string; status: string }[];
-};
+type Me = import("@/lib/me-context").MeContextData;
 
 type NextItem = { id: string; name: string; when: string; place: string | null };
 
@@ -333,16 +329,29 @@ export function HomeHub() {
   const tt = useTranslations("tours.home");
   const ts = useTranslations("survey");
 
-  const [me, setMe] = useState<Me | null>(null);
-  const [checked, setChecked] = useState(false);
-  // Causa del fallo de /me: "session" (401/403 → copy de reingreso) vs
-  // "server" (5xx/red → error genérico + reintento). Antes cualquier
+  // /me compartido (MeProvider del layout) — el hub ya no fetchea la
+  // sesión: las encuestas y los stats se disparan en paralelo con /me
+  // (especulativo — sin sesión las respuestas 401 se descartan) en vez
+  // de esperarla: dos waterfalls menos en la página de aterrizaje.
+  const {
+    me,
+    loading: meLoading,
+    error: meFetchFailed,
+    refresh: refreshMe,
+  } = useMe();
+  const checked = !meLoading;
+  // Causa del fallo de /me: "session" (sin usuario → copy de reingreso)
+  // vs "server" (5xx/red → error genérico + reintento). Antes cualquier
   // fallo caía en "Tu sesión expiró" — copy deshonesto en un 500.
-  const [meError, setMeError] = useState<"session" | "server" | null>(
-    null,
-  );
-  // Nonce que re-ejecuta la carga de /me desde el estado de error.
-  const [meRetry, setMeRetry] = useState(0);
+  const meError: "session" | "server" | null = meLoading
+    ? null
+    : meFetchFailed
+      ? "server"
+      : !me
+        ? "session"
+        : null;
+  // Sesión resuelta sin usuario — los fetches especulativos se detienen.
+  const noSession = !meLoading && !meFetchFailed && !me;
   // Encuestas post-social pendientes — global por persona (cualquier
   // lente evalúa); null hasta que el fetch resuelve → la card no
   // reserva espacio ni flashea vacía.
@@ -362,36 +371,14 @@ export function HomeHub() {
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
   const lensKey = `${activeRole}:${viewMode}`;
 
-  useEffect(() => {
-    let cancelled = false;
-    apiFetch("/me")
-      .then(async (res) => {
-        if (cancelled) return;
-        if (res.ok) {
-          setMe((await res.json()) as Me);
-          setMeError(null);
-        } else {
-          setMeError(
-            res.status === 401 || res.status === 403 ? "session" : "server",
-          );
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setMeError("server");
-      })
-      .finally(() => {
-        if (!cancelled) setChecked(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [meRetry]);
-
   // Encuestas pendientes: una vez por sesión (no por lente — el
   // endpoint es global). Falla en silencio: la card simplemente no
-  // aparece, nunca bloquea el hub.
+  // aparece, nunca bloquea el hub. Disparo especulativo en paralelo con
+  // /me — el ref evita re-fetch cuando la sesión resuelve después.
+  const surveysFetched = useRef(false);
   useEffect(() => {
-    if (!me) return;
+    if (noSession || surveysFetched.current) return;
+    surveysFetched.current = true;
     let cancelled = false;
     apiFetch("/me/pending-surveys")
       .then(async (res) => {
@@ -402,13 +389,16 @@ export function HomeHub() {
     return () => {
       cancelled = true;
     };
-  }, [me]);
+  }, [noSession]);
 
   // KPIs del home: un solo request agregado por lente (+ modo consumer).
+  // Disparo especulativo en paralelo con /me usando la lente guardada;
+  // el slot con key evita re-fetch cuando la sesión resuelve después.
   useEffect(() => {
-    if (!me) return;
-    let cancelled = false;
+    if (noSession) return;
     const key = `${activeRole}:${viewMode}`;
+    if (statsSlot?.key === key) return;
+    let cancelled = false;
     apiFetch(`/home/stats?role=${activeRole}&mode=${viewMode}`)
       .then(async (res) => {
         if (cancelled) return;
@@ -426,7 +416,7 @@ export function HomeHub() {
     return () => {
       cancelled = true;
     };
-  }, [me, activeRole, viewMode, statsRetry]);
+  }, [noSession, activeRole, viewMode, statsRetry, statsSlot]);
 
   // null hasta que el fetch de ESTA lente resuelva — los heroes que
   // dependen de stats nunca ven datos ajenos. El efecto fetchea
@@ -460,11 +450,7 @@ export function HomeHub() {
             <Button
               size="lg"
               className="w-full"
-              onClick={() => {
-                setChecked(false);
-                setMeError(null);
-                setMeRetry((r) => r + 1);
-              }}
+              onClick={() => void refreshMe()}
             >
               {t("retry")}
             </Button>
@@ -620,7 +606,10 @@ export function HomeHub() {
           {t("statsError")}
           <button
             type="button"
-            onClick={() => setStatsRetry((r) => r + 1)}
+            onClick={() => {
+              setStatsSlot(null);
+              setStatsRetry((r) => r + 1);
+            }}
             className="min-h-11 shrink-0 rounded-full border border-amber-300/40 px-4 font-semibold transition-colors hover:bg-amber-300/10"
           >
             {t("retry")}
