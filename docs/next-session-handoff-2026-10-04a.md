@@ -168,3 +168,40 @@ patrones:
 Verificación: tsc web limpio, vitest 3/3, impeccable detect `[]`,
 rutas principales 200 en dev. Smoke manual pendiente de las rutas
 role-gated con sesión real (productor/academia/admin).
+
+## Particulares en reservadas (`9c25a20`, change `2026-10-05-particulares-en-reservadas`)
+
+Pedido: "la sección de mis particulares no debe existir — es otra clase
+que aparece en reservadas". Eliminada la bandeja `/clases/particular`
+y toda su navegación.
+
+- **`/clases` scope reservadas**: `loadMine` hace `Promise.all`
+  `/classes/mine` + `/private-lessons/mine`; union `ReservedItem`
+  ordenada por día+hora (misma convención ISO-medianoche-UTC del día
+  local que `Class.date`). Grupo fijo "Por agendar" arriba para las
+  compradas sin `scheduledAt` (pago nunca invisible). Card compacta:
+  academia · hora/"por agendar" · instructor/"por asignar" · Badge de
+  estado · cancelar mientras REQUESTED/CONFIRMED (PATCH action=cancel).
+- **Historial**: mergea particulares DONE/CANCELLED (sort desc).
+- **Calendario**: las particulares con fecha cuentan en los dots.
+- **API**: `GET /private-lessons/mine` rama alumno incluye
+  `academy:{id,name}` — la card no necesita fetch extra del directorio.
+  FakePrisma del spec ganó `academy.findMany`.
+- **`PrivateLessons`**: consola staff+instructor pura (`academy`
+  requerido); sección "mis solicitudes" del alumno eliminada.
+- **Entradas eliminadas**: chip `privateTray` en /clases, item del
+  sheet "+" lente academia (`SHEET_ACADEMY_ITEMS = []`), label de ruta.
+- **Redirects**: notificaciones `academy.private_lesson.*` y
+  `checkout/return` PRIVATE → `/clases?scope=reservadas` (parsea a
+  scope mias + calScope reservadas — verificado en el código).
+- **i18n**: retiradas `classes.privateTray`, `lessons.mineTitle`,
+  `lessons.emptyMine`, `lessons.requested` (audit ALL_KEYS_OK).
+- Spec canónica `academy-learner` actualizada (+1 requirement, Purpose
+  reescrito — quedaba TBD del archive anterior).
+
+Verificación: tsc api+web limpio, vitest 17/17 private-lessons +
+classes spec verde, i18n ALL_KEYS_OK, impeccable detect `[]`,
+validate strict verde. **Smoke manual pendiente** con sesión real:
+particular sin agendar visible arriba de reservadas, cancelación,
+terminales en historial, staff /academia/particulares intacto,
+notificación private_lesson navega a reservadas.
