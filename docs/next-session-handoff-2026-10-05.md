@@ -111,3 +111,24 @@ Verificado: API tests 1429/1429 (63 archivos), `nest build` OK,
 i18n audit ALL_KEYS_OK, openspec validate OK. Pendiente: QA funcional
 del flujo register → bienvenida → skip/save en navegador real, y
 archivar el change al cerrar release.
+
+## Feature: depuración del catálogo de estilos (change prune-style-catalog)
+
+Pedido del usuario: el picker "Tu baile" ofrecía estilos nicho que no
+se quieren como selección personal.
+
+- `STYLE_CATALOG` pierde "Salsa on2" y "Bachata dominicana"; seed dev
+  sin la serie inactiva "Bachata Dominicana - Intensivo" ni los
+  styleRoles de Sebastian/Daniela con esos estilos.
+- Denylist `apps/web/src/lib/profile-styles.ts` (`PROFILE_HIDDEN_STYLES`:
+  Salsa on2, Bachata dominicana, Afrocubano, Rueda de casino, Fusión)
+  aplicada al select de `/perfil/datos` y chips de `/bienvenida`. Un
+  estilo oculto ya asignado sigue visible en su fila. Series, eventos
+  y academias no se tocan (Rueda/Afrocubano/Fusión siguen vigentes ahí).
+- Los seeds no borran filas: DBs ya pobladas (Neon prod incluida)
+  conservan los 2 estilos removidos, pero el denylist los oculta del
+  picker igual. Si se quiere borrarlos de prod hay que hacerlo a mano
+  revisando FKs (PersonStyleRole, bloques de eventos, series).
+
+Verificado: 1429/1429 tests API (los e2e siembran dev completo),
+`tsc --noEmit` web OK, openspec validate OK.

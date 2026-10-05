@@ -711,19 +711,6 @@ export async function seedDev(prisma: PrismaClient) {
     slots: [{ weekday: 6, startTime: "12:00", endTime: "13:00" }],
   });
 
-  // Serie inactiva - probar desactivar/reactivar sin romper la demo.
-  await mkClassSeries({
-    academyId: muvet.id,
-    name: "Bachata Dominicana - Intensivo",
-    styleName: "Bachata dominicana",
-    levelName: "Básico",
-    instructorId: rodrigo.id,
-    quorum: 10,
-    slots: [{ weekday: 5, startTime: "21:00", endTime: "22:00" }],
-    active: false,
-    withHistory: false,
-  });
-
   // Serie de la segunda academia (sin defaultQuorum propio en serie → 12
   // de Tumbao; si Tumbao no declarara, caería al fallback 20).
   await mkClassSeries({
@@ -1918,12 +1905,10 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(diego, "Rueda de casino", "LEADER", "principiante"),
     styleRole(antonia, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(antonia, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
-    styleRole(sebastian, "Salsa on2", "LEADER", "avanzado"),
     styleRole(sebastian, "Mambo on2", "LEADER", "intermedio"),
     styleRole(francisca, "Bachata sensual", "FOLLOWER", "principiante"),
     styleRole(felipe, "Timba", "LEADER", "intermedio"),
     styleRole(felipe, "Salsa cubana (casino)", "SWITCH", "principiante"),
-    styleRole(daniela, "Bachata dominicana", "FOLLOWER", "intermedio"),
     styleRole(daniela, "Bachata sensual", "FOLLOWER", "principiante"),
     // Instructores y DJs también bailan social - sus perfiles lo reflejan.
     styleRole(vale, "Salsa cubana (casino)", "SWITCH", "avanzado"),

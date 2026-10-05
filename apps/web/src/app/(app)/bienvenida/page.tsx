@@ -9,6 +9,7 @@ import { Button, Card } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { GenderGroup, type Gender } from "@/components/profile/GenderGroup";
 import { inputCls } from "@/components/academy/shared";
+import { isProfileStyleVisible } from "@/lib/profile-styles";
 
 type DanceRole = "LEADER" | "FOLLOWER" | "SWITCH";
 type StyleDraft = { role: DanceRole; level: string };
@@ -101,7 +102,10 @@ function BienvenidaForm() {
   useEffect(() => {
     apiFetch("/styles")
       .then(async (res) => {
-        if (res.ok) setStyles((await res.json()) as StyleItem[]);
+        if (!res.ok) return;
+        const all = (await res.json()) as StyleItem[];
+        // El picker de perfil acota el catálogo (lib/profile-styles).
+        setStyles(all.filter((s) => isProfileStyleVisible(s.name)));
       })
       .catch(() => {});
   }, []);
