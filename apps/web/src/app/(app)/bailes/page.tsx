@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import {
   Button,
   RefreshIcon,
+  Skeleton,
   SkeletonList,
   StarIcon,
   XIcon,
@@ -31,10 +32,15 @@ function Bailes() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [sessions, setSessions] = useState<DanceSession[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  // Nombre del evento cuando la vista viene filtrada por ?event=
+  // Nombre del evento cuando la vista viene filtrada por ?event= —
+  // `eventNameResolved` distingue pending (skeleton en el chip) de
+  // fallo (cae al label genérico, sin quedar pendiente para siempre).
   const [eventName, setEventName] = useState<string | null>(null);
-  // Racha semanal para la línea de continuidad del insights.
+  const [eventNameResolved, setEventNameResolved] = useState(false);
+  // Racha semanal para la línea de continuidad del insights —
+  // `streakDone` distingue pending de "resuelto sin racha".
   const [streak, setStreak] = useState<number | null>(null);
+  const [streakDone, setStreakDone] = useState(false);
   // Progressive disclosure del historial: primeras N noches visibles.
   const [allNights, setAllNights] = useState(false);
 
@@ -76,12 +82,15 @@ function Bailes() {
   // Chip de contexto del filtro ?event= — el nombre viene del endpoint público.
   useEffect(() => {
     setEventName(null);
+    setEventNameResolved(false);
     if (!eventId) return;
     apiFetch(`/events/${eventId}`)
       .then(async (res) => {
-        if (res.ok) setEventName(((await res.json()) as { name: string }).name);
+        if (res.ok)
+          setEventName(((await res.json()) as { name: string }).name);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setEventNameResolved(true));
   }, [eventId]);
 
   // Ficha del último social — la sesión más reciente define el evento;
@@ -91,14 +100,20 @@ function Bailes() {
 
   // Racha semanal — solo cuando el card del último social va a mostrarse.
   useEffect(() => {
-    if (!lastEventId) return;
+    setStreak(null);
+    setStreakDone(false);
+    if (!lastEventId) {
+      setStreakDone(true);
+      return;
+    }
     apiFetch("/gamification/me/streak")
       .then(async (res) => {
         if (!res.ok) return;
         const d = (await res.json()) as { currentWeeks?: number };
         setStreak(d.currentWeeks ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setStreakDone(true));
   }, [lastEventId]);
 
   async function act(session: DanceSession, action: SessionAction) {
@@ -217,7 +232,19 @@ function Bailes() {
           className="inline-flex w-fit items-center gap-2 rounded-full border border-night-700 bg-night-800 px-3 py-1.5 text-xs text-white/70 transition-colors hover:border-neon/50 hover:text-white"
         >
           <span className="truncate">
-            {eventName ? t("filteredEvent", { name: eventName }) : t("filtered")}
+            {/* /events/:id en vuelo → skeleton inline en el chip: el
+                texto "Filtrado por" no salta a nombre largo al resolver. */}
+            {eventName ? (
+              t("filteredEvent", { name: eventName })
+            ) : eventNameResolved ? (
+              t("filtered")
+            ) : (
+              /* Va dentro de un <span> → no puede ser Skeleton <div>. */
+              <span
+                aria-hidden="true"
+                className="page-loading inline-block h-3 w-24 animate-pulse rounded-lg bg-night-800 align-middle motion-reduce:animate-none"
+              />
+            )}
           </span>
           <XIcon className="h-3.5 w-3.5" />
           <span className="sr-only">{t("clearFilter")}</span>
@@ -377,7 +404,9 @@ function Bailes() {
                 {/* Highlight emocional: el mejor baile es una persona, no
                     un texto — avatar + nombre + tu nota. La racha cierra
                     como línea de continuidad. */}
-                {(bestDance?.partner || (streak !== null && streak >= 2)) && (
+                {(bestDance?.partner ||
+                  (lastEventId && !streakDone) ||
+                  (streak !== null && streak >= 2)) && (
                   <div className="mt-3 flex flex-col gap-1.5 border-t border-night-700/60 pt-3">
                     {bestDance?.partner && (
                       <p className="flex items-center gap-2 text-sm text-white/70">
@@ -395,10 +424,17 @@ function Bailes() {
                         </span>
                       </p>
                     )}
-                    {streak !== null && streak >= 2 && (
-                      <p className="text-xs font-medium text-neon/80">
-                        {t("streakLine", { weeks: streak })}
-                      </p>
+                    {/* Racha: la línea reserva su alto mientras el fetch
+                        resuelve; sin racha (resuelto <2) colapsa. */}
+                    {!streakDone ? (
+                      <Skeleton className="page-loading h-3.5 w-44" />
+                    ) : (
+                      streak !== null &&
+                      streak >= 2 && (
+                        <p className="text-xs font-medium text-neon/80">
+                          {t("streakLine", { weeks: streak })}
+                        </p>
+                      )
                     )}
                   </div>
                 )}

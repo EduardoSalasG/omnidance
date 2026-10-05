@@ -12,6 +12,7 @@ import {
   PlayIcon,
   RefreshIcon,
   Segmented,
+  Skeleton,
   SkeletonList,
 } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
@@ -249,7 +250,13 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
         </p>
       )}
 
-      {videos !== null && videos.length > 0 && (
+      {/* /videos fetch por card — una línea skeleton reserva el slot
+          mientras resuelve; vacío/error resuelto colapsa sin shift
+          (el fetch es por card, va al final del bloque). */}
+      {videos === null ? (
+        <Skeleton className="page-loading h-5 w-44" />
+      ) : (
+        videos.length > 0 && (
         <ul className="flex flex-col gap-1.5" aria-label={tv("title")}>
           {videos.slice(0, 3).map((v) =>
             v.locked || !v.url ? (
@@ -277,6 +284,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
             ),
           )}
         </ul>
+        )
       )}
     </Card>
   );

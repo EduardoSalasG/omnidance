@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import { Skeleton, SkeletonList } from "@/components/ui";
 import academyExtras from "@/i18n/parts/academyExtras.json";
 import { inputCls, readError, type Academy } from "./shared";
 
@@ -127,9 +127,11 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   const [mineState, setMineState] = useState<LoadState>("loading");
 
   // ─── vista instructor (mis clases como profesor, con neto) ───
-  const [mineInstructor, setMineInstructor] = useState<InstructorLesson[]>(
-    [],
-  );
+  // null = fetch en vuelo → skeleton en el slot (la sección va arriba
+  // de "Mis solicitudes"; sin slot la insertaba de golpe al resolver).
+  const [mineInstructor, setMineInstructor] = useState<
+    InstructorLesson[] | null
+  >(null);
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -196,16 +198,17 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     }
   }, []);
 
-  // Mis clases como instructor — [] es el caso común (alumno puro) y la
-  // sección no se monta; errores se ignoran (la vista staff sigue).
+  // Mis clases como instructor — [] resuelto es el caso común (alumno
+  // puro) y la sección no se monta; errores = [] también (la vista
+  // staff sigue).
   const loadMineInstructor = useCallback(async () => {
     try {
       const res = await apiFetch("/private-lessons/mine?as=instructor");
-      if (res.ok) {
-        setMineInstructor((await res.json()) as InstructorLesson[]);
-      }
+      setMineInstructor(
+        res.ok ? ((await res.json()) as InstructorLesson[]) : [],
+      );
     } catch {
-      // best-effort
+      setMineInstructor([]);
     }
   }, []);
 
@@ -587,7 +590,15 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
         </section>
       )}
 
-      {mineInstructor.length > 0 && (
+      {mineInstructor === null ? (
+        /* Slot de la sección instructor mientras resuelve — si viene
+           vacía (alumno puro) colapsa sin haber movido "Mis solicitudes". */
+        <section aria-hidden="true" className="flex flex-col gap-3">
+          <Skeleton className="page-loading h-5 w-48" />
+          <SkeletonList items={1} lines={1} />
+        </section>
+      ) : (
+        mineInstructor.length > 0 && (
         <section
           aria-label={t.instructorTitle}
           className="flex flex-col gap-3"
@@ -666,6 +677,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
             ))}
           </ul>
         </section>
+        )
       )}
 
       <section aria-label={t.mineTitle} className="flex flex-col gap-3">

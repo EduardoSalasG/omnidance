@@ -54,7 +54,9 @@ function DiscountCodes() {
   const te = useTranslations("events");
   const tc = useTranslations("common");
 
-  const [events, setEvents] = useState<EventOption[]>([]);
+  // null = GET /events en vuelo → select de evento disabled; habilitado
+  // desde el mount dejaría elegir contra un catálogo vacío.
+  const [events, setEvents] = useState<EventOption[] | null>(null);
 
   const [codes, setCodes] = useState<DiscountCode[] | null>(null);
   const [codesError, setCodesError] = useState(false);
@@ -88,9 +90,16 @@ function DiscountCodes() {
 
   const boot = useCallback(async () => {
     // Eventos para el select del form + listado de códigos en paralelo.
-    const [evRes] = await Promise.all([apiFetch("/events"), loadCodes()]);
-    if (evRes.ok) {
+    // Fallo de /events → [] resuelto: el select se habilita con solo
+    // "—" (un código sin evento es válido).
+    const [evRes] = await Promise.all([
+      apiFetch("/events").catch(() => null),
+      loadCodes(),
+    ]);
+    if (evRes?.ok) {
       setEvents((await evRes.json()) as EventOption[]);
+    } else {
+      setEvents([]);
     }
   }, [loadCodes]);
 
@@ -154,7 +163,7 @@ function DiscountCodes() {
   }
 
   const eventName = (id: string | null) =>
-    id ? (events.find((e) => e.id === id)?.name ?? null) : null;
+    id ? ((events ?? []).find((e) => e.id === id)?.name ?? null) : null;
 
   return (
     <>
@@ -296,10 +305,12 @@ function DiscountCodes() {
                   onChange={(e) =>
                     setCodeForm((f) => ({ ...f, eventId: e.target.value }))
                   }
+                  disabled={events === null}
+                  aria-busy={events === null}
                   className={inputCls}
                 >
                   <option value="">—</option>
-                  {events.map((ev) => (
+                  {(events ?? []).map((ev) => (
                     <option key={ev.id} value={ev.id}>
                       {ev.name}
                     </option>

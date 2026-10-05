@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { notificationLens } from "@/lib/notification-lens";
@@ -120,9 +121,11 @@ export default function NotificacionesPage() {
   const [items, setItems] = useState<NotificationItem[]>([]);
   // Busy del "marcar todas" — deshabilita el botón mientras vuela.
   const [markingAll, setMarkingAll] = useState(false);
-  // Lente: roles de /me + modo consumer — el centro filtra por dominio
-  // (social ↔ academia); lo transversal (account.*, crm.*) va en ambas.
-  const [meRoles, setMeRoles] = useState<string[] | null>(null);
+  // Lente: roles de /me (contexto compartido) + modo consumer — el
+  // centro filtra por dominio (social ↔ academia); lo transversal
+  // (account.*, crm.*) va en ambas.
+  const { me, loading: meLoading } = useMe();
+  const meRoles = me?.roles ?? null;
   const activeRole = useActiveRole(meRoles);
   const viewMode = useViewMode();
   const lens: "social" | "academy" =
@@ -161,14 +164,13 @@ export default function NotificacionesPage() {
     }
   }, [lens]);
 
+  // El primer load espera a que /me resuelva: disparar con la lente por
+  // defecto y re-disparar al conocer los roles reemplazaba la lista
+  // entera (fetch doble + flash de notificaciones de otra lente).
   useEffect(() => {
+    if (meLoading) return;
     void load();
-    apiFetch("/me")
-      .then(async (res) =>
-        res.ok ? setMeRoles(((await res.json()) as { roles?: string[] }).roles ?? []) : null,
-      )
-      .catch(() => {});
-  }, [load]);
+  }, [load, meLoading]);
 
   async function markRead(n: NotificationItem) {
     if (!n.readAt) {
