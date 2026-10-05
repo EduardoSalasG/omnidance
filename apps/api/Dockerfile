@@ -45,9 +45,16 @@ COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+# src también — los seeds (entrypoint / one-shot del deploy) corren vía
+# tsx e importan ../src/* (p.ej. gamification/domain/rules).
+COPY --from=builder /app/apps/api/src ./apps/api/src
 COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/node_modules ./node_modules
+# Boot: migrate deploy + seed-si-vacía + start (ver script). sed
+# normaliza CRLF por si el checkout vino de Windows.
+COPY apps/api/docker-entrypoint.sh ./apps/api/docker-entrypoint.sh
+RUN sed -i 's/\r$//' apps/api/docker-entrypoint.sh && chmod +x apps/api/docker-entrypoint.sh
 
 EXPOSE 4000
 
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["sh", "apps/api/docker-entrypoint.sh"]

@@ -9,17 +9,15 @@
 [build.environment]
   NODE_VERSION = "22"
   PNPM_VERSION = "10.12.1"
+  # Rewrite same-origin: /api/* y /socket.io/* se proxean al API
+  # (cookies Lax sin cross-site; socket.io queda en polling).
+  API_PROXY_TARGET = "https://api.omnidance.eduardosalasg.dev"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Env vars (Netlify UI → Site settings → Environment variables):
-#   API_PROXY_TARGET             — URL pública del API (https://api.…).
-#                                  next.config.mjs proxea /api/* y
-#                                  /socket.io/* a ese origen (same-origin:
-#                                  cookies Lax sin cross-site; socket.io
-#                                  queda en polling por el proxy).
+# Env vars restantes (Netlify UI → Site settings → Environment variables):
 #   NEXT_PUBLIC_CARTO_BASEMAP_KEY— key pública del basemap (mapa academias).
 #   NEXT_PUBLIC_VAPID_PUBLIC_KEY — key pública web-push.
-#   NEXT_PUBLIC_WEB_URL          — URL pública del sitio.
+#   NEXT_PUBLIC_WEB_URL          — https://omnidance.netlify.app
 #   NEXT_PUBLIC_API_URL          — dejar VACÍA (relativa = same-origin).
