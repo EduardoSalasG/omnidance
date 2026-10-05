@@ -18,12 +18,12 @@ const NIGHT = [0x0a, 0x0a, 0x0f];
 const NEON = [0xa7, 0x8b, 0xfa];
 
 // Geometría en el viewBox 512 del SVG: rect rx=96; la "O" (system-ui 800,
-// font-size 300, baseline middle en y=58%) se aproxima con un anillo
-// elíptico centrado en (256, 297).
+// font-size 300, baseline middle en y=50%) se aproxima con un anillo
+// elíptico centrado en (256, 256).
 const VB = 512;
 const RECT_RX = 96;
 const O_CX = 256;
-const O_CY = 297;
+const O_CY = 256;
 const O_OUTER_RX = 118;
 const O_OUTER_RY = 152;
 const O_STROKE = 44; // inner = outer - stroke
