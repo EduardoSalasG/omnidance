@@ -333,14 +333,21 @@ describe("academies gap: private lessons + videos e2e", () => {
   });
 
   describe("GET /api/private-lessons/mine", () => {
-    it("alumno (default as=student) ve sus clases", async () => {
-      const res = await get("/api/private-lessons/mine", studentSession);
+    it("alumno ve sus particulares mergeadas en /classes/mine", async () => {
+      const res = await get("/api/classes/mine", studentSession);
       expect(res.status).toBe(200);
       const list = await res.json();
-      expect(list.some((l: { id: string }) => l.id === ids.lessonId)).toBe(true);
-      expect(
-        list.every((l: { personId: string }) => l.personId === ids.studentId),
-      ).toBe(true);
+      const item = list.find(
+        (l: { id: string }) => l.id === ids.lessonId,
+      );
+      expect(item).toBeTruthy();
+      expect(item.series).toBeNull();
+      expect(item.myBooking).toBe("BOOKED");
+    });
+
+    it("mine sin as=instructor → 400 (la lectura alumno vive en /classes/mine)", async () => {
+      const res = await get("/api/private-lessons/mine", studentSession);
+      expect(res.status).toBe(400);
     });
 
     it("instructor con as=instructor ve las suyas", async () => {
