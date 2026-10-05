@@ -207,6 +207,8 @@ class FakePrisma {
 
   person = {
     findUnique: async () => null,
+    findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
+      where.id.in.map((id) => ({ id, name: `Nombre ${id}` })),
   };
 
   enrollment = {
@@ -374,6 +376,44 @@ class FakePrisma {
       Object.assign(row, data);
       return { ...row };
     },
+  };
+
+  // Particulares del alumno — /classes/mine las mergea como reservas.
+  lessons: {
+    id: string;
+    academyId: string;
+    instructorId: string | null;
+    personId: string;
+    scheduledAt: Date | null;
+    price: number;
+    status: string;
+    createdAt: Date;
+  }[] = [];
+
+  privateLesson = {
+    findMany: async ({
+      where,
+    }: {
+      where: { personId?: string; status?: { in: string[] } };
+    }) =>
+      this.lessons.filter(
+        (l) =>
+          (where.personId === undefined || l.personId === where.personId) &&
+          (where.status === undefined || where.status.in.includes(l.status)),
+      ),
+  };
+
+  academy = {
+    findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
+      where.id.in.map((id) => ({
+        id,
+        name: `Academia ${id}`,
+        billingBlockedAt: null,
+      })),
+  };
+
+  attendance = {
+    findMany: async () => [],
   };
 
   // El controller transacciona; el fake ejecuta el callback consigo mismo.
@@ -1005,5 +1045,107 @@ describe("asiento pagado vs cuota del plan", () => {
     const res = await ctrl.detail("cls-1", reqAs("per-1"));
     expect(res.myBooking).toBe("BOOKED");
     expect(res.myBookingPaid).toBe(true);
+  });
+});
+
+// particular-reserva-unificada: /classes/mine devuelve las particulares
+// compradas mergeadas — el alumno no hace un fetch aparte y cancela
+// desde la ficha como cualquier reserva.
+describe("ClassesController.mine — particulares mergeadas", () => {
+  let prisma: FakePrisma;
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
+  let ctrl: ClassesController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    notifications = { notifySafe: vi.fn(async () => undefined) };
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      {} as AcademyAccess,
+      fakeParams(),
+    );
+  });
+
+  it("la particular activa viaja con shape de card: capacity 1, myBooking BOOKED, series null", async () => {
+    prisma.lessons.push({
+      id: "les-1",
+      academyId: "acad-9",
+      instructorId: "inst-1",
+      personId: "per-1",
+      scheduledAt: new Date(Date.now() + 2 * 86_400_000),
+      price: 40000,
+      status: "CONFIRMED",
+      createdAt: new Date(),
+    });
+    const res = await ctrl.mine(reqAs("per-1"));
+    const row = res.find((r) => r.id === "les-1")!;
+    expect(row).toMatchObject({
+      capacity: 1,
+      bookedCount: 1,
+      spotsLeft: 0,
+      myBooking: "BOOKED",
+      series: null,
+      academy: { id: "acad-9", name: "Academia acad-9" },
+      instructor: { id: "inst-1", name: "Nombre inst-1" },
+    });
+    expect(row.date).toMatch(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/);
+  });
+
+  it("la particular sin agendar llega con date/startTime null (grupo por agendar)", async () => {
+    prisma.lessons.push({
+      id: "les-p",
+      academyId: "acad-9",
+      instructorId: null,
+      personId: "per-1",
+      scheduledAt: null,
+      price: 40000,
+      status: "REQUESTED",
+      createdAt: new Date(),
+    });
+    const res = await ctrl.mine(reqAs("per-1"));
+    const row = res.find((r) => r.id === "les-p")!;
+    expect(row.date).toBeNull();
+    expect(row.startTime).toBeNull();
+    expect(row.instructor).toBeNull();
+  });
+
+  it("DONE/CANCELLED no aparecen en reservadas; sí en scope=past", async () => {
+    prisma.lessons.push(
+      {
+        id: "les-done",
+        academyId: "acad-9",
+        instructorId: null,
+        personId: "per-1",
+        scheduledAt: new Date(Date.now() - 2 * 86_400_000),
+        price: 40000,
+        status: "DONE",
+        createdAt: new Date(),
+      },
+      {
+        id: "les-cx",
+        academyId: "acad-9",
+        instructorId: null,
+        personId: "per-1",
+        scheduledAt: null,
+        price: 40000,
+        status: "CANCELLED",
+        createdAt: new Date(),
+      },
+    );
+    const mine = await ctrl.mine(reqAs("per-1"));
+    expect(mine.some((r) => r.id === "les-done")).toBe(false);
+    expect(mine.some((r) => r.id === "les-cx")).toBe(false);
+
+    const past = (await ctrl.mine(reqAs("per-1"), "past")) as {
+      id: string;
+      status: string;
+      date: string | null;
+    }[];
+    expect(past.find((r) => r.id === "les-done")?.status).toBe("attended");
+    // Cancelada sin agendar: el historial la ubica por su día de compra.
+    const cx = past.find((r) => r.id === "les-cx")!;
+    expect(cx.status).toBe("cancelled");
+    expect(cx.date).not.toBeNull();
   });
 });

@@ -184,80 +184,116 @@ export class PrivateLessonsController {
   }
 
   /**
-   * Mis clases privadas: como alumno (default) o como instructor. La rama
-   * instructor agrega commissionClp/netClp calculados (la UI no hace
-   * aritmética de negocio); la rama alumno NO expone nada de la comisión
-   * — es un acuerdo academia↔instructor.
+   * Mis clases privadas como instructor — agrega commissionClp/netClp
+   * calculados (la UI no hace aritmética de negocio). La vista del
+   * alumno vive en /classes/mine (las particulares son una reserva
+   * más) — este endpoint ya no expone la rama alumno: una sola fuente.
    */
   @Get("private-lessons/mine")
   @UseGuards(SessionGuard)
   async mine(@Query("as") asRole: string | undefined, @Req() req: Request) {
+    if (asRole !== "instructor") {
+      throw new BadRequestException(
+        "usa GET /classes/mine para tus reservas (incluye particulares)",
+      );
+    }
     const personId = req.person!.id;
     const lessons = await this.prisma.privateLesson.findMany({
-      where:
-        asRole === "instructor" ? { instructorId: personId } : { personId },
+      where: { instructorId: personId },
       orderBy: { scheduledAt: "desc" },
     });
-    // Nombres de la contraparte: el alumno ve el instructor, el
-    // instructor ve el alumno (join null-safe: la comprada sin asignar
-    // no tiene instructor todavía).
-    const counterpartIds = [
-      ...new Set(
-        lessons.flatMap((l) =>
-          asRole === "instructor"
-            ? [l.personId]
-            : l.instructorId
-              ? [l.instructorId]
-              : [],
-        ),
-      ),
-    ];
-    // Academias de las lecciones — la card del alumno (reservadas de
-    // /clases) muestra el nombre sin fetch extra del directorio.
-    const academies = await this.prisma.academy.findMany({
-      where: { id: { in: [...new Set(lessons.map((l) => l.academyId))] } },
-      select: { id: true, name: true },
-    });
-    const academyById = new Map(academies.map((a) => [a.id, a]));
-    const people = counterpartIds.length
+    const studentIds = [...new Set(lessons.map((l) => l.personId))];
+    const people = studentIds.length
       ? await this.prisma.person.findMany({
-          where: { id: { in: counterpartIds } },
+          where: { id: { in: studentIds } },
           select: { id: true, name: true },
         })
       : [];
     const byId = new Map(people.map((p) => [p.id, p]));
-    const counterpartOf = (l: (typeof lessons)[number]) =>
-      asRole === "instructor"
-        ? {
-            person: byId.get(l.personId) ?? { id: l.personId, name: null },
-          }
-        : {
-            instructor: l.instructorId
-              ? (byId.get(l.instructorId) ?? {
-                  id: l.instructorId,
-                  name: null,
-                })
-              : null,
-          };
-    if (asRole === "instructor") {
-      return lessons.map((l) => {
-        const commissionClp = Math.round((l.price * l.commissionPct) / 100);
-        return {
-          ...l,
-          ...counterpartOf(l),
-          commissionClp,
-          netClp: l.price - commissionClp,
-        };
-      });
-    }
     return lessons.map((l) => {
-      const { commissionPct: _c, commissionPaidAt: _p, ...rest } = l;
+      const commissionClp = Math.round((l.price * l.commissionPct) / 100);
       return {
-        ...rest,
-        ...counterpartOf(l),
-        academy: academyById.get(l.academyId) ?? { id: l.academyId, name: null },
+        ...l,
+        person: byId.get(l.personId) ?? { id: l.personId, name: null },
+        commissionClp,
+        netClp: l.price - commissionClp,
       };
     });
+  }
+
+  /**
+   * Detalle de una clase privada — lo consume la ficha del alumno en
+   * /clases/[id] (una particular es una reserva más; cancelar vive en
+   * su ficha, igual que una reserva normal) y staff/instructor.
+   * Acceso: alumno dueño, instructor asignado, owner de la academia
+   * o admin. La comisión solo viaja a quien la ve en la lista
+   * (acuerdo academia↔instructor — nunca al alumno).
+   */
+  @Get("private-lessons/:id")
+  @UseGuards(SessionGuard)
+  async detail(@Param("id") id: string, @Req() req: Request) {
+    const lesson = await this.prisma.privateLesson.findUnique({
+      where: { id },
+    });
+    if (!lesson) throw new NotFoundException("clase privada no encontrada");
+
+    const academy = await this.prisma.academy.findUnique({
+      where: { id: lesson.academyId },
+      select: { id: true, name: true, ownerId: true, billingBlockedAt: true },
+    });
+    const me = req.person!;
+    const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
+      "admin.access",
+    ]);
+    const isOwner = isAdmin || academy?.ownerId === me.id;
+    const isInstructor = lesson.instructorId === me.id;
+    const isStudent = lesson.personId === me.id;
+    if (!isOwner && !isInstructor && !isStudent) {
+      throw new ForbiddenException("sin acceso a esta clase privada");
+    }
+
+    const people = await this.prisma.person.findMany({
+      where: {
+        id: {
+          in: [
+            lesson.personId,
+            ...(lesson.instructorId ? [lesson.instructorId] : []),
+          ],
+        },
+      },
+      select: { id: true, name: true, photoUrl: true, instagram: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+
+    const base = {
+      id: lesson.id,
+      status: lesson.status,
+      scheduledAt: lesson.scheduledAt,
+      price: lesson.price,
+      createdAt: lesson.createdAt,
+      academy: {
+        id: academy?.id ?? lesson.academyId,
+        name: academy?.name ?? null,
+        billingBlocked: academy?.billingBlockedAt != null,
+      },
+      person: byId.get(lesson.personId) ?? { id: lesson.personId, name: null },
+      instructor: lesson.instructorId
+        ? (byId.get(lesson.instructorId) ?? {
+            id: lesson.instructorId,
+            name: null,
+            photoUrl: null,
+            instagram: null,
+          })
+        : null,
+    };
+    if (isOwner || isInstructor) {
+      return {
+        ...base,
+        commissionPct: lesson.commissionPct,
+        commissionPaidAt: lesson.commissionPaidAt,
+      };
+    }
+    return base;
   }
 
   /**

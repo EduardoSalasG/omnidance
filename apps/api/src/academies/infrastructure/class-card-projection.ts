@@ -88,6 +88,81 @@ export function classEnded(c: {
   return classEndInstant(c.date, c.slot.endTime).getTime() <= Date.now();
 }
 
+const chilePartsFmt = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Santiago",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+// Instante real (PrivateLesson.scheduledAt/createdAt) → convención del
+// card: `date` = ISO medianoche UTC del DÍA LOCAL (como Class.date) y
+// `startTime` = "HH:mm" local — la UI agrupa/ordena sin caso especial.
+export function instantToCardDate(instant: Date): {
+  date: string;
+  startTime: string;
+} {
+  const p = Object.fromEntries(
+    chilePartsFmt.formatToParts(instant).map((x) => [x.type, x.value]),
+  );
+  return {
+    date: `${p.year}-${p.month}-${p.day}T00:00:00.000Z`,
+    startTime: `${p.hour}:${p.minute}`,
+  };
+}
+
+// Una particular comprada ES una reserva más (aforo 1, sin
+// recurrencia): se proyecta al mismo shape del card con `series: null`
+// — el título cae a "Clase particular" y el badge es "Reservado" como
+// toda reserva. Sin fecha asignada `date`/`startTime` viajan null y la
+// UI la agrupa aparte ("Por agendar").
+export function lessonCardItem(
+  l: {
+    id: string;
+    academyId: string;
+    instructorId: string | null;
+    scheduledAt: Date | null;
+  },
+  academy:
+    | { id: string; name: string; billingBlockedAt: Date | null }
+    | undefined,
+  enrolledIds: Set<string>,
+  instructorName: Map<string, string | null>,
+) {
+  const when = l.scheduledAt ? instantToCardDate(l.scheduledAt) : null;
+  return {
+    id: l.id,
+    date: when?.date ?? null,
+    startTime: when?.startTime ?? null,
+    endTime: null,
+    weekday: null,
+    capacity: 1,
+    bookedCount: 1,
+    spotsLeft: 0,
+    waitlistCount: 0,
+    myBooking: "BOOKED" as const,
+    enrolled: enrolledIds.has(l.academyId),
+    academy: academy
+      ? {
+          id: academy.id,
+          name: academy.name,
+          billingBlocked: academy.billingBlockedAt != null,
+        }
+      : { id: l.academyId, name: null, billingBlocked: false },
+    instructor: l.instructorId
+      ? {
+          id: l.instructorId,
+          name: instructorName.get(l.instructorId) ?? null,
+        }
+      : null,
+    series: null,
+    credits: null,
+  };
+}
+
 export type ClassCardRow = {
   id: string;
   date: Date;

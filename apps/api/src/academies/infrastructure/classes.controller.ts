@@ -29,6 +29,8 @@ import {
   CLASS_CARD_SELECT,
   classCardItem,
   classEnded,
+  instantToCardDate,
+  lessonCardItem,
   type ClassCardRow,
 } from "./class-card-projection";
 
@@ -348,7 +350,9 @@ export class ClassesController {
   }
 
   /** Mis reservas activas (BOOKED/WAITLIST) en clases futuras —
-      mismo shape del card que browse. */
+      mismo shape del card que browse. Las particulares compradas
+      (aforo 1, sin recurrencia) viajan en la MISMA respuesta —
+      series:null, date:null cuando aún no se agendan. */
   @Get("mine")
   async mine(@Req() req: Request, @Query("scope") scope?: string) {
     if (scope === "past") return this.history(req.person!.id);
@@ -359,7 +363,7 @@ export class ClassesController {
     // instante de término (cubre clases que cruzan medianoche).
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
     yesterday.setUTCHours(0, 0, 0, 0);
-    const [enrolledIds, rows] = await Promise.all([
+    const [enrolledIds, rows, lessons] = await Promise.all([
       this.enrolledAcademyIds(me),
       this.prisma.classBooking.findMany({
         where: {
@@ -370,11 +374,34 @@ export class ClassesController {
         orderBy: { class: { date: "asc" } },
         select: { class: { select: CLASS_CARD_SELECT } },
       }),
+      // Particulares activas del alumno (compradas o en curso) — una
+      // reserva más; sin ellas el pago quedaría invisible en /clases.
+      this.prisma.privateLesson.findMany({
+        where: { personId: me, status: { in: ["REQUESTED", "CONFIRMED"] } },
+      }),
     ]);
     const classes = rows
       .map((r) => r.class)
       .filter((c) => !classEnded(c));
-    const instructorName = await this.instructorNames(classes);
+    const instructorName = await this.instructorNames([
+      ...classes,
+      ...lessons,
+    ]);
+    const lessonAcademies = lessons.length
+      ? new Map(
+          (
+            await this.prisma.academy.findMany({
+              where: {
+                id: { in: [...new Set(lessons.map((l) => l.academyId))] },
+              },
+              select: { id: true, name: true, billingBlockedAt: true },
+            })
+          ).map((a) => [a.id, a] as const),
+        )
+      : new Map<
+          string,
+          { id: string; name: string; billingBlockedAt: Date | null }
+        >();
     // Créditos del plan vigente por (academia, semana ISO de la clase) —
     // mismo resolveQuota de la ficha; el card muestra "n/m esta semana".
     const creditsByKey = new Map<
@@ -397,13 +424,23 @@ export class ClassesController {
           : null,
       );
     }
-    return classes.map((c) => ({
-      ...classCardItem(c, me, enrolledIds, instructorName),
-      credits:
-        creditsByKey.get(
-          `${c.slot.academy.id}:${isoWeekRange(c.date).start.getTime()}`,
-        ) ?? null,
-    }));
+    return [
+      ...classes.map((c) => ({
+        ...classCardItem(c, me, enrolledIds, instructorName),
+        credits:
+          creditsByKey.get(
+            `${c.slot.academy.id}:${isoWeekRange(c.date).start.getTime()}`,
+          ) ?? null,
+      })),
+      ...lessons.map((l) =>
+        lessonCardItem(
+          l,
+          lessonAcademies.get(l.academyId),
+          enrolledIds,
+          instructorName,
+        ),
+      ),
+    ];
   }
 
   /**
@@ -414,17 +451,23 @@ export class ClassesController {
    * prevalece sobre la cancelación. Últimas 50.
    */
   private async history(personId: string) {
-    const [enrolledIds, attendances, bookings] = await Promise.all([
-      this.enrolledAcademyIds(personId),
-      this.prisma.attendance.findMany({
-        where: { personId },
-        select: { class: { select: CLASS_CARD_SELECT } },
-      }),
-      this.prisma.classBooking.findMany({
-        where: { personId, status: "CANCELLED" },
-        select: { class: { select: CLASS_CARD_SELECT } },
-      }),
-    ]);
+    const [enrolledIds, attendances, bookings, lessons] =
+      await Promise.all([
+        this.enrolledAcademyIds(personId),
+        this.prisma.attendance.findMany({
+          where: { personId },
+          select: { class: { select: CLASS_CARD_SELECT } },
+        }),
+        this.prisma.classBooking.findMany({
+          where: { personId, status: "CANCELLED" },
+          select: { class: { select: CLASS_CARD_SELECT } },
+        }),
+        // Particulares terminales también son historial — misma fila
+        // del card (DONE → attended, CANCELLED → cancelled).
+        this.prisma.privateLesson.findMany({
+          where: { personId, status: { in: ["DONE", "CANCELLED"] } },
+        }),
+      ]);
 
     // Dedup por classId con el shape completo del card + status de
     // resultado ("attended" gana sobre la cancelación de la misma clase).
@@ -438,16 +481,55 @@ export class ClassesController {
     for (const a of attendances) {
       past.set(a.class.id, { cls: a.class, status: "attended" });
     }
-    const rows = [...past.values()]
-      .sort((a, b) => b.cls.date.getTime() - a.cls.date.getTime())
-      .slice(0, 50);
-    const instructorName = await this.instructorNames(
-      rows.map((r) => r.cls),
+    const rows = [...past.values()].sort(
+      (a, b) => b.cls.date.getTime() - a.cls.date.getTime(),
     );
-    return rows.map((r) => ({
-      ...classCardItem(r.cls, personId, enrolledIds, instructorName),
-      status: r.status,
-    }));
+    const lessonAcademies = lessons.length
+      ? new Map(
+          (
+            await this.prisma.academy.findMany({
+              where: {
+                id: { in: [...new Set(lessons.map((l) => l.academyId))] },
+              },
+              select: { id: true, name: true, billingBlockedAt: true },
+            })
+          ).map((a) => [a.id, a] as const),
+        )
+      : new Map<
+          string,
+          { id: string; name: string; billingBlockedAt: Date | null }
+        >();
+    const instructorName = await this.instructorNames([
+      ...rows.map((r) => r.cls),
+      ...lessons,
+    ]);
+    return [
+      ...rows.map((r) => ({
+        ...classCardItem(r.cls, personId, enrolledIds, instructorName),
+        date: r.cls.date.toISOString(),
+        status: r.status,
+      })),
+      ...lessons.map((l) => {
+        // La particular cancelada sin agendar no tiene fecha propia —
+        // el historial la ubica por su día de compra.
+        const when = instantToCardDate(l.scheduledAt ?? l.createdAt);
+        return {
+          ...lessonCardItem(
+            l,
+            lessonAcademies.get(l.academyId),
+            enrolledIds,
+            instructorName,
+          ),
+          date: when.date,
+          startTime: when.startTime,
+          status: l.status === "DONE" ? ("attended" as const) : ("cancelled" as const),
+        };
+      }),
+    ]
+      .sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      )
+      .slice(0, 50);
   }
 
   /**

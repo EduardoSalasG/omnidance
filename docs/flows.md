@@ -453,6 +453,7 @@ sequenceDiagram
 - `Academy.privateLessonPrice = null` → la academia no vende particulares (card oculta, checkout 400).
 - Devenga a la academia en payouts — el refId `pvt_` codifica la academia directamente (incluso si no tiene eventos/planes/clases). Una particular **cancelada** no devenga: el pago se excluye de `by-academy`/payouts y el owner recibe `academy.private_lesson.cancelled_paid` (la devolución al alumno es manual vía Flow).
 - Liquidación de la comisión academia→instructor: `PATCH /private-lessons/:id {action:"pay-commission"}` (owner/ADMIN) marca `PrivateLesson.commissionPaidAt` sobre CONFIRMED/DONE con comisión >0 — la plataforma no transfiere, el owner paga por fuera (criterio Payout). Notifica `private_lesson.commission_paid` al instructor; `mine?as=instructor` expone `commissionPaidAt`.
+- **Vista alumno unificada**: `GET /classes/mine` devuelve las particulares activas mergeadas como reservas más (`series:null`, `date:null` si no están agendadas — grupo "Por agendar"; cancelar vive en la ficha `/clases/[id]`, que resuelve la particular vía `GET /private-lessons/:id`). Las terminales (DONE/CANCELLED) llegan en `/classes/mine?scope=past`. `/private-lessons/mine` queda solo para instructores (`?as=instructor`).
 
 ## Reserva de clase — cuota del plan + cancelación con corte
 

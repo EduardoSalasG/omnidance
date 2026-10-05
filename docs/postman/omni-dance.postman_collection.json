@@ -6084,6 +6084,31 @@
           }
         },
         {
+          "name": "GET /api/private-lessons/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/private-lessons/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "private-lessons",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "PATCH /api/private-lessons/{id}",
           "request": {
             "method": "PATCH",
