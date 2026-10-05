@@ -270,3 +270,29 @@ validate verde, openapi.json+postman regenerados (198 paths),
 flows.md/architecture.md actualizados. **Smoke manual pendiente**:
 particular sin agendar arriba de reservadas, ficha + cancelación con
 sesión real, consola staff intacta.
+
+## Planes de academia — tag de tipo + seed por categorías (508ec9d + archive)
+
+Pedido: el periodo del plan (Mensual/Trimestral/Semestral) va como tag
+verde, no como texto; los nombres del seed ya no llevan periodo ni
+conteo semanal (era redundante con el card) — ahora son categorías que
+varían por academia; todas ofrecen clase de prueba y clase suelta.
+
+- **UI** (`profile-plans-section.tsx`): `Badge variant="neon"` para el
+  tipo junto al nombre; la línea gris solo muestra cuotas
+  (N clases · N/semana).
+- **Seed**: `plan()` acepta `aliases` — busca por nombre nuevo o
+  antiguos y renombra in-place; restos con alias quedan `active:false`
+  (no se borran, pueden tener enrollments). Verificado: 2 corridas
+  idempotentes, 0 planes con nombre viejo, 0 duplicados, 80 activos.
+- **Nombres**: muvet Oro/Platino/Diamante + Pack flexible; tumbao
+  Normal; Mambo Madness Básico/Premium/VIP/Oro/Diamante; las 16
+  restantes rotan pares [Básico,Premium] [Plata,Oro] [Normal,Extendido]
+  [Esencial,VIP] [Bronce,Platino] [Inicial,Diamante] por índice.
+- **Todas las academias**: `TRIAL` "Clase de prueba" $0 + `SINGLE`
+  "Clase suelta" ($8k general / $10k Mambo-Tumbao / $12k muvet).
+- Spec canonizada en `academies/public-profile` (tipo como tag +
+  convención de nombres + renombre idempotente).
+
+Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
+`[]`, SSR autenticado de `/academias/:id` confirma tag neon + nombres.
