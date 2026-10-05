@@ -5,14 +5,16 @@
  * `data` es el JSON libre de la notificación; si trae `url` se usa al hacer
  * click, si no cae a /notificaciones (el centro in-app).
  *
- * Sin icon: public/ aún no tiene icon-192.png - agregar `icon` aquí cuando
- * exista el asset.
  */
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
+
+// Handler vacío: Chrome exige un fetch handler para considerar la PWA
+// instalable (beforeinstallprompt). Sin respondWith no intercepta nada.
+self.addEventListener("fetch", () => {});
 
 self.addEventListener("push", (event) => {
   let payload = {};
@@ -33,6 +35,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: typeof payload.body === "string" ? payload.body : "",
+      icon: "/icon-192.png",
       data: { url },
     }),
   );
