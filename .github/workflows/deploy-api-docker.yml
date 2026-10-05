@@ -15,7 +15,9 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omnidance-api
-  CONTAINER_DIR: /opt/apps/omnidance
+  # $HOME se expande en la VM (remote shell) — dir del deploy user, sin
+  # sudo ni permisos especiales. /opt/apps requeriría chown previo.
+  CONTAINER_DIR: $HOME/apps/omnidance
   PUBLIC_API_HOST: api.omnidance.eduardosalasg.dev
 
 jobs:
@@ -125,14 +127,11 @@ jobs:
           echo "ORACLE_USER=$(echo '${{ secrets.ORACLE_USER }}' | tr -d '[:space:]')" >> "$GITHUB_ENV"
           echo "ORACLE_HOST=$(echo '${{ secrets.ORACLE_HOST }}' | tr -d '[:space:]')" >> "$GITHUB_ENV"
 
-      # El dir puede existir owned por root u otro deploy — mkdir -p
-      # retorna 0 igual y el cat siguiente moriría con Permission denied.
-      # sudo idempotente: crea si falta y asegura ownership del deploy user.
       - name: Copy docker-compose.yml to server
         run: |
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
-            'sudo mkdir -p ${{ env.CONTAINER_DIR }} && sudo chown $(id -un):$(id -gn) ${{ env.CONTAINER_DIR }}'
+            'mkdir -p ${{ env.CONTAINER_DIR }}'
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
             "cat > ${{ env.CONTAINER_DIR }}/docker-compose.yml" \
@@ -229,7 +228,7 @@ jobs:
 
               for attempt in $(seq 1 60); do
                 echo "Health check attempt $attempt/60 ..."
-                if curl -fsS --max-time 5 --connect-timeout 2 http://127.0.0.1:4000/api/health > /dev/null; then
+                if curl -fsS --max-time 5 --connect-timeout 2 http://127.0.0.1:3002/api/health > /dev/null; then
                   break
                 fi
 
@@ -245,7 +244,7 @@ jobs:
 
               # Un 200 de health puede venir de una imagen vieja. Esta ruta
               # protegida debe existir y rechazar la sonda anónima.
-              route_status=$(curl -s -o /dev/null --max-time 5 --connect-timeout 2 -w "%{http_code}" http://127.0.0.1:4000/api/me)
+              route_status=$(curl -s -o /dev/null --max-time 5 --connect-timeout 2 -w "%{http_code}" http://127.0.0.1:3002/api/me)
               if [ "$route_status" != "401" ]; then
                 echo "Expected /api/me to return 401 after deploy; received $route_status."
                 docker compose ps
@@ -264,7 +263,11 @@ jobs:
             << 'EOF'
               set -e
 
-              sudo systemctl reload nginx
+              # Reload no-fatal: el vhost es estático una vez creado; si el
+              # deploy user no tiene NOPASSWD para systemctl el reload se
+              # omite con aviso — la sonda HTTPS de abajo es el gate real.
+              sudo -n systemctl reload nginx 2>/dev/null || \
+                echo "warn: no se pudo recargar nginx (NOPASSWD ausente?) — el vhost es estático, la sonda HTTPS valida igual"
 
               # Valida el vhost HTTPS real de Nginx. El puerto 80 redirige
               # a HTTPS, así que una sonda HTTP daría 301 en vez del 401

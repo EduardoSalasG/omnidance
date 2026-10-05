@@ -356,7 +356,7 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
 ### Lo que falta (lado usuario, docs/ci-cd.md)
 
 1. Neon: crear DB `omnidance`, copiar URLs pooled + directa.
-2. VM `/opt/apps/omnidance/.env` (DATABASE_URL pooled, DIRECT/… directo,
+2. VM `~/apps/omnidance/.env` (DATABASE_URL pooled, DIRECT/… directo,
    JWT_SECRET, QR_SECRET, WEB_URL, CORS_ORIGINS, API_URL, Flow keys,
    Resend, VAPID, SEED_ADMIN_EMAIL, SESSION_SECURE/SAMESITE).
 3. GitHub secrets + var `PUBLIC_API_HOST` (ya hardcodeado en workflow

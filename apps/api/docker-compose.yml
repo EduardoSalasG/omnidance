@@ -13,7 +13,9 @@ services:
       - NODE_ENV=production
       - PORT=4000
     ports:
-      - "127.0.0.1:4000:4000"
+      # Host:3002 → contenedor:4000. Nginx proxya
+      # api.omnidance.eduardosalasg.dev → 127.0.0.1:3002.
+      - "127.0.0.1:3002:4000"
     logging:
       driver: json-file
       options:
