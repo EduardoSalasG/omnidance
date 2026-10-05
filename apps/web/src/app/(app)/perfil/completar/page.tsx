@@ -1,19 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, Card, RefreshIcon } from "@/components/ui";
 import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { inputCls } from "@/components/academy/shared";
-
-type Me = {
-  id: string;
-  name: string;
-  email: string | null;
-  pendingProfile?: boolean;
-};
 
 type Phase = "loading" | "form" | "done" | "error";
 
@@ -28,34 +22,42 @@ export default function CompletarPerfilPage() {
   const tc = useTranslations("common");
   const router = useRouter();
 
+  // /me compartido (MeProvider) — la fase inicial se deriva del contexto;
+  // quien llega sin pendingProfile vuelve a /perfil.
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
   const [phase, setPhase] = useState<Phase>("loading");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Re-dispara la carga de /me desde el error — vive en el useEffect.
-  const [bootNonce, setBootNonce] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-    apiFetch("/me")
-      .then(async (res) => {
-        if (cancelled) return;
-        if (!res.ok) return setPhase("error");
-        const me = (await res.json()) as Me;
-        if (!me.pendingProfile) {
-          router.replace("/perfil");
-          return;
-        }
-        setName(me.name ?? "");
-        setPhase("form");
-      })
-      .catch(() => !cancelled && setPhase("error"));
-    return () => {
-      cancelled = true;
-    };
-  }, [router, bootNonce]);
+    if (meLoading) return;
+    if (meError || !me) {
+      setPhase("error");
+      return;
+    }
+    if (!me.pendingProfile) {
+      router.replace("/perfil");
+      return;
+    }
+    setPhase((p) => (p === "loading" || p === "error" ? "form" : p));
+  }, [meLoading, meError, me, router]);
+
+  // Pre-fill del nombre una sola vez cuando el form aparece.
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (phase === "form" && !prefilled.current) {
+      prefilled.current = true;
+      setName(me?.name ?? "");
+    }
+  }, [phase, me]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -110,7 +112,7 @@ export default function CompletarPerfilPage() {
               variant="secondary"
               onClick={() => {
                 setPhase("loading");
-                setBootNonce((n) => n + 1);
+                void refreshMe();
               }}
             >
               <RefreshIcon /> {tc("retry")}

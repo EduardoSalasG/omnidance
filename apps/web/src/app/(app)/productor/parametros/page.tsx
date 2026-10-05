@@ -1,10 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { BackLink, Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
-import { PageLoading } from "@/components/ui/spinner";
+import { useMe } from "@/lib/me-context";
+import {
+  BackLink,
+  Badge,
+  Button,
+  Card,
+  PriceTag,
+  RefreshIcon,
+  SkeletonCard,
+} from "@/components/ui";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 import { ProducerProSection } from "@/components/producer/pro-section";
 
@@ -59,10 +67,18 @@ export default function ProducerParamsPage() {
   const tp = useTranslations("producerParams");
   const tc = useTranslations("common");
 
-  const [gate, setGate] = useState<Gate>("loading");
-  const [meId, setMeId] = useState("");
-  const [isProducer, setIsProducer] = useState(false);
+  // /me compartido (MeProvider) — el gate se deriva del contexto y los
+  // params se piden en paralelo desde el mount (un no-productor recibe
+  // 403 del endpoint → el gate por rol decide, la respuesta se descarta).
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
   const [params, setParams] = useState<FeeParams | null>(null);
+  const [dataError, setDataError] = useState(false);
+  const [dataNonce, setDataNonce] = useState(0);
   const [tables, setTables] = useState<Record<TableField, string>>({
     tablesTotal: "",
     tableSeatMax: "",
@@ -71,56 +87,48 @@ export default function ProducerParamsPage() {
   const [tableSaving, setTableSaving] = useState(false);
   const [tableMsg, setTableMsg] = useState<"saved" | "error" | null>(null);
 
-  const boot = useCallback(async () => {
-    setGate("loading");
-    try {
-      const me = await apiFetch("/me");
-      if (me.status === 401) {
-        setGate("unauth");
-        return;
-      }
-      if (!me.ok) {
-        setGate("error");
-        return;
-      }
-      const data = (await me.json()) as { id: string; roles: string[] };
-      if (!data.roles.some((r) => PRODUCER_ROLES.has(r))) {
-        setGate("notProducer");
-        return;
-      }
-      setMeId(data.id);
-      setIsProducer(data.roles.includes("PRODUCER"));
-
-      const [res, tres] = await Promise.all([
-        apiFetch("/producer/fee-params"),
-        apiFetch("/producer/table-params"),
-      ]);
-      if (res.status === 403 || tres.status === 403) {
-        setGate("notProducer");
-        return;
-      }
-      if (!res.ok || !tres.ok) {
-        setGate("error");
-        return;
-      }
-      setParams((await res.json()) as FeeParams);
-      const tp_ = (await tres.json()) as TableParams;
-      setTables({
-        tablesTotal: tp_.tablesTotal != null ? String(tp_.tablesTotal) : "",
-        tableSeatMax:
-          tp_.tableSeatMax != null ? String(tp_.tableSeatMax) : "",
-        tableSeatsTotal:
-          tp_.tableSeatsTotal != null ? String(tp_.tableSeatsTotal) : "",
-      });
-      setGate("ready");
-    } catch {
-      setGate("error");
-    }
-  }, []);
+  const gate: Gate = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : !me
+        ? "unauth"
+        : !me.roles.some((r) => PRODUCER_ROLES.has(r))
+          ? "notProducer"
+          : "ready";
+  const meId = me?.id ?? "";
+  const isProducer = me?.roles.includes("PRODUCER") ?? false;
 
   useEffect(() => {
-    void boot();
-  }, [boot]);
+    let cancelled = false;
+    Promise.all([
+      apiFetch("/producer/fee-params"),
+      apiFetch("/producer/table-params"),
+    ])
+      .then(async ([res, tres]) => {
+        if (cancelled) return;
+        if (!res.ok || !tres.ok) {
+          setDataError(true);
+          return;
+        }
+        setDataError(false);
+        setParams((await res.json()) as FeeParams);
+        const tp_ = (await tres.json()) as TableParams;
+        setTables({
+          tablesTotal: tp_.tablesTotal != null ? String(tp_.tablesTotal) : "",
+          tableSeatMax:
+            tp_.tableSeatMax != null ? String(tp_.tableSeatMax) : "",
+          tableSeatsTotal:
+            tp_.tableSeatsTotal != null ? String(tp_.tableSeatsTotal) : "",
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setDataError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dataNonce]);
 
   async function saveTables() {
     setTableSaving(true);
@@ -148,7 +156,12 @@ export default function ProducerParamsPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <BackLink href="/productor">{t("title")}</BackLink>
 
-      {gate === "loading" && <PageLoading />}
+      {gate === "loading" && (
+        <div className="flex flex-col gap-6" aria-hidden="true">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={3} />
+        </div>
+      )}
 
       {gate === "unauth" && (
         <Button href="/login" size="lg" className="self-start">
@@ -170,9 +183,34 @@ export default function ProducerParamsPage() {
           <p role="alert" className="text-white/70">
             {tc("error")}
           </p>
-          <Button variant="secondary" onClick={() => void boot()}>
+          <Button variant="secondary" onClick={() => void refreshMe()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
+        </div>
+      )}
+
+      {gate === "ready" && dataError && (
+        <div className="flex flex-col items-start gap-4">
+          <p role="alert" className="text-white/70">
+            {tc("error")}
+          </p>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setParams(null);
+              setDataError(false);
+              setDataNonce((n) => n + 1);
+            }}
+          >
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
+      )}
+
+      {gate === "ready" && !dataError && params === null && (
+        <div className="flex flex-col gap-6" aria-hidden="true">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={3} />
         </div>
       )}
 

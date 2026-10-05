@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import type { ActorType, CrmActor } from "./types";
@@ -14,14 +15,6 @@ import { actorKey } from "./types";
 const CRM_ROLES = new Set(["PRODUCER", "ACADEMY_OWNER", "ADMIN"]);
 
 export type CrmGate = "loading" | "unauth" | "forbidden" | "error" | "ready";
-
-type Me = {
-  id: string;
-  name: string;
-  roles: string[];
-  /** Producer Pro (S6): presente solo en productores aprobados. */
-  effectivePro?: boolean;
-};
 
 export type CrmContextValue = {
   gate: CrmGate;
@@ -53,73 +46,106 @@ export type CrmContextValue = {
 export function useCrmContext(): CrmContextValue {
   const t = useTranslations("crm");
 
-  const [gate, setGate] = useState<CrmGate>("loading");
-  const [actors, setActors] = useState<CrmActor[]>([]);
+  // /me compartido (MeProvider) — sin fetch propio de sesión. Las
+  // academias del owner se piden en paralelo (especulativo mientras /me
+  // sigue en vuelo; si el usuario no resulta owner se descartan).
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const meId = me?.id ?? "";
+  const isAdmin = me?.roles.includes("ADMIN") ?? false;
+  const effectivePro = me?.effectivePro ?? null;
+
+  const [myAcademies, setMyAcademies] = useState<
+    { id: string; name: string; ownerId: string }[] | null
+  >(null);
+  const [academiesError, setAcademiesError] = useState(false);
+  const [academiesNonce, setAcademiesNonce] = useState(0);
+  const needsAcademies = me?.roles.includes("ACADEMY_OWNER") ?? false;
+
+  useEffect(() => {
+    if ((!meLoading && !me) || (me && !needsAcademies)) return;
+    let cancelled = false;
+    apiFetch("/academies/mine")
+      .then(async (res) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setAcademiesError(true);
+          return;
+        }
+        setAcademiesError(false);
+        setMyAcademies(
+          (await res.json()) as { id: string; name: string; ownerId: string }[],
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setAcademiesError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [meLoading, me, needsAcademies, academiesNonce]);
+
+  const sessionGate: CrmGate | null = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : !me
+        ? "unauth"
+        : !me.roles.some((r) => CRM_ROLES.has(r))
+          ? "forbidden"
+          : null;
+  const gate: CrmGate =
+    sessionGate ??
+    (academiesError
+      ? "error"
+      : needsAcademies && myAcademies === null
+        ? "loading"
+        : "ready");
+
+  const actors = useMemo<CrmActor[]>(() => {
+    if (!me) return [];
+    const list: CrmActor[] = [];
+    if (me.roles.includes("PRODUCER")) {
+      list.push({
+        actorType: "PRODUCER",
+        actorId: me.id,
+        label: `${t("actor.producer")} · ${me.name}`,
+      });
+    }
+    for (const a of myAcademies ?? []) {
+      if (a.ownerId !== me.id) continue; // instructor ≠ owner del CRM
+      list.push({
+        actorType: "ACADEMY",
+        actorId: a.id,
+        label: `${t("actor.academy")} · ${a.name}`,
+      });
+    }
+    return list;
+  }, [me, myAcademies, t]);
+
   const [actorSel, setActorSel] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [meId, setMeId] = useState("");
-  const [effectivePro, setEffectivePro] = useState<boolean | null>(null);
   const [manual, setManual] = useState<CrmActor | null>(null);
   const [manualType, setManualType] = useState<ActorType>("PRODUCER");
   const [manualId, setManualId] = useState("");
 
-  const boot = useCallback(async () => {
-    setGate("loading");
-    try {
-      const meRes = await apiFetch("/me");
-      if (meRes.status === 401) return setGate("unauth");
-      if (!meRes.ok) return setGate("error");
-      const me = (await meRes.json()) as Me;
-      if (!me.roles.some((r) => CRM_ROLES.has(r))) {
-        return setGate("forbidden");
-      }
-      setIsAdmin(me.roles.includes("ADMIN"));
-      setMeId(me.id);
-      setEffectivePro(me.effectivePro ?? null);
-
-      const list: CrmActor[] = [];
-      if (me.roles.includes("PRODUCER")) {
-        list.push({
-          actorType: "PRODUCER",
-          actorId: me.id,
-          label: `${t("actor.producer")} · ${me.name}`,
-        });
-      }
-      if (me.roles.includes("ACADEMY_OWNER")) {
-        const acRes = await apiFetch("/academies/mine");
-        if (acRes.ok) {
-          const academies = (await acRes.json()) as {
-            id: string;
-            name: string;
-            ownerId: string;
-          }[];
-          for (const a of academies) {
-            if (a.ownerId !== me.id) continue; // instructor ≠ owner del CRM
-            list.push({
-              actorType: "ACADEMY",
-              actorId: a.id,
-              label: `${t("actor.academy")} · ${a.name}`,
-            });
-          }
-        }
-      }
-      setActors(list);
-      setActorSel(
-        list.length > 0
-          ? actorKey(list[0])
-          : me.roles.includes("ADMIN")
-            ? "manual"
-            : "",
-      );
-      setGate("ready");
-    } catch {
-      setGate("error");
-    }
-  }, [t]);
-
+  // Actor por defecto: el primero disponible; ADMIN sin actores cae
+  // en la entrada manual.
   useEffect(() => {
-    void boot();
-  }, [boot]);
+    if (gate === "ready" && actorSel === "") {
+      setActorSel(actors.length > 0 ? actorKey(actors[0]) : isAdmin ? "manual" : "");
+    }
+  }, [gate, actors, actorSel, isAdmin]);
+
+  const boot = useCallback(async () => {
+    setAcademiesError(false);
+    setMyAcademies(null);
+    setAcademiesNonce((n) => n + 1);
+    await refreshMe();
+  }, [refreshMe]);
 
   function applyManual() {
     const id = manualId.trim();

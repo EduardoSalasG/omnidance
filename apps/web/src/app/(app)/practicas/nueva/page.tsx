@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
-import type { Me } from "@/components/social/types";
 
 const inputCls =
   "min-h-11 w-full min-w-0 rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
@@ -23,8 +23,8 @@ export default function NuevaPracticaPage() {
   const tc = useTranslations("common");
   const router = useRouter();
 
-  // undefined = cargando; null = sin sesión.
-  const [me, setMe] = useState<Me | null | undefined>(undefined);
+  // /me compartido (MeProvider): loading = en vuelo; null = sin sesión.
+  const { me, loading: meLoading, refresh: refreshMe } = useMe();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(false);
   // Éxito breve antes del redirect — la key practices.created existía
@@ -53,9 +53,6 @@ export default function NuevaPracticaPage() {
   const [endTime, setEndTime] = useState("");
 
   useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) => setMe(res.ok ? ((await res.json()) as Me) : null))
-      .catch(() => setMe(null));
     // Catálogo de estilos para el foco de la práctica (público, ~10 filas).
     apiFetch("/styles")
       .then(async (res) => {
@@ -97,7 +94,9 @@ export default function NuevaPracticaPage() {
         }),
       });
       if (res.status === 401) {
-        setMe(null);
+        // Sesión caída — el contexto re-resuelve y el gate de login
+        // aparece cuando me quede null.
+        void refreshMe();
         return;
       }
       if (!res.ok) {
@@ -135,8 +134,8 @@ export default function NuevaPracticaPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6">
       <h1 className="text-2xl font-bold leading-tight">{t("new")}</h1>
 
-      {me === undefined && <PageLoading />}
-      {me === null && (
+      {meLoading && <PageLoading />}
+      {!meLoading && !me && (
         <Card className="flex flex-col items-start gap-3">
           <p className="text-sm text-white/60">{t("loginRequired")}</p>
           <Button href="/login" size="sm">

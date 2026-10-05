@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
@@ -44,20 +45,12 @@ function StudentsModule({
   const tc = useTranslations("common");
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [error, setError] = useState(false);
-  const [canAdminister, setCanAdminister] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) =>
-        res.ok ? ((await res.json()) as { id: string; roles: string[] }) : null,
-      )
-      .then((me) =>
-        setCanAdminister(
-          !!me && (me.roles.includes("ADMIN") || me.id === ownerId),
-        ),
-      )
-      .catch(() => setCanAdminister(false));
-  }, [ownerId]);
+  // Permiso desde el /me compartido — null mientras resuelve (el reload
+  // espera), false si no es admin/owner.
+  const { me, loading: meLoading } = useMe();
+  const canAdminister: boolean | null = meLoading
+    ? null
+    : !!me && (me.roles.includes("ADMIN") || me.id === ownerId);
 
   const reload = useCallback(async () => {
     // Los planes solo se usan en el form de alta (owner/admin); el

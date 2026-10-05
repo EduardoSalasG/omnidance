@@ -15,7 +15,7 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
-import type { Me } from "@/components/social/types";
+import { useMe } from "@/lib/me-context";
 
 // GET /practices (+ /practices/mine, que agrega `going`) — shape público.
 type Practice = {
@@ -90,8 +90,12 @@ function PracticasInner() {
   // vista "mías" mentía un empty. mineNonce re-dispara el efecto.
   const [mineError, setMineError] = useState(false);
   const [mineNonce, setMineNonce] = useState(0);
-  // undefined = cargando; null = sin sesión.
-  const [me, setMe] = useState<Me | null | undefined>(undefined);
+  // /me compartido (MeProvider) — sin fetch propio: `me === null` es
+  // "sin sesión" solo cuando el fetch ya resolvió (meChecked) — mientras
+  // está en vuelo me vale null igual, gatear con loading evita flashear
+  // el CTA de login a usuarios autenticados.
+  const { me, loading: meLoading } = useMe();
+  const meChecked = !meLoading;
 
   const load = useCallback(async () => {
     try {
@@ -109,9 +113,6 @@ function PracticasInner() {
 
   useEffect(() => {
     void load();
-    apiFetch("/me")
-      .then(async (res) => setMe(res.ok ? ((await res.json()) as Me) : null))
-      .catch(() => setMe(null));
   }, [load]);
 
   // Mis prácticas: solo cuando se pide la vista y hay sesión resuelta.
@@ -305,7 +306,7 @@ function PracticasInner() {
           ))}
         </nav>
 
-        {view === "mias" && me === null ? (
+        {view === "mias" && meChecked && me === null ? (
           /* Sin sesión no hay "mías" — el login desbloquea la vista */
           <Card className="flex flex-col items-start gap-3">
             <p className="text-sm text-white/60">{t("loginRequired")}</p>

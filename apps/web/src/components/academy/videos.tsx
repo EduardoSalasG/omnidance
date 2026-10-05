@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import {
   ArrowUpRightIcon,
   Badge,
@@ -34,7 +35,6 @@ type VideoItem = {
   locked?: boolean;
 };
 
-type Me = { id: string; roles: string[] };
 
 const linkBtnCls =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl " +
@@ -53,7 +53,7 @@ const linkBtnCls =
 export function Videos({ academy }: { academy: Academy }) {
   const tc = useTranslations("common");
 
-  const [me, setMe] = useState<Me | null>(null);
+  const { me } = useMe();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -68,13 +68,6 @@ export function Videos({ academy }: { academy: Academy }) {
 
   const canAdminister =
     !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
-
-  useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) => (res.ok ? ((await res.json()) as Me) : null))
-      .then(setMe)
-      .catch(() => {});
-  }, []);
 
   const load = useCallback(async () => {
     setState("loading");
