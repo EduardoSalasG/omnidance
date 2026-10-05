@@ -125,11 +125,14 @@ jobs:
           echo "ORACLE_USER=$(echo '${{ secrets.ORACLE_USER }}' | tr -d '[:space:]')" >> "$GITHUB_ENV"
           echo "ORACLE_HOST=$(echo '${{ secrets.ORACLE_HOST }}' | tr -d '[:space:]')" >> "$GITHUB_ENV"
 
+      # El dir puede existir owned por root u otro deploy — mkdir -p
+      # retorna 0 igual y el cat siguiente moriría con Permission denied.
+      # sudo idempotente: crea si falta y asegura ownership del deploy user.
       - name: Copy docker-compose.yml to server
         run: |
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
-            "mkdir -p ${{ env.CONTAINER_DIR }}"
+            'sudo mkdir -p ${{ env.CONTAINER_DIR }} && sudo chown $(id -un):$(id -gn) ${{ env.CONTAINER_DIR }}'
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
             "cat > ${{ env.CONTAINER_DIR }}/docker-compose.yml" \
@@ -142,6 +145,14 @@ jobs:
               set -e
 
               cd "${{ env.CONTAINER_DIR }}"
+
+              if [ ! -f .env ]; then
+                echo "ERROR: falta .env en ${{ env.CONTAINER_DIR }}"
+                echo "Crearlo con DATABASE_URL (Neon pooled), DIRECT_DATABASE_URL"
+                echo "(Neon directo), JWT_SECRET, QR_SECRET, Flow keys, Resend,"
+                echo "VAPID, SEED_ADMIN_EMAIL… — checklist completo en docs/ci-cd.md"
+                exit 1
+              fi
 
               exec 9>/tmp/oracle-docker-deploy.lock
               flock -w 900 9 || {
