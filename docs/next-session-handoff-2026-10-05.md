@@ -152,3 +152,27 @@ el email de la cuenta previa.
 
 Verificado: 1434/1434 tests API (+5 e2e de cascada), `tsc --noEmit`
 web OK, i18n audit ALL_KEYS_OK, openspec validate OK.
+
+## Fix: magic link dejaba al usuario sin sesión en prod
+
+Reportado por el usuario: magic link llegaba pero no iniciaba sesión.
+
+- Causa: `POST /auth/magic-link` armaba el link sobre `API_URL`
+  (`api.omnidance…/api/auth/verify`) → el `Set-Cookie` caía en el
+  dominio del API mientras la SPA consume todo same-origin por el
+  proxy de Netlify (`omnidance.netlify.app/api/*`) → la cookie nunca
+  viajaba. Ahora el link apunta a `WEB_URL/api/auth/verify` → verify
+  corre por el proxy y la cookie queda en el dominio web.
+- Bonus: el redirect de verify ahora discrimina: cuenta nueva
+  (creada por el upsert) → `/bienvenida`; existente → `/inicio`
+  (antes siempre `/` - landing de marketing).
+- Mismo bug latente aplicaba a cualquier link firmado que apunte al
+  API; revisar si aparecen otros (hoy solo el magic link usa cookie).
+- e2e: asserts de `Location` en leads.e2e (existente → /inicio) +
+  nuevo caso email desconocido → /bienvenida. 1435/1435 verdes.
+
+## Fix: íconos PWA seguían verdes
+
+El rebrand `6fa5b62` cambió `icon.svg` a `#a78bfa` pero no la
+constante `NEON` de `generate-icons.mjs` ni regeneró los PNG -
+corregido y regenerados los 4 PNG (commit `98ad610`).

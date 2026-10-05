@@ -370,6 +370,8 @@ describe("leads /pro e2e", () => {
         redirect: "manual",
       });
       expect([200, 302]).toContain(res.status);
+      // La persona ya existía (demo) → aterriza en /inicio, no /bienvenida.
+      expect(res.headers.get("location")).toMatch(/\/inicio$/);
       const person = await prisma.person.findUniqueOrThrow({
         where: { email: "lead-e2e-1@test.cl" },
       });
@@ -526,6 +528,8 @@ describe("leads /pro e2e", () => {
         redirect: "manual",
       });
       expect([200, 302]).toContain(res.status);
+      // Cuenta ya existente → aterriza en /inicio, no en /bienvenida.
+      expect(res.headers.get("location")).toMatch(/\/inicio$/);
 
       const person = await prisma.person.findUniqueOrThrow({
         where: { id: convPersonId },
@@ -541,6 +545,22 @@ describe("leads /pro e2e", () => {
         convSession,
       );
       expect((await write.json()).message).toContain("demo_mode");
+    });
+
+    it("magic link de email desconocido crea la Person y aterriza en /bienvenida", async () => {
+      const freshEmail = "lead-e2e-fresh@test.cl";
+      const token = await auth.createMagicToken(freshEmail);
+      const res = await fetch(`${baseUrl}/api/auth/verify?token=${token}`, {
+        redirect: "manual",
+      });
+      expect([200, 302]).toContain(res.status);
+      expect(res.headers.get("location")).toMatch(/\/bienvenida$/);
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { email: freshEmail },
+      });
+      personIds.push(person.id);
+      expect(person.verifiedAt).not.toBeNull();
+      expect(person.isDemoAccount).toBe(false);
     });
 
     it("complete-profile con datos inválidos → 400", async () => {

@@ -20,6 +20,13 @@ equivalente a enviar vacío. Guardar SHALL persistir vía `PATCH /me` y
 - **WHEN** un usuario completa el registro sin `?next=`
 - **THEN** aterriza en `/bienvenida` (no en `/inicio`).
 
+#### Scenario: magic link de cuenta nueva desemboca en bienvenida
+
+- **WHEN** `GET /auth/verify` crea la `Person` (email desconocido)
+- **THEN** el redirect tras emitir la sesión apunta a
+  `WEB_URL/bienvenida`; si la cuenta ya existía apunta a
+  `WEB_URL/inicio`.
+
 #### Scenario: omitir no bloquea ni reaparece
 
 - **WHEN** el usuario pulsa "ahora no" en `/bienvenida`
