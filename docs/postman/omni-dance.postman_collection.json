@@ -7,7 +7,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:4000"
+      "value": "http://localhost:4100"
     }
   ],
   "item": [
@@ -2889,7 +2889,7 @@
       "name": "sessions",
       "item": [
         {
-          "name": "POST /api/sessions/invite",
+          "name": "POST /api/sessions/scan",
           "request": {
             "method": "POST",
             "header": [
@@ -2899,14 +2899,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/sessions/invite",
+              "raw": "{{baseUrl}}/api/sessions/scan",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "sessions",
-                "invite"
+                "scan"
               ]
             },
             "body": {
@@ -2949,58 +2949,6 @@
                   "language": "json"
                 }
               }
-            }
-          }
-        },
-        {
-          "name": "POST /api/sessions/{id}/confirm",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sessions/{id}/confirm",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sessions",
-                "{id}",
-                "confirm"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "POST /api/sessions/{id}/decline",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sessions/{id}/decline",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sessions",
-                "{id}",
-                "decline"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
             }
           }
         },
@@ -4617,216 +4565,6 @@
                   "disabled": true
                 }
               ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "partner-requests",
-      "item": [
-        {
-          "name": "POST /api/partner-requests",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/partner-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "partner-requests"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/partner-requests",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/partner-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "partner-requests"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /api/partner-requests/{id}/close",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/partner-requests/{id}/close",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "partner-requests",
-                "{id}",
-                "close"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "availability",
-      "item": [
-        {
-          "name": "POST /api/availability",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/availability",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "availability"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/availability",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/availability",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "availability"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "blocks",
-      "item": [
-        {
-          "name": "POST /api/blocks",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/blocks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "blocks"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/blocks",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/blocks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "blocks"
-              ]
-            }
-          }
-        },
-        {
-          "name": "DELETE /api/blocks/{personId}",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/blocks/{personId}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "blocks",
-                "{personId}"
-              ],
-              "variable": [
-                {
-                  "key": "personId",
-                  "value": ":personId"
-                }
-              ],
-              "query": []
             }
           }
         }

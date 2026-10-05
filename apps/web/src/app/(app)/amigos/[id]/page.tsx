@@ -49,8 +49,8 @@ export default function AmigoPerfilPage({
   const { id } = params;
   const t = useTranslations("friends");
   const tc = useTranslations("common");
-  // Etiquetas de rol de baile ya existen en el namespace de partner requests.
-  const tp = useTranslations("partnerRequests");
+  // Etiquetas de rol de baile — mismo catálogo que /perfil/datos.
+  const tp = useTranslations("profile");
 
   const router = useRouter();
   const [state, setState] = useState<PageState>("loading");
@@ -151,9 +151,9 @@ export default function AmigoPerfilPage({
   }, [confirmRemove]);
 
   const roleLabels: Record<StyleRole["role"], string> = {
-    LEADER: tp("roleLeader"),
-    FOLLOWER: tp("roleFollower"),
-    SWITCH: tp("roleSwitch"),
+    LEADER: tp("datos.danceRole.LEADER"),
+    FOLLOWER: tp("datos.danceRole.FOLLOWER"),
+    SWITCH: tp("datos.danceRole.SWITCH"),
   };
 
   if (state === "unauth") {

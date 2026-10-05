@@ -31,10 +31,10 @@ type EventListItem = {
 const FEEDBACK_MS = 2600;
 
 /**
- * Flujo de escaneo para invitar a bailar. Vive dentro del hub /qr —
+ * Flujo de escaneo para registrar un baile. Vive dentro del hub /qr —
  * el header/bottom-nav los da el chrome de la app, no el componente.
  * Sin `eventId` muestra el picker de eventos en vivo/publicados;
- * con `eventId` abre la cámara y postea /sessions/invite.
+ * con `eventId` abre la cámara y postea /sessions/scan.
  */
 export function DanceScanner({ eventId }: { eventId?: string }) {
   const t = useTranslations("sessions");
@@ -53,7 +53,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   const busyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auth primero (invitar requiere sesión); sin eventId se lista qué está
+  // Auth primero (registrar requiere sesión); sin eventId se lista qué está
   // en vivo/publicado para elegir dónde bailar.
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +110,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       busyRef.current = true;
 
       try {
-        const res = await apiFetch("/sessions/invite", {
+        const res = await apiFetch("/sessions/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ qrToken, eventId }),
@@ -152,7 +152,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   if (phase === "unauth") {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
-        <p className="text-lg font-semibold">{t("scanToInvite")}</p>
+        <p className="text-lg font-semibold">{t("scanToDance")}</p>
         <Button href="/login" size="lg">
           {tCommon("login")}
         </Button>
@@ -265,7 +265,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
             >
               <p className="text-xl font-bold">
                 {feedback.kind === "sent"
-                  ? t("inviteSent")
+                  ? t("danceRegistered")
                   : feedback.kind === "cooldown"
                     ? t("cooldown")
                     : tCommon("error")}
@@ -281,7 +281,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       </div>
 
       <p className="px-6 pt-4 text-center text-lg font-semibold">
-        {t("scanToInvite")}
+        {t("scanToDance")}
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 // Tipos del feature de sesiones de baile (GET /api/sessions/mine).
 
-export type SessionAction = "confirm" | "decline" | "discard";
+export type SessionAction = "discard";
 
 export type SessionPartner = {
   name: string;

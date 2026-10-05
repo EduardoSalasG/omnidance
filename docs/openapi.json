@@ -1198,16 +1198,16 @@
         }
       }
     },
-    "/api/sessions/invite": {
+    "/api/sessions/scan": {
       "post": {
-        "operationId": "SessionsController_invite",
+        "operationId": "SessionsController_scan",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/InviteDto"
+                "$ref": "#/components/schemas/ScanDto"
               }
             }
           }
@@ -1235,46 +1235,6 @@
         },
         "responses": {
           "201": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/sessions/{id}/confirm": {
-      "post": {
-        "operationId": "SessionsController_confirm",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/sessions/{id}/decline": {
-      "post": {
-        "operationId": "SessionsController_decline",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
             "description": ""
           }
         }
@@ -2624,136 +2584,6 @@
             "name": "days",
             "required": true,
             "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/partner-requests": {
-      "post": {
-        "operationId": "PartnerRequestsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePartnerRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
-      "get": {
-        "operationId": "PartnerRequestsController_feed",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/partner-requests/{id}/close": {
-      "post": {
-        "operationId": "PartnerRequestsController_close",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/availability": {
-      "post": {
-        "operationId": "AvailabilityController_set",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SetAvailabilityDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
-      "get": {
-        "operationId": "AvailabilityController_feed",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/blocks": {
-      "post": {
-        "operationId": "BlocksController_block",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BlockDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      },
-      "get": {
-        "operationId": "BlocksController_mine",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/api/blocks/{personId}": {
-      "delete": {
-        "operationId": "BlocksController_unblock",
-        "parameters": [
-          {
-            "name": "personId",
-            "required": true,
-            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -4958,7 +4788,7 @@
         "type": "object",
         "properties": {}
       },
-      "InviteDto": {
+      "ScanDto": {
         "type": "object",
         "properties": {}
       },
@@ -5051,18 +4881,6 @@
         "properties": {}
       },
       "SetRentalStatusDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreatePartnerRequestDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "SetAvailabilityDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "BlockDto": {
         "type": "object",
         "properties": {}
       },

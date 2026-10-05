@@ -6,11 +6,8 @@ import { AuthService } from "../src/auth/domain/auth.service";
 import { SocialModule } from "../src/social/social.module";
 import { PaymentsModule } from "../src/payments/payments.module";
 import { PrismaService } from "../src/prisma.service";
-// Controllers nuevos aún no registrados en SocialModule (wiring pendiente):
-// se montan directo en el test module para cubrir el contrato HTTP.
+// Controller montado directo en el test module para cubrir el contrato HTTP.
 import { VenuesController } from "../src/social/infrastructure/venues.controller";
-import { PartnerRequestsController } from "../src/social/infrastructure/partner-requests.controller";
-import { AvailabilityController } from "../src/social/infrastructure/availability.controller";
 
 describe("social endpoints e2e", () => {
   let app: INestApplication;
@@ -23,20 +20,14 @@ describe("social endpoints e2e", () => {
   let sessionA: string;
   let sessionB: string;
   let sessionC: string;
-  let sessionD: string;
 
   const ids = {
     personAId: "",
     personBId: "",
     personCId: "",
-    personDId: "",
     venueActiveId: "",
     venueInactiveId: "",
     eventId: "",
-    styleId: "",
-    partnerOpenAId: "",
-    partnerOpenBId: "",
-    partnerClosedId: "",
     ticketActiveId: "",
     ticketUsedId: "",
   };
@@ -62,11 +53,7 @@ describe("social endpoints e2e", () => {
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [SocialModule, PaymentsModule, AuthModule],
-      controllers: [
-        VenuesController,
-        PartnerRequestsController,
-        AvailabilityController,
-      ],
+      controllers: [VenuesController],
       providers: [PrismaService],
     }).compile();
     app = moduleRef.createNestApplication();
@@ -108,15 +95,6 @@ describe("social endpoints e2e", () => {
     ids.personCId = c.id;
     sessionC = await auth.issueSession(c.id);
 
-    const d = await prisma.person.create({
-      data: {
-        name: "SE Persona D",
-        roles: { create: [{ role: "DANCER", status: "APPROVED" }] },
-      },
-    });
-    ids.personDId = d.id;
-    sessionD = await auth.issueSession(d.id);
-
     const venueActive = await prisma.venue.create({
       data: { name: "SE Venue Activo", address: "Calle 1", capacity: 100 },
     });
@@ -136,52 +114,6 @@ describe("social endpoints e2e", () => {
       },
     });
     ids.eventId = event.id;
-
-    const style = await prisma.style.create({
-      data: { name: "SE Style", genre: "SALSA" },
-    });
-    ids.styleId = style.id;
-
-    // Partner requests: A y B OPEN (createdAt controlado), C CLOSED
-    const pr1 = await prisma.practicePartnerRequest.create({
-      data: {
-        personId: a.id,
-        styleId: style.id,
-        role: "LEADER",
-        level: "intermedio",
-        location: "SE-LOC",
-        note: "busco follower",
-        createdAt: new Date(Date.now() - 60 * 1000),
-      },
-    });
-    ids.partnerOpenAId = pr1.id;
-    const pr2 = await prisma.practicePartnerRequest.create({
-      data: {
-        personId: b.id,
-        role: "FOLLOWER",
-        location: "SE-LOC",
-        createdAt: new Date(),
-      },
-    });
-    ids.partnerOpenBId = pr2.id;
-    const pr3 = await prisma.practicePartnerRequest.create({
-      data: {
-        personId: c.id,
-        location: "SE-LOC",
-        status: "CLOSED",
-        createdAt: new Date(Date.now() + 60 * 1000),
-      },
-    });
-    ids.partnerClosedId = pr3.id;
-
-    // Availability: D expirado (no debe salir en el feed)
-    await prisma.availabilityToggle.create({
-      data: {
-        personId: d.id,
-        available: true,
-        until: new Date(Date.now() - 3600 * 1000),
-      },
-    });
 
     // Tickets de B: uno ACTIVE, uno USED
     const tActive = await prisma.ticket.create({
@@ -208,21 +140,9 @@ describe("social endpoints e2e", () => {
   });
 
   afterAll(async () => {
-    const peopleIds = [
-      ids.personAId,
-      ids.personBId,
-      ids.personCId,
-      ids.personDId,
-    ];
-    await prisma.practicePartnerRequest.deleteMany({
-      where: { personId: { in: peopleIds } },
-    });
-    await prisma.availabilityToggle.deleteMany({
-      where: { personId: { in: peopleIds } },
-    });
+    const peopleIds = [ids.personAId, ids.personBId, ids.personCId];
     await prisma.ticket.deleteMany({ where: { eventId: ids.eventId } });
     await prisma.event.delete({ where: { id: ids.eventId } });
-    await prisma.style.delete({ where: { id: ids.styleId } });
     await prisma.venue.deleteMany({
       where: { id: { in: [ids.venueActiveId, ids.venueInactiveId] } },
     });
@@ -269,235 +189,6 @@ describe("social endpoints e2e", () => {
           ].sort(),
         );
       }
-    });
-  });
-
-  // ═══════════════════════ PARTNER REQUESTS ═══════════════════════
-  describe("POST /api/partner-requests", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("POST", "/api/partner-requests", {});
-      expect(res.status).toBe(401);
-    });
-
-    it("role inválido → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/partner-requests",
-        { role: "BOSS" },
-        sessionA,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("styleId inexistente → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/partner-requests",
-        { styleId: "style-fantasma" },
-        sessionA,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("crea solicitud OPEN con el personId del session", async () => {
-      const res = await req(
-        "POST",
-        "/api/partner-requests",
-        {
-          styleId: ids.styleId,
-          role: "SWITCH",
-          level: "avanzado",
-          location: "SE-LOC-via-api",
-          note: "nota",
-        },
-        sessionC,
-      );
-      expect(res.status).toBe(201);
-      const body = await res.json();
-      expect(body.status).toBe("OPEN");
-      expect(body.personId).toBe(ids.personCId);
-      expect(body.role).toBe("SWITCH");
-      expect(body.location).toBe("SE-LOC-via-api");
-    });
-  });
-
-  describe("GET /api/partner-requests", () => {
-    it("feed público: solo OPEN, desc por createdAt, con person y style", async () => {
-      const res = await fetch(`${baseUrl}/api/partner-requests`);
-      expect(res.status).toBe(200);
-      const feed = await res.json();
-      const mine = feed.filter((r: { location: string | null }) =>
-        r.location?.startsWith("SE-LOC"),
-      );
-
-      // CLOSED (createdAt más reciente) no debe aparecer
-      expect(
-        mine.some((r: { id: string }) => r.id === ids.partnerClosedId),
-      ).toBe(false);
-
-      // desc por createdAt: el de B (más reciente) antes que el de A
-      const idxB = mine.findIndex(
-        (r: { id: string }) => r.id === ids.partnerOpenBId,
-      );
-      const idxA = mine.findIndex(
-        (r: { id: string }) => r.id === ids.partnerOpenAId,
-      );
-      expect(idxB).toBeGreaterThanOrEqual(0);
-      expect(idxA).toBeGreaterThanOrEqual(0);
-      expect(idxB).toBeLessThan(idxA);
-
-      const reqA = mine.find(
-        (r: { id: string }) => r.id === ids.partnerOpenAId,
-      );
-      expect(reqA).toMatchObject({
-        person: { id: ids.personAId, name: "SE Persona A" },
-        styleId: ids.styleId,
-        style: { name: "SE Style" },
-        role: "LEADER",
-        level: "intermedio",
-        note: "busco follower",
-      });
-      expect(reqA.person).toHaveProperty("photoUrl");
-      expect(reqA).toHaveProperty("createdAt");
-
-      const reqB = mine.find(
-        (r: { id: string }) => r.id === ids.partnerOpenBId,
-      );
-      expect(reqB.styleId).toBeNull();
-      expect(reqB.style).toBeNull();
-    });
-  });
-
-  describe("POST /api/partner-requests/:id/close", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req(
-        "POST",
-        `/api/partner-requests/${ids.partnerOpenAId}/close`,
-        {},
-      );
-      expect(res.status).toBe(401);
-    });
-
-    it("inexistente → 404", async () => {
-      const res = await req(
-        "POST",
-        "/api/partner-requests/pr-fantasma/close",
-        {},
-        sessionA,
-      );
-      expect(res.status).toBe(404);
-    });
-
-    it("no dueño → 403", async () => {
-      const res = await req(
-        "POST",
-        `/api/partner-requests/${ids.partnerOpenAId}/close`,
-        {},
-        sessionB,
-      );
-      expect(res.status).toBe(403);
-    });
-
-    it("dueño → 200 status CLOSED y sale del feed", async () => {
-      const res = await req(
-        "POST",
-        `/api/partner-requests/${ids.partnerOpenAId}/close`,
-        {},
-        sessionA,
-      );
-      expect(res.status).toBe(200);
-      expect((await res.json()).status).toBe("CLOSED");
-
-      const feed = await (await fetch(`${baseUrl}/api/partner-requests`)).json();
-      expect(
-        feed.some((r: { id: string }) => r.id === ids.partnerOpenAId),
-      ).toBe(false);
-    });
-  });
-
-  // ═══════════════════════ AVAILABILITY ═══════════════════════
-  describe("POST /api/availability", () => {
-    it("sin sesión → 401", async () => {
-      const res = await req("POST", "/api/availability", { available: true });
-      expect(res.status).toBe(401);
-    });
-
-    it("available inválido → 400", async () => {
-      const res = await req(
-        "POST",
-        "/api/availability",
-        { available: "si" },
-        sessionA,
-      );
-      expect(res.status).toBe(400);
-    });
-
-    it("upsert: crea el toggle", async () => {
-      const res = await req(
-        "POST",
-        "/api/availability",
-        {
-          available: true,
-          until: new Date(Date.now() + 2 * 3600 * 1000).toISOString(),
-          location: "SE-LOC",
-        },
-        sessionA,
-      );
-      expect(res.status).toBe(201);
-      const body = await res.json();
-      expect(body.personId).toBe(ids.personAId);
-      expect(body.available).toBe(true);
-      expect(body.location).toBe("SE-LOC");
-    });
-
-    it("segundo POST actualiza la misma fila (unique personId)", async () => {
-      const res = await req(
-        "POST",
-        "/api/availability",
-        { available: true, location: "SE-LOC-2" },
-        sessionA,
-      );
-      expect(res.status).toBe(201);
-      expect((await res.json()).location).toBe("SE-LOC-2");
-      const count = await prisma.availabilityToggle.count({
-        where: { personId: ids.personAId },
-      });
-      expect(count).toBe(1);
-    });
-  });
-
-  describe("GET /api/availability", () => {
-    it("feed público: solo vigentes, con person{id,name,photoUrl}", async () => {
-      // B no disponible → no sale
-      await req(
-        "POST",
-        "/api/availability",
-        { available: false, location: "SE-LOC" },
-        sessionB,
-      );
-
-      const res = await fetch(`${baseUrl}/api/availability`);
-      expect(res.status).toBe(200);
-      const feed = await res.json();
-
-      // A vigente (until null tras el último POST)
-      const a = feed.find(
-        (t: { person: { id: string } }) => t.person.id === ids.personAId,
-      );
-      expect(a).toBeDefined();
-      expect(a.person).toMatchObject({ id: ids.personAId, name: "SE Persona A" });
-      expect(a.person).toHaveProperty("photoUrl");
-      expect(a.location).toBe("SE-LOC-2");
-      expect(a).toHaveProperty("updatedAt");
-      expect(a).toHaveProperty("until");
-
-      // B apagado y D expirado → ausentes
-      expect(
-        feed.some((t: { person: { id: string } }) => t.person.id === ids.personBId),
-      ).toBe(false);
-      expect(
-        feed.some((t: { person: { id: string } }) => t.person.id === ids.personDId),
-      ).toBe(false);
     });
   });
 
