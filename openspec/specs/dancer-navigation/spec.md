@@ -61,14 +61,16 @@ La ruta `/entradas` MUST dejar de estar en el bottom bar, el sheet y el drawer d
 ### Requirement: Prompt de instalación PWA
 
 Con sesión activa y la app no instalada, la web SHALL mostrar un
-aviso no bloqueante invitando a instalarla. En Chromium MUST usar el
-evento `beforeinstallprompt` para disparar el diálogo nativo; en iOS
-debe mostrar instrucciones del share sheet. El aviso MUST ocultarse
-cuando la app ya corre instalada (display-mode standalone o
-navigator.standalone), en rutas sin chrome, mientras el banner de
-consentimiento esté visible, y tras un dismiss que marca
-`onboarding["install-prompt"]` (persistente). El evento
-`appinstalled` también marca el flag.
+aviso no bloqueante invitando a instalarla. La web MUST registrar el
+service worker al montar el aviso (sin SW Chrome no considera la app
+instalable). En Chromium con `beforeinstallprompt` MUST disparar el
+diálogo nativo; en Android sin el evento e iOS debe mostrar
+instrucciones manuales (menú ⋮ → Instalar app / Compartir → Agregar a
+pantalla de inicio). El aviso MUST ocultarse cuando la app ya corre
+instalada (display-mode standalone o navigator.standalone), en rutas
+sin chrome, mientras el banner de consentimiento esté visible, y tras
+un dismiss que marca `onboarding["install-prompt"]` (persistente). El
+evento `appinstalled` también marca el flag.
 
 #### Scenario: Chromium sin instalar
 
@@ -76,6 +78,13 @@ consentimiento esté visible, y tras un dismiss que marca
   navegador emite `beforeinstallprompt`
 - **THEN** ve el aviso con el botón "Instalar" que dispara el diálogo
   nativo del navegador
+
+#### Scenario: Android sin evento bip
+
+- **WHEN** un usuario con sesión navega en Android en un browser que no
+  emitió `beforeinstallprompt`
+- **THEN** ve el aviso con las instrucciones del menú (⋮ → Instalar
+  app / Agregar a pantalla de inicio)
 
 #### Scenario: iOS sin instalar
 

@@ -3,6 +3,22 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.2.1] - 2026-10-05
+
+### Fixed
+
+- **Install prompt en Android**: el service worker solo se registraba
+  al activar push, así que Chrome nunca emitía `beforeinstallprompt` y
+  el aviso era invisible en Android. Ahora `/sw.js` se registra al
+  montar el aviso, declara el `fetch` handler que Chrome exige, y hay
+  instrucciones manuales (menú ⋮) como fallback.
+- **`SEED_ADMIN_EMAIL` contaminado**: el workflow extraía el valor del
+  `.env` con `grep|cut` crudo - las comillas y espacios quedaban en
+  `Person.email` y el magic link nunca encontraba al admin. El
+  extractor y `seed-prod` ahora normalizan (comillas + whitespace +
+  minúscula, igual que auth).
+- Notificaciones push muestran el ícono de la app (`/icon-192.png`).
+
 ## [0.2.0] - 2026-10-05
 
 Primera iteración post-release inicial: onboarding post-registro,
@@ -93,5 +109,6 @@ de despliegue a producción.
 - DB: Neon Postgres externo (`omnidance`) - pooled para runtime, directo
   para migraciones.
 
+[0.2.1]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.1.0
