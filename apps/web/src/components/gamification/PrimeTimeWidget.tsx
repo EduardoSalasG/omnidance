@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, Skeleton } from "@/components/ui";
+import { Badge, Card } from "@/components/ui";
 
 type PrimeTime = {
   threshold: number;
@@ -54,21 +54,10 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
   // vuelve a montar el widget.
   if (!data && failed) return null;
 
-  // Fetch en vuelo → slot skeleton con la forma del card (título,
-  // barra y línea de progreso) en vez de insertar el card al resolver.
-  if (!data) {
-    return (
-      <Card aria-hidden="true">
-        <div className="page-loading">
-          <div className="flex items-center justify-between gap-3">
-            <Skeleton className="h-4 w-24" />
-          </div>
-          <Skeleton className="mt-4 h-3 w-full rounded-full" />
-          <Skeleton className="mt-2 h-4 w-40" />
-        </div>
-      </Card>
-    );
-  }
+  // Fetch en vuelo → nada: el widget es opcional (no todo evento tiene
+  // Prime Time) — un card skeleton que colapsa al vacío es el flash que
+  // evitamos; aparecer una sola vez con contenido es correcto.
+  if (!data) return null;
 
   const pct =
     data.threshold > 0

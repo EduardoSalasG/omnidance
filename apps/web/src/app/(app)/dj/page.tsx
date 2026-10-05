@@ -105,18 +105,9 @@ function GigRating({ eventId }: { eventId: string }) {
     };
   }, [eventId]);
 
-  if (!rating) {
-    if (failed) return null;
-    // Slot fijo del rating — el nombre/venue/fecha de la fila no se
-    // recorren cuando el fetch resuelve. Va dentro de un <span>
-    // (fila del historial) → no puede ser un Skeleton <div>.
-    return (
-      <span
-        aria-hidden="true"
-        className="page-loading inline-block h-4 w-10 animate-pulse rounded-lg bg-night-800 motion-reduce:animate-none"
-      />
-    );
-  }
+  // Dato opcional inline: nada hasta resolver — aparece una vez si hay
+  // rating; un skeleton que colapsa al vacío sería flash.
+  if (!rating) return null;
   if (!rating.exposed || !rating.music) {
     return (
       <span className="text-xs text-white/40" title={t("rating.fewHint")}>

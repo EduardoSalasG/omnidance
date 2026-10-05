@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import { Badge, Button, Card, PriceTag, RefreshIcon, Skeleton, SkeletonList, Spinner } from "@/components/ui";
 import { planDateFmt, readError } from "@/components/academy/shared";
 
 type BillingCycle = "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
@@ -410,9 +410,9 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
               </fieldset>
 
               {selfServeTier === null ? (
-                <p role="status" className="text-sm text-white/60">
-                  {t("tierLimit")}
-                </p>
+                /* Tier en vuelo → skeleton de texto, nunca copy que
+                   se reemplaza por el consentimiento real. */
+                <Skeleton className="page-loading h-4 w-56" />
               ) : (
                 <>
                   <p className="text-xs leading-relaxed text-white/50">

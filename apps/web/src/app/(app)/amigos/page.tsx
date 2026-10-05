@@ -18,7 +18,6 @@ import {
   EventDate,
   RefreshIcon,
   Skeleton,
-  SkeletonCard,
   SkeletonList,
 } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
@@ -109,25 +108,33 @@ export default function AmigosPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch("/friends");
-      if (res.status === 401) {
-        setState("unauth");
-        return;
-      }
-      if (!res.ok) {
+      // En paralelo y dentro del mismo gate: la sección "Tus amigos van
+      // a" se decide ANTES de pintar — nada de skeleton que aparece y
+      // colapsa, ni pop-in tardío sobre la lista ya pintada.
+      const [res, eventsRes] = await Promise.allSettled([
+        apiFetch("/friends"),
+        apiFetch("/friends/upcoming-events"),
+      ]);
+      if (res.status === "rejected") {
         setState("error");
         return;
       }
-      setData((await res.json()) as FriendsData);
-      // Feed "van a" — mejor esfuerzo: si falla queda vacío (el slot
-      // skeleton colapsa), no bloquea la lista.
-      apiFetch("/friends/upcoming-events")
-        .then(async (r) =>
-          setFriendEvents(
-            r.ok ? ((await r.json()) as FriendEvent[]) : [],
-          ),
-        )
-        .catch(() => setFriendEvents([]));
+      const friendsRes = res.value;
+      if (friendsRes.status === 401) {
+        setState("unauth");
+        return;
+      }
+      if (!friendsRes.ok) {
+        setState("error");
+        return;
+      }
+      setData((await friendsRes.json()) as FriendsData);
+      // Feed "van a" — mejor esfuerzo: si falla queda vacío.
+      if (eventsRes.status === "fulfilled" && eventsRes.value.ok) {
+        setFriendEvents((await eventsRes.value.json()) as FriendEvent[]);
+      } else {
+        setFriendEvents([]);
+      }
       setState("ready");
     } catch {
       setState("error");
@@ -439,16 +446,10 @@ export default function AmigosPage() {
       {state === "ready" && (
         <>
           {/* Tus amigos van a — eventos con ticket activo de ≥1 amigo.
-              null = fetch en vuelo → skeleton compacto en el slot (si
-              resuelve vacío el slot colapsa sin haber movido la lista
-              dos veces). */}
-          {friendEvents === null ? (
-            <section aria-hidden="true" className="flex flex-col gap-3">
-              <Skeleton className="page-loading h-4 w-36" />
-              <SkeletonCard lines={1} />
-            </section>
-          ) : (
-            friendEvents.length > 0 && (
+              El fetch va en paralelo dentro del gate: al llegar a
+              `ready` ya está resuelto — la sección pinta con contenido
+              o no pinta nunca; no hay skeleton que aparezca y colapse. */}
+          {friendEvents !== null && friendEvents.length > 0 && (
             <section data-tour="amigos-going" className="flex flex-col gap-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("goingTitle")}
@@ -498,7 +499,6 @@ export default function AmigosPage() {
                 ))}
               </ul>
             </section>
-            )
           )}
 
           {/* Solicitudes recibidas */}
