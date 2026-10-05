@@ -2,6 +2,7 @@ import { ChromeShell } from "@/components/layout/ChromeShell";
 import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import { NavPendingOverlay } from "@/components/ui/nav-pending";
 import { ConsentBanner } from "@/components/legal/ConsentBanner";
+import { InstallPrompt } from "@/components/install/InstallPrompt";
 import { MeProvider } from "@/lib/me-context";
 import baseMessages from "../../../messages/es-CL.json";
 
@@ -34,6 +35,10 @@ export default function AppLayout({
               cuando /me reporta consentimiento ausente o de versión
               antigua. */}
           <ConsentBanner />
+          {/* Invita a instalar la PWA (Chromium: prompt nativo; iOS:
+              instrucciones). Dismiss persistente, se oculta si el
+              banner de consentimiento ocupa el slot. */}
+          <InstallPrompt />
         </MeProvider>
       </NavPendingOverlay>
     </RealtimeProvider>
