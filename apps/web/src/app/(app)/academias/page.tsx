@@ -12,6 +12,7 @@ import {
   PlayIcon,
   RefreshIcon,
   Segmented,
+  Skeleton,
   SkeletonList,
 } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
@@ -385,14 +386,20 @@ function AcademiasInner() {
 
   // Scope: por defecto "mias" si hay inscripciones; sin ellas la vista
   // útil es el directorio — evita una pantalla vacía de entrada.
-  const scope: Scope =
-    rawS === "explorar" || rawS === "mias"
-      ? rawS
-      : rawV === "explorar" || rawV === "mias"
-        ? rawV
-        : enrollments !== null && enrollments.length === 0
-          ? "explorar"
-          : "mias";
+  const scopeExplicit =
+    rawS === "explorar" ||
+    rawS === "mias" ||
+    rawV === "explorar" ||
+    rawV === "mias";
+  const scope: Scope = scopeExplicit
+    ? ((rawS ?? rawV) as Scope)
+    : enrollments !== null && enrollments.length === 0
+      ? "explorar"
+      : "mias";
+  // Sin scope explícito el default depende de /enrolled: hasta resolver
+  // no sabemos cuál pill va activa — mostrar "mias" provisional y
+  // voltearla a "explorar" era el flash reportado.
+  const scopeKnown = scopeExplicit || enrollments !== null;
 
   // Display: lista o mapa — independiente del scope activo.
   const view: Display = rawV === "map" || legacyMap ? "map" : "list";
@@ -507,25 +514,32 @@ function AcademiasInner() {
         </div>
 
         {/* Scope: qué se muestra — pills con texto (mismo patrón que
-            /clases: el display va como íconos, el scope con nombre). */}
-        <Segmented
-          ariaLabel={t("scopesLabel")}
-          active={scope}
-          className="w-full"
-          innerClassName="grid w-full grid-cols-2"
-          items={[
-            {
-              key: "mias",
-              href: hrefFor({ s: "mias" }),
-              children: t("learner.myAcademies"),
-            },
-            {
-              key: "explorar",
-              href: hrefFor({ s: "explorar" }),
-              children: t("viewExplore"),
-            },
-          ]}
-        />
+            /clases: el display va como íconos, el scope con nombre).
+            Skeleton mientras el default depende de /enrolled — el
+            control siempre existe, el placeholder se llena (nunca un
+            pill "mias" provisional que voltea a "explorar"). */}
+        {scopeKnown ? (
+          <Segmented
+            ariaLabel={t("scopesLabel")}
+            active={scope}
+            className="w-full"
+            innerClassName="grid w-full grid-cols-2"
+            items={[
+              {
+                key: "mias",
+                href: hrefFor({ s: "mias" }),
+                children: t("learner.myAcademies"),
+              },
+              {
+                key: "explorar",
+                href: hrefFor({ s: "explorar" }),
+                children: t("viewExplore"),
+              },
+            ]}
+          />
+        ) : (
+          <Skeleton className="page-loading h-12 w-full rounded-full" />
+        )}
 
         {/* Filtro de estilo + buscador por nombre en la misma fila —
             el buscador ocupa el espacio restante (basis-36 + select
