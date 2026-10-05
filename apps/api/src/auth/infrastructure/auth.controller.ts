@@ -149,8 +149,13 @@ export class AuthController {
       dto.email.toLowerCase(),
       dto.consent === true,
     );
-    const apiUrl = process.env.API_URL ?? "http://localhost:4000";
-    const link = `${apiUrl}/api/auth/verify?token=${token}`;
+    // El link apunta al ORIGEN WEB (no al API): verify corre a través
+    // del proxy /api/* del front, así el Set-Cookie de la sesión cae
+    // en el dominio del web - donde la SPA hace todas sus llamadas.
+    // Si el link fuera al dominio del API, la cookie quedaría en ese
+    // origen y el usuario aterrizaría en el web sin sesión.
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const link = `${webUrl}/api/auth/verify?token=${token}`;
     await this.mailer.send(
       dto.email,
       "Tu acceso a Omnidance",
@@ -244,7 +249,9 @@ export class AuthController {
       const session = await this.auth.issueSession(person.id);
       const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
       this.setSessionCookie(res, session);
-      res.redirect(webUrl);
+      // Cuenta recién creada por el verify → paso de perfil
+      // post-registro (/bienvenida); cuenta existente → home.
+      res.redirect(existed ? `${webUrl}/inicio` : `${webUrl}/bienvenida`);
     } catch {
       throw new UnauthorizedException("Link inválido o expirado");
     }
