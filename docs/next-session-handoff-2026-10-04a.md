@@ -83,3 +83,34 @@ bailes solo se registran vía escaneo QR". Se resolvió así:
    el pipeline.
 5. El seed demo siembra `DanceSession` INVITED históricas — quedan
    como pendientes eternas en `/bailes` (correcto como dato histórico).
+
+---
+
+## Cierre (integración final — mismo día, post-handoff)
+
+Los 4 changes del pedido quedaron integrados, archivados y canonizados:
+
+| Change | Commits | Resultado |
+|---|---|---|
+| `api-hardening` | `71593dd` | helmet (CSP off por Swagger) + `@nestjs/throttler` global 300/min y 8/min en `/auth/{magic-link,login,register}`; skip en `NODE_ENV=test` y WS; `Retry-After` verificado en vivo |
+| `remove-social-blocks-invites` | `81ba54d` + `…declare` | `UserBlock`/`PracticePartnerRequest`/`AvailabilityToggle` eliminados (migración `20261008000000_drop_social_blocks_invites` **aplicada**); `invite`/`confirm`/`decline`/`declare`/`blocks`/`partner-requests`/`availability` → 404; nuevo `POST /sessions/scan` crea CONFIRMED directo |
+| `legal-consent` | `bb935d2` | `/terminos` + `/privacidad` (Ley 21.719), checkbox requerido en alta, `Person.consentVersion`/`consentAcceptedAt` (migración `20261009000000_person_consent` **aplicada**), `POST /me/consent` + `ConsentBanner` para usuarios existentes |
+| `minor-polish-fixes` | `67e2962` | HomeHub: 5xx → error de servidor honesto + retry; glyphs→`ui/icons` en consolas producer/CRM/admin/landing; género editable en lente academia |
+
+**Además**: `POST /sessions/declare` eliminado en el mismo commit de
+cierre (aún creaba INVITED sin resolución — contradice "solo QR").
+Canonical `safety/user-blocks` retirada (`retire_capabilities: true`);
+`sessions/qr-scan` creada; `social-modules-scope` modificada;
+`sessions/retro-declared` se conserva renombrando su Purpose — las
+sesiones `retroDeclared` históricas siguen excluidas de Prime Time.
+
+**Pendiente que sigue vivo**:
+- `SessionsService.transition` soporta confirm/decline en dominio
+  (inalcanzable vía API — solo `discard` sigue ruteado, para limpiar
+  INVITED históricas).
+- Placeholders `[PENDIENTE]` en `legal.json`: RUT, domicilio legal y
+  confirmar `privacidad@omnidance.cl` antes de producción.
+- Revisión legal profesional del copy — la implementación no sustituye
+  asesoría jurídica.
+- 12 specs canónicas antiguas aún tienen `## Purpose` placeholder
+  (warning pre-existente bajo `--strict`).

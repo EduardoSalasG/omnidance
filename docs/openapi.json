@@ -1240,27 +1240,6 @@
         }
       }
     },
-    "/api/sessions/declare": {
-      "post": {
-        "operationId": "SessionsController_declare",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeclareDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        }
-      }
-    },
     "/api/sessions/{id}/discard": {
       "post": {
         "operationId": "SessionsController_discard",
@@ -4814,10 +4793,6 @@
         "properties": {}
       },
       "ScanDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "DeclareDto": {
         "type": "object",
         "properties": {}
       },
