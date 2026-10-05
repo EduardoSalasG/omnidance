@@ -3,7 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { BackLink, Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import {
+  ArrowUpRightIcon,
+  BackLink,
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  PriceTag,
+  RefreshIcon,
+} from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import {
   PAYOUT_STATUS_VARIANT,
@@ -86,7 +95,7 @@ export default function ProducerPayoutsPage() {
             {tc("error")}
           </p>
           <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -97,7 +106,7 @@ export default function ProducerPayoutsPage() {
             {tc("error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -164,9 +173,10 @@ export default function ProducerPayoutsPage() {
                       href={p.evidenceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-neon underline-offset-2 hover:underline"
+                      className="inline-flex items-center gap-1 text-neon underline-offset-2 hover:underline"
                     >
-                      {t("payoutsPage.evidence")} ↗
+                      {t("payoutsPage.evidence")}
+                      <ArrowUpRightIcon className="h-3.5 w-3.5" />
                       <span className="sr-only"> {tc("newTab")}</span>
                     </a>
                   )}

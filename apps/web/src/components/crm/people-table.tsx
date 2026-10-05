@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { TagBadges } from "./tag-badges";
 import type { CrmActor, CrmPersonRow, CrmTag } from "./types";
@@ -178,7 +185,13 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
           disabled={recomputing}
           onClick={() => void recompute()}
         >
-          {recomputing ? t("people.recomputing") : `↻ ${t("people.recompute")}`}
+          {recomputing ? (
+            t("people.recomputing")
+          ) : (
+            <>
+              <RefreshIcon /> {t("people.recompute")}
+            </>
+          )}
         </Button>
       </div>
 
@@ -206,7 +219,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
             {tc("error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -403,7 +416,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
             disabled={safePage <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            {t("people.prev")}
+            <ChevronLeftIcon /> {t("people.prev")}
           </Button>
           <p className="text-xs text-white/50">
             {t("people.page", { page: safePage, pages })}
@@ -414,7 +427,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
             disabled={safePage >= pages}
             onClick={() => setPage((p) => Math.min(pages, p + 1))}
           >
-            {t("people.next")}
+            {t("people.next")} <ChevronRightIcon />
           </Button>
         </div>
       )}

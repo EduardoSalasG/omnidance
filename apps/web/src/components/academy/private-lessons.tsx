@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import academyExtras from "@/i18n/parts/academyExtras.json";
@@ -374,7 +374,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                 size="sm"
                 onClick={() => void loadStaff()}
               >
-                ↻ {tc("retry")}
+                <RefreshIcon /> {tc("retry")}
               </Button>
             </div>
           )}
@@ -679,7 +679,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
               size="sm"
               onClick={() => void loadMine()}
             >
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </div>
         )}

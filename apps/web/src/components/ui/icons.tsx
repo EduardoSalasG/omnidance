@@ -40,6 +40,15 @@ export function ChevronRightIcon(props: IconProps) {
   );
 }
 
+/** Navegación hacia atrás / página anterior (antes `←`). */
+export function ChevronLeftIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M15 6l-6 6 6 6" />
+    </Svg>
+  );
+}
+
 /** Expandir/colapsar hacia abajo (antes `↓`); rotar -90° da el ▸. */
 export function ChevronDownIcon(props: IconProps) {
   return (

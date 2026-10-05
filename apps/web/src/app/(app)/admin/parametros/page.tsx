@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Badge, Button, Card, CheckIcon, PriceTag } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { Param } from "@/components/admin/types";
@@ -114,7 +114,14 @@ function ParamsPanel() {
                     }
                     onClick={() => void saveParam(p.key)}
                   >
-                    {savedKey === p.key ? t("saved") : tc("save")}
+                    {savedKey === p.key ? (
+                      <>
+                        <CheckIcon className="h-4 w-4" />
+                        {t("saved")}
+                      </>
+                    ) : (
+                      tc("save")
+                    )}
                   </Button>
                 </div>
               </Card>

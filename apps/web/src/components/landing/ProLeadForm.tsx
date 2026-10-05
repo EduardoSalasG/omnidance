@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { Spinner } from "@/components/ui/spinner";
+import { ChevronRightIcon } from "@/components/ui";
 import landingParts from "@/i18n/parts/landing.json";
 
 const t = landingParts.landingPro.form;
@@ -155,7 +156,7 @@ export function ProLeadForm() {
             href="/login"
             className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white/80 transition-colors hover:border-white/30 hover:text-white"
           >
-            {t.demoExists} →
+            {t.demoExists} <ChevronRightIcon />
           </a>
         ) : (
           <button
@@ -165,7 +166,8 @@ export function ProLeadForm() {
             className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-neon px-6 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
           >
             {demoPhase === "loading" && <Spinner size="sm" />}
-            <span className="whitespace-pre-line">{t.demoCta}</span> →
+            <span className="whitespace-pre-line">{t.demoCta}</span>
+            <ChevronRightIcon />
           </button>
         )}
         {demoPhase === "error" && (

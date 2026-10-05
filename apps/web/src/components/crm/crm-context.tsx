@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import type { ActorType, CrmActor } from "./types";
 import { actorKey } from "./types";
@@ -201,7 +201,7 @@ export function CrmGateScreen({
       <div className="flex flex-col items-start gap-4">
         <p className="text-white/70">{tc("error")}</p>
         <Button variant="secondary" onClick={onRetry}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import type { RatingAgg, RatingsSummary } from "./shared";
 
@@ -101,7 +101,7 @@ export function RatingsSection({ eventId }: Props) {
             {tc("error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

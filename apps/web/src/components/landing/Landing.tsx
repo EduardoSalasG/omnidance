@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRightIcon } from "@/components/ui";
 // Las claves de la landing viven en este fragmento, que se fusiona con
 // messages/es-CL.json bajo los namespaces "landing" y "landingPro"
 // (ver src/i18n/parts/). landingPro solo declara overrides: las claves
@@ -190,7 +191,8 @@ export function Landing({
               href={isPro ? "#contacto" : "/login?mode=register"}
               className="mt-1 inline-flex min-h-11 items-center rounded-full px-5 text-sm font-semibold text-neon transition-colors hover:bg-neon/10"
             >
-              {t.weekCta} →
+              {t.weekCta}
+              <ChevronRightIcon />
             </Link>
           </div>
         </section>
@@ -275,6 +277,18 @@ export function Landing({
               className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
             >
               {t.footerAlt}
+            </Link>
+            <Link
+              href="/terminos"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+            >
+              {t.footerTerms}
+            </Link>
+            <Link
+              href="/privacidad"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+            >
+              {t.footerPrivacy}
             </Link>
           </nav>
         </div>

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, EventDate } from "@/components/ui";
+import { Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
   inputCls,
@@ -171,7 +171,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       ) : items.length === 0 ? (

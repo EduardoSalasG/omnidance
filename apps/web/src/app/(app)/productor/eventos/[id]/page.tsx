@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { EventForm } from "@/components/producer/event-form";
 import { EventFeesSection } from "@/components/producer/event-fees-section";
@@ -272,7 +272,7 @@ export default function ProducerEventDetailPage({
             {tc("error")}
           </p>
           <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

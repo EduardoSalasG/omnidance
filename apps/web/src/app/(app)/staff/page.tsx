@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 // Roles que habilitan la consola de puerta (espejo de StaffGuard en la API).
@@ -100,7 +100,7 @@ export default function StaffPage() {
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

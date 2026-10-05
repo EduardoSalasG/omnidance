@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   PriceTag,
+  RefreshIcon,
   SkeletonList,
   Spinner,
 } from "@/components/ui";
@@ -333,7 +334,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           {t("loadError")}
         </p>
         <Button size="sm" variant="ghost" onClick={() => void load()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

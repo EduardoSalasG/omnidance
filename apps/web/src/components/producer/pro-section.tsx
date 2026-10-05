@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag, SkeletonList, Spinner } from "@/components/ui";
+import { Badge, Button, Card, PriceTag, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { planDateFmt, readError } from "@/components/academy/shared";
 
 type BillingCycle = "MONTHLY" | "SEMIANNUAL" | "ANNUAL";
@@ -204,7 +204,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
           {t("loadError")}
         </p>
         <Button size="sm" variant="ghost" onClick={() => void load()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

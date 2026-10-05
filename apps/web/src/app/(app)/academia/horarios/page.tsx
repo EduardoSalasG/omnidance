@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, ChevronRightIcon, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { SlotsSection } from "@/components/academy/slots-section";
@@ -62,7 +62,7 @@ function SlotsModule({ academyId }: { academyId: string }) {
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );
@@ -75,9 +75,9 @@ function SlotsModule({ academyId }: { academyId: string }) {
       <SlotsSection slots={slots} />
       <Link
         href="/academia/series"
-        className="text-sm font-medium text-neon hover:underline"
+        className="inline-flex items-center gap-1 text-sm font-medium text-neon hover:underline"
       >
-        {ts("title")} →
+        {ts("title")} <ChevronRightIcon />
       </Link>
     </div>
   );

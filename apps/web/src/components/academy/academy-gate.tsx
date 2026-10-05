@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { AcademyBillingBanner } from "./academy-billing-banner";
 import { inputCls, readError, type Academy } from "./shared";
@@ -128,7 +128,7 @@ export function AcademyGate({
         <div className="flex flex-col items-start gap-4">
           <p className="text-white/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

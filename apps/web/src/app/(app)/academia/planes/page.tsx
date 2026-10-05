@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { PlansSection } from "@/components/academy/plans-section";
@@ -60,7 +60,7 @@ function PlansModule({ academyId }: { academyId: string }) {
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

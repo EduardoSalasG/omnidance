@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
@@ -173,7 +173,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
             {t("suggestions.error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

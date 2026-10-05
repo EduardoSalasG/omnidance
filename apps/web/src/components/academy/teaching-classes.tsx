@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button } from "@/components/ui";
+import { Badge, Button, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { QuorumBar } from "./quorum-bar";
 import {
@@ -80,7 +80,7 @@ export function TeachingClasses() {
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, RefreshIcon } from "@/components/ui";
 import type {
   Academy,
   AcademyDashboard as AcademyDashboardData,
@@ -66,7 +66,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
               {tc("error")}
             </p>
             <Button variant="secondary" size="sm" onClick={() => void refresh()}>
-              ↻ {tc("retry")}
+              <RefreshIcon /> {tc("retry")}
             </Button>
           </div>
         ) : (

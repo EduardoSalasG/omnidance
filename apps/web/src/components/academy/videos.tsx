@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import {
+  ArrowUpRightIcon,
+  Badge,
+  Button,
+  Card,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import academyExtras from "@/i18n/parts/academyExtras.json";
 import { inputCls, readError, type Academy } from "./shared";
@@ -153,7 +159,7 @@ export function Videos({ academy }: { academy: Academy }) {
         <div className="flex items-center gap-3">
           <p className="text-sm text-white/60">{tc("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
@@ -193,7 +199,7 @@ export function Videos({ academy }: { academy: Academy }) {
                           rel="noopener noreferrer"
                           className={linkBtnCls}
                         >
-                          ↗ {t.watch}
+                          <ArrowUpRightIcon /> {t.watch}
                         </a>
                       </div>
                     )}
