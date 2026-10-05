@@ -139,3 +139,32 @@ Audit de las 65 páginas + componentes fetchers → fix transversal:
   spec `loading-states` canonizada (3 requirements). **Smoke manual de
   rutas pendiente** — probar /perfil, /notificaciones, /amigos,
   /staff/:id en la sesión dev.
+
+## loading-states ronda 2 (`06ea0a7` + `1494e9a`)
+
+El usuario reportó flashes residuales tras la ronda 1 → se refinaron dos
+patrones:
+
+- **Skeleton que colapsa a nada** (`06ea0a7`): el skeleton de una
+  sección opcional que resuelve vacía es el mismo flash que se buscaba
+  eliminar. Regla: contenido opcional = nada hasta resolver, aparece una
+  sola vez si hay data; contenido garantizado = skeleton dentro de slot
+  persistente. Fix en amigos (fetch de upcoming-events en paralelo con
+  /friends), academias videos, dj rating, billing CTA, PrimeTimeWidget,
+  módulos owner de /academia. BottomNav migrado a useMe() (sin /me
+  propio, chrome resuelve con la página).
+- **Waterfall /me → data + pantalla en blanco** (`1494e9a`): /perfil
+  mostraba PageLoading en blanco y luego los KPIs pop-in. Se extendió
+  MeContextData al contrato completo de /me (phone, gender, styleRoles,
+  enrollments, consent*, pendingProfile, effectivePro, onboarding) y se
+  migraron TODOS los consumidores: perfil/datos, completar, HomeHub,
+  gates admin/producer, staff, productor/{eventos,eventos/[id],pagos,
+  parametros,listas}, practicas/{,nueva}, academia/alumnos, videos,
+  private-lessons, crm-context, OnboardingRunner. Los fetches de datos
+  disparan en paralelo con /me (especulativos — 401 descarta); /perfil
+  tiene shell skeleton con forma real usando getStoredActiveRole() para
+  la lente. ~10 requests /me duplicados eliminados por sesión.
+
+Verificación: tsc web limpio, vitest 3/3, impeccable detect `[]`,
+rutas principales 200 en dev. Smoke manual pendiente de las rutas
+role-gated con sesión real (productor/academia/admin).
