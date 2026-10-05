@@ -59,7 +59,7 @@ src/<dominio>/
 | people | `/api/me` perfil + roleStates + gender + `consentVersion`/`consentAcceptedAt` (consentimiento legal — ver abajo); `POST /me/consent` (estampa `CONSENT_VERSION` vigente); `GET /me/pending-surveys` (eventos evaluables en ventana 24h; el primer request reclama `surveyNotifiedAt` y hace fan-out `event.survey` a todos los asistentes con check-in válido) | SessionGuard |
 | events | `/api/events*` catálogo público con `?genre=&venue=&week=this`; `genres` resueltos (evento o heredados de serie); consola productor: `/events/mine` (+stats vendidas/bruto/check-ins), `/events/:id/live` (ventas por canal, check-ins, ocupación — owner/admin), `/events/:id/export.csv|export.pdf?dataset=sales|checkins|guestlist` (CSV operativo / PDF imprimible con resumen — owner/admin; BOM UTF-8, sin claimToken) y `/events/series/:seriesId/export.csv|export.pdf` (mismos datasets agregados por serie con columna `evento`), `/events/:id/ratings/summary` (agregado k≥3), `/events/:id/analytics` (attendees + genderSplit/roleSplit + ratings por dim — null bajo k≥3, owner/admin), `/dj/gigs*` (gigs + sugerencias + rating de música del DJ asignado) | público / SessionGuard / `events.manage` |
 | qr | `/api/qr/mine` QR rotativo | SessionGuard |
-| sessions | `/api/sessions/*` registrar por QR (`scan`)/declarar retro (`declare`)/puntuar/descartar | SessionGuard + wiring notify+badges |
+| sessions | `/api/sessions/*` registrar por QR (`scan`)/puntuar/descartar | SessionGuard + wiring notify+badges |
 | checkins | `/api/checkins*` staff door scan/manual | `checkins.write` |
 | payments | `/api/checkout` (ticket / series-pass / membership — plan de academia / **membership-subscription** — suscripción recurrente Flow / `GET membership-quote` / **class** — clase suelta/taller con `GET class-quote` / **private-class** — clase particular comprable con `GET private-class-quote` → orden PRIVATE, settle crea `PrivateLesson` REQUESTED sin instructor/fecha y `PATCH /private-lessons/:id {action:"assign"}` del owner la agenda), `/api/tickets`, `/api/payments/webhook` (Flow notifica `{token}` → se confirma vía `payment/getStatus` firmado), `GET /api/payments/:id` (polling del checkout; si la orden sigue PENDING y el gateway es Flow, consulta `payment/getStatusByCommerceId` y liquida con la misma lógica del webhook — cubre sandbox/dev donde el webhook no alcanza localhost), `/api/subscriptions/mine|/:id|/:id/cancel` (owner), `/api/payments/flow/customer-return` + `/api/payments/subscription-webhook` (públicos, callbacks Flow), `/api/payments/mine|by-event|by-academy|/:id/events` (auditoría por actor — detalle en "Pasarela de pago") | mixto (checkout = preventa o puerta-app según estado/corte del evento) |
 | discounts | `/api/discount-codes*` CRUD | `discounts.manage` |
@@ -155,7 +155,7 @@ flowchart LR
 | `service_fee.door_cash_clp` | checkin efectivo | 0 |
 | `service_fee.membership_clp` | **deprecated (modelo SaaS)** — las órdenes de academia (MEMBERSHIP/WORKSHOP/PRIVATE) cobran `serviceFee=0` por código, sin leer este param; sigue en DB/whitelist por compat | 500 |
 | `gateway_fee.academy_passthrough_pct` | payout ACADEMY — línea `GATEWAY_FEE_PASSTHROUGH` = `round(gross × pct / 100)` | 3.19 |
-| `session.cooldown_minutes` | sessions scan/declare | 4 |
+| `session.cooldown_minutes` | sessions scan | 4 |
 | `qr.rotation_seconds` | QR mint | 60 |
 | `prime_time.window_minutes` | gamificación (default de creación de eventos) | 30 |
 | `prime_time.threshold_pct` | gamificación fallback aforo | 0.2 |
@@ -197,7 +197,7 @@ erDiagram
 | Trigger | Módulo | Efecto |
 |---|---|---|
 | `sessions.scan` | sessions | crea `DanceSession` CONFIRMED desde el QR + notify `session.confirmed` a la persona escaneada + evalúa badges de ambos + puntos `session_confirmed` |
-| `sessions.declare` | sessions | notify SOCIAL `session.invite` al invitee (retro-declarada INVITED — su resolución es backlog separado; invite/confirm/decline se eliminaron) |
+
 | `sessions.rate` | sessions | `status → RATED` + evalúa badges de rater y rated |
 | `webhook PAID` | payments | notify TRANSACTIONAL `payment.paid` (solo si esta llamada marcó PAID — flag `paidNow` en la tx) |
 | `webhook FAILED` | payments | notify `payment.failed` |

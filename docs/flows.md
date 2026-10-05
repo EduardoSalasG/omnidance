@@ -50,15 +50,15 @@ sequenceDiagram
 El ciclo de invitación (`/sessions/invite` + `/:id/confirm` + `/:id/decline`)
 se eliminó: el escaneo QR en pista acredita presencia mutua, así que la
 sesión nace CONFIRMED. Las `DanceSession` históricas INVITED/DECLINED se
-conservan como dato. `POST /sessions/declare` (retro-declarar) sigue
-creando INVITED — su resolución es backlog separado.
+conservan como dato. `POST /sessions/declare` (retro-declarar) también se
+eliminó: **todo alta de DanceSession pasa por escaneo QR** — no hay vía
+manual.
 
 ```mermaid
 stateDiagram-v2
     [*] --> CONFIRMED: scan QR
-    [*] --> INVITED: declare (retro)
-    INVITED --> DISCARDED: inviter discard
-    INVITED --> EXPIRED: ventana expiró (effectiveStatus)
+    INVITED --> DISCARDED: inviter discard (solo históricas)
+    INVITED --> EXPIRED: ventana expiró (effectiveStatus, solo históricas)
     CONFIRMED --> RATED: primer rating
     RATED --> RATED: rating contraparte (upsert)
     CONFIRMED --> EXPIRED: pasó la ventana sin rating

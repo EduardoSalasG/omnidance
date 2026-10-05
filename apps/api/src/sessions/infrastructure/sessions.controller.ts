@@ -36,14 +36,6 @@ class ScanDto {
   eventId!: string;
 }
 
-class DeclareDto {
-  @IsString()
-  eventId!: string;
-
-  @IsString()
-  personId!: string;
-}
-
 class RateDto {
   @IsInt()
   @Min(1)
@@ -99,30 +91,6 @@ export class SessionsController {
     }
 
     return this.createScannedSession(inviterId, inviteeId, dto.eventId);
-  }
-
-  /**
-   * Declaración retroactiva (spec-gap-closure: sessions/retro-declared):
-   * sin QR — la persona se elige manualmente. Cuenta para
-   * perfil/historial/streaks, nunca para Prime Time (retroDeclared:true —
-   * el repo de gamificación lo filtra).
-   */
-  @Post("declare")
-  async declare(@Req() req: Request, @Body() dto: DeclareDto) {
-    const inviterId = req.person!.id;
-
-    const invitee = await this.prisma.person.findUnique({
-      where: { id: dto.personId },
-      select: { id: true },
-    });
-    if (!invitee) throw new NotFoundException("persona no encontrada");
-
-    return this.createDeclaredSession(
-      inviterId,
-      dto.personId,
-      dto.eventId,
-      true,
-    );
   }
 
   /**
@@ -188,50 +156,7 @@ export class SessionsController {
   }
 
   /**
-   * Flujo de declare: creación INVITED y notificación a la contraparte.
-   * La resolución de estas invitaciones declaradas queda como backlog
-   * separado (remove-social-blocks-invites eliminó confirm/decline).
-   */
-  private async createDeclaredSession(
-    inviterId: string,
-    inviteeId: string,
-    eventId: string,
-    retroDeclared: boolean,
-  ) {
-    const { styleId } = await this.validatePairAndStyle(
-      inviterId,
-      inviteeId,
-      eventId,
-    );
-
-    const session = await this.prisma.danceSession.create({
-      data: {
-        eventId,
-        inviterId,
-        inviteeId,
-        styleId,
-        retroDeclared,
-      },
-    });
-
-    // el invitee necesita nombre/foto de quien invita para identificarlo en pista
-    const inviter = await this.prisma.person.findUnique({
-      where: { id: inviterId },
-      select: { name: true, photoUrl: true },
-    });
-
-    await this.notifications.notifySafe(inviteeId, {
-      category: "SOCIAL",
-      type: "session.invite",
-      title: `${inviter?.name ?? "Alguien"} te invitó a bailar`,
-      data: { sessionId: session.id },
-    });
-
-    return { ...session, inviter };
-  }
-
-  /**
-   * Validación compartida scan/declare: evento existe, cooldown del par
+   * Validación del escaneo: evento existe, cooldown del par
    * (~4min, ambas direcciones) y estilo inferido por bloque horario.
    */
   private async validatePairAndStyle(
