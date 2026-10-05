@@ -295,6 +295,14 @@ Quedan FREE siempre: publicar/editar eventos, vender, check-in, `GET /events/min
 - **Redacción** (`redactMeta` + `redactValue`): claves cuyo nombre matchee `authorization|cookie|password|secret|token|jwt|session|qr` se enmascaran a `[redacted]` en cualquier nivel del meta — cinto y tirantes con la regla de no loggear credenciales ni payloads de QR. El código de negocio sigue obligado a no loggearlos; el redactor es la garantía ante errores.
 - En dev el `requestId` se hace visible anexándolo al contexto (`Clase#ab12cd34`); en prod va como campo `requestId` del JSON.
 
+## Seguridad HTTP (spec api-hardening)
+
+- **helmet** (`app.use(helmet())` en `main.ts`, antes del request-logger): headers estándar (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, HSTS…). `contentSecurityPolicy: false` — la única superficie HTML es Swagger UI y usa scripts inline; el resto queda activo.
+- **Rate limiting global** (`@nestjs/throttler` + `APP_GUARD` en `app.module.ts`): por IP, 300 req/60s default — holgado para la app y el polling del checkout. Al exceder: `429` + `Retry-After` y headers `X-RateLimit-*`. Storage in-memory (1 proceso; multi-instancia → Redis).
+- **Límite estricto auth**: `@Throttle` en `POST /api/auth/magic-link`, `/api/auth/login`, `/api/auth/register` → 8 req/60s por IP (anti spam de correos / fuerza bruta). El limiter in-memory de logins fallidos por email+IP sigue como segunda capa.
+- **Config por env** (`src/common/throttle.config.ts`, resuelto por request): `THROTTLE_GLOBAL_LIMIT` (300), `THROTTLE_AUTH_LIMIT` (8), `THROTTLE_TTL_MS` (60000). `skipIf` excluye contextos no-HTTP (socket.io) y `NODE_ENV=test` completo — los e2e levantan AppModule y disparan cientos de requests.
+- **Exentos**: `GET /api/health` (`@SkipThrottle`); `/api/docs*` pasa por middleware Express fuera del pipeline de guards.
+
 ## Persistencia y seeds
 
 - **Prisma + Postgres** (`localhost:5433` en docker-compose dev).

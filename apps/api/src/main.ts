@@ -1,6 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import helmet from "helmet";
 import { WinstonModule } from "nest-winston";
 import { AppModule } from "./app.module";
 import { buildLogger } from "./common/logging/logger.factory";
@@ -11,6 +12,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger({ instance: winston }),
   });
+  // Security headers (spec api-hardening): primero en el pipeline.
+  // CSP off: la única superficie HTML es Swagger UI (/api/docs), que
+  // usa scripts inline — el default-src 'self' de helmet la rompería.
+  // No interfiere con CORS (CORP solo aplica a fetches no-cors).
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(requestLoggerMiddleware(winston));
   app.setGlobalPrefix("api");
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
