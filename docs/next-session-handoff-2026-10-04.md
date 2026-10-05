@@ -230,8 +230,13 @@ completo y archivado (commits `eaf758e` spec, `e4db820` S1,
 
 1. **Validación Flow sandbox real** — sigue bloqueando producción
    (credenciales + tarjeta + checkout en browser del usuario).
-2. **Confirmar push iOS en iPhone del usuario** — única tarea viva de
-   `pwa-shell-nav` (el detalle del error ya se muestra en UI).
+2. ~~Confirmar push iOS~~ — **validado** 2026-10-05: el error original
+   era contexto no-seguro (HTTP LAN) + PWA no instalada; vía tunnel
+   HTTPS (VS Code ports) + PWA instalada, suscripción OK y push llega
+   con PWA cerrada y equipo bloqueado. `pwa-shell-nav` archivado —
+   **0 changes activos**. Tokens stale de orígenes viejos quedan en
+   `PushToken` (4 filas, endpoints apple previos) — el sender los
+   limpiará al recibir 410.
 3. ~~`dancer-profile-survey-analytics`~~ — implementado y archivado esta
    sesión (ver arriba). Gap conocido: género solo editable en modo social.
 4. Nota ops: correr `pnpm test` con la API dev arriba produce timeouts
