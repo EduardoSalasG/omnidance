@@ -114,3 +114,28 @@ sesiones `retroDeclared` históricas siguen excluidas de Prime Time.
   asesoría jurídica.
 - 12 specs canónicas antiguas aún tienen `## Purpose` placeholder
   (warning pre-existente bajo `--strict`).
+
+## loading-states (`7c6c932` + archivado)
+
+Audit de las 65 páginas + componentes fetchers → fix transversal:
+
+- **FLASH**: `perfil` (insignias/racha/KPIs → skeleton, nunca "0" ni
+  empty-state en vuelo), `admin/auditoria`, `admin/roles`,
+  `admin/parametros` (colecciones `[]`→`null` + SkeletonList).
+- **POP-IN**: 14 spots con slot skeleton reservado o select disabled
+  (notificaciones ya no dispara fetch con lente default, friendEvents,
+  academy-dashboard KPIs, private-lessons, PrimeTimeWidget, dj GigRating,
+  billing-banner CTA, academias videos, bailes chip+racha, staff title +
+  lista skeleton en vez de Spinner, selects de catálogos).
+- **`useMe()` compartido** (`src/lib/me-context.tsx`): `MeProvider` en el
+  layout de `(app)` — un solo `/me` deduplicado; consumen ConsentBanner,
+  perfil, notificaciones, amigos, academia/page, academy-settings,
+  academy-profile, academy-billing-banner. Expone `refresh()` para
+  post-mutación. No reemplaza guards ni el /me de HomeHub (granularidad
+  error session-vs-server).
+- **Regla canónica nueva**: estado `T[] | null` — `null`=cargando→skeleton;
+  `[]` post-fetch=empty-state. Prohibido `?? 0`/`"—"` como placeholder.
+- Verificación: tsc web limpio, i18n ALL_KEYS_OK, impeccable `[]`,
+  spec `loading-states` canonizada (3 requirements). **Smoke manual de
+  rutas pendiente** — probar /perfil, /notificaciones, /amigos,
+  /staff/:id en la sesión dev.
