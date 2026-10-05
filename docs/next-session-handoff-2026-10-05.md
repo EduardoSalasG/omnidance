@@ -176,3 +176,12 @@ Reportado por el usuario: magic link llegaba pero no iniciaba sesión.
 El rebrand `6fa5b62` cambió `icon.svg` a `#a78bfa` pero no la
 constante `NEON` de `generate-icons.mjs` ni regeneró los PNG -
 corregido y regenerados los 4 PNG (commit `98ad610`).
+
+## Cierre de sesión - Release v0.2.0 desplegado
+
+- **Tag**:  en  (SHA inmutable ).
+- **Changes OpenSpec archivados**: post-signup-profile-setup, prune-style-catalog, admin-user-delete, pwa-install-prompt (specs canónicas sincronizadas).
+- **Deploy API**: run GH Actions  verde - migrate sin pendientes, seed omitido (DB completa), health gate OK al intento 4.
+- **Verificación prod**:  200,  401,  200, proxy same-origin 200, manifest nuevo servido (handle_links),  guard OK (307 a login).
+- **Incluye**: /bienvenida + reminder perfil, 409 phone_exists, catálogo de estilos depurado, DELETE admin en cascada, fix cookie magic link (WEB_URL), iconos morados + O centrada, InstallPrompt PWA, workflow_dispatch, em-dashes fuera.
+- **QA pendiente**: flujo register → bienvenida en prod; install prompt en Android/iOS reales; magic link en PWA instalada (Android). Flow sigue con credenciales placeholder.
