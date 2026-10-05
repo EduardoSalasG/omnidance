@@ -157,6 +157,17 @@ contenedor - el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,
   acepta webhooks sin firma y está deshabilitado en producción. Falta
   `FLOW_API_KEY`/`FLOW_SECRET_KEY` (sandbox.flow.cl → Mis datos →
   Integraciones) en el `.env`.
+- **Email del admin con comillas en la DB** (incidente 2026-10-05): el
+  workflow extrae `SEED_ADMIN_EMAIL` del `.env` con `grep|cut`, que
+  devuelve el valor crudo - si la línea traía `"mail"` quedaba con
+  comillas en `Person.email` y el magic link nunca lo encontraba (el
+  auth compara `email.toLowerCase()`). El extractor ya normaliza
+  (comillas + whitespace fuera) y `seed-prod` hace lo propio como
+  defensa. Para reparar una fila ya contaminada, en Neon SQL Editor:
+  `UPDATE "Person" SET email = btrim(email, '" ') WHERE email <> btrim(email, '" ');`
+  - si un intento de login ya creó otra `Person` con el email limpio,
+  borrar primero esa fila duplicada (y su `PersonRole` si existe) para
+  no chocar con el unique de `email`.
 
 ## Frontend - `netlify.toml`
 
