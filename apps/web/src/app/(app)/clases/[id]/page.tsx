@@ -13,6 +13,8 @@ import {
 } from "@/components/ui";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ClassBookingCta } from "@/components/classes/class-booking-cta";
+import { PrivateLessonCancelCta } from "@/components/classes/private-lesson-cancel-cta";
+import academyPart from "@/i18n/parts/academyExtras.json";
 
 export const dynamic = "force-dynamic";
 
@@ -76,16 +78,49 @@ type ClassDetail = {
   }[];
 };
 
+// GET /private-lessons/:id — una particular comprada es una reserva
+// más: su card en /clases lleva a esta misma ruta, y el id que no
+// corresponde a una Class se resuelve acá.
+type LessonDetail = {
+  id: string;
+  status: "REQUESTED" | "CONFIRMED" | "DONE" | "CANCELLED";
+  scheduledAt: string | null;
+  price: number;
+  createdAt: string;
+  academy: { id: string; name: string | null; billingBlocked: boolean };
+  person: { id: string; name: string | null };
+  instructor: {
+    id: string;
+    name: string | null;
+    photoUrl: string | null;
+    instagram: string | null;
+  } | null;
+};
+
 // El endpoint va con SessionGuard — cookie del request, como en
 // /eventos/[id] (getMissions).
-async function getClass(id: string): Promise<ClassDetail | "error"> {
+async function getClass(id: string): Promise<ClassDetail | "error" | null> {
   const res = await fetch(`${API_URL}/api/classes/${id}`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
-  if (res?.status === 404) notFound();
+  if (res?.status === 404) return null;
   if (!res || !res.ok) return "error";
   return (await res.json()) as ClassDetail;
+}
+
+// 404/403 → null: una particular ajena es indistinguible de una
+// inexistente (no se filtra su existencia).
+async function getLesson(
+  id: string,
+): Promise<LessonDetail | "error" | null> {
+  const res = await fetch(`${API_URL}/api/private-lessons/${id}`, {
+    cache: "no-store",
+    headers: { cookie: cookies().toString() },
+  }).catch(() => null);
+  if (res?.status === 404 || res?.status === 403) return null;
+  if (!res || !res.ok) return "error";
+  return (await res.json()) as LessonDetail;
 }
 
 // Class.date llega como ISO a medianoche UTC — se formatea en UTC para
@@ -102,6 +137,16 @@ const dayShortFmt = new Intl.DateTimeFormat("es-CL", {
   month: "short",
   timeZone: "UTC",
 });
+// scheduledAt de una particular es un instante real — se formatea en
+// hora de Chile (el server corre en UTC).
+const lessonFmt = new Intl.DateTimeFormat("es-CL", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "America/Santiago",
+});
 
 export default async function ClaseDetailPage({
   params,
@@ -110,21 +155,126 @@ export default async function ClaseDetailPage({
 }) {
   const t = { ...messages.classes, ...classesPart.classes };
   const tc = messages.common;
-  const cls = await getClass(params.id);
+  const tl = academyPart.academyExtras.lessons;
 
-  if (cls === "error") {
+  const errorView = (
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
+      <p role="alert" className="text-white/60">{tc.error}</p>
+      <div className="flex flex-wrap justify-center gap-3">
+        {/* Server page: el retry es recargar la misma ruta. */}
+        <Button href={`/clases/${params.id}`}>
+          <RefreshIcon /> {tc.retry}
+        </Button>
+        <Button href="/clases" variant="secondary">
+          {tc.back}
+        </Button>
+      </div>
+    </main>
+  );
+
+  const cls = await getClass(params.id);
+  if (cls === "error") return errorView;
+
+  // ─── Ficha de clase particular — una reserva más del alumno ───
+  if (cls === null) {
+    const lesson = await getLesson(params.id);
+    if (lesson === "error") return errorView;
+    if (!lesson) notFound();
+
+    const lessonBadge =
+      lesson.status === "CONFIRMED"
+        ? "neon"
+        : lesson.status === "DONE"
+          ? "muted"
+          : lesson.status === "CANCELLED"
+            ? "live"
+            : "outline";
+
     return (
-      <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p role="alert" className="text-white/60">{tc.error}</p>
-        <div className="flex flex-wrap justify-center gap-3">
-          {/* Server page: el retry es recargar la misma ruta. */}
-          <Button href={`/clases/${params.id}`}>
-            <RefreshIcon /> {tc.retry}
-          </Button>
-          <Button href="/clases" variant="secondary">
-            {tc.back}
-          </Button>
-        </div>
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6">
+        <header className="flex flex-col gap-3">
+          <h1 className="text-3xl font-bold leading-tight">
+            {t.privateLesson}
+          </h1>
+          {/* Chips bajo el título — mismo set semántico que la ficha de
+              clase: academia neon + estado; "Comprado" marca el asiento
+              pagado (equivalente a paidTag de una reserva). */}
+          <div className="flex flex-wrap items-center gap-2">
+            {lesson.academy.name && (
+              <Badge
+                variant="neon"
+                className="normal-case tracking-normal"
+              >
+                {lesson.academy.name}
+              </Badge>
+            )}
+            {lesson.academy.billingBlocked && (
+              <Badge variant="muted">{t.academyUnavailableBadge}</Badge>
+            )}
+            {lesson.price > 0 && (
+              <Badge variant="outline">{t.paidTag}</Badge>
+            )}
+            <Badge variant={lessonBadge}>
+              {tl.status[lesson.status]}
+            </Badge>
+          </div>
+          <p className="text-white/70">
+            {lesson.scheduledAt
+              ? lessonFmt.format(new Date(lesson.scheduledAt))
+              : tl.toSchedule}
+          </p>
+        </header>
+
+        {/* Instructor — quién la imparte; sin asignar se declara. */}
+        <Card>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+            {t.instructor}
+          </h2>
+          {lesson.instructor?.name ? (
+            <div className="flex items-center gap-3">
+              <PartnerAvatar
+                name={lesson.instructor.name}
+                photoUrl={lesson.instructor.photoUrl}
+                size="md"
+              />
+              <div className="min-w-0">
+                <p className="font-medium">{lesson.instructor.name}</p>
+                {lesson.instructor.instagram && (
+                  <a
+                    href={`https://instagram.com/${lesson.instructor.instagram}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-11 items-center text-sm font-medium text-neon underline-offset-4 hover:underline"
+                  >
+                    @{lesson.instructor.instagram}
+                  </a>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-white/60">{tl.toAssign}</p>
+          )}
+        </Card>
+
+        {/* Precio pagado — la particular se compra por adelantado. */}
+        <Card>
+          <dl className="grid grid-cols-2 gap-4">
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-white/50">
+                {tl.price}
+              </dt>
+              <dd className="mt-1">
+                <PriceTag amount={lesson.price} className="text-xl" />
+              </dd>
+            </div>
+          </dl>
+        </Card>
+
+        {/* Cancelar = zona destructiva al pie con confirmación en
+            sheet — mismo patrón que la reserva normal. */}
+        {(lesson.status === "REQUESTED" || lesson.status === "CONFIRMED") && (
+          <PrivateLessonCancelCta lessonId={lesson.id} />
+        )}
       </main>
     );
   }

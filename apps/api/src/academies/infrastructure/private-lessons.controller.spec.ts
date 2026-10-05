@@ -1,3 +1,4 @@
+import { BadRequestException } from "@nestjs/common";
 import { describe, it, expect, beforeEach } from "vitest";
 import type { Request } from "express";
 import "../../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver classes.controller.spec)
@@ -17,7 +18,9 @@ import { AcademiesController } from "./academies.controller";
 interface FakeAcademy {
   id: string;
   ownerId: string;
+  name: string;
   active: boolean;
+  billingBlockedAt?: Date | null;
   privateLessonPrice?: number | null;
 }
 
@@ -179,7 +182,12 @@ class FakePrisma {
 
   person = {
     findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
-      where.id.in.map((id) => ({ id, name: `Nombre ${id}` })),
+      where.id.in.map((id) => ({
+        id,
+        name: `Nombre ${id}`,
+        photoUrl: null,
+        instagram: null,
+      })),
   };
 
   role = {
@@ -229,7 +237,7 @@ describe("comisión del instructor en clases particulares", () => {
       {} as never, // SubscriptionsService — no se usa en estos endpoints
       {} as never, // ParamsService — idem
     );
-    prisma.academies.push({ id: "ac-1", ownerId: "owner", active: true });
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
     prisma.instructors.push({
       academyId: "ac-1",
       personId: "inst",
@@ -309,7 +317,7 @@ describe("comisión del instructor en clases particulares", () => {
     expect(prisma.lessons[0].commissionPct).toBe(25);
   });
 
-  it("mine?as=instructor devuelve commissionClp/netClp; student no ve comisión", async () => {
+  it("mine?as=instructor devuelve commissionClp/netClp", async () => {
     prisma.lessons.push({
       id: "les-1",
       academyId: "ac-1",
@@ -327,11 +335,15 @@ describe("comisión del instructor en clases particulares", () => {
       commissionClp: 10000,
       netClp: 30000,
     });
+  });
 
-    const stuRows = await lessons.mine(undefined, reqAs("alumno"));
-    expect(stuRows[0]).not.toHaveProperty("commissionClp");
-    expect(stuRows[0]).not.toHaveProperty("netClp");
-    expect(stuRows[0]).not.toHaveProperty("commissionPct");
+  it("mine sin ?as=instructor rechaza — la vista alumno vive en /classes/mine", async () => {
+    await expect(lessons.mine(undefined, reqAs("alumno"))).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(lessons.mine("alumno", reqAs("alumno"))).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it("GET /academies/:id (manage) expone commissionPct; /profile no lo filtra aquí", async () => {
@@ -384,7 +396,7 @@ describe("private-lesson-product", () => {
       {} as never,
       {} as never,
     );
-    prisma.academies.push({ id: "ac-1", ownerId: "owner", active: true });
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
     prisma.instructors.push(
       { academyId: "ac-1", personId: "inst", commissionPct: 25 },
       { academyId: "ac-2", personId: "ajeno", commissionPct: 10 },
@@ -538,7 +550,7 @@ describe("pay-commission — liquidación de la comisión", () => {
       access,
       notifications as unknown as NotificationsService,
     );
-    prisma.academies.push({ id: "ac-1", ownerId: "owner", active: true });
+    prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
     prisma.instructors.push({
       academyId: "ac-1",
       personId: "inst",
@@ -612,5 +624,90 @@ describe("pay-commission — liquidación de la comisión", () => {
     expect(
       (list[0] as { commissionPaidAt?: Date }).commissionPaidAt,
     ).toBeInstanceOf(Date);
+  });
+});
+
+// GET /private-lessons/:id — ficha del alumno en /clases/[id] (la
+// particular es una reserva más; cancelar vive ahí). La comisión es
+// acuerdo academia↔instructor: nunca viaja al alumno.
+describe("GET /private-lessons/:id — ficha de la particular", () => {
+  let prisma: FakePrisma;
+  let lessons: PrivateLessonsController;
+  const notifications = { notifySafe: async () => {} };
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    const access = new AcademyAccess(prisma as unknown as PrismaService);
+    lessons = new PrivateLessonsController(
+      prisma as unknown as PrismaService,
+      access,
+      notifications as unknown as NotificationsService,
+    );
+    prisma.academies.push({
+      id: "ac-1",
+      ownerId: "owner",
+      name: "Academia Uno",
+      active: true,
+    });
+    prisma.roles.push({ key: "ADMIN", isSuperuser: true, permissionKeys: [] });
+    prisma.lessons.push({
+      id: "les-1",
+      academyId: "ac-1",
+      instructorId: "inst",
+      personId: "alumno",
+      scheduledAt: new Date("2026-10-05T21:00:00Z"),
+      price: 40000,
+      commissionPct: 25,
+      paymentId: "pay-1",
+      status: "CONFIRMED",
+      createdAt: new Date(),
+    });
+  });
+
+  it("el alumno dueño ve su ficha sin campos de comisión", async () => {
+    const res = (await lessons.detail("les-1", reqAs("alumno"))) as Record<
+      string,
+      unknown
+    >;
+    expect(res.academy).toMatchObject({ id: "ac-1", name: "Academia Uno" });
+    expect(res.instructor).toMatchObject({ id: "inst", name: "Nombre inst" });
+    expect(res.price).toBe(40000);
+    expect(res).not.toHaveProperty("commissionPct");
+    expect(res).not.toHaveProperty("commissionPaidAt");
+  });
+
+  it("instructor asignado y owner ven la comisión", async () => {
+    const inst = (await lessons.detail(
+      "les-1",
+      reqAs("inst"),
+    )) as Record<string, unknown>;
+    expect(inst.commissionPct).toBe(25);
+    const owner = (await lessons.detail(
+      "les-1",
+      reqAs("owner"),
+    )) as Record<string, unknown>;
+    expect(owner.commissionPct).toBe(25);
+  });
+
+  it("ajeno → 403; inexistente → 404", async () => {
+    await expect(
+      lessons.detail("les-1", reqAs("otro")),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      lessons.detail("no-hay", reqAs("alumno")),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("particular sin asignar: instructor null, academy resuelto", async () => {
+    prisma.lessons[0]!.instructorId = null;
+    prisma.lessons[0]!.scheduledAt = null;
+    prisma.lessons[0]!.status = "REQUESTED";
+    const res = (await lessons.detail("les-1", reqAs("alumno"))) as Record<
+      string,
+      unknown
+    >;
+    expect(res.instructor).toBeNull();
+    expect(res.scheduledAt).toBeNull();
+    expect(res.academy).toMatchObject({ name: "Academia Uno" });
   });
 });

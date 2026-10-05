@@ -45,6 +45,7 @@
     "cancelledPaid": "Reserva cancelada — la devolución del pago se gestiona con la academia",
     "paidTag": "Comprado",
     "academyUnavailable": "La academia no está disponible por el momento",
-    "academyUnavailableBadge": "No disponible"
+    "academyUnavailableBadge": "No disponible",
+    "privateLesson": "Clase particular"
   }
 }

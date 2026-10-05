@@ -31,7 +31,7 @@ export type ClassCardData = {
   } | null;
   academy: { id: string; name: string };
   instructor: { id: string; name: string | null } | null;
-  // Todo slot pertenece a una serie — series nunca es null.
+  // Todo slot pertenece a una serie — series nunca es null en clases.
   series: {
     id: string;
     name: string;
@@ -43,6 +43,26 @@ export type ClassCardData = {
   };
 };
 
+// Una particular comprada viaja en /classes/mine como una reserva más
+// (aforo 1, sin recurrencia): sin serie ni slot; sin fecha asignada
+// date/startTime van null y el grupo "Por agendar" las muestra.
+// Mismo componente card — el título cae a "Clase particular".
+export type LessonCardData = Omit<
+  ClassCardData,
+  "date" | "startTime" | "endTime" | "weekday" | "series" | "academy"
+> & {
+  date: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  weekday: number | null;
+  series: null;
+  academy: { id: string; name: string | null };
+};
+
+// Lo que devuelve /classes/mine: reserva de clase o particular —
+// indistinguibles en el card (esa es la idea).
+export type MineCardData = ClassCardData | LessonCardData;
+
 // Card del explorador de clases: [serie + meta] [acción]. En /clases el
 // día y la hora los dan los headings del grupo; fuera de ese contexto el
 // caller pasa `when` ("Hoy · 19:00–20:00") como línea eyebrow.
@@ -53,17 +73,17 @@ export function ClassCard({
   onBook,
   statusBadge,
 }: {
-  cls: ClassCardData;
+  cls: MineCardData;
   when?: string;
   busy?: boolean;
-  onBook?: (cls: ClassCardData) => void;
+  onBook?: (cls: MineCardData) => void;
   /** Badge de estado externo (historial: Asististe/Cancelaste) —
       reemplaza al slot de acción; la clase pasada no tiene CTA. */
   statusBadge?: { label: string; variant?: BadgeVariant };
 }) {
   const t = useTranslations("classes");
   const full = cls.spotsLeft <= 0;
-  const style = cls.series.style;
+  const style = cls.series?.style;
   const booked = cls.myBooking === "BOOKED" || cls.myBooking === "WAITLIST";
   return (
     <div className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
@@ -80,17 +100,17 @@ export function ClassCard({
           {/* Estilo solo como título — es lo que el dancer busca.
               h3: h2 lo tienen las secciones (semana / día / home). */}
           <h3 className="truncate text-base font-semibold leading-snug">
-            {style?.name ?? cls.series.name}
+            {style?.name ?? cls.series?.name ?? t("privateLesson")}
           </h3>
           {/* Modalidad + nivel visual (barras): una fila de tags
               compactos — el nivel ocupa ~20px sin texto */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {cls.series.types.map((x) => (
+            {cls.series?.types.map((x) => (
               <Badge key={x.id} variant="outline">
                 {x.name}
               </Badge>
             ))}
-            {cls.series.level && (
+            {cls.series?.level && (
               <LevelBars
                 order={cls.series.level.order}
                 name={cls.series.level.name}
@@ -155,7 +175,7 @@ export function ClassCard({
               // no hay reserva — el API lo rechazaría con 403. Pero si
               // la serie vende clase suelta (dropInPrice), el precio
               // informa mejor que el candado.
-              cls.series.dropInPrice != null ? (
+              cls.series?.dropInPrice != null ? (
                 <span className="flex flex-col items-center gap-0.5">
                   <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
                     {t("dropIn")}
@@ -208,7 +228,8 @@ export function ClassCard({
 }
 
 // GET /classes/mine?scope=past — historial del alumno: card completo
-// + status de resultado (attended gana el dedup sobre la cancelación).
-export type HistoryCardData = ClassCardData & {
+// + status de resultado (attended gana el dedup sobre la cancelación;
+// una particular DONE cuenta como attended).
+export type HistoryCardData = MineCardData & {
   status: "attended" | "cancelled";
 };
