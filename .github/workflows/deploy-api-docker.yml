@@ -218,7 +218,7 @@ jobs:
                 # .env puede traer el valor entre comillas y con
                 # espacios - grep|cut devuelve el valor crudo, así que
                 # se normaliza igual que el auth (email sin espacios).
-                SEED_ADMIN_EMAIL=$(grep '^SEED_ADMIN_EMAIL=' .env | head -1 | cut -d '=' -f2- | tr -d '"'"'"' | tr -d '[:space:]')
+                SEED_ADMIN_EMAIL=$(grep '^SEED_ADMIN_EMAIL=' .env | head -1 | cut -d '=' -f2- | tr -d '"' | tr -d "'" | tr -d '[:space:]')
               fi
 
               # Completitud = baseline (roles) + al menos un ADMIN
