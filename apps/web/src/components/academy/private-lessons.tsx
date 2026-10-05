@@ -590,15 +590,9 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
         </section>
       )}
 
-      {mineInstructor === null ? (
-        /* Slot de la sección instructor mientras resuelve — si viene
-           vacía (alumno puro) colapsa sin haber movido "Mis solicitudes". */
-        <section aria-hidden="true" className="flex flex-col gap-3">
-          <Skeleton className="page-loading h-5 w-48" />
-          <SkeletonList items={1} lines={1} />
-        </section>
-      ) : (
-        mineInstructor.length > 0 && (
+      {/* Sección instructor — opcional: nada mientras resuelve
+          (aparece una vez si hay clases); skeleton-que-colapsa = flash. */}
+      {mineInstructor !== null && mineInstructor.length > 0 && (
         <section
           aria-label={t.instructorTitle}
           className="flex flex-col gap-3"
@@ -677,7 +671,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
             ))}
           </ul>
         </section>
-        )
       )}
 
       <section aria-label={t.mineTitle} className="flex flex-col gap-3">

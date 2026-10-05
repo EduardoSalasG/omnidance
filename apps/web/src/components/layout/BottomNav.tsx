@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe, type MeContextData } from "@/lib/me-context";
 import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
@@ -28,14 +29,7 @@ export const CHROME_HIDDEN_PREFIXES = ["/staff/"];
 // Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
 const NOTIFICATION_EVENT = "omnidance:notification";
 
-type Me = {
-  id: string;
-  name: string;
-  roles: string[];
-  // Cuenta demo de lead /pro pendiente de activación — el banner pide
-  // completar el perfil (POST /me/complete-profile la vuelve real).
-  pendingProfile?: boolean;
-};
+type Me = MeContextData;
 
 // key = clave nav.* del label; "create" es especial: su label viene del
 // namespace producer (producer.createEvent), no de nav.
@@ -623,11 +617,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
-  const [me, setMe] = useState<Me | null>(null);
-  // true cuando /me ya respondió (200 o 401): hasta entonces no se
-  // renderiza UI dependiente del rol — nada de chrome de otra lente
-  // por unos milisegundos.
-  const [meChecked, setMeChecked] = useState(false);
+  // meChecked: true cuando /me ya respondió (200 o 401): hasta entonces
+  // no se renderiza UI dependiente del rol — nada de chrome de otra
+  // lente por unos milisegundos.
+  const { me, loading: meLoading } = useMe();
+  const meChecked = !meLoading;
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Sheet de acciones del bailarín (botón "+" del tab bar).
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -680,23 +674,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     };
   }, [meChecked, me, notifLens]);
 
-  // Roles para filtrar los ítems del drawer — una sola vez, con el
-  // mismo patrón de catch silencioso que el badge (401 → me queda null).
-  useEffect(() => {
-    let cancelled = false;
-    apiFetch("/me")
-      .then(async (res) => {
-        if (cancelled || !res.ok) return;
-        setMe((await res.json()) as Me);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setMeChecked(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // /me viene del MeProvider del layout — sin fetch propio (antes cada
+  // consumidor duplicaba la llamada; ahora chrome y páginas resuelven
+  // juntos).
 
   // data-mode en <html>: el acento sigue a la LENTE, no solo al toggle
   // consumer — academy verde solo en lente academia, resto morado.

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
-import { Skeleton } from "@/components/ui";
 import type { Academy } from "./shared";
 
 const DAY_MS = 86_400_000;
@@ -48,11 +47,11 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
   // redundante.
   if (!show || pathname === "/academia/suscripcion") return null;
 
-  // Slot reservado mientras /me resuelve — mismo alto mínimo que el
-  // pill real; si no puede administrar colapsa sin mover el mensaje.
-  const cta = meLoading ? (
-    <Skeleton className="page-loading h-11 w-28 shrink-0 rounded-full" />
-  ) : (
+  // CTA opcional según permiso — nada mientras /me resuelve (para el
+  // no-manager un skeleton que colapsa sería flash; para el manager un
+  // botón que aparece una vez es mejor que un bloque fantasma).
+  const cta =
+    !meLoading &&
     canManage && (
       <Link
         href="/academia/suscripcion"
@@ -64,8 +63,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
       >
         {t("bannerCta")}
       </Link>
-    )
-  );
+    );
 
   if (blocked) {
     return (

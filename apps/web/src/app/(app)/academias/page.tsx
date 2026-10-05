@@ -12,7 +12,6 @@ import {
   PlayIcon,
   RefreshIcon,
   Segmented,
-  Skeleton,
   SkeletonList,
 } from "@/components/ui";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
@@ -250,13 +249,10 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
         </p>
       )}
 
-      {/* /videos fetch por card — una línea skeleton reserva el slot
-          mientras resuelve; vacío/error resuelto colapsa sin shift
-          (el fetch es por card, va al final del bloque). */}
-      {videos === null ? (
-        <Skeleton className="page-loading h-5 w-44" />
-      ) : (
-        videos.length > 0 && (
+      {/* /videos fetch por card — sección opcional: nada hasta que
+          resuelva (aparece una sola vez si hay videos); un skeleton que
+          colapsa al vacío sería el flash que evitamos. */}
+      {videos !== null && videos.length > 0 && (
         <ul className="flex flex-col gap-1.5" aria-label={tv("title")}>
           {videos.slice(0, 3).map((v) =>
             v.locked || !v.url ? (
@@ -284,7 +280,6 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
             ),
           )}
         </ul>
-        )
       )}
     </Card>
   );
