@@ -10,7 +10,12 @@ export async function seedProd(prisma: PrismaClient) {
 
   // Admin inicial - requerido: prod sin admin no es operable.
   //   SEED_ADMIN_EMAIL=admin@tu-dominio.cl SEED_ENV=prod npx tsx prisma/seed.ts
-  const email = process.env.SEED_ADMIN_EMAIL;
+  // Defensa: el valor puede venir entre comillas o con espacios si el
+  // .env los trae - auth guarda emails en minúscula, así que el seed
+  // normaliza igual para que el magic link encuentre a esta persona.
+  const email = (process.env.SEED_ADMIN_EMAIL ?? "")
+    .replace(/^[\s"']+|[\s"']+$/g, "")
+    .toLowerCase();
   if (!email) {
     throw new Error(
       "SEED_ADMIN_EMAIL es requerido para el seed de producción " +
