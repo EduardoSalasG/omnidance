@@ -5,7 +5,7 @@ import { AppModule } from "../src/app.module";
 import { PrismaService } from "../src/prisma.service";
 
 // Suite autocontenida: crea su propio venue+evento para no depender del seed
-// ni de la suerte del orden — otras suites e2e comparten la misma DB y
+// ni de la suerte del orden - otras suites e2e comparten la misma DB y
 // borran fixtures en paralelo.
 describe("GET /api/events", () => {
   let app: INestApplication;
@@ -92,7 +92,7 @@ describe("GET /api/events", () => {
     expect(["PUBLISHED", "LIVE"]).toContain(mine.status);
   });
 
-  it("no incluye prácticas — viven en /practices", async () => {
+  it("no incluye prácticas - viven en /practices", async () => {
     const res = await fetch(`${baseUrl}/api/events`);
     const events = await res.json();
     expect(events.some((e: { id: string }) => e.id === practiceId)).toBe(false);

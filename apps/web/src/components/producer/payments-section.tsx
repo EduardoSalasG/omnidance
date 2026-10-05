@@ -15,9 +15,9 @@ import {
 type Props = { eventId: string };
 
 /**
- * Ventas del evento (GET /payments/by-event/:eventId — productor dueño
+ * Ventas del evento (GET /payments/by-event/:eventId - productor dueño
  * del evento o admin; 403/404 → la sección no se muestra). La API solo
- * devuelve órdenes con eventId directo (TICKET) — un SERIES_PASS
+ * devuelve órdenes con eventId directo (TICKET) - un SERIES_PASS
  * pertenece a la serie y se liquida por mes en payouts.
  * Tabla real con scroll horizontal en pantallas estrechas (mismo patrón
  * que PassesSection).

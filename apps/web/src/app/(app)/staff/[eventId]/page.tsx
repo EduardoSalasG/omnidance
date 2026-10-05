@@ -14,7 +14,7 @@ import type { IDetectedBarcode } from "@yudiel/react-qr-scanner";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, EventDate, SkeletonList } from "@/components/ui";
 
-// La cámara solo existe en el cliente — sin SSR.
+// La cámara solo existe en el cliente - sin SSR.
 const Scanner = dynamic(
   () => import("@yudiel/react-qr-scanner").then((m) => m.Scanner),
   { ssr: false },
@@ -32,7 +32,7 @@ type CheckinResult = {
   person: { name: string; photoUrl: string | null };
   ticket: { id: string; status: string } | null;
   /** Tipo de EntryPass cuando el check-in no vino de un Ticket
-      (LIST/COMP/ARTIST/STAFF…) — contrato nuevo del API. */
+      (LIST/COMP/ARTIST/STAFF…) - contrato nuevo del API. */
   passType?: string | null;
 };
 
@@ -57,7 +57,7 @@ type ScanResult =
 type Gate = "loading" | "ok" | "unauth" | "notStaff";
 type View = "scan" | "list";
 
-/** Vibración háptica — puerta ruidosa, la confirmación se siente en la mano. */
+/** Vibración háptica - puerta ruidosa, la confirmación se siente en la mano. */
 function buzz(pattern: number | number[]) {
   try {
     if (
@@ -67,7 +67,7 @@ function buzz(pattern: number | number[]) {
       navigator.vibrate(pattern);
     }
   } catch {
-    // Dispositivo sin vibración — el feedback visual basta.
+    // Dispositivo sin vibración - el feedback visual basta.
   }
 }
 
@@ -81,7 +81,7 @@ async function readApiMessage(res: Response): Promise<string | null> {
       if (Array.isArray(m) && typeof m[0] === "string") return m[0] as string;
     }
   } catch {
-    // Body no-JSON — se usa el fallback del catálogo.
+    // Body no-JSON - se usa el fallback del catálogo.
   }
   return null;
 }
@@ -95,7 +95,7 @@ function Avatar({
 }) {
   if (photoUrl) {
     // <img> a propósito: photoUrl es remoto y next/image requeriría
-    // configurar remotePatterns — fuera de alcance v1.
+    // configurar remotePatterns - fuera de alcance v1.
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -174,12 +174,12 @@ export default function DoorConsolePage({
         return;
       }
       if (!res.ok) {
-        // 404 u otro — conserva la lista anterior; no hay gate posible.
+        // 404 u otro - conserva la lista anterior; no hay gate posible.
         setGate((g) => (g === "loading" ? "ok" : g));
         return;
       }
       const list = (await res.json()) as ListedCheckin[];
-      // La API ordena inAt asc — la puerta quiere lo más reciente arriba.
+      // La API ordena inAt asc - la puerta quiere lo más reciente arriba.
       applyCheckins([...list].reverse());
       setOffline(false);
       setGate("ok");
@@ -192,7 +192,7 @@ export default function DoorConsolePage({
     }
   }, [eventId, applyCheckins]);
 
-  // Contador/lista de la noche — polling ligero cada ~15s.
+  // Contador/lista de la noche - polling ligero cada ~15s.
   useEffect(() => {
     void loadCheckins();
     const id = setInterval(() => void loadCheckins(), POLL_MS);
@@ -252,7 +252,7 @@ export default function DoorConsolePage({
               (c) => c.personId === body.checkin?.personId,
             )?.person.name ?? null;
         } catch {
-          // Body inesperado — se muestra el duplicado sin detalle.
+          // Body inesperado - se muestra el duplicado sin detalle.
         }
         buzz([80, 60, 80]);
         showResult({ kind: "duplicate", name, at });
@@ -266,7 +266,7 @@ export default function DoorConsolePage({
         setGate("notStaff");
         return;
       }
-      // 400 QR inválido / 404 evento o persona / 500 — mensaje del server si hay.
+      // 400 QR inválido / 404 evento o persona / 500 - mensaje del server si hay.
       buzz([80, 60, 80]);
       showResult({
         kind: "error",
@@ -365,7 +365,7 @@ export default function DoorConsolePage({
             (eventNameDone ? (
               ""
             ) : (
-              /* Skeleton de ancho fijo en el slot del título — span
+              /* Skeleton de ancho fijo en el slot del título - span
                  porque h1 solo admite phrasing content. */
               <span
                 aria-hidden="true"
@@ -379,7 +379,7 @@ export default function DoorConsolePage({
         </div>
       </header>
 
-      {/* Aviso de conectividad — la puerta no se detiene, pero el staff sabe */}
+      {/* Aviso de conectividad - la puerta no se detiene, pero el staff sabe */}
       {offline && (
         <div className="flex items-center justify-center gap-2 border-b border-amber-500/40 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-300">
           <svg
@@ -428,7 +428,7 @@ export default function DoorConsolePage({
 
       {gate === "ok" && view === "scan" && (
         <>
-          {/* Cámara grande — el teléfono se sostiene a la altura del pecho */}
+          {/* Cámara grande - el teléfono se sostiene a la altura del pecho */}
           <div className="relative min-h-0 flex-1">
             {cameraError ? (
               <div className="flex h-full items-center justify-center p-6">
@@ -455,7 +455,7 @@ export default function DoorConsolePage({
             </p>
           </div>
 
-          {/* Check-in manual colapsable — v1 por personId.
+          {/* Check-in manual colapsable - v1 por personId.
               TODO(ux): selector por nombre cuando exista búsqueda de personas. */}
           <section className="border-t border-night-700 px-4">
             <button
@@ -519,7 +519,7 @@ export default function DoorConsolePage({
         </ul>
       )}
 
-      {/* Tabs inferiores — al alcance del pulgar con una mano */}
+      {/* Tabs inferiores - al alcance del pulgar con una mano */}
       {gate === "ok" && (
         <nav className="grid grid-cols-2 border-t border-night-700 bg-night-900">
           <button
@@ -539,7 +539,7 @@ export default function DoorConsolePage({
         </nav>
       )}
 
-      {/* Resultado a pantalla completa — legible a brazo de distancia */}
+      {/* Resultado a pantalla completa - legible a brazo de distancia */}
       {result && (
         <div
           role="status"

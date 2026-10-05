@@ -6,7 +6,7 @@ import type { ParamsService } from "../../params/params.service";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
 import { PaymentSettlementService } from "./payment-settlement.service";
 
-// PaymentSettlementService — el foco es la instrumentación del ledger
+// PaymentSettlementService - el foco es la instrumentación del ledger
 // (STATUS_CONFIRMED / SETTLED / RENEWAL_SETTLED / FAILED / AMOUNT_MISMATCH
 // solo en la transición real) y la persistencia de la verdad monetaria
 // Flow (campos gateway*). PrismaService se mockea como objeto plano con
@@ -209,7 +209,7 @@ function mkPrisma() {
     },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
       fn(prisma),
-    // pg_advisory_xact_lock del ledger — no-op en el fake.
+    // pg_advisory_xact_lock del ledger - no-op en el fake.
     $executeRaw: vi.fn(async () => 0),
   };
   return {
@@ -330,7 +330,7 @@ describe("PaymentSettlementService", () => {
     });
 
     it("plan TRIAL → crea Enrollment TRIAL nuevo (sin findFirst/update) + notif 'Clase de prueba comprada'", async () => {
-      // La alumna ya tiene una inscripción ACTIVE vigente — el settle
+      // La alumna ya tiene una inscripción ACTIVE vigente - el settle
       // TRIAL ni la lee: siempre crea una fila aparte.
       fx.prisma.enrollment.findFirst.mockResolvedValue({
         id: "enr-active",

@@ -1,4 +1,4 @@
-// Smoke private-lesson-product — corre contra API viva en :4000.
+// Smoke private-lesson-product - corre contra API viva en :4000.
 // node scripts/smoke-private-lesson.cjs
 const { PrismaClient } = require("@prisma/client");
 const { SignJWT } = require("jose");

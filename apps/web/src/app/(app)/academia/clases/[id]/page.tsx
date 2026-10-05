@@ -21,9 +21,9 @@ type LoadState =
   | "error";
 
 /**
- * /academia/clases/[id] — roster de una clase (GET /classes/:id/roster):
+ * /academia/clases/[id] - roster de una clase (GET /classes/:id/roster):
  * detalle (serie, estilo/nivel, fecha/hora, profesor), quórum destacado
- * booked/quorum, reservados y lista de espera. Vista por clase — el server
+ * booked/quorum, reservados y lista de espera. Vista por clase - el server
  * decide el acceso (instructor de la clase u owner/admin): 401/403/404
  * tienen estado propio.
  */

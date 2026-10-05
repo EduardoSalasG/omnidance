@@ -14,7 +14,7 @@ async function bootstrap() {
   });
   // Security headers (spec api-hardening): primero en el pipeline.
   // CSP off: la única superficie HTML es Swagger UI (/api/docs), que
-  // usa scripts inline — el default-src 'self' de helmet la rompería.
+  // usa scripts inline - el default-src 'self' de helmet la rompería.
   // No interfiere con CORS (CORP solo aplica a fetches no-cors).
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(requestLoggerMiddleware(winston));

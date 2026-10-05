@@ -8,7 +8,7 @@ import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
 
-// Enum cerrado del dominio (DISCOUNT_CODE_TYPES en apps/api) — no libre.
+// Enum cerrado del dominio (DISCOUNT_CODE_TYPES en apps/api) - no libre.
 const CODE_TYPES = [
   "CUMPLEANOS",
   "CORTESIA",
@@ -46,7 +46,7 @@ const inputCls =
   "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50";
 
 /**
- * /productor/codigos — códigos de descuento del productor
+ * /productor/codigos - códigos de descuento del productor
  * (GET/POST /discount-codes). Monta solo cuando ProducerGate confirma rol.
  */
 function DiscountCodes() {
@@ -91,7 +91,7 @@ function DiscountCodes() {
   const boot = useCallback(async () => {
     // Eventos para el select del form + listado de códigos en paralelo.
     // Fallo de /events → [] resuelto: el select se habilita con solo
-    // "—" (un código sin evento es válido).
+    // "·" (un código sin evento es válido).
     const [evRes] = await Promise.all([
       apiFetch("/events").catch(() => null),
       loadCodes(),
@@ -309,7 +309,7 @@ function DiscountCodes() {
                   aria-busy={events === null}
                   className={inputCls}
                 >
-                  <option value="">—</option>
+                  <option value="">·</option>
                   {(events ?? []).map((ev) => (
                     <option key={ev.id} value={ev.id}>
                       {ev.name}

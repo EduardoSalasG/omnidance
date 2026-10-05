@@ -9,7 +9,7 @@ import {
   type RealtimePort,
 } from "./ports";
 
-// Centro de notificaciones (omni-dance.md — sistema) — servicio de dominio puro.
+// Centro de notificaciones (omni-dance.md - sistema) - servicio de dominio puro.
 
 export const NOTIFICATION_CATEGORIES = [
   "SOCIAL",
@@ -70,7 +70,7 @@ export class NotificationsService {
    * Crea una notificación in-app para `personId`.
    * `type` es libre ("session_invite", "ticket_paid", "prime_unlocked"…);
    * `category` debe ser una de las 4 del schema.
-   * Tras persistir dispara fan-out realtime (WS) y web push — ambos
+   * Tras persistir dispara fan-out realtime (WS) y web push - ambos
    * best-effort: un fallo del socket o de push nunca rompe notify().
    */
   async notify(personId: string, input: NotifyInput): Promise<Notification> {
@@ -91,12 +91,12 @@ export class NotificationsService {
     try {
       this.realtime?.emitToPerson(personId, "notification", notification);
     } catch {
-      /* gateway ausente o socket caído — la notificación ya quedó persistida */
+      /* gateway ausente o socket caído - la notificación ya quedó persistida */
     }
     try {
       await this.push?.sendToPerson(personId, notification);
     } catch {
-      /* web push opcional — nunca propaga */
+      /* web push opcional - nunca propaga */
     }
     return notification;
   }
@@ -159,7 +159,7 @@ export class NotificationsService {
 
   /**
    * Registra/actualiza el push token del dispositivo.
-   * Schema v1: no hay columna `platform` — se guarda dentro de `payload`
+   * Schema v1: no hay columna `platform` - se guarda dentro de `payload`
    * junto a las claves VAPID del navegador ({ p256dh, auth }) cuando vienen.
    */
   async registerPushToken(

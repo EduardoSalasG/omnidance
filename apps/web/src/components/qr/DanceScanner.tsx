@@ -9,7 +9,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 
-// Cámara solo en cliente — evita cualquier acceso a window en SSR.
+// Cámara solo en cliente - evita cualquier acceso a window en SSR.
 const QrScanner = dynamic(() => import("@/components/sessions/QrScanner"), {
   ssr: false,
 });
@@ -31,7 +31,7 @@ type EventListItem = {
 const FEEDBACK_MS = 2600;
 
 /**
- * Flujo de escaneo para registrar un baile. Vive dentro del hub /qr —
+ * Flujo de escaneo para registrar un baile. Vive dentro del hub /qr -
  * el header/bottom-nav los da el chrome de la app, no el componente.
  * Sin `eventId` muestra el picker de eventos en vivo/publicados;
  * con `eventId` abre la cámara y postea /sessions/scan.
@@ -46,7 +46,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [camKey, setCamKey] = useState(0);
-  // Re-dispara la inicialización desde el estado de error — sin reload
+  // Re-dispara la inicialización desde el estado de error - sin reload
   // de página (conserva el ?event= de la ruta vía la prop eventId).
   const [bootNonce, setBootNonce] = useState(0);
 
@@ -123,7 +123,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
           showFeedback({ kind: res.status === 409 ? "cooldown" : "error" });
           return;
         }
-        // El invitee no viene en la respuesta — se busca en /sessions/mine.
+        // El invitee no viene en la respuesta - se busca en /sessions/mine.
         const { id } = (await res.json()) as { id: string };
         let partnerName: string | undefined;
         const mine = await apiFetch(`/sessions/mine?eventId=${eventId}`).catch(
@@ -179,7 +179,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
     );
   }
 
-  // ── Sin eventId — selector de evento en vivo/publicado ────
+  // ── Sin eventId - selector de evento en vivo/publicado ────
   if (phase === "pick") {
     return (
       <div className="flex flex-col gap-5 pt-2">
@@ -250,7 +250,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
           </div>
         )}
 
-        {/* Toast de resultado — grande, legible a brazo extendido */}
+        {/* Toast de resultado - grande, legible a brazo extendido */}
         {feedback && (
           <div className="absolute inset-x-4 bottom-6">
             <Card

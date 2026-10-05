@@ -49,7 +49,7 @@ export function setSessionCookie(res: Response, token: string): void {
 
 // `consent?: boolean` (spec legal-consent): el front lo manda true cuando
 // la persona marcó el checkbox de Términos+Privacidad. No es obligatorio
-// a nivel API — cuentas legadas pasan por el aviso in-app (POST
+// a nivel API - cuentas legadas pasan por el aviso in-app (POST
 // /me/consent). Si llega true se estampa al crear la sesión.
 class ConsentField {
   @IsOptional()

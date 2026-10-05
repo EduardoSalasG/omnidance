@@ -22,7 +22,7 @@ export default function CompletarPerfilPage() {
   const tc = useTranslations("common");
   const router = useRouter();
 
-  // /me compartido (MeProvider) — la fase inicial se deriva del contexto;
+  // /me compartido (MeProvider) - la fase inicial se deriva del contexto;
   // quien llega sin pendingProfile vuelve a /perfil.
   const {
     me,
@@ -87,7 +87,7 @@ export default function CompletarPerfilPage() {
       }
       if (!res.ok) throw new Error();
       setPhase("done");
-      // La sesión ya no es demo — /inicio carga la app completa.
+      // La sesión ya no es demo - /inicio carga la app completa.
       setTimeout(() => router.replace("/inicio"), 1200);
     } catch {
       setError(t("complete.error"));

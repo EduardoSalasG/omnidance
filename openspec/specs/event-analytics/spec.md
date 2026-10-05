@@ -7,7 +7,7 @@ Analítica por evento para el productor (asistentes, composición del público, 
 
 ### Requirement: Analítica por evento
 
-`GET /api/events/:id/analytics` SHALL responder, solo al producer owner del evento o admin: `attendees` (check-ins no anulados), `genderSplit` (`{M,F,OTHER,unknown}`), `roleSplit` (`{leader,follower,both}` — rol del asistente en los estilos del género del evento, con herencia de la serie; SWITCH o LEADER+FOLLOWER → `both`; sin declaración relevante → no cuenta) y `ratings` (`count` + promedios por dimensión, k-anonymity ≥3 **por dimensión**: una dim con <3 valores no-nulos → `null`). Con <3 asistentes, splits y ratings MUST ser `null`. Otros roles MUST recibir 403.
+`GET /api/events/:id/analytics` SHALL responder, solo al producer owner del evento o admin: `attendees` (check-ins no anulados), `genderSplit` (`{M,F,OTHER,unknown}`), `roleSplit` (`{leader,follower,both}` - rol del asistente en los estilos del género del evento, con herencia de la serie; SWITCH o LEADER+FOLLOWER → `both`; sin declaración relevante → no cuenta) y `ratings` (`count` + promedios por dimensión, k-anonymity ≥3 **por dimensión**: una dim con <3 valores no-nulos → `null`). Con <3 asistentes, splits y ratings MUST ser `null`. Otros roles MUST recibir 403.
 
 #### Scenario: Productor ve métricas de su evento
 

@@ -60,7 +60,7 @@ export interface GamificationRepo {
 
   /**
    * Sesiones CONFIRMED/RATED del evento para contador Prime Time y
-   * leaderboard — EXCLUYE retroDeclared (el escaneo en vivo es lo que
+   * leaderboard - EXCLUYE retroDeclared (el escaneo en vivo es lo que
    * alimenta el Prime Time; las declaradas cuentan para streaks/badges).
    */
   confirmedSessionsForEvent(eventId: string): Promise<GamificationSession[]>;
@@ -85,12 +85,12 @@ export interface GamificationRepo {
     eventId?: string,
   ): Promise<{ eventId: string; inAt: Date }[]>;
 
-  /** Asistencias a clases de la persona — alimentan la racha academy. */
+  /** Asistencias a clases de la persona - alimentan la racha academy. */
   attendancesForPerson(
     personId: string,
   ): Promise<{ checkedAt: Date; academyId: string | null }[]>;
 
-  /** Nombres para el leaderboard (join manual — personId es escalar). */
+  /** Nombres para el leaderboard (join manual - personId es escalar). */
   peopleByIds(ids: string[]): Promise<{ id: string; name: string }[]>;
 
   happyHoursForEvent(eventId: string): Promise<HappyHour[]>;
@@ -133,7 +133,7 @@ export interface GamificationRepo {
 
   /**
    * Crea la entrada; retorna null si ya existía una con la misma referencia
-   * (conflicto del unique compuesto — race de doble accrual).
+   * (conflicto del unique compuesto - race de doble accrual).
    */
   createLedgerEntry(entry: NewLedgerEntry): Promise<PointLedger | null>;
 

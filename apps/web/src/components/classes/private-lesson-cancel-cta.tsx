@@ -9,10 +9,10 @@ import { Button, Card } from "@/components/ui";
 import { readError } from "@/components/academy/shared";
 
 /**
- * Zona destructiva de la ficha de una clase particular — el mismo
+ * Zona destructiva de la ficha de una clase particular - el mismo
  * patrón que la cancelación de una reserva normal: lejos del pulgar,
  * confirmación en bottom sheet, nunca inline ni window.confirm. La
- * devolución del dinero es gestión manual (Flow) — el owner recibe
+ * devolución del dinero es gestión manual (Flow) - el owner recibe
  * una notificación (academy.private_lesson.cancelled_paid).
  */
 export function PrivateLessonCancelCta({ lessonId }: { lessonId: string }) {
@@ -50,7 +50,7 @@ export function PrivateLessonCancelCta({ lessonId }: { lessonId: string }) {
         setNotice({ text: (await readError(res)) ?? t("error"), error: true });
         return;
       }
-      // La particular comprada se paga por adelantado — la devolución
+      // La particular comprada se paga por adelantado - la devolución
       // es gestión manual con la academia (mismo copy que reserva paga).
       setNotice({ text: t("cancelledPaid"), error: false });
       router.refresh();
@@ -63,7 +63,7 @@ export function PrivateLessonCancelCta({ lessonId }: { lessonId: string }) {
 
   return (
     <>
-      {/* Pie: aviso post-cancelación + zona destructiva centrada —
+      {/* Pie: aviso post-cancelación + zona destructiva centrada -
           patrón "eliminar amigo" / cancelar reserva. */}
       <div className="flex flex-col items-center gap-2 pt-2">
         {notice && (

@@ -14,7 +14,7 @@ import { GatewayTransactionsService } from "../infrastructure/gateway-transactio
 import { StubGateway } from "../infrastructure/stub.gateway";
 import { SubscriptionsService } from "./subscriptions.service";
 
-// SubscriptionsService — fake SubscriptionProvider (name "FLOW" para pasar
+// SubscriptionsService - fake SubscriptionProvider (name "FLOW" para pasar
 // el check del puerto) + fake prisma stateful (mismo patrón que
 // payment-settlement.service.spec). Se usa el PaymentSettlementService y
 // GatewayTransactionsService REALES: el reconcile ejerce el camino
@@ -89,7 +89,7 @@ function mkPrisma() {
   const persons = new Map<string, Row>();
   const plans = new Map<string, Row>();
   const gatewayTxs: Row[] = [];
-  // Notificaciones "enviadas" — el spy de notifySafe las registra acá
+  // Notificaciones "enviadas" - el spy de notifySafe las registra acá
   // (beforeEach) y notification.findFirst las consulta: así el dedup de
   // membership.renewal_failed se ejerce end-to-end en el spec.
   const sentNotifs: Row[] = [];
@@ -324,7 +324,7 @@ function mkPrisma() {
     },
     personRole: { findMany: vi.fn(async () => [] as Row[]) },
     // PlatformSubscription (saas-billing): el orphan sweep de subs cubre
-    // ambas tablas — sin filas acá, siempre vacío.
+    // ambas tablas - sin filas acá, siempre vacío.
     platformSubscription: {
       findMany: vi.fn(async () => [] as Row[]),
       updateMany: vi.fn(async () => ({ count: 0 })),
@@ -474,7 +474,7 @@ describe("SubscriptionsService", () => {
     fx = mkPrisma();
     flow = mkFlow();
     notifications = mkNotifications();
-    // El dedup de mora consulta prisma.notification — el spy registra
+    // El dedup de mora consulta prisma.notification - el spy registra
     // cada notifySafe en sentNotifs para que findFirst lo encuentre.
     notifications.notifySafe.mockImplementation(
       async (personId: string, input: Row) => {
@@ -572,12 +572,12 @@ describe("SubscriptionsService", () => {
       expect(sub.planId).toBe("plan1");
       expect(sub.academyId).toBe("ac1");
 
-      // plan espejo lazy: ensurePlan con el precio del plan (SIN fee —
+      // plan espejo lazy: ensurePlan con el precio del plan (SIN fee -
       // modelo SaaS) e interval mensual
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         {
           planId: "omni_plan1",
-          name: "Academia X — Mensual",
+          name: "Academia X - Mensual",
           amount: 10000,
           intervalCount: 1,
         },
@@ -639,7 +639,7 @@ describe("SubscriptionsService", () => {
 
     it("PENDING_CARD fresca del mismo plan → reutiliza la sub (idempotente)", async () => {
       // Segundo subscribe concurrente/retry: el advisory lock serializa
-      // y el que llega segundo ve la PENDING_CARD del primero — la
+      // y el que llega segundo ve la PENDING_CARD del primero - la
       // reutiliza en vez de crear otra (mismo subscriptionId, nuevo
       // registerUrl sobre el mismo customerId).
       const pending = mkSub({ status: "PENDING_CARD" });
@@ -670,7 +670,7 @@ describe("SubscriptionsService", () => {
     });
 
     it("subscribe cancela TODAS las PENDING_CARD del person (otros planes)", async () => {
-      // El token de customer-return ata a customer→person, no a sub —
+      // El token de customer-return ata a customer→person, no a sub -
       // una pendiente de otro plan no puede sobrevivir al nuevo intento.
       const other = mkSub({ planId: "plan2", status: "PENDING_CARD" });
       fx.subs.push(other);
@@ -749,7 +749,7 @@ describe("SubscriptionsService", () => {
         immediate: true,
       });
       // Persistencia temprana: el id remoto se escribe en su propia
-      // escritura justo tras createSubscription — aunque la transición
+      // escritura justo tras createSubscription - aunque la transición
       // de estado falle, el sweep de huérfanas puede rastrearla.
       expect(fx.subs[0]!.flowSubscriptionId).toBe("fsub-1");
     });
@@ -1050,7 +1050,7 @@ describe("SubscriptionsService", () => {
         personId: "p1",
         status: "ACTIVE",
       });
-      // ORDER_CREATED ya se emitió en la pasada original — el retry solo
+      // ORDER_CREATED ya se emitió en la pasada original - el retry solo
       // agrega la transición del settle (idempotente, no duplica eventos)
       const types = fx.events
         .filter((e) => e.paymentId === "pay-9")
@@ -1251,7 +1251,7 @@ describe("SubscriptionsService", () => {
       );
       const row = fx.subs.find((s) => s.id === sub.id)!;
       // SIN grace period y sin marcar CANCELED: la sub sigue viva (Flow
-      // reintenta), el enrollment no se toca — expira solo en endsAt.
+      // reintenta), el enrollment no se toca - expira solo en endsAt.
       expect(row.status).toBe("ACTIVE");
       expect(fx.enrollments).toHaveLength(0);
       expect(fx.payments.size).toBe(0);
@@ -1281,7 +1281,7 @@ describe("SubscriptionsService", () => {
           { id: 56, status: 0, amount: 10500 },
         ],
       } as never);
-      // la clave del episodio es la invoice impaga más antigua (55) —
+      // la clave del episodio es la invoice impaga más antigua (55) -
       // sigue dedupado mientras dure la misma mora
       expect(
         notifications.notifySafe.mock.calls.filter(
@@ -1491,7 +1491,7 @@ describe("SubscriptionsService", () => {
         requestBody: { token: "tok-wh" },
         ok: true,
       });
-      // fire-and-forget: el reconcile corre en background — esperar el tick
+      // fire-and-forget: el reconcile corre en background - esperar el tick
       await new Promise((r) => setTimeout(r, 10));
       expect(flow.getSubscription).toHaveBeenCalled();
     });
@@ -1499,7 +1499,7 @@ describe("SubscriptionsService", () => {
     it("sin token → registra INBOUND pero NO dispara reconcileAll (I3)", async () => {
       // Endpoint público: un POST arbitrario sin token no puede forzar
       // N llamadas firmadas a Flow (amplificación). El INBOUND queda
-      // registrado igual — evidencia del intento.
+      // registrado igual - evidencia del intento.
       fx.subs.push(mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" }));
       await svc.subscriptionWebhook(null);
       expect(fx.gatewayTxs[0]).toMatchObject({
@@ -1530,8 +1530,8 @@ describe("SubscriptionsService", () => {
       expect(flow.syncPlan).toHaveBeenCalledWith(
         {
           planId: "omni_plan1",
-          name: "Academia Tumbao — Mensual Pro",
-          // 40000 — sin service_fee.membership_clp (inerte en el modelo
+          name: "Academia Tumbao - Mensual Pro",
+          // 40000 - sin service_fee.membership_clp (inerte en el modelo
           // SaaS: el costo Flow se liquida en el payout de la academia).
           amount: 40000,
         },
@@ -1569,7 +1569,7 @@ describe("SubscriptionsService", () => {
       );
     });
 
-    it("si Flow rechaza, propaga el error (el caller decide — PATCH aborta)", async () => {
+    it("si Flow rechaza, propaga el error (el caller decide - PATCH aborta)", async () => {
       flow.syncPlan.mockRejectedValueOnce(new Error("flow 500"));
       await expect(
         svc.syncMirrorPlan(
@@ -1581,7 +1581,7 @@ describe("SubscriptionsService", () => {
   });
 
   // El StubGateway real como SubscriptionProvider: ejerce el flujo
-  // completo de suscripciones en localhost sin credenciales Flow —
+  // completo de suscripciones en localhost sin credenciales Flow -
   // needs_card → customer-return → ACTIVE → settle del primer invoice.
   describe("StubGateway como SubscriptionProvider", () => {
     let stub: StubGateway;
@@ -1634,7 +1634,7 @@ describe("SubscriptionsService", () => {
       expect(payment.orderType).toBe("MEMBERSHIP");
       expect(payment.status).toBe("PAID");
       expect(payment.gateway).toBe("STUB");
-      // 10000 = precio del plan sin cargo de servicio (modelo SaaS —
+      // 10000 = precio del plan sin cargo de servicio (modelo SaaS -
       // el plan espejo del stub cobra el mismo amount que ensurePlan).
       expect(payment.amount).toBe(10000);
       expect(fx.enrollments).toHaveLength(1);

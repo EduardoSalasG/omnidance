@@ -32,9 +32,9 @@ export class EventAnalyticsController {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * GET /events/:id/analytics — analítica del evento para su productor
+   * GET /events/:id/analytics - analítica del evento para su productor
    * (o admin): asistencia real por check-in, composición por género y
-   * rol de baile, y promedios de la encuesta. Todo agregado — nunca
+   * rol de baile, y promedios de la encuesta. Todo agregado - nunca
    * filas individuales; bajo EXPOSURE_THRESHOLD los splits y ratings
    * se ocultan (k-anonymity, mismo umbral que ratings/summary).
    */
@@ -122,7 +122,7 @@ export class EventAnalyticsController {
     }
 
     // K-anonymity por dimensión (mismo criterio que dj summary): una
-    // dim con <3 valores no-nulos devuelve null — su promedio expondría
+    // dim con <3 valores no-nulos devuelve null - su promedio expondría
     // la evaluación individual de esa persona.
     const byDim = {} as Record<AnalyticsDim, number | null>;
     for (const dim of ANALYTICS_DIMS) {

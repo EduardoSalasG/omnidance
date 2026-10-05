@@ -604,7 +604,7 @@ describe("social e2e", () => {
       expect(mine).toBeTruthy();
       expect(mine.type).toBe("PRACTICA");
       expect(mine.hostId).toBe(ids.dancerId);
-      // las prácticas no se vinculan a Venue — el lugar es venueText
+      // las prácticas no se vinculan a Venue - el lugar es venueText
       expect(mine.venueText).toBe("Parque de los Reyes");
       expect(mine).not.toHaveProperty("venue");
       // estilo foco materializado como ScheduleBlock → expuesto como style
@@ -683,7 +683,7 @@ describe("social e2e", () => {
       const body = await res.json();
       expect(body.going).toBe(false);
       expect(body.count).toBe(0);
-      // segunda vez sin RSVP — no explota
+      // segunda vez sin RSVP - no explota
       const again = await req(
         "POST",
         `/api/practices/${ids.practiceEventIds[0]}/rsvp`,

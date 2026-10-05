@@ -49,13 +49,13 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
     };
   }, [eventId]);
 
-  // Endpoint caído (o aún no implementado): no renderizar nada — no
+  // Endpoint caído (o aún no implementado): no renderizar nada - no
   // rompe la página del evento. Un poll posterior que responda bien
   // vuelve a montar el widget.
   if (!data && failed) return null;
 
   // Fetch en vuelo → nada: el widget es opcional (no todo evento tiene
-  // Prime Time) — un card skeleton que colapsa al vacío es el flash que
+  // Prime Time) - un card skeleton que colapsa al vacío es el flash que
   // evitamos; aparecer una sola vez con contenido es correcto.
   if (!data) return null;
 

@@ -70,7 +70,7 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
 
   /**
    * Crea el check-in y marca USED el pase resuelto en la misma transacción.
-   * SERIES_PASS no se marca USED: es un pase mensual reutilizable — solo
+   * SERIES_PASS no se marca USED: es un pase mensual reutilizable - solo
    * queda referenciado en Checkin.passId para auditoría/reporting.
    */
   createCheckin(data: CreateCheckinData, pass: ResolvedPass | null) {
@@ -123,7 +123,7 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
     return this.prisma.checkin.findUnique({ where: { id } });
   }
 
-  /** Roles APPROVED del actor (keys) — la resolución a permisos usa el
+  /** Roles APPROVED del actor (keys) - la resolución a permisos usa el
    * catálogo cacheado de roles.guard (misma fuente que el guard HTTP). */
   private async actorRoleKeys(personId: string) {
     const personRoles = await this.prisma.personRole.findMany({
@@ -139,7 +139,7 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
   }
 
   async isSuperuser(personId: string) {
-    // isSuperuser pasa cualquier check de permiso — reusa el mismo resolver.
+    // isSuperuser pasa cualquier check de permiso - reusa el mismo resolver.
     const roleKeys = await this.actorRoleKeys(personId);
     return roleKeysHavePermission(this.prisma, roleKeys, [
       "__superuser_probe__",

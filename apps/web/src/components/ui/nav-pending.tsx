@@ -13,19 +13,19 @@ import {
 // aparece de golpe (loading.tsx no re-suspende en cambios de
 // searchParams de la misma ruta). Este wrapper hace acquire del beacon
 // de carga compartido al tocar un link interno y lo suelta cuando cambian
-// pathname/searchParams — es decir, cuando la navegación pinta. Si la
+// pathname/searchParams - es decir, cuando la navegación pinta. Si la
 // página destino sigue cargando data, su PageLoading mantiene el beacon:
 // un solo spinner continuo de principio a fin.
 //
 // El estándar de carga percibida (delay + min-visible) vive en
-// loading-beacon — acá solo se decide CUÁNDO adquirir/soltar.
+// loading-beacon - acá solo se decide CUÁNDO adquirir/soltar.
 
 const HARD_CLEAR_MS = 8000;
 
 function NavWatcher({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Solo notificar cuando la URL realmente cambió — un re-render del
+  // Solo notificar cuando la URL realmente cambió - un re-render del
   // padre (p.ej. al encender el beacon) no es una navegación.
   const prev = useRef(`${pathname}?${searchParams}`);
   useEffect(() => {

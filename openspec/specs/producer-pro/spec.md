@@ -27,7 +27,7 @@ existentes al despliegue SHALL quedar `FREE`. Precios por ciclo
 
 ### Requirement: Features Pro
 
-El tier PRO SHALL habilitar las herramientas premium de gestión —
+El tier PRO SHALL habilitar las herramientas premium de gestión -
 inicialmente: analítica avanzada del evento, CRM del productor,
 exports CSV/PDF y gestión multi-staff/listas. Las features FREE SHALL
 seguir siendo: publicar eventos, vender, check-in, dashboard básico.
@@ -41,7 +41,7 @@ copy que invite a contratar.
 
 ### Requirement: Mora de la suscripción Pro
 
-La mora de Producer Pro SHALL degradar solo las features Pro — nunca
+La mora de Producer Pro SHALL degradar solo las features Pro - nunca
 bloquea publicar, vender ni hacer check-in. Un `RENEWAL_SETTLED`
 SHALL restaurar el tier.
 

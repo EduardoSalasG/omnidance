@@ -26,7 +26,7 @@ const RES_STATUS_VARIANT: Record<string, "neon" | "muted" | "outline" | "live"> 
   };
 
 /**
- * Reservas de mesa del evento — vista de gestión del productor.
+ * Reservas de mesa del evento - vista de gestión del productor.
  * GET /events/:id/table-reservations/manage devuelve TODAS las reservas
  * con id+status (el listado público solo expone CONFIRMED sin ids).
  */
@@ -170,7 +170,7 @@ export function ReservationsSection({
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-medium">
-                        {r.person.name ?? "—"}
+                        {r.person.name ?? "-"}
                       </p>
                       <p className="text-xs text-white/50">
                         {t("reservations.partySize", {
@@ -194,7 +194,7 @@ export function ReservationsSection({
 
                   {manageable && r.status !== "CANCELLED" && (
                     <div className="flex flex-wrap items-end gap-2 border-t border-night-700 pt-3">
-                      {/* El productor ajusta el tamaño al confirmar — la
+                      {/* El productor ajusta el tamaño al confirmar - la
                           disponibilidad es referencial (checkout declara
                           que el tamaño podría cambiar). */}
                       <label className="flex w-24 flex-col gap-1.5">

@@ -11,7 +11,7 @@ import type {
   ResolvedListOptions,
 } from "../domain/ports";
 
-// Filtro por lente: excluye los `type` de la lente opuesta — los "any"
+// Filtro por lente: excluye los `type` de la lente opuesta - los "any"
 // (sin dominio propio: account.*, crm.*, lead.*) cuentan en ambas.
 function lensWhere(
   lens?: NotificationLensFilter,

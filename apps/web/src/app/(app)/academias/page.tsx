@@ -18,15 +18,15 @@ import {
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
 import { planDateFmt } from "@/components/academy/shared";
 
-// /academias — "Mi Aprendizaje" del modo Academia (spec §9). Misma
+// /academias - "Mi Aprendizaje" del modo Academia (spec §9). Misma
 // gramática que /clases: dos ejes independientes en la URL
-// (deep-linkable) — `s` scope (mias|explorar) como pills con texto y
+// (deep-linkable) - `s` scope (mias|explorar) como pills con texto y
 // `v` display (lista|mapa) como íconos segmentados; filtros como chips.
 //
 // Scopes:
-// - `mias`: academias donde el dancer tiene inscripción — card con
+// - `mias`: academias donde el dancer tiene inscripción - card con
 //   estado/plan/asistencias/videos + link a la ficha /academias/:id.
-// - `explorar`: el resto del directorio (enrolled=false) — card con
+// - `explorar`: el resto del directorio (enrolled=false) - card con
 //   estilos impartidos, dirección y profesores.
 // `v=map` cambia la lista por pins de las academias del scope activo;
 // `style` filtra ambos scopes; `q` busca por nombre (explorar, siempre
@@ -58,17 +58,17 @@ type Enrollment = {
     lat: number | null;
     lng: number | null;
     /** Mora SaaS (S3): la card histórica se mantiene con badge "no
-        disponible" — no se oculta al alumno. */
+        disponible" - no se oculta al alumno. */
     billingBlocked?: boolean;
   };
   status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
   plan: { name: string; type: string } | null;
   startedAt: string;
-  /** "Pagado hasta" — null = sin fecha de término registrada. */
+  /** "Pagado hasta" - null = sin fecha de término registrada. */
   endsAt: string | null;
   attendance30d: number;
   /** Suscripción Flow vigente del viewer en esta academia (la más
-      reciente) — alimenta el badge "Suscripción"/"Se cancela el…". */
+      reciente) - alimenta el badge "Suscripción"/"Se cancela el…". */
   subscription: {
     id: string;
     planId: string;
@@ -132,12 +132,12 @@ function PinIcon({ className }: { className?: string }) {
 }
 
 /** Card de una inscripción: estado, plan, progreso del mes y videos.
-    El card completo navega a la ficha pública de la academia — el nombre
+    El card completo navega a la ficha pública de la academia - el nombre
     es un stretched link (after:inset-0) y los links internos (videos)
     quedan por encima con z-10. */
 function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
   // `tl` (no `t`): el audit i18n indexa por nombre de variable y el
-  // archivo ya tiene un `t` con ns "academy" — mismo motivo que `tp`/`tv`.
+  // archivo ya tiene un `t` con ns "academy" - mismo motivo que `tp`/`tv`.
   const tl = useTranslations("academy.learner");
   const tp = useTranslations("academy.planTypes");
   const tv = useTranslations("academyExtras.videos");
@@ -171,7 +171,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
           {tl(`status.${enrollment.status}`)}
         </Badge>
         {enrollment.academy.billingBlocked && (
-          // Mora SaaS del owner — la card sigue visible (historial) con
+          // Mora SaaS del owner - la card sigue visible (historial) con
           // indicador honesto; la ficha explica el estado.
           <Badge variant="muted">{tl("academyUnavailable")}</Badge>
         )}
@@ -183,7 +183,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
       </div>
 
       {/* Suscripción: CANCEL_PENDING muestra la fecha de fin real
-          (endsAt del enrollment — "pagado hasta" — o el próximo cobro
+          (endsAt del enrollment - "pagado hasta" - o el próximo cobro
           que Flow reporta); ACTIVATING/PENDING_CARD son transitorios. */}
       {enrollment.subscription?.status === "CANCEL_PENDING" &&
         (() => {
@@ -226,7 +226,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
           : null;
         const endD = enrollment.endsAt ? new Date(enrollment.endsAt) : null;
         if (!startD && !endD) return null;
-        // "Pagado hasta el 12" incluye el día 12 — vence al día siguiente.
+        // "Pagado hasta el 12" incluye el día 12 - vence al día siguiente.
         const expired = !!endD && endD.getTime() < new Date().setHours(0, 0, 0, 0);
         return (
           <p className={`text-xs ${expired ? "text-red-400" : "text-white/50"}`}>
@@ -250,7 +250,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
         </p>
       )}
 
-      {/* /videos fetch por card — sección opcional: nada hasta que
+      {/* /videos fetch por card - sección opcional: nada hasta que
           resuelva (aparece una sola vez si hay videos); un skeleton que
           colapsa al vacío sería el flash que evitamos. */}
       {videos !== null && videos.length > 0 && (
@@ -264,7 +264,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
               >
                 <LockIcon />
                 <span className="truncate">{v.title}</span>
-                <span className="sr-only">— {tv("lockedHint")}</span>
+                <span className="sr-only">{tv("lockedHint")}</span>
               </li>
             ) : (
               <li key={v.id}>
@@ -287,7 +287,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
 }
 
 /** Card del directorio (explorar): nombre, dirección, estilos que
-    imparte y profesores — el card completo navega a la ficha. */
+    imparte y profesores - el card completo navega a la ficha. */
 function AcademyCard({ academy }: { academy: DirectoryAcademy }) {
   const t = useTranslations("academy");
   return (
@@ -348,7 +348,7 @@ function AcademiasInner() {
 
   // ─── Estado en URL (mismo patrón que /clases y /eventos) ───
   // `s` = scope (mias|explorar), `v` = display (lista|mapa). Legado:
-  // `v` llevaba el scope y `map=1` el mapa — se leen como fallback.
+  // `v` llevaba el scope y `map=1` el mapa - se leen como fallback.
   const rawS = searchParams.get("s");
   const rawV = searchParams.get("v");
   const legacyMap = searchParams.get("map") === "1";
@@ -359,7 +359,7 @@ function AcademiasInner() {
   const [enrollments, setEnrollments] = useState<Enrollment[] | null>(null);
   const [state, setState] = useState<LoadState>("loading");
 
-  // Boot: directorio + inscripciones en paralelo — el retry del estado
+  // Boot: directorio + inscripciones en paralelo - el retry del estado
   // de error vuelve a disparar el mismo Promise.all.
   const load = useCallback(async () => {
     setState("loading");
@@ -385,7 +385,7 @@ function AcademiasInner() {
   }, [load]);
 
   // Scope: por defecto "mias" si hay inscripciones; sin ellas la vista
-  // útil es el directorio — evita una pantalla vacía de entrada.
+  // útil es el directorio - evita una pantalla vacía de entrada.
   const scopeExplicit =
     rawS === "explorar" ||
     rawS === "mias" ||
@@ -397,11 +397,11 @@ function AcademiasInner() {
       ? "explorar"
       : "mias";
   // Sin scope explícito el default depende de /enrolled: hasta resolver
-  // no sabemos cuál pill va activa — mostrar "mias" provisional y
+  // no sabemos cuál pill va activa - mostrar "mias" provisional y
   // voltearla a "explorar" era el flash reportado.
   const scopeKnown = scopeExplicit || enrollments !== null;
 
-  // Display: lista o mapa — independiente del scope activo.
+  // Display: lista o mapa - independiente del scope activo.
   const view: Display = rawV === "map" || legacyMap ? "map" : "list";
 
   const hrefFor = (o: {
@@ -411,7 +411,7 @@ function AcademiasInner() {
     q?: string | null;
   }) => {
     // Scope/vista destino: override explícito (null/undefined = default)
-    // o el actual. La búsqueda solo existe en explorar — se cae sola
+    // o el actual. La búsqueda solo existe en explorar - se cae sola
     // al volver a mis academias para no quedar de filtro invisible.
     const targetScope = "s" in o ? (o.s ?? "mias") : scope;
     const targetView = "v" in o ? (o.v ?? "list") : view;
@@ -479,7 +479,7 @@ function AcademiasInner() {
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{t("directoryTitle")}</h1>
-          {/* Toggle lista/mapa — display del scope activo, íconos
+          {/* Toggle lista/mapa - display del scope activo, íconos
               segmentados como las vistas de /clases */}
           <Segmented
             ariaLabel={t("viewsLabel")}
@@ -513,9 +513,9 @@ function AcademiasInner() {
           />
         </div>
 
-        {/* Scope: qué se muestra — pills con texto (mismo patrón que
+        {/* Scope: qué se muestra - pills con texto (mismo patrón que
             /clases: el display va como íconos, el scope con nombre).
-            Skeleton mientras el default depende de /enrolled — el
+            Skeleton mientras el default depende de /enrolled - el
             control siempre existe, el placeholder se llena (nunca un
             pill "mias" provisional que voltea a "explorar"). */}
         {scopeKnown ? (
@@ -541,7 +541,7 @@ function AcademiasInner() {
           <Skeleton className="page-loading h-12 w-full rounded-full" />
         )}
 
-        {/* Filtro de estilo + buscador por nombre en la misma fila —
+        {/* Filtro de estilo + buscador por nombre en la misma fila -
             el buscador ocupa el espacio restante (basis-36 + select
             max-w-36 = caben en una fila hasta ~350px; bajo eso el
             buscador envuelve a ancho completo). El estilo aplica a
@@ -634,7 +634,7 @@ function AcademiasInner() {
 
       {state === "ready" &&
         (view === "map" ? (
-          /* ─── Mapa del scope activo — pins a la ficha /academias/:id ─── */
+          /* ─── Mapa del scope activo - pins a la ficha /academias/:id ─── */
           <section aria-label={t("viewMap")}>
             {mapPins.length === 0 ? (
               <p className="text-sm text-white/50">{t("noLocation")}</p>
@@ -645,7 +645,7 @@ function AcademiasInner() {
             )}
           </section>
         ) : scope === "mias" ? (
-          /* ─── Mis academias — inscripciones del dancer ─── */
+          /* ─── Mis academias - inscripciones del dancer ─── */
           <section
             aria-label={t("learner.myAcademies")}
             className="flex flex-col gap-3"
@@ -667,7 +667,7 @@ function AcademiasInner() {
               </ul>
             ) : (
               /* Vacío honesto del scope "mias": no es que el directorio
-                 esté vacío — la persona no tiene inscripciones. El CTA
+                 esté vacío - la persona no tiene inscripciones. El CTA
                  lleva a explorar (patrón emptyMine de /clases). */
               <Card className="flex flex-col items-center gap-4 py-10 text-center">
                 <p role="status" className="text-white/70">
@@ -680,7 +680,7 @@ function AcademiasInner() {
             )}
           </section>
         ) : (
-          /* ─── Explorar — el resto del directorio ─── */
+          /* ─── Explorar - el resto del directorio ─── */
           <section
             aria-label={t("viewExplore")}
             className="flex flex-col gap-3"

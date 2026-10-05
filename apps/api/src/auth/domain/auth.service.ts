@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 import { SignJWT, jwtVerify } from "jose";
 
 // El overload con `options` existe en runtime pero @types/node no lo
-// expone en la firma promisificada — se declara aquí explícitamente.
+// expone en la firma promisificada - se declara aquí explícitamente.
 const scryptAsync = promisify(scrypt) as unknown as (
   password: BinaryLike,
   salt: BinaryLike,

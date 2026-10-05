@@ -12,7 +12,7 @@ import {
 } from "@/components/onboarding/OnboardingRunner";
 
 /**
- * /productor — hub de la consola del productor. Arriba el pulso (KPIs
+ * /productor - hub de la consola del productor. Arriba el pulso (KPIs
  * agregados de los eventos próximos vía /events/mine); cada módulo vive
  * en su subruta (/productor/eventos, /productor/codigos, /productor/listas,
  * /productor/pagos, /crm) y fetchea sus propios datos tras el gate.
@@ -66,7 +66,7 @@ export default function ProducerPage() {
           />
         </ModuleGrid>
 
-        {/* Tour de primera visita — los targets viven en el chrome
+        {/* Tour de primera visita - los targets viven en el chrome
             (nav + menú), siempre presentes una vez pasa el gate. */}
         <OnboardingRunner
           tour="productor"

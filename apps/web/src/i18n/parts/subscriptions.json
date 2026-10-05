@@ -1,7 +1,7 @@
 {
   "subscriptions": {
     "subscribe": "Suscribirme",
-    "error": "No pudimos iniciar la suscripción — inténtalo de nuevo.",
+    "error": "No pudimos iniciar la suscripción. Inténtalo de nuevo.",
     "activated": "¡Suscripción activada!",
     "period": {
       "MONTHLY": "mes",
@@ -20,7 +20,7 @@
     "cancelKeep": "Mantener suscripción",
     "cancelPending": "Se cancela el {date}",
     "cancelPendingNoDate": "Se cancela al fin del período",
-    "subOk": "Suscripción activada — el primer cobro se está procesando.",
+    "subOk": "Suscripción activada. El primer cobro se está procesando.",
     "subError": "No pudimos completar la suscripción. Inténtalo de nuevo.",
     "returnToAcademies": "Ir a Mis academias",
     "pendingCard": "Te falta registrar tu tarjeta para activar la suscripción",

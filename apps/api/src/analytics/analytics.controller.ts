@@ -12,7 +12,7 @@ import { AnalyticsService } from "./analytics.service";
 
 /**
  * Métricas por lente de gestión (spec analytics): ADMIN/PRODUCER/
- * ACADEMY_OWNER/VENUE_MANAGER. ?role= valida que el rol esté aprobado —
+ * ACADEMY_OWNER/VENUE_MANAGER. ?role= valida que el rol esté aprobado -
  * pedir uno no aprobado o sin analítica → 403.
  */
 @Controller("analytics")

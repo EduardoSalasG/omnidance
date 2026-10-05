@@ -2,8 +2,8 @@
 
 ## Purpose
 El productor puede llevarse los datos operativos de su evento (ventas,
-check-ins, listas de invitados) a planilla para cuadratura post-evento —
-la spec §11 promete "Exportes — CSV/PDF por evento y serie" y no existía
+check-ins, listas de invitados) a planilla para cuadratura post-evento -
+la spec §11 promete "Exportes - CSV/PDF por evento y serie" y no existía
 ningún endpoint CSV.
 
 ## Requirements
@@ -14,7 +14,7 @@ El sistema SHALL exponer `GET /events/:id/export.csv?dataset=<d>` que
 devuelve `text/csv; charset=utf-8` con `Content-Disposition: attachment`,
 BOM UTF-8 inicial y escaping CSV (campos con `,"` `\n` o `\r` entre
 comillas, comillas internas duplicadas). Autorización: owner del evento
-(`producerId`) o `admin.access` — mismo patrón que `GET /events/:id/live`.
+(`producerId`) o `admin.access` - mismo patrón que `GET /events/:id/live`.
 
 #### Scenario: descarga autorizada
 
@@ -51,8 +51,8 @@ via `ticket.paymentId`.
 
 ### Requirement: Dataset checkins
 
-El CSV `checkins` SHALL listar una fila por `Checkin` del evento —
-incluye anulados — con columnas `entrada,salida,metodo,persona,anulado,nota`.
+El CSV `checkins` SHALL listar una fila por `Checkin` del evento -
+incluye anulados - con columnas `entrada,salida,metodo,persona,anulado,nota`.
 
 #### Scenario: check-in anulado
 
@@ -96,7 +96,7 @@ autorización/rechazo son idénticos a los del CSV (owner del evento o
   (sales: tickets + recaudado sin cancelados; checkins: totales +
   anulados; guestlist: invitados + listas), la tabla completa y
   numeración de páginas
-- **AND** las celdas largas se truncan con elipsis — ninguna rompe el
+- **AND** las celdas largas se truncan con elipsis - ninguna rompe el
   layout ni genera páginas vacías
 
 #### Scenario: rechazos idénticos al CSV
@@ -131,7 +131,7 @@ o `admin.access`; mismos rechazos (400/401/403/404).
 ### Requirement: Serializadores compartidos
 
 El sistema SHALL construir los datasets una sola vez como
-`{headers, rows, summary}` por consulta y serializarlos a CSV o PDF —
+`{headers, rows, summary}` por consulta y serializarlos a CSV o PDF -
 ningún formato puede divergir en columnas ni filas. Ningún formato
 expone `claimToken` ni ids internos de persona.
 

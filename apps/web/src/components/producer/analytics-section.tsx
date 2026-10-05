@@ -9,7 +9,7 @@ import { ProPaywall } from "./pro-paywall";
 
 type Props = {
   eventId: string;
-  /** effectivePro de /me dice que el owner no tiene Pro — no se pide
+  /** effectivePro de /me dice que el owner no tiene Pro - no se pide
       analytics: el endpoint responde 403 pro.required y el paywall se
       muestra directo (la página lo calcula una sola vez). */
   proLocked?: boolean;
@@ -191,7 +191,7 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
 
       {state === "ready" && data && (
         <>
-          {/* Asistencia real — siempre visible (un conteo no expone a
+          {/* Asistencia real - siempre visible (un conteo no expone a
               nadie); la composición sí exige el umbral. */}
           <Card className="flex items-baseline justify-between gap-3 p-4">
             <span className="text-2xl font-bold tabular-nums text-neon">

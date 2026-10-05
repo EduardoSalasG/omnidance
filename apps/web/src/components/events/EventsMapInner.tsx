@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import type { MapVenue } from "./EventsMap";
 
-// Basemap estándar: CARTO Voyager con key (NEXT_PUBLIC_CARTO_BASEMAP_KEY —
+// Basemap estándar: CARTO Voyager con key (NEXT_PUBLIC_CARTO_BASEMAP_KEY -
 // gratis hasta ~5M tiles/mes, pedir en carto.com/basemaps/apikey). Sin key
-// cae a OSM estándar — nunca se sirven tiles con watermark.
+// cae a OSM estándar - nunca se sirven tiles con watermark.
 const CARTO_KEY = process.env.NEXT_PUBLIC_CARTO_BASEMAP_KEY;
 const TILES_ATTR = CARTO_KEY
   ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -22,7 +22,7 @@ const OSM_STD = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
  */
 export default function EventsMapInner({ venues }: { venues: MapVenue[] }) {
   const router = useRouter();
-  // El acento es CSS var (swappea Social/Academia) — se lee una vez.
+  // El acento es CSS var (swappea Social/Academia) - se lee una vez.
   const [accent, setAccent] = useState("#a3e635");
   useEffect(() => {
     const raw = getComputedStyle(document.documentElement)

@@ -15,7 +15,7 @@ const CYCLE_MONTHS: Record<BillingCycle, number> = {
   ANNUAL: 12,
 };
 
-/** GET /producers/:id/pro — estado Producer Pro (S5/S6). */
+/** GET /producers/:id/pro - estado Producer Pro (S5/S6). */
 type ProView = {
   proTier: string;
   proTrialEndsAt: string | null;
@@ -32,14 +32,14 @@ type ProView = {
   canceledAt: string | null;
 };
 
-/** POST /producers/:id/pro/subscribe — needs_card → disclaimer Flow. */
+/** POST /producers/:id/pro/subscribe - needs_card → disclaimer Flow. */
 type SubscribeResult = {
   paymentUrl: string | null;
   subscriptionId: string;
   status: "PENDING_CARD" | "ACTIVE";
 };
 
-// producer_tier.<key>_*_clp — el tier no se elige: lo calcula el API por
+// producer_tier.<key>_*_clp - el tier no se elige: lo calcula el API por
 // facturación (media bruta 90d). El front lo anticipa solo para mostrar
 // el precio correcto antes de llamar (los max_* son públicos).
 type TierKey = "starter" | "growth";
@@ -109,7 +109,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
     void load();
   }, [load]);
 
-  // Tier que califica la facturación actual — espejo de
+  // Tier que califica la facturación actual - espejo de
   // producerTierForGross (starter_max < gross ≤ growth_max → growth).
   // Sobre el tope → null (PRO_BIG es contratación manual).
   const selfServeTier = useMemo<TierKey | null>(() => {
@@ -234,7 +234,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
       </h2>
 
       <Card className="flex flex-col gap-4">
-        {/* Estado — trial de lanzamiento, PRO activa, se cancela o FREE. */}
+        {/* Estado - trial de lanzamiento, PRO activa, se cancela o FREE. */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {hasLiveSub && <Badge variant="neon">PRO</Badge>}
@@ -282,7 +282,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
           </p>
         )}
 
-        {/* Facturación media 90d — el tier Pro se calcula con ella. */}
+        {/* Facturación media 90d - el tier Pro se calcula con ella. */}
         <dl className="flex flex-col gap-1 border-t border-night-700 pt-3 text-sm">
           <div className="flex items-center justify-between gap-3">
             <dt className="text-white/60">{t("gross")}</dt>
@@ -339,7 +339,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
         )}
       </Card>
 
-      {/* Contratación — solo sin suscripción viva. El tier no se elige:
+      {/* Contratación - solo sin suscripción viva. El tier no se elige:
           lo fija la facturación (PRO_STARTER/PRO_GROWTH); sobre el tope
           autogestionado la contratación es manual (PRO_BIG). */}
       {!hasLiveSub && (
@@ -353,7 +353,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
 
           {registerUrl ? (
             /* Interstitial pre-Flow: el disclaimer de tarjeta es el
-               momento de mayor desconfianza — ver a dónde se va antes
+               momento de mayor desconfianza - ver a dónde se va antes
                del salto de dominio (patrón membership-checkout). */
             <div className="flex flex-col gap-3">
               <h3 className="text-base font-semibold">

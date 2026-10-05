@@ -13,7 +13,7 @@ import {
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
 
-// Módulos de la consola — keys de academy.modules.* en es-CL.json.
+// Módulos de la consola - keys de academy.modules.* en es-CL.json.
 // "myClasses" primero: es la vista diaria del instructor (la consola se
 // comparte con owner; si no imparte clases la lista sale vacía).
 const MODULES = [
@@ -25,20 +25,20 @@ const MODULES = [
   { href: "/academia/asistencia", key: "attendance" },
   { href: "/academia/particulares", key: "lessons" },
   { href: "/academia/videos", key: "videos" },
-  // Cobros MEMBERSHIP de los planes (GET /payments/by-academy/:id) —
+  // Cobros MEMBERSHIP de los planes (GET /payments/by-academy/:id) -
   // solo owner/ADMIN: el endpoint 403 al resto (misma política que CRM).
   { href: "/academia/cobros", key: "payments", ownerOnly: true },
-  // CRM con actorType=ACADEMY — la API ya segmenta por academia; el
+  // CRM con actorType=ACADEMY - la API ya segmenta por academia; el
   // ActorPicker la resuelve via GET /academies/mine. Solo owner/ADMIN:
   // CRM_ROLES no incluye instructor (el card se filtra abajo).
   { href: "/crm", key: "crm", ownerOnly: true },
   // Suscripción SaaS de la plataforma (academy-saas-billing): tier,
-  // ciclo, contratación Flow e invoices — requireAdminister → owner/ADMIN.
+  // ciclo, contratación Flow e invoices - requireAdminister → owner/ADMIN.
   { href: "/academia/suscripcion", key: "subscription", ownerOnly: true },
 ] as const;
 
 /**
- * /academia — hub de la consola de academia. El gate (AcademyGate) resuelve
+ * /academia - hub de la consola de academia. El gate (AcademyGate) resuelve
  * auth + academia seleccionada; adentro va el resumen (AcademyDashboard)
  * y la grilla de módulos hacia las subrutas.
  */
@@ -47,8 +47,8 @@ export default function AcademiaPage() {
   const tt = useTranslations("tours.academia");
 
   // /me compartido para filtrar módulos owner-only (cobros/CRM/
-  // suscripción) — academy.ownerId vs me.id. Mientras resuelve los
-  // owner-only no pintan (aparecen una vez si aplica — un skeleton que
+  // suscripción) - academy.ownerId vs me.id. Mientras resuelve los
+  // owner-only no pintan (aparecen una vez si aplica - un skeleton que
   // colapsa para el no-owner sería flash).
   const { me } = useMe();
 
@@ -61,7 +61,7 @@ export default function AcademiaPage() {
           <>
             {/* key por id: cambiar de academia remonta el resumen. */}
             <AcademyDashboard key={academy.id} academy={academy} />
-            {/* Settings (quórum default) y perfil público — solo
+            {/* Settings (quórum default) y perfil público - solo
                 owner/ADMIN; instructores no ven los cards (canAdminister
                 interno vía GET /me). */}
             <AcademySettings academy={academy} />
@@ -87,7 +87,7 @@ export default function AcademiaPage() {
                   en navegación interna. */}
             </ModuleGrid>
 
-            {/* Tour de primera visita — targets del chrome (tabs +
+            {/* Tour de primera visita - targets del chrome (tabs +
                 menú lateral), presentes una vez pasa el gate. */}
             <OnboardingRunner
               tour="academia"

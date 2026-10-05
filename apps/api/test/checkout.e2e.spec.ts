@@ -420,7 +420,7 @@ describe("checkout + payments e2e", () => {
         where: { id: paymentId },
       });
       expect(payment.tablePartySize).toBe(6);
-      // la reserva NO existe antes de pagar — checkout abandonado no ocupa mesa
+      // la reserva NO existe antes de pagar - checkout abandonado no ocupa mesa
       const reservations = await prisma.tableReservation.count({
         where: { eventId: ids.tablesEventId, personId: buyerId },
       });
@@ -518,7 +518,7 @@ describe("checkout + payments e2e", () => {
     });
 
     it("ya tenía reserva activa → el webhook no duplica", async () => {
-      // buyer ya tiene una REQUESTED del test anterior — un segundo pago
+      // buyer ya tiene una REQUESTED del test anterior - un segundo pago
       // con mesa no debe crear otra fila.
       const res = await post(
         "/api/checkout/ticket",

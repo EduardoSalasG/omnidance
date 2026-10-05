@@ -1,7 +1,7 @@
 import { Controller, Get, NotFoundException, Param } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 
-// Los estilos no tienen slug en schema — se deriva del nombre
+// Los estilos no tienen slug en schema - se deriva del nombre
 // ("Salsa cubana (casino)" → "salsa-cubana-casino"). Debe calzar con
 // styleSlug() de apps/web/src/lib/styles.ts (mismo algoritmo).
 function slugify(name: string): string {
@@ -13,7 +13,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/** GET /api/styles — catálogo público de estilos (selects del front). */
+/** GET /api/styles - catálogo público de estilos (selects del front). */
 @Controller("styles")
 export class StylesController {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,7 +27,7 @@ export class StylesController {
   }
 
   /**
-   * GET /api/styles/:id/landing — datos públicos para la landing SEO del
+   * GET /api/styles/:id/landing - datos públicos para la landing SEO del
    * estilo (/estilos/[style]). :id acepta el cuid o el slug del nombre.
    * Solo datos de negocio públicos: academias activas que lo enseñan,
    * próximas clases materializadas y próximos eventos con bloques del
@@ -35,7 +35,7 @@ export class StylesController {
    */
   @Get(":id/landing")
   async landing(@Param("id") idOrSlug: string) {
-    // El catálogo es chico (~10 filas, sin unique en name) — resolver el
+    // El catálogo es chico (~10 filas, sin unique en name) - resolver el
     // slug en memoria evita SQL frágil por accentos/paréntesis.
     const styles = await this.prisma.style.findMany({
       select: { id: true, name: true, genre: true, parentId: true },
@@ -49,7 +49,7 @@ export class StylesController {
     const now = new Date();
     const [academies, upcomingClasses, upcomingEvents] = await Promise.all([
       // Academias activas con una serie activa del estilo (todo slot
-      // pertenece a una serie — el estilo vive en series.styleId).
+      // pertenece a una serie - el estilo vive en series.styleId).
       // Bloqueadas por mora (billingBlockedAt, S3) fuera del landing.
       this.prisma.academy.findMany({
         where: {
@@ -61,7 +61,7 @@ export class StylesController {
         orderBy: { name: "asc" },
       }),
       // Próximas clases materializadas del estilo (vía la serie del
-      // slot), no canceladas — academia bloqueada por mora fuera (S3).
+      // slot), no canceladas - academia bloqueada por mora fuera (S3).
       this.prisma.class.findMany({
         where: {
           cancelled: false,
@@ -91,7 +91,7 @@ export class StylesController {
           },
         },
       }),
-      // Próximos eventos publicados con al menos un bloque del estilo —
+      // Próximos eventos publicados con al menos un bloque del estilo -
       // alimentan la sección "dónde bailarlo" y el JSON-LD DanceEvent.
       this.prisma.event.findMany({
         where: {

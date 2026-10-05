@@ -32,7 +32,7 @@ const SEGMENT_VARIANT: Record<string, "neon" | "outline" | "muted" | "live"> = {
 
 /**
  * Lista de personas del actor. GET /crm/people devuelve el universo completo
- * (score + tags) sin filtros — búsqueda, segmento, tag y paginación son
+ * (score + tags) sin filtros - búsqueda, segmento, tag y paginación son
  * client-side sobre ese array.
  */
 export function PeopleTable({ actor }: { actor: CrmActor }) {
@@ -279,7 +279,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
         </label>
       </div>
 
-      {/* Lista — cards apiladas (mobile-first, estilo admin) */}
+      {/* Lista - cards apiladas (mobile-first, estilo admin) */}
       {rows === null && !error && <SkeletonList items={4} lines={1} />}
       {rows !== null && rows.length === 0 && (
         <Card className="flex flex-col items-start gap-3">
@@ -335,7 +335,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                     </div>
                     <div className="text-right">
                       <p className="font-mono text-xl font-bold text-neon">
-                        {r.score === null ? "—" : Math.round(r.score)}
+                        {r.score === null ? "-" : Math.round(r.score)}
                       </p>
                       <p className="text-xs text-white/50">
                         {t("people.score")}

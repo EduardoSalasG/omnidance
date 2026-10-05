@@ -19,11 +19,11 @@ type Phase =
   | { kind: "error" };
 
 const POLL_INTERVAL_MS = 2_000;
-const POLL_MAX_ATTEMPTS = 15; // ~30s — el webhook confirma en paralelo
+const POLL_MAX_ATTEMPTS = 15; // ~30s - el webhook confirma en paralelo
 
 /**
  * Retorno del gateway de pago (Flow urlReturn → /checkout/return?paymentId=).
- * La confirmación real llega por webhook — aquí solo sondeamos el estado.
+ * La confirmación real llega por webhook - aquí solo sondeamos el estado.
  */
 function CheckoutReturn() {
   const t = useTranslations("checkout");
@@ -36,11 +36,11 @@ function CheckoutReturn() {
   // (el redirect real de customer-return va a /academias/:id?sub=…).
   const sub = searchParams.get("sub");
   const [phase, setPhase] = useState<Phase>({ kind: "verifying" });
-  // orderType llega con el primer poll aunque siga PENDING — los CTAs
+  // orderType llega con el primer poll aunque siga PENDING - los CTAs
   // de failed/stillPending/error lo usan para mandar al destino correcto
   // (MEMBERSHIP → academias, no a eventos).
   const [orderType, setOrderType] = useState<string | null>(null);
-  // TICKET: el id del evento — habilita "intentar de nuevo" → checkout.
+  // TICKET: el id del evento - habilita "intentar de nuevo" → checkout.
   const [eventId, setEventId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -165,7 +165,7 @@ function CheckoutReturn() {
           <Badge variant="live">{t("failed")}</Badge>
           <h1 className="text-2xl font-bold">{t("returnFailedTitle")}</h1>
           <p className="text-sm text-white/60">{t("returnFailedDesc")}</p>
-          {/* TICKET: reintento directo al checkout del evento — la orden
+          {/* TICKET: reintento directo al checkout del evento - la orden
               fallida no cobró ni reservó cupo. */}
           {orderType === "TICKET" && eventId && (
             <Button
@@ -204,7 +204,7 @@ function CheckoutReturn() {
       )}
 
       {/* Retorno del disclaimer de tarjeta de Flow: la suscripción ya
-          quedó creada — el primer cobro se procesa/reconcilia en la API. */}
+          quedó creada - el primer cobro se procesa/reconcilia en la API. */}
       {phase.kind === "subOk" && (
         <>
           <Badge variant="neon">{ts("activated")}</Badge>

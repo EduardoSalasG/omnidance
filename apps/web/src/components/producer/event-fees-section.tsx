@@ -45,7 +45,7 @@ function parseFeeDraft(raw: string, integer: boolean): number | null {
 
 type Props = {
   event: EventDetail;
-  /** roles de GET /me incluyen "ADMIN" — solo admin puede PATCHear fees. */
+  /** roles de GET /me incluyen "ADMIN" - solo admin puede PATCHear fees. */
   isAdmin: boolean;
   /** Refrescar el evento tras un guardado exitoso. */
   onSaved: () => void;
@@ -61,7 +61,7 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
-  // El backend solo acepta PATCH en DRAFT/PUBLISHED — fuera de esos
+  // El backend solo acepta PATCH en DRAFT/PUBLISHED - fuera de esos
   // estados la sección queda read-only aunque el usuario sea admin.
   const canEdit = isAdmin && EDITABLE_STATUSES.includes(event.status);
 
@@ -156,7 +156,7 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
                         {value}%
                       </span>
                     ) : (
-                      <span className="text-white/50">—</span>
+                      <span className="text-white/50">-</span>
                     )
                   ) : (
                     <PriceTag amount={value} />

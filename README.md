@@ -3,9 +3,9 @@
 Plataforma del ecosistema SBK de Santiago (salsa, bachata, cubano). Una sola
 base para dos líneas de producto:
 
-- **Omnidance Nightlife** — eventos sociales, ticketing con cargo de servicio,
+- **Omnidance Nightlife** - eventos sociales, ticketing con cargo de servicio,
   check-in por QR rotativo, reputación privada, gamificación de conductas.
-- **Omnidance Academy** — academias, series de clases mensuales, reservas con
+- **Omnidance Academy** - academias, series de clases mensuales, reservas con
   cupo + lista de espera, quórum parametrizable, asistencias, planes y
   membresías.
 
@@ -16,18 +16,18 @@ módulos según el rol/lente activo del usuario.
 
 | Pieza | Tech |
 |---|---|
-| Web | Next.js 14 + React 18 + TypeScript — PWA instalable, dark-first, mobile-first |
+| Web | Next.js 14 + React 18 + TypeScript - PWA instalable, dark-first, mobile-first |
 | API | NestJS 10 (arquitectura hexagonal) + Prisma + PostgreSQL 16 |
 | Realtime | WebSockets + BullMQ sobre Redis 7 |
-| Compartido | `@omnidance/shared` — enums, constantes y types front/back |
+| Compartido | `@omnidance/shared` - enums, constantes y types front/back |
 | i18n | next-intl, catálogo `es-CL` en parts (`apps/web/src/i18n/parts/`) |
 | Auth | Magic link (Resend) + password dev; sesión por cookie httpOnly |
 
 ## Estructura
 
 ```
-apps/web        PWA — bailarín, staff y consolas B2B role-gated
-apps/api        API NestJS — dominio, infraestructura, RBAC DB-driven
+apps/web        PWA - bailarín, staff y consolas B2B role-gated
+apps/api        API NestJS - dominio, infraestructura, RBAC DB-driven
 packages/shared Tipos y constantes compartidos
 openspec/       Spec-driven changes (propuestas, tasks)
 docs/           Arquitectura, flujos, handoffs, openapi.json + Postman
@@ -46,7 +46,7 @@ pnpm db:seed                      # baseline + demo SBK Santiago (idempotente)
 pnpm dev                          # API :4000 + Web :3000
 ```
 
-Abrir http://localhost:3000 — login con cualquier cuenta `@omnidance.dev`
+Abrir http://localhost:3000 - login con cualquier cuenta `@omnidance.dev`
 por password (`omnidance123`) o magic link (en dev el link se imprime en el
 log de la API si no hay Resend configurado).
 
@@ -74,22 +74,22 @@ Magic link también habilitado en dev.
 
 | Email | Nombre | Rol(es) | Para probar |
 |---|---|---|---|
-| `admin@omnidance.dev` | Admin Omnidance | `ADMIN` | `/admin` — RBAC, params, catálogos, defaults por productor |
+| `admin@omnidance.dev` | Admin Omnidance | `ADMIN` | `/admin` - RBAC, params, catálogos, defaults por productor |
 | `dancer@omnidance.dev` | Bailarín Demo | `DANCER` | Flujo completo: eventos, ticket en billetera, QR, amigos, reservas de clases, prácticas |
-| `staff@omnidance.dev` | Staff Puerta | `STAFF` | `/staff` — check-in por QR, asignado a puerta de Bachatamanía |
-| `profe@omnidance.dev` | Valeska Torres | `INSTRUCTOR` + `DANCER` | `/academia/clases` — clases en **2 academias** (MuéveteOnTour + Tumbao), rosters con quórum, fichas de alumnos |
-| `rodrigo@omnidance.dev` | Rodrigo Fuentes | `INSTRUCTOR` + `DANCER` | Segundo instructor — clases de salsa, clases particulares |
+| `staff@omnidance.dev` | Staff Puerta | `STAFF` | `/staff` - check-in por QR, asignado a puerta de Bachatamanía |
+| `profe@omnidance.dev` | Valeska Torres | `INSTRUCTOR` + `DANCER` | `/academia/clases` - clases en **2 academias** (MuéveteOnTour + Tumbao), rosters con quórum, fichas de alumnos |
+| `rodrigo@omnidance.dev` | Rodrigo Fuentes | `INSTRUCTOR` + `DANCER` | Segundo instructor - clases de salsa, clases particulares |
 | `muvet@omnidance.dev` | Dueño MuéveteOnTour | `ACADEMY_OWNER` + `PRODUCER` | Consola academia completa (settings quórum, series, planes, alumnos) + consola productor |
-| `tumbao@omnidance.dev` | Dueño Academia Tumbao | `ACADEMY_OWNER` | Segunda academia — gate multi-academia |
-| `carlos@omnidance.dev` | Carlos Andrés | `PRODUCER` | `/productor` — eventos, ProducerParams 5% comisión, descuento `OMNI10` |
+| `tumbao@omnidance.dev` | Dueño Academia Tumbao | `ACADEMY_OWNER` | Segunda academia - gate multi-academia |
+| `carlos@omnidance.dev` | Carlos Andrés | `PRODUCER` | `/productor` - eventos, ProducerParams 5% comisión, descuento `OMNI10` |
 | `ardilla@omnidance.dev` | Ardilla | `PRODUCER` + `DJ` | Multi-rol: selector de lente en Perfil |
 | `cesar@omnidance.dev` | César Moreno | `PRODUCER` + `DJ` | Multi-rol, sin ProducerParams (comisión 0%) |
-| `steban@omnidance.dev` | DJ Steban | `DJ` | `/dj` — gigs Jueves Cubano + ranking de sugerencias |
+| `steban@omnidance.dev` | DJ Steban | `DJ` | `/dj` - gigs Jueves Cubano + ranking de sugerencias |
 | `matias@omnidance.dev` | Matías Herrera | `DJ` | DJ de Bachatamanía |
 | `fabian@omnidance.dev` | Fabián Valladares | `DJ` | DJ de Social con Estilo |
 | `jesus@omnidance.dev` | DJ Jesús | `DJ` | DJ de Havana (sáb/dom) |
-| `venue@omnidance.dev` | Manager Orixas | `VENUE_MANAGER` | `/venue` — KPIs, arriendos REQUESTED/CONFIRMED/CANCELLED |
-| `soporte@omnidance.dev` | Soporte Omnidance | `SUPPORT` | `/soporte` — buscador de usuarios, fichas read-only |
+| `venue@omnidance.dev` | Manager Orixas | `VENUE_MANAGER` | `/venue` - KPIs, arriendos REQUESTED/CONFIRMED/CANCELLED |
+| `soporte@omnidance.dev` | Soporte Omnidance | `SUPPORT` | `/soporte` - buscador de usuarios, fichas read-only |
 
 ### Alumnas/os de academia (`DANCER`)
 
@@ -127,7 +127,7 @@ ni pisa parámetros editados desde `/admin`.
 
 | Doc | Contenido |
 |---|---|
-| [`omni-dance.md`](omni-dance.md) | Spec de producto — modelo, vistas, economía |
+| [`omni-dance.md`](omni-dance.md) | Spec de producto - modelo, vistas, economía |
 | [`AGENTS.md`](AGENTS.md) | Reglas de trabajo, comandos, convenciones RBAC |
 | [`apps/api/README.md`](apps/api/README.md) | API: módulos, auth, seed, tests |
 | [`apps/web/README.md`](apps/web/README.md) | Web: rutas por rol, design system, i18n |

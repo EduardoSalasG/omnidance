@@ -102,7 +102,7 @@ type LeadRow = {
   demoPending?: boolean;
   createdAt: string;
 };
-// Ledger append-only del pago (payload/prevHash/payloadHash completos —
+// Ledger append-only del pago (payload/prevHash/payloadHash completos -
 // la evidencia que verify-chain recalcula).
 type PaymentEventRow = {
   id: string;
@@ -173,7 +173,7 @@ const SUBSCRIPTION_STATUSES = [
 
 type Option = { value: string; label: string };
 
-// Fuentes de opciones para selects FK — listados admin ya existentes.
+// Fuentes de opciones para selects FK - listados admin ya existentes.
 type OptionSource =
   | "producers"
   | "venues"
@@ -279,7 +279,7 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
 };
 
 /**
- * /admin/datos — explorador operacional por categoría sobre
+ * /admin/datos - explorador operacional por categoría sobre
  * GET /admin/browse/:entity. Las pills cambian de entidad; los filtros
  * se aplican solos (q con debounce, selects/fechas al cambiar) y el API
  * capa el resultado en 100 filas.
@@ -311,7 +311,7 @@ function DatosPanel() {
 
   const [rows, setRows] = useState<unknown[] | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
-  // Lead en conversión — deshabilita su botón mientras el POST corre.
+  // Lead en conversión - deshabilita su botón mientras el POST corre.
   const [convertingLead, setConvertingLead] = useState<string | null>(null);
 
   const statusLabel = (s: string) =>
@@ -781,7 +781,7 @@ function DatosPanel() {
     }
   }
 
-  // Sin q ni rol, people devuelve [] por diseño — mostrar el hint en vez
+  // Sin q ni rol, people devuelve [] por diseño - mostrar el hint en vez
   // de un vacío ambiguo.
   const peopleNeedsQuery =
     entity === "people" && !filters.role && debouncedQ.length < 2;
@@ -800,7 +800,7 @@ function DatosPanel() {
         }))}
       />
 
-      {/* Filtros — auto-aplican; q va con debounce. */}
+      {/* Filtros - auto-aplican; q va con debounce. */}
       <section className="flex flex-col gap-3" aria-label={t("datos.title")}>
         {HAS_Q.has(entity) && (
           <input
@@ -956,7 +956,7 @@ function RowShell({
 }
 
 /**
- * Payload JSON expandible — el browse no tenía renderer para columnas
+ * Payload JSON expandible - el browse no tenía renderer para columnas
  * Json (payment-events.payload, gateway request/response): <details>
  * nativo con el JSON pretty-printed truncado por scroll.
  */

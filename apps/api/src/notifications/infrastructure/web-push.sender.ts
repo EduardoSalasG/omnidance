@@ -11,7 +11,7 @@ const DEAD_ENDPOINT_STATUS = new Set([404, 410]);
 /**
  * Web Push best-effort (puerto PUSH_PORT).
  * Sin VAPID keys en env es no-op (dev/local): avisa una vez en onModuleInit y
- * luego calla — nunca lanza por falta de config ni por errores del push service.
+ * luego calla - nunca lanza por falta de config ni por errores del push service.
  */
 @Injectable()
 export class WebPushSender implements PushPort, OnModuleInit {
@@ -25,7 +25,7 @@ export class WebPushSender implements PushPort, OnModuleInit {
     const privateKey = process.env.WEB_PUSH_VAPID_PRIVATE_KEY;
     if (!publicKey || !privateKey) {
       this.logger.warn(
-        "WEB_PUSH_VAPID_PUBLIC_KEY/PRIVATE_KEY ausentes — Web Push deshabilitado (no-op)",
+        "WEB_PUSH_VAPID_PUBLIC_KEY/PRIVATE_KEY ausentes - Web Push deshabilitado (no-op)",
       );
       return;
     }

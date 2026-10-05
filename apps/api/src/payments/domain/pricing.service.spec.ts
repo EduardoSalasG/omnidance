@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { PricingService } from "./pricing.service";
 
-// PricingService — cálculo puro del quote de checkout (omni-dance.md §10):
+// PricingService - cálculo puro del quote de checkout (omni-dance.md §10):
 // serviceFee = cargo fijo por ticket (SERVICE_FEE.PRESALE_CLP = 500 en shared).
 describe("PricingService.quote", () => {
   const pricing = new PricingService();

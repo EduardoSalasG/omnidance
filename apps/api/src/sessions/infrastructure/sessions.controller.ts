@@ -74,7 +74,7 @@ export class SessionsController {
   ) {}
 
   /**
-   * Registro de baile por escaneo QR en pista — el único alta de
+   * Registro de baile por escaneo QR en pista - el único alta de
    * DanceSession "en vivo": el QR rotativo de la pareja acredita la
    * presencia mutua, así que la sesión nace CONFIRMED. No hay ciclo
    * invite/confirm/decline (remove-social-blocks-invites).
@@ -95,7 +95,7 @@ export class SessionsController {
 
   /**
    * Escaneo QR: crea la sesión directamente CONFIRMED (el escaneo en
-   * persona es la confirmación — no hay handshake posterior), notifica a
+   * persona es la confirmación - no hay handshake posterior), notifica a
    * la pareja escaneada y acredita actividad de ambos en gamificación.
    */
   private async createScannedSession(
@@ -242,7 +242,7 @@ export class SessionsController {
       },
     });
 
-    // Ficha mínima de los eventos para agrupar el historial por noche —
+    // Ficha mínima de los eventos para agrupar el historial por noche -
     // DanceSession.eventId es escalar (sin relación), lookup manual.
     const eventIds = [...new Set(rows.map((s) => s.eventId))];
     const events = await this.prisma.event.findMany({
@@ -305,7 +305,7 @@ export class SessionsController {
         update: data,
       });
 
-      // La sesión queda RATED (sigue siendo rateable para la contraparte —
+      // La sesión queda RATED (sigue siendo rateable para la contraparte -
       // ver SessionsService.assertRateable).
       await this.prisma.danceSession.update({
         where: { id },

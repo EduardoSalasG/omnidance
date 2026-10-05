@@ -1,11 +1,11 @@
 /**
- * Plantillas de email transaccional — dark-first, identidad de marca:
+ * Plantillas de email transaccional - dark-first, identidad de marca:
  * night-950/900/700 + acento morado #a78bfa (el violeta es la marca fuera
- * de la app — landing, marketing, correos —; el lime solo existe dentro
+ * de la app - landing, marketing, correos -; el lime solo existe dentro
  * de la app como acento del modo Academia).
  * HTML email-safe: layout con tablas y estilos inline (los clientes de
  * correo ignoran <style> y flex/grid modernos). Nada de imágenes: el
- * wordmark es texto, la "O" un tile de tabla — cero assets bloqueados.
+ * wordmark es texto, la "O" un tile de tabla - cero assets bloqueados.
  */
 
 const escapeHtml = (s: string) =>
@@ -15,7 +15,7 @@ const escapeHtml = (s: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-/** Botón pill morado — mismo lenguaje que los CTAs de la app. */
+/** Botón pill morado - mismo lenguaje que los CTAs de la app. */
 const ctaButton = (href: string, label: string) => `
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
     <tr>
@@ -27,7 +27,7 @@ const ctaButton = (href: string, label: string) => `
     </tr>
   </table>`;
 
-/** Link de respaldo bajo el botón — para clientes que no renderizan <a> styled. */
+/** Link de respaldo bajo el botón - para clientes que no renderizan <a> styled. */
 const fallbackLink = (href: string) => `
   <p style="margin:20px 0 0 0;color:rgba(255,255,255,0.45);font-size:12px;line-height:1.6;text-align:center;word-break:break-all;">
     Si el botón no funciona, copia este link:<br>
@@ -90,7 +90,7 @@ function emailShell(preheader: string, content: string): string {
 const FEATURES: { title: string; desc: string }[] = [
   {
     title: "La cartelera completa",
-    desc: "Todos los sociales de la semana: salsa, bachata y timba en un solo lugar — con la mezcla real de cada noche.",
+    desc: "Todos los sociales de la semana: salsa, bachata y timba en un solo lugar - con la mezcla real de cada noche.",
   },
   {
     title: "Tu entrada es tu QR",
@@ -98,7 +98,7 @@ const FEATURES: { title: string; desc: string }[] = [
   },
   {
     title: "Planifica tu noche",
-    desc: "Clases antes del social, shows y cierre — sabes exactamente qué pasa y a qué hora.",
+    desc: "Clases antes del social, shows y cierre - sabes exactamente qué pasa y a qué hora.",
   },
 ];
 
@@ -130,7 +130,7 @@ export function welcomeEmailHtml(name: string, webUrl: string): string {
       Bienvenido a la pista,<br>${first}
     </h1>
     <p style="margin:16px 0 0 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
-      Ya eres parte de Omnidance — la plataforma que une a la comunidad
+      Ya eres parte de Omnidance - la plataforma que une a la comunidad
       de salsa, bachata y timba de Santiago.
     </p>
     <div style="height:32px;line-height:32px;">&nbsp;</div>
@@ -154,7 +154,7 @@ export function magicLinkEmailHtml(link: string): string {
       Tu acceso a Omnidance
     </h1>
     <p style="margin:16px 0 24px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
-      Entra con este link — es válido por <strong style="color:#ffffff;">15 minutos</strong>.
+      Entra con este link - es válido por <strong style="color:#ffffff;">15 minutos</strong>.
       Si no lo pediste tú, ignora este correo.
     </p>
     ${ctaButton(link, "Entrar a Omnidance")}
@@ -170,7 +170,7 @@ export function inviteEmailHtml(
 ): string {
   const first = escapeHtml(name.split(" ")[0] || name);
   return emailShell(
-    "Tu cuenta Omnidance está lista — entra y completa tus datos.",
+    "Tu cuenta Omnidance está lista - entra y completa tus datos.",
     `
     <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.02em;text-align:center;">
       Tu cuenta está lista, ${first}

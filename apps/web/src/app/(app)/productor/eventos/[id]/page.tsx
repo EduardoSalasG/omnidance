@@ -41,7 +41,7 @@ type Gate = "loading" | "unauth" | "notProducer" | "error" | "notFound" | "ready
 type EventState = "loading" | "ok" | "notFound" | "error";
 
 /**
- * /productor/eventos/[id] — consola operativa del evento: estado, acciones
+ * /productor/eventos/[id] - consola operativa del evento: estado, acciones
  * (publicar/editar/cancelar), staff, pases, sugerencias, reservas y ratings.
  */
 export default function ProducerEventDetailPage({
@@ -55,7 +55,7 @@ export default function ProducerEventDetailPage({
   const te = useTranslations("events");
   const tc = useTranslations("common");
 
-  // /me compartido (MeProvider) — gate derivado del contexto; el evento
+  // /me compartido (MeProvider) - gate derivado del contexto; el evento
   // y los catálogos se piden en paralelo desde el mount, sin waterfall
   // tras el fetch de sesión.
   const {
@@ -67,7 +67,7 @@ export default function ProducerEventDetailPage({
   const meId = me?.id ?? "";
   const isAdmin = me?.roles.includes("ADMIN") ?? false;
   // Producer Pro (S6): effectivePro de /me gatea proactivamente las
-  // features Pro (analítica/exports/staff) — el 403 pro.required queda
+  // features Pro (analítica/exports/staff) - el 403 pro.required queda
   // como fallback dentro de cada sección.
   const effectivePro = me?.effectivePro ?? null;
   const [eventState, setEventState] = useState<EventState>("loading");
@@ -108,7 +108,7 @@ export default function ProducerEventDetailPage({
     void loadEvent();
   }, [loadEvent]);
 
-  // Catálogos del formulario/series — fetch único en paralelo.
+  // Catálogos del formulario/series - fetch único en paralelo.
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -231,7 +231,7 @@ export default function ProducerEventDetailPage({
       event.producerId === meId);
 
   // Gate Pro del API: aplica solo cuando el caller ES el productor dueño
-  // (requireProSelf — un admin operando evento ajeno no se gatea).
+  // (requireProSelf - un admin operando evento ajeno no se gatea).
   const proLocked =
     event != null &&
     event.producerId === meId &&
@@ -401,7 +401,7 @@ export default function ProducerEventDetailPage({
           />
           <StaffSection eventId={eventId} proLocked={proLocked} />
           <PassesSection eventId={eventId} />
-          {/* Ventas del evento — se oculta sola ante 403/404 (no-owner). */}
+          {/* Ventas del evento - se oculta sola ante 403/404 (no-owner). */}
           <PaymentsSection eventId={eventId} />
           <SuggestionsSection eventId={eventId} />
           <ReservationsSection
@@ -410,7 +410,7 @@ export default function ProducerEventDetailPage({
             tableSeatsTotal={event.tableSeatsTotal ?? null}
           />
           <RatingsSection eventId={eventId} />
-          {/* Analítica de asistencia/encuesta — se oculta sola ante
+          {/* Analítica de asistencia/encuesta - se oculta sola ante
               403/404 (no-owner); pro.required → paywall (feature Pro).
               Splits k-anónimos ≥3 asistentes. */}
           <AnalyticsSection eventId={eventId} proLocked={proLocked} />
@@ -425,7 +425,7 @@ export default function ProducerEventDetailPage({
         </>
       )}
 
-      {/* Confirmación de cancelación — bottom sheet (mismo patrón que el
+      {/* Confirmación de cancelación - bottom sheet (mismo patrón que el
           modal de transferencia en /entradas). */}
       {confirmCancel && event && (
         <div

@@ -1,7 +1,7 @@
 {
   "name": "Omnidance",
   "short_name": "Omnidance",
-  "description": "La plataforma de la escena SBK — salsa, bachata y cubano en Santiago",
+  "description": "La plataforma de la escena SBK - salsa, bachata y cubano en Santiago",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",

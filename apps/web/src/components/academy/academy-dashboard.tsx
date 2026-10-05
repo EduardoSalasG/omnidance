@@ -74,7 +74,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
             </Button>
           </div>
         ) : dashboard === null ? (
-          /* KPIs en vuelo → skeleton con la misma grilla; nunca "—"
+          /* KPIs en vuelo → skeleton con la misma grilla; nunca "-"
              como placeholder de un conteo real. */
           <ul
             aria-hidden="true"
@@ -107,7 +107,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
         )}
       </section>
 
-      {/* Hoy — clases del día + asistencia marcada (spec §13). */}
+      {/* Hoy - clases del día + asistencia marcada (spec §13). */}
       {dashboard && dashboard.todayClasses.length > 0 && (
         <section aria-label={t("today.title")}>
           <div className="mb-3 flex items-baseline justify-between gap-3">

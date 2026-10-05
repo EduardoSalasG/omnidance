@@ -41,7 +41,7 @@ export function ClaimClient({
       if (res.ok) {
         setState({ kind: "claimed" });
       } else if (res.status === 409) {
-        // "ya es tuya" vs "ya no disponible" — el mensaje del server
+        // "ya es tuya" vs "ya no disponible" - el mensaje del server
         // distingue; el self-case merece copy propio.
         const body = (await res.json().catch(() => null)) as {
           message?: string;

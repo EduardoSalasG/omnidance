@@ -60,7 +60,7 @@ async function main() {
   // PATCH plan de otra academia → 404
   const other = await prisma.academy.findFirst({ where: { id: { not: academy.id } } });
   const foreign = await call("PATCH", `/academies/${other.id}/plans/${planId}`, ownerTok, { price: 1 });
-  // owner no administra la otra academia → 403 (access) o 404 — ambos correctos según orden
+  // owner no administra la otra academia → 403 (access) o 404 - ambos correctos según orden
   check("PATCH plan ajeno → 403/404", [403, 404].includes(foreign.status), `(${foreign.status})`);
 
   // PATCH con flowPlanId (espejo) + cambio de type → 400

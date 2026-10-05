@@ -15,7 +15,7 @@ export class ResendMailer implements Mailer {
 
   async send(to: string, subject: string, html: string): Promise<void> {
     if (!this.apiKey) {
-      this.logger.warn(`RESEND_API_KEY no configurada — email a ${to} solo logueado`);
+      this.logger.warn(`RESEND_API_KEY no configurada - email a ${to} solo logueado`);
       this.logger.log(html);
       return;
     }

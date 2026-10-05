@@ -35,7 +35,7 @@ export function decodeTicketOrderRef(refId: string): TicketOrderRef | null {
 //
 // A diferencia del ticket, la orden SERIES_PASS no tiene columna propia en
 // Payment (eventId queda null): el contexto (seriesId, month) solo viaja en
-// el refId — el webhook y el cálculo de payouts lo decodifican como fuente
+// el refId - el webhook y el cálculo de payouts lo decodifican como fuente
 // primaria.
 export interface SeriesPassRef {
   seriesId: string;
@@ -80,7 +80,7 @@ export function decodeMembershipRef(refId: string): MembershipRef | null {
 
 // ─── Clase suelta / taller (WORKSHOP) ───
 // Formato: wks_<classId>_<uuid>. Como MEMBERSHIP, el contexto solo viaja
-// en el refId — el settle decodifica la clase y crea el ClassBooking con
+// en el refId - el settle decodifica la clase y crea el ClassBooking con
 // paymentId (asiento pagado: no consume cuota ni exige inscripción).
 export interface ClassDropinRef {
   classId: string;
@@ -101,7 +101,7 @@ export function decodeClassRef(refId: string): ClassDropinRef | null {
 }
 
 // ─── Clase particular (PRIVATE) ───
-// Formato: pvt_<academyId>_<uuid>. El contexto solo viaja en el refId — el
+// Formato: pvt_<academyId>_<uuid>. El contexto solo viaja en el refId - el
 // settle crea la PrivateLesson "por asignar" (sin instructor ni fecha; el
 // owner de la academia los define post-compra).
 export interface PrivateLessonRef {
@@ -124,7 +124,7 @@ export function decodePrivateRef(refId: string): PrivateLessonRef | null {
 
 // ─── Suscripción de plataforma (PLATFORM_SUB) ───
 // Formato: platsub_<platformSubscriptionId>_<invoiceId>. Cobros de la
-// suscripción SaaS de la plataforma (academia / Producer Pro — spec
+// suscripción SaaS de la plataforma (academia / Producer Pro - spec
 // academy-saas-billing): cada invoice Flow pagada genera un Payment con
 // este refId; el reconcile lo usa como dedup y el settle decodifica la
 // suscripción para aplicar los efectos (limpiar gracia/bloqueo, proTier).

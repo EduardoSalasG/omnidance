@@ -58,7 +58,7 @@ class CheckoutTicketDto {
   /**
    * Cantidad de entradas de la orden (1–10). Cada ticket por sobre el
    * propio puede asignarse a un amigo (recipientIds) o quedar reclamable
-   * por link — ver spec multi-ticket-claim-links.
+   * por link - ver spec multi-ticket-claim-links.
    */
   @IsOptional()
   @IsInt()
@@ -107,7 +107,7 @@ class CheckoutSeriesPassDto {
   @IsString()
   seriesId!: string;
 
-  /** Mes de vigencia del pase — formato estricto "YYYY-MM". */
+  /** Mes de vigencia del pase - formato estricto "YYYY-MM". */
   @IsString()
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: "month debe ser YYYY-MM" })
   month!: string;
@@ -146,7 +146,7 @@ export class CheckoutController {
 
   /**
    * Academia bloqueada por mora (spec academy-saas-billing, S3): 400
-   * con código estable `academy.unavailable` + copy honesto — la UI
+   * con código estable `academy.unavailable` + copy honesto - la UI
    * distingue "no disponible" de un error de validación genérico.
    */
   private static unavailable(e: AcademyUnavailableError): never {
@@ -187,7 +187,7 @@ export class CheckoutController {
    * Preview de código de descuento para el checkout de tickets: valida
    * vigencia/cupo/scope del código contra el evento y estima el descuento
    * de la orden sobre el canal vigente (preventa/puerta). Sin side-effects
-   * — no crea orden ni consume uso; el checkout lo llama al "Aplicar" para
+   * - no crea orden ni consume uso; el checkout lo llama al "Aplicar" para
    * mostrar el total con descuento antes de pagar.
    */
   @Get("discount-quote")
@@ -239,7 +239,7 @@ export class CheckoutController {
   /**
    * Revisión de orden para la página de checkout de membresía: precio,
    * cargo de servicio, total real, vigencia resultante y suscripción
-   * viva del viewer — nada se cobra acá, es el paso "review" previo al
+   * viva del viewer - nada se cobra acá, es el paso "review" previo al
    * POST /checkout/membership (o /checkout/membership-subscription).
    */
   @Get("membership-quote")
@@ -288,7 +288,7 @@ export class CheckoutController {
   /**
    * Revisión de orden para comprar una clase suelta / taller (spec
    * academy-workshops): desglose de precio, cupo restante y si el viewer
-   * ya tiene reserva. Nada se cobra acá — es el paso previo al
+   * ya tiene reserva. Nada se cobra acá - es el paso previo al
    * POST /checkout/class.
    */
   @Get("class-quote")
@@ -313,7 +313,7 @@ export class CheckoutController {
   /**
    * Clase suelta / taller pago: cobra el dropInPrice de la serie y el
    * webhook materializa el ClassBooking pagado al PAID (paymentId
-   * poblado — no consume cuota del plan ni exige inscripción).
+   * poblado - no consume cuota del plan ni exige inscripción).
    */
   @Post("class")
   @UseGuards(SessionGuard)
@@ -343,7 +343,7 @@ export class CheckoutController {
   /**
    * Revisión de orden para comprar una clase particular (spec
    * private-lesson-product): precio único de la academia + cargo de
-   * servicio. Nada se cobra acá — paso previo a POST /checkout/private-class.
+   * servicio. Nada se cobra acá - paso previo a POST /checkout/private-class.
    */
   @Get("private-class-quote")
   @UseGuards(SessionGuard)
@@ -370,7 +370,7 @@ export class CheckoutController {
   /**
    * Clase particular comprable: cobra el privateLessonPrice de la academia
    * y el webhook materializa la PrivateLesson "por asignar" al PAID
-   * (REQUESTED, sin instructor ni fecha — el owner los define después).
+   * (REQUESTED, sin instructor ni fecha - el owner los define después).
    */
   @Post("private-class")
   @UseGuards(SessionGuard)

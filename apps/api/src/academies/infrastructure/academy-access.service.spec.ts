@@ -8,7 +8,7 @@ import type { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
 import type { PersonContext } from "../domain/academy.service";
 
-// AcademyAccess — gate central de la consola de academia. S3 (spec
+// AcademyAccess - gate central de la consola de academia. S3 (spec
 // academy-saas-billing): requireManage/requireAdminister siguen abiertos
 // para lecturas; las variantes *Write rechazan con 403
 // {error:"billing.blocked"} cuando billingBlockedAt está seteado.
@@ -127,7 +127,7 @@ describe("AcademyAccess", () => {
         .requireAdministerWrite("ac-1", outsider)
         .catch((e: unknown) => e);
       expect(err).toBeInstanceOf(ForbiddenException);
-      // no es el error de billing — es el de acceso
+      // no es el error de billing - es el de acceso
       expect(errBody(err).error).not.toBe("billing.blocked");
     });
   });

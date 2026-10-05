@@ -4,16 +4,16 @@ import { SubscriptionsService } from "../application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
 
 /**
- * Reconcile diario (09:00) de las suscripciones Flow vivas — provider
+ * Reconcile diario (09:00) de las suscripciones Flow vivas - provider
  * fino: la lógica vive en SubscriptionsService.reconcileAll() (membresías
  * de alumnos) y PlatformSubscriptionsService.reconcileAll() (SaaS de
- * academias + Producer Pro — spec academy-saas-billing): settle de
+ * academias + Producer Pro - spec academy-saas-billing): settle de
  * invoices pagados, sync de estado/nextInvoiceAt, reminder del cobro del
  * día siguiente, mora (grace de academia) y aplicación de cambios de plan
  * pendientes. Es la red de seguridad del webhook (subscription/callback
  * dispara el mismo barrido fire-and-forget) y del refresh de las vistas.
  * En el mismo tick corre `enforceAcademyBlocks` (S3): academias con
- * `billingGraceUntil` vencido pasan a `billingBlockedAt` — el desbloqueo
+ * `billingGraceUntil` vencido pasan a `billingBlockedAt` - el desbloqueo
  * no depende del cron, lo hace `settlePlatformSub` al RENEWAL_SETTLED.
  */
 @Injectable()

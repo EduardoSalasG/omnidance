@@ -6,7 +6,7 @@
 // gateway sin soporte) y que la auditoría funciona (mine/events/verify-chain).
 //
 // Modo flow (PAYMENT_GATEWAY=flow + credenciales sandbox): además valida el
-// camino real — subscribe → needs_card + registerUrl de sandbox.flow.cl,
+// camino real - subscribe → needs_card + registerUrl de sandbox.flow.cl,
 // MembershipSubscription PENDING_CARD, Person.flowCustomerId,
 // MembershipPlan.flowPlanId y las GatewayTransaction de cada llamada Flow.
 // node scripts/smoke-subscription.cjs
@@ -133,7 +133,7 @@ async function main() {
         return !/"s":"[0-9a-f]{64}"/.test(req);
       }),
     );
-    // cancelar la PENDING_CARD — cancelación local, sin Flow
+    // cancelar la PENDING_CARD - cancelación local, sin Flow
     const cancel = await call(
       "POST",
       `/subscriptions/${sub.body.subscriptionId}/cancel`,

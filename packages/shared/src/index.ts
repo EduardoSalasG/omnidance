@@ -1,4 +1,4 @@
-// @omnidance/shared — enums, constantes y tipos compartidos front/back
+// @omnidance/shared - enums, constantes y tipos compartidos front/back
 
 // ─── Roles ───────────────────────────────────────────────
 export const USER_ROLES = [
@@ -169,7 +169,7 @@ export const NOTIFICATION_CATEGORIES = [
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 // Lente de una notificación según su `type` namespaced. La `category`
-// (SOCIAL/TRANSACTIONAL/…) no mapea a la lente — TRANSACTIONAL mezcla
+// (SOCIAL/TRANSACTIONAL/…) no mapea a la lente - TRANSACTIONAL mezcla
 // tickets de eventos (social) con pases de serie (academia). Los tipos
 // sin dominio de lente (account.*, crm.*, lead.*) son "any": se muestran
 // y cuentan en ambas lentes. Compartido front/back: /notificaciones

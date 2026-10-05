@@ -1,5 +1,5 @@
 /**
- * Orden de la wallet: más futuro/reciente primero — lo próximo es lo
+ * Orden de la wallet: más futuro/reciente primero - lo próximo es lo
  * que se usa en puerta. El API puede devolver `event: null` cuando el
  * evento fue eliminado tras la compra (GET /tickets/mine hace
  * `byId.get(t.eventId) ?? null`): esos tickets quedan al final y nunca

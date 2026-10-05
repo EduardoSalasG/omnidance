@@ -1,4 +1,4 @@
-// Tipos del CRM transversal — verificados contra
+// Tipos del CRM transversal - verificados contra
 // apps/api/src/crm/infrastructure/crm.controller.ts y domain/crm.service.ts.
 // Todos los endpoints exigen actorType + actorId (query en GET, body en POST).
 
@@ -13,7 +13,7 @@ export type CrmActor = {
 
 // ─── People / tags ───
 
-/** ActorTag (schema.prisma) — el tag es un string libre por persona. */
+/** ActorTag (schema.prisma) - el tag es un string libre por persona. */
 export type CrmTag = {
   id: string;
   personId: string;
@@ -23,7 +23,7 @@ export type CrmTag = {
 };
 
 /** Fila de GET /crm/people (CrmPersonRow del service). Array plano, sin
- * paginación ni filtros server-side — se filtra/pagina en cliente. */
+ * paginación ni filtros server-side - se filtra/pagina en cliente. */
 export type CrmPersonRow = {
   personId: string;
   score: number | null;
@@ -35,7 +35,7 @@ export type CrmPersonRow = {
 
 // ─── Campaigns ───
 
-/** CampaignSegment del service — los criterios presentes se unen (OR).
+/** CampaignSegment del service - los criterios presentes se unen (OR).
  *  Los criterios de alumnos solo valen para actorType ACADEMY (400 si no). */
 export type CampaignSegment = {
   tags?: string[];
@@ -70,7 +70,7 @@ export type CrmCampaign = {
 
 // ─── Triggers ───
 
-/** CRM_TRIGGER_KEYS del service — enum cerrado, no libre. */
+/** CRM_TRIGGER_KEYS del service - enum cerrado, no libre. */
 export const CRM_TRIGGER_KEYS = [
   "WINBACK",
   "TRIAL_EXPIRING",
@@ -86,7 +86,7 @@ export const TRIGGER_KEYS_WITH_DAYS: ReadonlySet<string> = new Set([
   "ATTENDANCE_DROP",
 ]);
 
-/** Modelo CrmTrigger (Prisma) — config: {days?, cooldownDays?}. */
+/** Modelo CrmTrigger (Prisma) - config: {days?, cooldownDays?}. */
 export type CrmTrigger = {
   id: string;
   key: string;

@@ -11,7 +11,7 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import type { ClassSlot } from "@/components/academy/shared";
 
 /**
- * /academia/asistencia — marcar presente por clase. La página fetchea
+ * /academia/asistencia - marcar presente por clase. La página fetchea
  * GET /academies/:id/slots (AttendanceSection los usa en el select del
  * registro); el listado de asistencias lo carga la propia sección.
  */

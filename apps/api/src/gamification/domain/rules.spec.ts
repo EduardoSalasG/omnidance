@@ -52,7 +52,7 @@ describe("weekIndex", () => {
 });
 
 describe("buildStreakWeeks", () => {
-  const now = new Date("2026-09-30T12:00:00Z"); // miércoles — semana actual en curso
+  const now = new Date("2026-09-30T12:00:00Z"); // miércoles - semana actual en curso
 
   it("sin actividad → todo false", () => {
     const weeks = buildStreakWeeks([], now, 4);

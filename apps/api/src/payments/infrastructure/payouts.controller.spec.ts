@@ -23,7 +23,7 @@ import { encodePrivateRef, encodeSeriesPassRef } from "../domain/order-ref";
 // - VENUE: tickets PAID de eventos con venueId = actor y producerId null,
 //   misma regla legacy.
 // - ACADEMY (modelo SaaS, spec academy-saas-billing): mismas líneas que
-//   VENUE + MEMBERSHIP/WORKSHOP/PRIVATE por refId, pero SIN platformFee —
+//   VENUE + MEMBERSHIP/WORKSHOP/PRIVATE por refId, pero SIN platformFee -
 //   solo descuenta GATEWAY_FEE_PASSTHROUGH = round(gross ×
 //   gateway_fee.academy_passthrough_pct / 100), línea explícita en
 //   Payout.gatewayFee + lines[] del response.
@@ -85,7 +85,7 @@ interface FakePayout {
   periodEnd: Date;
   gross: number;
   platformFee: number;
-  /** Línea GATEWAY_FEE_PASSTHROUGH — solo payouts ACADEMY (modelo SaaS). */
+  /** Línea GATEWAY_FEE_PASSTHROUGH - solo payouts ACADEMY (modelo SaaS). */
   gatewayFee: number;
   net: number;
   status: string;
@@ -127,7 +127,7 @@ class FakePrisma {
       this.classes.filter((c) => matchWhere(c, where)),
   };
 
-  // PRIVATE cancelada no devenga — el controller consulta la lección por
+  // PRIVATE cancelada no devenga - el controller consulta la lección por
   // paymentId y excluye status CANCELLED.
   privateLesson = {
     findMany: async ({ where }: { where: Row }) =>
@@ -227,7 +227,7 @@ const mkPayment = (over: Partial<FakePayment>): FakePayment => ({
   ...over,
 });
 
-describe("AdminPayoutsController.generate — computeSettlement", () => {
+describe("AdminPayoutsController.generate - computeSettlement", () => {
   let prisma: FakePrisma;
   let pf: ReturnType<typeof mkParams>;
   let ctrl: AdminPayoutsController;
@@ -283,7 +283,7 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
       mkPayment({ eventId: "evt-acad", amount: 8000, fee: 200 }),
       mkPayment({ eventId: "evt-acad-p", amount: 9000 }),
       mkPayment({ eventId: "evt-venue", amount: 4000, fee: 50 }),
-      // PRIVATE (clase particular comprable): refId pvt_<academyId>_ — se
+      // PRIVATE (clase particular comprable): refId pvt_<academyId>_ - se
       // atribuye a la academia aunque no tenga eventos/planes/clases.
       mkPayment({
         orderType: "PRIVATE",
@@ -375,14 +375,14 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
     // aquí; el PRIVATE de ac-1 (25000) sí entra por refId, el de ac-ajena no.
     expect(payout.gross).toBe(33000);
     // Modelo SaaS: la academia no paga comisión por venta (paga su
-    // suscripción) — platformFeePct del evento y el param global son
+    // suscripción) - platformFeePct del evento y el param global son
     // inertes para ACADEMY. Solo el costo Flow como línea explícita:
     // round(33000 × 3.19%) = 1053; el fee real del Payment (700) NO se
-    // usa — la tasa viene del param, no del pago.
+    // usa - la tasa viene del param, no del pago.
     expect(payout.platformFee).toBe(0);
     expect(payout.gatewayFee).toBe(1053);
     expect(payout.net).toBe(33000 - 1053);
-    // La deducción viaja como línea tipada — nunca escondida en net.
+    // La deducción viaja como línea tipada - nunca escondida en net.
     expect(payout.lines).toEqual([
       { type: "GATEWAY_FEE_PASSTHROUGH", amount: 1053 },
     ]);
@@ -394,7 +394,7 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
       { actorType: "ACADEMY", actorId: "ac-ajena", ...DTO },
       adminReq,
     );
-    // ac-ajena no tiene eventos ni clases — solo el pago PRIVATE de 30000.
+    // ac-ajena no tiene eventos ni clases - solo el pago PRIVATE de 30000.
     expect(payout.gross).toBe(30000);
     expect(payout.platformFee).toBe(0); // platform_fee.default_pct no aplica
     expect(payout.gatewayFee).toBe(957); // round(30000 × 3.19%)
@@ -424,7 +424,7 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
       { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
       adminReq,
     );
-    // 33000 × 5% = 1650 — parametrizable desde /admin sin deploy.
+    // 33000 × 5% = 1650 - parametrizable desde /admin sin deploy.
     expect(payout.gatewayFee).toBe(1650);
     expect(payout.net).toBe(31350);
     expect(payout.lines).toEqual([
@@ -432,7 +432,7 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
     ]);
   });
 
-  it("PRODUCER: sin línea GATEWAY_FEE_PASSTHROUGH — solo PLATFORM_FEE en el desglose", async () => {
+  it("PRODUCER: sin línea GATEWAY_FEE_PASSTHROUGH - solo PLATFORM_FEE en el desglose", async () => {
     pf.producers.set("prod-1", {
       serviceFeeClp: null,
       doorAppFeeClp: null,
@@ -498,7 +498,7 @@ describe("AdminPayoutsController.generate — computeSettlement", () => {
   });
 });
 
-describe("AdminPayoutsController — ciclo approve/pay", () => {
+describe("AdminPayoutsController - ciclo approve/pay", () => {
   let prisma: FakePrisma;
   let ctrl: AdminPayoutsController;
   let payoutId: string;

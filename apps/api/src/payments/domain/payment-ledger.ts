@@ -23,7 +23,7 @@ function sortKeys(v: unknown): unknown {
 
 export function canonicalJson(v: unknown): string {
   // Round-trip a JSON puro ANTES de ordenar keys: convierte Date→ISO string,
-  // Decimal→número y cualquier objeto con toJSON a su forma serializada —
+  // Decimal→número y cualquier objeto con toJSON a su forma serializada -
   // exactamente lo que jsonb persiste. Sin esto, un Date tiene Object.entries
   // vacío y canonicaliza como {} mientras la DB guarda "2026-…Z" → falsos
   // positivos de tampering al releer.
@@ -34,13 +34,13 @@ export function canonicalJson(v: unknown): string {
  * Ledger BIAN: append-only, hash-chain por payment.
  * payloadHash = sha256(prevHash + canonicalJson({paymentId,seq,type,actor,payload}))
  * Debe llamarse DENTRO de una tx (el caller pasa el tx client, o abre una
- * $transaction si el evento no forma parte de una tx de negocio mayor) —
+ * $transaction si el evento no forma parte de una tx de negocio mayor) -
  * el advisory lock xact-scoped solo cubre el find+create si ambos corren
  * dentro de la misma transacción.
  *
  * Concurrencia: webhook + polling + reconcile pueden emitir sobre el
  * mismo paymentId en paralelo. Sin serialización ambos leen el mismo
- * último seq y el segundo choca contra @@unique([paymentId, seq]) —
+ * último seq y el segundo choca contra @@unique([paymentId, seq]) -
  * el error aborta su tx entera. pg_advisory_xact_lock(hashtext(id))
  * bloquea al segundo emisor hasta el commit/rollback del primero, que
  * recién ahí lee el seq real. Es re-entrante dentro de la misma tx

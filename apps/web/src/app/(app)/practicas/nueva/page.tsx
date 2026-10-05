@@ -14,7 +14,7 @@ const inputCls =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
 /**
- * Nueva práctica (spec §8): micro-evento creado por cualquier bailarín —
+ * Nueva práctica (spec §8): micro-evento creado por cualquier bailarín -
  * gratis, first-come, check-in por QR. Lugar = dirección libre (parque,
  * plaza o studio). Al crear, redirige al detalle público de la práctica.
  */
@@ -27,15 +27,15 @@ export default function NuevaPracticaPage() {
   const { me, loading: meLoading, refresh: refreshMe } = useMe();
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(false);
-  // Éxito breve antes del redirect — la key practices.created existía
+  // Éxito breve antes del redirect - la key practices.created existía
   // sin uso; el detalle destino no puede anunciar la creación.
   const [created, setCreated] = useState(false);
-  // Fallo de GET /styles — el select quedaría solo con "Cualquiera"
+  // Fallo de GET /styles - el select quedaría solo con "Cualquiera"
   // sin aviso; la práctica se puede publicar igual sin estilo.
   const [stylesError, setStylesError] = useState(false);
 
   const [name, setName] = useState("");
-  // Dirección libre — parque, plaza o studio; sin catálogo de venues.
+  // Dirección libre - parque, plaza o studio; sin catálogo de venues.
   // venueNotes = detalle del lugar (sala, piso, punto exacto).
   const [address, setAddress] = useState("");
   const [venueNotes, setVenueNotes] = useState("");
@@ -94,7 +94,7 @@ export default function NuevaPracticaPage() {
         }),
       });
       if (res.status === 401) {
-        // Sesión caída — el contexto re-resuelve y el gate de login
+        // Sesión caída - el contexto re-resuelve y el gate de login
         // aparece cuando me quede null.
         void refreshMe();
         return;
@@ -121,7 +121,7 @@ export default function NuevaPracticaPage() {
     .toISOString()
     .slice(0, 10);
 
-  // "Hasta" ≤ "Desde" = cruza medianoche (el submit le suma +24h) —
+  // "Hasta" ≤ "Desde" = cruza medianoche (el submit le suma +24h) -
   // el hint lo hace explícito en vez de corregir en silencio.
   const crossesMidnight = Boolean(
     date &&
@@ -167,7 +167,7 @@ export default function NuevaPracticaPage() {
             />
           </label>
 
-          {/* Dirección + notas del lugar — el "dónde" en un solo bloque */}
+          {/* Dirección + notas del lugar - el "dónde" en un solo bloque */}
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1.5 text-sm">
               <span className="text-white/70">{t("address")}</span>

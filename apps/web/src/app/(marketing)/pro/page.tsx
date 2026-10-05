@@ -13,11 +13,11 @@ export const metadata: Metadata = {
   description: t.metaDescription,
   alternates: { canonical: "/pro" },
   openGraph: {
-    title: `${t.metaTitle} — Omnidance`,
+    title: `${t.metaTitle} | Omnidance`,
     description: t.metaDescription,
     url: "/pro",
     // El openGraph propio de la página tapa la convención
-    // opengraph-image.tsx — la imagen se declara explícita.
+    // opengraph-image.tsx - la imagen se declara explícita.
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };

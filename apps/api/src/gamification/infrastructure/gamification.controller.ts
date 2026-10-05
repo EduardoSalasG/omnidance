@@ -107,7 +107,7 @@ export class EventGamificationController {
 
   /**
    * Leaderboard Prime Time por rol (inviter≈leader / invitee≈follower, v1).
-   * Visible SOLO con evento LIVE o CLOSED — antes devuelve listas vacías.
+   * Visible SOLO con evento LIVE o CLOSED - antes devuelve listas vacías.
    */
   @Get(":eventId/leaderboard")
   async leaderboard(@Param("eventId") eventId: string) {
@@ -119,7 +119,7 @@ export class EventGamificationController {
   }
 
   /**
-   * Contador Prime Time (REST polling en v1 — sin websocket):
+   * Contador Prime Time (REST polling en v1 - sin websocket):
    * threshold (override o ~20% aforo), current en ventana, unlocked.
    */
   @Get(":eventId/prime-time")
@@ -132,7 +132,7 @@ export class EventGamificationController {
   }
 
   /**
-   * Reveal Prime Time (público — la pantalla del local/DJ lo muestra en
+   * Reveal Prime Time (público - la pantalla del local/DJ lo muestra en
    * vivo y los ganadores se anuncian en el evento). Sin desbloqueo →
    * {unlocked:false}; desbloqueado antes del fin de ventana →
    * {unlocked:true, revealed:false} (el reveal es a las 00:00); después →

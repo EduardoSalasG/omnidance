@@ -18,7 +18,7 @@ export type DrawerGroup = {
 };
 
 /**
- * Drawer lateral — menú secundario de la app. El BottomNav queda con las
+ * Drawer lateral - menú secundario de la app. El BottomNav queda con las
  * funciones primarias del rol + Perfil; todo lo demás vive acá, agrupado
  * por dominio (Social / Consola del rol / etc.).
  *

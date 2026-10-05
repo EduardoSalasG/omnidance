@@ -33,7 +33,7 @@ type PersonLite = {
   photoUrl: string | null;
 };
 
-/** Fila de GET /friends — el id es el friendshipId, no el personId. */
+/** Fila de GET /friends - el id es el friendshipId, no el personId. */
 type FriendEdge = {
   id: string;
   status: string;
@@ -47,7 +47,7 @@ type FriendsData = {
   pendingSent: FriendEdge[];
 };
 
-/** GET /friends/upcoming-events — evento + amigos con ticket activo. */
+/** GET /friends/upcoming-events - evento + amigos con ticket activo. */
 type FriendEvent = {
   event: {
     id: string;
@@ -66,7 +66,7 @@ type PageState = "loading" | "ready" | "unauth" | "error";
 
 const DEBOUNCE_MS = 300;
 const MIN_CHARS = 2;
-// "Tus amigos van a" — la agenda puede ser larga y tapa la lista de
+// "Tus amigos van a" - la agenda puede ser larga y tapa la lista de
 // amigos (contenido principal): preview de 2, el resto tras "ver más".
 const GOING_PREVIEW = 2;
 
@@ -91,10 +91,10 @@ export default function AmigosPage() {
   const meId = me?.id ?? null;
   const meFailed = !meLoading && meError;
   const [inviteCopied, setInviteCopied] = useState(false);
-  // Fallo real de copia al portapapeles — visible (el catch antes era
+  // Fallo real de copia al portapapeles - visible (el catch antes era
   // silencioso y el botón parecía no hacer nada).
   const [inviteErr, setInviteErr] = useState(false);
-  // "Tus amigos van a" — agenda social de amigos (tickets activos).
+  // "Tus amigos van a" - agenda social de amigos (tickets activos).
   // null = fetch en vuelo → skeleton en el slot (la sección va arriba
   // de solicitudes/amigos; sin slot los empujaba al resolver).
   const [friendEvents, setFriendEvents] = useState<FriendEvent[] | null>(
@@ -109,13 +109,13 @@ export default function AmigosPage() {
   const [actionErr, setActionErr] = useState(false);
   // Descarta respuestas de búsqueda que llegan fuera de orden.
   const searchSeq = useRef(0);
-  // Ref del buscador — el CTA del empty state lo enfoca.
+  // Ref del buscador - el CTA del empty state lo enfoca.
   const searchRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     try {
       // En paralelo y dentro del mismo gate: la sección "Tus amigos van
-      // a" se decide ANTES de pintar — nada de skeleton que aparece y
+      // a" se decide ANTES de pintar - nada de skeleton que aparece y
       // colapsa, ni pop-in tardío sobre la lista ya pintada.
       const [res, eventsRes] = await Promise.allSettled([
         apiFetch("/friends"),
@@ -135,7 +135,7 @@ export default function AmigosPage() {
         return;
       }
       setData((await friendsRes.json()) as FriendsData);
-      // Feed "van a" — mejor esfuerzo: si falla queda vacío.
+      // Feed "van a" - mejor esfuerzo: si falla queda vacío.
       if (eventsRes.status === "fulfilled" && eventsRes.value.ok) {
         setFriendEvents((await eventsRes.value.json()) as FriendEvent[]);
       } else {
@@ -319,7 +319,7 @@ export default function AmigosPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       {/* Agregar amigos: buscador por nombre + link de invitación.
-          El link apunta a mi propio perfil — quien lo abre sin sesión
+          El link apunta a mi propio perfil - quien lo abre sin sesión
           cae a login/registro y aterriza aquí con el botón Agregar. */}
       <section
         aria-labelledby="add-friends-title"
@@ -347,7 +347,7 @@ export default function AmigosPage() {
                   setInviteCopied(true);
                   setTimeout(() => setInviteCopied(false), 2500);
                 } catch (err) {
-                  // Cancelar el share nativo (AbortError) no es error —
+                  // Cancelar el share nativo (AbortError) no es error -
                   // el aviso es solo para cuando la copia falla de verdad.
                   if (err instanceof DOMException && err.name === "AbortError") {
                     return;
@@ -374,7 +374,7 @@ export default function AmigosPage() {
               {inviteCopied ? t("inviteCopied") : t("invite")}
             </button>
           ) : meFailed ? (
-            /* /me falló: sin meId no hay link — feedback + retry en el
+            /* /me falló: sin meId no hay link - feedback + retry en el
                mismo slot en vez de desaparecer el CTA en silencio. */
             <button
               type="button"
@@ -385,7 +385,7 @@ export default function AmigosPage() {
               {tc("retry")}
             </button>
           ) : meLoading ? (
-            /* Slot reservado del botón Invitar mientras /me resuelve —
+            /* Slot reservado del botón Invitar mientras /me resuelve -
                el CTA deja de aparecer de golpe junto al título. */
             <Skeleton className="page-loading h-11 w-28 shrink-0 rounded-full" />
           ) : null}
@@ -451,9 +451,9 @@ export default function AmigosPage() {
 
       {state === "ready" && (
         <>
-          {/* Tus amigos van a — eventos con ticket activo de ≥1 amigo.
+          {/* Tus amigos van a - eventos con ticket activo de ≥1 amigo.
               El fetch va en paralelo dentro del gate: al llegar a
-              `ready` ya está resuelto — la sección pinta con contenido
+              `ready` ya está resuelto - la sección pinta con contenido
               o no pinta nunca; no hay skeleton que aparezca y colapse. */}
           {friendEvents !== null && friendEvents.length > 0 && (
             <section data-tour="amigos-going" className="flex flex-col gap-3">
@@ -461,7 +461,7 @@ export default function AmigosPage() {
                 {t("goingTitle")}
               </h2>
               <ul className="flex flex-col gap-2">
-                {/* Preview de 2 — el resto queda tras "ver más" (la
+                {/* Preview de 2 - el resto queda tras "ver más" (la
                     agenda semanal puede ser larga y tapar la lista
                     de amigos, que es el contenido principal). */}
                 {(goingExpanded
@@ -597,7 +597,7 @@ export default function AmigosPage() {
                 <p role="status" className="text-white/60">
                   {t("empty")}
                 </p>
-                {/* Sin dead-end: el buscador de arriba es la acción —
+                {/* Sin dead-end: el buscador de arriba es la acción -
                     el CTA lo enfoca en vez de duplicarlo. */}
                 <Button
                   variant="secondary"
@@ -618,7 +618,7 @@ export default function AmigosPage() {
         </>
       )}
 
-      {/* Tour de primera visita — monta solo con la data lista para
+      {/* Tour de primera visita - monta solo con la data lista para
           que las secciones target existan en el DOM. */}
       {state === "ready" && (
         <OnboardingRunner

@@ -1,6 +1,6 @@
 // Genera los íconos raster del PWA (public/icon-192.png, icon-512.png,
-// icon-512-maskable.png) reproduciendo src/app/icon.svg — rect redondeado
-// #0a0a0f con la "O" neon #a78bfa — sin depender de sharp ni ImageMagick.
+// icon-512-maskable.png) reproduciendo src/app/icon.svg - rect redondeado
+// #0a0a0f con la "O" neon #a78bfa - sin depender de sharp ni ImageMagick.
 //
 //   node scripts/generate-icons.mjs
 //
@@ -126,7 +126,7 @@ for (const [name, size, maskable] of [
   ["icon-192.png", 192, false],
   ["icon-512.png", 512, false],
   ["icon-512-maskable.png", 512, true],
-  // apple-touch-icon: iOS no recorta ni usa el manifest — fondo full-bleed.
+  // apple-touch-icon: iOS no recorta ni usa el manifest - fondo full-bleed.
   ["apple-touch-icon.png", 180, true],
 ]) {
   const file = join(OUT, name);

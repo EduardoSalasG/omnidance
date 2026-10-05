@@ -76,7 +76,7 @@ export class DoorCapReachedError extends Error {
 export interface RegisterCheckinInput {
   eventId: string;
   personId: string;
-  /** Quien opera la puerta — siempre auditado. */
+  /** Quien opera la puerta - siempre auditado. */
   staffId: string;
   method: CheckinMethod;
   /** Nota del staff (solo check-in manual / cortesías). */
@@ -89,13 +89,13 @@ export interface CheckinResult {
   ticket: { id: string; status: string } | null;
   /**
    * Tipo del pase resuelto: PassType del EntryPass (COMP/LIST/…) o
-   * "SERIES_PASS" si entró con el pase mensual de la serie — null si fue
+   * "SERIES_PASS" si entró con el pase mensual de la serie - null si fue
    * ticket o sin pase.
    */
   passType: CheckinPassType | null;
 }
 
-/** Actor autenticado (SessionGuard) — el id basta: roles se leen en DB. */
+/** Actor autenticado (SessionGuard) - el id basta: roles se leen en DB. */
 export interface ActorRef {
   id: string;
 }
@@ -121,17 +121,17 @@ const PARAM_DOOR_APP_FEE = "service_fee.door_app_clp";
 // Estados en que la puerta opera: publicado (pre-venta activa) o en vivo.
 const CHECKIN_OPEN_STATUSES: readonly EventStatus[] = ["PUBLISHED", "LIVE"];
 
-/** Mes calendario local "YYYY-MM" — clave de vigencia del SeriesPass. */
+/** Mes calendario local "YYYY-MM" - clave de vigencia del SeriesPass. */
 function currentMonth(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 /**
- * Reglas de check-in de puerta (spec omni-dance.md — staff offline-first):
+ * Reglas de check-in de puerta (spec omni-dance.md - staff offline-first):
  * - El escaneo resuelve personId; se busca un pase ACTIVE del evento
  *   (ticket comprado primero, entry_pass de lista/cortesía como fallback).
- * - El check-in se registra aunque no haya pase (MANUAL/cortesía) —
+ * - El check-in se registra aunque no haya pase (MANUAL/cortesía) -
  *   staffId queda siempre para auditoría.
  * - Doble check-in: si ya hay uno abierto (sin outAt) para (evento, persona)
  *   se rechaza con el existente; el sync offline resuelve por timestamp.
@@ -160,7 +160,7 @@ export class CheckinsService {
 
     // Fallback: pase mensual de la serie del evento (spec series-pass).
     // Vigencia = mes calendario local "YYYY-MM"; no se consume al hacer
-    // check-in — cubre todos los eventos de la serie en el mes.
+    // check-in - cubre todos los eventos de la serie en el mes.
     const seriesPass =
       ticket || entryPass || !event.seriesId
         ? null
@@ -206,7 +206,7 @@ export class CheckinsService {
 
   /**
    * Check-out ("me fui"): el dueño del check-in o cualquier staff con
-   * checkins.write. Idempotente — ya cerrado o anulado devuelve sin tocar.
+   * checkins.write. Idempotente - ya cerrado o anulado devuelve sin tocar.
    */
   async closeCheckin(checkinId: string, actor: ActorRef): Promise<Checkin> {
     const checkin = await this.repo.findCheckinById(checkinId);

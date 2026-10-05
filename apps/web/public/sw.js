@@ -1,11 +1,11 @@
-/* Omnidance — service worker mínimo para Web Push.
+/* Omnidance - service worker mínimo para Web Push.
  *
  * Payload que envía el backend (web-push.sender.ts):
  *   { type, title, body, data }
  * `data` es el JSON libre de la notificación; si trae `url` se usa al hacer
  * click, si no cae a /notificaciones (el centro in-app).
  *
- * Sin icon: public/ aún no tiene icon-192.png — agregar `icon` aquí cuando
+ * Sin icon: public/ aún no tiene icon-192.png - agregar `icon` aquí cuando
  * exista el asset.
  */
 

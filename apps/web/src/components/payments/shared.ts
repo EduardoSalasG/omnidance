@@ -1,6 +1,6 @@
 // Tipos y helpers compartidos de las vistas de auditoría de pagos.
 // Contrato: GET /payments/mine | /payments/by-event/:id |
-// /payments/by-academy/:id — filas proyectadas por withContextNames en
+// /payments/by-academy/:id - filas proyectadas por withContextNames en
 // apps/api/src/payments/infrastructure/webhook.controller.ts.
 import type { BadgeVariant } from "@/components/ui";
 
@@ -13,7 +13,7 @@ export type PaymentAuditRow = {
   net: number;
   status: string;
   createdAt: string;
-  // Verdad monetaria reportada por la pasarela — null en stub/pagos viejos.
+  // Verdad monetaria reportada por la pasarela - null en stub/pagos viejos.
   gatewayFeeClp: number | null;
   gatewayReportedAmount: number | null;
   gatewayMedia: string | null;
@@ -30,7 +30,7 @@ export type PaymentAuditRow = {
   planName: string | null;
 };
 
-// GET /payments/:id/events — ledger append-only ordenado por seq.
+// GET /payments/:id/events - ledger append-only ordenado por seq.
 export type PaymentLedgerEvent = {
   id: string;
   paymentId: string;

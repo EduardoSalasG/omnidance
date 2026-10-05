@@ -48,13 +48,13 @@ function subscribeResponse(r: PlatformSubscribeResult) {
 
 /**
  * Producer Pro (spec academy-saas-billing): suscripción de plataforma del
- * productor — tier calculado por su facturación (media bruta 90d ÷ 3
+ * productor - tier calculado por su facturación (media bruta 90d ÷ 3
  * contra `producer_tier.*_max_monthly_clp`). `:id` es el Person.id del
  * productor; el caller debe ser él mismo o admin.access (mismo gate que
- * producer.controller — permiso DB, nunca rol literal). El retorno del
+ * producer.controller - permiso DB, nunca rol literal). El retorno del
  * disclaimer es `POST /api/payments/flow/platform-customer-return`.
  *
- * La mora de Producer Pro NO bloquea ticketing ni marketplace — solo
+ * La mora de Producer Pro NO bloquea ticketing ni marketplace - solo
  * avisa (las features Pro las degrada S5).
  */
 @Controller("producers")
@@ -66,7 +66,7 @@ export class ProducerProController {
   ) {}
 
   /**
-   * POST /producers/:id/pro/subscribe {cycle, acceptRecurring} — el tier
+   * POST /producers/:id/pro/subscribe {cycle, acceptRecurring} - el tier
    * lo calcula el servicio (PRO_STARTER/PRO_GROWTH según facturación);
    * sobre el tope autogestionado → 400 `tier_limit` (PRO_BIG es manual).
    */
@@ -85,7 +85,7 @@ export class ProducerProController {
   }
 
   /**
-   * POST /producers/:id/pro/cancel — cancela a fin del período pagado
+   * POST /producers/:id/pro/cancel - cancela a fin del período pagado
    * (las herramientas Pro siguen hasta `nextInvoiceAt`). Idempotente.
    */
   @Post(":id/pro/cancel")
@@ -95,7 +95,7 @@ export class ProducerProController {
   }
 
   /**
-   * GET /producers/:id/pro — estado: proTier, suscripción, facturación
+   * GET /producers/:id/pro - estado: proTier, suscripción, facturación
    * media 90d vs tope del tier y próxima facturación.
    */
   @Get(":id/pro")

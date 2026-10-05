@@ -1,7 +1,7 @@
 // Vigencia "fecha calendario" de los planes de academia comprados online.
 //
 // Convención de fecha de corte: mediodía Chile (~15:00 UTC, seguro entre
-// UTC-3/-4) del último día válido — la misma que usa el staff al cargar
+// UTC-3/-4) del último día válido - la misma que usa el staff al cargar
 // "pagado hasta" desde un input date. Así el día que muestra la UI en
 // es-CL coincide con el día de vigencia y la comparación `endsAt > now`
 // no depende del TZ del servidor.
@@ -54,7 +54,7 @@ export function membershipBase(now: Date, currentEndsAt: Date | null): Date {
  *  - PERIOD     → base + periodDays (misma derivación que el alta staff)
  *  - TRIAL      → base + periodDays si el owner lo configuró; si no, null
  *    (igual que el alta staff: la prueba queda sin fecha)
- *  - CLASS_PACK → null (sin fecha — vence por consumo, no auditado en v1)
+ *  - CLASS_PACK → null (sin fecha - vence por consumo, no auditado en v1)
  */
 export function membershipEndsAt(
   plan: { type: PlanType; periodDays: number | null },

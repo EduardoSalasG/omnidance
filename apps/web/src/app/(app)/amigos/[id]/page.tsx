@@ -49,7 +49,7 @@ export default function AmigoPerfilPage({
   const { id } = params;
   const t = useTranslations("friends");
   const tc = useTranslations("common");
-  // Etiquetas de rol de baile — mismo catálogo que /perfil/datos.
+  // Etiquetas de rol de baile - mismo catálogo que /perfil/datos.
   const tp = useTranslations("profile");
 
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function AmigoPerfilPage({
   const [person, setPerson] = useState<PersonProfile | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionErr, setActionErr] = useState(false);
-  // Confirmación de eliminar amistad — bottom sheet (mismo patrón que
+  // Confirmación de eliminar amistad - bottom sheet (mismo patrón que
   // el modal de entrada duplicada), no window.confirm.
   const [confirmRemove, setConfirmRemove] = useState(false);
   const dialogRef = useDialogFocus<HTMLDivElement>(confirmRemove);
@@ -69,7 +69,7 @@ export default function AmigoPerfilPage({
         setState("unauth");
         return;
       }
-      // 404 = persona que no existe — no es un fallo transitorio:
+      // 404 = persona que no existe - no es un fallo transitorio:
       // estado propio sin retry (reintentar daría lo mismo).
       if (res.status === 404) {
         setState("notfound");
@@ -90,7 +90,7 @@ export default function AmigoPerfilPage({
     void load();
   }, [load]);
 
-  // Refetch del perfil tras cada acción — el friendship cambia en servidor.
+  // Refetch del perfil tras cada acción - el friendship cambia en servidor.
   async function act(fn: () => Promise<Response>) {
     setBusy(true);
     setActionErr(false);
@@ -122,7 +122,7 @@ export default function AmigoPerfilPage({
   const declineReq = (fid: string) =>
     act(() => apiFetch(`/friends/${fid}/decline`, { method: "POST" }));
   // Eliminar amistad: solo desde el pie del perfil, con confirmación.
-  // En éxito vuelve a la lista — el perfil ya no tiene acciones útiles.
+  // En éxito vuelve a la lista - el perfil ya no tiene acciones útiles.
   const removeRel = async (fid: string) => {
     setBusy(true);
     setActionErr(false);
@@ -245,7 +245,7 @@ export default function AmigoPerfilPage({
             </p>
           )}
 
-          {/* Acción de amistad — no aplica al propio perfil */}
+          {/* Acción de amistad - no aplica al propio perfil */}
           {!person.isMe &&
             (() => {
               const status = person.friendship?.status ?? "none";
@@ -293,7 +293,7 @@ export default function AmigoPerfilPage({
               );
             })()}
 
-          {/* Próximos eventos — solo llega en la respuesta si somos
+          {/* Próximos eventos - solo llega en la respuesta si somos
               amigos (el server decide; ausente = sin acceso a agenda) */}
           {person.upcomingEvents && person.upcomingEvents.length > 0 && (
             <section className="flex flex-col gap-3">
@@ -338,7 +338,7 @@ export default function AmigoPerfilPage({
             </section>
           )}
 
-          {/* Zona destructiva al pie del contenido, centrada — lejos del
+          {/* Zona destructiva al pie del contenido, centrada - lejos del
               pulgar, sin mt-auto (dejaba un hueco enorme en perfiles cortos). */}
           {!person.isMe && person.friendship?.status === "friends" && (
             <div className="flex justify-center pt-2">
@@ -355,7 +355,7 @@ export default function AmigoPerfilPage({
         </>
       )}
 
-      {/* Confirmación de eliminar amistad — bottom sheet */}
+      {/* Confirmación de eliminar amistad - bottom sheet */}
       {confirmRemove && person && person.friendship?.id && (
         <div
           ref={dialogRef}

@@ -4,7 +4,7 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "../domain/auth.service";
 import type { AuthRepo, Mailer } from "../domain/ports";
 
-// AuthController — consentimiento legal (spec legal-consent): el flag
+// AuthController - consentimiento legal (spec legal-consent): el flag
 // `consent:true` de magic-link/login/register se estampa en la Person al
 // crear la sesión. En magic link viaja como claim del token y se estampa
 // en GET /auth/verify.
@@ -21,7 +21,7 @@ interface FakePerson {
 }
 
 // No `implements AuthRepo`: los métodos devuelven FakePerson (shape
-// reducido), no Person de Prisma — el cast en el constructor del
+// reducido), no Person de Prisma - el cast en el constructor del
 // controller cubre la diferencia.
 class FakeRepo {
   people = new Map<string, FakePerson>();
@@ -89,7 +89,7 @@ const mkRes = () =>
 
 const mkReq = () => ({ ip: "127.0.0.1" }) as unknown as Request;
 
-describe("AuthController — consentimiento legal", () => {
+describe("AuthController - consentimiento legal", () => {
   let auth: AuthService;
   let repo: FakeRepo;
   let mailer: { send: ReturnType<typeof vi.fn> };

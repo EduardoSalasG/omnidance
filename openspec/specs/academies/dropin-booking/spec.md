@@ -23,7 +23,7 @@ consumo de cuota (`weeklyClasses` y `classCount`).
 El sistema SHALL tratar la cancelación de un asiento pagado como una
 cancelación sin devolución: libera el cupo, marca `refunded=false` siempre
 (no hay crédito que devolver) y promueve la waitlist. El reembolso
-monetario es gestión manual — fuera de scope v1.
+monetario es gestión manual - fuera de scope v1.
 
 #### Scenario: cancelar una clase comprada
 
@@ -35,7 +35,7 @@ monetario es gestión manual — fuera de scope v1.
 ### Requirement: Visibilidad de compra
 
 El sistema SHALL exponer `myBookingPaid` en `GET /classes/:id` cuando la
-reserva vigente del viewer proviene de una orden WORKSHOP — el copy de
+reserva vigente del viewer proviene de una orden WORKSHOP - el copy de
 cancelación distingue "pierdes la clase" (cuota) de "la compra no se
 reembolsa sola" (pagado).
 

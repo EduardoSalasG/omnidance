@@ -17,7 +17,7 @@ const STORAGE_KEY = "omnidance:academy-id";
  * Gate compartido de /academia y sus subrutas: GET /academies/mine →
  * 401 login, [] crear academia, [a..] selector + contenido vía render-prop.
  * `mine` incluye academias como owner o como instructor (findMany ordenado
- * por createdAt) — si hay varias se ofrece selector persistido en
+ * por createdAt) - si hay varias se ofrece selector persistido en
  * localStorage para que el hub y los módulos muestren la misma academia.
  */
 export function AcademyGate({
@@ -61,7 +61,7 @@ export function AcademyGate({
       try {
         stored = window.localStorage.getItem(STORAGE_KEY);
       } catch {
-        // Sin storage (modo privado) — se usa la primera academia.
+        // Sin storage (modo privado) - se usa la primera academia.
       }
       setSelectedId((prev) => {
         if (prev && list.some((a) => a.id === prev)) return prev;
@@ -83,7 +83,7 @@ export function AcademyGate({
     try {
       window.localStorage.setItem(STORAGE_KEY, id);
     } catch {
-      // Sin storage — la selección vive solo en memoria.
+      // Sin storage - la selección vive solo en memoria.
     }
   }
 
@@ -98,7 +98,7 @@ export function AcademyGate({
         body: JSON.stringify({ name: name.trim() }),
       });
       if (!res.ok) {
-        // 403 = sin rol ACADEMY_OWNER — el message del server lo explica.
+        // 403 = sin rol ACADEMY_OWNER - el message del server lo explica.
         setCreateError((await readError(res)) ?? tc("error"));
         return;
       }
@@ -172,7 +172,7 @@ export function AcademyGate({
         <>
           {/* Mora SaaS: banner de gracia/bloqueo arriba de todo el
               contenido de la consola (en /academia/suscripcion el
-              componente se auto-omite — el estado va detallado ahí). */}
+              componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
           {academies.length > 1 && (
             <label className="flex flex-col gap-1">

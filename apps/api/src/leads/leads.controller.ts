@@ -18,7 +18,7 @@ import { NotificationsService } from "../notifications/domain/notifications.serv
 import { AuthService } from "../auth/domain/auth.service";
 import { setSessionCookie } from "../auth/infrastructure/auth.controller";
 
-// Roles que un lead puede declarar en el formulario de /pro — whitelist
+// Roles que un lead puede declarar en el formulario de /pro - whitelist
 // dura porque el formulario es público y escribe PersonRole directo.
 const ALLOWED_ROLES = new Set([
   "PRODUCER",
@@ -29,7 +29,7 @@ const ALLOWED_ROLES = new Set([
 const ALLOWED_INTENTS = new Set(["CONTACT", "DEMO"]);
 
 // Rate limit in-memory (mismo patrón que /auth/login): el formulario es
-// público y escribe DB + crea cuentas demo — se acota por IP.
+// público y escribe DB + crea cuentas demo - se acota por IP.
 const WINDOW_MS = 60 * 60 * 1000;
 const LEAD_MAX = 10; // submits por IP/hora
 const DEMO_MAX = 20; // activaciones por IP/hora
@@ -56,12 +56,12 @@ type LeadBody = {
 type DemoBody = { token?: unknown };
 
 /**
- * Formulario público de la landing /pro — sin sesión. POST /leads captura
+ * Formulario público de la landing /pro - sin sesión. POST /leads captura
  * el lead (upsert por email) y avisa a ADMIN; POST /leads/:id/demo crea la
  * cuenta demo con los roles declarados y emite la sesión en cookie.
  *
  * El id del lead NO es credencial: el demo exige el `demoToken` devuelto
- * una sola vez en la respuesta del POST /leads — un tercero que adivine o
+ * una sola vez en la respuesta del POST /leads - un tercero que adivine o
  * conozca el id no puede activar la cuenta.
  */
 @Controller("leads")
@@ -97,7 +97,7 @@ export class LeadsController {
     if (!ALLOWED_INTENTS.has(intent)) {
       throw new BadRequestException("intent inválido");
     }
-    // El teléfono solo es obligatorio cuando pide contacto — para probar
+    // El teléfono solo es obligatorio cuando pide contacto - para probar
     // la demo basta el correo (menos fricción en la conversión).
     if (intent === "CONTACT" && !phone) {
       throw new BadRequestException("phone requerido");
@@ -111,7 +111,7 @@ export class LeadsController {
     }));
 
     // Upsert por email: un re-envío refresca datos/intent, no duplica.
-    // El demoToken se genera una vez y se conserva en updates — así un
+    // El demoToken se genera una vez y se conserva en updates - así un
     // re-envío legítimo sigue pudiendo activar el demo, pero solo quien
     // recibió la respuesta original (o este) tiene el token.
     const existing = await this.prisma.lead.findUnique({
@@ -133,7 +133,7 @@ export class LeadsController {
     });
 
     if (!existing) {
-      // Aviso a admins aprobados — best-effort, nunca rompe el submit.
+      // Aviso a admins aprobados - best-effort, nunca rompe el submit.
       const admins = await this.prisma.personRole.findMany({
         where: { role: "ADMIN", status: "APPROVED" },
         select: { personId: true },
@@ -166,7 +166,7 @@ export class LeadsController {
    *
    * - Email ya registrado → 409 account_exists (nunca takeover).
    * - Re-entrar con el mismo lead+token reemite sesión sobre la cuenta.
-   * - El correo queda SIN verifiedAt — jamás se verificó; el dueño real
+   * - El correo queda SIN verifiedAt - jamás se verificó; el dueño real
    *   del correo puede reclamar la cuenta vía magic link.
    */
   @Post(":id/demo")
@@ -210,7 +210,7 @@ export class LeadsController {
           throw new ConflictException("phone_exists");
         }
       }
-      // Solo roles que existen en el catálogo — evita FK roto si el
+      // Solo roles que existen en el catálogo - evita FK roto si el
       // seed aún no corre.
       const known = await this.prisma.role.findMany({
         where: { key: { in: lead.roles } },

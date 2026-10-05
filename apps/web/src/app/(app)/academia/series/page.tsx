@@ -13,7 +13,7 @@ type NamedRef = { id: string; name: string };
 type Style = NamedRef & { genre: string };
 type Level = NamedRef & { order: number };
 
-// GET /academies/:id/series — espejo del SERIES_INCLUDE del controller
+// GET /academies/:id/series - espejo del SERIES_INCLUDE del controller
 // (style/level/types via join, slots ordenados por weekday+startTime).
 type SeriesSlot = {
   id: string;
@@ -22,7 +22,7 @@ type SeriesSlot = {
   endTime: string;
   capacity: number;
   instructorId: string | null;
-  // Modalidad propia del horario — vacío = hereda los types de la serie.
+  // Modalidad propia del horario - vacío = hereda los types de la serie.
   types: { type: NamedRef }[];
 };
 
@@ -36,7 +36,7 @@ type Series = {
   // Override de quórum por serie (PATCH acepta quorum; null = hereda el
   // defaultQuorum de la academia). Opcional hasta que el backend lo exponga.
   quorum?: number | null;
-  // CLP — precio de la clase suelta (null = no se vende suelta).
+  // CLP - precio de la clase suelta (null = no se vende suelta).
   dropInPrice?: number | null;
   style: NamedRef | null;
   level: NamedRef | null;
@@ -53,7 +53,7 @@ type SlotDraft = {
   startTime: string;
   endTime: string;
   capacity: string; // string para el input controlado; se parsea al enviar
-  // Modalidad propia del horario — vacío = hereda los types de la serie.
+  // Modalidad propia del horario - vacío = hereda los types de la serie.
   typeIds: string[];
 };
 
@@ -65,14 +65,14 @@ const emptySlot = (): SlotDraft => ({
   typeIds: [],
 });
 
-/** "YYYY-MM" del mes actual en hora local — default del input month. */
+/** "YYYY-MM" del mes actual en hora local - default del input month. */
 function currentMonth(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
 /**
- * /academia/series — gestión de las series de clases mensuales de la
+ * /academia/series - gestión de las series de clases mensuales de la
  * academia seleccionada. El gate resuelve auth + academia; adentro va el
  * formulario de creación/edición y la lista con acciones (desactivar,
  * quitar slot). Los selects se alimentan de GET /styles,
@@ -120,10 +120,10 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const [levelId, setLevelId] = useState("");
   const [typeIds, setTypeIds] = useState<string[]>([]);
   const [instructorId, setInstructorId] = useState("");
-  // Quórum opcional (override de serie) — string para el input controlado;
+  // Quórum opcional (override de serie) - string para el input controlado;
   // vacío = null = hereda el defaultQuorum de la academia.
   const [quorum, setQuorum] = useState("");
-  // Precio clase suelta (CLP) — vacío = null = no se vende suelta.
+  // Precio clase suelta (CLP) - vacío = null = no se vende suelta.
   const [dropIn, setDropIn] = useState("");
   const [month, setMonth] = useState(currentMonth);
   const [slots, setSlots] = useState<SlotDraft[]>([emptySlot()]);
@@ -178,7 +178,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
   }, [reload]);
 
   // Catálogos públicos + instructores de la academia. Si fallan se
-  // resuelven a [] (selects habilitados con solo "—"; la lista de
+  // resuelven a [] (selects habilitados con solo "·"; la lista de
   // series igual se muestra).
   useEffect(() => {
     apiFetch("/styles")
@@ -231,7 +231,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
           })),
         );
       } catch {
-        // Sin instructores — el select queda solo con "—".
+        // Sin instructores - el select queda solo con "·".
         setInstructors([]);
       }
     })();
@@ -263,7 +263,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     setFormOpen(true);
   }
 
-  // PATCH solo acepta metadatos (no slots ni month) — en modo edición
+  // PATCH solo acepta metadatos (no slots ni month) - en modo edición
   // se ocultan esos campos del formulario.
   function openEdit(s: Series): void {
     setEditing(s);
@@ -384,7 +384,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     }
   }
 
-  // DELETE /academies/:id/series/:seriesId — desactiva y cancela las
+  // DELETE /academies/:id/series/:seriesId - desactiva y cancela las
   // clases futuras (el backend libera las reservas).
   async function deactivate(s: Series): Promise<void> {
     if (!window.confirm(t("deactivateConfirm"))) return;
@@ -409,7 +409,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     }
   }
 
-  // PATCH {active:true} — reactiva la serie (no re-materializa clases
+  // PATCH {active:true} - reactiva la serie (no re-materializa clases
   // canceladas; las futuras se crean desde los slots al navegar el mes).
   async function reactivate(s: Series): Promise<void> {
     setBusyId(s.id);
@@ -437,7 +437,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     }
   }
 
-  // PATCH {addSlots:[…]} — agrega un horario a la serie y materializa las
+  // PATCH {addSlots:[…]} - agrega un horario a la serie y materializa las
   // clases que quedan del mes en ese día. Cupo/instructor opcionales: el
   // backend hereda los defaults de la serie.
   async function addSlot(s: Series): Promise<void> {
@@ -484,7 +484,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
     }
   }
 
-  // DELETE /academies/:id/slots/:slotId — quita el horario y cancela
+  // DELETE /academies/:id/slots/:slotId - quita el horario y cancela
   // sus clases futuras.
   async function removeSlot(slotId: string): Promise<void> {
     if (!window.confirm(t("removeSlotConfirm"))) return;
@@ -577,7 +577,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 disabled={styles === null}
                 aria-busy={styles === null}
               >
-                <option value="">—</option>
+                <option value="">·</option>
                 {(styles ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -595,7 +595,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 disabled={levels === null}
                 aria-busy={levels === null}
               >
-                <option value="">—</option>
+                <option value="">·</option>
                 {(levels ?? []).map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
@@ -613,7 +613,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 disabled={instructors === null}
                 aria-busy={instructors === null}
               >
-                <option value="">—</option>
+                <option value="">·</option>
                 {(instructors ?? []).map((i) => (
                   <option key={i.personId} value={i.personId}>
                     {i.name ?? i.personId.slice(0, 8)}
@@ -672,7 +672,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
             )}
 
             {types === null ? (
-              /* Chips de modalidad en vuelo — skeleton con la forma de
+              /* Chips de modalidad en vuelo - skeleton con la forma de
                  las chips para que el fieldset no salte al resolver. */
               <fieldset
                 aria-hidden="true"
@@ -1048,7 +1048,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         disabled={instructors === null}
                         aria-busy={instructors === null}
                       >
-                        <option value="">—</option>
+                        <option value="">·</option>
                         {(instructors ?? []).map((i) => (
                           <option key={i.personId} value={i.personId}>
                             {i.name ?? i.personId.slice(0, 8)}

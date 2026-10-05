@@ -1,5 +1,5 @@
 // Reglas de negocio del módulo social (RSVP, guest lists, waitlist, prácticas)
-// — servicio de dominio puro, sin Nest/Prisma.
+// - servicio de dominio puro, sin Nest/Prisma.
 
 export type SocialErrorCode =
   | "INVALID_INPUT"

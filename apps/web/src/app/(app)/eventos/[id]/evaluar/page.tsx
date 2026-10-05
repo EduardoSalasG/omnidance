@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { SurveyForm } from "@/components/events/survey-form";
 
 // Encuesta post-social: el server resuelve el nombre del evento para el
-// título (GET /events/:id es público) y el form es isla client — mismo
+// título (GET /events/:id es público) y el form es isla client - mismo
 // split server+island que el detalle del evento.
 export const dynamic = "force-dynamic";
 

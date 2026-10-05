@@ -16,7 +16,7 @@ import type { AcademyAccess } from "./academy-access.service";
 import "../../auth/infrastructure/auth.controller";
 import { ClassesController } from "./classes.controller";
 
-// ClassesController.book / cancel — capacidad real: cupo libre → BOOKED,
+// ClassesController.book / cancel - capacidad real: cupo libre → BOOKED,
 // lleno → WAITLIST (orden de llegada); al cancelar un BOOKED se promueve
 // al primer WAITLIST y se notifica. PrismaService se simula in-memory;
 // $transaction ejecuta el callback con el mismo fake como tx.
@@ -84,7 +84,7 @@ interface FakeBooking {
   enrollmentId: string | null;
   cancelledAt: Date | null;
   refunded: boolean;
-  // Orden WORKSHOP que pagó el asiento — no consume cuota.
+  // Orden WORKSHOP que pagó el asiento - no consume cuota.
   paymentId: string | null;
   createdAt: Date;
 }
@@ -180,7 +180,7 @@ class FakePrisma {
   }
 
   class = {
-    // El select de detail incluye bookings/attendances como relaciones —
+    // El select de detail incluye bookings/attendances como relaciones -
     // el fake las materializa desde this.bookings (Bookings de la clase
     // activas) y devuelve [] para las asistencias (no se testean acá).
     findUnique: async ({ where }: { where: { id: string } }) => {
@@ -291,7 +291,7 @@ class FakePrisma {
   }
 
   classBooking = {
-    // Devuelve copias — como Prisma, cada lectura es un snapshot detached;
+    // Devuelve copias - como Prisma, cada lectura es un snapshot detached;
     // si se devolviera la fila viva, un update mutaría snapshots anteriores
     // (p.ej. cancel lee booking.status tras el update a CANCELLED).
     findUnique: async ({
@@ -378,7 +378,7 @@ class FakePrisma {
     },
   };
 
-  // Particulares del alumno — /classes/mine las mergea como reservas.
+  // Particulares del alumno - /classes/mine las mergea como reservas.
   lessons: {
     id: string;
     academyId: string;
@@ -432,7 +432,7 @@ const fakeParams = () =>
     getNumber: vi.fn(async (_key: string, fallback: number) => fallback),
   }) as unknown as ParamsService;
 
-// Clase que empieza en `minutes` — date = medianoche UTC de ese día y
+// Clase que empieza en `minutes` - date = medianoche UTC de ese día y
 // startTime = HH:mm UTC del instante (mismo formato que Class/ClassSlot).
 function classStartingIn(minutes: number) {
   const start = new Date(Date.now() + minutes * 60_000);
@@ -464,7 +464,7 @@ describe("ClassesController.book", () => {
       fakeParams(),
     );
     prisma.addClass("cls-1");
-    // Regla: reservar exige inscripción vigente — per-1/per-2 inscritos,
+    // Regla: reservar exige inscripción vigente - per-1/per-2 inscritos,
     // per-3 queda fuera para los casos de rechazo.
     prisma.addEnrollment("per-1");
     prisma.addEnrollment("per-2");
@@ -585,7 +585,7 @@ describe("ClassesController.cancel", () => {
 
   it("cancelar BOOKED promueve al primer WAITLIST (createdAt asc) y notifica", async () => {
     // La promoción re-chequea cuota → el promovido necesita inscripción
-    // vigente (plan null = sin cuota — ilimitado).
+    // vigente (plan null = sin cuota - ilimitado).
     prisma.addEnrollment("per-2");
     prisma.addEnrollment("per-3");
     prisma.addBooking("cls-1", "per-1", "BOOKED");
@@ -732,7 +732,7 @@ describe("cuota de créditos (book)", () => {
       date: soon.date,
       slot: { startTime: soon.startTime },
     });
-    // cls-2 el mismo día: la cuota semanal se mide por semana ISO — con
+    // cls-2 el mismo día: la cuota semanal se mide por semana ISO - con
     // "mañana" el test cruzaba el corte y fallaba los domingos.
     prisma.addClass("cls-2", {
       date: soon.date,
@@ -793,7 +793,7 @@ describe("cuota de créditos (book)", () => {
     });
     await ctrl.book("cls-2", reqAs("per-1")); // agota la cuota semanal
     const res = await ctrl.book("cls-1", reqAs("per-1"));
-    expect(res.status).toBe("WAITLIST"); // no 409 — no consume hasta promover
+    expect(res.status).toBe("WAITLIST"); // no 409 - no consume hasta promover
   });
 });
 
@@ -831,7 +831,7 @@ describe("promoción de waitlist con cuota", () => {
 
     await ctrl.cancel("cls-1", reqAs("per-1"));
 
-    // per-2 ya tiene un BOOKED en cls-2 (su crédito gastado) — el assert
+    // per-2 ya tiene un BOOKED en cls-2 (su crédito gastado) - el assert
     // filtra por cls-1, donde está en espera.
     expect(
       prisma.bookings.find(
@@ -961,7 +961,7 @@ describe("política de cancelación (cutoff 1h)", () => {
     expect(prisma.bookings.find((b) => b.personId === "per-1")!.refunded).toBe(
       false,
     );
-    // El asiento se libera igual — la waitlist promueve.
+    // El asiento se libera igual - la waitlist promueve.
     expect(prisma.bookings.find((b) => b.personId === "per-2")!.status).toBe(
       "BOOKED",
     );
@@ -983,7 +983,7 @@ describe("política de cancelación (cutoff 1h)", () => {
     prisma.addBooking("cls-1", "per-2", "WAITLIST");
 
     const res = await ctrl.cancel("cls-1", reqAs("per-1"));
-    // No hay crédito que devolver — la devolución monetaria es manual.
+    // No hay crédito que devolver - la devolución monetaria es manual.
     expect(res.refunded).toBe(false);
     expect(prisma.bookings.find((b) => b.personId === "per-2")!.status).toBe(
       "BOOKED",
@@ -1015,7 +1015,7 @@ describe("asiento pagado vs cuota del plan", () => {
       weeklyClasses: 1,
       classCount: null,
     });
-    // Asiento comprado en cls-1 — la cuota sigue intacta.
+    // Asiento comprado en cls-1 - la cuota sigue intacta.
     prisma.addBooking("cls-1", "per-1", "BOOKED", new Date(), {
       paymentId: "pay-wk1",
     });
@@ -1031,7 +1031,7 @@ describe("asiento pagado vs cuota del plan", () => {
     });
     prisma.addBooking("cls-1", "per-1", "BOOKED"); // consume la cuota
     prisma.addBooking("cls-2", "per-1", "BOOKED", new Date(), {
-      paymentId: "pay-wk2", // comprada suelta — no suma al conteo
+      paymentId: "pay-wk2", // comprada suelta - no suma al conteo
     });
     const res = await ctrl.detail("cls-1", reqAs("per-1"));
     expect(res.myCredits).toEqual({ kind: "WEEKLY", used: 1, limit: 1 });
@@ -1049,9 +1049,9 @@ describe("asiento pagado vs cuota del plan", () => {
 });
 
 // particular-reserva-unificada: /classes/mine devuelve las particulares
-// compradas mergeadas — el alumno no hace un fetch aparte y cancela
+// compradas mergeadas - el alumno no hace un fetch aparte y cancela
 // desde la ficha como cualquier reserva.
-describe("ClassesController.mine — particulares mergeadas", () => {
+describe("ClassesController.mine - particulares mergeadas", () => {
   let prisma: FakePrisma;
   let notifications: { notifySafe: ReturnType<typeof vi.fn> };
   let ctrl: ClassesController;

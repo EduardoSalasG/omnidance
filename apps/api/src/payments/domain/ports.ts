@@ -1,4 +1,4 @@
-// Puerto de pasarela de pago (hexagonal) — el dominio no conoce Flow ni el stub.
+// Puerto de pasarela de pago (hexagonal) - el dominio no conoce Flow ni el stub.
 export const PAYMENT_GATEWAY = "PAYMENT_GATEWAY";
 
 export interface PaymentGateway {
@@ -17,7 +17,7 @@ export interface PaymentGateway {
     status: "PAID" | "FAILED";
     /**
      * Verdad monetaria reportada por la pasarela (Flow: `paymentData` de
-     * payment/getStatus — fee, amount, media, transferDate). El settle la
+     * payment/getStatus - fee, amount, media, transferDate). El settle la
      * persiste en los campos gateway* del Payment cuando hay PAID.
      * Opcional: StubGateway no la produce.
      */
@@ -29,7 +29,7 @@ export interface PaymentGateway {
    * Relevante en sandbox/dev: el webhook de la pasarela no llega a
    * localhost, así que GET /payments/:id puede resolver el estado
    * directamente contra la pasarela por refId (commerceOrder).
-   * `gatewayData` = misma verdad monetaria que verifyWebhook — el
+   * `gatewayData` = misma verdad monetaria que verifyWebhook - el
    * settle la persiste igual sea cual sea el camino de confirmación.
    */
   refreshStatus?(refId: string): Promise<{
@@ -43,13 +43,13 @@ export interface PaymentGateway {
 /**
  * Factura de una suscripción Flow (subscription/get → invoices[]).
  *
- * Regla "pagada" — la doc de Flow no la explicita con claridad; esta es
+ * Regla "pagada" - la doc de Flow no la explicita con claridad; esta es
  * la interpretación segura que usa el reconcile (cron + GET /subscriptions):
  *
  *   paid = invoice.status === 1 || invoice.payment?.status === 2
  *
  * Es decir: la invoice marcada cobrada, o su intento de pago asociado
- * con status 2 (pagado — el mismo código que payment/getStatus).
+ * con status 2 (pagado - el mismo código que payment/getStatus).
  */
 export interface FlowInvoice {
   id: number;
@@ -92,7 +92,7 @@ export interface SubscriptionCallOpts {
 
 /**
  * Puerto opcional: las pasarelas con motor de suscripciones lo
- * implementan (Flow en sandbox/prod; StubGateway en dev — simulación en
+ * implementan (Flow en sandbox/prod; StubGateway en dev - simulación en
  * memoria). Los consumers resuelven el PAYMENT_GATEWAY inyectado y
  * verifican capability por presencia de métodos (p.ej. `typeof
  * gateway.createSubscription === "function"`), nunca por `name`.
@@ -109,7 +109,7 @@ export interface SubscriptionProvider {
     opts?: SubscriptionCallOpts,
   ): Promise<void>;
 
-  /** plans/edit — sync cuando staff edita precio/nombre del plan local. */
+  /** plans/edit - sync cuando staff edita precio/nombre del plan local. */
   syncPlan(
     p: { planId: string; name: string; amount: number },
     opts?: SubscriptionCallOpts,
@@ -152,7 +152,7 @@ export interface SubscriptionProvider {
    * Cancela al fin del período ya pagado (at_period_end=1). Con
    * `immediate: true` → at_period_end=0: cancelación inmediata, usada
    * solo como compensación de una sub Flow huérfana (creada pero no
-   * persistida localmente) — nunca para la cancelación del usuario.
+   * persistida localmente) - nunca para la cancelación del usuario.
    */
   cancelSubscription(
     subscriptionId: string,

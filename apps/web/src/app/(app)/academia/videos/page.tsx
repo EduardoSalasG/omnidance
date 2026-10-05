@@ -6,7 +6,7 @@ import { Videos } from "@/components/academy/videos";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
- * /academia/videos — material por clase (links externos) de la academia
+ * /academia/videos - material por clase (links externos) de la academia
  * seleccionada, con control de acceso por asistencia/enrollment.
  */
 export default function AcademiaVideosPage() {

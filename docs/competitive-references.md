@@ -1,12 +1,12 @@
-# Referencias competitivas — gestión de academias/membresías (CL)
+# Referencias competitivas - gestión de academias/membresías (CL)
 
 > Recopilado oct-2026 para evaluaciones de roadmap y pricing. Fuentes:
 > `boxmagicapp.com` (home + #section-pricing, Chile) y
 > `membrezia.com/planes/` (planes + tabla comparativa + FAQ).
-> Decisión vigente (oct-2026): **no competir en precio** — sin tier Lite;
+> Decisión vigente (oct-2026): **no competir en precio** - sin tier Lite;
 > ver `omni-dance.md` §10 "Modelo SaaS".
 
-## BoxMagic — gestión integral de centros deportivos
+## BoxMagic - gestión integral de centros deportivos
 
 Competidor directo: gestión completa (no solo cobranza), multi-disciplina
 (gimnasios, artes marciales, escuelas de fútbol, **centros de baile**,
@@ -27,7 +27,7 @@ usuarios. Contrato mínimo 6 meses.
 - Integraciones: Zoom, WhatsApp, Google Analytics, Gympass, Fitpass,
   Classpass "y muchas más"
 - Boletas electrónicas SII (promo para clientes nuevos; certificado
-  ~$14.000 aparte — ayudan a gestionarlo)
+  ~$14.000 aparte - ayudan a gestionarlo)
 - Soporte pro + capacitaciones personalizadas (Gold Plus)
 
 ### Precios (CLP + IVA)
@@ -41,11 +41,11 @@ usuarios. Contrato mínimo 6 meses.
 
 Mensual c/IVA: Básico ≈ **$47.500**, Silver ≈ **$83.300**, Gold ≈ **$222k**.
 
-## Membrezia — cobranza/membresías (no gestión)
+## Membrezia - cobranza/membresías (no gestión)
 
 Producto de **recaudación** multi-vertical (empresas, colegios,
 inmobiliarias, gimnasios, clubes, fundaciones…), Chile + México.
-**El dinero va directo a la pasarela de la organización** — cada org
+**El dinero va directo a la pasarela de la organización** - cada org
 contrata su propio medio de pago (Webpay, OneClick, Khipu, Flow, Floid,
 VirtualPos, Mercado Pago); Membrezia no liquida ni toca fondos. Pagos
 por transferencia/efectivo se declaran manualmente. Cobro del servicio:
@@ -89,20 +89,20 @@ se cobran a sí mismos con la misma herramienta. Trial 7 días; anual
 | Fiscal/SII | Boletas (promo) | Boletas/BHE/lectura SII (Corp+) | No |
 | WhatsApp | Integración | Recordatorios API + bolsas | No (push/email) |
 | Precio ~150 clientes | $69.990+IVA (Silver) | ~$28.200 c/IVA | $99.990 (PRO ≤150) |
-| Trial | — | 7 días | 30 días |
+| Trial | - | 7 días | 30 días |
 | Descuentos ciclo | −10/15/20% (tri/sem/anual) | ~17% anual | −2%/−4% (sem/anual) |
 
 ## Gaps identificados (candidatos roadmap si se re-evalúa)
 
-- **Recordatorios WhatsApp** — ambos lo tienen; nosotros solo push/email.
-- **Integración SII/boletas** — los dos la monetizan como feature de pago.
-- **Plata directa a cuenta de la org** — modelo de ambos; el nuestro
+- **Recordatorios WhatsApp** - ambos lo tienen; nosotros solo push/email.
+- **Integración SII/boletas** - los dos la monetizan como feature de pago.
+- **Plata directa a cuenta de la org** - modelo de ambos; el nuestro
   (fondos por omni + payout) vende onboarding instantáneo pero exige
   confianza y espera de liquidación.
 - **Carga masiva Excel** de alumnos/clientes (Membrezia).
 - **Enlace de pago directo por cliente** y portal de pagos
-  personalizado (Membrezia — cercano a nuestro perfil público de
+  personalizado (Membrezia - cercano a nuestro perfil público de
   academia pero sin link por persona).
-- **Credencial Wallet** (Apple/Google) — Membrezia; nosotros QR en PWA.
-- **Integraciones** (Zoom, Gympass/Classpass, GA) — BoxMagic.
-- **App con marca propia** — BoxMagic Gold Plus.
+- **Credencial Wallet** (Apple/Google) - Membrezia; nosotros QR en PWA.
+- **Integraciones** (Zoom, Gympass/Classpass, GA) - BoxMagic.
+- **App con marca propia** - BoxMagic Gold Plus.

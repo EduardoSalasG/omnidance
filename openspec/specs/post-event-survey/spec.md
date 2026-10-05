@@ -1,7 +1,7 @@
 # post-event-survey Specification
 
 ## Purpose
-Tras asistir a un social (check-in real), el bailarín recibe una encuesta corta de puntajes 1-5 — general + dimensiones bipolares — que alimenta la analítica del productor y la reputación privada de actores.
+Tras asistir a un social (check-in real), el bailarín recibe una encuesta corta de puntajes 1-5 - general + dimensiones bipolares - que alimenta la analítica del productor y la reputación privada de actores.
 
 ## Requirements
 

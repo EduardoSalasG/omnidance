@@ -1,23 +1,23 @@
-# Handoff — 2026-09-23 — cierre de pendientes del 09-22
+# Handoff - 2026-09-23 - cierre de pendientes del 09-22
 
 ## Qué se hizo
 
 Se revisaron los 3 gaps declarados en `next-session-handoff-2026-09-22.md`
-contra el código real — los 3 seguían vigentes — y se cerraron.
+contra el código real - los 3 seguían vigentes - y se cerraron.
 
 ### 1. Badge de la campana por lente (era: contaba no-leídas globales)
 
 - `notificationLens` movido a `@omnidance/shared`
   (`NOTIFICATION_LENS_TYPES`, `NOTIFICATION_LENSES`,
-  `NotificationLensFilter`, `notificationLens(type)`) — misma regla
+  `NotificationLensFilter`, `notificationLens(type)`) - misma regla
   front/back. `apps/web/src/lib/notification-lens.ts` ahora re-exporta
   (no rompe imports existentes).
 - `GET /api/notifications` acepta `?lens=social|academy`: acota la lista
   **y** el `unreadCount`. El filtro es por exclusión del dominio opuesto
-  — los tipos "any" (`account.*`, `crm.*`, `lead.*`) cuentan en ambas
+  - los tipos "any" (`account.*`, `crm.*`, `lead.*`) cuentan en ambas
   lentes. `lens` inválido → 400.
 - `NotificationsRepo.listNotifications` ahora toma
-  `ResolvedListOptions` (Omit + unread/limit concretos — `Required<>`
+  `ResolvedListOptions` (Omit + unread/limit concretos - `Required<>`
   pelaba el `| undefined` de `lens`); `countUnread(personId, lens?)`.
 - `BottomNav`: el badge fetchea `/notifications?limit=1&lens=` con la
   lente activa (academyLens → academy, resto → social), espera a `/me`
@@ -25,18 +25,18 @@ contra el código real — los 3 seguían vigentes — y se cerraron.
   socket solo cuenta si `notificationLens(detail.type)` calza la lente
   (o es "any").
 - `/notificaciones` también delega el filtro al servidor (`?lens=` en
-  el fetch, refetch al cambiar de lente) — el filter client-side queda
+  el fetch, refetch al cambiar de lente) - el filter client-side queda
   como red de seguridad para "any".
 
 ### 2. `VenueConsoleController` migrado a permisos (era: `@RequireRoles`)
 
 - Nuevo permiso `venues.manage` en `PERMISSION_CATALOG` + grant
   `VENUE_MANAGER: ["venues.manage"]` en `ROLE_GRANTS` (seed-common).
-- Controller: `@RequirePermissions("venues.manage")` — ADMIN pasa por
+- Controller: `@RequirePermissions("venues.manage")` - ADMIN pasa por
   isSuperuser igual que antes; el bypass de ownership interno sigue con
   `roleKeysHavePermission(admin.access)`. Con esto la afirmación de
   architecture.md ("ningún controller usa @RequireRoles") vuelve a ser
-  cierta — se actualizó la fila social y la de notifications.
+  cierta - se actualizó la fila social y la de notifications.
 - **Re-seed necesario** para que el grant exista en DBs vivas:
   `pnpm db:seed` (idempotente; ya corrido en dev).
 
@@ -44,7 +44,7 @@ contra el código real — los 3 seguían vigentes — y se cerraron.
 
 - Nuevo `components/producer/producer-pulse.tsx`: agrega stats de
   `GET /events/mine` sobre eventos PUBLISHED/LIVE con `endsAt` a futuro
-  — próximos, entradas vendidas, recaudación bruta, check-ins. Tiles
+  - próximos, entradas vendidas, recaudación bruta, check-ins. Tiles
   neon mismas que /venue; skeleton `.page-loading` (anti-flash 200ms);
   error → sección omitida (el hub es navegación).
 - Montado sobre el ModuleGrid dentro del `ProducerGate`. i18n en
@@ -66,18 +66,18 @@ contra el código real — los 3 seguían vigentes — y se cerraron.
 
 - **Handoff del 22 PM reconstruido**: `next-session-handoff-2026-09-22b.md`
   cubre la sesión de tarde (mesas en checkout, emails, tours, home
-  academia, /clases) reconstruida desde git log — marcado como
+  academia, /clases) reconstruida desde git log - marcado como
   reconstrucción, no documento original.
-- El unreadCount por lente depende de `NOTIFICATION_LENS_TYPES` — al
+- El unreadCount por lente depende de `NOTIFICATION_LENS_TYPES` - al
   crear un `type` de notificación nuevo, clasificarlo ahí si tiene
   dominio de lente (los no clasificados cuentan en ambas).
-- ProducerPulse agrega solo eventos próximos/en vivo — un productor sin
+- ProducerPulse agrega solo eventos próximos/en vivo - un productor sin
   eventos activos ve la fila en 0 (correcto, pero vacío de información;
   candidato: "últimos 30d" como segunda vista).
 
 ---
 
-## Segunda sesión — `/clases` prioriza las academias del alumno
+## Segunda sesión - `/clases` prioriza las academias del alumno
 
 OpenSpec `clases-enrolled-scope` (proposal + spec delta `academy-learner` +
 design + tasks, todo completo). Decisiones del usuario: vigente =
@@ -86,12 +86,12 @@ reservadas solo badge + filtro (sin sección pineada).
 
 ### API (`academies/infrastructure/classes.controller.ts`)
 
-- `GET /classes/browse?scope=enrolled` — acota a academias con
+- `GET /classes/browse?scope=enrolled` - acota a academias con
   Enrollment vigente del autenticado (sin scope = todas, compat). Cada
   item gana `enrolled: boolean`. `scope=enrolled` ∩ `academyId` no
   calzando → `[]`.
-- `GET /classes/:id` — flag `enrolled` (misma regla).
-- `POST /classes/:id/book` — **breaking**: exige inscripción vigente en
+- `GET /classes/:id` - flag `enrolled` (misma regla).
+- `POST /classes/:id/book` - **breaking**: exige inscripción vigente en
   la academia de la clase → 403 dentro de la tx. La academia inscribe;
   no hay auto-inscripción.
 - Constante `BOOKABLE_ENROLLMENT` local al controller.
@@ -104,21 +104,21 @@ reservadas solo badge + filtro (sin sección pineada).
   pasadas, inscrito o no).
 - Filtro segmentado **Todas | Reservadas** en list+calendar
   (`scope=reservadas`; `mias` legado = alias). Los dropdowns
-  estilo/nivel también aplican en reservadas — client-side sobre
+  estilo/nivel también aplican en reservadas - client-side sobre
   `/classes/mine`, que ganó `weekday` + ids de estilo/nivel (el filtro
   de chips por día se eliminó; `weekday` sigue en el contrato browse).
   Los dropdowns estilo/nivel son `<select>` nativos (picker del SO en
-  mobile — el `<details>`+`<ul>` custom desbordaba la pantalla) y sus
+  mobile - el `<details>`+`<ul>` custom desbordaba la pantalla) y sus
   opciones se derivan del set sin filtrar del scope (`facetClasses`,
   fetch extra solo con filtro activo; `mine` en reservadas) y son
   facetas dependientes: estilo se acota por nivel elegido y nivel por
-  estilo — nunca ofrecen un valor sin resultados.
-  Reservadas usa las cards wallet (badge + link QR) — absorbe la
+  estilo - nunca ofrecen un valor sin resultados.
+  Reservadas usa las cards wallet (badge + link QR) - absorbe la
   vista `mine`; `view=mine` legado redirige a list+reservadas.
 - En explore, cards de academias sin inscripción muestran "Requiere
   inscripción" en vez del botón Reservar (flag `enrolled` del browse),
   y la academia va como chip `neon` (sin uppercase) en todos los
-  cards de clase — ClassCard (list/calendar/explore/home), card
+  cards de clase - ClassCard (list/calendar/explore/home), card
   wallet de reservadas y chips de la ficha `/clases/:id`.
 - `ClassBookingCta` (ficha) recibe `enrolled` y muestra el mismo estado.
 - Pase UX/a11y (impeccable): franja semanal sin `role="grid"` falso
@@ -129,13 +129,13 @@ reservadas solo badge + filtro (sin sección pineada).
   Reservar, filas de historial → ficha, home myClasses → ficha directa
   + fix "Hoy" en TZ negativas (prefijo ISO vs localDayKey).
 - Normalización de cards: el card wallet de reservadas se extrajo como
-  `BookingCard` (+`BookingCardData`) en class-card.tsx — /clases y el
+  `BookingCard` (+`BookingCardData`) en class-card.tsx - /clases y el
   home lo comparten. `home/stats?mode=academy` → `myClasses` con shape
   completo (bookingId/classId/date/weekday/horarios/academy/series).
   Layout de `ClassCard` ordenado: acción primaria arriba alineada al
   título, "Cancelar" abajo alineado a la línea meta (justify-between),
   meta profesor+cupo en una sola línea, chip academia con max-w.
-  OJO: `home/stats` sin `?mode=` devuelve la lente social — el smoke
+  OJO: `home/stats` sin `?mode=` devuelve la lente social - el smoke
   debe pasar `?mode=academy`.
 - El card del explorador vive en `components/classes/class-card.tsx`
   (`ClassCard` + `ClassCardData` + `CancelBookingButton`); `/clases` y
@@ -150,7 +150,7 @@ reservadas solo badge + filtro (sin sección pineada).
 
 - API tsc + web tsc limpios. Suite completa: 42 archivos / 941+38
   tests verdes (2 suites gamification dieron timeout de hook en el run
-  completo — flake; aislados pasan 38/38).
+  completo - flake; aislados pasan 38/38).
 - Unit nuevo: book gate (sin inscripción/PAUSED/otra academia → 403,
   TRIAL → BOOKED). E2E nuevo: scope=enrolled, enrolled flags, book
   403/201.
@@ -164,20 +164,20 @@ reservadas solo badge + filtro (sin sección pineada).
 
 ### Candidatos (no pendientes)
 
-- CTA "contactar academia" en cards de explore — no existe página
+- CTA "contactar academia" en cards de explore - no existe página
   pública de academia ni deep link de contacto.
 - Explore podría ganar filtro por academia (el API ya acepta
   `academyId`) si el volumen lo justifica.
 
 ---
 
-## Tercera sesión — card único en todas las superficies de clase
+## Tercera sesión - card único en todas las superficies de clase
 
 Lo que decía arriba de `BookingCard`/wallet quedó **supersedido**: el
 wallet con QR se retiró y todas las vistas de clase usan el mismo
 `ClassCard` (`components/classes/class-card.tsx`).
 
-### API — proyección única del card
+### API - proyección única del card
 
 - `classes.controller.ts`: `CLASS_CARD_SELECT` + `classCardItem()`
   compartidos por `browse`, `mine` e `history` (select con slot,
@@ -190,14 +190,14 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   (`attended|booked|cancelled`); dedup por classId con asistencia
   ganando sobre la reserva (regla intacta). Últimas 50.
 - `home.service.ts`: `ClassCardStats` + `CLASS_CARD_SELECT` +
-  `toClassCard()` propios (la proyección vive duplicada — los dos
+  `toClassCard()` propios (la proyección vive duplicada - los dos
   módulos no comparten helpers; si vuelve a cambiar el shape, tocar
   ambos). `myClasses` ahora `ClassCardStats[]` igual que `nextClass`.
 - `level.order` expuesto en browse/mine/history/home.
 
-### Web — un solo card
+### Web - un solo card
 
-- `ClassCard` gana prop `statusBadge?: {label, variant}` — reemplaza
+- `ClassCard` gana prop `statusBadge?: {label, variant}` - reemplaza
   el slot de acción (las clases pasadas no tienen CTA). `busy`/`onBook`
   ahora opcionales.
 - `HistoryCardData = ClassCardData & { status }` exportado del mismo
@@ -212,7 +212,7 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
 - `LevelBars`: siempre 4 barras ascendentes, pintadas `order+1` por
   nivel (neon/ámbar/naranja/rojo), resto `bg-white/15`.
 - Filtro de nivel ordenado por `level.order` ascendente
-  (Iniciación→Avanzado), no alfabético — derivación propia con dedup
+  (Iniciación→Avanzado), no alfabético - derivación propia con dedup
   (el `uniq()` genérico sigue alfabético para estilos).
 
 ### Verificación
@@ -226,22 +226,22 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
 
 ---
 
-## Cuarta sesión — insights por lente + EventCard
+## Cuarta sesión - insights por lente + EventCard
 
 ### "Tu actividad" reordenado
 
 - `KpiGrid` extraído a `components/home/kpi-grid.tsx` (tipo `Kpi`,
-  `clp`, `ATTENTION_KEYS`) — compartido home/perfil.
+  `clp`, `ATTENTION_KEYS`) - compartido home/perfil.
 - Home lente social: "Tu actividad" es la **primera** sección con solo
-  2 insights (`streak` + `dances7d` — los que leen actividad; puntos e
+  2 insights (`streak` + `dances7d` - los que leen actividad; puntos e
   insignias son logros y ya están en perfil). Oculto si ambos en 0.
 - `/perfil`: nueva sección tras identidad con **todos** los insights
-  de la lente DANCER — `GET /home/stats?role=DANCER&mode=<viewMode>`,
+  de la lente DANCER - `GET /home/stats?role=DANCER&mode=<viewMode>`,
   social o academy según `useViewMode()`, refetch al cambiar de lente.
 
 ### EventCard (símil del ClassCard)
 
-- `components/events/event-card.tsx` nuevo — compartido, sin
+- `components/events/event-card.tsx` nuevo - compartido, sin
   `"use client"` (sirve en la página RSC `/eventos` y en client).
   `useTranslations("events")` + `t.raw("genre")` para el mix.
 - Esqueleto: contenido izq (when? eyebrow → título h3 → géneros
@@ -253,12 +253,12 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
 - `/eventos`: `renderCard` inline reemplazado; `h2`→`h3` corregido;
   `iconBtn` 40→44px (mismo fix de clases); `normName`/`seriesIsDup`
   se mudaron al componente.
-- TonightScene del home NO migra — es hero de decisión, no card de
-  lista. TicketWallet (/entradas) tampoco — es credencial.
+- TonightScene del home NO migra - es hero de decisión, no card de
+  lista. TicketWallet (/entradas) tampoco - es credencial.
 - Verificado: render en vivo con sesión minteada (22 cards con pin de
   venue + precio), tsc limpio, detector `[]`.
 
-### `/perfil/datos` — datos personales + datos por modo
+### `/perfil/datos` - datos personales + datos por modo
 
 - `GET /me` extendido: `phone`, `createdAt`, `verifiedAt`,
   `styleRoles` (style+role+level) y `enrollments` (academy, plan,
@@ -275,7 +275,7 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
 - Instagram es fila editable inline dentro de "Datos personales":
   tap → input, blur → PATCH si cambió, Escape cancela. "Volver al
   perfil" del hero se quitó (el appbar ya tiene back).
-- `PUT /me/style-roles` (nuevo): reemplazo total de PersonStyleRole —
+- `PUT /me/style-roles` (nuevo): reemplazo total de PersonStyleRole -
   body `{items:[{styleId, role, level?}]}`, valida styleIds existentes,
   dedupe por (styleId, role), devuelve la lista fresca. Niveles
   válidos: principiante/intermedio/avanzado.
@@ -286,22 +286,22 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
 ### Home academia sin "Próxima clase" + ficha de clase refinada
 
 - Home academia: sección "Próxima clase" eliminada y el hero learner
-  ("Reserva tu próxima clase…") también — queda KPIs + "Tus próximas
+  ("Reserva tu próxima clase…") también - queda KPIs + "Tus próximas
   clases". Limpieza: bookNextClass/classError/classBusyId,
   keys nextClass/nextClassCta/seeClasses/academyLearnerDesc.
 - Frontera reservada/historial corregida: antes era `Class.date`
   (medianoche UTC) vs now → las clases DE HOY caían al historial como
   "Reservada" y salían de /classes/mine. Ahora el límite es el fin
   real de la clase: `classEnded()` calcula el instante de término
-  (día local + slot.endTime, offset Santiago vía Intl — sin lib).
+  (día local + slot.endTime, offset Santiago vía Intl - sin lib).
   `mine` trae date >= ayer y filtra por `!classEnded` (cubre clases
-  que cruzan medianoche). `history` solo devuelve attended/cancelled —
+  que cruzan medianoche). `history` solo devuelve attended/cancelled -
   una reserva vigente de clase pasada-sin-asistencia desaparece (ni
   reservada ni historial, por diseño del usuario). Web: status
   "booked" eliminado de HistoryCardData/badge/i18n.
 - `/clases/[id]`: header reordenado (título → chips → fecha), se fue
   la línea series.name redundante; nivel como LevelBars (detalle ahora
-  devuelve level.order); CTA en barra fija sobre la BottomNav — mismo
+  devuelve level.order); CTA en barra fija sobre la BottomNav - mismo
   patrón que /eventos/[id] (cupos izq + acción der); la zona
   destructiva de cancelar sigue en el pie; clase pasada/cancelada →
   barra con aviso ("Clase pasada"/"Cancelada").
@@ -316,20 +316,20 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
 ### Academias: directorio learner + ficha pública + filtro en clases
 
 - **Modelo**: `Academy` ganó `description`, `address`, `lat`, `lng`
-  (db push — el repo no usa migrations/). Estilos que imparte se
+  (db push - el repo no usa migrations/). Estilos que imparte se
   DERIVAN de sus `classSeries` activas (fuente real, sin duplicar
   catálogo). Seed-dev poblado: 19 academias Santiago con
   dirección/coords/descripción.
 - **API nuevos** (`academies.controller.ts`): `GET /academies`
   directorio enriquecido (styles, instructors, coords, flag
   `enrolled` del viewer), `GET /academies/enrolled` (inscripciones +
-  attendance30d — ya existía, ahora incluye address/lat/lng),
+  attendance30d - ya existía, ahora incluye address/lat/lng),
   `GET /academies/:id/profile` ficha pública learner (datos, estilos,
   profesores con foto, planes activos, próximas clases en shape
   ClassCardData, myEnrollment). `GET /academies/:id` sigue siendo
-  gestión (requireManage) — frontera público/gestión intacta.
+  gestión (requireManage) - frontera público/gestión intacta.
 - **Proyección compartida**: `class-card-projection.ts` exporta
-  CLASS_CARD_SELECT / classCardItem / classEnded — lo usan
+  CLASS_CARD_SELECT / classCardItem / classEnded - lo usan
   classes.controller, home.service (mata el drift duplicado) y el
   profile de academia.
 - **`/academias` rediseñada** (misma gramática que /clases y /eventos):
@@ -344,7 +344,7 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   academia", profesores con PartnerAvatar, planes con PriceTag,
   próximas clases con ClassCard (when="día · hora").
 - **`/clases` explorar**: filtro `academy` (3er select, solo en
-  explore — list/calendar ya están acotados por inscripción). Facetas
+  explore - list/calendar ya están acotados por inscripción). Facetas
   cruzadas: academia acota estilo/nivel y viceversa. El param se
   descarta al salir de explore (no filtro invisible).
 - Verificado en vivo: directory 25 academias con shape completo,
@@ -355,5 +355,5 @@ wallet con QR se retiró y todas las vistas de clase usan el mismo
   (los 2 academy.* falsos se corrigieron renombrando el translator
   del card a `tl`; practices.startsAt es preexistente).
 - **Nota DB dev**: hay ~6 academias "Test"/"Nueva Test" sin datos de
-  corridas de tests anteriores — aparecen en Explorar sin estilos ni
+  corridas de tests anteriores - aparecen en Explorar sin estilos ni
   dirección. Son residuo de data, no bug; limpiarlas es opcional.

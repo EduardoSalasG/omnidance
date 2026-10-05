@@ -12,7 +12,7 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import type { ClassSlot } from "@/components/academy/shared";
 
 /**
- * /academia/horarios — parrilla semanal de la academia (ClassSlot). Solo
+ * /academia/horarios - parrilla semanal de la academia (ClassSlot). Solo
  * lectura: los horarios se crean/editan dentro de su serie en
  * /academia/series (invariante: todo slot pertenece a una serie).
  */

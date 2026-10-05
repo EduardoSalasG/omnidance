@@ -324,7 +324,7 @@ function ProducerParamsSection() {
             {producers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name
-                  ? `${p.name} — ${p.email ?? ""}`
+                  ? `${p.name} · ${p.email ?? ""}`
                   : (p.email ?? p.id)}
               </option>
             ))}
@@ -369,7 +369,7 @@ function ProducerParamsSection() {
                     effective != null ? (
                       `${effective}%`
                     ) : (
-                      "—"
+                      "·"
                     )
                   ) : (
                     <PriceTag amount={effective} />

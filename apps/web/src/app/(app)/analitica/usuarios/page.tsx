@@ -8,7 +8,7 @@ import { Badge, Card } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 
-// Respuesta de GET /admin/users?q= — liviana, sin analítica por rol.
+// Respuesta de GET /admin/users?q= - liviana, sin analítica por rol.
 type SearchUser = {
   id: string;
   name: string;
@@ -22,7 +22,7 @@ const MIN_QUERY = 2;
 const DEBOUNCE_MS = 300;
 
 /**
- * /analitica/usuarios — buscador de personas para la ficha de analítica
+ * /analitica/usuarios - buscador de personas para la ficha de analítica
  * por rol. Misma búsqueda que /admin/usuarios (debounce 300ms, ≥2 chars,
  * el endpoint nunca devuelve listado masivo) pero las cards llevan a la
  * vista de insights, no a la gestión de roles.

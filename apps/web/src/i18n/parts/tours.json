@@ -6,7 +6,7 @@
     "home": {
       "s1": {
         "title": "Tu pulso en la escena",
-        "desc": "Racha de semanas, puntos, insignias y bailes — tu actividad real de un vistazo."
+        "desc": "Racha de semanas, puntos, insignias y bailes: tu actividad real de un vistazo."
       },
       "s2": {
         "title": "Social ↔ Academia",
@@ -35,11 +35,11 @@
       "academy": {
         "s1": {
           "title": "Tu aprendizaje",
-          "desc": "Asistencias, clases tomadas y tu progreso como alumno — de un vistazo."
+          "desc": "Asistencias, clases tomadas y tu progreso como alumno, de un vistazo."
         },
         "s2": {
           "title": "Social ↔ Academia",
-          "desc": "Estás en modo Academia — vuelve a Social para la cartelera de eventos, tus bailes y tu crew."
+          "desc": "Estás en modo Academia. Vuelve a Social para la cartelera de eventos, tus bailes y tu crew."
         },
         "s3": {
           "title": "La campana",
@@ -51,7 +51,7 @@
         },
         "s5": {
           "title": "El botón +",
-          "desc": "Tu QR personal — también es tu credencial en clases y sociales."
+          "desc": "Tu QR personal. También es tu credencial en clases y sociales."
         },
         "s6": {
           "title": "Academias",
@@ -59,22 +59,22 @@
         },
         "s7": {
           "title": "Tu perfil",
-          "desc": "Foto, estilos y tus lentes — vuelve a la vista Social cuando quieras salir a bailar."
+          "desc": "Foto, estilos y tus lentes. Vuelve a la vista Social cuando quieras salir a bailar."
         }
       }
     },
     "eventos": {
       "s1": {
         "title": "Filtra por estilo",
-        "desc": "¿Salsa, bachata o timba? Toca un chip para ver solo esas noches — puedes combinar varios."
+        "desc": "¿Salsa, bachata o timba? Toca un chip para ver solo esas noches. Puedes combinar varios."
       },
       "s2": {
         "title": "Por local",
-        "desc": "¿Hinchas de un lugar? Mira solo su cartelera — y entra a su perfil para ver dirección y cómo llegar."
+        "desc": "¿Hinchas de un lugar? Mira solo su cartelera, y entra a su perfil para ver dirección y cómo llegar."
       },
       "s3": {
         "title": "Tres formas de ver",
-        "desc": "Lista, calendario semanal o mapa de locales — elige cómo explorar la escena."
+        "desc": "Lista, calendario semanal o mapa de locales: elige cómo explorar la escena."
       },
       "s4": {
         "title": "Mis entradas",
@@ -88,7 +88,7 @@
     "clases": {
       "s1": {
         "title": "Lista o calendario",
-        "desc": "Lista agrupada por día o calendario semanal — también dentro de Explorar, para ver la semana completa de la escena."
+        "desc": "Lista agrupada por día o calendario semanal; también dentro de Explorar, para ver la semana completa de la escena."
       },
       "s2": {
         "title": "Explorar academias",
@@ -96,7 +96,7 @@
       },
       "s3": {
         "title": "Explora y reserva",
-        "desc": "Filtra por día, estilo y nivel — cada card muestra el cupo y reservas con un toque."
+        "desc": "Filtra por día, estilo y nivel. Cada card muestra el cupo y reservas con un toque."
       }
     },
     "qr": {
@@ -106,17 +106,17 @@
       },
       "s2": {
         "title": "Modo escáner",
-        "desc": "Cambia a Escanear para sumar un baile con el QR de tu pareja — queda en tu historial de Bailes."
+        "desc": "Cambia a Escanear para sumar un baile con el QR de tu pareja. Queda en tu historial de Bailes."
       }
     },
     "amigos": {
       "s1": {
         "title": "Suma a tu crew",
-        "desc": "Búscalos por nombre o comparte tu link de invitación — quien lo abre cae directo a agregarte."
+        "desc": "Búscalos por nombre o comparte tu link de invitación. Quien lo abre cae directo a agregarte."
       },
       "s2": {
         "title": "Tus amigos van a",
-        "desc": "Los eventos donde alguien de tu crew ya tiene entrada — para no caer solo a la pista."
+        "desc": "Los eventos donde alguien de tu crew ya tiene entrada, para no caer solo a la pista."
       },
       "s3": {
         "title": "Tu lista",
@@ -126,11 +126,11 @@
     "bailes": {
       "s1": {
         "title": "Por confirmar",
-        "desc": "Las invitaciones de baile vivas de la noche — acéptalas o déjalas pasar, sin que nadie se entere."
+        "desc": "Las invitaciones de baile vivas de la noche: acéptalas o déjalas pasar, sin que nadie se entere."
       },
       "s2": {
         "title": "Tu último social",
-        "desc": "Cuántos bailes, cuántas parejas distintas, tu promedio y el mejor baile de la noche — tu retrospectiva."
+        "desc": "Cuántos bailes, cuántas parejas distintas, tu promedio y el mejor baile de la noche: tu retrospectiva."
       },
       "s3": {
         "title": "Tu historial",
@@ -140,7 +140,7 @@
     "practicas": {
       "s1": {
         "title": "Todas o las tuyas",
-        "desc": "Filtra entre todas las prácticas de la comunidad y solo las que organizas o a las que vas — y por estilo."
+        "desc": "Filtra entre todas las prácticas de la comunidad y solo las que organizas o a las que vas, y por estilo."
       },
       "s2": {
         "title": "Arma la tuya",
@@ -154,7 +154,7 @@
     "perfil": {
       "s1": {
         "title": "Tu identidad",
-        "desc": "Foto, nombre e Instagram — lo que ven tus amigos y quienes bailan contigo."
+        "desc": "Foto, nombre e Instagram: lo que ven tus amigos y quienes bailan contigo."
       },
       "s2": {
         "title": "Interactuar como",
@@ -162,25 +162,25 @@
       },
       "s3": {
         "title": "Racha e insignias",
-        "desc": "Se ganan bailando: semanas seguidas en la pista y logros por conductas reales — no hay ranking público."
+        "desc": "Se ganan bailando: semanas seguidas en la pista y logros por conductas reales. No hay ranking público."
       }
     },
     "productor": {
       "s1": {
         "title": "El +",
-        "desc": "Crea tu evento: fecha, local, precios, lineup, aforo — y mesas reservables con su tope por mesa y cupo sentable."
+        "desc": "Crea tu evento: fecha, local, precios, lineup, aforo, y mesas reservables con su tope por mesa y cupo sentable."
       },
       "s2": {
         "title": "Tus eventos",
-        "desc": "Publicados, borradores y las acciones de cada noche: staff de puerta, pases y las solicitudes de reserva de mesa — revísalas y confirma el tamaño final."
+        "desc": "Publicados, borradores y las acciones de cada noche: staff de puerta, pases y las solicitudes de reserva de mesa: revísalas y confirma el tamaño final."
       },
       "s3": {
         "title": "Liquidaciones",
-        "desc": "Lo recaudado menos fees — lo que te toca transferir."
+        "desc": "Lo recaudado menos fees: lo que te toca transferir."
       },
       "s4": {
         "title": "Todos los módulos",
-        "desc": "Códigos de descuento, listas de puerta, analítica y tus parámetros — incluidos los defaults de mesas que heredan tus eventos."
+        "desc": "Códigos de descuento, listas de puerta, analítica y tus parámetros, incluidos los defaults de mesas que heredan tus eventos."
       }
     },
     "academia": {
@@ -190,7 +190,7 @@
       },
       "s2": {
         "title": "Asistencia",
-        "desc": "Marca presente a tus alumnos en cada clase — es tu tab directo."
+        "desc": "Marca presente a tus alumnos en cada clase. Es tu tab directo."
       },
       "s3": {
         "title": "Todos los módulos",

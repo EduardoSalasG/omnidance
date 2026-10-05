@@ -29,7 +29,7 @@ type BadgeItem = {
 
 type PageState = "loading" | "ready" | "unauth" | "error";
 
-// Orden canónico para el switcher "Interactuar como" — DANCER primero
+// Orden canónico para el switcher "Interactuar como" - DANCER primero
 // (lente consumidor) y luego los roles de gestión/operación.
 const ACT_AS_ORDER: AppRole[] = [
   "DANCER",
@@ -43,7 +43,7 @@ const ACT_AS_ORDER: AppRole[] = [
   "ADMIN",
 ];
 
-// Insignias del modo academy — espejo del catálogo sembrado
+// Insignias del modo academy - espejo del catálogo sembrado
 // (BADGE_CATALOG en seed-common.ts). El resto son nightlife.
 const ACADEMY_BADGE_KEYS = new Set([
   "primera_clase",
@@ -55,7 +55,7 @@ const ACADEMY_BADGE_KEYS = new Set([
 /** Aviso del retorno de Flow para suscripciones de plataforma
     (platform-customer-return): cuando el disclaimer de tarjeta falla y
     no se puede resolver la academia/productor del registro, el 303
-    aterriza acá con ?sub=error (fallback neutro — mismo copy que la
+    aterriza acá con ?sub=error (fallback neutro - mismo copy que la
     ficha de academia). */
 function SubReturnNotice() {
   const ts = useTranslations("subscriptions");
@@ -75,7 +75,7 @@ export default function PerfilPage() {
   const th = useTranslations("home");
   const tt = useTranslations("tours.perfil");
 
-  // /me compartido (MeProvider del layout) — un solo fetch por sesión;
+  // /me compartido (MeProvider del layout) - un solo fetch por sesión;
   // retry del estado de error = refresh del contexto.
   const {
     me,
@@ -90,7 +90,7 @@ export default function PerfilPage() {
       : me
         ? "ready"
         : "unauth";
-  // Sesión resuelta sin usuario — los fetches especulativos se detienen.
+  // Sesión resuelta sin usuario - los fetches especulativos se detienen.
   // Mientras /me sigue en vuelo los datos se piden en paralelo (la lente
   // viene de localStorage, no de me): sin esto KPIs/racha/insignias
   // esperaban a /me para disparar → waterfall de dos round-trips y la
@@ -113,14 +113,14 @@ export default function PerfilPage() {
     return t.has(`roleLabels.${role}`) ? t(`roleLabels.${role}`) : role;
   }
 
-  // /me llega del contexto — no hay boot local. Con lente ADMIN no hay
+  // /me llega del contexto - no hay boot local. Con lente ADMIN no hay
   // gamificación (ni fetch ni cards); el efecto de insignias la omite.
 
   // Cambio de lente ADMIN → otra sin recargar: trae la gamificación
   // que el load inicial omitió (one-shot por gamifFetched).
   const currentLens = picked ?? activeRole;
   const viewMode = useViewMode();
-  // Insights de la lente DANCER — todos, no el subset del home:
+  // Insights de la lente DANCER - todos, no el subset del home:
   // social (racha/puntos/insignias/bailes) o academia (inscripciones/
   // clases del mes) según el view-mode activo.
   const [kpis, setKpis] = useState<Kpi[] | null>(null);
@@ -153,7 +153,7 @@ export default function PerfilPage() {
   }, [noSession, currentLens, viewMode]);
 
   // Racha por modo: social = semanas saliendo; academy = semanas
-  // asistiendo a clases. Re-fetchea al cambiar de modo — el número
+  // asistiendo a clases. Re-fetchea al cambiar de modo - el número
   // viejo se limpia primero: mostrar el streak de social con el copy
   // de academia (o viceversa) sería un flash de dato ajeno.
   useEffect(() => {
@@ -181,7 +181,7 @@ export default function PerfilPage() {
     };
   }, [noSession, currentLens, viewMode]);
 
-  // Insignias — ambos modos tienen catálogo propio (nightlife: sesiones/
+  // Insignias - ambos modos tienen catálogo propio (nightlife: sesiones/
   // check-ins; academy: asistencias/constancia). Lazy one-shot; badges
   // queda null mientras el fetch está en vuelo (→ skeleton, nunca el
   // empty-state prematuro).
@@ -213,12 +213,12 @@ export default function PerfilPage() {
   );
 
   // Gate del primer paint: los fetches de la lente van en paralelo con
-  // /me — el shell espera a que TODOS resuelvan (o fallen) para pintar
+  // /me - el shell espera a que TODOS resuelvan (o fallen) para pintar
   // una sola vez con el layout final. Sin esto la grilla de KPIs se
   // insertaba entre identidad y la racha y "Semanas seguidas" bajaba
   // de golpe (el skeleton no medía lo mismo que la grilla real).
   // El latch es one-way: al cambiar de lente/mode los datos refetchean
-  // con skeleton in-card — nunca se vuelve al shell de página.
+  // con skeleton in-card - nunca se vuelve al shell de página.
   const lensSettled =
     currentLens === "ADMIN" ||
     ((streak !== null || streakFailed) &&
@@ -233,7 +233,7 @@ export default function PerfilPage() {
     try {
       await apiFetch("/auth/logout", { method: "POST" });
     } catch {
-      // Igual redirigimos — la cookie expirará o se limpiará en el login
+      // Igual redirigimos - la cookie expirará o se limpiará en el login
     }
     window.location.href = "/";
   }
@@ -260,7 +260,7 @@ export default function PerfilPage() {
   }
 
   if (state === "loading" || !me || !pageSettled) {
-    // Shell skeleton con la forma real de la página — nunca pantalla en
+    // Shell skeleton con la forma real de la página - nunca pantalla en
     // blanco con spinner. La lente guardada (localStorage) ya decide qué
     // secciones esbozar: sin roles resueltos aún, resolveActiveRole cae
     // a DANCER y un productor vería skeletons de secciones que nunca le
@@ -288,7 +288,7 @@ export default function PerfilPage() {
             <ul className="grid grid-cols-2 gap-3">
               {/* El skeleton debe medir lo mismo que la grilla real:
                   social trae 4 KPIs (racha/puntos/insignias/bailes),
-                  academia solo 2 (inscripciones/clases del mes) — con 4
+                  academia solo 2 (inscripciones/clases del mes) - con 4
                   placeholders la sección encogía al asentar y la racha
                   se movía (mismo flash que el pop-in original). */}
               {Array.from(
@@ -330,7 +330,7 @@ export default function PerfilPage() {
   }
 
   // "Interactuar como": roles aprobados del usuario + DANCER siempre
-  // (lente consumidor — no se duplica si ya viene aprobado).
+  // (lente consumidor - no se duplica si ya viene aprobado).
   const approvedRoles = new Set(
     (
       me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" }))
@@ -345,10 +345,10 @@ export default function PerfilPage() {
 
   return (
     // Sin min-h-dvh: el wrapper del chrome ya reserva el clearance de
-    // la tab bar — forzar alto de viewport dejaba scroll muerto al pie.
+    // la tab bar - forzar alto de viewport dejaba scroll muerto al pie.
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       {/* Fallback del retorno de suscripción de plataforma (?sub=error)
-          — useSearchParams exige Suspense. */}
+          - useSearchParams exige Suspense. */}
       <Suspense>
         <SubReturnNotice />
       </Suspense>
@@ -378,7 +378,7 @@ export default function PerfilPage() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold">{me.name}</p>
             <p className="truncate text-sm text-white/50">
-              {me.email ?? "—"}
+              {me.email ?? "·"}
             </p>
             {(me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" })))
               .length > 0 && (
@@ -419,9 +419,9 @@ export default function PerfilPage() {
         </Card>
       </Link>
 
-      {/* Tu actividad — todos los insights de la lente DANCER activa
+      {/* Tu actividad - todos los insights de la lente DANCER activa
           (social o academia); el home social muestra solo 2. Mientras
-          el fetch está en vuelo el slot se reserva con skeleton — sin
+          el fetch está en vuelo el slot se reserva con skeleton - sin
           el slot la grilla aparecía entre identidad y "Interactuar
           como" empujando todo hacia abajo. */}
       {currentActAs === "DANCER" &&
@@ -445,7 +445,7 @@ export default function PerfilPage() {
           kpis.length > 0 && <KpiGrid kpis={kpis} label={th("insights")} />
         ))}
 
-      {/* Interactuar como — cambia el lente de toda la app (nav + home).
+      {/* Interactuar como - cambia el lente de toda la app (nav + home).
           Radiogroup nativo: un tab stop, flechas cambian de opción (mismo
           patrón que el segmented del hub /qr). Se oculta si solo hay una
           opción (DANCER puro): sin opciones no hay decisión. */}
@@ -484,10 +484,10 @@ export default function PerfilPage() {
         </Card>
       )}
 
-      {/* Gamificación — solo lente consumidora/operativa; la lente ADMIN
+      {/* Gamificación - solo lente consumidora/operativa; la lente ADMIN
           es gestión pura (ni Racha ni Insignias, y tampoco se fetchean). */}
       {currentActAs !== "ADMIN" && !streakFailed && (
-        /* Racha por modo — orgullo, grande. Social = salidas semanales;
+        /* Racha por modo - orgullo, grande. Social = salidas semanales;
            academy = asistencia a clases (mismo card, otra fuente).
            streak null = fetch en vuelo → skeleton; jamás "0" como
            placeholder de un dato real. */
@@ -517,14 +517,14 @@ export default function PerfilPage() {
 
       {/* Insignias del modo activo: academy muestra las de asistencia/
           constancia/exploración; social las de sesiones/check-ins. Las
-          del otro modo se filtran — academy_score sigue privado (spec). */}
+          del otro modo se filtran - academy_score sigue privado (spec). */}
       {currentActAs !== "ADMIN" && (
         <Card>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
             {tg("badges")}
           </h2>
           {!gamifFetched ? (
-            /* Fetch en vuelo → skeleton con la forma de la grilla —
+            /* Fetch en vuelo → skeleton con la forma de la grilla -
                el empty-state "aún no tienes insignias" solo es honesto
                cuando el fetch ya resolvió. */
             <ul
@@ -589,7 +589,7 @@ export default function PerfilPage() {
         {t("logout")}
       </Button>
 
-      {/* Tour de primera visita — monta con `me` resuelto; los targets
+      {/* Tour de primera visita - monta con `me` resuelto; los targets
           condicionales (act-as, gamificación) se omiten si no aplican. */}
       <OnboardingRunner
         tour="perfil"

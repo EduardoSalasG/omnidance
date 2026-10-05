@@ -59,7 +59,7 @@ export class AnalyticsService {
     }
   }
 
-  /** Roles con analítica aprobados para el usuario — para el selector. */
+  /** Roles con analítica aprobados para el usuario - para el selector. */
   async availableRoles(personId: string): Promise<string[]> {
     const approved = await this.prisma.personRole.findMany({
       where: { personId, status: "APPROVED" },
@@ -91,7 +91,7 @@ export class AnalyticsService {
         }),
       ]);
 
-    // Top productores por gross 30d — payments → event → producerId.
+    // Top productores por gross 30d - payments → event → producerId.
     const top = await this.topProducers(since);
 
     return {
@@ -370,7 +370,7 @@ export class AnalyticsService {
 
     const perVenue = await Promise.all(
       venues.map(async (v) => {
-        // Checkin no tiene relación a Event — se resuelven los eventIds
+        // Checkin no tiene relación a Event - se resuelven los eventIds
         // del venue y se cuenta por eventId.
         const [upcoming, events30d, venueEventIds] = await Promise.all([
           this.prisma.event.count({

@@ -34,7 +34,7 @@ const FEE_LABEL_KEY: Record<FeeField, string> = {
   platformFeePct: "platformFeePct",
 };
 
-/** GET /producer/fee-params — defaults propios + resolución efectiva. */
+/** GET /producer/fee-params - defaults propios + resolución efectiva. */
 type FeeParams = {
   defaults: FeeValues;
   effective: FeeValues;
@@ -53,12 +53,12 @@ const TABLE_LABEL_KEY: Record<TableField, string> = {
   tableSeatsTotal: "tableSeatsTotalLabel",
 };
 
-/** GET /producer/table-params — defaults editables del productor. */
+/** GET /producer/table-params - defaults editables del productor. */
 type TableParams = Record<TableField, number | null>;
 
 /**
- * /productor/parametros — defaults del productor. Fees: read-only (los
- * setea el admin). Mesas: editables — el productor define el inventario
+ * /productor/parametros - defaults del productor. Fees: read-only (los
+ * setea el admin). Mesas: editables - el productor define el inventario
  * base que heredan sus eventos nuevos (cada evento puede sobreescribir).
  * Cadena: override del evento → default del productor → global.
  */
@@ -67,7 +67,7 @@ export default function ProducerParamsPage() {
   const tp = useTranslations("producerParams");
   const tc = useTranslations("common");
 
-  // /me compartido (MeProvider) — el gate se deriva del contexto y los
+  // /me compartido (MeProvider) - el gate se deriva del contexto y los
   // params se piden en paralelo desde el mount (un no-productor recibe
   // 403 del endpoint → el gate por rol decide, la respuesta se descarta).
   const {
@@ -216,7 +216,7 @@ export default function ProducerParamsPage() {
 
       {gate === "ready" && params && (
         <>
-          {/* Suscripción Producer Pro (S6) — contratación/gestión; el
+          {/* Suscripción Producer Pro (S6) - contratación/gestión; el
               paywall de las features Pro apunta acá. Solo para quien
               tiene el rol (un ADMIN operando la consola no se suscribe
               a sí mismo). */}
@@ -250,7 +250,7 @@ export default function ProducerParamsPage() {
                             {effective}%
                           </span>
                         ) : (
-                          <span className="text-white/50">—</span>
+                          <span className="text-white/50">·</span>
                         )
                       ) : (
                         <PriceTag amount={effective} />
@@ -267,7 +267,7 @@ export default function ProducerParamsPage() {
             <p className="text-xs text-white/50">{tp("perEvent")}</p>
           </div>
 
-          {/* Defaults de mesas — editables por el productor. Los eventos
+          {/* Defaults de mesas - editables por el productor. Los eventos
               nuevos los heredan salvo que el productor los cambie ahí. */}
           <section className="flex flex-col gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -295,7 +295,7 @@ export default function ProducerParamsPage() {
                       onChange={(e) =>
                         setTables((s) => ({ ...s, [f]: e.target.value }))
                       }
-                      placeholder="—"
+                      placeholder="·"
                       className="w-24 rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
                     />
                   </li>

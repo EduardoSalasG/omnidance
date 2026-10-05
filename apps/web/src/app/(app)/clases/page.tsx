@@ -41,17 +41,17 @@ import {
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 
-// GET /classes/browse — clase materializada futura con contexto de
+// GET /classes/browse - clase materializada futura con contexto de
 // serie. El shape vive en el componente del card (lo reusa el home).
 type BrowseClass = ClassCardData;
 
-// GET /classes/mine — reserva activa del learner, mismo shape del card.
+// GET /classes/mine - reserva activa del learner, mismo shape del card.
 // Las particulares compradas llegan mergeadas en esta misma respuesta
-// (series:null, date:null si aún no se agendan) — una sola llamada.
+// (series:null, date:null si aún no se agendan) - una sola llamada.
 // Los filtros de reservadas resuelven client-side (/mine no acepta params).
 type MyBooking = MineCardData;
 
-// GET /classes/mine?scope=past — historial del alumno (spec §9):
+// GET /classes/mine?scope=past - historial del alumno (spec §9):
 // asistencia prevalece sobre la reserva de la misma clase; las
 // particulares terminales vienen mergeadas (DONE→attended).
 type HistoryItem = HistoryCardData;
@@ -59,17 +59,17 @@ type HistoryItem = HistoryCardData;
 type FilterOption = { id: string; name: string };
 type LoadState = "loading" | "error" | "ready";
 // Dos ejes independientes (misma IA que /academias):
-// - `s` scope — qué datos: mias | explorar | historial (pills con texto)
-// - `v` display — cómo se ven: lista | calendario (íconos segmentados,
+// - `s` scope - qué datos: mias | explorar | historial (pills con texto)
+// - `v` display - cómo se ven: lista | calendario (íconos segmentados,
 //   calendario disponible en mias y explorar; historial es solo lista)
 // `calScope` es el sub-filtro dentro de Mis clases: todas las clases de
 // mis academias vs solo mis reservas. Legado: `view` mezclaba ambos
-// ejes (list|calendar|history|explore|mine) — ver parsing más abajo.
+// ejes (list|calendar|history|explore|mine) - ver parsing más abajo.
 type Scope = "mias" | "explorar" | "historial";
 type Display = "list" | "calendar";
 type CalScope = "todas" | "reservadas";
 
-// Class.date llega como ISO a medianoche UTC — el día calendario es el
+// Class.date llega como ISO a medianoche UTC - el día calendario es el
 // prefijo ISO; "hoy/mañana" se compara contra el día LOCAL en en-CA.
 const classDayKey = (iso: string) => iso.slice(0, 10);
 
@@ -102,7 +102,7 @@ function ClasesInner() {
   const tc = useTranslations("common");
   const te = useTranslations("events");
   const tt = useTranslations("tours.clases");
-  // "Por agendar" — grupo de particulares compradas sin fecha (mismo
+  // "Por agendar" - grupo de particulares compradas sin fecha (mismo
   // catálogo que la consola staff).
   const tl = useTranslations("academyExtras.lessons");
   const router = useRouter();
@@ -131,7 +131,7 @@ function ClasesInner() {
       : "list";
   const styleId = searchParams.get("style") ?? "";
   const levelId = searchParams.get("level") ?? "";
-  // Filtro de academia — solo lo expone el scope explorar.
+  // Filtro de academia - solo lo expone el scope explorar.
   const academyId = searchParams.get("academy") ?? "";
   const upto = Math.max(
     1,
@@ -156,7 +156,7 @@ function ClasesInner() {
     scope?: string | null;
   }) => {
     // Scope/vista destino: override explícito (null = default) o el
-    // actual. El historial fuerza lista — sin calendario propio.
+    // actual. El historial fuerza lista - sin calendario propio.
     const targetScope = "s" in o ? (o.s ?? "mias") : scope;
     const targetView =
       targetScope !== "historial" &&
@@ -169,7 +169,7 @@ function ClasesInner() {
       v: targetView !== "list" ? targetView : undefined,
       style: styleId || undefined,
       level: levelId || undefined,
-      // El filtro de academia solo existe en explorar — no arrastrarlo
+      // El filtro de academia solo existe en explorar - no arrastrarlo
       // a scopes donde sería un filtro invisible.
       academy:
         targetScope === "explorar" ? academyId || undefined : undefined,
@@ -205,7 +205,7 @@ function ClasesInner() {
   const [history, setHistory] = useState<HistoryItem[] | null>(null);
   const [historyState, setHistoryState] = useState<LoadState>("loading");
 
-  // Facetas de los selects: clases sin filtrar del scope actual —
+  // Facetas de los selects: clases sin filtrar del scope actual -
   // con filtro activo `classes` ya viene acotado por el servidor.
   const [facetClasses, setFacetClasses] = useState<BrowseClass[] | null>(
     null,
@@ -214,10 +214,10 @@ function ClasesInner() {
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(
     null,
   );
-  // busyId = classId en vuelo (book o cancel) — compartido entre vistas.
+  // busyId = classId en vuelo (book o cancel) - compartido entre vistas.
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Reservadas = clases reservadas + particulares compradas — el API
+  // Reservadas = clases reservadas + particulares compradas - el API
   // las devuelve mergeadas en /classes/mine (una sola llamada).
   const loadMine = useCallback(async () => {
     setMineState("loading");
@@ -228,7 +228,7 @@ function ClasesInner() {
         return;
       }
       const rows = (await res.json()) as MyBooking[];
-      // Orden por día+hora; las sin agendar (date null) van primero —
+      // Orden por día+hora; las sin agendar (date null) van primero -
       // la vista las saca al grupo fijo "Por agendar" de todas formas.
       rows.sort((a, b) =>
         `${a.date ?? ""}${a.startTime ?? ""}`.localeCompare(
@@ -263,7 +263,7 @@ function ClasesInner() {
     new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1),
   );
   const todayKey = localDayKey(new Date());
-  // Browse solo trae clases futuras — meses pasados estarían vacíos.
+  // Browse solo trae clases futuras - meses pasados estarían vacíos.
   const isCurrentMonth = monthParamKey === monthKey(new Date());
 
   const daysNeeded =
@@ -323,7 +323,7 @@ function ClasesInner() {
     setHistoryState("loading");
     try {
       // Particulares terminales (DONE/CANCELLED) vienen mergeadas en
-      // la misma respuesta — el merge es server-side.
+      // la misma respuesta - el merge es server-side.
       const res = await apiFetch("/classes/mine?scope=past");
       if (!res.ok) {
         setHistoryState("error");
@@ -377,7 +377,7 @@ function ClasesInner() {
 
   // ─── Derivados de lista/calendario ───
   const now = Date.now();
-  // Browse siempre trae fecha — el guard es solo por el tipo
+  // Browse siempre trae fecha - el guard es solo por el tipo
   // (ClassCardData.date es nullable por las particulares sin agendar).
   const pool = (classes ?? []).filter(
     (c): c is BrowseClass & { date: string } => c.date !== null,
@@ -397,13 +397,13 @@ function ClasesInner() {
     pool.some((c) => new Date(c.date).getTime() > horizon);
 
   // Calendario: en "todas" (mias) y en explorar los dots vienen del
-  // browse; en "reservadas" de mis reservas — agenda propia.
+  // browse; en "reservadas" de mis reservas - agenda propia.
   const calByDay = new Map<string, (BrowseClass & { date: string })[]>();
   for (const c of pool) {
     const key = classDayKey(c.date);
     calByDay.set(key, [...(calByDay.get(key) ?? []), c]);
   }
-  // Reservadas filtradas: /classes/mine no acepta params — los
+  // Reservadas filtradas: /classes/mine no acepta params - los
   // dropdowns de estilo/nivel resuelven client-side por id. Las
   // particulares (series:null) no calzan con un filtro de estilo/nivel.
   const filteredMine = (mine ?? []).filter(
@@ -421,7 +421,7 @@ function ClasesInner() {
 
   // Historial: clases pasadas + particulares terminales, ya mergeadas
   // por el API. Toda fila trae fecha (la cancelada sin agendar usa su
-  // día de compra) — el guard es solo por el tipo.
+  // día de compra) - el guard es solo por el tipo.
   const historyRows = (history ?? []).filter(
     (h): h is HistoryItem & { date: string } => h.date !== null,
   );
@@ -441,7 +441,7 @@ function ClasesInner() {
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
   };
-  // Facetas dependientes: los otros filtros acotan las opciones — un
+  // Facetas dependientes: los otros filtros acotan las opciones - un
   // nivel que no existe para el estilo+academia elegidos tampoco
   // tendría resultados. El filtro propio nunca se auto-acota (siempre
   // se puede ver/cambiar la selección vigente).
@@ -454,7 +454,7 @@ function ClasesInner() {
       )
       .map((c) => c.series?.style),
   );
-  // Nivel: dedup + orden por dificultad (order del catálogo —
+  // Nivel: dedup + orden por dificultad (order del catálogo -
   // Iniciación → Avanzado), no alfabético.
   const levelOptions = (() => {
     const m = new Map<string, { id: string; name: string; order: number }>();
@@ -499,7 +499,7 @@ function ClasesInner() {
   const selectedMine = selectedDay ? (myByDay.get(selectedDay) ?? []) : [];
   const monthLabel = monthFmt.format(monthCursor);
 
-  // Progreso personal del mes — asistencias de los últimos 30 días.
+  // Progreso personal del mes - asistencias de los últimos 30 días.
   const attended30d = (history ?? []).filter(
     (h) =>
       h.status === "attended" &&
@@ -557,7 +557,7 @@ function ClasesInner() {
     return [...groups.entries()].map(([key, items]) => ({ key, items }));
   }
 
-  // Subgrupo por hora de inicio dentro del día — la hora es encabezado
+  // Subgrupo por hora de inicio dentro del día - la hora es encabezado
   // separador sobre los cards (a todo ancho), no dato repetido en cada uno.
   function groupByHour<T extends { startTime: string }>(items: T[]) {
     const groups = new Map<string, T[]>();
@@ -572,7 +572,7 @@ function ClasesInner() {
     "mb-1.5 text-sm font-semibold tabular-nums text-white/70";
 
   // private-lesson-product: la particular ya no es un escape al final del
-  // recorrido — es un producto comprable del perfil de la academia.
+  // recorrido - es un producto comprable del perfil de la academia.
   const renderClassDayGroup = (g: { key: string; items: BrowseClass[] }) => (
     <section key={g.key}>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
@@ -596,7 +596,7 @@ function ClasesInner() {
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{t("title")}</h1>
-          {/* Display: lista|calendario — íconos segmentados (mismo
+          {/* Display: lista|calendario - íconos segmentados (mismo
               control que /eventos). El historial es solo lista: sin
               calendario propio el grupo se oculta. */}
           {scope !== "historial" && (
@@ -638,7 +638,7 @@ function ClasesInner() {
           )}
         </div>
 
-        {/* Scope: qué se muestra — pills con texto (3 opciones: los
+        {/* Scope: qué se muestra - pills con texto (3 opciones: los
             íconos se vuelven crípticos; mismo patrón que /academias). */}
         <Segmented
           ariaLabel={t("scopesLabel")}
@@ -665,13 +665,13 @@ function ClasesInner() {
           ]}
         />
 
-        {/* Filtros: dropdowns de estilo y nivel tipo chip — misma
+        {/* Filtros: dropdowns de estilo y nivel tipo chip - misma
             gramática que géneros/locales. El toggle Todas|Reservadas
             es sub-filtro de Mis clases (lista y calendario). */}
         {scope !== "historial" && (
           <>
             {/* Todas|Reservadas (patrón de /practicas) + dropdowns
-                estilo/nivel — en browse van al servidor; en reservadas
+                estilo/nivel - en browse van al servidor; en reservadas
                 filtran client-side sobre /classes/mine. */}
             <div className="flex flex-wrap items-center gap-2">
               {scope === "mias" && (
@@ -756,7 +756,7 @@ function ClasesInner() {
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </div>
-              {/* Academia — solo en explorar: en mis clases el scope
+              {/* Academia - solo en explorar: en mis clases el scope
                   ya es la inscripción. */}
               {scope === "explorar" && (
                 <div className="relative shrink-0">
@@ -792,14 +792,14 @@ function ClasesInner() {
                 </div>
               )}
               {/* Las particulares compradas aparecen dentro de
-                  reservadas — sin bandeja separada
+                  reservadas - sin bandeja separada
                   (particulares-en-reservadas). */}
             </div>
           </>
         )}
       </header>
 
-      {/* Feedback de reservar/cancelar junto al contenido — al final
+      {/* Feedback de reservar/cancelar junto al contenido - al final
           del main quedaba fuera de pantalla en listas largas. */}
       {notice && (
         <p
@@ -811,7 +811,7 @@ function ClasesInner() {
       )}
 
       {scope === "historial" ? (
-        /* ─── Historial — progreso personal, no competitivo (spec §9) ─── */
+        /* ─── Historial - progreso personal, no competitivo (spec §9) ─── */
         <section aria-label={t("history")} className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="sr-only">{t("history")}</h2>
@@ -842,7 +842,7 @@ function ClasesInner() {
                 {groupByDay(historyRows).map((g) =>
                   renderDayGroup(g, (r: HistoryItem) => (
                     <li key={r.id}>
-                      {/* Mismo card que el resto de la vista — el
+                      {/* Mismo card que el resto de la vista - el
                           resultado (asististe/cancelaste) ocupa el slot
                           de acción; no hay CTA en una clase pasada. */}
                       <ClassCard
@@ -862,7 +862,7 @@ function ClasesInner() {
             ))}
         </section>
       ) : view === "calendar" ? (
-        /* ─── Calendario mensual — mismo grid que /eventos ─── */
+        /* ─── Calendario mensual - mismo grid que /eventos ─── */
         <section>
           <div className="mb-4 flex items-center justify-between">
             {isCurrentMonth ? (
@@ -896,7 +896,7 @@ function ClasesInner() {
           {/* Grid mensual: fila de letras L–D + número + dots por
               género. Días de meses vecinos atenuados. No es
               role="grid" (sin navegación por flechas ni celdas
-              semánticas) — es un grupo de links con nombres
+              semánticas) - es un grupo de links con nombres
               completos. */}
           <div className="mb-1 grid grid-cols-7 gap-1" aria-hidden="true">
             {WEEKDAY_HEADERS.map((h, i) => (
@@ -926,7 +926,7 @@ function ClasesInner() {
                       id: c.id,
                       genre: c.series?.style?.genre,
                     }));
-              // "lunes 22" completo para SR — la celda solo muestra el
+              // "lunes 22" completo para SR - la celda solo muestra el
               // número (la letra del día va en la fila de cabecera).
               const dayName = weekdayNameFmt.format(
                 new Date(`${cell.key}T12:00:00`),
@@ -967,7 +967,7 @@ function ClasesInner() {
                 <Link
                   key={cell.key}
                   href={hrefFor({ day: cell.key })}
-                  aria-label={`${dayName} ${cell.day} — ${t("dayClasses", { count: dots.length })}`}
+                  aria-label={`${dayName} ${cell.day}: ${t("dayClasses", { count: dots.length })}`}
                   aria-current={isSelected ? "date" : undefined}
                   className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
                 >
@@ -1038,7 +1038,7 @@ function ClasesInner() {
           {mineState === "ready" &&
             (scheduledReserved.length > 0 || unscheduledReserved.length > 0 ? (
               <div className="flex flex-col gap-5">
-                {/* Particulares compradas sin fecha — grupo fijo arriba
+                {/* Particulares compradas sin fecha - grupo fijo arriba
                     (no ordenables por día; el pago nunca queda
                     invisible). */}
                 {unscheduledReserved.length > 0 && (
@@ -1143,7 +1143,7 @@ function ClasesInner() {
         </>
       )}
 
-      {/* Tour de primera visita — los targets que falten (p.ej. el
+      {/* Tour de primera visita - los targets que falten (p.ej. el
           toggle de display en historial) se omiten solos; la lista se
           omite si aún no carga o está vacía. */}
       {((scope !== "historial" &&

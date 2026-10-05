@@ -16,7 +16,6 @@
       "socialEmpty": "Aún no declaras tus estilos de baile",
       "gender": "Género",
       "genderEmpty": "Sin declarar",
-      "genderHint": "Solo alimenta métricas agregadas — nunca se muestra público.",
       "genderOptions": {
         "M": "Hombre",
         "F": "Mujer",
@@ -34,7 +33,7 @@
         "avanzado": "Avanzado"
       },
       "saved": "Guardado",
-      "saveError": "No se pudo guardar — intenta de nuevo",
+      "saveError": "No se pudo guardar. Intenta de nuevo",
       "academySection": "Tus academias",
       "academyEmpty": "Sin inscripciones vigentes",
       "danceRole": {
@@ -60,10 +59,10 @@
       "name": "Nombre",
       "phone": "Teléfono",
       "password": "Contraseña (opcional)",
-      "passwordHint": "mínimo 8 caracteres — también puedes entrar siempre por link a tu correo",
+      "passwordHint": "mínimo 8 caracteres. También puedes entrar siempre por link a tu correo",
       "submit": "Activar mi cuenta",
-      "success": "Listo — tu cuenta ya está activa",
-      "error": "No pudimos guardar — intenta de nuevo",
+      "success": "Listo, tu cuenta ya está activa",
+      "error": "No pudimos guardar. Intenta de nuevo",
       "phoneTaken": "Este teléfono ya está registrado en otra cuenta.",
       "passwordShort": "La contraseña debe tener al menos 8 caracteres.",
       "loadError": "No pudimos cargar tus datos."

@@ -66,7 +66,7 @@ class ListPayoutsQueryDto {
 }
 
 class PayPayoutDto {
-  /** Comprobante de la transferencia (link externo — nunca se hostea). */
+  /** Comprobante de la transferencia (link externo - nunca se hostea). */
   @IsOptional()
   @IsString()
   evidenceUrl?: string;
@@ -74,10 +74,10 @@ class PayPayoutDto {
 
 /**
  * Desglose explícito de la liquidación (spec academy-saas-billing): cada
- * deducción del bruto sale como línea tipada — nunca escondida en `net`.
+ * deducción del bruto sale como línea tipada - nunca escondida en `net`.
  * - GATEWAY_FEE_PASSTHROUGH: costo Flow que absorbe la academia
- *   (gateway_fee.academy_passthrough_pct) — solo payouts ACADEMY.
- * - PLATFORM_FEE: comisión de plataforma (platformFeePct) — payouts
+ *   (gateway_fee.academy_passthrough_pct) - solo payouts ACADEMY.
+ * - PLATFORM_FEE: comisión de plataforma (platformFeePct) - payouts
  *   PRODUCER/VENUE y legados ACADEMY generados antes del modelo SaaS.
  */
 function payoutLines(payout: Payout): { type: string; amount: number }[] {
@@ -107,10 +107,10 @@ function withPayoutLines<T extends Payout>(payout: T) {
  *     Event del productor.
  *   · Pases de serie: payments PAID con orderType SERIES_PASS cuyo refId
  *     (sp_<seriesId>_<month>_<uuid>) decodifica a una EventSeries del
- *     productor — no hay columna de serie en Payment, el refId es la fuente.
+ *     productor - no hay columna de serie en Payment, el refId es la fuente.
  * - ACADEMY: Σ Payment.amount de payments PAID con orderType TICKET cuyo
  *   eventId apunta a un Event con academyId = actorId AND producerId = null
- *   (eventos producidos directamente por la academia — si hay productor,
+ *   (eventos producidos directamente por la academia - si hay productor,
  *   el productor ya devenga) + payments PAID con orderType MEMBERSHIP cuyo
  *   refId (mem_<planId>_<uuid>) decodifica a un MembershipPlan de la
  *   academia (venta de planes online) + payments PAID con orderType
@@ -118,13 +118,13 @@ function withPayoutLines<T extends Payout>(payout: T) {
  *   la academia (venta de clases sueltas/talleres).
  * - VENUE: mismo patrón con venueId = actorId AND producerId = null.
  * - SERIES_PASS nunca aplica a ACADEMY/VENUE (EventSeries.producerId es
- *   required — siempre hay productor que devenga); MEMBERSHIP y WORKSHOP
+ *   required - siempre hay productor que devenga); MEMBERSHIP y WORKSHOP
  *   solo a ACADEMY.
  * gross = Σ amount.
  * - PRODUCER/VENUE (legacy): net = gross − Σ fee − platformFeePct.
  * - ACADEMY (modelo SaaS, spec academy-saas-billing): net = gross −
  *   GATEWAY_FEE_PASSTHROUGH (gross × gateway_fee.academy_passthrough_pct)
- *   — sin platformFee: la academia monetiza vía su suscripción.
+ *   - sin platformFee: la academia monetiza vía su suscripción.
  * Toda deducción se expone como línea tipada en `lines[]` del response
  * (GATEWAY_FEE_PASSTHROUGH / PLATFORM_FEE) y persiste en
  * Payout.gatewayFee / Payout.platformFee.
@@ -261,13 +261,13 @@ export class AdminPayoutsController {
    * Devengado del actor en el período (regla v1 del JSDoc de clase).
    * PRODUCER: Σ Payment.amount de tickets de sus eventos + pases de sus
    * series; ACADEMY/VENUE: tickets de sus eventos sin productor
-   * (producerId = null — si hay productor, él ya devenga); ACADEMY suma
+   * (producerId = null - si hay productor, él ya devenga); ACADEMY suma
    * además las ventas MEMBERSHIP de sus planes (refId → plan). SERIES_PASS
    * no aplica a ACADEMY/VENUE porque EventSeries.producerId es required.
    * net = gross − Σ fee.
    *
    * Modelo SaaS (spec academy-saas-billing): la liquidación ACADEMY ya no
-   * descuenta platformFee ni el fee real por pago — la academia paga su
+   * descuenta platformFee ni el fee real por pago - la academia paga su
    * suscripción de plataforma y absorbe el costo Flow como línea
    * explícita GATEWAY_FEE_PASSTHROUGH = round(gross ×
    * gateway_fee.academy_passthrough_pct / 100), calculada desde el param
@@ -302,7 +302,7 @@ export class AdminPayoutsController {
       );
 
       // MEMBERSHIP + WORKSHOP (solo ACADEMY): la orden no tiene columna
-      // de academia — el refId (mem_<planId>_<uuid> / wks_<classId>_<uuid>)
+      // de academia - el refId (mem_<planId>_<uuid> / wks_<classId>_<uuid>)
       // decodifica al plan o a la clase (slot → academyId). Ni planes ni
       // clases sueltas tienen fee propio → % global.
       const [planIds, classIds] =
@@ -348,7 +348,7 @@ export class AdminPayoutsController {
               : []),
             ...(planIds.size ? [{ orderType: "MEMBERSHIP" }] : []),
             ...(classIds.size ? [{ orderType: "WORKSHOP" }] : []),
-            // PRIVATE: el refId decodifica directo a academyId — se filtra
+            // PRIVATE: el refId decodifica directo a academyId - se filtra
             // en el loop (no cabe en el OR sin columna de academia).
             ...(actorType === "ACADEMY" ? [{ orderType: "PRIVATE" }] : []),
           ],
@@ -363,7 +363,7 @@ export class AdminPayoutsController {
         },
       });
       // Una particular cancelada (alumno u owner) no devenga: la academia
-      // debe devolver el pago fuera de la app (Flow) — liquidarla igual
+      // debe devolver el pago fuera de la app (Flow) - liquidarla igual
       // le pagaría dos veces.
       const privateIds = payments
         .filter((p) => p.orderType === "PRIVATE")
@@ -406,7 +406,7 @@ export class AdminPayoutsController {
       }
       if (actorType === "ACADEMY") {
         // Modelo SaaS: el payout de la academia no descuenta platformFee
-        // ni el fee real por pago — solo el costo de pasarela como línea
+        // ni el fee real por pago - solo el costo de pasarela como línea
         // explícita GATEWAY_FEE_PASSTHROUGH, tasa por param.
         const passthroughPct = await this.params.getNumber(
           "gateway_fee.academy_passthrough_pct",

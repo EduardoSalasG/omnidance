@@ -17,7 +17,7 @@ const dateFmt = new Intl.DateTimeFormat("es-CL", {
   year: "numeric",
 });
 
-// GET /subscriptions/mine — contexto de cobros recurrentes (plan + academia
+// GET /subscriptions/mine - contexto de cobros recurrentes (plan + academia
 // resueltos por la API vía plan.academy).
 type MySubscription = {
   id: string;
@@ -29,7 +29,7 @@ type MySubscription = {
 };
 
 /**
- * /perfil/pagos — "Mis pagos" del bailarín: historial de órdenes
+ * /perfil/pagos - "Mis pagos" del bailarín: historial de órdenes
  * (GET /payments/mine) con fee/neto/fecha real de cobro y ledger
  * expandible por pago; arriba, las suscripciones vigentes como contexto.
  */
@@ -46,7 +46,7 @@ export default function PerfilPagosPage() {
   const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
 
-  // Refresh de solo las suscripciones (post-cancel) — no toca el gate
+  // Refresh de solo las suscripciones (post-cancel) - no toca el gate
   // para que la página no vuelva a skeleton parpadeando.
   const refreshSubs = useCallback(async () => {
     const res = await apiFetch("/subscriptions/mine").catch(() => null);
@@ -88,7 +88,7 @@ export default function PerfilPagosPage() {
   }, [boot]);
 
   /**
-   * POST /subscriptions/:id/cancel — at_period_end: la sub queda
+   * POST /subscriptions/:id/cancel - at_period_end: la sub queda
    * CANCEL_PENDING y conserva acceso hasta el fin del período pagado;
    * el refresh re-lee el estado real del server.
    */
@@ -147,7 +147,7 @@ export default function PerfilPagosPage() {
         <p className="text-sm text-white/50">{t("subtitle")}</p>
       </div>
 
-      {/* Suscripciones vivas — contexto de los cobros MEMBERSHIP de abajo. */}
+      {/* Suscripciones vivas - contexto de los cobros MEMBERSHIP de abajo. */}
       {subs.length > 0 && (
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -184,7 +184,7 @@ export default function PerfilPagosPage() {
                     </p>
                   )}
 
-                  {/* Cancelación directa — mismo 2-step + endpoint que la
+                  {/* Cancelación directa - mismo 2-step + endpoint que la
                       ficha de la academia (at_period_end: se conserva el
                       acceso hasta el fin del período ya pagado). */}
                   {s.status === "ACTIVE" &&

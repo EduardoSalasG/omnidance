@@ -31,12 +31,12 @@ function Bailes() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [sessions, setSessions] = useState<DanceSession[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  // Nombre del evento cuando la vista viene filtrada por ?event= —
+  // Nombre del evento cuando la vista viene filtrada por ?event= -
   // `eventNameResolved` distingue pending (skeleton en el chip) de
   // fallo (cae al label genérico, sin quedar pendiente para siempre).
   const [eventName, setEventName] = useState<string | null>(null);
   const [eventNameResolved, setEventNameResolved] = useState(false);
-  // Racha semanal para la línea de continuidad del insights —
+  // Racha semanal para la línea de continuidad del insights -
   // `streakDone` distingue pending de "resuelto sin racha".
   const [streak, setStreak] = useState<number | null>(null);
   const [streakDone, setStreakDone] = useState(false);
@@ -63,7 +63,7 @@ function Bailes() {
     setPhase("ready");
   }, [eventId]);
 
-  // Refetch al volver a la pestaña — el usuario alterna entre bailar y el teléfono.
+  // Refetch al volver a la pestaña - el usuario alterna entre bailar y el teléfono.
   useEffect(() => {
     void fetchSessions();
     const onVisible = () => {
@@ -78,7 +78,7 @@ function Bailes() {
     };
   }, [fetchSessions]);
 
-  // Chip de contexto del filtro ?event= — el nombre viene del endpoint público.
+  // Chip de contexto del filtro ?event= - el nombre viene del endpoint público.
   useEffect(() => {
     setEventName(null);
     setEventNameResolved(false);
@@ -92,14 +92,14 @@ function Bailes() {
       .finally(() => setEventNameResolved(true));
   }, [eventId]);
 
-  // Ficha del último social — la sesión más reciente define el evento;
+  // Ficha del último social - la sesión más reciente define el evento;
   // su nombre/fecha/local ya vienen embebidos en la sesión.
   const lastEvent = !eventId && sessions.length > 0 ? sessions[0].event : null;
   const lastEventId = lastEvent?.id ?? null;
 
-  // Racha semanal — independiente de /sessions: se dispara en paralelo
+  // Racha semanal - independiente de /sessions: se dispara en paralelo
   // (el endpoint no necesita la lista) y se refresca si cambia el último
-  // evento. No resetea streak: sin skeleton ni colapso — el bloque
+  // evento. No resetea streak: sin skeleton ni colapso - el bloque
   // aparece una sola vez cuando el dato existe.
   useEffect(() => {
     let cancelled = false;
@@ -153,7 +153,7 @@ function Bailes() {
   const history = sessions.filter((s) => s.status !== "INVITED");
 
   // Resumen de la vista actual: bailes confirmados y parejas distintas
-  // (por id — los homónimos no colapsan).
+  // (por id - los homónimos no colapsan).
   const counterpartId = (s: DanceSession) =>
     s.role.toLowerCase() === "inviter" ? s.inviteeId : s.inviterId;
   const confirmed = history.filter((s) => s.status === "CONFIRMED");
@@ -176,7 +176,7 @@ function Bailes() {
       ? Math.round((myScores.reduce((a, b) => a + b, 0) / myScores.length) * 10) /
         10
       : null;
-  // El mejor baile de la noche — highlight personal (solo si fue bueno:
+  // El mejor baile de la noche - highlight personal (solo si fue bueno:
   // "mejor baile ★2" no celebra nada).
   const bestDance = danced
     .filter((s) => s.myRating && s.myRating.global >= 4 && s.partner)
@@ -187,7 +187,7 @@ function Bailes() {
     )[0];
   const showInsights = Boolean(lastEventId && danced.length > 0);
 
-  // Historial agrupado por noche — la lista viene ordenada desc por
+  // Historial agrupado por noche - la lista viene ordenada desc por
   // scannedAt, así que el primer grupo es siempre el evento más reciente.
   const historyGroups: {
     eventId: string;
@@ -218,7 +218,7 @@ function Bailes() {
   }
 
   // Progressive disclosure: máximo 3 noches expandidas; el resto tras
-  // "ver más". Con ?event= hay un solo grupo — no aplica.
+  // "ver más". Con ?event= hay un solo grupo - no aplica.
   const VISIBLE_NIGHTS = 3;
   const moreNights = Math.max(0, historyGroups.length - VISIBLE_NIGHTS);
   const visibleGroups =
@@ -227,7 +227,7 @@ function Bailes() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6">
       <h1 className="sr-only">{t("title")}</h1>
-      {/* Contexto del filtro ?event= — permite salir de la vista acotada */}
+      {/* Contexto del filtro ?event= - permite salir de la vista acotada */}
       {eventId && (
         <Link
           href="/bailes"
@@ -287,7 +287,7 @@ function Bailes() {
         </div>
       ) : (
         <>
-          {/* Por confirmar — invitaciones vivas de la noche. Siempre
+          {/* Por confirmar - invitaciones vivas de la noche. Siempre
               primero: es la acción más urgente (regla de los ~5s).
               aria-live anuncia invitaciones que llegan por refetch. */}
           {pending.length > 0 && (
@@ -329,7 +329,7 @@ function Bailes() {
             </section>
           )}
 
-          {/* Insights del último social — retrospectiva; cuando la vista
+          {/* Insights del último social - retrospectiva; cuando la vista
               no viene filtrada por ?event= */}
           {showInsights && lastEvent && (
             <section
@@ -338,7 +338,7 @@ function Bailes() {
               className="relative overflow-hidden rounded-2xl border border-night-700 bg-night-900 p-4"
             >
               {/* La pista como material: glow radial del acento sobre la
-                  superficie — mismo lenguaje que el hero de /inicio */}
+                  superficie - mismo lenguaje que el hero de /inicio */}
               <div
                 aria-hidden="true"
                 className="glow-neon pointer-events-none absolute inset-0"
@@ -354,7 +354,7 @@ function Bailes() {
                       : t("lastSocial")}
                   </h2>
                   {lastEvent.status === "LIVE" && (
-                    // Indicador live — mismo rojo que Badge variant="live"
+                    // Indicador live - mismo rojo que Badge variant="live"
                     <span className="relative flex h-2 w-2">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75 motion-reduce:animate-none" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
@@ -404,9 +404,9 @@ function Bailes() {
                   )}
                 </dl>
                 {/* Highlight emocional: el mejor baile es una persona, no
-                    un texto — avatar + nombre + tu nota. La racha cierra
+                    un texto - avatar + nombre + tu nota. La racha cierra
                     como línea de continuidad. Sección opcional: nada
-                    hasta que la racha resuelva — aparece una sola vez
+                    hasta que la racha resuelva - aparece una sola vez
                     si hay contenido; un bloque que colapsa sería flash. */}
                 {streakDone &&
                   (bestDance?.partner ||
@@ -439,7 +439,7 @@ function Bailes() {
             </section>
           )}
 
-          {/* Historial — agrupado por noche (la unidad real del baile).
+          {/* Historial - agrupado por noche (la unidad real del baile).
               Con ?event= hay un solo grupo y el chip ya da el contexto,
               así que el header del grupo se omite. */}
           {history.length > 0 && (
@@ -458,7 +458,7 @@ function Bailes() {
                 )}
               </div>
               {visibleGroups.map((g) =>
-                // Vista filtrada ?event=: un solo grupo — lista plana, el
+                // Vista filtrada ?event=: un solo grupo - lista plana, el
                 // chip ya da el contexto. Sin filtro: acordeón por noche.
                 eventId ? (
                   <div key={g.eventId} className="flex flex-col gap-2">
@@ -556,7 +556,7 @@ function Bailes() {
         </>
       )}
 
-      {/* Tour de primera visita — solo con sesiones cargadas: sin
+      {/* Tour de primera visita - solo con sesiones cargadas: sin
           historial no hay targets que destacar. */}
       {phase === "ready" && sessions.length > 0 && (
         <OnboardingRunner

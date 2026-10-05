@@ -25,7 +25,7 @@ class FriendRequestDto {
 }
 
 /**
- * Amistades entre bailarines (spec-gap-closure: social/friendships —
+ * Amistades entre bailarines (spec-gap-closure: social/friendships -
  * omni-dance.md §8). aId = solicitante, bId = destinatario: solo bId decide
  * (accept); ambos pueden borrar (decline/unfriend → delete). La unicidad del
  * par se garantiza en código rechazando filas en cualquier dirección.
@@ -86,7 +86,7 @@ export class FriendsController {
     return friendship;
   }
 
-  /** Aceptar — solo el destinatario (bId); el solicitante → 403. */
+  /** Aceptar - solo el destinatario (bId); el solicitante → 403. */
   @Post(":id/accept")
   @HttpCode(200)
   async accept(@Req() req: Request, @Param("id") id: string) {
@@ -100,14 +100,14 @@ export class FriendsController {
     });
   }
 
-  /** Rechazar — elimina la solicitud; cualquiera de los dos participantes. */
+  /** Rechazar - elimina la solicitud; cualquiera de los dos participantes. */
   @Post(":id/decline")
   @HttpCode(200)
   async decline(@Req() req: Request, @Param("id") id: string) {
     return this.remove(id, req.person!.id);
   }
 
-  /** Eliminar amistad/solicitud — cualquiera de los dos participantes. */
+  /** Eliminar amistad/solicitud - cualquiera de los dos participantes. */
   @Delete(":id")
   @HttpCode(200)
   async unfriend(@Req() req: Request, @Param("id") id: string) {
@@ -115,7 +115,7 @@ export class FriendsController {
   }
 
   /**
-   * {friends, pendingReceived, pendingSent} — amigos ACCEPTED en ambas
+   * {friends, pendingReceived, pendingSent} - amigos ACCEPTED en ambas
    * direcciones + solicitudes pendientes recibidas (bId=me) y enviadas
    * (aId=me). Cada item: {id, createdAt, status, person:{id,name,photoUrl}}.
    */
@@ -155,7 +155,7 @@ export class FriendsController {
   }
 
   /**
-   * GET /friends/upcoming-events — eventos futuros donde al menos un amigo
+   * GET /friends/upcoming-events - eventos futuros donde al menos un amigo
    * confirmado tiene ticket ACTIVE. [{ event, friends: [{id,name,photoUrl}] }]
    * ordenado por fecha. La agenda solo se expone entre amigos.
    */

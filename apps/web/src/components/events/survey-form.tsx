@@ -16,7 +16,7 @@ type Dim =
   | "lightingSound";
 
 // Dims siempre visibles (las dos que más leen DJ/productor); el resto va
-// tras "Evaluar más" — progressive disclosure, misma idea que
+// tras "Evaluar más" - progressive disclosure, misma idea que
 // instructors-section (pocas visibles, resto colapsado).
 const PRIMARY_DIMS: Dim[] = ["music", "occupation"];
 const EXTRA_DIMS: Dim[] = [
@@ -58,7 +58,7 @@ function DimRow({
         onSelect={onSelect}
         ariaLabel={t(`dims.${dim}`)}
       />
-      {/* Extremos bipolares: texto de los polos 1 y 5 — el promedio lo
+      {/* Extremos bipolares: texto de los polos 1 y 5 - el promedio lo
           interpreta la analítica, la escala vive solo en UI. */}
       <span className="flex justify-between text-xs text-white/50">
         <span>{t(`scale.${dim}.low`)}</span>
@@ -80,7 +80,7 @@ export function SurveyForm({
   eventName,
 }: {
   eventId: string;
-  /** null si el fetch SSR del evento falló — el título cae al genérico. */
+  /** null si el fetch SSR del evento falló - el título cae al genérico. */
   eventName: string | null;
 }) {
   const t = useTranslations("survey");
@@ -169,7 +169,7 @@ export function SurveyForm({
     content = (
       <>
       <Card className="flex flex-col gap-4">
-        {/* Overall — obligatorio. Estrella sin selección bloquea el
+        {/* Overall - obligatorio. Estrella sin selección bloquea el
             envío con un aviso, no con el botón deshabilitado (el
             usuario ve QUÉ falta). */}
         <div>

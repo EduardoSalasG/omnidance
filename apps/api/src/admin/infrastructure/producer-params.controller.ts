@@ -64,7 +64,7 @@ export class AdminProducerParamsController {
     private readonly params: ParamsService,
   ) {}
 
-  /** Personas con rol PRODUCER aprobado — para elegir a quién configurar. */
+  /** Personas con rol PRODUCER aprobado - para elegir a quién configurar. */
   @Get()
   async producers() {
     const roles = await this.prisma.personRole.findMany({
@@ -91,7 +91,7 @@ export class AdminProducerParamsController {
     return this.buildView(producerId);
   }
 
-  /** Upsert de defaults — null en un campo vuelve a heredar el global. */
+  /** Upsert de defaults - null en un campo vuelve a heredar el global. */
   @Put(":id/fee-params")
   async set(
     @Param("id") producerId: string,

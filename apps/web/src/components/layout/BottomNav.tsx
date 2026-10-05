@@ -22,11 +22,11 @@ import { ChevronRightIcon } from "@/components/ui/icons";
 // bar iOS | campana de notificaciones) + tab bar inferior con las
 // funciones primarias del rol y Perfil como quinto slot. Todo se oculta
 // en contextos de pantalla completa (consola staff de puerta). Login
-// vive en (marketing) sin este chrome. /qr sí muestra el nav — el
+// vive en (marketing) sin este chrome. /qr sí muestra el nav - el
 // escáner ocupa el área de contenido.
 export const CHROME_HIDDEN_PREFIXES = ["/staff/"];
 
-// Re-emisión DOM del socket — ver RealtimeProvider (notification → CustomEvent).
+// Re-emisión DOM del socket - ver RealtimeProvider (notification → CustomEvent).
 const NOTIFICATION_EVENT = "omnidance:notification";
 
 type Me = MeContextData;
@@ -106,7 +106,7 @@ const ICONS = {
     "M22 10 12 5 2 10l10 5 10-5zM6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5M22 10v6",
   admin:
     "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1zm-11 7 2 2 4-4",
-  // Plus — tab central "crear" del productor.
+  // Plus - tab central "crear" del productor.
   plus: "M12 5v14M5 12h14",
   // Listados/fichas genéricos para el drawer.
   list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
@@ -117,12 +117,12 @@ const ICONS = {
   play: "M5 3l14 9-14 9z",
   slider:
     "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
-  // Pin de mapa — consola del venue.
+  // Pin de mapa - consola del venue.
   pin: "M12 21s-7-5.5-7-11a7 7 0 1 1 14 0c0 5.5-7 11-7 11zM12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6",
-  // Nota musical — consola del DJ.
+  // Nota musical - consola del DJ.
   music:
     "M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z",
-  // Audífonos — consola de soporte.
+  // Audífonos - consola de soporte.
   headset:
     "M4 13a8 8 0 0 1 16 0M4 13v4a2 2 0 0 0 2 2h1a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4zM20 13v4a2 2 0 0 1-2 2h-1a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3z",
 };
@@ -159,7 +159,7 @@ const FRIENDS_TAB: Tab = {
   key: "friends",
   icon: icon(ICONS.users),
 };
-// "+" central del bailarín — abre el DancerActionsSheet (QR + módulos
+// "+" central del bailarín - abre el DancerActionsSheet (QR + módulos
 // secundarios). href simbólico: renderTab lo pinta como <button>.
 const ACTIONS_TAB: Tab = {
   href: "#acciones",
@@ -202,7 +202,7 @@ const SUPPORT_TAB: Tab = {
   center: true,
 };
 
-// DANCER en modo Academia: mismo patrón — "+" central abre el sheet
+// DANCER en modo Academia: mismo patrón - "+" central abre el sheet
 // (QR + módulos). Eventos se reemplaza por el directorio de academias
 // y Clases (explorar + mis reservas) es tab propio.
 const DANCER_ACADEMY_TABS: Tab[] = [
@@ -212,13 +212,13 @@ const DANCER_ACADEMY_TABS: Tab[] = [
   ACADEMIAS_TAB,
 ];
 
-// Tabs por rol activo — máximo 4 slots funcionales + Perfil = 5 ítems
+// Tabs por rol activo - máximo 4 slots funcionales + Perfil = 5 ítems
 // (el tope visual del bottom bar). Las notificaciones viven en el
 // appbar (campana con badge), no en el bottom nav: los slots que
 // liberan los ocupa la función más usada de cada rol.
 const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
   // Bailarín: [Inicio] [Eventos] [+] [Amigos] [Perfil]. El "+" abre el
-  // sheet con el QR destacado + módulos secundarios — sin drawer lateral.
+  // sheet con el QR destacado + módulos secundarios - sin drawer lateral.
   DANCER: [HOME_TAB, EVENTS_TAB, ACTIONS_TAB, FRIENDS_TAB],
   STAFF: [
     HOME_TAB,
@@ -268,7 +268,7 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
   ],
 };
 
-// Drawer lateral — el resto de los módulos del rol, agrupados por dominio.
+// Drawer lateral - el resto de los módulos del rol, agrupados por dominio.
 // ns = namespace i18n del label; las sub-secciones de consola reusan las
 // claves modules.* de cada dominio.
 type DrawerSpec = {
@@ -291,13 +291,13 @@ type DrawerSpec = {
 
 type DrawerGroupSpec = {
   // clave i18n para el header del grupo (nav.*, o el title del dominio
-  // cuando el grupo es mono-módulo — p.ej. "Analítica").
+  // cuando el grupo es mono-módulo - p.ej. "Analítica").
   labelNs: "nav" | "producer" | "academy" | "admin" | "analytics";
   labelKey: string;
   items: DrawerSpec[];
 };
 
-// Grupo "Analítica" del drawer — módulo transversal a los roles con
+// Grupo "Analítica" del drawer - módulo transversal a los roles con
 // analítica (no vive bajo el dominio de ninguna consola).
 const ANALYTICS_DRAWER_GROUP = (items: DrawerSpec[]): DrawerGroupSpec => ({
   labelNs: "analytics",
@@ -311,7 +311,7 @@ const ANALYTICS_DRAWER_ITEM: DrawerSpec = {
   icon: ICONS.slider,
 };
 
-// Sheet del bailarín — módulos secundarios por lente (social/academia).
+// Sheet del bailarín - módulos secundarios por lente (social/academia).
 // El QR va destacado dentro del sheet; estos son los ítems del grid.
 // ns/key resuelven vía labelFor como los ítems del drawer.
 const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
@@ -325,7 +325,7 @@ const SHEET_SOCIAL_ITEMS: DrawerSpec[] = [
 ];
 // Lente academia del bailarín: /clases y /academias ya son tabs y las
 // particulares compradas aparecen en reservadas (sin bandeja separada)
-// — el sheet queda solo con el QR.
+// - el sheet queda solo con el QR.
 const SHEET_ACADEMY_ITEMS: DrawerSpec[] = [];
 
 const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
@@ -572,11 +572,11 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   ],
 };
 
-// El DANCER no usa drawer en ninguna lente — en modo Academia el sheet
+// El DANCER no usa drawer en ninguna lente - en modo Academia el sheet
 // del "+" lleva los módulos de aprendizaje (SHEET_ACADEMY_ITEMS).
 const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [];
 
-/** unreadCount acotado para el badge — 99+ como en el home hub. */
+/** unreadCount acotado para el badge - 99+ como en el home hub. */
 function badgeText(count: number): string {
   return count > 99 ? "99+" : String(count);
 }
@@ -610,7 +610,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const [unread, setUnread] = useState<number | null>(null);
   // null = sin sesión → el drawer muestra solo Perfil.
   // meChecked: true cuando /me ya respondió (200 o 401): hasta entonces
-  // no se renderiza UI dependiente del rol — nada de chrome de otra
+  // no se renderiza UI dependiente del rol - nada de chrome de otra
   // lente por unos milisegundos.
   const { me, loading: meLoading } = useMe();
   const meChecked = !meLoading;
@@ -621,17 +621,17 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const [barHidden, setBarHidden] = useState(false);
   // ¿La sesión ya navegó dentro de la app? El ref persiste entre
   // navegaciones client-side (este componente no remonta) y se resetea
-  // en recarga completa — proxy de "hay historial interno al que volver".
+  // en recarga completa - proxy de "hay historial interno al que volver".
   const entryPathRef = useRef(pathname);
   const navigatedRef = useRef(false);
-  // Lente activa — cambia cuando Perfil dispara setActiveRole.
+  // Lente activa - cambia cuando Perfil dispara setActiveRole.
   const activeRole = useActiveRole(me?.roles);
   // Modo consumer (solo aplica a DANCER): social ↔ academy.
   const viewMode = useViewMode();
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
   // Acento verde SOLO para la lente academia: Mi Aprendizaje del bailarín
   // o los roles ACADEMY_OWNER / INSTRUCTOR. Todo lo demás → morado
-  // (marca + social + gestión). Mientras /me no responde queda morado —
+  // (marca + social + gestión). Mientras /me no responde queda morado -
   // el verde nunca flashea donde no corresponde.
   const academyLens =
     meChecked &&
@@ -641,7 +641,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Baseline de no-leídas por lente: `?lens=` acota el unreadCount al
   // dominio activo (los tipos "any" cuentan en ambas). Corre tras /me
-  // (sin sesión no se pide — un 401 dejaría unread en null igual) y se
+  // (sin sesión no se pide - un 401 dejaría unread en null igual) y se
   // repite si la lente cambia (toggle Social/Academia del bailarín).
   const notifLens: "social" | "academy" = academyLens ? "academy" : "social";
   useEffect(() => {
@@ -666,12 +666,12 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     };
   }, [meChecked, me, notifLens]);
 
-  // /me viene del MeProvider del layout — sin fetch propio (antes cada
+  // /me viene del MeProvider del layout - sin fetch propio (antes cada
   // consumidor duplicaba la llamada; ahora chrome y páginas resuelven
   // juntos).
 
   // data-mode en <html>: el acento sigue a la LENTE, no solo al toggle
-  // consumer — academy verde solo en lente academia, resto morado.
+  // consumer - academy verde solo en lente academia, resto morado.
   useEffect(() => {
     document.documentElement.dataset.mode = academyLens
       ? "academy"
@@ -729,7 +729,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     return <>{children}</>;
 
   // Anónimo confirmado (me resolvió y no hay sesión): sin appbar ni tab
-  // bar — la única ruta que llega acá es la cartelera pública /eventos;
+  // bar - la única ruta que llega acá es la cartelera pública /eventos;
   // el resto de módulos los corta middleware.ts hacia /login.
   if (meChecked && !me) return <>{children}</>;
 
@@ -787,7 +787,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Título contextual junto a la hamburguesa: longest-prefix match sobre
   // tabs + ítems del drawer de todos los roles (solo resuelve el nombre
-  // de la ruta actual — /admin/usuarios → "Usuarios", /eventos/1 →
+  // de la ruta actual - /admin/usuarios → "Usuarios", /eventos/1 →
   // "Eventos"). Sin match (p.ej. /checkout) no se muestra nada.
   // navEntries también define las RAÍCES de sección: una ruta que no es
   // raíz exacta es "empujada" y el appbar muestra ‹ back en el slot
@@ -800,7 +800,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     ["/bailes", t("dances")],
     ["/practicas", t("practices")],
     ["/academia", tac("title")],
-    // /qr ya no es tab del bailarín (vive embebido en el sheet) —
+    // /qr ya no es tab del bailarín (vive embebido en el sheet) -
     // la ruta sigue existiendo (escáner desde /bailes, /practicas).
     ["/qr", t("scan")],
     ...allTabs.map((tab) => [tab.href, tabLabel(tab)] as [string, string]),
@@ -829,7 +829,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Back del appbar (iOS): solo en rutas empujadas (no-raíz). Destino:
   // router.back() si la sesión ya navegó dentro de la app; si la entrada
   // fue directa (link externo, recarga, pestaña nueva) cae al padre
-  // jerárquico — raíz conocida o ruta superior — y como último recurso
+  // jerárquico - raíz conocida o ruta superior - y como último recurso
   // /inicio. El label queda solo en aria-label: el centro del appbar ya
   // nombra la sección y un texto junto al ‹ rompería la simetría.
   const rootHrefs = new Set(navEntries.map(([href]) => href));
@@ -840,7 +840,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       return parent;
     return "/inicio";
   })();
-  // Rutas con back forzado — el perfil del local siempre vuelve a la
+  // Rutas con back forzado - el perfil del local siempre vuelve a la
   // vista de mapa de /eventos (su punto de entrada natural), sin
   // importar cómo llegó la sesión.
   const BACK_OVERRIDES: [string, string][] = [
@@ -863,18 +863,18 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   };
 
   // /inicio es match exacto (prefijo "/" marcaría todo); el resto
-  // por prefijo — /productor/eventos solo se activa con ese
+  // por prefijo - /productor/eventos solo se activa con ese
   // prefijo, no con /productor ni /productor/pagos.
   const isTabActive = (tab: Tab) =>
     tab.href === "/inicio"
       ? pathname === "/inicio"
       : pathname.startsWith(tab.href);
 
-  // Índice del tab activo — alimenta la píldora deslizante del nav.
+  // Índice del tab activo - alimenta la píldora deslizante del nav.
   // -1 en rutas fuera del tab bar (p.ej. /checkout) → indicador oculto.
   const activeIndex = allTabs.findIndex(isTabActive);
 
-  // Ítems del sheet del bailarín — labels resueltos como en el drawer.
+  // Ítems del sheet del bailarín - labels resueltos como en el drawer.
   const isDancer = activeRole === "DANCER";
   const sheetItems: SheetItem[] = (
     dancerAcademy ? SHEET_ACADEMY_ITEMS : SHEET_SOCIAL_ITEMS
@@ -888,7 +888,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const renderTab = (tab: Tab) => {
     const active = isTabActive(tab);
     if (tab.sheet) {
-      // Tab de acción: no navega — abre el sheet. Mismo look de botón
+      // Tab de acción: no navega - abre el sheet. Mismo look de botón
       // central (círculo neon) que los tabs center de otros roles.
       return (
         <li key={tab.key} className="relative flex-1">
@@ -942,7 +942,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
               {tab.icon(true)}
             </span>
           ) : (
-            // Pop al activarse — key por href para que la animación
+            // Pop al activarse - key por href para que la animación
             // se dispare al ganar el estado activo.
             <span className={active ? "tab-pop" : undefined}>
               {tab.icon(active)}
@@ -956,7 +956,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   return (
     <>
-      {/* Appbar sticky — en el flujo del layout, con fondo sólido:
+      {/* Appbar sticky - en el flujo del layout, con fondo sólido:
           nunca se sobrepone al contenido. 3 slots de ancho fijo
           (hamburguesa | título | campana) para que el título quede
           centrado aunque falte un botón. En /inicio con lente DANCER
@@ -1033,7 +1033,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           </div>
 
           <div className="flex w-10 items-center justify-end">
-            {/* Campana — badge con tope 99+; solo con sesión. */}
+            {/* Campana - badge con tope 99+; solo con sesión. */}
             {me && (
               <Link
                 href="/notificaciones"
@@ -1072,7 +1072,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       </header>
 
       {/* Perfil pendiente (lead convertido por admin): banner persistente
-          hasta que complete sus datos — las escrituras ya están
+          hasta que complete sus datos - las escrituras ya están
           bloqueadas server-side por la barrera demo. */}
       {me?.pendingProfile && !pathname.startsWith("/perfil/completar") && (
         <Link
@@ -1094,7 +1094,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
       >
         <ul className="relative mx-auto flex h-16 max-w-lg items-stretch justify-between">
-          {/* Píldora activa — se desliza al tab con transform puro;
+          {/* Píldora activa - se desliza al tab con transform puro;
               se desvanece en rutas fuera del tab bar. */}
           <span
             aria-hidden
@@ -1107,7 +1107,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
               } as React.CSSProperties
             }
           />
-          {/* Sin rol resuelto no se muestran tabs de otra lente — la
+          {/* Sin rol resuelto no se muestran tabs de otra lente - la
               barra queda vacía un instante y luego monta la correcta. */}
           {meChecked && allTabs.map(renderTab)}
         </ul>
@@ -1120,7 +1120,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         roleLabel={me ? roleLabel : undefined}
       />
 
-      {/* Sheet de acciones — solo la lente bailarín; los demás roles
+      {/* Sheet de acciones - solo la lente bailarín; los demás roles
           mantienen el drawer lateral. */}
       {isDancer && (
         <DancerActionsSheet

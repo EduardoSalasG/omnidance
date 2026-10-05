@@ -209,7 +209,7 @@ describe("notifications e2e", () => {
 
   describe("GET /api/notifications?lens=", () => {
     it("lens acota la lista y el unreadCount al dominio de la lente", async () => {
-      // Tras read-all todo lo anterior quedó leído — counts limpios.
+      // Tras read-all todo lo anterior quedó leído - counts limpios.
       await notifications.notify(myId, {
         category: "SOCIAL",
         type: "session.invite",
@@ -226,7 +226,7 @@ describe("notifications e2e", () => {
         title: "any",
       });
 
-      // La lista incluye leídas previas (todas "any") — se verifica
+      // La lista incluye leídas previas (todas "any") - se verifica
       // contención/exclusión, no igualdad exacta.
       const social = await (
         await get("/api/notifications?lens=social", mySession)

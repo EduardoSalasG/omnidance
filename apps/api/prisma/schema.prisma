@@ -1,4 +1,4 @@
-// Omni-Dance — modelo de datos completo (spec: omni-dance.md §12)
+// Omni-Dance - modelo de datos completo (spec: omni-dance.md §12)
 
 generator client {
   provider = "prisma-client-js"
@@ -15,7 +15,7 @@ enum RoleStatus {
   PENDING
   SANDBOX
   APPROVED
-  REJECTED // solicitud rechazada por admin — registro preservado (auditable)
+  REJECTED // solicitud rechazada por admin - registro preservado (auditable)
 }
 
 enum EntityType {
@@ -35,21 +35,21 @@ model Person {
   phone         String?  @unique
   name          String
   photoUrl      String?
-  instagram     String?  // handle público autodeclarado (sin @) — se muestra en el perfil de amistad
-  gender        Gender?  // autodeclarado — solo alimenta analítica agregada, nunca se expone individual
-  passwordHash  String?  // scrypt$N$r$p$salt$hash — null = solo magic link
+  instagram     String?  // handle público autodeclarado (sin @) - se muestra en el perfil de amistad
+  gender        Gender?  // autodeclarado - solo alimenta analítica agregada, nunca se expone individual
+  passwordHash  String?  // scrypt$N$r$p$salt$hash - null = solo magic link
   qrSecret      String   @default(cuid()) // semilla del QR rotativo (TOTP-like)
   isLightAccount Boolean @default(false) // cuenta creada en puerta (nombre+teléfono)
   isDemoAccount  Boolean @default(false) // cuenta demo creada desde un lead de /pro
   pendingProfileAt DateTime? // admin convirtió el lead: debe completar perfil para ser usuario real
   verifiedAt    DateTime?
-  onboarding    Json?   // {tourKey: ISO timestamp} — tours de primera visita ya vistos
-  flowCustomerId String? // customerId en Flow — se crea on-demand al suscribirse
-  // Tier Producer Pro (spec academy-saas-billing) — solo aplica a personas
+  onboarding    Json?   // {tourKey: ISO timestamp} - tours de primera visita ya vistos
+  flowCustomerId String? // customerId en Flow - se crea on-demand al suscribirse
+  // Tier Producer Pro (spec academy-saas-billing) - solo aplica a personas
   // con rol PRODUCER; no hay tabla Producer, el productor es esta Person.
   proTier       ProducerProTier @default(FREE)
   // Trial de lanzamiento del gating Pro (S5): backfill +90d a los
-  // productores registrados (ProducerParams) — nadie pierde features que
+  // productores registrados (ProducerParams) - nadie pierde features que
   // ya usaba al desplegar. isProActive = proTier != FREE || trial vigente.
   proTrialEndsAt DateTime?
   // Consentimiento legal (spec legal-consent): versión aceptada
@@ -71,7 +71,7 @@ model Person {
   platformSubscriptionsAsProducer PlatformSubscription[] @relation("PlatformSubscriptionProducer")
 }
 
-// Catálogo de roles vivo en DB — se administran desde /admin, no desde código.
+// Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
 // isSuperuser pasa cualquier check de permisos (ADMIN); requestable habilita
 // la auto-solicitud desde /perfil (ADMIN queda fuera).
 model Role {
@@ -115,7 +115,7 @@ model PersonRole {
   @@unique([personId, role])
 }
 
-// RUT/razón social — requerido en roles que reciben liquidaciones o emiten documentos
+// RUT/razón social - requerido en roles que reciben liquidaciones o emiten documentos
 model FiscalProfile {
   id         String     @id @default(cuid())
   person     Person     @relation(fields: [personId], references: [id])
@@ -189,11 +189,11 @@ model Venue {
   lat      Float?
   lng      Float?
   logoUrl  String?
-  // Horario de atención en texto libre ("Mar–Sáb desde 22:00") — los
+  // Horario de atención en texto libre ("Mar–Sáb desde 22:00") - los
   // sociales no tienen horario semanal fijo, varía por noche/marca.
   hours    String?
   active   Boolean @default(true)
-  ownerId  String? // personId del venue_owner — se fija por admin/seed
+  ownerId  String? // personId del venue_owner - se fija por admin/seed
 
   events       Event[]
   series       EventSeries[]
@@ -223,10 +223,10 @@ model EventSeries {
   producerId  String
   venue       Venue   @relation(fields: [venueId], references: [id])
   venueId     String
-  genres      Genre[] @default([]) // estilos de la serie — los eventos los heredan
-  genreMix    Json?   // ciclo de mezcla: [{genre, songs}] — ej. [{BACHATA,2},{SALSA,2},{BACHATA,2},{CUBANO,2}]
-  program     Json?   // cronograma de la noche: [{t:"20:30", end?:"22:00", label}] — los eventos lo heredan
-  recurrence  String? // "weekly:wed", "3x/month:fri" — descriptor humano en v1
+  genres      Genre[] @default([]) // estilos de la serie - los eventos los heredan
+  genreMix    Json?   // ciclo de mezcla: [{genre, songs}] - ej. [{BACHATA,2},{SALSA,2},{BACHATA,2},{CUBANO,2}]
+  program     Json?   // cronograma de la noche: [{t:"20:30", end?:"22:00", label}] - los eventos lo heredan
+  recurrence  String? // "weekly:wed", "3x/month:fri" - descriptor humano en v1
   active      Boolean @default(true)
 
   events     Event[]
@@ -250,7 +250,7 @@ model Event {
   genreMix    Json?       // override del ciclo de la serie; noches standalone lo declaran acá
   program     Json?       // override del cronograma de la serie; noches standalone lo declaran acá
   name        String
-  description String?   // notas libres — hoy lo usa PRACTICA ("trae agua, junto al skatepark")
+  description String?   // notas libres - hoy lo usa PRACTICA ("trae agua, junto al skatepark")
   startsAt    DateTime
   endsAt      DateTime
   capacity    Int?
@@ -285,7 +285,7 @@ model Event {
   rsvps          Rsvp[]
 }
 
-// RSVP "voy" (spec §8) — intención de asistencia sin ticket. Hoy lo usa
+// RSVP "voy" (spec §8) - intención de asistencia sin ticket. Hoy lo usa
 // PRACTICA (gratis, first-come); abierto a otros tipos si el producto lo pide.
 model Rsvp {
   id        String   @id @default(cuid())
@@ -303,7 +303,7 @@ model EventDay {
   event   Event    @relation(fields: [eventId], references: [id])
   eventId String
   date    DateTime
-  label   String? // "Día 1 — workshops", "Noche de fiesta"
+  label   String? // "Día 1 - workshops", "Noche de fiesta"
 }
 
 model ScheduleBlock {
@@ -371,10 +371,10 @@ model Ticket {
   // Entradas "por reclamar" (multi-entrada sin destinatario): el comprador
   // comparte /reclamar/<claimToken> por WhatsApp; al reclamar, ownerId pasa
   // al reclamante, giftedFromId=comprador, claimedAt marca el momento y el
-  // token se quema (null). buyerId siempre el pagador — trazabilidad.
+  // token se quema (null). buyerId siempre el pagador - trazabilidad.
   claimToken   String?      @unique
   claimedAt    DateTime?
-  // Orden que emitió el ticket — trazabilidad exacta compra→ticket
+  // Orden que emitió el ticket - trazabilidad exacta compra→ticket
   // (vincula con Payment.id; null en tickets históricos/manuales).
   paymentId    String?
   createdAt    DateTime     @default(now())
@@ -519,7 +519,7 @@ model SessionRating {
   @@unique([sessionId, raterId])
 }
 
-// Evaluación del evento — cada dimensión alimenta el ranking del actor responsable
+// Evaluación del evento - cada dimensión alimenta el ranking del actor responsable
 model EventRating {
   id            String   @id @default(cuid())
   eventId       String
@@ -621,7 +621,7 @@ model PointLedger {
   id       String   @id @default(cuid())
   personId String
   seasonId String?
-  points   Int // no gastables — solo posición de temporada
+  points   Int // no gastables - solo posición de temporada
   reason   String
   refType  String?
   refId    String?
@@ -671,7 +671,7 @@ model HappyHourWindow {
 // ═══════════════════ ACADEMIAS ═══════════════════
 
 // Tiers SaaS de la academia (spec academy-saas-billing). Precios por ciclo
-// y límites de alumnos activos viven en PlatformParam (academy_tier.*) —
+// y límites de alumnos activos viven en PlatformParam (academy_tier.*) -
 // ENTERPRISE es "a convenir", sin params ni auto-selección.
 enum AcademyTier {
   STARTER
@@ -718,12 +718,12 @@ model Academy {
   instagram String? // handle público de contacto (sin @)
   whatsapp  String? // teléfono de contacto para wa.me (E.164 sin "+")
   website   String? // URL pública del sitio (normalizada a https://…)
-  // Precio único (CLP) de la clase particular vendida como producto —
+  // Precio único (CLP) de la clase particular vendida como producto -
   // null = la academia no vende particulares. El owner asigna fecha e
   // instructor post-compra (spec private-lesson-product).
   privateLessonPrice Int?
   // ─── Suscripción SaaS de la plataforma (spec academy-saas-billing) ───
-  // tier/ciclo contratados — null = sin suscripción (trial, grace o churn).
+  // tier/ciclo contratados - null = sin suscripción (trial, grace o churn).
   tier            AcademyTier?
   billingCycle    BillingCycle?
   // Trial de onboarding: 30d academias nuevas; backfill 60d a las existentes
@@ -761,10 +761,10 @@ enum PlanType {
   MONTHLY    // fin del mes calendario
   QUARTERLY  // fin del 3er mes calendario desde la compra
   SEMIANNUAL // fin del 6º mes calendario
-  SINGLE     // clase única — fin del día de compra
-  CLASS_PACK // pack N clases — sin fecha (consumo no auditado en v1)
+  SINGLE     // clase única - fin del día de compra
+  CLASS_PACK // pack N clases - sin fecha (consumo no auditado en v1)
   PERIOD     // periodDays corridos desde startedAt
-  TRIAL      // prueba — se vende con price > 0; la gratis la asigna staff
+  TRIAL      // prueba - se vende con price > 0; la gratis la asigna staff
 }
 
 model MembershipPlan {
@@ -786,7 +786,7 @@ model MembershipPlan {
 
   enrollments   Enrollment[]
   subscriptions MembershipSubscription[]
-  // plan espejo en Flow (lazy create al primer subscribe — interval 3 mensual,
+  // plan espejo en Flow (lazy create al primer subscribe - interval 3 mensual,
   // interval_count según tipo). null = aún no sincronizado.
   flowPlanId    String?
 }
@@ -808,7 +808,7 @@ model Enrollment {
   planId    String?
   status    EnrollmentStatus @default(ACTIVE)
   startedAt DateTime         @default(now())
-  // "Pagado hasta" — vigencia del plan. Opcional: PERIOD se deriva
+  // "Pagado hasta" - vigencia del plan. Opcional: PERIOD se deriva
   // (startedAt + periodDays); MONTHLY/CLASS_PACK lo marca el staff al
   // cobrar; null = sin fecha de término registrada.
   endsAt    DateTime?
@@ -816,7 +816,7 @@ model Enrollment {
   createdAt DateTime         @default(now())
 }
 
-// Catálogos mantenibles por admin — los valores los edita el negocio,
+// Catálogos mantenibles por admin - los valores los edita el negocio,
 // no el código (mantenedor en /admin/catalogos).
 model ClassLevel {
   id     String @id @default(cuid())
@@ -835,13 +835,13 @@ model ClassType {
 }
 
 // Curso recurrente mensual: agrupa 1+ horarios semanales (ClassSlot) con
-// metadatos pedagógicos. month "YYYY-MM" delimita la vigencia — al crear
+// metadatos pedagógicos. month "YYYY-MM" delimita la vigencia - al crear
 // la serie se materializan los Class de ese mes.
 model ClassSeries {
   id           String      @id @default(cuid())
   academy      Academy     @relation(fields: [academyId], references: [id])
   academyId    String
-  name         String // "Bachata Sensual — Intermedio"
+  name         String // "Bachata Sensual - Intermedio"
   description  String?
   style        Style?      @relation(fields: [styleId], references: [id])
   styleId      String?
@@ -849,7 +849,7 @@ model ClassSeries {
   levelId      String?
   instructorId String? // profesor por defecto de la serie
   quorum       Int? // cupos por defecto de la serie (null → hereda academy/default)
-  dropInPrice  Int? // CLP — precio de la clase suelta (null = no se vende suelta)
+  dropInPrice  Int? // CLP - precio de la clase suelta (null = no se vende suelta)
   month        String // "2026-09"
   active       Boolean     @default(true)
   createdAt    DateTime    @default(now())
@@ -867,7 +867,7 @@ model ClassSeriesType {
   @@id([seriesId, typeId])
 }
 
-// Horario semanal de una serie. Todo slot pertenece a una serie — la
+// Horario semanal de una serie. Todo slot pertenece a una serie - la
 // clase es siempre "estilo + modalidad + nivel" del curso, con overrides
 // puntuales (capacity/instructorId/types) que heredan de la serie.
 model ClassSlot {
@@ -913,7 +913,7 @@ model Class {
 // Reserva de cupo con lista de espera: BOOKED ocupa cupo; si la clase se
 // llena entra como WAITLIST (orden = createdAt) y se promueve al liberarse.
 // Consume crédito de la cuota del plan (weeklyClasses / classCount) solo en
-// BOOKED o CANCELLED con refunded=false — WAITLIST no consume, y una
+// BOOKED o CANCELLED con refunded=false - WAITLIST no consume, y una
 // cancelación dentro de la ventana (o hecha por la academia) devuelve.
 model ClassBooking {
   id        String   @id @default(cuid())
@@ -957,7 +957,7 @@ model PrivateLesson {
   price        Int
   commissionPct Int    @default(0) // comisión de la academia (snapshot al assign)
   // Liquidación de la comisión academia→instructor: la plataforma no
-  // transfiere — el owner marca commissionPaidAt cuando paga por fuera
+  // transfiere - el owner marca commissionPaidAt cuando paga por fuera
   // (mismo criterio que Payout.evidenceUrl). null = pendiente.
   commissionPaidAt DateTime?
   // Compra que la originó (null = creada manual por staff)
@@ -970,7 +970,7 @@ model Video {
   id                   String  @id @default(cuid())
   academyId            String
   classId              String?
-  url                  String // YouTube/Vimeo privado — nunca self-host
+  url                  String // YouTube/Vimeo privado - nunca self-host
   title                String
   restrictedToAttended Boolean @default(true)
   createdAt            DateTime @default(now())
@@ -1023,10 +1023,10 @@ model Show {
   event    Event    @relation(fields: [eventId], references: [id])
   eventId  String
   academyId String?
-  // Nombre visible de la academia — texto libre: puede no estar
+  // Nombre visible de la academia - texto libre: puede no estar
   // registrada en la app (academyId la vincula cuando sí lo está).
   academy  String
-  // BOOTCAMP | ALUMNOS | OPEN | PRO | AMATEUR — tipo de team que presenta
+  // BOOTCAMP | ALUMNOS | OPEN | PRO | AMATEUR - tipo de team que presenta
   teamType String
   name     String    // nombre de la coreografía
   order    Int       @default(0) // orden de presentación en la noche
@@ -1038,7 +1038,7 @@ model ShowPerformer {
   id       String @id @default(cuid())
   show     Show   @relation(fields: [showId], references: [id])
   showId   String
-  personId String // artista — pase ARTIST, no paga entrada
+  personId String // artista - pase ARTIST, no paga entrada
 
   @@unique([showId, personId])
 }
@@ -1068,20 +1068,20 @@ model Payment {
   // ticket por persona al PAID.
   quantity  Int  @default(1)
   recipients Json?
-  // Canal de venta y economía unitaria al momento de la orden — el
+  // Canal de venta y economía unitaria al momento de la orden - el
   // webhook emite los tickets con estos valores (el evento pudo cambiar
   // de precio entre el checkout y el PAID, y presalePrice es null en
   // ventas de puerta).
-  channel      String? // PRESALE | DOOR — null en pagos legacy (presale)
+  channel      String? // PRESALE | DOOR - null en pagos legacy (presale)
   unitListPrice    Int? // precio de lista por ticket (CLP)
   unitServiceFee   Int? // cargo por servicio por ticket (CLP)
   // Intención de reserva de mesa del checkout (spec §13): el webhook la
-  // materializa como TableReservation REQUESTED solo al PAID — una mesa
+  // materializa como TableReservation REQUESTED solo al PAID - una mesa
   // sin ticket pagado nunca ocupa cupo.
   tablePartySize Int?
   gateway   String        @default("FLOW")
   gatewayRef String?
-  // Verdad monetaria reportada por la pasarela al confirmar PAID — auditable
+  // Verdad monetaria reportada por la pasarela al confirmar PAID - auditable
   // contra la tarifa esperada (~3.19% tarjeta) y contra Payment.amount.
   gatewayFeeClp         Int?
   gatewayReportedAmount Int?
@@ -1108,7 +1108,7 @@ model Payout {
   periodEnd   DateTime
   gross       Int
   platformFee Int         @default(0) // comisión plataforma descontada en esta liquidación
-  // Costo de pasarela descontado como línea GATEWAY_FEE_PASSTHROUGH —
+  // Costo de pasarela descontado como línea GATEWAY_FEE_PASSTHROUGH -
   // solo liquidaciones ACADEMY (modelo SaaS: la academia vende sin
   // comisión pero absorbe el costo Flow, tasa gateway_fee.academy_passthrough_pct).
   gatewayFee  Int         @default(0)
@@ -1161,7 +1161,7 @@ model RelationshipScore {
   actorType String // ACADEMY | PRODUCER | VENUE | DJ | INSTRUCTOR
   actorId   String
   personId  String
-  score     Float // RFM + engagement — privado por actor
+  score     Float // RFM + engagement - privado por actor
   segment   String? // CORE | AT_RISK | NEW | BRINGS_PEOPLE
   computedAt DateTime @default(now())
 
@@ -1257,7 +1257,7 @@ model AuditLog {
 // Defaults por productor. Fees/comisiones: editables solo por admin, cada
 // campo null hereda el PlatformParam global y un evento puede sobreescribir
 // (cadena: evento → productor → global). Mesas: operativos, los edita el
-// propio productor — el evento los hereda al crear/editar salvo override.
+// propio productor - el evento los hereda al crear/editar salvo override.
 model ProducerParams {
   producerId     String   @id
   serviceFeeClp  Int?
@@ -1283,7 +1283,7 @@ model PlatformParam {
   updatedAt   DateTime @updatedAt
 }
 
-// Lead de marketing de /pro — formulario público de contacto/demo.
+// Lead de marketing de /pro - formulario público de contacto/demo.
 // roles: PRODUCER | DJ | ACADEMY_OWNER | VENUE_MANAGER · intent: CONTACT | DEMO.
 // email único: un re-envío actualiza el lead en vez de duplicarlo. personId
 // enlaza la cuenta demo creada vía "ingresa acá" (FK pelado, como otras tablas).
@@ -1291,12 +1291,12 @@ model Lead {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
-  phone     String?  // obligatorio solo en intent CONTACT — la demo no lo exige
+  phone     String?  // obligatorio solo en intent CONTACT - la demo no lo exige
   roles     String[]
   intent    String
   status    String   @default("NEW") // NEW | CONTACTED | CONVERTED | DISCARDED
   personId  String?
-  demoToken String? // secreto de activación demo — solo se devuelve en el POST /leads
+  demoToken String? // secreto de activación demo - solo se devuelve en el POST /leads
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -1356,7 +1356,7 @@ model MembershipSubscription {
   // ACTIVATING = claim transitorio entre el registro de tarjeta y el
   // subscription/create de Flow (evita doble cobro por carrera).
   status             String         @default("PENDING_CARD")
-  nextInvoiceAt      DateTime?      // de Flow next_invoice_date — alimenta el reminder
+  nextInvoiceAt      DateTime?      // de Flow next_invoice_date - alimenta el reminder
   lastInvoiceId      String?        // dedup de renovaciones ya liquidadas
   reminderSentFor    DateTime?      // nextInvoiceAt ya recordado (dedup alerta)
   createdAt          DateTime       @default(now())
@@ -1370,16 +1370,16 @@ model MembershipSubscription {
 /// Suscripción DE la plataforma (spec academy-saas-billing): la academia
 /// paga su tier SaaS y el productor paga Producer Pro. Distinta de
 /// MembershipSubscription (alumno → academia) y del legado
-/// AcademySubscription (sin uso — no tocar).
+/// AcademySubscription (sin uso - no tocar).
 /// Cardinalidad según kind: ACADEMY → academyId non-null / producerId null;
-/// PRODUCER → producerId non-null (Person con rol PRODUCER — no hay tabla
+/// PRODUCER → producerId non-null (Person con rol PRODUCER - no hay tabla
 /// Producer, igual que EventSeries.producerId) / academyId null.
 model PlatformSubscription {
   id        String          @id @default(cuid())
   kind      PlatformSubKind
   academy   Academy?        @relation(fields: [academyId], references: [id])
   academyId String?
-  // El productor suscrito — Person con rol PRODUCER (producerId = personId).
+  // El productor suscrito - Person con rol PRODUCER (producerId = personId).
   producer   Person? @relation("PlatformSubscriptionProducer", fields: [producerId], references: [id])
   producerId String?
   // Quien paga la suscripción (owner de la academia o el propio productor).
@@ -1391,7 +1391,7 @@ model PlatformSubscription {
   tierCode           String
   billingCycle       BillingCycle
   // Cambio de plan pendiente (downgrade/cambio de ciclo): se aplica al
-  // iniciarse el próximo ciclo — el reconcile cancela la Flow sub al fin de
+  // iniciarse el próximo ciclo - el reconcile cancela la Flow sub al fin de
   // período y crea la nueva sobre el plan del tier pendiente. null = nada
   // pendiente (upgrade aplica inmediato, no usa estos campos).
   pendingTierCode      String?
@@ -1400,7 +1400,7 @@ model PlatformSubscription {
   // Mismo ciclo de vida que MembershipSubscription:
   // PENDING_CARD → ACTIVATING → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
   status          String    @default("PENDING_CARD")
-  nextInvoiceAt   DateTime? // de Flow next_invoice_date — alimenta el reminder
+  nextInvoiceAt   DateTime? // de Flow next_invoice_date - alimenta el reminder
   lastInvoiceId   String?   // dedup de renovaciones ya liquidadas
   reminderSentFor DateTime? // nextInvoiceAt ya recordado (dedup alerta)
   createdAt       DateTime  @default(now())

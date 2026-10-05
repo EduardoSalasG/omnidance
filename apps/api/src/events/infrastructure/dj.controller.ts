@@ -25,8 +25,8 @@ const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
 
 /**
  * Consola del DJ: sus gigs (EventDj) y el ranking de canciones pedidas
- * por evento. Misma semántica que /events/:id/song-suggestions — solo
- * cuentan sugerencias de personas con ticket ACTIVE|USED — pero acá se
+ * por evento. Misma semántica que /events/:id/song-suggestions - solo
+ * cuentan sugerencias de personas con ticket ACTIVE|USED - pero acá se
  * agrupa por título+artista y se expone el total bruto de sugerencias.
  * ADMIN (o permiso admin.access) bypassa el check de DJ del evento.
  */
@@ -36,7 +36,7 @@ const norm = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
 export class DjController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** GET /api/dj/gigs — gigs propios separados en upcoming/past (admin: todos). */
+  /** GET /api/dj/gigs - gigs propios separados en upcoming/past (admin: todos). */
   @Get("gigs")
   async gigs(@Req() req: Request) {
     const me = req.person!;
@@ -79,7 +79,7 @@ export class DjController {
   }
 
   /**
-   * GET /api/dj/gigs/:eventId/suggestions — ranking agregado de pedidos
+   * GET /api/dj/gigs/:eventId/suggestions - ranking agregado de pedidos
    * del evento. Requiere ser DJ del evento (o admin).
    */
   @Get("gigs/:eventId/suggestions")
@@ -105,7 +105,7 @@ export class DjController {
     const total = suggestions.length;
     if (total === 0) return { total: 0, ranking: [] };
 
-    // Solo cuentan personas con ticket pagado (ACTIVE|USED) — join manual:
+    // Solo cuentan personas con ticket pagado (ACTIVE|USED) - join manual:
     // Ticket.eventId/ownerId son escalares sin relación.
     const personIds = [...new Set(suggestions.map((s) => s.personId))];
     const paidTickets = await this.prisma.ticket.findMany({
@@ -144,8 +144,8 @@ export class DjController {
   }
 
   /**
-   * GET /api/dj/gigs/:eventId/rating — evaluación agregada de la música
-   * del evento para el DJ asignado (spec §13: vista ligera del DJ —
+   * GET /api/dj/gigs/:eventId/rating - evaluación agregada de la música
+   * del evento para el DJ asignado (spec §13: vista ligera del DJ -
    * "su evaluación agregada de música por evento"). Misma k-anonymity
    * que /events/:id/ratings/summary: bajo el umbral no se expone
    * promedio, solo {exposed:false,count}.

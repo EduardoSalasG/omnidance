@@ -23,7 +23,7 @@ const corsOrigins = (
  * Fan-out realtime de notificaciones.
  * Cada socket se autentica con la cookie de sesión (`omnidance_session`,
  * mismo JWT que verifica AuthService) y se une a la room `person:{personId}`.
- * Implementa RealtimePort — el dominio emite con emitToPerson (token
+ * Implementa RealtimePort - el dominio emite con emitToPerson (token
  * REALTIME_PORT). Sin auth válida el socket se desconecta.
  */
 @WebSocketGateway({ cors: { origin: corsOrigins, credentials: true } })
@@ -63,7 +63,7 @@ export class NotificationsGateway
   }
 }
 
-/** Parseo manual del header Cookie — no hay dependencia `cookie` instalada. */
+/** Parseo manual del header Cookie - no hay dependencia `cookie` instalada. */
 function readCookie(
   header: string | undefined,
   name: string,

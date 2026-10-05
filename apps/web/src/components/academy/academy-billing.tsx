@@ -24,7 +24,7 @@ const CYCLE_MONTHS: Record<BillingCycle, number> = {
   ANNUAL: 12,
 };
 
-// Tiers auto-contratables — ENTERPRISE es "a convenir" (espejo de
+// Tiers auto-contratables - ENTERPRISE es "a convenir" (espejo de
 // SELF_SERVE_ACADEMY_TIERS en apps/api/src/payments/domain/platform-tiers.ts).
 const TIERS = ["STARTER", "PRO", "STUDIO"] as const;
 type TierCode = (typeof TIERS)[number];
@@ -35,7 +35,7 @@ const TIER_RANK: Record<string, number> = {
   ENTERPRISE: 3,
 };
 
-/** GET /academies/:id/billing — vista de billing del owner (S5). */
+/** GET /academies/:id/billing - vista de billing del owner (S5). */
 type BillingView = {
   tier: string | null;
   cycle: BillingCycle | null;
@@ -61,7 +61,7 @@ type BillingView = {
   }[];
 };
 
-/** POST /academies/:id/subscribe — needs_card → disclaimer Flow. */
+/** POST /academies/:id/subscribe - needs_card → disclaimer Flow. */
 type SubscribeResult = {
   paymentUrl: string | null;
   subscriptionId: string;
@@ -77,13 +77,13 @@ const clp = new Intl.NumberFormat("es-CL", {
 });
 
 /**
- * /academia/suscripcion — billing SaaS de la academia (S6,
+ * /academia/suscripcion - billing SaaS de la academia (S6,
  * academy-saas-billing): estado del plan (tier/ciclo, alumnos vs límite,
  * próxima facturación, trial, gracia, bloqueo), contratación vía registro
  * de tarjeta Flow (interstitial honesto antes del salto), cambio de plan
  * (upgrade inmediato / downgrade agendado al fin de ciclo), cancelación a
  * fin de período e historial de invoices (Payment PLATFORM_SUB).
- * Precios y límites salen de GET /params/public (academy_tier.*) — el
+ * Precios y límites salen de GET /params/public (academy_tier.*) - el
  * cargo real de Flow es precio mensual-equivalente del ciclo × meses
  * (chargeSpec del service); el descuento del ciclo se calcula del precio,
  * nunca se hardcodea.
@@ -148,7 +148,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     void load();
   }, [load]);
 
-  // PlatformParam.value es Json — coerce defensivo (seed los guarda
+  // PlatformParam.value es Json - coerce defensivo (seed los guarda
   // como números, pero nada impide strings desde /admin).
   const num = useCallback(
     (key: string): number | null => {
@@ -164,7 +164,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     [num],
   );
   // Precio mensual-equivalente del tier en el ciclo (ya trae el descuento
-  // del ciclo — el cargo Flow es × meses).
+  // del ciclo - el cargo Flow es × meses).
   const tierPrice = useCallback(
     (tier: string, cycle: BillingCycle) =>
       num(`academy_tier.${tier.toLowerCase()}_${cycle.toLowerCase()}_clp`),
@@ -203,7 +203,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     currentTierKey === selTier && view?.cycle === selCycle;
   // PATCH con los valores vigentes cuando hay un cambio agendado → el
   // pending queda = plan actual (el swap recrea el mismo plan al fin de
-  // ciclo — deshace el downgrade programado; la cancel remota a fin de
+  // ciclo - deshace el downgrade programado; la cancel remota a fin de
   // período no se puede deshacer, por eso el "revert" es así).
   const reverting = selectionIsCurrent && view?.pendingTier != null;
   const canApply = chargeTotal != null && (!selectionIsCurrent || reverting);
@@ -305,9 +305,9 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   /**
    * Mensaje de error del server: BadRequestException con objeto
    * ({error:"tier_limit", message:"…", active, max}) responde el objeto
-   * verbatim — `body.message` es el copy honesto en es-CL con el conteo;
+   * verbatim - `body.message` es el copy honesto en es-CL con el conteo;
    * errores string llegan como `{message:"…"}`. Cap a 300 chars como en
-   * membership-checkout — no confiar en bodies arbitrarios.
+   * membership-checkout - no confiar en bodies arbitrarios.
    */
   async function errorMessage(res: Response): Promise<string | null> {
     const body = (await res.json().catch(() => null)) as {
@@ -381,7 +381,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
 
   const planSelector = (
     <>
-      {/* Tiers auto-contratables — card por tier con límite y precio
+      {/* Tiers auto-contratables - card por tier con límite y precio
           del ciclo seleccionado. El que no cabe a los alumnos activos
           queda deshabilitado con el conteo (mismo motivo del 400
           tier_limit del API). */}
@@ -438,7 +438,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         </a>
       </p>
 
-      {/* Ciclo de facturación — 3 botones como el selector de Producer
+      {/* Ciclo de facturación - 3 botones como el selector de Producer
           Pro: el descuento se calcula del precio real del param, no se
           hardcodea el −2%/−4% del design. */}
       <fieldset className="flex flex-col gap-2">
@@ -509,7 +509,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           {statusBadge}
         </div>
 
-        {/* Alumnos activos vs límite del tier — la métrica que define el
+        {/* Alumnos activos vs límite del tier - la métrica que define el
             tier; ≥90% ámbar, al tope rojo. */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -693,7 +693,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         </Card>
       )}
 
-      {/* ── Contratación — sin suscripción viva o registro pendiente ── */}
+      {/* ── Contratación - sin suscripción viva o registro pendiente ── */}
       {!hasLiveSub && view.status !== "ACTIVATING" && !registerUrl && (
         <Card className="flex flex-col gap-4">
           {planSelector}

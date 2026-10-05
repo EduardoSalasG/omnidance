@@ -9,15 +9,15 @@ export type StarRatingProps = {
   value?: number | null;
   onSelect?: (score: number) => void;
   busy?: boolean;
-  /** aria-label del radiogroup/img — default "¿Cómo estuvo el baile?"
+  /** aria-label del radiogroup/img - default "¿Cómo estuvo el baile?"
       (sesiones); la encuesta de evento pasa el nombre de la dimensión. */
   ariaLabel?: string;
-  /** Campo obligatorio — aria-required en el radiogroup. */
+  /** Campo obligatorio - aria-required en el radiogroup. */
   required?: boolean;
-  /** Submit falló por falta de selección — aria-invalid en el grupo. */
+  /** Submit falló por falta de selección - aria-invalid en el grupo. */
   invalid?: boolean;
   /** id del mensaje que describe el estado del grupo (p.ej. el error
-      de "obligatorio") — va a aria-describedby del radiogroup. */
+      de "obligatorio") - va a aria-describedby del radiogroup. */
   ariaDescribedBy?: string;
 };
 
@@ -29,7 +29,7 @@ const starCls = (lit: boolean) =>
     lit ? "text-neon" : "text-white/40"
   }`;
 
-/** Cinco estrellas con touch targets >= 44px — usable con pulgar en pista. */
+/** Cinco estrellas con touch targets >= 44px - usable con pulgar en pista. */
 export function StarRating({
   value = null,
   onSelect,
@@ -41,12 +41,12 @@ export function StarRating({
 }: StarRatingProps) {
   const t = useTranslations("sessions");
   const [preview, setPreview] = useState<number | null>(null);
-  // Última estrella pedida en esta interacción — el padre confirma async,
+  // Última estrella pedida en esta interacción - el padre confirma async,
   // así aria-checked refleja la elección del usuario de inmediato.
   const [chosen, setChosen] = useState<number | null>(null);
   // Roving tabindex (APG radiogroup): solo una estrella es tabbable.
   // También marca la posición de navegación por teclado: las flechas
-  // la mueven SIN confirmar — Enter/Espacio sobre la estrella enfocada
+  // la mueven SIN confirmar - Enter/Espacio sobre la estrella enfocada
   // confirma (el click nativo del botón dispara select). Un tap/click
   // directo sigue enviando al instante.
   const [focusStar, setFocusStar] = useState<number | null>(null);

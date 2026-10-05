@@ -33,7 +33,7 @@ export class TicketsController {
   /**
    * Info pública de una invitación de entrada (claim link). Solo expone
    * lo necesario para la landing: quién regala + qué evento. 404 para
-   * tokens inexistentes o ya reclamados (sin distinguir — no filtramos
+   * tokens inexistentes o ya reclamados (sin distinguir - no filtramos
    * qué tokens existen).
    */
   @Get("claim/:token")
@@ -72,7 +72,7 @@ export class TicketsController {
   /**
    * Reclamar la entrada (sesión requerida): ownerId pasa al reclamante,
    * giftedFromId=comprador, claimedAt marca el momento y el token se
-   * quema. Atómico vía updateMany — un doble reclamo concurrente gana el
+   * quema. Atómico vía updateMany - un doble reclamo concurrente gana el
    * primero; el segundo recibe 404.
    */
   @Post("claim/:token")
@@ -201,7 +201,7 @@ export class TicketsController {
     }
 
     // Transfer manual quema el claim link (si el ticket era reclamable)
-    // — el nuevo dueño no hereda un token que el anterior siga teniendo.
+    // - el nuevo dueño no hereda un token que el anterior siga teniendo.
     const updated = await this.prisma.ticket.update({
       where: { id },
       data: {
@@ -212,7 +212,7 @@ export class TicketsController {
       },
     });
 
-    // Referral GIFT_TICKET (CRM) — best-effort, nunca bloquea el transfer.
+    // Referral GIFT_TICKET (CRM) - best-effort, nunca bloquea el transfer.
     // Sin @@unique en schema: guard findFirst para no duplicar
     // referrerId+referredId+source si se repite el transfer al mismo target.
     try {

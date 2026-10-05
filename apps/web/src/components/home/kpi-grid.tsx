@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 
-// KPI agregado de /home/stats — "Tu actividad" del bailarín y el
+// KPI agregado de /home/stats - "Tu actividad" del bailarín y el
 // "Resumen" de los roles de gestión. Home muestra un subset; /perfil
 // muestra la grilla completa de la lente activa.
 export type Kpi = { key: string; value: number; format?: "clp" };
@@ -13,7 +13,7 @@ const clp = new Intl.NumberFormat("es-CL", {
   maximumFractionDigits: 0,
 });
 
-// KPIs que representan trabajo pendiente — se destacan con borde de
+// KPIs que representan trabajo pendiente - se destacan con borde de
 // acento para que el dashboard "grite" lo accionable.
 const ATTENTION_KEYS = new Set(["pendingRoles", "pendingPayouts"]);
 

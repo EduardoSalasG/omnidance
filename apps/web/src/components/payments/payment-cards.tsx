@@ -25,7 +25,7 @@ type Props = {
   payments: PaymentAuditRow[];
   /**
    * Habilita el detalle expandible del ledger por pago
-   * (GET /payments/:id/events — solo dueño del pago o admin; en las
+   * (GET /payments/:id/events - solo dueño del pago o admin; en las
    * consolas by-event/by-academy el caller no es dueño → dejar false).
    */
   withLedger?: boolean;

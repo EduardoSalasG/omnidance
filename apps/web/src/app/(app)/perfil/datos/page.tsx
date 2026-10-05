@@ -116,7 +116,7 @@ function EditField({
 
 // Segmented control del género (nullable): tap en la opción activa la
 // desmarca → "sin declarar" (PATCH /me con gender null). Radiogroup con
-// roving tabindex — las flechas mueven la selección, un solo tab stop.
+// roving tabindex - las flechas mueven la selección, un solo tab stop.
 function GenderGroup({
   label,
   options,
@@ -201,7 +201,7 @@ export default function DatosPage() {
   const tc = useTranslations("common");
   const viewMode = useViewMode();
 
-  // /me compartido (MeProvider del layout) — sin fetch propio: la página
+  // /me compartido (MeProvider del layout) - sin fetch propio: la página
   // hereda el dato ya resuelto al navegar desde /perfil (cero waterfall)
   // y el retry de error re-ejecuta el fetch del contexto.
   const {
@@ -218,10 +218,10 @@ export default function DatosPage() {
         ? "ready"
         : "unauth";
 
-  // Datos personales: modo edición — nombre, teléfono, Instagram y
+  // Datos personales: modo edición - nombre, teléfono, Instagram y
   // género son editables (PATCH /me); email/fecha verificación son de
   // solo lectura. El género vive acá (sección común) para que sea
-  // editable en ambos lentes — antes solo existía en la sección social.
+  // editable en ambos lentes - antes solo existía en la sección social.
   const [personalEditing, setPersonalEditing] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
@@ -295,7 +295,7 @@ export default function DatosPage() {
         setPersonalState("err");
         return;
       }
-      // Refresh silencioso del contexto — me previo sigue pintado, el
+      // Refresh silencioso del contexto - me previo sigue pintado, el
       // refetch solo actualiza los campos (incluye styleRoles/etc.).
       void refreshMe();
       setPersonalEditing(false);
@@ -393,7 +393,7 @@ export default function DatosPage() {
   }
 
   if (state === "loading" || !me) {
-    // Shell skeleton con la forma real de la página — nunca pantalla en
+    // Shell skeleton con la forma real de la página - nunca pantalla en
     // blanco con spinner.
     return (
       <main
@@ -432,7 +432,7 @@ export default function DatosPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
       <h1 className="text-2xl font-bold">{t("datos.title")}</h1>
 
-      {/* Datos personales — comunes a ambos modos (social y academia) */}
+      {/* Datos personales - comunes a ambos modos (social y academia) */}
       <Card>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
           {t("datos.personal")}
@@ -479,9 +479,9 @@ export default function DatosPage() {
               />
             </>
           )}
-          {/* Email no es editable (es la identidad de login) — siempre
+          {/* Email no es editable (es la identidad de login) - siempre
               visible, también en modo edición. */}
-          <Field label={t("datos.email")} value={me.email ?? "—"} />
+          <Field label={t("datos.email")} value={me.email ?? "·"} />
           {personalEditing ? (
             <EditField
               id="ig-input"
@@ -519,9 +519,6 @@ export default function DatosPage() {
                 value={genderDraft}
                 onChange={setGenderDraft}
               />
-              <p className="mt-1.5 text-xs text-white/50">
-                {t("datos.genderHint")}
-              </p>
             </div>
           ) : (
             <Field
@@ -535,7 +532,7 @@ export default function DatosPage() {
           )}
           <Field
             label={t("datos.memberSince")}
-            value={me.createdAt ? dateFmt.format(new Date(me.createdAt)) : "—"}
+            value={me.createdAt ? dateFmt.format(new Date(me.createdAt)) : "·"}
           />
         </div>
         {personalState === "saved" && (
@@ -590,7 +587,7 @@ export default function DatosPage() {
         )}
       </Card>
 
-      {/* Datos por modo — social: estilos con rol/nivel declarados;
+      {/* Datos por modo - social: estilos con rol/nivel declarados;
           academia: inscripciones vigentes con plan y estado. */}
       {viewMode === "academy" ? (
         <Card>

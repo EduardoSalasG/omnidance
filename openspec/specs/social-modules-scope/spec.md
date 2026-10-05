@@ -1,7 +1,7 @@
 # social-modules-scope Specification
 
 ## Purpose
-Alcance de los módulos sociales del bailarín: `/bailes` solo lista `DanceSession` (nacidas de escaneo QR; históricas INVITED como pendientes/expiradas descartables) — nunca disponibilidad ni solicitudes de pareja; `/practicas` es el hub de encontrar con quién.
+Alcance de los módulos sociales del bailarín: `/bailes` solo lista `DanceSession` (nacidas de escaneo QR; históricas INVITED como pendientes/expiradas descartables) - nunca disponibilidad ni solicitudes de pareja; `/practicas` es el hub de encontrar con quién.
 
 ## Requirements
 
@@ -9,7 +9,7 @@ Alcance de los módulos sociales del bailarín: `/bailes` solo lista `DanceSessi
 
 `/bailes` SHALL listar las `DanceSession` del usuario (creadas
 exclusivamente por escaneo QR; las históricas INVITED aparecen como
-pendientes/expiradas) con pareja, estilo, estado y rating — sin otras
+pendientes/expiradas) con pareja, estilo, estado y rating - sin otras
 secciones. MUST NOT renderizar disponibilidad ni solicitudes de pareja.
 
 #### Scenario: Historial limpio

@@ -7,7 +7,7 @@ import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { inputCls, readError, type Academy } from "./shared";
 
-// GET /academies/:id (manage) — instructors incluye commissionPct desde
+// GET /academies/:id (manage) - instructors incluye commissionPct desde
 // role-console-polish; los nombres se resuelven via GET /academies
 // (directorio autenticado).
 type ManageInstructor = { personId: string; commissionPct: number | null };
@@ -18,12 +18,12 @@ type DirectoryAcademy = {
 };
 
 // Quórum por defecto cuando la academia no tiene uno configurado
-// (Academy.defaultQuorum === null) — mismo fallback del backend.
+// (Academy.defaultQuorum === null) - mismo fallback del backend.
 const DEFAULT_QUORUM_FALLBACK = 20;
 
 /**
- * Configuración de la academia — por ahora solo `defaultQuorum`
- * (PATCH /academies/:id/settings, owner/admin — el server responde 403
+ * Configuración de la academia - por ahora solo `defaultQuorum`
+ * (PATCH /academies/:id/settings, owner/admin - el server responde 403
  * a instructores). Misma regla de visibilidad que videos.tsx:
  * ADMIN o me.id === academy.ownerId; sin sesión resuelta no se renderiza
  * (evita flash del card a instructores).
@@ -32,13 +32,13 @@ export function AcademySettings({ academy }: { academy: Academy }) {
   const t = useTranslations("academy.settings");
   const tc = useTranslations("common");
 
-  // /me compartido — la guard owner/ADMIN gatea el card completo
+  // /me compartido - la guard owner/ADMIN gatea el card completo
   // (instructores nunca lo ven); mientras resuelve, null = oculto.
   const { me, loading: meLoading } = useMe();
   const [quorum, setQuorum] = useState(
     academy.defaultQuorum != null ? String(academy.defaultQuorum) : "",
   );
-  // Valor efectivo mostrado ("Actual: N") — la prop academy no se
+  // Valor efectivo mostrado ("Actual: N") - la prop academy no se
   // refetchea tras guardar, así que se actualiza localmente.
   const [current, setCurrent] = useState<number | null>(
     academy.defaultQuorum ?? null,
@@ -72,7 +72,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
     !!me &&
     (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
-  // Instructores + comisión — solo si ya sabemos que es owner/admin
+  // Instructores + comisión - solo si ya sabemos que es owner/admin
   // (evita el fetch manage a instructores puros, que daría datos ajenos).
   useEffect(() => {
     if (!canAdminister) return;

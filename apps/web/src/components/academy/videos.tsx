@@ -20,7 +20,7 @@ const t = academyExtras.academyExtras.videos;
 type LoadState = "loading" | "ready" | "error";
 
 /**
- * Video — espejo del schema (url externa, nunca self-host; sin `level`).
+ * Video - espejo del schema (url externa, nunca self-host; sin `level`).
  * GET /academies/:id/videos: staff y videos no restringidos vienen con url;
  * restringidos sin acceso vienen {id, title, classId, restrictedToAttended,
  * locked:true} SIN url. Desbloqueo server-side: asistencia a la Class

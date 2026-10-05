@@ -13,7 +13,7 @@ type Phase =
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string }
   // El polling se agotó sin webhook (~30s): el pago puede confirmar
-  // igual — el pase aparece en Mis entradas al llegar.
+  // igual - el pase aparece en Mis entradas al llegar.
   | { kind: "stillPending"; paymentId: string; paymentUrl: string }
   | { kind: "success" }
   | { kind: "failed" };
@@ -21,10 +21,10 @@ type Phase =
 type Notice = "loginRequired" | "alreadyOwned" | "unavailable" | "generic" | null;
 
 const POLL_INTERVAL_MS = 2_000;
-const POLL_MAX_ATTEMPTS = 15; // ~30s — mismo criterio que checkout-client
+const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
 
 export type SeriesPassCtaProps = {
-  /** EventSeries.id — requerido por POST /checkout/series-pass. */
+  /** EventSeries.id - requerido por POST /checkout/series-pass. */
   seriesId: string;
   /** Mes de vigencia del pase, formato "YYYY-MM" (mes del evento). */
   month: string;
@@ -77,7 +77,7 @@ export function SeriesPassCta({
         .catch(() => undefined);
       if (attempts >= POLL_MAX_ATTEMPTS) {
         clearInterval(interval);
-        // Sin confirmación tras ~30s — no dejar "awaiting" eterno:
+        // Sin confirmación tras ~30s - no dejar "awaiting" eterno:
         // mismo estado stillPending que /checkout/return.
         setPhase({
           kind: "stillPending",
@@ -131,7 +131,7 @@ export function SeriesPassCta({
       };
 
       if (data.paymentUrl.startsWith("stub://")) {
-        // Dev: gateway stub — el pago se simula con el webhook desde acá
+        // Dev: gateway stub - el pago se simula con el webhook desde acá
         setPhase({
           kind: "awaiting",
           paymentId: data.paymentId,
@@ -266,12 +266,12 @@ export function SeriesPassCta({
         </div>
       )}
 
-      {/* Polling agotado sin webhook: el pase puede confirmar igual —
+      {/* Polling agotado sin webhook: el pase puede confirmar igual -
           aparece en Mis entradas cuando llegue la confirmación. */}
       {phase.kind === "stillPending" && (
         <div className="flex flex-col gap-3 border-t border-night-700 pt-3">
           <p role="status" className="text-sm text-white/70">
-            {tco("stillPendingTitle")} — {tco("stillPendingDesc")}
+            {tco("stillPendingTitle")} - {tco("stillPendingDesc")}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button

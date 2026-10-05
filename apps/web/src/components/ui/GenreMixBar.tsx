@@ -1,11 +1,11 @@
 // Mini barra de mezcla: la proporción de estilos que suena en la
 // noche, segmentada por color (misma paleta que dots/texto de género).
-// El ciclo llega como bloques [{genre, songs}] que se repiten — se
+// El ciclo llega como bloques [{genre, songs}] que se repiten - se
 // agregan por género conservando el orden de primera aparición en el
 // ciclo (el orden en que el DJ los tira).
 //
 // El div es role="img" con aria-label "Salsa 50% · Bachata 33% ·
-// Timba 17%" — la barra es decorativa, el dato lo lleva el label.
+// Timba 17%" - la barra es decorativa, el dato lo lleva el label.
 
 export type GenreMixBlock = { genre: string; songs: number };
 

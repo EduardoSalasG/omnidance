@@ -7,7 +7,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
   const events = await fetchPublicEvents();
 
-  // Solo rutas públicas indexables — el resto son superficies de app.
+  // Solo rutas públicas indexables - el resto son superficies de app.
   const entries: MetadataRoute.Sitemap = [
     "/",
     "/pro",

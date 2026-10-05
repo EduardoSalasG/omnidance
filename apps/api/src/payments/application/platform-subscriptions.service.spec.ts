@@ -16,7 +16,7 @@ import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
 import { PlatformSubscriptionsService } from "./platform-subscriptions.service";
 
-// PlatformSubscriptionsService — fake SubscriptionProvider (name "FLOW"
+// PlatformSubscriptionsService - fake SubscriptionProvider (name "FLOW"
 // para pasar el check del puerto) + fake prisma stateful (mismo patrón
 // que subscriptions.service.spec). Se usa el PaymentSettlementService
 // REAL: el reconcile ejerce el camino completo Payment → settle →
@@ -488,7 +488,7 @@ describe("PlatformSubscriptionsService", () => {
     fx = mkPrisma();
     flow = mkFlow();
     notifications = mkNotifications();
-    // Dedup de mora/reminders consulta prisma.notification — el spy
+    // Dedup de mora/reminders consulta prisma.notification - el spy
     // registra cada notifySafe en sentNotifs para que findFirst lo
     // encuentre (mismo truco que subscriptions.service.spec).
     notifications.notifySafe.mockImplementation(
@@ -865,7 +865,7 @@ describe("PlatformSubscriptionsService", () => {
         "fsub-old",
         expect.not.objectContaining({ immediate: true }),
       );
-      // NO hay createSubscription todavía — ocurre al fin del período
+      // NO hay createSubscription todavía - ocurre al fin del período
       expect(flow.createSubscription).not.toHaveBeenCalled();
     });
 
@@ -920,7 +920,7 @@ describe("PlatformSubscriptionsService", () => {
         { tier: "PRO" },
       );
       // El downgrade se "deshace": pending = plan vigente (la remota ya
-      // estaba cancelada a fin de período — el swap recrea el mismo plan).
+      // estaba cancelada a fin de período - el swap recrea el mismo plan).
       expect(updated.pendingTierCode).toBe("PRO");
       expect(updated.pendingBillingCycle).toBe("MONTHLY");
       expect(updated.status).toBe("CANCEL_PENDING");
@@ -1478,7 +1478,7 @@ describe("PlatformSubscriptionsService", () => {
       expect(fx.academies.get("ac1")!.billingBlockedAt).toBeNull();
     });
 
-    it("solo bloquea las vencidas — una gracia vigente convive", async () => {
+    it("solo bloquea las vencidas - una gracia vigente convive", async () => {
       fx.academies.set("ac2", {
         ...mkAcademy({ id: "ac2", ownerId: "p1", name: "Academia Y" }),
         billingGraceUntil: new Date(Date.now() + 2 * DAY),

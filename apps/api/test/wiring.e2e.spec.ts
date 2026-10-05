@@ -26,7 +26,7 @@ import { PrismaService } from "../src/prisma.service";
  * Wiring e2e: notificaciones + gamificación enganchadas en flujos de dominio.
  *
  * Los módulos reales (SessionsModule, PaymentsModule, SocialModule) aún no
- * importan NotificationsModule/GamificationModule — por eso este spec declara
+ * importan NotificationsModule/GamificationModule - por eso este spec declara
  * los controllers en el módulo de test directamente, reproduciendo el wiring
  * final esperado (ver handoff: imports pendientes por módulo).
  */
@@ -198,7 +198,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
     it("rate → status RATED y evalúa badges del rater Y del rated", async () => {
       // El catálogo Badge es global (seed + gamification.e2e también usan
       // 'primera_bachata'): upsert, no create. Los awards previos se borran
-      // antes del rate — así el award solo puede venir del hook del rate
+      // antes del rate - así el award solo puede venir del hook del rate
       // (evaluateBadgesFor para ambos participantes).
       const badge = await prisma.badge.upsert({
         where: { key: "primera_bachata" },
@@ -339,7 +339,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
   // ═══════════════════════ WAITLIST ═══════════════════════
   describe("waitlist → notificación SOCIAL al promover", () => {
     it("promote → notifica al promovido (waitlist.promoted, data.eventId)", async () => {
-      // C no tiene ticket (buyer sí — lo emitió el webhook PAID → 409 por regla)
+      // C no tiene ticket (buyer sí - lo emitió el webhook PAID → 409 por regla)
       const join = await post(
         `/api/events/${ids.eventId}/waitlist`,
         {},

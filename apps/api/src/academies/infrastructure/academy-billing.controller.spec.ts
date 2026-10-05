@@ -14,7 +14,7 @@ import type { PlatformSubscriptionsService } from "../../payments/application/pl
 import "../../auth/infrastructure/auth.controller";
 import { AcademyBillingController } from "./academy-billing.controller";
 
-// AcademyBillingController — gate de acceso (requireAdminister → 403/404
+// AcademyBillingController - gate de acceso (requireAdminister → 403/404
 // propagado, el service no se toca), shape del subscribe
 // (needs_card → {paymentUrl}, subscribed → status ACTIVE) y la
 // propagación del 400 tier_limit del dominio (body {error,active,max}
@@ -88,7 +88,7 @@ describe("AcademyBillingController", () => {
     );
   });
 
-  it("POST /subscribe — needs_card → {paymentUrl, subscriptionId, PENDING_CARD}", async () => {
+  it("POST /subscribe - needs_card → {paymentUrl, subscriptionId, PENDING_CARD}", async () => {
     const r = await ctrl.subscribe(
       "ac1",
       { tier: "STARTER", cycle: "MONTHLY", acceptRecurring: true },
@@ -110,7 +110,7 @@ describe("AcademyBillingController", () => {
     });
   });
 
-  it("POST /subscribe — ya con tarjeta → {paymentUrl:null, status:ACTIVE}", async () => {
+  it("POST /subscribe - ya con tarjeta → {paymentUrl:null, status:ACTIVE}", async () => {
     service.subscribeAcademy.mockResolvedValue({
       kind: "subscribed",
       subscriptionId: "psub-1",
@@ -127,7 +127,7 @@ describe("AcademyBillingController", () => {
     });
   });
 
-  it("POST /subscribe — sin ser owner → 403 y el service no corre", async () => {
+  it("POST /subscribe - sin ser owner → 403 y el service no corre", async () => {
     access = mkAccess("forbidden");
     ctrl = new AcademyBillingController(
       access as unknown as AcademyAccess,
@@ -143,7 +143,7 @@ describe("AcademyBillingController", () => {
     expect(service.subscribeAcademy).not.toHaveBeenCalled();
   });
 
-  it("POST /subscribe — academia inexistente → 404", async () => {
+  it("POST /subscribe - academia inexistente → 404", async () => {
     access = mkAccess("notfound");
     ctrl = new AcademyBillingController(
       access as unknown as AcademyAccess,
@@ -158,7 +158,7 @@ describe("AcademyBillingController", () => {
     ).rejects.toThrow(NotFoundException);
   });
 
-  it("POST /subscribe — 400 tier_limit del dominio llega intacto", async () => {
+  it("POST /subscribe - 400 tier_limit del dominio llega intacto", async () => {
     service.subscribeAcademy.mockRejectedValue(
       new BadRequestException({
         error: "tier_limit",
@@ -182,7 +182,7 @@ describe("AcademyBillingController", () => {
     });
   });
 
-  it("PATCH /subscription — devuelve el estado + cambio pendiente", async () => {
+  it("PATCH /subscription - devuelve el estado + cambio pendiente", async () => {
     const r = await ctrl.update(
       "ac1",
       { tier: "STARTER" },
@@ -200,7 +200,7 @@ describe("AcademyBillingController", () => {
     );
   });
 
-  it("POST /subscription/cancel — delega y devuelve ok", async () => {
+  it("POST /subscription/cancel - delega y devuelve ok", async () => {
     const r = await ctrl.cancel("ac1", req("p1"));
     expect(r).toEqual({
       ok: true,
@@ -210,7 +210,7 @@ describe("AcademyBillingController", () => {
     expect(service.cancelAcademySubscription).toHaveBeenCalledWith("ac1");
   });
 
-  it("GET /billing — devuelve la vista del service", async () => {
+  it("GET /billing - devuelve la vista del service", async () => {
     const r = await ctrl.billing("ac1", req("p1"));
     expect(r).toMatchObject({
       tier: "PRO",
@@ -219,7 +219,7 @@ describe("AcademyBillingController", () => {
     });
   });
 
-  it("GET /billing — ajeno → 403", async () => {
+  it("GET /billing - ajeno → 403", async () => {
     access = mkAccess("forbidden");
     ctrl = new AcademyBillingController(
       access as unknown as AcademyAccess,

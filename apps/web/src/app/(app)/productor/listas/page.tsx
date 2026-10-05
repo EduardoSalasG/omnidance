@@ -38,7 +38,7 @@ const inputCls =
   "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50";
 
 /**
- * /productor/listas — listas de invitados por evento
+ * /productor/listas - listas de invitados por evento
  * (GET /events, GET/POST /events/:id/guest-lists, POST /guest-lists/:id/entries).
  * Monta solo cuando ProducerGate confirma rol.
  */
@@ -287,7 +287,7 @@ function GuestLists() {
                           type="text"
                           autoComplete="off"
                           placeholder={tac("personId")}
-                          aria-label={`${t("addPerson")} — ${l.label ?? l.owner.name}`}
+                          aria-label={`${t("addPerson")}: ${l.label ?? l.owner.name}`}
                           value={entryDrafts[l.id] ?? ""}
                           onChange={(e) =>
                             setEntryDrafts((d) => ({

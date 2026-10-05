@@ -10,7 +10,7 @@ import { PageLoading } from "@/components/ui/spinner";
 import type { ActorType, CrmActor } from "./types";
 import { actorKey } from "./types";
 
-// Roles con permiso crm.manage (seed-common ROLE_GRANTS) — ADMIN pasa por
+// Roles con permiso crm.manage (seed-common ROLE_GRANTS) - ADMIN pasa por
 // isSuperuser. Espejo client-side del RolesGuard; el backend valida igual.
 const CRM_ROLES = new Set(["PRODUCER", "ACADEMY_OWNER", "ADMIN"]);
 
@@ -25,7 +25,7 @@ export type CrmContextValue = {
   setActorSel: (v: string) => void;
   isAdmin: boolean;
   /** El actor seleccionado es el propio CRM del productor y no tiene
-      Pro efectivo — espejo del gateo del API (assertActorAccess →
+      Pro efectivo - espejo del gateo del API (assertActorAccess →
       assertProducerPro solo cuando actorId === caller.id). Las
       páginas renderizan el paywall en vez del contenido. */
   proBlocked: boolean;
@@ -46,7 +46,7 @@ export type CrmContextValue = {
 export function useCrmContext(): CrmContextValue {
   const t = useTranslations("crm");
 
-  // /me compartido (MeProvider) — sin fetch propio de sesión. Las
+  // /me compartido (MeProvider) - sin fetch propio de sesión. Las
   // academias del owner se piden en paralelo (especulativo mientras /me
   // sigue en vuelo; si el usuario no resulta owner se descartan).
   const {
@@ -163,7 +163,7 @@ export function useCrmContext(): CrmContextValue {
       : (actors.find((a) => actorKey(a) === actorSel) ?? null);
 
   // El CRM del productor propio es feature Pro (S5): el API responde
-  // 403 pro.required en todos sus endpoints — el front lo anticipa.
+  // 403 pro.required en todos sus endpoints - el front lo anticipa.
   const proBlocked =
     actor?.actorType === "PRODUCER" &&
     actor.actorId === meId &&
@@ -307,7 +307,7 @@ const SECTION_HREF: Record<CrmSection, string> = {
   triggers: "/crm/triggers",
 };
 
-/** Navegación entre secciones del CRM — estilo tabs de admin/page.tsx. */
+/** Navegación entre secciones del CRM - estilo tabs de admin/page.tsx. */
 export function CrmNav({ active }: { active: CrmSection }) {
   const t = useTranslations("crm");
   return (

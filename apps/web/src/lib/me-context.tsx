@@ -11,7 +11,7 @@ import {
 } from "react";
 import { apiFetch } from "@/lib/api";
 
-// Respuesta de GET /me — contrato completo compartido por las
+// Respuesta de GET /me - contrato completo compartido por las
 // superficies de (app). Los campos que solo usan páginas puntuales
 // (styleRoles, enrollments…) van opcionales pero vienen siempre en el
 // payload: un solo fetch sirve a todas las páginas sin waterfall.
@@ -44,23 +44,23 @@ export type MeContextData = {
   roleStates?: { role: string; status: string }[];
   consentAcceptedAt?: string | null;
   consentVersion?: string | null;
-  // Cuenta demo de lead pendiente de activación — el chrome pide
+  // Cuenta demo de lead pendiente de activación - el chrome pide
   // completar el perfil (POST /me/complete-profile la vuelve real).
   pendingProfile?: boolean;
-  // Producer Pro efectivo (suscripción o trial vigente) — gates Pro.
+  // Producer Pro efectivo (suscripción o trial vigente) - gates Pro.
   effectivePro?: boolean;
   // Tours de primera visita ya vistos (POST /me/onboarding los marca).
   onboarding?: Record<string, string>;
 };
 
 export type MeContextValue = {
-  /** null tras resolver = sin sesión (401) — no confundir con loading. */
+  /** null tras resolver = sin sesión (401) - no confundir con loading. */
   me: MeContextData | null;
   /** true solo durante el primer fetch (o un refresh sin me previo). */
   loading: boolean;
   /** true cuando el último fetch falló por red/5xx (no por 401). */
   error: boolean;
-  /** Refetch de /me — tras mutaciones propias (PATCH /me, consent) o
+  /** Refetch de /me - tras mutaciones propias (PATCH /me, consent) o
       retry de error. No bloquea: con `me` previo la UI sigue pintada. */
   refresh: () => Promise<void>;
 };
@@ -70,7 +70,7 @@ const MeContext = createContext<MeContextValue | null>(null);
 /**
  * /me compartido de la app autenticada: un solo fetch por sesión de
  * (app) en vez de uno por página/componente. Se monta en el layout del
- * grupo — NO bloquea children: cada consumidor gatea con `loading` lo
+ * grupo - NO bloquea children: cada consumidor gatea con `loading` lo
  * que depende del dato (skeleton o no-render). No reemplaza guards:
  * AcademyGate/AdminGate/etc. siguen resolviendo su propia autorización.
  */
@@ -82,13 +82,13 @@ export function MeProvider({ children }: { children: ReactNode }) {
   const meRef = useRef<MeContextData | null>(null);
   meRef.current = me;
   // Deduplica refreshes concurrentes (p.ej. varios consumidores tras
-  // una mutación) — todos esperan el mismo fetch en vuelo.
+  // una mutación) - todos esperan el mismo fetch en vuelo.
   const inFlight = useRef<Promise<void> | null>(null);
 
   const refresh = useCallback(async () => {
     inFlight.current ??= (async () => {
       // Sin me previo el consumidor depende de `loading` para no
-      // pintar contenido por defecto — se reactiva durante el refetch.
+      // pintar contenido por defecto - se reactiva durante el refetch.
       // Con me resuelto el refresh es silencioso (post-mutación).
       if (!meRef.current) setLoading(true);
       setError(false);
@@ -125,7 +125,7 @@ export function MeProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Lee el /me compartido. Solo usar dentro de (app) — fuera del provider
+ * Lee el /me compartido. Solo usar dentro de (app) - fuera del provider
  * no hay sesión resuelta y lanza error (cada superficie fuera del grupo
  * mantiene su propio fetch).
  */

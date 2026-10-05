@@ -11,7 +11,7 @@ import { VenueConsoleController } from "../src/social/infrastructure/venue-conso
 import { PrismaService } from "../src/prisma.service";
 
 /**
- * role-console-depth — endpoints de las consolas B2B (spec §13):
+ * role-console-depth - endpoints de las consolas B2B (spec §13):
  *  - GET /dj/gigs/:eventId/rating (agregado música, k-anonymity)
  *  - GET /venues/:id/dashboard (tables + flow)
  *  - GET /academies/:id/dashboard (todayClasses + attendanceToday)
@@ -344,7 +344,7 @@ describe("role-console-depth e2e", () => {
 
   // ─── DJ: evaluación agregada de música ───
 
-  it("GET /dj/gigs/:id/rating — DJ asignado ve el promedio agregado", async () => {
+  it("GET /dj/gigs/:id/rating - DJ asignado ve el promedio agregado", async () => {
     const res = await get(
       `/api/dj/gigs/${ids.pastEventId}/rating`,
       sessions.dj,
@@ -357,7 +357,7 @@ describe("role-console-depth e2e", () => {
     expect(body.music.count).toBe(3);
   });
 
-  it("GET /dj/gigs/:id/rating — bajo el umbral no expone promedio", async () => {
+  it("GET /dj/gigs/:id/rating - bajo el umbral no expone promedio", async () => {
     const res = await get(
       `/api/dj/gigs/${ids.lowEventId}/rating`,
       sessions.dj,
@@ -369,7 +369,7 @@ describe("role-console-depth e2e", () => {
     expect(body.music).toBeNull();
   });
 
-  it("GET /dj/gigs/:id/rating — DJ no asignado recibe 403", async () => {
+  it("GET /dj/gigs/:id/rating - DJ no asignado recibe 403", async () => {
     const res = await get(
       `/api/dj/gigs/${ids.pastEventId}/rating`,
       sessions.otherDj,
@@ -377,7 +377,7 @@ describe("role-console-depth e2e", () => {
     expect(res.status).toBe(403);
   });
 
-  it("GET /dj/gigs/:id/rating — admin puede ver cualquier evento", async () => {
+  it("GET /dj/gigs/:id/rating - admin puede ver cualquier evento", async () => {
     const res = await get(
       `/api/dj/gigs/${ids.pastEventId}/rating`,
       sessions.admin,
@@ -388,7 +388,7 @@ describe("role-console-depth e2e", () => {
 
   // ─── Venue: mesas + flujo ───
 
-  it("GET /venues/:id/dashboard — owner ve reservas de mesa próximas", async () => {
+  it("GET /venues/:id/dashboard - owner ve reservas de mesa próximas", async () => {
     const res = await get(
       `/api/venues/${ids.venueId}/dashboard`,
       sessions.venueMgr,
@@ -405,7 +405,7 @@ describe("role-console-depth e2e", () => {
     expect(table.tableNo).toBe("M1");
   });
 
-  it("GET /venues/:id/dashboard — flow con peak hour y permanencia", async () => {
+  it("GET /venues/:id/dashboard - flow con peak hour y permanencia", async () => {
     const res = await get(
       `/api/venues/${ids.venueId}/dashboard`,
       sessions.venueMgr,
@@ -413,14 +413,14 @@ describe("role-console-depth e2e", () => {
     const body = await res.json();
     expect(body.flow.checkins).toBeGreaterThanOrEqual(5);
     expect(body.flow.byHour).toHaveLength(24);
-    // Los check-ins del evento pasado (22h×2 + 23h) + LIVE (ahora) —
+    // Los check-ins del evento pasado (22h×2 + 23h) + LIVE (ahora) -
     // el peak puede variar según la hora de ejecución del test.
     expect(body.flow.peakHour).not.toBeNull();
     // Permanencia: 2 con outAt de 3h → 180 min de promedio mínimo.
     expect(body.flow.avgStayMinutes).toBeGreaterThanOrEqual(150);
   });
 
-  it("GET /venues/:id/dashboard — outsider recibe 403", async () => {
+  it("GET /venues/:id/dashboard - outsider recibe 403", async () => {
     const res = await get(
       `/api/venues/${ids.venueId}/dashboard`,
       sessions.outsider,
@@ -430,7 +430,7 @@ describe("role-console-depth e2e", () => {
 
   // ─── Academia: clases del día ───
 
-  it("GET /academies/:id/dashboard — clases de hoy + asistencia de hoy", async () => {
+  it("GET /academies/:id/dashboard - clases de hoy + asistencia de hoy", async () => {
     const res = await get(
       `/api/academies/${ids.academyId}/dashboard`,
       sessions.academyOwner,
@@ -453,7 +453,7 @@ describe("role-console-depth e2e", () => {
 
   // ─── Productor: stats por evento + live ───
 
-  it("GET /events/mine — cada evento trae stats {sold, grossClp, checkins}", async () => {
+  it("GET /events/mine - cada evento trae stats {sold, grossClp, checkins}", async () => {
     const res = await get("/api/events/mine", sessions.producer);
     expect(res.status).toBe(200);
     const events = await res.json();
@@ -467,7 +467,7 @@ describe("role-console-depth e2e", () => {
     expect(live.stats.checkins).toBe(2);
   });
 
-  it("GET /events/:id/live — ventas por canal + check-ins + ocupación", async () => {
+  it("GET /events/:id/live - ventas por canal + check-ins + ocupación", async () => {
     const res = await get(`/api/events/${ids.liveEventId}/live`, sessions.producer);
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -479,7 +479,7 @@ describe("role-console-depth e2e", () => {
     expect(body.occupancy).toBeCloseTo(2 / 200);
   });
 
-  it("GET /events/:id/live — otro productor/persona recibe 403", async () => {
+  it("GET /events/:id/live - otro productor/persona recibe 403", async () => {
     const res = await get(`/api/events/${ids.liveEventId}/live`, sessions.outsider);
     expect(res.status).toBe(403);
   });

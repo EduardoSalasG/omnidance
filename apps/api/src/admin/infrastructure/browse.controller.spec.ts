@@ -11,7 +11,7 @@ import { emitPaymentEvent } from "../../payments/domain/payment-ledger";
 //   firstBadSeq / 404).
 // - browse/:entity → payment-events, gateway-transactions y
 //   membership-subscriptions con sus filtros whitelists.
-// La autorización (admin.access) la impone RolesGuard a nivel de clase —
+// La autorización (admin.access) la impone RolesGuard a nivel de clase -
 // acá se ejercita la lógica del handler con prisma in-memory.
 
 type Row = Record<string, unknown>;
@@ -55,7 +55,7 @@ class FakePrisma {
       this.payments.find((p) => p.id === where.id) ?? null,
   };
 
-  // El ledger emite con pg_advisory_xact_lock ($executeRaw) — no-op en fake.
+  // El ledger emite con pg_advisory_xact_lock ($executeRaw) - no-op en fake.
   $executeRaw = async () => 0;
 
   paymentEvent = {
@@ -72,7 +72,7 @@ class FakePrisma {
     },
     findMany: async ({ where, orderBy }: { where: Row; orderBy?: unknown }) => {
       const rows = this.paymentEvents.filter((e) => matchWhere(e, where));
-      // verify-chain ordena por seq asc; browse por createdAt desc — el
+      // verify-chain ordena por seq asc; browse por createdAt desc - el
       // fake respeta seq asc si el caller lo pide y desc si no.
       const asc = JSON.stringify(orderBy).includes('"asc"');
       return rows.sort((a, b) =>
@@ -114,7 +114,7 @@ class FakePrisma {
   };
 }
 
-describe("BrowseController — auditoría", () => {
+describe("BrowseController - auditoría", () => {
   let prisma: FakePrisma;
   let ctrl: BrowseController;
 

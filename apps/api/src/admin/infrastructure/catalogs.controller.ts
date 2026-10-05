@@ -57,7 +57,7 @@ class TypeDto {
 }
 
 /**
- * Mantenedor de catálogos de clases/estilos — los valores que usan las
+ * Mantenedor de catálogos de clases/estilos - los valores que usan las
  * academias para definir sus series (nivel, tipo, estilo de baile) viven
  * en DB y solo los edita un admin. Borrar un valor referenciado por una
  * serie/persona se rechaza con 409 (primero hay que reasignar).
@@ -112,7 +112,7 @@ export class CatalogsController {
     ]);
     if (series + blocks + roles > 0) {
       throw new ConflictException(
-        "el estilo está en uso (series, horarios o perfiles) — no se puede borrar",
+        "el estilo está en uso (series, horarios o perfiles) - no se puede borrar",
       );
     }
     await this.prisma.style.delete({ where: { id } });

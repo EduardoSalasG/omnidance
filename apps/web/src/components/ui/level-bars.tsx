@@ -1,6 +1,6 @@
 // Nivel como medidor visual: 4 barras ascendentes fijas, pintadas
 // `order+1` según el catálogo (Iniciación=1 … Avanzado=4) y el resto
-// en gris — se lee como progreso, no como conteo suelto. El nombre
+// en gris - se lee como progreso, no como conteo suelto. El nombre
 // va en aria-label + title.
 export function LevelBars({ order, name }: { order: number; name: string }) {
   const filled = Math.min(Math.max(order + 1, 1), 4);

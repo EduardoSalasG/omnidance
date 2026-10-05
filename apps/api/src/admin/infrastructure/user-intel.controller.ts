@@ -36,7 +36,7 @@ type EventLite = { id: string; name: string; startsAt: Date };
  * gestión de roles sigue en AdminController.
  *
  * Notas de schema (Ticket/Checkin/StaffAssignment/Payment/VenueRental
- * no declaran relaciones Prisma — eventId/personId son FKs peladas):
+ * no declaran relaciones Prisma - eventId/personId son FKs peladas):
  * los nombres de evento/persona se resuelven con lookups batch.
  */
 @Controller("admin")
@@ -48,7 +48,7 @@ export class UserIntelController {
   // ── Ficha 360° ──────────────────────────────────────────────────────
 
   /**
-   * GET /api/admin/users/:personId/detail — datos personales (nunca
+   * GET /api/admin/users/:personId/detail - datos personales (nunca
    * passwordHash/qrSecret), línea de tiempo de roles y un bloque de
    * roleData por cada rol con status ≠ REJECTED.
    */
@@ -101,7 +101,7 @@ export class UserIntelController {
   // ── Analítica por usuario ───────────────────────────────────────────
 
   /**
-   * GET /api/admin/users/:personId/analytics?role=X — sections por lente.
+   * GET /api/admin/users/:personId/analytics?role=X - sections por lente.
    * Rol no poseído (sin PersonRole APPROVED/SANDBOX) → 400 ROLE_NOT_HELD.
    */
   @Get("users/:personId/analytics")

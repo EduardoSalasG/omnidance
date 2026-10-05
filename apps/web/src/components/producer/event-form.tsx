@@ -41,7 +41,7 @@ export type EventFormProps = {
 
 /**
  * Formulario de crear/editar evento. En modo edit, scheduleBlocks y djIds
- * solo se envían si el usuario los tocó (PATCH los REEMPLAZA — enviarlos
+ * solo se envían si el usuario los tocó (PATCH los REEMPLAZA - enviarlos
  * intactos borraría el djId por bloque que el detalle no devuelve).
  */
 export function EventForm({
@@ -65,7 +65,7 @@ export function EventForm({
   const [endsAt, setEndsAt] = useState(
     initial ? toLocalInput(initial.endsAt) : "",
   );
-  // El detalle no devuelve venueId — en edición se pre-selecciona por
+  // El detalle no devuelve venueId - en edición se pre-selecciona por
   // nombre contra el catálogo /venues (match exacto).
   const [venueId, setVenueId] = useState(
     initial?.venueId ??
@@ -213,7 +213,7 @@ export function EventForm({
         : toOptionalInt(tablesTotal) !== undefined
           ? { tablesTotal: toOptionalInt(tablesTotal) }
           : {}),
-      // Límites de mesa: vacío hereda el default del productor — en edit
+      // Límites de mesa: vacío hereda el default del productor - en edit
       // se envía null explícito para volver a heredar.
       ...(mode === "edit" || toOptionalInt(tableSeatMax) !== undefined
         ? { tableSeatMax: toOptionalInt(tableSeatMax) ?? null }
@@ -228,7 +228,7 @@ export function EventForm({
         ? { happyHourMinutes: toOptionalInt(happyHour) }
         : {}),
       // create: siempre se envían (vacío = sin bloques). edit: solo si el
-      // usuario los modificó — PATCH reemplaza el set completo.
+      // usuario los modificó - PATCH reemplaza el set completo.
       ...(mode === "create" || blocksDirty
         ? { scheduleBlocks: filledBlocks }
         : {}),
@@ -543,7 +543,7 @@ export function EventForm({
                   onChange={(e) => patchBlock(i, { styleId: e.target.value })}
                   className={`${inputCls} min-h-11 py-2 text-sm`}
                 >
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {styles.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}

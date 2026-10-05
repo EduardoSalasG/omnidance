@@ -13,16 +13,16 @@ export const metadata: Metadata = {
   description: t.metaDescription,
   alternates: { canonical: "/" },
   openGraph: {
-    title: `${t.metaTitle} — Omnidance`,
+    title: `${t.metaTitle} | Omnidance`,
     description: t.metaDescription,
     url: "/",
     // El openGraph propio de la página tapa la convención
-    // opengraph-image.tsx — la imagen se declara explícita.
+    // opengraph-image.tsx - la imagen se declara explícita.
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
 };
 
-// La decisión anónimo/logueado ocurre en el servidor — la landing llega
+// La decisión anónimo/logueado ocurre en el servidor - la landing llega
 // como HTML real (LCP, SEO) y quien tiene sesión va directo al hub.
 export default async function Home() {
   if (cookies().has("omnidance_session")) redirect("/inicio");

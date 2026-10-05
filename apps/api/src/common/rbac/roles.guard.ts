@@ -13,7 +13,7 @@ import {
   REQUIRED_ROLES_KEY,
 } from "./roles.decorator";
 
-// Cache de catálogo rol→permisos (compartido entre instancias del guard —
+// Cache de catálogo rol→permisos (compartido entre instancias del guard -
 // cambia solo desde /admin, 30s de tolerancia).
 const CATALOG_TTL_MS = 30_000;
 const catalogCache = new Map<
@@ -21,7 +21,7 @@ const catalogCache = new Map<
   { isSuperuser: boolean; permissions: Set<string>; at: number }
 >();
 
-/** Invalida el cache del catálogo — lo llama /admin tras mutar grants/roles. */
+/** Invalida el cache del catálogo - lo llama /admin tras mutar grants/roles. */
 export function invalidateRoleCatalog(roleKey?: string): void {
   if (roleKey) catalogCache.delete(roleKey);
   else catalogCache.clear();
@@ -82,8 +82,8 @@ export async function roleKeysHavePermission(
 /**
  * RBAC global, todo DB-driven. Uso:
  *   `@UseGuards(SessionGuard, RolesGuard)` +
- *   `@RequirePermissions("checkins.write")` (OR lógico) — preferido;
- *   `@RequireRoles("STAFF")` — escape hatch por rol directo.
+ *   `@RequirePermissions("checkins.write")` (OR lógico) - preferido;
+ *   `@RequireRoles("STAFF")` - escape hatch por rol directo.
  *
  * Semántica de PersonRole.status:
  * - APPROVED → acceso completo.

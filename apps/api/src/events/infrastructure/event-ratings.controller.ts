@@ -81,7 +81,7 @@ type RatingDim = (typeof RATING_DIMS)[number];
 
 export type PersonCtx = { id: string; roles: string[] };
 
-/** productor del evento o admin.access — permiso desde DB, nunca rol literal. */
+/** productor del evento o admin.access - permiso desde DB, nunca rol literal. */
 export async function assertProducerOrAdmin(
   prisma: PrismaService,
   event: { producerId: string | null },
@@ -104,7 +104,7 @@ export class EventRatingsController {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Evaluar el evento — requiere check-in válido del rater y estar dentro
+   * Evaluar el evento - requiere check-in válido del rater y estar dentro
    * de la ventana post-evento. Upsert por (eventId, raterId): re-enviar
    * edita la evaluación previa.
    */
@@ -138,7 +138,7 @@ export class EventRatingsController {
     const dims = Object.fromEntries(
       RATING_DIMS.map((d) => [d, dto[d] ?? null]),
     ) as Record<RatingDim, number | null>;
-    // En update solo se tocan las dimensiones enviadas — editar una no
+    // En update solo se tocan las dimensiones enviadas - editar una no
     // borra las que el rater ya había evaluado antes.
     const patch = Object.fromEntries(
       RATING_DIMS.filter((d) => dto[d] != null).map((d) => [d, dto[d]]),

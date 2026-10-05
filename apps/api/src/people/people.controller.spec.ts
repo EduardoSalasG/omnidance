@@ -8,7 +8,7 @@ import type { NotificationsService } from "../notifications/domain/notifications
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 
-// PeopleController — PATCH /me (gender), GET /me (expone gender) y
+// PeopleController - PATCH /me (gender), GET /me (expone gender) y
 // GET /me/pending-surveys (ventana post-evento + fan-out lazy único
 // por evento vía claim atómico de surveyNotifiedAt).
 
@@ -237,7 +237,7 @@ describe("PeopleController", () => {
     });
 
     // Estado Producer Pro (S5): solo personas con rol PRODUCER APPROVED
-    // reciben proTier/proTrialEndsAt/effectivePro — el front gatea el
+    // reciben proTier/proTrialEndsAt/effectivePro - el front gatea el
     // paywall sin llamada extra.
     it("persona sin rol PRODUCER → no expone campos Pro", async () => {
       const res = await ctrl.me(reqAs("me"));
@@ -289,7 +289,7 @@ describe("PeopleController", () => {
     it("estampa la versión vigente y el timestamp", async () => {
       const res = await ctrl.consent(reqAs("me"), { version: "0.0-vieja" });
       const me = prisma.people.get("me")!;
-      // Siempre la versión del servidor — nunca la que envía el cliente.
+      // Siempre la versión del servidor - nunca la que envía el cliente.
       expect(me.consentVersion).toBe(CONSENT_VERSION);
       expect(me.consentAcceptedAt).toBeInstanceOf(Date);
       expect(res).toMatchObject({
@@ -387,7 +387,7 @@ describe("PeopleController", () => {
       prisma.ratings.push({ eventId: "ev-1", raterId: "me" });
 
       expect(await ctrl.pendingSurveys(reqAs("me"))).toEqual([]);
-      // el claim sí ocurre — otro asistente podría no haber abierto la app;
+      // el claim sí ocurre - otro asistente podría no haber abierto la app;
       // aquí "me" es el único asistente, así que se le notifica (recordatorio)
       expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
     });

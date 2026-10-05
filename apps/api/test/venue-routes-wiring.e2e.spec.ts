@@ -6,7 +6,7 @@ import { AuthService } from "../src/auth/domain/auth.service";
 import { PrismaService } from "../src/prisma.service";
 
 /**
- * venue-routes-wiring — regresión de orden de controllers.
+ * venue-routes-wiring - regresión de orden de controllers.
  *
  * `VenuesController` (público) y `VenueConsoleController` comparten el
  * prefijo "venues". Si el público se registra primero, su `@Get(":id")`

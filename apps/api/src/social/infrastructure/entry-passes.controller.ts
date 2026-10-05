@@ -13,7 +13,7 @@ import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 
 /**
- * EntryPass del evento (spec pases/listas). Autorización mixta — sin
+ * EntryPass del evento (spec pases/listas). Autorización mixta - sin
  * @RequirePermissions porque el productor y el staff asignado no
  * necesariamente tienen el grant global: productor del evento, staff con
  * StaffAssignment en el evento, o cualquier rol con `social.manage` /

@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
-// GET /academies/:id/profile — ficha pública de la academia (cualquier
+// GET /academies/:id/profile - ficha pública de la academia (cualquier
 // autenticado; la consola de gestión vive en /academia): datos,
 // dirección/coords, estilos impartidos (derivados de series activas),
 // profesores, planes activos, próximas clases (shape ClassCardData) y
@@ -58,7 +58,7 @@ type AcademyProfile = {
   /** Suscripción Flow más reciente del viewer a esta academia. */
   mySubscription: SubscriptionInfo | null;
   /** Mora SaaS (S3): la ficha sigue respondiendo pero sin CTAs de
-      compra — el alumno ve "no disponible" (la falta es del owner). */
+      compra - el alumno ve "no disponible" (la falta es del owner). */
   billingBlocked: boolean;
   classes: ClassCardData[];
 };
@@ -73,7 +73,7 @@ async function getProfile(id: string): Promise<AcademyProfile | "error"> {
   return (await res.json()) as AcademyProfile;
 }
 
-// website es texto libre: puede venir sin protocolo o malformado —
+// website es texto libre: puede venir sin protocolo o malformado -
 // `new URL` en render SSR lanzaría y rompería la ficha. Se prueba
 // tal cual y luego con https:// prefijado; si nada resuelve, null
 // (el ícono de sitio web no se muestra).
@@ -91,7 +91,7 @@ function resolveWebsite(raw: string): { href: string; host: string } | null {
   return null;
 }
 
-// Class.date llega a medianoche UTC — formatear en UTC para no correr
+// Class.date llega a medianoche UTC - formatear en UTC para no correr
 // el día (misma convención que /clases).
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "short",
@@ -152,7 +152,7 @@ export default async function AcademiaDetailPage({
             </Badge>
           )}
         </div>
-        {/* Estilos que imparte — chips bajo el título, como la ficha
+        {/* Estilos que imparte - chips bajo el título, como la ficha
             de clase */}
         {academy.styles.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -185,7 +185,7 @@ export default async function AcademiaDetailPage({
             {academy.address}
           </p>
         )}
-        {/* Contacto — iconos públicos (Instagram/WhatsApp/sitio web) */}
+        {/* Contacto - iconos públicos (Instagram/WhatsApp/sitio web) */}
         {(academy.instagram || academy.whatsapp || website) && (
           <div className="flex flex-wrap gap-2">
             {academy.instagram && (
@@ -271,7 +271,7 @@ export default async function AcademiaDetailPage({
       </header>
 
       {/* Academia bloqueada por mora SaaS (S3): la ficha informa pero
-          los CTAs de compra/reserva quedan deshabilitados — copy
+          los CTAs de compra/reserva quedan deshabilitados - copy
           honesto, la falta es del owner, no del alumno. */}
       {academy.billingBlocked && (
         <Card role="status">
@@ -280,7 +280,7 @@ export default async function AcademiaDetailPage({
       )}
 
       {/* Retorno del disclaimer de tarjeta de Flow (customer-return →
-          303 ?sub=ok|error). ok: la sub puede seguir ACTIVATING — el
+          303 ?sub=ok|error). ok: la sub puede seguir ACTIVATING - el
           bloque de gestión de abajo refleja el estado real. */}
       {searchParams.sub === "ok" && (
         <Card>
@@ -301,7 +301,7 @@ export default async function AcademiaDetailPage({
           accessUntil={academy.myEnrollment?.endsAt ?? null}
           nextAmount={
             // Sin cargo de servicio (modelo SaaS): Flow cobra solo el
-            // precio del plan — mismo amount del plan espejo en
+            // precio del plan - mismo amount del plan espejo en
             // subscriptions.service.ts.
             academy.plans.find((p) => p.id === academy.mySubscription!.planId)
               ?.price ?? 0
@@ -377,7 +377,7 @@ export default async function AcademiaDetailPage({
         ) : (
           <>
             {/* Las 2 próximas; el resto vive en /clases?s=explorar con el
-                filtro de academia — la ficha no es el explorador. */}
+                filtro de academia - la ficha no es el explorador. */}
             <ul className="flex flex-col gap-3">
               {academy.classes.slice(0, 2).map((c) => (
                 <li key={c.id}>

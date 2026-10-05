@@ -1,4 +1,4 @@
-// Smoke export PDF — corre contra API viva en :4000.
+// Smoke export PDF - corre contra API viva en :4000.
 // node scripts/smoke-export-pdf.cjs
 const { PrismaClient } = require("@prisma/client");
 const { SignJWT } = require("jose");

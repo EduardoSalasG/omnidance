@@ -10,7 +10,7 @@ type Props = {
 
 /**
  * Parrilla semanal de la academia (GET /academies/:id/slots). Solo lectura:
- * todo horario pertenece a una serie — se crean/editan desde /academia/series.
+ * todo horario pertenece a una serie - se crean/editan desde /academia/series.
  * capacity null = hereda el quórum de la serie/academia.
  */
 export function SlotsSection({ slots }: Props) {
@@ -18,7 +18,7 @@ export function SlotsSection({ slots }: Props) {
   const te = useTranslations("events");
 
   if (slots.length === 0) {
-    return <p className="text-sm text-white/50">—</p>;
+    return <p className="text-sm text-white/50">·</p>;
   }
   return (
     <ul className="flex flex-col gap-2">

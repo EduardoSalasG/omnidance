@@ -2,7 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const { createHash } = require("node:crypto");
 const prisma = new PrismaClient();
 
-// Canonical JSON — mismo algoritmo que src/payments/domain/payment-ledger.ts
+// Canonical JSON - mismo algoritmo que src/payments/domain/payment-ledger.ts
 // (duplicado inline: este script es JS plano, no puede importar el .ts).
 // jsonb reordena keys; sin canonicalización verifyPaymentChain daría falsos positivos.
 function sortKeys(v) {

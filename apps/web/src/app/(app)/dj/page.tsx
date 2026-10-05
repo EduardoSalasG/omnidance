@@ -8,14 +8,14 @@ import { SkeletonList } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 /**
- * /dj — consola del rol DJ. GET /dj/gigs devuelve los gigs donde el DJ
+ * /dj - consola del rol DJ. GET /dj/gigs devuelve los gigs donde el DJ
  * está asignado ({upcoming, past}); cada gig próximo expande inline el
- * ranking de sugerencias del público (GET /dj/gigs/:eventId/suggestions —
+ * ranking de sugerencias del público (GET /dj/gigs/:eventId/suggestions -
  * la API ya filtra a asistentes con ticket). Sin h1: el chrome resuelve
  * el título de sección via pageLabel.
  */
 
-// Tipos de evento con traducción en el catálogo (events.type.*) — mismo
+// Tipos de evento con traducción en el catálogo (events.type.*) - mismo
 // set que /staff.
 const KNOWN_EVENT_TYPES = new Set([
   "SOCIAL",
@@ -63,7 +63,7 @@ const scoreFmt = new Intl.NumberFormat("es-CL", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
-// Historial: solo fecha (sin hora) — los gigs pasados no necesitan el slot.
+// Historial: solo fecha (sin hora) - los gigs pasados no necesitan el slot.
 const pastFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
@@ -79,13 +79,13 @@ type GigRatingResponse = {
 /**
  * Evaluación agregada de la música de un gig pasado
  * (GET /dj/gigs/:id/rating). Bajo el umbral de k-anonymity muestra un
- * estado discreto — nunca el promedio con pocas evaluaciones.
+ * estado discreto - nunca el promedio con pocas evaluaciones.
  */
 function GigRating({ eventId }: { eventId: string }) {
   const t = useTranslations("dj");
   const [rating, setRating] = useState<GigRatingResponse | null>(null);
   // null = pending → slot reservado en la fila; failed → colapsa
-  // (rating privado — sin estado de error ruidoso en el historial).
+  // (rating privado - sin estado de error ruidoso en el historial).
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -105,7 +105,7 @@ function GigRating({ eventId }: { eventId: string }) {
     };
   }, [eventId]);
 
-  // Dato opcional inline: nada hasta resolver — aparece una vez si hay
+  // Dato opcional inline: nada hasta resolver - aparece una vez si hay
   // rating; un skeleton que colapsa al vacío sería flash.
   if (!rating) return null;
   if (!rating.exposed || !rating.music) {
@@ -138,7 +138,7 @@ function GigRating({ eventId }: { eventId: string }) {
 
 type SugPhase = "loading" | "error" | "forbidden" | "ready";
 
-/** Ranking de sugerencias de un gig — se monta al expandir la card. */
+/** Ranking de sugerencias de un gig - se monta al expandir la card. */
 function SuggestionsPanel({ eventId }: { eventId: string }) {
   const t = useTranslations("dj");
   const tc = useTranslations("common");
@@ -238,7 +238,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
   );
 }
 
-/** Card de gig próximo — expande el panel de sugerencias inline. */
+/** Card de gig próximo - expande el panel de sugerencias inline. */
 function GigCard({ gig }: { gig: Gig }) {
   const t = useTranslations("dj");
   const te = useTranslations("events");
@@ -378,7 +378,7 @@ export default function DjPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
-      {/* Próximos gigs — cards expandibles con sugerencias del público. */}
+      {/* Próximos gigs - cards expandibles con sugerencias del público. */}
       <section aria-labelledby="dj-upcoming">
         <h2
           id="dj-upcoming"
@@ -401,7 +401,7 @@ export default function DjPage() {
         )}
       </section>
 
-      {/* Historial — colapsado al final; fecha + nombre + venue. */}
+      {/* Historial - colapsado al final; fecha + nombre + venue. */}
       {past.length > 0 && (
         <details className="group rounded-2xl border border-night-700 bg-night-900">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-semibold text-white/70 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon [&::-webkit-details-marker]:hidden">

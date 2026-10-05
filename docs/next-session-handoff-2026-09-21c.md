@@ -1,11 +1,11 @@
-# Handoff — 2026-09-21c — Multi-ticket + claim links por WhatsApp
+# Handoff - 2026-09-21c - Multi-ticket + claim links por WhatsApp
 
 ## Qué quedó implementado (OpenSpec `multi-ticket-claim-links`, 4/4 artifacts)
 
 **Compra multi-entrada con 3 destinos por orden** (`Payment.quantity` 1–10, una sola transacción):
 1. Ticket del comprador.
 2. `recipientIds` → amigos ACCEPTED registrados (asignación directa + `ticket.gifted`).
-3. Sobrantes → **tickets reclamables** (`Ticket.claimToken` 16B hex `@unique`, `claimedAt`, `paymentId`) — el comprador comparte `/reclamar/<token>` por WhatsApp; el destinatario **no necesita cuenta ni amistad**.
+3. Sobrantes → **tickets reclamables** (`Ticket.claimToken` 16B hex `@unique`, `claimedAt`, `paymentId`) - el comprador comparte `/reclamar/<token>` por WhatsApp; el destinatario **no necesita cuenta ni amistad**.
 
 **Flujo de reclamo**:
 - `GET /api/tickets/claim/:token` **público** → `{buyerName, event:{name,startsAt,venue}}` | 404 (no distingue inexistente de quemado).
@@ -18,7 +18,7 @@
 
 **Compat**: `purchaseTicket` sin `quantity` → default `1+recipientIds.length` (clientes viejos intactos). Tickets históricos: claimToken/paymentId NULL.
 
-**Otros pedidos**: tour QR sin "cada 30 segundos" → "Se renueva solo para que nadie lo copie". Seed: **todo** evento PUBLISHED con shows — vie/sáb 6–7, jue 4–5, resto 2–3 (rosters nombrados + pool genérico determinista por hash de id); verificado 0 sin shows.
+**Otros pedidos**: tour QR sin "cada 30 segundos" → "Se renueva solo para que nadie lo copie". Seed: **todo** evento PUBLISHED con shows - vie/sáb 6–7, jue 4–5, resto 2–3 (rosters nombrados + pool genérico determinista por hash de id); verificado 0 sin shows.
 
 ## Verificado
 
@@ -29,6 +29,6 @@
 
 ## Gaps conocidos / próximo slice
 
-- **Pago por tarjeta**: sigue pendiente — el puerto `PaymentGateway` existe con `FlowGateway` (Flow soporta tarjetas vía Webpay); falta configurar credenciales Flow + verificación HMAC en producción. No es código nuevo de checkout, es habilitar el gateway real.
+- **Pago por tarjeta**: sigue pendiente - el puerto `PaymentGateway` existe con `FlowGateway` (Flow soporta tarjetas vía Webpay); falta configurar credenciales Flow + verificación HMAC en producción. No es código nuevo de checkout, es habilitar el gateway real.
 - Claim links no expiran (decisión deliberada: mientras el ticket sea ACTIVE y no se transfiera, el link vive).
-- Registro vía claim reusa `/auth/register` normal — no hay "tipo nuevo de registro" (decisión del spec: la trazabilidad la da `giftedFromId`, no un flag de signup).
+- Registro vía claim reusa `/auth/register` normal - no hay "tipo nuevo de registro" (decisión del spec: la trazabilidad la da `giftedFromId`, no un flag de signup).

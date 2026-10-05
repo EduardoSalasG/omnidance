@@ -24,7 +24,7 @@ const toDateInput = (iso: string) => {
   return `${d.getFullYear()}-${m}-${day}`;
 };
 
-// Un "YYYY-MM-DD" del input se manda como mediodía local — si se envía
+// Un "YYYY-MM-DD" del input se manda como mediodía local - si se envía
 // crudo el server lo parsea como medianoche UTC y el día se corre en
 // zonas negativas (CLT = UTC-3/-4).
 const fromDateInput = (v: string) =>
@@ -110,7 +110,7 @@ export function StudentsSection({
         body: JSON.stringify({ status: next }),
       });
       if (!res.ok) {
-        // Transición inválida u otro 4xx — el select queda ligado a
+        // Transición inválida u otro 4xx - el select queda ligado a
         // student.status, así que vuelve solo al valor real.
         const msg = (await readError(res)) ?? tc("error");
         setRowErrors((prev) => ({ ...prev, [id]: msg }));
@@ -127,7 +127,7 @@ export function StudentsSection({
     }
   }
 
-  /** Renovar/corregir "pagado hasta" — PATCH con el status actual
+  /** Renovar/corregir "pagado hasta" - PATCH con el status actual
       (mismo status es transición idempotente; el DTO lo exige). */
   async function changeEndsAt(s: Student, value: string) {
     setPatching(s.id);
@@ -210,7 +210,7 @@ export function StudentsSection({
         </div>
       ) : students.length === 0 ? (
         <p role="status" className="text-sm text-white/50">
-          —
+          -
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -233,7 +233,7 @@ export function StudentsSection({
                   </Badge>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-white/50">
-                  <span className="truncate">{s.plan?.name ?? "—"}</span>
+                  <span className="truncate">{s.plan?.name ?? "-"}</span>
                   {s.startsAt && <EventDate start={s.startsAt} />}
                   {readOnly ? (
                     s.endsAt && (
@@ -247,7 +247,7 @@ export function StudentsSection({
                       <span>{tp("endsAt")}</span>
                       <input
                         type="date"
-                        aria-label={`${tp("endsAt")} — ${s.person.name ?? s.person.email ?? s.person.id}`}
+                        aria-label={`${tp("endsAt")} - ${s.person.name ?? s.person.email ?? s.person.id}`}
                         className={`${inputCls} w-auto px-2 py-1`}
                         value={s.endsAt ? toDateInput(s.endsAt) : ""}
                         disabled={patching === s.id}
@@ -325,7 +325,7 @@ export function StudentsSection({
               required
             >
               <option value="" disabled>
-                —
+                -
               </option>
               {plans.map((p) => (
                 <option key={p.id} value={p.id}>

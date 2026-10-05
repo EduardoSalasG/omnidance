@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useViewMode, setViewMode, type ViewMode } from "@/lib/view-mode";
 
-// Switch Social/Academia del lens consumer — radiogroup nativo (mismo
+// Switch Social/Academia del lens consumer - radiogroup nativo (mismo
 // patrón APG del hub QR): un tab stop, flechas cambian opción, indicador
 // deslizante con transform puro y reduced-motion instantáneo. Vive en
 // la fila del chrome (en vez del título) cuando el bailarín está en

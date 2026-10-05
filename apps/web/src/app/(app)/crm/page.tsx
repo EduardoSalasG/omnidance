@@ -26,7 +26,7 @@ export default function CrmPage() {
           <ActorPicker ctx={ctx} />
           {ctx.actor ? (
             ctx.proBlocked ? (
-              // El CRM del productor es feature Producer Pro — el API
+              // El CRM del productor es feature Producer Pro - el API
               // responde 403 pro.required en todos sus endpoints.
               <ProPaywall />
             ) : (

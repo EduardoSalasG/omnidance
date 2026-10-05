@@ -22,7 +22,7 @@
     "returnFailedTitle": "El pago no se completó",
     "returnFailedDesc": "No te cobramos nada. Puedes intentarlo de nuevo.",
     "returnPendingTitle": "Tu pago está en proceso",
-    "returnPendingDesc": "El banco está confirmando — te avisaremos cuando quede listo.",
+    "returnPendingDesc": "El banco está confirmando. Te avisaremos cuando quede listo.",
     "returnErrorTitle": "No pudimos verificar el pago"
   },
   "sessions": {
@@ -39,11 +39,11 @@
     "venuePlaceholder": "Elige o escribe el lugar",
     "emptyFiltered": "Ninguna práctica coincide con este estilo.",
     "endsNextDay": "Termina al día siguiente",
-    "stylesLoadError": "No pudimos cargar los estilos — puedes publicar igual sin elegir uno."
+    "stylesLoadError": "No pudimos cargar los estilos. Puedes publicar igual sin elegir uno."
   },
   "friends": {
     "emptyCta": "Buscar amigos",
-    "inviteError": "No pudimos copiar el link — intenta de nuevo.",
+    "inviteError": "No pudimos copiar el link. Intenta de nuevo.",
     "notFound": "No encontramos a esta persona."
   },
   "gamification": {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 // Texto legal completo vive en el part legal.json (mismo patrón que la
-// landing: el JSON se importa directo, no vía useTranslations — son
+// landing: el JSON se importa directo, no vía useTranslations - son
 // documentos, no copy de UI). Los placeholders [PENDIENTE] marcan datos
 // societarios que faltan por confirmar antes de producción.
 import legalParts from "@/i18n/parts/legal.json";
@@ -17,7 +17,7 @@ const linkClass =
 
 /**
  * Documento legal público (/terminos, /privacidad) sobre el layout de
- * marketing — sin chrome de app, dark-first como el resto del sitio.
+ * marketing - sin chrome de app, dark-first como el resto del sitio.
  */
 export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
   const data = legalParts.legal[doc];

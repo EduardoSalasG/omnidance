@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 // Modo de vista consumer: "social" (nightlife: eventos, QR, bailes) vs
 // "academy" (Mi Aprendizaje: clases, prácticas, particulares). Es
-// ortogonal al rol activo — solo aplica a la lente DANCER; los roles de
+// ortogonal al rol activo - solo aplica a la lente DANCER; los roles de
 // gestión tienen su dominio fijo. Persiste por dispositivo y emite un
 // evento para re-render sin recarga (mismo patrón que active-role).
 export type ViewMode = "social" | "academy";
@@ -28,7 +28,7 @@ export function setViewMode(mode: ViewMode): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, mode);
   } catch {
-    // Sin storage — el evento igual actualiza esta pestaña.
+    // Sin storage - el evento igual actualiza esta pestaña.
   }
   window.dispatchEvent(new Event(VIEW_MODE_EVENT));
 }

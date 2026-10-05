@@ -9,13 +9,13 @@ const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
 const SITE_DESCRIPTION =
   "Sociales, entradas, academias y clases de la comunidad salsera, " +
   "timbera y bachatera de Chile en una sola app. Registro rápido y fácil.";
-const SITE_TITLE = "Omnidance — salsa, timba y bachata en Chile";
+const SITE_TITLE = "Omnidance - salsa, timba y bachata en Chile";
 
 export const metadata: Metadata = {
   metadataBase: new URL(WEB_URL),
   title: {
     default: SITE_TITLE,
-    template: "%s — Omnidance",
+    template: "%s | Omnidance",
   },
   description: SITE_DESCRIPTION,
   keywords: [
@@ -56,7 +56,7 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0f",
   width: "device-width",
   initialScale: 1,
-  // Sin "cover" los env(safe-area-inset-*) son 0 — la bottom nav se solapa
+  // Sin "cover" los env(safe-area-inset-*) son 0 - la bottom nav se solapa
   // con el home indicator en iOS.
   viewportFit: "cover",
 };

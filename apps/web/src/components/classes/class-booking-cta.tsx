@@ -12,7 +12,7 @@ import { readError } from "@/components/academy/shared";
 type Booking = "BOOKED" | "WAITLIST" | null;
 
 const POLL_INTERVAL_MS = 2_000;
-const POLL_MAX_ATTEMPTS = 15; // ~30s — mismo criterio que checkout-client
+const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
 
 /** Créditos del plan vigente sobre esta clase (myCredits del API):
     WEEKLY = cuota de la semana ISO; PACK = saldo del pack. */
@@ -23,12 +23,12 @@ export type ClassCredits = {
 } | null;
 
 /**
- * Acción de la ficha de clase en barra fija sobre la BottomNav — mismo
+ * Acción de la ficha de clase en barra fija sobre la BottomNav - mismo
  * patrón que la ficha de evento (cupos a la izquierda, acción a la
  * derecha). Cancelar vive en la zona destructiva al pie del contenido
  * (patrón "eliminar amigo"): lejos del pulgar + confirmación en bottom
  * sheet, no inline. El estado inicial viene del server; tras
- * reservar/cancelar se actualiza local — sin re-fetch de la página.
+ * reservar/cancelar se actualiza local - sin re-fetch de la página.
  */
 export function ClassBookingCta({
   classId,
@@ -48,18 +48,18 @@ export function ClassBookingCta({
 }: {
   classId: string;
   initialBooking: Booking;
-  /** El asiento vigente fue comprado suelto (taller/clase) — la
+  /** El asiento vigente fue comprado suelto (taller/clase) - la
       cancelación libera el cupo pero no devuelve el pago (gestión
       manual de la academia). */
   initialPaid?: boolean;
-  /** Inscripción vigente en la academia — sin ella no se puede reservar
+  /** Inscripción vigente en la academia - sin ella no se puede reservar
       por plan (pero sí comprar suelta si hay dropInPrice). */
   enrolled: boolean;
-  /** Academia dueña de la clase — el CTA "sin inscripción" lleva a su
+  /** Academia dueña de la clase - el CTA "sin inscripción" lleva a su
       ficha, donde están los planes comprables. */
   academyId: string;
   /** Academia bloqueada por mora SaaS (S3): book/checkout ya rechazan
-      con academy.unavailable — la barra lo anticipa con copy honesto
+      con academy.unavailable - la barra lo anticipa con copy honesto
       (la falta es del owner) y no ofrece acción. */
   academyBlocked?: boolean;
   spotsLeft: number;
@@ -67,14 +67,14 @@ export function ClassBookingCta({
   waitlistCount: number;
   /** Cuota del plan del viewer (null = ilimitado o sin cuota). */
   myCredits?: ClassCredits;
-  /** Ventana de devolución (min antes del inicio) — param operativo. */
+  /** Ventana de devolución (min antes del inicio) - param operativo. */
   cancelRefundMinutes?: number;
-  /** Instante real de inicio (date + startTime) — base del corte. */
+  /** Instante real de inicio (date + startTime) - base del corte. */
   startsAtIso?: string;
-  /** Precio de clase suelta (ClassSeries.dropInPrice) — habilita la
+  /** Precio de clase suelta (ClassSeries.dropInPrice) - habilita la
       compra WORKSHOP desde la barra. */
   dropInPrice?: number | null;
-  /** Clase cancelada o ya pasada — la barra muestra un aviso y la ficha
+  /** Clase cancelada o ya pasada - la barra muestra un aviso y la ficha
       queda solo informativa (sin acción ni zona destructiva). */
   closedLabel?: string;
 }) {
@@ -87,7 +87,7 @@ export function ClassBookingCta({
   const [busy, setBusy] = useState(false);
   // Compra WORKSHOP con gateway stub (dev): la orden queda PENDING y el
   // pago se simula con el webhook desde esta misma barra (mismo patrón
-  // que membership-checkout-client) — paymentUrl real salta al gateway.
+  // que membership-checkout-client) - paymentUrl real salta al gateway.
   const [awaiting, setAwaiting] = useState<{
     paymentId: string;
     paymentUrl: string;
@@ -127,7 +127,7 @@ export function ClassBookingCta({
         text: status === "WAITLIST" ? t("waitlistOk") : t("bookedOk"),
         error: false,
       });
-      // El badge "Reservado" del header es server-rendered — refresh lo
+      // El badge "Reservado" del header es server-rendered - refresh lo
       // sincroniza sin perder el estado local del componente.
       router.refresh();
     } catch {
@@ -175,7 +175,7 @@ export function ClassBookingCta({
   }
 
   // Polling del pago stub: al PAID el webhook ya materializó el
-  // ClassBooking pagado — la barra pasa a estado reservado. Si el
+  // ClassBooking pagado - la barra pasa a estado reservado. Si el
   // polling se agota sin webhook, el pago puede confirmar igual.
   function startPolling(paymentId: string) {
     let attempts = 0;
@@ -227,7 +227,7 @@ export function ClassBookingCta({
 
   /**
    * Compra de clase suelta / taller (orderType WORKSHOP): crea la orden
-   * y redirige a la pasarela — el asiento lo materializa el settle al
+   * y redirige a la pasarela - el asiento lo materializa el settle al
    * PAID (paymentId, sin consumir cuota del plan). Con gateway stub no
    * hay a dónde saltar: la orden queda PENDING en la barra y el dev la
    * resuelve con los botones de simulación.
@@ -272,7 +272,7 @@ export function ClassBookingCta({
 
   const full = spotsLeft <= 0;
   // La compra suelta existe solo si hay precio y cupo (el backend la
-  // rechaza con cupo agotado — el asiento cae a WAITLIST al settle).
+  // rechaza con cupo agotado - el asiento cae a WAITLIST al settle).
   const buyable = dropInPrice != null && !full;
   const creditsLeft =
     myCredits?.limit != null && myCredits.used != null
@@ -298,7 +298,7 @@ export function ClassBookingCta({
 
   return (
     <>
-      {/* Barra de acción fija — flota sobre la BottomNav (4rem + safe
+      {/* Barra de acción fija - flota sobre la BottomNav (4rem + safe
           area), igual que la ficha de evento. Solo existe cuando hay
           acción: reservada/en espera → el estado va en los chips del
           header, no en la barra. */}
@@ -306,7 +306,7 @@ export function ClassBookingCta({
         <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-4 sm:px-6">
             {awaiting ? (
-              /* Orden stub PENDING: esperando el webhook simulado —
+              /* Orden stub PENDING: esperando el webhook simulado -
                  la barra ofrece aprobar/fallar el pago en dev. */
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -352,7 +352,7 @@ export function ClassBookingCta({
                 )}
                 {academyBlocked ? (
                   // Academia bloqueada por mora (S3): el API rechaza
-                  // book/checkout con academy.unavailable — la barra
+                  // book/checkout con academy.unavailable - la barra
                   // muestra el estado, sin CTA que lleve a un error.
                   <div className="flex items-center justify-between gap-4">
                     <p className="min-w-0 text-sm text-white/60">
@@ -364,7 +364,7 @@ export function ClassBookingCta({
                   </div>
                 ) : !enrolled && !buyable ? (
                   // Sin inscripción ni compra suelta: el escape es la ficha
-                  // de la academia, donde están los planes comprables — la
+                  // de la academia, donde están los planes comprables - la
                   // barra conserva la gramática info-izquierda / acción-derecha.
                   <div className="flex items-center justify-between gap-4">
                     <p className="min-w-0 text-sm text-white/60">
@@ -409,7 +409,7 @@ export function ClassBookingCta({
                   </>
                 ) : (
                   <div className="flex items-center justify-between gap-4">
-                    {/* Cupo junto a la acción — la urgencia es referencia de
+                    {/* Cupo junto a la acción - la urgencia es referencia de
                     decisión, mismo patrón que el rail del ClassCard. */}
                     <div className="min-w-0">
                       <span className="block text-xs uppercase tracking-wide text-white/50">
@@ -434,7 +434,7 @@ export function ClassBookingCta({
                           {spotsLeft} / {capacity}
                         </span>
                       )}
-                      {/* Créditos del plan — referencia de decisión junto al
+                      {/* Créditos del plan - referencia de decisión junto al
                       cupo; 0/0 no existe (sin cuota → myCredits null). */}
                       {creditsLeft != null && (
                         <span className="block text-xs text-white/50">
@@ -475,7 +475,7 @@ export function ClassBookingCta({
         </div>
       )}
 
-      {/* Pie: aviso post-reserva + zona destructiva centrada — patrón
+      {/* Pie: aviso post-reserva + zona destructiva centrada - patrón
           "eliminar amigo": lejos del pulgar, la confirmación va en
           bottom sheet (no inline ni window.confirm). */}
       {booking && (
@@ -499,7 +499,7 @@ export function ClassBookingCta({
         </div>
       )}
 
-      {/* Confirmación de cancelar reserva — bottom sheet */}
+      {/* Confirmación de cancelar reserva - bottom sheet */}
       {confirming && (
         <div
           ref={dialogRef}

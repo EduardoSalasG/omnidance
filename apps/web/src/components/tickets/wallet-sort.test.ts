@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sortWalletTickets } from "./wallet-sort";
 
 // Guard contra el crash de /tickets/mine: el API devuelve event:null
-// cuando el evento fue eliminado tras la compra — el orden debe
+// cuando el evento fue eliminado tras la compra - el orden debe
 // tolerarlo y enviar esos tickets al final.
 describe("sortWalletTickets", () => {
   it("ordena por startsAt descendente", () => {

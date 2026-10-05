@@ -14,7 +14,7 @@ import type {
 } from "@omnidance/shared";
 
 /**
- * /soporte — consola read-only del rol SUPPORT (también ADMIN).
+ * /soporte - consola read-only del rol SUPPORT (también ADMIN).
  * Buscador con debounce (mismo patrón que /amigos) contra
  * GET /support/users y detalle inline contra GET /support/users/:id.
  * Sin acciones de escritura ni h1 de sección: el chrome muestra
@@ -260,7 +260,7 @@ export default function SoportePage() {
         )}
       </section>
 
-      {/* Detalle del usuario seleccionado — reemplaza la lista de
+      {/* Detalle del usuario seleccionado - reemplaza la lista de
           resultados; "volver" la recupera sin re-buscar. */}
       {selectedId !== null ? (
         <section className="flex flex-col gap-4">
@@ -368,7 +368,7 @@ export default function SoportePage() {
                 )}
               </Card>
 
-              {/* Últimos tickets — linkean al evento (solo lectura). */}
+              {/* Últimos tickets - linkean al evento (solo lectura). */}
               <Card>
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                   {t("sections.tickets")}

@@ -16,7 +16,7 @@ type ActorGroup = {
 
 /**
  * Resumen agregado de evaluaciones (GET /events/:id/ratings/summary).
- * k-anonymity: la API solo expone promedios con ≥3 evaluaciones — nunca
+ * k-anonymity: la API solo expone promedios con ≥3 evaluaciones - nunca
  * hay evaluaciones individuales que mostrar. 403/404 → la sección no se
  * renderiza (el usuario no es owner/admin del evento).
  */
@@ -142,7 +142,7 @@ export function RatingsSection({ eventId }: Props) {
                           </span>
                         </span>
                       ) : (
-                        <span className="text-white/50">—</span>
+                        <span className="text-white/50">-</span>
                       )}
                     </li>
                   ))}

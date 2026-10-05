@@ -10,7 +10,7 @@ TBD - created by archiving change academy-saas-billing. Update Purpose after arc
 El `service_fee` plano SHALL aplicar únicamente a órdenes de eventos
 (TICKET, DOOR, SERIES_PASS). Las órdenes de academia (MEMBERSHIP,
 WORKSHOP, PRIVATE) SHALL cobrar el precio del producto sin cargo de
-servicio — el posicionamiento es "la academia vende sin comisiones, el
+servicio - el posicionamiento es "la academia vende sin comisiones, el
 alumno paga solo lo que la academia fija".
 
 #### Scenario: Compra de membresía sin fee
@@ -23,7 +23,7 @@ alumno paga solo lo que la academia fija".
 
 El costo Flow (~3.19%, param `gateway_fee.academy_passthrough_pct`)
 SHALL descontarse de la liquidación de la academia como línea
-explícita `GATEWAY_FEE_PASSTHROUGH` — separada del net, nunca
+explícita `GATEWAY_FEE_PASSTHROUGH` - separada del net, nunca
 escondida. El payout del productor de eventos SHALL mantener su
 `platformFeePct` como comisión de plataforma.
 
@@ -36,7 +36,7 @@ escondida. El payout del productor de eventos SHALL mantener su
 
 Las suscripciones de la plataforma misma (academia SaaS, Producer Pro)
 SHALL usar el mismo motor `Subscription`/Flow, ledger hash-chain y
-notificaciones de mora que las membresías de alumnos — incluyendo
+notificaciones de mora que las membresías de alumnos - incluyendo
 `RENEWAL_SETTLED`/`RENEWAL_FAILED` y la dedup del aviso.
 
 #### Scenario: Misma evidencia de cobro

@@ -5,9 +5,9 @@ import { TeachingClasses } from "@/components/academy/teaching-classes";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
- * /academia/clases — consola del instructor: clases asignadas (~30d) con
+ * /academia/clases - consola del instructor: clases asignadas (~30d) con
  * quórum. Sin AcademyGate: GET /classes/teaching es por persona y
- * cross-academia (el contrato trae academyName por ítem, no academyId) —
+ * cross-academia (el contrato trae academyName por ítem, no academyId) -
  * el componente resuelve sus propios estados 401/403/error/empty.
  */
 export default function AcademiaClasesPage() {

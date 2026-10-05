@@ -9,13 +9,13 @@ import {
 } from "./roles.decorator";
 import type { PrismaService } from "../../prisma.service";
 
-// RolesGuard — RBAC global DB-driven: APPROVED da acceso; SANDBOX solo donde
+// RolesGuard - RBAC global DB-driven: APPROVED da acceso; SANDBOX solo donde
 // se declara; PENDING nunca pasa. Permisos se resuelven en Role/RolePermission
 // (isSuperuser pasa todo). Corre DESPUÉS de SessionGuard (lee req.person).
 describe("RolesGuard", () => {
   const reflector = new Reflector();
 
-  // Catálogo fake — keys únicos por caso para no chocar con el cache estático.
+  // Catálogo fake - keys únicos por caso para no chocar con el cache estático.
   const catalog = [
     { key: "R_STAFF", isSuperuser: false, permissions: ["checkins.write"] },
     { key: "R_PROD", isSuperuser: false, permissions: ["discounts.manage"] },

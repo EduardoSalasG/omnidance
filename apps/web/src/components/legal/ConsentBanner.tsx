@@ -16,7 +16,7 @@ import { XIcon } from "@/components/ui";
  * muestra un banner fijo NO bloqueante sobre el contenido.
  * - "Acepto" → POST /me/consent → se oculta y no vuelve (servidor
  *   estampa la versión vigente).
- * - Dismiss (X) lo cierra solo para este montaje — al recargar la app
+ * - Dismiss (X) lo cierra solo para este montaje - al recargar la app
  *   vuelve hasta que la persona acepte (dismissible-pero-persistente).
  * - 401 (sin sesión) o respuesta sin campos → no se muestra.
  */
@@ -46,7 +46,7 @@ export function ConsentBanner() {
         body: JSON.stringify({ version: CONSENT_VERSION }),
       });
       if (res.ok) {
-        // El /me compartido queda con el consentimiento vigente —
+        // El /me compartido queda con el consentimiento vigente -
         // cualquier consumidor que lo lea después ve la versión nueva.
         void refreshMe();
         return;
@@ -59,7 +59,7 @@ export function ConsentBanner() {
     }
   }
 
-  // La tab bar (4rem + safe-area) solo existe cuando el chrome se ve —
+  // La tab bar (4rem + safe-area) solo existe cuando el chrome se ve -
   // en contextos fullscreen (staff) el banner baja hasta el borde.
   const chromeHidden = CHROME_HIDDEN_PREFIXES.some((p) =>
     pathname.startsWith(p),

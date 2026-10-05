@@ -10,7 +10,7 @@ import { PASS_STATUS_VARIANT, type EntryPass } from "./shared";
 type Props = { eventId: string };
 
 /**
- * EntryPass del evento (GET /events/:id/passes — productor/staff/admin).
+ * EntryPass del evento (GET /events/:id/passes - productor/staff/admin).
  * Tabla real con scroll horizontal en pantallas estrechas.
  */
 export function PassesSection({ eventId }: Props) {
@@ -96,7 +96,7 @@ export function PassesSection({ eventId }: Props) {
                 >
                   <td className="px-4 py-3">
                     <span className="block truncate">
-                      {p.person?.name ?? p.person?.id ?? "—"}
+                      {p.person?.name ?? p.person?.id ?? "-"}
                     </span>
                     {p.person?.phone && (
                       <span className="block text-xs text-white/50">
@@ -118,7 +118,7 @@ export function PassesSection({ eventId }: Props) {
                     {p.validUntil ? (
                       <EventDate start={p.validUntil} />
                     ) : (
-                      "—"
+                      "-"
                     )}
                   </td>
                   <td className="px-4 py-3">

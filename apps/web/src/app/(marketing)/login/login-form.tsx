@@ -40,9 +40,9 @@ function Field({
 }
 
 // initialMode llega del server page (?mode=register desde los CTAs de
-// "crear cuenta" de las landings — que no aterricen en un login).
+// "crear cuenta" de las landings - que no aterricen en un login).
 // next: middleware manda ?next=/ruta cuando un anónimo pide un módulo
-// protegido — tras login volvemos ahí en vez de siempre a /inicio.
+// protegido - tras login volvemos ahí en vez de siempre a /inicio.
 export default function LoginForm({
   initialMode,
   next,
@@ -85,7 +85,7 @@ export default function LoginForm({
     }
 
     // Consentimiento (spec legal-consent): obligatorio para registrar y
-    // para pedir magic link — el atributo `required` del checkbox ya
+    // para pedir magic link - el atributo `required` del checkbox ya
     // bloquea el submit nativo; este check cubre submits programáticos.
     if (mode !== "password" && !consent) {
       setError(tc("checkboxRequired"));
@@ -120,7 +120,7 @@ export default function LoginForm({
       setLoading(false);
       if (res.ok) {
         if (mode === "magic") setSent(true);
-        // next solo rutas internas — nunca un open redirect.
+        // next solo rutas internas - nunca un open redirect.
         else go(next?.startsWith("/") && !next.startsWith("//") ? next : "/inicio");
         return;
       }
@@ -140,7 +140,7 @@ export default function LoginForm({
 
   return (
     // flex-1 (no min-h-dvh): el alto restante lo da el layout tras el
-    // header — si no, la página sumaría viewport + barra.
+    // header - si no, la página sumaría viewport + barra.
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
       <h1 className="text-2xl font-bold">
         {isRegister ? t("registerTitle") : t("title")}
@@ -154,7 +154,7 @@ export default function LoginForm({
         <>
           {!isRegister && (
             // Selector de método: radio nativo (rol/roles del teclado
-            // gratuitos) con pills visuales — mismo patrón del hub /qr.
+            // gratuitos) con pills visuales - mismo patrón del hub /qr.
             <fieldset className="w-full max-w-sm">
               <legend className="sr-only">{t("methodLabel")}</legend>
               <div
@@ -276,7 +276,7 @@ export default function LoginForm({
             )}
 
             {/* Consentimiento legal (spec legal-consent): solo en alta
-                (register) y pedido de magic link — quien entra con
+                (register) y pedido de magic link - quien entra con
                 contraseña ya tiene cuenta; las legadas re-aceptan por el
                 aviso in-app (POST /me/consent). Links a pestaña nueva
                 para no perder el formulario. */}

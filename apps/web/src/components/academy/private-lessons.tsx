@@ -19,7 +19,7 @@ function statusLabel(status: string): string {
 type LoadState = "loading" | "ready" | "error";
 
 /**
- * PrivateLesson — espejo del schema + join manual del controller.
+ * PrivateLesson - espejo del schema + join manual del controller.
  * GET /academies/:id/private-lessons agrega `person`/`instructor`
  * ({id, name} | null); GET /private-lessons/mine devuelve la fila cruda.
  * instructorId/scheduledAt son nullables desde private-lesson-product:
@@ -37,12 +37,12 @@ type PrivateLesson = {
   person?: { id: string; name: string | null };
   instructor?: { id: string; name: string | null } | null;
   // Solo vienen en la vista staff para owner/admin/instructor de la clase
-  // (la comisión es del acuerdo academia↔instructor — el alumno no la ve).
+  // (la comisión es del acuerdo academia↔instructor - el alumno no la ve).
   commissionPct?: number;
   commissionPaidAt?: string | null;
 };
 
-// Rama as=instructor de GET /private-lessons/mine — el server calcula
+// Rama as=instructor de GET /private-lessons/mine - el server calcula
 // comisión y neto (la comisión es del acuerdo academia↔instructor; el
 // alumno nunca la ve).
 type InstructorLesson = PrivateLesson & {
@@ -71,10 +71,10 @@ type LessonAction =
   | "pay-commission";
 
 type Props = {
-  /** Academia de la consola staff (obligatoria — la vista alumno vive
+  /** Academia de la consola staff (obligatoria - la vista alumno vive
       en reservadas de /clases, particulares-en-reservadas). */
   academy: Academy;
-  /** Academias ya cargadas en la página — resuelven nombres de academia. */
+  /** Academias ya cargadas en la página - resuelven nombres de academia. */
   academies?: Academy[];
 };
 
@@ -101,9 +101,9 @@ function shortId(id: string) {
 }
 
 /**
- * Clases particulares 1:1 — vista staff de la consola (/academia/
+ * Clases particulares 1:1 - vista staff de la consola (/academia/
  * particulares): GET /academies/:id/private-lessons + PATCH
- * /private-lessons/:id {action} — assign (owner: instructor+fecha a las
+ * /private-lessons/:id {action} - assign (owner: instructor+fecha a las
  * compradas "por asignar"), confirm/done/reschedule para instructor de
  * la clase u owner(ADMIN); cancel para alumno u owner. Además la vista
  * "mis clases como instructor" (neto del mes).
@@ -113,7 +113,7 @@ function shortId(id: string) {
 export function PrivateLessons({ academy, academies = [] }: Props) {
   const tc = useTranslations("common");
 
-  // /me compartido (MeProvider) — sin fetch propio.
+  // /me compartido (MeProvider) - sin fetch propio.
   const { me } = useMe();
 
   // ─── vista staff ───
@@ -137,7 +137,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   const [assignInstructorId, setAssignInstructorId] = useState("");
   const [assignWhen, setAssignWhen] = useState("");
 
-  // Instructores de la academia del contexto staff — para el select de
+  // Instructores de la academia del contexto staff - para el select de
   // asignación. El directorio trae nombres; si no, GET /academies/:id
   // (requireManage) da los personIds y se resuelve con instructorNames.
   const [directory, setDirectory] = useState<DirectoryAcademy[]>([]);
@@ -172,7 +172,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       .catch(() => {});
   }, [academy, directory]);
 
-  // Mis clases como instructor — [] resuelto es el caso común (alumno
+  // Mis clases como instructor - [] resuelto es el caso común (alumno
   // puro) y la sección no se monta; errores = [] también (la vista
   // staff sigue).
   const loadMineInstructor = useCallback(async () => {
@@ -302,7 +302,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       reschedule: (isOwner || isInstructor) && active && !!l.scheduledAt,
       cancel: active && (isOwner || isStudent),
       // Liquidación de la comisión academia→instructor: solo el owner la
-      // marca (el pago real es por fuera — transferencia/efectivo).
+      // marca (el pago real es por fuera - transferencia/efectivo).
       payCommission:
         isOwner &&
         !!l.instructorId &&
@@ -510,7 +510,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                                 required
                               >
                                 <option value="" disabled>
-                                  —
+                                  -
                                 </option>
                                 {academyInstructors.map((i) => (
                                   <option key={i.personId} value={i.personId}>
@@ -560,7 +560,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
             ))}
       </section>
 
-      {/* Sección instructor — opcional: nada mientras resuelve
+      {/* Sección instructor - opcional: nada mientras resuelve
           (aparece una vez si hay clases); skeleton-que-colapsa = flash. */}
       {mineInstructor !== null && mineInstructor.length > 0 && (
         <section
@@ -619,7 +619,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                           {t.netLine}{" "}
                           <PriceTag amount={l.netClp} />
                         </span>
-                        {/* Liquidación de la comisión — el instructor ve
+                        {/* Liquidación de la comisión - el instructor ve
                             si la academia ya la pagó (marca del owner). */}
                         {l.commissionPct > 0 && (
                           <Badge

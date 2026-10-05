@@ -5,7 +5,7 @@ import type { Prisma } from "@prisma/client";
 
 /**
  * Entrada de auditoría append-only para cada request/response contra la
- * pasarela (tabla GatewayTransaction — evidencia primaria ante disputas).
+ * pasarela (tabla GatewayTransaction - evidencia primaria ante disputas).
  * OUTBOUND = llamada saliente del gateway; INBOUND_WEBHOOK = recepción del
  * webhook de confirmación.
  */
@@ -27,9 +27,9 @@ export interface GatewayTxEntry {
  * "s" (firma HMAC) → huella sha256 truncada a 16 hex: la firma nunca se
  * persiste (es recomputable con el secret y funciona como credencial),
  * pero la huella permite correlacionar params firmados sin guardarla.
- * El secret nunca llega aquí — no es un param de Flow.
+ * El secret nunca llega aquí - no es un param de Flow.
  * Idempotente en valor: un `s` que ya viene "sha256:<16 hex>" se deja
- * tal cual — re-hashearlo produciría sha256("sha256:"+H), un hash del
+ * tal cual - re-hashearlo produciría sha256("sha256:"+H), un hash del
  * hash no recomputable desde la firma (rompe la correlación).
  */
 export function sanitizeGatewayPayload(body: unknown): unknown {
@@ -52,7 +52,7 @@ export class GatewayTransactionsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Best-effort: un fallo de escritura nunca rompe el pago — la auditoría
+   * Best-effort: un fallo de escritura nunca rompe el pago - la auditoría
    * es observador, no parte del camino crítico. Solo log a Logger.
    */
   async record(entry: GatewayTxEntry): Promise<void> {

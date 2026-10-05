@@ -26,7 +26,7 @@ export const GENRE_TEXT: Record<GenreKey, string> = {
   CUBANO: "text-amber-300",
 };
 
-// Label del mes en el header del calendario ("septiembre de 2026" —
+// Label del mes en el header del calendario ("septiembre de 2026" -
 // el `capitalize` del h2 la presenta).
 export const monthFmt = new Intl.DateTimeFormat("es-CL", {
   month: "long",
@@ -52,7 +52,7 @@ export const monthKey = (d: Date) =>
 export const parseMonth = (raw: string | undefined): string | null =>
   raw && /^\d{4}-\d{2}$/.test(raw) ? raw : null;
 
-/** Date local del día 1 del mes "YYYY-MM" (sin parsing ISO — `new
+/** Date local del día 1 del mes "YYYY-MM" (sin parsing ISO - `new
     Date("YYYY-MM")` se interpreta en UTC y corre un día en zonas -). */
 export const monthDate = (k: string) =>
   new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, 1);
@@ -82,7 +82,7 @@ export function monthGridRange(month: Date): { start: Date; end: Date } {
 }
 
 /** Celdas del grid mensual con sus items. Los días de meses vecinos
-    que completan la primera/última semana vienen con inMonth=false —
+    que completan la primera/última semana vienen con inMonth=false -
     se renderizan atenuados pero siguen siendo seleccionables. */
 export function monthCells<T>(
   month: Date,

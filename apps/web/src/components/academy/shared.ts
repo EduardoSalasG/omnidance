@@ -45,7 +45,7 @@ export type Academy = {
   // null = no se vende). El owner asigna instructor+fecha post-compra.
   privateLessonPrice?: number | null;
   // Suscripción SaaS de la plataforma (spec academy-saas-billing):
-  // GET /academies/mine devuelve la fila completa — tier/ciclo, trial,
+  // GET /academies/mine devuelve la fila completa - tier/ciclo, trial,
   // gracia y bloqueo por mora alimentan el banner de la consola.
   tier?: string | null;
   billingCycle?: string | null;
@@ -92,12 +92,12 @@ export type MembershipPlan = {
   periodDays: number | null;
   description: string[];
   active: boolean;
-  // Espejo en Flow (omni_<id>) — presente cuando algún subscribe lo
+  // Espejo en Flow (omni_<id>) - presente cuando algún subscribe lo
   // materializó; si existe, PATCH no permite cambiar `type`.
   flowPlanId?: string | null;
 };
 
-// GET /academies/:id/students — person viene del join manual del controller;
+// GET /academies/:id/students - person viene del join manual del controller;
 // la API devuelve `startsAt` (mapeo de la columna startedAt). plan es nullable.
 export type Student = {
   id: string;
@@ -105,11 +105,11 @@ export type Student = {
   plan: { name: string } | null;
   status: EnrollmentStatus;
   startsAt: string | null;
-  /** "Pagado hasta" — vigencia del plan; null = sin fecha registrada. */
+  /** "Pagado hasta" - vigencia del plan; null = sin fecha registrada. */
   endsAt: string | null;
 };
 
-// GET /academies/:id/slots — todo slot pertenece a una serie (invariante
+// GET /academies/:id/slots - todo slot pertenece a una serie (invariante
 // de schema); capacity null = hereda el quórum de la serie/academia.
 export type ClassSlot = {
   id: string;
@@ -121,7 +121,7 @@ export type ClassSlot = {
   types: { type: { id: string; name: string } }[];
 };
 
-// GET /academies/:id/attendance — person viene del join manual del controller
+// GET /academies/:id/attendance - person viene del join manual del controller
 // (Attendance.personId es FK plana en schema); personId se mantiene por compat.
 export type AttendanceItem = {
   id: string;
@@ -133,12 +133,12 @@ export type AttendanceItem = {
 
 // ─── consola de instructor + quórum (contratos nuevos) ───
 
-// GET /classes/teaching — clases asignadas al instructor (próximas ~30d),
+// GET /classes/teaching - clases asignadas al instructor (próximas ~30d),
 // cross-academia: por eso el ítem trae academyName y no se filtra por la
 // academia seleccionada del gate.
 export type TeachingClass = {
   id: string;
-  date: string; // ISO — medianoche UTC (mismo manejo que /clases)
+  date: string; // ISO - medianoche UTC (mismo manejo que /clases)
   startTime: string; // "19:00"
   endTime: string;
   academyName: string;
@@ -151,11 +151,11 @@ export type TeachingClass = {
   waitlistCount: number;
 };
 
-// GET /classes/:id/roster — detalle de la clase + reservas y espera.
+// GET /classes/:id/roster - detalle de la clase + reservas y espera.
 export type ClassRoster = {
   class: {
     id: string;
-    date: string; // ISO — medianoche UTC
+    date: string; // ISO - medianoche UTC
     startTime: string;
     endTime: string;
     seriesName: string | null;
@@ -168,7 +168,7 @@ export type ClassRoster = {
   waitlist: { personId: string; name: string | null; createdAt: string }[];
 };
 
-// GET /academies/:id/students/:personId — perfil del alumno con historial.
+// GET /academies/:id/students/:personId - perfil del alumno con historial.
 // status es string libre del server: attended|booked|cancelled en history,
 // BOOKED|WAITLIST en upcoming (casing distinto en cada lista, por contrato).
 export type StudentProfile = {
@@ -192,7 +192,7 @@ export type StudentProfile = {
   }[];
 };
 
-// Día calendario de una Class (date llega a medianoche UTC — formatear en
+// Día calendario de una Class (date llega a medianoche UTC - formatear en
 // UTC para que el día no se corra en zonas negativas; mismo fmt que /clases).
 export const classDayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "short",
@@ -202,7 +202,7 @@ export const classDayFmt = new Intl.DateTimeFormat("es-CL", {
 });
 
 // Vigencia del enrollment (startedAt/endsAt llegan como ISO real, no
-// medianoche UTC — formatear en zona local, distinto de classDayFmt).
+// medianoche UTC - formatear en zona local, distinto de classDayFmt).
 export const planDateFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
@@ -232,7 +232,7 @@ export async function readError(res: Response): Promise<string | null> {
       }
     }
   } catch {
-    // Body no-JSON (proxy caído, HTML de error) — fallback del catálogo.
+    // Body no-JSON (proxy caído, HTML de error) - fallback del catálogo.
   }
   return null;
 }

@@ -7,12 +7,12 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Button, Spinner } from "@/components/ui";
 import { planDateFmt } from "./shared";
 
-// Shape público de la suscripción del viewer — GET
+// Shape público de la suscripción del viewer - GET
 // /academies/:id/profile (`mySubscription`: id, planId, status,
 // nextInvoiceAt, canceledAt) y /academies/enrolled (`subscription`).
 export type SubscriptionInfo = {
   id: string;
-  /** MembershipPlan.id — permite re-disparar subscribe() al retomar
+  /** MembershipPlan.id - permite re-disparar subscribe() al retomar
       un registro de tarjeta abandonado (PENDING_CARD). */
   planId: string;
   status: string;
@@ -22,10 +22,10 @@ export type SubscriptionInfo = {
 
 export type SubscriptionManageProps = {
   subscription: SubscriptionInfo;
-  /** "Vigente hasta": enrollment.endsAt del viewer — en CANCEL_PENDING
+  /** "Vigente hasta": enrollment.endsAt del viewer - en CANCEL_PENDING
       es la fecha real de fin del acceso; si no hay, se usa nextInvoiceAt. */
   accessUntil?: string | null;
-  /** Monto real del próximo cobro (plan.price + cargo de servicio) —
+  /** Monto real del próximo cobro (plan.price + cargo de servicio) -
       lo resuelve el caller desde los planes de la academia + params. */
   nextAmount?: number;
 };
@@ -84,7 +84,7 @@ export function SubscriptionManage({
   /**
    * Retoma el registro de tarjeta de una PENDING_CARD (el usuario salió
    * del disclaimer de Flow sin terminar o falló): subscribe() sobre el
-   * mismo plan devuelve needs_card + registerUrl nueva — el backend
+   * mismo plan devuelve needs_card + registerUrl nueva - el backend
    * reutiliza la fila fresca o reemplaza la expirada, sin duplicar.
    */
   async function resumeCardRegistration() {

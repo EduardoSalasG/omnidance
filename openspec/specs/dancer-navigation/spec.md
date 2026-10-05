@@ -7,7 +7,7 @@ Navegación del rol DANCER: bottom bar de 5 ítems con botón central `+` que ab
 
 ### Requirement: Bottom bar del bailarín
 
-El bottom bar del rol DANCER SHALL tener exactamente 5 ítems: Inicio (`/inicio`), Eventos (`/eventos`), botón central `+`, Amigos (`/amigos`) y Perfil (`/perfil`). El botón `+` MUST NOT navegar — abre el sheet de acciones. Los ítems MUST tener touch targets ≥44px y `aria-current` en la ruta activa.
+El bottom bar del rol DANCER SHALL tener exactamente 5 ítems: Inicio (`/inicio`), Eventos (`/eventos`), botón central `+`, Amigos (`/amigos`) y Perfil (`/perfil`). El botón `+` MUST NOT navegar - abre el sheet de acciones. Los ítems MUST tener touch targets ≥44px y `aria-current` en la ruta activa.
 
 #### Scenario: Bailarín ve sus tabs
 

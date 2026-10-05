@@ -1,15 +1,15 @@
-# Handoff — 2026-09-25 — Checkout real de membresía + cierre de gaps pendientes
+# Handoff - 2026-09-25 - Checkout real de membresía + cierre de gaps pendientes
 
 Sesión que continúa el handoff 2026-09-24(b). Se cerraron todos los gaps técnicos
 que no dependían de credenciales del usuario, y se rediseñó el checkout de
 membresías tras un critique UX (impeccable) que lo calificó "botón de pago, no
-checkout" (25/40 — el P0 era precio mostrado ≠ precio cobrado).
+checkout" (25/40 - el P0 era precio mostrado ≠ precio cobrado).
 
 ## Commits (dev)
 
-- `7a93d01` web+payments: checkout real de membresía — revisión de orden, fee declarado, elección único/suscripción, retomar tarjeta
-- `75d7405` seed: planes de membresía para todas las academias — 25k/40k general, Mambo Madness premium con trimestral/semestral ilimitado
-- `6d2124b` web: skeletons para cargas de contenido — Spinner reservado a acciones y gates
+- `7a93d01` web+payments: checkout real de membresía - revisión de orden, fee declarado, elección único/suscripción, retomar tarjeta
+- `75d7405` seed: planes de membresía para todas las academias - 25k/40k general, Mambo Madness premium con trimestral/semestral ilimitado
+- `6d2124b` web: skeletons para cargas de contenido - Spinner reservado a acciones y gates
 - `1fb29ae` api: baseline migración + refreshStatus gatewayData + PATCH planes→Flow syncPlan + settle/ledger sin races
 - `3f18ed8` web: edición de planes en consola academia + cancelar suscripción desde /perfil/pagos
 - `c322794` docs: openapi + postman regenerados (184 paths)
@@ -18,7 +18,7 @@ checkout" (25/40 — el P0 era precio mostrado ≠ precio cobrado).
 
 ### Checkout de membresía (critique → implementación)
 
-- **`GET /checkout/membership-quote?planId=`** — revisión de orden sin cobro:
+- **`GET /checkout/membership-quote?planId=`** - revisión de orden sin cobro:
   total (price + `service_fee.membership_clp`), `resultingEndsAt` calculado con
   la misma regla del settle, sub viva, gateway. Spec: 6 tests.
 - **Página `/academias/[id]/checkout?plan=X`** replicando el patrón de tickets:
@@ -34,19 +34,19 @@ checkout" (25/40 — el P0 era precio mostrado ≠ precio cobrado).
   `nextCharge` muestra fecha + monto.
 - `/checkout/return` captura `orderType` al primer poll → CTAs de
   failed/stillPending/error apuntan a `/academias` en membresías.
-- `/perfil/pagos`: pago linkea a su ficha (evento o academia — `academyId`/
+- `/perfil/pagos`: pago linkea a su ficha (evento o academia - `academyId`/
   `eventId` agregados al row de auditoría); suscripción linkea a su academia.
-- `PlanPurchaseCta` eliminado — su lógica vive en el checkout.
+- `PlanPurchaseCta` eliminado - su lógica vive en el checkout.
 
 ### Cierre de gaps pendientes del handoff anterior
 
-- **Migración versionada**: `prisma/migrations/20260925000000_baseline` —
+- **Migración versionada**: `prisma/migrations/20260925000000_baseline` -
   baseline marcada como aplicada (schema ya estaba via `db push`).
   `migrate status`: "Database schema is up to date". `db:migrate` listo
   para prod.
 - **`refreshStatus` → `{status, gatewayData}`**: el polling de
   `GET /payments/:id` ahora persiste la verdad monetaria de Flow
-  (fee/media/monto/paidAt) igual que el webhook — cierra el gap de dev
+  (fee/media/monto/paidAt) igual que el webhook - cierra el gap de dev
   donde el webhook no alcanza localhost.
 - **`PATCH /academies/:id/plans/:planId`** + `subscriptions.syncMirrorPlan`:
   edición de planes (name/type/price/classCount/periodDays/description/active)
@@ -56,7 +56,7 @@ checkout" (25/40 — el P0 era precio mostrado ≠ precio cobrado).
   ya no está huérfano. UI: PlansSection con modo edición, prefill, toggle
   active, type bloqueado cuando hay espejo.
 - **Race del ledger corregida** (más profunda de lo documentado): el re-check
-  `fresh.status` bajo READ COMMITTED **no deduplicaba** — dos webhooks
+  `fresh.status` bajo READ COMMITTED **no deduplicaba** - dos webhooks
   concurrentes leían PENDING y ambos liquidaban (doble SETTLED + campos
   gateway pisados). Fix: claim atómico `updateMany({status})` en los 4 caminos
   de settle + `pg_advisory_xact_lock(hashtext(paymentId))` en
@@ -72,7 +72,7 @@ checkout" (25/40 — el P0 era precio mostrado ≠ precio cobrado).
 ### Skeletons (audit de estados de carga)
 
 - Nuevo `components/ui/skeleton.tsx`: `Skeleton`/`SkeletonText`/`SkeletonCard`/
-  `SkeletonList` — `.page-loading` (delay 200ms), `role="status"` + sr-only,
+  `SkeletonList` - `.page-loading` (delay 200ms), `role="status"` + sr-only,
   `motion-reduce` sin pulse.
 - ~40 sitios de carga de contenido convertidos de spinner a skeleton.
 - `PageLoading` queda solo para gates (sesión/rol donde el layout depende del
@@ -83,14 +83,14 @@ checkout" (25/40 — el P0 era precio mostrado ≠ precio cobrado).
 19 academias con planes: general Mensual 1 clase $25.000 / 2 clases $40.000;
 Mambo Madness premium (1 clase $40.000, ilimitado $60.000, VIP $99.000 con
 clase particular, trimestral ilimitado $180.000, semestral ilimitado $360.000
-— lineal 3×/6×, sin descuento). MuéveteOnTour y Academia Tumbao conservan sus
+- lineal 3×/6×, sin descuento). MuéveteOnTour y Academia Tumbao conservan sus
 planes curados.
 
 ## Verificado
 
-- `npx vitest run` completo: **50 files / 1137 tests** — un solo archivo falló
+- `npx vitest run` completo: **50 files / 1137 tests** - un solo archivo falló
   (`leads.e2e`, 9 tests 401) por interferencia de paralelismo entre specs e2e
-  sobre la misma DB; **pasa aislado 35/35** — flake preexistente, no del cambio.
+  sobre la misma DB; **pasa aislado 35/35** - flake preexistente, no del cambio.
 - `tsc --noEmit` api+web limpio · i18n-audit `ALL_KEYS_OK` · impeccable detector
   `[]` · openapi/postman regenerados (183→184 paths por el PATCH).
 - Smoke vivo: `.tmp-smoke-planedit.cjs` **9/9** (POST plan, PATCH nombre/precio/
@@ -98,16 +98,16 @@ planes curados.
 - Suite de payments: 239/239 (incl. concurrencia real + syncMirrorPlan).
 - `academies.e2e`: 54/54 (PaymentsModule resuelve en TestingModule; scheduler
   inerte en test).
-- Browser preview abierto (`http://localhost:3000`) — rutas autenticadas
+- Browser preview abierto (`http://localhost:3000`) - rutas autenticadas
   requieren sesión del usuario; el checkout de membresía **no se recorrió en
   browser todavía** (tsc + tests solamente).
 
-## Pendiente — requiere acción del usuario
+## Pendiente - requiere acción del usuario
 
 1. **`FLOW_API_KEY` + `FLOW_SECRET_KEY`** en `.env` raíz (sandbox.flow.cl → Mis
    datos → Integraciones). Sin ellos `PAYMENT_GATEWAY=flow` no arranca y toda
    la validación sigue contra stub.
-2. Alta de tarjeta real (registerUrl → página Flow → `?sub=ok`) — browser.
+2. Alta de tarjeta real (registerUrl → página Flow → `?sub=ok`) - browser.
 3. Producción Flow sigue bloqueada por diseño hasta validar sandbox e2e.
 4. Verificación visual autenticada del checkout de membresía (recomendado con
    throttling lento para ver skeletons).
@@ -116,8 +116,8 @@ planes curados.
 
 - Sub Flow huérfana si crash entre `subscription/create` y update local
   (~1 ventana HTTP; compensación best-effort cubre update-fail).
-- Stub no simula suscripciones (subscribe → 400 con stub — by design).
-- Flake de paralelismo entre specs e2e (leads vs. specs que borran personas) —
+- Stub no simula suscripciones (subscribe → 400 con stub - by design).
+- Flake de paralelismo entre specs e2e (leads vs. specs que borran personas) -
   considerar aislamiento por schema/DB o serializar specs e2e si persiste.
 - Si se quisiera incentivo por compromiso en planes largos: trimestral/semestral
   son lineales (3×/6×); aplicar ~10% off es un cambio de seed de una línea.

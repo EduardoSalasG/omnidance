@@ -7,7 +7,7 @@ import { Badge, Button, Card, SkeletonList, SkeletonText } from "@/components/ui
 import { EVENT_STATUS_VARIANT } from "@/components/producer/shared";
 
 /**
- * /analitica — métricas por lente de rol. GET /analytics/roles devuelve los
+ * /analitica - métricas por lente de rol. GET /analytics/roles devuelve los
  * roles aprobados con analítica; el segmented control (radiogroup nativo,
  * mismo patrón de pills de /perfil) cambia de lente y refetchea el summary.
  * Sin h1 visible: el chrome ya muestra "Analítica" via pageLabel.
@@ -137,7 +137,7 @@ export default function AnaliticaPage() {
     void boot();
   }, [boot]);
 
-  // Summary del lente activo — refetch al cambiar de rol. 403 (rol que
+  // Summary del lente activo - refetch al cambiar de rol. 403 (rol que
   // perdió aprobación entre requests) muestra forbidden pero deja el
   // selector vivo para cambiar a un lente válido.
   const loadSummary = useCallback(async (r: Role) => {
@@ -202,7 +202,7 @@ export default function AnaliticaPage() {
   };
 
   // Empty: las colecciones del lente vinieron vacías (KPIs pueden seguir
-  // mostrándose — el estado vacío apunta a las secciones).
+  // mostrándose - el estado vacío apunta a las secciones).
   const sectionsEmpty = (() => {
     if (!summary) return false;
     switch (role) {
@@ -228,7 +228,7 @@ export default function AnaliticaPage() {
       <header className="flex flex-col gap-3 pt-4">
         <p className="text-sm text-white/50">{t("period")}</p>
 
-        {/* Selector de lente — radiogroup nativo de pills (mismo patrón
+        {/* Selector de lente - radiogroup nativo de pills (mismo patrón
             que "Interactuar como" de /perfil): un tab stop, flechas
             cambian de opción. Solo si hay más de un rol con analítica. */}
         {roles.length > 1 && (
@@ -279,7 +279,7 @@ export default function AnaliticaPage() {
 
       {summaryPhase === "ready" && summary && (
         <>
-          {/* KPIs — mismo patrón de tiles del HomeHub; números en neon
+          {/* KPIs - mismo patrón de tiles del HomeHub; números en neon
               como datos destacados. */}
           {summary.kpis.length > 0 && (
             <section aria-label={t("title")}>
@@ -442,7 +442,7 @@ export default function AnaliticaPage() {
                           label={t("cols.occupancy")}
                           value={
                             e.occupancyPct == null
-                              ? "—"
+                              ? "·"
                               : `${num.format(e.occupancyPct)}%`
                           }
                         />
@@ -490,7 +490,7 @@ export default function AnaliticaPage() {
                           label={t("cols.occupancy")}
                           value={
                             a.occupancyPct == null
-                              ? "—"
+                              ? "·"
                               : `${num.format(a.occupancyPct)}%`
                           }
                         />

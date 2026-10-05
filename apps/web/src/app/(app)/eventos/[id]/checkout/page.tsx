@@ -17,10 +17,10 @@ export type CheckoutEvent = {
   presalePrice: number | null;
   doorPrice: number | null;
   /** Instante del corte de preventa (ISO, lo calcula el API con
-      presale.cutoff_hour) — el estimado preventa/puerta lo usa tal cual. */
+      presale.cutoff_hour) - el estimado preventa/puerta lo usa tal cual. */
   presaleEndsAt: string | null;
   /** Cargo por servicio de preventa propio del evento (null = default
-      de plataforma — los overrides de productor/param no son públicos). */
+      de plataforma - los overrides de productor/param no son públicos). */
   serviceFeeClp: number | null;
   /** Cargo por servicio de puerta-app propio del evento (null = default). */
   doorAppFeeClp: number | null;
@@ -66,7 +66,7 @@ export default async function CheckoutPage({
   }
 
   // Deep-link a checkout de un evento terminado/cancelado, o de una
-  // práctica (gratis, sin ticket — spec §8): aviso, no compra.
+  // práctica (gratis, sin ticket - spec §8): aviso, no compra.
   const isPast =
     event.status === "CANCELLED" ||
     event.status === "CLOSED" ||

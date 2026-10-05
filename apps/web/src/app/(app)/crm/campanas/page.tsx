@@ -36,7 +36,7 @@ export default function CrmCampanasPage() {
           {!ctx.actor ? (
             <p className="text-white/60">{t("pickActor")}</p>
           ) : ctx.proBlocked ? (
-            // El CRM del productor es feature Producer Pro — el API
+            // El CRM del productor es feature Producer Pro - el API
             // responde 403 pro.required en todos sus endpoints.
             <ProPaywall />
           ) : (

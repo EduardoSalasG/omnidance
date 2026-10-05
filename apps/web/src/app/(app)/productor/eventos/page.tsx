@@ -35,7 +35,7 @@ const clp = new Intl.NumberFormat("es-CL", {
 });
 
 /**
- * /productor/eventos — lista de mis eventos + formulario de creación.
+ * /productor/eventos - lista de mis eventos + formulario de creación.
  * GET /events/mine devuelve todos los estados del productor autenticado.
  */
 function ProducerEvents() {
@@ -43,7 +43,7 @@ function ProducerEvents() {
   const te = useTranslations("events");
   const tc = useTranslations("common");
 
-  // /me compartido (MeProvider) — el gate se deriva del contexto y los
+  // /me compartido (MeProvider) - el gate se deriva del contexto y los
   // datos se piden en paralelo desde el mount (un no-productor recibe
   // 403 de /events/mine → el gate por rol decide, se descarta).
   const {
@@ -94,7 +94,7 @@ function ProducerEvents() {
     };
   }, [eventsNonce]);
 
-  // Catálogos del formulario — fetch único, no reintentan con el listado.
+  // Catálogos del formulario - fetch único, no reintentan con el listado.
   useEffect(() => {
     let cancelled = false;
     Promise.all([apiFetch("/venues"), apiFetch("/styles")])

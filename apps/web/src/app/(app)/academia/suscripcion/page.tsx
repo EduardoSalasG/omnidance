@@ -8,11 +8,11 @@ import { AcademyBillingReturnNotice } from "@/components/academy/academy-billing
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
- * /academia/suscripcion — billing SaaS de la academia seleccionada
- * (GET /academies/:id/billing — owner/admin; 403 → "sin acceso" adentro).
+ * /academia/suscripcion - billing SaaS de la academia seleccionada
+ * (GET /academies/:id/billing - owner/admin; 403 → "sin acceso" adentro).
  * El gate resuelve auth + academia; AcademyBilling maneja estado,
  * contratación (Flow), cambio de plan, cancelación e invoices.
- * El Suspense envuelve el aviso de retorno de Flow (?sub=ok|error —
+ * El Suspense envuelve el aviso de retorno de Flow (?sub=ok|error -
  * useSearchParams) y el panel.
  */
 export default function AcademiaSuscripcionPage() {
