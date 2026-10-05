@@ -48,11 +48,10 @@ a `api.omnidance.eduardosalasg.dev`.
 | `MIGRATION_DATABASE_URL` | Endpoint **directo** de Neon para migraciones/seed (opcional si está en `.env` de la VM) |
 | `SEED_ADMIN_EMAIL` | Email del admin que crea el seed prod |
 
-### `~/apps/omnidance/.env` en la VM (una vez)
+### `/opt/apps/omnidance/.env` en la VM (una vez)
 
-El deploy usa `$HOME/apps/omnidance` del usuario SSH (sin sudo) —
-`/opt/apps` requeriría chown previo y el deploy user no tiene NOPASSWD
-amplio.
+El deploy usa `/opt/apps/omnidance` (mismo patrón que video-repo) — el
+usuario SSH ya tiene ownership del directorio, sin sudo en el pipeline.
 
 ```env
 # Neon — pooled para la app, directo para migrate/seed del entrypoint
