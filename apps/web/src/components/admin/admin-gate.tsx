@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 type Gate = "loading" | "unauth" | "notAdmin" | "error" | "ready";
@@ -65,7 +65,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
           {tc("error")}
         </p>
         <Button variant="secondary" onClick={() => void boot()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

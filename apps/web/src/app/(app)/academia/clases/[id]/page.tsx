@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { QuorumBar } from "@/components/academy/quorum-bar";
 import {
@@ -90,7 +90,7 @@ export default function AcademiaClaseRosterPage({
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

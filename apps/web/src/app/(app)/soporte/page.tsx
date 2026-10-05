@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, ChevronLeftIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import type {
@@ -269,7 +269,7 @@ export default function SoportePage() {
             onClick={closeDetail}
             className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
-            <span aria-hidden="true">‹</span> {t("backToResults")}
+            <ChevronLeftIcon /> {t("backToResults")}
           </button>
 
           {detailPhase === "loading" && <SkeletonList />}

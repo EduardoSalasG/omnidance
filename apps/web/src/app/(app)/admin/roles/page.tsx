@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card } from "@/components/ui";
+import { Badge, Card, CheckIcon } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { PermissionRow, RoleRow } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -126,13 +126,13 @@ function RolesPanel() {
                             void togglePermission(r.key, p.key, !granted)
                           }
                           title={p.description ?? p.key}
-                          className={`min-h-[44px] rounded-full border px-3 font-mono text-xs transition ${
+                          className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3 font-mono text-xs transition ${
                             granted
                               ? "border-neon bg-neon/15 text-neon"
                               : "border-white/15 text-white/50"
                           }`}
                         >
-                          {granted ? "✓ " : ""}
+                          {granted && <CheckIcon className="h-3.5 w-3.5" />}
                           {p.key}
                         </button>
                       );

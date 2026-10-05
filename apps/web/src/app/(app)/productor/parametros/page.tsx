@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { BackLink, Badge, Button, Card, PriceTag } from "@/components/ui";
+import { BackLink, Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 import { ProducerProSection } from "@/components/producer/pro-section";
@@ -171,7 +171,7 @@ export default function ProducerParamsPage() {
             {tc("error")}
           </p>
           <Button variant="secondary" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, PillTabs, type BadgeVariant } from "@/components/ui";
+import { Badge, Card, PillTabs, type BadgeVariant, RefreshIcon } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
@@ -880,9 +880,9 @@ function DatosPanel() {
           <button
             type="button"
             onClick={() => void load()}
-            className="min-h-[44px] rounded-full bg-white/10 px-4 text-sm font-semibold text-white/70"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-semibold text-white/70"
           >
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </button>
         </div>
       )}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate, PriceTag } from "@/components/ui";
+import { Badge, Button, Card, EventDate, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { PASS_STATUS_VARIANT, type EntryPass } from "./shared";
 
@@ -51,7 +51,7 @@ export function PassesSection({ eventId }: Props) {
             {tc("error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}

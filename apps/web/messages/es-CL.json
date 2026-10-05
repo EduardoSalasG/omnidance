@@ -80,6 +80,8 @@
     "retry": "Reintentar",
     "sessionExpired": "Tu sesión expiró",
     "sessionExpiredDesc": "Entra de nuevo para ver qué hay esta noche.",
+    "serverError": "No pudimos cargar tu inicio",
+    "serverErrorDesc": "El servidor no respondió o se cortó la conexión. Inténtalo de nuevo.",
     "myEntries": "Tus entradas"
   },
   "nav": {
@@ -514,7 +516,7 @@
     "audit": {
       "empty": "Sin eventos registrados."
     },
-    "saved": "Guardado ✓",
+    "saved": "Guardado",
     "status": {
       "PENDING": "Pendiente",
       "SANDBOX": "Sandbox",

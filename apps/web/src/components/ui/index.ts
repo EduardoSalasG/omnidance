@@ -36,6 +36,7 @@ export { NavPendingOverlay } from "./nav-pending";
 
 export {
   ChevronRightIcon,
+  ChevronLeftIcon,
   ChevronDownIcon,
   RefreshIcon,
   ArrowUpRightIcon,

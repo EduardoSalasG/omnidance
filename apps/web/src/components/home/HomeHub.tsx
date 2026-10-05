@@ -335,6 +335,14 @@ export function HomeHub() {
 
   const [me, setMe] = useState<Me | null>(null);
   const [checked, setChecked] = useState(false);
+  // Causa del fallo de /me: "session" (401/403 → copy de reingreso) vs
+  // "server" (5xx/red → error genérico + reintento). Antes cualquier
+  // fallo caía en "Tu sesión expiró" — copy deshonesto en un 500.
+  const [meError, setMeError] = useState<"session" | "server" | null>(
+    null,
+  );
+  // Nonce que re-ejecuta la carga de /me desde el estado de error.
+  const [meRetry, setMeRetry] = useState(0);
   // Encuestas post-social pendientes — global por persona (cualquier
   // lente evalúa); null hasta que el fetch resuelve → la card no
   // reserva espacio ni flashea vacía.
@@ -359,16 +367,25 @@ export function HomeHub() {
     apiFetch("/me")
       .then(async (res) => {
         if (cancelled) return;
-        if (res.ok) setMe((await res.json()) as Me);
+        if (res.ok) {
+          setMe((await res.json()) as Me);
+          setMeError(null);
+        } else {
+          setMeError(
+            res.status === 401 || res.status === 403 ? "session" : "server",
+          );
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) setMeError("server");
+      })
       .finally(() => {
         if (!cancelled) setChecked(true);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [meRetry]);
 
   // Encuestas pendientes: una vez por sesión (no por lente — el
   // endpoint es global). Falla en silencio: la card simplemente no
@@ -427,8 +444,32 @@ export function HomeHub() {
   }
 
   // Cookie presente pero sesión expirada — contexto + CTA de re-login
-  // (sin appbar en este estado: el h1 vive acá, no en el chrome).
+  // (sin appbar en este estado: el h1 vive acá, no en el chrome). Si el
+  // fallo fue de servidor/red el copy es honesto y ofrece reintentar.
   if (!me) {
+    if (meError === "server") {
+      return (
+        <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
+          <Card className="flex flex-col items-center gap-3 py-6 text-center">
+            <h1 className="text-xl font-bold">{t("serverError")}</h1>
+            <p role="alert" className="text-sm text-white/60">
+              {t("serverErrorDesc")}
+            </p>
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                setChecked(false);
+                setMeError(null);
+                setMeRetry((r) => r + 1);
+              }}
+            >
+              {t("retry")}
+            </Button>
+          </Card>
+        </main>
+      );
+    }
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">

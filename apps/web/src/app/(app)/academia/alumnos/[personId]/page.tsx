@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, type BadgeVariant } from "@/components/ui";
+import { Badge, Button, Card, type BadgeVariant, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import {
@@ -123,7 +123,7 @@ function ProfileModule({
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

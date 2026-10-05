@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { Badge, Button, Card, RefreshIcon, XIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -506,7 +506,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );
@@ -758,7 +758,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                           setSlots((prev) => prev.filter((_, j) => j !== i))
                         }
                       >
-                        ✕
+                        <XIcon className="h-4 w-4" />
                       </Button>
                       {types.length > 0 && (
                         <div className="flex basis-full flex-wrap items-center gap-1.5">
@@ -906,7 +906,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                             disabled={busyId === slot.id}
                             onClick={() => void removeSlot(slot.id)}
                           >
-                            ✕
+                            <XIcon className="h-4 w-4" />
                           </Button>
                         )}
                       </li>

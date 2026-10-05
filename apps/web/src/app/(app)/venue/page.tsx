@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate } from "@/components/ui";
+import {
+  ArrowUpRightIcon,
+  Badge,
+  Button,
+  Card,
+  EventDate,
+  RefreshIcon,
+} from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
 import { EVENT_STATUS_VARIANT, readError } from "@/components/producer/shared";
@@ -285,7 +292,7 @@ export default function VenuePage() {
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-white/70">{t("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </Card>
       )}
@@ -334,7 +341,7 @@ export default function VenuePage() {
                 size="sm"
                 onClick={() => void loadDash(selected.id)}
               >
-                ↻ {tc("retry")}
+                <RefreshIcon /> {tc("retry")}
               </Button>
             </Card>
           )}
@@ -674,9 +681,7 @@ export default function VenuePage() {
                           className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-night-700 bg-night-900 px-4 py-3 text-sm font-medium transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
                         >
                           <span>{t("menus.item", { version: m.version })}</span>
-                          <span aria-hidden className="text-white/50">
-                            ↗
-                          </span>
+                          <ArrowUpRightIcon className="h-4 w-4 shrink-0 text-white/50" />
                           <span className="sr-only">{tc("newTab")}</span>
                         </a>
                       </li>

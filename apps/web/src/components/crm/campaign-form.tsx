@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ENROLLMENT_STATUSES } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, CheckIcon } from "@/components/ui";
 import type { CampaignSegment, CrmActor, CrmPersonRow } from "./types";
 import { SEGMENTS, actorBody, actorQuery } from "./types";
 
@@ -213,7 +213,7 @@ export function CampaignForm({
     );
 
   const chipCls = (on: boolean) =>
-    `min-h-[36px] rounded-full border px-3 text-xs transition ${
+    `inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 text-xs transition ${
       on ? "border-neon bg-neon/15 text-neon" : "border-white/15 text-white/60"
     }`;
 
@@ -383,7 +383,7 @@ export function CampaignForm({
                       onClick={() => tagToggle(tag)}
                       className={chipCls(on)}
                     >
-                      {on ? "✓ " : ""}
+                      {on && <CheckIcon className="h-3.5 w-3.5" />}
                       {tag}
                     </button>
                   );
@@ -406,7 +406,7 @@ export function CampaignForm({
                   onClick={() => setAllStudents((v) => !v)}
                   className={chipCls(allStudents)}
                 >
-                  {allStudents ? "✓ " : ""}
+                  {allStudents && <CheckIcon className="h-3.5 w-3.5" />}
                   {t("campaigns.allStudents")}
                 </button>
                 {ENROLLMENT_STATUSES.map((st) => {
@@ -419,7 +419,7 @@ export function CampaignForm({
                       onClick={() => statusToggle(st)}
                       className={chipCls(on)}
                     >
-                      {on ? "✓ " : ""}
+                      {on && <CheckIcon className="h-3.5 w-3.5" />}
                       {t(`campaigns.enrollmentStatus.${st}`)}
                     </button>
                   );

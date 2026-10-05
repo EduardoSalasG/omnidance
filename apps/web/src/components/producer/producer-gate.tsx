@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui";
+import { Button, RefreshIcon } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { PRODUCER_ROLES } from "./shared";
 
@@ -75,7 +75,7 @@ export function ProducerGate({ children }: { children: React.ReactNode }) {
       <div className="flex flex-col items-start gap-4">
         <p className="text-white/70">{tc("error")}</p>
         <Button variant="secondary" onClick={() => void boot()}>
-          ↻ {tc("retry")}
+          <RefreshIcon /> {tc("retry")}
         </Button>
       </div>
     );

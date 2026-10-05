@@ -42,8 +42,8 @@
       "addTag": "Agregar tag",
       "tagPlaceholder": "Ej. VIP, amigo del DJ",
       "deleteTag": "Quitar tag {tag}",
-      "prev": "← Anterior",
-      "next": "Siguiente →",
+      "prev": "Anterior",
+      "next": "Siguiente",
       "page": "Página {page} de {pages}"
     },
     "campaigns": {

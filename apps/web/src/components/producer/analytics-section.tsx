@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch, isProRequired } from "@/lib/api";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, RefreshIcon, StarIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ProPaywall } from "./pro-paywall";
 
@@ -41,9 +41,14 @@ function AvgStars({ avg }: { avg: number }) {
   const lit = Math.round(avg);
   return (
     <span className="inline-flex items-baseline gap-2">
-      <span aria-hidden="true" className="text-sm tracking-wide">
-        <span className="text-neon">{"★".repeat(lit)}</span>
-        <span className="text-white/30">{"☆".repeat(5 - lit)}</span>
+      <span aria-hidden="true" className="inline-flex items-center gap-0.5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <StarIcon
+            key={i}
+            filled={i < lit}
+            className={`h-3.5 w-3.5 ${i < lit ? "text-neon" : "text-white/30"}`}
+          />
+        ))}
       </span>
       <span className="sr-only">{avg.toFixed(1)} / 5</span>
       <span className="font-semibold tabular-nums text-neon">
@@ -179,7 +184,7 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
             {tc("error")}
           </p>
           <Button size="sm" variant="ghost" onClick={() => void load()}>
-            ↻ {tc("retry")}
+            <RefreshIcon /> {tc("retry")}
           </Button>
         </div>
       )}
