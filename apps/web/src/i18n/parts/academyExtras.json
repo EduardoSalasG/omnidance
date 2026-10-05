@@ -78,6 +78,7 @@
     "learner": {
       "myAcademies": "Mis academias",
       "enrolledBadge": "Inscrita",
+      "academyUnavailable": "No disponible",
       "attendance30d": "{count, plural, one {# asistencia este mes} other {# asistencias este mes}}",
       "planRange": "Del {start} al {end}",
       "planSince": "Plan desde el {start}",
@@ -120,7 +121,8 @@
       "planActive": "Plan activo",
       "privateLesson": "Clase particular",
       "privateLessonDesc": "1 alumno · el instructor y la fecha los asigna la academia tras tu compra",
-      "buyPrivate": "Comprar clase particular"
+      "buyPrivate": "Comprar clase particular",
+      "unavailable": "La academia no está disponible por el momento"
     },
     "viewsLabel": "Vistas",
     "scopesLabel": "Sección",

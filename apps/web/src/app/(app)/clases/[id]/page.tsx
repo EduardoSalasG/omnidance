@@ -46,7 +46,13 @@ type ClassDetail = {
     used: number | null;
     limit: number | null;
   } | null;
-  academy: { id: string; name: string };
+  academy: {
+    id: string;
+    name: string;
+    /** Mora SaaS (S3/S6): el CTA de reserva/compra queda deshabilitado
+        con copy honesto — la ficha sigue visible (S6b). */
+    billingBlocked: boolean;
+  };
   instructor: {
     id: string;
     name: string | null;
@@ -159,6 +165,9 @@ export default async function ClaseDetailPage({
           <Badge variant="neon" className="normal-case tracking-normal">
             {cls.academy.name}
           </Badge>
+          {cls.academy.billingBlocked && (
+            <Badge variant="muted">{t.academyUnavailableBadge}</Badge>
+          )}
           {/* Mi reserva — mismo lugar semántico que el badge top-right
               del ClassCard; se re-sincroniza vía router.refresh() tras
               reservar/cancelar en la barra de acción. */}
@@ -284,6 +293,7 @@ export default async function ClaseDetailPage({
         initialPaid={cls.myBookingPaid}
         enrolled={cls.enrolled}
         academyId={cls.academy.id}
+        academyBlocked={cls.academy.billingBlocked}
         spotsLeft={cls.spotsLeft}
         capacity={cls.capacity}
         waitlistCount={cls.waitlistCount}

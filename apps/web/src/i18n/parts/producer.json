@@ -210,6 +210,65 @@
         "checkins": "Check-ins de la serie",
         "guestlist": "Listas de la serie"
       }
+    },
+    "pro": {
+      "title": "Esta función es parte de Producer Pro",
+      "featureTitle": "{feature} es parte de Producer Pro",
+      "cta": "Ver planes",
+      "benefits": {
+        "analytics": "Analítica de eventos y asistentes",
+        "exports": "Exportaciones CSV y PDF",
+        "crm": "CRM de tus bailarines"
+      },
+      "sectionTitle": "Producer Pro",
+      "loadError": "No pudimos cargar tu suscripción.",
+      "status": {
+        "free": "Plan gratuito",
+        "trial": "Período de prueba",
+        "active": "Activa",
+        "cancelPending": "Se cancela",
+        "activating": "Activando"
+      },
+      "tiers": {
+        "FREE": "Plan gratuito",
+        "PRO_STARTER": "Producer Pro",
+        "PRO_GROWTH": "Producer Pro Growth",
+        "PRO_BIG": "Producer Pro a medida"
+      },
+      "trialDaysLeft": "{count, plural, one {Queda # día de prueba} other {Quedan # días de prueba}}",
+      "activeUntil": "Pro sigue activo hasta el {date}",
+      "cancelPendingNoDate": "Pro sigue activo hasta el fin del período pagado",
+      "nextCharge": "Próximo cobro: {date}",
+      "activatingHint": "Tu suscripción se está activando — se confirma con el primer cobro.",
+      "gross": "Facturación media mensual (últimos 90 días)",
+      "grossMax": "Tope del plan",
+      "cancel": "Cancelar Producer Pro",
+      "cancelConfirm": "¿Cancelar Producer Pro? Mantienes el acceso hasta el fin del período ya pagado.",
+      "cancelYes": "Sí, cancelar",
+      "cancelKeep": "Mantener Producer Pro",
+      "cancelOk": "Suscripción cancelada — Pro sigue activo hasta el fin del período.",
+      "pitch": "Producer Pro habilita la analítica avanzada, las exportaciones y el CRM de tus bailarines.",
+      "cardRedirectTitle": "Registra tu tarjeta",
+      "cardRedirectDesc": "Te llevamos a Flow (pasarela segura) para registrar tu tarjeta. El cobro se hace recién al confirmar el plan.",
+      "cardRedirectCta": "Continuar a Flow",
+      "cycle": {
+        "label": "Ciclo de facturación",
+        "MONTHLY": "Mensual",
+        "SEMIANNUAL": "Semestral",
+        "ANNUAL": "Anual"
+      },
+      "period": {
+        "MONTHLY": "mes",
+        "SEMIANNUAL": "semestre",
+        "ANNUAL": "año"
+      },
+      "perMonth": "{amount}/mes",
+      "consent": "Se te cobrará {amount} cada {period} de forma automática hasta que lo canceles.",
+      "subscribe": "Suscribirme por {amount}/{period}",
+      "subscribeNoPrice": "Precio no disponible",
+      "subscribeOk": "¡Producer Pro activado!",
+      "subscribeError": "No pudimos iniciar la suscripción — inténtalo de nuevo.",
+      "tierLimit": "Tu facturación supera el tope de los planes autogestionados — escríbenos para contratar Pro a medida."
     }
   }
 }

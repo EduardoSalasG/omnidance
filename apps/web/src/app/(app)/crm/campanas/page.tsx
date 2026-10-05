@@ -11,6 +11,7 @@ import {
 } from "@/components/crm/crm-context";
 import { CampaignForm } from "@/components/crm/campaign-form";
 import { CampaignList } from "@/components/crm/campaign-list";
+import { ProPaywall } from "@/components/producer/pro-paywall";
 import { actorKey } from "@/components/crm/types";
 
 export default function CrmCampanasPage() {
@@ -34,6 +35,10 @@ export default function CrmCampanasPage() {
           <ActorPicker ctx={ctx} />
           {!ctx.actor ? (
             <p className="text-white/60">{t("pickActor")}</p>
+          ) : ctx.proBlocked ? (
+            // El CRM del productor es feature Producer Pro — el API
+            // responde 403 pro.required en todos sus endpoints.
+            <ProPaywall />
           ) : (
             <>
               <div className="flex justify-end">

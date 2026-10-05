@@ -15,7 +15,13 @@ const CRM_ROLES = new Set(["PRODUCER", "ACADEMY_OWNER", "ADMIN"]);
 
 export type CrmGate = "loading" | "unauth" | "forbidden" | "error" | "ready";
 
-type Me = { id: string; name: string; roles: string[] };
+type Me = {
+  id: string;
+  name: string;
+  roles: string[];
+  /** Producer Pro (S6): presente solo en productores aprobados. */
+  effectivePro?: boolean;
+};
 
 export type CrmContextValue = {
   gate: CrmGate;
@@ -25,6 +31,11 @@ export type CrmContextValue = {
   actorSel: string;
   setActorSel: (v: string) => void;
   isAdmin: boolean;
+  /** El actor seleccionado es el propio CRM del productor y no tiene
+      Pro efectivo — espejo del gateo del API (assertActorAccess →
+      assertProducerPro solo cuando actorId === caller.id). Las
+      páginas renderizan el paywall en vez del contenido. */
+  proBlocked: boolean;
   manualType: ActorType;
   setManualType: (v: ActorType) => void;
   manualId: string;
@@ -46,6 +57,8 @@ export function useCrmContext(): CrmContextValue {
   const [actors, setActors] = useState<CrmActor[]>([]);
   const [actorSel, setActorSel] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [meId, setMeId] = useState("");
+  const [effectivePro, setEffectivePro] = useState<boolean | null>(null);
   const [manual, setManual] = useState<CrmActor | null>(null);
   const [manualType, setManualType] = useState<ActorType>("PRODUCER");
   const [manualId, setManualId] = useState("");
@@ -61,6 +74,8 @@ export function useCrmContext(): CrmContextValue {
         return setGate("forbidden");
       }
       setIsAdmin(me.roles.includes("ADMIN"));
+      setMeId(me.id);
+      setEffectivePro(me.effectivePro ?? null);
 
       const list: CrmActor[] = [];
       if (me.roles.includes("PRODUCER")) {
@@ -121,6 +136,13 @@ export function useCrmContext(): CrmContextValue {
       ? manual
       : (actors.find((a) => actorKey(a) === actorSel) ?? null);
 
+  // El CRM del productor propio es feature Pro (S5): el API responde
+  // 403 pro.required en todos sus endpoints — el front lo anticipa.
+  const proBlocked =
+    actor?.actorType === "PRODUCER" &&
+    actor.actorId === meId &&
+    effectivePro === false;
+
   return {
     gate,
     boot,
@@ -129,6 +151,7 @@ export function useCrmContext(): CrmContextValue {
     actorSel,
     setActorSel,
     isAdmin,
+    proBlocked,
     manualType,
     setManualType,
     manualId,

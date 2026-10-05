@@ -36,6 +36,7 @@ export function ClassBookingCta({
   initialPaid = false,
   enrolled,
   academyId,
+  academyBlocked = false,
   spotsLeft,
   capacity,
   waitlistCount,
@@ -57,6 +58,10 @@ export function ClassBookingCta({
   /** Academia dueña de la clase — el CTA "sin inscripción" lleva a su
       ficha, donde están los planes comprables. */
   academyId: string;
+  /** Academia bloqueada por mora SaaS (S3): book/checkout ya rechazan
+      con academy.unavailable — la barra lo anticipa con copy honesto
+      (la falta es del owner) y no ofrece acción. */
+  academyBlocked?: boolean;
   spotsLeft: number;
   capacity: number;
   waitlistCount: number;
@@ -345,7 +350,19 @@ export function ClassBookingCta({
                     {notice.text}
                   </p>
                 )}
-                {!enrolled && !buyable ? (
+                {academyBlocked ? (
+                  // Academia bloqueada por mora (S3): el API rechaza
+                  // book/checkout con academy.unavailable — la barra
+                  // muestra el estado, sin CTA que lleve a un error.
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="min-w-0 text-sm text-white/60">
+                      {t("academyUnavailable")}
+                    </p>
+                    <Button disabled className="shrink-0">
+                      {t("book")}
+                    </Button>
+                  </div>
+                ) : !enrolled && !buyable ? (
                   // Sin inscripción ni compra suelta: el escape es la ficha
                   // de la academia, donde están los planes comprables — la
                   // barra conserva la gramática info-izquierda / acción-derecha.
