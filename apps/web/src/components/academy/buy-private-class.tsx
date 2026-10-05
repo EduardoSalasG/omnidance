@@ -19,7 +19,15 @@ const POLL_MAX_ATTEMPTS = 15; // ~30s — mismo criterio que checkout-client
  * simulación y al resolverse se navega a /checkout/return (mismo patrón
  * que membership-checkout-client).
  */
-export function BuyPrivateClass({ academyId }: { academyId: string }) {
+export function BuyPrivateClass({
+  academyId,
+  disabled = false,
+}: {
+  academyId: string;
+  /** Academia bloqueada por mora SaaS (S3): el POST ya rechaza con
+      academy.unavailable — el botón disabled lo anticipa honestamente. */
+  disabled?: boolean;
+}) {
   const t = useTranslations("academy.profile");
   const tc = useTranslations("common");
   const tco = useTranslations("checkout");
@@ -148,7 +156,11 @@ export function BuyPrivateClass({ academyId }: { academyId: string }) {
           </div>
         </div>
       ) : (
-        <Button className="w-full" disabled={busy} onClick={() => void buy()}>
+        <Button
+          className="w-full"
+          disabled={busy || disabled}
+          onClick={() => void buy()}
+        >
           {busy && <Spinner size="sm" />}
           {t("buyPrivate")}
         </Button>

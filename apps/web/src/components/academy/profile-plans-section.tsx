@@ -39,6 +39,7 @@ export function ProfilePlansSection({
   privateLessonPrice,
   activePlanId,
   subscribedPlanId,
+  blocked = false,
   labels,
 }: {
   academyId: string;
@@ -50,6 +51,9 @@ export function ProfilePlansSection({
   /** Plan con suscripción Flow viva — su CTA se oculta (la gestión vive
       en SubscriptionManage; un segundo "Comprar" cobraría dos veces). */
   subscribedPlanId: string | null;
+  /** Academia bloqueada por mora SaaS (S3): los CTAs de compra quedan
+      deshabilitados con el hint `unavailable` — no se inicia el flujo. */
+  blocked?: boolean;
   labels: {
     title: string;
     planActive: string;
@@ -57,6 +61,8 @@ export function ProfilePlansSection({
     extendPlan: string;
     privateLesson: string;
     privateLessonDesc: string;
+    /** Academia bloqueada — hint honesto junto a los CTA deshabilitados. */
+    unavailable: string;
     /** Plan TRIAL sin precio: no se compra — texto informativo. */
     trialAssigned: string;
     /** Plural ICU "{count} clase(s)". */
@@ -78,6 +84,11 @@ export function ProfilePlansSection({
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
         {labels.title}
       </h2>
+      {blocked && (
+        <p role="status" className="mb-3 text-sm text-white/60">
+          {labels.unavailable}
+        </p>
+      )}
       {/* Ítems planos con dividers — son filas de la Card padre, no
           cards anidadas (borde+dentro-de-borde ensuciaba la jerarquía). */}
       <ul className="flex flex-col divide-y divide-night-700">
@@ -124,14 +135,19 @@ export function ProfilePlansSection({
               {freeTrial ? (
                 <p className="text-sm text-white/50">{labels.trialAssigned}</p>
               ) : (
-                !subscribedToPlan && (
+                !subscribedToPlan &&
+                (blocked ? (
+                  <Button className="w-full" disabled>
+                    {isActivePlan ? labels.extendPlan : labels.buyPlan}
+                  </Button>
+                ) : (
                   <Button
                     href={`/academias/${academyId}/checkout?plan=${p.id}`}
                     className="w-full"
                   >
                     {isActivePlan ? labels.extendPlan : labels.buyPlan}
                   </Button>
-                )
+                ))
               )}
             </li>
           );
@@ -152,7 +168,7 @@ export function ProfilePlansSection({
                 <PriceTag amount={privateLessonPrice!} />
               </div>
             </div>
-            <BuyPrivateClass academyId={academyId} />
+            <BuyPrivateClass academyId={academyId} disabled={blocked} />
           </li>
         )}
       </ul>

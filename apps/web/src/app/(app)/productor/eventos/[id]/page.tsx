@@ -50,6 +50,10 @@ export default function ProducerEventDetailPage({
   const [gate, setGate] = useState<Gate>("loading");
   const [meId, setMeId] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  // Producer Pro (S6): effectivePro de /me gatea proactivamente las
+  // features Pro (analítica/exports/staff) — el 403 pro.required queda
+  // como fallback dentro de cada sección.
+  const [effectivePro, setEffectivePro] = useState<boolean | null>(null);
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [styles, setStyles] = useState<Style[]>([]);
@@ -90,13 +94,18 @@ export default function ProducerEventDetailPage({
         setGate("error");
         return;
       }
-      const data = (await me.json()) as { id: string; roles: string[] };
+      const data = (await me.json()) as {
+        id: string;
+        roles: string[];
+        effectivePro?: boolean;
+      };
       if (!data.roles.some((r) => PRODUCER_ROLES.has(r))) {
         setGate("notProducer");
         return;
       }
       setMeId(data.id);
       setIsAdmin(data.roles.includes("ADMIN"));
+      setEffectivePro(data.effectivePro ?? null);
 
       const [evRes, vRes, sRes, listRes] = await Promise.all([
         apiFetch(`/events/${eventId}`),
@@ -206,6 +215,13 @@ export default function ProducerEventDetailPage({
     (event.producerId === undefined ||
       event.producerId === null ||
       event.producerId === meId);
+
+  // Gate Pro del API: aplica solo cuando el caller ES el productor dueño
+  // (requireProSelf — un admin operando evento ajeno no se gatea).
+  const proLocked =
+    event != null &&
+    event.producerId === meId &&
+    effectivePro === false;
 
   const seriesOptions = (() => {
     const fromMine = myEvents
@@ -364,7 +380,7 @@ export default function ProducerEventDetailPage({
             isAdmin={isAdmin}
             onSaved={() => void loadEvent()}
           />
-          <StaffSection eventId={eventId} />
+          <StaffSection eventId={eventId} proLocked={proLocked} />
           <PassesSection eventId={eventId} />
           {/* Ventas del evento — se oculta sola ante 403/404 (no-owner). */}
           <PaymentsSection eventId={eventId} />
@@ -376,13 +392,15 @@ export default function ProducerEventDetailPage({
           />
           <RatingsSection eventId={eventId} />
           {/* Analítica de asistencia/encuesta — se oculta sola ante
-              403/404 (no-owner); splits k-anónimos ≥3 asistentes. */}
-          <AnalyticsSection eventId={eventId} />
+              403/404 (no-owner); pro.required → paywall (feature Pro).
+              Splits k-anónimos ≥3 asistentes. */}
+          <AnalyticsSection eventId={eventId} proLocked={proLocked} />
           {canManage && (
             <ExportSection
               eventId={eventId}
               seriesId={event.seriesId ?? event.series?.id ?? null}
               seriesName={event.series?.name ?? null}
+              proLocked={proLocked}
             />
           )}
         </>

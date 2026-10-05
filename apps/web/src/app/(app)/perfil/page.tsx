@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
@@ -61,6 +62,21 @@ const ACADEMY_BADGE_KEYS = new Set([
   "racha_academia",
   "explorador_academias",
 ]);
+
+/** Aviso del retorno de Flow para suscripciones de plataforma
+    (platform-customer-return): cuando el disclaimer de tarjeta falla y
+    no se puede resolver la academia/productor del registro, el 303
+    aterriza acá con ?sub=error (fallback neutro — mismo copy que la
+    ficha de academia). */
+function SubReturnNotice() {
+  const ts = useTranslations("subscriptions");
+  if (useSearchParams().get("sub") !== "error") return null;
+  return (
+    <p role="alert" className="text-sm text-red-400">
+      {ts("subError")}
+    </p>
+  );
+}
 
 export default function PerfilPage() {
   const t = useTranslations("profile");
@@ -271,6 +287,11 @@ export default function PerfilPage() {
     // Sin min-h-dvh: el wrapper del chrome ya reserva el clearance de
     // la tab bar — forzar alto de viewport dejaba scroll muerto al pie.
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+      {/* Fallback del retorno de suscripción de plataforma (?sub=error)
+          — useSearchParams exige Suspense. */}
+      <Suspense>
+        <SubReturnNotice />
+      </Suspense>
       {/* Identidad → /perfil/datos (datos personales + datos por modo;
           la edición de Instagram vive allá). */}
       <Link

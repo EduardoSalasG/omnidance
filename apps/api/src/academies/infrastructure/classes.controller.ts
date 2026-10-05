@@ -595,7 +595,15 @@ export class ClassesController {
             instructorId: true,
             academyId: true,
             academy: {
-              select: { id: true, name: true, defaultQuorum: true },
+              select: {
+                id: true,
+                name: true,
+                defaultQuorum: true,
+                // Mora SaaS (S3/S6): la ficha de clase del alumno muestra
+                // "academia no disponible" en el CTA (book/checkout ya
+                // rechazan con academy.unavailable — el flag lo anticipa).
+                billingBlockedAt: true,
+              },
             },
             series: {
               select: {
@@ -712,7 +720,10 @@ export class ClassesController {
       enrolled: !!enrollment,
       cancelRefundMinutes,
       myCredits,
-      academy: cls.slot.academy,
+      academy: {
+        ...cls.slot.academy,
+        billingBlocked: cls.slot.academy.billingBlockedAt != null,
+      },
       instructor,
       series: {
         id: cls.slot.series.id,

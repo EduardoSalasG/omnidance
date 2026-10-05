@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { BackLink, Badge, Button, Card, PriceTag } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
+import { ProducerProSection } from "@/components/producer/pro-section";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
@@ -59,6 +60,8 @@ export default function ProducerParamsPage() {
   const tc = useTranslations("common");
 
   const [gate, setGate] = useState<Gate>("loading");
+  const [meId, setMeId] = useState("");
+  const [isProducer, setIsProducer] = useState(false);
   const [params, setParams] = useState<FeeParams | null>(null);
   const [tables, setTables] = useState<Record<TableField, string>>({
     tablesTotal: "",
@@ -85,6 +88,8 @@ export default function ProducerParamsPage() {
         setGate("notProducer");
         return;
       }
+      setMeId(data.id);
+      setIsProducer(data.roles.includes("PRODUCER"));
 
       const [res, tres] = await Promise.all([
         apiFetch("/producer/fee-params"),
@@ -173,6 +178,12 @@ export default function ProducerParamsPage() {
 
       {gate === "ready" && params && (
         <>
+          {/* Suscripción Producer Pro (S6) — contratación/gestión; el
+              paywall de las features Pro apunta acá. Solo para quien
+              tiene el rol (un ADMIN operando la consola no se suscribe
+              a sí mismo). */}
+          {isProducer && <ProducerProSection producerId={meId} />}
+
           <p className="text-xs text-white/50">{tp("hint")}</p>
 
           <Card padded={false}>

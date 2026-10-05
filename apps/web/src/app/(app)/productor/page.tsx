@@ -1,9 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 import { ProducerGate } from "@/components/producer/producer-gate";
 import { ProducerPulse } from "@/components/producer/producer-pulse";
+import { ProReturnNotice } from "@/components/producer/pro-return-notice";
 import {
   OnboardingRunner,
   type TourStep,
@@ -22,6 +24,12 @@ export default function ProducerPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
       <p className="text-white/60">{t("hubDesc")}</p>
+
+      {/* Retorno del disclaimer de tarjeta de Flow (platform-customer-
+          return → 303 ?pro=ok). useSearchParams exige Suspense. */}
+      <Suspense>
+        <ProReturnNotice />
+      </Suspense>
 
       <ProducerGate>
         <ProducerPulse />

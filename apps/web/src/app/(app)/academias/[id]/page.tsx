@@ -57,6 +57,9 @@ type AcademyProfile = {
   } | null;
   /** Suscripción Flow más reciente del viewer a esta academia. */
   mySubscription: SubscriptionInfo | null;
+  /** Mora SaaS (S3): la ficha sigue respondiendo pero sin CTAs de
+      compra — el alumno ve "no disponible" (la falta es del owner). */
+  billingBlocked: boolean;
   classes: ClassCardData[];
 };
 
@@ -267,6 +270,15 @@ export default async function AcademiaDetailPage({
         )}
       </header>
 
+      {/* Academia bloqueada por mora SaaS (S3): la ficha informa pero
+          los CTAs de compra/reserva quedan deshabilitados — copy
+          honesto, la falta es del owner, no del alumno. */}
+      {academy.billingBlocked && (
+        <Card role="status">
+          <p className="text-sm text-white/70">{t.profile.unavailable}</p>
+        </Card>
+      )}
+
       {/* Retorno del disclaimer de tarjeta de Flow (customer-return →
           303 ?sub=ok|error). ok: la sub puede seguir ACTIVATING — el
           bloque de gestión de abajo refleja el estado real. */}
@@ -323,6 +335,7 @@ export default async function AcademiaDetailPage({
           academyId={academy.id}
           plans={academy.plans}
           privateLessonPrice={academy.privateLessonPrice}
+          blocked={academy.billingBlocked}
           activePlanId={
             academy.myEnrollment?.status === "ACTIVE" ||
             academy.myEnrollment?.status === "ONLINE"
@@ -344,6 +357,7 @@ export default async function AcademiaDetailPage({
             extendPlan: t.profile.extendPlan,
             privateLesson: t.profile.privateLesson,
             privateLessonDesc: t.profile.privateLessonDesc,
+            unavailable: t.profile.unavailable,
             trialAssigned: t.profile.trialAssigned,
             planClassCount: t.planClassCount,
             planWeeklyCount: t.planWeeklyCount,

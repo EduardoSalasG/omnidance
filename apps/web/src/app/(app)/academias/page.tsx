@@ -56,6 +56,9 @@ type Enrollment = {
     address: string | null;
     lat: number | null;
     lng: number | null;
+    /** Mora SaaS (S3): la card histórica se mantiene con badge "no
+        disponible" — no se oculta al alumno. */
+    billingBlocked?: boolean;
   };
   status: "ACTIVE" | "PAUSED" | "TRIAL" | "FROZEN" | "ONLINE";
   plan: { name: string; type: string } | null;
@@ -166,6 +169,11 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
         <Badge variant={statusVariant}>
           {tl(`status.${enrollment.status}`)}
         </Badge>
+        {enrollment.academy.billingBlocked && (
+          // Mora SaaS del owner — la card sigue visible (historial) con
+          // indicador honesto; la ficha explica el estado.
+          <Badge variant="muted">{tl("academyUnavailable")}</Badge>
+        )}
         {enrollment.subscription?.status === "ACTIVE" && (
           <Badge variant="outline" className="normal-case tracking-normal">
             {tsb("badge")}

@@ -2,11 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, isProRequired } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { ProPaywall } from "./pro-paywall";
 
-type Props = { eventId: string };
+type Props = {
+  eventId: string;
+  /** effectivePro de /me dice que el owner no tiene Pro — no se pide
+      analytics: el endpoint responde 403 pro.required y el paywall se
+      muestra directo (la página lo calcula una sola vez). */
+  proLocked?: boolean;
+};
 
 type Analytics = {
   attendees: number;
@@ -80,23 +87,29 @@ function SplitRow({
 /**
  * Analítica del evento (GET /events/:id/analytics) para owner/admin:
  * asistencia por check-in, composición género/rol y promedios de la
- * encuesta. 403/404 → la sección se oculta (no-owner). La API devuelve
- * splits/ratings null bajo 3 asistentes (k-anonymity) → mensaje discreto
- * de datos insuficientes; nunca hay filas individuales que exponer.
+ * encuesta. 403/404 → la sección se oculta (no-owner); 403
+ * `pro.required` (S5: feature Producer Pro) → paywall con CTA a la
+ * sección Pro. La API devuelve splits/ratings null bajo 3 asistentes
+ * (k-anonymity) → mensaje discreto de datos insuficientes; nunca hay
+ * filas individuales que exponer.
  */
-export function AnalyticsSection({ eventId }: Props) {
+export function AnalyticsSection({ eventId, proLocked = false }: Props) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
   const [data, setData] = useState<Analytics | null>(null);
-  const [state, setState] = useState<"loading" | "error" | "hidden" | "ready">(
-    "loading",
-  );
+  const [state, setState] = useState<
+    "loading" | "error" | "hidden" | "pro" | "ready"
+  >("loading");
 
   const load = useCallback(async () => {
     setState("loading");
     try {
       const res = await apiFetch(`/events/${eventId}/analytics`);
+      if (res.status === 403 && (await isProRequired(res))) {
+        setState("pro");
+        return;
+      }
       if (res.status === 401 || res.status === 403 || res.status === 404) {
         setState("hidden");
         return;
@@ -113,10 +126,24 @@ export function AnalyticsSection({ eventId }: Props) {
   }, [eventId]);
 
   useEffect(() => {
+    if (proLocked) {
+      setState("pro");
+      return;
+    }
     void load();
-  }, [load]);
+  }, [load, proLocked]);
 
   if (state === "hidden") return null;
+  if (state === "pro") {
+    return (
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          {t("sections.analytics")}
+        </h2>
+        <ProPaywall />
+      </section>
+    );
+  }
 
   const genderEntries: [keyof NonNullable<Analytics["genderSplit"]>, number][] =
     data?.genderSplit
