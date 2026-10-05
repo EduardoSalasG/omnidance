@@ -278,7 +278,10 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Planes de membresía ───
-  const plan = (
+  // El nombre del plan es categoría propia de la academia (Básico, Plata,
+  // Oro, Premium, VIP…) — el periodo y la cuota semanal ya los muestran
+  // el tag de tipo y la metadata del card, no van en el nombre.
+  const plan = async (
     academyId: string,
     name: string,
     type:
@@ -300,9 +303,23 @@ export async function seedDev(prisma: PrismaClient) {
       // Bullets de venta — un ítem por línea del <ul> de la ficha.
       description?: string[];
     } = {},
-  ) =>
-    ensure(
-      () => prisma.membershipPlan.findFirst({ where: { academyId, name } }),
+    // Renombres del seed: el plan se busca por el nombre nuevo o por
+    // estos nombres antiguos — si se encuentra por alias se renombra
+    // in-place en vez de crear un duplicado.
+    aliases: string[] = [],
+  ) => {
+    const row = await ensure(
+      () =>
+        prisma.membershipPlan
+          .findFirst({ where: { academyId, name } })
+          .then((p) =>
+            p ??
+            (aliases.length
+              ? prisma.membershipPlan.findFirst({
+                  where: { academyId, name: { in: aliases } },
+                })
+              : null),
+          ),
       () =>
         prisma.membershipPlan.create({
           data: {
@@ -318,6 +335,7 @@ export async function seedDev(prisma: PrismaClient) {
         prisma.membershipPlan.update({
           where: { id: p.id },
           data: {
+            name,
             type,
             price,
             ...extra,
@@ -325,60 +343,106 @@ export async function seedDev(prisma: PrismaClient) {
           },
         }),
     );
+    // Si además del recién asegurado quedó un resto con el nombre
+    // antiguo, se desactiva — puede tener enrollments, no se borra.
+    if (aliases.length) {
+      await prisma.membershipPlan.updateMany({
+        where: { academyId, name: { in: aliases }, id: { not: row.id } },
+        data: { active: false },
+      });
+    }
+    return row;
+  };
 
   const muvetMensual = await plan(
     muvet.id,
-    "Mensual ilimitado",
+    "Oro",
     "MONTHLY",
     45000,
     {
       description: [
-        "Todas las clases del mes, sin límite",
+        "Todas las clases, sin límite",
         "Válido hasta fin del mes calendario",
         "Se renueva antes de que venza",
       ],
     },
+    ["Mensual ilimitado"],
   );
-  await plan(muvet.id, "Trimestral ilimitado", "QUARTERLY", 120000, {
-    description: [
-      "Todas las clases por 3 meses",
-      "Válido hasta fin del 3er mes calendario",
-      "Ahorras $15.000 vs. el mensual",
-    ],
-  });
-  await plan(muvet.id, "Semestral ilimitado", "SEMIANNUAL", 210000, {
-    description: [
-      "Todas las clases por 6 meses",
-      "Válido hasta fin del 6º mes calendario",
-      "El mejor valor por mes",
-    ],
-  });
-  await plan(muvet.id, "Clase única", "SINGLE", 12000, {
-    description: ["Una clase del día", "Ideal para probar antes del plan"],
-  });
-  const muvetPack = await plan(muvet.id, "Pack 8 clases", "CLASS_PACK", 38000, {
-    classCount: 8,
-    description: [
-      "8 clases a tu ritmo, sin fecha de vencimiento",
-      "Cualquier serie de la academia",
-    ],
-  });
+  await plan(
+    muvet.id,
+    "Platino",
+    "QUARTERLY",
+    120000,
+    {
+      description: [
+        "Todas las clases, sin límite",
+        "Válido hasta fin del 3er mes calendario",
+        "Ahorras $15.000 vs. el mensual",
+      ],
+    },
+    ["Trimestral ilimitado"],
+  );
+  await plan(
+    muvet.id,
+    "Diamante",
+    "SEMIANNUAL",
+    210000,
+    {
+      description: [
+        "Todas las clases, sin límite",
+        "Válido hasta fin del 6º mes calendario",
+        "El mejor valor por mes",
+      ],
+    },
+    ["Semestral ilimitado"],
+  );
+  await plan(
+    muvet.id,
+    "Clase suelta",
+    "SINGLE",
+    12000,
+    {
+      description: ["Una clase del día", "Ideal para probar antes del plan"],
+    },
+    ["Clase única"],
+  );
+  const muvetPack = await plan(
+    muvet.id,
+    "Pack flexible",
+    "CLASS_PACK",
+    38000,
+    {
+      classCount: 8,
+      description: [
+        "A tu ritmo, sin fecha de vencimiento",
+        "Cualquier serie de la academia",
+      ],
+    },
+    ["Pack 8 clases"],
+  );
   const muvetTrial = await plan(muvet.id, "Clase de prueba", "TRIAL", 0);
   const tumbaoMensual = await plan(
     tumbao.id,
-    "Mensual Tumbao",
+    "Normal",
     "MONTHLY",
     40000,
     {
       description: [
-        "Todas las clases del mes, sin límite",
+        "Todas las clases, sin límite",
         "Válido hasta fin del mes calendario",
       ],
     },
+    ["Mensual Tumbao"],
   );
-  await plan(tumbao.id, "Clase única", "SINGLE", 10000, {
-    description: ["Una clase del día"],
-  });
+  await plan(
+    tumbao.id,
+    "Clase suelta",
+    "SINGLE",
+    10000,
+    { description: ["Una clase del día"] },
+    ["Clase única"],
+  );
+  await plan(tumbao.id, "Clase de prueba", "TRIAL", 0);
 
   // ─── Enrollments — mezcla de planes y estados para el listado ───
   const enroll = (
@@ -824,61 +888,123 @@ export async function seedDev(prisma: PrismaClient) {
       });
     }
 
-    // Planes de membresía — regla general: 1 clase/semana $25.000,
-    // 2 clases/semana $40.000. Mambo Madness es premium: 1 clase $40.000,
+    // Planes de membresía — el nombre es categoría propia de la academia
+    // (el periodo lo muestra el tag; la cuota semanal, la metadata del
+    // card). Regla general de precios: 1 clase/semana $25.000, 2
+    // clases/semana $40.000. Mambo Madness es premium: 1 clase $40.000,
     // ilimitado $60.000, VIP $99.000 (ilimitado + 1 particular), y es la
     // única con trimestral/semestral ilimitados (~10% off vs. mensual
     // ilimitado: 3×60k−10% y 6×60k−10% — incentivo por compromiso).
+    // Todas ofrecen clase de prueba y clase suelta.
     if (a.name === "Mambo Madness") {
-      await plan(academy.id, "Mensual — 1 clase semanal", "MONTHLY", 40000, {
-        weeklyClasses: 1,
-        description: [
-          "1 clase por semana a elección",
-          "Válido hasta fin del mes calendario",
-        ],
+      await plan(
+        academy.id,
+        "Básico",
+        "MONTHLY",
+        40000,
+        {
+          weeklyClasses: 1,
+          description: ["Válido hasta fin del mes calendario"],
+        },
+        ["Mensual — 1 clase semanal"],
+      );
+      await plan(
+        academy.id,
+        "Premium",
+        "MONTHLY",
+        60000,
+        {
+          description: [
+            "Todas las clases, sin límite",
+            "Válido hasta fin del mes calendario",
+          ],
+        },
+        ["Mensual ilimitado"],
+      );
+      await plan(
+        academy.id,
+        "VIP",
+        "MONTHLY",
+        99000,
+        {
+          description: [
+            "Todo lo del plan ilimitado",
+            "1 clase particular al mes con un instructor de la casa",
+            "Válido hasta fin del mes calendario",
+          ],
+        },
+        ["Mensual VIP"],
+      );
+      await plan(
+        academy.id,
+        "Oro",
+        "QUARTERLY",
+        162000,
+        {
+          description: [
+            "Todas las clases, sin límite",
+            "Válido hasta fin del 3er mes calendario",
+            "Ahorras $18.000 vs. el mensual ilimitado",
+          ],
+        },
+        ["Trimestral ilimitado"],
+      );
+      await plan(
+        academy.id,
+        "Diamante",
+        "SEMIANNUAL",
+        324000,
+        {
+          description: [
+            "Todas las clases, sin límite",
+            "Válido hasta fin del 6º mes calendario",
+            "Ahorras $36.000 vs. el mensual ilimitado — el mejor valor por mes",
+          ],
+        },
+        ["Semestral ilimitado"],
+      );
+      await plan(academy.id, "Clase suelta", "SINGLE", 10000, {
+        description: ["Una clase del día", "Ideal para probar antes del plan"],
       });
-      await plan(academy.id, "Mensual ilimitado", "MONTHLY", 60000, {
-        description: [
-          "Todas las clases del mes, sin límite",
-          "Válido hasta fin del mes calendario",
-        ],
-      });
-      await plan(academy.id, "Mensual VIP", "MONTHLY", 99000, {
-        description: [
-          "Todo lo del plan ilimitado",
-          "1 clase particular al mes con un instructor de la casa",
-          "Válido hasta fin del mes calendario",
-        ],
-      });
-      await plan(academy.id, "Trimestral ilimitado", "QUARTERLY", 162000, {
-        description: [
-          "Todas las clases por 3 meses, sin límite",
-          "Válido hasta fin del 3er mes calendario",
-          "Ahorras $18.000 vs. el mensual ilimitado",
-        ],
-      });
-      await plan(academy.id, "Semestral ilimitado", "SEMIANNUAL", 324000, {
-        description: [
-          "Todas las clases por 6 meses, sin límite",
-          "Válido hasta fin del 6º mes calendario",
-          "Ahorras $36.000 vs. el mensual ilimitado — el mejor valor por mes",
-        ],
-      });
+      await plan(academy.id, "Clase de prueba", "TRIAL", 0);
     } else {
-      await plan(academy.id, "Mensual — 1 clase semanal", "MONTHLY", 25000, {
-        weeklyClasses: 1,
-        description: [
-          "1 clase por semana a elección",
-          "Válido hasta fin del mes calendario",
-        ],
+      // Pares de categorías rotados por índice — el naming varía de
+      // academia en academia como en la vida real.
+      const TIERS = [
+        ["Básico", "Premium"],
+        ["Plata", "Oro"],
+        ["Normal", "Extendido"],
+        ["Esencial", "VIP"],
+        ["Bronce", "Platino"],
+        ["Inicial", "Diamante"],
+      ] as const;
+      const [tier1, tier2] = TIERS[aIdx % TIERS.length];
+      await plan(
+        academy.id,
+        tier1,
+        "MONTHLY",
+        25000,
+        {
+          weeklyClasses: 1,
+          description: ["Válido hasta fin del mes calendario"],
+        },
+        ["Mensual — 1 clase semanal"],
+      );
+      await plan(
+        academy.id,
+        tier2,
+        "MONTHLY",
+        40000,
+        {
+          weeklyClasses: 2,
+          description: ["Válido hasta fin del mes calendario"],
+        },
+        ["Mensual — 2 clases semanales"],
+      );
+      await plan(academy.id, "Clase suelta", "SINGLE", 8000, {
+        description: ["Una clase del día"],
       });
-      await plan(academy.id, "Mensual — 2 clases semanales", "MONTHLY", 40000, {
-        weeklyClasses: 2,
-        description: [
-          "2 clases por semana a elección",
-          "Válido hasta fin del mes calendario",
-        ],
-      });
+      await plan(academy.id, "Clase de prueba", "TRIAL", 0);
     }
   }
 
