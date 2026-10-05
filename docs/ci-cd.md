@@ -16,17 +16,21 @@ Dominios:
 1. Crear proyecto Neon → base **`omnidance`**.
 2. Neon entrega dos endpoints:
    - **Pooled** (`…-pooler.…neon.tech`) → `DATABASE_URL` de la app.
-   - **Directo** (sin `-pooler`) → `MIGRATION_DATABASE_URL` —
-     migraciones y seed. El pooler corre en modo transaction y puede
-     interferir con los advisory locks de `prisma migrate`.
-3. **El bootstrap es automático**: el entrypoint del contenedor
-   (`apps/api/docker-entrypoint.sh`) corre `prisma migrate deploy` en cada
-   arranque — compara `_prisma_migrations` y aplica solo las pendientes —
-   y luego, si la DB está vacía (sin roles baseline), corre el seed prod
-   (baseline + admin). Contra una Neon recién creada, el primer boot crea
-   todas las tablas y las puebla. El workflow además ejecuta los mismos
-   pasos como one-shot antes de recrear el contenedor (fail temprano y
-   log claro en Actions).
+   - **Directo** (sin `-pooler`) → `MIGRATION_DATABASE_URL` — opcional,
+     solo para los one-shots de migración/seed del workflow. El pooler
+     corre en modo transaction y los advisory locks de `prisma migrate`
+     pueden fallar intermitente ahí; sin endpoint directo el workflow
+     cae a `DATABASE_URL` con warning (re-correr el deploy suele
+     alcanzar si el lock flaquea).
+3. **El bootstrap es automático y vive en el workflow**: antes de
+   recrear el contenedor corre `prisma migrate deploy` one-shot
+   (compara `_prisma_migrations` y aplica solo las pendientes) y, si la
+   DB está vacía (sin roles baseline), el seed prod (baseline + admin).
+   Contra una Neon recién creada, el primer deploy crea todas las
+   tablas y las puebla. El contenedor solo ejecuta `node dist/main.js`
+   (mismo patrón que video-repo) — migrar en el boot del contenedor se
+   descartó: vía pooler el advisory lock dejaba al contenedor en
+   crash-loop (P1002) y duplicaba lo que ya hace el workflow.
 
 ## Backend — `.github/workflows/deploy-api-docker.yml`
 
@@ -45,7 +49,7 @@ a `api.omnidance.eduardosalasg.dev`.
 | `ORACLE_HOST` | IP/host de la VM |
 | `GHCR_PAT` | PAT con `read:packages` para `docker login` en la VM |
 | `GHCR_USERNAME` | Usuario dueño del PAT |
-| `MIGRATION_DATABASE_URL` | Endpoint **directo** de Neon para migraciones/seed (opcional si está en `.env` de la VM) |
+| `MIGRATION_DATABASE_URL` | Endpoint **directo** de Neon para los one-shots de migración/seed (opcional: también se lee del `.env` de la VM; si falta se usa `DATABASE_URL` con warning) |
 | `SEED_ADMIN_EMAIL` | Email del admin que crea el seed prod |
 
 ### `/opt/apps/omnidance/.env` en la VM (una vez)
@@ -54,9 +58,12 @@ El deploy usa `/opt/apps/omnidance` (mismo patrón que video-repo) — el
 usuario SSH ya tiene ownership del directorio, sin sudo en el pipeline.
 
 ```env
-# Neon — pooled para la app, directo para migrate/seed del entrypoint
+# Neon — la connection string que da el dashboard (pooled recomendado)
 DATABASE_URL="postgresql://<user>:<pass>@<host>-pooler.<region>.neon.tech/omnidance?sslmode=require"
-DIRECT_DATABASE_URL="postgresql://<user>:<pass>@<host>.<region>.neon.tech/omnidance?sslmode=require"
+# Opcional: endpoint directo (mismo host sin -pooler) para los
+# one-shots de migrate/seed del workflow — hace deterministas los
+# advisory locks de prisma migrate, que vía pooler son intermitentes.
+# MIGRATION_DATABASE_URL="postgresql://<user>:<pass>@<host>.<region>.neon.tech/omnidance?sslmode=require"
 
 JWT_SECRET="<aleatorio>"
 QR_SECRET="<aleatorio>"
@@ -82,7 +89,7 @@ WEB_PUSH_VAPID_PUBLIC_KEY="…"
 WEB_PUSH_VAPID_PRIVATE_KEY="…"
 WEB_PUSH_VAPID_SUBJECT="mailto:contacto@…"
 
-# Seed prod (entrypoint en DB vacía + one-shot del workflow)
+# Seed prod (one-shot del workflow cuando la DB está vacía)
 SEED_ADMIN_EMAIL="admin@omnidance.cl"
 SEED_ADMIN_NAME="Admin Omnidance"                    # opcional
 

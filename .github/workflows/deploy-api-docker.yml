@@ -150,9 +150,9 @@ jobs:
 
               if [ ! -f .env ]; then
                 echo "ERROR: falta .env en ${{ env.CONTAINER_DIR }}"
-                echo "Crearlo con DATABASE_URL (Neon pooled), DIRECT_DATABASE_URL"
-                echo "(Neon directo), JWT_SECRET, QR_SECRET, Flow keys, Resend,"
-                echo "VAPID, SEED_ADMIN_EMAIL… — checklist completo en docs/ci-cd.md"
+                echo "Crearlo con DATABASE_URL (Neon), JWT_SECRET, QR_SECRET,"
+                echo "Flow keys, Resend, VAPID, SEED_ADMIN_EMAIL… — checklist"
+                echo "completo en docs/ci-cd.md"
                 exit 1
               fi
 
@@ -172,16 +172,18 @@ jobs:
                 exit 1
               fi
 
-              # Neon: migraciones/seed por el endpoint DIRECTO (sin
-              # -pooler): el pooler es modo transaction y puede interferir
-              # con los advisory locks de prisma migrate.
+              # Migraciones/seed one-shot: MIGRATION_DATABASE_URL (endpoint
+              # directo de Neon, mismo host sin -pooler) desde secret o .env;
+              # si falta se usa DATABASE_URL — el pooler es transaction-mode
+              # y los advisory locks de prisma migrate pueden fallar
+              # intermitente ahí (re-correr el deploy suele alcanzar).
               MIGRATION_DATABASE_URL="$(echo '${{ secrets.MIGRATION_DATABASE_URL }}' | tr -d '[:space:]')"
               if [ -z "$MIGRATION_DATABASE_URL" ]; then
-                MIGRATION_DATABASE_URL=$(grep -E '^(MIGRATION_DATABASE_URL|DIRECT_DATABASE_URL)=' .env | head -1 | cut -d '=' -f2-)
+                MIGRATION_DATABASE_URL=$(grep '^MIGRATION_DATABASE_URL=' .env | head -1 | cut -d '=' -f2-)
               fi
               if [ -z "$MIGRATION_DATABASE_URL" ]; then
                 MIGRATION_DATABASE_URL=$(grep '^DATABASE_URL=' .env | head -1 | cut -d '=' -f2-)
-                echo "Warning: sin endpoint directo en secrets ni .env; usando DATABASE_URL"
+                echo "Warning: sin MIGRATION_DATABASE_URL en secrets ni .env; usando DATABASE_URL"
               fi
               if [ -z "$MIGRATION_DATABASE_URL" ]; then
                 echo "MIGRATION_DATABASE_URL is not set in GitHub secrets or .env"
@@ -216,7 +218,7 @@ jobs:
               # El seed es idempotente pero solo hace falta cuando la DB
               # está vacía (baseline) o falta el admin — si ya hay roles
               # y no hay email configurado, se omite para no bloquear el
-              # deploy (mismo criterio que docker-entrypoint.sh).
+              # deploy.
               echo "--- checking baseline data ---"
               docker rm -f omnidance-check 2>/dev/null || true
               BASELINE_ROLES=$(timeout 90 docker run \
