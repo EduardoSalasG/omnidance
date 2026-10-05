@@ -3,6 +3,49 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.2.0] - 2026-10-05
+
+Primera iteración post-release inicial: onboarding post-registro,
+mantenedor admin con borrado en cascada, depuración del catálogo de
+estilos, fixes de autenticación magic-link y polish de PWA.
+
+### Added
+
+- **Onboarding**: paso post-registro `/bienvenida` (salteable) que pide
+  nombre, teléfono, Instagram, género, estilos de baile con rol y nivel;
+  solo corre una vez vía marca `onboarding["profile-setup"]`.
+- **Perfil**: recordatorio "Completa tu perfil" en `/perfil` mientras
+  falten datos, con dismiss persistente `onboarding["profile-reminder"]`.
+- **Admin**: `DELETE /api/admin/users/:personId` borra al usuario en
+  cascada (9 relaciones con FK a `Person`, `producerId` en null) con
+  auditoría `USER_DELETE`; zona de peligro en la ficha de usuario con
+  confirmación. El email queda libre para re-registro.
+- **PWA**: prompt de instalación post-login (diálogo nativo en Chromium
+  vía `beforeinstallprompt`, instrucciones del share sheet en iOS),
+  dismiss persistente; manifest declara `id`, `scope` y
+  `handle_links: "preferred"` para que los links del dominio abran la
+  app instalada.
+
+### Changed
+
+- **Catálogo de estilos**: seed sin `Salsa on2` ni `Bachata dominicana`;
+  el picker "Tu baile" oculta además `Afrocubano`, `Rueda de casino` y
+  `Fusión` (siguen disponibles para academias, series y eventos).
+- **Magic link**: el link del email ahora apunta al origen web
+  (`WEB_URL/api/auth/verify`) para que la cookie de sesión caiga en el
+  dominio del frontend; verify redirige a `/bienvenida` en cuentas
+  nuevas y `/inicio` en existentes.
+- **CI**: workflow del deploy acepta `workflow_dispatch` para redeploy
+  manual; el health gate loguea el intento exitoso.
+- **Copy**: eliminado el uso de guión largo (em-dash) en toda la app.
+
+### Fixed
+
+- `PATCH /me` con teléfono ya registrado en otra cuenta responde
+  `409 phone_exists` en vez de un error 500 por conflicto Prisma.
+- Íconos PWA regenerados con el acento morado del rebrand (antes
+  salían verdes) y la O centrada verticalmente.
+
 ## [0.1.0] - 2026-10-05
 
 Primera versión estable - promoción inicial de `dev` a `main` con pipeline
@@ -50,4 +93,5 @@ de despliegue a producción.
 - DB: Neon Postgres externo (`omnidance`) - pooled para runtime, directo
   para migraciones.
 
+[0.2.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.1.0
