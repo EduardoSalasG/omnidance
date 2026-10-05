@@ -16,13 +16,31 @@ permissions:
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omnidance-api
   CONTAINER_DIR: /opt/apps/omnidance
-  # Variable de repositorio (Settings → Variables): host público del API,
-  # p.ej. api.omnidance.cl — sin https://.
-  PUBLIC_API_HOST: ${{ vars.PUBLIC_API_HOST }}
+  PUBLIC_API_HOST: api.omnidance.eduardosalasg.dev
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    # Postgres efímero para la suite e2e (test/*.e2e.spec.ts bootea la app
+    # Nest contra DATABASE_URL). Es descartable — la DB real es Neon.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: omnidance
+          POSTGRES_PASSWORD: omnidance
+          POSTGRES_DB: omnidance
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U omnidance -d omnidance"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      CI_DATABASE_URL: postgresql://omnidance:omnidance@localhost:5432/omnidance
 
     steps:
       - name: Checkout repository
@@ -47,8 +65,21 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @omnidance/api prisma generate
 
+      # Los e2e dependen del baseline (roles/permisos/params) — misma
+      # semilla mínima que producción, sobre el Postgres efímero.
+      - name: Migrate + seed baseline (test DB)
+        run: |
+          pnpm --filter @omnidance/api exec prisma migrate deploy
+          pnpm --filter @omnidance/api exec tsx prisma/seed.ts
+        env:
+          DATABASE_URL: ${{ env.CI_DATABASE_URL }}
+          SEED_ENV: prod
+          SEED_ADMIN_EMAIL: ci-admin@omnidance.dev
+
       - name: Run API tests
         run: pnpm --filter @omnidance/api test
+        env:
+          DATABASE_URL: ${{ env.CI_DATABASE_URL }}
 
       - name: Run API build
         run: pnpm --filter @omnidance/api build
@@ -123,10 +154,16 @@ jobs:
                 exit 1
               fi
 
+              # Neon: migraciones/seed por el endpoint DIRECTO (sin
+              # -pooler): el pooler es modo transaction y puede interferir
+              # con los advisory locks de prisma migrate.
               MIGRATION_DATABASE_URL="${{ secrets.MIGRATION_DATABASE_URL }}"
               if [ -z "$MIGRATION_DATABASE_URL" ]; then
-                MIGRATION_DATABASE_URL=$(grep '^DATABASE_URL=' .env | cut -d '=' -f2-)
-                echo "Warning: MIGRATION_DATABASE_URL secret not set; using DATABASE_URL from .env"
+                MIGRATION_DATABASE_URL=$(grep -E '^(MIGRATION_DATABASE_URL|DIRECT_DATABASE_URL)=' .env | head -1 | cut -d '=' -f2-)
+              fi
+              if [ -z "$MIGRATION_DATABASE_URL" ]; then
+                MIGRATION_DATABASE_URL=$(grep '^DATABASE_URL=' .env | head -1 | cut -d '=' -f2-)
+                echo "Warning: sin endpoint directo en secrets ni .env; usando DATABASE_URL"
               fi
               if [ -z "$MIGRATION_DATABASE_URL" ]; then
                 echo "MIGRATION_DATABASE_URL is not set in GitHub secrets or .env"
@@ -205,7 +242,6 @@ jobs:
           EOF
 
       - name: Reload Nginx and verify its API upstream
-        if: env.PUBLIC_API_HOST != ''
         run: |
           ssh -i ~/.ssh/oracle_deploy_key \
             ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
