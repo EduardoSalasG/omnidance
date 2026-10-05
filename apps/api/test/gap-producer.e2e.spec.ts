@@ -88,6 +88,12 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
     ]);
     ids.producerId = prod.id;
     sessions.producer = prod.session;
+    // Staff multi-persona es feature Producer Pro (S5) — el productor del
+    // fixture opera su propio evento, así que necesita tier vigente.
+    await prisma.person.update({
+      where: { id: prod.id },
+      data: { proTier: "PRO_STARTER" },
+    });
     ids.producer2Id = prod2.id;
     sessions.producer2 = prod2.session;
     ids.adminId = admin.id;

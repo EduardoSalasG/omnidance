@@ -105,6 +105,12 @@ describe("dancer-profile-survey-analytics e2e", () => {
     ]);
     ids.producerId = producer.id;
     sessions.producer = producer.session;
+    // Analytics del evento es feature Producer Pro (S5) — el owner del
+    // fixture necesita tier vigente para que el gate no responda 403.
+    await prisma.person.update({
+      where: { id: producer.id },
+      data: { proTier: "PRO_STARTER" },
+    });
     ids.strangerId = stranger.id;
     sessions.stranger = stranger.session;
     ids.aId = a.id;
