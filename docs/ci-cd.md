@@ -7,7 +7,8 @@ runtime). DB = **Neon** (Postgres gestionado, fuera de la VM).
 Dominios:
 
 - API: `https://api.omnidance.eduardosalasg.dev` (nginx de la VM →
-  contenedor en `127.0.0.1:4000`)
+  contenedor en `127.0.0.1:3002` — el contenedor escucha 4000 interno,
+  el host publica 3002)
 - Web: `https://omnidance.netlify.app`
 
 ## DB (Neon)
@@ -47,7 +48,11 @@ a `api.omnidance.eduardosalasg.dev`.
 | `MIGRATION_DATABASE_URL` | Endpoint **directo** de Neon para migraciones/seed (opcional si está en `.env` de la VM) |
 | `SEED_ADMIN_EMAIL` | Email del admin que crea el seed prod |
 
-### `/opt/apps/omnidance/.env` en la VM (una vez)
+### `~/apps/omnidance/.env` en la VM (una vez)
+
+El deploy usa `$HOME/apps/omnidance` del usuario SSH (sin sudo) —
+`/opt/apps` requeriría chown previo y el deploy user no tiene NOPASSWD
+amplio.
 
 ```env
 # Neon — pooled para la app, directo para migrate/seed del entrypoint
@@ -87,15 +92,18 @@ SESSION_SECURE="true"
 SESSION_SAMESITE="lax"
 ```
 
-Otros knobs opcionales ya tienen default: `PORT` (4000), `LOG_LEVEL`,
-`SERVICE_FEE_CLP`, `THROTTLE_*`. `REDIS_URL` hoy no se usa en runtime.
+Otros knobs opcionales ya tienen default: `PORT` (4000 interno del
+contenedor — el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,
+`THROTTLE_*`. `REDIS_URL` hoy no se usa en runtime.
 
 ### VM — otros pasos
 
-1. Nginx vhost `api.omnidance.eduardosalasg.dev` → `127.0.0.1:4000`
+1. Nginx vhost `api.omnidance.eduardosalasg.dev` → `127.0.0.1:3002`
    (`proxy_pass` + headers de upgrade para `/socket.io/`).
-2. Usuario de deploy con docker + `sudo systemctl reload nginx` sin
-   password (sudoers NOPASSWD).
+2. Usuario de deploy con docker (grupo `docker`). El reload de nginx
+   usa `sudo -n` no-fatal — si hay NOPASSWD para `systemctl reload
+   nginx` se recarga, si no, el vhost es estático y la sonda HTTPS
+   igual valida el upstream.
 3. Postgres NO va en la VM (Neon). El compose de prod solo tiene `api`.
 
 ## Frontend — `netlify.toml`
