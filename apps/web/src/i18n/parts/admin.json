@@ -8,6 +8,12 @@
       "viewAnalytics": "Ver analítica",
       "pickRole": "Elige un rol…",
       "revokeConfirm": "¿Revocar el rol {role}? Queda registrado en auditoría.",
+      "delete": {
+        "title": "Zona de peligro",
+        "body": "Elimina la cuenta y sus datos de perfil (roles, estilos, RSVPs, notificaciones). Útil para cuentas de prueba o duplicadas. No se puede deshacer.",
+        "cta": "Eliminar usuario",
+        "confirm": "¿Eliminar definitivamente a {name}? Se borra su cuenta y sus datos de perfil. No se puede deshacer."
+      },
       "detail": {
         "personal": "Datos personales",
         "email": "Email",
