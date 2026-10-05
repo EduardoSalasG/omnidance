@@ -21,7 +21,7 @@
 - [x] Reusar suscripción existente (`getSubscription`) antes de subscribe
 - [x] Retry de `subscribe()` (AbortError transitorio de Apple Push)
 - [x] `console.error` del error real + detalle visible bajo el mensaje
-- [ ] Confirmar en el iPhone del usuario qué error específico salía (el detalle ahora se muestra)
+- [x] Confirmar en el iPhone del usuario qué error específico salía (el detalle ahora se muestra) — validado 2026-10-05 vía tunnel VS Code + PWA instalada: suscripción OK, push llega con PWA cerrada y equipo bloqueado
 
 ## 4. Landing three.js
 
