@@ -106,6 +106,9 @@ jobs:
             -t $IMAGE_NAME:latest \
             .
 
+      # user/host salen por env normalizadas: un secret pegado con
+      # newline/espacios extra rompe la continuación de línea y deja
+      # el comando remoto ejecutándose en el runner.
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -119,21 +122,23 @@ jobs:
             ServerAliveCountMax 60
           SSHCONF
           chmod 600 ~/.ssh/config
+          echo "ORACLE_USER=$(echo '${{ secrets.ORACLE_USER }}' | tr -d '[:space:]')" >> "$GITHUB_ENV"
+          echo "ORACLE_HOST=$(echo '${{ secrets.ORACLE_HOST }}' | tr -d '[:space:]')" >> "$GITHUB_ENV"
 
       - name: Copy docker-compose.yml to server
         run: |
           ssh -i ~/.ssh/oracle_deploy_key \
-            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "$ORACLE_USER@$ORACLE_HOST" \
             "mkdir -p ${{ env.CONTAINER_DIR }}"
           ssh -i ~/.ssh/oracle_deploy_key \
-            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "$ORACLE_USER@$ORACLE_HOST" \
             "cat > ${{ env.CONTAINER_DIR }}/docker-compose.yml" \
             < apps/api/docker-compose.yml
 
       - name: Deploy on Oracle VM
         run: |
           ssh -i ~/.ssh/oracle_deploy_key \
-            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} << 'EOF'
+            "$ORACLE_USER@$ORACLE_HOST" << 'EOF'
               set -e
 
               cd "${{ env.CONTAINER_DIR }}"
@@ -144,8 +149,8 @@ jobs:
                 exit 1
               }
 
-              echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io \
-                -u "${{ secrets.GHCR_USERNAME }}" \
+              echo "${{ secrets.GHCR_PAT }}" | tr -d '[:space:]' | docker login ghcr.io \
+                -u "$(echo '${{ secrets.GHCR_USERNAME }}' | tr -d '[:space:]')" \
                 --password-stdin
 
               export API_IMAGE="${{ env.API_IMAGE }}"
@@ -157,7 +162,7 @@ jobs:
               # Neon: migraciones/seed por el endpoint DIRECTO (sin
               # -pooler): el pooler es modo transaction y puede interferir
               # con los advisory locks de prisma migrate.
-              MIGRATION_DATABASE_URL="${{ secrets.MIGRATION_DATABASE_URL }}"
+              MIGRATION_DATABASE_URL="$(echo '${{ secrets.MIGRATION_DATABASE_URL }}' | tr -d '[:space:]')"
               if [ -z "$MIGRATION_DATABASE_URL" ]; then
                 MIGRATION_DATABASE_URL=$(grep -E '^(MIGRATION_DATABASE_URL|DIRECT_DATABASE_URL)=' .env | head -1 | cut -d '=' -f2-)
               fi
@@ -195,7 +200,7 @@ jobs:
                 --rm \
                 --env-file .env \
                 -e SEED_ENV=prod \
-                -e SEED_ADMIN_EMAIL="${{ secrets.SEED_ADMIN_EMAIL }}" \
+                -e SEED_ADMIN_EMAIL="$(echo '${{ secrets.SEED_ADMIN_EMAIL }}' | tr -d '[:space:]')" \
                 -e DATABASE_URL="$MIGRATION_DATABASE_URL" \
                 -w /app/apps/api \
                 "$API_IMAGE" \
@@ -244,7 +249,7 @@ jobs:
       - name: Reload Nginx and verify its API upstream
         run: |
           ssh -i ~/.ssh/oracle_deploy_key \
-            ${{ secrets.ORACLE_USER }}@${{ secrets.ORACLE_HOST }} \
+            "$ORACLE_USER@$ORACLE_HOST" \
             << 'EOF'
               set -e
 
