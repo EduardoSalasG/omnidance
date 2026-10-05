@@ -3,6 +3,7 @@
     "title": "Lleva Omnidance en tu bolsillo",
     "body": "Instala la app para entrar directo desde tu pantalla de inicio - sin browser y más rápida.",
     "iosBody": "En Safari toca el botón Compartir y elige «Agregar a pantalla de inicio». Así entras directo, como una app.",
+    "androidBody": "En Chrome toca el menú ⋮ y elige «Instalar app» o «Agregar a pantalla de inicio». Así entras directo, como una app.",
     "cta": "Instalar",
     "dismiss": "Ahora no"
   }

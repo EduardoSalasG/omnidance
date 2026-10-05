@@ -16,8 +16,11 @@ type BipEvent = Event & {
 
 /**
  * Invita a instalar la PWA tras iniciar sesión:
- * - Chromium (Android/desktop): captura `beforeinstallprompt` y ofrece
- *   el prompt nativo al tocar "Instalar".
+ * - Chromium: captura `beforeinstallprompt` y ofrece el prompt nativo
+ *   al tocar "Instalar" (registra el SW al montar - sin service worker
+ *   Chrome nunca emite el evento).
+ * - Android sin evento bip (Firefox, Chrome aún no elegible):
+ *   instrucciones del menú ⋮.
  * - iOS: no existe prompt programático - muestra las instrucciones
  *   (Compartir → "Agregar a pantalla de inicio").
  * Se oculta si la app ya corre instalada (display-mode standalone /
@@ -32,6 +35,7 @@ export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BipEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
 
   async function markSeen() {
     try {
@@ -52,6 +56,14 @@ export function InstallPrompt() {
       (navigator as { standalone?: boolean }).standalone === true;
     if (standalone) setInstalled(true);
     setIsIos(/iphone|ipad|ipod/i.test(navigator.userAgent));
+    setIsAndroid(/android/i.test(navigator.userAgent));
+
+    // Registro temprano del SW: Chrome solo emite `beforeinstallprompt`
+    // con service worker activo. Idempotente - PushOptIn reusa el mismo
+    // registro cuando el usuario activa notificaciones.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
 
     function onBip(e: Event) {
       e.preventDefault();
@@ -79,9 +91,9 @@ export function InstallPrompt() {
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) {
     return null;
   }
-  // Chromium espera el evento; iOS muestra instrucciones; otros
-  // browsers (Firefox escritorio, webviews) no tienen flujo → nada.
-  if (!deferred && !isIos) return null;
+  // Chromium con bip → botón nativo; iOS y Android sin bip →
+  // instrucciones manuales; otros browsers no tienen flujo → nada.
+  if (!deferred && !isIos && !isAndroid) return null;
 
   async function install() {
     if (!deferred) return;
@@ -105,7 +117,7 @@ export function InstallPrompt() {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-white">{t("title")}</p>
             <p className="mt-1 text-xs leading-relaxed text-white/60">
-              {deferred ? t("body") : t("iosBody")}
+              {deferred ? t("body") : isIos ? t("iosBody") : t("androidBody")}
             </p>
             {deferred && (
               <button
