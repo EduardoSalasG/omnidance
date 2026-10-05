@@ -128,6 +128,7 @@ Roles de colaboración dentro del pipeline: Diseño (orquestador + usuario) → 
 - Hotfix en `main` → regulariza `dev` inmediatamente. **Nunca quedarse parado en `main`.**
 - No mezcles cambios no relacionados ni cambios locales ajenos en la misma entrega.
 - **Sin co-autoría ni firma de agente en los commits** — solo el mensaje descriptivo.
+- **CI/CD**: push a `main` despliega el API (GH Actions → GHCR → SSH a la VM → migrate+seed → health gate); el front va a Netlify vía `netlify.toml` (Next.js runtime). Secrets/vars y setup de la VM en `docs/ci-cd.md`.
 
 ### Versionamiento
 
