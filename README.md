@@ -133,4 +133,5 @@ ni pisa parámetros editados desde `/admin`.
 | [`apps/web/README.md`](apps/web/README.md) | Web: rutas por rol, design system, i18n |
 | [`docs/architecture.md`](docs/architecture.md) | Módulos, RBAC, params, wiring |
 | [`docs/flows.md`](docs/flows.md) | Secuencias y estados (mermaid) |
+| [`docs/ci-cd.md`](docs/ci-cd.md) | Deploy a producción: checklist, env vars, pipeline GH Actions → VM + Netlify, troubleshooting |
 | [`docs/openapi.json`](docs/openapi.json) | OpenAPI exportado + colección Postman |
