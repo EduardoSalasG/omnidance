@@ -16,7 +16,7 @@ sin chrome, mientras el banner de consentimiento esté visible, y tras
 un dismiss que marca `onboarding["install-prompt"]` (persistente). El
 evento `appinstalled` también marca el flag.
 
-#### Scenario: Chromium con prompt nativo
+#### Scenario: Chromium sin instalar
 
 - **WHEN** un usuario con sesión navega la app en Chromium y el
   navegador emite `beforeinstallprompt`
