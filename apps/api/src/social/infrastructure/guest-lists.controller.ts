@@ -40,7 +40,7 @@ class AddEntryDto {
   personId!: string;
 }
 
-/** Listas de invitados por evento — solo productor/staff/admin. */
+/** Listas de invitados por evento - solo productor/staff/admin. */
 @Controller("events")
 export class EventGuestListsController {
   constructor(private readonly prisma: PrismaService) {}
@@ -151,7 +151,7 @@ export class GuestListsController {
   /**
    * Emite el EntryPass LIST de una entrada de la lista. Autorización mixta
    * (sin @RequirePermissions): dueño de la lista, productor del evento o
-   * staff con `social.manage`. Idempotente — un EntryPass ACTIVE tipo LIST
+   * staff con `social.manage`. Idempotente - un EntryPass ACTIVE tipo LIST
    * por (eventId, personId): 201 al crear, 200 si ya existía. Emitir el pase
    * NO marca la entrada como ARRIVED.
    */

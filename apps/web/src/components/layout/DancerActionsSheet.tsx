@@ -14,7 +14,7 @@ export type SheetItem = {
 };
 
 /**
- * Sheet de acciones del bailarín — reemplaza al drawer lateral en la lente
+ * Sheet de acciones del bailarín - reemplaza al drawer lateral en la lente
  * DANCER. El "+" central del tab bar lo abre:
  *
  * - QR personal destacado (acción de pista: entrada + pareja de baile).
@@ -34,7 +34,7 @@ export function DancerActionsSheet({
   onClose: () => void;
   items: SheetItem[];
   /** Solo lente social: el bailarín escanea a su pareja. En academia la
-      asistencia la registra el staff — no hay acción de escaneo. */
+      asistencia la registra el staff - no hay acción de escaneo. */
   scanHref?: string;
 }) {
   const t = useTranslations("nav");
@@ -77,7 +77,7 @@ export function DancerActionsSheet({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cerrar — esquina superior, 44px (mismo patrón que el X del
+        {/* Cerrar - esquina superior, 44px (mismo patrón que el X del
             SideDrawer); tap en backdrop y Escape también cierran. */}
         <button
           type="button"
@@ -104,12 +104,12 @@ export function DancerActionsSheet({
           className="mx-auto mb-4 h-1 w-9 rounded-full bg-white/20"
         />
 
-        {/* QR destacado — la acción de pista */}
+        {/* QR destacado - la acción de pista */}
         <div className="flex justify-center">
           <MyQr compact />
         </div>
 
-        {/* Escanear — la contraparte del QR propio: "me muestran" arriba,
+        {/* Escanear - la contraparte del QR propio: "me muestran" arriba,
             "yo escaneo" acá. Mismo peso visual que un ítem del grid pero
             ancho completo porque es la acción primaria del sheet. */}
         {scanHref && (
@@ -134,7 +134,7 @@ export function DancerActionsSheet({
           </Link>
         )}
 
-        {/* Módulos secundarios de la lente activa — social lleva
+        {/* Módulos secundarios de la lente activa - social lleva
             Bailes/Prácticas; academia lleva la bandeja de particulares.
             Si la lente no tiene ítems, el sheet queda solo con el QR. */}
         {items.length > 0 && (

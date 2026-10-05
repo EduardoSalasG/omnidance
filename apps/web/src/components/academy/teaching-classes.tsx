@@ -15,7 +15,7 @@ import {
 type LoadState = "loading" | "ready" | "unauth" | "forbidden" | "error";
 
 /**
- * "Mis clases" del instructor — GET /classes/teaching (próximas ~30d,
+ * "Mis clases" del instructor - GET /classes/teaching (próximas ~30d,
  * cross-academia: el contrato trae academyName por ítem). Sin AcademyGate:
  * la lista es por persona, no por academia seleccionada. Cada card enlaza
  * al roster /academia/clases/[id].

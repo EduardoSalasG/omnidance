@@ -17,7 +17,7 @@ import {
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import { useMe } from "@/lib/me-context";
 
-// GET /practices (+ /practices/mine, que agrega `going`) — shape público.
+// GET /practices (+ /practices/mine, que agrega `going`) - shape público.
 type Practice = {
   id: string;
   name: string;
@@ -78,7 +78,7 @@ function PracticasInner() {
   const tt = useTranslations("tours.practicas");
   const searchParams = useSearchParams();
 
-  // Vista y filtro compartibles — mismo contrato que /eventos.
+  // Vista y filtro compartibles - mismo contrato que /eventos.
   const view = searchParams.get("view") === "mias" ? "mias" : "todas";
   const styleFilter = searchParams.get("style");
 
@@ -90,8 +90,8 @@ function PracticasInner() {
   // vista "mías" mentía un empty. mineNonce re-dispara el efecto.
   const [mineError, setMineError] = useState(false);
   const [mineNonce, setMineNonce] = useState(0);
-  // /me compartido (MeProvider) — sin fetch propio: `me === null` es
-  // "sin sesión" solo cuando el fetch ya resolvió (meChecked) — mientras
+  // /me compartido (MeProvider) - sin fetch propio: `me === null` es
+  // "sin sesión" solo cuando el fetch ya resolvió (meChecked) - mientras
   // está en vuelo me vale null igual, gatear con loading evita flashear
   // el CTA de login a usuarios autenticados.
   const { me, loading: meLoading } = useMe();
@@ -184,7 +184,7 @@ function PracticasInner() {
     return dayFmt.format(new Date(iso));
   };
 
-  // Card compacta — mismo ritmo 3 columnas que /eventos:
+  // Card compacta - mismo ritmo 3 columnas que /eventos:
   // [hora + lugar] [nombre + badges] [N van].
   const renderCard = (p: Practice) => {
     const hosting = me != null && p.hostId === me.id;
@@ -243,7 +243,7 @@ function PracticasInner() {
                 </p>
               )}
             </div>
-            {/* Col 3: prueba social — cuántos van */}
+            {/* Col 3: prueba social - cuántos van */}
             <div className="w-1/4 shrink-0 pt-0.5 text-right">
               <span className="text-sm text-white/60">
                 {t("goingCount", { count: p.rsvpCount })}
@@ -269,7 +269,7 @@ function PracticasInner() {
           </Button>
         </div>
 
-        {/* Vista: Todas / Mis prácticas — segmented con thumb
+        {/* Vista: Todas / Mis prácticas - segmented con thumb
             deslizante, mismo control que /clases y /academias */}
         <nav
           aria-label={t("viewLabel")}
@@ -293,7 +293,7 @@ function PracticasInner() {
               },
             ]}
           />
-          {/* Estilos — chips en la misma fila; solo los presentes en el pool */}
+          {/* Estilos - chips en la misma fila; solo los presentes en el pool */}
           {styleOptions.map(([id, name]) => (
             <Link
               key={id}
@@ -307,7 +307,7 @@ function PracticasInner() {
         </nav>
 
         {view === "mias" && meChecked && me === null ? (
-          /* Sin sesión no hay "mías" — el login desbloquea la vista */
+          /* Sin sesión no hay "mías" - el login desbloquea la vista */
           <Card className="flex flex-col items-start gap-3">
             <p className="text-sm text-white/60">{t("loginRequired")}</p>
             <Button href="/login" size="sm">
@@ -354,7 +354,7 @@ function PracticasInner() {
           <Card className="flex flex-col items-start gap-3">
             <p role="status" className="text-white/60">
               {/* Con filtro de estilo activo "no hay prácticas" es
-                  falso — existen, solo no de ese estilo. */}
+                  falso - existen, solo no de ese estilo. */}
               {styleFilter
                 ? t("emptyFiltered")
                 : view === "mias"
@@ -387,7 +387,7 @@ function PracticasInner() {
         )}
       </section>
 
-      {/* Tour de primera visita — el header (crear + vistas) siempre
+      {/* Tour de primera visita - el header (crear + vistas) siempre
           existe; la lista se omite del tour si está vacía. */}
       {state === "ready" && (
         <OnboardingRunner

@@ -1,4 +1,4 @@
-# Compose de producción del API — se copia a /opt/apps/omnidance en la VM
+# Compose de producción del API - se copia a /opt/apps/omnidance en la VM
 # por el workflow deploy-api-docker.yml. Las credenciales van en .env
 # junto a este archivo (DATABASE_URL, JWT_SECRET, QR_SECRET, CORS_ORIGINS,
 # WEB_URL, FLOW_*, RESEND_API_KEY, VAPID, etc.).

@@ -17,7 +17,7 @@
   package = "@netlify/plugin-nextjs"
 
 # Env vars restantes (Netlify UI → Site settings → Environment variables):
-#   NEXT_PUBLIC_CARTO_BASEMAP_KEY— key pública del basemap (mapa academias).
-#   NEXT_PUBLIC_VAPID_PUBLIC_KEY — key pública web-push.
-#   NEXT_PUBLIC_WEB_URL          — https://omnidance.netlify.app
-#   NEXT_PUBLIC_API_URL          — dejar VACÍA (relativa = same-origin).
+#   NEXT_PUBLIC_CARTO_BASEMAP_KEY- key pública del basemap (mapa academias).
+#   NEXT_PUBLIC_VAPID_PUBLIC_KEY - key pública web-push.
+#   NEXT_PUBLIC_WEB_URL          - https://omnidance.netlify.app
+#   NEXT_PUBLIC_API_URL          - dejar VACÍA (relativa = same-origin).

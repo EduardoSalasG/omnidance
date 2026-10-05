@@ -43,7 +43,7 @@ const PAYMENT_STATUSES: readonly PaymentStatus[] = [
   "FAILED",
   "REFUNDED",
 ];
-// Payment.orderType es String libre en schema — whitelist de negocio.
+// Payment.orderType es String libre en schema - whitelist de negocio.
 const ORDER_TYPES = [
   "TICKET",
   "SERIES_PASS",
@@ -55,7 +55,7 @@ const RENTAL_STATUSES = ["REQUESTED", "CONFIRMED", "CANCELLED"] as const;
 const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "DISCARDED"] as const;
 const LEAD_INTENTS = ["CONTACT", "DEMO"] as const;
 // GatewayTransaction.direction / MembershipSubscription.status son String
-// libre en schema — whitelists de negocio (mismo criterio que ORDER_TYPES).
+// libre en schema - whitelists de negocio (mismo criterio que ORDER_TYPES).
 const GATEWAY_DIRECTIONS = ["OUTBOUND", "INBOUND_WEBHOOK"] as const;
 const SUBSCRIPTION_STATUSES = [
   "PENDING_CARD",
@@ -152,7 +152,7 @@ class BrowseQueryDto {
   correlationId?: string;
 }
 
-/** Valida un filtro enum por whitelist — inválido → 400 (no se ignora). */
+/** Valida un filtro enum por whitelist - inválido → 400 (no se ignora). */
 function whitelist<T extends string>(
   value: string | undefined,
   allowed: readonly T[],
@@ -171,7 +171,7 @@ function whitelist<T extends string>(
  * Explorador de datos operacional (/admin/datos): listados livianos
  * (≤100 filas) por entidad con filtros por query string. Read-only.
  * FKs peladas (eventId/personId/producerId/ownerId) se resuelven a
- * {id,name} con lookups batch — el schema no declara esas relaciones.
+ * {id,name} con lookups batch - el schema no declara esas relaciones.
  */
 @Controller("admin")
 @UseGuards(SessionGuard, RolesGuard)
@@ -214,7 +214,7 @@ export class BrowseController {
   }
 
   /**
-   * GET /admin/payments/:id/verify-chain — re-calcula el hash-chain del
+   * GET /admin/payments/:id/verify-chain - re-calcula el hash-chain del
    * ledger del pago (verifyPaymentChain) y reporta integridad:
    * {ok, events, firstBadSeq?}. La fila adulterada rompe la cadena en
    * seq ≥ firstBadSeq.
@@ -540,7 +540,7 @@ export class BrowseController {
     }));
   }
 
-  // ── people: q,role — misma shape que /admin/users ───────────────────
+  // ── people: q,role - misma shape que /admin/users ───────────────────
 
   private async people(q: BrowseQueryDto) {
     const term = q.q?.trim() ?? "";
@@ -592,7 +592,7 @@ export class BrowseController {
     });
   }
 
-  // ── leads: q,status,intent,from,to — captación del landing /pro ─────
+  // ── leads: q,status,intent,from,to - captación del landing /pro ─────
 
   private async leads(q: BrowseQueryDto) {
     const status = whitelist(q.status, LEAD_STATUSES, "status");
@@ -634,7 +634,7 @@ export class BrowseController {
         createdAt: true,
       },
     });
-    // demoPending = la persona ligada sigue en modo demo — habilita el
+    // demoPending = la persona ligada sigue en modo demo - habilita el
     // botón "Convertir a usuario real" en la UI admin.
     const personIds = leads.map((l) => l.personId).filter((x): x is string => !!x);
     const persons = personIds.length
@@ -650,7 +650,7 @@ export class BrowseController {
     }));
   }
 
-  // ── payment-events: paymentId,type,actor,from,to — ledger BIAN ──────
+  // ── payment-events: paymentId,type,actor,from,to - ledger BIAN ──────
   // payload/prevHash/payloadHash se devuelven completos: son la evidencia
   // que verify-chain recalcula.
 
@@ -675,7 +675,7 @@ export class BrowseController {
   }
 
   // ── gateway-transactions: paymentId,endpoint,direction,ok,correlationId,from,to
-  // requestBody/responseBody salen tal cual — ya sanitizados en escritura
+  // requestBody/responseBody salen tal cual - ya sanitizados en escritura
   // (firma "s" → huella sha256, nunca el secreto).
 
   private async gatewayTransactions(q: BrowseQueryDto) {

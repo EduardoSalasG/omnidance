@@ -22,8 +22,8 @@ const STATUS_VARIANT: Record<string, "neon" | "muted" | "outline"> = {
 
 /**
  * Cards de campañas del actor (GET /crm/campaigns?actor). Acción disponible:
- * Enviar (POST /:id/send, solo DRAFT — con confirmación, es masiva).
- * El controller no expone DELETE/CANCEL — no hay acción de cancelar en v1.
+ * Enviar (POST /:id/send, solo DRAFT - con confirmación, es masiva).
+ * El controller no expone DELETE/CANCEL - no hay acción de cancelar en v1.
  */
 export function CampaignList({
   actor,

@@ -31,8 +31,8 @@ describe("dancer-profile-survey-analytics e2e", () => {
     bId: "",
     cId: "",
     dId: "",
-    surveyEventId: "", // terminó hace 2h — ventana abierta
-    smallEventId: "", // terminó hace 3h — solo 2 asistentes
+    surveyEventId: "", // terminó hace 2h - ventana abierta
+    smallEventId: "", // terminó hace 3h - solo 2 asistentes
     salsaStyleId: "",
     bachataStyleId: "",
   };
@@ -105,7 +105,7 @@ describe("dancer-profile-survey-analytics e2e", () => {
     ]);
     ids.producerId = producer.id;
     sessions.producer = producer.session;
-    // Analytics del evento es feature Producer Pro (S5) — el owner del
+    // Analytics del evento es feature Producer Pro (S5) - el owner del
     // fixture necesita tier vigente para que el gate no responda 403.
     await prisma.person.update({
       where: { id: producer.id },
@@ -225,7 +225,7 @@ describe("dancer-profile-survey-analytics e2e", () => {
         .gender,
     ).toBeNull();
 
-    // Restaura el género del fixture — la analítica de abajo lo cuenta.
+    // Restaura el género del fixture - la analítica de abajo lo cuenta.
     res = await req("PATCH", "/api/me", { gender: "M" }, sessions.a);
     expect(res.status).toBe(200);
   });
@@ -264,7 +264,7 @@ describe("dancer-profile-survey-analytics e2e", () => {
 
   it("GET /me/pending-surveys: elegible + fan-out único a todos los asistentes", async () => {
     // "a" ya evaluó el evento survey → su lista lo excluye (smallEvent
-    // sigue elegible para "a" — es válido).
+    // sigue elegible para "a" - es válido).
     const resA = await req(
       "GET",
       "/api/me/pending-surveys",
@@ -286,7 +286,7 @@ describe("dancer-profile-survey-analytics e2e", () => {
     expect(pending.map((e) => e.eventId)).toContain(ids.surveyEventId);
 
     // Fan-out lazy: alguno de los requests ganadores reclamó el evento y
-    // notificó a TODOS los asistentes no-anulados (a, b, c, d) — el
+    // notificó a TODOS los asistentes no-anulados (a, b, c, d) - el
     // stranger con check-in anulado no entra.
     const surveyNotifs = await prisma.notification
       .findMany({ where: { type: "event.survey" } })

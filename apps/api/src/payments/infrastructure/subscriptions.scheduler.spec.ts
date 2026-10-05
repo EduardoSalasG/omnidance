@@ -5,7 +5,7 @@ vi.mock("node-cron", () => ({ schedule: vi.fn() }));
 import { schedule } from "node-cron";
 import { SubscriptionsScheduler } from "./subscriptions.scheduler";
 
-// Scheduler T7 — patrón crm-triggers: cron diario 09:00 → reconcileAll
+// Scheduler T7 - patrón crm-triggers: cron diario 09:00 → reconcileAll
 // ("cron"); en NODE_ENV=test no se registra (los specs ejercen
 // reconcileAll directo).
 
@@ -17,7 +17,7 @@ function mkSubs() {
   };
 }
 
-/** PlatformSubscriptionsService stub — reconcileAll + enforceAcademyBlocks. */
+/** PlatformSubscriptionsService stub - reconcileAll + enforceAcademyBlocks. */
 function mkPlatSubs() {
   return {
     reconcileAll: vi.fn(async () => ({ checked: 0, settled: 0 })),
@@ -90,7 +90,7 @@ describe("SubscriptionsScheduler", () => {
       ).onModuleInit();
       const tick = scheduleMock.mock.calls[0]![1] as () => void;
       expect(() => tick()).not.toThrow();
-      // el catch interno absorbe el rechazo — esperar el tick async
+      // el catch interno absorbe el rechazo - esperar el tick async
       await new Promise((r) => setTimeout(r, 10));
       expect(subs.reconcileAll).toHaveBeenCalled();
     } finally {

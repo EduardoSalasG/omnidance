@@ -21,7 +21,7 @@ import { Button, Card } from "@/components/ui";
  *   → POST /api/push-tokens
  *
  * Contrato verificado en apps/api: POST /api/push-tokens acepta
- * `{ token, platform, keys? }` — `token` = endpoint de la suscripción,
+ * `{ token, platform, keys? }` - `token` = endpoint de la suscripción,
  * platform ∈ WEB|IOS|ANDROID, y `keys` {p256dh, auth} se persisten en
  * payload (formato que WebPushSender espera).
  *
@@ -90,7 +90,7 @@ export function PushOptIn() {
     try {
       window.localStorage.setItem(DISMISS_KEY, "1");
     } catch {
-      /* storage bloqueado — el banner vuelve a aparecer en la próxima carga */
+      /* storage bloqueado - el banner vuelve a aparecer en la próxima carga */
     }
     setPhase("hidden");
   }
@@ -110,7 +110,7 @@ export function PushOptIn() {
       // Esperar a que el SW quede activo antes de suscribir.
       await navigator.serviceWorker.ready;
       // iOS: si ya existe suscripción (p. ej. de un intento que falló en el
-      // POST, o de otra sesión), reusarla — subscribe() repetido puede
+      // POST, o de otra sesión), reusarla - subscribe() repetido puede
       // lanzar AbortError aunque la suscripción anterior sea válida.
       let subscription = await registration.pushManager.getSubscription();
       if (!subscription) {
@@ -123,7 +123,7 @@ export function PushOptIn() {
           subscription = await subscribe();
         } catch (firstErr) {
           // Apple Push (iOS) devuelve AbortError transitorio con cierta
-          // frecuencia — un retry inmediato suele completar.
+          // frecuencia - un retry inmediato suele completar.
           console.warn("[PushOptIn] subscribe falló, reintentando:", firstErr);
           subscription = await subscribe();
         }
@@ -145,7 +145,7 @@ export function PushOptIn() {
       setPhase("done");
       window.setTimeout(() => setPhase("hidden"), 3000);
     } catch (err) {
-      // El detalle queda en consola y visible bajo el mensaje — iOS falla
+      // El detalle queda en consola y visible bajo el mensaje - iOS falla
       // por causas variadas (versión <16.4, push service, suscripción
       // corrupta) y el error real es la única forma de diagnosticarlas.
       console.error("[PushOptIn] enable falló:", err);

@@ -8,7 +8,7 @@ import landingParts from "@/i18n/parts/landing.json";
 import { ProLeadForm } from "./ProLeadForm";
 import type { JsonLdEvent } from "./JsonLd";
 
-// Acento de marca via token `neon` (#a78bfa violeta en :root) — icon.svg,
+// Acento de marca via token `neon` (#a78bfa violeta en :root) - icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
 // el utility `glow-neon` (globals.css), que ya lee el token: cero JS.
 
@@ -22,8 +22,8 @@ export type LandingVariant = "dancer" | "pro";
 
 /**
  * Landing de marketing en dos variantes que comparten layout y estilo:
- * - `dancer` ("/"): bailarines y alumnos — QR, Academy, Nightlife.
- * - `pro` ("/pro"): productores, academias y venues — consolas de negocio.
+ * - `dancer` ("/"): bailarines y alumnos - QR, Academy, Nightlife.
+ * - `pro` ("/pro"): productores, academias y venues - consolas de negocio.
  * `weeklyEvents` alimenta el strip "esta semana" (0 → copy genérico).
  */
 export function Landing({
@@ -33,7 +33,7 @@ export function Landing({
 }: {
   variant?: LandingVariant;
   weeklyEvents?: number;
-  // Eventos reales de la semana para el strip de prueba social — la
+  // Eventos reales de la semana para el strip de prueba social - la
   // landing muestra la escena en vez de solo afirmarla.
   weekEvents?: JsonLdEvent[];
 }) {
@@ -97,7 +97,7 @@ export function Landing({
               {t.ctaLogin}
             </Link>
             {/* En /pro el camino de alta es el lead form (con roles), no el
-                registro genérico — el header solo ofrece Entrar. */}
+                registro genérico - el header solo ofrece Entrar. */}
             {!isPro && (
               <Link
                 href="/login?mode=register"
@@ -133,14 +133,14 @@ export function Landing({
               </Link>
             </div>
             {/* Solo pro: la demo es acceso inmediato, no una llamada de
-                ventas — la promesa va visible en el hero. */}
+                ventas - la promesa va visible en el hero. */}
             {isPro && (
               <p className="mt-4 text-xs text-white/50">{t.heroNote}</p>
             )}
           </div>
         </section>
 
-        {/* ─── Solo pro: el caos que reemplaza la app (PAS) — los ítems
+        {/* ─── Solo pro: el caos que reemplaza la app (PAS) - los ítems
             van densos y apagados; la resolución, limpia. ─── */}
         {isPro && (
           <section className="border-t border-white/5 px-6 py-12">
@@ -209,7 +209,7 @@ export function Landing({
             >
               {t.featuresTitle}
             </h2>
-            {/* Solo dancer: "la app de la comunidad…" baja del hero — el
+            {/* Solo dancer: "la app de la comunidad…" baja del hero - el
                 heroPromise ya comunica pertenencia por sí solo. */}
             {!isPro && (
               <p className="mx-auto mt-3 max-w-md text-center text-sm text-white/50">
@@ -264,7 +264,7 @@ export function Landing({
       </main>
 
       {/* ─── Footer mínimo: marca + tagline + cruce a la otra
-          audiencia — todo centrado, una cosa por línea. ─── */}
+          audiencia - todo centrado, una cosa por línea. ─── */}
       <footer className="border-t border-white/5 px-6 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 text-center">
           <p className="text-sm font-bold tracking-tight">

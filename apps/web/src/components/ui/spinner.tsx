@@ -62,7 +62,7 @@ export type PageLoadingProps = {
 /** Estado de carga a nivel página/panel. NO usar min-h-dvh: hay chrome
  * sticky. El spinner real lo renderiza PageLoadingHost (layout raíz)
  * via beacon compartido: aparición diferida 200ms + mínimo visible
- * 400ms — fetches rápidos no muestran nada y una vez visible no hay
+ * 400ms - fetches rápidos no muestran nada y una vez visible no hay
  * flash. Este componente solo reserva el alto y mantiene el acquire
  * mientras la página está cargando. Para feedback de ACCIÓN (botón
  * presionado, submit) usar Spinner inline directo: ahí la respuesta

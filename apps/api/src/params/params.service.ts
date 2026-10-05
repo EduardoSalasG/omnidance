@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 
-// ParamsService — parámetros operativos de plataforma (PlatformParam).
+// ParamsService - parámetros operativos de plataforma (PlatformParam).
 // Cache in-memory corto: los params se leen en rutas calientes (checkout)
-// y cambian solo por /admin — 30s de TTL es tolerancia sobrada.
+// y cambian solo por /admin - 30s de TTL es tolerancia sobrada.
 const CACHE_TTL_MS = 30_000;
 
 /** Defaults configurables por productor (null = hereda global / sin config). */
@@ -13,7 +13,7 @@ export interface ProducerFeeDefaults {
   doorCashFeeClp: number | null;
   platformFeePct: number | null;
   /** Defaults de mesas (spec checkout-table-reservation): los edita el
-   *  propio productor; el evento los hereda al crear/editar. Opcionales —
+   *  propio productor; el evento los hereda al crear/editar. Opcionales -
    *  los consumidores de fees no los necesitan. */
   tablesTotal?: number | null;
   tableSeatMax?: number | null;
@@ -46,7 +46,7 @@ export class ParamsService {
   }
 
   /**
-   * Defaults de fees del productor (ProducerParams). null si no tiene fila —
+   * Defaults de fees del productor (ProducerParams). null si no tiene fila -
    * los consumidores encadenan: campo del evento → esto → param global.
    * Cache propio (30s) porque se lee en checkout/puerta.
    */

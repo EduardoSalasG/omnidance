@@ -442,7 +442,7 @@ describe("NotificationsService push tokens", () => {
 });
 
 // Convención push-copy (openspec push-copy-precision): title = outcome
-// corto — sin prefijos de categoría ("Pago confirmado —"), sin punto
+// corto - sin prefijos de categoría ("Pago confirmado -"), sin punto
 // final, ≤ 40 chars sin interpolar. Spot-check sobre los literales que
 // emiten los call sites cubiertos por la tabla verbatim.
 describe("push-copy: convención de titles", () => {
@@ -477,7 +477,7 @@ describe("push-copy: convención de titles", () => {
     expect(t.endsWith(".")).toBe(false);
   });
 
-  it("ningún title usa el prefijo 'Pago confirmado —'", () => {
+  it("ningún title usa el prefijo 'Pago confirmado -'", () => {
     for (const t of titles) {
       expect(t.startsWith("Pago confirmado")).toBe(false);
     }

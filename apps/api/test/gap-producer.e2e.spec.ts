@@ -40,7 +40,7 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
     seriesId: "", // serie del producer
     series2Id: "", // serie del producer2
   };
-  // Eventos creados por la suite (vía API o prisma) — cleanup por producerId.
+  // Eventos creados por la suite (vía API o prisma) - cleanup por producerId.
   let createdEventId = ""; // evento principal DRAFT del producer
 
   const req = (
@@ -88,7 +88,7 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
     ]);
     ids.producerId = prod.id;
     sessions.producer = prod.session;
-    // Staff multi-persona es feature Producer Pro (S5) — el productor del
+    // Staff multi-persona es feature Producer Pro (S5) - el productor del
     // fixture opera su propio evento, así que necesita tier vigente.
     await prisma.person.update({
       where: { id: prod.id },

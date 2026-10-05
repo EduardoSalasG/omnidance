@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { SESSION_RULES } from "@omnidance/shared";
 
-// Default del dominio — los callers parametrizan vía qr.rotation_seconds.
+// Default del dominio - los callers parametrizan vía qr.rotation_seconds.
 const QR_TTL_SECONDS: number = SESSION_RULES.QR_ROTATION_SECONDS;
 
 export class QrService {

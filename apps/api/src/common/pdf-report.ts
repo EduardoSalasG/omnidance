@@ -6,7 +6,7 @@ import PDFDocument from "pdfkit";
  * cada página y numeración «Página X de Y» al pie.
  *
  * Las celdas se truncan a UNA línea con `widthOfString` + «…» y se dibujan
- * con `lineBreak:false` y sin `width` — así el texto nunca pasa por el
+ * con `lineBreak:false` y sin `width` - así el texto nunca pasa por el
  * LineWrapper y no hay paginación implícita (pdfkit ≥0.16 asigna `width`
  * por defecto salvo con `lineBreak:false`, y cualquier texto bajo maxY
  * dispara un salto). El salto de página lo controla solo el loop de filas.

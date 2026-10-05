@@ -9,7 +9,7 @@ import { EventStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 
 /**
- * Directorio público de venues activos — el front lo usa para selects
+ * Directorio público de venues activos - el front lo usa para selects
  * (crear práctica, filtrar eventos), el mapa de /eventos y el perfil
  * público del local. Sin datos sensibles: solo lo que ya se expone
  * vía GET /events → event.venue.
@@ -34,14 +34,14 @@ export class VenuesController {
         hours: true,
       },
     });
-    // Orden en JS (localeCompare) — Postgres collation y JS difieren en
+    // Orden en JS (localeCompare) - Postgres collation y JS difieren en
     // espacios/mayúsculas y el contrato del endpoint es orden por nombre.
     return venues.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   /**
    * GET /api/venues/:id → perfil público + próximos eventos PUBLISHED.
-   * `?days=N` limita el horizonte (default 30, cap 90) — mismo criterio
+   * `?days=N` limita el horizonte (default 30, cap 90) - mismo criterio
    * que el listado público de /events.
    */
   @Get(":id")
@@ -69,7 +69,7 @@ export class VenuesController {
       where: {
         venueId: id,
         status: EventStatus.PUBLISHED,
-        // Las prácticas no se vinculan a locales (venueText libre) —
+        // Las prácticas no se vinculan a locales (venueText libre) -
         // defensa por si quedara una fila legada con venueId.
         type: { not: "PRACTICA" },
         startsAt: {

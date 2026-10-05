@@ -1,7 +1,7 @@
 # social/friendships Specification
 
 ## Purpose
-Amistades entre bailarines: solicitud, aceptación y lista — habilita "qué amigos van", historial de sesiones por amigo y la futura competencia social segura (spec §8).
+Amistades entre bailarines: solicitud, aceptación y lista - habilita "qué amigos van", historial de sesiones por amigo y la futura competencia social segura (spec §8).
 
 ## Requirements
 
@@ -50,4 +50,4 @@ El sistema SHALL exponer la lista de amigos activos del usuario autenticado y la
 #### Scenario: lista
 
 - **WHEN** una persona envía `GET /friends`
-- **THEN** recibe sus amigos activos con datos básicos (id, nombre, foto) — nunca amistades de terceros
+- **THEN** recibe sus amigos activos con datos básicos (id, nombre, foto) - nunca amistades de terceros

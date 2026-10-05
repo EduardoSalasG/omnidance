@@ -58,7 +58,7 @@ type VenueProfile = {
 };
 
 type VenueT = (typeof messages)["venuePublic"] & Record<string, string>;
-// El merge i18n devuelve Dict — las claves se declaran explícitas.
+// El merge i18n devuelve Dict - las claves se declaran explícitas.
 type EventsT = (typeof messages)["events"] & {
   genre: Record<string, string>;
   filterAll: string;
@@ -79,7 +79,7 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
-// Nombre completo del día para lectores de pantalla — la celda del
+// Nombre completo del día para lectores de pantalla - la celda del
 // calendario solo muestra el número (mismo patrón que /eventos).
 const weekdayNameFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "long",
@@ -105,7 +105,7 @@ function dayLabel(key: string, te: EventsT): string {
 }
 
 // Solo un 404 real es not-found: 5xx/red es un fallo de carga y la
-// página muestra error con retry — esconderlo como "no existe" miente.
+// página muestra error con retry - esconderlo como "no existe" miente.
 async function getVenue(id: string): Promise<VenueProfile | "error"> {
   const res = await fetch(`${API_URL}/api/venues/${id}?days=62`, {
     cache: "no-store",
@@ -147,7 +147,7 @@ export default async function VenueProfilePage({
   const t = messages.venuePublic as VenueT;
   const te = messages.events as EventsT;
   const tc = messages.common as { error: string; retry: string; back: string };
-  // Sin isAuthed: el grupo (app) ya exige sesión por middleware — las
+  // Sin isAuthed: el grupo (app) ya exige sesión por middleware - las
   // cards de evento siempre linkean al detalle.
   const venue = await getVenue(params.id);
 
@@ -170,7 +170,7 @@ export default async function VenueProfilePage({
 
   const vista = searchParams?.vista === "calendario" ? "calendario" : "lista";
 
-  // Filtro por estilo: ?genre=SALSA,BACHATA — unión, mismo patrón de
+  // Filtro por estilo: ?genre=SALSA,BACHATA - unión, mismo patrón de
   // /eventos. Aplica a la lista y al calendario (mismo pool).
   const genreSet = new Set(
     (searchParams?.genre ?? "")
@@ -261,7 +261,7 @@ export default async function VenueProfilePage({
     return (
       <Card className="transition-colors transition-transform hover:border-neon/50 active:scale-[0.99]">
         <div className="flex items-start gap-2">
-          {/* Solo la hora — el día es agrupador (lista) o selección
+          {/* Solo la hora - el día es agrupador (lista) o selección
               (calendario); repetirlo en cada card era ruido. */}
           <div className="flex w-1/4 shrink-0 flex-col items-start gap-0.5">
             <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
@@ -333,7 +333,7 @@ export default async function VenueProfilePage({
           {venue.address && (
             <a
               href={
-                // URL universal de Google Maps — sin API key, el SO la
+                // URL universal de Google Maps - sin API key, el SO la
                 // abre en la app de mapas instalada (igual que /eventos/:id).
                 venue.lat != null && venue.lng != null
                   ? `https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`
@@ -391,7 +391,7 @@ export default async function VenueProfilePage({
         </div>
       </header>
 
-      {/* Próximos eventos del local — lista o calendario semanal */}
+      {/* Próximos eventos del local - lista o calendario semanal */}
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-neon">{t.upcoming}</h2>
@@ -419,7 +419,7 @@ export default async function VenueProfilePage({
             </Link>
           </div>
         </div>
-        {/* Estilos — multiselect chips (unión), preservan vista/semana/día */}
+        {/* Estilos - multiselect chips (unión), preservan vista/semana/día */}
         {venue.events.length > 0 && (
           <nav
             aria-label={te.filterByStyle}

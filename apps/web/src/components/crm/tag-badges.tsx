@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui";
 import type { CrmTag } from "./types";
 
 /** Chips de ActorTag de una persona; opcionalmente con botón de borrado
- * (DELETE /crm/tags/:id — el tag es por persona, no un catálogo). */
+ * (DELETE /crm/tags/:id - el tag es por persona, no un catálogo). */
 export function TagBadges({
   tags,
   onDelete,

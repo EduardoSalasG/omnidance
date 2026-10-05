@@ -28,7 +28,7 @@ import {
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 
-// El merge i18n devuelve Dict — las claves se declaran explícitas
+// El merge i18n devuelve Dict - las claves se declaran explícitas
 // (mismo patrón que locales/[id]).
 type EventsT = Record<string, string> & {
   genre: Record<string, string>;
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
-// Shape del card de evento — compartido con components/events/event-card.
+// Shape del card de evento - compartido con components/events/event-card.
 type EventListItem = EventCardData;
 
 type MyTicket = {
@@ -53,7 +53,7 @@ type MyTicket = {
   listPrice: number;
   serviceFee: number;
   claimToken: string | null;
-  // event = null cuando el evento fue eliminado tras la compra —
+  // event = null cuando el evento fue eliminado tras la compra -
   // TicketWallet lo muestra como ticket huérfano (sin link).
   event: {
     id: string;
@@ -76,7 +76,7 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
-// Nombre completo del día para lectores de pantalla — la celda del
+// Nombre completo del día para lectores de pantalla - la celda del
 // calendario solo muestra el número.
 const weekdayNameFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "long",
@@ -102,7 +102,7 @@ function groupByDay(events: EventListItem[]) {
     .map(([key, items]) => ({ key, label: items[0].startsAt, items }));
 }
 
-/** Tickets del usuario — cookie forward; la vista mios los muestra.
+/** Tickets del usuario - cookie forward; la vista mios los muestra.
     null = fallo de carga (no confundir con "sin entradas": un 500/red
     no puede renderizar el empty de la wallet). */
 async function getMyTickets(): Promise<MyTicket[] | null> {
@@ -140,7 +140,7 @@ export default async function EventosPage({
 }) {
   const t = eventsDict;
   const tc = messages.common as Record<string, string>;
-  // El middleware exige sesión para esta ruta — todo visitante está
+  // El middleware exige sesión para esta ruta - todo visitante está
   // autenticado (no hay ramas anónimas).
   const [res, myTickets] = await Promise.all([
     fetch(`${API_URL}/api/events`, { cache: "no-store" }).catch(() => null),
@@ -151,7 +151,7 @@ export default async function EventosPage({
   const eventsError = !res?.ok;
   const all: EventListItem[] = res?.ok ? await res.json() : [];
 
-  // Género multiselect: ?genre=SALSA,BACHATA — unión (cualquiera matchea).
+  // Género multiselect: ?genre=SALSA,BACHATA - unión (cualquiera matchea).
   const genreSet = new Set(
     (searchParams?.genre ?? "")
       .split(",")
@@ -267,7 +267,7 @@ export default async function EventosPage({
   const selectedEvents = selectedDay ? (calByDay.get(selectedDay) ?? []) : [];
   const monthLabel = monthFmt.format(monthCursor);
 
-  // Chips SSR: cada filtro preserva el resto — compartibles y sin JS.
+  // Chips SSR: cada filtro preserva el resto - compartibles y sin JS.
   const hrefFor = (o: {
     genre?: string;
     venue?: string;
@@ -305,7 +305,7 @@ export default async function EventosPage({
   // toggled-on (el set preserva orden de inserción → el último de la
   // lista es el más reciente). "Todos" es el ítem exclusivo.
 
-  // Card de evento — componente compartido (mismo esqueleto que el
+  // Card de evento - componente compartido (mismo esqueleto que el
   // ClassCard de /clases): contenido a la izquierda, rail hora+precio
   // a la derecha. Los cards viven bajo heading de día → sin `when`.
   const renderCard = (e: EventListItem) => <EventCard e={e} />;
@@ -335,7 +335,7 @@ export default async function EventosPage({
     ? (venues.find(([id]) => id === venueId)?.[1] ?? t.allVenues)
     : t.allVenues;
 
-  // Tour de primera visita — steps cuyo target puede faltar (p.ej.
+  // Tour de primera visita - steps cuyo target puede faltar (p.ej.
   // ev-list sin eventos) se filtran dentro del runner.
   const tt = toursI18n.tours.eventos;
   const tourSteps: TourStep[] = [
@@ -383,7 +383,7 @@ export default async function EventosPage({
                 : t.title}
           </h1>
           <div className="flex items-center gap-2">
-              {/* Toggle lista/calendario/mapa — íconos, segmented con
+              {/* Toggle lista/calendario/mapa - íconos, segmented con
                   thumb deslizante (mismo control que /clases) */}
               <Segmented
                 tour="ev-views"
@@ -428,7 +428,7 @@ export default async function EventosPage({
                   },
                 ]}
               />
-              {/* Mis eventos — agenda propia (ticket activo), ícono aparte */}
+              {/* Mis eventos - agenda propia (ticket activo), ícono aparte */}
               <Link
                 href={hrefFor({ view: "mios", month: undefined, day: undefined })}
                 data-tour="ev-mios"
@@ -443,7 +443,7 @@ export default async function EventosPage({
             </div>
         </div>
 
-        {/* Géneros — multiselect segmentado con anillo itinerante
+        {/* Géneros - multiselect segmentado con anillo itinerante
             (misma física del thumb del BottomNav). Ocultos en mapa:
             el mapa es vista global de locales (mapVenues se arma
             desde `pool`). */}
@@ -481,9 +481,9 @@ export default async function EventosPage({
               />
             </nav>
 
-            {/* Locales — dropdown tipo chip (click-afuera por capa CSS;
+            {/* Locales - dropdown tipo chip (click-afuera por capa CSS;
             Escape vía wrapper client). key por venue: al navegar a
-            otro local el <details> se remonta cerrado — el estado
+            otro local el <details> se remonta cerrado - el estado
             open no es controlado por React y sin key sobrevive a la
             navegación client-side. */}
         <div className="flex items-center" data-tour="ev-venues">
@@ -545,7 +545,7 @@ export default async function EventosPage({
           <TicketWallet tickets={myTickets} />
         )
       ) : eventsError ? (
-        /* 500/red en /events no es cartelera vacía — error honesto
+        /* 500/red en /events no es cartelera vacía - error honesto
            con retry a la misma ruta (conserva vista y filtros). */
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-white/60">
@@ -723,7 +723,7 @@ export default async function EventosPage({
         </div>
       )}
 
-      {/* En mapa los filtros y la lista no existen — el tour espera a
+      {/* En mapa los filtros y la lista no existen - el tour espera a
           la primera visita a lista/calendario para mostrarse completo. */}
       {view !== "map" && (
         <OnboardingRunner tour="eventos" steps={tourSteps} />

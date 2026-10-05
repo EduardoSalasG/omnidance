@@ -13,7 +13,7 @@ import {
 // Hub de superficies QR: "Mi QR" (mostrar) y "Escanear" (invitar) en una
 // sola vista con segmented control. ?modo=escanear o ?event= abren en
 // escáner; sin params se recuerda la última elección (localStorage).
-// La URL no cambia al alternar — así ?event= sigue vivo y el back no rompe.
+// La URL no cambia al alternar - así ?event= sigue vivo y el back no rompe.
 type Mode = "mio" | "escanear";
 const STORAGE_KEY = "omnidance:qr-mode";
 
@@ -31,7 +31,7 @@ function persistMode(mode: Mode) {
   try {
     localStorage.setItem(STORAGE_KEY, mode);
   } catch {
-    // storage lleno/bloqueado — la vista igual funciona
+    // storage lleno/bloqueado - la vista igual funciona
   }
 }
 
@@ -74,7 +74,7 @@ function QrHub() {
 
   const options: { value: Mode; label: string }[] = [
     // nav.scan es el label del tab central ("QR"); el segmento dice
-    // "Escanear" vía staff.scan — mismo significado, contexto distinto.
+    // "Escanear" vía staff.scan - mismo significado, contexto distinto.
     { value: "mio", label: tNav("qr") },
     { value: "escanear", label: tStaff("scan") },
   ];
@@ -88,7 +88,7 @@ function QrHub() {
           {mode === "escanear" ? tStaff("scan") : tQr("title")}
         </span>
 
-        {/* Segmented control — radiogroup nativo: un solo tab stop, flechas
+        {/* Segmented control - radiogroup nativo: un solo tab stop, flechas
             cambian de opción gratis (patrón APG más simple para switch de
             vista mutuamente excluyente). Indicador deslizante solo con
             transform; reduced-motion lo vuelve instantáneo. */}

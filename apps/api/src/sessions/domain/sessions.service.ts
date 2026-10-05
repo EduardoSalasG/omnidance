@@ -1,6 +1,6 @@
 import { SESSION_RULES, type SessionStatus } from "@omnidance/shared";
 
-// Reglas de negocio (omni-dance.md §4) — servicio de dominio puro, sin Nest/Prisma.
+// Reglas de negocio (omni-dance.md §4) - servicio de dominio puro, sin Nest/Prisma.
 
 export const PAIR_COOLDOWN_MS =
   SESSION_RULES.INVITE_COOLDOWN_MINUTES * 60 * 1000; // ~4 min: una canción

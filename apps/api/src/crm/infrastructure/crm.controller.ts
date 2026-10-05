@@ -40,7 +40,7 @@ import {
 } from "../domain/crm.service";
 import { assertProducerPro } from "../../common/producer-pro";
 
-// CRM transversal — todos los endpoints exigen el permiso crm.manage
+// CRM transversal - todos los endpoints exigen el permiso crm.manage
 // (PRODUCER / ACADEMY_OWNER / staff delegado) Y acceso puntual al actor
 // (assertActorAccess): el productor solo ve su propio CRM, el dueño de
 // academia solo el suyo; ADMIN pasa por admin.access.
@@ -198,7 +198,7 @@ export class CrmController {
     }
   }
 
-  /** Conteo de audiencia sin crear campaña ni enviar — preview del form. */
+  /** Conteo de audiencia sin crear campaña ni enviar - preview del form. */
   @Post("campaigns/preview")
   @HttpCode(200)
   async previewCampaign(
@@ -282,7 +282,7 @@ export class CrmController {
   }
 
   /**
-   * Evaluación manual de TODOS los triggers activos de la plataforma —
+   * Evaluación manual de TODOS los triggers activos de la plataforma -
    * la misma corrida del cron diario (CrmTriggersScheduler 09:00).
    * No hay actor que scopear con assertActorAccess: además del
    * crm.manage del guard de clase exige admin.access.
@@ -297,7 +297,7 @@ export class CrmController {
       ]))
     ) {
       throw new ForbiddenException(
-        "evaluate-all es una operación de plataforma — requiere admin.access",
+        "evaluate-all es una operación de plataforma - requiere admin.access",
       );
     }
     return this.crm.evaluateAllActiveTriggers();
@@ -309,10 +309,10 @@ export class CrmController {
    * Acceso al CRM de un actor (además del permiso crm.manage del guard):
    * - PRODUCER → el caller es el propio productor (actorId = personId) y
    *   tiene Producer Pro vigente (S5: el CRM del productor es feature Pro
-   *   — aplica a lecturas y escrituras; 403 `pro.required` si no).
+   *   - aplica a lecturas y escrituras; 403 `pro.required` si no).
    * - ACADEMY  → el caller es owner de la academia (actorId = academyId);
    *   su billing se gatea por la suscripción de academia, no por Pro.
-   * - o rol con permiso admin.access (soporte/plataforma) — sin gate Pro.
+   * - o rol con permiso admin.access (soporte/plataforma) - sin gate Pro.
    */
   private async assertActorAccess(
     req: Request,

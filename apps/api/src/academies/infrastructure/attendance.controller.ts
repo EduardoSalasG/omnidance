@@ -32,7 +32,7 @@ class RecordAttendanceDto {
  * Asistencia a clases de la academia.
  * Schema real: Attendance cuelga de Class (instancia de ClassSlot en una
  * fecha), unique (classId, personId). El endpoint recibe slotId + date y
- * materializa la Class si no existe — así el 409 de duplicado equivale a
+ * materializa la Class si no existe - así el 409 de duplicado equivale a
  * misma slot + persona + fecha.
  */
 @Controller("academies")
@@ -49,7 +49,7 @@ export class AttendanceController {
     @Body() dto: RecordAttendanceDto,
     @Req() req: Request,
   ) {
-    // owner/instructor/admin — mutación de consola: academia bloqueada
+    // owner/instructor/admin - mutación de consola: academia bloqueada
     // por mora (billingBlockedAt) → 403 billing.blocked (S3).
     await this.access.requireManageWrite(id, req.person!);
 
@@ -117,7 +117,7 @@ export class AttendanceController {
         class: { select: { id: true, date: true, classSlotId: true } },
       },
     });
-    // Attendance.personId es FK plana (sin relación en schema) — join manual,
+    // Attendance.personId es FK plana (sin relación en schema) - join manual,
     // mismo patrón que GET /academies/:id/students. personId se mantiene por compat.
     const people = await this.prisma.person.findMany({
       where: { id: { in: rows.map((r) => r.personId) } },

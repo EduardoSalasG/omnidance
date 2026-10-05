@@ -9,7 +9,7 @@ import { inputCls, readError, type Academy } from "./shared";
 
 /**
  * Perfil público de la academia (descripción, dirección, coordenadas y
- * contacto) — lo consumen GET /academies/:id/profile, el directorio y el
+ * contacto) - lo consumen GET /academies/:id/profile, el directorio y el
  * mapa de /academias. PATCH /academies/:id/settings, solo owner/ADMIN:
  * misma guard que AcademySettings (me.id === ownerId o rol ADMIN); sin
  * sesión resuelta no se renderiza (evita flash del card a instructores).
@@ -18,7 +18,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   const t = useTranslations("academy.publicProfile");
   const tc = useTranslations("common");
 
-  // /me compartido — misma guard que AcademySettings; mientras resuelve
+  // /me compartido - misma guard que AcademySettings; mientras resuelve
   // el card queda oculto (instructores nunca lo ven).
   const { me, loading: meLoading } = useMe();
   const [description, setDescription] = useState(academy.description ?? "");

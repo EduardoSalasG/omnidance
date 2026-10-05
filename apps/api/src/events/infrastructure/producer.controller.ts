@@ -44,11 +44,11 @@ const TABLE_FIELDS = [
 /**
  * Vista read-only del productor: sus defaults de fees (ProducerParams,
  * seteados por admin) y los valores efectivos que se cobrarán en sus
- * eventos — presale, puerta app, puerta efectivo y % comisión plataforma.
+ * eventos - presale, puerta app, puerta efectivo y % comisión plataforma.
  * El productor no puede editarlos (spec: solo admin).
  *
  * A diferencia de los fees, los defaults de MESAS sí los edita el propio
- * productor (table-params): son operativos, no financieros — cada evento
+ * productor (table-params): son operativos, no financieros - cada evento
  * los hereda al crear/editar salvo override explícito.
  */
 @Controller("producer")
@@ -132,7 +132,7 @@ export class ProducerController {
     return this.getTableParams(req);
   }
 
-  /** productor APPROVED o admin.access — permiso desde DB, nunca rol literal. */
+  /** productor APPROVED o admin.access - permiso desde DB, nunca rol literal. */
   private async assertProducerOrAdmin(personId: string, roles: string[]) {
     const [isProducer, isAdmin] = await Promise.all([
       this.prisma.personRole.findUnique({

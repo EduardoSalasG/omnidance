@@ -107,7 +107,7 @@ const dateTimeFmt = new Intl.DateTimeFormat("es-CL", {
   timeStyle: "short",
 });
 
-/** "23.4" → "23:24" — hora decimal del avgCheckinHour. */
+/** "23.4" → "23:24" - hora decimal del avgCheckinHour. */
 function fmtHour(v: number): string {
   let h = Math.floor(v);
   let m = Math.round((v - h) * 60);
@@ -118,7 +118,7 @@ function fmtHour(v: number): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** Tile KPI — mismo patrón que los tiles de /analitica (neon + label). */
+/** Tile KPI - mismo patrón que los tiles de /analitica (neon + label). */
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
     <li className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
@@ -182,7 +182,7 @@ function CountList({ rows }: { rows: { label: string; count: number }[] }) {
 }
 
 /**
- * /analitica/usuarios/[personId] — ficha de analítica por lente de rol.
+ * /analitica/usuarios/[personId] - ficha de analítica por lente de rol.
  * Boot: GET /admin/users/:personId/detail (person + roles); las pills
  * listan los roles APPROVED y cada selección refetchea
  * /admin/users/:personId/analytics?role=X.
@@ -248,7 +248,7 @@ function UserPanel({ personId }: { personId: string }) {
     void boot();
   }, [boot]);
 
-  // Secciones del lente activo — 400 ROLE_NOT_HELD (rol revocado entre el
+  // Secciones del lente activo - 400 ROLE_NOT_HELD (rol revocado entre el
   // detail y este fetch) se muestra como "sin actividad" en vez de error.
   const loadSections = useCallback(
     async (r: string) => {
@@ -470,7 +470,7 @@ function RoleSections({
                   { label: f("seasonPoints"), value: num.format(social.seasonPoints) },
                   {
                     label: f("rank"),
-                    value: social.rank != null ? `#${num.format(social.rank)}` : "—",
+                    value: social.rank != null ? `#${num.format(social.rank)}` : "·",
                   },
                 ]}
               />
@@ -612,7 +612,7 @@ function RoleSections({
                 value:
                   d.avgOccupancyPct != null
                     ? `${num.format(d.avgOccupancyPct)}%`
-                    : "—",
+                    : "·",
               },
             ]}
           />
@@ -663,7 +663,7 @@ function RoleSections({
               {
                 label: f("avgFill"),
                 value:
-                  d.avgFillPct != null ? `${num.format(d.avgFillPct)}%` : "—",
+                  d.avgFillPct != null ? `${num.format(d.avgFillPct)}%` : "·",
               },
             ]}
           />

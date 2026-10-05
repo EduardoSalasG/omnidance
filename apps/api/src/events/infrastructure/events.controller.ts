@@ -190,7 +190,7 @@ class CreateEventDto {
   djIds?: string[];
 }
 
-/** Mismos campos del create menos type/producerId — todo opcional (PATCH). */
+/** Mismos campos del create menos type/producerId - todo opcional (PATCH). */
 class UpdateEventDto {
   @IsOptional()
   @IsString()
@@ -217,19 +217,19 @@ class UpdateEventDto {
   @IsInt()
   capacity?: number;
 
-  /** Mesas reservables — null apaga el servicio de mesas. */
+  /** Mesas reservables - null apaga el servicio de mesas. */
   @IsOptional()
   @IsInt()
   @Min(0)
   tablesTotal?: number | null;
 
-  /** Máx. personas por reserva — null vuelve al default del productor. */
+  /** Máx. personas por reserva - null vuelve al default del productor. */
   @IsOptional()
   @IsInt()
   @Min(1)
   tableSeatMax?: number | null;
 
-  /** Cupo sentable total — null vuelve al default del productor. */
+  /** Cupo sentable total - null vuelve al default del productor. */
   @IsOptional()
   @IsInt()
   @Min(0)
@@ -251,25 +251,25 @@ class UpdateEventDto {
   @IsInt()
   doorCap?: number;
 
-  /** Override admin del cargo por servicio — null limpia el override. */
+  /** Override admin del cargo por servicio - null limpia el override. */
   @IsOptional()
   @IsInt()
   @Min(0)
   serviceFeeClp?: number | null;
 
-  /** Override admin del fee de puerta app — null limpia el override. */
+  /** Override admin del fee de puerta app - null limpia el override. */
   @IsOptional()
   @IsInt()
   @Min(0)
   doorAppFeeClp?: number | null;
 
-  /** Override admin del fee de puerta efectivo — null limpia el override. */
+  /** Override admin del fee de puerta efectivo - null limpia el override. */
   @IsOptional()
   @IsInt()
   @Min(0)
   doorCashFeeClp?: number | null;
 
-  /** Override admin del % comisión plataforma — null limpia el override. */
+  /** Override admin del % comisión plataforma - null limpia el override. */
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -360,7 +360,7 @@ export class EventsController {
   ) {}
 
   /**
-   * Eventos del productor autenticado — todos los estados, para la consola.
+   * Eventos del productor autenticado - todos los estados, para la consola.
    * Debe declararse antes de @Get(":id") para que "mine" no matchee :id.
    */
   @Get("mine")
@@ -387,7 +387,7 @@ export class EventsController {
     if (!ids.length) return [];
 
     // Pulso comercial por evento (spec §13 Productor: ventas y
-    // ocupación en la consola) — 3 groupBy sobre los ids, no N×queries.
+    // ocupación en la consola) - 3 groupBy sobre los ids, no N×queries.
     const [soldBy, grossBy, checkinsBy] = await Promise.all([
       this.prisma.ticket.groupBy({
         by: ["eventId"],
@@ -426,10 +426,10 @@ export class EventsController {
   }
 
   /**
-   * GET /events/:id/live — tablero en vivo del productor: ventas por
+   * GET /events/:id/live - tablero en vivo del productor: ventas por
    * canal, check-ins (total, última hora, histograma por hora) y
    * ocupación vs aforo. Owner del evento o admin. El Prime Time y el
-   * leaderboard ya son endpoints públicos por evento — el front los
+   * leaderboard ya son endpoints públicos por evento - el front los
    * compone; acá solo van los datos operativos privados.
    */
   @Get(":id/live")
@@ -497,9 +497,9 @@ export class EventsController {
   }
 
   /**
-   * GET /events/:id/export.csv?dataset=sales|checkins|guestlist —
+   * GET /events/:id/export.csv?dataset=sales|checkins|guestlist -
    * descarga CSV operativa del evento (cuadratura post-evento en
-   * planilla). Owner o admin — mismo patrón que /live. BOM UTF-8 para
+   * planilla). Owner o admin - mismo patrón que /live. BOM UTF-8 para
    * Excel es-CL; nunca expone claimToken ni ids internos de persona.
    */
   @Get(":id/export.csv")
@@ -525,7 +525,7 @@ export class EventsController {
   }
 
   /**
-   * GET /events/:id/export.pdf?dataset=sales|checkins|guestlist — misma
+   * GET /events/:id/export.pdf?dataset=sales|checkins|guestlist - misma
    * tabla que el CSV pero como reporte imprimible (título, fecha,
    * resumen con totales). Owner o admin.
    */
@@ -544,7 +544,7 @@ export class EventsController {
 
     const table = await this.exportDataset(dataset, id);
     const pdf = await buildTablePdf({
-      title: `${DATASET_TITLES[dataset]} — ${event.name}`,
+      title: `${DATASET_TITLES[dataset]} - ${event.name}`,
       subtitle: `${fmtCl(event.startsAt)} · generado ${fmtCl(new Date())}`,
       summary: table.summary,
       headers: table.headers,
@@ -559,7 +559,7 @@ export class EventsController {
   }
 
   /**
-   * GET /events/series/:seriesId/export.csv?dataset=sales|checkins|guestlist —
+   * GET /events/series/:seriesId/export.csv?dataset=sales|checkins|guestlist -
    * mismo CSV que el export por evento pero agregando todas las fechas de
    * la serie, con columna `evento` al inicio (nombre de la instancia).
    * Owner de la serie o admin.
@@ -588,7 +588,7 @@ export class EventsController {
   }
 
   /**
-   * GET /events/series/:seriesId/export.pdf?dataset=sales|checkins|guestlist —
+   * GET /events/series/:seriesId/export.pdf?dataset=sales|checkins|guestlist -
    * reporte PDF agregado de todas las fechas de la serie (columna
    * `evento`). Owner de la serie o admin.
    */
@@ -608,7 +608,7 @@ export class EventsController {
     const { events, scope, labelByEvent } = await this.seriesScope(seriesId);
     const table = await this.exportDataset(dataset, scope, labelByEvent);
     const pdf = await buildTablePdf({
-      title: `${DATASET_TITLES[dataset]} — Serie «${series.name}»`,
+      title: `${DATASET_TITLES[dataset]} - Serie «${series.name}»`,
       subtitle: `${events.length} fechas · generado ${fmtCl(new Date())}`,
       summary: table.summary,
       headers: table.headers,
@@ -661,7 +661,7 @@ export class EventsController {
         : this.exportGuestlist(eventId, labelByEvent);
   }
 
-  /** Una fila por Ticket — incluye cancelados, la cuadratura los mira. */
+  /** Una fila por Ticket - incluye cancelados, la cuadratura los mira. */
   private async exportSales(
     eventId: string | { in: string[] },
     labelByEvent?: Map<string, string>,
@@ -723,7 +723,7 @@ export class EventsController {
     };
   }
 
-  /** Una fila por Checkin — incluye anulados con anulado=si. */
+  /** Una fila por Checkin - incluye anulados con anulado=si. */
   private async exportCheckins(
     eventId: string | { in: string[] },
     labelByEvent?: Map<string, string>,
@@ -812,7 +812,7 @@ export class EventsController {
 
   /**
    * Cartelera pública (PUBLISHED/LIVE, ventana reciente). Filtros por
-   * query: `genre` (CSV de SALSA|BACHATA|CUBANO — propio del evento o
+   * query: `genre` (CSV de SALSA|BACHATA|CUBANO - propio del evento o
    * heredado de la serie, unión), `venue` (venueId) y `week=this`
    * (próximos 7 días).
    * El género expuesto en la respuesta es el resuelto: event.genres si
@@ -839,7 +839,7 @@ export class EventsController {
 
     const where: Prisma.EventWhereInput = {
       status: { in: ["PUBLISHED", "LIVE"] },
-      // Las prácticas viven en /practices — no son cartelera pública.
+      // Las prácticas viven en /practices - no son cartelera pública.
       type: { not: "PRACTICA" },
       startsAt: {
         gte: new Date(Date.now() - EVENT_RECENT_LOOKBACK_MS),
@@ -973,7 +973,7 @@ export class EventsController {
     // las activas (REQUESTED|CONFIRMED) ocupan cupo; null si el evento no
     // ofrece mesas. El cupo real es en PERSONAS sentables (seatsLeft), con
     // tablesLeft como lectura rápida de mesas libres. El productor confirma
-    // — no es un cap duro.
+    // - no es un cap duro.
     const tablesAgg =
       event.tablesTotal != null
         ? await this.prisma.tableReservation.aggregate({
@@ -988,7 +988,7 @@ export class EventsController {
     const { _count, ...rest } = event;
     const tablesActive = tablesAgg?._count ?? 0;
     const seatsUsed = tablesAgg?._sum.partySize ?? 0;
-    // Corte de preventa — mismo cálculo que CheckoutService.purchaseTicket
+    // Corte de preventa - mismo cálculo que CheckoutService.purchaseTicket
     // (presale.cutoff_hour del día del evento, hora local del server). El
     // checkout lo usa para estimar preventa vs puerta sin replicar la regla.
     const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
@@ -1011,7 +1011,7 @@ export class EventsController {
   }
 
   /**
-   * GET /events/:id/friends-going — amigos confirmados (ACCEPTED) del
+   * GET /events/:id/friends-going - amigos confirmados (ACCEPTED) del
    * solicitante con ticket ACTIVE para el evento. Prueba social en el
    * detalle: separado del detail público para no exponer relaciones a
    * anónimos. Dedup por persona (puede tener varios tickets).
@@ -1264,7 +1264,7 @@ export class EventsController {
   }
 
   /**
-   * Asigna staff al evento: owner o admin. Upsert por (eventId, personId) —
+   * Asigna staff al evento: owner o admin. Upsert por (eventId, personId) -
    * reenviar actualiza el rol sin duplicar la asignación. La gestión
    * multi-staff es feature Producer Pro (S5): el owner sin Pro vigente
    * recibe 403 `pro.required` (admin operando su evento no se gatea).
@@ -1297,7 +1297,7 @@ export class EventsController {
 
   /**
    * Staff del evento: owner, admin o staff asignado. StaffAssignment.personId
-   * es FK plana (sin relación en schema) — join manual a Person.
+   * es FK plana (sin relación en schema) - join manual a Person.
    */
   @Get(":id/staff")
   @UseGuards(SessionGuard)
@@ -1343,7 +1343,7 @@ export class EventsController {
     return event;
   }
 
-  /** owner (event.producerId === caller) o admin.access — nunca roles literales. */
+  /** owner (event.producerId === caller) o admin.access - nunca roles literales. */
   private async requireOwnerOrAdmin(
     producerId: string | null,
     person: { id: string; roles: string[] },
@@ -1359,7 +1359,7 @@ export class EventsController {
 
   /**
    * Gating Producer Pro (S5): aplica solo cuando el caller ES el productor
-   * dueño del recurso — un admin operando el evento de otro pasa sin gate
+   * dueño del recurso - un admin operando el evento de otro pasa sin gate
    * (soporte/plataforma), y un caller ajeno ya fue rechazado por
    * requireOwnerOrAdmin.
    */

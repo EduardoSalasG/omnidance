@@ -20,7 +20,7 @@ import { PushOptIn } from "./PushOptIn";
 /**
  * Contexto realtime del centro de notificaciones.
  *
- * Uso: envolver el árbol una sola vez en el root layout —
+ * Uso: envolver el árbol una sola vez en el root layout -
  *
  *   <RealtimeProvider>{children}</RealtimeProvider>
  *
@@ -31,7 +31,7 @@ import { PushOptIn } from "./PushOptIn";
  * Sin cookie de sesión el gateway hace `socket.disconnect(true)` →
  * `connectRealtime()` marca el rechazo y no reintenta en esta carga.
  *
- * Evento DOM — `omnidance:notification`:
+ * Evento DOM - `omnidance:notification`:
  * Cada `notification` del socket además se re-emite como CustomEvent en
  * `window` (detail = RealtimeNotification) para que piezas fuera de este
  * sub-árbol React (badge del bottom nav, página /notificaciones, widgets)
@@ -41,7 +41,7 @@ import { PushOptIn } from "./PushOptIn";
  *     const n = (e as CustomEvent<RealtimeNotification>).detail;
  *   });
  *
- * `unreadDelta` cuenta solo las llegadas por socket desde el mount — la
+ * `unreadDelta` cuenta solo las llegadas por socket desde el mount - la
  * página /notificaciones calcula su propio baseline con GET /notifications.
  */
 export const NOTIFICATION_EVENT = "omnidance:notification";
@@ -53,7 +53,7 @@ export type RealtimeContextValue = {
   latestNotification: RealtimeNotification | null;
   /** Cantidad de notificaciones recibidas por socket desde el mount/reset. */
   unreadDelta: number;
-  /** Pone unreadDelta en 0 — llamar al visitar /notificaciones. */
+  /** Pone unreadDelta en 0 - llamar al visitar /notificaciones. */
   resetUnreadDelta: () => void;
 };
 
@@ -66,7 +66,7 @@ const defaultValue: RealtimeContextValue = {
 
 const RealtimeContext = createContext<RealtimeContextValue>(defaultValue);
 
-/** Hook del contexto realtime — seguro fuera del provider (devuelve defaults). */
+/** Hook del contexto realtime - seguro fuera del provider (devuelve defaults). */
 export function useRealtime(): RealtimeContextValue {
   return useContext(RealtimeContext);
 }

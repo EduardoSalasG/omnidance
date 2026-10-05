@@ -5,7 +5,7 @@
     "sectionLabel": "Encuestas pendientes",
     "title": "¿Cómo estuvo {name}?",
     "fallbackTitle": "Cuéntanos cómo estuvo",
-    "subtitle": "Tu evaluación es privada — el productor solo ve promedios.",
+    "subtitle": "Tu evaluación es privada. El productor solo ve promedios.",
     "overall": "En general",
     "overallRequired": "Puntúa la experiencia general para enviar",
     "more": "Evaluar más",
@@ -14,7 +14,7 @@
     "thanks": "¡Gracias! Tu evaluación quedó registrada",
     "expired": "La ventana para evaluar este evento ya cerró",
     "forbidden": "Solo quienes hicieron check-in pueden evaluar el evento",
-    "error": "No pudimos enviar tu evaluación — intenta de nuevo",
+    "error": "No pudimos enviar tu evaluación. Intenta de nuevo",
     "loginRequired": "Inicia sesión para evaluar el evento",
     "backToEvent": "Ver evento",
     "dims": {

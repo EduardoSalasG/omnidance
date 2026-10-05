@@ -50,39 +50,39 @@ class CompleteProfileDto {
 }
 
 export class UpdateMeDto {
-  // Handle de Instagram autodeclarado — público por naturaleza (se muestra
+  // Handle de Instagram autodeclarado - público por naturaleza (se muestra
   // en el perfil de amistad). "" o null limpia el campo.
   @IsOptional()
   @IsString()
   @MaxLength(31) // 30 + '@' inicial tolerado (se normaliza abajo)
   instagram?: string | null;
 
-  // Nombre visible — requerido por el modelo (no nullable); se valida
+  // Nombre visible - requerido por el modelo (no nullable); se valida
   // no-vacío tras trim en el handler.
   @IsOptional()
   @IsString()
   @MaxLength(80)
   name?: string;
 
-  // Teléfono de contacto — "" o null limpia. Se normaliza a "+ dígitos".
+  // Teléfono de contacto - "" o null limpia. Se normaliza a "+ dígitos".
   @IsOptional()
   @IsString()
   @MaxLength(20)
   phone?: string | null;
 
-  // Género autodeclarado — solo alimenta analítica agregada (k-anonymity
+  // Género autodeclarado - solo alimenta analítica agregada (k-anonymity
   // en /events/:id/analytics). null limpia (no declarar).
   @IsOptional()
   @IsIn([Gender.M, Gender.F, Gender.OTHER])
   gender?: Gender | null;
 }
 
-// Nivel autodeclarado del bailarín — valores sembrados por el seed y
+// Nivel autodeclarado del bailarín - valores sembrados por el seed y
 // elegidos en /perfil/datos ("Tu baile").
 const DANCE_LEVELS = ["principiante", "intermedio", "avanzado"] as const;
 const DANCE_ROLES = ["LEADER", "FOLLOWER", "SWITCH"] as const;
 
-// Ventana de encuesta post-evento — la misma de POST /events/:id/ratings.
+// Ventana de encuesta post-evento - la misma de POST /events/:id/ratings.
 const SURVEY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 class StyleRoleItemDto {
@@ -106,14 +106,14 @@ class UpdateStyleRolesDto {
 }
 
 class OnboardingDto {
-  // Clave del tour (p.ej. "home", "eventos", "productor") — slug corto.
+  // Clave del tour (p.ej. "home", "eventos", "productor") - slug corto.
   @IsString()
   @Matches(/^[a-z0-9-]{1,40}$/)
   tour!: string;
 }
 
 class ConsentDto {
-  // Versión que el cliente dice aceptar — informativa: el servidor
+  // Versión que el cliente dice aceptar - informativa: el servidor
   // siempre estampa la vigente (CONSENT_VERSION). Se acepta para que el
   // front pueda declarar qué vio, y para compat si el shape crece.
   @IsOptional()
@@ -140,7 +140,7 @@ export class PeopleController {
         include: {
           roles: { select: { role: true, status: true } },
           // Roles de baile autodeclarados (leader/follower por estilo +
-          // nivel) — sección "Tu baile" de /perfil/datos.
+          // nivel) - sección "Tu baile" de /perfil/datos.
           styleRoles: {
             select: {
               role: true,
@@ -150,7 +150,7 @@ export class PeopleController {
           },
         },
       }),
-      // Inscripciones a academias — sección academy de /perfil/datos.
+      // Inscripciones a academias - sección academy de /perfil/datos.
       // Person no tiene back-relation a Enrollment → query aparte.
       this.prisma.enrollment.findMany({
         where: { personId },
@@ -163,7 +163,7 @@ export class PeopleController {
         },
       }),
     ]);
-    // Estado Producer Pro (S5) — solo para personas con rol PRODUCER
+    // Estado Producer Pro (S5) - solo para personas con rol PRODUCER
     // aprobado: el front gatea las features Pro sin llamada extra
     // (paywall en analítica/exports/CRM cuando effectivePro es false).
     const isProducer = person.roles.some(
@@ -198,17 +198,17 @@ export class PeopleController {
       consentAcceptedAt: person.consentAcceptedAt,
       consentVersion: person.consentVersion,
       // Flags de ciclo de vida: demo (lead /pro, solo lectura) y
-      // pendingProfile (admin convirtió el lead — falta completar datos).
+      // pendingProfile (admin convirtió el lead - falta completar datos).
       isDemo: person.isDemoAccount,
       pendingProfile: !!person.pendingProfileAt,
-      // Tours de onboarding ya vistos: {tourKey: ISO} — el front corre
+      // Tours de onboarding ya vistos: {tourKey: ISO} - el front corre
       // el tour de una superficie solo si su clave falta.
       onboarding: (person.onboarding as Record<string, string> | null) ?? {},
     };
   }
 
   /**
-   * PATCH /me — edición de datos propios: instagram, nombre y teléfono.
+   * PATCH /me - edición de datos propios: instagram, nombre y teléfono.
    * Normaliza "@handle"/espacios y valida formatos reales; el nombre no
    * puede quedar vacío (el modelo lo exige).
    */
@@ -259,11 +259,11 @@ export class PeopleController {
   }
 
   /**
-   * GET /me/pending-surveys — eventos evaluables del viewer: check-in
+   * GET /me/pending-surveys - eventos evaluables del viewer: check-in
    * válido, terminados hace <24h y sin EventRating propia. Más reciente
    * primero. Además dispara el fan-out lazy de la encuesta: el primer
    * request que encuentra un evento elegible reclama
-   * `surveyNotifiedAt` (updateMany atómico — sin findUnique+update por
+   * `surveyNotifiedAt` (updateMany atómico - sin findUnique+update por
    * race) y notifica a TODOS los asistentes una sola vez por evento.
    */
   @Get("me/pending-surveys")
@@ -306,7 +306,7 @@ export class PeopleController {
         distinct: ["personId"],
         select: { personId: true },
       });
-      // Trade-off conocido: el flag ya quedó — si el request muere a la
+      // Trade-off conocido: el flag ya quedó - si el request muere a la
       // mitad del fan-out, los restantes no se re-notifican (lazy 1-shot).
       await Promise.allSettled(
         attendees.map((attendee) =>
@@ -328,9 +328,9 @@ export class PeopleController {
   }
 
   /**
-   * PUT /me/style-roles — reemplazo total de los roles de baile
+   * PUT /me/style-roles - reemplazo total de los roles de baile
    * autodeclarados (sección "Tu baile" de /perfil/datos). Semántica
-   * PUT: la lista enviada ES el estado final — filas ausentes se borran.
+   * PUT: la lista enviada ES el estado final - filas ausentes se borran.
    * Dedupe por la unique key (styleId, role): el último ítem gana.
    */
   @Put("me/style-roles")
@@ -360,7 +360,7 @@ export class PeopleController {
         })),
       }),
     ]);
-    // Devuelve la lista fresca con el mismo shape de GET /me — el front
+    // Devuelve la lista fresca con el mismo shape de GET /me - el front
     // actualiza su estado sin refetch.
     const styleRoles = await this.prisma.personStyleRole.findMany({
       where: { personId },
@@ -374,7 +374,7 @@ export class PeopleController {
   }
 
   /**
-   * POST /me/consent — registra la aceptación de Términos+Privacidad de
+   * POST /me/consent - registra la aceptación de Términos+Privacidad de
    * la versión vigente (aviso in-app para cuentas legadas o tras un
    * cambio de versión). Siempre estampa CONSENT_VERSION del servidor:
    * aceptar una versión antigua no tiene sentido.
@@ -439,7 +439,7 @@ export class PeopleController {
     if (name.length < 2 || !phone) {
       throw new BadRequestException("datos inválidos");
     }
-    // Person.phone es unique — si el teléfono ya está en otra cuenta el
+    // Person.phone es unique - si el teléfono ya está en otra cuenta el
     // update explotaría en 500. 409 explícito para el frontend.
     const phoneTaken = await this.prisma.person.findUnique({
       where: { phone },
@@ -460,7 +460,7 @@ export class PeopleController {
           : {}),
       },
     });
-    // Si vino de un lead, queda CONVERTED — el pipeline admin lo refleja.
+    // Si vino de un lead, queda CONVERTED - el pipeline admin lo refleja.
     await this.prisma.lead.updateMany({
       where: { personId },
       data: { status: "CONVERTED" },

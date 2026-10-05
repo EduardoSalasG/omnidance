@@ -28,7 +28,7 @@ type Phase =
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string; quote: Quote }
   // El polling se agotó sin respuesta del webhook (~30s): el pago puede
-  // confirmar igual — el ticket aparece en la wallet al llegar.
+  // confirmar igual - el ticket aparece en la wallet al llegar.
   | { kind: "stillPending"; paymentId: string; paymentUrl: string; quote: Quote }
   | { kind: "success"; paymentId: string }
   | { kind: "failed" };
@@ -99,7 +99,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   // Reserva de mesa opcional (spec §13): solo si el evento ofrece mesas
   // (tablesTotal no-null). El cupo real es en personas sentables
   // (seatsLeft): sin mesas libres O sin asientos → sección informativa.
-  // La disponibilidad es referencial — la reserva queda REQUESTED y el
+  // La disponibilidad es referencial - la reserva queda REQUESTED y el
   // productor la confirma/ajusta.
   const [wantsTable, setWantsTable] = useState(false);
   const [partySize, setPartySize] = useState(4);
@@ -135,11 +135,11 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     phase.kind === "stillPending";
 
   // Canal de venta: puerta-app cuando el evento está en vivo o la
-  // preventa ya cortó — misma resolución que el server (LIVE, o
+  // preventa ya cortó - misma resolución que el server (LIVE, o
   // PUBLISHED post-corte vende a doorPrice + fee DOOR). El instante de
-  // corte viene del detalle (presaleEndsAt — el server lo calcula con
+  // corte viene del detalle (presaleEndsAt - el server lo calcula con
   // el PlatformParam presale.cutoff_hour, sin replicar la regla acá).
-  // Solo mueve el estimado local — el precio real lo decide el quote.
+  // Solo mueve el estimado local - el precio real lo decide el quote.
   const cutoffPassed =
     event.presaleEndsAt != null &&
     Date.now() >= new Date(event.presaleEndsAt).getTime();
@@ -160,7 +160,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   // Estimado con descuento aplicado: el fee del canal (override propio
   // del evento o default de plataforma) y la regla del server "entrada
   // en $0 no cobra fee". Overrides de productor/PlatformParam no son
-  // públicos — el quote del POST sigue siendo la fuente de verdad.
+  // públicos - el quote del POST sigue siendo la fuente de verdad.
   const estDiscount = appliedDiscount?.clp ?? 0;
   const estFee =
     listPrice - estDiscount > 0
@@ -197,7 +197,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         .catch(() => undefined);
       if (attempts >= POLL_MAX_ATTEMPTS) {
         clearInterval(interval);
-        // Sin confirmación tras ~30s — no dejar al usuario esperando
+        // Sin confirmación tras ~30s - no dejar al usuario esperando
         // un spinner eterno: mismo estado stillPending del retorno
         // del gateway (/checkout/return).
         setPhase({
@@ -212,7 +212,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Enter dentro del form NO debe generar la orden — los inputs de
+  // Enter dentro del form NO debe generar la orden - los inputs de
   // búsqueda/código/canción son auxiliares; el submit real es solo el
   // botón "Ir a pagar". En el input de código Enter equivale a Aplicar.
   function preventEnterSubmit(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -283,7 +283,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       });
 
       if (res.status === 400) {
-        // 400 agrupa código inválido y errores de destinatario — el
+        // 400 agrupa código inválido y errores de destinatario - el
         // mensaje del servidor distingue: los de descuento empiezan con
         // "código"; el resto se muestra tal cual (nombra a la persona).
         const body = (await res.json().catch(() => null)) as {
@@ -306,7 +306,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         return;
       }
       if (res.status === 409) {
-        // El 409 agrupa sold-out de entradas y de mesas — el mensaje
+        // El 409 agrupa sold-out de entradas y de mesas - el mensaje
         // del API distingue ("sin cupo en mesas…" = TableSoldOutError).
         const body = (await res.json().catch(() => null)) as {
           message?: string | string[];
@@ -335,7 +335,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       };
 
       if (data.paymentUrl.startsWith("stub://")) {
-        // Dev: gateway stub — el pago se simula con el webhook desde esta página
+        // Dev: gateway stub - el pago se simula con el webhook desde esta página
         setPhase({
           kind: "awaiting",
           paymentId: data.paymentId,
@@ -455,7 +455,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           )}
         </Card>
 
-        {/* Regalo multi-entrada: buscador de amigos — cada resultado se
+        {/* Regalo multi-entrada: buscador de amigos - cada resultado se
             toca para asignar/quitar una entrada. Los receptores quedan
             como chips (tocar también quita). */}
         {friends.length > 0 && (
@@ -698,7 +698,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </p>
         </Card>
 
-        {/* Código de descuento — "Aplicar" valida sin generar la orden
+        {/* Código de descuento - "Aplicar" valida sin generar la orden
             (GET /checkout/discount-quote) y el estimado del breakdown
             muestra el total con descuento antes de pagar. */}
         <div className="flex flex-col gap-2">
@@ -749,7 +749,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           )}
         </div>
 
-        {/* Canción pedida al DJ (opcional, máx. 140) — viaja en la orden
+        {/* Canción pedida al DJ (opcional, máx. 140) - viaja en la orden
             y el top-N del evento la cuenta solo con ticket pagado. */}
         <div className="flex flex-col gap-2">
           <label htmlFor="checkout-song" className="text-sm text-white/70">
@@ -867,7 +867,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </Card>
         )}
 
-        {/* Polling agotado sin webhook: el pago puede confirmar igual —
+        {/* Polling agotado sin webhook: el pago puede confirmar igual -
             la entrada aparece en Mis entradas cuando llegue. */}
         {phase.kind === "stillPending" && (
           <Card className="flex flex-col items-center gap-4 text-center">
@@ -903,7 +903,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
 /**
  * Éxito del checkout: confirma la compra y, si la orden dejó entradas
  * reclamables, lista un botón de WhatsApp por cada link (/reclamar/<t>)
- * — el destinatario no necesita estar registrado ni ser amigo.
+ * - el destinatario no necesita estar registrado ni ser amigo.
  */
 function CheckoutSuccess({
   eventName,

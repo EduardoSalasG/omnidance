@@ -22,7 +22,7 @@ import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { GENRE_TEXT } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 
-// El merge i18n devuelve Dict — las claves se declaran explícitas
+// El merge i18n devuelve Dict - las claves se declaran explícitas
 // (mismo patrón que locales/[id]).
 type EventsT = Record<string, string> & {
   genre: Record<string, string>;
@@ -51,9 +51,9 @@ type EventDetail = {
   genres: string[];
   genreMix: GenreMixBlock[] | null;
   program: ProgramItem[] | null;
-  /** FK escalar — hoy GET /events/:id no la selecciona (ver nota en el render). */
+  /** FK escalar - hoy GET /events/:id no la selecciona (ver nota en el render). */
   seriesId?: string | null;
-  /** FK escalar del venue — sí viene en el select; se usa para linkear al perfil. */
+  /** FK escalar del venue - sí viene en el select; se usa para linkear al perfil. */
   venueId?: string | null;
   series: {
     id?: string;
@@ -67,11 +67,11 @@ type EventDetail = {
   venueText: string | null;
   /** Detalle del lugar: sala, piso, punto exacto ("Sala 1"). */
   venueNotes: string | null;
-  /** Notas libres del host/productor — hoy lo escribe el form de práctica. */
+  /** Notas libres del host/productor - hoy lo escribe el form de práctica. */
   description: string | null;
-  /** Host de práctica (resuelto desde hostId escalar) — null en sociales. */
+  /** Host de práctica (resuelto desde hostId escalar) - null en sociales. */
   host: { id: string; name: string | null; photoUrl: string | null } | null;
-  /** RSVP "voy" — cuenta pública (prácticas). */
+  /** RSVP "voy" - cuenta pública (prácticas). */
   rsvpCount: number;
   djs: {
     slotNote: string | null;
@@ -114,7 +114,7 @@ async function getEvent(id: string): Promise<EventDetail | "error"> {
 
 /**
  * GET /events/:id/missions (SessionGuard en el API): requiere la cookie de
- * sesión del request — 401 = no autenticado → la sección se oculta (null).
+ * sesión del request - 401 = no autenticado → la sección se oculta (null).
  * Shape real (GamificationService.missionsFor → MissionView): ver type abajo.
  */
 async function getMissions(eventId: string): Promise<MissionView[] | null> {
@@ -128,7 +128,7 @@ async function getMissions(eventId: string): Promise<MissionView[] | null> {
 
 /**
  * GET /events/:id/friends-going (SessionGuard): amigos confirmados con
- * entrada activa. Mismo patrón que getMissions — cookie del request,
+ * entrada activa. Mismo patrón que getMissions - cookie del request,
  * 401/fallo → null y la sección se omite (nunca error visible).
  */
 async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
@@ -142,7 +142,7 @@ async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
 
 /**
  * GET /tickets/mine (SessionGuard): true si el usuario ya tiene una entrada
- * ACTIVE para este evento — dispara el popup de confirmación en el CTA.
+ * ACTIVE para este evento - dispara el popup de confirmación en el CTA.
  */
 async function hasActiveTicket(eventId: string): Promise<boolean> {
   const res = await fetch(`${API_URL}/api/tickets/mine`, {
@@ -150,7 +150,7 @@ async function hasActiveTicket(eventId: string): Promise<boolean> {
     headers: { cookie: cookies().toString() },
   }).catch(() => null);
   if (!res?.ok) return false;
-  // event puede ser null (evento eliminado tras la compra) — el API
+  // event puede ser null (evento eliminado tras la compra) - el API
   // devuelve `byId.get(t.eventId) ?? null` en /tickets/mine.
   const rows = (await res.json()) as {
     event: { id: string } | null;
@@ -212,14 +212,14 @@ export default async function EventoDetailPage({
     ? event.genres
     : (event.series?.genres ?? []);
   const genreMix = event.genreMix ?? event.series?.genreMix ?? null;
-  // Cronograma: misma herencia — el evento manda, si no el de la serie.
+  // Cronograma: misma herencia - el evento manda, si no el de la serie.
   const program = event.program ?? event.series?.program ?? null;
   const mixSegs = genreMix?.length ? aggregateMix(genreMix) : null;
   const orderedGenres = mixSegs
     ? [...mixSegs].sort((a, b) => b.pct - a.pct).map((s) => s.genre)
     : genres;
 
-  // "Cómo llegar": URL universal de Google Maps — sin API key, el SO la
+  // "Cómo llegar": URL universal de Google Maps - sin API key, el SO la
   // abre en la app de mapas que el usuario tenga.
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     [event.venue?.name ?? event.venueText, event.venue?.address]
@@ -227,7 +227,7 @@ export default async function EventoDetailPage({
       .join(" "),
   )}`;
 
-  // Pase de serie: el endpoint hoy devuelve solo series.name — el CTA se
+  // Pase de serie: el endpoint hoy devuelve solo series.name - el CTA se
   // muestra cuando el id llega (seriesId escalar o series.id). POST
   // /checkout/series-pass exige month "YYYY-MM" = mes del evento (mismo
   // criterio local que currentMonth() en checkins).
@@ -246,7 +246,7 @@ export default async function EventoDetailPage({
     event.status === "CLOSED" ||
     Date.now() >= new Date(event.endsAt).getTime();
 
-  // Práctica (spec §8): gratis, first-come, RSVP — no es una "noche": sin
+  // Práctica (spec §8): gratis, first-come, RSVP - no es una "noche": sin
   // precios, programa, lineup, shows, misiones ni Prime Time. La ficha es
   // quién organiza + dónde + notas del host; la acción es "Me apunto" → QR.
   const isPractice = event.type === "PRACTICA";
@@ -279,7 +279,7 @@ export default async function EventoDetailPage({
           end={event.endsAt}
           className="text-white/70"
         />
-        {/* Host de la práctica — "quién organiza" es dato clave de la ficha */}
+        {/* Host de la práctica - "quién organiza" es dato clave de la ficha */}
         {isPractice && event.host?.name && (
           <p className="text-sm text-white/60">
             <Link
@@ -367,7 +367,7 @@ export default async function EventoDetailPage({
         )}
       </header>
 
-      {/* Prueba social: amigos confirmados con entrada — avatares + nombres.
+      {/* Prueba social: amigos confirmados con entrada - avatares + nombres.
           Solo si hay ≥1 (el endpoint devuelve [] o 401 → null → oculta).
           No aplica a prácticas: no hay tickets que confirmar. */}
       {!isPractice && friendsGoing && friendsGoing.length > 0 && (
@@ -412,7 +412,7 @@ export default async function EventoDetailPage({
         </div>
       )}
 
-      {/* Descripción — notas del host (prácticas) o del productor cuando
+      {/* Descripción - notas del host (prácticas) o del productor cuando
           exista. En prácticas es el contenido principal de la ficha. */}
       {event.description && (
         <Card>
@@ -422,13 +422,13 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* Prime Time — solo cuando el evento está en vivo (nunca en prácticas:
+      {/* Prime Time - solo cuando el evento está en vivo (nunca en prácticas:
           no cuentan para la racha competitiva, spec §8) */}
       {!isPractice && event.status === "LIVE" && (
         <PrimeTimeWidget eventId={event.id} />
       )}
 
-      {/* Precios — las prácticas son gratis/first-come: el precio lo
+      {/* Precios - las prácticas son gratis/first-come: el precio lo
           comunica el PracticeBar ("Entrada liberada"), no una tabla */}
       {!isPractice && (
         <Card>
@@ -457,7 +457,7 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* Planificación de la noche — qué pasa y a qué hora (no aplica a
+      {/* Planificación de la noche - qué pasa y a qué hora (no aplica a
           prácticas: son un solo bloque de baile) */}
       {!isPractice && program != null && program.length > 0 && (
         <Card>
@@ -482,7 +482,7 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* Pase de serie — solo si el evento pertenece a una serie con id
+      {/* Pase de serie - solo si el evento pertenece a una serie con id
           y no terminó (un pase anclado a un evento pasado no se vende) */}
       {seriesId && !isPast && !isPractice && (
         <SeriesPassCta
@@ -492,7 +492,7 @@ export default async function EventoDetailPage({
         />
       )}
 
-      {/* Misiones — solo con sesión (401 → getMissions devuelve null y se
+      {/* Misiones - solo con sesión (401 → getMissions devuelve null y se
           oculta). No aplica a prácticas: no tienen misiones de productor. */}
       {!isPractice && missions !== null && missions.length > 0 && (
         <section aria-labelledby="missions-heading">
@@ -549,7 +549,7 @@ export default async function EventoDetailPage({
         </section>
       )}
 
-      {/* Lineup — no aplica a prácticas (no hay DJs en cartel) */}
+      {/* Lineup - no aplica a prácticas (no hay DJs en cartel) */}
       {!isPractice && event.djs.length > 0 && (
         <Card>
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -585,7 +585,7 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* Shows de la noche — academias invitadas con sus teams.
+      {/* Shows de la noche - academias invitadas con sus teams.
           0..n (típico 3–5); vacío → sección oculta. No aplica a prácticas. */}
       {!isPractice && event.shows.length > 0 && (
         <Card>
@@ -608,7 +608,7 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* Timeline por estilo — no aplica a prácticas: su estilo foco ya
+      {/* Timeline por estilo - no aplica a prácticas: su estilo foco ya
           está como badge en el hero */}
       {!isPractice && blocks.length > 0 && (
         <Card>
@@ -635,7 +635,7 @@ export default async function EventoDetailPage({
         </Card>
       )}
 
-      {/* CTA sticky (mobile-first) — flota sobre la BottomNav. Evento
+      {/* CTA sticky (mobile-first) - flota sobre la BottomNav. Evento
           pasado/cancelado: aviso en vez de compra; la ficha completa
           (descripción, lineup, programa) sigue visible arriba. */}
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">

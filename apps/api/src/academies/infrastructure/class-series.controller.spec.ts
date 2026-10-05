@@ -9,7 +9,7 @@ import { ClassSeriesController } from "./class-series.controller";
 
 // Cascade de cancelación por la academia (spec class-credit-cancellation):
 // desactivar serie / eliminar slot cancelan las clases futuras y TODAS
-// las reservas activas quedan CANCELLED con refunded=true + cancelledAt —
+// las reservas activas quedan CANCELLED con refunded=true + cancelledAt -
 // un alumno nunca pierde crédito por una decisión de la academia.
 
 interface FakeCls {
@@ -123,7 +123,7 @@ class FakePrisma {
 const req = { person: { id: "per-admin" } } as unknown as Request;
 const future = () => new Date(Date.now() + 3 * 86_400_000);
 
-describe("ClassSeriesController — cancelación por la academia devuelve crédito", () => {
+describe("ClassSeriesController - cancelación por la academia devuelve crédito", () => {
   let prisma: FakePrisma;
   let ctrl: ClassSeriesController;
 
@@ -162,7 +162,7 @@ describe("ClassSeriesController — cancelación por la academia devuelve crédi
     const b2 = prisma.bookings.find((b) => b.id === "b2")!;
     const b3 = prisma.bookings.find((b) => b.id === "b3")!;
     expect(b1.status).toBe("CANCELLED");
-    expect(b1.refunded).toBe(true); // refunded siempre — nunca quema cuota
+    expect(b1.refunded).toBe(true); // refunded siempre - nunca quema cuota
     expect(b1.cancelledAt).toBeInstanceOf(Date);
     expect(b2.status).toBe("CANCELLED");
     expect(b2.refunded).toBe(true);

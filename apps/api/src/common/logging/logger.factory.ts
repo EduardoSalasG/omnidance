@@ -31,7 +31,7 @@ const injectContext = format((info) => {
   return info;
 });
 
-// Campos propios del record — el resto se escanea como meta.
+// Campos propios del record - el resto se escanea como meta.
 const OWN_KEYS = new Set([
   "level",
   "message",
@@ -55,7 +55,7 @@ export const redactMeta: ReturnType<typeof format> = format((info) => {
   return info;
 });
 
-// En dev el formato nestLike no imprime campos extra — el requestId se
+// En dev el formato nestLike no imprime campos extra - el requestId se
 // hace visible anexándolo al contexto (`Clase#ab12cd34`).
 const decorateContext = format((info) => {
   if (info.requestId) {

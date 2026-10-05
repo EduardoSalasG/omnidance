@@ -10,12 +10,12 @@ export type MapVenue = {
   lat: number;
   lng: number;
   eventCount: number;
-  /** Destino del pin — default /locales/:id; /academias lo usa con
+  /** Destino del pin - default /locales/:id; /academias lo usa con
       /academias/:id. */
   href?: string;
 };
 
-// Leaflet es client-only (toca window en import) — carga diferida con
+// Leaflet es client-only (toca window en import) - carga diferida con
 // skeleton de bloque mientras baja el chunk (layout conocido: un
 // rectángulo de altura completa, sin texto). La altura la da el
 // contenedor padre, que ya aporta borde y radio.

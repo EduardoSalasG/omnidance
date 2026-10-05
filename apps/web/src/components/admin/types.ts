@@ -1,4 +1,4 @@
-// Tipos compartidos de las vistas del panel /admin — payloads del API admin.
+// Tipos compartidos de las vistas del panel /admin - payloads del API admin.
 export type Param = {
   key: string;
   value: unknown;

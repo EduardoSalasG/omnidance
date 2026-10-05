@@ -1,11 +1,11 @@
 // Baseline compartida por seed-dev y seed-prod: catálogo RBAC, permisos,
-// grants, estilos y parámetros de plataforma. Todo idempotente — upserts
+// grants, estilos y parámetros de plataforma. Todo idempotente - upserts
 // por clave natural; find-or-create donde el schema no tiene unique.
 import { PrismaClient, Genre, Gender } from "@prisma/client";
 
 // Catálogo RBAC vivo en DB. Los roles solo se asignan por admin
-// (POST /admin/users/:personId/roles) — no hay auto-solicitud.
-// isSuperuser: pasa todo check de permisos (solo ADMIN — no editable por API).
+// (POST /admin/users/:personId/roles) - no hay auto-solicitud.
+// isSuperuser: pasa todo check de permisos (solo ADMIN - no editable por API).
 export const ROLE_CATALOG = [
   { key: "DANCER", label: "Bailarín" },
   { key: "DJ", label: "DJ" },
@@ -35,10 +35,10 @@ export const ROLE_GRANTS: Record<string, string[]> = {
   PRODUCER: ["discounts.manage", "social.manage", "events.manage", "crm.manage"],
   ACADEMY_OWNER: ["academies.create", "crm.manage"],
   VENUE_MANAGER: ["venues.manage"],
-  // ADMIN: isSuperuser — pasa todo sin grants explícitos
+  // ADMIN: isSuperuser - pasa todo sin grants explícitos
 };
 
-// Catálogo de estilos — data de producto, no demo (aplica a prod también).
+// Catálogo de estilos - data de producto, no demo (aplica a prod también).
 export const STYLE_CATALOG = [
   { name: "Salsa cubana (casino)", genre: Genre.CUBANO },
   { name: "Salsa on2", genre: Genre.SALSA },
@@ -55,7 +55,7 @@ export const STYLE_CATALOG = [
   { name: "Fusión", genre: Genre.OTHER },
 ] as const;
 
-// Catálogos de clases de academia — mantenibles desde /admin/catalogos.
+// Catálogos de clases de academia - mantenibles desde /admin/catalogos.
 export const CLASS_LEVEL_CATALOG = [
   { name: "Iniciación", order: 0 },
   { name: "Básico", order: 1 },
@@ -69,7 +69,7 @@ export const CLASS_TYPE_CATALOG = [
   { name: "Corporalidad" },
 ] as const;
 
-// Defaults operativos — update:{} no pisa valores editados desde /admin.
+// Defaults operativos - update:{} no pisa valores editados desde /admin.
 export const PARAM_DEFAULTS: Array<{
   key: string;
   value: unknown;
@@ -82,12 +82,12 @@ export const PARAM_DEFAULTS: Array<{
   { key: "qr.rotation_seconds", value: 60, description: "Segundos de vigencia del QR personal rotativo" },
   { key: "prime_time.window_minutes", value: 30, description: "Minutos de la ventana Prime Time" },
   { key: "prime_time.threshold_pct", value: 0.2, description: "Umbral Prime Time como fracción del aforo" },
-  { key: "early_checkin.cutoff_minutes", value: 1380, description: "Minutos desde medianoche — check-in antes de esta hora (23:00) cuenta como temprano (badge madrugador + puntos early_checkin)" },
-  { key: "series_pass.price_clp", value: 25000, description: "Precio mensual del pase de serie (CLP) — fallback si la serie no define precio propio" },
+  { key: "early_checkin.cutoff_minutes", value: 1380, description: "Minutos desde medianoche - check-in antes de esta hora (23:00) cuenta como temprano (badge madrugador + puntos early_checkin)" },
+  { key: "series_pass.price_clp", value: 25000, description: "Precio mensual del pase de serie (CLP) - fallback si la serie no define precio propio" },
   { key: "service_fee.series_pass_clp", value: 500, description: "Cargo por servicio del pase de serie (CLP)" },
-  { key: "platform_fee.default_pct", value: 0, description: "Comisión de plataforma sobre ventas (%) — se descuenta del gross al liquidar; override por productor y por evento" },
+  { key: "platform_fee.default_pct", value: 0, description: "Comisión de plataforma sobre ventas (%) - se descuenta del gross al liquidar; override por productor y por evento" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
-  { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota — después la reserva se puede cancelar pero la clase se pierde" },
+  { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota - después la reserva se puede cancelar pero la clase se pierde" },
   // ─── SaaS billing (spec academy-saas-billing) ───
   // Tiers de academia: límite de alumnos activos por tier (ENTERPRISE = sin límite, contratación manual).
   { key: "academy_tier.starter_max_students", value: 50, description: "Máximo de alumnos activos del tier STARTER de academia" },
@@ -121,7 +121,7 @@ export const PARAM_DEFAULTS: Array<{
   { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
 ];
 
-/** Catálogo de badges — las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
+/** Catálogo de badges - las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */
 export const BADGE_CATALOG = [
   { key: "primera_bachata", name: "Primera bachata", category: "MILESTONE" },
   { key: "bailarin_constante", name: "Bailarín constante", category: "MILESTONE" },
@@ -129,7 +129,7 @@ export const BADGE_CATALOG = [
   { key: "maratonista", name: "Maratonista", category: "CONDUCT" },
   { key: "mariposa_social", name: "Mariposa social", category: "CONDUCT" },
   { key: "prime_time_crown", name: "Corona Prime Time", category: "TEMPORARY_STATUS" },
-  // Modo Academy — conducta del alumno (asistencia/constancia/exploración).
+  // Modo Academy - conducta del alumno (asistencia/constancia/exploración).
   { key: "primera_clase", name: "Primera clase", category: "MILESTONE" },
   { key: "alumno_constante", name: "Alumno constante", category: "MILESTONE" },
   { key: "racha_academia", name: "Constancia de academia", category: "CONDUCT" },
@@ -163,7 +163,7 @@ export async function ensurePerson(
   return person;
 }
 
-/** Baseline de plataforma — corre en dev y prod antes del dataset propio. */
+/** Baseline de plataforma - corre en dev y prod antes del dataset propio. */
 export async function seedCommon(prisma: PrismaClient) {
   // ─── Catálogo RBAC (debe existir antes que PersonRole por FK) ───
   for (const r of ROLE_CATALOG) {
@@ -194,7 +194,7 @@ export async function seedCommon(prisma: PrismaClient) {
     }
   }
 
-  // ─── Estilos — find-or-create por nombre (sin unique en schema) ───
+  // ─── Estilos - find-or-create por nombre (sin unique en schema) ───
   for (const s of STYLE_CATALOG) {
     const existing = await prisma.style.findFirst({ where: { name: s.name } });
     if (existing) {
@@ -209,7 +209,7 @@ export async function seedCommon(prisma: PrismaClient) {
     }
   }
 
-  // ─── Catálogos de clases (nivel/tipo) — upsert por nombre unique ───
+  // ─── Catálogos de clases (nivel/tipo) - upsert por nombre unique ───
   for (const l of CLASS_LEVEL_CATALOG) {
     await prisma.classLevel.upsert({
       where: { name: l.name },
@@ -217,7 +217,7 @@ export async function seedCommon(prisma: PrismaClient) {
       create: l,
     });
   }
-  // Rename "En Pareja" → "Pareja" (nombre corto del catálogo) — preserva
+  // Rename "En Pareja" → "Pareja" (nombre corto del catálogo) - preserva
   // el id y los ClassSeriesType existentes; si ambos ya existen no choca.
   const legacyEnPareja = await prisma.classType.findUnique({
     where: { name: "En Pareja" },
@@ -241,7 +241,7 @@ export async function seedCommon(prisma: PrismaClient) {
     });
   }
 
-  // ─── Badges — catálogo para que BadgeAwarder pueda otorgar ───
+  // ─── Badges - catálogo para que BadgeAwarder pueda otorgar ───
   for (const b of BADGE_CATALOG) {
     await prisma.badge.upsert({
       where: { key: b.key },
@@ -250,7 +250,7 @@ export async function seedCommon(prisma: PrismaClient) {
     });
   }
 
-  // ─── Parámetros — nunca pisar valores editados en /admin ───
+  // ─── Parámetros - nunca pisar valores editados en /admin ───
   for (const p of PARAM_DEFAULTS) {
     await prisma.platformParam.upsert({
       where: { key: p.key },

@@ -14,7 +14,7 @@ const inputCls =
 
 /**
  * Form de campaña → POST /crm/campaigns (queda DRAFT; el envío es acción
- * aparte). Body real: {actorType, actorId, name, segment, action} — segment
+ * aparte). Body real: {actorType, actorId, name, segment, action} - segment
  * une {segment?, tags?, personIds?} (OR); action es NOTIFY{title,body?} o
  * DISCOUNT_CODE{percentOff|amountOff, maxUses?, expiresAt?}.
  */
@@ -107,7 +107,7 @@ export function CampaignForm({
     };
   }, [actor, isAcademy]);
 
-  // percentOff XOR amountOff — misma regla que parseAction del service.
+  // percentOff XOR amountOff - misma regla que parseAction del service.
   const percent = percentOff === "" ? null : Number(percentOff);
   const amount = amountOff === "" ? null : Number(amountOff);
   const discountValid =
@@ -117,7 +117,7 @@ export function CampaignForm({
   const notifyValid = actionType !== "NOTIFY" || title.trim() !== "";
   const valid = name.trim() !== "" && notifyValid && discountValid;
 
-  // Audiencia = unión (OR) de todos los criterios marcados — mismo shape
+  // Audiencia = unión (OR) de todos los criterios marcados - mismo shape
   // que parseSegment del service.
   const audience: CampaignSegment = {
     ...(segment ? { segment } : {}),
@@ -131,7 +131,7 @@ export function CampaignForm({
   const noAudience = Object.keys(audience).length === 0;
   const audienceJson = JSON.stringify(audience);
 
-  // Conteo de audiencia en vivo (debounced) — sin criterios no se llama.
+  // Conteo de audiencia en vivo (debounced) - sin criterios no se llama.
   useEffect(() => {
     const seg = JSON.parse(audienceJson) as CampaignSegment;
     setPreviewCount(null); // no mostrar conteo de criterios anteriores
@@ -359,7 +359,7 @@ export function CampaignForm({
               onChange={(e) => setSegment(e.target.value)}
               className={inputCls}
             >
-              <option value="">—</option>
+              <option value="">-</option>
               {SEGMENTS.map((s) => (
                 <option key={s} value={s}>
                   {t(`segments.${s}`)}

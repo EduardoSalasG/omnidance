@@ -115,7 +115,7 @@ function toPostman(openapi) {
     info: {
       name: "omni-dance API",
       description:
-        "Generada desde /api/docs-json — regenerar con `node apps/api/scripts/export-api-docs.cjs` tras cambios de endpoints.",
+        "Generada desde /api/docs-json - regenerar con `node apps/api/scripts/export-api-docs.cjs` tras cambios de endpoints.",
       schema:
         "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     },
@@ -127,7 +127,7 @@ function toPostman(openapi) {
 async function main() {
   const res = await fetch(`${BASE}/api/docs-json`);
   if (!res.ok) {
-    console.error(`GET ${BASE}/api/docs-json → ${res.status} — ¿está el API arriba?`);
+    console.error(`GET ${BASE}/api/docs-json → ${res.status} - ¿está el API arriba?`);
     process.exit(1);
   }
   const openapi = await res.json();

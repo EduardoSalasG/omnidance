@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 
 // Header de módulo de consola: back link al hub + slot de acciones.
-// El back es un <a> real (iOS back) — no usa router.back() para que el
+// El back es un <a> real (iOS back) - no usa router.back() para que el
 // destino sea predecible aunque se entre por deep link. El título de la
 // sección lo muestra el large title del chrome (BottomNav).
 export function ConsoleHeader({

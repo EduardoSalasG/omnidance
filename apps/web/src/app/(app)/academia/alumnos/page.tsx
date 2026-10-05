@@ -12,7 +12,7 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import type { MembershipPlan } from "@/components/academy/shared";
 
 /**
- * /academia/alumnos — enrollments de la academia seleccionada.
+ * /academia/alumnos - enrollments de la academia seleccionada.
  * La página fetchea GET /academies/:id/plans (StudentsSection los usa en
  * el select del alta); la lista de alumnos la carga la propia sección.
  */
@@ -45,7 +45,7 @@ function StudentsModule({
   const tc = useTranslations("common");
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [error, setError] = useState(false);
-  // Permiso desde el /me compartido — null mientras resuelve (el reload
+  // Permiso desde el /me compartido - null mientras resuelve (el reload
   // espera), false si no es admin/owner.
   const { me, loading: meLoading } = useMe();
   const canAdminister: boolean | null = meLoading

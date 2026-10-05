@@ -61,12 +61,12 @@ function subscribeResponse(r: PlatformSubscribeResult) {
 /**
  * Billing SaaS de la academia (spec academy-saas-billing): contratación,
  * cambio de plan, cancelación y vista de billing del owner.
- * Todo pasa por `AcademyAccess.requireAdminister` (owner o ADMIN — el
+ * Todo pasa por `AcademyAccess.requireAdminister` (owner o ADMIN - el
  * mismo gate de los planes/enrollments de la academia); el service
  * verifica el límite de alumnos del tier y el motor Flow replica el ciclo
  * de las membresías de alumnos. El retorno del disclaimer de tarjeta es
  * `POST /api/payments/flow/platform-customer-return` (endpoint público en
- * webhook.controller — equivale al "subscription/activate" de la spec).
+ * webhook.controller - equivale al "subscription/activate" de la spec).
  */
 @Controller("academies")
 @UseGuards(SessionGuard)
@@ -77,7 +77,7 @@ export class AcademyBillingController {
   ) {}
 
   /**
-   * POST /academies/:id/subscribe {tier, cycle, acceptRecurring} — crea
+   * POST /academies/:id/subscribe {tier, cycle, acceptRecurring} - crea
    * la PlatformSubscription PENDING_CARD y devuelve `paymentUrl` (URL del
    * disclaimer Flow) para registrar la tarjeta; si el pagador ya tiene
    * tarjeta el alta es directa (`status: "ACTIVE"`).
@@ -99,7 +99,7 @@ export class AcademyBillingController {
   }
 
   /**
-   * PATCH /academies/:id/subscription {tier?, cycle?} — upgrade de tier
+   * PATCH /academies/:id/subscription {tier?, cycle?} - upgrade de tier
    * inmediato (swap de plan Flow, cobra el ciclo nuevo ya); downgrade o
    * cambio de ciclo queda pendiente (`pendingTier`/`pendingCycle`) y
    * aplica al próximo ciclo. 400 `tier_limit` si el tier destino no
@@ -129,7 +129,7 @@ export class AcademyBillingController {
   }
 
   /**
-   * POST /academies/:id/subscription/cancel — cancela a fin del período
+   * POST /academies/:id/subscription/cancel - cancela a fin del período
    * pagado (el plan sigue activo hasta `nextInvoiceAt`). Idempotente.
    */
   @Post(":id/subscription/cancel")
@@ -139,7 +139,7 @@ export class AcademyBillingController {
   }
 
   /**
-   * GET /academies/:id/billing — vista de billing del owner: tier/ciclo
+   * GET /academies/:id/billing - vista de billing del owner: tier/ciclo
    * vigentes y pendientes, alumnos activos vs límite, próxima
    * facturación, trial, gracia restante, bloqueo e invoices (Payment
    * PLATFORM_SUB de sus suscripciones).

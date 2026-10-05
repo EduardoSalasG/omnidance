@@ -8,7 +8,7 @@ import {
 
 /**
  * KPIs del home por rol activo. Ventanas "rolling" (últimos 7/30 días,
- * próximas 36h) en vez de calendario — evita edge cases de zona horaria
+ * próximas 36h) en vez de calendario - evita edge cases de zona horaria
  * y para eventos sociales nocturnos describe mejor la actividad.
  */
 
@@ -29,7 +29,7 @@ type NextItem = {
 };
 
 // Evento de "esta noche" enriquecido para el home del bailarín:
-// lo que decide si sale — género, precio, amigos, escasez de preventa.
+// lo que decide si sale - género, precio, amigos, escasez de preventa.
 export type TonightEvent = {
   id: string;
   name: string;
@@ -47,7 +47,7 @@ export type TonightEvent = {
   presaleLeft: number | null;
 };
 
-/** Shape del card de clase (ClassCardData en web) — el mismo que
+/** Shape del card de clase (ClassCardData en web) - el mismo que
     devuelven GET /classes/browse y GET /classes/mine. */
 type ClassCardStats = {
   id: string;
@@ -85,7 +85,7 @@ export type HomeStats = {
   nextClass?: ClassCardStats | null;
   nextGig?: NextItem | null;
   nextShift?: NextItem | null;
-  /** Reservas activas del learner (BOOKED/WAITLIST) en clases futuras —
+  /** Reservas activas del learner (BOOKED/WAITLIST) en clases futuras -
       "tus próximas clases" del home Academia. */
   myClasses?: ClassCardStats[];
   needsAcademy?: boolean;
@@ -175,7 +175,7 @@ export class HomeService {
 
   /**
    * Escena de "esta noche" para el home del bailarín: eventos PUBLISHED
-   * que empiezan antes del corte (mañana ~mediodía UTC ≈ 8-9am Chile —
+   * que empiezan antes del corte (mañana ~mediodía UTC ≈ 8-9am Chile -
    * cubre sociales que cruzan medianoche) + eventos LIVE aún abiertos.
    * Cada evento lleva: géneros (evento→serie), precios, si tengo entrada,
    * cuántos amigos van y preventas restantes.
@@ -229,7 +229,7 @@ export class HomeService {
           })
         : [];
 
-    // Mis entradas futuras fuera de la ventana de "esta noche" — la
+    // Mis entradas futuras fuera de la ventana de "esta noche" - la
     // franja "Tus entradas" existe siempre, no solo cuando hay noche.
     // Ticket.eventId es scalar (sin relación): ids primero, eventos después.
     const myTicketRows = await this.prisma.ticket.findMany({
@@ -385,7 +385,7 @@ export class HomeService {
           slot: {
             academyId: { in: academyIds },
             // Sugerencia "próxima clase": academia bloqueada por mora no
-            // es reservable (S3) — no se sugiere; las reservas ya hechas
+            // es reservable (S3) - no se sugiere; las reservas ya hechas
             // (myBookings) sí siguen listándose con su flag.
             academy: { active: true, billingBlockedAt: null },
             series: { active: true },
@@ -394,7 +394,7 @@ export class HomeService {
         orderBy: { date: "asc" },
         select: CLASS_CARD_SELECT,
       }),
-      // Sus próximas reservas — "qué tengo esta semana" del learner.
+      // Sus próximas reservas - "qué tengo esta semana" del learner.
       this.prisma.classBooking.findMany({
         where: {
           personId,
@@ -440,7 +440,7 @@ export class HomeService {
     return new Map<string, string | null>(people.map((i) => [i.id, i.name]));
   }
 
-  /** Proyección de una Class al shape del card (ClassCardData en web) —
+  /** Proyección de una Class al shape del card (ClassCardData en web) -
       delega en la proyección compartida del módulo academies. */
   private toClassCard(
     c: ClassCardRow,
@@ -661,7 +661,7 @@ export class HomeService {
   }
 
   private async staffStats(personId: string): Promise<HomeStats> {
-    // StaffAssignment solo tiene eventId escalar — dos pasos.
+    // StaffAssignment solo tiene eventId escalar - dos pasos.
     const assignments = await this.prisma.staffAssignment.findMany({
       where: { personId },
       select: { eventId: true },

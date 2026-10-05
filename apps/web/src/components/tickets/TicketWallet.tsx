@@ -24,7 +24,7 @@ export type WalletTicket = {
   status: string;
   listPrice: number;
   serviceFee: number;
-  /** Link reclamable (compra multi-entrada sin asignar) — null tras reclamo */
+  /** Link reclamable (compra multi-entrada sin asignar) - null tras reclamo */
   claimToken: string | null;
   /** null cuando el evento fue eliminado tras la compra (ticket huérfano) */
   event: {
@@ -49,7 +49,7 @@ const inputCls =
   "focus:border-neon focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/50";
 
 /**
- * "Mis entradas" — gestión completa de tickets (badge de estado, precio
+ * "Mis entradas" - gestión completa de tickets (badge de estado, precio
  * pagado, QR en puerta, regalar). Vive dentro de /eventos?view=mios; la
  * antigua /entradas redirige acá. Los tickets llegan por props desde el
  * server component (cookie-forwarded), el estado interactivo es local.
@@ -144,7 +144,7 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
     return labels[key] ?? status;
   }
 
-  // Más futuro/reciente primero — lo próximo es lo que se usa en puerta.
+  // Más futuro/reciente primero - lo próximo es lo que se usa en puerta.
   const sorted = sortWalletTickets(items);
 
   if (sorted.length === 0) {
@@ -192,7 +192,7 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
                     </>
                   ) : (
                     /* Ticket huérfano: el evento se eliminó tras la
-                        compra — sin link, pero el QR/estado sigue
+                        compra - sin link, pero el QR/estado sigue
                         visible y usable en puerta. */
                     <p className="text-lg font-semibold text-white/50">
                       {t("eventRemoved")}
@@ -257,7 +257,7 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
         ))}
       </ul>
 
-      {/* Modal "Regalar entrada" — bottom sheet en mobile, centrado en
+      {/* Modal "Regalar entrada" - bottom sheet en mobile, centrado en
           desktop. Se cierra con Escape o clic en el backdrop. */}
       {transferFor && (
         <div

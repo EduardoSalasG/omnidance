@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// Ruta legacy — las superficies QR viven unificadas en /qr. Redirect
+// Ruta legacy - las superficies QR viven unificadas en /qr. Redirect
 // client-side (replace) mapeando ?event= a ?modo=escanear&event= para
 // que el back no quede atrapado en la redirección.
 function RedirectToQr() {

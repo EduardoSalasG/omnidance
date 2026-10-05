@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
 
-// Skeletons — placeholder con la forma del contenido real.
+// Skeletons - placeholder con la forma del contenido real.
 // Perceived performance (NN/g): para cargas de contenido cuyo layout
 // es conocido (listas, cards, detalle), un skeleton se percibe más
 // corto que un spinner porque anticipa la estructura. El spinner
@@ -9,7 +9,7 @@ import { useTranslations } from "next-intl";
 //
 // `.page-loading` difiere la aparición 200ms (mismo estándar que el
 // beacon): fetches rápidos pintan el contenido directo, sin flash.
-// motion-reduce apaga el pulse — los bloques quedan estáticos.
+// motion-reduce apaga el pulse - los bloques quedan estáticos.
 
 export type SkeletonProps = {
   className?: string;
@@ -29,7 +29,7 @@ export type SkeletonTextProps = {
   className?: string;
 };
 
-/** Grupo de líneas de texto — la última más corta, como un párrafo real. */
+/** Grupo de líneas de texto - la última más corta, como un párrafo real. */
 export function SkeletonText({ lines = 2, className = "" }: SkeletonTextProps) {
   const widths = ["w-full", "w-5/6", "w-2/3", "w-1/2"];
   return (
@@ -54,7 +54,7 @@ export type SkeletonCardProps = {
   title?: boolean;
 };
 
-/** Card skeleton — misma envoltura que Card (radio/borde/fondo/padding). */
+/** Card skeleton - misma envoltura que Card (radio/borde/fondo/padding). */
 export function SkeletonCard({ lines = 2, title = true }: SkeletonCardProps) {
   return (
     <div
@@ -78,7 +78,7 @@ export type SkeletonListProps = {
   className?: string;
 };
 
-/** Lista de cards skeleton — el estado de carga estándar de las
+/** Lista de cards skeleton - el estado de carga estándar de las
  * secciones de contenido. role="status" + sr-only anuncian la carga;
  * las cards son aria-hidden (no hay contenido real que nombrar). */
 export function SkeletonList({

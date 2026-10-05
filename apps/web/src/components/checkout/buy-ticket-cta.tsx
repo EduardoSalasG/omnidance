@@ -10,7 +10,7 @@ import { useDialogFocus } from "@/lib/useDialogFocus";
 /**
  * CTA "Conseguir entrada" del detalle de evento.
  * Si el usuario ya tiene una entrada ACTIVE para el evento (hasTicket),
- * intercepta el click y pide confirmación antes de abrir el checkout —
+ * intercepta el click y pide confirmación antes de abrir el checkout -
  * el caso real es que quiere su QR, no pagar dos veces.
  */
 export function BuyTicketCta({

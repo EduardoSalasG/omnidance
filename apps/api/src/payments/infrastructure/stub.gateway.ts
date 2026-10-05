@@ -31,7 +31,7 @@ type StubSub = {
 //
 // Además implementa SubscriptionProvider con estado EN MEMORIA (se pierde
 // al reiniciar el proceso): planes espejo, customers, registro de tarjeta
-// y suscripciones con su invoice inicial ya pagada — el flujo completo
+// y suscripciones con su invoice inicial ya pagada - el flujo completo
 // (needs_card → customer-return → ACTIVE → settle → cancel) se ejerce en
 // localhost sin credenciales Flow. El registerUrl apunta al returnUrl que
 // le pasa el caller (el callback real customer-return del API), así que el
@@ -39,7 +39,7 @@ type StubSub = {
 //
 // Tras un restart, getSubscription de un id desconocido reporta status 4
 // (cancelada) para que la fila local converja a CANCELED en el próximo
-// reconcile en vez de quedar viva para siempre — la simulación no intenta
+// reconcile en vez de quedar viva para siempre - la simulación no intenta
 // sobrevivir al proceso.
 @Injectable()
 export class StubGateway implements PaymentGateway, SubscriptionProvider {
@@ -88,7 +88,7 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
   }
 
   // Upsert a propósito: tras un restart el plan espejo no existe en memoria
-  // pero el local sí tiene flowPlanId — un stub tolerante evita que un
+  // pero el local sí tiene flowPlanId - un stub tolerante evita que un
   // PATCH de plan falle en dev por un restart del proceso.
   syncPlan(
     p: { planId: string; name: string; amount: number },

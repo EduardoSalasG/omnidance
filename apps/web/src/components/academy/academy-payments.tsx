@@ -14,7 +14,7 @@ type Phase = "loading" | "denied" | "error" | "ready";
 
 /**
  * Cobros MEMBERSHIP de los planes de la academia
- * (GET /payments/by-academy/:academyId — owner de la academia o admin;
+ * (GET /payments/by-academy/:academyId - owner de la academia o admin;
  * 403/404 → mensaje "sin acceso"). Cada cobro es el Payment de una
  * invoice de suscripción o de una compra manual de plan.
  */

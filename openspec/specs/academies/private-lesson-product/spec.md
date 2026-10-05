@@ -54,7 +54,7 @@ instructor asignado.
 ### Requirement: Solicitud libre del alumno retirada
 
 `POST /academies/:id/private-lessons` SHALL requerir gestión de la academia
-(owner/ADMIN o instructor de ella) — el alumno externo ya no solicita;
+(owner/ADMIN o instructor de ella) - el alumno externo ya no solicita;
 compra. Listados SHALL tolerar `instructorId`/`scheduledAt` nulos sin
 romper el shape (`instructor` puede ser null; la UI muestra "por
 asignar"/"por agendar").

@@ -44,7 +44,7 @@ export default function StaffPage() {
   const tc = useTranslations("common");
   const te = useTranslations("events");
 
-  // /me compartido (MeProvider) — sin fetch propio de sesión: la lista
+  // /me compartido (MeProvider) - sin fetch propio de sesión: la lista
   // se pide en paralelo desde el mount y el gate se deriva del contexto.
   const {
     me,

@@ -56,7 +56,7 @@ const eventDateFmt = new Intl.DateTimeFormat("es-CL", {
   minute: "2-digit",
 });
 
-/** Deep link por tipo — el tap marca leída y navega al contexto. */
+/** Deep link por tipo - el tap marca leída y navega al contexto. */
 function hrefFor(n: NotificationItem): string | null {
   const eventId =
     typeof n.data?.eventId === "string" ? n.data.eventId : null;
@@ -79,7 +79,7 @@ function hrefFor(n: NotificationItem): string | null {
       return "/bailes";
     case "friend.request":
       return "/amigos";
-    // Particular del alumno (asignada, cancelada pagada, comprada) —
+    // Particular del alumno (asignada, cancelada pagada, comprada) -
     // vive dentro de reservadas de /clases (sin bandeja separada).
     case "academy.private_lesson.assigned":
     case "academy.private_lesson.cancelled_paid":
@@ -119,9 +119,9 @@ export default function NotificacionesPage() {
   const router = useRouter();
   const [state, setState] = useState<PageState>("loading");
   const [items, setItems] = useState<NotificationItem[]>([]);
-  // Busy del "marcar todas" — deshabilita el botón mientras vuela.
+  // Busy del "marcar todas" - deshabilita el botón mientras vuela.
   const [markingAll, setMarkingAll] = useState(false);
-  // Lente: roles de /me (contexto compartido) + modo consumer — el
+  // Lente: roles de /me (contexto compartido) + modo consumer - el
   // centro filtra por dominio (social ↔ academia); lo transversal
   // (account.*, crm.*) va en ambas.
   const { me, loading: meLoading } = useMe();
@@ -137,7 +137,7 @@ export default function NotificacionesPage() {
 
   const load = useCallback(async () => {
     try {
-      // ?lens= delega el filtro al servidor — la lista ya viene acotada
+      // ?lens= delega el filtro al servidor - la lista ya viene acotada
       // (el filter client-side queda como red de seguridad para "any").
       const res = await apiFetch(`/notifications?limit=50&lens=${lens}`);
       if (res.status === 401) {
@@ -220,7 +220,7 @@ export default function NotificacionesPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
-      {/* Header solo cuando hay no-leídas — vacío reservaba una franja
+      {/* Header solo cuando hay no-leídas - vacío reservaba una franja
           muerta sobre la lista. */}
       {unreadCount > 0 && (
         <header className="flex items-center justify-between gap-4">

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 /**
- * <details> cuyo panel se cierra con Escape — el elemento nativo no lo
+ * <details> cuyo panel se cierra con Escape - el elemento nativo no lo
  * hace. El cierre por click-afuera sigue siendo CSS puro (p.ej. la capa
  * `details.venue-filter[open] > summary::before` de globals.css), así
  * la página puede seguir siendo server component y solo este wrapper

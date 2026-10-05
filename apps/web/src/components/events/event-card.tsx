@@ -12,7 +12,7 @@ import type { GenreMixBlock } from "@/components/ui";
 import { GENRE_TEXT } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 
-// GET /events — evento publicado con venue y mix de géneros.
+// GET /events - evento publicado con venue y mix de géneros.
 // Shape único del card (símil de ClassCardData en /clases).
 export type EventCardData = {
   id: string;
@@ -45,11 +45,11 @@ const normName = (s: string) =>
 const seriesIsDup = (e: EventCardData) =>
   !!e.series && normName(e.name).includes(normName(e.series.name));
 
-// Card de evento — mismo esqueleto que ClassCard: columna de contenido
+// Card de evento - mismo esqueleto que ClassCard: columna de contenido
 // a la izquierda y rail de decisión a la derecha (hora arriba como
 // ancla de escaneo, precio debajo). En /eventos el día lo dan los
 // headings de grupo; fuera de ese contexto el caller pasa `when`.
-// El card completo es link a la ficha — hoy no hay acción in-card.
+// El card completo es link a la ficha - hoy no hay acción in-card.
 export function EventCard({ e, when }: { e: EventCardData; when?: string }) {
   const t = useTranslations("events");
   // Proporción del ciclo: ordena el texto de géneros de mayor a menor
@@ -127,7 +127,7 @@ export function EventCard({ e, when }: { e: EventCardData; when?: string }) {
             )}
           </div>
           {/* Rail de decisión: hora arriba (ancla de escaneo), precio
-              debajo — misma posición que el CTA/estado del ClassCard. */}
+              debajo - misma posición que el CTA/estado del ClassCard. */}
           <div className="flex shrink-0 flex-col items-center gap-1 self-start py-0.5 text-center">
             <span className="text-sm font-semibold tabular-nums text-white/80">
               <EventDate start={e.startsAt} variant="time" />

@@ -69,10 +69,10 @@ const SANDBOX_BASE_URL = "https://sandbox.flow.cl/api";
 
 /**
  * Selección del gateway por env. PAYMENT_GATEWAY=flow + credenciales
- * (FLOW_API_KEY / FLOW_SECRET_KEY — el alias FLOW_SECRET queda por
+ * (FLOW_API_KEY / FLOW_SECRET_KEY - el alias FLOW_SECRET queda por
  * compatibilidad) instancia FlowGateway; cualquier otro caso usa el
  * StubGateway de desarrollo. Solo sandbox por ahora: FLOW_BASE_URL debe
- * ser https://sandbox.flow.cl/api — producción se habilita tras validar
+ * ser https://sandbox.flow.cl/api - producción se habilita tras validar
  * el flujo end-to-end contra el sandbox.
  */
 export function resolveGateway(
@@ -103,7 +103,7 @@ export function resolveGateway(
       `${apiUrl}/api/payments/subscription-webhook`,
     );
   }
-  // Fail-close: el stub acepta webhooks sin firma — jamás en producción.
+  // Fail-close: el stub acepta webhooks sin firma - jamás en producción.
   if (env.NODE_ENV === "production") {
     throw new Error(
       "PAYMENT_GATEWAY=flow con FLOW_API_KEY/FLOW_SECRET es requerido en producción (StubGateway deshabilitado)",

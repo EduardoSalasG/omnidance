@@ -371,7 +371,7 @@ Si quieres continuar en otro chat, este texto contiene todo el contexto necesari
 
 Perfecto. A continuación tienes un “fill in the blanks” completamente rellenado con toda la información que dependía del contexto de mis respuestas. Está pensado como documento base para continuar el proyecto en otro chat, PRD o pitch, sin huecos conceptuales.
 
-# **Plataforma SBK — Contexto Completo (Fill in the Blanks)**
+# **Plataforma SBK - Contexto Completo (Fill in the Blanks)**
 
 # **1. Visión del producto**
 
@@ -547,7 +547,7 @@ Uso:
 
 - Control total del sistema
 
-# **12. Academias — funcionalidades**
+# **12. Academias - funcionalidades**
 
 **Mensualidades**
 

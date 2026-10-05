@@ -1,20 +1,20 @@
 import type { ExecutionContext } from "@nestjs/common";
 
 /**
- * Config de rate limiting (@nestjs/throttler) — spec api-hardening.
+ * Config de rate limiting (@nestjs/throttler) - spec api-hardening.
  *
  * Límites por IP, leídos de env en cada request (resolvers): así los
  * valores también llegan si solo están en .env (ConfigModule los carga
  * tras evaluar los módulos) y se pueden ajustar sin rebuild.
  *
  * - THROTTLE_TTL_MS       ventana deslizante   (default 60000)
- * - THROTTLE_GLOBAL_LIMIT requests/ventana     (default 300 — ~5/s, muy
+ * - THROTTLE_GLOBAL_LIMIT requests/ventana     (default 300 - ~5/s, muy
  *   por encima del uso normal incluido el polling del checkout ~30/min)
  * - THROTTLE_AUTH_LIMIT   requests/ventana en magic-link/login/register
- *   (default 8 — anti spam de correos y fuerza bruta)
+ *   (default 8 - anti spam de correos y fuerza bruta)
  *
  * En NODE_ENV=test el throttling se salta completo (skipIf): los e2e
- * levantan AppModule y disparan cientos de requests + logins — un límite
+ * levantan AppModule y disparan cientos de requests + logins - un límite
  * "alto" sigue siendo un límite arbitrario que puede morder en paralelo.
  */
 function intEnv(key: string, fallback: number): number {

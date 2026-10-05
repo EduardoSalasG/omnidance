@@ -1,15 +1,15 @@
-# Handoff — 2026-10-04a: remove-social-blocks-invites
+# Handoff - 2026-10-04a: remove-social-blocks-invites
 
 Sesión sobre `dev` implementando el change OpenSpec
 `remove-social-blocks-invites`: bloqueo de personas, invitaciones a
 bailar (invite/confirm/decline), solicitudes de pareja y toggle de
-disponibilidad **eliminados** — los bailes solo se registran por escaneo
+disponibilidad **eliminados** - los bailes solo se registran por escaneo
 QR en pista.
 
 ## Decisión de diseño clave (no estaba en los deltas originales)
 
-El delta eliminaba `POST /sessions/invite` — que era el **único** alta de
-`DanceSession` por QR — sin reemplazo, mientras el proposal dice "los
+El delta eliminaba `POST /sessions/invite` - que era el **único** alta de
+`DanceSession` por QR - sin reemplazo, mientras el proposal dice "los
 bailes solo se registran vía escaneo QR". Se resolvió así:
 
 - **Nuevo `POST /sessions/scan` `{qrToken, eventId}`** → crea la sesión
@@ -19,10 +19,10 @@ bailes solo se registran vía escaneo QR". Se resolvió así:
   acredita `session_confirmed` + evalúa badges de ambos (mismo hook que
   tenía el confirm eliminado).
 - Se añadió el requirement `ADDED` correspondiente al delta
-  `specs/partner-requests/spec.md` y la línea al proposal — el change
+  `specs/partner-requests/spec.md` y la línea al proposal - el change
   queda autoconsistente.
 - `declare` queda creando `INVITED` **sin resolución posible** (confirm
-  eliminado) — el proposal lo declara "backlog separado, sigue vivo".
+  eliminado) - el proposal lo declara "backlog separado, sigue vivo".
   En la web las cards INVITED entrantes ya no muestran botones muertos;
   expiran solas a las 24h (effectiveStatus). ⚠️ Si el producto quiere
   que declare cuente, hace falta un follow-up (p.ej. auto-confirm o un
@@ -32,7 +32,7 @@ bailes solo se registran vía escaneo QR". Se resolvió así:
 
 - **Migración** `20261008000000_drop_social_blocks_invites`: DROP TABLE
   `AvailabilityToggle`, `PracticePartnerRequest`, `UserBlock`
-  (**no aplicada** — la corre `migrate deploy`). Las `DanceSession`
+  (**no aplicada** - la corre `migrate deploy`). Las `DanceSession`
   históricas (incl. INVITED/DECLINED) quedan intactas.
   `prisma migrate diff --from-migrations --to-schema-datamodel --script`
   → vacío.
@@ -44,9 +44,9 @@ bailes solo se registran vía escaneo QR". Se resolvió así:
   (`declare`, `mine`, `rate`, `discard` intactos + nuevo `scan`);
   `people.controller` sin filtrado de bloqueados. 0 referencias
   residuales a userBlock/partnerRequest/availability en `src` y `test`.
-- **e2e**: `gap-social` (25✓), `sessions` (22✓ — nuevo bloque scan +
+- **e2e**: `gap-social` (25✓), `sessions` (22✓ - nuevo bloque scan +
   aserto 404 del ciclo eliminado), `social-endpoints` (9✓), `wiring`
-  (7✓ — scan → notif session.confirmed); domain spec 39✓.
+  (7✓ - scan → notif session.confirmed); domain spec 39✓.
 - **Web**: `DanceScanner` → `/sessions/scan` (copy "Baile registrado" /
   "Escanea el QR… para registrar el baile"); `SessionCard`/`types.ts`
   sin acciones confirm/decline; `amigos/[id]` usa `profile.datos.danceRole`;
@@ -75,18 +75,18 @@ bailes solo se registran vía escaneo QR". Se resolvió así:
    Backlog declarado en el proposal; el invitee ve una card pendiente sin
    acciones hasta que expira.
 2. **`SessionsService.transition` aún soporta confirm/decline** en
-   dominio (unit spec lo cubre) — inalcanzable vía API; se dejó para el
+   dominio (unit spec lo cubre) - inalcanzable vía API; se dejó para el
    follow-up de resolución de declares.
 3. **Specs canónicas**: `safety/user-blocks` se remueve al **archivar**
    el change (orquestador: `openspec archive` sin `--skip-specs`).
-4. Migración **sin aplicar** por diseño — verificar `migrate deploy` en
+4. Migración **sin aplicar** por diseño - verificar `migrate deploy` en
    el pipeline.
-5. El seed demo siembra `DanceSession` INVITED históricas — quedan
+5. El seed demo siembra `DanceSession` INVITED históricas - quedan
    como pendientes eternas en `/bailes` (correcto como dato histórico).
 
 ---
 
-## Cierre (integración final — mismo día, post-handoff)
+## Cierre (integración final - mismo día, post-handoff)
 
 Los 4 changes del pedido quedaron integrados, archivados y canonizados:
 
@@ -98,19 +98,19 @@ Los 4 changes del pedido quedaron integrados, archivados y canonizados:
 | `minor-polish-fixes` | `67e2962` | HomeHub: 5xx → error de servidor honesto + retry; glyphs→`ui/icons` en consolas producer/CRM/admin/landing; género editable en lente academia |
 
 **Además**: `POST /sessions/declare` eliminado en el mismo commit de
-cierre (aún creaba INVITED sin resolución — contradice "solo QR").
+cierre (aún creaba INVITED sin resolución - contradice "solo QR").
 Canonical `safety/user-blocks` retirada (`retire_capabilities: true`);
 `sessions/qr-scan` creada; `social-modules-scope` modificada;
-`sessions/retro-declared` se conserva renombrando su Purpose — las
+`sessions/retro-declared` se conserva renombrando su Purpose - las
 sesiones `retroDeclared` históricas siguen excluidas de Prime Time.
 
 **Pendiente que sigue vivo**:
 - `SessionsService.transition` soporta confirm/decline en dominio
-  (inalcanzable vía API — solo `discard` sigue ruteado, para limpiar
+  (inalcanzable vía API - solo `discard` sigue ruteado, para limpiar
   INVITED históricas).
 - Placeholders `[PENDIENTE]` en `legal.json`: RUT, domicilio legal y
   confirmar `privacidad@omnidance.cl` antes de producción.
-- Revisión legal profesional del copy — la implementación no sustituye
+- Revisión legal profesional del copy - la implementación no sustituye
   asesoría jurídica.
 - 12 specs canónicas antiguas aún tienen `## Purpose` placeholder
   (warning pre-existente bajo `--strict`).
@@ -128,16 +128,16 @@ Audit de las 65 páginas + componentes fetchers → fix transversal:
   billing-banner CTA, academias videos, bailes chip+racha, staff title +
   lista skeleton en vez de Spinner, selects de catálogos).
 - **`useMe()` compartido** (`src/lib/me-context.tsx`): `MeProvider` en el
-  layout de `(app)` — un solo `/me` deduplicado; consumen ConsentBanner,
+  layout de `(app)` - un solo `/me` deduplicado; consumen ConsentBanner,
   perfil, notificaciones, amigos, academia/page, academy-settings,
   academy-profile, academy-billing-banner. Expone `refresh()` para
   post-mutación. No reemplaza guards ni el /me de HomeHub (granularidad
   error session-vs-server).
-- **Regla canónica nueva**: estado `T[] | null` — `null`=cargando→skeleton;
-  `[]` post-fetch=empty-state. Prohibido `?? 0`/`"—"` como placeholder.
+- **Regla canónica nueva**: estado `T[] | null` - `null`=cargando→skeleton;
+  `[]` post-fetch=empty-state. Prohibido `?? 0`/`"-"` como placeholder.
 - Verificación: tsc web limpio, i18n ALL_KEYS_OK, impeccable `[]`,
   spec `loading-states` canonizada (3 requirements). **Smoke manual de
-  rutas pendiente** — probar /perfil, /notificaciones, /amigos,
+  rutas pendiente** - probar /perfil, /notificaciones, /amigos,
   /staff/:id en la sesión dev.
 
 ## loading-states ronda 2 (`06ea0a7` + `1494e9a`)
@@ -161,7 +161,7 @@ patrones:
   gates admin/producer, staff, productor/{eventos,eventos/[id],pagos,
   parametros,listas}, practicas/{,nueva}, academia/alumnos, videos,
   private-lessons, crm-context, OnboardingRunner. Los fetches de datos
-  disparan en paralelo con /me (especulativos — 401 descarta); /perfil
+  disparan en paralelo con /me (especulativos - 401 descarta); /perfil
   tiene shell skeleton con forma real usando getStoredActiveRole() para
   la lente. ~10 requests /me duplicados eliminados por sesión.
 
@@ -171,7 +171,7 @@ role-gated con sesión real (productor/academia/admin).
 
 ## Particulares en reservadas (`9c25a20`, change `2026-10-05-particulares-en-reservadas`)
 
-Pedido: "la sección de mis particulares no debe existir — es otra clase
+Pedido: "la sección de mis particulares no debe existir - es otra clase
 que aparece en reservadas". Eliminada la bandeja `/clases/particular`
 y toda su navegación.
 
@@ -185,7 +185,7 @@ y toda su navegación.
 - **Historial**: mergea particulares DONE/CANCELLED (sort desc).
 - **Calendario**: las particulares con fecha cuentan en los dots.
 - **API**: `GET /private-lessons/mine` rama alumno incluye
-  `academy:{id,name}` — la card no necesita fetch extra del directorio.
+  `academy:{id,name}` - la card no necesita fetch extra del directorio.
   FakePrisma del spec ganó `academy.findMany`.
 - **`PrivateLessons`**: consola staff+instructor pura (`academy`
   requerido); sección "mis solicitudes" del alumno eliminada.
@@ -193,11 +193,11 @@ y toda su navegación.
   sheet "+" lente academia (`SHEET_ACADEMY_ITEMS = []`), label de ruta.
 - **Redirects**: notificaciones `academy.private_lesson.*` y
   `checkout/return` PRIVATE → `/clases?scope=reservadas` (parsea a
-  scope mias + calScope reservadas — verificado en el código).
+  scope mias + calScope reservadas - verificado en el código).
 - **i18n**: retiradas `classes.privateTray`, `lessons.mineTitle`,
   `lessons.emptyMine`, `lessons.requested` (audit ALL_KEYS_OK).
 - Spec canónica `academy-learner` actualizada (+1 requirement, Purpose
-  reescrito — quedaba TBD del archive anterior).
+  reescrito - quedaba TBD del archive anterior).
 
 Verificación: tsc api+web limpio, vitest 17/17 private-lessons +
 classes spec verde, i18n ALL_KEYS_OK, impeccable detect `[]`,
@@ -206,11 +206,11 @@ particular sin agendar visible arriba de reservadas, cancelación,
 terminales en historial, staff /academia/particulares intacto,
 notificación private_lesson navega a reservadas.
 
-## loading-states ronda 3 (`a4c1d2e`) — barrido del patrón amigos
+## loading-states ronda 3 (`a4c1d2e`) - barrido del patrón amigos
 
 Revisión sistemática de las ~65 páginas buscando el patrón residual
 (fetch encadenado + skeleton-que-colapsa en sección opcional).
-**Único caso real: `/bailes`** — la racha esperaba a /sessions para
+**Único caso real: `/bailes`** - la racha esperaba a /sessions para
 fetchear (waterfall) y el bloque mejor-baile+racha colapsaba si
 resolvía <2 semanas. Fix: fetch paralelo + bloque que aparece una
 sola vez (sin skeleton provisional).
@@ -218,7 +218,7 @@ sola vez (sin skeleton provisional).
 Verificados limpios: practicas, amigos/[id], notificaciones,
 staff/[eventId], venue (master-detail gated), dj, analitica (+usuario),
 admin/parametros + usuarios/[id], consola academia (dashboard, videos,
-teaching-classes, private-lessons), academia hub, eventos (SSR — sin
+teaching-classes, private-lessons), academia hub, eventos (SSR - sin
 flash posible). Los skeletons `=== "loading"` restantes viven en slots
 persistentes (la sección siempre existe → el placeholder se llena).
 
@@ -232,7 +232,7 @@ inline en la lista), una sola llamada para reservadas, y se cuestionó la
 duplicación de endpoints.
 
 **Decisión (evaluada y documentada en el proposal)**: el modelo
-`PrivateLesson` separado se MANTIENE — no es "una clase con aforo 1":
+`PrivateLesson` separado se MANTIENE - no es "una clase con aforo 1":
 se paga antes de agendarse (`scheduledAt` null), no tiene serie/slot/
 recurrencia, lleva comisiones y un ciclo REQUESTED→CONFIRMED→DONE
 distinto. Fusionarlo en `Class` exigiría slot/series fake o nullables
@@ -240,17 +240,17 @@ estructurales en todo el dominio. Lo que converge es la **superficie
 alumno**:
 
 - **`GET /classes/mine`** mergea las particulares activas
-  (REQUESTED/CONFIRMED) en la misma respuesta — shape del card vía
+  (REQUESTED/CONFIRMED) en la misma respuesta - shape del card vía
   `lessonCardItem` (`class-card-projection.ts`): `series:null`,
   `capacity:1`, `myBooking:"BOOKED"`, `date`/`startTime` null cuando no
   está agendada (`instantToCardDate` convierte el instante a la
   convención medianoche-UTC del card, con offset Santiago por Intl).
 - **`?scope=past`** mergea DONE→"attended"/CANCELLED→"cancelled" (la
   cancelada sin agendar se ubica por su día de compra).
-- **`GET /private-lessons/:id`** nuevo — detalle para alumno dueño /
+- **`GET /private-lessons/:id`** nuevo - detalle para alumno dueño /
   instructor / owner / admin; la comisión solo viaja a los tres
   últimos (el alumno nunca la ve).
-- **`/private-lessons/mine` pierde la rama alumno** — solo
+- **`/private-lessons/mine` pierde la rama alumno** - solo
   `?as=instructor` (400 sin eso): una sola fuente de reservas del
   learner, se eliminó la lectura duplicada.
 - **Web**: `LessonCardData` (series/date nullables) + unión
@@ -260,7 +260,7 @@ alumno**:
 - **`/clases/[id]`**: 404 de clase → fallback `GET /private-lessons/:id`
   → ficha equivalente (academia, instructor o "por asignar", fecha o
   "por agendar", precio, estado) + `PrivateLessonCancelCta` al pie
-  (zona destructiva + sheet de confirmación — mismo patrón que
+  (zona destructiva + sheet de confirmación - mismo patrón que
   `ClassBookingCta`; la devolución es manual, como reserva pagada).
 
 Verificación: tsc api+web limpio, vitest 63/63 (classes 41 +
@@ -271,17 +271,17 @@ flows.md/architecture.md actualizados. **Smoke manual pendiente**:
 particular sin agendar arriba de reservadas, ficha + cancelación con
 sesión real, consola staff intacta.
 
-## Planes de academia — tag de tipo + seed por categorías (508ec9d + archive)
+## Planes de academia - tag de tipo + seed por categorías (508ec9d + archive)
 
 Pedido: el periodo del plan (Mensual/Trimestral/Semestral) va como tag
 verde, no como texto; los nombres del seed ya no llevan periodo ni
-conteo semanal (era redundante con el card) — ahora son categorías que
+conteo semanal (era redundante con el card) - ahora son categorías que
 varían por academia; todas ofrecen clase de prueba y clase suelta.
 
 - **UI** (`profile-plans-section.tsx`): `Badge variant="neon"` para el
   tipo junto al nombre; la línea gris solo muestra cuotas
   (N clases · N/semana).
-- **Seed**: `plan()` acepta `aliases` — busca por nombre nuevo o
+- **Seed**: `plan()` acepta `aliases` - busca por nombre nuevo o
   antiguos y renombra in-place; restos con alias quedan `active:false`
   (no se borran, pueden tener enrollments). Verificado: 2 corridas
   idempotentes, 0 planes con nombre viejo, 0 duplicados, 80 activos.
@@ -299,14 +299,14 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
 
 ## CI/CD (mismo patrón que video-repo)
 
-- **API → GitHub Actions**: `.github/workflows/deploy-api-docker.yml` —
+- **API → GitHub Actions**: `.github/workflows/deploy-api-docker.yml` -
   push a `main` → test+build → imagen `ghcr.io/<owner>/omnidance-api:<sha>`
   → SSH a la VM → `migrate deploy` + seed prod one-shot → recreate →
   health gate (`/api/health` 200 + `/api/me` 401) → nginx reload + sonda
   HTTPS por `vars.PUBLIC_API_HOST`.
 - **`apps/api/Dockerfile`**: multi-stage node:22-slim; openssl en builder
   ANTES de install (sin él el postinstall de prisma genera engine
-  openssl-1.1.x y el runtime openssl-3 no lo encuentra — verificado con
+  openssl-1.1.x y el runtime openssl-3 no lo encuentra - verificado con
   build+run real: health 200, /me 401, migrate deploy OK).
 - **`apps/api/docker-compose.yml`**: servicio `api` 127.0.0.1:4000,
   env_file .env, healthcheck curl. Prod no lleva DB ni Redis (REDIS_URL
@@ -317,7 +317,7 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
   socket.io queda en polling por el proxy (ya es así en dev).
 - **Docs**: `docs/ci-cd.md` = checklist completo (secrets GH, vars,
   .env de la VM incl. PAYMENT_GATEWAY=flow fail-close, nginx, Netlify).
-- Infra/tooling — sin cambio de comportamiento → sin change OpenSpec.
+- Infra/tooling - sin cambio de comportamiento → sin change OpenSpec.
 - **Pendiente del usuario**: provisionar secrets/vars en GitHub, crear
   sitio Netlify + env vars, preparar `.env` en la VM y el vhost nginx.
   Primer push a `main` con todo listo dispara el primer deploy.
@@ -330,11 +330,11 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
   `SEED_ENV=prod` → arranca Nest. Verificado en Docker real: DB vacía
   crea 14 migraciones + seed + health 200/me 401; DB con datos omite
   seed. El workflow además corre migrate+seed one-shot antes del
-  recreate (fail temprano) — redundancia intencional e idempotente.
+  recreate (fail temprano) - redundancia intencional e idempotente.
 - **Dockerfile runtime**: `COPY apps/api/src` (seed.ts vía tsx importa
   `../src/*`); openssl en builder para engine prisma correcto.
 - **CI e2e**: el job ahora levanta `postgres:16-alpine` service +
-  `migrate deploy` + `SEED_ENV=prod` baseline antes de `pnpm test` —
+  `migrate deploy` + `SEED_ENV=prod` baseline antes de `pnpm test` -
   los 27 e2e bootean Nest contra DATABASE_URL.
 - **e2e stale corregidos** (eran anteriores al gate Producer Pro S5):
   `proTier:"PRO_STARTER"` en fixtures de productor de `gap-crm`,
@@ -347,7 +347,7 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
   `--no-ff` (merge `87dfe57`), tag anotado **`v0.1.0`** sobre ese
   commit, push de ambos, `main` sincronizado de vuelta a `dev` (FF).
 - **Pipeline**: run `37265404475` gatillado por el push a main.
-  Llegará hasta el paso SSH — falla ahí **hasta que el usuario
+  Llegará hasta el paso SSH - falla ahí **hasta que el usuario
   provisione** los secrets (`ORACLE_*`, `GHCR_*`,
   `MIGRATION_DATABASE_URL`, `SEED_ADMIN_EMAIL`) y el `.env` de la VM
   (`docs/ci-cd.md` tiene el checklist completo). Netlify igual:
@@ -367,7 +367,7 @@ Verificación: tsc api+web limpio, openspec 47/47, impeccable detect
 
 ### Pipeline verificado end-to-end (runs 37265404475→37267038599+)
 
-Iteraciones reales sobre GitHub Actions + VM Oracle — lo que se
+Iteraciones reales sobre GitHub Actions + VM Oracle - lo que se
 descubrió y arregló en cada run:
 
 1. **e2e en CI necesitaban seed dev** (personas `*@omnidance.dev`), no
@@ -379,9 +379,9 @@ descubrió y arregló en cada run:
    NOPASSWD → el usuario corrigió los permisos del deploy user y
    `CONTAINER_DIR` volvió a `/opt/apps/omnidance` (patrón video-repo).
    `.env` va ahí.
-4. **Comandos ssh remotos van con comillas simples** — con dobles,
+4. **Comandos ssh remotos van con comillas simples** - con dobles,
    cualquier `$` se expandiría en el runner antes de llegar a la VM.
-5. **nginx reload es `sudo -n` no-fatal** — si el deploy user no tiene
+5. **nginx reload es `sudo -n` no-fatal** - si el deploy user no tiene
    NOPASSWD, avisa y sigue; el vhost es estático y la sonda HTTPS es
    el gate real.
 6. **Puerto público del API: 3002** (host) → 4000 (contenedor);

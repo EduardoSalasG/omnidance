@@ -39,7 +39,7 @@ export function SessionCard({
 }: SessionCardProps) {
   const t = useTranslations("sessions");
   const [ratingOpen, setRatingOpen] = useState(false);
-  // Qué acción pidió el usuario — el Spinner va en ese botón mientras
+  // Qué acción pidió el usuario - el Spinner va en ese botón mientras
   // el padre mantiene busy (ambos quedan disabled igual).
   const [pendingAction, setPendingAction] = useState<SessionAction | null>(
     null,
@@ -123,7 +123,7 @@ export function SessionCard({
         {meta && <Badge variant={meta.variant}>{t(meta.key)}</Badge>}
       </div>
 
-      {/* Invitación entrante: el ciclo confirm/decline se eliminó — las
+      {/* Invitación entrante: el ciclo confirm/decline se eliminó - las
           invitaciones declaradas quedan pendientes hasta expirar. */}
 
       {/* Invitación saliente: descartar si no hubo baile */}
@@ -142,7 +142,7 @@ export function SessionCard({
       )}
 
       {/* Confirmada/puntuada: puntuar inline o mostrar lo que di.
-          RATED también es rateable — la contraparte puede actualizar. */}
+          RATED también es rateable - la contraparte puede actualizar. */}
       {(session.status === "CONFIRMED" || session.status === "RATED") &&
         (session.myRating ? (
           <div className="mt-2">

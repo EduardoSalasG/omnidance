@@ -8,7 +8,7 @@ import { Badge, Card } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 
-// Respuesta de GET /admin/users?q= — liviana, sin detalle por rol.
+// Respuesta de GET /admin/users?q= - liviana, sin detalle por rol.
 type SearchUser = {
   id: string;
   name: string;

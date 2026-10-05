@@ -339,7 +339,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
         </Card>
       </section>
 
-      {/* Gestión de roles — historial completo (incluye REJECTED) */}
+      {/* Gestión de roles - historial completo (incluye REJECTED) */}
       <section className="flex flex-col gap-3" aria-labelledby="roles-h">
         <h2
           id="roles-h"
@@ -424,7 +424,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
         )}
       </section>
 
-      {/* Actividad por rol — una card por rol con data (status ≠ REJECTED) */}
+      {/* Actividad por rol - una card por rol con data (status ≠ REJECTED) */}
       <section className="flex flex-col gap-3" aria-labelledby="roledata-h">
         <h2
           id="roledata-h"
@@ -549,7 +549,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
             {d.ticketsUpcoming.map((tk) => (
               <DataRow
                 key={tk.id}
-                name={tk.event?.name ?? "—"}
+                name={tk.event?.name ?? "·"}
                 date={tk.event?.startsAt}
                 sub={fmtClp(tk.listPrice)}
                 badge={<DataStatusBadge kind="ticket" status={tk.status} />}
@@ -563,7 +563,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
             {d.ticketsPast.map((tk) => (
               <DataRow
                 key={tk.id}
-                name={tk.event?.name ?? "—"}
+                name={tk.event?.name ?? "·"}
                 date={tk.event?.startsAt}
                 sub={fmtClp(tk.listPrice)}
                 badge={<DataStatusBadge kind="ticket" status={tk.status} />}
@@ -613,7 +613,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
           {d.assignments.map((a) => (
             <DataRow
               key={a.id}
-              name={a.event?.name ?? "—"}
+              name={a.event?.name ?? "·"}
               date={a.event?.startsAt}
               sub={
                 a.event?.producer
@@ -652,7 +652,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
             {d.classesUpcoming.map((c) => (
               <DataRow
                 key={c.id}
-                name={c.style ?? "—"}
+                name={c.style ?? "·"}
                 date={c.startsAt}
                 sub={c.academy.name}
               />

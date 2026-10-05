@@ -410,7 +410,7 @@ describe("spec-gap-closure: declare + friendships e2e", () => {
     let vId: string;
 
     beforeAll(async () => {
-      // B↔D amigos aceptados (D bloqueó a C en tests previos — no sirve);
+      // B↔D amigos aceptados (D bloqueó a C en tests previos - no sirve);
       // D tiene ticket ACTIVE a un evento futuro.
       await prisma.friendship.create({
         data: { aId: ids.bId, bId: ids.dId, status: "ACCEPTED" },

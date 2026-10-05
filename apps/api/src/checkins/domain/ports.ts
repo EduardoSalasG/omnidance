@@ -13,13 +13,13 @@ export type DoorSaleChannel = "CASH" | "APP";
 
 /** Tipo de pase expuesto en CheckinResult.passType. PassType cubre los
  * EntryPass de lista/cortesía; "SERIES_PASS" es el pase mensual de la serie
- * (no es un PassType del schema — vive en SeriesPass). */
+ * (no es un PassType del schema - vive en SeriesPass). */
 export type CheckinPassType = import("@prisma/client").PassType | "SERIES_PASS";
 
 /**
  * Pase resuelto al momento del check-in (ticket comprado, entry_pass de
  * lista/cortesía o pase mensual de serie). SERIES_PASS no se consume:
- * es vigente todo el mes — el check-in solo lo referencia en passId.
+ * es vigente todo el mes - el check-in solo lo referencia en passId.
  */
 export type ResolvedPass = {
   kind: "TICKET" | "ENTRY_PASS" | "SERIES_PASS";
@@ -32,7 +32,7 @@ export interface CreateCheckinData {
   staffId: string;
   method: CheckinMethod;
   passId: string | null;
-  /** Nota del staff (cortesías manuales) — se persiste en Checkin.note. */
+  /** Nota del staff (cortesías manuales) - se persiste en Checkin.note. */
   note: string | null;
 }
 
@@ -57,7 +57,7 @@ export interface EventDoorInfo {
 export interface VoidCheckinInput {
   checkinId: string;
   reason: string;
-  /** Quien ejecuta el void — queda en AuditLog.actorId. */
+  /** Quien ejecuta el void - queda en AuditLog.actorId. */
   actorId: string;
 }
 
@@ -79,7 +79,7 @@ export interface CheckinsRepo {
   findPersonById(
     id: string,
   ): Promise<{ id: string; name: string; photoUrl: string | null } | null>;
-  /** Check-in abierto (sin outAt) para (eventId, personId) — guard de doble ingreso. */
+  /** Check-in abierto (sin outAt) para (eventId, personId) - guard de doble ingreso. */
   findOpenCheckin(eventId: string, personId: string): Promise<Checkin | null>;
   findCheckinById(id: string): Promise<Checkin | null>;
   findActiveTicket(eventId: string, ownerId: string): Promise<Ticket | null>;
@@ -107,10 +107,10 @@ export interface CheckinsRepo {
   personHasPermission(personId: string, permissionKey: string): Promise<boolean>;
   /** Algún rol APPROVED de la persona es isSuperuser (ADMIN). */
   isSuperuser(personId: string): Promise<boolean>;
-  /** StaffAssignment del evento — operador de puerta asignado. */
+  /** StaffAssignment del evento - operador de puerta asignado. */
   isStaffAssigned(eventId: string, personId: string): Promise<boolean>;
 
-  /** Setea outAt — el caller garantizó autorización e idempotencia. */
+  /** Setea outAt - el caller garantizó autorización e idempotencia. */
   closeCheckin(id: string): Promise<Checkin>;
   /**
    * Void atómico: voidedAt+voidReason, revierte el pase (Ticket/EntryPass)
@@ -118,7 +118,7 @@ export interface CheckinsRepo {
    */
   voidCheckin(input: VoidCheckinInput): Promise<Checkin>;
 
-  /** Ventas de puerta registradas — checkins MANUAL no anulados del evento. */
+  /** Ventas de puerta registradas - checkins MANUAL no anulados del evento. */
   countDoorSales(eventId: string): Promise<number>;
   findPersonByPhone(
     phone: string,
@@ -130,11 +130,11 @@ export interface CheckinsRepo {
   }): Promise<{ id: string; name: string }>;
   /** Ticket USED + Checkin MANUAL en una transacción (venta de puerta). */
   createDoorSale(input: DoorSaleTxInput): Promise<DoorSaleTxResult>;
-  /** PlatformParam numérico — delega en ParamsService (cache 30s). */
+  /** PlatformParam numérico - delega en ParamsService (cache 30s). */
   getParamNumber(key: string, fallback: number): Promise<number>;
   /**
    * Defaults de fees del productor (ProducerParams). Opcional para no
-   * romper implementaciones de test legadas — null equivale a "sin
+   * romper implementaciones de test legadas - null equivale a "sin
    * defaults" y el caller cae al param global.
    */
   getProducerParams?(producerId: string | null): Promise<{

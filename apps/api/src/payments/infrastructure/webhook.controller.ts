@@ -69,7 +69,7 @@ export class PaymentsController {
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
-  // Idempotente: re-notificación PAID no duplica ticket ni usedCount —
+  // Idempotente: re-notificación PAID no duplica ticket ni usedCount -
   // la transición real vive en PaymentSettlementService.settle; aquí solo
   // queda verificación + lookup + evidencia WEBHOOK_RECEIVED.
   @Post("webhook")
@@ -91,7 +91,7 @@ export class PaymentsController {
     });
     if (!payment) throw new NotFoundException("pago no encontrado");
 
-    // WEBHOOK_RECEIVED se emite SIEMPRE — un webhook duplicado también es
+    // WEBHOOK_RECEIVED se emite SIEMPRE - un webhook duplicado también es
     // evidencia. Los eventos de transición (STATUS_CONFIRMED, SETTLED,
     // FAILED…) solo se emiten dentro del settle cuando hay cambio real.
     await this.settlement.recordWebhookReceived(payment, {
@@ -107,11 +107,11 @@ export class PaymentsController {
 
   /**
    * Retorno del browser tras el disclaimer de registro de tarjeta de
-   * Flow (url_return de customer/register — Flow POSTea {token}).
+   * Flow (url_return de customer/register - Flow POSTea {token}).
    * Público: el service registra el INBOUND, resuelve el customer y
    * crea la suscripción pendiente; acá solo se traduce a redirect 303
    * hacia la ficha de la academia (`?sub=ok|error`). Nunca responde
-   * error HTTP al browser — el redirect es la respuesta.
+   * error HTTP al browser - el redirect es la respuesta.
    */
   @Post("flow/customer-return")
   async customerReturn(@Body() body: FlowTokenDto, @Res() res: Response) {
@@ -136,10 +136,10 @@ export class PaymentsController {
 
   /**
    * Retorno del disclaimer de tarjeta para suscripciones DE PLATAFORMA
-   * (academia SaaS / Producer Pro — spec academy-saas-billing). Endpoint
+   * (academia SaaS / Producer Pro - spec academy-saas-billing). Endpoint
    * propio porque el token de getRegisterStatus se consume una sola vez:
    * cada dominio resuelve sus pendientes en su callback. Mismo contrato
-   * que customer-return: nunca error HTTP — el redirect es la respuesta.
+   * que customer-return: nunca error HTTP - el redirect es la respuesta.
    * Academia → su ficha (?sub=ok|error); productor → /productor?pro=ok.
    */
   @Post("flow/platform-customer-return")
@@ -169,7 +169,7 @@ export class PaymentsController {
   /**
    * urlCallback de los Flow-plans de suscripción (registrado en
    * plans/create). Público: registra el INBOUND en GatewayTransaction y
-   * dispara reconcileAll fire-and-forget — responde 200 siempre (Flow
+   * dispara reconcileAll fire-and-forget - responde 200 siempre (Flow
    * reintenta ante no-200 y repetiría el barrido completo). El callback
    * es compartido: barre membresías de alumnos Y suscripciones de
    * plataforma (mismo token-gating anti-amplificación dentro de cada
@@ -187,12 +187,12 @@ export class PaymentsController {
   // Row común: montos de la orden + verdad monetaria reportada por la
   // pasarela (gatewayFeeClp/gatewayReportedAmount/gatewayMedia/
   // gatewayPaidAt) + eventCount del ledger. `gatewayRaw` nunca sale por
-  // estos endpoints — es evidencia interna (solo admin/browse).
+  // estos endpoints - es evidencia interna (solo admin/browse).
   // Las rutas estáticas van ANTES de ":id" (Express matchea en orden de
-  // registro — si no, /payments/mine caería en getPayment con id="mine").
+  // registro - si no, /payments/mine caería en getPayment con id="mine").
 
   /**
-   * GET /payments/mine — historial del autenticado (≤100, recientes
+   * GET /payments/mine - historial del autenticado (≤100, recientes
    * primero) con contador de eventos del ledger y contexto de compra
    * resuelto (eventName / seriesName / academyName + planName).
    */
@@ -209,10 +209,10 @@ export class PaymentsController {
   }
 
   /**
-   * GET /payments/by-event/:eventId — ventas del evento para su
+   * GET /payments/by-event/:eventId - ventas del evento para su
    * productor (event.producerId === caller) o admin.access.
    * Solo órdenes con eventId directo: un SERIES_PASS pertenece a la
-   * serie (mes completo), no a una fecha puntual — su devengo ya se
+   * serie (mes completo), no a una fecha puntual - su devengo ya se
    * liquida por serie en payouts, mezclarlo aquí inflaría la recaudación
    * del evento.
    */
@@ -246,14 +246,14 @@ export class PaymentsController {
   }
 
   /**
-   * GET /payments/by-academy/:academyId — cobros MEMBERSHIP de los planes
+   * GET /payments/by-academy/:academyId - cobros MEMBERSHIP de los planes
    * + WORKSHOP (clases sueltas/talleres pagos) + PRIVATE (clase
    * particular comprable) de la academia. La orden no tiene columna de
    * academia: el refId (mem_<planId>_<uid> / wks_<classId>_<uid> /
    * pvt_<academyId>_<uid>) decodifica al plan, la clase o la academia
-   * misma — el filtro `refId startsWith` es el mismo decode+belongs
+   * misma - el filtro `refId startsWith` es el mismo decode+belongs
    * de payouts, resuelto en SQL. Owner de la academia o admin.access
-   * (no existe permiso academies.manage — la administración financiera
+   * (no existe permiso academies.manage - la administración financiera
    * de la academia es owner|admin, como canAdministerAcademy).
    */
   @Get("by-academy/:academyId")
@@ -305,11 +305,11 @@ export class PaymentsController {
   }
 
   /**
-   * GET /payments/:id/events — ledger append-only del pago ordenado por
+   * GET /payments/:id/events - ledger append-only del pago ordenado por
    * seq: cada evento con su payload y payloadHash (la evidencia
    * tamper-evident completa). Dueño del pago o admin.access; el staff
    * del actor relacionado audita vía by-event/by-academy. 404 para
-   * ajenos — misma política anti-enumeración que GET /payments/:id.
+   * ajenos - misma política anti-enumeración que GET /payments/:id.
    */
   @Get(":id/events")
   @UseGuards(SessionGuard)
@@ -334,7 +334,7 @@ export class PaymentsController {
 
   // Polling desde el checkout (solo el dueño del pago). Si la pasarela
   // soporta consulta activa (Flow.refreshStatus por commerceOrder) y la
-  // orden sigue PENDING, se le pregunta directamente — cubre sandbox/dev
+  // orden sigue PENDING, se le pregunta directamente - cubre sandbox/dev
   // donde el webhook no puede alcanzar localhost; un estado terminal
   // pasa por el mismo settle del webhook (idempotente).
   @Get(":id")
@@ -372,13 +372,13 @@ export class PaymentsController {
       amount: payment.amount,
       createdAt: payment.createdAt,
       // TICKET: el return del checkout reintenta contra el checkout del
-      // evento al fallar — el dueño del pago ya conoce este id.
+      // evento al fallar - el dueño del pago ya conoce este id.
       eventId: payment.eventId,
     };
   }
 
   /**
-   * Tickets emitidos por esta orden (solo el dueño del pago) — el éxito
+   * Tickets emitidos por esta orden (solo el dueño del pago) - el éxito
    * del checkout los necesita para pintar los links de reclamo. Devuelve
    * id + claimToken; nada más del ticket es necesario ahí.
    */

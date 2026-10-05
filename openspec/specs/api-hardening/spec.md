@@ -1,7 +1,7 @@
 # api-hardening Specification
 
 ## Purpose
-Hardening HTTP global de la API: headers de seguridad vía helmet (CSP desactivada por Swagger UI) y rate limiting con @nestjs/throttler — límite global por env, límite estricto en `/auth/*`, skip en `NODE_ENV=test` y contextos no-HTTP.
+Hardening HTTP global de la API: headers de seguridad vía helmet (CSP desactivada por Swagger UI) y rate limiting con @nestjs/throttler - límite global por env, límite estricto en `/auth/*`, skip en `NODE_ENV=test` y contextos no-HTTP.
 
 ## Requirements
 

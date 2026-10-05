@@ -11,7 +11,7 @@ const BTN =
   "inline-flex min-h-11 min-w-16 items-center justify-center rounded-xl border px-4 text-xs font-bold uppercase tracking-wide transition-colors";
 
 /**
- * Exporte CSV/PDF del evento (spec §11 "Exportes — CSV/PDF por evento y
+ * Exporte CSV/PDF del evento (spec §11 "Exportes - CSV/PDF por evento y
  * por serie"). CSV = planilla para cuadrar; PDF = reporte imprimible
  * con resumen. Links de descarga directa vía proxy /api (preserva la
  * cookie de sesión); `download` evita el NavPendingOverlay y no navega.
@@ -29,7 +29,7 @@ export function ExportSection({
   /** Presente → ofrece el export agregado de la serie (columna `evento`). */
   seriesId?: string | null;
   seriesName?: string | null;
-  /** Owner sin Pro efectivo — los exports responden 403 pro.required. */
+  /** Owner sin Pro efectivo - los exports responden 403 pro.required. */
   proLocked?: boolean;
 }) {
   const t = useTranslations("producer");

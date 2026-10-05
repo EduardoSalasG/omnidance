@@ -11,7 +11,7 @@ originada por la academia siempre devuelve.
 
 El corte de devolución SHALL ser el `PlatformParam`
 `classes.cancel_refund_minutes` (default 60, editable vía
-`PUT /admin/params`), leído con `ParamsService` — nunca hardcodeado.
+`PUT /admin/params`), leído con `ParamsService` - nunca hardcodeado.
 
 #### Scenario: Corte por defecto
 
@@ -34,7 +34,7 @@ la respuesta SHALL declarar `refunded:true`.
 ### Requirement: Cancelación fuera de la ventana pierde el crédito
 
 Pasado el corte, la cancelación SHALL seguir permitida pero con
-`refunded=false` — el asiento se libera igual (la waitlist promueve) y la
+`refunded=false` - el asiento se libera igual (la waitlist promueve) y la
 respuesta declara `refunded:false`.
 
 #### Scenario: Cancelar a última hora
@@ -52,7 +52,7 @@ SHALL quedar `CANCELLED` con `refunded=true` y `cancelledAt` registrado.
 #### Scenario: Academia desactiva la serie
 
 - **WHEN** se desactiva una serie con reservas en clases futuras
-- **THEN** esas reservas quedan `CANCELLED` con `refunded=true` — ningún
+- **THEN** esas reservas quedan `CANCELLED` con `refunded=true` - ningún
   alumno pierde crédito por una decisión de la academia
 
 ### Requirement: UI declara la consecuencia antes de confirmar

@@ -10,7 +10,7 @@ TBD - created by archiving change trial-plan-purchase. Update Purpose after arch
 `GET /checkout/membership-quote` y `POST /checkout/membership` SHALL
 aceptar planes con `type: "TRIAL"` activos de academias activas, cobrados
 como orden one-off `MEMBERSHIP` con `service_fee.membership_clp`. El
-viewer puede estar inscrito o no en la academia — no hay validación de
+viewer puede estar inscrito o no en la academia - no hay validación de
 enrollment previo.
 
 #### Scenario: compra válida
@@ -32,7 +32,7 @@ enrollment previo.
 
 Al PAID, `settleMembership` con plan TRIAL SHALL crear un **nuevo**
 `Enrollment { status: "TRIAL", planId, academyId, personId,
-startedAt: now, endsAt: membershipEndsAt(plan, now) }` — sin actualizar
+startedAt: now, endsAt: membershipEndsAt(plan, now) }` - sin actualizar
 enrollments existentes.
 
 #### Scenario: alumna ya ACTIVE

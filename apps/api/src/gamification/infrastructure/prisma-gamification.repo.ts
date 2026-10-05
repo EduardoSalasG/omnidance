@@ -22,7 +22,7 @@ export class PrismaGamificationRepo implements GamificationRepo {
   }
 
   confirmedSessionsForEvent(eventId: string) {
-    // RATED sigue siendo una sesión confirmada (ya puntuada) — si solo se
+    // RATED sigue siendo una sesión confirmada (ya puntuada) - si solo se
     // cuenta CONFIRMED, el primer rating la saca de leaderboard/misiones.
     // retroDeclared NO cuenta: el Prime Time/leaderboard se alimenta del
     // escaneo en vivo (spec §6); las declaradas sí cuentan para
@@ -235,7 +235,7 @@ export class PrismaGamificationRepo implements GamificationRepo {
       return await this.prisma.pointLedger.create({ data: entry });
     } catch (e) {
       // P2002: el unique (personId, reason, refType, refId) rechaza el
-      // duplicado — es el path de la race, no un error real.
+      // duplicado - es el path de la race, no un error real.
       if (
         e instanceof Prisma.PrismaClientKnownRequestError &&
         e.code === "P2002"

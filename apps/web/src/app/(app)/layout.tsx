@@ -5,7 +5,7 @@ import { ConsentBanner } from "@/components/legal/ConsentBanner";
 import { MeProvider } from "@/lib/me-context";
 import baseMessages from "../../../messages/es-CL.json";
 
-// Grupo (app): superficies autenticadas con chrome de app — skip-link,
+// Grupo (app): superficies autenticadas con chrome de app - skip-link,
 // #contenido y BottomNav dentro del RealtimeProvider. El padding-bottom
 // reserva el espacio de la tab bar (safe-area iOS); las páginas de
 // (marketing) no lo heredan.
@@ -25,7 +25,7 @@ export default function AppLayout({
       {/* Overlay de navegación: spinner diferido 200ms en cualquier
           link interno lento (toda la app autenticada lo hereda). */}
       <NavPendingOverlay>
-        {/* /me compartido: un solo fetch por sesión de (app) — las
+        {/* /me compartido: un solo fetch por sesión de (app) - las
             páginas consumen useMe() en vez de refetchear. No bloquea
             children: cada consumidor gatea con `loading`. */}
         <MeProvider>

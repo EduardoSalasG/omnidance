@@ -16,7 +16,7 @@ export class PrismaAuthRepo implements AuthRepo {
         data: {
           // El magic link prueba posesión del correo. La promoción
           // demo→real se salta si el admin la convirtió y falta el
-          // perfil (pendingProfileAt) — eso lo cierra /me/complete-profile.
+          // perfil (pendingProfileAt) - eso lo cierra /me/complete-profile.
           verifiedAt: new Date(),
           ...(existing.pendingProfileAt ? {} : { isDemoAccount: false }),
         },

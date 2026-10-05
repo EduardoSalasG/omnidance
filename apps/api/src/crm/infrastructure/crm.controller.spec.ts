@@ -6,7 +6,7 @@ import { invalidateRoleCatalog } from "../../common/rbac/roles.guard";
 import { CrmController } from "./crm.controller";
 import type { CrmService } from "../domain/crm.service";
 
-// CrmController.assertActorAccess — gating Producer Pro (S5
+// CrmController.assertActorAccess - gating Producer Pro (S5
 // academy-saas-billing): cuando el actor resuelto es PRODUCER y el caller
 // es ese productor, todas las features CRM (people, campañas, triggers,
 // scores) exigen Pro vigente → 403 {error:"pro.required", upgrade:true}.
@@ -78,7 +78,7 @@ const mkProducer = (
   ...over,
 });
 
-describe("CrmController — gating Producer Pro", () => {
+describe("CrmController - gating Producer Pro", () => {
   let prisma: FakePrisma;
   let crm: {
     listPeople: ReturnType<typeof vi.fn>;

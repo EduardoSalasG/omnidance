@@ -5,7 +5,7 @@ export interface LogContext {
 }
 
 /**
- * Contexto de correlación por request — cualquier log emitido dentro
+ * Contexto de correlación por request - cualquier log emitido dentro
  * del handler (servicios, guards, schedulers disparados por request)
  * hereda el requestId sin pasarlo por parámetros.
  */

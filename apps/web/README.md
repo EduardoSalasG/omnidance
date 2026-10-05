@@ -2,7 +2,7 @@
 
 PWA Next.js 14 (App Router) + React 18 + TypeScript. Una sola app para
 todas las superficies: bailarín, staff y consolas B2B. La navegación y los
-módulos cambian según el rol/lente activo — el usuario multi-rol elige su
+módulos cambian según el rol/lente activo - el usuario multi-rol elige su
 lente desde `/perfil`.
 
 ## Correr
@@ -12,7 +12,7 @@ lente desde `/perfil`.
 pnpm dev:web          # http://localhost:3000
 ```
 
-El browser llama `/api/*` same-origin — `next.config.mjs` proxea al API
+El browser llama `/api/*` same-origin - `next.config.mjs` proxea al API
 (`API_PROXY_TARGET`, default `localhost:4000`). Solo setear
 `NEXT_PUBLIC_API_URL` si el API vive en otro host sin proxy.
 
@@ -30,7 +30,7 @@ El browser llama `/api/*` same-origin — `next.config.mjs` proxea al API
   marketing/landing `lime` · social `violeta` · academia `verde`.
   El chrome escribe `data-mode` y todos los tokens (`text-neon`,
   `bg-neon`, focus rings) resuelven solo.
-- **Design system atómico** en `src/components/ui` — reutilizar, no
+- **Design system atómico** en `src/components/ui` - reutilizar, no
   duplicar primitivas.
 - **Bottom nav ≤ 5 ítems** por rol; QR siempre centrado donde existe;
   notificaciones viven en la campana del appbar con badge `99+`; el drawer
@@ -39,7 +39,7 @@ El browser llama `/api/*` same-origin — `next.config.mjs` proxea al API
 ## i18n
 
 Solo `es-CL` habilitado. Los namespaces viven en `src/i18n/parts/*.json`
-(no en `messages/es-CL.json`); `src/i18n/messages.ts` los deep-mergea —
+(no en `messages/es-CL.json`); `src/i18n/messages.ts` los deep-mergea -
 registrar ahí cada part nuevo. Auditoría: `node scripts/i18n-audit.cjs`
 → `ALL_KEYS_OK`.
 
@@ -75,12 +75,12 @@ registrar ahí cada part nuevo. Auditoría: `node scripts/i18n-audit.cjs`
 |---|---|
 | `ACADEMY_OWNER` / `INSTRUCTOR` | `/academia` (hub + dashboard + settings quórum owner-only), `/academia/clases` (mis clases del instructor), `/academia/clases/[id]` (roster + quórum), `/academia/series`, `/academia/horarios`, `/academia/planes`, `/academia/alumnos` + `/alumnos/[personId]` (historial + próximas), `/academia/asistencia`, `/academia/particulares`, `/academia/videos` |
 | `PRODUCER` | `/productor` + `/eventos`, `/eventos/[id]` (fees admin-only), `/codigos`, `/listas`, `/pagos` (liquidaciones), `/parametros` (read-only) |
-| `STAFF` | `/staff`, `/staff/[eventId]` — check-in de puerta |
-| `DJ` | `/dj` — gigs próximos + ranking de sugerencias |
-| `VENUE_MANAGER` | `/venue` — KPIs + arriendos del local |
-| `SUPPORT` | `/soporte` — buscador de usuarios + ficha read-only |
-| `ADMIN` | `/admin` — usuarios (asigna/revoca roles), roles/RBAC, params, catálogos, auditoría |
-| Varios | `/analitica` — KPIs por lente (admin/productor/academia/venue) · `/crm` + campañas/triggers |
+| `STAFF` | `/staff`, `/staff/[eventId]` - check-in de puerta |
+| `DJ` | `/dj` - gigs próximos + ranking de sugerencias |
+| `VENUE_MANAGER` | `/venue` - KPIs + arriendos del local |
+| `SUPPORT` | `/soporte` - buscador de usuarios + ficha read-only |
+| `ADMIN` | `/admin` - usuarios (asigna/revoca roles), roles/RBAC, params, catálogos, auditoría |
+| Varios | `/analitica` - KPIs por lente (admin/productor/academia/venue) · `/crm` + campañas/triggers |
 
 ## Testing y calidad
 
@@ -91,4 +91,4 @@ registrar ahí cada part nuevo. Auditoría: `node scripts/i18n-audit.cjs`
 ## PWA
 
 Instalable (manifest + service worker en `public/`). Íconos generados por
-`scripts/generate-icons.mjs`. Push vía Web Push — suscripción en `/perfil`.
+`scripts/generate-icons.mjs`. Push vía Web Push - suscripción en `/perfil`.

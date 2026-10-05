@@ -137,7 +137,7 @@ describe("academies e2e", () => {
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
     // Suscripciones SaaS (POST /:id/subscribe crea una PENDING_CARD):
-    // FK a Academy y Person — antes de borrar ambas.
+    // FK a Academy y Person - antes de borrar ambas.
     await prisma.platformSubscription.deleteMany({
       where: {
         OR: [
@@ -321,7 +321,7 @@ describe("academies e2e", () => {
 
     it("PATCH cambiar type con espejo Flow → 400", async () => {
       // El espejo se materializa en el primer subscribe; lo simulamos
-      // directo — con gateway stub el sync es no-op, lo que se valida
+      // directo - con gateway stub el sync es no-op, lo que se valida
       // acá es el lock de tipo.
       await prisma.membershipPlan.update({
         where: { id: ids.planId },
@@ -445,7 +445,7 @@ describe("academies e2e", () => {
   });
 
   describe("slots", () => {
-    // Los slots solo existen dentro de una serie — el endpoint standalone
+    // Los slots solo existen dentro de una serie - el endpoint standalone
     // POST /academies/:id/slots fue eliminado con el invariante de schema.
     it("POST series owner → crea serie + slots", async () => {
       const res = await post(
@@ -610,7 +610,7 @@ describe("academies e2e", () => {
 
     beforeAll(async () => {
       // Clases pasadas del slot del alumno: una asistida, una solo
-      // reservada y una cancelada — las tres ramas del historial.
+      // reservada y una cancelada - las tres ramas del historial.
       const attended = await prisma.class.create({
         data: { classSlotId: ids.slotId, date: dayAt(3) },
       });
@@ -687,7 +687,7 @@ describe("academies e2e", () => {
           status: "attended",
         });
         // Una reserva pasada sin asistencia no es historial (solo
-        // attended/cancelled — semántica desde 2d2eff5).
+        // attended/cancelled - semántica desde 2d2eff5).
         expect(byId.get(bookedClassId)).toBeUndefined();
         expect(byId.get(cancelledClassId)).toMatchObject({
           status: "cancelled",
@@ -816,7 +816,7 @@ describe("academies e2e", () => {
      * `billingBlockedAt` seteado la consola queda read-only (403
      * billing.blocked en mutaciones, GETs abiertos), la academia sale
      * de exploración (directorio/browse/landing) y las compras nuevas
-     * del alumno rechazan con 400 academy.unavailable — pero el alumno
+     * del alumno rechazan con 400 academy.unavailable - pero el alumno
      * conserva su historial e inscripción, y el owner conserva los
      * endpoints de billing para pagar y desbloquearse.
      */
@@ -1019,7 +1019,7 @@ describe("academies e2e", () => {
           { tier: "STARTER", cycle: "MONTHLY", acceptRecurring: true },
           ownerSession,
         );
-        // Pasa el gate de acceso — falla después en el gateway stub
+        // Pasa el gate de acceso - falla después en el gateway stub
         // (sin motor de suscripciones), nunca por billing.blocked.
         expect(res.status).toBe(400);
         expect((await res.json()).error).not.toBe("billing.blocked");
@@ -1027,7 +1027,7 @@ describe("academies e2e", () => {
     });
   });
 
-  describe("PATCH /api/academies/:id/settings — website", () => {
+  describe("PATCH /api/academies/:id/settings - website", () => {
     it("owner guarda dominio sin esquema → normaliza a https://", async () => {
       const res = await patch(
         `/api/academies/${ids.academyId}/settings`,

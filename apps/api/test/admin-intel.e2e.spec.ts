@@ -8,7 +8,7 @@ import { PrismaService } from "../src/prisma.service";
 
 /**
  * admin-user-intel: ficha de usuario, analítica por rol y explorador
- * de datos. Todo read-only — el spec no crea ni muta data, usa las
+ * de datos. Todo read-only - el spec no crea ni muta data, usa las
  * personas del seed dev (*@omnidance.dev).
  */
 describe("admin user intel e2e", () => {

@@ -16,7 +16,7 @@ import { PrismaService } from "../../prisma.service";
  * Consola de soporte: búsqueda y ficha read-only de usuarios para
  * atención de casos. RequireRoles solo deja pasar PersonRole APPROVED
  * (el guard filtra PENDING/SANDBOX/REJECTED por defecto) o ADMIN.
- * Sin mutaciones — las acciones correctivas siguen en /admin (auditadas).
+ * Sin mutaciones - las acciones correctivas siguen en /admin (auditadas).
  */
 @Controller("support")
 @UseGuards(SessionGuard, RolesGuard)
@@ -24,7 +24,7 @@ import { PrismaService } from "../../prisma.service";
 export class SupportController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** GET /api/support/users?q= — búsqueda por nombre/email, top 20. */
+  /** GET /api/support/users?q= - búsqueda por nombre/email, top 20. */
   @Get("users")
   search(@Query("q") q?: string) {
     const term = q?.trim() ?? "";
@@ -54,7 +54,7 @@ export class SupportController {
     });
   }
 
-  /** GET /api/support/users/:id — ficha read-only para atender el caso. */
+  /** GET /api/support/users/:id - ficha read-only para atender el caso. */
   @Get("users/:id")
   async detail(@Param("id") personId: string) {
     const person = await this.prisma.person.findUnique({

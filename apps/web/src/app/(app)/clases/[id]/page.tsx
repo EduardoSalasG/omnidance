@@ -20,11 +20,11 @@ export const dynamic = "force-dynamic";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
-// GET /classes/:id — ficha alumno: serie (estilo/nivel/modalidad/precio
+// GET /classes/:id - ficha alumno: serie (estilo/nivel/modalidad/precio
 // suelta), academia, instructor efectivo, cupos y mi estado.
 type ClassDetail = {
   id: string;
-  date: string; // ISO — medianoche UTC del día de la clase
+  date: string; // ISO - medianoche UTC del día de la clase
   startTime: string;
   endTime: string;
   weekday: number;
@@ -34,14 +34,14 @@ type ClassDetail = {
   spotsLeft: number;
   waitlistCount: number;
   myBooking: "BOOKED" | "WAITLIST" | null;
-  // Asiento comprado suelto (orden WORKSHOP) — no se devuelve el pago
+  // Asiento comprado suelto (orden WORKSHOP) - no se devuelve el pago
   // al cancelar (gestión manual con la academia).
   myBookingPaid: boolean;
   attended: boolean;
-  // Inscripción vigente en la academia — habilita reservar.
+  // Inscripción vigente en la academia - habilita reservar.
   enrolled: boolean;
   // Ventana de devolución (param classes.cancel_refund_minutes) y cuota
-  // del plan vigente sobre esta clase — null si ilimitado/sin cuota.
+  // del plan vigente sobre esta clase - null si ilimitado/sin cuota.
   cancelRefundMinutes: number;
   myCredits: {
     kind: "WEEKLY" | "PACK";
@@ -52,7 +52,7 @@ type ClassDetail = {
     id: string;
     name: string;
     /** Mora SaaS (S3/S6): el CTA de reserva/compra queda deshabilitado
-        con copy honesto — la ficha sigue visible (S6b). */
+        con copy honesto - la ficha sigue visible (S6b). */
     billingBlocked: boolean;
   };
   instructor: {
@@ -78,7 +78,7 @@ type ClassDetail = {
   }[];
 };
 
-// GET /private-lessons/:id — una particular comprada es una reserva
+// GET /private-lessons/:id - una particular comprada es una reserva
 // más: su card en /clases lleva a esta misma ruta, y el id que no
 // corresponde a una Class se resuelve acá.
 type LessonDetail = {
@@ -97,7 +97,7 @@ type LessonDetail = {
   } | null;
 };
 
-// El endpoint va con SessionGuard — cookie del request, como en
+// El endpoint va con SessionGuard - cookie del request, como en
 // /eventos/[id] (getMissions).
 async function getClass(id: string): Promise<ClassDetail | "error" | null> {
   const res = await fetch(`${API_URL}/api/classes/${id}`, {
@@ -123,7 +123,7 @@ async function getLesson(
   return (await res.json()) as LessonDetail;
 }
 
-// Class.date llega como ISO a medianoche UTC — se formatea en UTC para
+// Class.date llega como ISO a medianoche UTC - se formatea en UTC para
 // no correr el día (misma convención que la lista /clases).
 const dayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "long",
@@ -137,7 +137,7 @@ const dayShortFmt = new Intl.DateTimeFormat("es-CL", {
   month: "short",
   timeZone: "UTC",
 });
-// scheduledAt de una particular es un instante real — se formatea en
+// scheduledAt de una particular es un instante real - se formatea en
 // hora de Chile (el server corre en UTC).
 const lessonFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "long",
@@ -175,7 +175,7 @@ export default async function ClaseDetailPage({
   const cls = await getClass(params.id);
   if (cls === "error") return errorView;
 
-  // ─── Ficha de clase particular — una reserva más del alumno ───
+  // ─── Ficha de clase particular - una reserva más del alumno ───
   if (cls === null) {
     const lesson = await getLesson(params.id);
     if (lesson === "error") return errorView;
@@ -196,7 +196,7 @@ export default async function ClaseDetailPage({
           <h1 className="text-3xl font-bold leading-tight">
             {t.privateLesson}
           </h1>
-          {/* Chips bajo el título — mismo set semántico que la ficha de
+          {/* Chips bajo el título - mismo set semántico que la ficha de
               clase: academia neon + estado; "Comprado" marca el asiento
               pagado (equivalente a paidTag de una reserva). */}
           <div className="flex flex-wrap items-center gap-2">
@@ -225,7 +225,7 @@ export default async function ClaseDetailPage({
           </p>
         </header>
 
-        {/* Instructor — quién la imparte; sin asignar se declara. */}
+        {/* Instructor - quién la imparte; sin asignar se declara. */}
         <Card>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t.instructor}
@@ -256,7 +256,7 @@ export default async function ClaseDetailPage({
           )}
         </Card>
 
-        {/* Precio pagado — la particular se compra por adelantado. */}
+        {/* Precio pagado - la particular se compra por adelantado. */}
         <Card>
           <dl className="grid grid-cols-2 gap-4">
             <div>
@@ -271,7 +271,7 @@ export default async function ClaseDetailPage({
         </Card>
 
         {/* Cancelar = zona destructiva al pie con confirmación en
-            sheet — mismo patrón que la reserva normal. */}
+            sheet - mismo patrón que la reserva normal. */}
         {(lesson.status === "REQUESTED" || lesson.status === "CONFIRMED") && (
           <PrivateLessonCancelCta lessonId={lesson.id} />
         )}
@@ -282,7 +282,7 @@ export default async function ClaseDetailPage({
   const full = cls.spotsLeft <= 0;
   const isPast = new Date(cls.date).getTime() < Date.now() - 24 * 60 * 60 * 1000;
   const dateLabel = `${dayFmt.format(new Date(cls.date))} · ${cls.startTime}–${cls.endTime}`;
-  // Inicio real de la clase (día UTC + HH:mm) — base del corte de
+  // Inicio real de la clase (día UTC + HH:mm) - base del corte de
   // devolución en el sheet de cancelación.
   const [sh, sm] = cls.startTime.split(":").map(Number);
   const startsAtIso = new Date(
@@ -295,7 +295,7 @@ export default async function ClaseDetailPage({
         <h1 className="text-3xl font-bold leading-tight">
           {cls.series.style?.name ?? cls.series.name}
         </h1>
-        {/* Chips bajo el título — mismo set que el card del explorador:
+        {/* Chips bajo el título - mismo set que el card del explorador:
             modalidad outline, nivel como barras, academia neon y
             badges de estado. El nombre de la serie no va: repite
             estilo + nivel que ya están acá. */}
@@ -318,7 +318,7 @@ export default async function ClaseDetailPage({
           {cls.academy.billingBlocked && (
             <Badge variant="muted">{t.academyUnavailableBadge}</Badge>
           )}
-          {/* Mi reserva — mismo lugar semántico que el badge top-right
+          {/* Mi reserva - mismo lugar semántico que el badge top-right
               del ClassCard; se re-sincroniza vía router.refresh() tras
               reservar/cancelar en la barra de acción. */}
           {cls.myBooking === "BOOKED" ? (
@@ -334,7 +334,7 @@ export default async function ClaseDetailPage({
         <p className="text-white/70">{dateLabel}</p>
       </header>
 
-      {/* Profesor — quién la imparte es dato clave de la ficha */}
+      {/* Profesor - quién la imparte es dato clave de la ficha */}
       {cls.instructor?.name && (
         <Card>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -413,7 +413,7 @@ export default async function ClaseDetailPage({
         </dl>
       </Card>
 
-      {/* Próximas sesiones de la misma serie — navegación entre fechas */}
+      {/* Próximas sesiones de la misma serie - navegación entre fechas */}
       {cls.upcoming.length > 0 && (
         <section aria-label={t.upcomingSessions}>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">

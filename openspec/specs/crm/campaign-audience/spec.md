@@ -8,7 +8,7 @@ TBD - created by archiving change academy-audience-groups. Update Purpose after 
 ### Requirement: Criterios de audiencia propios de academia
 
 `CampaignSegment` SHALL admitir `allStudents`, `enrollmentStatus`,
-`planId` y `seriesId` — solo válidos con `actorType: "ACADEMY"` (400
+`planId` y `seriesId` - solo válidos con `actorType: "ACADEMY"` (400
 BAD_REQUEST en otro actor o si plan/serie no pertenecen a la academia).
 Los criterios se unen (OR) con los existentes (segment/tags/personIds).
 

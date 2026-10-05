@@ -45,7 +45,7 @@ class RegisterPushTokenDto {
   @IsIn(PUSH_PLATFORMS)
   platform!: PushPlatform;
 
-  /** Claves VAPID del navegador (solo WEB) — el sender las consume desde payload. */
+  /** Claves VAPID del navegador (solo WEB) - el sender las consume desde payload. */
   @IsOptional()
   @ValidateNested()
   @Type(() => PushKeysDto)

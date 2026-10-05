@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
-// GET /checkout/membership-quote — revisión de orden del plan: precio,
+// GET /checkout/membership-quote - revisión de orden del plan: precio,
 // cargo de servicio, total real, vigencia resultante y suscripción viva
 // del viewer a este plan. El paso "review" del checkout de membresía.
 export type MembershipQuote = {
@@ -67,7 +67,7 @@ export default async function MembershipCheckoutPage({
   if (!searchParams.plan) notFound();
   const quote = await getQuote(searchParams.plan);
 
-  // El plan debe pertenecer a la academia de la URL — deep-link cruzado
+  // El plan debe pertenecer a la academia de la URL - deep-link cruzado
   // (otra academia en el path) es 404, no un checkout de otro producto.
   if (quote === "notfound" || quote === "unavailable") {
     return (

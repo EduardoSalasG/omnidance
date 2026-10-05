@@ -1,4 +1,4 @@
-// Gamificación — reglas de negocio puras (omni-dance.md §6-7).
+// Gamificación - reglas de negocio puras (omni-dance.md §6-7).
 // Sin Nest ni Prisma: todo es testeable con datos planos.
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -19,7 +19,7 @@ export const BAILARIN_CONSTANTE_SESSIONS = 10;
 /**
  * Check-in "temprano": antes del cutoff (minutos desde medianoche local,
  * param `early_checkin.cutoff_minutes`, default 23:00) y después del
- * mediodía — las 00:xx post-medianoche son "tarde", no "temprano"
+ * mediodía - las 00:xx post-medianoche son "tarde", no "temprano"
  * (misma ventana que la misión `madrugador`).
  */
 export const EARLY_CHECKIN_CUTOFF_MINUTES = 23 * 60;
@@ -73,7 +73,7 @@ export function buildStreakWeeks(
 /**
  * Racha de semanas consecutivas con actividad.
  * - `currentWeeks`: racha viva. Si la última semana (actual, en curso) aún no
- *   tiene actividad, no mata la racha — todavía puede completarse.
+ *   tiene actividad, no mata la racha - todavía puede completarse.
  * - `bestWeeks`: la racha más larga registrada en el array.
  */
 export function computeStreak(weeksWithActivity: boolean[]): {
@@ -226,7 +226,7 @@ const localMinutes = (d: Date) => d.getHours() * 60 + d.getMinutes();
  * Evalúa el progreso de una misión por template (spec §7):
  * - `baila_diverso`: N parejas distintas (config.partners, default 5)
  * - `madrugador`: check-in (o sesión temprana como fallback) en la ventana
- *   vespertina [mediodía, config.before) — "HH:MM" local, default "23:00".
+ *   vespertina [mediodía, config.before) - "HH:MM" local, default "23:00".
  *   Las 00:xx post-medianoche NO cuentan: son "tarde", no "temprano".
  * - `estilo_explorer`: sesiones en ≥N estilos distintos (config.styles, def. 2)
  * Template desconocido → sin progreso (fallback seguro).
@@ -351,7 +351,7 @@ export function buildBadgeStats(
 }
 
 /**
- * Reglas de award automático — badge por conducta, nunca por puntaje (spec §7).
+ * Reglas de award automático - badge por conducta, nunca por puntaje (spec §7).
  * En v1 se evalúan lazy al consultar /me/badges (los módulos de otros features
  * no se tocan para enganchar el award en el confirm).
  */
@@ -375,7 +375,7 @@ const BADGE_RULES: readonly {
     test: (s) =>
       (s.maxDistinctPartnersInNight ?? 0) >= MARIPOSA_SOCIAL_PARTNERS,
   },
-  // Badges academy (spec §11: gamificar conducta del alumno — asistencia,
+  // Badges academy (spec §11: gamificar conducta del alumno - asistencia,
   // constancia, exploración; nunca puntajes ni evaluaciones).
   { key: "primera_clase", test: (s) => (s.classAttendances ?? 0) >= 1 },
   {
@@ -404,9 +404,9 @@ export class BadgeAwarder {
 
 // ─── Puntos de temporada ─────────────────────────────────
 //
-// Única moneda de progreso — no gastable, resetea por Season (spec §7).
+// Única moneda de progreso - no gastable, resetea por Season (spec §7).
 // Conductas verificables; el idempotency key lo arma el caller vía
-// (personId, reason, refType, refId) — check-then-create en el service.
+// (personId, reason, refType, refId) - check-then-create en el service.
 
 export const POINT_VALUES = {
   session_confirmed: 10,
@@ -521,7 +521,7 @@ function dedupeWinners(
 /**
  * Computo del reveal Prime Time (spec §6):
  * - Solo ratings recibidos en sesiones elegibles (CONFIRMED/RATED,
- *   retroDeclared:false — lo filtra el repo).
+ *   retroDeclared:false - lo filtra el repo).
  * - Score bayesiano por candidato: (Σv + C·m)/(n + C), C=10, m = media
  *   global del evento. Candidato con < minEvaluations evaluaciones → fuera.
  * - Rol del evaluado: PersonStyleRole si declara un rol único; si no,
@@ -559,7 +559,7 @@ export function computeReveal(input: {
           : r.raterId === s.inviteeId
             ? s.inviterId
             : null;
-      if (!ratedId) continue; // rater ajeno a la sesión — no debería ocurrir
+      if (!ratedId) continue; // rater ajeno a la sesión - no debería ocurrir
       totalSum += r.global;
       totalN++;
 

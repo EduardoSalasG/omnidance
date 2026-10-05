@@ -1,7 +1,7 @@
 # sessions/retro-declared Specification
 
 ## Purpose
-Las `DanceSession` históricas `retroDeclared` (declaradas manualmente cuando existía `POST /sessions/declare` — eliminado: los bailes solo nacen del escaneo QR) conservan su regla de exclusión de Prime Time.
+Las `DanceSession` históricas `retroDeclared` (declaradas manualmente cuando existía `POST /sessions/declare` - eliminado: los bailes solo nacen del escaneo QR) conservan su regla de exclusión de Prime Time.
 
 ## Requirements
 

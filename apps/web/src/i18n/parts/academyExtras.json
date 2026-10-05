@@ -139,7 +139,7 @@
     "addSlotHint": "Se crean las clases que quedan del mes en ese día.",
     "slotAdded": "Horario agregado",
     "quorum": "Quórum",
-    "quorumHint": "Opcional — vacío hereda el quórum por defecto de la academia.",
+    "quorumHint": "Opcional. Vacío hereda el quórum por defecto de la academia.",
     "quorumValue": "Quórum {value}",
     "dropIn": "Clase suelta (CLP)",
     "dropInHint": "Vacío = la clase no se vende suelta.",

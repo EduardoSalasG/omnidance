@@ -11,7 +11,7 @@ import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { ParamsService } from "../../params/params.service";
 
-// CRM transversal (omni-dance.md — CRM por actor): scores de relación,
+// CRM transversal (omni-dance.md - CRM por actor): scores de relación,
 // tags, campañas y triggers automáticos para PRODUCER / ACADEMY.
 // Servicio de orquestación con PrismaService inyectado (estilo ParamsService);
 // la autorización por actor vive en el controller (assertActorAccess).
@@ -36,7 +36,7 @@ export class CrmDomainError extends Error {
   }
 }
 
-/** Segmento de campaña — los criterios presentes se unen (OR lógico).
+/** Segmento de campaña - los criterios presentes se unen (OR lógico).
  *  allStudents/enrollmentStatus/planId/seriesId solo valen para ACADEMY. */
 export interface CampaignSegment {
   tags?: string[];
@@ -446,7 +446,7 @@ export class CrmService {
     });
   }
 
-  /** Resuelve el segmento a personIds — unión de los criterios presentes. */
+  /** Resuelve el segmento a personIds - unión de los criterios presentes. */
   private async resolveSegment(
     actorType: string,
     actorId: string,
@@ -455,7 +455,7 @@ export class CrmService {
     const ids = new Set<string>();
 
     // personIds solo alcanza dentro del universo del actor (score ∪ tag;
-    // ACADEMY además enrollment ∪ booking) — un id ajeno se descarta sin
+    // ACADEMY además enrollment ∪ booking) - un id ajeno se descarta sin
     // error. Sin esto, cualquier personId conocido era notificable.
     if (segment.personIds?.length) {
       const universeQueries: Promise<Array<{ personId: string }>>[] = [
@@ -506,7 +506,7 @@ export class CrmService {
       for (const s of scores) ids.add(s.personId);
     }
 
-    // Criterios de academia (OR entre sí y con el resto) — parseSegment
+    // Criterios de academia (OR entre sí y con el resto) - parseSegment
     // garantiza que solo llegan con actorType ACADEMY.
     const academyQueries: Promise<Array<{ personId: string }>>[] = [];
     if (segment.allStudents) {
@@ -642,7 +642,7 @@ export class CrmService {
       );
     }
 
-    // Los criterios de alumnos solo aplican a academias — el resto → 400.
+    // Los criterios de alumnos solo aplican a academias - el resto → 400.
     const hasAcademyCriteria =
       s.allStudents !== undefined ||
       s.enrollmentStatus !== undefined ||
@@ -801,7 +801,7 @@ export class CrmService {
     if (!(CRM_TRIGGER_KEYS as readonly string[]).includes(key)) {
       throw new CrmDomainError(
         "BAD_REQUEST",
-        `key inválida: ${key} — debe ser una de ${CRM_TRIGGER_KEYS.join(", ")}`,
+        `key inválida: ${key} - debe ser una de ${CRM_TRIGGER_KEYS.join(", ")}`,
       );
     }
     return this.prisma.crmTrigger.create({
@@ -941,7 +941,7 @@ export class CrmService {
       "crm.winback",
       {
         title: "Te extrañamos en la pista",
-        body: "Hace un tiempo que no te vemos — vuelve a bailar.",
+        body: "Hace un tiempo que no te vemos - vuelve a bailar.",
         data: {
           actorType: t.actorType,
           actorId: t.actorId,
@@ -1028,7 +1028,7 @@ export class CrmService {
   }
 
   /**
-   * ATTENDANCE_DROP: personas "recién caídas" — última actividad en la banda
+   * ATTENDANCE_DROP: personas "recién caídas" - última actividad en la banda
    * (winback_days, 2*winback_days]. WINBACK cubre a las ya inactivas.
    */
   private async evalAttendanceDrop(
@@ -1049,7 +1049,7 @@ export class CrmService {
       "crm.attendance_drop",
       {
         title: "Te estás alejando de la pista",
-        body: "Tus asistencias bajaron — retoma el ritmo.",
+        body: "Tus asistencias bajaron - retoma el ritmo.",
         data: { actorType: t.actorType, actorId: t.actorId },
       },
       this.cooldownDays(t),

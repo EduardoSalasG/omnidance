@@ -21,7 +21,7 @@ export class SubscriptionsController {
 
   /**
    * Detalle con refresh activo contra Flow (subscription/get + reconcile
-   * de invoices pagados) — cubre sandbox/dev donde el webhook no llega.
+   * de invoices pagados) - cubre sandbox/dev donde el webhook no llega.
    */
   @Get(":id")
   detail(@Req() req: Request, @Param("id") id: string) {

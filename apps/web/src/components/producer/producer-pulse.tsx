@@ -14,7 +14,7 @@ const num = new Intl.NumberFormat("es-CL");
 
 type Pulse = {
   /** "upcoming" = eventos vivos/próximos; "last30d" = fallback cuando no
-   * hay ninguno — agrega eventos cerrados de los últimos 30 días. */
+   * hay ninguno - agrega eventos cerrados de los últimos 30 días. */
   scope: "upcoming" | "last30d";
   events: number;
   sold: number;
@@ -53,7 +53,7 @@ export function ProducerPulse() {
             (e.status === "PUBLISHED" || e.status === "LIVE") &&
             new Date(e.endsAt).getTime() >= now,
         );
-        // Sin eventos activos el pulso miraría a futuro vacío — cae a
+        // Sin eventos activos el pulso miraría a futuro vacío - cae a
         // "últimos 30 días" sobre los eventos ya cerrados.
         const pool =
           upcoming.length > 0

@@ -24,14 +24,14 @@ import {
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
 /**
- * /productor/pagos — liquidaciones del productor (GET /me/payouts,
+ * /productor/pagos - liquidaciones del productor (GET /me/payouts,
  * requiere permiso crm.manage del rol PRODUCER).
  */
 export default function ProducerPayoutsPage() {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
-  // /me compartido (MeProvider) — el gate se deriva del contexto y las
+  // /me compartido (MeProvider) - el gate se deriva del contexto y las
   // liquidaciones se piden en paralelo desde el mount (un no-productor
   // recibe 403 → el gate por rol decide, se descarta).
   const {

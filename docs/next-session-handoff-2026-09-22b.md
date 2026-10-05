@@ -1,7 +1,7 @@
-# Handoff — 2026-09-22 PM — reconstruido post-facto desde git log
+# Handoff - 2026-09-22 PM - reconstruido post-facto desde git log
 
 > **Nota**: este handoff se escribió el 2026-09-23 reconstruyendo la
-> sesión de tarde del 22 desde commits (9341427…25c86df) — la sesión
+> sesión de tarde del 22 desde commits (9341427…25c86df) - la sesión
 > original no dejó documento. Verificación y gaps detallados pueden
 > estar incompletos; validar contra el código antes de confiar.
 
@@ -33,7 +33,7 @@
   agrupadas por día, dirección abre mapas con "cómo llegar", back al
   mapa.
 
-### Mesas en checkout (OpenSpec `checkout-table-reservation` — 19/19)
+### Mesas en checkout (OpenSpec `checkout-table-reservation` - 19/19)
 
 - Reserva de mesa opcional en el checkout con disponibilidad dinámica;
   `Event.tablesTotal`/`tableSeatMax`/`tableSeatsTotal` + defaults
@@ -76,7 +76,7 @@
 ## Estado al cerrar el día
 
 - Todo commiteado en `dev` (working tree limpio al 23 AM).
-- Verificación de esa sesión: no documentada — la suite al 23 AM está
+- Verificación de esa sesión: no documentada - la suite al 23 AM está
   verde (969 tests) con todos estos cambios incluidos.
 
 ## Gaps heredados visibles

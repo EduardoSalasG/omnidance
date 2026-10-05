@@ -4,7 +4,7 @@ import { CrmService } from "../domain/crm.service";
 
 /**
  * Evaluación diaria (09:00) de todos los CrmTrigger activos de la
- * plataforma — provider fino: la lógica vive en
+ * plataforma - provider fino: la lógica vive en
  * CrmService.evaluateAllActiveTriggers().
  */
 @Injectable()

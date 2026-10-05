@@ -46,13 +46,13 @@ class RequestPrivateLessonDto {
   @IsISO8601()
   scheduledAt!: string;
 
-  /** Schema: no hay tarifa en AcademyInstructor — default 0. */
+  /** Schema: no hay tarifa en AcademyInstructor - default 0. */
   @IsOptional()
   @IsInt()
   @Min(0)
   price?: number;
 
-  /** Alumno de la lección (creación manual staff) — default: el actor. */
+  /** Alumno de la lección (creación manual staff) - default: el actor. */
   @IsOptional()
   @IsString()
   personId?: string;
@@ -67,7 +67,7 @@ class PrivateLessonActionDto {
   @IsISO8601()
   scheduledAt?: string;
 
-  /** personId del instructor — requerido solo para action=assign. */
+  /** personId del instructor - requerido solo para action=assign. */
   @IsOptional()
   @IsString()
   instructorId?: string;
@@ -75,7 +75,7 @@ class PrivateLessonActionDto {
 
 /**
  * Clases privadas 1:1 alumno↔instructor dentro de una academia.
- * Schema real: PrivateLesson tiene FKs planas (sin relaciones Prisma) —
+ * Schema real: PrivateLesson tiene FKs planas (sin relaciones Prisma) -
  * instructorId guarda el personId del instructor para que /mine funcione;
  * los joins con Person se hacen manual (mismo patrón que attendance/students).
  * status es String libre en schema: REQUESTED | CONFIRMED | DONE | CANCELLED.
@@ -90,7 +90,7 @@ export class PrivateLessonsController {
 
   /**
    * Creación manual de clase particular por staff (owner/instructor/admin).
-   * Desde private-lesson-product el alumno no solicita — compra el producto
+   * Desde private-lesson-product el alumno no solicita - compra el producto
    * (POST /checkout/private-class) y el owner asigna instructor+fecha vía
    * PATCH action=assign. Este endpoint queda para clases manuales (cortesía,
    * convenio).
@@ -102,7 +102,7 @@ export class PrivateLessonsController {
     @Body() dto: RequestPrivateLessonDto,
     @Req() req: Request,
   ) {
-    // Mutación de staff — academia bloqueada por mora → 403 (S3).
+    // Mutación de staff - academia bloqueada por mora → 403 (S3).
     const { academy } = await this.access.requireManageWrite(id, req.person!);
     if (!academy.active) {
       throw new BadRequestException("la academia está inactiva");
@@ -125,7 +125,7 @@ export class PrivateLessonsController {
         personId: dto.personId ?? req.person!.id,
         scheduledAt: new Date(dto.scheduledAt),
         price: dto.price ?? 0,
-        // Snapshot de la comisión vigente del instructor — el owner
+        // Snapshot de la comisión vigente del instructor - el owner
         // puede cambiarla después sin retroactuar sobre esta clase.
         commissionPct: instructor.commissionPct ?? 0,
         status: "REQUESTED",
@@ -172,7 +172,7 @@ export class PrivateLessonsController {
         ...l,
         person: byId.get(l.personId) ?? { id: l.personId, name: null },
         // null = comprada pero aún sin instructor asignado
-        // (private-lesson-product) — la UI muestra "por asignar".
+        // (private-lesson-product) - la UI muestra "por asignar".
         instructor: l.instructorId
           ? (byId.get(l.instructorId) ?? { id: l.instructorId, name: null })
           : null,
@@ -184,10 +184,10 @@ export class PrivateLessonsController {
   }
 
   /**
-   * Mis clases privadas como instructor — agrega commissionClp/netClp
+   * Mis clases privadas como instructor - agrega commissionClp/netClp
    * calculados (la UI no hace aritmética de negocio). La vista del
    * alumno vive en /classes/mine (las particulares son una reserva
-   * más) — este endpoint ya no expone la rama alumno: una sola fuente.
+   * más) - este endpoint ya no expone la rama alumno: una sola fuente.
    */
   @Get("private-lessons/mine")
   @UseGuards(SessionGuard)
@@ -222,12 +222,12 @@ export class PrivateLessonsController {
   }
 
   /**
-   * Detalle de una clase privada — lo consume la ficha del alumno en
+   * Detalle de una clase privada - lo consume la ficha del alumno en
    * /clases/[id] (una particular es una reserva más; cancelar vive en
    * su ficha, igual que una reserva normal) y staff/instructor.
    * Acceso: alumno dueño, instructor asignado, owner de la academia
    * o admin. La comisión solo viaja a quien la ve en la lista
-   * (acuerdo academia↔instructor — nunca al alumno).
+   * (acuerdo academia↔instructor - nunca al alumno).
    */
   @Get("private-lessons/:id")
   @UseGuards(SessionGuard)
@@ -329,7 +329,7 @@ export class PrivateLessonsController {
 
     // Academia bloqueada por mora (S3): las acciones de staff
     // (confirm/done/reschedule/assign/pay-commission) quedan read-only;
-    // el alumno conserva `cancel` de su propia clase — no se castiga al
+    // el alumno conserva `cancel` de su propia clase - no se castiga al
     // alumno por la mora del owner.
     if (
       academy?.billingBlockedAt != null &&
@@ -338,7 +338,7 @@ export class PrivateLessonsController {
       throw new ForbiddenException({
         error: "billing.blocked",
         message:
-          "la academia está bloqueada por suscripción impaga — regulariza el pago para volver a operar",
+          "la academia está bloqueada por suscripción impaga - regulariza el pago para volver a operar",
       });
     }
 
@@ -392,7 +392,7 @@ export class PrivateLessonsController {
           data: { status: "CANCELLED" },
         });
         // Lección pagada cancelada: la devolución del dinero es manual
-        // (Flow) — se avisa al owner y el pago se excluye del payout de
+        // (Flow) - se avisa al owner y el pago se excluye del payout de
         // la academia (payouts.controller).
         if (cancelled.paymentId && academy?.ownerId) {
           await this.notifications.notifySafe(academy.ownerId, {
@@ -487,7 +487,7 @@ export class PrivateLessonsController {
       }
       case "pay-commission": {
         // Liquidación de la comisión academia→instructor: la plataforma
-        // no transfiere — el owner marca commissionPaidAt cuando paga
+        // no transfiere - el owner marca commissionPaidAt cuando paga
         // por fuera (transferencia/efectivo, mismo criterio que Payout).
         if (!isOwner) {
           throw new ForbiddenException("solo el owner liquida la comisión");

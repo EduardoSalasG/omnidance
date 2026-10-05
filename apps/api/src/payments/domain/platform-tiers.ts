@@ -18,7 +18,7 @@ export const PRODUCER_PRO_TIERS = new Set<string>([
   "PRO_BIG",
 ]);
 
-/** Tiers auto-contratables — ENTERPRISE/PRO_BIG son "a convenir" (manual). */
+/** Tiers auto-contratables - ENTERPRISE/PRO_BIG son "a convenir" (manual). */
 export const SELF_SERVE_ACADEMY_TIERS = new Set<string>([
   "STARTER",
   "PRO",
@@ -45,7 +45,7 @@ export const PRODUCER_TIER_RANK: Record<ProducerProTier, number> = {
 
 /**
  * BillingCycle → meses entre cobros. Los planes Flow usan interval=3
- * (mensual) con interval_count = meses del ciclo — el cobro es
+ * (mensual) con interval_count = meses del ciclo - el cobro es
  * mensual-equivalente × meses (semestral −2% / anual −4% ya vienen en el
  * param del ciclo).
  */
@@ -61,7 +61,7 @@ export const CYCLE_LABEL: Record<BillingCycle, string> = {
   ANNUAL: "anual",
 };
 
-/** `producer_tier.<key>_*_clp` — key del tier Pro en PlatformParam. */
+/** `producer_tier.<key>_*_clp` - key del tier Pro en PlatformParam. */
 export function producerTierParamKey(tierCode: string): string | null {
   if (tierCode === "PRO_STARTER") return "starter";
   if (tierCode === "PRO_GROWTH") return "growth";
@@ -85,7 +85,7 @@ export function isProActive(
   );
 }
 
-/** planId del plan espejo Flow — compartido por todas las subs del tier. */
+/** planId del plan espejo Flow - compartido por todas las subs del tier. */
 export function platformPlanId(
   kind: "ACADEMY" | "PRODUCER",
   tierCode: string,

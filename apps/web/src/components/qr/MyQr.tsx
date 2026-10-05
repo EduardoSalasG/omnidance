@@ -9,11 +9,11 @@ import { Button, RefreshIcon } from "@/components/ui";
 
 /**
  * QR personal rotativo (TOTP ~30s server-side; se re-emite cada 50s).
- * Se monta dentro del hub /qr — sin <main> propio, el hub da el chrome.
+ * Se monta dentro del hub /qr - sin <main> propio, el hub da el chrome.
  *
  * Fallo de /qr/mine (red, 5xx, body sin token) → estado "error" con
  * retry: antes quedaba en loading eterno con "Se renueva solo". El
- * canvas queda montado durante el error — si el último QR aún es
+ * canvas queda montado durante el error - si el último QR aún es
  * válido sigue a la vista mientras se reintenta (pantalla de puerta).
  */
 export function MyQr({ compact = false }: { compact?: boolean }) {

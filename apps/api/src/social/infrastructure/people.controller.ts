@@ -12,7 +12,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 
 /**
- * Búsqueda de personas y perfil público — la base social para agregar
+ * Búsqueda de personas y perfil público - la base social para agregar
  * amigos. Privacidad: solo nombre, foto, estilos/rol autodeclarados y
  * estado de amistad; nunca email/teléfono.
  */
@@ -50,7 +50,7 @@ export class PeopleController {
   }
 
   /**
-   * GET /people/search?q= — busca por nombre (mín 2 chars). Excluye al
+   * GET /people/search?q= - busca por nombre (mín 2 chars). Excluye al
    * propio usuario.
    */
   @Get("search")
@@ -76,7 +76,7 @@ export class PeopleController {
   }
 
   /**
-   * GET /people/:id — perfil público: nombre, foto, estilos/rol/nivel
+   * GET /people/:id - perfil público: nombre, foto, estilos/rol/nivel
    * autodeclarados, conteo de insignias y estado de amistad conmigo.
    */
   @Get(":id")
@@ -107,7 +107,7 @@ export class PeopleController {
     ]);
     const friendship = fmap.get(id) ?? { id: null, status: "none" };
 
-    // Próximos eventos (ticket ACTIVE) — solo entre amigos confirmados:
+    // Próximos eventos (ticket ACTIVE) - solo entre amigos confirmados:
     // la agenda de un no-amigo no se expone. Ticket.eventId es escalar →
     // join manual.
     let upcomingEvents:

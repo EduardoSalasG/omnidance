@@ -33,7 +33,7 @@ class ManageReservationDto {
   @IsString()
   tableNo?: string;
 
-  /** Ajuste del tamaño al confirmar — la disponibilidad es referencial. */
+  /** Ajuste del tamaño al confirmar - la disponibilidad es referencial. */
   @IsOptional()
   @IsInt()
   @Min(1)
@@ -53,7 +53,7 @@ export class TableReservationsController {
     private readonly notifications: NotificationsService,
   ) {}
 
-  /** Solicitar reserva — una activa (REQUESTED|CONFIRMED) por persona/evento. */
+  /** Solicitar reserva - una activa (REQUESTED|CONFIRMED) por persona/evento. */
   @Post("events/:id/table-reservations")
   @UseGuards(SessionGuard)
   async request(
@@ -96,7 +96,7 @@ export class TableReservationsController {
 
   /**
    * Visibilidad para asistentes: solo CONFIRMED, con nombre del solicitante
-   * y cantidad — sin exponer datos sensibles (spec: "amigos que van").
+   * y cantidad - sin exponer datos sensibles (spec: "amigos que van").
    */
   @Get("events/:id/table-reservations")
   @UseGuards(SessionGuard)
@@ -121,7 +121,7 @@ export class TableReservationsController {
 
   /**
    * Vista de gestión para el productor: TODAS las reservas con id/status
-   * (el listado público solo expone CONFIRMED, sin ids — privacidad).
+   * (el listado público solo expone CONFIRMED, sin ids - privacidad).
    */
   @Get("events/:id/table-reservations/manage")
   @UseGuards(SessionGuard)
@@ -152,7 +152,7 @@ export class TableReservationsController {
     }));
   }
 
-  /** Confirmar/cancelar (y asignar mesa) — productor del evento o admin. */
+  /** Confirmar/cancelar (y asignar mesa) - productor del evento o admin. */
   @Patch("table-reservations/:id")
   @UseGuards(SessionGuard)
   async manage(
@@ -184,7 +184,7 @@ export class TableReservationsController {
     });
 
     // Aviso al solicitante solo en la transición real (REQUESTED →
-    // CONFIRMED/CANCELLED) — re-ediciones de una ya confirmada no re-notifican.
+    // CONFIRMED/CANCELLED) - re-ediciones de una ya confirmada no re-notifican.
     if (dto.status === "CONFIRMED" && reservation.status !== "CONFIRMED") {
       await this.notifications.notifySafe(reservation.personId, {
         category: "TRANSACTIONAL",
@@ -219,7 +219,7 @@ export class TableReservationsController {
     return updated;
   }
 
-  /** Cancelación por el solicitante — libera el cupo (soft-cancel). */
+  /** Cancelación por el solicitante - libera el cupo (soft-cancel). */
   @Delete("table-reservations/:id")
   @UseGuards(SessionGuard)
   async cancel(@Param("id") id: string, @Req() req: Request) {
@@ -262,7 +262,7 @@ export class TableReservationsController {
     }));
   }
 
-  /** productor del evento o admin.access — permiso desde DB, nunca rol literal. */
+  /** productor del evento o admin.access - permiso desde DB, nunca rol literal. */
   private async assertProducerOrAdmin(
     event: { producerId: string | null },
     person: PersonCtx,

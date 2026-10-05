@@ -37,7 +37,7 @@ describe("leads /pro e2e", () => {
     req("POST", path, body, session);
 
   let phoneSeq = 0;
-  // Person.phone es unique — cada lead necesita un teléfono distinto.
+  // Person.phone es unique - cada lead necesita un teléfono distinto.
   const validLead = (email: string, extra: Record<string, unknown> = {}) => ({
     name: "Lead Test",
     email,
@@ -85,7 +85,7 @@ describe("leads /pro e2e", () => {
 
   afterAll(async () => {
     // Si beforeAll no llegó a inicializar prisma (timeout de boot), no
-    // hay nada creado por este spec — cerrar la app si existe y salir.
+    // hay nada creado por este spec - cerrar la app si existe y salir.
     if (!prisma) {
       await app?.close();
       return;
@@ -98,7 +98,7 @@ describe("leads /pro e2e", () => {
       .map((l) => l.personId)
       .filter((x): x is string => !!x);
     // Persons creadas por magic-link verify quedan huérfanas del lead si
-    // un test aborta a mitad — limpiar también por email.
+    // un test aborta a mitad - limpiar también por email.
     const emailPersons = await prisma.person.findMany({
       where: { email: { in: leadEmails } },
       select: { id: true },
@@ -140,7 +140,7 @@ describe("leads /pro e2e", () => {
     });
 
     it("notifica a los ADMIN aprobados al crear lead nuevo", async () => {
-      // El admin propio del spec — determinista bajo paralelismo.
+      // El admin propio del spec - determinista bajo paralelismo.
       const admin = await prisma.person.findFirstOrThrow({
         where: { name: "Admin Leads Test" },
       });
@@ -342,7 +342,7 @@ describe("leads /pro e2e", () => {
     });
 
     it("escritura de negocio → 403 demo_mode (barrera en SessionGuard)", async () => {
-      // El demo tiene PRODUCER APPROVED — sin la barrera esto llegaría a
+      // El demo tiene PRODUCER APPROVED - sin la barrera esto llegaría a
       // RolesGuard. El mensaje demo_mode prueba que bloqueó el guard.
       const res = await post(
         `/api/admin/users/x/roles`,
@@ -382,7 +382,7 @@ describe("leads /pro e2e", () => {
         { role: "DJ", status: "APPROVED" },
         session,
       );
-      // Ya no es demo_mode — ahora bloquea RBAC por permiso, no la barrera.
+      // Ya no es demo_mode - ahora bloquea RBAC por permiso, no la barrera.
       expect((await blocked.json()).message ?? "").not.toContain("demo_mode");
     });
   });
@@ -531,7 +531,7 @@ describe("leads /pro e2e", () => {
         where: { id: convPersonId },
       });
       expect(person.verifiedAt).not.toBeNull();
-      // La barrera sigue activa — falta completar el perfil.
+      // La barrera sigue activa - falta completar el perfil.
       expect(person.isDemoAccount).toBe(true);
       expect(person.pendingProfileAt).not.toBeNull();
 
@@ -578,7 +578,7 @@ describe("leads /pro e2e", () => {
       });
       expect(lead.status).toBe("CONVERTED");
 
-      // Ya escribe como usuario normal — bloquea RBAC, no la barrera.
+      // Ya escribe como usuario normal - bloquea RBAC, no la barrera.
       const write = await post(
         "/api/admin/users/x/roles",
         { role: "DJ", status: "APPROVED" },
@@ -625,7 +625,7 @@ describe("leads /pro e2e", () => {
       });
       expect(after.status).toBe("CONVERTED");
       expect(after.personId).toBe(person.id);
-      // La cuenta real queda intacta — nunca se degrada a demo.
+      // La cuenta real queda intacta - nunca se degrada a demo.
       const untouched = await prisma.person.findUniqueOrThrow({
         where: { id: person.id },
       });
@@ -634,7 +634,7 @@ describe("leads /pro e2e", () => {
     });
 
     it("browse/leads expone demoPending para habilitar el botón", async () => {
-      // Lead directo por Prisma — el spec ya gasta el cupo de POST
+      // Lead directo por Prisma - el spec ya gasta el cupo de POST
       // /api/leads (10/hora por IP) en los tests de arriba.
       leadEmails.push("lead-e2e-pending@test.cl");
       const pending = await prisma.lead.create({

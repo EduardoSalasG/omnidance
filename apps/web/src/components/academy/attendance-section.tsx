@@ -20,7 +20,7 @@ type Props = {
 
 /**
  * Asistencia. POST /academies/:id/attendance recibe {slotId, personId, date?}
- * — el DTO no tiene `present`: registrar la fila = presente. Si se omite
+ * - el DTO no tiene `present`: registrar la fila = presente. Si se omite
  * `date` el server usa hoy (UTC). 409 = duplicado slot+persona+fecha.
  * GET lista los últimos 30 días por defecto.
  */
@@ -66,7 +66,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
   }, [load]);
 
   function slotText(s: ClassSlot | undefined): string {
-    if (!s) return "—";
+    if (!s) return "·";
     return `${s.series.name} · ${t(`weekday.${s.weekday}`)} ${s.startTime}–${s.endTime}`;
   }
 
@@ -99,7 +99,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Registro rápido — operación diaria primero, historial después */}
+      {/* Registro rápido - operación diaria primero, historial después */}
       <Card>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
           {t("markPresent")}
@@ -132,7 +132,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
               required
             >
               <option value="" disabled>
-                —
+                -
               </option>
               {slots.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -176,7 +176,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
         </div>
       ) : items.length === 0 ? (
         <p role="status" className="text-sm text-white/50">
-          —
+          -
         </p>
       ) : (
         <ul className="flex flex-col gap-2">

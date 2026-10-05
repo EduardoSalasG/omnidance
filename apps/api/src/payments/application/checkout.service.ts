@@ -62,7 +62,7 @@ export class EventEndedError extends Error {
 
 export class PresaleClosedError extends Error {
   constructor() {
-    super("La preventa cerró a las 19:00 — el resto se paga en puerta");
+    super("La preventa cerró a las 19:00 - el resto se paga en puerta");
     this.name = "PresaleClosedError";
   }
 }
@@ -112,7 +112,7 @@ export class PlanNotFoundError extends Error {
 
 /**
  * La academia está bloqueada por suscripción impaga (spec
- * academy-saas-billing, S3): ningún pago nuevo hacia ella — membresía,
+ * academy-saas-billing, S3): ningún pago nuevo hacia ella - membresía,
  * clase suelta, particular ni suscripción recurrente. El controller lo
  * traduce a 400 `{error:"academy.unavailable"}` con copy honesto (la
  * falta es del owner, no del alumno).
@@ -219,7 +219,7 @@ export interface PurchaseTicketInput {
 
 export interface PurchaseSeriesPassInput {
   seriesId: string;
-  /** Mes de vigencia "YYYY-MM" — validado por el DTO del controller. */
+  /** Mes de vigencia "YYYY-MM" - validado por el DTO del controller. */
   month: string;
 }
 
@@ -246,7 +246,7 @@ export interface PurchaseTicketResult {
 /**
  * Preview de código de descuento (GET /checkout/discount-quote): valida
  * existencia/vigencia/cupo/scope y estima el descuento de la ORDEN sobre
- * el precio del canal vigente — sin side-effects (no crea Payment ni
+ * el precio del canal vigente - sin side-effects (no crea Payment ni
  * consume uso del código). `reason` replica el vocabulario de
  * InvalidDiscountError para logging/telemetría del cliente.
  */
@@ -260,7 +260,7 @@ export interface DiscountQuoteResult {
  * Caso de uso del checkout de preventa: valida evento/cap/descuento, crea
  * la orden PENDING (con contexto desnormalizado en Payment), registra la
  * sugerencia de canción y delega el cobro a la pasarela configurada.
- * Lanza errores de dominio — el controller los mapea a HTTP.
+ * Lanza errores de dominio - el controller los mapea a HTTP.
  */
 @Injectable()
 export class CheckoutService {
@@ -298,7 +298,7 @@ export class CheckoutService {
     if (!event) throw new EventNotFoundError();
 
     // Reserva de mesa: solo si el evento ofrece, no supera el tope por
-    // mesa (default 12 sin configuración) y queda cupo sentable — el
+    // mesa (default 12 sin configuración) y queda cupo sentable - el
     // inventario real es en personas (tableSeatsTotal), no en mesas.
     if (input.tablePartySize != null && event.tablesTotal != null) {
       const seatMax = event.tableSeatMax ?? 12;
@@ -321,12 +321,12 @@ export class CheckoutService {
       }
     }
 
-    // Canal de venta (spec: cargos diferenciados por canal — preventa
+    // Canal de venta (spec: cargos diferenciados por canal - preventa
     // +$500 / puerta app +$700). La preventa cierra a las 19:00 del día
     // del evento (parametrizable: presale.cutoff_hour); desde ahí y
     // durante el evento LIVE la app vende a precio de puerta.
     const now = new Date();
-    // Un evento que ya terminó no vende por ningún canal — un evento que
+    // Un evento que ya terminó no vende por ningún canal - un evento que
     // quedó LIVE pasado su endsAt tampoco (el staff pudo no cerrarlo).
     if (now >= event.endsAt) throw new EventEndedError();
     const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
@@ -400,7 +400,7 @@ export class CheckoutService {
         const name = byId.get(id)?.name ?? "Esa persona";
         if (!friendIds.has(id)) {
           throw new RecipientError(
-            `${name} no es tu amigo en Omnidance — agrégalo primero`,
+            `${name} no es tu amigo en Omnidance - agrégalo primero`,
           );
         }
         if (takenIds.has(id)) {
@@ -420,13 +420,13 @@ export class CheckoutService {
         : Math.min(10, Math.max(1, Math.floor(input.quantity)));
     if (recipientIds.length > quantity - 1) {
       throw new RecipientError(
-        "Elegiste más amigos que entradas disponibles — sube la cantidad o desmarca a alguien",
+        "Elegiste más amigos que entradas disponibles - sube la cantidad o desmarca a alguien",
       );
     }
 
     if (channel === "PRESALE" && event.presaleCap != null) {
       // tickets emitidos + órdenes PENDING recientes cuentan contra el cap
-      // (quantity, no la orden — una orden multi-entrada reserva N cupos)
+      // (quantity, no la orden - una orden multi-entrada reserva N cupos)
       const [sold, inFlightAgg] = await Promise.all([
         this.prisma.ticket.count({
           where: { eventId: event.id, status: { not: "CANCELLED" } },
@@ -558,7 +558,7 @@ export class CheckoutService {
         net: orderTotal,
         quantity,
         recipients: recipientIds.length ? recipientIds : undefined,
-        // Intención de mesa: solo si el evento ofrece mesas — el webhook
+        // Intención de mesa: solo si el evento ofrece mesas - el webhook
         // la materializa al PAID (pago fallido/abandonado no reserva).
         tablePartySize:
           event.tablesTotal != null && input.tablePartySize
@@ -572,7 +572,7 @@ export class CheckoutService {
     });
 
     // SongSuggestion: se crea ya (ligada a personId+eventId) porque el
-    // webhook no recibe el texto — el top-N filtra por ticket pagado, así
+    // webhook no recibe el texto - el top-N filtra por ticket pagado, así
     // una sugerencia de pago FAILED/abandonado nunca se expone. Una activa
     // por persona/evento: la última checkout reemplaza la anterior.
     const suggestion = input.songSuggestion?.trim().replace(/\s+/g, " ");
@@ -610,7 +610,7 @@ export class CheckoutService {
    * Cotización de un código de descuento para el checkout de tickets:
    * responde si el código es redimible en este evento y el descuento
    * estimado de la orden sobre el precio del canal vigente (misma
-   * resolución preventa/puerta que purchaseTicket). Sin side-effects —
+   * resolución preventa/puerta que purchaseTicket). Sin side-effects -
    * el cliente lo usa para mostrar el total con descuento ANTES de
    * generar la orden. Un evento que ya no vende (terminado o sin canal
    * abierto) devuelve discountClp 0: el POST manda su propio error.
@@ -681,7 +681,7 @@ export class CheckoutService {
     if (listPrice == null) return { valid: true, discountClp: 0 };
 
     // El descuento se aplica una vez por orden (= unit.discount del
-    // pricing, no por ticket) — igual que el total de purchaseTicket.
+    // pricing, no por ticket) - igual que el total de purchaseTicket.
     const unit = this.pricing.quote({
       listPrice,
       serviceFeeClp: 0,
@@ -695,7 +695,7 @@ export class CheckoutService {
    * rechaza si ya tiene el pase del mes, crea la orden PENDING
    * (orderType SERIES_PASS, sin evento ni descuento en v1) y delega el cobro
    * a la pasarela. El SeriesPass efectivo lo emite el webhook al PAID.
-   * Lanza errores de dominio — el controller los mapea a HTTP.
+   * Lanza errores de dominio - el controller los mapea a HTTP.
    */
   async purchaseSeriesPass(
     personId: string,
@@ -741,7 +741,7 @@ export class CheckoutService {
     });
 
     // refId = sp_<seriesId>_<month>_<uuid>: como no hay columna para la serie
-    // en Payment (eventId queda null), el refId lleva todo el contexto — el
+    // en Payment (eventId queda null), el refId lleva todo el contexto - el
     // webhook lo decodifica como fuente primaria para emitir el SeriesPass.
     const refId = encodeSeriesPassRef(series.id, input.month);
     const person = await this.prisma.person.findUnique({
@@ -787,11 +787,11 @@ export class CheckoutService {
   /**
    * Checkout de plan de academia: valida plan+academia activos y crea la
    * orden PENDING (orderType MEMBERSHIP) delegando el cobro. TRIAL se
-   * vende online solo con price > 0 — la prueba gratis sigue siendo
+   * vende online solo con price > 0 - la prueba gratis sigue siendo
    * asignación staff (la pasarela no cobra CLP 0). El Enrollment lo
-   * emite el webhook al PAID — renovación incluida (extiende la
+   * emite el webhook al PAID - renovación incluida (extiende la
    * vigencia vigente); en TRIAL crea una fila nueva sin tocar la vigente.
-   * Lanza errores de dominio — el controller los mapea a HTTP.
+   * Lanza errores de dominio - el controller los mapea a HTTP.
    */
   async purchaseMembership(
     personId: string,
@@ -821,7 +821,7 @@ export class CheckoutService {
     }
 
     // Precio del plan desde DB (nunca del cliente). SIN cargo de servicio:
-    // modelo SaaS (spec academy-saas-billing) — la academia paga su
+    // modelo SaaS (spec academy-saas-billing) - la academia paga su
     // suscripción y vende sin comisión al alumno; el costo Flow se liquida
     // en su payout (línea GATEWAY_FEE_PASSTHROUGH). Defensivo en código:
     // no depende del param service_fee.membership_clp (deprecated para
@@ -833,7 +833,7 @@ export class CheckoutService {
     });
 
     // refId = mem_<planId>_<uuid>: Payment no tiene columna para el plan,
-    // así que el contexto viaja aquí — el webhook lo decodifica al PAID.
+    // así que el contexto viaja aquí - el webhook lo decodifica al PAID.
     const refId = encodeMembershipRef(plan.id);
     const person = await this.prisma.person.findUnique({
       where: { id: personId },
@@ -876,7 +876,7 @@ export class CheckoutService {
   }
 
   /**
-   * Revisión de orden del checkout de membresía — todo lo que la página
+   * Revisión de orden del checkout de membresía - todo lo que la página
    * muestra ANTES de cobrar: precio, cargo de servicio, total real que
    * la pasarela debita, vigencia resultante (misma derivación que el
    * settle: extiende desde endsAt+1d si hay vigencia futura) y la
@@ -913,13 +913,13 @@ export class CheckoutService {
       );
     }
 
-    // Sin cargo de servicio en productos de academia (modelo SaaS — spec
+    // Sin cargo de servicio en productos de academia (modelo SaaS - spec
     // academy-saas-billing): el alumno paga solo lo que la academia fija;
     // el costo Flow se liquida en su payout. Defensivo: no lee el param
     // service_fee.membership_clp (deprecated para órdenes de academia).
     const serviceFeeClp = 0;
 
-    // TRIAL nunca extiende la vigencia vigente — se materializa como
+    // TRIAL nunca extiende la vigencia vigente - se materializa como
     // enrollment independiente desde now; sin lookups de vigencia/suscripción.
     if (plan.type === "TRIAL") {
       return {
@@ -988,8 +988,8 @@ export class CheckoutService {
       totalClp: plan.price + serviceFeeClp,
       recurring: RECURRING_PLAN_TYPES.has(plan.type),
       vigenciaEndsAt: vigenciaEndsAt?.toISOString() ?? null,
-      // Fin de la vigencia vigente — el checkout la muestra cuando la
-      // compra extiende ("vence el X — la nueva vigencia parte después").
+      // Fin de la vigencia vigente - el checkout la muestra cuando la
+      // compra extiende ("vence el X - la nueva vigencia parte después").
       currentEndsAt: enrollment?.endsAt?.toISOString() ?? null,
       subscription: subscription ?? null,
       gateway: this.gateway.name,
@@ -1048,7 +1048,7 @@ export class CheckoutService {
 
   /**
    * Revisión previa a comprar una clase suelta/taller: desglose de precio
-   * (solo el dropInPrice de la serie — sin cargo de servicio en el modelo
+   * (solo el dropInPrice de la serie - sin cargo de servicio en el modelo
    * SaaS de academia), cupo restante y si el viewer ya tiene reserva.
    * Mismas reglas de dominio que purchaseClass; no crea orden ni toca la
    * pasarela.
@@ -1074,7 +1074,7 @@ export class CheckoutService {
         select: { status: true },
       }),
     ]);
-    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
     // la clase suelta cobra solo el dropInPrice de la serie.
     const serviceFeeClp = 0;
     const quote = this.pricing.quote({
@@ -1103,7 +1103,7 @@ export class CheckoutService {
    * Checkout de clase suelta / taller pago (spec academy-workshops):
    * valida vendibilidad, cupo y duplicidad, crea la orden PENDING
    * (orderType WORKSHOP, refId wks_<classId>_<uuid>) y delega el cobro.
-   * El ClassBooking pagado lo emite el settle al PAID — ocupa cupo físico
+   * El ClassBooking pagado lo emite el settle al PAID - ocupa cupo físico
    * pero nunca consume cuota del plan ni exige inscripción.
    */
   async purchaseClass(
@@ -1133,11 +1133,11 @@ export class CheckoutService {
     if (mine) throw new ClassAlreadyBookedError();
     // Las órdenes PENDING no reservan cupo físico (a diferencia de la
     // preventa): el asiento se materializa al PAID. Si el cupo se agotó
-    // entre el click y el pago, el settle deja la reserva en WAITLIST —
+    // entre el click y el pago, el settle deja la reserva en WAITLIST -
     // pagó, queda en cola, y la academia gestiona el aforo.
     if (booked >= capacity) throw new ClassSoldOutError();
 
-    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
     // la orden WORKSHOP cobra solo el dropInPrice.
     const serviceFeeClp = 0;
     const quote = this.pricing.quote({
@@ -1216,13 +1216,13 @@ export class CheckoutService {
   /**
    * Revisión previa a comprar una clase particular (spec
    * private-lesson-product): desglose de precio (solo el
-   * privateLessonPrice único de la academia — sin cargo de servicio en
+   * privateLessonPrice único de la academia - sin cargo de servicio en
    * el modelo SaaS de academia). No crea orden ni toca la pasarela.
    */
   async privateClassQuote(personId: string, academyId: string) {
     void personId;
     const { academy, listPrice } = await this.purchasableAcademy(academyId);
-    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
     // la particular cobra solo el privateLessonPrice de la academia.
     const serviceFeeClp = 0;
     const quote = this.pricing.quote({
@@ -1251,7 +1251,7 @@ export class CheckoutService {
     const { academy, listPrice } = await this.purchasableAcademy(
       input.academyId,
     );
-    // Sin cargo de servicio (modelo SaaS — spec academy-saas-billing):
+    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
     // la orden PRIVATE cobra solo el privateLessonPrice.
     const serviceFeeClp = 0;
     const quote = this.pricing.quote({

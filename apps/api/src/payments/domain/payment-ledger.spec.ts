@@ -1,4 +1,4 @@
-// payment-ledger.spec.ts — prisma fake con findFirst/create/findMany
+// payment-ledger.spec.ts - prisma fake con findFirst/create/findMany
 import { describe, expect, it } from "vitest";
 import { emitPaymentEvent, verifyPaymentChain } from "./payment-ledger";
 
@@ -24,7 +24,7 @@ function makeFake() {
           .filter((e) => e.paymentId === where.paymentId)
           .sort((a, b) => a.seq - b.seq),
     },
-    // El advisory lock real es pg_advisory_xact_lock (Postgres) — en el
+    // El advisory lock real es pg_advisory_xact_lock (Postgres) - en el
     // fake no hay concurrencia, es no-op.
     $executeRaw: async () => 0,
   };

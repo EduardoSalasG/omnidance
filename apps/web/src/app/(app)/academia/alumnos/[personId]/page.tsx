@@ -24,7 +24,7 @@ const HISTORY_VARIANT: Record<string, BadgeVariant> = {
   cancelled: "live",
 };
 
-// Claves i18n conocidas — status llega como string libre del server; uno
+// Claves i18n conocidas - status llega como string libre del server; uno
 // desconocido se muestra crudo (el enum puede crecer sin romper la UI).
 const KNOWN_ENROLLMENT_STATUS = [
   "ACTIVE",
@@ -37,7 +37,7 @@ const KNOWN_ENROLLMENT_STATUS = [
 const KNOWN_HISTORY_STATUS = ["attended", "booked", "cancelled"];
 
 /**
- * /academia/alumnos/[personId] — perfil del alumno en la academia
+ * /academia/alumnos/[personId] - perfil del alumno en la academia
  * seleccionada: plan/estado de enrollment, historial de clases y próximas
  * reservas. GET /academies/:id/students/:personId (owner e instructor).
  * AcademyGate resuelve la academia (el endpoint es por academia).
@@ -87,7 +87,7 @@ function ProfileModule({
       );
       if (res.status === 403 || res.status === 404) {
         // 403 = sin acceso (instructor de otra academia); 404 = alumno
-        // inexistente en esta academia — misma superficie de "no disponible".
+        // inexistente en esta academia - misma superficie de "no disponible".
         setState("forbidden");
         return;
       }
@@ -142,7 +142,7 @@ function ProfileModule({
         </p>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-white/60">
           <span>
-            {tp("plan")}: {profile.plan?.name ?? "—"}
+            {tp("plan")}: {profile.plan?.name ?? "·"}
           </span>
           <Badge variant="outline">
             {tp("enrollmentStatus")}: {statusLabel(profile.enrollmentStatus)}
@@ -181,7 +181,7 @@ function ProfileModule({
                     {classDayFmt.format(new Date(h.date))}
                   </p>
                   <p className="truncate text-xs text-white/60">
-                    {h.seriesName ?? "—"}
+                    {h.seriesName ?? "·"}
                     {h.styleName ? ` · ${h.styleName}` : ""}
                   </p>
                 </div>
@@ -218,7 +218,7 @@ function ProfileModule({
                     {classDayFmt.format(new Date(u.date))}
                   </p>
                   <p className="truncate text-xs text-white/60">
-                    {u.seriesName ?? "—"}
+                    {u.seriesName ?? "·"}
                   </p>
                 </div>
                 <Badge variant={u.status === "BOOKED" ? "neon" : "outline"}>

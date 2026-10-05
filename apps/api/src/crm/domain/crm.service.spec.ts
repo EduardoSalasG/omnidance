@@ -96,7 +96,7 @@ const ACADEMY = "acad-1"; // actorId de la academia (actorType "ACADEMY")
 const OTHER_ACADEMY = "acad-2";
 const PRODUCER = "prod-1";
 
-describe("CrmService — audiencias por grupo (ACADEMY)", () => {
+describe("CrmService - audiencias por grupo (ACADEMY)", () => {
   let prisma: FakePrisma;
   let notifySafe: ReturnType<typeof vi.fn>;
   let svc: CrmService;
@@ -209,7 +209,7 @@ describe("CrmService — audiencias por grupo (ACADEMY)", () => {
       personIds: ["p-extra", "p-active"], // p-active ya alcanzada
       tags: ["VIP"],
     });
-    // 3 alumnos + p-booker (serie) + p-tagged — p-extra no tiene
+    // 3 alumnos + p-booker (serie) + p-tagged - p-extra no tiene
     // universo con la academia (ni enrollment/tag/score) y se descarta
     expect(res.count).toBe(5);
   });

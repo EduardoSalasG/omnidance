@@ -5,7 +5,7 @@ Todos los cambios notables del proyecto se documentan aquí, siguiendo
 
 ## [0.1.0] - 2026-10-05
 
-Primera versión estable — promoción inicial de `dev` a `main` con pipeline
+Primera versión estable - promoción inicial de `dev` a `main` con pipeline
 de despliegue a producción.
 
 ### Added
@@ -22,7 +22,7 @@ de despliegue a producción.
 - **Economía**: checkout con Flow, códigos de descuento, payouts
   PRODUCER/ACADEMY/VENUE, suscripciones SaaS de academia y tiers Producer
   Pro (con trial de lanzamiento) gateando features avanzadas.
-- **Gamificación**: rachas, puntos, insignias y Prime Time — conductas,
+- **Gamificación**: rachas, puntos, insignias y Prime Time - conductas,
   nunca puntajes expuestos.
 - **Plataforma**: auth por magic link con sesiones firmadas, RBAC global
   DB-driven (roles/permisos/grants), parámetros operativos en
@@ -47,7 +47,7 @@ de despliegue a producción.
   (aplica solo pendientes) + seed prod condicional si la DB está vacía.
 - Web: Netlify (Next.js runtime) con rewrite same-origin `/api/*` →
   `api.omnidance.eduardosalasg.dev`.
-- DB: Neon Postgres externo (`omnidance`) — pooled para runtime, directo
+- DB: Neon Postgres externo (`omnidance`) - pooled para runtime, directo
   para migraciones.
 
 [0.1.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.1.0

@@ -1,4 +1,4 @@
-# Checkout + Tickets + Discount Codes — Implementation Plan
+# Checkout + Tickets + Discount Codes - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development o superpowers:executing-plans.
 
@@ -20,7 +20,7 @@
 
 ---
 
-### Task 1: Dominio checkout — pricing + puerto PaymentGateway
+### Task 1: Dominio checkout - pricing + puerto PaymentGateway
 
 **Files:**
 - Create: `src/payments/domain/payment-gateway.ts` (puerto + tokens)
@@ -31,12 +31,12 @@
 - Produces:
   - `PaymentGateway.createOrder(params: { amount, email, refId, returnUrl }): Promise<{ paymentUrl, gatewayRef }>`
   - `PaymentGateway.verifyWebhook(body, signature): Promise<{ refId, status: "PAID"|"FAILED" }>`
-  - `PricingService.quote({ listPrice, serviceFeePct, discount?: { percentOff?, amountOff? } }): { listPrice, discount, serviceFee, total }` — total nunca < 0; amountOff no excede listPrice.
+  - `PricingService.quote({ listPrice, serviceFeePct, discount?: { percentOff?, amountOff? } }): { listPrice, discount, serviceFee, total }` - total nunca < 0; amountOff no excede listPrice.
 
 - [ ] Test: quote sin descuento = list + fee; percentOff aplica sobre lista; amountOff cap en lista; total mínimo 0.
 - [ ] Implementación pura. Commit.
 
-### Task 2: Adapters gateway — Stub (dev) + Flow skeleton
+### Task 2: Adapters gateway - Stub (dev) + Flow skeleton
 
 **Files:**
 - Create: `src/payments/infrastructure/stub.gateway.ts`
@@ -48,7 +48,7 @@
 
 - [ ] Test del stub round-trip. Commit.
 
-### Task 3: Checkout — crear orden + webhook + emisión de ticket
+### Task 3: Checkout - crear orden + webhook + emisión de ticket
 
 **Files:**
 - Create: `src/payments/infrastructure/checkout.controller.ts`
@@ -67,7 +67,7 @@
 
 - [ ] e2e: checkout con stub → webhook PAID → ticket existe, redemption linkeada, usedCount=1. Re-webhook no duplica. Código expirado → 400. Commit.
 
-### Task 4: Discount codes — crear + listar (productor)
+### Task 4: Discount codes - crear + listar (productor)
 
 **Files:**
 - Create: `src/discounts/infrastructure/discounts.controller.ts`
@@ -87,7 +87,7 @@
 - Modify: `apps/web/src/app/eventos/[id]/page.tsx` (CTA → checkout real)
 
 **Interfaces:**
-- `/eventos/[id]/checkout`: muestra precio + campo opcional código → POST `/api/checkout/ticket` → redirect a `paymentUrl` (en dev stub muestra "simular pago aprobado" que llama al webhook — solo en `NODE_ENV!=="production"`).
+- `/eventos/[id]/checkout`: muestra precio + campo opcional código → POST `/api/checkout/ticket` → redirect a `paymentUrl` (en dev stub muestra "simular pago aprobado" que llama al webhook - solo en `NODE_ENV!=="production"`).
 - i18n strings nuevas en `messages/es-CL.json`.
 
 - [ ] `tsc --noEmit` + `next build` verdes + flujo manual dev. Commit.

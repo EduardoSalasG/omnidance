@@ -4,7 +4,7 @@ import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { HomeService } from "./home.service";
 
 /**
- * GET /api/home/stats?role=X&mode=Y — KPIs del home según la lente activa.
+ * GET /api/home/stats?role=X&mode=Y - KPIs del home según la lente activa.
  * role valida contra PersonRole aprobado (DANCER siempre permitido);
  * mode solo aplica a DANCER ("social" | "academy").
  */

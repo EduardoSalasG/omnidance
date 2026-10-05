@@ -1,6 +1,6 @@
 import { effectiveCapacity } from "../domain/academy.service";
 
-// Proyección completa del card de clase — la consumen browse, mine
+// Proyección completa del card de clase - la consumen browse, mine
 // (reservadas), el historial, el perfil público de academia y el home
 // (myClasses/nextClass); misma shape que ClassCardData en web.
 export const CLASS_CARD_SELECT = {
@@ -50,7 +50,7 @@ export const CLASS_CARD_SELECT = {
 
 // Instante UTC en que termina la clase: Class.date es medianoche UTC
 // del día calendario local y slot.endTime es "HH:MM" en hora de Chile.
-// El offset Santiago↔UTC (-3/-4 DST) se deriva con Intl — sin librería.
+// El offset Santiago↔UTC (-3/-4 DST) se deriva con Intl - sin librería.
 export function classEndInstant(date: Date, endTime: string): Date {
   const ymd = date.toISOString().slice(0, 10);
   const probe = new Date(`${ymd}T12:00:00Z`); // mediodía: lejos de bordes DST
@@ -78,7 +78,7 @@ export function classEndInstant(date: Date, endTime: string): Date {
   return new Date(Date.parse(`${ymd}T${endTime}:00Z`) - offsetMs);
 }
 
-// ¿La clase ya se cerró? — terminó su horario (la frontera que separa
+// ¿La clase ya se cerró? - terminó su horario (la frontera que separa
 // "reservada" de "historial": una clase de HOY a las 20:00 sigue activa
 // aunque Class.date (medianoche UTC) ya quedó en el pasado).
 export function classEnded(c: {
@@ -100,7 +100,7 @@ const chilePartsFmt = new Intl.DateTimeFormat("en-CA", {
 
 // Instante real (PrivateLesson.scheduledAt/createdAt) → convención del
 // card: `date` = ISO medianoche UTC del DÍA LOCAL (como Class.date) y
-// `startTime` = "HH:mm" local — la UI agrupa/ordena sin caso especial.
+// `startTime` = "HH:mm" local - la UI agrupa/ordena sin caso especial.
 export function instantToCardDate(instant: Date): {
   date: string;
   startTime: string;
@@ -116,7 +116,7 @@ export function instantToCardDate(instant: Date): {
 
 // Una particular comprada ES una reserva más (aforo 1, sin
 // recurrencia): se proyecta al mismo shape del card con `series: null`
-// — el título cae a "Clase particular" y el badge es "Reservado" como
+// - el título cae a "Clase particular" y el badge es "Reservado" como
 // toda reserva. Sin fecha asignada `date`/`startTime` viajan null y la
 // UI la agrupa aparte ("Por agendar").
 export function lessonCardItem(

@@ -13,7 +13,7 @@ import {
 
 // Flow (https://developers.flow.cl/api): firma HMAC-SHA256 sobre los
 // parámetros ordenados alfabéticamente concatenados como "nombreValor",
-// con el secretKey — se agrega como param "s".
+// con el secretKey - se agrega como param "s".
 //
 // Ambientes: producción https://www.flow.cl/api · sandbox
 // https://sandbox.flow.cl/api (credenciales propias, sandbox.flow.cl →
@@ -23,7 +23,7 @@ import {
 // existen FLOW_API_KEY + FLOW_SECRET(_KEY); en otro caso usa StubGateway.
 //
 // TODA llamada HTTP a Flow pasa por call(), que emite un GatewayTxEntry
-// (append-only) vía onTx — el writer real es GatewayTransactionsService,
+// (append-only) vía onTx - el writer real es GatewayTransactionsService,
 // inyectado desde el módulo; en tests se inyecta un collector fake.
 // Re-export de los tipos del contrato para callers del adapter.
 export type { FlowInvoice, FlowSubscription } from "../domain/ports";
@@ -53,7 +53,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     const params: Record<string, string> = {
       apiKey: this.apiKey,
       commerceOrder: p.refId,
-      // El refId codifica el tipo de orden (tkt_/sp_/mem_) — el subject
+      // El refId codifica el tipo de orden (tkt_/sp_/mem_) - el subject
       // del checkout de Flow refleja qué se está comprando.
       subject: p.refId.startsWith("mem_")
         ? "Plan Omnidance"
@@ -94,7 +94,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     const data = await this.call<{
       status?: number;
       commerceOrder?: string;
-      // paymentData {fee, amount, media, transferDate, …} — verdad
+      // paymentData {fee, amount, media, transferDate, …} - verdad
       // monetaria del cobro; el settle la persiste en Payment.gateway*.
       paymentData?: Record<string, unknown>;
     }>(
@@ -122,7 +122,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
 
   /**
    * Consulta activa por commerceOrder (= nuestro refId). La usa el
-   * polling de GET /payments/:id cuando la orden sigue PENDING — cubre
+   * polling de GET /payments/:id cuando la orden sigue PENDING - cubre
    * sandbox/dev donde el urlConfirmation de Flow no llega a localhost.
    * Estados Flow: 1 pendiente · 2 pagado · 3 rechazado · 4 anulado.
    */
@@ -172,13 +172,13 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
         { apiKey: this.apiKey, planId: p.planId },
         { method: "GET", correlationId: opts?.correlationId },
       );
-      return; // ya existe en Flow — no duplicar
+      return; // ya existe en Flow - no duplicar
     } catch {
       // plans/get falló (404/error) → crear abajo.
     }
     if (!this.subscriptionCallbackUrl) {
       throw new Error(
-        "FlowGateway: subscriptionCallbackUrl no configurada — plans/create sin urlCallback dejaría la suscripción sin notificación de cobros",
+        "FlowGateway: subscriptionCallbackUrl no configurada - plans/create sin urlCallback dejaría la suscripción sin notificación de cobros",
       );
     }
     await this.call<unknown>(
@@ -198,7 +198,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     );
   }
 
-  /** plans/edit — sync cuando staff edita precio/nombre del plan local. */
+  /** plans/edit - sync cuando staff edita precio/nombre del plan local. */
   async syncPlan(
     p: { planId: string; name: string; amount: number },
     opts?: SubscriptionCallOpts,
@@ -236,7 +236,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   }
 
   /**
-   * customer/get — `creditCardType` presente = el customer ya registró
+   * customer/get - `creditCardType` presente = el customer ya registró
    * tarjeta (completó customer/register); si falta, hay que mandarlo al
    * disclaimer de Flow antes de crear la suscripción.
    */
@@ -280,7 +280,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   }
 
   /**
-   * customer/getRegisterStatus — Flow devuelve status como STRING
+   * customer/getRegisterStatus - Flow devuelve status como STRING
    * ("1" = tarjeta registrada); se parsea a number en la salida.
    */
   async getRegisterStatus(
@@ -302,7 +302,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   }
 
   /**
-   * subscription/create — subscriptionStart "YYYY-MM-DD" fija el inicio
+   * subscription/create - subscriptionStart "YYYY-MM-DD" fija el inicio
    * (Flow cobra el primer período y programa next_invoice_date).
    */
   async createSubscription(
@@ -326,7 +326,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   }
 
   /**
-   * subscription/get — fuente de verdad del reconcile diario: trae
+   * subscription/get - fuente de verdad del reconcile diario: trae
    * invoices[] con su estado de cobro (ver isFlowInvoicePaid).
    */
   async getSubscription(
@@ -341,7 +341,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   }
 
   /**
-   * subscription/cancel — default at_period_end=1 (conserva el acceso
+   * subscription/cancel - default at_period_end=1 (conserva el acceso
    * hasta el fin del período pagado). `immediate:true` → at_period_end=0,
    * solo para compensar subs huérfanas (ver SubscriptionsService).
    */
@@ -363,7 +363,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   /**
    * Wrapper único de HTTP contra Flow: firma los params, ejecuta el fetch
    * (POST urlencoded por default; GET lleva los params firmados en la
-   * querystring) y SIEMPRE emite un GatewayTxEntry en el finally — éxito,
+   * querystring) y SIEMPRE emite un GatewayTxEntry en el finally - éxito,
    * error HTTP o falla de red quedan auditados con durationMs y detalle.
    * La firma viaja sanitizada (sha256 truncado) en requestBody: la raw
    * signature nunca sale del boundary del fetch.
@@ -398,7 +398,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
             ? { "content-type": "application/x-www-form-urlencoded" }
             : undefined,
         body: method === "POST" ? signed : undefined,
-        // Timeout unificado 15s (create era 15s, status 10s — la
+        // Timeout unificado 15s (create era 15s, status 10s - la
         // auditoría favorece no cortar una consulta que sí respondería).
         signal: AbortSignal.timeout(opts.timeoutMs ?? 15_000),
       });
@@ -411,7 +411,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
       }
       ok = res.ok;
       if (!res.ok) {
-        // Flow responde {code, message} en errores — el message es seguro
+        // Flow responde {code, message} en errores - el message es seguro
         // de loggear (no incluye credenciales ni firmas).
         const detail = (
           responseBody as { code?: number; message?: string } | null

@@ -5,7 +5,7 @@ import "../../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ a
 import { invalidateRoleCatalog } from "../../common/rbac/roles.guard";
 import { EventAnalyticsController } from "./event-analytics.controller";
 
-// EventAnalyticsController.analytics — solo owner del evento o
+// EventAnalyticsController.analytics - solo owner del evento o
 // admin.access; splits y ratings se ocultan bajo EXPOSURE_THRESHOLD
 // (k-anonymity). roleSplit se calcula por rol en estilos del género del
 // evento (heredado de la serie si el evento no declara).
@@ -27,7 +27,7 @@ interface FakePersonRow {
   id: string;
   gender: string | null;
   styleRoles: { role: string; style: { genre: string } }[];
-  // Gating Producer Pro (S5) — solo se consultan para el owner.
+  // Gating Producer Pro (S5) - solo se consultan para el owner.
   proTier?: string;
   proTrialEndsAt?: Date | null;
 }
@@ -157,7 +157,7 @@ describe("EventAnalyticsController.analytics", () => {
       genres: ["SALSA"],
       series: null,
     });
-    // Owner con trial Pro vigente (S5) — los tests de agregados ejercen
+    // Owner con trial Pro vigente (S5) - los tests de agregados ejercen
     // el camino feliz; el gating se prueba aparte.
     prisma.people.set("prod-1", {
       id: "prod-1",

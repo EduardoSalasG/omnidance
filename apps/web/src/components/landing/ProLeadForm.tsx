@@ -8,7 +8,7 @@ import landingParts from "@/i18n/parts/landing.json";
 
 const t = landingParts.landingPro.form;
 
-// Orden fijo del multiselect — los valores son los role keys del backend.
+// Orden fijo del multiselect - los valores son los role keys del backend.
 const ROLE_OPTIONS = [
   { value: "PRODUCER", label: t.roleProducer },
   { value: "DJ", label: t.roleDj },
@@ -17,7 +17,7 @@ const ROLE_OPTIONS = [
 ] as const;
 
 type Intent = "CONTACT" | "DEMO";
-// Campos obligatorios validados en cliente antes de pegarle al API —
+// Campos obligatorios validados en cliente antes de pegarle al API -
 // el backend revalida igual (el endpoint es público).
 type Missing = "name" | "email" | "phone" | "roles";
 
@@ -56,7 +56,7 @@ export function ProLeadForm() {
         : [...prev, value],
     );
 
-  // El teléfono solo es obligatorio si piden contacto — la demo baja la
+  // El teléfono solo es obligatorio si piden contacto - la demo baja la
   // fricción (nombre, correo y roles bastan para entrar a la app).
   function validate(intent: Intent): Missing[] {
     const miss: Missing[] = [];

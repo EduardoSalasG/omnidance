@@ -125,7 +125,7 @@ export function PlansSection({ academyId, plans, onChanged }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {plans.length === 0 ? (
-        <p className="text-sm text-white/50">—</p>
+        <p className="text-sm text-white/50">·</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {plans.map((p) => (

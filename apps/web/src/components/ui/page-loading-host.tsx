@@ -6,7 +6,7 @@ import { getLoadingVisible, subscribeLoading } from "./loading-beacon";
 
 const getServerSnapshot = () => false;
 
-// Host único del beacon de carga — montado en el root layout.
+// Host único del beacon de carga - montado en el root layout.
 // pointer-events-none: el spinner informa sin bloquear (el usuario puede
 // seguir navegando). El chip con backdrop-blur lo hace legible sobre
 // cualquier contenido sin necesitar un velo de pantalla completa.

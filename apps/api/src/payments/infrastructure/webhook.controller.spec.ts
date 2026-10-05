@@ -74,7 +74,7 @@ class FakePrisma {
   academies: Row[] = [];
   plans: Row[] = [];
   paymentEvents: Row[] = [];
-  // Catálogo RBAC mínimo — roleKeysHavePermission lo consulta vía
+  // Catálogo RBAC mínimo - roleKeysHavePermission lo consulta vía
   // role.findMany (cache de 30s compartido, los roles son estáticos).
   roles: Row[] = [
     { key: "ADMIN", isSuperuser: true, permissions: [] },
@@ -177,14 +177,14 @@ const mkPayment = (over: Row): Row => ({
   fee: 300,
   net: 9700,
   status: "PAID",
-  // un minuto por pago — el orden desc es determinista sin depender
+  // un minuto por pago - el orden desc es determinista sin depender
   // del clock real ni de cuántos tests corrieron antes.
   createdAt: new Date(BASE_TS + seq * 60_000),
   gatewayFeeClp: 319,
   gatewayReportedAmount: 10000,
   gatewayMedia: "WebPay",
   gatewayPaidAt: new Date("2025-11-10T12:01:00Z"),
-  // Evidencia interna — nunca debe salir por los endpoints de auditoría.
+  // Evidencia interna - nunca debe salir por los endpoints de auditoría.
   gatewayRaw: { raw: "full-getStatus" },
   ...over,
 });
@@ -199,7 +199,7 @@ function mkCtrl(prisma: FakePrisma) {
   );
 }
 
-describe("PaymentsController — vistas de auditoría", () => {
+describe("PaymentsController - vistas de auditoría", () => {
   let prisma: FakePrisma;
   let ctrl: PaymentsController;
 
@@ -259,13 +259,13 @@ describe("PaymentsController — vistas de auditoría", () => {
         refId: encodeMembershipRef("plan-2"),
         eventId: null,
       }),
-      // TICKET legacy sin eventId — el contexto sale del refId tkt_.
+      // TICKET legacy sin eventId - el contexto sale del refId tkt_.
       mkPayment({
         id: "p-legacy",
         eventId: null,
         refId: encodeTicketOrderRef("evt-2"),
       }),
-      // WORKSHOP: clase suelta/taller pago — refId wks_<classId>_.
+      // WORKSHOP: clase suelta/taller pago - refId wks_<classId>_.
       mkPayment({
         id: "p-wks",
         orderType: "WORKSHOP",

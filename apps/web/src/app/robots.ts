@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // Superficies de app privadas/operativas — fuera del índice.
+      // Superficies de app privadas/operativas - fuera del índice.
       // Disallow es por prefijo: /admin cubre /admin/*, etc.
       disallow: [
         "/admin",

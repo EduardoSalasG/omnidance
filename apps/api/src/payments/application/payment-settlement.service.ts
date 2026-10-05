@@ -33,9 +33,9 @@ import { SERVICE_FEE } from "@omnidance/shared";
 /**
  * Contexto del settle: quién lo originó y la evidencia de la pasarela.
  * - actor: "webhook" | "polling" | "cron" | "admin" | "system" |
- *   "person" | "reconcile" — queda en la columna actor de cada
+ *   "person" | "reconcile" - queda en la columna actor de cada
  *   PaymentEvent (vocabulario completo en el comentario del schema).
- * - gatewayData: `paymentData` de payment/getStatus (Flow) — verdad
+ * - gatewayData: `paymentData` de payment/getStatus (Flow) - verdad
  *   monetaria reportada por la pasarela; se persiste en los campos
  *   gateway* del Payment cuando el estado confirmado es PAID.
  * - kind "renewal": el pago proviene de un cobro de suscripción (T6/T7)
@@ -70,7 +70,7 @@ interface AmountMismatch {
 
 /**
  * paymentData de Flow es un objeto plano; cualquier campo ausente o con
- * tipo inesperado queda en null — nunca se inventa un valor. Si
+ * tipo inesperado queda en null - nunca se inventa un valor. Si
  * gatewayData no es objeto (p.ej. StubGateway no lo envía) devuelve null
  * y el update no toca los campos gateway*.
  */
@@ -100,7 +100,7 @@ function extractGatewayFields(gatewayData: unknown): GatewayFields | null {
 }
 
 /**
- * Liquidación de pagos confirmados por la pasarela — extraído del
+ * Liquidación de pagos confirmados por la pasarela - extraído del
  * PaymentsController (webhook). Lo llaman el webhook (notificación
  * pasiva), getPayment (consulta activa en sandbox/dev) y el reconcile de
  * suscripciones (T6/T7 vía settleMembership).
@@ -109,7 +109,7 @@ function extractGatewayFields(gatewayData: unknown): GatewayFields | null {
  * efectos; dentro de cada tx hay un re-check de status que cubre carreras
  * de webhooks concurrentes. Los eventos del ledger (STATUS_CONFIRMED,
  * SETTLED/RENEWAL_SETTLED, FAILED, AMOUNT_MISMATCH) se emiten SOLO en la
- * transición real de estado — una re-notificación no llena el ledger.
+ * transición real de estado - una re-notificación no llena el ledger.
  */
 @Injectable()
 export class PaymentSettlementService {
@@ -120,7 +120,7 @@ export class PaymentSettlementService {
   ) {}
 
   /**
-   * WEBHOOK_RECEIVED — evidencia append-only de CADA notificación que
+   * WEBHOOK_RECEIVED - evidencia append-only de CADA notificación que
    * llega de la pasarela, duplicadas incluidas (una re-notificación es
    * evidencia válida aunque no produzca transición). Va en su propia tx
    * (separa de la del settle, que corre después): el advisory lock del
@@ -162,7 +162,7 @@ export class PaymentSettlementService {
       await this.prisma.$transaction(async (tx) => {
         // Claim atómico PENDING→FAILED: dos notificaciones concurrentes
         // serializan sobre la fila y el perdedor ve count=0 (el re-check
-        // por lectura no servía — bajo READ COMMITTED ambos leían
+        // por lectura no servía - bajo READ COMMITTED ambos leían
         // PENDING antes del commit del ganador y duplicaban el settle).
         const claimed = await tx.payment.updateMany({
           where: { id: payment.id, status: "PENDING" },
@@ -207,13 +207,13 @@ export class PaymentSettlementService {
 
     // SERIES_PASS: rama separada del flujo ticket. A diferencia del ticket,
     // la orden no tiene contexto en columnas (Payment.eventId es null por
-    // diseño — el pase es de la serie, no de un evento): el (seriesId, month)
+    // diseño - el pase es de la serie, no de un evento): el (seriesId, month)
     // viaja codificado en el refId y se decodifica como fuente primaria.
     if (payment.orderType === "SERIES_PASS") {
       return this.settleSeriesPass(payment, meta);
     }
 
-    // MEMBERSHIP: igual que el pase, el contexto solo viaja en el refId —
+    // MEMBERSHIP: igual que el pase, el contexto solo viaja en el refId -
     // el settle decodifica el plan y materializa/renueva el Enrollment.
     if (payment.orderType === "MEMBERSHIP") {
       return this.settleMembership(payment, meta);
@@ -226,13 +226,13 @@ export class PaymentSettlementService {
     }
 
     // PRIVATE (clase particular comprable): refId pvt_<academyId>_<uuid>;
-    // la lección nace "por asignar" — sin instructor ni fecha (spec
+    // la lección nace "por asignar" - sin instructor ni fecha (spec
     // private-lesson-product).
     if (payment.orderType === "PRIVATE") {
       return this.settlePrivateLesson(payment, meta);
     }
 
-    // PLATFORM_SUB (suscripción SaaS de la plataforma — spec
+    // PLATFORM_SUB (suscripción SaaS de la plataforma - spec
     // academy-saas-billing): refId platsub_<subId>_<invoiceId>.
     if (payment.orderType === "PLATFORM_SUB") {
       return this.settlePlatformSub(payment, meta);
@@ -347,7 +347,7 @@ export class PaymentSettlementService {
         Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
       ));
 
-    // Verdad monetaria de la pasarela (Flow paymentData) — se persiste
+    // Verdad monetaria de la pasarela (Flow paymentData) - se persiste
     // junto al PAID dentro de la tx.
     const gw = extractGatewayFields(meta.gatewayData);
 
@@ -386,7 +386,7 @@ export class PaymentSettlementService {
 
       // Multi-entrada: un ticket para el comprador + uno por destinatario
       // de regalo (ownerId=amigo, giftedFromId=comprador). El descuento se
-      // audita una sola vez — solo el ticket del comprador lo referencia.
+      // audita una sola vez - solo el ticket del comprador lo referencia.
       const recipientIds = Array.isArray(payment.recipients)
         ? (payment.recipients as string[]).filter(
             (id): id is string => typeof id === "string",
@@ -418,7 +418,7 @@ export class PaymentSettlementService {
       }
 
       // Reclamables: entradas sobrantes de la orden quedan del comprador
-      // con claimToken — el destinatario las reclama en /reclamar/:token
+      // con claimToken - el destinatario las reclama en /reclamar/:token
       // aunque no esté registrado ni sea amigo.
       const unassigned = Math.max(
         0,
@@ -504,7 +504,7 @@ export class PaymentSettlementService {
       });
 
       // Aviso al productor: nueva solicitud de mesa desde el checkout
-      // (solo si efectivamente se creó — no en dedup de reserva activa).
+      // (solo si efectivamente se creó - no en dedup de reserva activa).
       if (reservationCreated && event?.producerId) {
         const buyer = await this.prisma.person.findUnique({
           where: { id: payment.personId },
@@ -543,7 +543,7 @@ export class PaymentSettlementService {
             type: "ticket.gifted",
             title: `${buyerName} te regaló una entrada`,
             body: event?.name
-              ? `Para ${event.name} — ya está en Mis entradas`
+              ? `Para ${event.name} - ya está en Mis entradas`
               : "Ya está en Mis entradas",
             data: {
               paymentId: payment.id,
@@ -568,7 +568,7 @@ export class PaymentSettlementService {
 
   /**
    * Liquidación del pase de serie al PAID: marca el Payment y hace upsert del
-   * SeriesPass por @@unique([seriesId,personId,month]) — re-pago del mismo mes
+   * SeriesPass por @@unique([seriesId,personId,month]) - re-pago del mismo mes
    * solo refresca el precio, nunca duplica. Idempotente: re-notificación PAID
    * sale antes (ramal "duplicated") y el re-check dentro de la tx cubre
    * carreras; la notificación solo sale cuando esta llamada marcó PAID.
@@ -652,12 +652,12 @@ export class PaymentSettlementService {
    * enrollment vigente aún tiene fecha futura, la compra extiende desde
    * el día siguiente a su vencimiento (membershipBase); si no, parte hoy
    * y reinicia startedAt. Excepción: plan TRIAL siempre crea una fila
-   * TRIAL nueva — nunca toca ni degrada la inscripción vigente (una
+   * TRIAL nueva - nunca toca ni degrada la inscripción vigente (una
    * alumna ACTIVE que compra una prueba conserva su ACTIVE). Idempotente
    * igual que el pase de serie.
    *
    * Público: el reconcile de suscripciones (T6/T7) lo invoca directo con
-   * `meta = { actor: "cron", kind: "renewal", gatewayData }` — un cobro
+   * `meta = { actor: "cron", kind: "renewal", gatewayData }` - un cobro
    * de suscripción se liquida igual que una compra manual, pero su
    * evento de cierre es RENEWAL_SETTLED.
    */
@@ -704,7 +704,7 @@ export class PaymentSettlementService {
         academyId: plan.academyId,
       });
 
-      // Enrollment no tiene @@unique(academyId,personId) — el histórico
+      // Enrollment no tiene @@unique(academyId,personId) - el histórico
       // se permite por diseño (el alta staff ya hace check manual de
       // duplicados). findFirst + update/create dentro de la tx.
       if (plan.type === "TRIAL") {
@@ -801,7 +801,7 @@ export class PaymentSettlementService {
 
   /**
    * Liquidación de clase suelta / taller (spec academy-workshops) al
-   * PAID: marca el Payment y materializa el ClassBooking con paymentId —
+   * PAID: marca el Payment y materializa el ClassBooking con paymentId -
    * ocupa cupo físico, nunca consume cuota del plan ni exige
    * inscripción. Si el cupo se llenó entre el checkout y el pago la
    * reserva entra como WAITLIST (pagó → queda en cola; la academia
@@ -868,7 +868,7 @@ export class PaymentSettlementService {
 
       // @@unique(classId,personId): si ya hay fila (p.ej. reserva de plan
       // cancelada, o asiento de una compra anterior) la reactiva como
-      // pagada — el pago nuevo manda sobre el enrollmentId.
+      // pagada - el pago nuevo manda sobre el enrollmentId.
       const existing = await tx.classBooking.findUnique({
         where: {
           classId_personId: { classId: cls.id, personId: payment.personId },
@@ -971,7 +971,7 @@ export class PaymentSettlementService {
         academyId: academy.id,
       });
 
-      // El precio de la lección es la lista (sin cargo de servicio) — la
+      // El precio de la lección es la lista (sin cargo de servicio) - la
       // comisión del instructor se calcula sobre ese monto al assign.
       const lesson = await tx.privateLesson.create({
         data: {
@@ -1011,7 +1011,7 @@ export class PaymentSettlementService {
         category: "OPERATIONAL",
         type: "academy.private_lesson.sold",
         title: "Clase particular vendida",
-        body: `${academy.name} · ${clp} — asigna fecha e instructor`,
+        body: `${academy.name} · ${clp} - asigna fecha e instructor`,
         data: {
           paymentId: payment.id,
           refId: payment.refId,
@@ -1031,7 +1031,7 @@ export class PaymentSettlementService {
 
   /**
    * Liquidación PLATFORM_SUB (spec academy-saas-billing): invoice pagada
-   * de una `PlatformSubscription` — refId `platsub_<subId>_<invoiceId>`.
+   * de una `PlatformSubscription` - refId `platsub_<subId>_<invoiceId>`.
    * Lo invoca el reconcile de `PlatformSubscriptionsService` con
    * `meta.kind:"renewal"` (evento RENEWAL_SETTLED); también responde si
    * cualquier camino genérico (webhook/polling) liquida la orden.
@@ -1099,7 +1099,7 @@ export class PaymentSettlementService {
 
       if (sub.kind === "ACADEMY" && sub.academyId) {
         // Desbloqueo por pago recuperado + sync del plan contratado.
-        // tierCode es String por diseño (dos dominios en una tabla) —
+        // tierCode es String por diseño (dos dominios en una tabla) -
         // solo se proyecta si es un AcademyTier válido.
         const tier = ACADEMY_TIERS.has(sub.tierCode)
           ? (sub.tierCode as AcademyTier)

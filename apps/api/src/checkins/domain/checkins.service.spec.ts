@@ -165,7 +165,7 @@ class FakeCheckinsRepo implements CheckinsRepo {
         passId: ticket.id,
         note: null,
       },
-      null, // el ticket ya nace USED — no hay pase que marcar
+      null, // el ticket ya nace USED - no hay pase que marcar
     );
     return { ticket, checkin };
   }
@@ -704,7 +704,7 @@ describe("CheckinsService.doorSale", () => {
 // Cadena de resolución del fee de puerta (checkins.service.doorSale):
 // override del evento (doorAppFeeClp/doorCashFeeClp) → default del
 // productor (ProducerParams) → PlatformParam → default del shared.
-describe("CheckinsService.doorSale — resolución de fee", () => {
+describe("CheckinsService.doorSale - resolución de fee", () => {
   let repo: FakeCheckinsRepo;
   let svc: CheckinsService;
 

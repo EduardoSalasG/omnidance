@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Postgres efímero para la suite e2e (test/*.e2e.spec.ts bootea la app
-    # Nest contra DATABASE_URL). Es descartable — la DB real es Neon.
+    # Nest contra DATABASE_URL). Es descartable - la DB real es Neon.
     services:
       postgres:
         image: postgres:16-alpine
@@ -71,7 +71,7 @@ jobs:
         run: pnpm --filter @omnidance/api prisma generate
 
       # Los e2e dependen del baseline Y de las personas demo
-      # (*@omnidance.dev) — se siembra dev completo sobre el Postgres
+      # (*@omnidance.dev) - se siembra dev completo sobre el Postgres
       # efímero (es descartable; la DB real es Neon).
       - name: Migrate + seed (test DB)
         run: |
@@ -154,7 +154,7 @@ jobs:
               if [ ! -f .env ]; then
                 echo "ERROR: falta .env en ${{ env.CONTAINER_DIR }}"
                 echo "Crearlo con DATABASE_URL (Neon), JWT_SECRET, QR_SECRET,"
-                echo "Flow keys, Resend, VAPID, SEED_ADMIN_EMAIL… — checklist"
+                echo "Flow keys, Resend, VAPID, SEED_ADMIN_EMAIL… - checklist"
                 echo "completo en docs/ci-cd.md"
                 exit 1
               fi
@@ -177,7 +177,7 @@ jobs:
 
               # Migraciones/seed one-shot: MIGRATION_DATABASE_URL (endpoint
               # directo de Neon, mismo host sin -pooler) desde secret o .env;
-              # si falta se usa DATABASE_URL — el pooler es transaction-mode
+              # si falta se usa DATABASE_URL - el pooler es transaction-mode
               # y los advisory locks de prisma migrate pueden fallar
               # intermitente ahí (re-correr el deploy suele alcanzar).
               MIGRATION_DATABASE_URL="$(echo '${{ secrets.MIGRATION_DATABASE_URL }}' | tr -d '[:space:]')"
@@ -219,7 +219,7 @@ jobs:
               fi
 
               # Completitud = baseline (roles) + al menos un ADMIN
-              # aprobado. Solo corre el seed cuando falta algo — la data
+              # aprobado. Solo corre el seed cuando falta algo - la data
               # completa no se reescribe en cada deploy (los params
               # editados desde /admin quedan intactos).
               echo "--- checking baseline data ---"
@@ -238,9 +238,9 @@ jobs:
               BASELINE_ADMIN="${BASELINE##*:}"
 
               if [ "$BASELINE_ROLES" != "0" ] && [ "$BASELINE_ROLES" != "-1" ] && [ "$BASELINE_ADMIN" != "0" ] && [ "$BASELINE_ADMIN" != "-1" ]; then
-                echo "DB completa ($BASELINE_ROLES roles, $BASELINE_ADMIN admin) — seed omitido"
+                echo "DB completa ($BASELINE_ROLES roles, $BASELINE_ADMIN admin) - seed omitido"
               elif [ "$BASELINE_ROLES" != "0" ] && [ "$BASELINE_ROLES" != "-1" ] && [ -z "$SEED_ADMIN_EMAIL" ]; then
-                echo "WARN: baseline OK pero sin ADMIN aprobado y sin SEED_ADMIN_EMAIL — seed omitido (setear el email para crearlo)"
+                echo "WARN: baseline OK pero sin ADMIN aprobado y sin SEED_ADMIN_EMAIL - seed omitido (setear el email para crearlo)"
               else
                 if [ -z "$SEED_ADMIN_EMAIL" ]; then
                   echo "ERROR: DB sin baseline/admin y SEED_ADMIN_EMAIL no está en GitHub secrets ni en .env"
@@ -271,7 +271,7 @@ jobs:
               docker compose logs --tail=50 api || true
 
               for attempt in $(seq 1 60); do
-                # El cold start de Nest toma ~5-10s — los primeros
+                # El cold start de Nest toma ~5-10s - los primeros
                 # intentos fallan y es esperado.
                 echo "Health check attempt $attempt/60 ..."
                 if curl -fsS --max-time 5 --connect-timeout 2 http://127.0.0.1:3002/api/health > /dev/null; then
@@ -313,9 +313,9 @@ jobs:
 
               # Reload no-fatal: el vhost es estático una vez creado; si el
               # deploy user no tiene NOPASSWD para systemctl el reload se
-              # omite con aviso — la sonda HTTPS de abajo es el gate real.
+              # omite con aviso - la sonda HTTPS de abajo es el gate real.
               sudo -n systemctl reload nginx 2>/dev/null || \
-                echo "warn: no se pudo recargar nginx (NOPASSWD ausente?) — el vhost es estático, la sonda HTTPS valida igual"
+                echo "warn: no se pudo recargar nginx (NOPASSWD ausente?) - el vhost es estático, la sonda HTTPS valida igual"
 
               # Valida el vhost HTTPS real de Nginx. El puerto 80 redirige
               # a HTTPS, así que una sonda HTTP daría 301 en vez del 401

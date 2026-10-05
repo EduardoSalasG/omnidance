@@ -13,10 +13,10 @@ const DAY_MS = 86_400_000;
  * academy-saas-billing, S3/S6): lo monta AcademyGate en estado ready, así
  * aparece arriba del contenido en el hub y en todas las subrutas.
  * - billingBlockedAt → banner rojo "bloqueada" (las mutaciones ya
- *   responden 403 billing.blocked — el banner explica el porqué).
+ *   responden 403 billing.blocked - el banner explica el porqué).
  * - billingGraceUntil > ahora → banner ámbar con los días de gracia.
  * El CTA a /academia/suscripcion solo se muestra a owner/ADMIN (los
- * endpoints de billing son requireAdminister) — usa el /me compartido;
+ * endpoints de billing son requireAdminister) - usa el /me compartido;
  * mientras resuelve, el slot del CTA queda reservado con un skeleton
  * pill para que el banner no se reajuste al resolver. En la propia
  * página de suscripción no se repite: el estado ya va detallado ahí.
@@ -36,18 +36,18 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
   const show = blocked || (graceDays != null && graceDays > 0);
 
   // El CTA solo aplica a quien puede administrar el billing
-  // (owner/admin) — /me compartido, sin fetch propio.
+  // (owner/admin) - /me compartido, sin fetch propio.
   const { me, loading: meLoading } = useMe();
   const canManage =
     !meLoading &&
     !!me &&
     (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
-  // En /academia/suscripcion el estado va completo — el banner sería
+  // En /academia/suscripcion el estado va completo - el banner sería
   // redundante.
   if (!show || pathname === "/academia/suscripcion") return null;
 
-  // CTA opcional según permiso — nada mientras /me resuelve (para el
+  // CTA opcional según permiso - nada mientras /me resuelve (para el
   // no-manager un skeleton que colapsa sería flash; para el manager un
   // botón que aparece una vez es mejor que un bloque fantasma).
   const cta =

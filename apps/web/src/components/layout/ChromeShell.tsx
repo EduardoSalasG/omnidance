@@ -4,11 +4,11 @@ import { usePathname } from "next/navigation";
 import { BottomNav, CHROME_HIDDEN_PREFIXES } from "./BottomNav";
 
 // Wrapper client del chrome de app: el appbar (hamburguesa + título +
-// campana) es sticky en el flujo — ocupa su propio espacio, no se
+// campana) es sticky en el flujo - ocupa su propio espacio, no se
 // sobrepone al contenido. La tab bar sigue fixed → solo se reserva
 // padding-bottom cuando el chrome se muestra (contextos fullscreen
 // como la consola staff de puerta usan toda la pantalla).
-// El acento (data-mode en <html>) lo aplica BottomNav — necesita el
+// El acento (data-mode en <html>) lo aplica BottomNav - necesita el
 // rol activo para decidir verde academia vs morado.
 export function ChromeShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

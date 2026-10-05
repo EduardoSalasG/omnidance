@@ -16,8 +16,8 @@ describe("gamification e2e", () => {
 
   const ids = {
     venueId: "",
-    eventLiveId: "", // LIVE — leaderboard/prime-time visibles
-    eventDraftId: "", // PUBLISHED — leaderboard oculto
+    eventLiveId: "", // LIVE - leaderboard/prime-time visibles
+    eventDraftId: "", // PUBLISHED - leaderboard oculto
     style1Id: "",
     style2Id: "",
     // personas
@@ -166,7 +166,7 @@ describe("gamification e2e", () => {
     );
     ids.extraIds = extras.map((p) => p.id);
 
-    // ─── badges catálogo — global compartido (también lo siembra el seed) ───
+    // ─── badges catálogo - global compartido (también lo siembra el seed) ───
     await prisma.badge.createMany({
       skipDuplicates: true,
       data: [
@@ -300,7 +300,7 @@ describe("gamification e2e", () => {
         at: yesterdayAt(23, inWindow[i]),
       });
     }
-    // fuera de ventana: antes (22:59) y después (00:30) — no cuentan
+    // fuera de ventana: antes (22:59) y después (00:30) - no cuentan
     await confirmed({
       eventId: eventLive.id,
       inviterId: extras[4].id,
@@ -325,7 +325,7 @@ describe("gamification e2e", () => {
       },
     });
 
-    // evento PUBLISHED con sesiones — leaderboard debe quedar oculto
+    // evento PUBLISHED con sesiones - leaderboard debe quedar oculto
     await confirmed({
       eventId: eventDraft.id,
       inviterId: topLeader.id,
@@ -409,7 +409,7 @@ describe("gamification e2e", () => {
     await prisma.personBadge.deleteMany({
       where: { personId: { in: personIds } },
     });
-    // El catálogo Badge es global (seed + otros specs) — no se borra.
+    // El catálogo Badge es global (seed + otros specs) - no se borra.
     await prisma.danceSession.deleteMany({
       where: { eventId: { in: [ids.eventLiveId, ids.eventDraftId] } },
     });

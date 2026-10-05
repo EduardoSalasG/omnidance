@@ -165,7 +165,7 @@ class CreateEnrollmentDto {
   @IsISO8601()
   startsAt?: string;
 
-  /** "Pagado hasta" — si falta y el plan es PERIOD se deriva de
+  /** "Pagado hasta" - si falta y el plan es PERIOD se deriva de
       periodDays; otros tipos quedan abiertos (staff lo marca al cobrar). */
   @IsOptional()
   @IsISO8601()
@@ -219,13 +219,13 @@ class UpdateAcademySettingsDto {
   @MaxLength(31)
   instagram?: string | null;
 
-  /** Teléfono WhatsApp — se normaliza a dígitos (+56…) para wa.me. */
+  /** Teléfono WhatsApp - se normaliza a dígitos (+56…) para wa.me. */
   @IsOptional()
   @IsString()
   @MaxLength(20)
   whatsapp?: string | null;
 
-  /** URL del sitio web público — se normaliza a https://… */
+  /** URL del sitio web público - se normaliza a https://… */
   @IsOptional()
   @IsString()
   @MaxLength(300)
@@ -311,11 +311,11 @@ export class AcademiesController {
    * Directorio de academias activas para alumnos autenticados: perfil
    * público (nombre, descripción, dirección, coords), estilos que imparte
    * (derivados de sus series activas), instructores y flag `enrolled`
-   * (alguna inscripción del autenticado, cualquier estado — "Mis
+   * (alguna inscripción del autenticado, cualquier estado - "Mis
    * academias" vs "Explorar" lo resuelve el front con esto). Datos
-   * públicos de negocio — sin métricas ni datos de alumnos.
+   * públicos de negocio - sin métricas ni datos de alumnos.
    * Las academias bloqueadas por mora (billingBlockedAt, spec
-   * academy-saas-billing) quedan fuera del directorio — el alumno las
+   * academy-saas-billing) quedan fuera del directorio - el alumno las
    * sigue viendo en /academies/enrolled con su flag.
    */
   @Get()
@@ -401,7 +401,7 @@ export class AcademiesController {
   /**
    * Vista alumno (spec §9 "Mi Aprendizaje"): inscripciones del autenticado
    * con academia, estado (presencial/online/pausada), plan y asistencias
-   * de los últimos 30 días por academia — progreso personal, no
+   * de los últimos 30 días por academia - progreso personal, no
    * competitivo. Distinto de /mine, que es la consola owner/instructor.
    */
   @Get("enrolled")
@@ -426,7 +426,7 @@ export class AcademiesController {
             lat: true,
             lng: true,
             // Mora SaaS (S3): la academia bloqueada SIGUE listándose en
-            // "mis academias" — el flag le permite a la UI marcarla
+            // "mis academias" - el flag le permite a la UI marcarla
             // ("no disponible") sin castigar el historial del alumno.
             billingBlockedAt: true,
           },
@@ -449,7 +449,7 @@ export class AcademiesController {
         },
         select: { class: { select: { slot: { select: { academyId: true } } } } },
       }),
-      // Suscripción vigente del viewer por academia (la más reciente) —
+      // Suscripción vigente del viewer por academia (la más reciente) -
       // alimenta el badge "se cancela el…" de Mis academias.
       this.prisma.membershipSubscription.findMany({
         where: {
@@ -496,7 +496,7 @@ export class AcademiesController {
   @RequirePermissions("academies.create")
   @AllowSandbox() // spec: owners SANDBOX crean academia demo antes del APPROVED
   async create(@Body() dto: CreateAcademyDto, @Req() req: Request) {
-    // isDemo: el schema no tiene la columna — academias de owners no
+    // isDemo: el schema no tiene la columna - academias de owners no
     // APPROVED quedan indistinguibles (gap reportado).
     // Trial SaaS (spec academy-saas-billing): `academy_billing.trial_days`
     // días gratis desde la creación; las academias existentes recibieron
@@ -529,7 +529,7 @@ export class AcademiesController {
   }
 
   /**
-   * Perfil público de la academia (cualquier autenticado — la vista de
+   * Perfil público de la academia (cualquier autenticado - la vista de
    * gestión es GET /:id con requireManage). Datos de negocio públicos:
    * descripción, dirección/coords, estilos impartidos (derivados de
    * series activas), profesores, planes activos y próximas clases
@@ -556,7 +556,7 @@ export class AcademiesController {
         privateLessonPrice: true,
         // Mora SaaS (S3): la ficha pública sigue respondiendo pero el
         // flag `billingBlocked` le dice a la UI que la muestre como "no
-        // disponible" (sin CTAs de compra/reserva — S6).
+        // disponible" (sin CTAs de compra/reserva - S6).
         billingBlockedAt: true,
         instructors: { select: { personId: true } },
         classSeries: {
@@ -599,7 +599,7 @@ export class AcademiesController {
             plan: { select: { id: true, name: true, type: true } },
           },
         }),
-        // Suscripción del viewer a esta academia (la más reciente) — la
+        // Suscripción del viewer a esta academia (la más reciente) - la
         // ficha muestra el estado/badge igual que myEnrollment.
         this.prisma.membershipSubscription.findFirst({
           where: { personId: me, academyId: id },
@@ -612,7 +612,7 @@ export class AcademiesController {
             canceledAt: true,
           },
         }),
-        // Próximas clases no terminadas de la academia (cap razonable —
+        // Próximas clases no terminadas de la academia (cap razonable -
         // la página muestra las primeras y la ficha de clase tiene el resto).
         this.prisma.class.findMany({
           where: {
@@ -677,7 +677,7 @@ export class AcademiesController {
    * Settings de la academia (solo owner/ADMIN). defaultQuorum es el piso
    * de la cadena de quórum efectivo de las clases; null lo limpia.
    * También edita el perfil público (descripción, dirección, coords y
-   * contacto) — undefined no toca el campo; null/"" lo limpian.
+   * contacto) - undefined no toca el campo; null/"" lo limpian.
    */
   @Patch(":id/settings")
   @UseGuards(SessionGuard)
@@ -705,7 +705,7 @@ export class AcademiesController {
   /**
    * Comisión del instructor (solo owner/ADMIN): % que la academia retiene
    * del precio de cada clase particular suya. Se snapshottea a
-   * PrivateLesson.commissionPct al crear la solicitud — cambiarlo no
+   * PrivateLesson.commissionPct al crear la solicitud - cambiarlo no
    * retroactúa sobre lecciones ya pedidas.
    */
   @Patch(":id/instructors/:personId")
@@ -774,7 +774,7 @@ export class AcademiesController {
    * plans/edit ANTES del update local: si Flow rechaza, la fila local
    * queda intacta y ambos lados siguen consistentes; el reintento
    * converge (syncPlan es idempotente con los mismos valores). El tipo
-   * queda bloqueado cuando hay espejo — Flow plans/edit no admite
+   * queda bloqueado cuando hay espejo - Flow plans/edit no admite
    * cambiar el intervalo de un plan ya creado.
    */
   @Patch(":id/plans/:planId")
@@ -811,7 +811,7 @@ export class AcademiesController {
         });
       } catch {
         throw new BadGatewayException(
-          "Flow no pudo actualizar el plan de cobro — reintenta",
+          "Flow no pudo actualizar el plan de cobro. Reintenta",
         );
       }
     }
@@ -876,7 +876,7 @@ export class AcademiesController {
     const startedAt = dto.startsAt ? new Date(dto.startsAt) : new Date();
     // "Pagado hasta": explícito, o derivado del plan PERIOD
     // (startedAt + periodDays). MONTHLY/CLASS_PACK/TRIAL quedan sin
-    // fecha — el staff la marca al cobrar (PATCH /enrollments/:id).
+    // fecha - el staff la marca al cobrar (PATCH /enrollments/:id).
     const endsAt = dto.endsAt
       ? new Date(dto.endsAt)
       : plan.type === "PERIOD" && plan.periodDays
@@ -895,7 +895,7 @@ export class AcademiesController {
     });
   }
 
-  // Listado de alumnos — requireManage: el instructor también lo ve
+  // Listado de alumnos - requireManage: el instructor también lo ve
   // (necesita conocer a sus alumnos), no solo el owner.
   @Get(":id/students")
   @UseGuards(SessionGuard)
@@ -913,7 +913,7 @@ export class AcademiesController {
         plan: { select: { name: true } },
       },
     });
-    // Enrollment.personId es FK plana (sin relación en schema) — join manual.
+    // Enrollment.personId es FK plana (sin relación en schema) - join manual.
     const people = await this.prisma.person.findMany({
       where: { id: { in: enrollments.map((e) => e.personId) } },
       select: { id: true, name: true, email: true },
@@ -931,7 +931,7 @@ export class AcademiesController {
 
   /**
    * Ficha del alumno dentro de la academia: plan/enrollment vigente,
-   * historial (asistencias + reservas pasadas, últimas 50 — la asistencia
+   * historial (asistencias + reservas pasadas, últimas 50 - la asistencia
    * prevalece sobre la reserva de la misma clase) y reservas futuras.
    * requireManage: también lo ve el instructor, no solo el owner.
    */
@@ -1053,7 +1053,7 @@ export class AcademiesController {
 
   // ─── slots ───
   // Los horarios solo se crean vía serie (POST /academies/:id/series y
-  // /series/:id/slots) — todo slot pertenece a una serie por invariante
+  // /series/:id/slots) - todo slot pertenece a una serie por invariante
   // de schema. Este GET es la parrilla semanal completa de la academia.
 
   @Get(":id/slots")
@@ -1078,7 +1078,7 @@ export class AcademiesController {
     await this.access.requireAdminister(id, req.person!);
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     // Class.date vive a medianoche UTC (misma convención que
-    // ClassSeriesController.monthDates) — "hoy" = el día UTC actual.
+    // ClassSeriesController.monthDates) - "hoy" = el día UTC actual.
     const now = new Date();
     const todayUTC = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -1093,7 +1093,7 @@ export class AcademiesController {
         this.prisma.attendance.count({
           where: { class: { slot: { academyId: id }, date: { gte: since } } },
         }),
-        // Clases del día — spec §13 Academia: "asistencia de hoy, clases
+        // Clases del día - spec §13 Academia: "asistencia de hoy, clases
         // del día" en el dashboard de la consola.
         this.prisma.class.findMany({
           where: {
@@ -1132,7 +1132,7 @@ export class AcademiesController {
       : [];
     const booked = new Map(bookedBy.map((b) => [b.classId, b._count._all]));
 
-    // instructorId es escalar (override de la clase o default del slot) —
+    // instructorId es escalar (override de la clase o default del slot) -
     // nombres por join manual.
     const instructorIds = [
       ...new Set(

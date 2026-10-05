@@ -40,7 +40,7 @@ export const PENDING_CARD_TTL_MS = 15 * 60_000;
 
 // Grace del orphan sweep: un subscription/create auditado más joven que
 // esto puede ser un request en vuelo (aún no persiste flowSubscriptionId)
-// — no es candidato a huérfana hasta que la ventana haya pasado.
+// - no es candidato a huérfana hasta que la ventana haya pasado.
 const ORPHAN_SWEEP_GRACE_MS = 2 * 60_000;
 
 // Ventana del reminder pre-cobro: avisa el día anterior (nextInvoiceAt
@@ -56,7 +56,7 @@ export type CustomerReturnResult =
   | { ok: true; academyId: string }
   | { ok: false; academyId: string | null };
 
-// Shape público de una suscripción (lo que ve el dueño) — la academy viene
+// Shape público de una suscripción (lo que ve el dueño) - la academy viene
 // por la relación del plan (MembershipSubscription.academyId es columna
 // pelada, sin relación propia).
 const SUB_SELECT = {
@@ -101,13 +101,13 @@ function toPublicSub(s: SubRow) {
  * Suscripciones recurrentes de planes de academia sobre el motor nativo
  * de Flow (SubscriptionProvider). El primer cobro lo ejecuta Flow al
  * `subscription/create` (subscription_start = hoy); las renovaciones se
- * liquidan acá vía `reconcileSubscription` — cada invoice pagado genera
+ * liquidan acá vía `reconcileSubscription` - cada invoice pagado genera
  * un Payment `mem_<planId>_<invoiceId>` que pasa por
  * `PaymentSettlementService.settleMembership` (misma fuente de verdad
  * que el checkout manual: extiende endsAt, emite eventos, notifica).
  *
  * Funciona con cualquier gateway que implemente SubscriptionProvider
- * (Flow en sandbox/prod; StubGateway en dev — simula el motor completo
+ * (Flow en sandbox/prod; StubGateway en dev - simula el motor completo
  * en memoria, ver stub.gateway.ts).
  */
 @Injectable()
@@ -126,7 +126,7 @@ export class SubscriptionsService {
 
   /**
    * Port opcional: capability check por presencia de métodos, no por
-   * name — cualquier adapter que implemente SubscriptionProvider vale
+   * name - cualquier adapter que implemente SubscriptionProvider vale
    * (Flow; StubGateway en dev), sin depender del concreto (hexagonal).
    */
   private supportsSubscriptions(): boolean {
@@ -146,11 +146,11 @@ export class SubscriptionsService {
   }
 
   /**
-   * plans/edit — empuja nombre/precio al plan espejo de Flow cuando
+   * plans/edit - empuja nombre/precio al plan espejo de Flow cuando
    * staff edita el plan local (PATCH /academies/:id/plans/:planId).
    * No-op si el plan aún no tiene espejo (el primer subscribe lo crea
    * con los valores vigentes) o el gateway no implementa
-   * SubscriptionProvider — en ambos casos no hay nada que sincronizar.
+   * SubscriptionProvider - en ambos casos no hay nada que sincronizar.
    *
    * El caller lo ejecuta ANTES del update local: si Flow rechaza, la
    * fila local queda intacta y ambos lados siguen consistentes (la
@@ -161,13 +161,13 @@ export class SubscriptionsService {
     next: { name: string; price: number },
   ): Promise<void> {
     if (!plan.flowPlanId || !this.supportsSubscriptions()) return;
-    // Sin cargo de servicio en el monto espejo (modelo SaaS — spec
+    // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
     // academy-saas-billing): Flow cobra al alumno solo plan.price; el
     // costo de pasarela se liquida en el payout de la academia.
     await this.provider().syncPlan(
       {
         planId: plan.flowPlanId,
-        name: `${plan.academy.name} — ${next.name}`,
+        name: `${plan.academy.name} - ${next.name}`,
         amount: next.price,
       },
       { correlationId: randomUUID() },
@@ -186,7 +186,7 @@ export class SubscriptionsService {
    *
    * Concurrencia (I1): el re-check de sub viva + la elección/creación de
    * la fila PENDING_CARD van dentro de una tx corta con advisory lock
-   * `pg_advisory_xact_lock(hashtext(personId))` — por PERSON, no por
+   * `pg_advisory_xact_lock(hashtext(personId))` - por PERSON, no por
    * plan: el sweep M7 cancela pendientes de cualquier plan, así que dos
    * subscribe() de planes distintos del mismo person también deben
    * serializarse (si no, una PENDING_CARD creada por el otro entre el
@@ -196,7 +196,7 @@ export class SubscriptionsService {
    * hay un claim atómico PENDING_CARD→ACTIVATING que cubre la carrera
    * contra customerReturn (que toma la misma sub por su lado).
    * Regla de la sección crítica: TODO update de status es condicional
-   * por el status esperado (updateMany id+status) — nunca update
+   * por el status esperado (updateMany id+status) - nunca update
    * incondicional sobre una fila cuyo estado pudo moverse fuera de la tx.
    */
   async subscribe(
@@ -215,7 +215,7 @@ export class SubscriptionsService {
       throw new NotFoundException("plan no disponible");
     }
     // Academia bloqueada por mora (spec academy-saas-billing, S3): no
-    // hay suscripciones nuevas — mismo código/copy que el checkout.
+    // hay suscripciones nuevas - mismo código/copy que el checkout.
     if (plan.academy.billingBlockedAt != null) {
       throw new BadRequestException({
         error: "academy.unavailable",
@@ -232,7 +232,7 @@ export class SubscriptionsService {
 
     // Sección crítica (serializada por advisory lock): re-check de sub
     // viva + elección de la PENDING_CARD. Una PENDING_CARD FRESCA del
-    // mismo plan se reutiliza — idempotencia del retry del cliente: el
+    // mismo plan se reutiliza - idempotencia del retry del cliente: el
     // segundo request devuelve needs_card con el mismo subscriptionId y
     // un registerUrl nuevo (customer/register es re-llamable sobre el
     // mismo customerId). Una PENDING_CARD/ACTIVATING expirada (>TTL,
@@ -240,7 +240,7 @@ export class SubscriptionsService {
     const sub = await this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`sub:${personId}`}))`;
       // TODAS las subs vivas del person (cualquier plan): el sweep M7
-      // decide por fila sobre este snapshot — con el lock por person,
+      // decide por fila sobre este snapshot - con el lock por person,
       // ningún subscribe concurrente puede crear una PENDING_CARD que
       // escape a la lista.
       const live = await tx.membershipSubscription.findMany({
@@ -271,7 +271,7 @@ export class SubscriptionsService {
       const now = new Date();
       // Se cancelan las PENDING_CARD del person (cualquier plan): el
       // token de customer-return ata a customer→person, no a una sub
-      // concreta — con dos pendientes vivas no habría forma de saber
+      // concreta - con dos pendientes vivas no habría forma de saber
       // cuál activar al volver del disclaimer (M7). Cancel dirigido por
       // fila y condicional por status esperado: si count===0 la fila se
       // movió entremedio (un customer-return la claimeó a ACTIVATING) →
@@ -284,15 +284,15 @@ export class SubscriptionsService {
         });
         if (canceled.count === 0) {
           throw new ConflictException(
-            "la suscripción está siendo procesada — reintenta en unos segundos",
+            "la suscripción está siendo procesada - reintenta en unos segundos",
           );
         }
       }
       // ACTIVATING expirada de este plan (crash entre claim y update):
-      // la reemplaza el intento nuevo — cancel condicional por status.
+      // la reemplaza el intento nuevo - cancel condicional por status.
       // Si el request colgado commiteó ACTIVATING→ACTIVE entremedio,
       // count===0 y NO se pisa: un update incondicional dejaría una sub
-      // Flow viva cobrando con fila CANCELED (huérfana permanente —
+      // Flow viva cobrando con fila CANCELED (huérfana permanente -
       // reconcileAll solo escanea ACTIVE/CANCEL_PENDING).
       if (existing?.status === "ACTIVATING") {
         const canceled = await tx.membershipSubscription.updateMany({
@@ -301,7 +301,7 @@ export class SubscriptionsService {
         });
         if (canceled.count === 0) {
           throw new ConflictException(
-            "la suscripción está siendo procesada — reintenta en unos segundos",
+            "la suscripción está siendo procesada - reintenta en unos segundos",
           );
         }
       }
@@ -313,16 +313,16 @@ export class SubscriptionsService {
 
     const correlationId = randomUUID();
 
-    // Plan espejo en Flow — lazy create en el primer subscribe.
+    // Plan espejo en Flow - lazy create en el primer subscribe.
     let flowPlanId = plan.flowPlanId;
     if (!flowPlanId) {
       flowPlanId = `omni_${plan.id}`;
-      // Sin cargo de servicio en el monto espejo (modelo SaaS — spec
+      // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
       // academy-saas-billing): Flow cobra al alumno solo plan.price.
       await provider.ensurePlan(
         {
           planId: flowPlanId,
-          name: `${plan.academy.name} — ${plan.name}`,
+          name: `${plan.academy.name} - ${plan.name}`,
           amount: plan.price,
           intervalCount,
         },
@@ -334,7 +334,7 @@ export class SubscriptionsService {
       });
     }
 
-    // Customer en Flow — lazy create (helper compartido con las subs de
+    // Customer en Flow - lazy create (helper compartido con las subs de
     // plataforma); sin email no se puede registrar.
     const { customerId } = await ensureFlowCustomer(
       this.prisma,
@@ -356,7 +356,7 @@ export class SubscriptionsService {
     }
 
     // Claim atómico de la PENDING_CARD: el lock de la tx ya se liberó y
-    // un customer-return concurrente pudo activar la sub entremedio —
+    // un customer-return concurrente pudo activar la sub entremedio -
     // sin el claim ambos harían subscription/create → doble cobro.
     const claimed = await this.prisma.membershipSubscription.updateMany({
       where: { id: sub.id, status: "PENDING_CARD" },
@@ -373,12 +373,12 @@ export class SubscriptionsService {
         return { kind: "subscribed", subscriptionId: sub.id };
       }
       // Mensaje acorde al estado real: una CANCELED (cancel del usuario
-      // o sweep de otro subscribe) no está "siendo procesada" — el
+      // o sweep de otro subscribe) no está "siendo procesada" - el
       // retry inmediato crea un intento nuevo.
       throw new ConflictException(
         cur?.status === "CANCELED"
-          ? "la suscripción fue cancelada — vuelve a intentarlo"
-          : "la suscripción está siendo procesada — reintenta en unos segundos",
+          ? "la suscripción fue cancelada - vuelve a intentarlo"
+          : "la suscripción está siendo procesada - reintenta en unos segundos",
       );
     }
 
@@ -388,7 +388,7 @@ export class SubscriptionsService {
       correlationId,
     });
 
-    // El primer invoice puede venir ya pagado en la respuesta — el settle
+    // El primer invoice puede venir ya pagado en la respuesta - el settle
     // materializa el Enrollment sin esperar al polling/webhook.
     try {
       await this.reconcileSubscription(active, fs, "system");
@@ -423,7 +423,7 @@ export class SubscriptionsService {
    *   la tarjeta ya está registrada y el próximo intento la retoma (si
    *   quedara ACTIVATING para siempre, el guard de subscribe daría 409
    *   eterno).
-   * - Guard de status remoto (M4): no se asume ACTIVE a ciegas —
+   * - Guard de status remoto (M4): no se asume ACTIVE a ciegas -
    *   `fs.status` se coerciona a número (Flow puede devolverlo como
    *   STRING "4", igual que getRegisterStatus); 4 (cancelada) →
    *   CANCELED; ausente/1 → ACTIVE; otro valor o NaN → warn + ACTIVE
@@ -466,7 +466,7 @@ export class SubscriptionsService {
     // estado, el flowSubscriptionId ya quedó para que el sweep de
     // huérfanas (reconcileAll) la rastree. Si esta escritura falla, la
     // transición condicional de abajo también fallará (count===0) y la
-    // compensación cancela la remota — el sweep la rescatará igual vía
+    // compensación cancela la remota - el sweep la rescatará igual vía
     // la auditoría del create.
     await this.prisma.membershipSubscription
       .update({
@@ -481,7 +481,7 @@ export class SubscriptionsService {
     const remoteStatus = fs.status == null ? null : Number(fs.status);
     if (remoteStatus != null && remoteStatus !== 1 && remoteStatus !== 4) {
       this.logger.warn(
-        `subscription/create sub ${subId}: status remoto inesperado ${String(fs.status)} — queda ACTIVE y el reconcile lo corrige`,
+        `subscription/create sub ${subId}: status remoto inesperado ${String(fs.status)} - queda ACTIVE y el reconcile lo corrige`,
       );
     }
     const nextStatus = remoteStatus === 4 ? "CANCELED" : "ACTIVE";
@@ -527,7 +527,7 @@ export class SubscriptionsService {
    * browser a url_return con {token}). Público: registra el inbound en
    * GatewayTransaction y, si el registro quedó OK, reanuda la
    * suscripción PENDING_CARD más reciente del customer → ACTIVE.
-   * Nunca lanza por estados esperados — el controller traduce a redirect.
+   * Nunca lanza por estados esperados - el controller traduce a redirect.
    */
   async customerReturn(token: string): Promise<CustomerReturnResult> {
     const correlationId = randomUUID();
@@ -612,11 +612,11 @@ export class SubscriptionsService {
   /**
    * urlCallback de los Flow-plans (plans/create lo registró): Flow avisa
    * eventos de suscripción (cobro, mora, cancelación). Registramos el
-   * inbound y disparamos reconcileAll fire-and-forget — el endpoint
+   * inbound y disparamos reconcileAll fire-and-forget - el endpoint
    * responde 200 siempre (si no, Flow reintenta y repetiría el barrido);
    * el cron diario (T7) es la red de seguridad real.
    *
-   * I3: sin `token` (string no vacía) NO se dispara el sweep — el
+   * I3: sin `token` (string no vacía) NO se dispara el sweep - el
    * endpoint es público y cada reconcileAll ejecuta N llamadas firmadas
    * a Flow; exigir el token evita amplificación por POST arbitrarios.
    * El registro INBOUND se mantiene igual (evidencia del intento).
@@ -652,7 +652,7 @@ export class SubscriptionsService {
    * Detalle para el dueño con refresh activo contra Flow (mismo patrón
    * que GET /payments/:id): subscription/get → reconcile de invoices
    * pagados + sync de estado. Si Flow no responde se devuelve el estado
-   * local — el cron sigue reconciliando.
+   * local - el cron sigue reconciliando.
    */
   async getForOwner(personId: string, id: string) {
     const sub = await this.prisma.membershipSubscription.findUnique({
@@ -750,7 +750,7 @@ export class SubscriptionsService {
       type: "membership.subscription_canceled",
       title: "Suscripción cancelada",
       body: plan
-        ? `${plan.name} · ${plan.academy.name} — acceso hasta fin del período pagado`
+        ? `${plan.name} · ${plan.academy.name} - acceso hasta fin del período pagado`
         : "Acceso hasta fin del período pagado",
       data: {
         subscriptionId: sub.id,
@@ -764,7 +764,7 @@ export class SubscriptionsService {
   /**
    * Barrido de todas las suscripciones vivas (webhook fast-path + cron
    * T7). Cada sub se reconcilia con su propio correlationId; una que
-   * falle no aborta el resto — queda loggeada y la reintenta el próximo
+   * falle no aborta el resto - queda loggeada y la reintenta el próximo
    * barrido.
    */
   async reconcileAll(
@@ -805,13 +805,13 @@ export class SubscriptionsService {
    *
    * Cobertura viva = fila local con ese flowSubscriptionId en
    * ACTIVE/CANCEL_PENDING (las reconcilia reconcileSubscription) o
-   * ACTIVATING fresca (request en vuelo — además el grace por createdAt
+   * ACTIVATING fresca (request en vuelo - además el grace por createdAt
    * de la auditoría ya la excluye). Un crash en el round-trip del create
    * deja el id solo en la auditoría: este sweep es la última red.
    *
    * El barrido cubre AMBAS tablas: `subscription/create` es el mismo
    * endpoint auditado para membresías y para PlatformSubscription
-   * (academy-saas-billing) — sin la cobertura de la segunda tabla, el
+   * (academy-saas-billing) - sin la cobertura de la segunda tabla, el
    * sweep cancelaría las subs de plataforma vivas por "huérfanas".
    */
   private async sweepOrphanSubscriptions(
@@ -869,7 +869,7 @@ export class SubscriptionsService {
         local &&
         (local.status === "ACTIVE" || local.status === "CANCEL_PENDING")
       ) {
-        continue; // cobertura viva — reconcileSubscription la cubre
+        continue; // cobertura viva - reconcileSubscription la cubre
       }
       if (
         local?.status === "ACTIVATING" &&
@@ -910,12 +910,12 @@ export class SubscriptionsService {
   }
 
   /**
-   * Reconcile de una suscripción contra su estado remoto en Flow —
+   * Reconcile de una suscripción contra su estado remoto en Flow -
    * compartido por el polling de GET /subscriptions/:id, el webhook y el
    * cron (T7 le agrega reminder/morose encima).
    *
    * Invoices pagados (isFlowInvoicePaid): dedup por lastInvoiceId y por
-   * Payment.refId `mem_<planId>_<invoiceId>` (único — retry seguro);
+   * Payment.refId `mem_<planId>_<invoiceId>` (único - retry seguro);
    * cada uno nuevo crea el Payment PENDING + ORDER_CREATED en el ledger
    * y pasa por settleMembership (kind "renewal" → RENEWAL_SETTLED).
    *
@@ -925,11 +925,11 @@ export class SubscriptionsService {
    *
    * Encima del sync corren los avisos del cron (T7): el reminder del
    * cobro del día siguiente (dedup por reminderSentFor === nextInvoiceAt)
-   * y la mora — `morose=1` con invoice impaga → membership.renewal_failed
+   * y la mora - `morose=1` con invoice impaga → membership.renewal_failed
    * (dedup por invoiceId en la notificación ya enviada). Política SIN
    * grace period: el enrollment expira solo en endsAt, acá no se toca
    * nada más que notificar; la sub tampoco se marca CANCELED por mora
-   * (Flow reintenta el cobro — sigue viva).
+   * (Flow reintenta el cobro - sigue viva).
    */
   async reconcileSubscription(
     sub: MembershipSubscription,
@@ -939,7 +939,7 @@ export class SubscriptionsService {
     let settled = 0;
     const paidInvoices = (fs.invoices ?? []).filter(isFlowInvoicePaid);
     if (paidInvoices.length) {
-      // Fallback de monto si la invoice no trae amount (raro — Flow lo
+      // Fallback de monto si la invoice no trae amount (raro - Flow lo
       // reporta): precio del plan + cargo de servicio vigente.
       const plan = await this.prisma.membershipPlan.findUnique({
         where: { id: sub.planId },
@@ -955,7 +955,7 @@ export class SubscriptionsService {
         if (exists) {
           // Si el settle de una pasada anterior falló post-create, el
           // Payment quedó PENDING y la invoice cobrada sin enrollment
-          // (I2). Se reintenta acá — settleMembership re-chequea status
+          // (I2). Se reintenta acá - settleMembership re-chequea status
           // dentro de su tx → idempotente. Si lanza, la invoice NO se
           // marca y el próximo barrido lo reintenta de nuevo.
           if (exists.status === "PENDING") {
@@ -970,7 +970,7 @@ export class SubscriptionsService {
           sub.lastInvoiceId = invId;
           continue;
         }
-        // Fallback sin cargo de servicio (modelo SaaS — spec
+        // Fallback sin cargo de servicio (modelo SaaS - spec
         // academy-saas-billing): si Flow no reporta monto, el Payment
         // local registra solo el precio del plan.
         const amount = inv.amount > 0 ? inv.amount : (plan?.price ?? 0);
@@ -1012,7 +1012,7 @@ export class SubscriptionsService {
       : null;
     let status = sub.status;
     let canceledAt = sub.canceledAt;
-    // Flow puede devolver status y flags como strings ("4", "1") —
+    // Flow puede devolver status y flags como strings ("4", "1") -
     // misma coerción defensiva que en createFlowSubscription.
     const remoteStatus = fs.status == null ? null : Number(fs.status);
     if (remoteStatus === 4) {
@@ -1038,7 +1038,7 @@ export class SubscriptionsService {
 
     const now = Date.now();
     // Reminder del cobro del día siguiente: una vez por nextInvoiceAt
-    // (reminderSentFor lo dedup — si Flow mueve la fecha, se puede
+    // (reminderSentFor lo dedup - si Flow mueve la fecha, se puede
     // volver a avisar). Solo en ACTIVE: una CANCEL_PENDING no tiene
     // próximo cobro real aunque Flow siga reportando la fecha.
     if (
@@ -1074,9 +1074,9 @@ export class SubscriptionsService {
     }
 
     // Mora: Flow reporta morose=1 con la invoice impaga en invoices[].
-    // Sin grace period — solo se notifica una vez por invoice impaga
+    // Sin grace period - solo se notifica una vez por invoice impaga
     // (dedup por invoiceId en la notificación enviada; Flow crea una
-    // invoice por intento, la más antigua es el inicio del episodio —
+    // invoice por intento, la más antigua es el inicio del episodio -
     // clave estable mientras dure la mora).
     if (Number(fs.morose) === 1) {
       const unpaid = (fs.invoices ?? [])
@@ -1126,8 +1126,8 @@ export class SubscriptionsService {
           type: "membership.renewal_failed",
           title: "Cobro fallido",
           body: plan
-            ? `${plan.name} · ${plan.academy.name} — reintentaremos; revisa tu tarjeta`
-            : "Reintentaremos el cobro — revisa tu tarjeta",
+            ? `${plan.name} · ${plan.academy.name} - reintentaremos; revisa tu tarjeta`
+            : "Reintentaremos el cobro - revisa tu tarjeta",
           data: {
             subscriptionId: sub.id,
             planId: sub.planId,

@@ -1,4 +1,4 @@
-# Suscripciones Flow + Auditoría BIAN — Implementation Plan
+# Suscripciones Flow + Auditoría BIAN - Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -23,7 +23,7 @@
 
 ---
 
-### Task 1: Schema — GatewayTransaction + PaymentEvent + MembershipSubscription + campos
+### Task 1: Schema - GatewayTransaction + PaymentEvent + MembershipSubscription + campos
 
 **Files:**
 - Modify: `apps/api/prisma/schema.prisma` (MembershipPlan ~line 690, Payment ~968, Person ~26)
@@ -39,7 +39,7 @@ En `schema.prisma`:
 ```prisma
 // después de MembershipPlan.enrollments:
   subscriptions MembershipSubscription[]
-  // plan espejo en Flow (lazy create al primer subscribe — interval 3 mensual,
+  // plan espejo en Flow (lazy create al primer subscribe - interval 3 mensual,
   // interval_count según tipo). null = aún no sincronizado.
   flowPlanId    String?
 
@@ -95,7 +95,7 @@ model MembershipSubscription {
   flowSubscriptionId String?        @unique
   // PENDING_CARD → ACTIVE → CANCEL_PENDING → CANCELED (+ FAILED_CARD)
   status             String         @default("PENDING_CARD")
-  nextInvoiceAt      DateTime?      // de Flow next_invoice_date — alimenta el reminder
+  nextInvoiceAt      DateTime?      // de Flow next_invoice_date - alimenta el reminder
   lastInvoiceId      String?        // dedup de renovaciones ya liquidadas
   reminderSentFor    DateTime?      // nextInvoiceAt ya recordado (dedup alerta)
   createdAt          DateTime       @default(now())
@@ -107,12 +107,12 @@ model MembershipSubscription {
 }
 ```
 
-En `Person`: `flowCustomerId String?` (customerId en Flow — se crea on-demand al suscribirse).
+En `Person`: `flowCustomerId String?` (customerId en Flow - se crea on-demand al suscribirse).
 
 En `Payment` (tras `gatewayRef`):
 
 ```prisma
-  // Verdad monetaria reportada por la pasarela al confirmar PAID — auditable
+  // Verdad monetaria reportada por la pasarela al confirmar PAID - auditable
   // contra la tarifa esperada (~3.19% tarjeta) y contra Payment.amount.
   gatewayFeeClp         Int?
   gatewayReportedAmount Int?
@@ -131,7 +131,7 @@ Expected: schema sincronizado, client regenerado.
 
 - [ ] **Step 3: Backfill IMPORTED**
 
-`apps/api/scripts/backfill-payment-events.cjs` — itera `Payment` sin `PaymentEvent` e inserta seq 1 `{type:"IMPORTED", actor:"migration", prevHash:"GENESIS", payloadHash=sha256("GENESIS"+canonical), payload:{status,amount,orderType,refId,gateway,createdAt}}`:
+`apps/api/scripts/backfill-payment-events.cjs` - itera `Payment` sin `PaymentEvent` e inserta seq 1 `{type:"IMPORTED", actor:"migration", prevHash:"GENESIS", payloadHash=sha256("GENESIS"+canonical), payload:{status,amount,orderType,refId,gateway,createdAt}}`:
 
 ```js
 const { PrismaClient } = require("@prisma/client");
@@ -156,7 +156,7 @@ const prisma = new PrismaClient();
 })();
 ```
 
-Agregar `events PaymentEvent[]` al model `Payment` en el schema (relación implícita por paymentId — declarar `payment Payment @relation(fields:[paymentId]...)` en PaymentEvent + `events PaymentEvent[]` en Payment). Run: `node apps/api/scripts/backfill-payment-events.cjs`.
+Agregar `events PaymentEvent[]` al model `Payment` en el schema (relación implícita por paymentId - declarar `payment Payment @relation(fields:[paymentId]...)` en PaymentEvent + `events PaymentEvent[]` en Payment). Run: `node apps/api/scripts/backfill-payment-events.cjs`.
 
 - [ ] **Step 4: Commit**
 
@@ -167,7 +167,7 @@ Agregar `events PaymentEvent[]` al model `Payment` en el schema (relación impl�
 
 ---
 
-### Task 2: Ledger domain — emitPaymentEvent + verifyPaymentChain
+### Task 2: Ledger domain - emitPaymentEvent + verifyPaymentChain
 
 **Files:**
 - Create: `apps/api/src/payments/domain/payment-ledger.ts`
@@ -175,13 +175,13 @@ Agregar `events PaymentEvent[]` al model `Payment` en el schema (relación impl�
 
 **Interfaces:**
 - Produces:
-  - `emitPaymentEvent(tx: Prisma.TransactionClient, paymentId: string, type: string, actor: string, payload: Prisma.InputJsonValue): Promise<void>` — corre dentro de la tx de negocio.
+  - `emitPaymentEvent(tx: Prisma.TransactionClient, paymentId: string, type: string, actor: string, payload: Prisma.InputJsonValue): Promise<void>` - corre dentro de la tx de negocio.
   - `verifyPaymentChain(prisma: PrismaService, paymentId: string): Promise<{ ok: boolean; events: number; firstBadSeq?: number }>`
 
 - [ ] **Step 1: Spec (failing)**
 
 ```ts
-// payment-ledger.spec.ts — prisma fake con findFirst/create/findMany
+// payment-ledger.spec.ts - prisma fake con findFirst/create/findMany
 import { describe, expect, it } from "vitest";
 import { emitPaymentEvent, verifyPaymentChain } from "./payment-ledger";
 
@@ -323,7 +323,7 @@ export async function verifyPaymentChain(
 
 - [ ] **Step 4: Run → PASS**
 
-- [ ] **Step 5: Commit** — `"payments: ledger PaymentEvent con hash-chain (emit + verify)"`
+- [ ] **Step 5: Commit** - `"payments: ledger PaymentEvent con hash-chain (emit + verify)"`
 
 ---
 
@@ -338,14 +338,14 @@ export async function verifyPaymentChain(
 **Interfaces:**
 - Consumes: PrismaService.
 - Produces:
-  - `GatewayTransactionsService.record(entry: GatewayTxEntry): Promise<void>` — sanitiza `s` → `"sha256:"+hash[:16]`, nunca lanza (best-effort: log a Logger si la escritura falla — la auditoría no puede romper el pago).
+  - `GatewayTransactionsService.record(entry: GatewayTxEntry): Promise<void>` - sanitiza `s` → `"sha256:"+hash[:16]`, nunca lanza (best-effort: log a Logger si la escritura falla - la auditoría no puede romper el pago).
   - `type GatewayTxEntry = { provider: string; direction: "OUTBOUND" | "INBOUND_WEBHOOK"; endpoint: string; correlationId: string; requestBody?: unknown; responseBody?: unknown; httpStatus?: number; durationMs?: number; ok: boolean; error?: string; paymentId?: string }`
   - `FlowGateway` constructor +5th param `onTx?: (e: GatewayTxEntry) => Promise<void>`.
-  - `sanitizeGatewayPayload(body: unknown): unknown` — exportada para tests.
+  - `sanitizeGatewayPayload(body: unknown): unknown` - exportada para tests.
 
 - [ ] **Step 1: Spec additions (failing)**
 
-En `flow.gateway.spec.ts` — nuevo describe: cada `createOrder`/`verifyWebhook`/`refreshStatus` emite exactamente 1 `GatewayTxEntry` con endpoint correcto, `requestBody.s` sanitizado (`sha256:` prefix, nunca la firma), `ok` según HTTP, `durationMs` >= 0. Fake `onTx` collector.
+En `flow.gateway.spec.ts` - nuevo describe: cada `createOrder`/`verifyWebhook`/`refreshStatus` emite exactamente 1 `GatewayTxEntry` con endpoint correcto, `requestBody.s` sanitizado (`sha256:` prefix, nunca la firma), `ok` según HTTP, `durationMs` >= 0. Fake `onTx` collector.
 
 ```ts
 it("registra GatewayTransaction por cada call, firma sanitizada", async () => {
@@ -431,7 +431,7 @@ export class GatewayTransactionsService {
 }
 ```
 
-- [ ] **Step 3: Refactor FlowGateway — wrapper `call()`**
+- [ ] **Step 3: Refactor FlowGateway - wrapper `call()`**
 
 Constructor: `constructor(apiKey, secret, baseUrl = "https://sandbox.flow.cl/api", confirmationUrl = "", private readonly onTx?: (e: GatewayTxEntry) => Promise<void>)`.
 
@@ -497,7 +497,7 @@ Para GETs: `call` con method GET construye `${baseUrl}/${endpoint}?${signed.toSt
 
 - [ ] **Step 4: Module wiring**
 
-`payments.module.ts` — `resolveGateway` gana 2º param `onTx?: (e: GatewayTxEntry) => Promise<void>`; el provider usa `inject: [PrismaService]`:
+`payments.module.ts` - `resolveGateway` gana 2º param `onTx?: (e: GatewayTxEntry) => Promise<void>`; el provider usa `inject: [PrismaService]`:
 
 ```ts
 {
@@ -514,15 +514,15 @@ Para GETs: `call` con method GET construye `${baseUrl}/${endpoint}?${signed.toSt
 
 - [ ] **Step 5: Run specs → PASS** (`npx vitest run src/payments`)
 
-- [ ] **Step 6: Commit** — `"payments: GatewayTransaction append-only en cada call Flow + refactor call()"`
+- [ ] **Step 6: Commit** - `"payments: GatewayTransaction append-only en cada call Flow + refactor call()"`
 
 ---
 
-### Task 4: FlowGateway — métodos de suscripción/customer/plans
+### Task 4: FlowGateway - métodos de suscripción/customer/plans
 
 **Files:**
 - Modify: `apps/api/src/payments/infrastructure/flow.gateway.ts`
-- Modify: `apps/api/src/payments/domain/ports.ts` — nuevo port `SubscriptionProvider` (opcional, solo Flow lo implementa)
+- Modify: `apps/api/src/payments/domain/ports.ts` - nuevo port `SubscriptionProvider` (opcional, solo Flow lo implementa)
 - Test: extend `flow.gateway.spec.ts`
 
 **Interfaces:**
@@ -549,7 +549,7 @@ export interface FlowSubscription {
 }
 ```
 
-- [ ] **Step 1: Specs (failing)** — para cada método: endpoint correcto, params firmados, parseo de respuesta. Ejemplos clave:
+- [ ] **Step 1: Specs (failing)** - para cada método: endpoint correcto, params firmados, parseo de respuesta. Ejemplos clave:
 
 ```ts
 it("createSubscription POST subscription/create con planId+customerId+start", async () => {
@@ -590,13 +590,13 @@ it("ensurePlan: plans/get 404/error → plans/create; ya existe → no duplica",
 });
 ```
 
-- [ ] **Step 2: Implement** — todos vía `call()` (GET para get*, POST para el resto). Mapping interval: `interval=3` fijo, `intervalCount` = 1|3|6 según PlanType. `ensurePlan`: `plans/get` → si error → `plans/create` (planId, name, amount, currency CLP, interval 3, interval_count, urlCallback = `${apiUrl}/api/payments/subscription-webhook`, charges_retries_number 3). El callbackUrl necesita inyección — agregar `subscriptionCallbackUrl` como 6º param del ctor (module lo arma igual que confirmationUrl).
+- [ ] **Step 2: Implement** - todos vía `call()` (GET para get*, POST para el resto). Mapping interval: `interval=3` fijo, `intervalCount` = 1|3|6 según PlanType. `ensurePlan`: `plans/get` → si error → `plans/create` (planId, name, amount, currency CLP, interval 3, interval_count, urlCallback = `${apiUrl}/api/payments/subscription-webhook`, charges_retries_number 3). El callbackUrl necesita inyección - agregar `subscriptionCallbackUrl` como 6º param del ctor (module lo arma igual que confirmationUrl).
 
-- [ ] **Step 3: Run → PASS, Commit** — `"payments: métodos Flow plans/customer/subscription"`
+- [ ] **Step 3: Run → PASS, Commit** - `"payments: métodos Flow plans/customer/subscription"`
 
 ---
 
-### Task 5: PaymentSettlementService — extraer settle + emitir eventos
+### Task 5: PaymentSettlementService - extraer settle + emitir eventos
 
 **Files:**
 - Create: `apps/api/src/payments/application/payment-settlement.service.ts`
@@ -606,21 +606,21 @@ it("ensurePlan: plans/get 404/error → plans/create; ya existe → no duplica",
 
 **Interfaces:**
 - Consumes: `emitPaymentEvent` (Task 2), PrismaService, NotificationsService, ParamsService.
-- Produces: `settle(payment: Payment, status: "PAID"|"FAILED", meta: { actor: string; gatewayData?: unknown }): Promise<{ ok: boolean; status: string; duplicated?: boolean }>` — reemplaza el `private settle` del controller; emite `STATUS_CONFIRMED`/`SETTLED`/`FAILED`/`RENEWAL_SETTLED` + persiste `gatewayFeeClp`/`gatewayReportedAmount`/`gatewayMedia`/`gatewayPaidAt`/`gatewayRaw` desde `meta.gatewayData` cuando sea PAID. También `settleMembership(payment, tx)` queda accesible para el reconcile de suscripciones.
+- Produces: `settle(payment: Payment, status: "PAID"|"FAILED", meta: { actor: string; gatewayData?: unknown }): Promise<{ ok: boolean; status: string; duplicated?: boolean }>` - reemplaza el `private settle` del controller; emite `STATUS_CONFIRMED`/`SETTLED`/`FAILED`/`RENEWAL_SETTLED` + persiste `gatewayFeeClp`/`gatewayReportedAmount`/`gatewayMedia`/`gatewayPaidAt`/`gatewayRaw` desde `meta.gatewayData` cuando sea PAID. También `settleMembership(payment, tx)` queda accesible para el reconcile de suscripciones.
 
-- [ ] **Step 1: Mover métodos** — `settle`, `settleSeriesPass`, `settleMembership` y el path de tickets salen del controller al service (copia textual, `this.prisma`/`this.notifications`/`this.params` inyectados). Controller queda delegando.
+- [ ] **Step 1: Mover métodos** - `settle`, `settleSeriesPass`, `settleMembership` y el path de tickets salen del controller al service (copia textual, `this.prisma`/`this.notifications`/`this.params` inyectados). Controller queda delegando.
 
-- [ ] **Step 2: Instrumentar** — en `settle`: `ORDER_CREATED` ya no aplica (payment existe); emitir `STATUS_CONFIRMED` (payload: `{remoteStatus, gatewayRef}`), al PAID persistir los 5 campos gateway desde `meta.gatewayData` (`paymentData.fee` → `gatewayFeeClp`, `amount` → `gatewayReportedAmount` + comparar vs `payment.amount` → si difieren emitir `AMOUNT_MISMATCH` + `notifySafe` a ADMIN), `SETTLED`/`RENEWAL_SETTLED` según orderType, `FAILED`. Todo dentro de las tx existentes.
+- [ ] **Step 2: Instrumentar** - en `settle`: `ORDER_CREATED` ya no aplica (payment existe); emitir `STATUS_CONFIRMED` (payload: `{remoteStatus, gatewayRef}`), al PAID persistir los 5 campos gateway desde `meta.gatewayData` (`paymentData.fee` → `gatewayFeeClp`, `amount` → `gatewayReportedAmount` + comparar vs `payment.amount` → si difieren emitir `AMOUNT_MISMATCH` + `notifySafe` a ADMIN), `SETTLED`/`RENEWAL_SETTLED` según orderType, `FAILED`. Todo dentro de las tx existentes.
 
-- [ ] **Step 3: webhook.controller** — `webhook()` pasa `meta: {actor:"webhook", gatewayData: result.gatewayData}`; `getPayment` polling pasa `{actor:"polling"}`. El `verifyWebhook` de FlowGateway debe devolver el getStatus completo: cambiar su return a `{refId, status, gatewayData}` (extender el tipo del port con `gatewayData?: unknown`).
+- [ ] **Step 3: webhook.controller** - `webhook()` pasa `meta: {actor:"webhook", gatewayData: result.gatewayData}`; `getPayment` polling pasa `{actor:"polling"}`. El `verifyWebhook` de FlowGateway debe devolver el getStatus completo: cambiar su return a `{refId, status, gatewayData}` (extender el tipo del port con `gatewayData?: unknown`).
 
-- [ ] **Step 4: Spec** — fake prisma: settle MEMBERSHIP PAID emite secuencia de eventos + persiste gatewayFeeClp. Run `npx vitest run src/payments` → PASS.
+- [ ] **Step 4: Spec** - fake prisma: settle MEMBERSHIP PAID emite secuencia de eventos + persiste gatewayFeeClp. Run `npx vitest run src/payments` → PASS.
 
-- [ ] **Step 5: Commit** — `"payments: PaymentSettlementService + eventos ledger en settle + verdad monetaria Flow"`
+- [ ] **Step 5: Commit** - `"payments: PaymentSettlementService + eventos ledger en settle + verdad monetaria Flow"`
 
 ---
 
-### Task 6: Subscriptions — service + controller + endpoints Flow-callback
+### Task 6: Subscriptions - service + controller + endpoints Flow-callback
 
 **Files:**
 - Create: `apps/api/src/payments/application/subscriptions.service.ts`
@@ -633,13 +633,13 @@ it("ensurePlan: plans/get 404/error → plans/create; ya existe → no duplica",
 - Consumes: FlowGateway métodos Task 4, `emitPaymentEvent`, `PaymentSettlementService.settleMembership`.
 - Produces endpoints:
   - `POST /checkout/membership-subscription {planId, acceptRecurring:true}` → `{kind:"needs_card", registerUrl}` | `{kind:"subscribed", subscriptionId}`
-  - `POST /payments/flow/customer-return {token}` (público — Flow redirige el browser) → `303 → ${WEB_URL}/academias/{academyId}?sub=ok|error`
+  - `POST /payments/flow/customer-return {token}` (público - Flow redirige el browser) → `303 → ${WEB_URL}/academias/{academyId}?sub=ok|error`
   - `POST /payments/subscription-webhook {token}` (público) → registra GatewayTransaction INBOUND + `reconcileAll()`
   - `GET /subscriptions/mine` (SessionGuard) → subs del usuario con plan+academy
   - `GET /subscriptions/:id` (owner) → refresh activo vía `getSubscription` + settle invoice pagado
   - `POST /subscriptions/:id/cancel` (owner) → `at_period_end=1` → `CANCEL_PENDING`
 
-- [ ] **Step 1: Spec service (failing)** — fake FlowGateway + fake prisma:
+- [ ] **Step 1: Spec service (failing)** - fake FlowGateway + fake prisma:
 
 ```ts
 it("plan no recurrente → 400", async () => {
@@ -673,7 +673,7 @@ async subscribe(personId: string, planId: string, acceptRecurring: boolean) {
   if (!flowPlanId) {
     flowPlanId = `omni_${plan.id}`;
     const fee = await this.params.getNumber("service_fee.membership_clp", 500);
-    await flow.ensurePlan({ planId: flowPlanId, name: `${plan.academy.name} — ${plan.name}`, amount: plan.price + fee, intervalCount });
+    await flow.ensurePlan({ planId: flowPlanId, name: `${plan.academy.name} - ${plan.name}`, amount: plan.price + fee, intervalCount });
     await this.prisma.membershipPlan.update({ where: { id: plan.id }, data: { flowPlanId } });
   }
   // lazy: Flow customer
@@ -717,11 +717,11 @@ async subscribe(personId: string, planId: string, acceptRecurring: boolean) {
 
 `cancel`: owner → `cancelSubscription(flowSubscriptionId)` → status CANCEL_PENDING + canceledAt + PaymentEvent SUBSCRIPTION_CANCELED (si hay payment asociado) + notify `membership.subscription_canceled`.
 
-- [ ] **Step 3: Run specs + tsc → PASS. Commit** — `"payments: suscripciones Flow — subscribe/cancel/customer-return/webhook"`
+- [ ] **Step 3: Run specs + tsc → PASS. Commit** - `"payments: suscripciones Flow - subscribe/cancel/customer-return/webhook"`
 
 ---
 
-### Task 7: Scheduler — reconcile + reminder diario
+### Task 7: Scheduler - reconcile + reminder diario
 
 **Files:**
 - Create: `apps/api/src/payments/infrastructure/subscriptions.scheduler.ts`
@@ -730,10 +730,10 @@ async subscribe(personId: string, planId: string, acceptRecurring: boolean) {
 - Test: spec del reconcile (fake prisma + fake FlowGateway)
 
 **Interfaces:**
-- `reconcileAll(): Promise<{checked:number; settled:number}>` — público para el webhook fast-path.
-- `reconcileSubscription(sub: MembershipSubscription, fs: FlowSubscription)` — usado por GET /subscriptions/:id.
+- `reconcileAll(): Promise<{checked:number; settled:number}>` - público para el webhook fast-path.
+- `reconcileSubscription(sub: MembershipSubscription, fs: FlowSubscription)` - usado por GET /subscriptions/:id.
 
-- [ ] **Step 1: Spec (failing)** — sub ACTIVE con invoice nuevo pagado → crea Payment `mem_<planId>_<invoiceId>` + settle + `lastInvoiceId` actualizado; invoice ya procesado → no duplica; `nextInvoiceAt` mañana + `reminderSentFor` null → notify `membership.renewal_reminder` y marca; `morose=1` → notify `membership.renewal_failed`.
+- [ ] **Step 1: Spec (failing)** - sub ACTIVE con invoice nuevo pagado → crea Payment `mem_<planId>_<invoiceId>` + settle + `lastInvoiceId` actualizado; invoice ya procesado → no duplica; `nextInvoiceAt` mañana + `reminderSentFor` null → notify `membership.renewal_reminder` y marca; `morose=1` → notify `membership.renewal_failed`.
 
 - [ ] **Step 2: Implement**
 
@@ -767,38 +767,38 @@ Scheduler: `@Injectable() onModuleInit` → `schedule("0 9 * * *")` (patrón crm
 
 Reminder: `sub.nextInvoiceAt` dentro de próximas 24h y `reminderSentFor !== nextInvoiceAt` → `notifySafe(personId, {category:"TRANSACTIONAL", type:"membership.renewal_reminder", title, body, data:{subscriptionId, nextInvoiceAt, planName}})` + `reminderSentFor = nextInvoiceAt`.
 
-- [ ] **Step 3: Run → PASS. Commit** — `"payments: cron reconcile suscripciones + reminder día previo al cobro"`
+- [ ] **Step 3: Run → PASS. Commit** - `"payments: cron reconcile suscripciones + reminder día previo al cobro"`
 
 ---
 
-### Task 8: Vistas de auditoría — endpoints + admin/browse
+### Task 8: Vistas de auditoría - endpoints + admin/browse
 
 **Files:**
-- Modify: `webhook.controller.ts` — `GET /payments/mine`, `GET /payments/by-event/:eventId`, `GET /payments/by-academy/:academyId`, `GET /payments/:id/events`
-- Create o modify: admin verify-chain en `browse.controller.ts` o nuevo `payment-audit.controller.ts` (`GET /admin/payments/:id/verify-chain` — admin.access)
-- Modify: `browse.controller.ts` — entities `payment-events`, `gateway-transactions`, `membership-subscriptions`
+- Modify: `webhook.controller.ts` - `GET /payments/mine`, `GET /payments/by-event/:eventId`, `GET /payments/by-academy/:academyId`, `GET /payments/:id/events`
+- Create o modify: admin verify-chain en `browse.controller.ts` o nuevo `payment-audit.controller.ts` (`GET /admin/payments/:id/verify-chain` - admin.access)
+- Modify: `browse.controller.ts` - entities `payment-events`, `gateway-transactions`, `membership-subscriptions`
 - Test: spec de autorización (owner vs ajeno vs admin)
 
 **Interfaces:**
 - Respuesta común payment row: `{id, orderType, refId, amount, fee, net, status, createdAt, gatewayFeeClp, gatewayReportedAmount, gatewayMedia, gatewayPaidAt}` + `eventCount`.
 
-- [ ] **Step 1: `GET /payments/mine`** — `findMany({where:{personId}, orderBy:{createdAt:"desc"}, take:100})` + `_count.events`. Retorna también `academyName`/`eventName` resueltos (decode refId → lookup plan/event/series).
+- [ ] **Step 1: `GET /payments/mine`** - `findMany({where:{personId}, orderBy:{createdAt:"desc"}, take:100})` + `_count.events`. Retorna también `academyName`/`eventName` resueltos (decode refId → lookup plan/event/series).
 
-- [ ] **Step 2: `GET /payments/by-event/:eventId`** — `roleKeysHavePermission(prisma, req.person.roles, ["events.manage"])` + owner check del evento (producerId === personId) o admin. `findMany({where:{eventId}})`.
+- [ ] **Step 2: `GET /payments/by-event/:eventId`** - `roleKeysHavePermission(prisma, req.person.roles, ["events.manage"])` + owner check del evento (producerId === personId) o admin. `findMany({where:{eventId}})`.
 
-- [ ] **Step 3: `GET /payments/by-academy/:academyId`** — payments `orderType:MEMBERSHIP` cuyo refId decodifica a plan de la academia (mismo patrón que payouts.controller — reusar el decode + belongs). Autorización: academy ownerId === personId o `academies.manage`.
+- [ ] **Step 3: `GET /payments/by-academy/:academyId`** - payments `orderType:MEMBERSHIP` cuyo refId decodifica a plan de la academia (mismo patrón que payouts.controller - reusar el decode + belongs). Autorización: academy ownerId === personId o `academies.manage`.
 
-- [ ] **Step 4: `GET /payments/:id/events`** — owner o admin → lista PaymentEvent ordenada por seq (sin payloadHash? incluirlo — es la evidencia).
+- [ ] **Step 4: `GET /payments/:id/events`** - owner o admin → lista PaymentEvent ordenada por seq (sin payloadHash? incluirlo - es la evidencia).
 
 - [ ] **Step 5: `GET /admin/payments/:id/verify-chain`** → `verifyPaymentChain` → `{ok, events, firstBadSeq?}`.
 
-- [ ] **Step 6: admin/browse** — cases nuevos en el switch (`payment-events`, `gateway-transactions`, `membership-subscriptions`) con filtros por paymentId/endpoint/status.
+- [ ] **Step 6: admin/browse** - cases nuevos en el switch (`payment-events`, `gateway-transactions`, `membership-subscriptions`) con filtros por paymentId/endpoint/status.
 
-- [ ] **Step 7: specs + Commit** — `"payments: endpoints de auditoría por actor + verify-chain admin"`
+- [ ] **Step 7: specs + Commit** - `"payments: endpoints de auditoría por actor + verify-chain admin"`
 
 ---
 
-### Task 9: Web — UX de suscripción (elección + consentimiento + cancelar)
+### Task 9: Web - UX de suscripción (elección + consentimiento + cancelar)
 
 **Files:**
 - Modify: `apps/web/src/components/academy/plan-purchase-cta.tsx` (elección recurrente + consent)
@@ -808,58 +808,58 @@ Reminder: `sub.nextInvoiceAt` dentro de próximas 24h y `reminderSentFor !== nex
 - Create: `apps/web/src/i18n/parts/subscriptions.json`; registrar en `src/i18n/messages.ts`
 
 **Interfaces:**
-- Consumes: endpoints Task 6. `PlanPurchaseCta` gana props `{planType: string}` — si recurrente muestra dos opciones.
+- Consumes: endpoints Task 6. `PlanPurchaseCta` gana props `{planType: string}` - si recurrente muestra dos opciones.
 
-- [ ] **Step 1: Elección + consent** — En la card del plan con tipo recurrente: botón "Comprar" (pago único, flujo actual intacto) + opción "Suscribirme" que despliega el aviso legal + checkbox + CTA:
+- [ ] **Step 1: Elección + consent** - En la card del plan con tipo recurrente: botón "Comprar" (pago único, flujo actual intacto) + opción "Suscribirme" que despliega el aviso legal + checkbox + CTA:
 
 ```
 "Suscripción: se te cobrará automáticamente $X cada {mes|trimestre|semestre}
 hasta que lo canceles. Te avisaremos un día antes de cada cobro."
 [ ] Entiendo y acepto el cobro automático recurrente
-[Suscribirme — deshabilitado hasta check]
+[Suscribirme - deshabilitado hasta check]
 ```
 
 `buy("subscription")` → `POST /checkout/membership-subscription` → `needs_card` → `window.location.href = registerUrl` · `subscribed` → polling `GET /subscriptions/:id` (mismo patrón POLL_INTERVAL) hasta ACTIVE + primer invoice → `router.refresh()`.
 
-- [ ] **Step 2: `SubscriptionManage`** — si `mySubscription` ACTIVE → badge "Suscripción activa — próximo cobro {nextInvoiceAt}" + botón ghost "Cancelar suscripción" (confirm dialog nativo o inline 2-step) → POST cancel → refresh. Si CANCEL_PENDING → "Se cancela el {endsAt}" sin botón.
+- [ ] **Step 2: `SubscriptionManage`** - si `mySubscription` ACTIVE → badge "Suscripción activa - próximo cobro {nextInvoiceAt}" + botón ghost "Cancelar suscripción" (confirm dialog nativo o inline 2-step) → POST cancel → refresh. Si CANCEL_PENDING → "Se cancela el {endsAt}" sin botón.
 
-- [ ] **Step 3: `/checkout/return`** — param `?sub=ok` → mensaje "Suscripción activada — el primer cobro se está procesando" + link a Mis academias.
+- [ ] **Step 3: `/checkout/return`** - param `?sub=ok` → mensaje "Suscripción activada - el primer cobro se está procesando" + link a Mis academias.
 
-- [ ] **Step 4: Badge en Mis academias** — `MyAcademyCard`: si hay sub activa → "Suscripción" junto a "Plan activo"; si CANCEL_PENDING → "Se cancela el …".
+- [ ] **Step 4: Badge en Mis academias** - `MyAcademyCard`: si hay sub activa → "Suscripción" junto a "Plan activo"; si CANCEL_PENDING → "Se cancela el …".
 
-- [ ] **Step 5: i18n** — `subscriptions.json`: `choose`, `oneTime`, `subscribe`, `consent`, `consentCheck`, `activeBadge`, `nextCharge`, `cancel`, `cancelPending`, `cancelConfirm`, `subOk`… + registro en messages.ts.
+- [ ] **Step 5: i18n** - `subscriptions.json`: `choose`, `oneTime`, `subscribe`, `consent`, `consentCheck`, `activeBadge`, `nextCharge`, `cancel`, `cancelPending`, `cancelConfirm`, `subOk`… + registro en messages.ts.
 
-- [ ] **Step 6: tsc web + i18n-audit + detector. Commit** — `"web: compra como suscripción con consentimiento + gestión/cancelación"`
+- [ ] **Step 6: tsc web + i18n-audit + detector. Commit** - `"web: compra como suscripción con consentimiento + gestión/cancelación"`
 
 ---
 
-### Task 10: Web — 3 vistas de auditoría
+### Task 10: Web - 3 vistas de auditoría
 
 **Files:**
-- Create: `apps/web/src/app/(app)/perfil/pagos/page.tsx` (Mis pagos — dancer)
+- Create: `apps/web/src/app/(app)/perfil/pagos/page.tsx` (Mis pagos - dancer)
 - Modify: `apps/web/src/app/(app)/productor/eventos/[id]/page.tsx` (+sección Pagos)
-- Modify: consola `/academia` (sección Cobros — componente `academy-payments.tsx`)
+- Modify: consola `/academia` (sección Cobros - componente `academy-payments.tsx`)
 - Modify: `apps/web/src/app/(app)/perfil/page.tsx` (link a /perfil/pagos)
 - Modify: `admin/datos/page.tsx` (entities nuevas en selector)
 - Create: `apps/web/src/i18n/parts/payments.json`
 
-- [ ] **Step 1: `/perfil/pagos`** — tabla/lista de `GET /payments/mine`: qué compró (decode orderType → "Entrada/Pase/Plan"), monto, fee Flow, fecha real de cobro (`gatewayPaidAt ?? createdAt`), badge estado. Link desde /perfil.
+- [ ] **Step 1: `/perfil/pagos`** - tabla/lista de `GET /payments/mine`: qué compró (decode orderType → "Entrada/Pase/Plan"), monto, fee Flow, fecha real de cobro (`gatewayPaidAt ?? createdAt`), badge estado. Link desde /perfil.
 
-- [ ] **Step 2: Productor** — sección "Pagos" en `/productor/eventos/[id]`: `GET /payments/by-event/:id` → tabla (comprador via lookup? endpoint ya devuelve personId — mostrar monto/estado/fecha/fee).
+- [ ] **Step 2: Productor** - sección "Pagos" en `/productor/eventos/[id]`: `GET /payments/by-event/:id` → tabla (comprador via lookup? endpoint ya devuelve personId - mostrar monto/estado/fecha/fee).
 
-- [ ] **Step 3: Academia** — sección "Cobros" en consola: `GET /payments/by-academy/:id`.
+- [ ] **Step 3: Academia** - sección "Cobros" en consola: `GET /payments/by-academy/:id`.
 
-- [ ] **Step 4: admin/datos** — agregar entities al selector existente.
+- [ ] **Step 4: admin/datos** - agregar entities al selector existente.
 
-- [ ] **Step 5: i18n `payments.json`** + tsc + detector. **Commit** — `"web: vistas de auditoría de pagos (dancer/productor/academia/admin)"`
+- [ ] **Step 5: i18n `payments.json`** + tsc + detector. **Commit** - `"web: vistas de auditoría de pagos (dancer/productor/academia/admin)"`
 
 ---
 
 ### Task 11: Docs + openapi + smoke + verificación final
 
-- [ ] **Step 1:** `docs/architecture.md` — modelos nuevos, endpoints, cron, scheduler; `docs/flows.md` — secuencia suscripción (mermaid) + nota ledger.
+- [ ] **Step 1:** `docs/architecture.md` - modelos nuevos, endpoints, cron, scheduler; `docs/flows.md` - secuencia suscripción (mermaid) + nota ledger.
 - [ ] **Step 2:** `node apps/api/scripts/export-api-docs.cjs` (API viva) → openapi + postman.
-- [ ] **Step 3:** Smoke vivo `scripts/smoke-subscription.cjs` — flujo completo contra sandbox Flow (requiere credenciales del usuario en .env) o stub si no hay. Documentar resultado real.
+- [ ] **Step 3:** Smoke vivo `scripts/smoke-subscription.cjs` - flujo completo contra sandbox Flow (requiere credenciales del usuario en .env) o stub si no hay. Documentar resultado real.
 - [ ] **Step 4:** Suite completa `npx vitest run` en api + `tsc --noEmit` api/web + i18n-audit + detector.
 - [ ] **Step 5:** Commit final + resumen al usuario con gaps declarados.
 
@@ -868,6 +868,6 @@ hasta que lo canceles. Te avisaremos un día antes de cada cobro."
 ## Self-review notes
 
 - Spec coverage: §2.1 GatewayTransaction→Task3, §2.2 ledger→Task2+5, §2.3 campos→Task1+5, §2.4 backfill→Task1, §2.5 vistas→Task8+10, §3.1 modelo→Task1, §3.2 flujo→Task6+9, §3.3 reconcile/cron→Task7, §3.4 cancel→Task6+9, §3.5 notifs→Task6+7.
-- `Payment.events` relation requerida por backfill (`events: { none: {} }`) — incluida en Task 1.
-- `resolveGateway` signature crece con `onTx` — Task 3 lo define; Task 6 tests lo usan.
-- FlowGateway 6º ctor param `subscriptionCallbackUrl` — Task 4; module wiring en Task 3 debe anticiparlo (o Task 4 ajusta).
+- `Payment.events` relation requerida por backfill (`events: { none: {} }`) - incluida en Task 1.
+- `resolveGateway` signature crece con `onTx` - Task 3 lo define; Task 6 tests lo usan.
+- FlowGateway 6º ctor param `subscriptionCallbackUrl` - Task 4; module wiring en Task 3 debe anticiparlo (o Task 4 ajusta).

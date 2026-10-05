@@ -5,7 +5,7 @@ import type { PrismaService } from "../../prisma.service";
 import "../../auth/infrastructure/auth.controller"; // ciclo session.guard ⇄ auth.controller (ver classes.controller.spec)
 import { EventsController } from "./events.controller";
 
-// EventsController.friendsGoing — prueba social del detalle: solo amigos
+// EventsController.friendsGoing - prueba social del detalle: solo amigos
 // ACCEPTED del solicitante con ticket ACTIVE del evento, dedup por
 // persona (un amigo con 2 tickets aparece una vez).
 
@@ -31,7 +31,7 @@ interface FakePerson {
   id: string;
   name: string;
   photoUrl: string | null;
-  // Gating Producer Pro (S5) — solo se consultan cuando el caller es el
+  // Gating Producer Pro (S5) - solo se consultan cuando el caller es el
   // productor dueño del recurso.
   proTier?: string;
   proTrialEndsAt?: Date | null;
@@ -242,7 +242,7 @@ const errBody = (e: unknown): Record<string, unknown> =>
     unknown
   >;
 
-// Productor con Pro vigente vía trial de lanzamiento (S5) — el default de
+// Productor con Pro vigente vía trial de lanzamiento (S5) - el default de
 // los seeds; los tests de gating lo sobrescriben.
 const mkProducer = (id: string, over: Partial<FakePerson> = {}): FakePerson => ({
   id,
@@ -261,7 +261,7 @@ describe("EventsController.friendsGoing", () => {
     prisma = new FakePrisma();
     ctrl = new EventsController(
       prisma as unknown as PrismaService,
-      // ParamsService mockeado — friendsGoing no toca defaults de productor.
+      // ParamsService mockeado - friendsGoing no toca defaults de productor.
       { getProducerParams: async () => null } as never,
     );
     prisma.people.set("me", { id: "me", name: "Yo", photoUrl: null });
@@ -320,7 +320,7 @@ describe("EventsController.friendsGoing", () => {
   });
 });
 
-// EventsController.exportCsv — exporte operativo del productor: tres
+// EventsController.exportCsv - exporte operativo del productor: tres
 // datasets (sales/checkins/guestlist), auth owner/admin, CSV con BOM +
 // escaping. Sin claimToken ni ids internos de persona.
 
@@ -707,7 +707,7 @@ describe("EventsController.exportSeriesCsv", () => {
   });
 });
 
-// EventsController.exportPdf / exportSeriesPdf — mismo dataset y auth que
+// EventsController.exportPdf / exportSeriesPdf - mismo dataset y auth que
 // el CSV, pero serializado como reporte imprimible (buildTablePdf) y
 // servido como StreamableFile (un Buffer desnudo Nest lo serializa JSON).
 
@@ -830,11 +830,11 @@ describe("EventsController.exportSeriesPdf", () => {
   });
 });
 
-// EventsController.detail — presaleEndsAt: el instante de corte de la
+// EventsController.detail - presaleEndsAt: el instante de corte de la
 // preventa expuesto al cliente (misma regla que CheckoutService.purchaseTicket:
 // presale.cutoff_hour del PlatformParam, hora local del día del evento).
 // El checkout lo usa para estimar preventa vs puerta sin replicar la regla.
-describe("EventsController.detail — presaleEndsAt", () => {
+describe("EventsController.detail - presaleEndsAt", () => {
   let prisma: FakePrisma;
   let ctrl: EventsController;
   const numbers = new Map<string, number>();
@@ -879,10 +879,10 @@ describe("EventsController.detail — presaleEndsAt", () => {
   });
 });
 
-// EventsController.addStaff — gestión multi-staff es feature Producer Pro
+// EventsController.addStaff - gestión multi-staff es feature Producer Pro
 // (S5): el owner FREE sin trial recibe 403 pro.required; con trial/tier
 // Pro o siendo admin, el upsert sigue.
-describe("EventsController.addStaff — gating Producer Pro", () => {
+describe("EventsController.addStaff - gating Producer Pro", () => {
   let prisma: FakePrisma;
   let ctrl: EventsController;
 

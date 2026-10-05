@@ -38,7 +38,7 @@ export default function QrScanner({ onScan, onError, paused = false }: QrScanner
         video: { width: "100%", height: "100%", objectFit: "cover" },
       }}
     >
-      {/* Marco guía de alto brillo — se ve incluso con poca luz */}
+      {/* Marco guía de alto brillo - se ve incluso con poca luz */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div className="h-60 w-60 rounded-3xl border-4 border-neon shadow-[0_0_48px_rgba(224,64,251,0.5)]" />
       </div>

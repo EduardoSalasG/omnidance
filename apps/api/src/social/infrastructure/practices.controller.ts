@@ -52,7 +52,7 @@ class CreatePracticeDto {
   @Min(1)
   capacity?: number;
 
-  /** id o nombre de Style — se materializa como ScheduleBlock del evento. */
+  /** id o nombre de Style - se materializa como ScheduleBlock del evento. */
   @IsOptional()
   @IsString()
   style?: string;
@@ -65,7 +65,7 @@ class CreatePracticeDto {
 
 /**
  * Prácticas sociales (spec omni-dance.md §8): micro-eventos creados por
- * cualquier bailarín — Event type=PRACTICA, status=PUBLISHED, hostId=creador.
+ * cualquier bailarín - Event type=PRACTICA, status=PUBLISHED, hostId=creador.
  */
 @Controller("practices")
 export class PracticesController {
@@ -160,7 +160,7 @@ export class PracticesController {
     }));
   }
 
-  /** Prácticas publicadas próximas — mismo shape público que GET /events + host. */
+  /** Prácticas publicadas próximas - mismo shape público que GET /events + host. */
   @Get()
   async list() {
     const practices = await this.prisma.event.findMany({
@@ -196,7 +196,7 @@ export class PracticesController {
   }
 
   /**
-   * GET /practices/mine — las que organizo + las que voy (RSVP).
+   * GET /practices/mine - las que organizo + las que voy (RSVP).
    * Mismo shape del listado + `going` (mi RSVP existe). Debe declararse
    * antes que @Get(":id/rsvp") para que "mine" no matchee :id/rsvp.
    */
@@ -231,7 +231,7 @@ export class PracticesController {
           take: 1,
           select: { style: { select: { id: true, name: true } } },
         },
-        // Mi RSVP — solo necesito saber si existe.
+        // Mi RSVP - solo necesito saber si existe.
         rsvps: { where: { personId: me }, select: { id: true } },
       },
     });
@@ -242,7 +242,7 @@ export class PracticesController {
   }
 
   /**
-   * GET /practices/:id/rsvp — estado propio + conteo público.
+   * GET /practices/:id/rsvp - estado propio + conteo público.
    * SessionGuard: el "voy" es personal; el conteo público sale en el listado.
    */
   @Get(":id/rsvp")
@@ -267,9 +267,9 @@ export class PracticesController {
     return { going: !!mine, count };
   }
 
-  /** POST /practices/:id/rsvp — body {going} marca o quita el "voy". */
+  /** POST /practices/:id/rsvp - body {going} marca o quita el "voy". */
   @Post(":id/rsvp")
-  @HttpCode(200) // toggle, no creación — el 201 de Nest no aplica
+  @HttpCode(200) // toggle, no creación - el 201 de Nest no aplica
   @UseGuards(SessionGuard)
   async rsvp(
     @Param("id") id: string,
@@ -296,7 +296,7 @@ export class PracticesController {
     } else {
       await this.prisma.rsvp
         .delete({ where: { eventId_personId: { eventId: id, personId } } })
-        .catch(() => {}); // idempotente — quitar un "voy" inexistente no falla
+        .catch(() => {}); // idempotente - quitar un "voy" inexistente no falla
     }
     const count = await this.prisma.rsvp.count({ where: { eventId: id } });
     return { going: !!dto.going, count };

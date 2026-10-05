@@ -1,4 +1,4 @@
-// Reglas de precio del checkout (omni-dance.md §10) — servicio puro, sin Nest/Prisma.
+// Reglas de precio del checkout (omni-dance.md §10) - servicio puro, sin Nest/Prisma.
 //
 // serviceFee = cargo fijo por ticket (SERVICE_FEE.PRESALE_CLP en @omnidance/shared).
 // El fee no depende del descuento; una entrada que queda en $0 no cobra fee.

@@ -6,7 +6,7 @@ import type {
   ListedRedemption,
 } from "./ports";
 
-/** Tipos cerrados de discount_code (spec omni-dance.md — no libre). */
+/** Tipos cerrados de discount_code (spec omni-dance.md - no libre). */
 export const DISCOUNT_CODE_TYPES = [
   "CUMPLEANOS",
   "CORTESIA",
@@ -39,7 +39,7 @@ export class DiscountCodeNotFoundError extends Error {
 
 export interface CreateDiscountCodeInput {
   code: string;
-  /** Validado contra DISCOUNT_CODE_TYPES — string para no acoplar al enum. */
+  /** Validado contra DISCOUNT_CODE_TYPES - string para no acoplar al enum. */
   type: string;
   eventId?: string;
   seriesId?: string;
@@ -62,7 +62,7 @@ export interface ValidatedDiscountCode {
 
 /**
  * Validación pura de creación (spec omni-dance.md):
- * - `type` es enum cerrado — cualquier otro se rechaza.
+ * - `type` es enum cerrado - cualquier otro se rechaza.
  * - percentOff XOR amountOff: exactamente uno, nunca ambos ni ninguno.
  * - percentOff ∈ 1..100, amountOff > 0, maxUses ≥ 1 si viene.
  */
@@ -76,7 +76,7 @@ export function validateCreateCode(
 
   if (!(DISCOUNT_CODE_TYPES as readonly string[]).includes(input.type)) {
     throw new InvalidDiscountCodeError(
-      `type inválido: ${input.type} — debe ser uno de ${DISCOUNT_CODE_TYPES.join(", ")}`,
+      `type inválido: ${input.type} - debe ser uno de ${DISCOUNT_CODE_TYPES.join(", ")}`,
     );
   }
 
@@ -164,7 +164,7 @@ export function isRedeemable(
 
 /**
  * Reglas de discount_code (spec omni-dance.md):
- * - Tipos predeterminados por caso de uso — nunca libre.
+ * - Tipos predeterminados por caso de uso - nunca libre.
  * - Tracking completo: quién lo creó (createdById), usos (usedCount),
  *   máximo (maxUses), evento/serie asociado y redemptions auditables.
  */

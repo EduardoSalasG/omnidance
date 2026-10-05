@@ -59,7 +59,7 @@
       "tableSeatMax": "Máx. personas por mesa",
       "tableSeatsTotal": "Personas sentables en mesas",
       "inheritsDefault": "Default del productor",
-      "tablesHint": "El cupo sentable es la capacidad real de las mesas — distinto al aforo general, usualmente menor. Vacío hereda tu default de Parámetros."
+      "tablesHint": "El cupo sentable es la capacidad real de las mesas: distinto al aforo general, usualmente menor. Vacío hereda tu default de Parámetros."
     },
     "sections": {
       "staff": "Staff de puerta",
@@ -167,7 +167,7 @@
     },
     "eventAnalytics": {
       "attendees": "{count, plural, one {# asistente} other {# asistentes}}",
-      "insufficient": "Datos insuficientes — se necesitan al menos 3 asistentes para mostrar composición y evaluaciones.",
+      "insufficient": "Datos insuficientes: se necesitan al menos 3 asistentes para mostrar composición y evaluaciones.",
       "genderSplit": "Por género",
       "roleSplit": "Por rol de baile",
       "ratingsTitle": "Evaluación promedio",
@@ -239,14 +239,14 @@
       "activeUntil": "Pro sigue activo hasta el {date}",
       "cancelPendingNoDate": "Pro sigue activo hasta el fin del período pagado",
       "nextCharge": "Próximo cobro: {date}",
-      "activatingHint": "Tu suscripción se está activando — se confirma con el primer cobro.",
+      "activatingHint": "Tu suscripción se está activando. Se confirma con el primer cobro.",
       "gross": "Facturación media mensual (últimos 90 días)",
       "grossMax": "Tope del plan",
       "cancel": "Cancelar Producer Pro",
       "cancelConfirm": "¿Cancelar Producer Pro? Mantienes el acceso hasta el fin del período ya pagado.",
       "cancelYes": "Sí, cancelar",
       "cancelKeep": "Mantener Producer Pro",
-      "cancelOk": "Suscripción cancelada — Pro sigue activo hasta el fin del período.",
+      "cancelOk": "Suscripción cancelada. Pro sigue activo hasta el fin del período.",
       "pitch": "Producer Pro habilita la analítica avanzada, las exportaciones y el CRM de tus bailarines.",
       "cardRedirectTitle": "Registra tu tarjeta",
       "cardRedirectDesc": "Te llevamos a Flow (pasarela segura) para registrar tu tarjeta. El cobro se hace recién al confirmar el plan.",
@@ -267,8 +267,8 @@
       "subscribe": "Suscribirme por {amount}/{period}",
       "subscribeNoPrice": "Precio no disponible",
       "subscribeOk": "¡Producer Pro activado!",
-      "subscribeError": "No pudimos iniciar la suscripción — inténtalo de nuevo.",
-      "tierLimit": "Tu facturación supera el tope de los planes autogestionados — escríbenos para contratar Pro a medida."
+      "subscribeError": "No pudimos iniciar la suscripción. Inténtalo de nuevo.",
+      "tierLimit": "Tu facturación supera el tope de los planes autogestionados. Escríbenos para contratar Pro a medida."
     }
   }
 }

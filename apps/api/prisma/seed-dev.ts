@@ -17,7 +17,7 @@ import { ensurePerson, seedCommon } from "./seed-common";
 
 const DEV_DOMAIN = "omnidance.dev";
 
-// Password dev para todas las cuentas @omnidance.dev — permite probar el
+// Password dev para todas las cuentas @omnidance.dev - permite probar el
 // login por contraseña además del magic link. Nunca en seed-prod.
 export const DEV_PASSWORD = "omnidance123";
 
@@ -56,7 +56,7 @@ export async function seedDev(prisma: PrismaClient) {
     [{ role: "ADMIN" }],
   );
 
-  // ─── Personas multi-rol — emails dev permiten login por magic link ───
+  // ─── Personas multi-rol - emails dev permiten login por magic link ───
   const person = (
     slug: string,
     name: string,
@@ -81,11 +81,11 @@ export async function seedDev(prisma: PrismaClient) {
     { role: "ACADEMY_OWNER" },
     { role: "PRODUCER" },
   ]);
-  // Cuenta consumidora — flujo completo: RSVP, compra, QR, sesiones, ratings.
+  // Cuenta consumidora - flujo completo: RSVP, compra, QR, sesiones, ratings.
   const dancer = await person("dancer", "Bailarín Demo", [{ role: "DANCER" }], Gender.M);
-  // Staff de puerta aprobado — consola /staff operable sin pasar por /admin.
+  // Staff de puerta aprobado - consola /staff operable sin pasar por /admin.
   const staff = await person("staff", "Staff Puerta", [{ role: "STAFF" }]);
-  // Instructor de academia — consola /academia/clases con sus clases asignadas.
+  // Instructor de academia - consola /academia/clases con sus clases asignadas.
   const vale = await person("profe", "Valeska Torres", [
     { role: "INSTRUCTOR" },
     { role: "DANCER" },
@@ -94,18 +94,18 @@ export async function seedDev(prisma: PrismaClient) {
     { role: "INSTRUCTOR" },
     { role: "DANCER" },
   ]);
-  // Segundo dueño de academia — Valeska también enseña ahí (lista cross-academia).
+  // Segundo dueño de academia - Valeska también enseña ahí (lista cross-academia).
   const tumbaoOwner = await person("tumbao", "Dueño Academia Tumbao", [
     { role: "ACADEMY_OWNER" },
   ]);
-  // Consola /venue — queda como ownerId de Orixas.
+  // Consola /venue - queda como ownerId de Orixas.
   const venueMgr = await person("venue", "Manager Orixas", [
     { role: "VENUE_MANAGER" },
   ]);
-  // Consola /soporte — buscador de usuarios y fichas read-only.
+  // Consola /soporte - buscador de usuarios y fichas read-only.
   await person("soporte", "Soporte Omnidance", [{ role: "SUPPORT" }]);
 
-  // Alumnos de la academia — enrollments, reservas, asistencias, historial.
+  // Alumnos de la academia - enrollments, reservas, asistencias, historial.
   const alumno = (slug: string, name: string, gender?: Gender) =>
     person(slug, name, [{ role: "DANCER" }], gender);
   const camila = await alumno("camila", "Camila Rojas", Gender.F);
@@ -114,7 +114,7 @@ export async function seedDev(prisma: PrismaClient) {
   const francisca = await alumno("francisca", "Francisca León", Gender.OTHER);
   const sebastian = await alumno("sebastian", "Sebastián Pino", Gender.M);
   const antonia = await alumno("antonia", "Antonia Reyes", Gender.F);
-  // Felipe sin género declarado — alimenta el bucket "unknown" de la analítica.
+  // Felipe sin género declarado - alimenta el bucket "unknown" de la analítica.
   const felipe = await alumno("felipe", "Felipe Contreras");
   const daniela = await alumno("daniela", "Daniela Fuentes", Gender.F);
 
@@ -148,7 +148,7 @@ export async function seedDev(prisma: PrismaClient) {
     "Tarapacá 755, Santiago Centro",
     "Mié–Sáb · 21:00–04:00",
   );
-  // Rebrand: "Tierra Dura" → "Tierra" — renombra la fila (mismo id,
+  // Rebrand: "Tierra Dura" → "Tierra" - renombra la fila (mismo id,
   // eventos intactos) y sus noches standalone.
   const tdLegacy = await prisma.venue.findFirst({
     where: { name: "Tierra Dura" },
@@ -180,19 +180,19 @@ export async function seedDev(prisma: PrismaClient) {
     "Vie–Sáb · 22:00–04:00",
   );
 
-  // Consola /venue — el manager ve KPIs y arriendos de Orixas.
+  // Consola /venue - el manager ve KPIs y arriendos de Orixas.
   await prisma.venue.update({
     where: { id: orixas.id },
     data: { ownerId: venueMgr.id },
   });
 
-  // ─── MuéveteOnTour — academia Y productor ───
+  // ─── MuéveteOnTour - academia Y productor ───
   const muvetData = {
     name: "MuéveteOnTour",
     ownerId: muvetOwner.id,
     privateLessonPrice: 25000,
     description:
-      "Escuela de salsa cubana y bachata — organiza además las sociales Muévete. Formación por niveles con enfoque en pista.",
+      "Escuela de salsa cubana y bachata - organiza además las sociales Muévete. Formación por niveles con enfoque en pista.",
     address: "Av. Providencia 1650, Providencia",
     lat: -33.4264,
     lng: -70.6155,
@@ -221,13 +221,13 @@ export async function seedDev(prisma: PrismaClient) {
         },
       }),
   );
-  // Quórum default de la academia — slots/clases sin override heredan 15.
+  // Quórum default de la academia - slots/clases sin override heredan 15.
   await prisma.academy.update({
     where: { id: muvet.id },
     data: { defaultQuorum: 15 },
   });
 
-  // Segunda academia — Valeska enseña en ambas (/classes/teaching es
+  // Segunda academia - Valeska enseña en ambas (/classes/teaching es
   // cross-academia) y el owner tiene gate multi-academia propio.
   const tumbaoData = {
     name: "Academia Tumbao",
@@ -235,7 +235,7 @@ export async function seedDev(prisma: PrismaClient) {
     defaultQuorum: 12,
     privateLessonPrice: 20000,
     description:
-      "Academia de bachata y ritmos latinos — grupos reducidos, técnica y musicalidad desde el primer día.",
+      "Academia de bachata y ritmos latinos - grupos reducidos, técnica y musicalidad desde el primer día.",
     address: "Av. Irarrázaval 2828, Ñuñoa",
     lat: -33.4546,
     lng: -70.5980,
@@ -264,7 +264,7 @@ export async function seedDev(prisma: PrismaClient) {
       }),
   );
 
-  // Equipo de instructores — AcademyInstructor habilita requireManage.
+  // Equipo de instructores - AcademyInstructor habilita requireManage.
   for (const [academyId, personId, commissionPct] of [
     [muvet.id, vale.id, 25],
     [muvet.id, rodrigo.id, 30],
@@ -279,7 +279,7 @@ export async function seedDev(prisma: PrismaClient) {
 
   // ─── Planes de membresía ───
   // El nombre del plan es categoría propia de la academia (Básico, Plata,
-  // Oro, Premium, VIP…) — el periodo y la cuota semanal ya los muestran
+  // Oro, Premium, VIP…) - el periodo y la cuota semanal ya los muestran
   // el tag de tipo y la metadata del card, no van en el nombre.
   const plan = async (
     academyId: string,
@@ -300,11 +300,11 @@ export async function seedDev(prisma: PrismaClient) {
       // que renombrar/achicar un plan no deje cuota obsoleta.
       weeklyClasses?: number;
       periodDays?: number;
-      // Bullets de venta — un ítem por línea del <ul> de la ficha.
+      // Bullets de venta - un ítem por línea del <ul> de la ficha.
       description?: string[];
     } = {},
     // Renombres del seed: el plan se busca por el nombre nuevo o por
-    // estos nombres antiguos — si se encuentra por alias se renombra
+    // estos nombres antiguos - si se encuentra por alias se renombra
     // in-place en vez de crear un duplicado.
     aliases: string[] = [],
   ) => {
@@ -344,7 +344,7 @@ export async function seedDev(prisma: PrismaClient) {
         }),
     );
     // Si además del recién asegurado quedó un resto con el nombre
-    // antiguo, se desactiva — puede tener enrollments, no se borra.
+    // antiguo, se desactiva - puede tener enrollments, no se borra.
     if (aliases.length) {
       await prisma.membershipPlan.updateMany({
         where: { academyId, name: { in: aliases }, id: { not: row.id } },
@@ -444,7 +444,7 @@ export async function seedDev(prisma: PrismaClient) {
   );
   await plan(tumbao.id, "Clase de prueba", "TRIAL", 0);
 
-  // ─── Enrollments — mezcla de planes y estados para el listado ───
+  // ─── Enrollments - mezcla de planes y estados para el listado ───
   const enroll = (
     academyId: string,
     personId: string,
@@ -484,7 +484,7 @@ export async function seedDev(prisma: PrismaClient) {
 
   await enroll(muvet.id, camila.id, muvetMensual.id, "ACTIVE", 90, 18);
   await enroll(muvet.id, josefa.id, muvetPack.id, "ACTIVE", 30);
-  // Diego vencido hace 6 días — demo del estado "Plan vencido" en rojo.
+  // Diego vencido hace 6 días - demo del estado "Plan vencido" en rojo.
   await enroll(muvet.id, diego.id, muvetMensual.id, "ACTIVE", 120, -6);
   await enroll(muvet.id, francisca.id, muvetTrial.id, "TRIAL", 5);
   await enroll(muvet.id, sebastian.id, muvetMensual.id, "PAUSED", 75, 5);
@@ -542,7 +542,7 @@ export async function seedDev(prisma: PrismaClient) {
     typeNames?: string[];
     instructorId?: string;
     quorum?: number; // override de serie; omitido = hereda academia
-    dropInPrice?: number; // CLP — precio de clase suelta
+    dropInPrice?: number; // CLP - precio de clase suelta
     slots: SlotSeed[];
     active?: boolean;
     /** también materializa el mes anterior (historial). Default true. */
@@ -669,10 +669,10 @@ export async function seedDev(prisma: PrismaClient) {
     return { series, slots };
   };
 
-  // Serie 1: quórum override 8 (la academia tiene 15) — llena + waitlist.
+  // Serie 1: quórum override 8 (la academia tiene 15) - llena + waitlist.
   const bachataBasico = await mkClassSeries({
     academyId: muvet.id,
-    name: "Bachata Sensual — Básico",
+    name: "Bachata Sensual - Básico",
     styleName: "Bachata sensual",
     levelName: "Básico",
     typeNames: ["Pareja"],
@@ -689,7 +689,7 @@ export async function seedDev(prisma: PrismaClient) {
   // capacity explícito (10) gana sobre la herencia.
   const salsaInter = await mkClassSeries({
     academyId: muvet.id,
-    name: "Salsa Cubana — Intermedio",
+    name: "Salsa Cubana - Intermedio",
     styleName: "Salsa cubana (casino)",
     levelName: "Intermedio",
     typeNames: ["Pareja", "Shines"],
@@ -703,7 +703,7 @@ export async function seedDev(prisma: PrismaClient) {
   // Serie 3: ni serie ni slots declaran cupo → todo hereda academy (15).
   const rueda = await mkClassSeries({
     academyId: muvet.id,
-    name: "Rueda de Casino — Open",
+    name: "Rueda de Casino - Open",
     styleName: "Rueda de casino",
     levelName: "Iniciación",
     typeNames: ["Pareja"],
@@ -711,10 +711,10 @@ export async function seedDev(prisma: PrismaClient) {
     slots: [{ weekday: 6, startTime: "12:00", endTime: "13:00" }],
   });
 
-  // Serie inactiva — probar desactivar/reactivar sin romper la demo.
+  // Serie inactiva - probar desactivar/reactivar sin romper la demo.
   await mkClassSeries({
     academyId: muvet.id,
-    name: "Bachata Dominicana — Intensivo",
+    name: "Bachata Dominicana - Intensivo",
     styleName: "Bachata dominicana",
     levelName: "Básico",
     instructorId: rodrigo.id,
@@ -728,7 +728,7 @@ export async function seedDev(prisma: PrismaClient) {
   // de Tumbao; si Tumbao no declarara, caería al fallback 20).
   await mkClassSeries({
     academyId: tumbao.id,
-    name: "Timba — Open",
+    name: "Timba - Open",
     styleName: "Timba",
     levelName: "Intermedio",
     typeNames: ["Shines"],
@@ -737,7 +737,7 @@ export async function seedDev(prisma: PrismaClient) {
     slots: [{ weekday: 3, startTime: "21:00", endTime: "22:00" }],
   });
 
-  // ─── Academias de la escena — catálogo Santiago ───
+  // ─── Academias de la escena - catálogo Santiago ───
   // Una serie por estilo que dicta cada academia. Los números del spec
   // del usuario son índices 1-based de ACADEMY_STYLE_MAP (el orden en
   // que listó los estilos).
@@ -757,7 +757,7 @@ export async function seedDev(prisma: PrismaClient) {
     { label: "Fusión", styleName: "Fusión" }, // 9
   ] as const;
 
-  // Ubicaciones Santiago para el directorio/mapa de academias — el
+  // Ubicaciones Santiago para el directorio/mapa de academias - el
   // seed rota por ellas; direcciones plausibles del eje Providencia–
   // Ñuñoa–Centro donde están las academias reales de la escena.
   const ACADEMY_LOCS = [
@@ -813,7 +813,7 @@ export async function seedDev(prisma: PrismaClient) {
 
   for (const [aIdx, a] of ACADEMY_SEED.entries()) {
     const loc = ACADEMY_LOCS[aIdx % ACADEMY_LOCS.length];
-    // Handle/URL demo derivados del nombre — determinísticos por academia.
+    // Handle/URL demo derivados del nombre - determinísticos por academia.
     const slug = a.name
       .toLowerCase()
       .normalize("NFD")
@@ -823,7 +823,7 @@ export async function seedDev(prisma: PrismaClient) {
       name: a.name,
       ownerId: academiasOwner.id,
       defaultQuorum: 15,
-      description: `Academia de baile en ${loc.address.split(",").pop()?.trim() ?? "Santiago"} — clases regulares de la escena SBK.`,
+      description: `Academia de baile en ${loc.address.split(",").pop()?.trim() ?? "Santiago"} - clases regulares de la escena SBK.`,
       address: loc.address,
       lat: loc.lat,
       lng: loc.lng,
@@ -871,7 +871,7 @@ export async function seedDev(prisma: PrismaClient) {
       const mixed = modality.length > 1;
       await mkClassSeries({
         academyId: academy.id,
-        name: `${style.label} — ${levelName}`,
+        name: `${style.label} - ${levelName}`,
         styleName: style.styleName,
         levelName,
         typeNames: modality,
@@ -888,13 +888,13 @@ export async function seedDev(prisma: PrismaClient) {
       });
     }
 
-    // Planes de membresía — el nombre es categoría propia de la academia
+    // Planes de membresía - el nombre es categoría propia de la academia
     // (el periodo lo muestra el tag; la cuota semanal, la metadata del
     // card). Regla general de precios: 1 clase/semana $25.000, 2
     // clases/semana $40.000. Mambo Madness es premium: 1 clase $40.000,
     // ilimitado $60.000, VIP $99.000 (ilimitado + 1 particular), y es la
     // única con trimestral/semestral ilimitados (~10% off vs. mensual
-    // ilimitado: 3×60k−10% y 6×60k−10% — incentivo por compromiso).
+    // ilimitado: 3×60k−10% y 6×60k−10% - incentivo por compromiso).
     // Todas ofrecen clase de prueba y clase suelta.
     if (a.name === "Mambo Madness") {
       await plan(
@@ -906,7 +906,7 @@ export async function seedDev(prisma: PrismaClient) {
           weeklyClasses: 1,
           description: ["Válido hasta fin del mes calendario"],
         },
-        ["Mensual — 1 clase semanal"],
+        ["Mensual - 1 clase semanal"],
       );
       await plan(
         academy.id,
@@ -958,7 +958,7 @@ export async function seedDev(prisma: PrismaClient) {
           description: [
             "Todas las clases, sin límite",
             "Válido hasta fin del 6º mes calendario",
-            "Ahorras $36.000 vs. el mensual ilimitado — el mejor valor por mes",
+            "Ahorras $36.000 vs. el mensual ilimitado - el mejor valor por mes",
           ],
         },
         ["Semestral ilimitado"],
@@ -968,7 +968,7 @@ export async function seedDev(prisma: PrismaClient) {
       });
       await plan(academy.id, "Clase de prueba", "TRIAL", 0);
     } else {
-      // Pares de categorías rotados por índice — el naming varía de
+      // Pares de categorías rotados por índice - el naming varía de
       // academia en academia como en la vida real.
       const TIERS = [
         ["Básico", "Premium"],
@@ -988,7 +988,7 @@ export async function seedDev(prisma: PrismaClient) {
           weeklyClasses: 1,
           description: ["Válido hasta fin del mes calendario"],
         },
-        ["Mensual — 1 clase semanal"],
+        ["Mensual - 1 clase semanal"],
       );
       await plan(
         academy.id,
@@ -999,7 +999,7 @@ export async function seedDev(prisma: PrismaClient) {
           weeklyClasses: 2,
           description: ["Válido hasta fin del mes calendario"],
         },
-        ["Mensual — 2 clases semanales"],
+        ["Mensual - 2 clases semanales"],
       );
       await plan(academy.id, "Clase suelta", "SINGLE", 8000, {
         description: ["Una clase del día"],
@@ -1008,11 +1008,11 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
 
-  // "Muevete On Tour" del spec lleva estilos 2·5·6·7 — muvet ya tiene
+  // "Muevete On Tour" del spec lleva estilos 2·5·6·7 - muvet ya tiene
   // Bachata Sensual (2), Rueda (6) y Casino (7); le falta Cubano (5).
   await mkClassSeries({
     academyId: muvet.id,
-    name: "Cubano — Básico",
+    name: "Cubano - Básico",
     styleName: "Cubano",
     levelName: "Básico",
     typeNames: ["Pareja", "Shines"],
@@ -1145,7 +1145,7 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
 
-  // Clases particulares — bandeja del instructor y del alumno.
+  // Clases particulares - bandeja del instructor y del alumno.
   const lesson = (
     personId: string,
     instructorId: string,
@@ -1191,7 +1191,7 @@ export async function seedDev(prisma: PrismaClient) {
     aliases: string[] = [],
     weeksAhead = 0,
     genreMix: MixBlock[] | null = null,
-    // Cronograma de la noche — null deriva de genres (programFor).
+    // Cronograma de la noche - null deriva de genres (programFor).
     program: ProgramItem[] | null = null,
   ) => {
     const series = await ensure(
@@ -1211,7 +1211,7 @@ export async function seedDev(prisma: PrismaClient) {
     );
 
     // El evento lleva el nombre de la marca ("Bachatamanía"), sin
-    // sufijos — en la vida real el flyer dice solo eso.
+    // sufijos - en la vida real el flyer dice solo eso.
     const eventName = name;
     const event = await ensure(
       () =>
@@ -1235,7 +1235,7 @@ export async function seedDev(prisma: PrismaClient) {
             capacity: 300,
           },
         }),
-      // refrescar fechas/precios — la demo apunta siempre a "la próxima semana"
+      // refrescar fechas/precios - la demo apunta siempre a "la próxima semana"
       (e) =>
         prisma.event.update({
           where: { id: e.id },
@@ -1280,7 +1280,7 @@ export async function seedDev(prisma: PrismaClient) {
     [Genre.CUBANO, 2],
   );
 
-  // Cronograma de la noche — filas {t: "HH:MM" (o "Hasta HH:MM"),
+  // Cronograma de la noche - filas {t: "HH:MM" (o "Hasta HH:MM"),
   // end?: "HH:MM", label}. Se renderiza en el orden del array: las
   // horas post-medianoche van al final (00:00 va después de 22:00).
   type ProgramItem = { t: string; end?: string; label: string };
@@ -1312,7 +1312,7 @@ export async function seedDev(prisma: PrismaClient) {
     return items;
   };
 
-  // Cronograma Maníaco — Bachatamanía corre con formato propio
+  // Cronograma Maníaco - Bachatamanía corre con formato propio
   // (happy hour, karaoke y reserva de mesas antes del social).
   const PROG_MANIACO: ProgramItem[] = [
     { t: "20:30", label: "Apertura de puertas" },
@@ -1325,7 +1325,7 @@ export async function seedDev(prisma: PrismaClient) {
     { t: "02:45", label: "Término del social" },
   ];
 
-  // Orixas — una noche por día: las marcas del mismo weekday alternan
+  // Orixas - una noche por día: las marcas del mismo weekday alternan
   // semanas (weeksAhead), como en la programación real del local.
   // El último arg es el ciclo de mezcla (genreMix de la serie).
   const bachatamania = await mkSeries("Bachatamanía", carlos.id, orixas.id, "weekly:wed", 5000, 6000, 3, [matias.id], [Genre.BACHATA], [], 0,
@@ -1344,7 +1344,7 @@ export async function seedDev(prisma: PrismaClient) {
     // Pura timba
     mix([Genre.CUBANO, 1]));
 
-  // Noches standalone (sin serie) — nombre = marca de la noche. Las
+  // Noches standalone (sin serie) - nombre = marca de la noche. Las
   // homónimas ("Tierra" ×5) se distinguen por el weekday de su
   // startsAt, que persiste entre reseeds.
   const mkNight = async (
@@ -1420,7 +1420,7 @@ export async function seedDev(prisma: PrismaClient) {
     }
   };
 
-  // Tierra — programación mensual con la rotación real: martes fijo
+  // Tierra - programación mensual con la rotación real: martes fijo
   // Bachata Club, miércoles fijo Miércoles Salseros, jueves alterna
   // Switch/AbraZouk, vie+sáb rotan Exóticas/Bachatazo/Galaxy/BC/Lovers.
   // Puerta siempre > preventa: mar/mié $6.000, jue a sáb $7.000.
@@ -1438,7 +1438,7 @@ export async function seedDev(prisma: PrismaClient) {
     ["Miércoles Salseros", 3, 2, [Genre.SALSA], PURE_S],
     ["Miércoles Salseros", 3, 3, [Genre.SALSA], PURE_S],
     ["Switch", 4, 0, [Genre.BACHATA], PURE_B],
-    ["AbraZouk", 4, 1, [], null], // zouk — sin género en el catálogo
+    ["AbraZouk", 4, 1, [], null], // zouk - sin género en el catálogo
     ["Switch", 4, 2, [Genre.BACHATA], PURE_B],
     ["AbraZouk", 4, 3, [], null],
     ["Exóticas", 5, 0, [Genre.BACHATA], PURE_B],
@@ -1451,7 +1451,7 @@ export async function seedDev(prisma: PrismaClient) {
     ["Galaxy", 6, 3, [Genre.BACHATA, Genre.SALSA], GALAXY_MIX],
   ];
 
-  // Havana — programación mensual: cada viernes y sábado tiene su
+  // Havana - programación mensual: cada viernes y sábado tiene su
   // propia marca (como en la vida real, el flyer anuncia el nombre
   // de la noche, no el local).
   const havanaNights: [string, number, number][] = [
@@ -1468,7 +1468,7 @@ export async function seedDev(prisma: PrismaClient) {
 
   // Limpieza de noches standalone obsoletas o duplicadas ANTES del
   // find-or-create: nombres fuera del set actual ("Tierra", "Havana
-  // — noche sáb") y duplicados nombre+fecha (misma noche, mismo día).
+  // - noche sáb") y duplicados nombre+fecha (misma noche, mismo día).
   const nightNames = new Set([
     ...tierraNights.map(([n]) => n),
     ...havanaNights.map(([n]) => n),
@@ -1540,11 +1540,11 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Shows de la noche ───
-  // Formato real: academia (texto libre — puede no estar registrada),
+  // Formato real: academia (texto libre - puede no estar registrada),
   // tipo de team (BOOTCAMP | ALUMNOS | OPEN | PRO | AMATEUR) y nombre de
   // la coreografía. TODOS los eventos tienen shows; el volumen crece con
   // el día: vie/sáb son las noches grandes (6), jueves medio (4), el
-  // resto base (2–3). Determinista por evento — el reseed no varía.
+  // resto base (2–3). Determinista por evento - el reseed no varía.
   type ShowSeed = { academy: string; teamType: string; name: string };
   const showRosters: Record<string, ShowSeed[]> = {
     "Social con Estilo": [
@@ -1657,7 +1657,7 @@ export async function seedDev(prisma: PrismaClient) {
       platformFeePct: 5,
       // Defaults de mesas del productor: sus eventos nuevos los heredan
       // salvo override. El cupo sentable (40) es menor que el aforo del
-      // evento — es el total real contra el que valida el checkout.
+      // evento - es el total real contra el que valida el checkout.
       tablesTotal: 8,
       tableSeatMax: 6,
       tableSeatsTotal: 40,
@@ -1670,7 +1670,7 @@ export async function seedDev(prisma: PrismaClient) {
     create: { producerId: muvetOwner.id, platformFeePct: 8 },
   });
   // Backfill de defaults de mesas: solo si el productor jamás configuró
-  // ninguno (los tres en null) — no pisa ediciones hechas en /productor/
+  // ninguno (los tres en null) - no pisa ediciones hechas en /productor/
   // parametros sobre una DB existente.
   await prisma.producerParams.updateMany({
     where: {
@@ -1683,7 +1683,7 @@ export async function seedDev(prisma: PrismaClient) {
   });
   // Override puntual en un evento → badge "Valor propio" en la ficha.
   // Bachatamanía configura su propio inventario de mesas (10 mesas, hasta
-  // 8 por mesa, 60 personas sentables — menos que su aforo).
+  // 8 por mesa, 60 personas sentables - menos que su aforo).
   await prisma.event.update({
     where: { id: bachatamania.id },
     data: {
@@ -1694,7 +1694,7 @@ export async function seedDev(prisma: PrismaClient) {
       tableSeatsTotal: 60,
     },
   });
-  // Las noches grandes de fin de semana también ofrecen mesa — hace la
+  // Las noches grandes de fin de semana también ofrecen mesa - hace la
   // sección de checkout descubrible en la demo sin depender de un solo
   // evento. 8 mesas × máx. 6 personas = 48 asientos (aforo es mayor).
   await prisma.event.updateMany({
@@ -1705,12 +1705,12 @@ export async function seedDev(prisma: PrismaClient) {
     data: { tablesTotal: 8, tableSeatMax: 6, tableSeatsTotal: 48 },
   });
 
-  // ─── Edición pasada — alimenta analytics (GMV, check-ins) e historial ───
+  // ─── Edición pasada - alimenta analytics (GMV, check-ins) e historial ───
   const lastWeek = new Date(Date.now() - 7 * 86_400_000);
   const prevEdition = await ensure(
     () =>
       prisma.event.findFirst({
-        where: { name: "Bachatamanía — edición anterior" },
+        where: { name: "Bachatamanía - edición anterior" },
       }),
     () =>
       prisma.event.create({
@@ -1718,7 +1718,7 @@ export async function seedDev(prisma: PrismaClient) {
           seriesId: bachatamania.seriesId,
           venueId: orixas.id,
           producerId: carlos.id,
-          name: "Bachatamanía — edición anterior",
+          name: "Bachatamanía - edición anterior",
           status: "CLOSED",
           startsAt: lastWeek,
           endsAt: new Date(lastWeek.getTime() + 6 * 3_600_000),
@@ -1815,7 +1815,7 @@ export async function seedDev(prisma: PrismaClient) {
     },
   });
 
-  // Amistades: clique ACCEPTED entre los bailarines demo — cualquier
+  // Amistades: clique ACCEPTED entre los bailarines demo - cualquier
   // cuenta demo ve amigos en /amigos y "amigos que van" en los eventos.
   // Respeta la dirección de filas existentes (una PENDING previa entre
   // dos del clique se promueve a ACCEPTED sin duplicar el par).
@@ -1844,7 +1844,7 @@ export async function seedDev(prisma: PrismaClient) {
       }
     }
   }
-  // Solicitudes pendientes con gente fuera del clique — mantienen el
+  // Solicitudes pendientes con gente fuera del clique - mantienen el
   // demo de la bandeja: una entrante (felipe→dancer) y una enviada.
   await prisma.friendship.upsert({
     where: { aId_bId: { aId: felipe.id, bId: dancer.id } },
@@ -1857,7 +1857,7 @@ export async function seedDev(prisma: PrismaClient) {
     create: { aId: dancer.id, bId: sebastian.id, status: "PENDING" },
   });
 
-  // Entradas ACTIVE del clique en los próximos eventos — alimentan la
+  // Entradas ACTIVE del clique en los próximos eventos - alimentan la
   // sección "amigos que van" del detalle y el feed "Tus amigos van a" de
   // /amigos. Distribución fija sobre los 3 próximos publicados.
   const goingPlan: [number, { id: string }[]][] = [
@@ -1888,7 +1888,7 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
 
-  // Roles de baile autodeclarados (PersonStyleRole) — alimentan la sección
+  // Roles de baile autodeclarados (PersonStyleRole) - alimentan la sección
   // "Estilos" del perfil del amigo (estilo · leader/follower · nivel).
   const stylesByName = new Map(
     (await prisma.style.findMany()).map((s) => [s.name, s.id]),
@@ -1925,7 +1925,7 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(felipe, "Salsa cubana (casino)", "SWITCH", "principiante"),
     styleRole(daniela, "Bachata dominicana", "FOLLOWER", "intermedio"),
     styleRole(daniela, "Bachata sensual", "FOLLOWER", "principiante"),
-    // Instructores y DJs también bailan social — sus perfiles lo reflejan.
+    // Instructores y DJs también bailan social - sus perfiles lo reflejan.
     styleRole(vale, "Salsa cubana (casino)", "SWITCH", "avanzado"),
     styleRole(vale, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(rodrigo, "Salsa cubana (casino)", "LEADER", "avanzado"),
@@ -1938,7 +1938,7 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(ardilla, "Bachata tradicional", "LEADER", "intermedio"),
   ]);
 
-  // Handles de Instagram — alimentan la fila "@handle" del perfil del
+  // Handles de Instagram - alimentan la fila "@handle" del perfil del
   // amigo. update directo: el seed es dueño de estas cuentas demo.
   const ig = (p: { id: string }, handle: string) =>
     prisma.person.update({ where: { id: p.id }, data: { instagram: handle } });
@@ -1962,7 +1962,7 @@ export async function seedDev(prisma: PrismaClient) {
     ig(ardilla, "ardilla.dance"),
   ]);
 
-  // ─── Prácticas — Event type=PRACTICA, hostId=creador bailarín ───
+  // ─── Prácticas - Event type=PRACTICA, hostId=creador bailarín ───
   // Alimentan /practicas: una por cada escenario de card (propia, de
   // otro, sin venue=parque, con aforo). Idempotente por nombre+tipo; las
   // fechas se refrescan en cada corrida como el resto del seed.
@@ -1988,7 +1988,7 @@ export async function seedDev(prisma: PrismaClient) {
             status: "PUBLISHED",
             name,
             hostId: host.id,
-            // Las prácticas nunca se vinculan a un Venue del catálogo —
+            // Las prácticas nunca se vinculan a un Venue del catálogo -
             // el lugar es texto libre (parque, plaza, sala).
             venueId: null,
             venueText: opts.venueText ?? null,
@@ -2017,7 +2017,7 @@ export async function seedDev(prisma: PrismaClient) {
     );
 
   // La del demo bailarín → badge "Tu práctica". Sábado a la tarde.
-  await practice("Práctica de casino — rueda abierta", dancer, 6, 16, 15, {
+  await practice("Práctica de casino - rueda abierta", dancer, 6, 16, 15, {
     venueText: "Parque de los Reyes",
     venueNotes: "Anfiteatro, junto al puente peatonal",
     description:
@@ -2038,21 +2038,21 @@ export async function seedDev(prisma: PrismaClient) {
     },
   );
   // De un instructor que también baila → badge "Anfitrión: Valeska".
-  await practice("Práctica de salsa on1 — línea y tiempo", vale, 2, 19, 20, {
+  await practice("Práctica de salsa on1 - línea y tiempo", vale, 2, 19, 20, {
     venueText: "Studio Rame",
-    venueNotes: "Sala 1 — Metro Salvador",
+    venueNotes: "Sala 1 - Metro Salvador",
     description:
       "Trabajamos línea, tiempo y marcas básicas. Nivel abierto: si sabes el básico, alcanzas. Consultas por interno.",
   });
   // Sin aforo declarado → card sin badge de cupos.
-  const timbaPractice = await practice("Timba para todos — práctica libre", jesus, 4, 18, null, {
+  const timbaPractice = await practice("Timba para todos - práctica libre", jesus, 4, 18, null, {
     venueText: "Plaza Ñuñoa",
     venueNotes: "Junto a la pila central",
     description:
-      "Timba libre con parlante propio. Todos los niveles — si vienes a mirar, terminas bailando.",
+      "Timba libre con parlante propio. Todos los niveles - si vienes a mirar, terminas bailando.",
   });
 
-  // RSVPs "voy" — alimentan el badge "N van" y el estado del PracticeBar.
+  // RSVPs "voy" - alimentan el badge "N van" y el estado del PracticeBar.
   // Idempotente por (eventId, personId).
   for (const [evt, person] of [
     [timbaPractice, dancer],
@@ -2070,7 +2070,7 @@ export async function seedDev(prisma: PrismaClient) {
 
   // ─── Sesiones de baile (DanceSession + SessionRating) ───
   // Historial sobre la edición pasada de Bachatamanía (evento CLOSED) +
-  // invitaciones vivas sobre la próxima — cubre todas las ramas de
+  // invitaciones vivas sobre la próxima - cubre todas las ramas de
   // /bailes: entrantes, salientes, confirmadas, puntuadas y declinadas.
   const styleIdOf = (name: string) => stylesByName.get(name) ?? null;
   const session = async (
@@ -2110,7 +2110,7 @@ export async function seedDev(prisma: PrismaClient) {
           },
         }),
       // Re-anclar scannedAt/confirmedAt en cada reseed: los callers pasan
-      // anchors relativos al presente (at(), liveAt(), scannedNow) — sin
+      // anchors relativos al presente (at(), liveAt(), scannedNow) - sin
       // refresh, los bailes del evento LIVE quedan antes de su startsAt
       // cuando el evento se mueve a now−2h en corridas posteriores.
       (row) =>
@@ -2159,7 +2159,7 @@ export async function seedDev(prisma: PrismaClient) {
   ]);
   await session(prevEdition.id, diego, dancer, "CONFIRMED", at(160)); // nadie ha puntuado
   await session(prevEdition.id, dancer, daniela, "DECLINED", at(200)); // ella declinó
-  // Historial entre otros del clique — visible al entrar con sus cuentas.
+  // Historial entre otros del clique - visible al entrar con sus cuentas.
   await session(prevEdition.id, diego, camila, "RATED", at(70), "Bachata sensual", [
     [diego, 5],
     [camila, 4],
@@ -2169,16 +2169,16 @@ export async function seedDev(prisma: PrismaClient) {
   ]);
   await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Timba");
 
-  // Invitaciones vivas — solo existen dentro de una noche en curso:
+  // Invitaciones vivas - solo existen dentro de una noche en curso:
   // nacen del escaneo en pista y expiran ~24h después (spec §4). El seed
   // crea un evento LIVE esta noche para anclarlas; reseed refresca la
   // ventana y el scannedAt para que la demo no envejezca.
   const liveEvent = await ensure(
-    () => prisma.event.findFirst({ where: { name: "Social en vivo — demo" } }),
+    () => prisma.event.findFirst({ where: { name: "Social en vivo - demo" } }),
     () =>
       prisma.event.create({
         data: {
-          name: "Social en vivo — demo",
+          name: "Social en vivo - demo",
           status: "LIVE",
           venueId: orixas.id,
           producerId: carlos.id,
@@ -2200,7 +2200,7 @@ export async function seedDev(prisma: PrismaClient) {
       }),
   );
   // Invitaciones sobre eventos futuros son un estado imposible (nadie
-  // ha escaneado en un evento que no ocurre) — limpia residuos de seeds
+  // ha escaneado en un evento que no ocurre) - limpia residuos de seeds
   // anteriores antes de crear las del evento LIVE. DanceSession.eventId
   // es escalar → resolver ids de eventos futuros primero.
   const futureEventIds = (
@@ -2218,7 +2218,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(liveEvent.id, camila, dancer, "INVITED", scannedNow);
   await session(liveEvent.id, dancer, antonia, "INVITED", scannedNow);
 
-  // Bailes ya resueltos de esta misma noche — alimentan el card
+  // Bailes ya resueltos de esta misma noche - alimentan el card
   // "Tu último social" de /bailes (el evento LIVE es el más reciente).
   // liveAt(m): minutos desde el inicio del evento (hace 2h); las
   // invitaciones vivas quedan al final (+90 ≈ hace 30 min).
@@ -2237,7 +2237,7 @@ export async function seedDev(prisma: PrismaClient) {
   ]);
   await session(liveEvent.id, dancer, daniela, "CONFIRMED", liveAt(80), "Bachata sensual");
   await session(liveEvent.id, francisca, dancer, "CONFIRMED", liveAt(105), "Timba");
-  // Camila: su propia noche — el card también debe verse rico en su cuenta.
+  // Camila: su propia noche - el card también debe verse rico en su cuenta.
   await session(liveEvent.id, camila, diego, "RATED", liveAt(20), "Timba", [
     [camila, 5, 5, 5, 4],
     [diego, 4],
@@ -2252,11 +2252,11 @@ export async function seedDev(prisma: PrismaClient) {
   await session(liveEvent.id, antonia, felipe, "CONFIRMED", liveAt(35), "Bachata sensual");
   await session(liveEvent.id, diego, vale, "CONFIRMED", liveAt(75), "Salsa cubana (casino)");
 
-  // ─── Gamificación — actividad real que produce badges/puntos/rachas ───
+  // ─── Gamificación - actividad real que produce badges/puntos/rachas ───
   // Dos ediciones más de Bachatamanía (hace 2 y 3 semanas) con sesiones
   // resueltas del clique. Las rachas semanales, los puntos de temporada y
   // los badges por conducta se derivan de esta actividad con las mismas
-  // reglas del dominio — no se fabrican números de exhibición.
+  // reglas del dominio - no se fabrican números de exhibición.
   const weeksAgo = (n: number) => new Date(Date.now() - n * 7 * 86_400_000);
   const pastEdition = (name: string, start: Date) =>
     ensure(
@@ -2278,19 +2278,19 @@ export async function seedDev(prisma: PrismaClient) {
         }),
     );
   const edition2 = await pastEdition(
-    "Bachatamanía — hace 2 semanas",
+    "Bachatamanía - hace 2 semanas",
     weeksAgo(2),
   );
   const edition3 = await pastEdition(
-    "Bachatamanía — hace 3 semanas",
+    "Bachatamanía - hace 3 semanas",
     weeksAgo(3),
   );
   const atEdition = (ev: { startsAt: Date }, min: number) =>
     new Date(ev.startsAt.getTime() + min * 60_000);
 
-  // Check-ins tempranos (21:30 — antes del cutoff madrugador) en las
+  // Check-ins tempranos (21:30 - antes del cutoff madrugador) en las
   // ediciones pasadas: alimentan puntos early_checkin y el badge
-  // madrugador. La hora es fija — no depende de cuándo corre el seed.
+  // madrugador. La hora es fija - no depende de cuándo corre el seed.
   const earlyIn = (start: Date) => {
     const d = new Date(start);
     d.setHours(21, 30, 0, 0);
@@ -2358,7 +2358,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(edition2.id, diego, antonia, "CONFIRMED", atEdition(edition2, 75), "Bachata sensual");
   await session(edition2.id, camila, felipe, "CONFIRMED", atEdition(edition2, 195), "Salsa cubana (casino)");
 
-  // Edición -3 — sostiene la tercera semana de las rachas del clique.
+  // Edición -3 - sostiene la tercera semana de las rachas del clique.
   await session(edition3.id, dancer, antonia, "CONFIRMED", atEdition(edition3, 70), "Bachata sensual", [
     [antonia, 5],
   ]);
@@ -2369,7 +2369,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(edition3.id, camila, daniela, "CONFIRMED", atEdition(edition3, 130), "Salsa cubana (casino)");
   await session(edition3.id, sebastian, josefa, "CONFIRMED", atEdition(edition3, 160), "Bachata sensual");
 
-  // Temporada activa del año — los puntos del ledger se posicionan por
+  // Temporada activa del año - los puntos del ledger se posicionan por
   // temporada (spec §7: no gastables, resetean por Season).
   const seasonYear = now.getUTCFullYear();
   const season = await ensure(
@@ -2385,7 +2385,7 @@ export async function seedDev(prisma: PrismaClient) {
       }),
   );
 
-  // Puntos de temporada — mismo accrual del dominio: session_confirmed a
+  // Puntos de temporada - mismo accrual del dominio: session_confirmed a
   // ambos bailarines, rating_closed al evaluador, early_checkin al que
   // entró temprano. Idempotente por (persona, reason, refType, refId).
   const accrue = (
@@ -2433,7 +2433,7 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
 
-  // ─── Data de consolas — productor / DJ / venue ───
+  // ─── Data de consolas - productor / DJ / venue ───
 
   // Salidas de pista (outAt) en los check-ins pasados: alimentan la
   // permanencia media del dashboard del venue. Determinista por índice.
@@ -2446,7 +2446,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // DJ asignado a las ediciones pasadas de Bachatamanía (matias es su
-  // residente) — sin EventDj el gig no aparece en /dj/gigs ni puede ver
+  // residente) - sin EventDj el gig no aparece en /dj/gigs ni puede ver
   // su evaluación de música.
   for (const ev of [prevEdition, edition2, edition3]) {
     await prisma.eventDj.upsert({
@@ -2456,7 +2456,7 @@ export async function seedDev(prisma: PrismaClient) {
     });
   }
 
-  // Evaluaciones post-evento (spec §5): agregados por actor — música →
+  // Evaluaciones post-evento (spec §5): agregados por actor - música →
   // DJ, ocupación/organización → productor, piso/temperatura/sonido →
   // venue. ≥3 evaluaciones por edición para que los promedios superen
   // la k-anonymity del resumen. Sin texto libre, rater privado.
@@ -2494,7 +2494,7 @@ export async function seedDev(prisma: PrismaClient) {
     await rateEvent(prevEdition.id, p.id, prevDims[i]);
     if (i < ed2Dims.length) await rateEvent(edition2.id, p.id, ed2Dims[i]);
   }
-  // Edición -3 queda bajo el umbral (2 evaluaciones) — demuestra el
+  // Edición -3 queda bajo el umbral (2 evaluaciones) - demuestra el
   // estado "insuficientes evaluaciones" de la consola del DJ.
   await rateEvent(edition3.id, dancer.id, {
     overall: 4,
@@ -2505,7 +2505,7 @@ export async function seedDev(prisma: PrismaClient) {
 
   // Operación en curso del evento LIVE: check-ins de pista (SCAN) y un
   // par de ventas manuales de puerta (MANUAL, sin Payment) + una venta
-  // de puerta por la app — alimentan el tablero /events/:id/live.
+  // de puerta por la app - alimentan el tablero /events/:id/live.
   const liveAttendees = [camila, josefa, antonia, daniela, felipe, vale];
   for (const [i, p] of liveAttendees.entries()) {
     await ensure(
@@ -2583,14 +2583,14 @@ export async function seedDev(prisma: PrismaClient) {
         },
       }),
   );
-  // El DJ del evento en vivo — su gig aparece en /dj/gigs.
+  // El DJ del evento en vivo - su gig aparece en /dj/gigs.
   await prisma.eventDj.upsert({
     where: { eventId_personId: { eventId: liveEvent.id, personId: steban.id } },
     update: {},
     create: { eventId: liveEvent.id, personId: steban.id },
   });
 
-  // Rachas semanales — el KPI del home lee Streak (WEEKLY_OUT); se
+  // Rachas semanales - el KPI del home lee Streak (WEEKLY_OUT); se
   // computa con buildStreakWeeks/computeStreak sobre la actividad real
   // (sesiones confirmadas + check-ins de las ediciones pasadas).
   const activityByPerson = new Map<string, Date[]>();
@@ -2625,7 +2625,7 @@ export async function seedDev(prisma: PrismaClient) {
     );
   }
 
-  // Badges ganados por conducta — se otorgan con las mismas reglas del
+  // Badges ganados por conducta - se otorgan con las mismas reglas del
   // dominio (BadgeAwarder + buildBadgeStats) sobre la actividad real, así
   // /me/badges no depende del lazy-award para mostrar el demo.
   const badgeRows = await prisma.badge.findMany();
@@ -2686,7 +2686,7 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
   // Badges exhibidos al escanear el QR (spec §7: el status vive en el
-  // ritual) — bailarin_constante destacado del demo y corona Prime Time
+  // ritual) - bailarin_constante destacado del demo y corona Prime Time
   // vigente de Camila (temporal: vence en CROWN_TTL_DAYS).
   await award(dancer.id, "bailarin_constante", true);
   await award(
@@ -2709,7 +2709,7 @@ export async function seedDev(prisma: PrismaClient) {
     },
   });
 
-  // Lista de invitados + mesa — operación social del evento.
+  // Lista de invitados + mesa - operación social del evento.
   const guestList = await ensure(
     () =>
       prisma.guestList.findFirst({
@@ -2752,7 +2752,7 @@ export async function seedDev(prisma: PrismaClient) {
         },
       }),
   );
-  // Mesa confirmada con número asignado — el venue la ve en su
+  // Mesa confirmada con número asignado - el venue la ve en su
   // dashboard ("qué mesas esperar cada noche").
   await ensure(
     () =>
@@ -2771,7 +2771,7 @@ export async function seedDev(prisma: PrismaClient) {
       }),
   );
 
-  // Sugerencias de canciones — ranking en la consola /dj de Steban.
+  // Sugerencias de canciones - ranking en la consola /dj de Steban.
   const songs: [string, string, string][] = [
     [juevesCubano.id, "La Vida Es Un Carnaval", "Celia Cruz"],
     [juevesCubano.id, "La Vida Es Un Carnaval", "Celia Cruz"],
@@ -2807,7 +2807,7 @@ export async function seedDev(prisma: PrismaClient) {
     },
   });
 
-  // Pase de serie del mes vigente — badge de "pase activo" en checkout.
+  // Pase de serie del mes vigente - badge de "pase activo" en checkout.
   await prisma.seriesPass.upsert({
     where: {
       seriesId_personId_month: {
@@ -2825,7 +2825,7 @@ export async function seedDev(prisma: PrismaClient) {
     },
   });
 
-  // Arriendos del venue — consola /venue los confirma/cancela.
+  // Arriendos del venue - consola /venue los confirma/cancela.
   const rental = (status: string, daysFromNow: number, academyId?: string, eventId?: string) =>
     ensure(
       () =>
@@ -2848,7 +2848,7 @@ export async function seedDev(prisma: PrismaClient) {
   await rental("CONFIRMED", 7, undefined, juevesCubano.id);
   await rental("CANCELLED", -7, tumbao.id);
 
-  // Notificaciones in-app — el badge de la campana muestra pendientes.
+  // Notificaciones in-app - el badge de la campana muestra pendientes.
   const notif = (personId: string, type: string, title: string, body?: string) =>
     ensure(
       () => prisma.notification.findFirst({ where: { personId, type } }),
@@ -2867,7 +2867,7 @@ export async function seedDev(prisma: PrismaClient) {
     dancer.id,
     "class.waitlist.promoted",
     "¡Entraste a la clase!",
-    "Se liberó un cupo en Bachata Sensual — Básico",
+    "Se liberó un cupo en Bachata Sensual - Básico",
   );
   await notif(
     dancer.id,

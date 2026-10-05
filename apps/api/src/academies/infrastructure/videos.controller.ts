@@ -17,7 +17,7 @@ import { canManageAcademy } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
 
 class CreateVideoDto {
-  /** Link externo (YouTube/Vimeo/Drive) — nunca self-host. */
+  /** Link externo (YouTube/Vimeo/Drive) - nunca self-host. */
   @IsString()
   url!: string;
 
@@ -38,7 +38,7 @@ class CreateVideoDto {
  * Videos de la academia (links externos). Gate de acceso:
  * - Staff (owner/instructor/ADMIN) ve todo con url.
  * - Alumno/externo: video no restringido → url visible; restringido → url solo
- *   si asistió a la Class asociada (Attendance, unique classId+personId — el
+ *   si asistió a la Class asociada (Attendance, unique classId+personId - el
  *   modelo que persiste attendance.controller.ts) o tiene enrollment ACTIVE;
  *   si no, metadatos + locked:true SIN url.
  */
@@ -56,7 +56,7 @@ export class VideosController {
     @Body() dto: CreateVideoDto,
     @Req() req: Request,
   ) {
-    // solo owner/ADMIN — mutación: academia bloqueada por mora → 403 (S3).
+    // solo owner/ADMIN - mutación: academia bloqueada por mora → 403 (S3).
     await this.access.requireAdministerWrite(id, req.person!);
 
     if (dto.classId) {
@@ -138,7 +138,7 @@ export class VideosController {
     @Param("videoId") videoId: string,
     @Req() req: Request,
   ) {
-    // solo owner/ADMIN — mutación: academia bloqueada por mora → 403 (S3).
+    // solo owner/ADMIN - mutación: academia bloqueada por mora → 403 (S3).
     await this.access.requireAdministerWrite(id, req.person!);
     const video = await this.prisma.video.findFirst({
       where: { id: videoId, academyId: id },

@@ -15,18 +15,18 @@ declare module "express" {
   interface Request {
     person?: {
       id: string;
-      // roles APPROVED únicamente — lo que la persona puede ejercer.
+      // roles APPROVED únicamente - lo que la persona puede ejercer.
       roles: string[];
       // estado completo de sus roles (para RBAC y UI "en revisión").
       roleStates: { role: string; status: string }[];
-      // cuenta creada desde un lead de /pro — solo lectura (ver barrera abajo).
+      // cuenta creada desde un lead de /pro - solo lectura (ver barrera abajo).
       isDemo?: boolean;
     };
   }
 }
 
 // Cuentas demo: navegan y leen toda la app (GETs pasan con sus roles
-// APPROVED), pero ninguna escritura llega a producción — POST/PUT/PATCH/
+// APPROVED), pero ninguna escritura llega a producción - POST/PUT/PATCH/
 // DELETE → 403 "demo_mode". La whitelist es solo self-scoped y sin valor
 // de negocio: salir, marcar notificaciones leídas, push tokens y
 // reclamar la cuenta con contraseña propia.
@@ -34,7 +34,7 @@ const DEMO_ALLOWED_WRITES = [
   /^\/api\/auth\/(logout|password)$/,
   /^\/api\/notifications\//,
   /^\/api\/push-tokens/,
-  // Cierre del flujo de conversión de lead — es justamente la escritura
+  // Cierre del flujo de conversión de lead - es justamente la escritura
   // que apaga isDemoAccount.
   /^\/api\/me\/complete-profile$/,
   // Aceptación legal self-scoped (spec legal-consent): la cuenta demo
@@ -73,7 +73,7 @@ export class SessionGuard implements CanActivate {
       isDemo: person.isDemoAccount,
     };
 
-    // Barrera de escritura para cuentas demo — el único punto de control,
+    // Barrera de escritura para cuentas demo - el único punto de control,
     // aplica a toda ruta protegida sin flags repartidos por el código.
     if (
       person.isDemoAccount &&

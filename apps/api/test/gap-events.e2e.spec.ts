@@ -46,12 +46,12 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
     venueId: "",
     rateEventId: "", // PUBLISHED, terminó hace 2h (ventana abierta)
     closedEventId: "", // PUBLISHED, terminó hace 30h (ventana cerrada)
-    lowEventId: "", // PUBLISHED, terminó hace 1h — solo 1 rating
+    lowEventId: "", // PUBLISHED, terminó hace 1h - solo 1 rating
     draftEventId: "", // DRAFT
     suggestEventId: "", // PUBLISHED con preventa + DJ asignado
     reservationId: "",
   };
-  // eventos creados por los tests de herencia — se limpian en afterAll
+  // eventos creados por los tests de herencia - se limpian en afterAll
   const extraEventIds: string[] = [];
 
   const req = (
@@ -551,7 +551,7 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
       const body = await res.json();
       expect(body.status).toBe("CONFIRMED");
       expect(body.tableNo).toBe("M-7");
-      // el tamaño solicitado era 4 — el productor lo ajusta (disclaimer del checkout)
+      // el tamaño solicitado era 4 - el productor lo ajusta (disclaimer del checkout)
       expect(body.partySize).toBe(5);
     });
 

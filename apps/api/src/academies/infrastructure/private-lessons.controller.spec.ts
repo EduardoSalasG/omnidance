@@ -234,8 +234,8 @@ describe("comisión del instructor en clases particulares", () => {
     academies = new AcademiesController(
       prisma as unknown as PrismaService,
       access,
-      {} as never, // SubscriptionsService — no se usa en estos endpoints
-      {} as never, // ParamsService — idem
+      {} as never, // SubscriptionsService - no se usa en estos endpoints
+      {} as never, // ParamsService - idem
     );
     prisma.academies.push({ id: "ac-1", ownerId: "owner", name: "Academia Uno", active: true });
     prisma.instructors.push({
@@ -299,7 +299,7 @@ describe("comisión del instructor en clases particulares", () => {
   });
 
   it("request() snapshot: la lección copia el commissionPct vigente", async () => {
-    // POST es staff-only desde private-lesson-product — el owner crea la
+    // POST es staff-only desde private-lesson-product - el owner crea la
     // lección manual; el snapshot de comisión es el mismo.
     const lesson = await lessons.request(
       "ac-1",
@@ -337,7 +337,7 @@ describe("comisión del instructor en clases particulares", () => {
     });
   });
 
-  it("mine sin ?as=instructor rechaza — la vista alumno vive en /classes/mine", async () => {
+  it("mine sin ?as=instructor rechaza - la vista alumno vive en /classes/mine", async () => {
     await expect(lessons.mine(undefined, reqAs("alumno"))).rejects.toThrow(
       BadRequestException,
     );
@@ -515,9 +515,9 @@ describe("private-lesson-product", () => {
 });
 
 // Liquidación de la comisión (academia→instructor): la plataforma no
-// transfiere — el owner marca `commissionPaidAt` cuando paga por fuera
+// transfiere - el owner marca `commissionPaidAt` cuando paga por fuera
 // (mismo criterio que Payout evidenceUrl), y el instructor lo ve.
-describe("pay-commission — liquidación de la comisión", () => {
+describe("pay-commission - liquidación de la comisión", () => {
   let prisma: FakePrisma;
   let lessons: PrivateLessonsController;
   const notified: { personId: string; type: string }[] = [];
@@ -615,7 +615,7 @@ describe("pay-commission — liquidación de la comisión", () => {
 
     const instRows = await lessons.mine("instructor", reqAs("inst"));
     // La union de `mine` incluye la rama alumno (sin campos de comisión)
-    // — casteo al shape instructor para la aserción.
+    // - casteo al shape instructor para la aserción.
     expect(
       (instRows[0] as { commissionPaidAt?: Date }).commissionPaidAt,
     ).toBeInstanceOf(Date);
@@ -627,10 +627,10 @@ describe("pay-commission — liquidación de la comisión", () => {
   });
 });
 
-// GET /private-lessons/:id — ficha del alumno en /clases/[id] (la
+// GET /private-lessons/:id - ficha del alumno en /clases/[id] (la
 // particular es una reserva más; cancelar vive ahí). La comisión es
 // acuerdo academia↔instructor: nunca viaja al alumno.
-describe("GET /private-lessons/:id — ficha de la particular", () => {
+describe("GET /private-lessons/:id - ficha de la particular", () => {
   let prisma: FakePrisma;
   let lessons: PrivateLessonsController;
   const notifications = { notifySafe: async () => {} };

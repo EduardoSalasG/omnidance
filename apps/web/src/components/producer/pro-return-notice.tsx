@@ -8,8 +8,8 @@ import { useTranslations } from "next-intl";
  * POST /api/payments/flow/platform-customer-return redirige (303) a
  * /productor?pro=ok cuando el registro de tarjeta + alta de la sub
  * salen bien. El error resoluble a productor no existe (la falla del
- * disclaimer no identifica al pagador — cae en /perfil?sub=error).
- * La sub puede seguir ACTIVATING al aterrizar — copy procesando.
+ * disclaimer no identifica al pagador - cae en /perfil?sub=error).
+ * La sub puede seguir ACTIVATING al aterrizar - copy procesando.
  */
 export function ProReturnNotice() {
   const ts = useTranslations("subscriptions");

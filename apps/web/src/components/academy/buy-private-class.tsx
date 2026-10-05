@@ -8,7 +8,7 @@ import { Button, Spinner } from "@/components/ui";
 import { readError } from "./shared";
 
 const POLL_INTERVAL_MS = 2_000;
-const POLL_MAX_ATTEMPTS = 15; // ~30s — mismo criterio que checkout-client
+const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
 
 /**
  * Compra de clase particular (spec private-lesson-product): POST
@@ -25,7 +25,7 @@ export function BuyPrivateClass({
 }: {
   academyId: string;
   /** Academia bloqueada por mora SaaS (S3): el POST ya rechaza con
-      academy.unavailable — el botón disabled lo anticipa honestamente. */
+      academy.unavailable - el botón disabled lo anticipa honestamente. */
   disabled?: boolean;
 }) {
   const t = useTranslations("academy.profile");
@@ -41,7 +41,7 @@ export function BuyPrivateClass({
   const [simulating, setSimulating] = useState(false);
 
   // Al terminal (pagado/fallido) o si el polling se agota, el retorno
-  // del checkout renderiza el estado real — misma pantalla que llega
+  // del checkout renderiza el estado real - misma pantalla que llega
   // desde la pasarela.
   function startPolling(paymentId: string) {
     let attempts = 0;

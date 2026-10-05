@@ -7,11 +7,11 @@
     "bannerAccept": "Acepto",
     "bannerChanges": "Ver cambios",
     "bannerDismiss": "Cerrar aviso por ahora",
-    "bannerError": "No pudimos registrar tu aceptación — inténtalo de nuevo"
+    "bannerError": "No pudimos registrar tu aceptación. Inténtalo de nuevo"
   },
   "legal": {
     "backHome": "Volver al inicio",
-    "versionNote": "Versión 1.0 — última actualización: octubre 2026.",
+    "versionNote": "Versión 1.0. Última actualización: octubre 2026.",
     "privacy": {
       "metaTitle": "Política de Privacidad",
       "metaDescription": "Política de tratamiento de datos personales de Omnidance, alineada con la Ley 19.628 según modificada por la Ley 21.719 (Chile).",
@@ -36,8 +36,8 @@
           "list": [
             "Cuenta: nombre, correo electrónico y teléfono (optativo).",
             "Perfil de baile: género (optativo), estilos, roles y nivel autodeclarados.",
-            "Actividad: check-ins QR en eventos, sesiones de baile y valoraciones — siempre privadas y agregadas, nunca expuestas de forma individual (mínimo k≥3).",
-            "Pagos: procesados por Flow — NO almacenamos datos de tarjetas.",
+            "Actividad: check-ins QR en eventos, sesiones de baile y valoraciones, siempre privadas y agregadas, nunca expuestas de forma individual (mínimo k≥3).",
+            "Pagos: procesados por Flow. No almacenamos datos de tarjetas.",
             "Tokens push de tu dispositivo para notificaciones.",
             "Datos técnicos: registros (logs) con request-id y dirección IP, con fines de seguridad y diagnóstico."
           ],
@@ -67,10 +67,10 @@
             "Para operar el servicio compartimos datos con encargados de tratamiento que actúan por cuenta nuestra:"
           ],
           "list": [
-            "Flow — procesamiento de pagos.",
-            "Resend — envío de correos transaccionales.",
+            "Flow: procesamiento de pagos.",
+            "Resend: envío de correos transaccionales.",
             "Proveedor de hosting/infraestructura de la plataforma.",
-            "Apple y Google — entrega de notificaciones push a tu dispositivo."
+            "Apple y Google: entrega de notificaciones push a tu dispositivo."
           ],
           "listAfter": [
             "Algunos de estos proveedores procesan datos fuera de Chile (transferencias internacionales), bajo contratos que exigen un nivel de protección adecuado."

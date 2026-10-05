@@ -11,11 +11,11 @@ import {
 
 export type SegmentedItem = {
   key: string;
-  /** Estado en URL — el control navega, no muta estado local. */
+  /** Estado en URL - el control navega, no muta estado local. */
   href: string;
   /** Texto de la pill o ícono (aria-hidden). */
   children: ReactNode;
-  /** Item solo-ícono: cuadrado 44px — exige ariaLabel. */
+  /** Item solo-ícono: cuadrado 44px - exige ariaLabel. */
   icon?: boolean;
   ariaLabel?: string;
   /** data-tour para el onboarding. */
@@ -30,7 +30,7 @@ export type SegmentedProps = {
   /** soft = pills de texto (thumb neon/15 + borde); solid = íconos
       (thumb neon lleno, texto activo oscuro). */
   tone?: "soft" | "solid";
-  /** Layout del wrapper interno — "grid w-full grid-cols-N" para
+  /** Layout del wrapper interno - "grid w-full grid-cols-N" para
       pills a todo ancho; default flex shrink-wrap. */
   innerClassName?: string;
   className?: string;
@@ -39,7 +39,7 @@ export type SegmentedProps = {
 };
 
 // Misma física que el tab-indicator del BottomNav: transform puro
-// (compositor), bezier con overshoot leve 340ms — la transition parte
+// (compositor), bezier con overshoot leve 340ms - la transition parte
 // del valor en pantalla, así que taps rápidos re-apuntan sin cortes.
 const THUMB_CLS =
   "pointer-events-none absolute bottom-0 top-0 rounded-full motion-safe:transition-all motion-safe:duration-[340ms] motion-safe:ease-[cubic-bezier(0.32,1.12,0.4,1)]";
@@ -88,7 +88,7 @@ const itemBaseCls =
  * Segmented control con thumb deslizante (patrón iOS, misma física
  * que el indicador del BottomNav): el indicador neon es un span
  * absoluto medido sobre el item activo que se desliza con transition.
- * Los items son Links — la selección es navegación de URL; el DOM
+ * Los items son Links - la selección es navegación de URL; el DOM
  * persiste entre soft-navs, así que el thumb cruza de opción sin
  * remontar. En prefers-reduced-motion el thumb salta sin animación
  * (motion-safe).
@@ -108,7 +108,7 @@ export function Segmented({
 }: SegmentedProps) {
   const innerRef = useRef<HTMLDivElement>(null);
   const activeIndex = items.findIndex((i) => i.key === active);
-  // items se recrea por render — la dependencia real es la lista de keys.
+  // items se recrea por render - la dependencia real es la lista de keys.
   const itemsKey = items.map((i) => i.key).join("|");
   const thumb = useThumb(innerRef, activeIndex, itemsKey);
 
@@ -167,7 +167,7 @@ export function Segmented({
 }
 
 export type SegmentedMultiItem = SegmentedItem & {
-  /** El ítem pertenece a la selección — lleva su propio pill neon. */
+  /** El ítem pertenece a la selección - lleva su propio pill neon. */
   active: boolean;
 };
 
@@ -175,10 +175,10 @@ export type SegmentedMultiItem = SegmentedItem & {
  * Variante multiselect de Segmented (p.ej. filtro de géneros en
  * /eventos): cada ítem activo lleva su propio pill neon que se
  * materializa (scale+fade), y un anillo `border-neon` itinerante se
- * desliza al último ítem activado (`focusKey`) — el movimiento del
+ * desliza al último ítem activado (`focusKey`) - el movimiento del
  * resaltado se ve igual que en los toggles exclusivos, sin fingir una
  * selección única que no existe. Los items son Links (la selección
- * es navegación de URL) — el estado activo va en aria-current, no
+ * es navegación de URL) - el estado activo va en aria-current, no
  * aria-pressed (reservado a botones toggle).
  */
 export function SegmentedMulti({
@@ -189,7 +189,7 @@ export function SegmentedMulti({
   tour,
 }: {
   items: SegmentedMultiItem[];
-  /** Item donde descansa el anillo — último toggled-on o el exclusivo. */
+  /** Item donde descansa el anillo - último toggled-on o el exclusivo. */
   focusKey: string;
   ariaLabel: string;
   className?: string;
@@ -232,7 +232,7 @@ export function SegmentedMulti({
               item.active ? "text-neon" : "text-white/60 hover:text-white"
             }`}
           >
-            {/* Pill propio del estado activo — se materializa al
+            {/* Pill propio del estado activo - se materializa al
                 toggle (el anillo itinerante marca el último tocado). */}
             <span
               aria-hidden="true"

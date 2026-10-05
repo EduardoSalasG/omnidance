@@ -29,7 +29,7 @@ function LockIcon() {
  * donde una feature Pro respondió 403 `pro.required` o donde
  * `effectivePro` de /me ya dice que la cuenta no tiene Pro. El CTA
  * lleva a la sección Pro (/productor/parametros), donde se contrata.
- * `feature` nombra la herramienta bloqueada (opcional — en secciones
+ * `feature` nombra la herramienta bloqueada (opcional - en secciones
  * ya tituladas sobra repetirla).
  */
 export function ProPaywall({ feature }: { feature?: string }) {

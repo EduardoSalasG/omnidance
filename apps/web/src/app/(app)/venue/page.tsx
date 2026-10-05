@@ -16,7 +16,7 @@ import { inputCls } from "@/components/academy/shared";
 import { EVENT_STATUS_VARIANT, readError } from "@/components/producer/shared";
 
 /**
- * /venue — consola del VENUE_MANAGER. Boot: GET /venues/mine resuelve los
+ * /venue - consola del VENUE_MANAGER. Boot: GET /venues/mine resuelve los
  * venues del usuario (401 → login, 403/[] → sin venues asignados, lista →
  * selector si hay más de uno). El dashboard (GET /venues/:id/dashboard) se
  * refetchea al cambiar de venue. Sin h1 visible: el chrome muestra "Venue"
@@ -204,7 +204,7 @@ export default function VenuePage() {
     void boot();
   }, [boot]);
 
-  // Dashboard del venue activo — refetch al cambiar el selector. Un 403
+  // Dashboard del venue activo - refetch al cambiar el selector. Un 403
   // (venue desvinculado entre requests) muestra el aviso pero deja vivo
   // el selector para elegir otro venue válido.
   const loadDash = useCallback(async (id: string) => {
@@ -312,7 +312,7 @@ export default function VenuePage() {
 
       {phase === "ready" && selected && (
         <>
-          {/* Selector de venue — mismo patrón <select> del AcademyGate;
+          {/* Selector de venue - mismo patrón <select> del AcademyGate;
               con un solo venue se va directo al dashboard. */}
           {venues.length > 1 && (
             <label className="flex flex-col gap-1 pt-4">
@@ -354,7 +354,7 @@ export default function VenuePage() {
 
           {dashPhase === "ready" && dash && (
             <>
-              {/* Header del venue — el nombre es dato, no título de
+              {/* Header del venue - el nombre es dato, no título de
                   sección (el chrome ya muestra "Venue"). */}
               <header className="flex flex-col gap-1 pt-4">
                 <p className="text-xl font-bold">{dash.venue.name}</p>
@@ -370,7 +370,7 @@ export default function VenuePage() {
                 )}
               </header>
 
-              {/* KPIs — tiles neon del HomeHub/analitica. */}
+              {/* KPIs - tiles neon del HomeHub/analitica. */}
               <ul className="grid grid-cols-3 gap-3">
                 {(
                   [
@@ -437,7 +437,7 @@ export default function VenuePage() {
                 )}
               </section>
 
-              {/* Reservas de mesa — qué mesas esperar cada noche. */}
+              {/* Reservas de mesa - qué mesas esperar cada noche. */}
               <section aria-label={t("sections.tables")}>
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
                   {t("sections.tables")}
@@ -481,7 +481,7 @@ export default function VenuePage() {
                 )}
               </section>
 
-              {/* Flujo del público — hora peak, permanencia y llegadas
+              {/* Flujo del público - hora peak, permanencia y llegadas
                   por hora (30d). La ventana nocturna 19→05 ordena las
                   barras como vive la noche. */}
               <section aria-label={t("sections.flow")}>
@@ -528,7 +528,7 @@ export default function VenuePage() {
                         return (
                           <span
                             key={h}
-                            title={`${h}:00 — ${num.format(v)}`}
+                            title={`${h}:00 · ${num.format(v)}`}
                             className="flex-1 rounded-sm bg-neon/60"
                             style={{
                               height: `${Math.max(4, (v / max) * 100)}%`,
@@ -547,7 +547,7 @@ export default function VenuePage() {
                 )}
               </section>
 
-              {/* Arriendos — Confirmar/Cancelar solo en REQUESTED, con
+              {/* Arriendos - Confirmar/Cancelar solo en REQUESTED, con
                   mini-confirmación inline antes del PATCH. */}
               <section aria-label={t("sections.rentals")}>
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
@@ -663,7 +663,7 @@ export default function VenuePage() {
                 )}
               </section>
 
-              {/* Cartas/menús — PDFs externos en pestaña nueva. */}
+              {/* Cartas/menús - PDFs externos en pestaña nueva. */}
               <section aria-label={t("sections.menus")}>
                 <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
                   {t("sections.menus")}

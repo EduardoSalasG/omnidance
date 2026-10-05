@@ -7,7 +7,7 @@ export type PillTabItem = {
 
 export type PillTabsProps = {
   items: PillTabItem[];
-  /** Key de la pill activa (controlled — el padre guarda el estado). */
+  /** Key de la pill activa (controlled - el padre guarda el estado). */
   active: string;
   onSelect: (key: string) => void;
   ariaLabel: string;
@@ -16,7 +16,7 @@ export type PillTabsProps = {
 /**
  * Strip de pills deslizable estilo segmented iOS (mismo look que CrmNav):
  * scroll horizontal sin scrollbar, pill activa en neon. Button-based con
- * role="tablist"/"tab" + aria-selected — el patrón correcto para cambiar
+ * role="tablist"/"tab" + aria-selected - el patrón correcto para cambiar
  * qué vista se muestra (filtros/lentes), no para navegar entre rutas.
  * Cada pill es un tab stop propio; ≥44px de alto para touch.
  */

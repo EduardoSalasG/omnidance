@@ -12,7 +12,7 @@ import type { BadgeVariant } from "@/components/ui";
 
 export { readError } from "../academy/shared";
 
-// Roles que habilitan la consola (espejo de ProducerGuard — usado por
+// Roles que habilitan la consola (espejo de ProducerGuard - usado por
 // producer-gate.tsx y los gates inline de eventos/pagos).
 export const PRODUCER_ROLES = new Set(["PRODUCER", "ADMIN"]);
 
@@ -79,7 +79,7 @@ export const PASS_STATUS_VARIANT: Record<string, BadgeVariant> = {
 };
 
 /**
- * GET /events hoy devuelve solo PUBLISHED/LIVE sin producerId — los campos
+ * GET /events hoy devuelve solo PUBLISHED/LIVE sin producerId - los campos
  * opcionales quedan para cuando el contrato los exponga (el filtro client-side
  * por producerId está especificado en el brief de la consola).
  */
@@ -96,11 +96,11 @@ export type EventListItem = {
   seriesId?: string | null;
   series?: { id?: string; name: string } | null;
   venue?: { id?: string; name: string; address?: string | null } | null;
-  /** Pulso comercial por evento (GET /events/mine) — vendidas/bruto/check-ins. */
+  /** Pulso comercial por evento (GET /events/mine) - vendidas/bruto/check-ins. */
   stats?: { sold: number; grossClp: number; checkins: number };
 };
 
-/** GET /events/:id — shape real del controller (select explícito). */
+/** GET /events/:id - shape real del controller (select explícito). */
 export type EventDetail = {
   id: string;
   name: string;
@@ -113,7 +113,7 @@ export type EventDetail = {
   tablesTotal?: number | null;
   /** Máx. personas por reserva de mesa (null = sin tope propio). */
   tableSeatMax?: number | null;
-  /** Cupo sentable total en mesas — el checkout valida contra esto. */
+  /** Cupo sentable total en mesas - el checkout valida contra esto. */
   tableSeatsTotal?: number | null;
   presalePrice: number | null;
   doorPrice: number | null;
@@ -149,7 +149,7 @@ export type EventDetail = {
   }[];
 };
 
-/** POST /events y PATCH /events/:id — mismo payload (todo opcional en PATCH). */
+/** POST /events y PATCH /events/:id - mismo payload (todo opcional en PATCH). */
 export type EventPayload = {
   name?: string;
   venueId?: string;
@@ -222,7 +222,7 @@ export type TableReservationItem = {
 
 export type RatingAgg = { avg: number | null; count: number };
 
-/** GET /events/:id/ratings/summary — agregado k-anónimo por actor. */
+/** GET /events/:id/ratings/summary - agregado k-anónimo por actor. */
 export type RatingsSummary = {
   exposed: boolean;
   count: number;

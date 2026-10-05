@@ -1,4 +1,4 @@
-// Iconos stroke del set de la app — mismo lenguaje que ICONS de
+// Iconos stroke del set de la app - mismo lenguaje que ICONS de
 // BottomNav: viewBox 24, stroke currentColor, caps/joins redondos.
 // Todos son decorativos (aria-hidden): el nombre accesible lo aporta
 // el texto o el aria-label del elemento padre.
@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 export type IconProps = {
   className?: string;
-  /** Grosor del trazo — 1.8–2.4 según el set (2 por defecto). */
+  /** Grosor del trazo - 1.8–2.4 según el set (2 por defecto). */
   strokeWidth?: number;
 };
 
@@ -67,7 +67,7 @@ export function RefreshIcon(props: IconProps) {
   );
 }
 
-/** Link externo (WhatsApp, mapas, video) — antes `↗`. */
+/** Link externo (WhatsApp, mapas, video) - antes `↗`. */
 export function ArrowUpRightIcon(props: IconProps) {
   return (
     <Svg {...props}>
@@ -103,7 +103,7 @@ export function PlayIcon(props: IconProps) {
   );
 }
 
-/** Estrella de puntuación — filled la encendida, outline la apagada
+/** Estrella de puntuación - filled la encendida, outline la apagada
     (antes `★`/`☆` de texto). */
 export function StarIcon({
   filled = false,

@@ -8,7 +8,7 @@ import { SkeletonList } from "@/components/ui";
 
 type Props = { eventId: string; status: string };
 
-// GET /events/:id/live — tablero operativo owner/admin (spec §13
+// GET /events/:id/live - tablero operativo owner/admin (spec §13
 // Productor: "pulso en vivo"). Para CLOSED funciona como cierre de
 // noche (ventas + asistencia); DRAFT/CANCELLED no lo muestran.
 type LiveData = {
@@ -93,7 +93,7 @@ export function LiveSection({ eventId, status }: Props) {
 
       {state === "ready" && data && (
         <Card className="flex flex-col gap-4">
-          {/* Ventas por canal — preventa / puerta app / puerta manual. */}
+          {/* Ventas por canal - preventa / puerta app / puerta manual. */}
           <ul className="grid grid-cols-3 gap-3">
             <li>
               <span className="block text-xl font-bold tabular-nums text-neon">
@@ -165,7 +165,7 @@ export function LiveSection({ eventId, status }: Props) {
             )}
           </div>
 
-          {/* Llegadas por hora — ventana nocturna 19→05. */}
+          {/* Llegadas por hora - ventana nocturna 19→05. */}
           {data.checkins.total > 0 && (
             <div>
               <div
@@ -178,7 +178,7 @@ export function LiveSection({ eventId, status }: Props) {
                   return (
                     <span
                       key={h}
-                      title={`${h}:00 — ${num.format(v)}`}
+                      title={`${h}:00 - ${num.format(v)}`}
                       className="flex-1 rounded-sm bg-neon/60"
                       style={{
                         height: `${Math.max(4, (v / max) * 100)}%`,

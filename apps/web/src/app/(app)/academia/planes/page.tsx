@@ -11,7 +11,7 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import type { MembershipPlan } from "@/components/academy/shared";
 
 /**
- * /academia/planes — membresías de la academia seleccionada.
+ * /academia/planes - membresías de la academia seleccionada.
  * La página fetchea GET /academies/:id/plans; el alta y el refresh los
  * maneja PlansSection vía onChanged.
  */

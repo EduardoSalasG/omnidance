@@ -17,10 +17,10 @@ async function main() {
     (process.env.NODE_ENV === "production" ? "prod" : "dev");
 
   if (env === "prod") {
-    console.log("Seeding omnidance [prod] — baseline + admin…");
+    console.log("Seeding omnidance [prod] - baseline + admin…");
     await seedProd(prisma);
   } else if (env === "dev") {
-    console.log("Seeding omnidance [dev] — baseline + demo Santiago…");
+    console.log("Seeding omnidance [dev] - baseline + demo Santiago…");
     await seedDev(prisma);
   } else {
     throw new Error(`SEED_ENV inválido: "${env}" (usar dev|prod)`);

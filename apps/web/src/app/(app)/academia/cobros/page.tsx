@@ -6,7 +6,7 @@ import { AcademyPayments } from "@/components/academy/academy-payments";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
- * /academia/cobros — cobros de membresías de la academia seleccionada
+ * /academia/cobros - cobros de membresías de la academia seleccionada
  * (GET /payments/by-academy/:id). El gate resuelve auth + academia; el
  * endpoint limita a owner/admin (403 → mensaje "sin acceso" adentro).
  */

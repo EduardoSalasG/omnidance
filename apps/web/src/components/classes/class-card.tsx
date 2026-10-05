@@ -6,12 +6,12 @@ import { Badge, Button, LevelBars, PriceTag } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/spinner";
 
-// Shape único del card de clase — lo devuelven /classes/browse,
+// Shape único del card de clase - lo devuelven /classes/browse,
 // /classes/mine (reservadas) y /home/stats (nextClass + myClasses).
 // scope=past agrega `status` (ver HistoryCardData más abajo).
 export type ClassCardData = {
   id: string;
-  date: string; // ISO — medianoche UTC del día de la clase
+  date: string; // ISO - medianoche UTC del día de la clase
   startTime: string;
   endTime: string;
   weekday: number;
@@ -20,7 +20,7 @@ export type ClassCardData = {
   spotsLeft: number;
   waitlistCount: number;
   myBooking: "BOOKED" | "WAITLIST" | null;
-  // Inscripción vigente en la academia de la clase — habilita reservar.
+  // Inscripción vigente en la academia de la clase - habilita reservar.
   enrolled: boolean;
   // Cuota del plan del viewer para la semana/academia de esta clase
   // (solo /classes/mine la adjunta; null = ilimitado o sin cuota).
@@ -31,7 +31,7 @@ export type ClassCardData = {
   } | null;
   academy: { id: string; name: string };
   instructor: { id: string; name: string | null } | null;
-  // Todo slot pertenece a una serie — series nunca es null en clases.
+  // Todo slot pertenece a una serie - series nunca es null en clases.
   series: {
     id: string;
     name: string;
@@ -46,7 +46,7 @@ export type ClassCardData = {
 // Una particular comprada viaja en /classes/mine como una reserva más
 // (aforo 1, sin recurrencia): sin serie ni slot; sin fecha asignada
 // date/startTime van null y el grupo "Por agendar" las muestra.
-// Mismo componente card — el título cae a "Clase particular".
+// Mismo componente card - el título cae a "Clase particular".
 export type LessonCardData = Omit<
   ClassCardData,
   "date" | "startTime" | "endTime" | "weekday" | "series" | "academy"
@@ -59,7 +59,7 @@ export type LessonCardData = Omit<
   academy: { id: string; name: string | null };
 };
 
-// Lo que devuelve /classes/mine: reserva de clase o particular —
+// Lo que devuelve /classes/mine: reserva de clase o particular -
 // indistinguibles en el card (esa es la idea).
 export type MineCardData = ClassCardData | LessonCardData;
 
@@ -77,7 +77,7 @@ export function ClassCard({
   when?: string;
   busy?: boolean;
   onBook?: (cls: MineCardData) => void;
-  /** Badge de estado externo (historial: Asististe/Cancelaste) —
+  /** Badge de estado externo (historial: Asististe/Cancelaste) -
       reemplaza al slot de acción; la clase pasada no tiene CTA. */
   statusBadge?: { label: string; variant?: BadgeVariant };
 }) {
@@ -97,13 +97,13 @@ export function ClassCard({
           {when && (
             <p className="mb-0.5 text-xs font-medium text-neon">{when}</p>
           )}
-          {/* Estilo solo como título — es lo que el dancer busca.
+          {/* Estilo solo como título - es lo que el dancer busca.
               h3: h2 lo tienen las secciones (semana / día / home). */}
           <h3 className="truncate text-base font-semibold leading-snug">
             {style?.name ?? cls.series?.name ?? t("privateLesson")}
           </h3>
           {/* Modalidad + nivel visual (barras): una fila de tags
-              compactos — el nivel ocupa ~20px sin texto */}
+              compactos - el nivel ocupa ~20px sin texto */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {cls.series?.types.map((x) => (
               <Badge key={x.id} variant="outline">
@@ -117,7 +117,7 @@ export function ClassCard({
               />
             )}
           </div>
-          {/* Academia en su propia fila — el nombre propio largo nunca
+          {/* Academia en su propia fila - el nombre propio largo nunca
               parte la fila de chips a medias */}
           <div className="mt-1.5">
             <Badge
@@ -133,7 +133,7 @@ export function ClassCard({
               {cls.instructor.name}
             </p>
           )}
-          {/* Créditos del plan — solo en "Mis clases" (mine adjunta la
+          {/* Créditos del plan - solo en "Mis clases" (mine adjunta la
               cuota de la semana de la clase). */}
           {cls.credits?.limit != null && (
             <p className="mt-1 text-xs font-medium text-neon/80">
@@ -151,8 +151,8 @@ export function ClassCard({
         </Link>
         {/* Slot de acción top-right: Reservado/Espera como badge, o el
             CTA con el caption de cupos centrado debajo. Mismo ancla en
-            todos los estados — rail estable aunque la altura del card
-            varíe. Cancelar NO va en el card — la acción destructiva
+            todos los estados - rail estable aunque la altura del card
+            varíe. Cancelar NO va en el card - la acción destructiva
             vive al pie de la ficha. */}
         {statusBadge ? (
           <Badge
@@ -172,7 +172,7 @@ export function ClassCard({
           <div className="flex shrink-0 flex-col items-center gap-1 self-start py-0.5">
             {!cls.enrolled ? (
               // Academia ajena (vista explore): sin inscripción vigente
-              // no hay reserva — el API lo rechazaría con 403. Pero si
+              // no hay reserva - el API lo rechazaría con 403. Pero si
               // la serie vende clase suelta (dropInPrice), el precio
               // informa mejor que el candado.
               cls.series?.dropInPrice != null ? (
@@ -227,7 +227,7 @@ export function ClassCard({
   );
 }
 
-// GET /classes/mine?scope=past — historial del alumno: card completo
+// GET /classes/mine?scope=past - historial del alumno: card completo
 // + status de resultado (attended gana el dedup sobre la cancelación;
 // una particular DONE cuenta como attended).
 export type HistoryCardData = MineCardData & {

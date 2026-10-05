@@ -21,7 +21,7 @@ El checkout SHALL aceptar `quantity` entero 1–10 (default 1). El UI muestra un
 
 #### Scenario: más amigos que entradas extra
 - **WHEN** quantity=2 y recipientIds tiene 3 ids
-- **THEN** 400 — "elegiste más amigos que entradas disponibles"
+- **THEN** 400 - "elegiste más amigos que entradas disponibles"
 
 #### Scenario: cap con cantidad
 - **WHEN** vendidos + en vuelo + quantity > presaleCap
@@ -42,7 +42,7 @@ rechazar `tablePartySize > event.tableSeatMax` (400, "máximo N personas
 por mesa") y, cuando `tableSeatsTotal` está configurado, `tablePartySize >
 seatsLeft` (409, sin cupo sentable). Se persiste en
 `Payment.tablePartySize`; al PAID el webhook SHALL crear la
-`TableReservation` en `REQUESTED` — nunca para pagos FAILED/abandonados —
+`TableReservation` en `REQUESTED` - nunca para pagos FAILED/abandonados -
 salvo que la persona ya tenga una activa en el evento.
 
 #### Scenario: compra con mesa
@@ -71,15 +71,15 @@ salvo que la persona ya tenga una activa en el evento.
 #### Scenario: sin cupo sentable
 
 - **WHEN** `seatsLeft` del evento es 4 y el POST pide `tablePartySize: 5`
-- **THEN** responde 409 — el cap real es el cupo sentable, no las mesas
+- **THEN** responde 409 - el cap real es el cupo sentable, no las mesas
 
 ### Requirement: sección mesa en el checkout
 
 El checkout SHALL mostrar la sección según el detalle del evento: oculta si
 no hay servicio (`tablesTotal` null), "Sin mesas disponibles para reserva"
 si `tablesLeft ≤ 0` o `seatsLeft ≤ 0`, y si hay disponibilidad una pregunta
-Sí/No que al Sí pide la cantidad de personas — stepper acotado por
-`min(tableSeatMax, seatsLeft)` — mostrando que la disponibilidad es
+Sí/No que al Sí pide la cantidad de personas - stepper acotado por
+`min(tableSeatMax, seatsLeft)` - mostrando que la disponibilidad es
 referencial y el tamaño podría ajustarse al confirmar el productor.
 
 #### Scenario: sin disponibilidad

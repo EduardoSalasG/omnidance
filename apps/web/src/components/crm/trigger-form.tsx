@@ -34,7 +34,7 @@ export function TriggerForm({
   onCancel,
 }: {
   actor: CrmActor;
-  /** Keys ya creadas — el select solo ofrece las que faltan. */
+  /** Keys ya creadas - el select solo ofrece las que faltan. */
   existingKeys: string[];
   /** Trigger en edición (PATCH config); null = creación. */
   editing: CrmTrigger | null;

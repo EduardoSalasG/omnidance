@@ -82,7 +82,7 @@ export class GamificationService {
   constructor(
     private readonly repo: GamificationRepo,
     private readonly awarder = new BadgeAwarder(),
-    /** PlatformParam reader — structural para no acoplar el dominio a Nest. */
+    /** PlatformParam reader - structural para no acoplar el dominio a Nest. */
     private readonly params?: {
       getNumber(key: string, fallback: number): Promise<number>;
     },
@@ -161,7 +161,7 @@ export class GamificationService {
   }
 
   /**
-   * Leaderboard del evento — SOLO visible con evento LIVE o CLOSED
+   * Leaderboard del evento - SOLO visible con evento LIVE o CLOSED
    * (oculto antes para no spoilear el Prime Time). inviter≈leader en v1.
    */
   async leaderboardForEvent(eventId: string): Promise<{
@@ -279,7 +279,7 @@ export class GamificationService {
       }
     }
 
-    // Nombres para la pantalla del reveal (los ganadores son públicos —
+    // Nombres para la pantalla del reveal (los ganadores son públicos -
     // el DJ los anuncia; no hay k-anonymity en el premio).
     const nameIds = [
       ...new Set([
@@ -323,7 +323,7 @@ export class GamificationService {
 
   /**
    * Acredita puntos de temporada por conducta (hook público para otros
-   * dominios — sessions.confirm/rate, checkins, misiones). Idempotente por
+   * dominios - sessions.confirm/rate, checkins, misiones). Idempotente por
    * (personId, reason, refType, refId): la misma conducta procesada dos
    * veces (retry, re-evaluación) no duplica puntos.
    *
@@ -345,7 +345,7 @@ export class GamificationService {
     );
     if (existing) return false;
     const season = await this.repo.activeSeason(new Date());
-    // El repo retorna null si el unique rechazó un duplicado concurrente —
+    // El repo retorna null si el unique rechazó un duplicado concurrente -
     // el find de arriba es solo el fast-path; la constraint es la verdad.
     const created = await this.repo.createLedgerEntry({
       personId,
@@ -360,7 +360,7 @@ export class GamificationService {
 
   /**
    * Hook de check-in para otros dominios (checkins.scan/manual/door-sale):
-   * si el check-in es "temprano" (ventana [12:00, cutoff) — param
+   * si el check-in es "temprano" (ventana [12:00, cutoff) - param
    * `early_checkin.cutoff_minutes`, default 23:00) acredita early_checkin
    * y evalúa badges de conducta (madrugador queda cubierto vía
    * evaluateBadgesFor). Idempotente por checkin.id.
@@ -417,7 +417,7 @@ export class GamificationService {
     const event = await this.repo.findEvent(eventId);
     if (!event) throw new EventNotFoundError(eventId);
     const missions = await this.repo.missionsForEvent(eventId);
-    // Una lectura de actividad por eventId — cada misión evalúa sobre el
+    // Una lectura de actividad por eventId - cada misión evalúa sobre el
     // mismo dataset (evita 2N queries idénticas cuando hay N misiones).
     const activities = new Map<string | null, MissionActivity>();
     return Promise.all(

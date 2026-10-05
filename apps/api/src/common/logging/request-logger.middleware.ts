@@ -11,7 +11,7 @@ interface RequestWithPerson extends Omit<Request, "person"> {
 }
 
 /**
- * Middleware global (registrado en main.ts antes de listen — cubre
+ * Middleware global (registrado en main.ts antes de listen - cubre
  * todos los requests HTTP, incluidos 404s de rutas inexistentes):
  * asigna/hereda x-request-id, lo propaga por AsyncLocalStorage y en
  * res.finish emite la línea resumen del request.

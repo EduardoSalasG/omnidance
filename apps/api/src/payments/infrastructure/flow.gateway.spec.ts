@@ -18,7 +18,7 @@ function makeGateway() {
   return new FlowGateway(KEY, SECRET, BASE, CONFIRM);
 }
 
-// Gateway con subscriptionCallbackUrl (6º param del ctor) — el que arma
+// Gateway con subscriptionCallbackUrl (6º param del ctor) - el que arma
 // resolveGateway como `${API_URL}/api/payments/subscription-webhook`.
 function makeSubGateway() {
   return new FlowGateway(KEY, SECRET, BASE, CONFIRM, undefined, SUB_CB);
@@ -219,7 +219,7 @@ describe("FlowGateway", () => {
 
         await makeSubGateway().ensurePlan({
           planId: "pl_1",
-          name: "Academia X — Mensual",
+          name: "Academia X - Mensual",
           amount: 25000,
           intervalCount: 1,
         });
@@ -244,7 +244,7 @@ describe("FlowGateway", () => {
         const params: Record<string, string> = {
           apiKey: KEY,
           planId: "pl_1",
-          name: "Academia X — Mensual",
+          name: "Academia X - Mensual",
           currency: "CLP",
           amount: "25000",
           interval: "3",
@@ -358,7 +358,7 @@ describe("FlowGateway", () => {
       );
     });
 
-    it("getRegisterStatus GET — status viene STRING '1' → parsea a 1 + customerId", async () => {
+    it("getRegisterStatus GET - status viene STRING '1' → parsea a 1 + customerId", async () => {
       const spy = mockFetch({
         status: "1",
         customerId: "cus_1",

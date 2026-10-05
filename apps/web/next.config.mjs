@@ -4,7 +4,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 // Origen del API para el proxy same-origin: el browser pide /api/* al front
 // y Next lo reenvía acá. Así PWA+túnel quedan same-origin (cookies Lax, sin
-// cross-site — iOS Safari bloquea cookies third-party aun con SameSite=None).
+// cross-site - iOS Safari bloquea cookies third-party aun con SameSite=None).
 const API_PROXY_TARGET = process.env.API_PROXY_TARGET ?? "http://localhost:4000";
 
 /** @type {import('next').NextConfig} */

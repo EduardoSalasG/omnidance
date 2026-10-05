@@ -13,9 +13,9 @@ type Phase =
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string }
   // El polling se agotó sin webhook (~30s): el pago puede confirmar
-  // igual — la vigencia aparece en la ficha de la academia al llegar.
+  // igual - la vigencia aparece en la ficha de la academia al llegar.
   | { kind: "stillPending"; paymentId: string; paymentUrl: string }
-  // needs_card: el usuario aún no salta a Flow — ve el interstitial que
+  // needs_card: el usuario aún no salta a Flow - ve el interstitial que
   // explica que la tarjeta se registra en la página oficial de Flow.
   | { kind: "card_redirect"; registerUrl: string }
   | { kind: "activating" }
@@ -24,7 +24,7 @@ type Phase =
 type Notice = "loginRequired" | "unavailable" | "generic" | null;
 
 const POLL_INTERVAL_MS = 2_000;
-const POLL_MAX_ATTEMPTS = 15; // ~30s — mismo criterio que checkout-client
+const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
 const SUB_POLL_MS = 1_500;
 const SUB_POLL_ATTEMPTS = 3;
 
@@ -35,10 +35,10 @@ const clp = new Intl.NumberFormat("es-CL", {
 });
 
 /**
- * Checkout de membresía — paso de revisión antes del cobro (mismo
+ * Checkout de membresía - paso de revisión antes del cobro (mismo
  * patrón que /eventos/[id]/checkout): qué plan, academia, vigencia
  * resultante y breakdown del total real que Flow debita (modelo SaaS:
- * productos de academia sin cargo de servicio — la línea solo aparece
+ * productos de academia sin cargo de servicio - la línea solo aparece
  * si el quote la reporta > 0), y elección pago único vs suscripción
  * cuando el plan es recurrente. Nunca se muestra un monto distinto al
  * que se cobra.
@@ -77,7 +77,7 @@ export function MembershipCheckoutClient({
   const academyHref = `/academias/${quote.academy.id}`;
   const checkoutHref = `${academyHref}/checkout?plan=${quote.plan.id}`;
 
-  // Polling del pago (stub dev): al PAID vuelve a la ficha — el webhook
+  // Polling del pago (stub dev): al PAID vuelve a la ficha - el webhook
   // ya materializó el Enrollment y el badge cambia solo. Si se agota
   // sin respuesta, stillPending (mismo patrón que /checkout/return):
   // la confirmación puede llegar después por webhook.
@@ -295,7 +295,7 @@ export function MembershipCheckoutClient({
         </div>
       </Card>
 
-      {/* Elección pago único vs suscripción — solo planes recurrentes
+      {/* Elección pago único vs suscripción - solo planes recurrentes
           con pasarela real (stub no implementa SubscriptionProvider). */}
       {quote.recurring && quote.gateway === "FLOW" && (
         <Card>
@@ -323,7 +323,7 @@ export function MembershipCheckoutClient({
         </Card>
       )}
 
-      {/* Breakdown — el total mostrado es EXACTAMENTE lo que se cobra. */}
+      {/* Breakdown - el total mostrado es EXACTAMENTE lo que se cobra. */}
       <Card>
         <dl className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-sm">
@@ -332,7 +332,7 @@ export function MembershipCheckoutClient({
               <PriceTag amount={quote.plan.price} />
             </dd>
           </div>
-          {/* Modelo SaaS: la academia vende sin comisión — la línea de
+          {/* Modelo SaaS: la academia vende sin comisión - la línea de
               cargo de servicio solo se muestra si el quote la trae > 0
               (defensivo ante órdenes de eventos que reutilicen el
               patrón). */}
@@ -442,7 +442,7 @@ export function MembershipCheckoutClient({
         </Card>
       )}
 
-      {/* Polling agotado sin webhook: el cobro puede confirmar igual —
+      {/* Polling agotado sin webhook: el cobro puede confirmar igual -
           la vigencia aparece en la ficha de la academia al llegar. */}
       {phase.kind === "stillPending" && (
         <Card className="flex flex-col items-center gap-4 text-center">
@@ -493,7 +493,7 @@ export function MembershipCheckoutClient({
             {phase.kind === "processing"
               ? tco("processing")
               : isSub
-                ? `${ts("subscribe")} — ${clp.format(quote.totalClp)}/${ts(`period.${quote.plan.type}`)}`
+                ? `${ts("subscribe")} · ${clp.format(quote.totalClp)}/${ts(`period.${quote.plan.type}`)}`
                 : t("payTotal", { total: clp.format(quote.totalClp) })}
           </Button>
           <p className="text-center text-xs text-white/40">

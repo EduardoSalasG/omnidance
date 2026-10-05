@@ -15,9 +15,9 @@ export interface CreateNotificationData {
 export interface ListNotificationsOptions {
   /** true → solo no leídas (readAt null). */
   unread?: boolean;
-  /** tope de resultados — el servicio aplica default/clamp. */
+  /** tope de resultados - el servicio aplica default/clamp. */
   limit?: number;
-  /** Lente activa (social|academy) — filtra por dominio del `type`. */
+  /** Lente activa (social|academy) - filtra por dominio del `type`. */
   lens?: NotificationLensFilter;
 }
 
@@ -72,7 +72,7 @@ export interface PushNotificationPayload {
   data?: unknown;
 }
 
-/** Web Push best-effort — el adaptador es no-op sin VAPID keys configuradas. */
+/** Web Push best-effort - el adaptador es no-op sin VAPID keys configuradas. */
 export interface PushPort {
   sendToPerson(
     personId: string,

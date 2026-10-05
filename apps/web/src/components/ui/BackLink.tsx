@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 /**
- * BackLink — patrón de retorno estilo iOS: pill compacto con chevron
+ * BackLink - patrón de retorno estilo iOS: pill compacto con chevron
  * + nombre del destino. Reemplaza el "← Texto" desnudo: mismo gesto,
  * tap target generoso y chrome consistente con los iconBtn del app.
  */

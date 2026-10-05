@@ -40,7 +40,7 @@ import {
 const BOOKABLE_ENROLLMENT: EnrollmentStatus[] = ["ACTIVE", "TRIAL", "ONLINE"];
 
 // Semana de la cuota: ISO lun–dom sobre Class.date (medianoche UTC del día
-// de la clase — no hora local: la diferencia solo aparecería en una clase
+// de la clase - no hora local: la diferencia solo aparecería en una clase
 // que cruza el lunes ~21:00 hora Chile, caso prácticamente inexistente).
 function isoWeekRange(date: Date): { start: Date; end: Date } {
   const day = new Date(
@@ -71,7 +71,7 @@ type QuotaResolution =
 
 /**
  * Vista alumno: explorar clases próximas (por día/estilo/nivel/academia)
- * y reservar cupo. Booking con capacidad real — si el slot está lleno la
+ * y reservar cupo. Booking con capacidad real - si el slot está lleno la
  * reserva entra como WAITLIST y se promueve en orden al liberarse un cupo.
  */
 @Controller("classes")
@@ -85,7 +85,7 @@ export class ClassesController {
   ) {}
 
   // Reservas que consumen crédito: BOOKED + CANCELLED sin refund
-  // (cancelación tardía — la clase se perdió). WAITLIST no consume;
+  // (cancelación tardía - la clase se perdió). WAITLIST no consume;
   // CANCELLED con refunded=true devuelve. Ver resolveQuota.
 
   /**
@@ -198,7 +198,7 @@ export class ClassesController {
   /**
    * Promueve al primer WAITLIST **con crédito disponible** (orden
    * createdAt). Un candidato sin cuota o sin inscripción vigente queda en
-   * espera y se evalúa el siguiente — el cupo no se regala a quien ya no
+   * espera y se evalúa el siguiente - el cupo no se regala a quien ya no
    * puede pagarlo con su plan.
    */
   private async promoteWaitlist(
@@ -273,7 +273,7 @@ export class ClassesController {
     const horizon = Math.min(Math.max(Number(days) || 14, 1), 60);
     const until = new Date(Date.now() + horizon * 86_400_000);
 
-    // Academias con inscripción vigente — scope=enrolled acota el listado
+    // Academias con inscripción vigente - scope=enrolled acota el listado
     // y el flag `enrolled` por item resuelve el CTA sin query extra.
     const enrollments = await this.prisma.enrollment.findMany({
       where: { personId: me, status: { in: BOOKABLE_ENROLLMENT } },
@@ -302,7 +302,7 @@ export class ClassesController {
             : academyId
               ? { academyId }
               : {}),
-          // Academias bloqueadas por mora (S3) fuera de explorar —
+          // Academias bloqueadas por mora (S3) fuera de explorar -
           // también bajo scope=enrolled: sus clases no son reservables.
           academy: { active: true, billingBlockedAt: null },
           series: {
@@ -349,9 +349,9 @@ export class ClassesController {
     return new Set(rows.map((e) => e.academyId));
   }
 
-  /** Mis reservas activas (BOOKED/WAITLIST) en clases futuras —
+  /** Mis reservas activas (BOOKED/WAITLIST) en clases futuras -
       mismo shape del card que browse. Las particulares compradas
-      (aforo 1, sin recurrencia) viajan en la MISMA respuesta —
+      (aforo 1, sin recurrencia) viajan en la MISMA respuesta -
       series:null, date:null cuando aún no se agendan. */
   @Get("mine")
   async mine(@Req() req: Request, @Query("scope") scope?: string) {
@@ -374,7 +374,7 @@ export class ClassesController {
         orderBy: { class: { date: "asc" } },
         select: { class: { select: CLASS_CARD_SELECT } },
       }),
-      // Particulares activas del alumno (compradas o en curso) — una
+      // Particulares activas del alumno (compradas o en curso) - una
       // reserva más; sin ellas el pago quedaría invisible en /clases.
       this.prisma.privateLesson.findMany({
         where: { personId: me, status: { in: ["REQUESTED", "CONFIRMED"] } },
@@ -402,7 +402,7 @@ export class ClassesController {
           string,
           { id: string; name: string; billingBlockedAt: Date | null }
         >();
-    // Créditos del plan vigente por (academia, semana ISO de la clase) —
+    // Créditos del plan vigente por (academia, semana ISO de la clase) -
     // mismo resolveQuota de la ficha; el card muestra "n/m esta semana".
     const creditsByKey = new Map<
       string,
@@ -444,10 +444,10 @@ export class ClassesController {
   }
 
   /**
-   * Historial del alumno (spec §9): solo resultados cerrados —
+   * Historial del alumno (spec §9): solo resultados cerrados -
    * asistencias y reservas canceladas. Una reserva vigente NO aparece
    * acá aunque Class.date ya pasó: sigue en "reservadas" hasta que la
-   * clase termine (classEnded). Dedup por classId — la asistencia
+   * clase termine (classEnded). Dedup por classId - la asistencia
    * prevalece sobre la cancelación. Últimas 50.
    */
   private async history(personId: string) {
@@ -462,7 +462,7 @@ export class ClassesController {
           where: { personId, status: "CANCELLED" },
           select: { class: { select: CLASS_CARD_SELECT } },
         }),
-        // Particulares terminales también son historial — misma fila
+        // Particulares terminales también son historial - misma fila
         // del card (DONE → attended, CANCELLED → cancelled).
         this.prisma.privateLesson.findMany({
           where: { personId, status: { in: ["DONE", "CANCELLED"] } },
@@ -510,7 +510,7 @@ export class ClassesController {
         status: r.status,
       })),
       ...lessons.map((l) => {
-        // La particular cancelada sin agendar no tiene fecha propia —
+        // La particular cancelada sin agendar no tiene fecha propia -
         // el historial la ubica por su día de compra.
         const when = instantToCardDate(l.scheduledAt ?? l.createdAt);
         return {
@@ -533,7 +533,7 @@ export class ClassesController {
   }
 
   /**
-   * Consola del instructor: clases futuras (~30 días) donde es profesor —
+   * Consola del instructor: clases futuras (~30 días) donde es profesor -
    * por override de la instancia (class.instructorId), del slot o de la
    * serie. Requiere rol INSTRUCTOR aprobado, membresía AcademyInstructor
    * o admin.access.
@@ -601,7 +601,7 @@ export class ClassesController {
       },
     });
 
-    // instructorId es FK plana en class/slot/series — join manual de
+    // instructorId es FK plana en class/slot/series - join manual de
     // personas; el estilo ya viene por la relación series.style.
     const instructorIds = [
       ...new Set(
@@ -683,7 +683,7 @@ export class ClassesController {
                 defaultQuorum: true,
                 // Mora SaaS (S3/S6): la ficha de clase del alumno muestra
                 // "academia no disponible" en el CTA (book/checkout ya
-                // rechazan con academy.unavailable — el flag lo anticipa).
+                // rechazan con academy.unavailable - el flag lo anticipa).
                 billingBlockedAt: true,
               },
             },
@@ -751,7 +751,7 @@ export class ClassesController {
       },
     });
 
-    // Inscripción vigente en la academia de la clase — el CTA de la
+    // Inscripción vigente en la academia de la clase - el CTA de la
     // ficha depende de esto (book también lo exige).
     const enrollment = await this.prisma.enrollment.findFirst({
       where: {
@@ -777,7 +777,7 @@ export class ClassesController {
       this.resolveQuota(this.prisma, me, cls.slot.academyId, cls.date),
       this.params.getNumber("classes.cancel_refund_minutes", 60),
     ]);
-    // Spec class-credits: null si ilimitado o sin inscripción — el front
+    // Spec class-credits: null si ilimitado o sin inscripción - el front
     // distingue "no inscrito" con el flag `enrolled` aparte.
     const myCredits =
       "kind" in quota && quota.kind !== "UNLIMITED"
@@ -795,7 +795,7 @@ export class ClassesController {
       spotsLeft: Math.max(capacity - booked, 0),
       waitlistCount: cls.bookings.filter((b) => b.status === "WAITLIST").length,
       myBooking: mine?.status ?? null,
-      // Asiento comprado suelto (taller/clase) — el CTA cambia el copy
+      // Asiento comprado suelto (taller/clase) - el CTA cambia el copy
       // ("comprado" vs "reservado") y la cancelación no devuelve dinero.
       myBookingPaid: !!mine?.paymentId,
       attended: cls.attendances.length > 0,
@@ -871,7 +871,7 @@ export class ClassesController {
       orderBy: { createdAt: "asc" },
       select: { personId: true, status: true, createdAt: true },
     });
-    // ClassBooking.personId es FK plana — join manual (mismo patrón que
+    // ClassBooking.personId es FK plana - join manual (mismo patrón que
     // GET /academies/:id/students).
     const instructorId =
       cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series.instructorId;
@@ -947,7 +947,7 @@ export class ClassesController {
       },
     });
     if (!cls) throw new NotFoundException("clase no encontrada");
-    // Academia bloqueada por mora (S3): no hay reservas nuevas — copy
+    // Academia bloqueada por mora (S3): no hay reservas nuevas - copy
     // honesto para el alumno (la falta es del owner, no de él).
     if (cls.slot.academy.billingBlockedAt != null) {
       throw new BadRequestException({
@@ -956,7 +956,7 @@ export class ClassesController {
       });
     }
     if (cls.cancelled) throw new BadRequestException("la clase fue cancelada");
-    // "Ya pasó" = el inicio real (día + hora), no la medianoche UTC —
+    // "Ya pasó" = el inicio real (día + hora), no la medianoche UTC -
     // una clase de hoy 20:00 se puede reservar hasta que empiece.
     if (classStart(cls.date, cls.slot.startTime) < new Date()) {
       throw new BadRequestException("la clase ya pasó");
@@ -997,7 +997,7 @@ export class ClassesController {
       });
       const status = booked < quorum ? "BOOKED" : "WAITLIST";
 
-      // La cuota solo se exige para ocupar cupo real — entrar a la
+      // La cuota solo se exige para ocupar cupo real - entrar a la
       // waitlist no consume ni bloquea (se re-chequea al promover).
       // Re-activar un asiento pagado cancelado tampoco: el pago ya
       // ocurrió, el cupo no vuelve a consumir crédito.
@@ -1016,7 +1016,7 @@ export class ClassesController {
             cancelledAt: null,
             refunded: true,
             // paymentId se preserva: un asiento pagado que se reactiva
-            // sigue siendo compra — no consume crédito del plan.
+            // sigue siendo compra - no consume crédito del plan.
             enrollmentId:
               status === "BOOKED" && quota.ok ? quota.enrollmentId : null,
           },
@@ -1038,7 +1038,7 @@ export class ClassesController {
    * Cancelar mi reserva. Política de crédito (spec class-credit-
    * cancellation): dentro de la ventana `classes.cancel_refund_minutes`
    * (default 60) antes del inicio, la clase se devuelve (`refunded:true`);
-   * pasado el corte el alumno puede cancelar igual — libera el asiento —
+   * pasado el corte el alumno puede cancelar igual - libera el asiento -
    * pero pierde la clase (`refunded:false`). Una WAITLIST cancelada nunca
    * consumió → refunded:true siempre.
    *
@@ -1078,7 +1078,7 @@ export class ClassesController {
     );
     const start = classStart(cls.date, cls.slot.startTime);
     // Asiento pagado: la cancelación libera el cupo pero nunca "devuelve
-    // el crédito" — no consumió cuota; la devolución del dinero es gestión
+    // el crédito" - no consumió cuota; la devolución del dinero es gestión
     // manual de la academia (acuerdo comercial, no regla del sistema).
     const refunded =
       booking.status === "WAITLIST" ||
@@ -1095,7 +1095,7 @@ export class ClassesController {
         },
       });
 
-      // El asiento se libera siempre — la política solo decide el
+      // El asiento se libera siempre - la política solo decide el
       // crédito. La promoción re-chequea cuota del candidato.
       if (booking.status === "BOOKED") {
         await this.promoteWaitlist(tx, cls);

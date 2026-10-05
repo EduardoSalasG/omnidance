@@ -31,7 +31,7 @@ type Item = {
 type Field = "genre" | "order" | null;
 
 /**
- * /admin/catalogos — mantenedor de los catálogos que usan las academias
+ * /admin/catalogos - mantenedor de los catálogos que usan las academias
  * para sus series de clases (estilos, niveles, tipos). Tres secciones
  * apiladas con alta, edición inline y baja; el backend rechaza con 409
  * borrar valores en uso (se muestra el message del servidor).
@@ -84,7 +84,7 @@ function CatalogSection({
 }) {
   const t = useTranslations("adminCatalogs");
   const tc = useTranslations("common");
-  // No hay clave "edit" en adminCatalogs ni common — se reutiliza la de
+  // No hay clave "edit" en adminCatalogs ni common - se reutiliza la de
   // academySeries ("Editar").
   const ts = useTranslations("academySeries");
 
@@ -198,7 +198,7 @@ function CatalogSection({
     }
   }
 
-  // DELETE rechaza con 409 cuando el valor está referenciado — el
+  // DELETE rechaza con 409 cuando el valor está referenciado - el
   // message del backend lo explica; fallback a inUse.
   async function remove(item: Item): Promise<void> {
     if (!window.confirm(t("deleteConfirm", { name: item.name }))) return;

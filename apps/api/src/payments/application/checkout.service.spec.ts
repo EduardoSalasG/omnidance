@@ -29,7 +29,7 @@ import {
   DoorSoldOutError,
 } from "./checkout.service";
 
-// CheckoutService — orquestación del checkout de preventa / pase de serie.
+// CheckoutService - orquestación del checkout de preventa / pase de serie.
 // El foco es la cadena de resolución de fee (override del evento →
 // ProducerParams → PlatformParam → default) y la creación de la orden
 // PENDING + handoff a la pasarela. PrismaService se mockea como objeto
@@ -182,7 +182,7 @@ type PrismaMock = ReturnType<typeof mkPrisma>["prisma"];
 const mkEvent = (over: Record<string, unknown> = {}) => ({
   id: "evt-1",
   status: "PUBLISHED",
-  // mañana 22:00 — la preventa sigue abierta (corte: 19:00 del día)
+  // mañana 22:00 - la preventa sigue abierta (corte: 19:00 del día)
   startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
   endsAt: new Date(Date.now() + 26 * 60 * 60 * 1000),
   presalePrice: 10000,
@@ -259,7 +259,7 @@ describe("CheckoutService.purchaseTicket", () => {
   });
 
   it("el corte respeta presale.cutoff_hour del PlatformParam", async () => {
-    // evento mañana — cualquier cutoff razonable queda abierto
+    // evento mañana - cualquier cutoff razonable queda abierto
     pf.numbers.set("presale.cutoff_hour", 23);
     await buy(); // no lanza
     expect(pf.params.getNumber).toHaveBeenCalledWith(
@@ -696,7 +696,7 @@ describe("CheckoutService.purchaseTicket", () => {
 describe("CheckoutService.discountQuote", () => {
   // Preview de código para el checkout (GET /checkout/discount-quote):
   // valida redimibilidad y estima el descuento de la orden sobre el
-  // canal vigente — nunca crea Payment ni consume uso del código.
+  // canal vigente - nunca crea Payment ni consume uso del código.
   let fx: ReturnType<typeof mkPrisma>;
   let pf: ReturnType<typeof mkParams>;
   let gw: ReturnType<typeof mkGateway>;
@@ -886,7 +886,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
 });
 
 describe("CheckoutService.membershipQuote", () => {
-  // Revisión de orden del checkout de membresía — sin cobro: precio,
+  // Revisión de orden del checkout de membresía - sin cobro: precio,
   // fee, total real, vigencia resultante y suscripción viva del plan.
   let fx: ReturnType<typeof mkPrisma>;
   let pf: ReturnType<typeof mkParams>;
@@ -1110,7 +1110,7 @@ describe("CheckoutService.purchaseMembership", () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(
       mkPlan({ type: "TRIAL", price: 5000 }),
     );
-    // la compra no valida enrollment — la alumna inscrita también puede
+    // la compra no valida enrollment - la alumna inscrita también puede
     // comprar la prueba (el settle crea una fila TRIAL aparte).
     fx.prisma.enrollment.findFirst.mockResolvedValue({
       endsAt: new Date(Date.now() + 30 * 86_400_000),
@@ -1148,7 +1148,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
   let gw: ReturnType<typeof mkGateway>;
   let svc: CheckoutService;
 
-  // Clase futura con dropInPrice — slot con cadena de capacidad completa.
+  // Clase futura con dropInPrice - slot con cadena de capacidad completa.
   const mkClass = (over: Record<string, unknown> = {}) => ({
     id: "cls-1",
     date: new Date(Date.now() + 24 * 60 * 60 * 1000), // mañana

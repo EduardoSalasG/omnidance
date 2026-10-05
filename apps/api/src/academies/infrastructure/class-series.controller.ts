@@ -56,7 +56,7 @@ class SeriesSlotDto {
   @IsString()
   instructorId?: string;
 
-  /** Modalidades propias del horario — omitido/vacío = hereda las de la serie. */
+  /** Modalidades propias del horario - omitido/vacío = hereda las de la serie. */
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -112,7 +112,7 @@ class CreateSeriesDto {
 }
 
 /**
- * Slot extra para PATCH addSlots — mismo contrato que SeriesSlotDto;
+ * Slot extra para PATCH addSlots - mismo contrato que SeriesSlotDto;
  * capacity opcional: si falta queda null y el slot hereda el quórum
  * efectivo (series.quorum → academy.defaultQuorum → 20).
  */
@@ -139,7 +139,7 @@ class AddSeriesSlotDto {
   @IsString()
   instructorId?: string;
 
-  /** Modalidades propias del horario — omitido/vacío = hereda las de la serie. */
+  /** Modalidades propias del horario - omitido/vacío = hereda las de la serie. */
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
@@ -234,7 +234,7 @@ export class ClassSeriesController {
 
   /**
    * Crea serie + tipos + slots y materializa los Class del mes.
-   * Transacción única — si falla no queda nada a medias.
+   * Transacción única - si falla no queda nada a medias.
    */
   @Post(":id/series")
   async create(
@@ -283,7 +283,7 @@ export class ClassSeriesController {
               : undefined,
           },
         });
-        // getUTCDay — las fechas se generan a medianoche UTC; con getDay()
+        // getUTCDay - las fechas se generan a medianoche UTC; con getDay()
         // (hora local) en Chile cada clase quedaría un día corrida.
         const classDates = dates.filter((d) => d.getUTCDay() === s.weekday);
         if (classDates.length) {
@@ -416,7 +416,7 @@ export class ClassSeriesController {
   /**
    * Materializa instancias Class de un slot para las fechas dadas:
    * descancela las existentes y crea solo las faltantes (sin duplicar
-   * slot+date). getUTCDay — las fechas vienen a medianoche UTC.
+   * slot+date). getUTCDay - las fechas vienen a medianoche UTC.
    */
   private async materializeSlot(
     tx: Prisma.TransactionClient,
@@ -491,7 +491,7 @@ export class ClassSeriesController {
   }
 
   /**
-   * Desactiva la serie y cancela las clases futuras — las reservas
+   * Desactiva la serie y cancela las clases futuras - las reservas
    * BOOKED/WAITLIST pasan a CANCELLED (el alumno lo ve en "mis reservas").
    */
   @Delete(":id/series/:seriesId")
@@ -532,7 +532,7 @@ export class ClassSeriesController {
   }
 
   /**
-   * Elimina un horario de la serie — las clases futuras de ese slot se
+   * Elimina un horario de la serie - las clases futuras de ese slot se
    * cancelan y sus reservas se liberan.
    */
   @Delete(":id/slots/:slotId")

@@ -77,7 +77,7 @@ describe("membershipEndsAt", () => {
     expect(membershipEndsAt(plan("TRIAL"), oct12)).toBeNull();
   });
 
-  it("CLASS_PACK → null (sin fecha — vence por consumo)", () => {
+  it("CLASS_PACK → null (sin fecha - vence por consumo)", () => {
     expect(membershipEndsAt(plan("CLASS_PACK"), oct12)).toBeNull();
   });
 

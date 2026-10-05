@@ -52,7 +52,7 @@ class ManualCheckinDto {
   @IsString()
   personId!: string;
 
-  /** Nota del staff (lista/cortesía) — se persiste en Checkin.note. */
+  /** Nota del staff (lista/cortesía) - se persiste en Checkin.note. */
   @IsOptional()
   @IsString()
   note?: string;
@@ -75,7 +75,7 @@ class DoorSaleDto {
   @IsNotEmpty()
   name!: string;
 
-  /** Llave de la cuenta ligera — Person.phone es único. */
+  /** Llave de la cuenta ligera - Person.phone es único. */
   @IsString()
   @IsNotEmpty()
   phone!: string;
@@ -169,7 +169,7 @@ export class CheckinsController {
 
   /**
    * Check-out ("me fui"): dueño del check-in o staff con checkins.write.
-   * Sin @RequirePermissions — el owner no tiene el permiso; la autorización
+   * Sin @RequirePermissions - el owner no tiene el permiso; la autorización
    * fina (owner || permiso) la resuelve el servicio. Idempotente.
    */
   @Post(":id/out")
@@ -206,7 +206,7 @@ export class CheckinsController {
   }
 
   /**
-   * Venta en puerta (spec door-sale): staff asignado / productor / admin —
+   * Venta en puerta (spec door-sale): staff asignado / productor / admin -
    * por eso no lleva @RequirePermissions (el productor no tiene el grant);
    * la autorización por evento la hace el servicio. Devuelve qrToken
    * minteado para mostrar el QR de la persona al instante.

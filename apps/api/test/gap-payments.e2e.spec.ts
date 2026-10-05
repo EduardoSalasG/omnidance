@@ -19,7 +19,7 @@ import {
   MePayoutsController,
 } from "../src/payments/infrastructure/payouts.controller";
 
-/** Mes calendario local "YYYY-MM" — misma regla que checkins.service. */
+/** Mes calendario local "YYYY-MM" - misma regla que checkins.service. */
 const currentMonth = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -89,7 +89,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
         CheckinsModule,
         AuthModule,
         PrismaModule,
-        // ParamsModule exporta ParamsService — dependencia de
+        // ParamsModule exporta ParamsService - dependencia de
         // AdminPayoutsController (declarado a nivel del TestingModule).
         ParamsModule,
       ],
@@ -536,7 +536,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       );
       expect(res.status).toBe(201);
       const { paymentId: pid } = await res.json();
-      // se paga para limpiar: queda PENDING — igual se borra en afterAll
+      // se paga para limpiar: queda PENDING - igual se borra en afterAll
       const payment = await prisma.payment.findUniqueOrThrow({
         where: { id: pid },
       });
@@ -933,7 +933,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     let venuePayoutId: string;
 
     beforeAll(async () => {
-      // Tasa determinista del passthrough (modelo SaaS — el costo Flow se
+      // Tasa determinista del passthrough (modelo SaaS - el costo Flow se
       // descuenta del payout ACADEMY como línea GATEWAY_FEE_PASSTHROUGH).
       await prisma.platformParam.upsert({
         where: { key: "gateway_fee.academy_passthrough_pct" },
@@ -1039,7 +1039,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       // solo el ticket de 7000 (fee 100): excluye evento con productor,
       // PENDING y orderType != TICKET
       expect(body.gross).toBe(7000);
-      // Modelo SaaS: sin platformFee ni fee real del pago — solo el
+      // Modelo SaaS: sin platformFee ni fee real del pago - solo el
       // passthrough Flow como línea explícita: round(7000 × 3.19%) = 223.
       expect(body.platformFee).toBe(0);
       expect(body.gatewayFee).toBe(223);

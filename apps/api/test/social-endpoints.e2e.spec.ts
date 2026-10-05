@@ -120,7 +120,7 @@ describe("social endpoints e2e", () => {
       data: {
         eventId: event.id,
         ownerId: b.id,
-        buyerId: a.id, // comprador ≠ dueño — no debe cambiar al transferir
+        buyerId: a.id, // comprador ≠ dueño - no debe cambiar al transferir
         listPrice: 5000,
         serviceFee: 500,
       },
@@ -173,7 +173,7 @@ describe("social endpoints e2e", () => {
 
       const names = venues.map((v: { name: string }) => v.name);
       expect([...names].sort((a, b) => a.localeCompare(b))).toEqual(names);
-      // shape contract: datos públicos del local — alimentan selects,
+      // shape contract: datos públicos del local - alimentan selects,
       // el mapa de /eventos y el perfil público /locales/:id.
       for (const v of venues) {
         expect(Object.keys(v).sort()).toEqual(

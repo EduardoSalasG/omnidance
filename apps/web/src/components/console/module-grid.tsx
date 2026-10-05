@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-// Tarjeta de módulo para hubs de consola — patrón "lista de ajustes" iOS:
+// Tarjeta de módulo para hubs de consola - patrón "lista de ajustes" iOS:
 // label + descripción + chevron, target ≥44px, focus ring neon.
 export function ModuleCard({
   href,

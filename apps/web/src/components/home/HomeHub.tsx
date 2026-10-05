@@ -29,12 +29,12 @@ type Me = import("@/lib/me-context").MeContextData;
 
 type NextItem = { id: string; name: string; when: string; place: string | null };
 
-/** GET /me/pending-surveys — evento con check-in propio, terminado hace
+/** GET /me/pending-surveys - evento con check-in propio, terminado hace
     <24h y aún sin evaluar. También dispara el fan-out lazy de la
     notificación event.survey en el API. */
 type PendingSurvey = { eventId: string; name: string; endsAt: string };
 
-// Evento de la escena nocturna — lo que decide "¿salgo hoy?":
+// Evento de la escena nocturna - lo que decide "¿salgo hoy?":
 // género, precio, amigos que van, preventas restantes.
 type TonightEvent = {
   id: string;
@@ -84,7 +84,7 @@ const fullDayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "long",
 });
-// Class.date llega como ISO a medianoche UTC — el día calendario se
+// Class.date llega como ISO a medianoche UTC - el día calendario se
 // formatea en UTC (mismo criterio que /clases, no el dayFmt local).
 const classUtcDayFmt = new Intl.DateTimeFormat("es-CL", {
   weekday: "short",
@@ -98,8 +98,8 @@ const genreLabel = (g: string, otherLabel: string) =>
 
 /**
  * La escena de esta noche para el bailarín: el evento principal (donde
- * tiene entrada, o el primero de la noche) con lo que decide — género,
- * precio honesto, amigos que van, preventas restantes — y debajo el
+ * tiene entrada, o el primero de la noche) con lo que decide - género,
+ * precio honesto, amigos que van, preventas restantes - y debajo el
  * resto de la noche en filas compactas. El hero deja de ser "una card
  * de texto" y pasa a responder "¿salgo hoy?".
  */
@@ -112,7 +112,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
   const isTonight = tonightEvents.length > 0;
   const heroEvent = tonightEvents[0] ?? upcoming[0] ?? null;
   const more = isTonight ? tonightEvents.slice(1) : upcoming.slice(1);
-  // Entradas propias fuera de la escena del hero — la franja "Tus
+  // Entradas propias fuera de la escena del hero - la franja "Tus
   // entradas" confirma lo comprado sin competir con la decisión de hoy.
   const myEntries = (stats?.scene?.mine ?? []).filter(
     (e) => e.id !== heroEvent?.id,
@@ -152,7 +152,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           href={`/eventos/${heroEvent.id}`}
           className="flex flex-col gap-2.5 rounded-lg transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
         >
-          {/* Estado temporal como badge junto al título — sin kicker:
+          {/* Estado temporal como badge junto al título - sin kicker:
               el heading habla solo. */}
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
             <span className="text-xl font-bold leading-tight">
@@ -329,9 +329,9 @@ export function HomeHub() {
   const tt = useTranslations("tours.home");
   const ts = useTranslations("survey");
 
-  // /me compartido (MeProvider del layout) — el hub ya no fetchea la
+  // /me compartido (MeProvider del layout) - el hub ya no fetchea la
   // sesión: las encuestas y los stats se disparan en paralelo con /me
-  // (especulativo — sin sesión las respuestas 401 se descartan) en vez
+  // (especulativo - sin sesión las respuestas 401 se descartan) en vez
   // de esperarla: dos waterfalls menos en la página de aterrizaje.
   const {
     me,
@@ -342,7 +342,7 @@ export function HomeHub() {
   const checked = !meLoading;
   // Causa del fallo de /me: "session" (sin usuario → copy de reingreso)
   // vs "server" (5xx/red → error genérico + reintento). Antes cualquier
-  // fallo caía en "Tu sesión expiró" — copy deshonesto en un 500.
+  // fallo caía en "Tu sesión expiró" - copy deshonesto en un 500.
   const meError: "session" | "server" | null = meLoading
     ? null
     : meFetchFailed
@@ -350,13 +350,13 @@ export function HomeHub() {
       : !me
         ? "session"
         : null;
-  // Sesión resuelta sin usuario — los fetches especulativos se detienen.
+  // Sesión resuelta sin usuario - los fetches especulativos se detienen.
   const noSession = !meLoading && !meFetchFailed && !me;
-  // Encuestas post-social pendientes — global por persona (cualquier
+  // Encuestas post-social pendientes - global por persona (cualquier
   // lente evalúa); null hasta que el fetch resuelve → la card no
   // reserva espacio ni flashea vacía.
   const [surveys, setSurveys] = useState<PendingSurvey[] | null>(null);
-  // Stats versionados por lente: {key: "ROLE:mode"} — al cambiar de
+  // Stats versionados por lente: {key: "ROLE:mode"} - al cambiar de
   // lente el slot viejo no se muestra nunca (cero flash de KPIs/hero
   // ajenos); mientras resuelve el fetch de la lente actual → spinner.
   const [statsSlot, setStatsSlot] = useState<{
@@ -371,10 +371,10 @@ export function HomeHub() {
   const dancerAcademy = activeRole === "DANCER" && viewMode === "academy";
   const lensKey = `${activeRole}:${viewMode}`;
 
-  // Encuestas pendientes: una vez por sesión (no por lente — el
+  // Encuestas pendientes: una vez por sesión (no por lente - el
   // endpoint es global). Falla en silencio: la card simplemente no
   // aparece, nunca bloquea el hub. Disparo especulativo en paralelo con
-  // /me — el ref evita re-fetch cuando la sesión resuelve después.
+  // /me - el ref evita re-fetch cuando la sesión resuelve después.
   const surveysFetched = useRef(false);
   useEffect(() => {
     if (noSession || surveysFetched.current) return;
@@ -418,7 +418,7 @@ export function HomeHub() {
     };
   }, [noSession, activeRole, viewMode, statsRetry, statsSlot]);
 
-  // null hasta que el fetch de ESTA lente resuelva — los heroes que
+  // null hasta que el fetch de ESTA lente resuelva - los heroes que
   // dependen de stats nunca ven datos ajenos. El efecto fetchea
   // /home/stats para TODA lente → el gate aplica a todas (sin la
   // lista parcial, KpiGrid aparecía tarde en producer/academy/admin).
@@ -426,7 +426,7 @@ export function HomeHub() {
   const statsPending = me !== null && statsSlot?.key !== lensKey;
 
   if (!checked) {
-    // Boot de sesión — PageLoading (beacon compartido, aparición
+    // Boot de sesión - PageLoading (beacon compartido, aparición
     // diferida), nunca un spinner desnudo a nivel página.
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col p-6">
@@ -435,7 +435,7 @@ export function HomeHub() {
     );
   }
 
-  // Cookie presente pero sesión expirada — contexto + CTA de re-login
+  // Cookie presente pero sesión expirada - contexto + CTA de re-login
   // (sin appbar en este estado: el h1 vive acá, no en el chrome). Si el
   // fallo fue de servidor/red el copy es honesto y ofrece reintentar.
   if (!me) {
@@ -486,7 +486,7 @@ export function HomeHub() {
           cta: t("findAcademy"),
         };
       }
-      // Learner inscrito: sin hero — su superficie es "Tus próximas
+      // Learner inscrito: sin hero - su superficie es "Tus próximas
       // clases" + el tab Clases del nav; el card promo era ruido.
       return null;
     }
@@ -532,7 +532,7 @@ export function HomeHub() {
           href: shift ? `/staff/${shift.id}` : "/staff",
           title: shift ? shift.name : tst("title"),
           desc: shift
-            ? `${t("nextShift")} — ${dayFmt.format(new Date(shift.when))}${shift.place ? ` · ${shift.place}` : ""}`
+            ? `${t("nextShift")} - ${dayFmt.format(new Date(shift.when))}${shift.place ? ` · ${shift.place}` : ""}`
             : t("staffHeroDesc"),
           cta: t("staffHeroCta"),
         };
@@ -544,7 +544,7 @@ export function HomeHub() {
           ? {
               href: `/eventos/${gig.id}`,
               title: gig.name,
-              desc: `${t("nextGig")} — ${dayFmt.format(new Date(gig.when))}${gig.place ? ` · ${gig.place}` : ""}`,
+              desc: `${t("nextGig")} - ${dayFmt.format(new Date(gig.when))}${gig.place ? ` · ${gig.place}` : ""}`,
               cta: t("viewEvent"),
             }
           : {
@@ -566,7 +566,7 @@ export function HomeHub() {
   const kpiLabel = activeRole === "DANCER" ? t("insights") : t("overview");
 
   // Mientras los stats de la lente no resuelven, el hub entero espera:
-  // pintar "Hola" primero y el resto después produce carga a pedazos —
+  // pintar "Hola" primero y el resto después produce carga a pedazos -
   // la regla es UI final o spinner, nunca progresiva.
   if (statsPending) {
     return (
@@ -578,7 +578,7 @@ export function HomeHub() {
 
   const statsError = statsSlot?.key === lensKey && statsSlot.error;
   const dancerSocial = activeRole === "DANCER" && !dancerAcademy;
-  // Home social: 2 insights máximo — los que leen actividad (racha,
+  // Home social: 2 insights máximo - los que leen actividad (racha,
   // bailes 7d) y con valor > 0. El resto se muestra en /perfil.
   const socialKpis = (stats?.kpis ?? []).filter(
     (k) => (k.key === "streak" || k.key === "dances7d") && k.value > 0,
@@ -617,7 +617,7 @@ export function HomeHub() {
         </div>
       )}
 
-      {/* Encuestas post-social — timely, arriba del contenido de lente.
+      {/* Encuestas post-social - timely, arriba del contenido de lente.
           Cualquier rol las ve (un productor que bailó también evalúa);
           sin items no se renderiza nada (cero hueco). */}
       {surveys !== null && surveys.length > 0 && (
@@ -645,7 +645,7 @@ export function HomeHub() {
 
       {dancerSocial ? (
         <>
-          {/* Tu actividad primero — solo 2 señales rápidas (racha +
+          {/* Tu actividad primero - solo 2 señales rápidas (racha +
               bailes recientes, las que leen "actividad"); la grilla
               completa de la lente vive en /perfil. KPIs en cero se
               ocultan: un valle emocional, no una invitación. */}
@@ -687,7 +687,7 @@ export function HomeHub() {
             </section>
           )}
 
-          {/* Tus próximas clases — reservas del learner (BOOKED/
+          {/* Tus próximas clases - reservas del learner (BOOKED/
               WAITLIST), máx 3, mismo ClassCard de /clases: el badge
               Reservado/En espera va arriba a la derecha. */}
           {dancerAcademy && (stats?.myClasses?.length ?? 0) > 0 && (
@@ -724,7 +724,7 @@ export function HomeHub() {
         </Link>
       )}
 
-      {/* Tour de primera visita — lente social del bailarín (los tabs
+      {/* Tour de primera visita - lente social del bailarín (los tabs
           referenciados son los de esa lente). */}
       {activeRole === "DANCER" && !dancerAcademy && (
         <OnboardingRunner
@@ -775,7 +775,7 @@ export function HomeHub() {
         />
       )}
 
-      {/* Tour de la lente Academia del bailarín — Mi Aprendizaje:
+      {/* Tour de la lente Academia del bailarín - Mi Aprendizaje:
           tabs Clases / + (QR) / Academias / Perfil. */}
       {activeRole === "DANCER" && dancerAcademy && (
         <OnboardingRunner

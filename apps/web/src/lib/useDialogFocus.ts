@@ -18,7 +18,7 @@ const FOCUSABLE =
  *   const dialogRef = useDialogFocus<HTMLDivElement>(open);
  *   <div ref={dialogRef}> ...contenido del diálogo... </div>
  *
- * El ref puede ir en el overlay que envuelve al role="dialog" — el
+ * El ref puede ir en el overlay que envuelve al role="dialog" - el
  * ciclo de Tab solo considera los controles dentro del contenedor.
  */
 export function useDialogFocus<T extends HTMLElement>(open: boolean) {

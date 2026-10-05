@@ -90,7 +90,7 @@ class UsersQueryDto {
 }
 
 /**
- * Consola admin B2B — asignación directa de roles, gestión de usuarios,
+ * Consola admin B2B - asignación directa de roles, gestión de usuarios,
  * catálogo RBAC (roles/permisos/grants) y auditoría. Todo se resuelve en
  * DB: permiso admin.access vía RolePermission (o Role.isSuperuser).
  */
@@ -108,7 +108,7 @@ export class AdminController {
   // ── Usuarios ──────────────────────────────────────────────────────────
 
   /**
-   * Buscador de personas — nunca lista masiva: sin `q` de ≥2 chars
+   * Buscador de personas - nunca lista masiva: sin `q` de ≥2 chars
    * responde []. Busca por nombre, email o teléfono.
    */
   @Get("users")
@@ -330,7 +330,7 @@ export class AdminController {
       ? await this.prisma.person.findUnique({ where: { id: lead.personId } })
       : await this.prisma.person.findUnique({ where: { email: lead.email } });
 
-    // Email ya registrado como cuenta real — el lead se resuelve solo.
+    // Email ya registrado como cuenta real - el lead se resuelve solo.
     if (person && !person.isDemoAccount) {
       await this.prisma.lead.update({
         where: { id: lead.id },
@@ -344,13 +344,13 @@ export class AdminController {
     }
 
     if (!person) {
-      // Solo roles que existen en el catálogo — mismo criterio que el
+      // Solo roles que existen en el catálogo - mismo criterio que el
       // acceso demo.
       const known = await this.prisma.role.findMany({
         where: { key: { in: lead.roles } },
         select: { key: true },
       });
-      // Person.phone es unique — si el teléfono del lead ya pertenece a
+      // Person.phone es unique - si el teléfono del lead ya pertenece a
       // otra cuenta, el create explotaría en 500. 409 para que el admin
       // resuelva el choque manualmente (no auto-fusionamos identidades).
       // (lead.phone puede ser null en intent DEMO.)

@@ -36,4 +36,4 @@ El módulo de amigos permite descubrir a quién conoces y a qué eventos van: pe
 #### Scenario: Privacidad entre no-amigos
 
 - WHEN un usuario consulta `GET /api/friends/upcoming-events`
-- THEN solo aparecen amigos confirmados — nunca personas sin amistad aceptada
+- THEN solo aparecen amigos confirmados - nunca personas sin amistad aceptada

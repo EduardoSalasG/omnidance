@@ -52,7 +52,7 @@ import {
   REMINDER_WINDOW_MS,
 } from "./subscriptions.service";
 
-// Estados "vivos" de una PlatformSubscription — mismo ciclo de vida que
+// Estados "vivos" de una PlatformSubscription - mismo ciclo de vida que
 // MembershipSubscription (PENDING_CARD → ACTIVATING → ACTIVE →
 // CANCEL_PENDING → CANCELED).
 const LIVE_STATUSES = [
@@ -63,7 +63,7 @@ const LIVE_STATUSES = [
 ] as const;
 
 // Precio mensual-equivalente por defecto si el param no existe (mismos
-// valores que el seed — getNumber recibe fallback, nunca hardcode en la
+// valores que el seed - getNumber recibe fallback, nunca hardcode en la
 // respuesta).
 const ACADEMY_MAX_FALLBACK = Number.MAX_SAFE_INTEGER;
 
@@ -93,27 +93,27 @@ export type PlatformCustomerReturn =
  * Suscripciones DE la plataforma (spec academy-saas-billing): la academia
  * paga su tier SaaS y el productor paga Producer Pro. Replica el ciclo de
  * `SubscriptionsService` (membresías de alumnos) sobre el modelo
- * `PlatformSubscription` — mismo motor Flow (customer + plan espejo +
+ * `PlatformSubscription` - mismo motor Flow (customer + plan espejo +
  * subscription/create), mismo claim anti-doble-cobro, mismo reconcile de
  * invoices y misma dedup de mora/reminder.
  *
  * Diferencias deliberadas respecto a membresías:
  * - El plan espejo es compartido por (kind, tier, ciclo):
- *   `plat_academy_<tier>_<cycle>` / `plat_producer_<tier>_<cycle>` —
+ *   `plat_academy_<tier>_<cycle>` / `plat_producer_<tier>_<cycle>` -
  *   los tiers son catálogo de plataforma (params), no planes por academia.
  * - El monto del cargo = precio mensual-equivalente del param × meses del
  *   ciclo (semestral −2% / anual −4% ya vienen en `academy_tier.*_clp`).
  * - El Payment de cada invoice usa `orderType PLATFORM_SUB` y refId
  *   `platsub_<subId>_<invoiceId>`; el settle vive en
  *   `PaymentSettlementService.settlePlatformSub` (desbloquea la academia
- *   / restaura proTier — los pagos son INGRESO de la plataforma, no
+ *   / restaura proTier - los pagos son INGRESO de la plataforma, no
  *   devengo del actor, por eso no entran a payouts).
  * - El retorno del disclaimer de tarjeta usa un endpoint propio
  *   (`/api/payments/flow/platform-customer-return`): el token de Flow se
  *   consume una sola vez, así que cada dominio resuelve sus pendientes en
  *   su propio callback sin ambigüedad.
  * - Upgrade de tier = swap inmediato (cancel remota inmediata + create en
- *   el plan nuevo — cobra el ciclo completo nuevo; prorateo manual v1).
+ *   el plan nuevo - cobra el ciclo completo nuevo; prorateo manual v1).
  *   Downgrade/cambio de ciclo = `pendingTierCode`/`pendingBillingCycle` +
  *   cancel remota a fin de período; el reconcile recrea la sub en el plan
  *   pendiente cuando Flow la reporta cancelada (status 4).
@@ -170,7 +170,7 @@ export class PlatformSubscriptionsService {
 
   /**
    * Media de ventas brutas del productor en los últimos 90 días
-   * (TICKET con eventId propio + SERIES_PASS de sus series — la misma
+   * (TICKET con eventId propio + SERIES_PASS de sus series - la misma
    * definición de devengo que usan los payouts) ÷ 3 = mensual.
    */
   async producerMonthlyGross(producerId: string): Promise<number> {
@@ -249,7 +249,7 @@ export class PlatformSubscriptionsService {
     }
     if (monthly <= 0) {
       throw new BadRequestException(
-        `el tier ${tierCode} no tiene precio autogestionado — contratación manual`,
+        `el tier ${tierCode} no tiene precio autogestionado - contratación manual`,
       );
     }
     return {
@@ -263,12 +263,12 @@ export class PlatformSubscriptionsService {
   // ─── Contratación ─────────────────────────────────────────────────
 
   /**
-   * `POST /academies/:id/subscribe` — el owner contrata tier + ciclo.
+   * `POST /academies/:id/subscribe` - el owner contrata tier + ciclo.
    * Verifica el límite de alumnos activos ANTES de crear nada (400
    * `tier_limit` con copy honesto), serializa la elección de la fila
    * PENDING_CARD con advisory lock por persona (mismo invariante que
    * membresías: el retorno del disclaimer resuelve la pendiente más
-   * reciente del pagador — no puede haber dos vivas) y deriva al flujo de
+   * reciente del pagador - no puede haber dos vivas) y deriva al flujo de
    * tarjeta de Flow o al `subscription/create` directo.
    */
   async subscribeAcademy(
@@ -281,7 +281,7 @@ export class PlatformSubscriptionsService {
     }
     if (!SELF_SERVE_ACADEMY_TIERS.has(input.tier)) {
       throw new BadRequestException(
-        "el tier ENTERPRISE es de contratación manual — contacta a ventas",
+        "el tier ENTERPRISE es de contratación manual - contacta a ventas",
       );
     }
     const [activeStudents, max] = await Promise.all([
@@ -291,7 +291,7 @@ export class PlatformSubscriptionsService {
     if (activeStudents > max) {
       throw new BadRequestException({
         error: "tier_limit",
-        message: `Tu academia tiene ${activeStudents} alumnos activos y el plan ${input.tier} permite hasta ${max} — depura alumnos o elige un tier mayor`,
+        message: `Tu academia tiene ${activeStudents} alumnos activos y el plan ${input.tier} permite hasta ${max} - depura alumnos o elige un tier mayor`,
         active: activeStudents,
         max,
         tier: input.tier,
@@ -311,7 +311,7 @@ export class PlatformSubscriptionsService {
   }
 
   /**
-   * `POST /producers/:id/pro/subscribe` — el productor contrata Pro; el
+   * `POST /producers/:id/pro/subscribe` - el productor contrata Pro; el
    * tier se calcula por su facturación (media bruta de 90d ÷ 3) contra
    * `producer_tier.*_max_monthly_clp`. Sobre el tope GROWTH → 400
    * `tier_limit` (PRO_BIG es "a convenir").
@@ -333,7 +333,7 @@ export class PlatformSubscriptionsService {
       throw new BadRequestException({
         error: "tier_limit",
         message:
-          "tu facturación supera el máximo autogestionado — contacta a ventas (PRO_BIG)",
+          "tu facturación supera el máximo autogestionado - contacta a ventas (PRO_BIG)",
         monthlyGross,
         max,
       });
@@ -355,12 +355,12 @@ export class PlatformSubscriptionsService {
    * Elección/creación de la fila PENDING_CARD bajo advisory lock
    * `platsub:<personId>` (espejo de `sub:<personId>` de membresías):
    * - reutiliza la PENDING_CARD fresca del MISMO scope (academia o
-   *   productor) — actualiza tier/ciclo si el retry pidió otro plan;
+   *   productor) - actualiza tier/ciclo si el retry pidió otro plan;
    * - 409 si ya hay una sub ACTIVE/CANCEL_PENDING de ese scope (el cambio
    *   va por PATCH);
    * - cancela las PENDING_CARD vencidas y las de otros scopes del mismo
    *   pagador, y la ACTIVATING expirada del scope (crash del intento).
-   * Todo cancel es condicional por status esperado — si la fila se movió
+   * Todo cancel es condicional por status esperado - si la fila se movió
    * entremedio (customer-return la claimeó) se aborta con 409.
    */
   private async pickOrCreatePendingSub(
@@ -395,7 +395,7 @@ export class PlatformSubscriptionsService {
         sameScope.status === "ACTIVATING";
       if (!replaceable || fresh) {
         throw new ConflictException(
-          "ya existe una suscripción activa — gestiona el cambio con PATCH /subscription",
+          "ya existe una suscripción activa - gestiona el cambio con PATCH /subscription",
         );
       }
     }
@@ -408,7 +408,7 @@ export class PlatformSubscriptionsService {
       });
       if (canceled.count === 0) {
         throw new ConflictException(
-          "la suscripción está siendo procesada — reintenta en unos segundos",
+          "la suscripción está siendo procesada - reintenta en unos segundos",
         );
       }
     }
@@ -419,7 +419,7 @@ export class PlatformSubscriptionsService {
       });
       if (canceled.count === 0) {
         throw new ConflictException(
-          "la suscripción está siendo procesada — reintenta en unos segundos",
+          "la suscripción está siendo procesada - reintenta en unos segundos",
         );
       }
     }
@@ -511,8 +511,8 @@ export class PlatformSubscriptionsService {
       }
       throw new ConflictException(
         cur?.status === "CANCELED"
-          ? "la suscripción fue cancelada — vuelve a intentarlo"
-          : "la suscripción está siendo procesada — reintenta en unos segundos",
+          ? "la suscripción fue cancelada - vuelve a intentarlo"
+          : "la suscripción está siendo procesada - reintenta en unos segundos",
       );
     }
 
@@ -537,7 +537,7 @@ export class PlatformSubscriptionsService {
 
   /**
    * subscription/create de Flow sobre una platsub claimeada (ACTIVATING)
-   * + persistencia del resultado — mismo contrato que el de membresías:
+   * + persistencia del resultado - mismo contrato que el de membresías:
    * reversa del claim si Flow falla, persistencia temprana del id remoto,
    * coerción defensiva de status (string "4"), compensación de la remota
    * huérfana (cancel inmediato) si la transición local no aplica.
@@ -581,7 +581,7 @@ export class PlatformSubscriptionsService {
     const remoteStatus = fs.status == null ? null : Number(fs.status);
     if (remoteStatus != null && remoteStatus !== 1 && remoteStatus !== 4) {
       this.logger.warn(
-        `subscription/create platsub ${subId}: status remoto inesperado ${String(fs.status)} — queda ACTIVE y el reconcile corrige`,
+        `subscription/create platsub ${subId}: status remoto inesperado ${String(fs.status)} - queda ACTIVE y el reconcile corrige`,
       );
     }
     const nextStatus = remoteStatus === 4 ? "CANCELED" : "ACTIVE";
@@ -623,7 +623,7 @@ export class PlatformSubscriptionsService {
   }
 
   /**
-   * Retorno del disclaimer de tarjeta para subs de plataforma —
+   * Retorno del disclaimer de tarjeta para subs de plataforma -
    * `POST /api/payments/flow/platform-customer-return` (Flow POSTea el
    * browser con {token}). Endpoint propio porque el token de
    * getRegisterStatus se consume una vez: cada dominio resuelve sus
@@ -675,7 +675,7 @@ export class PlatformSubscriptionsService {
         : { ok: false };
     }
 
-    // El plan espejo se deriva de tier/ciclo (compartido por el tier) —
+    // El plan espejo se deriva de tier/ciclo (compartido por el tier) -
     // ensurePlan es idempotente por si aún no existe.
     const charge = await this.chargeSpec(
       sub.kind,
@@ -721,13 +721,13 @@ export class PlatformSubscriptionsService {
   // ─── Cambio de plan ───────────────────────────────────────────────
 
   /**
-   * `PATCH /academies/:id/subscription` — cambio de tier y/o ciclo.
+   * `PATCH /academies/:id/subscription` - cambio de tier y/o ciclo.
    * - PENDING_CARD: edita la fila directo (aún no hay cargo).
-   * - Upgrade de tier (rank mayor): inmediato — cancel remota inmediata +
+   * - Upgrade de tier (rank mayor): inmediato - cancel remota inmediata +
    *   subscription/create en el plan nuevo (cobra el ciclo completo;
    *   prorateo manual v1 según design).
    * - Downgrade o cambio de ciclo: persiste `pendingTierCode`/
-   *   `pendingBillingCycle` y cancela la remota a fin de período — el
+   *   `pendingBillingCycle` y cancela la remota a fin de período - el
    *   reconcile la recrea en el plan pendiente cuando Flow la reporta
    *   cancelada (cobra el nuevo plan desde el próximo ciclo).
    * - PATCH de vuelta al plan vigente con un cambio pendiente: el pending
@@ -749,7 +749,7 @@ export class PlatformSubscriptionsService {
     });
     if (!sub) {
       throw new NotFoundException(
-        "la academia no tiene suscripción — usa POST /subscribe",
+        "la academia no tiene suscripción - usa POST /subscribe",
       );
     }
     if (input.tier === undefined && input.cycle === undefined) {
@@ -759,11 +759,11 @@ export class PlatformSubscriptionsService {
     const targetCycle = input.cycle ?? sub.billingCycle;
     if (!SELF_SERVE_ACADEMY_TIERS.has(targetTier)) {
       throw new BadRequestException(
-        "el tier ENTERPRISE es de contratación manual — contacta a ventas",
+        "el tier ENTERPRISE es de contratación manual - contacta a ventas",
       );
     }
     // Spec: la verificación del límite aplica al suscribir y al bajar de
-    // tier — se valida SIEMPRE el tier destino (en un upgrade nunca
+    // tier - se valida SIEMPRE el tier destino (en un upgrade nunca
     // rechaza porque el máximo solo sube).
     const [activeStudents, max] = await Promise.all([
       this.countActiveStudents(academy.id),
@@ -787,7 +787,7 @@ export class PlatformSubscriptionsService {
     }
     if (sub.status === "ACTIVATING") {
       throw new ConflictException(
-        "la suscripción está siendo procesada — reintenta en unos segundos",
+        "la suscripción está siendo procesada - reintenta en unos segundos",
       );
     }
 
@@ -802,7 +802,7 @@ export class PlatformSubscriptionsService {
     if (samePlan && !sub.pendingTierCode) {
       return sub; // no-op: mismo plan vigente y nada pendiente
     }
-    // Downgrade / cambio de ciclo — o PATCH de vuelta al plan vigente
+    // Downgrade / cambio de ciclo - o PATCH de vuelta al plan vigente
     // con un cambio pendiente: el pending queda = actual (la cancel
     // remota a fin de período ya no se puede deshacer; el swap recrea
     // el mismo plan al fin del ciclo → continuidad del cobro).
@@ -812,7 +812,7 @@ export class PlatformSubscriptionsService {
   /**
    * Upgrade inmediato: crea la sub Flow nueva (cobra ya), cancela la
    * remota anterior de inmediato y conmuta la fila local. La transición
-   * es condicional por el status leído al entrar — si la fila se movió
+   * es condicional por el status leído al entrar - si la fila se movió
    * entremedio, la remota nueva se compensa con cancel inmediata.
    */
   private async swapPlanNow(
@@ -841,7 +841,7 @@ export class PlatformSubscriptionsService {
     );
     // Crear ANTES de cancelar la vieja: si el create falla la sub actual
     // sigue intacta y cobrando (nada cambió). El remote viejo se captura
-    // antes del persist temprano — escribir la fila no debe pisar el id
+    // antes del persist temprano - escribir la fila no debe pisar el id
     // que aún hay que cancelar.
     const oldRemoteId = sub.flowSubscriptionId;
     const fs = await provider.createSubscription(
@@ -852,7 +852,7 @@ export class PlatformSubscriptionsService {
       },
       { correlationId },
     );
-    // Persistencia temprana del id remoto — si muere el proceso, el sweep
+    // Persistencia temprana del id remoto - si muere el proceso, el sweep
     // la encuentra en la auditoría de subscription/create.
     await this.prisma.platformSubscription
       .update({
@@ -867,7 +867,7 @@ export class PlatformSubscriptionsService {
           immediate: true,
         });
       } catch (e) {
-        // La nueva ya cobró — no puede quedar huérfana cobrando en
+        // La nueva ya cobró - no puede quedar huérfana cobrando en
         // paralelo: compensación best-effort, restaurar el puntero al
         // remote viejo (su cancelación falló → sigue vivo) y propagar.
         await provider
@@ -952,7 +952,7 @@ export class PlatformSubscriptionsService {
 
   /**
    * Downgrade / cambio de ciclo: persiste el cambio pendiente y (si la
-   * remota sigue activa) la cancela a fin de período — el reconcile la
+   * remota sigue activa) la cancela a fin de período - el reconcile la
    * recrea en el plan pendiente cuando Flow la reporta cancelada. Si la
    * sub ya estaba CANCEL_PENDING solo se actualizan los campos pendientes
    * (PATCH sobre una sub cancelada por el usuario = "reanudar con otro
@@ -1001,7 +1001,7 @@ export class PlatformSubscriptionsService {
   // ─── Cancelación ──────────────────────────────────────────────────
 
   /**
-   * Cancelación owner — efecto al fin del período ya pagado (Flow
+   * Cancelación owner - efecto al fin del período ya pagado (Flow
    * at_period_end=1), igual que membresías. Idempotente; una
    * PENDING_CARD nunca llegó a Flow → cancelación local. Limpia un
    * cambio pendiente (cancelar manda sobre el downgrade agendado).
@@ -1113,11 +1113,11 @@ export class PlatformSubscriptionsService {
   // ─── Vistas ───────────────────────────────────────────────────────
 
   /**
-   * `GET /academies/:id/billing` — estado de la suscripción de la
+   * `GET /academies/:id/billing` - estado de la suscripción de la
    * academia para el owner: tier/ciclo vigentes, alumnos activos vs
    * límite del tier, próxima facturación, trial, gracia restante,
    * bloqueo e invoices (los Payment PLATFORM_SUB de sus suscripciones).
-   * Hace refresh activo contra Flow como `getForOwner` de membresías —
+   * Hace refresh activo contra Flow como `getForOwner` de membresías -
    * cubre sandbox/dev donde el webhook no llega.
    */
   async academyBillingView(academy: Academy) {
@@ -1208,7 +1208,7 @@ export class PlatformSubscriptionsService {
   }
 
   /**
-   * `GET /producers/:id/pro` — estado Producer Pro: tier vigente
+   * `GET /producers/:id/pro` - estado Producer Pro: tier vigente
    * (`Person.proTier`), suscripción, facturación media 90d vs límite del
    * tier y próxima facturación. Refresh activo igual que billing.
    * `effectivePro`/`proTrialEndsAt` le dicen al front si las features Pro
@@ -1293,7 +1293,7 @@ export class PlatformSubscriptionsService {
   }
 
   /**
-   * Barrido de las PlatformSubscription vivas — mismo gatillado que
+   * Barrido de las PlatformSubscription vivas - mismo gatillado que
    * membresías (webhook fast-path + cron T7 + refresh de las vistas).
    * El sweep de huérfanas NO se duplica acá: corre en
    * `SubscriptionsService.reconcileAll` sobre la auditoría compartida de
@@ -1327,14 +1327,14 @@ export class PlatformSubscriptionsService {
   }
 
   /**
-   * Reconcile de una PlatformSubscription contra Flow — espejo de
+   * Reconcile de una PlatformSubscription contra Flow - espejo de
    * `SubscriptionsService.reconcileSubscription`:
    * - invoices pagadas → Payment `platsub_<subId>_<invoiceId>` +
-   *   `settlePlatformSub` (RENEWAL_SETTLED — desbloquea academia /
+   *   `settlePlatformSub` (RENEWAL_SETTLED - desbloquea academia /
    *   restaura proTier). Dedup por lastInvoiceId + refId único; Payment
    *   PENDING huérfano reintenta el settle.
    * - sync de estado: next_invoice_date → nextInvoiceAt;
-   *   cancel_at_period_end → CANCEL_PENDING; status 4 → CANCELED — o, si
+   *   cancel_at_period_end → CANCEL_PENDING; status 4 → CANCELED - o, si
    *   hay cambio de plan pendiente, swap a la nueva sub Flow.
    * - reminder del cobro del día siguiente (misma ventana 24h y dedup
    *   reminderSentFor).
@@ -1454,7 +1454,7 @@ export class PlatformSubscriptionsService {
 
     const now = Date.now();
     // Reminder del cobro del día siguiente (misma ventana/dedup que
-    // membresías) — solo en ACTIVE: una CANCEL_PENDING no tiene próximo
+    // membresías) - solo en ACTIVE: una CANCEL_PENDING no tiene próximo
     // cobro real aunque Flow siga reportando la fecha.
     if (
       status === "ACTIVE" &&
@@ -1486,7 +1486,7 @@ export class PlatformSubscriptionsService {
     }
 
     // Enforcement suave Producer Pro: al liquidar una renovación se
-    // re-evalúa la facturación — si supera el tope del tier vigente se
+    // re-evalúa la facturación - si supera el tope del tier vigente se
     // agenda el tier superior para el próximo ciclo (pending + cancel de
     // la remota a fin de período) y se avisa una vez por tier requerido.
     if (
@@ -1545,7 +1545,7 @@ export class PlatformSubscriptionsService {
       },
       { correlationId },
     );
-    // Persistencia temprana del id remoto — el sweep de huérfanas la
+    // Persistencia temprana del id remoto - el sweep de huérfanas la
     // rastrea aunque muera el proceso antes del updateMany.
     await this.prisma.platformSubscription
       .update({
@@ -1621,7 +1621,7 @@ export class PlatformSubscriptionsService {
    * Producer Pro por encima del tope de su tier: agenda el tier que
    * califica por facturación para el próximo ciclo y avisa una vez por
    * tier requerido (dedup por subscriptionId + requiredTier). Si ya está
-   * por encima del máximo autogestionado (PRO_BIG) solo avisa — la
+   * por encima del máximo autogestionado (PRO_BIG) solo avisa - la
    * contratación es manual. Nunca corta la venta ni las features en curso.
    */
   private async enforceProducerTier(
@@ -1673,8 +1673,8 @@ export class PlatformSubscriptionsService {
       type: "producer.pro_upgrade_required",
       title: "Tu plan Pro quedó corto",
       body: required
-        ? `Tu facturación supera el tope de ${sub.tierCode} — al próximo ciclo pasas a ${required}`
-        : "Tu facturación supera el máximo autogestionado — contacta a ventas (PRO_BIG)",
+        ? `Tu facturación supera el tope de ${sub.tierCode} - al próximo ciclo pasas a ${required}`
+        : "Tu facturación supera el máximo autogestionado - contacta a ventas (PRO_BIG)",
       data: {
         subscriptionId: sub.id,
         producerId: sub.producerId,
@@ -1688,10 +1688,10 @@ export class PlatformSubscriptionsService {
   /**
    * Mora reportada por Flow (morose=1). ACADEMY: deja
    * `billingGraceUntil` = ahora + `academy_billing.grace_days` (solo si
-   * no hay una gracia vigente — la primera detección gana; el bloqueo del
+   * no hay una gracia vigente - la primera detección gana; el bloqueo del
    * día siguiente al vencimiento lo ejecuta el job de S3) + aviso al
    * owner. PRODUCER: solo aviso (la degradación de features Pro es de
-   * S5). Ambos emiten RENEWAL_FAILED sobre el último Payment de la sub —
+   * S5). Ambos emiten RENEWAL_FAILED sobre el último Payment de la sub -
    * una vez por episodio (dedup por la invoice impaga más antigua).
    */
   private async handleMorose(
@@ -1723,7 +1723,7 @@ export class PlatformSubscriptionsService {
     let graceDays: number | null = null;
     if (sub.kind === "ACADEMY" && sub.academyId) {
       graceDays = await this.params.getNumber("academy_billing.grace_days", 5);
-      // Solo fija la gracia si no hay una vigente — extenderla en cada
+      // Solo fija la gracia si no hay una vigente - extenderla en cada
       // barrido convertiría la gracia en permanente mientras dure la mora.
       await this.prisma.academy.updateMany({
         where: {
@@ -1764,8 +1764,8 @@ export class PlatformSubscriptionsService {
       title: "Cobro fallido",
       body:
         sub.kind === "ACADEMY"
-          ? `Tienes ${graceDays ?? 5} días para regularizar antes del bloqueo — revisa tu tarjeta`
-          : "Reintentaremos el cobro de Producer Pro — revisa tu tarjeta",
+          ? `Tienes ${graceDays ?? 5} días para regularizar antes del bloqueo - revisa tu tarjeta`
+          : "Reintentaremos el cobro de Producer Pro - revisa tu tarjeta",
       data: {
         subscriptionId: sub.id,
         academyId: sub.academyId,
@@ -1776,13 +1776,13 @@ export class PlatformSubscriptionsService {
     });
   }
 
-  // ─── Enforcement S3 — bloqueo por gracia vencida ──────────────────
+  // ─── Enforcement S3 - bloqueo por gracia vencida ──────────────────
 
   /**
    * Job diario (cron 09:00, `SubscriptionsScheduler`): academias con
    * `billingGraceUntil` vencido y aún sin bloqueo pasan a
    * `billingBlockedAt = now`. El filtro del updateMany repite la
-   * condición — si un RENEWAL_SETTLED limpió los campos entre el
+   * condición - si un RENEWAL_SETTLED limpió los campos entre el
    * findMany y el update, count=0 y no se notifica un bloqueo falso.
    * El owner recibe `academy.billing_blocked` una sola vez por episodio
    * (la condición excluye las ya bloqueadas → el barrido es idempotente).
@@ -1814,7 +1814,7 @@ export class PlatformSubscriptionsService {
         category: "TRANSACTIONAL",
         type: "academy.billing_blocked",
         title: "Academia bloqueada por suscripción impaga",
-        body: `${academy.name} quedó en solo lectura — regulariza el pago para volver a operar`,
+        body: `${academy.name} quedó en solo lectura - regulariza el pago para volver a operar`,
         data: {
           academyId: academy.id,
           blockedAt: now.toISOString(),

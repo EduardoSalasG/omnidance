@@ -32,7 +32,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * Consola del venue: sus locales, dashboard operativo (eventos,
  * check-ins, arriendos de academias, cartas) y gestión del estado de
  * los VenueRental. Exige el permiso `venues.manage` (grant de
- * VENUE_MANAGER en seed); ADMIN entra con bypass de ownership — un rol
+ * VENUE_MANAGER en seed); ADMIN entra con bypass de ownership - un rol
  * con permiso admin.access (o isSuperuser) ve todos los venues.
  */
 @Controller("venues")
@@ -41,7 +41,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export class VenueConsoleController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** GET /api/venues/mine — venues activos propios (admin: todos). */
+  /** GET /api/venues/mine - venues activos propios (admin: todos). */
   @Get("mine")
   async mine(@Req() req: Request) {
     const me = req.person!;
@@ -67,7 +67,7 @@ export class VenueConsoleController {
     return venues.map((v) => ({ ...v, upcomingCount: counts.get(v.id) ?? 0 }));
   }
 
-  /** GET /api/venues/:id/dashboard — pulso operativo del local. */
+  /** GET /api/venues/:id/dashboard - pulso operativo del local. */
   @Get(":id/dashboard")
   async dashboard(@Param("id") venueId: string, @Req() req: Request) {
     const venue = await this.assertVenueAccess(venueId, req.person!);
@@ -95,7 +95,7 @@ export class VenueConsoleController {
       this.prisma.event.count({
         where: { venueId, startsAt: { gte: since, lt: now } },
       }),
-      // Checkin.eventId es escalar (sin relación) — hay que resolver los
+      // Checkin.eventId es escalar (sin relación) - hay que resolver los
       // ids de los eventos del venue antes de contar.
       this.prisma.event.findMany({
         where: { venueId },
@@ -122,7 +122,7 @@ export class VenueConsoleController {
 
     const allEventIds = eventIds.map((e) => e.id);
 
-    // Solo check-ins no anulados — un voidedAt no es asistencia real.
+    // Solo check-ins no anulados - un voidedAt no es asistencia real.
     // Se traen las filas (no solo count) para computar el flujo: hora
     // peak de llegada y permanencia media (outAt - inAt), spec §13 Local.
     const checkinRows = allEventIds.length
@@ -136,7 +136,7 @@ export class VenueConsoleController {
         })
       : [];
 
-    // Reservas de mesa de los eventos futuros del venue — el local
+    // Reservas de mesa de los eventos futuros del venue - el local
     // necesita saber qué mesas esperar cada noche (spec §13 Local).
     // TableReservation.eventId/personId son escalares → nombres por join
     // manual sobre los ids ya resueltos.
@@ -211,7 +211,7 @@ export class VenueConsoleController {
   }
 
   /**
-   * PATCH /api/venues/:id/rentals/:rentalId — el venue confirma o cancela
+   * PATCH /api/venues/:id/rentals/:rentalId - el venue confirma o cancela
    * el arriendo pedido por una academia (REQUESTED → CONFIRMED|CANCELLED).
    */
   @Patch(":id/rentals/:rentalId")
@@ -223,7 +223,7 @@ export class VenueConsoleController {
   ) {
     await this.assertVenueAccess(venueId, req.person!);
     // Doble filtro venueId+id: un rental de otro local responde 404,
-    // no 403 — no se filtra su existencia.
+    // no 403 - no se filtra su existencia.
     const rental = await this.prisma.venueRental.findFirst({
       where: { id: rentalId, venueId },
       select: { id: true },

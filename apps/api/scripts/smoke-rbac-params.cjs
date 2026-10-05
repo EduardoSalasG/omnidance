@@ -1,4 +1,4 @@
-// Smoke test RBAC + params — corre contra API viva en :4000.
+// Smoke test RBAC + params - corre contra API viva en :4000.
 // node scripts/smoke-rbac-params.cjs
 const { PrismaClient } = require("@prisma/client");
 const { SignJWT } = require("jose");
@@ -78,7 +78,7 @@ async function main() {
   check("checkout fee=750", q1.body?.quote?.serviceFee === 750, `got ${q1.body?.quote?.serviceFee}`);
 
   await call("PUT", "/admin/params/service_fee.presale_clp", adminTok, { value: 500 });
-  // cache 30s — el segundo checkout puede seguir viendo 750
+  // cache 30s - el segundo checkout puede seguir viendo 750
   const q2 = await call("POST", "/checkout/ticket", dancerTok, { eventId: ev.id });
   check(
     "fee restaurado o en cache (500|750)",
@@ -118,7 +118,7 @@ async function main() {
   const permsRes = await call("GET", "/admin/permissions", adminTok);
   check("GET /admin/permissions → 200", permsRes.status === 200, `(${permsRes.body?.length} perms)`);
   // auto-solicitud de roles eliminada: el catálogo público y la cola de
-  // solicitudes ya no existen — los roles solo los asigna el admin.
+  // solicitudes ya no existen - los roles solo los asigna el admin.
   const catalogRes = await call("GET", "/roles/catalog");
   check("GET /roles/catalog removido → 404", catalogRes.status === 404);
   const requestsRes = await call("GET", "/admin/role-requests", adminTok);
@@ -140,7 +140,7 @@ async function main() {
   const wl2 = await call("POST", `/events/${ev.id}/waitlist/promote`, approvedTok, {});
   check("waitlist con grant → !403", wl2.status !== 403, `got ${wl2.status}`);
 
-  // cleanup: el usuario smoke queda con STAFF APPROVED — revertir a PENDING
+  // cleanup: el usuario smoke queda con STAFF APPROVED - revertir a PENDING
   await call("POST", `/admin/users/${pending.id}/roles`, adminTok, { role: "STAFF", status: "PENDING" });
   await prisma.$disconnect();
 }

@@ -11,7 +11,7 @@ particulares 1:1 como reservas del alumno dentro de /clases.
 
 ### Requirement: El alumno puede listar sus inscripciones
 
-`GET /academies/enrolled` SHALL devolver las inscripciones del autenticado con `{academy:{id,name}, status, plan:{name,type}|null, startedAt, attendance30d}` — asistencias de los últimos 30 días en esa academia como progreso personal no competitivo. Requiere sesión; no requiere permisos de gestión.
+`GET /academies/enrolled` SHALL devolver las inscripciones del autenticado con `{academy:{id,name}, status, plan:{name,type}|null, startedAt, attendance30d}` - asistencias de los últimos 30 días en esa academia como progreso personal no competitivo. Requiere sesión; no requiere permisos de gestión.
 
 #### Scenario: Alumno con inscripción activa
 
@@ -48,7 +48,7 @@ La lente academia del DANCER SHALL enlazar solo a superficies de alumno (/clases
 
 ### Requirement: El alumno explora clases priorizando sus academias
 
-`GET /classes/browse` SHALL aceptar `scope=enrolled` para acotar el listado a las academias donde el autenticado tiene Enrollment en `ACTIVE | TRIAL | ONLINE` (`PAUSED`/`FROZEN` no cuentan). Sin `scope` mantiene `all` (todas las academias activas). Cada item SHALL incluir `enrolled: boolean` — vigencia de inscripción del autenticado en la academia de la clase — para resolver el CTA de reserva sin query extra.
+`GET /classes/browse` SHALL aceptar `scope=enrolled` para acotar el listado a las academias donde el autenticado tiene Enrollment en `ACTIVE | TRIAL | ONLINE` (`PAUSED`/`FROZEN` no cuentan). Sin `scope` mantiene `all` (todas las academias activas). Cada item SHALL incluir `enrolled: boolean` - vigencia de inscripción del autenticado en la academia de la clase - para resolver el CTA de reserva sin query extra.
 
 #### Scenario: Alumno inscrito en una academia
 
@@ -105,7 +105,7 @@ La página `/clases` SHALL tener scopes `s=mias | explorar | historial` (con lay
 
 ### Requirement: Filtro Todas | Reservadas en lista y calendario
 
-El scope `mias` (en layouts list y calendar) SHALL ofrecer un filtro segmentado `scope=todas|reservadas`. `reservadas` SHALL listar las reservas futuras del alumno (BOOKED/WAITLIST) como cards wallet con link al QR — la vista `mine` desaparece y `view=mine` legado SHALL redirigir a `s=mias + scope=reservadas`.
+El scope `mias` (en layouts list y calendar) SHALL ofrecer un filtro segmentado `scope=todas|reservadas`. `reservadas` SHALL listar las reservas futuras del alumno (BOOKED/WAITLIST) como cards wallet con link al QR - la vista `mine` desaparece y `view=mine` legado SHALL redirigir a `s=mias + scope=reservadas`.
 
 #### Scenario: Ver solo lo reservado en lista
 
@@ -169,7 +169,7 @@ de clase (`series: null`, `date: null` cuando aún no se agenda) y
 `GET /classes/mine?scope=past` SHALL incluir las terminales
 (DONE/CANCELLED). El card SHALL ser el mismo `ClassCard` del resto
 (título "Clase particular", badge de reservado, link a la ficha). Las
-sin agendar SHALL agruparse al inicio bajo "Por agendar" — el pago
+sin agendar SHALL agruparse al inicio bajo "Por agendar" - el pago
 nunca queda invisible. Cancelar SHALL ocurrir dentro de la ficha
 (`/clases/[id]`, que resuelve también particulares) como zona
 destructiva con confirmación, igual que una reserva normal.
@@ -185,14 +185,14 @@ destructiva con confirmación, igual que una reserva normal.
 
 - **GIVEN** alumno que compró una particular aún sin asignar
   **WHEN** abre reservadas **THEN** la ve primero en el grupo "Por
-  agendar" — el pago nunca queda invisible.
+  agendar" - el pago nunca queda invisible.
 
 #### Scenario: Una sola llamada
 
 - **WHEN** la vista reservadas carga **THEN** los items llegan en la
-  respuesta de `GET /classes/mine` — sin fetch adicional de
+  respuesta de `GET /classes/mine` - sin fetch adicional de
   particulares desde la página. `GET /private-lessons/mine` queda
-  reservado a la rama instructor (`?as=instructor`) — la lectura del
+  reservado a la rama instructor (`?as=instructor`) - la lectura del
   alumno tiene una sola fuente.
 
 #### Scenario: Cancelar desde la ficha
@@ -200,7 +200,7 @@ destructiva con confirmación, igual que una reserva normal.
 - **GIVEN** una particular activa del alumno **WHEN** abre su ficha
   `/clases/[id]` **THEN** ve academia, instructor (o "por asignar"),
   fecha (o "por agendar"), precio y estado, y **THEN** puede cancelar
-  desde la zona destructiva al pie con confirmación — tras cancelar
+  desde la zona destructiva al pie con confirmación - tras cancelar
   la ficha refleja CANCELLED.
 
 #### Scenario: Sin bandeja separada

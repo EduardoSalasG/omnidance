@@ -30,7 +30,7 @@ html {
 }
 
 body {
-  /* System font stack — optical sizing y tracking ya calibrados por plataforma */
+  /* System font stack - optical sizing y tracking ya calibrados por plataforma */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -63,7 +63,7 @@ body {
 }
 
 /* ─── Reduced motion (apple-design §14): no es "sin feedback", es un
-   equivalente no-vestibular — cross-fades cortos, sin escalas ni
+   equivalente no-vestibular - cross-fades cortos, sin escalas ni
    desplazamientos. Cubre transitions, keyframes y el smooth-scroll. ─── */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -84,7 +84,7 @@ body {
 
 /* ─── Bottom nav: indicador deslizante + pop del ítem activo ───
    Píldora que se desliza al tab activo: transform puro (compositor),
-   bezier con overshoot leve — la transition parte del valor en pantalla,
+   bezier con overshoot leve - la transition parte del valor en pantalla,
    así que taps rápidos re-apuntan el movimiento sin cortes. */
 .tab-indicator {
   position: absolute;
@@ -106,7 +106,7 @@ body {
   background: rgb(var(--accent) / 0.12);
 }
 
-/* Pop del ícono al activarse — rebote corto, una sola vez por cambio. */
+/* Pop del ícono al activarse - rebote corto, una sola vez por cambio. */
 @keyframes tab-pop {
   0% {
     transform: scale(0.78);
@@ -139,7 +139,7 @@ body {
    <100ms se siente instantáneo; un spinner que aparece <300ms y
    desaparece es "flash" y hace la app sentirse más lenta.
    .page-loading difiere la aparición 200ms en spinners INLINE de
-   sección (backwards-fill mantiene opacity 0 durante el delay) —
+   sección (backwards-fill mantiene opacity 0 durante el delay) -
    la carga a nivel página usa el beacon compartido (loading-beacon)
    que además garantiza mínimo visible; el host entra con
    .loading-fade-in porque su delay ya lo aplica el beacon. */
@@ -168,13 +168,13 @@ body {
     display: none;
   }
 
-  /* Display type — tracking óptico: negativo al crecer (WWDC typography) */
+  /* Display type - tracking óptico: negativo al crecer (WWDC typography) */
   .text-display {
     letter-spacing: -0.025em;
     line-height: 1.05;
   }
 
-  /* Glow radial sutil — la pista de baile como material de fondo */
+  /* Glow radial sutil - la pista de baile como material de fondo */
   .glow-neon {
     background: radial-gradient(
       ellipse 80% 50% at 50% 0%,
@@ -190,7 +190,7 @@ html[data-anon="true"] #contenido {
 }
 
 /* Dropdown <details> de filtros: capa invisible fullscreen para cerrar
-   al tocar fuera — sin JS. El <ul> va con z-20 por encima. */
+   al tocar fuera - sin JS. El <ul> va con z-20 por encima. */
 details.venue-filter[open] > summary::before {
   content: "";
   position: fixed;
@@ -201,7 +201,7 @@ details.venue-filter[open] > summary::before {
 
 /* ─── Mapa de locales (/eventos?view=map) ───
    Basemap estándar claro (Voyager/OSM): el chrome de Leaflet ya es claro
-   por defecto — solo se ajustan las etiquetas de venue. */
+   por defecto - solo se ajustan las etiquetas de venue. */
 .leaflet-container {
   font: inherit;
 }
@@ -216,10 +216,10 @@ details.venue-filter[open] > summary::before {
   padding: 3px 8px;
 }
 .venue-map-label::before {
-  display: none; /* sin flecha — el pin ya ancla la etiqueta */
+  display: none; /* sin flecha - el pin ya ancla la etiqueta */
 }
 
-/* ─── Onboarding (driver.js) — popover dark-first con acento neon ─── */
+/* ─── Onboarding (driver.js) - popover dark-first con acento neon ─── */
 .driver-popover.omnidance-tour {
   background: var(--color-night-800, #17171f);
   color: #fff;
@@ -245,7 +245,7 @@ details.venue-filter[open] > summary::before {
   gap: 8px;
 }
 .driver-popover.omnidance-tour .driver-popover-next-btn {
-  /* --accent es triplete RGB (167 139 250) — va dentro de rgb(). */
+  /* --accent es triplete RGB (167 139 250) - va dentro de rgb(). */
   background: rgb(var(--accent, 167 139 250));
   color: #0b0b10;
   font-weight: 700;

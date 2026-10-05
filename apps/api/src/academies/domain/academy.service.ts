@@ -1,7 +1,7 @@
 import type { EnrollmentStatus } from "@prisma/client";
 
 /**
- * Contextos mínimos (puros) — la infraestructura los arma desde Prisma.
+ * Contextos mínimos (puros) - la infraestructura los arma desde Prisma.
  * No dependen de NestJS ni de PrismaService para mantener el dominio testeable.
  */
 export interface PersonContext {
@@ -22,7 +22,7 @@ export const DEFAULT_CLASS_QUORUM = 20;
 /**
  * Inicio real de la clase: Class.date (medianoche UTC del día) +
  * slot.startTime "HH:mm". El check "la clase ya pasó", el corte de
- * devolución y la venta de clase suelta operan sobre este instante —
+ * devolución y la venta de clase suelta operan sobre este instante -
  * no sobre la medianoche del día.
  */
 export function classStart(date: Date, startTime: string): Date {
@@ -74,7 +74,7 @@ export function canManageAcademy(
 
 /**
  * Administración de la academia (planes, enrollments, slots, dashboard,
- * listado de asistencia): solo owner o ADMIN — el instructor no administra.
+ * listado de asistencia): solo owner o ADMIN - el instructor no administra.
  */
 export function canAdministerAcademy(
   person: PersonContext,
@@ -86,7 +86,7 @@ export function canAdministerAcademy(
 
 /**
  * Matriz de transiciones válidas de EnrollmentStatus.
- * Schema: ACTIVE | PAUSED | TRIAL | FROZEN | ONLINE (sin CANCELLED — gap
+ * Schema: ACTIVE | PAUSED | TRIAL | FROZEN | ONLINE (sin CANCELLED - gap
  * reportado: la spec pedía CANCELLED; no existe en el enum actual).
  * La transición idempotente (mismo status) siempre se permite.
  */

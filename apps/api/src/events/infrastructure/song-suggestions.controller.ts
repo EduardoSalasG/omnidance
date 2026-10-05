@@ -17,7 +17,7 @@ const TOP_N = 20;
 /**
  * Ranking de canciones pedidas en preventa. Las sugerencias se crean en el
  * checkout ligadas al comprador; aquí solo cuentan las de personas con
- * ticket ACTIVE|USED en el evento (pago confirmado — spec §18).
+ * ticket ACTIVE|USED en el evento (pago confirmado - spec §18).
  */
 @Controller("events")
 @UseGuards(SessionGuard)
@@ -56,7 +56,7 @@ export class SongSuggestionsController {
     });
     if (suggestions.length === 0) return [];
 
-    // Solo cuentan personas con ticket pagado (ACTIVE|USED) en el evento —
+    // Solo cuentan personas con ticket pagado (ACTIVE|USED) en el evento -
     // join manual: Ticket.eventId/ownerId son escalares sin relación.
     const personIds = [...new Set(suggestions.map((s) => s.personId))];
     const paidTickets = await this.prisma.ticket.findMany({

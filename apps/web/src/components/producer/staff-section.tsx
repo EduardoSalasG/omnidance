@@ -16,14 +16,14 @@ import {
 
 type Props = {
   eventId: string;
-  /** Owner sin Pro efectivo — el alta de staff responde 403 pro.required
+  /** Owner sin Pro efectivo - el alta de staff responde 403 pro.required
       (la lista sigue siendo legible: el gateo es de la mutación). */
   proLocked?: boolean;
 };
 
 /**
  * Staff del evento (POST /events/:id/staff upsert por personId).
- * v1: personId se ingresa a mano — no hay endpoint de búsqueda de personas.
+ * v1: personId se ingresa a mano - no hay endpoint de búsqueda de personas.
  * Multi-staff es feature Producer Pro: sin Pro el form se reemplaza por
  * el paywall (la lista de staff ya asignado sigue visible).
  */
@@ -33,7 +33,7 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
 
   const [staff, setStaff] = useState<StaffEntry[] | null>(null);
   const [error, setError] = useState(false);
-  // Lock detectado en el POST (403 pro.required) — complementa el prop
+  // Lock detectado en el POST (403 pro.required) - complementa el prop
   // proactivo si /me quedó stale.
   const [serverLocked, setServerLocked] = useState(false);
   const locked = proLocked || serverLocked;

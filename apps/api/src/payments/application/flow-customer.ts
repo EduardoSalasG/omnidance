@@ -4,7 +4,7 @@ import type { PrismaService } from "../../prisma.service";
 import type { SubscriptionCallOpts, SubscriptionProvider } from "../domain/ports";
 
 /**
- * Customer Flow lazy — compartido por las suscripciones de membresía
+ * Customer Flow lazy - compartido por las suscripciones de membresía
  * (`SubscriptionsService`) y las de plataforma (`PlatformSubscriptionsService`):
  * si la persona aún no tiene `flowCustomerId` se crea el customer remoto
  * (requiere email en la cuenta) y se persiste el mapeo. El customer es

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 // Barra superior del login: misma voz visual que el header de la landing
-// (Landing.tsx) — marca a la izquierda y salida a la derecha. Es la única
+// (Landing.tsx) - marca a la izquierda y salida a la derecha. Es la única
 // ruta de escape hacia `/` para quien aterriza aquí sin querer entrar
 // (deep-link con ?next= o share del magic link).
 export default function LoginLayout({

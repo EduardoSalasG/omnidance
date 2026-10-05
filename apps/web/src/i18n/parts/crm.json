@@ -37,7 +37,7 @@
       "score": "Score",
       "updatedAt": "Actualizado {date}",
       "noScore": "Sin score",
-      "empty": "Aún no hay personas en este CRM — recalcula los scores para poblarlo.",
+      "empty": "Aún no hay personas en este CRM. Recalcula los scores para poblarlo.",
       "emptyFiltered": "Sin resultados para estos filtros.",
       "addTag": "Agregar tag",
       "tagPlaceholder": "Ej. VIP, amigo del DJ",
@@ -50,7 +50,7 @@
       "title": "Campañas",
       "new": "Nueva campaña",
       "name": "Nombre",
-      "namePlaceholder": "Ej. Volvamos a bailar — octubre",
+      "namePlaceholder": "Ej. Volvamos a bailar, octubre",
       "actionType": "Tipo de acción",
       "notifyTitle": "Título de la notificación",
       "notifyBody": "Cuerpo del mensaje",
@@ -85,7 +85,7 @@
       "sentResult": "Enviada a {count} personas",
       "withCode": "Código creado: {code}",
       "created": "Campaña creada como borrador.",
-      "empty": "Sin campañas todavía — crea la primera.",
+      "empty": "Sin campañas todavía. Crea la primera.",
       "types": {
         "NOTIFY": "Notificación",
         "DISCOUNT_CODE": "Código de descuento"
@@ -111,7 +111,7 @@
       "evaluating": "Evaluando…",
       "evalResult": "{key}: {evaluated} evaluadas, {notified} notificadas",
       "allCreated": "Ya existe un trigger de cada tipo.",
-      "empty": "Sin triggers configurados — crea el primero.",
+      "empty": "Sin triggers configurados. Crea el primero.",
       "keys": {
         "WINBACK": "Recuperar inactivos",
         "TRIAL_EXPIRING": "Prueba por vencer",

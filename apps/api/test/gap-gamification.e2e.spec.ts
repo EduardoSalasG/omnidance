@@ -15,7 +15,7 @@ import { PrismaService } from "../src/prisma.service";
  * - badges madrugador / maratonista / mariposa_social
  * - retroDeclared:false en contador Prime Time y reveal
  * - featuredBadge en GET /api/qr/mine (shape; el wiring del provider queda
- *   documentado para el padre — QrModule aún no importa GamificationModule)
+ *   documentado para el padre - QrModule aún no importa GamificationModule)
  */
 describe("gap-gamification e2e", () => {
   let app: INestApplication;
@@ -28,7 +28,7 @@ describe("gap-gamification e2e", () => {
 
   const ids = {
     venueId: "",
-    eventRevealId: "", // LIVE unlocked — reveal completo
+    eventRevealId: "", // LIVE unlocked - reveal completo
     eventRetroId: "", // LIVE, retro en ventana → no desbloquea
     eventLowEvalId: "", // LIVE unlocked, candidato solo con evals retro
     eventBadgesId: "",
@@ -65,7 +65,7 @@ describe("gap-gamification e2e", () => {
 
   const DAY = 24 * 3600 * 1000;
 
-  /** ayer a la hora local dada (evento "de anoche" — ventana ya cerró). */
+  /** ayer a la hora local dada (evento "de anoche" - ventana ya cerró). */
   const yesterdayAt = (h: number, m = 0) => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
@@ -412,7 +412,7 @@ describe("gap-gamification e2e", () => {
     ]);
     ids.seasonId = season.id;
     ids.oldSeasonId = oldSeason.id;
-    // entrada de otra temporada — no debe contar en el total activo
+    // entrada de otra temporada - no debe contar en el total activo
     await prisma.pointLedger.create({
       data: {
         personId: me.id,

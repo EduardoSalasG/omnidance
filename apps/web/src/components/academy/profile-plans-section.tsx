@@ -18,7 +18,7 @@ type Plan = {
 const VISIBLE_PLANS = 2;
 
 // Resuelve el plural ICU simple de parts ("{count, plural, one {# X}
-// other {# X}}") sin librería — los labels llegan como props
+// other {# X}}") sin librería - los labels llegan como props
 // serializables desde la página server.
 function countLabel(tpl: string, count: number): string {
   const m = /\bone\s*\{([^{}]*)\}\s*other\s*\{([^{}]*)\}/.exec(tpl);
@@ -26,11 +26,11 @@ function countLabel(tpl: string, count: number): string {
   return (count === 1 ? m[1] : m[2]).replaceAll("#", String(count));
 }
 
-/** Sección "Planes" de la ficha pública /academias/:id — 2 visibles; el
+/** Sección "Planes" de la ficha pública /academias/:id - 2 visibles; el
     resto tras "ver más" (misma progressive disclosure que Profesores).
     El card de clase particular queda siempre visible: es otro producto,
     no un plan. OJO: `plans-section.tsx` es la consola de gestión
-    (/academia/planes) — este es solo la vista pública.
+    (/academia/planes) - este es solo la vista pública.
     Todos los labels llegan como strings (props server→client
     serializables); `planTypeLabels` es el catálogo academy.planTypes. */
 export function ProfilePlansSection({
@@ -48,11 +48,11 @@ export function ProfilePlansSection({
   privateLessonPrice: number | null;
   /** Plan vigente del viewer (enrollment ACTIVE/ONLINE). */
   activePlanId: string | null;
-  /** Plan con suscripción Flow viva — su CTA se oculta (la gestión vive
+  /** Plan con suscripción Flow viva - su CTA se oculta (la gestión vive
       en SubscriptionManage; un segundo "Comprar" cobraría dos veces). */
   subscribedPlanId: string | null;
   /** Academia bloqueada por mora SaaS (S3): los CTAs de compra quedan
-      deshabilitados con el hint `unavailable` — no se inicia el flujo. */
+      deshabilitados con el hint `unavailable` - no se inicia el flujo. */
   blocked?: boolean;
   labels: {
     title: string;
@@ -61,9 +61,9 @@ export function ProfilePlansSection({
     extendPlan: string;
     privateLesson: string;
     privateLessonDesc: string;
-    /** Academia bloqueada — hint honesto junto a los CTA deshabilitados. */
+    /** Academia bloqueada - hint honesto junto a los CTA deshabilitados. */
     unavailable: string;
-    /** Plan TRIAL sin precio: no se compra — texto informativo. */
+    /** Plan TRIAL sin precio: no se compra - texto informativo. */
     trialAssigned: string;
     /** Plural ICU "{count} clase(s)". */
     planClassCount: string;
@@ -89,14 +89,14 @@ export function ProfilePlansSection({
           {labels.unavailable}
         </p>
       )}
-      {/* Ítems planos con dividers — son filas de la Card padre, no
+      {/* Ítems planos con dividers - son filas de la Card padre, no
           cards anidadas (borde+dentro-de-borde ensuciaba la jerarquía). */}
       <ul className="flex flex-col divide-y divide-night-700">
         {visible.map((p) => {
           const isActivePlan = p.id === activePlanId;
           const subscribedToPlan = p.id === subscribedPlanId;
           // TRIAL sin precio no se compra (el backend rechaza el
-          // checkout) — la academia lo asigna desde su consola.
+          // checkout) - la academia lo asigna desde su consola.
           const freeTrial = p.type === "TRIAL" && p.price <= 0;
           return (
             <li key={p.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
@@ -108,7 +108,7 @@ export function ProfilePlansSection({
                       <Badge variant="neon">{labels.planActive}</Badge>
                     )}
                   </p>
-                  {/* Tipo como tag verde — el nombre del plan es categoría
+                  {/* Tipo como tag verde - el nombre del plan es categoría
                       propia de la academia; la línea gris queda solo para
                       cuotas (N clases, N/semana). */}
                   <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -131,7 +131,7 @@ export function ProfilePlansSection({
                     )}
                   </div>
                 </div>
-                {/* Precio real cobrado — sin cargo de servicio (modelo
+                {/* Precio real cobrado - sin cargo de servicio (modelo
                     SaaS: la academia vende sin comisión), mismo total
                     que el breakdown del checkout. */}
                 <div className="shrink-0 text-right">
@@ -165,7 +165,7 @@ export function ProfilePlansSection({
             </li>
           );
         })}
-        {/* Clase particular — producto comprable (private-lesson-
+        {/* Clase particular - producto comprable (private-lesson-
             product): paga por adelantado, la academia asigna
             instructor y fecha. Misma grilla que los planes. */}
         {(privateLessonPrice ?? 0) > 0 && (

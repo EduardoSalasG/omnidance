@@ -7,7 +7,7 @@ import { Button, CheckIcon, Spinner } from "@/components/ui";
 
 export type PracticeBarProps = {
   eventId: string;
-  /** rsvpCount del detalle público — visible antes de resolver la sesión. */
+  /** rsvpCount del detalle público - visible antes de resolver la sesión. */
   initialCount: number;
 };
 
