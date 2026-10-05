@@ -65,16 +65,16 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @omnidance/api prisma generate
 
-      # Los e2e dependen del baseline (roles/permisos/params) — misma
-      # semilla mínima que producción, sobre el Postgres efímero.
-      - name: Migrate + seed baseline (test DB)
+      # Los e2e dependen del baseline Y de las personas demo
+      # (*@omnidance.dev) — se siembra dev completo sobre el Postgres
+      # efímero (es descartable; la DB real es Neon).
+      - name: Migrate + seed (test DB)
         run: |
           pnpm --filter @omnidance/api exec prisma migrate deploy
           pnpm --filter @omnidance/api exec tsx prisma/seed.ts
         env:
           DATABASE_URL: ${{ env.CI_DATABASE_URL }}
-          SEED_ENV: prod
-          SEED_ADMIN_EMAIL: ci-admin@omnidance.dev
+          SEED_ENV: dev
 
       - name: Run API tests
         run: pnpm --filter @omnidance/api test
