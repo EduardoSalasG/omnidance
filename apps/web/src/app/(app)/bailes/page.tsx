@@ -8,7 +8,6 @@ import { apiFetch } from "@/lib/api";
 import {
   Button,
   RefreshIcon,
-  Skeleton,
   SkeletonList,
   StarIcon,
   XIcon,
@@ -98,22 +97,25 @@ function Bailes() {
   const lastEvent = !eventId && sessions.length > 0 ? sessions[0].event : null;
   const lastEventId = lastEvent?.id ?? null;
 
-  // Racha semanal — solo cuando el card del último social va a mostrarse.
+  // Racha semanal — independiente de /sessions: se dispara en paralelo
+  // (el endpoint no necesita la lista) y se refresca si cambia el último
+  // evento. No resetea streak: sin skeleton ni colapso — el bloque
+  // aparece una sola vez cuando el dato existe.
   useEffect(() => {
-    setStreak(null);
-    setStreakDone(false);
-    if (!lastEventId) {
-      setStreakDone(true);
-      return;
-    }
+    let cancelled = false;
     apiFetch("/gamification/me/streak")
       .then(async (res) => {
-        if (!res.ok) return;
+        if (!res.ok || cancelled) return;
         const d = (await res.json()) as { currentWeeks?: number };
         setStreak(d.currentWeeks ?? null);
       })
       .catch(() => {})
-      .finally(() => setStreakDone(true));
+      .finally(() => {
+        if (!cancelled) setStreakDone(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [lastEventId]);
 
   async function act(session: DanceSession, action: SessionAction) {
@@ -403,10 +405,12 @@ function Bailes() {
                 </dl>
                 {/* Highlight emocional: el mejor baile es una persona, no
                     un texto — avatar + nombre + tu nota. La racha cierra
-                    como línea de continuidad. */}
-                {(bestDance?.partner ||
-                  (lastEventId && !streakDone) ||
-                  (streak !== null && streak >= 2)) && (
+                    como línea de continuidad. Sección opcional: nada
+                    hasta que la racha resuelva — aparece una sola vez
+                    si hay contenido; un bloque que colapsa sería flash. */}
+                {streakDone &&
+                  (bestDance?.partner ||
+                    (streak !== null && streak >= 2)) && (
                   <div className="mt-3 flex flex-col gap-1.5 border-t border-night-700/60 pt-3">
                     {bestDance?.partner && (
                       <p className="flex items-center gap-2 text-sm text-white/70">
@@ -424,17 +428,10 @@ function Bailes() {
                         </span>
                       </p>
                     )}
-                    {/* Racha: la línea reserva su alto mientras el fetch
-                        resuelve; sin racha (resuelto <2) colapsa. */}
-                    {!streakDone ? (
-                      <Skeleton className="page-loading h-3.5 w-44" />
-                    ) : (
-                      streak !== null &&
-                      streak >= 2 && (
-                        <p className="text-xs font-medium text-neon/80">
-                          {t("streakLine", { weeks: streak })}
-                        </p>
-                      )
+                    {streak !== null && streak >= 2 && (
+                      <p className="text-xs font-medium text-neon/80">
+                        {t("streakLine", { weeks: streak })}
+                      </p>
                     )}
                   </div>
                 )}
