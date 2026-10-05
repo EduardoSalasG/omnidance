@@ -5,28 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import {
-  resolveActiveRole,
-  setActiveRole,
-  useActiveRole,
-  type AppRole,
-} from "@/lib/active-role";
+import { setActiveRole, useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
+import { useMe } from "@/lib/me-context";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
-
-type Me = {
-  id: string;
-  name: string;
-  // Person.email es nullable en el schema (cuentas solo-teléfono).
-  email: string | null;
-  photoUrl: string | null;
-  instagram?: string | null;
-  roles: string[];
-  roleStates?: { role: string; status: string }[];
-};
 
 type Streak = {
   currentWeeks: number;
@@ -86,13 +71,26 @@ export default function PerfilPage() {
   const th = useTranslations("home");
   const tt = useTranslations("tours.perfil");
 
-  const [state, setState] = useState<PageState>("loading");
-  const [me, setMe] = useState<Me | null>(null);
-  // Re-dispara el boot completo (/me + gamificación) desde el error —
-  // la carga vive en el useEffect, el nonce la re-ejecuta.
-  const [bootNonce, setBootNonce] = useState(0);
+  // /me compartido (MeProvider del layout) — un solo fetch por sesión;
+  // retry del estado de error = refresh del contexto.
+  const {
+    me,
+    loading: meLoading,
+    error: meError,
+    refresh: refreshMe,
+  } = useMe();
+  const state: PageState = meLoading
+    ? "loading"
+    : meError
+      ? "error"
+      : me
+        ? "ready"
+        : "unauth";
   const [streak, setStreak] = useState<Streak | null>(null);
-  const [badges, setBadges] = useState<BadgeItem[]>([]);
+  // Fetch de racha falló → la card se oculta (mejor que un "0" falso o
+  // un skeleton perpetuo).
+  const [streakFailed, setStreakFailed] = useState(false);
+  const [badges, setBadges] = useState<BadgeItem[] | null>(null);
   // Gamificación es one-shot y solo para lentes no-ADMIN: si el usuario
   // cambia de ADMIN a otra lente sin recargar, se trae perezosamente.
   const [gamifFetched, setGamifFetched] = useState(false);
@@ -105,56 +103,8 @@ export default function PerfilPage() {
     return t.has(`roleLabels.${role}`) ? t(`roleLabels.${role}`) : role;
   }
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const meRes = await apiFetch("/me");
-        if (cancelled) return;
-        if (meRes.status === 401) {
-          setState("unauth");
-          return;
-        }
-        if (!meRes.ok) {
-          setState("error");
-          return;
-        }
-        const meJson = (await meRes.json()) as Me;
-        setMe(meJson);
-        setState("ready");
-        // Con lente ADMIN no hay gamificación: ni fetch ni cards. Se
-        // resuelve con los roles reales de /me — el activeRole del primer
-        // render puede ser el default DANCER antes de conocer me.roles.
-        if (resolveActiveRole(meJson.roles) === "ADMIN") return;
-      } catch {
-        if (!cancelled) setState("error");
-        return;
-      }
-
-      await loadBadges();
-    }
-
-    async function loadBadges() {
-      try {
-        const res = await apiFetch("/gamification/me/badges");
-        setGamifFetched(true);
-        if (cancelled) return;
-        if (res.ok) {
-          const json: unknown = await res.json();
-          setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
-        }
-      } catch {
-        // Silencioso: widgets muestran valores por defecto
-        setGamifFetched(true);
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [bootNonce]);
+  // /me llega del contexto — no hay boot local. Con lente ADMIN no hay
+  // gamificación (ni fetch ni cards); el efecto de insignias la omite.
 
   // Cambio de lente ADMIN → otra sin recargar: trae la gamificación
   // que el load inicial omitió (one-shot por gamifFetched).
@@ -183,26 +133,38 @@ export default function PerfilPage() {
   }, [me, currentLens, viewMode]);
 
   // Racha por modo: social = semanas saliendo; academy = semanas
-  // asistiendo a clases. Re-fetchea al cambiar de modo.
+  // asistiendo a clases. Re-fetchea al cambiar de modo — el número
+  // viejo se limpia primero: mostrar el streak de social con el copy
+  // de academia (o viceversa) sería un flash de dato ajeno.
   useEffect(() => {
     if (!me || currentLens === "ADMIN") {
       setStreak(null);
       return;
     }
     let stale = false;
+    setStreak(null);
+    setStreakFailed(false);
     void apiFetch(`/gamification/me/streak?mode=${viewMode}`)
       .then(async (res) => {
-        if (stale || !res.ok) return;
+        if (stale) return;
+        if (!res.ok) {
+          setStreakFailed(true);
+          return;
+        }
         setStreak((await res.json()) as Streak);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!stale) setStreakFailed(true);
+      });
     return () => {
       stale = true;
     };
   }, [me, currentLens, viewMode]);
 
   // Insignias — ambos modos tienen catálogo propio (nightlife: sesiones/
-  // check-ins; academy: asistencias/constancia). Lazy one-shot.
+  // check-ins; academy: asistencias/constancia). Lazy one-shot; badges
+  // queda null mientras el fetch está en vuelo (→ skeleton, nunca el
+  // empty-state prematuro).
   useEffect(() => {
     if (!me || gamifFetched || currentLens === "ADMIN") {
       return;
@@ -210,18 +172,21 @@ export default function PerfilPage() {
     let stale = false;
     void apiFetch("/gamification/me/badges")
       .then(async (res) => {
+        if (stale) return;
         setGamifFetched(true);
-        if (stale || !res.ok) return;
+        if (!res.ok) return;
         const json: unknown = await res.json();
         setBadges(Array.isArray(json) ? (json as BadgeItem[]) : []);
       })
-      .catch(() => setGamifFetched(true));
+      .catch(() => {
+        if (!stale) setGamifFetched(true);
+      });
     return () => {
       stale = true;
     };
   }, [me, gamifFetched, currentLens, viewMode]);
 
-  const visibleBadges = badges.filter((b) =>
+  const visibleBadges = (badges ?? []).filter((b) =>
     viewMode === "academy"
       ? ACADEMY_BADGE_KEYS.has(b.badge.key)
       : !ACADEMY_BADGE_KEYS.has(b.badge.key),
@@ -254,10 +219,7 @@ export default function PerfilPage() {
             </p>
             <Button
               variant="secondary"
-              onClick={() => {
-                setState("loading");
-                setBootNonce((n) => n + 1);
-              }}
+              onClick={() => void refreshMe()}
             >
               <RefreshIcon /> {tc("retry")}
             </Button>
@@ -360,10 +322,25 @@ export default function PerfilPage() {
       </Link>
 
       {/* Tu actividad — todos los insights de la lente DANCER activa
-          (social o academia); el home social muestra solo 2. */}
-      {currentActAs === "DANCER" && kpis && kpis.length > 0 && (
-        <KpiGrid kpis={kpis} label={th("insights")} />
-      )}
+          (social o academia); el home social muestra solo 2. Mientras
+          el fetch está en vuelo el slot se reserva con skeleton — sin
+          el slot la grilla aparecía entre identidad y "Interactuar
+          como" empujando todo hacia abajo. */}
+      {currentActAs === "DANCER" &&
+        (kpis === null ? (
+          <section aria-hidden="true">
+            <Skeleton className="page-loading mb-3 h-4 w-36" />
+            <ul className="grid grid-cols-2 gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <li key={i}>
+                  <Skeleton className="page-loading h-[68px] w-full rounded-xl" />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : (
+          kpis.length > 0 && <KpiGrid kpis={kpis} label={th("insights")} />
+        ))}
 
       {/* Interactuar como — cambia el lente de toda la app (nav + home).
           Radiogroup nativo: un tab stop, flechas cambian de opción (mismo
@@ -406,21 +383,32 @@ export default function PerfilPage() {
 
       {/* Gamificación — solo lente consumidora/operativa; la lente ADMIN
           es gestión pura (ni Racha ni Insignias, y tampoco se fetchean). */}
-      {currentActAs !== "ADMIN" && (
+      {currentActAs !== "ADMIN" && !streakFailed && (
         /* Racha por modo — orgullo, grande. Social = salidas semanales;
-           academy = asistencia a clases (mismo card, otra fuente). */
+           academy = asistencia a clases (mismo card, otra fuente).
+           streak null = fetch en vuelo → skeleton; jamás "0" como
+           placeholder de un dato real. */
         <Card data-tour="perfil-gamif">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
             {tg("streak")}
           </h2>
-          <p className="mt-2 text-6xl font-bold leading-none text-neon">
-            {streak?.currentWeeks ?? 0}
-          </p>
-          <p className="mt-2 text-sm text-white/50">
-            {tg(viewMode === "academy" ? "streakAcademy" : "streakSocial")}
-            {" · "}
-            {tg("streakBest")}: {streak?.bestWeeks ?? 0}
-          </p>
+          {streak === null ? (
+            <div className="page-loading mt-2 flex flex-col gap-2" aria-hidden="true">
+              <Skeleton className="h-[3.75rem] w-24" />
+              <Skeleton className="h-4 w-52" />
+            </div>
+          ) : (
+            <>
+              <p className="mt-2 text-6xl font-bold leading-none text-neon">
+                {streak.currentWeeks}
+              </p>
+              <p className="mt-2 text-sm text-white/50">
+                {tg(viewMode === "academy" ? "streakAcademy" : "streakSocial")}
+                {" · "}
+                {tg("streakBest")}: {streak.bestWeeks}
+              </p>
+            </>
+          )}
         </Card>
       )}
 
@@ -432,7 +420,21 @@ export default function PerfilPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
             {tg("badges")}
           </h2>
-          {visibleBadges.length === 0 ? (
+          {!gamifFetched ? (
+            /* Fetch en vuelo → skeleton con la forma de la grilla —
+               el empty-state "aún no tienes insignias" solo es honesto
+               cuando el fetch ya resolvió. */
+            <ul
+              aria-hidden="true"
+              className="page-loading mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3"
+            >
+              {[0, 1, 2].map((i) => (
+                <li key={i}>
+                  <Skeleton className="h-[74px] w-full rounded-xl" />
+                </li>
+              ))}
+            </ul>
+          ) : visibleBadges.length === 0 ? (
             <p className="mt-3 text-sm text-white/60">
               {tg(viewMode === "academy" ? "badgesEmptyAcademy" : "badgesEmpty")}
             </p>

@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
+import { Skeleton } from "@/components/ui";
 import type { Academy } from "./shared";
 
 const DAY_MS = 86_400_000;
@@ -17,9 +17,10 @@ const DAY_MS = 86_400_000;
  *   responden 403 billing.blocked — el banner explica el porqué).
  * - billingGraceUntil > ahora → banner ámbar con los días de gracia.
  * El CTA a /academia/suscripcion solo se muestra a owner/ADMIN (los
- * endpoints de billing son requireAdminister — /me se pide solo cuando
- * el banner efectivamente se va a renderizar). En la propia página de
- * suscripción no se repite: el estado ya va detallado ahí.
+ * endpoints de billing son requireAdminister) — usa el /me compartido;
+ * mientras resuelve, el slot del CTA queda reservado con un skeleton
+ * pill para que el banner no se reajuste al resolver. En la propia
+ * página de suscripción no se repite: el estado ya va detallado ahí.
  */
 export function AcademyBillingBanner({ academy }: { academy: Academy }) {
   const t = useTranslations("academyBilling");
@@ -35,41 +36,35 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
       : null;
   const show = blocked || (graceDays != null && graceDays > 0);
 
-  // El CTA solo aplica a quien puede administrar el billing (owner/admin):
-  // /me se consulta solo cuando el banner va a pintarse.
-  const [canManage, setCanManage] = useState(false);
-  useEffect(() => {
-    if (!show) return;
-    let alive = true;
-    apiFetch("/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((me: { id: string; roles: string[] } | null) => {
-        if (!alive || !me) return;
-        setCanManage(
-          me.roles.includes("ADMIN") || me.id === academy.ownerId,
-        );
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [show, academy.ownerId]);
+  // El CTA solo aplica a quien puede administrar el billing
+  // (owner/admin) — /me compartido, sin fetch propio.
+  const { me, loading: meLoading } = useMe();
+  const canManage =
+    !meLoading &&
+    !!me &&
+    (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
   // En /academia/suscripcion el estado va completo — el banner sería
   // redundante.
   if (!show || pathname === "/academia/suscripcion") return null;
 
-  const cta = canManage && (
-    <Link
-      href="/academia/suscripcion"
-      className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
-        blocked
-          ? "border border-red-300/40 hover:bg-red-300/10"
-          : "border border-amber-300/40 hover:bg-amber-300/10"
-      }`}
-    >
-      {t("bannerCta")}
-    </Link>
+  // Slot reservado mientras /me resuelve — mismo alto mínimo que el
+  // pill real; si no puede administrar colapsa sin mover el mensaje.
+  const cta = meLoading ? (
+    <Skeleton className="page-loading h-11 w-28 shrink-0 rounded-full" />
+  ) : (
+    canManage && (
+      <Link
+        href="/academia/suscripcion"
+        className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+          blocked
+            ? "border border-red-300/40 hover:bg-red-300/10"
+            : "border border-amber-300/40 hover:bg-amber-300/10"
+        }`}
+      >
+        {t("bannerCta")}
+      </Link>
+    )
   );
 
   if (blocked) {

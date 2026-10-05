@@ -10,12 +10,15 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import {
   Badge,
   Button,
   Card,
   EventDate,
   RefreshIcon,
+  Skeleton,
+  SkeletonCard,
   SkeletonList,
 } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
@@ -77,17 +80,23 @@ export default function AmigosPage() {
 
   const [state, setState] = useState<PageState>("loading");
   const [data, setData] = useState<FriendsData>(EMPTY_DATA);
-  // Mi id — para construir el link de invitación a mi perfil.
-  const [meId, setMeId] = useState<string | null>(null);
-  // /me falló — el botón "Invitar por link" no puede construirse; se
-  // muestra un retry en su lugar en vez de desaparecer en silencio.
-  const [meFailed, setMeFailed] = useState(false);
+  // /me compartido (MeProvider del layout): meId construye el link de
+  // invitación; meFailed muestra retry en el slot en vez de desaparecer
+  // el CTA en silencio.
+  const { me, loading: meLoading, error: meError, refresh: refreshMe } =
+    useMe();
+  const meId = me?.id ?? null;
+  const meFailed = !meLoading && meError;
   const [inviteCopied, setInviteCopied] = useState(false);
   // Fallo real de copia al portapapeles — visible (el catch antes era
   // silencioso y el botón parecía no hacer nada).
   const [inviteErr, setInviteErr] = useState(false);
   // "Tus amigos van a" — agenda social de amigos (tickets activos).
-  const [friendEvents, setFriendEvents] = useState<FriendEvent[]>([]);
+  // null = fetch en vuelo → skeleton en el slot (la sección va arriba
+  // de solicitudes/amigos; sin slot los empujaba al resolver).
+  const [friendEvents, setFriendEvents] = useState<FriendEvent[] | null>(
+    null,
+  );
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -97,22 +106,6 @@ export default function AmigosPage() {
   const searchSeq = useRef(0);
   // Ref del buscador — el CTA del empty state lo enfoca.
   const searchRef = useRef<HTMLInputElement>(null);
-
-  // /me es best-effort pero su fallo queda visible: sin meId el link de
-  // invitación no existe, así que el retry vive donde iría ese botón.
-  const loadMe = useCallback(async () => {
-    setMeFailed(false);
-    try {
-      const r = await apiFetch("/me");
-      if (r.ok) {
-        setMeId(((await r.json()) as { id: string }).id);
-      } else {
-        setMeFailed(true);
-      }
-    } catch {
-      setMeFailed(true);
-    }
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -126,19 +119,20 @@ export default function AmigosPage() {
         return;
       }
       setData((await res.json()) as FriendsData);
-      // Feed "van a" + mi id (para el link de invitación) — mejor
-      // esfuerzo: si fallan quedan vacíos, no bloquean la lista.
+      // Feed "van a" — mejor esfuerzo: si falla queda vacío (el slot
+      // skeleton colapsa), no bloquea la lista.
       apiFetch("/friends/upcoming-events")
-        .then(async (r) => {
-          if (r.ok) setFriendEvents((await r.json()) as FriendEvent[]);
-        })
-        .catch(() => {});
-      void loadMe();
+        .then(async (r) =>
+          setFriendEvents(
+            r.ok ? ((await r.json()) as FriendEvent[]) : [],
+          ),
+        )
+        .catch(() => setFriendEvents([]));
       setState("ready");
     } catch {
       setState("error");
     }
-  }, [loadMe]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -371,12 +365,16 @@ export default function AmigosPage() {
                mismo slot en vez de desaparecer el CTA en silencio. */
             <button
               type="button"
-              onClick={() => void loadMe()}
+              onClick={() => void refreshMe()}
               className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-night-700 px-4 text-sm font-medium text-white/60 transition-colors hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               <RefreshIcon />
               {tc("retry")}
             </button>
+          ) : meLoading ? (
+            /* Slot reservado del botón Invitar mientras /me resuelve —
+               el CTA deja de aparecer de golpe junto al título. */
+            <Skeleton className="page-loading h-11 w-28 shrink-0 rounded-full" />
           ) : null}
         </div>
         {inviteErr && (
@@ -440,8 +438,17 @@ export default function AmigosPage() {
 
       {state === "ready" && (
         <>
-          {/* Tus amigos van a — eventos con ticket activo de ≥1 amigo */}
-          {friendEvents.length > 0 && (
+          {/* Tus amigos van a — eventos con ticket activo de ≥1 amigo.
+              null = fetch en vuelo → skeleton compacto en el slot (si
+              resuelve vacío el slot colapsa sin haber movido la lista
+              dos veces). */}
+          {friendEvents === null ? (
+            <section aria-hidden="true" className="flex flex-col gap-3">
+              <Skeleton className="page-loading h-4 w-36" />
+              <SkeletonCard lines={1} />
+            </section>
+          ) : (
+            friendEvents.length > 0 && (
             <section data-tour="amigos-going" className="flex flex-col gap-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("goingTitle")}
@@ -491,6 +498,7 @@ export default function AmigosPage() {
                 ))}
               </ul>
             </section>
+            )
           )}
 
           {/* Solicitudes recibidas */}

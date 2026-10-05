@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { inputCls, readError, type Academy } from "./shared";
-
-type Me = { id: string; roles: string[] };
 
 /**
  * Perfil público de la academia (descripción, dirección, coordenadas y
@@ -19,7 +18,9 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   const t = useTranslations("academy.publicProfile");
   const tc = useTranslations("common");
 
-  const [me, setMe] = useState<Me | null>(null);
+  // /me compartido — misma guard que AcademySettings; mientras resuelve
+  // el card queda oculto (instructores nunca lo ven).
+  const { me, loading: meLoading } = useMe();
   const [description, setDescription] = useState(academy.description ?? "");
   const [address, setAddress] = useState(academy.address ?? "");
   const [lat, setLat] = useState(academy.lat != null ? String(academy.lat) : "");
@@ -31,15 +32,10 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) => (res.ok ? ((await res.json()) as Me) : null))
-      .then(setMe)
-      .catch(() => {});
-  }, []);
-
   const canAdminister =
-    !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
+    !meLoading &&
+    !!me &&
+    (me.roles.includes("ADMIN") || me.id === academy.ownerId);
   if (!canAdminister) return null;
 
   const parseCoord = (raw: string): number | null | undefined => {

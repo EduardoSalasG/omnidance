@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { AcademySettings } from "@/components/academy/academy-settings";
 import { AcademyProfile } from "@/components/academy/academy-profile";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
+import { Skeleton } from "@/components/ui";
 import {
   OnboardingRunner,
   type TourStep,
@@ -46,14 +46,10 @@ export default function AcademiaPage() {
   const t = useTranslations("academy");
   const tt = useTranslations("tours.academia");
 
-  // /me para filtrar módulos owner-only (CRM) — academy.ownerId vs me.id.
-  const [me, setMe] = useState<{ id: string; roles: string[] } | null>(null);
-  useEffect(() => {
-    apiFetch("/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setMe(d as { id: string; roles: string[] } | null))
-      .catch(() => setMe(null));
-  }, []);
+  // /me compartido para filtrar módulos owner-only (cobros/CRM/
+  // suscripción) — academy.ownerId vs me.id. Mientras resuelve, la
+  // grilla reserva los slots con skeleton en vez de insertarlos tarde.
+  const { me, loading: meLoading } = useMe();
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -83,6 +79,18 @@ export default function AcademiaPage() {
                   desc={t(`modules.${m.key}Desc`)}
                 />
               ))}
+              {/* Slots de los módulos owner-only mientras /me resuelve —
+                  van al final de la grilla: si no es owner colapsan sin
+                  mover contenido; si lo es, se swapean por el card real. */}
+              {meLoading &&
+                MODULES.filter((m) => "ownerOnly" in m && m.ownerOnly).map(
+                  (m) => (
+                    <Skeleton
+                      key={m.href}
+                      className="page-loading min-h-[68px] rounded-2xl"
+                    />
+                  ),
+                )}
             </ModuleGrid>
 
             {/* Tour de primera visita — targets del chrome (tabs +

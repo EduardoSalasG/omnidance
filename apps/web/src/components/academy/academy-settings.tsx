@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { inputCls, readError, type Academy } from "./shared";
-
-type Me = { id: string; roles: string[] };
 
 // GET /academies/:id (manage) — instructors incluye commissionPct desde
 // role-console-polish; los nombres se resuelven via GET /academies
@@ -33,7 +32,9 @@ export function AcademySettings({ academy }: { academy: Academy }) {
   const t = useTranslations("academy.settings");
   const tc = useTranslations("common");
 
-  const [me, setMe] = useState<Me | null>(null);
+  // /me compartido — la guard owner/ADMIN gatea el card completo
+  // (instructores nunca lo ven); mientras resuelve, null = oculto.
+  const { me, loading: meLoading } = useMe();
   const [quorum, setQuorum] = useState(
     academy.defaultQuorum != null ? String(academy.defaultQuorum) : "",
   );
@@ -66,20 +67,15 @@ export function AcademySettings({ academy }: { academy: Academy }) {
   >({});
   const [commissionBusy, setCommissionBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    apiFetch("/me")
-      .then(async (res) => (res.ok ? ((await res.json()) as Me) : null))
-      .then(setMe)
-      .catch(() => {});
-  }, []);
-
-  const canAdministerNow =
-    !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
+  const canAdminister =
+    !meLoading &&
+    !!me &&
+    (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
   // Instructores + comisión — solo si ya sabemos que es owner/admin
   // (evita el fetch manage a instructores puros, que daría datos ajenos).
   useEffect(() => {
-    if (!canAdministerNow) return;
+    if (!canAdminister) return;
     Promise.all([
       apiFetch(`/academies/${academy.id}`).then((r) =>
         r.ok ? (r.json() as Promise<ManageDetail>) : null,
@@ -107,7 +103,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
         );
       })
       .catch(() => {});
-  }, [canAdministerNow, academy.id]);
+  }, [canAdminister, academy.id]);
 
   async function saveCommission(personId: string): Promise<void> {
     const raw = (commissionDraft[personId] ?? "").trim();
@@ -144,8 +140,6 @@ export function AcademySettings({ academy }: { academy: Academy }) {
     }
   }
 
-  const canAdminister =
-    !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
   if (!canAdminister) return null;
 
   async function submit(e: React.FormEvent): Promise<void> {

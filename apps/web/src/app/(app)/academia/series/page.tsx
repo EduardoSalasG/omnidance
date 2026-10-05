@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon, XIcon } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import { Skeleton, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
@@ -103,10 +103,13 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const [loadError, setLoadError] = useState(false);
 
   // ─── catálogos para los selects ───
-  const [styles, setStyles] = useState<Style[]>([]);
-  const [levels, setLevels] = useState<Level[]>([]);
-  const [types, setTypes] = useState<NamedRef[]>([]);
-  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  // null = fetch en vuelo → los selects quedan disabled y las chips de
+  // types muestran skeleton; elegir contra un catálogo vacío dejaría
+  // una selección que "salta" cuando llegan las options reales.
+  const [styles, setStyles] = useState<Style[] | null>(null);
+  const [levels, setLevels] = useState<Level[] | null>(null);
+  const [types, setTypes] = useState<NamedRef[] | null>(null);
+  const [instructors, setInstructors] = useState<Instructor[] | null>(null);
 
   // ─── formulario (crear / editar) ───
   const [formOpen, setFormOpen] = useState(false);
@@ -174,13 +177,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
     void reload();
   }, [reload]);
 
-  // Catálogos públicos + instructores de la academia. Si fallan, los
-  // selects quedan vacíos pero la lista de series igual se muestra.
+  // Catálogos públicos + instructores de la academia. Si fallan se
+  // resuelven a [] (selects habilitados con solo "—"; la lista de
+  // series igual se muestra).
   useEffect(() => {
     apiFetch("/styles")
       .then(async (res) => (res.ok ? ((await res.json()) as Style[]) : []))
       .then(setStyles)
-      .catch(() => {});
+      .catch(() => setStyles([]));
     apiFetch("/classes/catalogs")
       .then(async (res) =>
         res.ok
@@ -191,7 +195,10 @@ function SeriesModule({ academyId }: { academyId: string }) {
         setLevels(c.levels);
         setTypes(c.types);
       })
-      .catch(() => {});
+      .catch(() => {
+        setLevels([]);
+        setTypes([]);
+      });
     void (async () => {
       try {
         const [detailRes, dirRes] = await Promise.all([
@@ -225,6 +232,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
         );
       } catch {
         // Sin instructores — el select queda solo con "—".
+        setInstructors([]);
       }
     })();
   }, [academyId]);
@@ -563,12 +571,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-white/50">{t("style")}</span>
               <select
-                className={inputCls}
+                className={`${inputCls} disabled:opacity-50`}
                 value={styleId}
                 onChange={(e) => setStyleId(e.target.value)}
+                disabled={styles === null}
+                aria-busy={styles === null}
               >
                 <option value="">—</option>
-                {styles.map((s) => (
+                {(styles ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -579,12 +589,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-white/50">{t("level")}</span>
               <select
-                className={inputCls}
+                className={`${inputCls} disabled:opacity-50`}
                 value={levelId}
                 onChange={(e) => setLevelId(e.target.value)}
+                disabled={levels === null}
+                aria-busy={levels === null}
               >
                 <option value="">—</option>
-                {levels.map((l) => (
+                {(levels ?? []).map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.name}
                   </option>
@@ -595,12 +607,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
             <label className="flex flex-col gap-1">
               <span className="text-xs text-white/50">{t("instructor")}</span>
               <select
-                className={inputCls}
+                className={`${inputCls} disabled:opacity-50`}
                 value={instructorId}
                 onChange={(e) => setInstructorId(e.target.value)}
+                disabled={instructors === null}
+                aria-busy={instructors === null}
               >
                 <option value="">—</option>
-                {instructors.map((i) => (
+                {(instructors ?? []).map((i) => (
                   <option key={i.personId} value={i.personId}>
                     {i.name ?? i.personId.slice(0, 8)}
                   </option>
@@ -657,7 +671,24 @@ function SeriesModule({ academyId }: { academyId: string }) {
               </label>
             )}
 
-            {types.length > 0 && (
+            {types === null ? (
+              /* Chips de modalidad en vuelo — skeleton con la forma de
+                 las chips para que el fieldset no salte al resolver. */
+              <fieldset
+                aria-hidden="true"
+                className="flex flex-col gap-2 sm:col-span-2"
+              >
+                <legend className="text-xs text-white/50">
+                  {t("types")}
+                </legend>
+                <div className="page-loading flex flex-wrap gap-2">
+                  <Skeleton className="h-11 w-24 rounded-xl" />
+                  <Skeleton className="h-11 w-28 rounded-xl" />
+                  <Skeleton className="h-11 w-20 rounded-xl" />
+                </div>
+              </fieldset>
+            ) : (
+              types.length > 0 && (
               <fieldset className="flex flex-col gap-2 sm:col-span-2">
                 <legend className="text-xs text-white/50">{t("types")}</legend>
                 <div className="flex flex-wrap gap-2">
@@ -677,6 +708,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                   ))}
                 </div>
               </fieldset>
+              )
             )}
 
             {!editing && (
@@ -760,7 +792,16 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       >
                         <XIcon className="h-4 w-4" />
                       </Button>
-                      {types.length > 0 && (
+                      {types === null ? (
+                        <div
+                          aria-hidden="true"
+                          className="page-loading flex basis-full flex-wrap items-center gap-1.5"
+                        >
+                          <Skeleton className="h-8 w-20 rounded-lg" />
+                          <Skeleton className="h-8 w-24 rounded-lg" />
+                        </div>
+                      ) : (
+                        types.length > 0 && (
                         <div className="flex basis-full flex-wrap items-center gap-1.5">
                           <span className="text-xs text-white/40">
                             {t("slotTypes")}:
@@ -783,6 +824,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                             {t("slotTypesHint")}
                           </span>
                         </div>
+                        )
                       )}
                     </li>
                   ))}
@@ -1000,19 +1042,30 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         {t("instructor")}
                       </span>
                       <select
-                        className={inputCls}
+                        className={`${inputCls} disabled:opacity-50`}
                         value={nsInstructor}
                         onChange={(e) => setNsInstructor(e.target.value)}
+                        disabled={instructors === null}
+                        aria-busy={instructors === null}
                       >
                         <option value="">—</option>
-                        {instructors.map((i) => (
+                        {(instructors ?? []).map((i) => (
                           <option key={i.personId} value={i.personId}>
                             {i.name ?? i.personId.slice(0, 8)}
                           </option>
                         ))}
                       </select>
                     </label>
-                    {types.length > 0 && (
+                    {types === null ? (
+                      <div
+                        aria-hidden="true"
+                        className="page-loading flex w-full flex-wrap items-center gap-1.5"
+                      >
+                        <Skeleton className="h-8 w-20 rounded-lg" />
+                        <Skeleton className="h-8 w-24 rounded-lg" />
+                      </div>
+                    ) : (
+                      types.length > 0 && (
                       <div className="flex w-full flex-wrap items-center gap-1.5">
                         <span className="text-xs text-white/40">
                           {t("slotTypes")}:
@@ -1037,6 +1090,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                           {t("slotTypesHint")}
                         </span>
                       </div>
+                      )
                     )}
                     <div className="flex flex-wrap gap-2">
                       <Button

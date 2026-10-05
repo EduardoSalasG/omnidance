@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ChevronRightIcon } from "@/components/ui/icons";
-import { PageLoading, Spinner } from "@/components/ui/spinner";
+import { PageLoading } from "@/components/ui/spinner";
 import {
   ClassCard,
   type ClassCardData,
@@ -436,9 +436,11 @@ export function HomeHub() {
   const statsPending = me !== null && statsSlot?.key !== lensKey;
 
   if (!checked) {
+    // Boot de sesión — PageLoading (beacon compartido, aparición
+    // diferida), nunca un spinner desnudo a nivel página.
     return (
-      <main className="flex min-h-dvh items-center justify-center">
-        <Spinner size="lg" className="page-loading" />
+      <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col p-6">
+        <PageLoading />
       </main>
     );
   }

@@ -2,6 +2,7 @@ import { ChromeShell } from "@/components/layout/ChromeShell";
 import { RealtimeProvider } from "@/components/realtime/RealtimeProvider";
 import { NavPendingOverlay } from "@/components/ui/nav-pending";
 import { ConsentBanner } from "@/components/legal/ConsentBanner";
+import { MeProvider } from "@/lib/me-context";
 import baseMessages from "../../../messages/es-CL.json";
 
 // Grupo (app): superficies autenticadas con chrome de app — skip-link,
@@ -24,11 +25,16 @@ export default function AppLayout({
       {/* Overlay de navegación: spinner diferido 200ms en cualquier
           link interno lento (toda la app autenticada lo hereda). */}
       <NavPendingOverlay>
-        <ChromeShell>{children}</ChromeShell>
-        {/* Aviso legal no bloqueante (spec legal-consent): visible solo
-            cuando /me reporta consentimiento ausente o de versión
-            antigua. */}
-        <ConsentBanner />
+        {/* /me compartido: un solo fetch por sesión de (app) — las
+            páginas consumen useMe() en vez de refetchear. No bloquea
+            children: cada consumidor gatea con `loading`. */}
+        <MeProvider>
+          <ChromeShell>{children}</ChromeShell>
+          {/* Aviso legal no bloqueante (spec legal-consent): visible solo
+              cuando /me reporta consentimiento ausente o de versión
+              antigua. */}
+          <ConsentBanner />
+        </MeProvider>
       </NavPendingOverlay>
     </RealtimeProvider>
   );

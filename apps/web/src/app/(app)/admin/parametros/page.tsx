@@ -34,7 +34,9 @@ function ParamsPanel() {
   const t = useTranslations("admin");
   const tc = useTranslations("common");
 
-  const [params, setParams] = useState<Param[]>([]);
+  // null = GET /admin/params en vuelo → skeleton (mismo patrón que el
+  // sub-panel de fees con paramsLoading).
+  const [params, setParams] = useState<Param[] | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [actionError, setActionError] = useState(false);
   const [savedKey, setSavedKey] = useState<string | null>(null);
@@ -84,6 +86,9 @@ function ParamsPanel() {
 
       <section className="flex flex-col gap-4">
         <p className="text-xs text-white/50">{t("params.hint")}</p>
+        {params === null ? (
+          <SkeletonList items={4} lines={1} />
+        ) : (
         <ul className="flex flex-col gap-3">
           {params.map((p) => (
             <li key={p.key}>
@@ -128,6 +133,7 @@ function ParamsPanel() {
             </li>
           ))}
         </ul>
+        )}
       </section>
 
       <ProducerParamsSection />

@@ -1,18 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { CONSENT_VERSION } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
 import { CHROME_HIDDEN_PREFIXES } from "@/components/layout/BottomNav";
 import { XIcon } from "@/components/ui";
-
-type MeConsent = {
-  consentAcceptedAt?: string | null;
-  consentVersion?: string | null;
-};
 
 /**
  * Aviso de consentimiento legal (spec legal-consent): si GET /me trae
@@ -27,27 +23,16 @@ type MeConsent = {
 export function ConsentBanner() {
   const t = useTranslations("consent");
   const pathname = usePathname();
-  // null = aún no sabemos (fetch pendiente) → no renderizar nada.
-  const [needsConsent, setNeedsConsent] = useState<boolean | null>(null);
+  // /me compartido (MeProvider del layout): mientras `loading` o sin
+  // sesión no se sabe → no renderizar nada.
+  const { me, loading, refresh: refreshMe } = useMe();
+  const needsConsent =
+    !loading &&
+    !!me &&
+    (!me.consentAcceptedAt || me.consentVersion !== CONSENT_VERSION);
   const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    apiFetch("/me")
-      .then(async (res) => {
-        if (cancelled || !res.ok) return;
-        const me = (await res.json()) as MeConsent;
-        setNeedsConsent(
-          !me.consentAcceptedAt || me.consentVersion !== CONSENT_VERSION,
-        );
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   if (!needsConsent || dismissed) return null;
 
@@ -61,7 +46,9 @@ export function ConsentBanner() {
         body: JSON.stringify({ version: CONSENT_VERSION }),
       });
       if (res.ok) {
-        setNeedsConsent(false);
+        // El /me compartido queda con el consentimiento vigente —
+        // cualquier consumidor que lo lea después ve la versión nueva.
+        void refreshMe();
         return;
       }
       setFailed(true);

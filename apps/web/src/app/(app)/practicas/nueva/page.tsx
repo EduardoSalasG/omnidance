@@ -41,7 +41,12 @@ export default function NuevaPracticaPage() {
   const [venueNotes, setVenueNotes] = useState("");
   const [description, setDescription] = useState("");
   const [styleId, setStyleId] = useState("");
-  const [styles, setStyles] = useState<{ id: string; name: string }[]>([]);
+  // null = catálogo en vuelo → el select queda disabled; si apareciera
+  // habilitado con solo "Cualquiera", las options entrarían de golpe
+  // (y un cambio temprano quedaría contra un catálogo incompleto).
+  const [styles, setStyles] = useState<{ id: string; name: string }[] | null>(
+    null,
+  );
   const [capacity, setCapacity] = useState("");
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("");
@@ -57,10 +62,14 @@ export default function NuevaPracticaPage() {
         if (res.ok) {
           setStyles((await res.json()) as { id: string; name: string }[]);
         } else {
+          setStyles([]);
           setStylesError(true);
         }
       })
-      .catch(() => setStylesError(true));
+      .catch(() => {
+        setStyles([]);
+        setStylesError(true);
+      });
   }, []);
 
   async function createPractice(e: React.FormEvent) {
@@ -197,10 +206,12 @@ export default function NuevaPracticaPage() {
             <select
               value={styleId}
               onChange={(e) => setStyleId(e.target.value)}
-              className={inputCls}
+              disabled={styles === null}
+              aria-busy={styles === null}
+              className={`${inputCls} disabled:opacity-50`}
             >
               <option value="">{t("styleAny")}</option>
-              {styles.map((s) => (
+              {(styles ?? []).map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>

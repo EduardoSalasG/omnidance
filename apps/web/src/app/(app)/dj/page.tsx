@@ -84,21 +84,39 @@ type GigRatingResponse = {
 function GigRating({ eventId }: { eventId: string }) {
   const t = useTranslations("dj");
   const [rating, setRating] = useState<GigRatingResponse | null>(null);
+  // null = pending → slot reservado en la fila; failed → colapsa
+  // (rating privado — sin estado de error ruidoso en el historial).
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     apiFetch(`/dj/gigs/${eventId}/rating`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (alive && d) setRating(d as GigRatingResponse);
+        if (!alive) return;
+        if (d) setRating(d as GigRatingResponse);
+        else setFailed(true);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (alive) setFailed(true);
+      });
     return () => {
       alive = false;
     };
   }, [eventId]);
 
-  if (!rating) return null;
+  if (!rating) {
+    if (failed) return null;
+    // Slot fijo del rating — el nombre/venue/fecha de la fila no se
+    // recorren cuando el fetch resuelve. Va dentro de un <span>
+    // (fila del historial) → no puede ser un Skeleton <div>.
+    return (
+      <span
+        aria-hidden="true"
+        className="page-loading inline-block h-4 w-10 animate-pulse rounded-lg bg-night-800 motion-reduce:animate-none"
+      />
+    );
+  }
   if (!rating.exposed || !rating.music) {
     return (
       <span className="text-xs text-white/40" title={t("rating.fewHint")}>
