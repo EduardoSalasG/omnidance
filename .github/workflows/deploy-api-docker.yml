@@ -15,9 +15,9 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/omnidance-api
-  # $HOME se expande en la VM (remote shell) — dir del deploy user, sin
-  # sudo ni permisos especiales. /opt/apps requeriría chown previo.
-  CONTAINER_DIR: $HOME/apps/omnidance
+  # Mismo patrón que video-repo: /opt/apps/<app> con el deploy user ya
+  # dueño del directorio (sin sudo en el pipeline).
+  CONTAINER_DIR: /opt/apps/omnidance
   PUBLIC_API_HOST: api.omnidance.eduardosalasg.dev
 
 jobs:
@@ -132,8 +132,9 @@ jobs:
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
             'mkdir -p ${{ env.CONTAINER_DIR }}'
-          # Comillas simples: $HOME debe expandirse en la VM, no en el
-          # runner (con dobles llegaría /home/runner/… al remoto).
+          # Comillas simples: la expansión de env corre en el remoto y
+          # el comando llega íntegro (con dobles, $ env del runner se
+          # interpolaría antes de ssh).
           ssh -i ~/.ssh/oracle_deploy_key \
             "$ORACLE_USER@$ORACLE_HOST" \
             'cat > ${{ env.CONTAINER_DIR }}/docker-compose.yml' \
