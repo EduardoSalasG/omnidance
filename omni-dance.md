@@ -30,7 +30,7 @@ Plataforma integral para el ecosistema SBK (salsa, bachata, cubano) que conecta 
 | 3 | **Instructores** | `person` con rol `instructor`: puede ser dueño de academia, impartir clases EN academias (`academy_instructor`), o independiente (= academia de uno). Clases privadas se venden vía gestión de academia | ✅ Modelado |
 | 4 | **Prácticas sociales** | Micro-encuentros modelo Nomadtable — ver §8 | ✅ Modelado |
 | 5 | **Congresos/festivales + competencias** | Multi-día con workshops + fiestas (`event_day`, pass por jornada) + competencias con scoring en vivo (ver §8) | ⏸️ Segunda prioridad — pendiente de refinar |
-| 6 | **Pareja de práctica** | Matchmaking: "busco follower on2, intermedio, Ñuñoa" → `practice_partner_request` | Pendiente (fase futura) |
+| 6 | **Pareja de práctica** | Matchmaking: "busco follower on2, intermedio, Ñuñoa" | ❌ Feature retirada (modelo eliminado — nunca tuvo UI) |
 | 7 | **Capa media** | Fotos (Drive link ya definido), videos de shows, entrevistas | Parcial |
 | 8 | **Arriendo de espacios** | Venue ↔ academia para galas/prácticas — `venue_rental` | Parcial |
 
@@ -133,33 +133,31 @@ Plataforma integral para el ecosistema SBK (salsa, bachata, cubano) que conecta 
 
 **Regla: 1 sesión = 1 canción. Se crea solo por QR.**
 
-### Flujo como invitación
+### Flujo como registro directo
 
-1. Persona A toca **"Nuevo baile"** → cámara
-2. Escanea el **QR personal** de B (id público)
-3. Se crea sesión como **invitación pendiente** en el teléfono de B (timestamp = hora del escaneo → define el género por bloque horario)
-4. B confirma con **1 tap** (durante la canción, en la mesa, o al día siguiente)
-5. Sin confirmación → la sesión expira al **cierre del evento + 24h de gracia** y no cuenta
+1. Persona A toca **"Escanear"** → cámara
+2. Escanea el **QR personal** de B (id público, rotativo)
+3. Se crea la sesión **CONFIRMED al instante** — el QR rotativo acredita que ambas personas están en la pista; el escaneo ES la confirmación (timestamp = hora del escaneo → define el género por bloque horario)
+4. B recibe notificación "A registró un baile contigo" con foto + nombre — puede verificar en un local oscuro que es la persona frente a ella
 
-**Regla Prime Time:** el **contador** cuenta sesiones confirmadas (feedback inmediato al escanear); el **premio/reveal** usa solo sesiones confirmadas **y evaluadas** antes del reveal. Confirmaciones post-00:00 alimentan perfil, historial y post-midnight.
+No hay ciclo invitación/confirm/rechazo: se eliminó por decisión de producto (menos superficie de abuso — las invitaciones podían enviarse a desconocidos; los bailes solo nacen del escaneo en persona). Las `DanceSession` históricas INVITED/DECLINED se conservan como dato.
+
+**Regla Prime Time:** el **contador** y el **premio/reveal** usan sesiones confirmadas (y evaluadas, para el reveal) — el escaneo ya nace confirmado, así que cuenta de inmediato.
 
 ### Bailes sin escanear (declaración retroactiva)
 
-- Se puede declarar un baile manualmente eligiendo a la persona; requiere **confirmación mutua**
-- Cuenta para perfil, historial y post-midnight
+- Se puede declarar un baile manualmente eligiendo a la persona (`POST /sessions/declare` → queda INVITED; su mecanismo de resolución quedó como backlog tras eliminar confirm/decline)
 - **No cuenta para Prime Time** — el escaneo en vivo es lo que alimenta el reveal
 
-**Insight clave:** el escaneo no es solo captura de datos, es la *invitación de baile digital* — resolver el gesto social de pedir un baile es el incentivo intrínseco.
+**Insight clave:** el escaneo no es solo captura de datos, es el *gesto social de bailar* digitalizado — resolver el momento de pedir un baile es el incentivo intrínseco.
 
 **Reglas finas del core loop:**
 
-- **Decline silencioso**: B puede rechazar la invitación — el invitante solo ve "no se pudo", nunca "te rechazó" (protege el gesto social)
-- **Descartar**: A puede cancelar su propia invitación pendiente (escaneo erróneo) — también silencioso
-- **Cooldown ~4 min**: tras una sesión creada entre A→B, no se puede crear otra invitación entre ellos por ~4 min (duración típica de una canción) — evita sesiones duplicadas inmediatas
-- **La invitación muestra foto + nombre de quien invita** — B puede verificar en un local oscuro que es la persona frente a ella, no un screenshot remoto
-- **Solo se puntúan sesiones confirmadas** — una invitación expirada/rechazada/descartada nunca genera rating
+- **Descartar**: A puede descartar su propia invitación pendiente (declaración errónea) — también silencioso
+- **Cooldown ~4 min**: tras una sesión creada entre A→B, no se puede crear otra entre ellos por ~4 min (duración típica de una canción) — evita sesiones duplicadas inmediatas
+- **Solo se puntúan sesiones confirmadas** — una sesión expirada/descartada nunca genera rating
 
-**Safety:** `user_block` — cualquier bailarín puede bloquear a otra persona → no puede volver a invitarte ni escanearte. Importa especialmente para followers que reciben invitaciones no deseadas. Silencioso: el bloqueado solo ve que la invitación "no se puede enviar".
+**Safety:** el sistema de bloqueo de personas (`user_block`) se eliminó junto al ciclo de invitaciones — su superficie de enforcement desapareció cuando el alta de bailes quedó solo-por-QR en persona.
 
 ### Estilo de la sesión
 
@@ -305,7 +303,7 @@ Misión = **condición verificable por data + recompensa**. El productor elige d
 | Madrugador | Check-in antes de 23:00 | Todos llegan tarde | Entrada a sorteo / cortesía del local |
 | Baila diverso | N sesiones con N parejas **distintas** | Bailar siempre con los mismos | Badge / puntos de temporada |
 | Primera vez contigo | Sesión con alguien con quien nunca bailaste (sin sesiones previas) | Cliques cerrados | Badge / sorteo |
-| Invitación follower | Una follower **crea** la invitación (escanea ella) | Norma "el leader pide" desequilibra la pista | Badge / puntos |
+| Invitación follower | Una follower **registra** el baile (escanea ella) | Norma "el leader pide" desequilibra la pista | Badge / puntos |
 | Explorador de estilos | Sesiones en salsa Y bachata en la misma noche | Gente que solo baila un género | Badge |
 | Resistente | Sesiones confirmadas post-02:00 | Éxodo masivo ~01:30 | Sorteo / puntos |
 | Cierra tu noche | Todas las evaluaciones pendientes completadas | Ratings sin cerrar | Desbloquea score final |
@@ -436,12 +434,12 @@ Micro-encuentros de baile **creados por cualquier bailarín** — no requieren a
 
 - **Crear práctica**: título, lugar (parque/plaza/venue/academia), hora, género/estilo foco, aforo chico (~8-15), gratis, first-come
 - **Host** = el creador: fija tono, recibe gente, trae parlante. Check-in igual por QR
-- **"Disponible para bailar"**: toggle de disponibilidad → feed de quién quiere practicar ahora/cerca
+- **"Disponible para bailar"**: *feature retirada* (el toggle de disponibilidad y las solicitudes de pareja se eliminaron — nunca tuvieron UI)
 - **Coordinación**: chat ligero por práctica (v1: comentarios del evento o link a WhatsApp; chat real es scope pesado)
 - **Venues como hosts de prácticas**: Tierra Dura está muerto de día → prácticas de tarde = tráfico + consumo (métrica Local Pro). Academias igual
 - **Safety**: perfiles verificados, reportar, opción "práctica solo mujeres" — crítico en parques con desconocidos
 - **Gamificación**: badge "organizador de prácticas", misión "organiza una práctica", prácticas cuentan como actividad (check-in ligero, sin sesiones Prime Time)
-- **Futuro (premium bailarín)**: boost de perfil en "disponible para bailar", ver quién vio tu perfil — mapea al tier premium tipo Nomadtable Plus
+- **Futuro (premium bailarín)**: boost de perfil, ver quién vio tu perfil — mapea al tier premium tipo Nomadtable Plus
 
 ### Congresos y competencias (segunda prioridad — pendiente de refinar)
 
@@ -465,7 +463,7 @@ Micro-encuentros de baile **creados por cualquier bailarín** — no requieren a
 
 1. Compra preventa → QR activo
 2. Llega → staff escanea → check-in automático + "Ya llegué" + notificación a amigos
-3. En pista: escanea para invitar, o muestra su QR y confirma invitaciones con 1 tap
+3. En pista: escanea el QR de su pareja para registrar el baile
 4. Puntúa en vivo hasta ~00:00 (empujado por DJ/productor) o deja pendientes
 5. **00:00 — reveal Prime Time** (anuncio del DJ + notificación/pantalla en app)
 6. Sigue la noche; ratings diferidos post-midnight
@@ -698,10 +696,10 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 `song_suggestion` (event, person, canción — del checkout; top-N para DJ/productor, habilita "la más pedida suena a las X"),
 `season` (leaderboard por estilo+rol), `night_summary`, `happy_hour_window` (sesiones cuentan doble para contador),
 `academy`, `academy_instructor` (profe en N academias / dueño / independiente=academia de uno), `enrollment` (activo/pausado/trial/congelado/online), `membership_plan` (mensual/pack clases/periodo/trial), `class_slot` (horario+cupos+reserva+lista espera), `class`, `attendance`, `private_lesson`, `academy_score`, `video`, `subscription`,
-`practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), `availability_toggle` ("disponible para bailar"), `user_verification`, `report`,
-`event_day` (congresos multi-día), `practice_partner_request` (buscar pareja de práctica), `venue_rental` (local↔academia para galas/prácticas),
+`practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), ~~`availability_toggle`~~ (retirado), `user_verification`, `report`,
+`event_day` (congresos multi-día), ~~`practice_partner_request`~~ (retirado), `venue_rental` (local↔academia para galas/prácticas),
 **CRM transversal**: `relationship_score` (actor→person, privado por actor: academy/producer/venue/dj/instructor_score), `campaign` (actor, segmento, acción, resultado), `discount_code` (descuento/cortesía/comp), `actor_tag` (nota manual actor→person), `referral` (quién trajo a quién), `crm_trigger` (regla automática: win-back, trial expira, regular no compró),
-**Transaccional**: `rsvp` ("voy" — mencionado en features pero faltaba como entidad), `payment` (orden/ticket, pasarela, fee, neto — la liquidación lo necesita), `payout` (liquidación a productor/academia: periodo, monto, estado), `notification` (push/in-app; preferencias por categoría: social / transaccional / marketing-CRM), `user_block` (bloquear a alguien → no puede invitarte a sesión ni escanearte — safety del lado follower), `analytics_event` (append-only de eventos de producto → materialized views para Pro/CRM), `fiscal_profile` (RUT, razón social, empresa/persona, giro — requerido en todo rol que recibe liquidaciones o emite documentos)
+**Transaccional**: `rsvp` ("voy" — mencionado en features pero faltaba como entidad), `payment` (orden/ticket, pasarela, fee, neto — la liquidación lo necesita), `payout` (liquidación a productor/academia: periodo, monto, estado), `notification` (push/in-app; preferencias por categoría: social / transaccional / marketing-CRM), ~~`user_block`~~ (retirado junto al ciclo de invitaciones), `analytics_event` (append-only de eventos de producto → materialized views para Pro/CRM), `fiscal_profile` (RUT, razón social, empresa/persona, giro — requerido en todo rol que recibe liquidaciones o emite documentos)
 
 ---
 
@@ -717,7 +715,7 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 | Landing de evento | Lineup (DJ, sets, shows, cumpleañeros), quién va + amigos con mesa, leaderboard de la serie, comprar / guest list / reservar mesa, carta, fotos (Drive), sugerir canción |
 | Checkout preventa | Ticket + cargo de servicio, reserva de mesa opcional, sugerir canción opcional |
 | Mi QR | QR rotativo + badge destacado / corona 👑 — la pantalla que muestras en puerta y en pista |
-| En vivo | Nuevo baile (cámara), Mi QR, invitaciones pendientes (1 tap), contador Prime Time, progreso de la noche |
+| En vivo | Escanear QR (registrar baile), Mi QR, contador Prime Time, progreso de la noche |
 | Cola de ratings | "Bailes pendientes de puntuar" — 4 filas × 5 estrellas por sesión |
 | Score final | Card compartible de la noche (desbloqueada al cerrar ratings) → ruleta |
 | Perfil | Reputación agregada por estilo+rol, badges, streaks, puntos de temporada, nivel de comunidad |
@@ -726,7 +724,6 @@ Gestión integral — el benchmark es BoxMagic (reservas con aforo, membresías,
 | Pasaporte | Colección de badges y sellos con progreso |
 | Misiones | Activas con barra de progreso, disponibles, cumplidas |
 | Prácticas | Explorar prácticas cercanas, crear práctica (host), chat/comentarios de coordinación |
-| Disponible para bailar | Toggle de disponibilidad + feed de quién quiere practicar ahora |
 | Notificaciones | Preferencias por categoría: social / transaccional / marketing |
 
 Wireframe — pantalla "En vivo" (la pantalla de la noche):
@@ -927,7 +924,7 @@ El score sin acción es decoración. Estas son las piezas del CRM que no estaban
 |---|---|---|
 | **0** | Perfiles + QR personal, eventos/series, calendario, RSVP + amigos, check-in "Ya llegué" | Adopción base |
 | **1** | Ticketing preventa (Flow) + escaneo staff en puerta + check-in automático + gift/transferencia de tickets | **Revenue real + base instalada** |
-| **2** | Sesiones (invitación→confirmación, retro-declaración), ratings híbridos, progreso de la noche | **¿La gente escanea?** |
+| **2** | Sesiones (escaneo QR → confirmada al instante, retro-declaración), ratings híbridos, progreso de la noche | **¿La gente escanea?** |
 | **3** | Ranking Prime Time + reveal en vivo, rankings públicos (productor/local/DJ), métricas básicas productor | El incentivo y el pitch B2B |
 | **4** | SaaS Productor Pro / Local Pro (analíticas) | Monetización B2B |
 | **5** | Academias: score fidelidad → mensualidades → talleres → videos | Segundo producto |
@@ -1011,8 +1008,8 @@ Cuando haya tracción, la app Expo puede compartir API y design tokens con la PW
 ### Backend
 
 - **NestJS (TypeScript)** en la VM de Oracle — **arquitectura hexagonal** (ports & adapters): dominio puro sin framework, puertos para DB/pasarela/push, adapters Postgres/Flow/WebPush. **SOLID + clean code** — con 1 dev, la mantenibilidad ES la velocidad
-- **API REST** para CRUD + **WebSockets** (gateway de Nest) para tiempo real: contador Prime Time, invitaciones de baile, check-ins en vivo → Redis pub/sub
-- **Jobs en Redis** (BullMQ): notificaciones, `crm_trigger`, liquidaciones, cierre de ventanas de rating, expiración de invitaciones
+- **API REST** para CRUD + **WebSockets** (gateway de Nest) para tiempo real: contador Prime Time, notificaciones de bailes registrados, check-ins en vivo → Redis pub/sub
+- **Jobs en Redis** (BullMQ): notificaciones, `crm_trigger`, liquidaciones, cierre de ventanas de rating
 - **QR rotativo**: token firmado tipo TOTP (~30s de ventana) — verificable offline por staff con datos cacheados
 
 ### Notificaciones (sistema propio)
@@ -1021,7 +1018,7 @@ In-app (centro de notificaciones) + **Web Push (VAPID, gratis)**. Habilita todo 
 
 | Tipo | Ejemplos |
 |---|---|
-| Social | "X llegó al evento", "Y te invitó a bailar" (invitación pendiente), actividad de amigos |
+| Social | "X llegó al evento", "Y registró un baile contigo", actividad de amigos |
 | Transaccional | "Te puntuaron" (anónimo), "Ganaste el Prime Time", "Badge desbloqueado", resumen de la noche + ratings pendientes |
 | CRM/marketing | Campañas segmentadas, win-back, "tu trial expira", "regular que no compró preventa" |
 | Operacional | Staff: sync offline; productor: "se agotó la preventa" |
@@ -1111,7 +1108,7 @@ Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia)
 - **Stack técnico definido**: backend **NestJS + arquitectura hexagonal + SOLID/clean code**; frontend **Next.js + React PWA** (una sola app, todas las superficies); **Expo/RN como fase posterior opcional** (el checkout debe funcionar sin instalar); **Postgres** + Redis; design system **atomic design, dark-first**
 - Prime Time: **umbral escalado por aforo** (~20% del aforo esperado), configurable por productor dentro de límites de admin
 - Notificaciones: **sistema propio** — in-app + Web Push; habilita CRM/campaigns, "te puntuaron", "ganaste", etc. Preferencias por categoría
-- Core loop: **decline silencioso** (B) + **descartar** (A cancela su invitación), **cooldown ~4 min** entre sesiones del mismo par, invitación muestra foto+nombre, solo se puntúan sesiones confirmadas
+- Core loop: **alta solo por escaneo QR** (sesión nace confirmada) + **descartar** (A cancela su declaración pendiente), **cooldown ~4 min** entre sesiones del mismo par, notificación a la pareja escaneada con foto+nombre, solo se puntúan sesiones confirmadas
 - **Todos entran con cuenta** — no hay anónimos en puerta: staff crea cuenta ligera al momento, asocia entrada pagada o vende en app; casos borde se resuelven con `discount_code`
 - `discount_code` con **tipos predeterminados** (cumpleaños, cortesía, caso_borde_puerta, campaign, winback, staff_comp) + tracking completo de usos
 - **Sin reembolsos de ningún tipo** — cancelación → productor honra ticket en fecha reprogramada o emite cortesía (⚠️ validar ley del consumidor)

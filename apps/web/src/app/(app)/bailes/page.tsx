@@ -226,7 +226,7 @@ function Bailes() {
 
       {phase === "unauth" ? (
         <div className="flex flex-col items-center gap-6 py-10 text-center">
-          <p className="text-lg font-semibold">{t("scanToInvite")}</p>
+          <p className="text-lg font-semibold">{t("scanToDance")}</p>
           <Button href="/login" size="lg">
             {tCommon("login")}
           </Button>

@@ -172,69 +172,34 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
 
   // ═══════════════════════ SESSIONS ═══════════════════════
   describe("sesiones → notificaciones SOCIAL", () => {
-    it("invite → notifica al invitee (session.invite, data.sessionId)", async () => {
+    it("scan → notifica a la persona escaneada (session.confirmed, data.sessionId)", async () => {
       const { token } = await qr.mint(ids.bId);
       const res = await post(
-        "/api/sessions/invite",
+        "/api/sessions/scan",
         { qrToken: token, eventId: ids.eventId },
         aSession,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
       ids.sessionAB = body.id;
+      expect(body.status).toBe("CONFIRMED");
 
-      const notifs = await notifsFor(ids.bId, "session.invite");
+      const notifs = await notifsFor(ids.bId, "session.confirmed");
       expect(notifs).toHaveLength(1);
       expect(notifs[0].category).toBe("SOCIAL");
       expect(notifs[0].title).toContain("Wiring Inviter");
       expect(notifs[0].data).toEqual({ sessionId: ids.sessionAB });
-      // el inviter no recibe notificación de su propia invitación
+      // quien escanea no recibe notificación de su propio registro
       expect(await notifsFor(ids.aId)).toHaveLength(0);
-    });
-
-    it("confirm → notifica al inviter (session.confirmed)", async () => {
-      const res = await post(
-        `/api/sessions/${ids.sessionAB}/confirm`,
-        {},
-        bSession,
-      );
-      expect(res.status).toBe(200);
-      expect((await res.json()).status).toBe("CONFIRMED");
-
-      const notifs = await notifsFor(ids.aId, "session.confirmed");
-      expect(notifs).toHaveLength(1);
-      expect(notifs[0].category).toBe("SOCIAL");
-      expect(notifs[0].title).toContain("Wiring Invitee");
-      expect(notifs[0].data).toEqual({ sessionId: ids.sessionAB });
-    });
-
-    it("decline → notifica al inviter (session.declined)", async () => {
-      // par distinto (C → A) para no chocar con el cooldown del par A-B
-      const { token } = await qr.mint(ids.aId);
-      const invite = await post(
-        "/api/sessions/invite",
-        { qrToken: token, eventId: ids.eventId },
-        cSession,
-      );
-      expect(invite.status).toBe(201);
-      const s = await invite.json();
-
-      const res = await post(`/api/sessions/${s.id}/decline`, {}, aSession);
-      expect(res.status).toBe(200);
-
-      const notifs = await notifsFor(ids.cId, "session.declined");
-      expect(notifs).toHaveLength(1);
-      expect(notifs[0].category).toBe("SOCIAL");
-      expect(notifs[0].data).toEqual({ sessionId: s.id });
     });
   });
 
   describe("sesiones → hook de gamificación", () => {
     it("rate → status RATED y evalúa badges del rater Y del rated", async () => {
       // El catálogo Badge es global (seed + gamification.e2e también usan
-      // 'primera_bachata'): upsert, no create. Los awards previos del confirm
-      // se borran antes del rate — así el award solo puede venir del hook
-      // del rate (evaluateBadgesFor para ambos participantes).
+      // 'primera_bachata'): upsert, no create. Los awards previos se borran
+      // antes del rate — así el award solo puede venir del hook del rate
+      // (evaluateBadgesFor para ambos participantes).
       const badge = await prisma.badge.upsert({
         where: { key: "primera_bachata" },
         update: {},

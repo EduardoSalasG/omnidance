@@ -982,18 +982,6 @@ model AcademySubscription {
 
 // ═══════════════════ ECOSISTEMA ═══════════════════
 
-model PracticePartnerRequest {
-  id        String   @id @default(cuid())
-  personId  String
-  styleId   String?
-  role      DanceRole?
-  level     String?
-  location  String? // comuna / zona
-  note      String?
-  status    String   @default("OPEN") // OPEN | MATCHED | CLOSED
-  createdAt DateTime @default(now())
-}
-
 model VenueRental {
   id        String   @id @default(cuid())
   venue     Venue    @relation(fields: [venueId], references: [id])
@@ -1004,15 +992,6 @@ model VenueRental {
   price     Int?
   status    String   @default("REQUESTED") // REQUESTED | CONFIRMED | CANCELLED
   createdAt DateTime @default(now())
-}
-
-model AvailabilityToggle {
-  id        String    @id @default(cuid())
-  personId  String    @unique
-  available Boolean   @default(false) // "disponible para bailar"
-  until     DateTime?
-  location  String?
-  updatedAt DateTime  @updatedAt
 }
 
 model UserVerification {
@@ -1246,15 +1225,6 @@ model PushToken {
   token     String   @unique // Web Push subscription endpoint
   payload   Json // keys p256dh/auth
   createdAt DateTime @default(now())
-}
-
-model UserBlock {
-  id        String   @id @default(cuid())
-  blockerId String
-  blockedId String
-  createdAt DateTime @default(now())
-
-  @@unique([blockerId, blockedId])
 }
 
 model AnalyticsEvent {

@@ -2,15 +2,12 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { PrismaModule } from "../prisma.module";
-import { AvailabilityController } from "./infrastructure/availability.controller";
-import { BlocksController } from "./infrastructure/blocks.controller";
 import { EventEntryPassesController } from "./infrastructure/entry-passes.controller";
 import { FriendsController } from "./infrastructure/friends.controller";
 import {
   EventGuestListsController,
   GuestListsController,
 } from "./infrastructure/guest-lists.controller";
-import { PartnerRequestsController } from "./infrastructure/partner-requests.controller";
 import { PeopleController } from "./infrastructure/people.controller";
 import { PracticesController } from "./infrastructure/practices.controller";
 import { StylesController } from "./infrastructure/styles.controller";
@@ -18,7 +15,7 @@ import { VenueConsoleController } from "./infrastructure/venue-console.controlle
 import { VenuesController } from "./infrastructure/venues.controller";
 import { WaitlistController } from "./infrastructure/waitlist.controller";
 
-/** Social: guest lists, waitlist, prácticas, venues, matchmaking y disponibilidad. */
+/** Social: guest lists, waitlist, prácticas, venues, amistades y consola venue. */
 @Module({
   imports: [AuthModule, NotificationsModule, PrismaModule],
   controllers: [
@@ -32,9 +29,6 @@ import { WaitlistController } from "./infrastructure/waitlist.controller";
     // registra primero, /venues/mine matcha ":id" y la consola queda 404.
     VenueConsoleController,
     VenuesController,
-    PartnerRequestsController,
-    AvailabilityController,
-    BlocksController,
     FriendsController,
     PeopleController,
     EventEntryPassesController,

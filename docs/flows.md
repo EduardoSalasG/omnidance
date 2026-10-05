@@ -25,37 +25,40 @@ sequenceDiagram
     Note over W,A: POST /auth/logout borra la cookie
 ```
 
-## Sesión de baile — invitar → confirmar → puntuar
+## Sesión de baile — escanear QR → puntuar
 
 ```mermaid
 sequenceDiagram
-    actor A as Inviter
-    actor B as Invitee
+    actor A as Escáner
+    actor B as Escaneado
     participant API as SessionsController
     participant N as NotificationsService
     participant G as GamificationService
     participant DB as Postgres
 
-    A->>API: POST /sessions/invite {inviteeId, eventId}
-    API->>API: SessionsService: cooldown (session.cooldown_minutes),<br/>evento live, no auto-invitación
-    API->>DB: DanceSession(status=PENDING)
-    API->>N: notify B — session.invite
-    B->>API: POST /sessions/:id/confirm
-    API->>DB: status=CONFIRMED + confirmedAt
-    API->>N: notify A — session.confirmed
-    API->>G: evaluateBadgesFor(A) + evaluateBadgesFor(B)
+    A->>API: POST /sessions/scan {qrToken, eventId}
+    API->>API: QrService.verify(qrToken) → personId<br/>SessionsService: cooldown (session.cooldown_minutes),<br/>evento existe, no auto-registro
+    API->>DB: DanceSession(status=CONFIRMED, confirmedAt)
+    API->>N: notify B — session.confirmed
+    API->>G: evaluateBadgesFor(A) + evaluateBadgesFor(B)<br/>+ puntos session_confirmed a ambos
     A->>API: POST /sessions/:id/rate {score…}
     API->>DB: SessionRating upsert + status=RATED
     API->>G: evaluateBadgesFor(rater) + evaluateBadgesFor(rated)
     Note over B: la contraparte puede puntuar igual —<br/>RATED sigue siendo rateable
 ```
 
+El ciclo de invitación (`/sessions/invite` + `/:id/confirm` + `/:id/decline`)
+se eliminó: el escaneo QR en pista acredita presencia mutua, así que la
+sesión nace CONFIRMED. Las `DanceSession` históricas INVITED/DECLINED se
+conservan como dato. `POST /sessions/declare` (retro-declarar) sigue
+creando INVITED — su resolución es backlog separado.
+
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING: invite
-    PENDING --> CONFIRMED: invitee confirm
-    PENDING --> DECLINED: invitee decline
-    PENDING --> EXPIRED: ventana expiró (effectiveStatus)
+    [*] --> CONFIRMED: scan QR
+    [*] --> INVITED: declare (retro)
+    INVITED --> DISCARDED: inviter discard
+    INVITED --> EXPIRED: ventana expiró (effectiveStatus)
     CONFIRMED --> RATED: primer rating
     RATED --> RATED: rating contraparte (upsert)
     CONFIRMED --> EXPIRED: pasó la ventana sin rating
@@ -206,22 +209,16 @@ sequenceDiagram
 ```mermaid
 flowchart LR
     subgraph Public["Público (sin sesión)"]
-        AV["GET /availability<br/>quién está disponible"]
-        PR["GET /partner-requests<br/>feed de búsqueda de pareja"]
         ST["GET /styles · GET /venues<br/>catálogos"]
     end
     subgraph Auth["Con sesión"]
-        PAV["POST /availability<br/>upsert toggle + until/location"]
-        PPR["POST /partner-requests<br/>{styleId?, role, note?}"]
-        CPR["POST /partner-requests/:id/close"]
         RSVP["POST /events/:id/rsvp<br/>+ GET /me/rsvp (precarga)"]
     end
     Auth --> Public
 ```
 
 - `GET /me/rsvp` devuelve el RSVP propio por evento — la UI precarga el estado sin endpoint por-evento.
-- `availability` es upsert por personId; `until`/`location` ausentes limpian a null.
-- `partner-requests` valida `styleId` contra el catálogo (de `/api/styles`); el join person/style es manual (schema sin relaciones).
+- `/availability` y `/partner-requests` se eliminaron junto a sus modelos (los bailes se registran solo por escaneo QR).
 
 ## Admin — parámetros y auditoría
 
@@ -306,18 +303,17 @@ sequenceDiagram
     C->>Dom: GET /gamification/me/points → {seasonId, total, byReason}
 ```
 
-## Bloques y amistades (safety/social)
+## Amistades (social)
+
+El sistema de bloqueo de personas se eliminó completo (endpoints,
+`UserBlock` y su enforcement en invitaciones — los bailes se registran
+solo por escaneo QR en pista).
 
 ```mermaid
 sequenceDiagram
     actor U as Usuario
-    participant API as Blocks/Friends/Sessions Controllers
+    participant API as FriendsController
     participant DB as Postgres
-
-    U->>API: POST /blocks {personId} — silencioso, sin notificación
-    U->>API: POST /sessions/invite|declare
-    API->>DB: UserBlock (invitee → inviter) existe?
-    Note over API: sí → 403 genérico "no se puede enviar la invitación"<br/>NUNCA revelar que existe el bloqueo
 
     U->>API: POST /friends {personId} → PENDING + notifica al destinatario
     Note over DB: aId=solicitante, bId=destinatario<br/>solo bId acepta; ambos pueden borrar

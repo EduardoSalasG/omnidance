@@ -14,22 +14,12 @@ import { PrismaService } from "../../prisma.service";
 /**
  * Búsqueda de personas y perfil público — la base social para agregar
  * amigos. Privacidad: solo nombre, foto, estilos/rol autodeclarados y
- * estado de amistad; nunca email/teléfono. Respeta UserBlock en ambas
- * direcciones (bloqueados no se ven ni encuentran).
+ * estado de amistad; nunca email/teléfono.
  */
 @Controller("people")
 @UseGuards(SessionGuard)
 export class PeopleController {
   constructor(private readonly prisma: PrismaService) {}
-
-  /** IDs bloqueados en cualquier dirección respecto a `me`. */
-  private async blockedIds(me: string): Promise<string[]> {
-    const rows = await this.prisma.userBlock.findMany({
-      where: { OR: [{ blockerId: me }, { blockedId: me }] },
-      select: { blockerId: true, blockedId: true },
-    });
-    return rows.map((r) => (r.blockerId === me ? r.blockedId : r.blockerId));
-  }
 
   /** Estado de amistad entre `me` y cada id: none | sent | received | friends. */
   private async friendshipMap(me: string, ids: string[]) {
@@ -61,7 +51,7 @@ export class PeopleController {
 
   /**
    * GET /people/search?q= — busca por nombre (mín 2 chars). Excluye al
-   * propio usuario y a bloqueados en ambas direcciones.
+   * propio usuario.
    */
   @Get("search")
   async search(@Req() req: Request, @Query("q") q = "") {
@@ -69,10 +59,9 @@ export class PeopleController {
     const term = q.trim();
     if (term.length < 2) return [];
 
-    const blocked = await this.blockedIds(me);
     const people = await this.prisma.person.findMany({
       where: {
-        id: { notIn: [me, ...blocked] },
+        id: { not: me },
         name: { contains: term, mode: "insensitive" },
       },
       select: { id: true, name: true, photoUrl: true },
@@ -93,10 +82,6 @@ export class PeopleController {
   @Get(":id")
   async profile(@Param("id") id: string, @Req() req: Request) {
     const me = req.person!.id;
-    const blocked = await this.blockedIds(me);
-    if (blocked.includes(id)) {
-      throw new NotFoundException("persona no encontrada");
-    }
 
     const person = await this.prisma.person.findUnique({
       where: { id },

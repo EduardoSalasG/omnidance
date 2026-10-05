@@ -123,30 +123,8 @@ export function SessionCard({
         {meta && <Badge variant={meta.variant}>{t(meta.key)}</Badge>}
       </div>
 
-      {/* Invitación entrante: acción principal de la noche */}
-      {incoming && (
-        <div className="mt-4 flex gap-3">
-          <Button
-            size="lg"
-            className="flex-1"
-            disabled={busy}
-            onClick={() => act("confirm")}
-          >
-            {busy && pendingAction === "confirm" && <Spinner size="sm" />}
-            {t("confirm")}
-          </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            className="flex-1"
-            disabled={busy}
-            onClick={() => act("decline")}
-          >
-            {busy && pendingAction === "decline" && <Spinner size="sm" />}
-            {t("decline")}
-          </Button>
-        </div>
-      )}
+      {/* Invitación entrante: el ciclo confirm/decline se eliminó — las
+          invitaciones declaradas quedan pendientes hasta expirar. */}
 
       {/* Invitación saliente: descartar si no hubo baile */}
       {session.status === "INVITED" && !invitee && (

@@ -2750,26 +2750,6 @@ export async function seedDev(prisma: PrismaClient) {
     "Antonia Reyes quiere agregarte",
   );
 
-  // Búsqueda de pareja de práctica — tab Prácticas del modo Academia.
-  const bachataSensualId = await styleId("Bachata sensual");
-  await ensure(
-    () =>
-      prisma.practicePartnerRequest.findFirst({
-        where: { personId: dancer.id, status: "OPEN" },
-      }),
-    () =>
-      prisma.practicePartnerRequest.create({
-        data: {
-          personId: dancer.id,
-          styleId: bachataSensualId,
-          role: "FOLLOWER",
-          level: "Intermedio",
-          location: "Ñuñoa",
-          note: "Busco partner para practicar los martes",
-        },
-      }),
-  );
-
   // Password dev: mismo formato scrypt$N$r$p$salt$hash que AuthService.
   const salt = randomBytes(16);
   const key = scryptSync(DEV_PASSWORD, salt, 64, { N: 16384, r: 8, p: 1 });
