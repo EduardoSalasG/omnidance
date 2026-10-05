@@ -124,19 +124,29 @@ export default function PerfilPage() {
   // social (racha/puntos/insignias/bailes) o academia (inscripciones/
   // clases del mes) según el view-mode activo.
   const [kpis, setKpis] = useState<Kpi[] | null>(null);
+  // Fetch de KPIs falló → la sección se omite (mejor que skeleton
+  // perpetuo); el gate de pintura igual la espera como "settled".
+  const [kpisFailed, setKpisFailed] = useState(false);
   useEffect(() => {
     if (noSession || currentLens !== "DANCER") {
       setKpis(null);
+      setKpisFailed(false);
       return;
     }
     let cancelled = false;
     apiFetch(`/home/stats?role=DANCER&mode=${viewMode}`)
       .then(async (res) => {
-        if (cancelled || !res.ok) return;
+        if (cancelled) return;
+        if (!res.ok) {
+          setKpisFailed(true);
+          return;
+        }
         const stats = (await res.json()) as { kpis?: Kpi[] };
         setKpis(stats.kpis ?? []);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setKpisFailed(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -202,6 +212,23 @@ export default function PerfilPage() {
       : !ACADEMY_BADGE_KEYS.has(b.badge.key),
   );
 
+  // Gate del primer paint: los fetches de la lente van en paralelo con
+  // /me — el shell espera a que TODOS resuelvan (o fallen) para pintar
+  // una sola vez con el layout final. Sin esto la grilla de KPIs se
+  // insertaba entre identidad y la racha y "Semanas seguidas" bajaba
+  // de golpe (el skeleton no medía lo mismo que la grilla real).
+  // El latch es one-way: al cambiar de lente/mode los datos refetchean
+  // con skeleton in-card — nunca se vuelve al shell de página.
+  const lensSettled =
+    currentLens === "ADMIN" ||
+    ((streak !== null || streakFailed) &&
+      gamifFetched &&
+      (currentLens !== "DANCER" || kpis !== null || kpisFailed));
+  const [pageSettled, setPageSettled] = useState(false);
+  useEffect(() => {
+    if (!pageSettled && me && lensSettled) setPageSettled(true);
+  }, [pageSettled, me, lensSettled]);
+
   async function logout() {
     try {
       await apiFetch("/auth/logout", { method: "POST" });
@@ -232,12 +259,14 @@ export default function PerfilPage() {
     );
   }
 
-  if (state === "loading" || !me) {
+  if (state === "loading" || !me || !pageSettled) {
     // Shell skeleton con la forma real de la página — nunca pantalla en
     // blanco con spinner. La lente guardada (localStorage) ya decide qué
     // secciones esbozar: sin roles resueltos aún, resolveActiveRole cae
     // a DANCER y un productor vería skeletons de secciones que nunca le
-    // aparecen → leer el storage directo.
+    // aparecen → leer el storage directo. `pageSettled` además retiene
+    // el shell hasta que KPIs/racha/insignias resuelven: sin el gate la
+    // grilla se insertaba empujando la racha hacia abajo.
     const shellLens = picked ?? getStoredActiveRole() ?? "DANCER";
     return (
       <main
@@ -388,7 +417,7 @@ export default function PerfilPage() {
           el slot la grilla aparecía entre identidad y "Interactuar
           como" empujando todo hacia abajo. */}
       {currentActAs === "DANCER" &&
-        (kpis === null ? (
+        (kpis === null && !kpisFailed ? (
           <section aria-hidden="true">
             <Skeleton className="page-loading mb-3 h-4 w-36" />
             <ul className="grid grid-cols-2 gap-3">
@@ -400,6 +429,7 @@ export default function PerfilPage() {
             </ul>
           </section>
         ) : (
+          kpis !== null &&
           kpis.length > 0 && <KpiGrid kpis={kpis} label={th("insights")} />
         ))}
 
