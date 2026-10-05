@@ -14,7 +14,14 @@ import {
 import { useViewMode } from "@/lib/view-mode";
 import { useMe } from "@/lib/me-context";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
-import { Badge, Button, Card, RefreshIcon, Skeleton } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  RefreshIcon,
+  Skeleton,
+  XIcon,
+} from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 
 type Streak = {
@@ -64,6 +71,63 @@ function SubReturnNotice() {
     <p role="alert" className="text-sm text-red-400">
       {ts("subError")}
     </p>
+  );
+}
+
+// Recordatorio sutil (spec post-signup-profile-setup): visible mientras
+// falte algún campo del set post-registro (phone/instagram/gender o un
+// estilo de baile) y hasta que se descarte - quien prefiere no declarar
+// no lo ve para siempre. Vive solo en /perfil, no en el chrome global.
+function ProfileReminder() {
+  const t = useTranslations("profile");
+  const { me, refresh: refreshMe } = useMe();
+  const [busy, setBusy] = useState(false);
+  if (!me || me.onboarding?.["profile-reminder"]) return null;
+  const incomplete =
+    !me.phone ||
+    !me.instagram ||
+    !me.gender ||
+    (me.styleRoles ?? []).length === 0;
+  if (!incomplete) return null;
+
+  async function dismiss() {
+    setBusy(true);
+    try {
+      await apiFetch("/me/onboarding", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tour: "profile-reminder" }),
+      });
+      void refreshMe();
+    } catch {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="flex items-center gap-3 border-neon/30 p-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">{t("reminder.title")}</p>
+        <p className="mt-0.5 text-xs text-white/60">{t("reminder.body")}</p>
+      </div>
+      <Button
+        href="/perfil/datos"
+        size="sm"
+        variant="secondary"
+        className="shrink-0"
+      >
+        {t("reminder.cta")}
+      </Button>
+      <button
+        type="button"
+        onClick={() => void dismiss()}
+        disabled={busy}
+        aria-label={t("reminder.dismiss")}
+        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+      >
+        <XIcon className="h-5 w-5" />
+      </button>
+    </Card>
   );
 }
 
@@ -418,6 +482,8 @@ export default function PerfilPage() {
           </svg>
         </Card>
       </Link>
+
+      <ProfileReminder />
 
       {/* Tu actividad - todos los insights de la lente DANCER activa
           (social o academia); el home social muestra solo 2. Mientras

@@ -120,8 +120,22 @@ export default function LoginForm({
       setLoading(false);
       if (res.ok) {
         if (mode === "magic") setSent(true);
-        // next solo rutas internas - nunca un open redirect.
-        else go(next?.startsWith("/") && !next.startsWith("//") ? next : "/inicio");
+        else {
+          // next solo rutas internas - nunca un open redirect.
+          const safeNext =
+            next?.startsWith("/") && !next.startsWith("//") ? next : null;
+          // Tras crear cuenta → /bienvenida (paso de perfil salteable,
+          // spec post-signup-profile-setup); el next se propaga.
+          if (mode === "register") {
+            go(
+              safeNext
+                ? `/bienvenida?next=${encodeURIComponent(safeNext)}`
+                : "/bienvenida",
+            );
+          } else {
+            go(safeNext ?? "/inicio");
+          }
+        }
         return;
       }
       if (res.status === 409) setError(t("emailTaken"));

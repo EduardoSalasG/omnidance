@@ -25,6 +25,7 @@ import survey from "./parts/survey.json";
 import tours from "./parts/tours.json";
 import venue from "./parts/venue.json";
 import wallet from "./parts/wallet.json";
+import welcome from "./parts/welcome.json";
 
 type Dict = Record<string, unknown>;
 
@@ -76,6 +77,7 @@ const parts = [
   tours,
   venue,
   wallet,
+  welcome,
 ] as Dict[];
 
 /** Diccionario completo: base + parts. Compartido por request.ts y layout. */

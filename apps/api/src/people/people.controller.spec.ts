@@ -68,6 +68,20 @@ class FakePrisma {
       if (!p) throw new Error("not found");
       return p;
     },
+    findUnique: async ({
+      where,
+    }: {
+      where: { id?: string; phone?: string };
+    }) => {
+      if (where.id) return this.people.get(where.id) ?? null;
+      if (where.phone) {
+        return (
+          [...this.people.values()].find((p) => p.phone === where.phone) ??
+          null
+        );
+      }
+      return null;
+    },
     update: async ({
       where,
       data,
@@ -225,6 +239,30 @@ describe("PeopleController", () => {
         plainToInstance(UpdateMeDto, { gender: "X" }),
       );
       expect(errors.some((e) => e.property === "gender")).toBe(true);
+    });
+  });
+
+  describe("PATCH /me phone", () => {
+    it("teléfono de otra cuenta → ConflictException phone_exists", async () => {
+      prisma.people.set("otra", {
+        ...mkPerson("otra"),
+        phone: "+56911111111",
+      });
+      await expect(
+        ctrl.updateMe(reqAs("me"), { phone: "+56 9 1111 1111" }),
+      ).rejects.toThrow("phone_exists");
+      expect(prisma.personUpdates).toHaveLength(0);
+    });
+
+    it("su propio teléfono ya registrado → guarda sin conflicto", async () => {
+      prisma.people.get("me")!.phone = "+56911111111";
+      await ctrl.updateMe(reqAs("me"), { phone: "+56 9 1111-1111" });
+      expect(prisma.personUpdates.at(-1)).toEqual({ phone: "+56911111111" });
+    });
+
+    it("teléfono libre → normaliza y persiste", async () => {
+      await ctrl.updateMe(reqAs("me"), { phone: "+56 9 8765 4321" });
+      expect(prisma.personUpdates.at(-1)).toEqual({ phone: "+56987654321" });
     });
   });
 
