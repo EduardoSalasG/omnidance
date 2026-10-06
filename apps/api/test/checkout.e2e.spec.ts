@@ -27,8 +27,8 @@ describe("checkout + payments e2e", () => {
     noPresaleId: "", // PUBLISHED sin presalePrice
     cappedId: "", // PUBLISHED presaleCap agotado
     otherEventId: "", // para código con scope de otro evento
-    feeEventId: "", // PUBLISHED con serviceFeeClp=900 (override admin)
-    zeroFeeEventId: "", // PUBLISHED con serviceFeeClp=0 (override a cero)
+    feeEventId: "", // PUBLISHED con platformFeePct=8 (override admin)
+    zeroFeeEventId: "", // PUBLISHED con platformFeePct=0 (promo 0%)
     tablesEventId: "", // PUBLISHED con tablesTotal=4 (ofrece mesas)
   };
   const codeIds: string[] = [];
@@ -127,7 +127,7 @@ describe("checkout + payments e2e", () => {
           name: `Fee Override ${suffix}`,
           status: "PUBLISHED",
           presalePrice: 10000,
-          serviceFeeClp: 900,
+          platformFeePct: 8,
         },
       }),
       prisma.event.create({
@@ -136,7 +136,7 @@ describe("checkout + payments e2e", () => {
           name: `Fee Cero ${suffix}`,
           status: "PUBLISHED",
           presalePrice: 10000,
-          serviceFeeClp: 0,
+          platformFeePct: 0,
         },
       }),
       prisma.event.create({
@@ -324,8 +324,7 @@ describe("checkout + payments e2e", () => {
       expect(body.quote).toEqual({
         listPrice: 10000,
         discount: 0,
-        serviceFee: 500,
-        total: 10500,
+        total: 10000,
       });
       const payment = await prisma.payment.findUniqueOrThrow({
         where: { id: body.paymentId },
@@ -335,7 +334,13 @@ describe("checkout + payments e2e", () => {
       expect(payment.personId).toBe(buyerId);
       expect(payment.eventId).toBe(ids.eventId);
       expect(payment.discountCodeId).toBeNull();
-      expect(payment.amount).toBe(10500);
+      // El comprador paga el precio publicado exacto; la comisión all-in
+      // se congela en el pago y se descuenta de la liquidación del
+      // productor (spec producer-fee-model).
+      expect(payment.amount).toBe(10000);
+      expect(payment.feeMode).toBe("MANAGED");
+      expect(payment.platformFeeRate).toBe(10);
+      expect(payment.producerNetClp).toBe(9000);
       expect(payment.gatewayRef).toBe(`stub-${payment.refId}`);
     });
   });
@@ -578,8 +583,7 @@ describe("checkout + payments e2e", () => {
       expect(body.quote).toEqual({
         listPrice: 10000,
         discount: 2000,
-        serviceFee: 500, // fee fijo SERVICE_FEE.PRESALE_CLP
-        total: 8500,
+        total: 8000,
       });
       paymentId = body.paymentId;
       const payment = await prisma.payment.findUniqueOrThrow({
@@ -608,7 +612,7 @@ describe("checkout + payments e2e", () => {
       expect(ticket.status).toBe("ACTIVE");
       expect(ticket.buyerId).toBe(buyerId);
       expect(ticket.listPrice).toBe(10000);
-      expect(ticket.serviceFee).toBe(500);
+      expect(ticket.serviceFee).toBe(0); // sin cargo al comprador
       expect(ticket.discountCodeId).toBe(promoCodeId);
 
       const redemption = await prisma.discountRedemption.findFirstOrThrow({
@@ -683,11 +687,11 @@ describe("checkout + payments e2e", () => {
     });
   });
 
-  describe("serviceFeeClp por evento (override admin)", () => {
+  describe("platformFeePct por evento (override admin)", () => {
     let feePaymentId: string;
     let feeRefId: string;
 
-    it("checkout usa el override del evento → serviceFee 900 y amount 10900", async () => {
+    it("checkout congela el override del evento → platformFeeRate 8, comprador paga precio exacto", async () => {
       const res = await post(
         "/api/checkout/ticket",
         { eventId: ids.feeEventId },
@@ -698,18 +702,20 @@ describe("checkout + payments e2e", () => {
       expect(body.quote).toEqual({
         listPrice: 10000,
         discount: 0,
-        serviceFee: 900, // override del evento, no el param global (500)
-        total: 10900,
+        total: 10000,
       });
       feePaymentId = body.paymentId;
       const payment = await prisma.payment.findUniqueOrThrow({
         where: { id: feePaymentId },
       });
-      expect(payment.amount).toBe(10900);
+      expect(payment.amount).toBe(10000);
+      expect(payment.feeMode).toBe("MANAGED");
+      expect(payment.platformFeeRate).toBe(8); // override, no el global 10
+      expect(payment.producerNetClp).toBe(9200); // 10000 − 8%
       feeRefId = payment.refId;
     });
 
-    it("webhook PAID emite el ticket con el serviceFee del override", async () => {
+    it("webhook PAID emite el ticket sin cargo al comprador", async () => {
       const res = await post("/api/payments/webhook", {
         refId: feeRefId,
         status: "PAID",
@@ -719,11 +725,11 @@ describe("checkout + payments e2e", () => {
       const ticket = await prisma.ticket.findFirstOrThrow({
         where: { eventId: ids.feeEventId, ownerId: buyerId },
       });
-      expect(ticket.serviceFee).toBe(900);
+      expect(ticket.serviceFee).toBe(0);
       expect(ticket.listPrice).toBe(10000);
     });
 
-    it("override 0 → sin cargo de servicio (serviceFee 0, total = lista)", async () => {
+    it("override 0 → comisión 0% congelada (producerNet = amount)", async () => {
       const res = await post(
         "/api/checkout/ticket",
         { eventId: ids.zeroFeeEventId },
@@ -734,13 +740,15 @@ describe("checkout + payments e2e", () => {
       expect(body.quote).toEqual({
         listPrice: 10000,
         discount: 0,
-        serviceFee: 0,
         total: 10000,
       });
       const payment = await prisma.payment.findUniqueOrThrow({
         where: { id: body.paymentId },
       });
       expect(payment.amount).toBe(10000);
+      expect(payment.feeMode).toBe("MANAGED");
+      expect(payment.platformFeeRate).toBe(0);
+      expect(payment.producerNetClp).toBe(10000);
     });
   });
 
@@ -793,7 +801,7 @@ describe("checkout + payments e2e", () => {
       expect(body.id).toBe(payment.id);
       expect(body.status).toBe("PAID");
       expect(body.orderType).toBe("TICKET");
-      expect(body.amount).toBe(8500);
+      expect(body.amount).toBe(8000);
     });
 
     it("pago ajeno → 404", async () => {

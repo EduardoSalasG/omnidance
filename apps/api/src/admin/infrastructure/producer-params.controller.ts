@@ -20,21 +20,12 @@ import { ParamsService } from "../../params/params.service";
 import { PRESALE_CUTOFF_MAX_MINUTES } from "../../common/presale-cutoff";
 
 class ProducerFeeParamsDto {
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  serviceFeeClp?: number | null;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  doorAppFeeClp?: number | null;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  doorCashFeeClp?: number | null;
-
+  /**
+   * Comisión todo incluido del productor (spec producer-fee-model):
+   * pasarela + fee neto + IVA, descontada de su liquidación. null →
+   * param global fees.managed_allin_pct (default 10). La "oferta" de
+   * onboarding es bajar este % (ej. 8).
+   */
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -55,9 +46,6 @@ class ProducerFeeParamsDto {
 }
 
 const FEE_FIELDS = [
-  "serviceFeeClp",
-  "doorAppFeeClp",
-  "doorCashFeeClp",
   "platformFeePct",
   "presaleCutoffMinutes",
 ] as const;
@@ -153,34 +141,25 @@ export class AdminProducerParamsController {
   }
 
   /**
-   * Vista del admin: defaults guardados + resolución efectiva de cada fee
-   * (default del productor ?? param global), para que se vea el valor que
-   * en realidad se cobrará.
+   * Vista del admin: defaults guardados + resolución efectiva (default
+   * del productor ?? param global), para que se vea la comisión que en
+   * realidad se cobrará. Los serviceFeeClp/door*FeeClp legacy dejan de
+   * exponerse (spec producer-fee-model) - las columnas quedan inertes.
    */
   private async buildView(producerId: string) {
     const defaults = await this.params.getProducerParams(producerId);
-    const [presale, doorApp, doorCash, platformPct, cutoffHour] =
-      await Promise.all([
-        this.params.getNumber("service_fee.presale_clp", 500),
-        this.params.getNumber("service_fee.door_app_clp", 700),
-        this.params.getNumber("service_fee.door_cash_clp", 0),
-        this.params.getNumber("platform_fee.default_pct", 0),
-        this.params.getNumber("presale.cutoff_hour", 19),
-      ]);
+    const [allinPct, cutoffHour] = await Promise.all([
+      this.params.getNumber("fees.managed_allin_pct", 10),
+      this.params.getNumber("presale.cutoff_hour", 19),
+    ]);
     return {
       producerId,
       defaults: defaults ?? {
-        serviceFeeClp: null,
-        doorAppFeeClp: null,
-        doorCashFeeClp: null,
         platformFeePct: null,
         presaleCutoffMinutes: null,
       },
       effective: {
-        serviceFeeClp: defaults?.serviceFeeClp ?? presale,
-        doorAppFeeClp: defaults?.doorAppFeeClp ?? doorApp,
-        doorCashFeeClp: defaults?.doorCashFeeClp ?? doorCash,
-        platformFeePct: defaults?.platformFeePct ?? platformPct,
+        platformFeePct: defaults?.platformFeePct ?? allinPct,
         // el efectivo del corte se expresa en los mismos minutos del día
         // del evento (el global se guarda en horas).
         presaleCutoffMinutes:

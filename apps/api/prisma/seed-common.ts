@@ -73,17 +73,24 @@ export const PARAM_DEFAULTS: Array<{
   value: unknown;
   description: string;
 }> = [
-  { key: "service_fee.presale_clp", value: 500, description: "Cargo por servicio por ticket de preventa (CLP)" },
-  { key: "service_fee.door_app_clp", value: 700, description: "Cargo por servicio venta en puerta por app (CLP)" },
-  { key: "service_fee.door_cash_clp", value: 0, description: "Cargo por servicio registro en efectivo (CLP)" },
+  // Los keys service_fee.* quedaron fuera del modelo (spec
+  // producer-fee-model): el comprador paga el precio publicado exacto.
+  // Filas legacy pueden persistir en DBs existentes (el upsert no borra)
+  // y solo las lee el settlement para reconstruir tickets de pagos
+  // legacy sin unitServiceFee congelado.
   { key: "session.cooldown_minutes", value: 4, description: "Minutos de cooldown entre sesiones del mismo par" },
   { key: "qr.rotation_seconds", value: 60, description: "Segundos de vigencia del QR personal rotativo" },
   { key: "prime_time.window_minutes", value: 30, description: "Minutos de la ventana Prime Time" },
   { key: "prime_time.threshold_pct", value: 0.2, description: "Umbral Prime Time como fracción del aforo" },
   { key: "early_checkin.cutoff_minutes", value: 1380, description: "Minutos desde medianoche - check-in antes de esta hora (23:00) cuenta como temprano (badge madrugador + puntos early_checkin)" },
   { key: "series_pass.price_clp", value: 25000, description: "Precio mensual del pase de serie (CLP) - fallback si la serie no define precio propio" },
-  { key: "service_fee.series_pass_clp", value: 500, description: "Cargo por servicio del pase de serie (CLP)" },
-  { key: "platform_fee.default_pct", value: 0, description: "Comisión de plataforma sobre ventas (%) - se descuenta del gross al liquidar; override por productor y por evento" },
+  { key: "platform_fee.default_pct", value: 0, description: "Comisión legacy sobre ventas (%) - solo para pagos pre-modelo sin desglose congelado (feeMode null); el modelo nuevo usa fees.managed_allin_pct" },
+  // ─── Modelo comisión todo incluido (spec producer-fee-model) ───
+  // El comprador paga el precio publicado exacto; la plataforma cobra al
+  // productor una comisión all-in que incluye pasarela + fee neto + IVA.
+  { key: "fees.managed_allin_pct", value: 10, description: "Comisión todo incluido sobre ventas gestionadas (%) - default global; cadena: override evento → default productor (platformFeePct) → este param" },
+  { key: "gateway_fee.card_pct", value: 3.19, description: "Costo esperado de pasarela por tarjeta (%) - base del desglose all-in de órdenes MANAGED" },
+  { key: "tax.iva_pct", value: 19, description: "IVA (%) aplicado sobre el fee neto de plataforma - componente de la comisión all-in" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
   { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota - después la reserva se puede cancelar pero la clase se pierde" },
   // ─── SaaS billing (spec academy-saas-billing) ───

@@ -25,11 +25,22 @@ import {
   classStart,
   effectiveCapacity,
 } from "../../academies/domain/academy.service";
-import { SERVICE_FEE } from "@omnidance/shared";
+import {
+  managedFeeBreakdown,
+  resolvePlatformFeeRate,
+  academyFeeBreakdown,
+  type FeeBreakdown,
+} from "../../common/fee-breakdown";
+import { emitPaymentEvent } from "../domain/payment-ledger";
+import type { Prisma } from "@prisma/client";
 
 // Una orden PENDING solo reserva cupo mientras el pago puede completarse;
 // pasado el TTL se considera abandonada y deja de contar contra el cap.
 const PENDING_ORDER_TTL_MS = 30 * 60 * 1000;
+
+// Órdenes de academia (MEMBERSHIP/WORKSHOP/PRIVATE): modelo SaaS - sin
+// comisión de plataforma; el costo de pasarela se liquida al actor como
+// passthrough en el payout ACADEMY (spec producer-fee-model).
 
 export class EventNotFoundError extends Error {
   constructor() {
@@ -277,6 +288,63 @@ export class CheckoutService {
     private readonly settlement: PaymentSettlementService,
   ) {}
 
+  /**
+   * Crea la orden y congela la descomposición del fee en la misma tx +
+   * emite FEE_ASSESSED al ledger hash-chain (spec producer-fee-model):
+   * la tasa aplicada queda evidenciada y nunca se recalcula después.
+   */
+  private async createAssessedPayment(
+    data: Prisma.PaymentUncheckedCreateInput,
+    breakdown: FeeBreakdown,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const payment = await tx.payment.create({
+        data: {
+          ...data,
+          feeMode: breakdown.feeMode,
+          platformFeeRate: breakdown.platformFeeRate,
+          platformFeeNetClp: breakdown.platformFeeNetClp,
+          platformFeeVatClp: breakdown.platformFeeVatClp,
+          gatewayFeeExpected: breakdown.gatewayFeeExpected,
+          producerNetClp: breakdown.producerNetClp,
+        },
+      });
+      await emitPaymentEvent(tx, payment.id, "FEE_ASSESSED", "checkout", {
+        feeMode: breakdown.feeMode,
+        platformFeeRate: breakdown.platformFeeRate,
+        platformFeeNetClp: breakdown.platformFeeNetClp,
+        platformFeeVatClp: breakdown.platformFeeVatClp,
+        gatewayFeeExpected: breakdown.gatewayFeeExpected,
+        producerNetClp: breakdown.producerNetClp,
+      });
+      return payment;
+    });
+  }
+
+  /** Desglose ACADEMY con la pasarela esperada por gateway_fee.card_pct. */
+  private async academyBreakdown(amount: number): Promise<FeeBreakdown> {
+    const cardPct = await this.params.getNumber("gateway_fee.card_pct", 3.19);
+    return academyFeeBreakdown(amount, cardPct);
+  }
+
+  /** Tasa todo incluido + costos esperados para órdenes del productor. */
+  private async producerFeeContext(
+    eventOrNull: { platformFeePct?: number | null } | null,
+    producerParams: { platformFeePct?: number | null } | null,
+  ) {
+    const [globalPct, cardPct, ivaPct] = await Promise.all([
+      this.params.getNumber("fees.managed_allin_pct", 10),
+      this.params.getNumber("gateway_fee.card_pct", 3.19),
+      this.params.getNumber("tax.iva_pct", 19),
+    ]);
+    const allInPct = resolvePlatformFeeRate(
+      eventOrNull ?? {},
+      producerParams,
+      globalPct,
+    );
+    return { allInPct, cardPct, ivaPct };
+  }
+
   async purchaseTicket(
     personId: string,
     input: PurchaseTicketInput,
@@ -292,9 +360,8 @@ export class CheckoutService {
         presaleCap: true,
         doorPrice: true,
         doorCap: true,
-        doorAppFeeClp: true,
         seriesId: true,
-        serviceFeeClp: true,
+        platformFeePct: true,
         producerId: true,
         presaleCutoffMinutes: true,
         tablesTotal: true,
@@ -328,11 +395,11 @@ export class CheckoutService {
       }
     }
 
-    // Canal de venta (spec: cargos diferenciados por canal - preventa
-    // +$500 / puerta app +$700). El corte de la preventa se resuelve en
-    // cadena (event-presale-cutoff): override del evento → default del
-    // productor → presale.cutoff_hour global; desde ahí y durante el
-    // evento LIVE la app vende a precio de puerta.
+    // Canal de venta: preventa hasta el corte resuelto en cadena
+    // (event-presale-cutoff: evento → productor → presale.cutoff_hour),
+    // después y durante LIVE la app vende a precio de puerta. Ambos
+    // canales cobran al comprador solo la lista - la comisión "todo
+    // incluido" la paga el productor (producer-fee-model).
     const now = new Date();
     // Un evento que ya terminó no vende por ningún canal - un evento que
     // quedó LIVE pasado su endsAt tampoco (el staff pudo no cerrarlo).
@@ -521,33 +588,24 @@ export class CheckoutService {
       if (!check.ok) throw new InvalidDiscountError(check.reason);
     }
 
-    // fee parametrizable por canal: override del evento → default del
-    // productor → PlatformParam → env → default del shared.
-    const serviceFeeClp =
-      channel === "PRESALE"
-        ? (event.serviceFeeClp ??
-          producerParams?.serviceFeeClp ??
-          (await this.params.getNumber(
-            "service_fee.presale_clp",
-            Number(process.env.SERVICE_FEE_CLP ?? SERVICE_FEE.PRESALE_CLP),
-          )))
-        : (event.doorAppFeeClp ??
-          producerParams?.doorAppFeeClp ??
-          (await this.params.getNumber(
-            "service_fee.door_app_clp",
-            SERVICE_FEE.DOOR_APP_CLP,
-          )));
+    // Comisión "todo incluido" al productor (producer-fee-model): tasa en
+    // cadena evento → productor → fees.managed_allin_pct, congelada en el
+    // Payment junto con el desglose (pasarela al costo + neto + IVA). El
+    // comprador paga solo lista × cantidad − descuento de la orden.
+    const { allInPct, cardPct, ivaPct } = await this.producerFeeContext(
+      event,
+      producerParams,
+    );
     // quote por entrada; el descuento se aplica una vez por orden (no por
     // ticket) para no multiplicar el beneficio del código.
     const unit = this.pricing.quote({
       listPrice:
         channel === "PRESALE" ? event.presalePrice! : event.doorPrice!,
-      serviceFeeClp,
       discount: code,
     });
-    const orderTotal =
-      (unit.listPrice + unit.serviceFee) * quantity - unit.discount;
+    const orderTotal = unit.listPrice * quantity - unit.discount;
     const quote: Quote = { ...unit, total: orderTotal };
+    const breakdown = managedFeeBreakdown(orderTotal, allInPct, cardPct, ivaPct);
 
     // refId correlaciona con la pasarela y el webhook; eventId/discountCodeId
     // también quedan desnormalizados en Payment para reporting. quantity +
@@ -558,8 +616,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const payment = await this.prisma.payment.create({
-      data: {
+    const payment = await this.createAssessedPayment(
+      {
         orderType: "TICKET",
         refId,
         personId,
@@ -578,12 +636,13 @@ export class CheckoutService {
             : null,
         channel,
         unitListPrice: unit.listPrice,
-        unitServiceFee: unit.serviceFee,
+        unitServiceFee: 0, // ya no existe fee al comprador
         // La orden $0 nunca toca la pasarela: "FREE" la distingue en el
         // libro (misma convención que "MANUAL" de los claims).
         gateway: orderTotal === 0 ? "FREE" : this.gateway.name,
       },
-    });
+      breakdown,
+    );
 
     // SongSuggestion: se crea ya (ligada a personId+eventId) porque el
     // webhook no recibe el texto - el top-N filtra por ticket pagado, así
@@ -715,11 +774,7 @@ export class CheckoutService {
 
     // El descuento se aplica una vez por orden (= unit.discount del
     // pricing, no por ticket) - igual que el total de purchaseTicket.
-    const unit = this.pricing.quote({
-      listPrice,
-      serviceFeeClp: 0,
-      discount: code,
-    });
+    const unit = this.pricing.quote({ listPrice, discount: code });
     return { valid: true, discountClp: unit.discount };
   }
 
@@ -764,14 +819,17 @@ export class CheckoutService {
     const producerParams = await this.params.getProducerParams(
       series.producerId,
     );
-    const serviceFeeClp =
-      producerParams?.serviceFeeClp ??
-      (await this.params.getNumber("service_fee.series_pass_clp", 500));
-    const quote = this.pricing.quote({
-      listPrice,
-      serviceFeeClp,
-      discount: null,
-    });
+    const { allInPct, cardPct, ivaPct } = await this.producerFeeContext(
+      null,
+      producerParams,
+    );
+    const quote = this.pricing.quote({ listPrice, discount: null });
+    const breakdown = managedFeeBreakdown(
+      quote.total,
+      allInPct,
+      cardPct,
+      ivaPct,
+    );
 
     // refId = sp_<seriesId>_<month>_<uuid>: como no hay columna para la serie
     // en Payment (eventId queda null), el refId lleva todo el contexto - el
@@ -782,8 +840,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const payment = await this.prisma.payment.create({
-      data: {
+    const payment = await this.createAssessedPayment(
+      {
         orderType: "SERIES_PASS",
         refId,
         personId,
@@ -794,7 +852,8 @@ export class CheckoutService {
         net: quote.total,
         gateway: this.gateway.name,
       },
-    });
+      breakdown,
+    );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const order = await this.gateway.createOrder({
@@ -853,17 +912,11 @@ export class CheckoutService {
       );
     }
 
-    // Precio del plan desde DB (nunca del cliente). SIN cargo de servicio:
-    // modelo SaaS (spec academy-saas-billing) - la academia paga su
-    // suscripción y vende sin comisión al alumno; el costo Flow se liquida
-    // en su payout (línea GATEWAY_FEE_PASSTHROUGH). Defensivo en código:
-    // no depende del param service_fee.membership_clp (deprecated para
-    // órdenes de academia), el fee es 0 para MEMBERSHIP siempre.
-    const quote = this.pricing.quote({
-      listPrice: plan.price,
-      serviceFeeClp: 0,
-      discount: null,
-    });
+    // Precio del plan desde DB (nunca del cliente) = total exacto: modelo
+    // SaaS (spec academy-saas-billing) - la academia paga su suscripción y
+    // vende sin comisión; el costo Flow se liquida en su payout (línea
+    // GATEWAY_FEE_PASSTHROUGH). feeMode ACADEMY lo marca en el libro.
+    const quote = this.pricing.quote({ listPrice: plan.price, discount: null });
 
     // refId = mem_<planId>_<uuid>: Payment no tiene columna para el plan,
     // así que el contexto viaja aquí - el webhook lo decodifica al PAID.
@@ -873,8 +926,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const payment = await this.prisma.payment.create({
-      data: {
+    const payment = await this.createAssessedPayment(
+      {
         orderType: "MEMBERSHIP",
         refId,
         personId,
@@ -885,7 +938,8 @@ export class CheckoutService {
         net: quote.total,
         gateway: this.gateway.name,
       },
-    });
+      await this.academyBreakdown(quote.total),
+    );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const order = await this.gateway.createOrder({
@@ -946,12 +1000,6 @@ export class CheckoutService {
       );
     }
 
-    // Sin cargo de servicio en productos de academia (modelo SaaS - spec
-    // academy-saas-billing): el alumno paga solo lo que la academia fija;
-    // el costo Flow se liquida en su payout. Defensivo: no lee el param
-    // service_fee.membership_clp (deprecated para órdenes de academia).
-    const serviceFeeClp = 0;
-
     // TRIAL nunca extiende la vigencia vigente - se materializa como
     // enrollment independiente desde now; sin lookups de vigencia/suscripción.
     if (plan.type === "TRIAL") {
@@ -966,8 +1014,7 @@ export class CheckoutService {
           description: plan.description,
         },
         academy: { id: plan.academy.id, name: plan.academy.name },
-        serviceFeeClp,
-        totalClp: plan.price + serviceFeeClp,
+        totalClp: plan.price,
         recurring: false,
         vigenciaEndsAt:
           membershipEndsAt(plan, new Date())?.toISOString() ?? null,
@@ -1017,8 +1064,7 @@ export class CheckoutService {
         description: plan.description,
       },
       academy: { id: plan.academy.id, name: plan.academy.name },
-      serviceFeeClp,
-      totalClp: plan.price + serviceFeeClp,
+      totalClp: plan.price,
       recurring: RECURRING_PLAN_TYPES.has(plan.type),
       vigenciaEndsAt: vigenciaEndsAt?.toISOString() ?? null,
       // Fin de la vigencia vigente - el checkout la muestra cuando la
@@ -1107,17 +1153,11 @@ export class CheckoutService {
         select: { status: true },
       }),
     ]);
-    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
-    // la clase suelta cobra solo el dropInPrice de la serie.
-    const serviceFeeClp = 0;
-    const quote = this.pricing.quote({
-      listPrice,
-      serviceFeeClp,
-      discount: null,
-    });
+    // Precio exacto (modelo SaaS): la clase suelta cobra solo el
+    // dropInPrice de la serie.
+    const quote = this.pricing.quote({ listPrice, discount: null });
     return {
       ...quote,
-      serviceFee: quote.serviceFee,
       spotsLeft: Math.max(capacity - booked, 0),
       alreadyBooked: !!mine,
       class: {
@@ -1170,14 +1210,9 @@ export class CheckoutService {
     // pagó, queda en cola, y la academia gestiona el aforo.
     if (booked >= capacity) throw new ClassSoldOutError();
 
-    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
-    // la orden WORKSHOP cobra solo el dropInPrice.
-    const serviceFeeClp = 0;
-    const quote = this.pricing.quote({
-      listPrice,
-      serviceFeeClp,
-      discount: null,
-    });
+    // Precio exacto (modelo SaaS): la orden WORKSHOP cobra solo el
+    // dropInPrice; feeMode ACADEMY en el libro.
+    const quote = this.pricing.quote({ listPrice, discount: null });
 
     const refId = encodeClassRef(cls.id);
     const person = await this.prisma.person.findUnique({
@@ -1185,8 +1220,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const payment = await this.prisma.payment.create({
-      data: {
+    const payment = await this.createAssessedPayment(
+      {
         orderType: "WORKSHOP",
         refId,
         personId,
@@ -1197,10 +1232,11 @@ export class CheckoutService {
         net: quote.total,
         quantity: 1,
         unitListPrice: quote.listPrice,
-        unitServiceFee: quote.serviceFee,
+        unitServiceFee: 0,
         gateway: this.gateway.name,
       },
-    });
+      await this.academyBreakdown(quote.total),
+    );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const order = await this.gateway.createOrder({
@@ -1255,14 +1291,9 @@ export class CheckoutService {
   async privateClassQuote(personId: string, academyId: string) {
     void personId;
     const { academy, listPrice } = await this.purchasableAcademy(academyId);
-    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
-    // la particular cobra solo el privateLessonPrice de la academia.
-    const serviceFeeClp = 0;
-    const quote = this.pricing.quote({
-      listPrice,
-      serviceFeeClp,
-      discount: null,
-    });
+    // Precio exacto (modelo SaaS): la particular cobra solo el
+    // privateLessonPrice de la academia.
+    const quote = this.pricing.quote({ listPrice, discount: null });
     return {
       ...quote,
       academy: { id: academy.id, name: academy.name },
@@ -1284,14 +1315,9 @@ export class CheckoutService {
     const { academy, listPrice } = await this.purchasableAcademy(
       input.academyId,
     );
-    // Sin cargo de servicio (modelo SaaS - spec academy-saas-billing):
-    // la orden PRIVATE cobra solo el privateLessonPrice.
-    const serviceFeeClp = 0;
-    const quote = this.pricing.quote({
-      listPrice,
-      serviceFeeClp,
-      discount: null,
-    });
+    // Precio exacto (modelo SaaS): la orden PRIVATE cobra solo el
+    // privateLessonPrice; feeMode ACADEMY en el libro.
+    const quote = this.pricing.quote({ listPrice, discount: null });
 
     const refId = encodePrivateRef(academy.id);
     const person = await this.prisma.person.findUnique({
@@ -1299,8 +1325,8 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const payment = await this.prisma.payment.create({
-      data: {
+    const payment = await this.createAssessedPayment(
+      {
         orderType: "PRIVATE",
         refId,
         personId,
@@ -1311,10 +1337,11 @@ export class CheckoutService {
         net: quote.total,
         quantity: 1,
         unitListPrice: quote.listPrice,
-        unitServiceFee: quote.serviceFee,
+        unitServiceFee: 0,
         gateway: this.gateway.name,
       },
-    });
+      await this.academyBreakdown(quote.total),
+    );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const order = await this.gateway.createOrder({

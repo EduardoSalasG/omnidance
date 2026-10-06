@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, CheckIcon, PriceTag } from "@/components/ui";
+import { Badge, Button, Card, CheckIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { Param } from "@/components/admin/types";
@@ -142,9 +142,6 @@ function ParamsPanel() {
 }
 
 const FEE_FIELDS = [
-  "serviceFeeClp",
-  "doorAppFeeClp",
-  "doorCashFeeClp",
   "platformFeePct",
   "presaleCutoffMinutes",
 ] as const;
@@ -152,9 +149,6 @@ type FeeField = (typeof FEE_FIELDS)[number];
 type FeeValues = Record<FeeField, number | null>;
 
 const FEE_LABEL_KEY: Record<FeeField, string> = {
-  serviceFeeClp: "serviceFee",
-  doorAppFeeClp: "doorAppFee",
-  doorCashFeeClp: "doorCashFee",
   platformFeePct: "platformFeePct",
   presaleCutoffMinutes: "presaleCutoffLabel",
 };
@@ -187,29 +181,26 @@ type FeeParamsView = {
 };
 
 /** Draft → número o null ("" / NaN → null = vuelve a heredar el global). */
-function parseFeeDraft(raw: string, integer: boolean): number | null {
+function parseFeeDraft(raw: string): number | null {
   const trimmed = raw.trim();
   if (trimmed === "") return null;
   const n = Number(trimmed);
-  if (!Number.isFinite(n)) return null;
-  return integer ? Math.trunc(n) : n;
+  return Number.isFinite(n) ? n : null;
 }
 
 function draftsFromDefaults(defaults: FeeValues): Record<FeeField, string> {
   return {
-    serviceFeeClp: defaults.serviceFeeClp?.toString() ?? "",
-    doorAppFeeClp: defaults.doorAppFeeClp?.toString() ?? "",
-    doorCashFeeClp: defaults.doorCashFeeClp?.toString() ?? "",
     platformFeePct: defaults.platformFeePct?.toString() ?? "",
     presaleCutoffMinutes: minutesToTime(defaults.presaleCutoffMinutes),
   };
 }
 
 /**
- * Defaults de fees por productor (PUT /admin/producers/:id/fee-params).
- * Cadena de resolución: override del evento → default del productor →
- * PlatformParam global. Input vacío = null = hereda; el placeholder
- * muestra el valor efectivo que se cobraría hoy.
+ * Defaults financieros por productor (PUT /admin/producers/:id/fee-params,
+ * spec producer-fee-model): la única comisión es la tasa todo incluido
+ * (pasarela + fee neto + IVA, descontada de la liquidación). Cadena:
+ * override del evento → default del productor → fees.managed_allin_pct.
+ * Input vacío = null = hereda; el placeholder muestra la tasa efectiva.
  */
 function ProducerParamsSection() {
   const tp = useTranslations("producerParams");
@@ -219,9 +210,6 @@ function ProducerParamsSection() {
   const [selectedId, setSelectedId] = useState("");
   const [view, setView] = useState<FeeParamsView | null>(null);
   const [drafts, setDrafts] = useState<Record<FeeField, string>>({
-    serviceFeeClp: "",
-    doorAppFeeClp: "",
-    doorCashFeeClp: "",
     platformFeePct: "",
     presaleCutoffMinutes: "",
   });
@@ -290,10 +278,7 @@ function ProducerParamsSection() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            serviceFeeClp: parseFeeDraft(drafts.serviceFeeClp, true),
-            doorAppFeeClp: parseFeeDraft(drafts.doorAppFeeClp, true),
-            doorCashFeeClp: parseFeeDraft(drafts.doorCashFeeClp, true),
-            platformFeePct: parseFeeDraft(drafts.platformFeePct, false),
+            platformFeePct: parseFeeDraft(drafts.platformFeePct),
             presaleCutoffMinutes:
               drafts.presaleCutoffMinutes.trim() !== ""
                 ? timeToMinutes(drafts.presaleCutoffMinutes)
@@ -369,7 +354,6 @@ function ProducerParamsSection() {
       {view && !paramsLoading && (
         <Card className="flex flex-col gap-4">
           {FEE_FIELDS.map((f) => {
-            const isPct = f === "platformFeePct";
             const isCutoff = f === "presaleCutoffMinutes";
             const effective = view.effective[f];
             return (
@@ -385,7 +369,7 @@ function ProducerParamsSection() {
                   type={isCutoff ? "time" : "number"}
                   inputMode={isCutoff ? undefined : "decimal"}
                   min={isCutoff ? undefined : 0}
-                  step={isPct ? "any" : isCutoff ? undefined : 1}
+                  step={isCutoff ? undefined : "any"}
                   value={drafts[f]}
                   placeholder={
                     !isCutoff && effective != null ? String(effective) : ""
@@ -407,14 +391,10 @@ function ProducerParamsSection() {
                     ) : (
                       "·"
                     )
-                  ) : isPct ? (
-                    effective != null ? (
-                      `${effective}%`
-                    ) : (
-                      "·"
-                    )
+                  ) : effective != null ? (
+                    `${effective}%`
                   ) : (
-                    <PriceTag amount={effective} />
+                    "·"
                   )}
                 </p>
                 {isCutoff && (

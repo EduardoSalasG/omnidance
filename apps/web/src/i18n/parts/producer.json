@@ -192,6 +192,15 @@
       "period": "Período",
       "gross": "Bruto",
       "net": "Neto",
+      "deductions": "Deducciones",
+      "lineTypes": {
+        "GATEWAY_FEE_PASSTHROUGH": "Pasarela de pago (al costo)",
+        "PLATFORM_FEE_NET": "Comisión plataforma",
+        "PLATFORM_FEE_VAT": "IVA de la comisión",
+        "OWN_METHOD_FEE_NET": "Comisión cobros por tus medios",
+        "OWN_METHOD_FEE_VAT": "IVA comisión cobros por tus medios",
+        "MANUAL_ADJUSTMENT": "Ajuste manual"
+      },
       "paidAt": "Pagado",
       "evidence": "Ver comprobante",
       "status": {

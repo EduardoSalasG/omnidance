@@ -3,44 +3,19 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag } from "@/components/ui";
+import { Badge, Button, Card } from "@/components/ui";
 import {
   EDITABLE_STATUSES,
   readError,
   type EventDetail,
 } from "./shared";
 
-const FEE_FIELDS = [
-  "serviceFeeClp",
-  "doorAppFeeClp",
-  "doorCashFeeClp",
-  "platformFeePct",
-] as const;
-type FeeField = (typeof FEE_FIELDS)[number];
-
-const FEE_LABEL_KEY: Record<FeeField, string> = {
-  serviceFeeClp: "serviceFee",
-  doorAppFeeClp: "doorApp",
-  doorCashFeeClp: "doorCash",
-  platformFeePct: "platformPct",
-};
-
-function draftsFromEvent(event: EventDetail): Record<FeeField, string> {
-  return {
-    serviceFeeClp: event.serviceFeeClp?.toString() ?? "",
-    doorAppFeeClp: event.doorAppFeeClp?.toString() ?? "",
-    doorCashFeeClp: event.doorCashFeeClp?.toString() ?? "",
-    platformFeePct: event.platformFeePct?.toString() ?? "",
-  };
-}
-
 /** Draft → número o null ("" / NaN → null = vuelve a heredar). */
-function parseFeeDraft(raw: string, integer: boolean): number | null {
+function parseFeeDraft(raw: string): number | null {
   const trimmed = raw.trim();
   if (trimmed === "") return null;
   const n = Number(trimmed);
-  if (!Number.isFinite(n)) return null;
-  return integer ? Math.trunc(n) : n;
+  return Number.isFinite(n) ? n : null;
 }
 
 type Props = {
@@ -52,29 +27,32 @@ type Props = {
 };
 
 /**
- * Comisiones del evento (PATCH /events/:id). Los 4 campos son overrides
- * admin-only: null → hereda el default del productor (o el global).
- * Productores ven todo read-only; el backend rechaza el PATCH con 403
- * si un no-admin envía estos campos.
+ * Comisión del evento (PATCH /events/:id, spec producer-fee-model): el
+ * único override financiero es la tasa todo incluido - vacío hereda el
+ * default del productor (o el global). El comprador siempre paga el
+ * precio publicado exacto; la comisión se descuenta de la liquidación.
+ * Productores la ven read-only; el backend rechaza el PATCH con 403 si
+ * un no-admin la envía.
  */
 export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
   const t = useTranslations("producer");
-  const tc = useTranslations("common");
 
   // El backend solo acepta PATCH en DRAFT/PUBLISHED - fuera de esos
   // estados la sección queda read-only aunque el usuario sea admin.
   const canEdit = isAdmin && EDITABLE_STATUSES.includes(event.status);
 
-  const [drafts, setDrafts] = useState<Record<FeeField, string>>(() =>
-    draftsFromEvent(event),
+  const [draft, setDraft] = useState(
+    () => event.platformFeePct?.toString() ?? "",
   );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDrafts(draftsFromEvent(event));
+    setDraft(event.platformFeePct?.toString() ?? "");
   }, [event]);
+
+  const value = event.platformFeePct ?? null;
 
   async function save() {
     if (saving) return;
@@ -86,10 +64,7 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          serviceFeeClp: parseFeeDraft(drafts.serviceFeeClp, true),
-          doorAppFeeClp: parseFeeDraft(drafts.doorAppFeeClp, true),
-          doorCashFeeClp: parseFeeDraft(drafts.doorCashFeeClp, true),
-          platformFeePct: parseFeeDraft(drafts.platformFeePct, false),
+          platformFeePct: parseFeeDraft(draft),
         }),
       });
       if (!res.ok) {
@@ -112,60 +87,45 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
         {t("fees.title")}
       </h2>
 
-      <div className="flex flex-col gap-4">
-        {FEE_FIELDS.map((f) => {
-          const isPct = f === "platformFeePct";
-          const value = event[f] ?? null;
-          return (
-            <div key={f} className="flex flex-col gap-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                {canEdit ? (
-                  <label
-                    htmlFor={`event-fee-${f}`}
-                    className="text-sm text-white/70"
-                  >
-                    {t(`fees.${FEE_LABEL_KEY[f]}`)}
-                  </label>
-                ) : (
-                  <span className="text-sm text-white/70">
-                    {t(`fees.${FEE_LABEL_KEY[f]}`)}
-                  </span>
-                )}
-                <Badge variant={value != null ? "outline" : "muted"}>
-                  {value != null ? t("fees.override") : t("fees.inherit")}
-                </Badge>
-              </div>
-              {canEdit ? (
-                <input
-                  id={`event-fee-${f}`}
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step={isPct ? "any" : 1}
-                  value={drafts[f]}
-                  onChange={(e) =>
-                    setDrafts((d) => ({ ...d, [f]: e.target.value }))
-                  }
-                  className="min-h-[44px] rounded-lg border border-white/15 bg-black/40 px-3 font-mono text-sm"
-                />
-              ) : (
-                <span className="text-base">
-                  {isPct ? (
-                    value != null ? (
-                      <span className="font-semibold text-neon">
-                        {value}%
-                      </span>
-                    ) : (
-                      <span className="text-white/50">-</span>
-                    )
-                  ) : (
-                    <PriceTag amount={value} />
-                  )}
-                </span>
-              )}
-            </div>
-          );
-        })}
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {canEdit ? (
+            <label
+              htmlFor="event-fee-platformFeePct"
+              className="text-sm text-white/70"
+            >
+              {t("fees.platformPct")}
+            </label>
+          ) : (
+            <span className="text-sm text-white/70">
+              {t("fees.platformPct")}
+            </span>
+          )}
+          <Badge variant={value != null ? "outline" : "muted"}>
+            {value != null ? t("fees.override") : t("fees.inherit")}
+          </Badge>
+        </div>
+        {canEdit ? (
+          <input
+            id="event-fee-platformFeePct"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="any"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="min-h-[44px] rounded-lg border border-white/15 bg-black/40 px-3 font-mono text-sm"
+          />
+        ) : (
+          <span className="text-base">
+            {value != null ? (
+              <span className="font-semibold text-neon">{value}%</span>
+            ) : (
+              <span className="text-white/50">-</span>
+            )}
+          </span>
+        )}
+        <p className="text-xs text-white/50">{t("fees.allinHint")}</p>
       </div>
 
       {canEdit && (

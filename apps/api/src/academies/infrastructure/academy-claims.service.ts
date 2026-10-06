@@ -297,6 +297,14 @@ export class AcademyClaimsService {
           net: claim.amount,
           gateway: "MANUAL",
           status: "PAID",
+          // Modelo SaaS (spec producer-fee-model): sin comisión y sin
+          // pasarela (plata cobrada por método propio) - se marca en el
+          // libro; el payout ACADEMY excluye MANUAL del gross.
+          feeMode: "ACADEMY",
+          platformFeeNetClp: 0,
+          platformFeeVatClp: 0,
+          gatewayFeeExpected: 0,
+          producerNetClp: claim.amount,
         },
       });
 

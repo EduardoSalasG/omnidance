@@ -42,6 +42,7 @@ interface StoredPayment {
 
 function mkPrisma() {
   const payments: StoredPayment[] = [];
+  const paymentEvents: Record<string, unknown>[] = [];
   const songSuggestions: { eventId: string; personId: string; title: string }[] =
     [];
   const prisma = {
@@ -138,8 +139,21 @@ function mkPrisma() {
         async (): Promise<Record<string, unknown> | null> => null,
       ),
     },
+    paymentEvent: {
+      findFirst: vi.fn(async () => null),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        paymentEvents.push(data);
+        return data;
+      }),
+    },
+    $executeRaw: vi.fn(async () => 0),
   };
-  return { prisma, payments, songSuggestions };
+  // $transaction pasa el mismo prisma como tx - el emit de ledger usa
+  // paymentEvent.create/$executeRaw sobre el cliente transaccional.
+  (prisma as Record<string, unknown>).$transaction = vi.fn(
+    async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma),
+  );
+  return { prisma, payments, songSuggestions, paymentEvents };
 }
 
 function mkParams() {
@@ -198,6 +212,8 @@ const mkEvent = (over: Record<string, unknown> = {}) => ({
   doorAppFeeClp: null,
   seriesId: null,
   serviceFeeClp: null,
+  platformFeePct: null,
+  presaleCutoffMinutes: null,
   producerId: "prod-1",
   ...over,
 });
@@ -321,13 +337,14 @@ describe("CheckoutService.purchaseTicket", () => {
     );
     const res = await buy();
     expect(res.quote.listPrice).toBe(7000);
-    // fee de puerta app: default shared DOOR_APP_CLP = 700
-    expect(res.quote.serviceFee).toBe(700);
-    expect(res.quote.total).toBe(7700);
+    // El comprador paga exactamente la puerta - la comisión sale del
+    // productor en liquidación (producer-fee-model).
+    expect(res.quote.total).toBe(7000);
     const p = fx.payments[0]!;
     expect(p.channel).toBe("DOOR");
     expect(p.unitListPrice).toBe(7000);
-    expect(p.unitServiceFee).toBe(700);
+    expect(p.unitServiceFee).toBe(0);
+    expect(p.feeMode).toBe("MANAGED");
   });
 
   it("evento LIVE sin doorPrice → PresaleUnavailableError", async () => {
@@ -401,9 +418,6 @@ describe("CheckoutService.purchaseTicket", () => {
     // 20:00: el global (19:00) ya habría cerrado; el productor corta 21:00.
     vi.setSystemTime(new Date(2026, 9, 14, 20, 0));
     pf.producers.set("prod-1", {
-      serviceFeeClp: null,
-      doorAppFeeClp: null,
-      doorCashFeeClp: null,
       platformFeePct: null,
       presaleCutoffMinutes: 21 * 60,
     });
@@ -423,9 +437,6 @@ describe("CheckoutService.purchaseTicket", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 14, 22, 0));
     pf.producers.set("prod-1", {
-      serviceFeeClp: null,
-      doorAppFeeClp: null,
-      doorCashFeeClp: null,
       platformFeePct: null,
       presaleCutoffMinutes: 21 * 60,
     });
@@ -519,43 +530,21 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(res.quantity).toBe(2);
   });
 
-  it("fee puerta: override del evento (doorAppFeeClp) gana a productor y global", async () => {
+  it("comisión puerta app: misma tasa todo incluido que la preventa (snapshot platformFeePct)", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(
       mkEvent({
         status: "LIVE",
         startsAt: new Date(Date.now() - 60 * 60 * 1000),
         doorPrice: 7000,
-        doorAppFeeClp: 900,
+        platformFeePct: 8,
       }),
     );
-    pf.producers.set("prod-1", {
-      serviceFeeClp: null,
-      doorAppFeeClp: 400,
-      doorCashFeeClp: null,
-      platformFeePct: null,
-    });
-    pf.numbers.set("service_fee.door_app_clp", 300);
     const res = await buy();
-    expect(res.quote.serviceFee).toBe(900);
-  });
-
-  it("fee puerta: sin override del evento gana ProducerParams.doorAppFeeClp", async () => {
-    fx.prisma.event.findUnique.mockResolvedValue(
-      mkEvent({
-        status: "LIVE",
-        startsAt: new Date(Date.now() - 60 * 60 * 1000),
-        doorPrice: 7000,
-      }),
-    );
-    pf.producers.set("prod-1", {
-      serviceFeeClp: null,
-      doorAppFeeClp: 400,
-      doorCashFeeClp: null,
-      platformFeePct: null,
-    });
-    pf.numbers.set("service_fee.door_app_clp", 300);
-    const res = await buy();
-    expect(res.quote.serviceFee).toBe(400);
+    const p = fx.payments[0]!;
+    // El comprador paga la puerta exacta; el 8% sale del productor.
+    expect(res.quote.total).toBe(7000);
+    expect(p.platformFeeRate).toBe(8);
+    expect(p.producerNetClp).toBe(7000 - Math.round(7000 * 0.08));
   });
 
   it("órdenes PRESALE siguen persistiendo channel PRESALE + precios unitarios", async () => {
@@ -563,7 +552,7 @@ describe("CheckoutService.purchaseTicket", () => {
     const p = fx.payments[0]!;
     expect(p.channel).toBe("PRESALE");
     expect(p.unitListPrice).toBe(10000);
-    expect(p.unitServiceFee).toBe(500);
+    expect(p.unitServiceFee).toBe(0);
   });
 
   // ─── Regalo multi-entrada (recipientIds) ───
@@ -574,12 +563,12 @@ describe("CheckoutService.purchaseTicket", () => {
     ]);
     const res = await buy({ recipientIds: ["per-2"] });
     expect(res.quantity).toBe(2);
-    // unit: 10000 + 500 fee → total de la orden = 21000
-    expect(res.quote.total).toBe(21000);
+    // 2 × lista exacta - el comprador no paga comisión.
+    expect(res.quote.total).toBe(20000);
     const payment = fx.payments[0]!;
     expect(payment.quantity).toBe(2);
     expect(payment.recipients).toEqual(["per-2"]);
-    expect(payment.amount).toBe(21000);
+    expect(payment.amount).toBe(20000);
   });
 
   it("destinatario inexistente → RecipientError", async () => {
@@ -625,7 +614,7 @@ describe("CheckoutService.purchaseTicket", () => {
   it("quantity sin amigos: orden de 3 → 1 propia + 2 reclamables, total ×3", async () => {
     const res = await buy({ quantity: 3 });
     expect(res.quantity).toBe(3);
-    expect(res.quote.total).toBe(3 * 10500);
+    expect(res.quote.total).toBe(3 * 10000);
     const payment = fx.payments[0]!;
     expect(payment.quantity).toBe(3);
     expect(payment.recipients).toBeUndefined(); // sin asignados → NULL
@@ -638,7 +627,7 @@ describe("CheckoutService.purchaseTicket", () => {
     const res = await buy({ quantity: 4, recipientIds: ["per-2"] });
     expect(res.quantity).toBe(4);
     expect(fx.payments[0]!.recipients).toEqual(["per-2"]);
-    expect(res.quote.total).toBe(4 * 10500);
+    expect(res.quote.total).toBe(4 * 10000);
   });
 
   it("más amigos que entradas → RecipientError", async () => {
@@ -679,58 +668,98 @@ describe("CheckoutService.purchaseTicket", () => {
     );
   });
 
-  // ─── Cadena de resolución del service fee ───
+  // ─── Comisión todo incluido al productor (producer-fee-model) ───
+  // El comprador paga lista exacta; la tasa se resuelve evento →
+  // productor → fees.managed_allin_pct y se congela en el Payment.
 
-  it("fee: override del evento gana a ProducerParams y al param global", async () => {
+  it("descompone el all-in 10%: pasarela al costo + neto + IVA, comprador paga lista", async () => {
+    const res = await buy();
+    expect(res.quote.total).toBe(10000); // lista exacta, sin fee
+    const p = fx.payments[0]!;
+    expect(p.feeMode).toBe("MANAGED");
+    expect(p.platformFeeRate).toBe(10);
+    // $10.000: deducción 1000 = pasarela 319 + bruto 681 (neto 572 + IVA 109)
+    expect(p.gatewayFeeExpected).toBe(319);
+    expect(p.platformFeeNetClp).toBe(572);
+    expect(p.platformFeeVatClp).toBe(109);
+    expect(
+      (p.gatewayFeeExpected as number) +
+        (p.platformFeeNetClp as number) +
+        (p.platformFeeVatClp as number),
+    ).toBe(1000);
+    expect(p.producerNetClp).toBe(9000);
+  });
+
+  it("tasa: override del evento (platformFeePct) gana a productor y global", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(
-      mkEvent({ serviceFeeClp: 900 }),
+      mkEvent({ platformFeePct: 5 }),
     );
     pf.producers.set("prod-1", {
-      serviceFeeClp: 650,
-      doorAppFeeClp: null,
-      doorCashFeeClp: null,
-      platformFeePct: null,
+      platformFeePct: 8,
     });
-    pf.numbers.set("service_fee.presale_clp", 800);
-    const res = await buy();
-    expect(res.quote.serviceFee).toBe(900);
-    expect(res.quote.total).toBe(10900);
+    pf.numbers.set("fees.managed_allin_pct", 12);
+    await buy();
+    expect(fx.payments[0]!.platformFeeRate).toBe(5);
+    expect(fx.payments[0]!.producerNetClp).toBe(9500);
   });
 
-  it("fee: sin override del evento, gana ProducerParams.serviceFeeClp", async () => {
+  it("tasa: sin override del evento gana ProducerParams.platformFeePct (oferta 8%)", async () => {
     pf.producers.set("prod-1", {
-      serviceFeeClp: 650,
-      doorAppFeeClp: null,
-      doorCashFeeClp: null,
-      platformFeePct: null,
+      platformFeePct: 8,
     });
-    pf.numbers.set("service_fee.presale_clp", 800);
-    const res = await buy();
-    expect(res.quote.serviceFee).toBe(650);
+    pf.numbers.set("fees.managed_allin_pct", 12);
+    await buy();
+    const p = fx.payments[0]!;
+    expect(p.platformFeeRate).toBe(8);
+    expect(p.producerNetClp).toBe(9200);
   });
 
-  it("fee: sin evento ni productor, gana el PlatformParam service_fee.presale_clp", async () => {
-    pf.numbers.set("service_fee.presale_clp", 800);
-    const res = await buy();
-    expect(res.quote.serviceFee).toBe(800);
+  it("tasa: sin evento ni productor gana el param fees.managed_allin_pct", async () => {
+    pf.numbers.set("fees.managed_allin_pct", 12);
+    await buy();
+    expect(fx.payments[0]!.platformFeeRate).toBe(12);
   });
 
-  it("fee: sin nada configurado cae al default del shared (500)", async () => {
-    const res = await buy();
-    expect(res.quote.serviceFee).toBe(500);
-    expect(res.quote.total).toBe(10500);
-    // el fallback que se pasó a getNumber es SERVICE_FEE.PRESALE_CLP
+  it("tasa: sin nada configurado cae al default 10% todo incluido", async () => {
+    await buy();
+    expect(fx.payments[0]!.platformFeeRate).toBe(10);
     expect(pf.params.getNumber).toHaveBeenCalledWith(
-      "service_fee.presale_clp",
-      500,
+      "fees.managed_allin_pct",
+      10,
     );
   });
 
   it("evento sin productor: getProducerParams no se consulta en DB (short-circuit null)", async () => {
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ producerId: null }));
-    const res = await buy();
-    expect(res.quote.serviceFee).toBe(500);
+    await buy();
+    expect(fx.payments[0]!.platformFeeRate).toBe(10);
     expect(pf.params.getProducerParams).toHaveBeenCalledWith(null);
+  });
+
+  it("emite FEE_ASSESSED en el ledger con el desglose congelado", async () => {
+    await buy();
+    const ev = fx.paymentEvents.find((e) => e.type === "FEE_ASSESSED");
+    expect(ev).toBeDefined();
+    const payload = ev!.payload as Record<string, unknown>;
+    expect(payload.feeMode).toBe("MANAGED");
+    expect(payload.platformFeeRate).toBe(10);
+    expect(payload.gatewayFeeExpected).toBe(319);
+    expect(payload.producerNetClp).toBe(9000);
+  });
+
+  it("orden $0: feeMode FREE, desglose en cero y FEE_ASSESSED lo registra", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 100 }),
+    );
+    await buy({ discountCode: "FREE100" });
+    const p = fx.payments[0]!;
+    expect(p.feeMode).toBe("FREE");
+    expect(p.gatewayFeeExpected).toBe(0);
+    expect(p.platformFeeNetClp).toBe(0);
+    expect(p.producerNetClp).toBe(0);
+    const ev = fx.paymentEvents.find((e) => e.type === "FEE_ASSESSED");
+    expect(ev).toBeDefined();
+    expect((ev!.payload as Record<string, unknown>).feeMode).toBe("FREE");
   });
 
   // ─── Descuentos ───
@@ -741,7 +770,7 @@ describe("CheckoutService.purchaseTicket", () => {
     );
     const res = await buy({ discountCode: "MITAD" });
     expect(res.quote.discount).toBe(5000);
-    expect(res.quote.total).toBe(5500); // 5000 neto + 500 fee
+    expect(res.quote.total).toBe(5000); // lista menos descuento, sin fee
     expect(fx.payments[0].discountCodeId).toBe("code-9");
   });
 
@@ -1000,24 +1029,27 @@ describe("CheckoutService.purchaseSeriesPass", () => {
     expect(res.quote.listPrice).toBe(30000);
   });
 
-  it("fee: ProducerParams.serviceFeeClp gana al param global", async () => {
+  it("tasa: ProducerParams.platformFeePct gana al global (oferta por productor)", async () => {
     pf.producers.set("prod-1", {
-      serviceFeeClp: 1200,
-      doorAppFeeClp: null,
-      doorCashFeeClp: null,
-      platformFeePct: null,
+      platformFeePct: 8,
     });
-    pf.numbers.set("service_fee.series_pass_clp", 999);
     const res = await buy();
-    expect(res.quote.serviceFee).toBe(1200);
+    expect(res.quote.total).toBe(25000); // comprador paga la lista exacta
+    const p = fx.payments[0]!;
+    expect(p.feeMode).toBe("MANAGED");
+    expect(p.platformFeeRate).toBe(8);
+    expect(p.producerNetClp).toBe(25000 - Math.round(25000 * 0.08));
   });
 
-  it("fee: sin productor params cae a service_fee.series_pass_clp (default 500)", async () => {
+  it("tasa: sin productor params cae a fees.managed_allin_pct (default 10)", async () => {
     const res = await buy();
-    expect(res.quote.serviceFee).toBe(500);
+    expect(res.quote.total).toBe(25000);
+    const p = fx.payments[0]!;
+    expect(p.feeMode).toBe("MANAGED");
+    expect(p.platformFeeRate).toBe(10);
     expect(pf.params.getNumber).toHaveBeenCalledWith(
-      "service_fee.series_pass_clp",
-      500,
+      "fees.managed_allin_pct",
+      10,
     );
   });
 
@@ -1090,8 +1122,7 @@ describe("CheckoutService.membershipQuote", () => {
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.plan.type).toBe("TRIAL");
     expect(q.recurring).toBe(false);
-    expect(q.serviceFeeClp).toBe(0); // sin cargo de servicio (modelo SaaS)
-    expect(q.totalClp).toBe(5000); // total = precio del plan
+    expect(q.totalClp).toBe(5000); // total = precio exacto del plan
     // sin periodDays configurado → la prueba queda sin fecha
     expect(q.vigenciaEndsAt).toBeNull();
   });
@@ -1108,15 +1139,11 @@ describe("CheckoutService.membershipQuote", () => {
     );
   });
 
-  it("MONTHLY: recurring, total = price SIN fee (param legacy queda inerte), vigencia = fin de mes", async () => {
+  it("MONTHLY: recurring, total = price exacto, vigencia = fin de mes", async () => {
     fx.prisma.membershipPlan.findUnique.mockResolvedValue(mkPlan());
-    // Defensivo: aunque el param legacy conserve un valor, la orden
-    // MEMBERSHIP nunca cobra cargo de servicio (spec academy-saas-billing).
-    pf.numbers.set("service_fee.membership_clp", 700);
     const q = await svc.membershipQuote("p1", "plan-1");
     expect(q.recurring).toBe(true);
     expect(q.totalClp).toBe(15000);
-    expect(q.serviceFeeClp).toBe(0);
     expect(q.vigenciaEndsAt).not.toBeNull();
     expect(q.gateway).toBe("STUB");
     expect(q.subscription).toBeNull();
@@ -1237,8 +1264,8 @@ describe("CheckoutService.purchaseMembership", () => {
     const res = await buy();
     const p = fx.payments[0]!;
     expect(p.orderType).toBe("MEMBERSHIP");
-    expect(res.quote.serviceFee).toBe(0); // modelo SaaS: sin cargo
-    expect(p.amount).toBe(15000); // total = precio del plan
+    expect(p.feeMode).toBe("ACADEMY"); // SaaS: sin comisión, solo pasarela
+    expect(p.amount).toBe(15000); // total = precio exacto del plan
     expect(p.amount).toBe(res.quote.total);
     expect((p.refId as string).startsWith("mem_plan-1_")).toBe(true);
     expect(gw.createOrder).toHaveBeenCalledOnce();
@@ -1252,8 +1279,7 @@ describe("CheckoutService.purchaseMembership", () => {
     const p = fx.payments[0]!;
     expect(p.orderType).toBe("MEMBERSHIP");
     expect(res.quote.listPrice).toBe(5000);
-    expect(res.quote.serviceFee).toBe(0);
-    expect(res.quote.total).toBe(5000); // sin fee (modelo SaaS)
+    expect(res.quote.total).toBe(5000); // precio exacto (modelo SaaS)
     expect(res.paymentUrl).toContain("pay.example");
   });
 
@@ -1267,7 +1293,7 @@ describe("CheckoutService.purchaseMembership", () => {
       endsAt: new Date(Date.now() + 30 * 86_400_000),
     });
     const res = await buy();
-    expect(res.quote.total).toBe(5000); // sin fee (modelo SaaS)
+    expect(res.quote.total).toBe(5000); // precio exacto (modelo SaaS)
     expect(fx.payments).toHaveLength(1);
   });
 
@@ -1397,13 +1423,11 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
     expect(fx.payments).toHaveLength(0);
   });
 
-  it("crea Payment WORKSHOP: refId wks_, unit economics, SIN fee (param legacy inerte)", async () => {
-    // Defensivo: el param legacy service_fee.membership_clp no aplica a
-    // órdenes de academia (spec academy-saas-billing).
-    pf.numbers.set("service_fee.membership_clp", 500);
+  it("crea Payment WORKSHOP: refId wks_, precio exacto y feeMode ACADEMY", async () => {
     const res = await buy();
     const p = fx.payments[0];
     expect(p.orderType).toBe("WORKSHOP");
+    expect(p.feeMode).toBe("ACADEMY");
     expect(p.quantity).toBe(1);
     expect(p.unitListPrice).toBe(9000);
     expect(p.unitServiceFee).toBe(0);
@@ -1415,11 +1439,10 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
     expect(ref?.classId).toBe("cls-1");
   });
 
-  it("classQuote: desglose sin fee + spotsLeft + alreadyBooked sin crear orden", async () => {
+  it("classQuote: precio exacto + spotsLeft + alreadyBooked sin crear orden", async () => {
     fx.prisma.classBooking.count.mockResolvedValue(3);
     const q = await svc.classQuote("per-1", "cls-1");
     expect(q.listPrice).toBe(9000);
-    expect(q.serviceFee).toBe(0);
     expect(q.total).toBe(9000);
     expect(q.spotsLeft).toBe(7);
     expect(q.alreadyBooked).toBe(false);
@@ -1456,11 +1479,9 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     );
   });
 
-  it("quote: desglose SIN fee (param legacy inerte), sin crear orden", async () => {
-    pf.numbers.set("service_fee.membership_clp", 500);
+  it("quote: precio exacto, sin crear orden", async () => {
     const q = await svc.privateClassQuote("per-1", "ac-1");
     expect(q.listPrice).toBe(40000);
-    expect(q.serviceFee).toBe(0);
     expect(q.total).toBe(40000);
     expect(q.academy).toMatchObject({ id: "ac-1", name: "Mambo Madness" });
     expect(fx.payments).toHaveLength(0);
@@ -1510,13 +1531,13 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
     expect(gw.createOrder).not.toHaveBeenCalled();
   });
 
-  it("crea Payment PRIVATE: refId pvt_<academyId>_, unit economics SIN fee, orden a la pasarela", async () => {
-    pf.numbers.set("service_fee.membership_clp", 500);
+  it("crea Payment PRIVATE: refId pvt_<academyId>_, precio exacto, feeMode ACADEMY", async () => {
     const res = await svc.purchasePrivateClass("per-1", {
       academyId: "ac-1",
     });
     const p = fx.payments[0]!;
     expect(p.orderType).toBe("PRIVATE");
+    expect(p.feeMode).toBe("ACADEMY");
     expect(p.unitListPrice).toBe(40000);
     expect(p.unitServiceFee).toBe(0);
     expect(p.amount).toBe(40000);

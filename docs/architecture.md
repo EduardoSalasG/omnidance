@@ -151,11 +151,12 @@ flowchart LR
 
 | Key | Consumidor | Default |
 |---|---|---|
-| `service_fee.presale_clp` | checkout + webhook | 500 |
-| `service_fee.door_app_clp` | checkout puerta-app + checkin app | 700 |
-| `service_fee.door_cash_clp` | checkin efectivo | 0 |
-| `service_fee.membership_clp` | **deprecated (modelo SaaS)** - las órdenes de academia (MEMBERSHIP/WORKSHOP/PRIVATE) cobran `serviceFee=0` por código, sin leer este param; sigue en DB/whitelist por compat | 500 |
+| `fees.managed_allin_pct` | checkout + payouts - comisión todo incluido al productor (%); cadena `Event.platformFeePct` → `ProducerParams.platformFeePct` → este param (spec producer-fee-model) | 10 |
+| `gateway_fee.card_pct` | checkout - pasarela esperada del desglose all-in (`gatewayFeeExpected`) | 3.19 |
+| `tax.iva_pct` | checkout + payouts - IVA sobre el fee neto de plataforma | 19 |
+| `platform_fee.default_pct` | **legacy** - solo pagos pre-modelo (`feeMode` null) | 0 |
 | `gateway_fee.academy_passthrough_pct` | payout ACADEMY - línea `GATEWAY_FEE_PASSTHROUGH` = `round(gross × pct / 100)` | 3.19 |
+| ~~`service_fee.*`~~ | **fuera del modelo** (producer-fee-model: el comprador paga precio exacto). Filas legacy pueden persistir en DB; solo las lee el settle para reconstruir tickets de pagos legacy | - |
 | `session.cooldown_minutes` | sessions scan | 4 |
 | `qr.rotation_seconds` | QR mint | 60 |
 | `prime_time.window_minutes` | gamificación (default de creación de eventos) | 30 |
@@ -217,7 +218,7 @@ erDiagram
 - **Sandbox-only**: `FLOW_BASE_URL` debe ser `https://sandbox.flow.cl/api` - cualquier otro valor hace fail-fast al boot. Producción (`https://www.flow.cl/api`) se habilita solo tras validar end-to-end en sandbox.
 - **`API_URL`** es la URL pública de la API para `urlConfirmation` (webhook de Flow). En local Flow no puede alcanzar `localhost`, por eso `GET /payments/:id` consulta `payment/getStatusByCommerceId` cuando la orden sigue PENDING - el checkout liquida igual al volver. En despliegue, `API_URL` real + webhook.
 - Firma: HMAC-SHA256 sobre params ordenados alfabéticamente (`nombre`+`valor` concatenados), enviada como `s` - nunca loggear keys ni firmas.
-- **Tarifa Flow**: ~3.19% sobre el bruto cobrado por tarjeta - costo nuestro (merchant fee). Payout del productor: **no** se descuenta (su `fee` es nuestro `service_fee`/`platformFeePct`). Payout de **academia** (modelo SaaS): sí - se descuenta como línea explícita `GATEWAY_FEE_PASSTHROUGH` = `round(gross × gateway_fee.academy_passthrough_pct / 100)` persistida en `Payout.gatewayFee` y expuesta en `lines[]`; `platformFee=0` (la academia monetiza vía su suscripción). Órdenes de academia (MEMBERSHIP/WORKSHOP/PRIVATE) cobran `serviceFee=0` - el alumno paga solo el precio que fija la academia (S4 academy-saas-billing).
+- **Tarifa Flow**: ~3.19% sobre el bruto cobrado por tarjeta - costo nuestro (merchant fee), contenido en la comisión all-in del productor (spec producer-fee-model: el payout MANAGED descuenta pasarela + neto + IVA como `PayoutLine`s por orden, leyendo solo el desglose congelado del Payment). Payout de **academia** (modelo SaaS): `platformFee=0` - solo se descuenta la pasarela al costo como `GATEWAY_FEE_PASSTHROUGH` (real `gatewayFeeClp` o estimada por `gateway_fee.academy_passthrough_pct`). Órdenes de academia (MEMBERSHIP/WORKSHOP/PRIVATE) llevan `feeMode=ACADEMY` - el alumno paga solo el precio que fija la academia.
 
 ### Modelo de datos - ledger y suscripciones
 
@@ -231,6 +232,8 @@ erDiagram
 | `Person.proTier` (`ProducerProTier`, default FREE) + `proTrialEndsAt` | Tier Producer Pro vigente - se proyecta desde la `PlatformSubscription kind=PRODUCER` al activar/renovar. `proTrialEndsAt` es el trial de lanzamiento del gating (S5): la migración backfillea +90d a los productores registrados (`ProducerParams`) para que nadie pierda features que ya usaba. `isProActive(person)` = `proTier != FREE || proTrialEndsAt > now` - es la condición única del gate. La mora de Pro **no** bloquea ticketing ni marketplace (solo avisa + pierde las features Pro). |
 
 - **`Payment.gateway*` - verdad monetaria de la pasarela**: `gatewayFeeClp` (costo real del cobro, auditable contra la tarifa ~3.19%), `gatewayReportedAmount`, `gatewayMedia`, `gatewayPaidAt`, `gatewayRaw` (`paymentData` completo de `payment/getStatus` - evidencia interna, solo sale por admin/browse). Los persiste el settle en el mismo update `→PAID` dentro de la tx; `gatewayReportedAmount ≠ amount` → evento `AMOUNT_MISMATCH` + notificación OPERATIONAL a los ADMIN.
+- **`Payment.feeMode` + desglose congelado (spec producer-fee-model)**: al crear la orden se persisten `feeMode` (`MANAGED`/`OWN_METHOD`/`OWN_GATEWAY`/`ACADEMY`/`FREE`; null = pre-modelo → regla legacy), `platformFeeRate` (snapshot del % all-in resuelto por cadena evento→productor→`fees.managed_allin_pct`), `platformFeeNetClp`/`platformFeeVatClp`, `gatewayFeeExpected`, `producerNetClp`, `currency`, y se emite `FEE_ASSESSED` al ledger en la misma tx. Los payouts leen solo este snapshot - jamás recalculan tasas vigentes.
+- **`PayoutLine`** (spec producer-fee-model): deducción auditable por orden - `type` (`GATEWAY_FEE_PASSTHROUGH` / `PLATFORM_FEE_NET` / `PLATFORM_FEE_VAT` / `OWN_METHOD_FEE_NET` / `OWN_METHOD_FEE_VAT` / `MANUAL_ADJUSTMENT`), `amount`, `paymentId` (rastreo a la orden) y `meta` (orderAmount, rate, estimated/legacy). `Payout.net = gross − Σ líneas`; cada línea emite `PAYOUT_LINE_ASSIGNED` al ledger del pago. Los tipos `OWN_METHOD_*` son comisión devengada de ventas por métodos propios del actor - se **netean** contra el payout gestionado sin entrar al gross.
 - **`Person.flowCustomerId`** y **`MembershipPlan.flowPlanId`**: mapeo lazy a los espejos Flow - se materializan en el primer `subscribe` (`customer/create` requiere email en la cuenta; `ensurePlan` crea el plan `omni_<planId>` si `plans/get` no lo encuentra).
 
 ### Endpoints de pagos y suscripciones

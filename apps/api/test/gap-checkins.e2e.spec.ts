@@ -80,17 +80,8 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
     const address = app.getHttpServer().address();
     baseUrl = `http://127.0.0.1:${address.port}`;
 
-    // params deterministas para los cargos de puerta
-    await prisma.platformParam.upsert({
-      where: { key: "service_fee.door_cash_clp" },
-      update: { value: 0 },
-      create: { key: "service_fee.door_cash_clp", value: 0 },
-    });
-    await prisma.platformParam.upsert({
-      where: { key: "service_fee.door_app_clp" },
-      update: { value: 700 },
-      create: { key: "service_fee.door_app_clp", value: 700 },
-    });
+    // La venta de puerta no cobra comisión al actor ni cargo al
+    // asistente (spec producer-fee-model): es solo validación/QR.
 
     // ─── personas ───
     const admin = await prisma.person.findFirstOrThrow({
@@ -425,7 +416,7 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
       expect(person.roles.some((r) => r.role === "DANCER" && r.status === "APPROVED")).toBe(true);
     });
 
-    it("APP cobra service_fee.door_app_clp = 700", async () => {
+    it("APP registra la venta sin cargo al asistente (serviceFee 0)", async () => {
       const res = await post(
         "/api/checkins/door-sale",
         {
@@ -440,7 +431,7 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
       const body = await res.json();
       ids.lightPersonIds.push(body.person.id);
       ids.checkinIds.push(body.checkin.id);
-      expect(body.ticket.serviceFee).toBe(700);
+      expect(body.ticket.serviceFee).toBe(0);
     });
 
     it("phone ya registrado → reutiliza la Person (no duplica)", async () => {

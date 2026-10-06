@@ -234,9 +234,8 @@
   "checkout": {
     "title": "Conseguir entrada",
     "price": "Precio",
-    "serviceFee": "Cargo por servicio",
     "discount": "Descuento",
-    "presaleCutoff": "La preventa cierra a las 19:00 del día del evento. Después solo en puerta.",
+    "presaleCutoff": "La preventa cierra antes del evento; después se vende solo a precio de puerta.",
     "doorChannelNote": "Venta en puerta por la app: tu QR se activa al pagar y lo muestras en la entrada.",
     "total": "Total",
     "discountCode": "Código de descuento (opcional)",
@@ -691,8 +690,8 @@
       "codesDesc": "Promociones y cortesías por código",
       "lists": "Listas de invitados",
       "listsDesc": "Listas de puerta por evento",
-      "params": "Comisiones y fees",
-      "paramsDesc": "Tus valores base por evento (solo lectura)"
+      "params": "Comisión y defaults",
+      "paramsDesc": "Tu comisión y valores base por evento (solo lectura)"
     },
     "status": {
       "DRAFT": "Borrador",
@@ -719,17 +718,15 @@
       }
     },
     "fees": {
-      "title": "Comisiones del evento",
-      "serviceFee": "Cargo preventa",
-      "doorApp": "Cargo puerta app",
-      "doorCash": "Cargo puerta efectivo",
-      "platformPct": "Comisión plataforma %",
-      "adminOnly": "Solo el admin puede editar las comisiones",
+      "title": "Comisión del evento",
+      "platformPct": "Comisión todo incluido %",
+      "allinHint": "Incluye pasarela de pago, comisión de plataforma e IVA. Se descuenta de tu liquidación; el asistente siempre paga el precio publicado exacto.",
+      "adminOnly": "Solo el admin puede editar la comisión",
       "inherit": "Hereda de tus defaults",
       "override": "Valor propio del evento",
-      "save": "Guardar comisiones",
-      "saved": "Comisiones guardadas",
-      "error": "No se pudieron guardar"
+      "save": "Guardar comisión",
+      "saved": "Comisión guardada",
+      "error": "No se pudo guardar"
     }
   },
   "profile": {
@@ -993,17 +990,14 @@
     }
   },
   "producerParams": {
-    "title": "Comisiones y fees",
+    "title": "Comisión y defaults",
     "hint": "Valores base que heredan tus eventos. Solo el admin puede modificarlos.",
-    "serviceFee": "Cargo por servicio de preventa",
-    "doorAppFee": "Cargo venta en puerta por app",
-    "doorCashFee": "Cargo registro en efectivo",
-    "platformFeePct": "Comisión plataforma (%)",
+    "platformFeePct": "Comisión todo incluido (%)",
     "custom": "Personalizado",
     "inherits": "Hereda global",
     "effective": "Cobro efectivo",
     "readOnly": "Solo el admin puede modificar estos valores",
-    "perEvent": "Cada evento puede tener un valor distinto (lo define el admin)",
+    "perEvent": "Cada evento puede tener un valor distinto (lo define el admin). La comisión incluye pasarela, plataforma e IVA - el asistente siempre paga el precio publicado exacto.",
     "adminSection": "Defaults por productor",
     "adminHint": "Valores base para los eventos del productor. Cada evento puede sobreescribirlos. Vacío = hereda el global.",
     "selectProducer": "Productor",

@@ -1,5 +1,4 @@
 import type { Checkin, EventStatus, Ticket } from "@prisma/client";
-import { SERVICE_FEE } from "@omnidance/shared";
 import type {
   CheckinMethod,
   CheckinPassType,
@@ -115,8 +114,6 @@ export interface DoorSaleResult {
 
 /** Permiso que habilita operar puerta (guard + checks en servicio). */
 const CHECKINS_WRITE = "checkins.write";
-const PARAM_DOOR_CASH_FEE = "service_fee.door_cash_clp";
-const PARAM_DOOR_APP_FEE = "service_fee.door_app_clp";
 
 // Estados en que la puerta opera: publicado (pre-venta activa) o en vivo.
 const CHECKIN_OPEN_STATUSES: readonly EventStatus[] = ["PUBLISHED", "LIVE"];
@@ -295,32 +292,16 @@ export class CheckinsService {
     const open = await this.repo.findOpenCheckin(input.eventId, person.id);
     if (open) throw new DuplicateCheckinError(open);
 
-    // fee de puerta: override del evento → default del productor → param
-    // global → default del shared.
-    const producerParams =
-      (await this.repo.getProducerParams?.(event.producerId)) ?? null;
-    const eventOverride =
-      input.channel === "CASH" ? event.doorCashFeeClp : event.doorAppFeeClp;
-    const producerDefault =
-      input.channel === "CASH"
-        ? producerParams?.doorCashFeeClp
-        : producerParams?.doorAppFeeClp;
-    const serviceFee =
-      eventOverride ??
-      producerDefault ??
-      (await this.repo.getParamNumber(
-        input.channel === "CASH" ? PARAM_DOOR_CASH_FEE : PARAM_DOOR_APP_FEE,
-        input.channel === "CASH"
-          ? SERVICE_FEE.DOOR_CASH_REGISTRATION_CLP
-          : SERVICE_FEE.DOOR_APP_CLP,
-      ));
-
+    // El comprador nunca paga cargo de servicio (producer-fee-model): la
+    // venta de puerta que el staff registra es solo validación + QR - la
+    // comisión "todo incluido" vive en las órdenes online del productor
+    // y el efectivo en puerta es 0%.
     const { ticket, checkin } = await this.repo.createDoorSale({
       eventId: input.eventId,
       personId: person.id,
       staffId: actor.id,
       listPrice: event.doorPrice ?? 0,
-      serviceFee,
+      serviceFee: 0,
     });
 
     return { person, ticket, checkin };

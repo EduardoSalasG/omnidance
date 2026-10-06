@@ -365,6 +365,16 @@ export class PaymentsController {
       status: payment.status,
       amount: payment.amount,
       createdAt: payment.createdAt,
+      // Desglose congelado de la comisión (spec producer-fee-model) -
+      // null en pagos legacy pre-modelo.
+      feeMode: payment.feeMode,
+      platformFeeRate: payment.platformFeeRate,
+      platformFeeNetClp: payment.platformFeeNetClp,
+      platformFeeVatClp: payment.platformFeeVatClp,
+      gatewayFeeExpected: payment.gatewayFeeExpected,
+      gatewayFeeClp: payment.gatewayFeeClp,
+      producerNetClp: payment.producerNetClp,
+      currency: payment.currency,
       // TICKET: el return del checkout reintenta contra el checkout del
       // evento al fallar - el dueño del pago ya conoce este id.
       eventId: payment.eventId,
@@ -526,6 +536,16 @@ export class PaymentsController {
         gatewayReportedAmount: p.gatewayReportedAmount,
         gatewayMedia: p.gatewayMedia,
         gatewayPaidAt: p.gatewayPaidAt,
+        // Desglose congelado de la comisión (spec producer-fee-model):
+        // null en pagos legacy pre-modelo - la liquidación los trata por
+        // la regla vieja.
+        feeMode: p.feeMode,
+        platformFeeRate: p.platformFeeRate,
+        platformFeeNetClp: p.platformFeeNetClp,
+        platformFeeVatClp: p.platformFeeVatClp,
+        gatewayFeeExpected: p.gatewayFeeExpected,
+        producerNetClp: p.producerNetClp,
+        currency: p.currency,
         eventCount: p._count.events,
         // Ids de contexto: la UI linkea el pago a su evento/academia
         // (p.ej. /perfil/pagos → ficha donde vive la gestión del plan).

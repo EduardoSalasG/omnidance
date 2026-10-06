@@ -1732,8 +1732,6 @@ export async function seedDev(prisma: PrismaClient) {
     update: {},
     create: {
       producerId: carlos.id,
-      serviceFeeClp: 400,
-      doorAppFeeClp: 500,
       platformFeePct: 5,
       // Defaults de mesas del productor: sus eventos nuevos los heredan
       // salvo override. El cupo sentable (40) es menor que el aforo del
@@ -1767,7 +1765,6 @@ export async function seedDev(prisma: PrismaClient) {
   await prisma.event.update({
     where: { id: bachatamania.id },
     data: {
-      serviceFeeClp: 300,
       platformFeePct: 10,
       tablesTotal: 10,
       tableSeatMax: 8,

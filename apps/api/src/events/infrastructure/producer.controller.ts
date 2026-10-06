@@ -57,10 +57,10 @@ const TABLE_FIELDS = [
 ] as const;
 
 /**
- * Vista read-only del productor: sus defaults de fees (ProducerParams,
- * seteados por admin) y los valores efectivos que se cobrarán en sus
- * eventos - presale, puerta app, puerta efectivo y % comisión plataforma.
- * El productor no puede editarlos (spec: solo admin).
+ * Vista read-only del productor: sus defaults financieros (ProducerParams,
+ * seteados por admin) y la comisión todo incluido efectiva que se cobrará
+ * en sus eventos (spec producer-fee-model). El productor no puede
+ * editarlos (spec: solo admin).
  *
  * A diferencia de los fees, los defaults de MESAS sí los edita el propio
  * productor (table-params): son operativos, no financieros - cada evento
@@ -80,27 +80,18 @@ export class ProducerController {
     await this.assertProducerOrAdmin(me.id, me.roles);
 
     const defaults = await this.params.getProducerParams(me.id);
-    const [presale, doorApp, doorCash, platformPct] = await Promise.all([
-      this.params.getNumber("service_fee.presale_clp", 500),
-      this.params.getNumber("service_fee.door_app_clp", 700),
-      this.params.getNumber("service_fee.door_cash_clp", 0),
-      this.params.getNumber("platform_fee.default_pct", 0),
-    ]);
+    // Modelo all-in (spec producer-fee-model): el único fee financiero es
+    // la comisión todo incluido - cadena productor → fees.managed_allin_pct.
+    const allinPct = await this.params.getNumber("fees.managed_allin_pct", 10);
     return {
       defaults: defaults ?? {
-        serviceFeeClp: null,
-        doorAppFeeClp: null,
-        doorCashFeeClp: null,
         platformFeePct: null,
         tablesTotal: null,
         tableSeatMax: null,
         tableSeatsTotal: null,
       },
       effective: {
-        serviceFeeClp: defaults?.serviceFeeClp ?? presale,
-        doorAppFeeClp: defaults?.doorAppFeeClp ?? doorApp,
-        doorCashFeeClp: defaults?.doorCashFeeClp ?? doorCash,
-        platformFeePct: defaults?.platformFeePct ?? platformPct,
+        platformFeePct: defaults?.platformFeePct ?? allinPct,
       },
     };
   }

@@ -111,9 +111,9 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       create: { key: "series_pass.price_clp", value: 25000 },
     });
     await prisma.platformParam.upsert({
-      where: { key: "service_fee.series_pass_clp" },
-      update: { value: 500 },
-      create: { key: "service_fee.series_pass_clp", value: 500 },
+      where: { key: "fees.managed_allin_pct" },
+      update: { value: 10 },
+      create: { key: "fees.managed_allin_pct", value: 10 },
     });
 
     // ─── personas ───
@@ -322,6 +322,22 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     await prisma.seriesPass.deleteMany({
       where: { seriesId: { in: seriesIds } },
     });
+    // Las PayoutLine referencian al payout (FK) - van antes, de todos
+    // los payouts de estos actores (también restos de corridas previas).
+    await prisma.payoutLine.deleteMany({
+      where: {
+        payout: {
+          actorId: {
+            in: [
+              ids.producerId,
+              ids.payoutProducerId,
+              ids.academyId,
+              ids.venueId,
+            ],
+          },
+        },
+      },
+    });
     await prisma.payout.deleteMany({
       where: {
         actorId: {
@@ -428,8 +444,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       expect(body.quote).toEqual({
         listPrice: 25000,
         discount: 0,
-        serviceFee: 500,
-        total: 25500,
+        total: 25000,
       });
 
       const payment = await prisma.payment.findUniqueOrThrow({
@@ -440,7 +455,12 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       expect(payment.personId).toBe(buyerId);
       expect(payment.eventId).toBeNull();
       expect(payment.discountCodeId).toBeNull();
-      expect(payment.amount).toBe(25500);
+      // Precio publicado exacto; la comisión all-in 10% queda congelada
+      // y se liquida al productor (spec producer-fee-model).
+      expect(payment.amount).toBe(25000);
+      expect(payment.feeMode).toBe("MANAGED");
+      expect(payment.platformFeeRate).toBe(10);
+      expect(payment.producerNetClp).toBe(22500);
       expect(payment.refId).toMatch(
         new RegExp(`^sp_${ids.seriesId}_${MONTH}_`),
       );
@@ -489,7 +509,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
         },
       });
       expect(pass).toBeTruthy();
-      expect(pass!.price).toBe(25500);
+      expect(pass!.price).toBe(25000);
 
       const notif = await prisma.notification.findFirst({
         where: { personId: buyerId, type: "payment.series_pass" },
@@ -1039,14 +1059,19 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       // solo el ticket de 7000 (fee 100): excluye evento con productor,
       // PENDING y orderType != TICKET
       expect(body.gross).toBe(7000);
-      // Modelo SaaS: sin platformFee ni fee real del pago - solo el
-      // passthrough Flow como línea explícita: round(7000 × 3.19%) = 223.
+      // Modelo SaaS: sin platformFee - solo el passthrough Flow como
+      // línea tipada: round(7000 × 3.19%) = 223. Cada PayoutLine rastrea
+      // a la orden que la generó (spec producer-fee-model).
       expect(body.platformFee).toBe(0);
       expect(body.gatewayFee).toBe(223);
       expect(body.net).toBe(7000 - 223);
-      expect(body.lines).toEqual([
-        { type: "GATEWAY_FEE_PASSTHROUGH", amount: 223 },
-      ]);
+      expect(
+        body.lines.map((l: { type: string; amount: number }) => ({
+          type: l.type,
+          amount: l.amount,
+        })),
+      ).toEqual([{ type: "GATEWAY_FEE_PASSTHROUGH", amount: 223 }]);
+      expect(body.lines[0].paymentId).toBeTruthy();
     });
 
     it("generate VENUE → mismo patrón con venueId + producerId null", async () => {

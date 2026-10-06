@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { ParamsService } from "../../params/params.service";
 import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import type {
@@ -12,10 +11,7 @@ import type {
 
 @Injectable()
 export class PrismaCheckinsRepo implements CheckinsRepo {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly params: ParamsService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   findEventById(id: string) {
     return this.prisma.event.findUnique({
@@ -26,8 +22,6 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
         doorPrice: true,
         doorCap: true,
         producerId: true,
-        doorAppFeeClp: true,
-        doorCashFeeClp: true,
         seriesId: true,
       },
     });
@@ -254,13 +248,5 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
       });
       return { ticket, checkin };
     });
-  }
-
-  getParamNumber(key: string, fallback: number) {
-    return this.params.getNumber(key, fallback);
-  }
-
-  getProducerParams(producerId: string | null | undefined) {
-    return this.params.getProducerParams(producerId);
   }
 }

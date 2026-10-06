@@ -169,7 +169,7 @@
             "Los pagos se procesan a través de Flow; Omnidance actúa como intermediario entre compradores y productores, y gestiona las liquidaciones correspondientes.",
             "Las entradas son transferibles según las reglas de la app, salvo indicación del productor.",
             "Las entradas no tienen reembolso salvo cancelación del evento o lo que la ley disponga; el acceso queda sujeto a la política de puerta del local y del productor.",
-            "El cargo por servicio se informa antes de pagar y no se devuelve en reembolsos, salvo cancelación del evento."
+            "El precio publicado es el precio final: Omnidance no suma cargos al comprador. La comisión de plataforma se descuenta de la liquidación del productor."
           ]
         },
         {

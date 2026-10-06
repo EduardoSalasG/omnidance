@@ -25,8 +25,8 @@ export type SubscriptionManageProps = {
   /** "Vigente hasta": enrollment.endsAt del viewer - en CANCEL_PENDING
       es la fecha real de fin del acceso; si no hay, se usa nextInvoiceAt. */
   accessUntil?: string | null;
-  /** Monto real del próximo cobro (plan.price + cargo de servicio) -
-      lo resuelve el caller desde los planes de la academia + params. */
+  /** Monto real del próximo cobro (= plan.price - sin cargo al
+      comprador); lo resuelve el caller desde los planes de la academia. */
   nextAmount?: number;
 };
 
