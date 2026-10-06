@@ -10,6 +10,27 @@
     "stillPendingTitle": "Pago en revisión",
     "stillPendingDesc": "El pago sigue en revisión. Te avisamos cuando se confirme.",
     "stillPendingRetry": "Reintentar consulta",
-    "tablesSoldOut": "Sin cupo en mesas para este evento."
+    "tablesSoldOut": "Sin cupo en mesas para este evento.",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "payLink": "Ir a pagar",
+    "fBank": "Banco",
+    "fAccountType": "Tipo de cuenta",
+    "fAccountNumber": "N° de cuenta",
+    "fHolder": "Titular",
+    "fRut": "RUT",
+    "fEmail": "Correo",
+    "ownMethodTitle": "¿Cómo quieres pagar?",
+    "ownMethodGateway": "Tarjeta / Webpay",
+    "ownMethodHint": "Te mostraremos los datos para pagar y subirás el comprobante. El productor valida y tu entrada queda emitida.",
+    "ownMethodPendingTitle": "Orden creada · pago manual",
+    "ownMethodPendingDesc": "Paga con estos datos y sube el comprobante. Tu entrada se emite cuando el productor valide el pago.",
+    "claimNote": "Nota para el productor (opcional)",
+    "claimFile": "Comprobante de pago (imagen o PDF, máx. 5MB)",
+    "claimSubmit": "Enviar comprobante",
+    "claimSending": "Enviando…",
+    "claimSent": "Comprobante enviado. Te avisamos cuando se valide.",
+    "claimPending": "Comprobante en revisión por el productor…",
+    "claimRejected": "Comprobante rechazado"
   }
 }

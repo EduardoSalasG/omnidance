@@ -508,7 +508,7 @@ Con promo 8%: neto omni ~4,05% ($243/ticket), productor recibe $5.520. El neto o
 | Modo de cobro | Tasa | Detalle |
 |---|---|---|
 | **Gestionada** (nuestra pasarela) | `platformFeePct` (10% / promo 8%) | Recaudamos nosotros → payout |
-| **Métodos propios** (transferencia/link/comprobante) | `platformFeePct − gateway card pct` → **6,81% / 4,81%** | Mismo all-in menos la pasarela que no usamos; la promo baja sola. El fee se **devenga y se netea** contra payouts gestionados (o se factura mensual) |
+| **Métodos propios** (transferencia/link/comprobante) | `platformFeePct − gateway card pct` → **6,81% / 4,81%** | Mismo all-in menos la pasarela que no usamos; la promo baja sola. El fee se **devenga y se netea** contra payouts gestionados (o se factura mensual). Flujo: el comprador elige el método en checkout → orden queda PENDING con instrucciones → sube comprobante → el productor lo valida en `/productor/comprobantes` (aprobar = misma liquidación que un webhook de pasarela; rechazar exige motivo y permite re-intento) |
 | **Pasarela propia** (su cuenta Flow/MP) | mismo derivado que métodos propios | Credenciales cifradas del productor; la plata va directo a él; fee devengado igual |
 | **Efectivo en puerta** (staff registra) | **0%** | Es validación/QR + data, no procesamos plata |
 | **Entrada liberada** ($0) | **0%** | Nada que cobrar |

@@ -55,6 +55,11 @@ export default function ProducerPage() {
             desc={t("navPayoutsDesc")}
           />
           <ModuleCard
+            href="/productor/comprobantes"
+            title={t("modules.claims")}
+            desc={t("modules.claimsDesc")}
+          />
+          <ModuleCard
             href="/productor/parametros"
             title={t("modules.params")}
             desc={t("modules.paramsDesc")}

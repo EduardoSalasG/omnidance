@@ -5,6 +5,11 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
 import consumer from "@/i18n/parts/consumer.json";
+import {
+  OwnMethodPicker,
+  type OwnMethod,
+} from "@/components/checkout/own-method-picker";
+import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
 
 const sp = consumer.seriesPass;
 
@@ -12,6 +17,8 @@ type Phase =
   | { kind: "idle" }
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string }
+  // Orden por método propio del productor (spec producer-own-methods).
+  | { kind: "manual"; paymentId: string; method: OwnMethod }
   // El polling se agotó sin webhook (~30s): el pago puede confirmar
   // igual - el pase aparece en Mis entradas al llegar.
   | { kind: "stillPending"; paymentId: string; paymentUrl: string }
@@ -26,6 +33,9 @@ const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
 export type SeriesPassCtaProps = {
   /** EventSeries.id - requerido por POST /checkout/series-pass. */
   seriesId: string;
+  /** Event.id del evento que aloja el CTA - resuelve los métodos
+   *  propios del productor (spec producer-own-methods). */
+  eventId: string;
   /** Mes de vigencia del pase, formato "YYYY-MM" (mes del evento). */
   month: string;
   /** Nombre de la serie para el copy ("Entrada a todos los eventos de X"). */
@@ -41,6 +51,7 @@ export type SeriesPassCtaProps = {
  */
 export function SeriesPassCta({
   seriesId,
+  eventId,
   month,
   seriesName,
 }: SeriesPassCtaProps) {
@@ -51,12 +62,24 @@ export function SeriesPassCta({
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [notice, setNotice] = useState<Notice>(null);
   const [simulating, setSimulating] = useState(false);
+  const [ownMethods, setOwnMethods] = useState<OwnMethod[]>([]);
+  const [methodId, setMethodId] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch(`/events/${eventId}/payment-methods`)
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((data: { methods?: OwnMethod[] } | null) => {
+        setOwnMethods(data?.methods ?? []);
+      })
+      .catch(() => undefined);
+  }, [eventId]);
 
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
   const busy =
     phase.kind === "processing" ||
     phase.kind === "awaiting" ||
+    phase.kind === "manual" ||
     phase.kind === "stillPending";
 
   // Polling del pago mientras esperamos confirmación (stub o retorno gateway)
@@ -99,7 +122,11 @@ export function SeriesPassCta({
       const res = await apiFetch("/checkout/series-pass", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seriesId, month }),
+        body: JSON.stringify({
+          seriesId,
+          month,
+          ...(methodId ? { methodId } : {}),
+        }),
       });
 
       // Mapa de errores del controller: 404 not found / 400 inactive /
@@ -126,11 +153,24 @@ export function SeriesPassCta({
       }
 
       const data = (await res.json()) as {
-        paymentUrl: string;
+        paymentUrl: string | null;
         paymentId: string;
+        method?: Omit<OwnMethod, "id">;
       };
 
-      if (data.paymentUrl.startsWith("stub://")) {
+      if (data.paymentUrl === null) {
+        // Método propio: la orden espera el comprobante - sin redirect.
+        setPhase({
+          kind: "manual",
+          paymentId: data.paymentId,
+          method: {
+            id: methodId!,
+            type: data.method?.type ?? "TRANSFER",
+            label: data.method?.label ?? "",
+            details: (data.method?.details ?? {}) as Record<string, string>,
+          },
+        });
+      } else if (data.paymentUrl.startsWith("stub://")) {
         // Dev: gateway stub - el pago se simula con el webhook desde acá
         setPhase({
           kind: "awaiting",
@@ -202,6 +242,27 @@ export function SeriesPassCta({
           </Button>
         )}
       </div>
+
+      {/* Métodos propios del productor (spec producer-own-methods):
+          se ofrecen como forma de pago alternativa a la pasarela. */}
+      {ownMethods.length > 0 && phase.kind !== "manual" && (
+        <OwnMethodPicker
+          methods={ownMethods}
+          value={methodId}
+          onChange={setMethodId}
+          disabled={busy}
+        />
+      )}
+
+      {/* Orden manual: instrucciones + subida de comprobante; el claim
+          hace su propio poll → onPaid deja el pase emitido. */}
+      {phase.kind === "manual" && (
+        <OwnMethodClaim
+          paymentId={phase.paymentId}
+          method={phase.method}
+          onPaid={() => setPhase({ kind: "success" })}
+        />
+      )}
 
       {/* Errores/avisos del contrato */}
       {phase.kind === "failed" && (

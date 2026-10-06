@@ -690,6 +690,8 @@
       "codesDesc": "Promociones y cortesías por código",
       "lists": "Listas de invitados",
       "listsDesc": "Listas de puerta por evento",
+      "claims": "Comprobantes",
+      "claimsDesc": "Valida pagos por transferencia, link o efectivo",
       "params": "Comisión y defaults",
       "paramsDesc": "Tu comisión y valores base por evento (solo lectura)"
     },

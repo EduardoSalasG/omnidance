@@ -2134,6 +2134,223 @@
         }
       }
     },
+    "/api/producer/payment-methods": {
+      "get": {
+        "operationId": "ProducerClaimsController_listMyMethods",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "ProducerClaimsController_createMethod",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMethodDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/payment-methods/{methodId}": {
+      "patch": {
+        "operationId": "ProducerClaimsController_updateMethod",
+        "parameters": [
+          {
+            "name": "methodId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMethodDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "ProducerClaimsController_deleteMethod",
+        "parameters": [
+          {
+            "name": "methodId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/events/{id}/payment-methods": {
+      "get": {
+        "operationId": "ProducerClaimsController_methodsForEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/payments/{id}/claims": {
+      "post": {
+        "operationId": "ProducerClaimsController_createClaim",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "ProducerClaimsController_myClaims",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/claims": {
+      "get": {
+        "operationId": "ProducerClaimsController_listClaims",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/claims/{claimId}/receipt": {
+      "get": {
+        "operationId": "ProducerClaimsController_receipt",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/claims/{claimId}/approve": {
+      "post": {
+        "operationId": "ProducerClaimsController_approve",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/claims/{claimId}/reject": {
+      "post": {
+        "operationId": "ProducerClaimsController_reject",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectClaimDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/producers/{id}/pro/subscribe": {
       "post": {
         "operationId": "ProducerProController_subscribe",
@@ -5518,6 +5735,18 @@
         "type": "object",
         "properties": {}
       },
+      "CreateMethodDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateMethodDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "RejectClaimDto": {
+        "type": "object",
+        "properties": {}
+      },
       "SubscribeProducerProDto": {
         "type": "object",
         "properties": {}
@@ -5575,18 +5804,6 @@
         "properties": {}
       },
       "UpdateAcademySubscriptionDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CreateMethodDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateMethodDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "RejectClaimDto": {
         "type": "object",
         "properties": {}
       },

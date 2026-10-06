@@ -48,6 +48,7 @@ import {
   RecipientError,
   TablePartyTooLargeError,
   TableSoldOutError,
+  OwnMethodUnavailableError,
 } from "../application/checkout.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
 
@@ -101,6 +102,14 @@ class CheckoutTicketDto {
   @Min(1)
   @Max(50)
   tablePartySize?: number;
+
+  /**
+   * Método propio del productor (spec producer-own-methods): la orden
+   * queda MANUAL PENDING esperando comprobante - no toca la pasarela.
+   */
+  @IsOptional()
+  @IsString()
+  methodId?: string;
 }
 
 class CheckoutSeriesPassDto {
@@ -111,6 +120,11 @@ class CheckoutSeriesPassDto {
   @IsString()
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: "month debe ser YYYY-MM" })
   month!: string;
+
+  /** Método propio del productor (spec producer-own-methods). */
+  @IsOptional()
+  @IsString()
+  methodId?: string;
 }
 
 class CheckoutMembershipDto {
@@ -175,7 +189,8 @@ export class CheckoutController {
         e instanceof RecipientError ||
         e instanceof PresaleClosedError ||
         e instanceof EventEndedError ||
-        e instanceof TablePartyTooLargeError
+        e instanceof TablePartyTooLargeError ||
+        e instanceof OwnMethodUnavailableError
       ) {
         throw new BadRequestException(e.message);
       }
@@ -229,7 +244,10 @@ export class CheckoutController {
       if (e instanceof SeriesPassAlreadyOwnedError) {
         throw new ConflictException(e.message);
       }
-      if (e instanceof SeriesInactiveError) {
+      if (
+        e instanceof SeriesInactiveError ||
+        e instanceof OwnMethodUnavailableError
+      ) {
         throw new BadRequestException(e.message);
       }
       throw e;

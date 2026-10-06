@@ -487,6 +487,7 @@ export default async function EventoDetailPage({
       {seriesId && !isPast && !isPractice && (
         <SeriesPassCta
           seriesId={seriesId}
+          eventId={event.id}
           month={eventMonth}
           seriesName={event.series?.name ?? ""}
         />

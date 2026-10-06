@@ -28,6 +28,7 @@ import {
   RecipientError,
   PresaleClosedError,
   DoorSoldOutError,
+  OwnMethodUnavailableError,
 } from "./checkout.service";
 
 // CheckoutService - orquestación del checkout de preventa / pase de serie.
@@ -123,6 +124,11 @@ function mkPrisma() {
     eventSeries: { findUnique: vi.fn() },
     seriesPass: {
       findUnique: vi.fn(async (): Promise<{ id: string } | null> => null),
+    },
+    producerPaymentMethod: {
+      findFirst: vi.fn(
+        async (): Promise<Record<string, unknown> | null> => null,
+      ),
     },
     class: { findUnique: vi.fn() },
     academy: { findUnique: vi.fn() },
@@ -905,6 +911,90 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(res.paymentUrl).toBe("https://own.example/pay");
   });
 
+  // ─── Método propio del productor (spec producer-own-methods) ───
+
+  it("methodId válido → Payment MANUAL PENDING OWN_METHOD, sin tocar la pasarela y con instrucciones", async () => {
+    fx.prisma.producerPaymentMethod.findFirst.mockResolvedValue({
+      id: "met-1",
+      type: "TRANSFER",
+      label: "Mi transferencia",
+      details: { bank: "Estado", rut: "12.345.678-9" },
+      active: true,
+    });
+    const res = await buy({ methodId: "met-1" });
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    expect(res.paymentUrl).toBeNull();
+    expect(res.method).toMatchObject({
+      type: "TRANSFER",
+      label: "Mi transferencia",
+    });
+    const p = fx.payments[0];
+    expect(p.gateway).toBe("MANUAL");
+    expect(p.gatewayAccountId).toBeNull();
+    expect(p.feeMode).toBe("OWN_METHOD");
+    // Comisión devengada = all-in − card%: el dinero nunca pasa por la
+    // plataforma pero el fee se netea en el payout (payout.ownMethodNetClp).
+    const amount = p.amount as number;
+    expect(p.platformFeeRate).toBeCloseTo(10 - 3.19, 2);
+    expect(p.producerNetClp).toBe(
+      amount - Math.round((amount * (10 - 3.19)) / 100),
+    );
+    // status PENDING es el default del schema (el create no lo envía) -
+    // lo importante: NO se liquidó (settle solo corre en $0/webhook).
+    expect(stl.settle).not.toHaveBeenCalled();
+  });
+
+  it("methodId que no es del productor o inactivo → OwnMethodUnavailableError", async () => {
+    // findFirst sin match (method ajeno/inactivo)
+    await expect(buy({ methodId: "met-ajeno" })).rejects.toBeInstanceOf(
+      OwnMethodUnavailableError,
+    );
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("evento sin productor + methodId → OwnMethodUnavailableError", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(mkEvent({ producerId: null }));
+    await expect(buy({ methodId: "met-1" })).rejects.toBeInstanceOf(
+      OwnMethodUnavailableError,
+    );
+  });
+
+  it("methodId tiene precedencia sobre la cuenta de pasarela propia", async () => {
+    fx.prisma.producerPaymentMethod.findFirst.mockResolvedValue({
+      id: "met-1",
+      type: "CASH",
+      label: "Efectivo en puerta",
+      details: {},
+      active: true,
+    });
+    accountsStub.activeForProducer.mockClear();
+    const res = await buy({ methodId: "met-1" });
+    expect(res.paymentUrl).toBeNull();
+    expect(fx.payments[0].feeMode).toBe("OWN_METHOD");
+    expect(fx.payments[0].gatewayAccountId).toBeNull();
+    // El methodId ni siquiera consulta la cuenta propia del productor:
+    // gana por corto-circuito antes de resolver la pasarela.
+    expect(accountsStub.activeForProducer).not.toHaveBeenCalled();
+  });
+
+  it("orden $0 con methodId → FREE como siempre (no queda MANUAL)", async () => {
+    fx.prisma.producerPaymentMethod.findFirst.mockResolvedValue({
+      id: "met-1",
+      type: "CASH",
+      label: "Efectivo",
+      details: {},
+      active: true,
+    });
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 100 }),
+    );
+    const res = await buy({ methodId: "met-1", discountCode: "FREE100" });
+    expect(fx.payments[0].gateway).toBe("FREE");
+    expect(fx.payments[0].feeMode).toBe("FREE");
+    expect(res.paymentUrl).not.toBeNull();
+  });
+
   // ─── Sugerencia de canción ───
 
   it("songSuggestion reemplaza la anterior (deleteMany + create) y normaliza espacios", async () => {
@@ -1060,8 +1150,12 @@ describe("CheckoutService.purchaseSeriesPass", () => {
     );
   });
 
-  const buy = () =>
-    svc.purchaseSeriesPass("per-1", { seriesId: "ser-1", month: "2025-11" });
+  const buy = (input: Record<string, unknown> = {}) =>
+    svc.purchaseSeriesPass("per-1", {
+      seriesId: "ser-1",
+      month: "2025-11",
+      ...input,
+    });
 
   it("serie inexistente → SeriesNotFoundError", async () => {
     fx.prisma.eventSeries.findUnique.mockResolvedValue(null);
@@ -1123,6 +1217,34 @@ describe("CheckoutService.purchaseSeriesPass", () => {
     const ref = decodeSeriesPassRef(p.refId as string);
     expect(ref?.seriesId).toBe("ser-1");
     expect(ref?.month).toBe("2025-11");
+  });
+
+  it("methodId del productor de la serie → MANUAL PENDING OWN_METHOD sin pasarela (spec producer-own-methods)", async () => {
+    fx.prisma.producerPaymentMethod.findFirst.mockResolvedValue({
+      id: "met-1",
+      type: "TRANSFER",
+      label: "Transferencia",
+      details: { bank: "Estado" },
+      active: true,
+    });
+    const res = await buy({ methodId: "met-1" });
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    expect(res.paymentUrl).toBeNull();
+    expect(res.method?.type).toBe("TRANSFER");
+    const p = fx.payments[0];
+    expect(p.gateway).toBe("MANUAL");
+    expect(p.gatewayAccountId).toBeNull();
+    expect(p.feeMode).toBe("OWN_METHOD");
+    expect(fx.prisma.producerPaymentMethod.findFirst).toHaveBeenCalledWith({
+      where: { id: "met-1", producerId: "prod-1", active: true },
+    });
+  });
+
+  it("methodId de método ajeno/inactivo → OwnMethodUnavailableError", async () => {
+    await expect(buy({ methodId: "met-x" })).rejects.toBeInstanceOf(
+      OwnMethodUnavailableError,
+    );
+    expect(gw.createOrder).not.toHaveBeenCalled();
   });
 });
 
