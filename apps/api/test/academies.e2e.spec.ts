@@ -1173,6 +1173,7 @@ describe("academies e2e", () => {
   describe("payment-claims (medios BYO + comprobantes)", () => {
     let methodId = "";
     let claimId = "";
+    let intentId = "";
     let planPeriodId = "";
 
     const png = () =>
@@ -1426,6 +1427,122 @@ describe("academies e2e", () => {
       const rejected = mine.find((c: { id: string }) => c.id === claim2);
       expect(rejected.status).toBe("REJECTED");
       expect(rejected.reviewNote).toBe("el monto no calza con la cartola");
+    });
+
+    // ── intento AWAITING del checkout (spec academy-checkout-manual-pay) ──
+
+    it("intento: registra AWAITING sin comprobante y es idempotente", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/claims/intent`,
+        { planId: planPeriodId, methodId },
+        studentSession,
+      );
+      expect(res.status).toBe(201);
+      const claim = await res.json();
+      expect(claim.status).toBe("AWAITING");
+      expect(claim.receiptKey).toBeNull();
+      expect(claim.methodId).toBe(methodId);
+      intentId = claim.id;
+
+      // Re-entrar al checkout no duplica: devuelve el mismo claim.
+      const again = await post(
+        `/api/academies/${ids.academyId}/claims/intent`,
+        { planId: planPeriodId, methodId },
+        studentSession,
+      );
+      expect((await again.json()).id).toBe(intentId);
+    });
+
+    it("/claims/mine reanuda el intento (sale de la app y vuelve)", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/claims/mine`,
+        studentSession,
+      );
+      const mine = await res.json();
+      const draft = mine.find((c: { id: string }) => c.id === intentId);
+      expect(draft.status).toBe("AWAITING");
+      expect(draft.methodId).toBe(methodId);
+    });
+
+    it("owner ve el intento AWAITING en la cola (seguimiento)", async () => {
+      const list = await (
+        await get(
+          `/api/academies/${ids.academyId}/claims?status=AWAITING`,
+          ownerSession,
+        )
+      ).json();
+      expect(list.some((c: { id: string }) => c.id === intentId)).toBe(true);
+    });
+
+    it("cancelar AWAITING lo borra; el siguiente intento crea uno nuevo", async () => {
+      const cancel = await post(
+        `/api/academies/${ids.academyId}/claims/${intentId}/cancel`,
+        {},
+        studentSession,
+      );
+      expect(cancel.status).toBe(201);
+      expect(
+        await prisma.paymentClaim.findUnique({ where: { id: intentId } }),
+      ).toBeNull();
+
+      const res = await post(
+        `/api/academies/${ids.academyId}/claims/intent`,
+        { planId: planPeriodId, methodId },
+        studentSession,
+      );
+      const nuevo = (await res.json()).id;
+      expect(nuevo).not.toBe(intentId);
+      intentId = nuevo;
+
+      // Nadie más puede cancelar el intento ajeno.
+      const foreign = await post(
+        `/api/academies/${ids.academyId}/claims/${intentId}/cancel`,
+        {},
+        outsiderSession,
+      );
+      expect([403, 404]).toContain(foreign.status);
+    });
+
+    it("subir comprobante al intento → PENDING; re-intent devuelve el mismo", async () => {
+      const fd = new FormData();
+      fd.set("receipt", png(), "comprobante.png");
+      const res = await fetch(
+        `${baseUrl}/api/academies/${ids.academyId}/claims/${intentId}/receipt`,
+        {
+          method: "POST",
+          headers: { cookie: `omnidance_session=${studentSession}` },
+          body: fd,
+        },
+      );
+      expect(res.status).toBe(201);
+      expect((await res.json()).status).toBe("PENDING");
+
+      // Con un PENDING vivo, otro intento reanuda ese claim (no duplica).
+      const again = await post(
+        `/api/academies/${ids.academyId}/claims/intent`,
+        { planId: planPeriodId, methodId },
+        studentSession,
+      );
+      expect((await again.json()).id).toBe(intentId);
+    });
+
+    it("approve del intento materializa Payment MANUAL + enrollment", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/claims/${intentId}/approve`,
+        {},
+        ownerSession,
+      );
+      expect(res.status).toBe(201);
+      const claim = await prisma.paymentClaim.findUniqueOrThrow({
+        where: { id: intentId },
+      });
+      expect(claim.status).toBe("APPROVED");
+      expect(claim.paymentId).toBeTruthy();
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: claim.paymentId! },
+      });
+      expect(payment.gateway).toBe("MANUAL");
+      expect(payment.status).toBe("PAID");
     });
   });
 

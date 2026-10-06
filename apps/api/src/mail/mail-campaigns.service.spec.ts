@@ -22,10 +22,11 @@ function mkPrisma() {
   const audit: Row[] = [];
   const inDays = (n: number) => new Date(Date.now() + n * 86_400_000);
   const people = new Map<string, Row>([
-    ["p1", { id: "p1", email: "a@test.cl", name: "Ana" }],
-    ["p2", { id: "p2", email: "b@test.cl", name: "Beto" }],
-    ["p3", { id: "p3", email: null, name: "Coro" }],
-    ["admin", { id: "admin", email: "admin@test.cl", name: "Root" }],
+    ["p1", { id: "p1", email: "a@test.cl", name: "Ana", mailOptOutAt: null }],
+    ["p2", { id: "p2", email: "b@test.cl", name: "Beto", mailOptOutAt: null }],
+    ["p3", { id: "p3", email: null, name: "Coro", mailOptOutAt: null }],
+    ["admin", { id: "admin", email: "admin@test.cl", name: "Root", mailOptOutAt: null }],
+    ["p4", { id: "p4", email: "d@test.cl", name: "Dani", mailOptOutAt: new Date() }], // opt-out
   ]);
   const personRoles: Row[] = [
     { personId: "p1", role: "PRODUCER", status: "APPROVED" },
@@ -64,6 +65,20 @@ function mkPrisma() {
       id: "e6", personId: "p1", status: "ACTIVE", endsAt: null,
       academy: { name: "Clave" }, plan: { name: "Mensual" }, // sin vigencia
     },
+    {
+      id: "e7", personId: "p1", status: "ACTIVE", endsAt: inDays(6),
+      academy: { name: "Clave" }, plan: { name: "Anual" }, // 2do ciclo de p1
+    },
+  ];
+  const academies: Row[] = [
+    { id: "ac1", name: "La Gozadera", ownerId: "p1" },
+    { id: "ac2", name: "Sin Owner Mail", ownerId: "p3" },
+  ];
+  const claims: Row[] = [
+    { id: "cl1", academyId: "ac1", status: "PENDING", createdAt: inDays(-3) },
+    { id: "cl2", academyId: "ac1", status: "PENDING", createdAt: inDays(-5) },
+    { id: "cl3", academyId: "ac1", status: "AWAITING", createdAt: inDays(-4) }, // sin comprobante
+    { id: "cl4", academyId: "ac1", status: "PENDING", createdAt: inDays(0) }, // reciente
   ];
   const psubs: Row[] = [
     { id: "s1", personId: "p1", status: "ACTIVE", nextInvoiceAt: inDays(4), tierCode: "PRO" },
@@ -99,6 +114,7 @@ function mkPrisma() {
     recipients,
     sents,
     audit,
+    people,
     person: {
       findMany: vi.fn(async ({ where }: { where: Row }) =>
         [...people.values()].filter((p) => match(p, where)),
@@ -112,12 +128,34 @@ function mkPrisma() {
         personRoles.filter((r) => {
           if (where.role && r.role !== where.role) return false;
           if (where.status && r.status !== where.status) return false;
-          if ((where.person as Row | undefined)?.email != null && ((where.person as Row).email as Row).not === null) {
-            return people.get(r.personId as string)?.email != null;
+          if (where.person) {
+            const p = people.get(r.personId as string);
+            const pw = where.person as Row;
+            if (pw.email && (pw.email as Row).not === null && p?.email == null) return false;
+            if (pw.mailOptOutAt === null && p?.mailOptOutAt != null) return false;
           }
           return true;
         }),
       ),
+    },
+    academy: {
+      findMany: vi.fn(async ({ where }: { where: Row }) =>
+        academies.filter((a) => match(a, where)),
+      ),
+    },
+    paymentClaim: {
+      groupBy: vi.fn(async ({ by, where }: { by: string[]; where: Row }) => {
+        const groups = new Map<string, number>();
+        for (const c of claims) {
+          if (!match(c, where)) continue;
+          const key = c[by[0]] as string;
+          groups.set(key, (groups.get(key) ?? 0) + 1);
+        }
+        return [...groups].map(([academyId, n]) => ({
+          academyId,
+          _count: { _all: n },
+        }));
+      }),
     },
     ticket: {
       findMany: vi.fn(async ({ where }: { where: Row }) =>
@@ -196,7 +234,14 @@ function mkPrisma() {
     mailCampaignRecipient: {
       createMany: vi.fn(async ({ data }: { data: Row[] }) => {
         for (const d of data) {
-          if (!recipients.some((r) => r.runId === d.runId && r.personId === d.personId)) {
+          if (
+            !recipients.some(
+              (r) =>
+                r.runId === d.runId &&
+                r.personId === d.personId &&
+                r.dedupKey === d.dedupKey,
+            )
+          ) {
             recipients.push({ status: "PENDING", ...d, id: `rc-${recipients.length}` });
           }
         }
@@ -242,9 +287,20 @@ const baseInput = {
 describe("resolveAudience", () => {
   const ids = (entries: { personId: string }[]) => entries.map((e) => e.personId);
 
-  it("ALL devuelve personas con email", async () => {
+  it("ALL devuelve personas con email y sin opt-out", async () => {
     const { svc } = mkService();
+    // p4 tiene mailOptOutAt → excluida
     expect(ids(await svc.resolveAudience({ kind: "ALL" }))).toEqual(["p1", "p2", "admin"]);
+  });
+
+  it("CLAIMS_PENDING trae owners de academias con claims PENDING viejos", async () => {
+    const { svc } = mkService();
+    const entries = await svc.resolveAudience({ kind: "CLAIMS_PENDING", days: 2 });
+    // ac1 tiene 2 PENDING >2d (cl1, cl2); cl3 es AWAITING y cl4 reciente.
+    // ac2 no tiene claims viejos. p4 (opt-out) no aplica como owner.
+    expect(ids(entries)).toEqual(["p1"]);
+    expect(entries[0].ctx).toMatchObject({ academy: "La Gozadera", count: "2" });
+    expect(entries[0].dedupKey).toMatch(/^claims:ac1:\d{4}-\d{2}-\d{2}$/);
   });
 
   it("ROLE filtra por roleKey APPROVED con email", async () => {
@@ -351,7 +407,11 @@ describe("dispatchDue + sendRun", () => {
     seedCampaign(prisma);
     const meta = await svc.dispatchDue();
     expect(meta).toMatchObject({ dispatched: 1, sent: 1, failed: 0 });
-    expect(mailer.send).toHaveBeenCalledWith("a@test.cl", "S", "<p>x</p>");
+    const call = mailer.send.mock.calls[0] as unknown as [string, string, string];
+    expect(call[0]).toBe("a@test.cl");
+    expect(call[1]).toBe("S");
+    expect(call[2]).toContain("<p>x</p>");
+    expect(call[2]).toContain("/api/mail/unsubscribe?p=p1");
     const c = prisma.campaigns.get("c1")!;
     expect(c.status).toBe("DONE");
     expect(c.sentCount).toBe(1);
@@ -468,6 +528,59 @@ describe("variables de plantilla + dedup por ciclo", () => {
     expect(res.sent).toBe(2);
     expect(prisma.sents).toHaveLength(2);
   });
+
+  it("un mail por contexto: p1 con 2 inscripciones por vencer recibe 2 (spec platform-polish-gaps)", async () => {
+    const { prisma, mailer, svc } = mkService();
+    prisma.campaigns.set("c1", {
+      id: "c1",
+      subject: "Tu plan {{plan}} vence",
+      htmlBody: "<p>x</p>",
+      audience: { kind: "ENROLLMENTS_EXPIRING", days: 8 }, // e1 + e7 de p1
+      scheduleKind: "ONCE",
+      status: "SCHEDULED",
+      nextRunAt: new Date(Date.now() - 60_000),
+      timezone: "America/Santiago",
+      sentCount: 0,
+      failCount: 0,
+    });
+    const meta = await svc.dispatchDue();
+    expect(meta.sent).toBe(3); // p1×2 (e1,e7) + p2 (e2)
+    const toAna = (mailer.send.mock.calls as unknown as [string, string, string][])
+      .filter((c) => c[0] === "a@test.cl");
+    expect(toAna.map((c) => c[1])).toEqual(
+      expect.arrayContaining(["Tu plan Mensual vence", "Tu plan Anual vence"]),
+    );
+    expect(prisma.sents).toHaveLength(3);
+  });
+
+  it("opt-out entre resolución y envío → SKIPPED 'baja de suscripción'", async () => {
+    const { prisma, mailer, svc } = mkService();
+    prisma.campaigns.set("c1", {
+      id: "c1",
+      subject: "S",
+      htmlBody: "<p>x</p>",
+      audience: { kind: "ALL" },
+      scheduleKind: "ONCE",
+      status: "SCHEDULED",
+      nextRunAt: new Date(Date.now() - 60_000),
+      timezone: "America/Santiago",
+      sentCount: 0,
+      failCount: 0,
+    });
+    // p1 se da de baja entre la resolución de la audiencia y su envío:
+    // el loop re-lee a la persona por recipient y la respeta.
+    const origFind = prisma.mailCampaignRecipient.findMany.getMockImplementation()!;
+    prisma.mailCampaignRecipient.findMany.mockImplementation(async (args: { where: Row }) => {
+      const rows = await origFind(args);
+      prisma.people.get("p1")!.mailOptOutAt = new Date();
+      return rows;
+    });
+    const meta = await svc.dispatchDue();
+    expect(meta.sent).toBe(2); // p2 + admin; p1 salta
+    const skipped = prisma.recipients.find((r) => r.personId === "p1")!;
+    expect(skipped.status).toBe("SKIPPED");
+    expect(skipped.error).toContain("baja");
+  });
 });
 
 describe("cancelación mid-send", () => {
@@ -524,7 +637,11 @@ describe("testSend / runNow / cancel", () => {
     seed(prisma, "DRAFT");
     const res = await svc.testSend("c1", "admin");
     expect(res).toEqual({ sent: "admin@test.cl" });
-    expect(mailer.send).toHaveBeenCalledWith("admin@test.cl", "[TEST] S", "<p>x</p>");
+    const call = mailer.send.mock.calls[0] as unknown as [string, string, string];
+    expect(call[0]).toBe("admin@test.cl");
+    expect(call[1]).toBe("[TEST] S");
+    expect(call[2]).toContain("<p>x</p>");
+    expect(call[2]).toContain("/api/mail/unsubscribe?p=admin");
     expect(prisma.runs).toHaveLength(0);
   });
 

@@ -7,6 +7,7 @@ import {
   NotFoundException,
   type OnApplicationBootstrap,
 } from "@nestjs/common";
+import { createHmac } from "node:crypto";
 import type { MailCampaign, Prisma } from "@prisma/client";
 import { MAILER, type Mailer } from "../auth/domain/ports";
 import { JOB_REGISTRY, type JobRegistry } from "../jobs/registry";
@@ -20,7 +21,8 @@ export type AudienceSpec =
   | { kind: "EVENT"; eventId: string }
   | { kind: "ENROLLMENTS_EXPIRING"; days: number }
   | { kind: "ENROLLMENTS_EXPIRED"; days: number }
-  | { kind: "PLATFORM_SUB_EXPIRING"; days: number };
+  | { kind: "PLATFORM_SUB_EXPIRING"; days: number }
+  | { kind: "CLAIMS_PENDING"; days: number };
 
 /**
  * Destinatario resuelto: personId + variables de plantilla propias
@@ -47,7 +49,29 @@ export function varsForAudience(spec: AudienceSpec): string[] {
   if (spec.kind === "PLATFORM_SUB_EXPIRING") {
     return [...BASE_VARS, "plan", "nextInvoiceAt"];
   }
+  if (spec.kind === "CLAIMS_PENDING") {
+    return [...BASE_VARS, "academy", "count"];
+  }
   return BASE_VARS;
+}
+
+// Link de baja firmado (spec platform-polish-gaps): HMAC del personId
+// con JWT_SECRET — sin sesión, sin token persistido, no falsificable.
+export function unsubscribeToken(personId: string): string {
+  return createHmac("sha256", process.env.JWT_SECRET ?? "")
+    .update(personId)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+function unsubscribeFooter(personId: string): string {
+  const base = process.env.API_URL ?? "http://localhost:4000";
+  const url = `${base}/api/mail/unsubscribe?p=${encodeURIComponent(personId)}&t=${unsubscribeToken(personId)}`;
+  return (
+    '<hr style="border:none;border-top:1px solid #e2e2e2;margin:24px 0 12px">' +
+    `<p style="font:12px/1.5 sans-serif;color:#888">¿No quieres recibir estos correos? ` +
+    `<a href="${url}" style="color:#888">Cancelar suscripción</a></p>`
+  );
 }
 
 const VAR_RE = /\{\{\s*([a-zA-Z][a-zA-Z0-9_]*)\s*\}\}/g;
@@ -63,6 +87,12 @@ function applyTemplate(text: string, vars: Record<string, string>): string {
 }
 
 const DAY_MS = 86_400_000;
+
+// Destinatario elegible para campañas: con email y sin opt-out.
+const ACTIVE_MAIL = {
+  email: { not: null },
+  mailOptOutAt: null,
+} satisfies Prisma.PersonWhereInput;
 
 const fmtCl = (d: Date) =>
   d.toLocaleDateString("es-CL", {
@@ -89,6 +119,7 @@ function validateAudience(spec: AudienceSpec): void {
     case "ENROLLMENTS_EXPIRING":
     case "ENROLLMENTS_EXPIRED":
     case "PLATFORM_SUB_EXPIRING":
+    case "CLAIMS_PENDING":
       if (!Number.isInteger(spec.days) || spec.days < 1 || spec.days > 365) {
         throw new BadRequestException(
           `audiencia ${spec.kind} requiere days entero entre 1 y 365`,
@@ -215,14 +246,14 @@ export class MailCampaignsService implements OnApplicationBootstrap {
     validateAudience(spec);
     if (spec.kind === "ALL") {
       const people = await this.prisma.person.findMany({
-        where: { email: { not: null } },
+        where: ACTIVE_MAIL,
         select: { id: true },
       });
       return people.map((p) => ({ personId: p.id, ctx: {} }));
     }
     if (spec.kind === "ROLE") {
       const roles = await this.prisma.personRole.findMany({
-        where: { role: spec.roleKey, status: "APPROVED", person: { email: { not: null } } },
+        where: { role: spec.roleKey, status: "APPROVED", person: ACTIVE_MAIL },
         select: { personId: true },
       });
       return roles.map((r) => ({ personId: r.personId, ctx: {} }));
@@ -235,7 +266,7 @@ export class MailCampaignsService implements OnApplicationBootstrap {
       });
       const ownerIds = [...new Set(tickets.map((t) => t.ownerId))];
       const people = await this.prisma.person.findMany({
-        where: { id: { in: ownerIds }, email: { not: null } },
+        where: { id: { in: ownerIds }, ...ACTIVE_MAIL },
         select: { id: true },
       });
       return people.map((p) => ({ personId: p.id, ctx: {} }));
@@ -247,7 +278,52 @@ export class MailCampaignsService implements OnApplicationBootstrap {
     if (spec.kind === "ENROLLMENTS_EXPIRED") {
       return this.enrollmentsInWindow(new Date(now.getTime() - spec.days * DAY_MS), now);
     }
+    if (spec.kind === "CLAIMS_PENDING") {
+      return this.claimsPending(spec.days);
+    }
     return this.platformSubsExpiring(now, new Date(now.getTime() + spec.days * DAY_MS));
+  }
+
+  /**
+   * Owners de academias con claims PENDING más viejos que `days` días
+   * (spec platform-polish-gaps) - recordatorio "tienes comprobantes
+   * sin validar". dedupKey por academia+día CL: máximo un aviso al día
+   * mientras sigan existiendo pendientes.
+   */
+  private async claimsPending(days: number): Promise<ResolvedEntry[]> {
+    const cutoff = new Date(Date.now() - days * DAY_MS);
+    const byAcademy = await this.prisma.paymentClaim.groupBy({
+      by: ["academyId"],
+      where: { status: "PENDING", createdAt: { lt: cutoff } },
+      _count: { _all: true },
+    });
+    if (byAcademy.length === 0) return [];
+    const academies = await this.prisma.academy.findMany({
+      where: { id: { in: byAcademy.map((c) => c.academyId) } },
+      select: { id: true, name: true, ownerId: true },
+    });
+    const withEmail = new Set(
+      (
+        await this.prisma.person.findMany({
+          where: { id: { in: academies.map((a) => a.ownerId) }, ...ACTIVE_MAIL },
+          select: { id: true },
+        })
+      ).map((p) => p.id),
+    );
+    const countOf = new Map(byAcademy.map((c) => [c.academyId, c._count._all]));
+    const todayCl = new Date().toLocaleDateString("en-CA", {
+      timeZone: "America/Santiago",
+    });
+    return academies
+      .filter((a) => withEmail.has(a.ownerId))
+      .map((a) => ({
+        personId: a.ownerId,
+        dedupKey: `claims:${a.id}:${todayCl}`,
+        ctx: {
+          academy: a.name,
+          count: String(countOf.get(a.id) ?? 0),
+        },
+      }));
   }
 
   /**
@@ -270,7 +346,7 @@ export class MailCampaignsService implements OnApplicationBootstrap {
     const withEmail = new Set(
       (
         await this.prisma.person.findMany({
-          where: { id: { in: rows.map((r) => r.personId) }, email: { not: null } },
+          where: { id: { in: rows.map((r) => r.personId) }, ...ACTIVE_MAIL },
           select: { id: true },
         })
       ).map((p) => p.id),
@@ -297,7 +373,7 @@ export class MailCampaignsService implements OnApplicationBootstrap {
     const withEmail = new Set(
       (
         await this.prisma.person.findMany({
-          where: { id: { in: rows.map((r) => r.personId) }, email: { not: null } },
+          where: { id: { in: rows.map((r) => r.personId) }, ...ACTIVE_MAIL },
           select: { id: true },
         })
       ).map((p) => p.id),
@@ -468,7 +544,11 @@ export class MailCampaignsService implements OnApplicationBootstrap {
       ...(entries[0]?.ctx ?? {}),
     };
     const subject = `[TEST] ${applyTemplate(campaign.subject, vars)}`;
-    await this.mailer.send(actor.email, subject, applyTemplate(campaign.htmlBody, vars));
+    await this.mailer.send(
+      actor.email,
+      subject,
+      applyTemplate(campaign.htmlBody, vars) + unsubscribeFooter(actorId),
+    );
     await this.audit(actorId, "MAIL_CAMPAIGN_TEST", id, { to: actor.email });
     return { sent: actor.email };
   }
@@ -526,15 +606,21 @@ export class MailCampaignsService implements OnApplicationBootstrap {
     const entries = await this.resolveAudience(
       campaign.audience as unknown as AudienceSpec,
     );
+    // Un recipient por contexto: dedupKey distingue ciclos de la misma
+    // persona ("" en audiencias genéricas = 1 por persona por run).
+    const slotOf = (personId: string, dedupKey?: string) =>
+      `${personId} ${dedupKey ?? ""}`;
     await this.prisma.mailCampaignRecipient.createMany({
-      data: entries.map((e) => ({ runId: run.id, personId: e.personId })),
+      data: entries.map((e) => ({
+        runId: run.id,
+        personId: e.personId,
+        dedupKey: e.dedupKey ?? "",
+      })),
       skipDuplicates: true,
     });
-    // Un mail por persona por corrida: con N inscripciones por vencer
-    // se usa el ctx de la primera (el recipient es único por personId).
-    const byPerson = new Map<string, ResolvedEntry>();
+    const bySlot = new Map<string, ResolvedEntry>();
     for (const e of entries) {
-      if (!byPerson.has(e.personId)) byPerson.set(e.personId, e);
+      bySlot.set(slotOf(e.personId, e.dedupKey), e);
     }
     // Ciclos ya recordados en corridas anteriores de esta campaña.
     const sentKeys = new Set(
@@ -560,7 +646,7 @@ export class MailCampaignsService implements OnApplicationBootstrap {
         cancelled = true;
         break;
       }
-      const entry = byPerson.get(recipient.personId);
+      const entry = bySlot.get(slotOf(recipient.personId, recipient.dedupKey));
       if (entry?.dedupKey && sentKeys.has(entry.dedupKey)) {
         await this.prisma.mailCampaignRecipient.update({
           where: { id: recipient.id },
@@ -570,12 +656,20 @@ export class MailCampaignsService implements OnApplicationBootstrap {
       }
       const person = await this.prisma.person.findUnique({
         where: { id: recipient.personId },
-        select: { email: true, name: true },
+        select: { email: true, name: true, mailOptOutAt: true },
       });
       if (!person?.email) {
         await this.prisma.mailCampaignRecipient.update({
           where: { id: recipient.id },
           data: { status: "SKIPPED", error: "sin email" },
+        });
+        continue;
+      }
+      // Opt-out entre resolución y envío: se respeta igual.
+      if (person.mailOptOutAt) {
+        await this.prisma.mailCampaignRecipient.update({
+          where: { id: recipient.id },
+          data: { status: "SKIPPED", error: "baja de suscripción" },
         });
         continue;
       }
@@ -588,7 +682,8 @@ export class MailCampaignsService implements OnApplicationBootstrap {
         await this.mailer.send(
           person.email,
           applyTemplate(campaign.subject, vars),
-          applyTemplate(campaign.htmlBody, vars),
+          applyTemplate(campaign.htmlBody, vars) +
+            unsubscribeFooter(recipient.personId),
         );
         await this.prisma.mailCampaignRecipient.update({
           where: { id: recipient.id },

@@ -8567,6 +8567,42 @@
           }
         }
       ]
+    },
+    {
+      "name": "mail",
+      "item": [
+        {
+          "name": "GET /api/mail/unsubscribe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/mail/unsubscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "mail",
+                "unsubscribe"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "p",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "t",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ]
 }

@@ -181,6 +181,10 @@ export class JobsService implements OnApplicationBootstrap {
       throw new ConflictException(`job ${key} ya tiene una corrida activa`);
     }
     const run = await this.execute(job, "MANUAL", actorId, true);
+    if (!run) {
+      // Carrera perdida contra otra instancia entre el chequeo y el claim.
+      throw new ConflictException(`job ${key} ya tiene una corrida activa`);
+    }
     await this.audit(actorId, "JOB_RUN_MANUAL", job.id, { key });
     return run;
   }
@@ -225,10 +229,22 @@ export class JobsService implements OnApplicationBootstrap {
       },
     });
     if (!reg) return run;
-    await this.prisma.scheduledJob.update({
-      where: { id: job.id },
+    // Claim atómico (spec platform-polish-gaps): con N instancias de
+    // API a lo sumo una toma el job - el updateMany condicional hace de
+    // mutex; quien pierde descarta su JobRun.
+    const claim = await this.prisma.scheduledJob.updateMany({
+      where: { id: job.id, runningRunId: null },
       data: { runningRunId: run.id, lastStatus: "RUNNING" },
     });
+    if (claim.count === 0) {
+      await this.prisma.jobRun.delete({ where: { id: run.id } });
+      if (trigger === "MANUAL") {
+        throw new ConflictException(
+          `job ${job.key} ya tiene una corrida activa`,
+        );
+      }
+      return null;
+    }
     const finish = async () => {
       try {
         const meta = (await reg.handler()) ?? null;

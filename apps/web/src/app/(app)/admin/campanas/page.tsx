@@ -24,6 +24,7 @@ const AUDIENCE_KINDS = [
   "ENROLLMENTS_EXPIRING",
   "ENROLLMENTS_EXPIRED",
   "PLATFORM_SUB_EXPIRING",
+  "CLAIMS_PENDING",
 ] as const;
 type AudienceKind = (typeof AUDIENCE_KINDS)[number];
 
@@ -31,6 +32,7 @@ const LIFECYCLE = new Set<AudienceKind>([
   "ENROLLMENTS_EXPIRING",
   "ENROLLMENTS_EXPIRED",
   "PLATFORM_SUB_EXPIRING",
+  "CLAIMS_PENDING",
 ]);
 
 const VARS_BY_KIND: Record<AudienceKind, string[]> = {
@@ -40,6 +42,7 @@ const VARS_BY_KIND: Record<AudienceKind, string[]> = {
   ENROLLMENTS_EXPIRING: ["name", "email", "academy", "plan", "endsAt"],
   ENROLLMENTS_EXPIRED: ["name", "email", "academy", "plan", "endsAt"],
   PLATFORM_SUB_EXPIRING: ["name", "email", "plan", "nextInvoiceAt"],
+  CLAIMS_PENDING: ["name", "email", "academy", "count"],
 };
 
 type Campaign = {
@@ -60,7 +63,7 @@ type Campaign = {
 };
 
 type Role = { key: string; label: string };
-type EventOpt = { id: string; name: string; startsAt: string };
+type EventOpt = { id: string; name: string; startsAt: string; status: string };
 
 const dt = new Intl.DateTimeFormat("es-CL", {
   dateStyle: "short",
@@ -303,18 +306,34 @@ function CampaignForm({
   const [schedule, setSchedule] = useState(initial?.status === "SCHEDULED");
   const [roles, setRoles] = useState<Role[]>([]);
   const [events, setEvents] = useState<EventOpt[]>([]);
+  const [eventQ, setEventQ] = useState("");
   const [count, setCount] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const countTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const eventTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     void apiFetch("/admin/roles").then(async (r) => {
       if (r.ok) setRoles(await r.json());
     });
-    void apiFetch("/admin/browse/events?status=PUBLISHED").then(async (r) => {
-      if (r.ok) setEvents(await r.json());
-    });
   }, []);
+
+  // Buscador de eventos (debounce): sin filtro de status — también los
+  // pasados sirven como audiencia (mail post-evento a asistentes).
+  useEffect(() => {
+    if (kind !== "EVENT") return;
+    if (eventTimer.current) clearTimeout(eventTimer.current);
+    eventTimer.current = setTimeout(async () => {
+      const params = eventQ.trim()
+        ? `?q=${encodeURIComponent(eventQ.trim())}`
+        : "";
+      const r = await apiFetch(`/admin/browse/events${params}`);
+      if (r.ok) setEvents(await r.json());
+    }, 300);
+    return () => {
+      if (eventTimer.current) clearTimeout(eventTimer.current);
+    };
+  }, [kind, eventQ]);
 
   // Conteo de audiencia en vivo (debounce 400ms).
   useEffect(() => {
@@ -460,19 +479,27 @@ function CampaignForm({
             </select>
           )}
           {kind === "EVENT" && (
-            <select
-              className={inputCls}
-              value={eventId}
-              onChange={(e) => setEventId(e.target.value)}
-              required
-            >
-              <option value="">{t("campaigns.pickEvent")}</option>
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.id}>
-                  {ev.name} · {fmt(ev.startsAt)}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-2">
+              <input
+                className={inputCls}
+                placeholder={t("campaigns.searchEventPh")}
+                value={eventQ}
+                onChange={(e) => setEventQ(e.target.value)}
+              />
+              <select
+                className={inputCls}
+                value={eventId}
+                onChange={(e) => setEventId(e.target.value)}
+                required
+              >
+                <option value="">{t("campaigns.pickEvent")}</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>
+                    {ev.name} · {fmt(ev.startsAt)} · {ev.status}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
           <p className="text-xs text-white/50">
             {count === null

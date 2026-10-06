@@ -226,9 +226,11 @@
         "EVENT": "Asistentes de evento",
         "ENROLLMENTS_EXPIRING": "Inscripciones por vencer",
         "ENROLLMENTS_EXPIRED": "Inscripciones en gracia",
-        "PLATFORM_SUB_EXPIRING": "Suscripciones por cobrar"
+        "PLATFORM_SUB_EXPIRING": "Suscripciones por cobrar",
+        "CLAIMS_PENDING": "Owners con comprobantes sin validar"
       },
       "pickEvent": "Elige un evento",
+      "searchEventPh": "Buscar evento por nombre…",
       "daysLabel": "Ventana (días):",
       "varsHint": "Variables: {vars}",
       "dedupHint": "No re-envía: cada destinatario recibe 1 mail por ciclo de vencimiento.",
