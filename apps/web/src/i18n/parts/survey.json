@@ -30,7 +30,7 @@
       "occupation": { "low": "Vacío", "high": "Llenísimo" },
       "organization": { "low": "Desordenada", "high": "Impecable" },
       "floorComfort": { "low": "Incómoda", "high": "Muy cómoda" },
-      "temperature": { "low": "Helada", "high": "Sofocante" },
+      "temperature": { "low": "Helada", "high": "Calurosa" },
       "lightingSound": { "low": "Mala", "high": "Excelente" }
     }
   }
