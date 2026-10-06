@@ -77,6 +77,8 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
           method: data.method,
           passId: data.passId,
           note: data.note,
+          inAt: data.inAt ?? undefined,
+          clientRef: data.clientRef ?? null,
           syncedAt: new Date(),
         },
       });
@@ -115,6 +117,63 @@ export class PrismaCheckinsRepo implements CheckinsRepo {
 
   findCheckinById(id: string) {
     return this.prisma.checkin.findUnique({ where: { id } });
+  }
+
+  /**
+   * Manifiesto de puerta (spec staff-offline-checkin): cada lista trae la
+   * persona resuelta con el mismo join manual de listEventCheckins (los
+   * ids son escalares, sin relación Prisma).
+   */
+  private async withPeople<T extends { personId: string }>(
+    rows: T[],
+  ): Promise<(T & { name: string; photoUrl: string | null })[]> {
+    const ids = [...new Set(rows.map((r) => r.personId))];
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, photoUrl: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return rows.map((r) => {
+      const person = byId.get(r.personId);
+      return { ...r, name: person?.name ?? "?", photoUrl: person?.photoUrl ?? null };
+    });
+  }
+
+  async listActiveTicketsForEvent(eventId: string) {
+    const rows = await this.prisma.ticket.findMany({
+      where: { eventId, status: "ACTIVE" },
+      select: { ownerId: true },
+    });
+    return this.withPeople(
+      rows.map((t) => ({ personId: t.ownerId })),
+    );
+  }
+
+  async listActiveEntryPassesForEvent(eventId: string) {
+    const rows = await this.prisma.entryPass.findMany({
+      where: { eventId, status: "ACTIVE" },
+      select: { personId: true, type: true },
+    });
+    return this.withPeople(rows);
+  }
+
+  async listActiveSeriesPasses(seriesId: string, month: string) {
+    const rows = await this.prisma.seriesPass.findMany({
+      where: { seriesId, month },
+      select: { personId: true },
+    });
+    return this.withPeople(rows);
+  }
+
+  listOpenCheckins(eventId: string) {
+    return this.prisma.checkin.findMany({
+      where: { eventId, outAt: null },
+      select: { personId: true, inAt: true },
+    });
+  }
+
+  findCheckinByClientRef(clientRef: string) {
+    return this.prisma.checkin.findUnique({ where: { clientRef } });
   }
 
   /** Roles APPROVED del actor (keys) - la resolución a permisos usa el

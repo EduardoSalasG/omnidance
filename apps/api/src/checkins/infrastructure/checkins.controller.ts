@@ -12,7 +12,18 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { Type } from "class-transformer";
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsDateString,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { QrService } from "../../qr/domain/qr.service";
@@ -28,6 +39,7 @@ import {
   PersonNotFoundError,
   type CheckinResult,
   type RegisterCheckinInput,
+  type SyncItemResult,
 } from "../domain/checkins.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
@@ -79,6 +91,38 @@ class DoorSaleDto {
   @IsString()
   @IsNotEmpty()
   phone!: string;
+}
+
+class SyncItemDto {
+  /** Idempotencia exacta del retry - uuid generado por el dispositivo. */
+  @IsString()
+  clientRef!: string;
+
+  /** JWT escaneado - ausente en registros manuales por nombre (personId). */
+  @IsOptional()
+  @IsString()
+  qrToken?: string;
+
+  /** Registro manual offline: personId elegido por el staff del manifiesto. */
+  @IsOptional()
+  @IsString()
+  personId?: string;
+
+  @IsString()
+  eventId!: string;
+
+  /** Hora real del escaneo en puerta. */
+  @IsDateString()
+  scannedAt!: string;
+}
+
+class SyncCheckinsDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(500)
+  @ValidateNested({ each: true })
+  @Type(() => SyncItemDto)
+  items!: SyncItemDto[];
 }
 
 function mapDomainError(e: unknown): never {
@@ -149,6 +193,66 @@ export class CheckinsController {
       staffId: req.person!.id,
       method: dto.method ?? "SCAN",
     });
+  }
+
+  /**
+   * Batch de check-ins registrados offline (spec staff-offline-checkin).
+   * Cada ítem verifica el JWT como /checkins y corre el mismo register()
+   * con inAt=scannedAt + method OFFLINE + clientRef de idempotencia. El
+   * lote responde 200 con resultado por ítem; solo EventNotFound rompe
+   * el request entero (evento inexistente = batch corrupto).
+   */
+  @Post("sync")
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequirePermissions("checkins.write")
+  async sync(
+    @Body() dto: SyncCheckinsDto,
+    @Req() req: Request,
+  ): Promise<{ results: SyncItemResult[] }> {
+    const staffId = req.person!.id;
+    const results: SyncItemResult[] = [];
+    for (const item of dto.items) {
+      // qrToken (scan) o personId (manual por nombre) - el permiso del
+      // guard autoriza ambos, igual que /checkins vs /checkins/manual.
+      let personId: string | null = item.personId ?? null;
+      if (item.qrToken) {
+        try {
+          ({ personId } = await this.qr.verify(item.qrToken));
+        } catch {
+          results.push({ clientRef: item.clientRef, result: "invalid_token" });
+          continue;
+        }
+      }
+      if (!personId) {
+        results.push({
+          clientRef: item.clientRef,
+          result: "invalid_token",
+          detail: "sin qrToken ni personId",
+        });
+        continue;
+      }
+      try {
+        const r = await this.checkins.syncCheckin({
+          eventId: item.eventId,
+          personId,
+          staffId,
+          clientRef: item.clientRef,
+          scannedAt: new Date(item.scannedAt),
+        });
+        if (r.result === "synced") {
+          await this.safeOnCheckin(personId, r.checkin.checkin);
+        }
+        results.push(r);
+      } catch (e) {
+        if (e instanceof EventNotFoundError) mapDomainError(e);
+        results.push({
+          clientRef: item.clientRef,
+          result: "error",
+          detail: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+    return { results };
   }
 
   @Post("manual")
@@ -265,6 +369,22 @@ export class EventCheckinsController {
   async list(@Param("eventId") eventId: string) {
     try {
       return await this.checkins.listByEvent(eventId);
+    } catch (e) {
+      mapDomainError(e);
+    }
+  }
+
+  /**
+   * Manifiesto de puerta (spec staff-offline-checkin): snapshot con los
+   * pases ACTIVE y check-ins abiertos para que el staff valide offline
+   * contra IndexedDB. Mismo permiso que el listado de check-ins.
+   */
+  @Get(":eventId/door-manifest")
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequirePermissions("checkins.write")
+  async doorManifest(@Param("eventId") eventId: string) {
+    try {
+      return await this.checkins.doorManifest(eventId);
     } catch (e) {
       mapDomainError(e);
     }

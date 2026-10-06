@@ -362,6 +362,15 @@
     "cameraError": "No pudimos abrir la cámara",
     "notStaff": "Esta sección es para staff del evento",
     "offline": "Sin conexión. Reintentando…",
+    "offlineSeal": "Guardado en este dispositivo — se confirma al sincronizar",
+    "pendingSync": "por sincronizar",
+    "pendingSyncCount": "{count} por sincronizar",
+    "conflictBadge": "conflicto",
+    "conflictCount": "{count} conflicto(s) por revisar",
+    "failedBadge": "falló sync",
+    "manifestAge": "padrón de las {age} hrs",
+    "expiredQr": "QR vencido — búscalo por nombre",
+    "searchName": "Buscar por nombre",
     "loginRequired": "Entra con tu correo para operar la puerta"
   },
   "gamification": {

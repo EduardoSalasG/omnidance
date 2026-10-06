@@ -8,6 +8,7 @@ import {
 import { ProducerClaimsService } from "./producer-claims.service";
 import type { StoredFile } from "../../storage/storage.service";
 import type { PrismaClient } from "@prisma/client";
+import type { PrismaService } from "../../prisma.service";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
 import type { PaymentSettlementService } from "../application/payment-settlement.service";
 
@@ -70,7 +71,7 @@ function mkPrisma() {
         }),
         update: vi.fn(async ({ where, data }: Row) => {
           const row = methods.find((m) => m.id === where.id);
-          Object.assign(row, data);
+          if (row) Object.assign(row, data);
           return row;
         }),
         delete: vi.fn(async ({ where }: Row) => {
@@ -102,7 +103,7 @@ function mkPrisma() {
         ),
         update: vi.fn(async ({ where, data }: Row) => {
           const row = claims.find((c) => c.id === where.id);
-          Object.assign(row, data);
+          if (row) Object.assign(row, data);
           return row;
         }),
         updateMany: vi.fn(async ({ where, data }: Row) => {
@@ -155,7 +156,7 @@ function mkService() {
     settle: vi.fn(async () => ({ id: "pay-1", status: "PAID" })),
   };
   const svc = new ProducerClaimsService(
-    prisma,
+    prisma as unknown as PrismaService,
     notifications as unknown as NotificationsService,
     settlement as unknown as PaymentSettlementService,
     storage,

@@ -4,6 +4,7 @@ import type {
   CheckinPassType,
   CheckinsRepo,
   DoorSaleChannel,
+  EventDoorInfo,
   ListedCheckin,
   ResolvedPass,
 } from "./ports";
@@ -80,6 +81,36 @@ export interface RegisterCheckinInput {
   method: CheckinMethod;
   /** Nota del staff (solo check-in manual / cortesías). */
   note?: string;
+  /** Hora real del escaneo en puerta (sync offline) - default now(). */
+  inAt?: Date;
+  /** Idempotencia exacta del sync offline (uuid del dispositivo). */
+  clientRef?: string;
+}
+
+/** Resultado por ítem del batch /checkins/sync (spec staff-offline-checkin). */
+export type SyncItemResult =
+  | { clientRef: string; result: "synced"; checkin: CheckinResult }
+  | { clientRef: string; result: "duplicate"; checkin: unknown }
+  | { clientRef: string; result: "invalid_token" | "error"; detail?: string };
+
+/**
+ * Manifiesto de puerta (spec staff-offline-checkin): snapshot que el
+ * staff cachea en IndexedDB para validar ingresos sin red. Solo pases
+ * ACTIVE y check-ins abiertos, con la persona ya resuelta (nombre para
+ * búsqueda manual + foto para el match visual).
+ */
+export interface DoorManifest {
+  event: EventDoorInfo;
+  tickets: { personId: string; name: string; photoUrl: string | null }[];
+  entryPasses: {
+    personId: string;
+    type: CheckinPassType | null;
+    name: string;
+    photoUrl: string | null;
+  }[];
+  seriesPasses: { personId: string; name: string; photoUrl: string | null }[];
+  checkins: { personId: string; inAt: Date }[];
+  generatedAt: string;
 }
 
 export interface CheckinResult {
@@ -183,6 +214,8 @@ export class CheckinsService {
         method: input.method,
         passId: pass?.id ?? null,
         note: input.note ?? null,
+        inAt: input.inAt ?? null,
+        clientRef: input.clientRef ?? null,
       },
       pass,
     );
@@ -199,6 +232,76 @@ export class CheckinsService {
     const event = await this.repo.findEventById(eventId);
     if (!event) throw new EventNotFoundError(eventId);
     return this.repo.listEventCheckins(eventId);
+  }
+
+  /**
+   * Manifiesto de puerta (spec staff-offline-checkin): una sola llamada
+   * que el staff guarda en IndexedDB al entrar al evento. La
+   * autorización es la del guard del controller (checkins.write, igual
+   * que listByEvent). SeriesPass solo si el evento pertenece a serie.
+   */
+  async doorManifest(eventId: string): Promise<DoorManifest> {
+    const event = await this.repo.findEventById(eventId);
+    if (!event) throw new EventNotFoundError(eventId);
+
+    const [tickets, entryPasses, seriesPasses, checkins] =
+      await Promise.all([
+        this.repo.listActiveTicketsForEvent(eventId),
+        this.repo.listActiveEntryPassesForEvent(eventId),
+        event.seriesId
+          ? this.repo.listActiveSeriesPasses(event.seriesId, currentMonth())
+          : Promise.resolve([]),
+        this.repo.listOpenCheckins(eventId),
+      ]);
+
+    return {
+      event,
+      tickets,
+      entryPasses,
+      seriesPasses,
+      checkins,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * Un ítem del batch de sync offline: el controller ya verificó el JWT
+   * (si llega personId). clientRef da idempotencia exacta de retry; la
+   * dedup por check-in abierto resuelve el conflicto multi-dispositivo
+   * (el segundo sync llega "duplicate" - el staff decide anular o dejar
+   * con /void). EventNotFoundError propaga - el batch entero falla 404.
+   */
+  async syncCheckin(input: {
+    eventId: string;
+    personId: string;
+    staffId: string;
+    clientRef: string;
+    scannedAt: Date;
+  }): Promise<SyncItemResult> {
+    const existing = await this.repo.findCheckinByClientRef(input.clientRef);
+    if (existing) {
+      return { clientRef: input.clientRef, result: "duplicate", checkin: existing };
+    }
+    try {
+      const checkin = await this.register({
+        eventId: input.eventId,
+        personId: input.personId,
+        staffId: input.staffId,
+        method: "OFFLINE",
+        inAt: input.scannedAt,
+        clientRef: input.clientRef,
+      });
+      return { clientRef: input.clientRef, result: "synced", checkin };
+    } catch (e) {
+      if (e instanceof DuplicateCheckinError) {
+        return {
+          clientRef: input.clientRef,
+          result: "duplicate",
+          checkin: e.existing,
+        };
+      }
+      throw e;
+    }
   }
 
   /**

@@ -2603,6 +2603,32 @@
           }
         },
         {
+          "name": "GET /api/events/{eventId}/door-manifest",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{eventId}/door-manifest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{eventId}",
+                "door-manifest"
+              ],
+              "variable": [
+                {
+                  "key": "eventId",
+                  "value": ":eventId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/events/{id}/payment-methods",
           "request": {
             "method": "GET",
@@ -3486,6 +3512,38 @@
               "path": [
                 "api",
                 "checkins"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/checkins/sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/checkins/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "checkins",
+                "sync"
               ]
             },
             "body": {

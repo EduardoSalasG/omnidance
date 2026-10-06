@@ -398,10 +398,11 @@ model Checkin {
   personId   String
   passId     String?
   staffId    String?
-  method     String    @default("SCAN") // SCAN | MANUAL
+  method     String    @default("SCAN") // SCAN | MANUAL | OFFLINE
   inAt       DateTime  @default(now())
   outAt      DateTime?
   syncedAt   DateTime? // cuándo llegó al server (offline-first)
+  clientRef  String?   @unique // idempotencia de /checkins/sync (uuid del dispositivo)
   voidedAt   DateTime?
   voidReason String?
   note       String?  // nota del staff (cortesías manuales)
