@@ -1,9 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { createHmac, randomUUID } from "node:crypto";
 import type {
-  FlowSubscription,
+  NormalizedGatewayData,
   PaymentGateway,
+  RemoteSubscription,
+  RemoteSubscriptionStatus,
   SubscriptionCallOpts,
+  SubscriptionInvoice,
   SubscriptionProvider,
 } from "../domain/ports";
 import {
@@ -25,8 +28,91 @@ import {
 // TODA llamada HTTP a Flow pasa por call(), que emite un GatewayTxEntry
 // (append-only) vía onTx - el writer real es GatewayTransactionsService,
 // inyectado desde el módulo; en tests se inyecta un collector fake.
-// Re-export de los tipos del contrato para callers del adapter.
-export type { FlowInvoice, FlowSubscription } from "../domain/ports";
+// ─── Tipos crudos de Flow (nunca salen del adaptador - spec
+// subscription-port-generic: la normalización vive en la frontera) ───
+
+interface FlowRawInvoice {
+  id: number;
+  status: number;
+  amount: number;
+  period_start?: string;
+  period_end?: string;
+  payment?: {
+    status?: number;
+    flowOrder?: number;
+    paymentData?: {
+      amount?: number;
+      fee?: number;
+      media?: string;
+      date?: string;
+      transferDate?: string;
+    };
+  };
+}
+
+interface FlowRawSubscription {
+  subscriptionId: string;
+  planId: string;
+  status: number | string;
+  next_invoice_date?: string;
+  morose?: number | string;
+  cancel_at_period_end?: number | string;
+  invoices?: FlowRawInvoice[];
+}
+
+/**
+ * Regla "pagada" de una invoice Flow (interpretación segura del
+ * reconcile - la doc de Flow no la explicita): la invoice marcada
+ * cobrada (status 1) o su intento de pago con status 2 (pagado -
+ * el mismo código que payment/getStatus).
+ */
+function isFlowInvoicePaid(inv: FlowRawInvoice): boolean {
+  return inv.status === 1 || inv.payment?.status === 2;
+}
+
+function normalizeInvoice(inv: FlowRawInvoice): SubscriptionInvoice {
+  return {
+    id: inv.id,
+    amount: inv.amount,
+    paid: isFlowInvoicePaid(inv),
+    periodStart: inv.period_start,
+    periodEnd: inv.period_end,
+    payment: inv.payment
+      ? {
+          orderRef:
+            inv.payment.flowOrder != null
+              ? String(inv.payment.flowOrder)
+              : undefined,
+          // Flow paymentData ya es la forma plana normalizada
+          // ({amount, fee, media, transferDate}).
+          data: inv.payment.paymentData as
+            | NormalizedGatewayData
+            | undefined,
+        }
+      : undefined,
+  };
+}
+
+/**
+ * Flow subscription status: 1 = activa, 4 = cancelada. Cualquier otro
+ * código → UNKNOWN con rawStatus (el consumer lo trata como vigente +
+ * warning, igual que el comportamiento previo a la normalización).
+ */
+function normalizeSubscription(data: FlowRawSubscription): RemoteSubscription {
+  const raw = data.status == null ? null : Number(data.status);
+  const status: RemoteSubscriptionStatus =
+    raw === 4 ? "CANCELED" : raw === 1 ? "ACTIVE" : "UNKNOWN";
+  return {
+    subscriptionId: data.subscriptionId,
+    planId: data.planId,
+    status,
+    rawStatus: raw == null ? undefined : raw,
+    morose: Number(data.morose) === 1,
+    cancelAtPeriodEnd: Number(data.cancel_at_period_end) === 1,
+    nextInvoiceDate: data.next_invoice_date,
+    invoices: (data.invoices ?? []).map(normalizeInvoice),
+  };
+}
 
 @Injectable()
 export class FlowGateway implements PaymentGateway, SubscriptionProvider {
@@ -253,16 +339,13 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   async getCustomer(
     customerId: string,
     opts?: SubscriptionCallOpts,
-  ): Promise<{ creditCardType?: string; status?: number }> {
-    const data = await this.call<{
-      creditCardType?: string;
-      status?: number;
-    }>(
+  ): Promise<{ hasCard: boolean }> {
+    const data = await this.call<{ creditCardType?: string }>(
       "customer/get",
       { apiKey: this.apiKey, customerId },
       { method: "GET", correlationId: opts?.correlationId },
     );
-    return { creditCardType: data.creditCardType, status: data.status };
+    return { hasCard: data.creditCardType != null };
   }
 
   /**
@@ -291,12 +374,12 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
 
   /**
    * customer/getRegisterStatus - Flow devuelve status como STRING
-   * ("1" = tarjeta registrada); se parsea a number en la salida.
+   * ("1" = tarjeta registrada); el puerto expone solo `registered`.
    */
   async getRegisterStatus(
     token: string,
     opts?: SubscriptionCallOpts,
-  ): Promise<{ status: number; customerId?: string }> {
+  ): Promise<{ registered: boolean; customerId?: string }> {
     const data = await this.call<{
       status?: string | number;
       customerId?: string;
@@ -306,7 +389,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
       { method: "GET", correlationId: opts?.correlationId },
     );
     return {
-      status: Number(data.status ?? 0),
+      registered: Number(data.status) === 1,
       customerId: data.customerId,
     };
   }
@@ -318,8 +401,8 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   async createSubscription(
     p: { planId: string; customerId: string; subscriptionStart: string },
     opts?: SubscriptionCallOpts,
-  ): Promise<FlowSubscription> {
-    const data = await this.call<FlowSubscription>(
+  ): Promise<RemoteSubscription> {
+    const data = await this.call<FlowRawSubscription>(
       "subscription/create",
       {
         apiKey: this.apiKey,
@@ -332,7 +415,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     if (!data.subscriptionId) {
       throw new Error("flow subscription/create: respuesta inválida");
     }
-    return data;
+    return normalizeSubscription(data);
   }
 
   /**
@@ -342,12 +425,13 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
   async getSubscription(
     subscriptionId: string,
     opts?: SubscriptionCallOpts,
-  ): Promise<FlowSubscription> {
-    return this.call<FlowSubscription>(
+  ): Promise<RemoteSubscription> {
+    const data = await this.call<FlowRawSubscription>(
       "subscription/get",
       { apiKey: this.apiKey, subscriptionId },
       { method: "GET", correlationId: opts?.correlationId },
     );
+    return normalizeSubscription(data);
   }
 
   /**

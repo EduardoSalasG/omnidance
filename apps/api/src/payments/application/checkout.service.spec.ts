@@ -70,6 +70,9 @@ function mkPrisma() {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const row: StoredPayment = {
           id: `pay-${payments.length + 1}`,
+          // default @default("CLP") del schema - el fake lo aplica como
+          // haría Prisma real (checkout.service lo lee para createOrder).
+          currency: "CLP",
           ...data,
         };
         payments.push(row);

@@ -96,6 +96,11 @@ export const PARAM_DEFAULTS: Array<{
   // GatewayRegistry; si el provider no está registrado (sin
   // credenciales) cae al default del env. Valores: FLOW | MERCADOPAGO.
   { key: "payments.default_gateway", value: "FLOW", description: "Proveedor de pago por defecto para órdenes nuevas (FLOW | MERCADOPAGO) - resuelto contra el GatewayRegistry; sin credenciales cae al default del env" },
+  // Proveedor del motor de suscripciones (spec
+  // subscription-port-generic): mismo mecanismo de resolución que
+  // default_gateway; si el provider elegido no implementa
+  // SubscriptionProvider, los flujos de suscripción fallan explícito.
+  { key: "payments.subscription_gateway", value: "FLOW", description: "Proveedor del motor de suscripciones (FLOW hoy; STUB en dev) - resuelto contra el GatewayRegistry; sin valor cae al default del env" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
   { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota - después la reserva se puede cancelar pero la clase se pierde" },
   // ─── SaaS billing (spec academy-saas-billing) ───

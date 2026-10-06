@@ -14,12 +14,14 @@ import { academyFeeBreakdown } from "../../common/fee-breakdown";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import {
-  isFlowInvoicePaid,
-  PAYMENT_GATEWAY,
-  type FlowSubscription,
   type PaymentGateway,
+  type RemoteSubscription,
   type SubscriptionProvider,
 } from "../domain/ports";
+import {
+  GatewayRegistry,
+  PAYMENT_GATEWAYS,
+} from "../domain/gateway-registry";
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
 import { ensureFlowCustomer } from "./flow-customer";
@@ -118,32 +120,48 @@ export class SubscriptionsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly params: ParamsService,
     private readonly settlement: PaymentSettlementService,
     private readonly notifications: NotificationsService,
     private readonly gatewayTx: GatewayTransactionsService,
+    @Inject(PAYMENT_GATEWAYS)
+    private readonly gateways: GatewayRegistry,
   ) {}
 
   /**
-   * Port opcional: capability check por presencia de métodos, no por
-   * name - cualquier adapter que implemente SubscriptionProvider vale
-   * (Flow; StubGateway en dev), sin depender del concreto (hexagonal).
+   * Provider de suscripciones (spec subscription-port-generic): el
+   * param `payments.subscription_gateway` se resuelve contra el
+   * GatewayRegistry; capability check por presencia de métodos, nunca
+   * por name - cualquier adapter que implemente SubscriptionProvider
+   * vale (Flow; StubGateway en dev), sin depender del concreto.
+   * null = el provider resuelto no tiene motor de suscripciones
+   * (p.ej. MercadoPago): los flujos fallan explícito, jamás caen en
+   * silencio a otro provider.
    */
-  private supportsSubscriptions(): boolean {
-    return (
-      typeof (this.gateway as Partial<SubscriptionProvider>)
-        .createSubscription === "function"
-    );
+  private async subscriptionGateway(): Promise<PaymentGateway | null> {
+    const name = await this.params.get("payments.subscription_gateway");
+    const gw = this.gateways.resolve(typeof name === "string" ? name : null);
+    return typeof (gw as Partial<SubscriptionProvider>)
+      .createSubscription === "function"
+      ? gw
+      : null;
   }
 
-  private provider(): SubscriptionProvider {
-    if (!this.supportsSubscriptions()) {
+  /** Provider resuelto + su nombre (para auditoría y Payment.gateway). */
+  private async provider(): Promise<{
+    provider: SubscriptionProvider;
+    name: string;
+  }> {
+    const gw = await this.subscriptionGateway();
+    if (!gw) {
       throw new BadRequestException(
-        "este gateway no soporta suscripciones",
+        "el proveedor de suscripciones configurado no tiene motor de suscripciones",
       );
     }
-    return this.gateway as unknown as SubscriptionProvider;
+    return {
+      provider: gw as unknown as SubscriptionProvider,
+      name: gw.name,
+    };
   }
 
   /**
@@ -161,11 +179,12 @@ export class SubscriptionsService {
     plan: { flowPlanId: string | null; academy: { name: string } },
     next: { name: string; price: number },
   ): Promise<void> {
-    if (!plan.flowPlanId || !this.supportsSubscriptions()) return;
+    const gw = await this.subscriptionGateway();
+    if (!plan.flowPlanId || !gw) return;
     // Sin cargo de servicio en el monto espejo (modelo SaaS - spec
     // academy-saas-billing): Flow cobra al alumno solo plan.price; el
     // costo de pasarela se liquida en el payout de la academia.
-    await this.provider().syncPlan(
+    await (gw as unknown as SubscriptionProvider).syncPlan(
       {
         planId: plan.flowPlanId,
         name: `${plan.academy.name} - ${next.name}`,
@@ -229,7 +248,7 @@ export class SubscriptionsService {
     }
     // Capability check ANTES de la tx: con un gateway sin motor de
     // suscripciones no se crea una fila PENDING_CARD muerta.
-    const provider = this.provider();
+    const { provider } = await this.provider();
 
     // Sección crítica (serializada por advisory lock): re-check de sub
     // viva + elección de la PENDING_CARD. Una PENDING_CARD FRESCA del
@@ -345,7 +364,7 @@ export class SubscriptionsService {
     );
 
     const customer = await provider.getCustomer(customerId, { correlationId });
-    if (!customer.creditCardType) {
+    if (!customer.hasCard) {
       const { registerUrl } = await provider.registerCustomerCard(
         {
           customerId,
@@ -383,7 +402,7 @@ export class SubscriptionsService {
       );
     }
 
-    const { active, fs } = await this.createFlowSubscription(sub.id, {
+    const { active, fs } = await this.createRemoteSubscription(sub.id, {
       flowPlanId,
       customerId,
       correlationId,
@@ -425,24 +444,23 @@ export class SubscriptionsService {
    *   quedara ACTIVATING para siempre, el guard de subscribe daría 409
    *   eterno).
    * - Guard de status remoto (M4): no se asume ACTIVE a ciegas -
-   *   `fs.status` se coerciona a número (Flow puede devolverlo como
-   *   STRING "4", igual que getRegisterStatus); 4 (cancelada) →
-   *   CANCELED; ausente/1 → ACTIVE; otro valor o NaN → warn + ACTIVE
-   *   (la sub existe en Flow; bloquear dejaría un cobro real sin
+   *   el adaptador ya normalizó el código del proveedor; CANCELED →
+   *   CANCELED; otro estado → ACTIVE; UNKNOWN → warn + ACTIVE (la sub
+   *   existe en el proveedor; bloquear dejaría un cobro real sin
    *   reflejo local y el próximo reconcile corrige el estado).
-   * - Si el update local falla, la sub Flow quedaría huérfana (cobrando
-   *   sin reflejo local) → compensación best-effort: cancel inmediata
-   *   (M6) y rethrow.
+   * - Si el update local falla, la sub remota quedaría huérfana
+   *   (cobrando sin reflejo local) → compensación best-effort: cancel
+   *   inmediata (M6) y rethrow.
    * - La transición ACTIVATING→final es condicional (updateMany): si la
    *   sub cambió de estado entremedio (p.ej. cancel del usuario), la sub
-   *   Flow recién creada se compensa igual y se lanza Conflict.
+   *   remota recién creada se compensa igual y se lanza Conflict.
    */
-  private async createFlowSubscription(
+  private async createRemoteSubscription(
     subId: string,
     p: { flowPlanId: string; customerId: string; correlationId: string },
-  ): Promise<{ active: MembershipSubscription; fs: FlowSubscription }> {
-    const provider = this.provider();
-    let fs: FlowSubscription;
+  ): Promise<{ active: MembershipSubscription; fs: RemoteSubscription }> {
+    const { provider } = await this.provider();
+    let fs: RemoteSubscription;
     try {
       fs = await provider.createSubscription(
         {
@@ -476,24 +494,24 @@ export class SubscriptionsService {
       })
       .catch(() => {});
 
-    // Coerción defensiva: Flow puede devolver status como string ("4")
-    // igual que en getRegisterStatus. NaN cae en el warn y se trata como
-    // ACTIVE (la sub existe en Flow; el reconcile corrige).
-    const remoteStatus = fs.status == null ? null : Number(fs.status);
-    if (remoteStatus != null && remoteStatus !== 1 && remoteStatus !== 4) {
+    // UNKNOWN con rawStatus = código no mapeado por el adaptador (spec
+    // subscription-port-generic): warn y se trata como ACTIVE (la sub
+    // existe en el proveedor; el reconcile corrige). rawStatus ausente
+    // (status null) no advierte - igual que el guard previo.
+    if (fs.status === "UNKNOWN" && fs.rawStatus != null) {
       this.logger.warn(
-        `subscription/create sub ${subId}: status remoto inesperado ${String(fs.status)} - queda ACTIVE y el reconcile lo corrige`,
+        `subscription/create sub ${subId}: status remoto inesperado ${String(fs.rawStatus)} - queda ACTIVE y el reconcile lo corrige`,
       );
     }
-    const nextStatus = remoteStatus === 4 ? "CANCELED" : "ACTIVE";
+    const nextStatus = fs.status === "CANCELED" ? "CANCELED" : "ACTIVE";
     const transition = await this.prisma.membershipSubscription
       .updateMany({
         where: { id: subId, status: "ACTIVATING" },
         data: {
           flowSubscriptionId: fs.subscriptionId,
           status: nextStatus,
-          nextInvoiceAt: fs.next_invoice_date
-            ? new Date(fs.next_invoice_date)
+          nextInvoiceAt: fs.nextInvoiceDate
+            ? new Date(fs.nextInvoiceDate)
             : null,
           ...(nextStatus === "CANCELED" ? { canceledAt: new Date() } : {}),
         },
@@ -510,7 +528,7 @@ export class SubscriptionsService {
         })
         .catch((ce) =>
           this.logger.error(
-            `compensación cancel Flow sub ${fs.subscriptionId} (local ${subId}): ${ce instanceof Error ? ce.message : ce}`,
+            `compensación cancel sub remota ${fs.subscriptionId} (local ${subId}): ${ce instanceof Error ? ce.message : ce}`,
           ),
         );
       throw new ConflictException(
@@ -533,16 +551,17 @@ export class SubscriptionsService {
   async customerReturn(token: string): Promise<CustomerReturnResult> {
     const correlationId = randomUUID();
     await this.gatewayTx.record({
-      provider: this.gateway.name,
+      provider:
+        (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
       direction: "INBOUND_WEBHOOK",
       endpoint: "customer/register-return",
       correlationId,
       requestBody: { token },
       ok: true,
     });
-    const provider = this.provider();
+    const { provider } = await this.provider();
     const reg = await provider.getRegisterStatus(token, { correlationId });
-    if (reg.status !== 1 || !reg.customerId) {
+    if (!reg.registered || !reg.customerId) {
       return { ok: false, academyId: null };
     }
     const person = await this.prisma.person.findFirst({
@@ -586,7 +605,7 @@ export class SubscriptionsService {
         : { ok: false, academyId: sub.academyId };
     }
 
-    const { active, fs } = await this.createFlowSubscription(sub.id, {
+    const { active, fs } = await this.createRemoteSubscription(sub.id, {
       flowPlanId: sub.plan.flowPlanId,
       customerId: reg.customerId,
       correlationId,
@@ -624,7 +643,8 @@ export class SubscriptionsService {
    */
   async subscriptionWebhook(token: string | null): Promise<void> {
     await this.gatewayTx.record({
-      provider: this.gateway.name,
+      provider:
+        (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
       direction: "INBOUND_WEBHOOK",
       endpoint: "subscription/callback",
       correlationId: randomUUID(),
@@ -662,12 +682,12 @@ export class SubscriptionsService {
     if (!sub || sub.personId !== personId) {
       throw new NotFoundException("suscripción no encontrada");
     }
-    if (sub.flowSubscriptionId && this.supportsSubscriptions()) {
+    if (sub.flowSubscriptionId && (await this.subscriptionGateway())) {
       try {
-        const fs = await this.provider().getSubscription(
-          sub.flowSubscriptionId,
-          { correlationId: randomUUID() },
-        );
+        const { provider } = await this.provider();
+        const fs = await provider.getSubscription(sub.flowSubscriptionId, {
+          correlationId: randomUUID(),
+        });
         await this.reconcileSubscription(sub, fs);
       } catch (e) {
         this.logger.error(
@@ -707,7 +727,8 @@ export class SubscriptionsService {
       return { ok: true, status: "CANCELED", subscriptionId: sub.id };
     }
 
-    await this.provider().cancelSubscription(sub.flowSubscriptionId, {
+    const { provider } = await this.provider();
+    await provider.cancelSubscription(sub.flowSubscriptionId, {
       correlationId: randomUUID(),
     });
     await this.prisma.membershipSubscription.update({
@@ -771,8 +792,9 @@ export class SubscriptionsService {
   async reconcileAll(
     actor = "reconcile",
   ): Promise<{ checked: number; settled: number }> {
-    if (!this.supportsSubscriptions()) return { checked: 0, settled: 0 };
-    const provider = this.provider();
+    const resolved = await this.provider().catch(() => null);
+    if (!resolved) return { checked: 0, settled: 0 };
+    const { provider } = resolved;
     const subs = await this.prisma.membershipSubscription.findMany({
       where: {
         flowSubscriptionId: { not: null },
@@ -820,7 +842,8 @@ export class SubscriptionsService {
   ): Promise<void> {
     const txs = await this.prisma.gatewayTransaction.findMany({
       where: {
-        provider: this.gateway.name,
+        provider:
+          (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
         direction: "OUTBOUND",
         endpoint: "subscription/create",
         ok: true,
@@ -882,7 +905,7 @@ export class SubscriptionsService {
         const fs = await provider.getSubscription(remoteId, {
           correlationId: randomUUID(),
         });
-        if (Number(fs.status) === 4) continue; // remota ya cancelada
+        if (fs.status === "CANCELED") continue; // remota ya cancelada
         await provider.cancelSubscription(remoteId, {
           correlationId: randomUUID(),
           immediate: true,
@@ -915,13 +938,14 @@ export class SubscriptionsService {
    * compartido por el polling de GET /subscriptions/:id, el webhook y el
    * cron (T7 le agrega reminder/morose encima).
    *
-   * Invoices pagados (isFlowInvoicePaid): dedup por lastInvoiceId y por
-   * Payment.refId `mem_<planId>_<invoiceId>` (único - retry seguro);
-   * cada uno nuevo crea el Payment PENDING + ORDER_CREATED en el ledger
-   * y pasa por settleMembership (kind "renewal" → RENEWAL_SETTLED).
+   * Invoices pagados (`inv.paid` normalizado por el adaptador): dedup
+   * por lastInvoiceId y por Payment.refId `mem_<planId>_<invoiceId>`
+   * (único - retry seguro); cada uno nuevo crea el Payment PENDING +
+   * ORDER_CREATED en el ledger y pasa por settleMembership
+   * (kind "renewal" → RENEWAL_SETTLED).
    *
-   * Sync de estado: nextInvoiceAt desde next_invoice_date;
-   * cancel_at_period_end → CANCEL_PENDING; status 4 → CANCELED.
+   * Sync de estado: nextInvoiceAt desde `fs.nextInvoiceDate`;
+   * `cancelAtPeriodEnd` → CANCEL_PENDING; `status CANCELED` → CANCELED.
    * Devuelve cuántos invoices se liquidaron en esta pasada.
    *
    * Encima del sync corren los avisos del cron (T7): el reminder del
@@ -934,11 +958,11 @@ export class SubscriptionsService {
    */
   async reconcileSubscription(
     sub: MembershipSubscription,
-    fs: FlowSubscription,
+    fs: RemoteSubscription,
     actor = "reconcile",
   ): Promise<number> {
     let settled = 0;
-    const paidInvoices = (fs.invoices ?? []).filter(isFlowInvoicePaid);
+    const paidInvoices = (fs.invoices ?? []).filter((inv) => inv.paid);
     if (paidInvoices.length) {
       // Fallback de monto si la invoice no trae amount (raro - Flow lo
       // reporta): precio del plan + cargo de servicio vigente.
@@ -963,7 +987,7 @@ export class SubscriptionsService {
             await this.settlement.settleMembership(exists, {
               actor,
               kind: "renewal",
-              gatewayData: inv.payment?.paymentData,
+              gatewayData: inv.payment?.data,
             });
             settled++;
           }
@@ -990,11 +1014,9 @@ export class SubscriptionsService {
             amount,
             fee: 0, // costo pasarela: lo persiste el settle (paymentData.fee)
             net: amount,
-            gateway: this.gateway.name,
-            gatewayRef:
-              inv.payment?.flowOrder != null
-                ? String(inv.payment.flowOrder)
-                : null,
+            gateway:
+              (await this.subscriptionGateway())?.name ?? "UNCONFIGURED",
+            gatewayRef: inv.payment?.orderRef ?? null,
             ...academyFeeBreakdown(amount, cardPct),
           },
         });
@@ -1008,7 +1030,7 @@ export class SubscriptionsService {
         await this.settlement.settleMembership(payment, {
           actor,
           kind: "renewal",
-          gatewayData: inv.payment?.paymentData,
+          gatewayData: inv.payment?.data,
         });
         settled++;
         await this.markInvoice(sub.id, invId);
@@ -1016,21 +1038,18 @@ export class SubscriptionsService {
       }
     }
 
-    const nextInvoiceAt = fs.next_invoice_date
-      ? new Date(fs.next_invoice_date)
+    const nextInvoiceAt = fs.nextInvoiceDate
+      ? new Date(fs.nextInvoiceDate)
       : null;
     let status = sub.status;
     let canceledAt = sub.canceledAt;
-    // Flow puede devolver status y flags como strings ("4", "1") -
-    // misma coerción defensiva que en createFlowSubscription.
-    const remoteStatus = fs.status == null ? null : Number(fs.status);
-    if (remoteStatus === 4) {
+    // Estado ya normalizado por el adaptador (spec
+    // subscription-port-generic): CANCELED es terminal; UNKNOWN se
+    // trata como vigente (igual que antes un código ≠4).
+    if (fs.status === "CANCELED") {
       status = "CANCELED";
       canceledAt ??= new Date();
-    } else if (
-      Number(fs.cancel_at_period_end) === 1 &&
-      status === "ACTIVE"
-    ) {
+    } else if (fs.cancelAtPeriodEnd && status === "ACTIVE") {
       status = "CANCEL_PENDING";
       canceledAt ??= new Date();
     }
@@ -1082,15 +1101,15 @@ export class SubscriptionsService {
       sub.reminderSentFor = nextInvoiceAt;
     }
 
-    // Mora: Flow reporta morose=1 con la invoice impaga en invoices[].
-    // Sin grace period - solo se notifica una vez por invoice impaga
-    // (dedup por invoiceId en la notificación enviada; Flow crea una
-    // invoice por intento, la más antigua es el inicio del episodio -
+    // Mora: el proveedor reporta mora (Flow morose=1 → `morose`) con
+    // la invoice impaga en invoices[]. Sin grace period - solo se
+    // notifica una vez por invoice impaga (dedup por invoiceId en la
+    // notificación enviada; la más antigua es el inicio del episodio -
     // clave estable mientras dure la mora).
-    if (Number(fs.morose) === 1) {
+    if (fs.morose) {
       const unpaid = (fs.invoices ?? [])
-        .filter((inv) => !isFlowInvoicePaid(inv))
-        .sort((a, b) => a.id - b.id)[0];
+        .filter((inv) => !inv.paid)
+        .sort((a, b) => Number(a.id) - Number(b.id))[0];
       const invoiceId = unpaid != null ? String(unpaid.id) : null;
       const already = await this.prisma.notification.findFirst({
         where: {

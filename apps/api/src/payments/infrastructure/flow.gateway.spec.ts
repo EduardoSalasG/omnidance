@@ -315,7 +315,7 @@ describe("FlowGateway", () => {
       expect(out.customerId).toBe("cus_9");
     });
 
-    it("getCustomer GET customer/get → creditCardType+status", async () => {
+    it("getCustomer GET customer/get → hasCard normalizado (creditCardType)", async () => {
       const spy = mockFetch({
         customerId: "cus_1",
         creditCardType: "Visa",
@@ -329,7 +329,13 @@ describe("FlowGateway", () => {
       expect(qs.get("s")).toBe(
         expectedSignature({ apiKey: KEY, customerId: "cus_1" }),
       );
-      expect(out).toEqual({ creditCardType: "Visa", status: 1 });
+      expect(out).toEqual({ hasCard: true });
+    });
+
+    it("getCustomer sin creditCardType → hasCard false", async () => {
+      mockFetch({ customerId: "cus_1", status: 1 });
+      const out = await makeGateway().getCustomer("cus_1");
+      expect(out).toEqual({ hasCard: false });
     });
 
     it("registerCustomerCard POST customer/register → registerUrl = url?token=", async () => {
@@ -358,7 +364,7 @@ describe("FlowGateway", () => {
       );
     });
 
-    it("getRegisterStatus GET - status viene STRING '1' → parsea a 1 + customerId", async () => {
+    it("getRegisterStatus GET - status STRING '1' → registered:true + customerId", async () => {
       const spy = mockFetch({
         status: "1",
         customerId: "cus_1",
@@ -375,7 +381,14 @@ describe("FlowGateway", () => {
       expect(qs.get("s")).toBe(
         expectedSignature({ apiKey: KEY, token: "tokReg" }),
       );
-      expect(out).toEqual({ status: 1, customerId: "cus_1" });
+      expect(out).toEqual({ registered: true, customerId: "cus_1" });
+    });
+
+    it("getRegisterStatus status≠1 → registered:false", async () => {
+      mockFetch({ status: "0" });
+      const out = await makeGateway().getRegisterStatus("tokBad");
+      expect(out.registered).toBe(false);
+      expect(out.customerId).toBeUndefined();
     });
 
     it("createSubscription POST subscription/create con planId+customerId+start", async () => {
@@ -404,10 +417,11 @@ describe("FlowGateway", () => {
       }
       expect(body.get("s")).toBe(expectedSignature(params));
       expect(out.subscriptionId).toBe("sus_1");
-      expect(out.next_invoice_date).toBe("2026-10-24 00:00:00");
+      expect(out.nextInvoiceDate).toBe("2026-10-24 00:00:00");
+      expect(out.status).toBe("ACTIVE");
     });
 
-    it("getSubscription GET subscription/get → parsea invoices[]", async () => {
+    it("getSubscription GET subscription/get → invoices[] normalizadas", async () => {
       const spy = mockFetch({
         subscriptionId: "sus_1",
         planId: "pl_1",
@@ -417,7 +431,11 @@ describe("FlowGateway", () => {
             id: 10,
             status: 1,
             amount: 5000,
-            payment: { status: 2, flowOrder: 99 },
+            payment: {
+              status: 2,
+              flowOrder: 99,
+              paymentData: { amount: 5000, fee: 160, media: "1" },
+            },
           },
         ],
       });
@@ -431,7 +449,85 @@ describe("FlowGateway", () => {
       );
       expect(out.invoices).toHaveLength(1);
       expect(out.invoices?.[0].id).toBe(10);
-      expect(out.invoices?.[0].payment?.flowOrder).toBe(99);
+      expect(out.invoices?.[0].paid).toBe(true);
+      expect(out.invoices?.[0].payment?.orderRef).toBe("99");
+      expect(out.invoices?.[0].payment?.data).toEqual({
+        amount: 5000,
+        fee: 160,
+        media: "1",
+      });
+    });
+
+    // Normalización de la frontera Flow → RemoteSubscription (spec
+    // subscription-port-generic): los códigos crudos jamás salen del
+    // adaptador - el dominio solo ve el enum genérico.
+    describe("normalización RemoteSubscription", () => {
+      function sub(over: Record<string, unknown> = {}) {
+        return {
+          subscriptionId: "sus_1",
+          planId: "pl_1",
+          status: 1,
+          ...over,
+        };
+      }
+
+      it("status 1 → ACTIVE; status 4 → CANCELED", async () => {
+        mockFetch(sub({ status: 1 }));
+        expect((await makeGateway().getSubscription("x")).status).toBe(
+          "ACTIVE",
+        );
+        mockFetch(sub({ status: 4 }));
+        expect((await makeGateway().getSubscription("x")).status).toBe(
+          "CANCELED",
+        );
+      });
+
+      it("status desconocido → UNKNOWN + rawStatus conservado", async () => {
+        mockFetch(sub({ status: 7 }));
+        const out = await makeGateway().getSubscription("x");
+        expect(out.status).toBe("UNKNOWN");
+        expect(out.rawStatus).toBe(7);
+      });
+
+      it("status string '4' coerciona a CANCELED", async () => {
+        mockFetch(sub({ status: "4" }));
+        const out = await makeGateway().getSubscription("x");
+        expect(out.status).toBe("CANCELED");
+        expect(out.rawStatus).toBe(4);
+      });
+
+      it("morose=1 / cancel_at_period_end=1 → booleans", async () => {
+        mockFetch(sub({ status: 1, morose: 1, cancel_at_period_end: "1" }));
+        const out = await makeGateway().getSubscription("x");
+        expect(out.morose).toBe(true);
+        expect(out.cancelAtPeriodEnd).toBe(true);
+      });
+
+      it("morose/cancel_at_period_end ausentes → false", async () => {
+        mockFetch(sub({ status: 1 }));
+        const out = await makeGateway().getSubscription("x");
+        expect(out.morose).toBe(false);
+        expect(out.cancelAtPeriodEnd).toBe(false);
+      });
+
+      it("invoice.status=1 → paid; invoice.status=0 con payment.status=2 → paid; status=0 sin pago → unpaid", async () => {
+        mockFetch(
+          sub({
+            status: 1,
+            invoices: [
+              { id: 1, status: 1, amount: 100 },
+              { id: 2, status: 0, amount: 100, payment: { status: 2 } },
+              { id: 3, status: 0, amount: 100 },
+            ],
+          }),
+        );
+        const out = await makeGateway().getSubscription("x");
+        expect(out.invoices?.map((i) => i.paid)).toEqual([
+          true,
+          true,
+          false,
+        ]);
+      });
     });
 
     it("cancelSubscription → at_period_end=1", async () => {
