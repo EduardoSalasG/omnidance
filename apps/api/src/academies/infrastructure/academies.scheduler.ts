@@ -1,29 +1,30 @@
-import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
-import { schedule } from "node-cron";
+import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
+import { JOB_REGISTRY, type JobRegistry } from "../../jobs/registry";
 import { AcademyRemindersService } from "./academy-reminders.service";
 
 /**
- * Cron diario 09:00 del dominio academias - hoy solo corre el barrido
- * de recordatorios de renovación (spec academy-renewal-reminders).
- * Mismo patrón que SubscriptionsScheduler: provider fino, la lógica
- * vive en el servicio y en tests se ejerce directo (sin scheduler).
+ * Registro del job diario de academias (spec admin-jobs-mail-campaigns):
+ * el horario ya no vive en código - ScheduledJob en DB es la fuente de
+ * verdad y el admin lo controla desde /admin/jobs. El código solo
+ * aporta el handler y el default (09:00 America/Santiago).
+ * Provider fino: la lógica vive en AcademyRemindersService y en tests
+ * se ejerce directo.
  */
 @Injectable()
 export class AcademiesScheduler implements OnModuleInit {
-  private readonly logger = new Logger(AcademiesScheduler.name);
-
-  constructor(private readonly reminders: AcademyRemindersService) {}
+  constructor(
+    private readonly reminders: AcademyRemindersService,
+    @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
+  ) {}
 
   onModuleInit(): void {
-    if (process.env.NODE_ENV === "test") return;
-    schedule("0 9 * * *", () => {
-      this.reminders.runDaily().catch((e: unknown) => {
-        this.logger.error(
-          "recordatorios de renovación fallaron",
-          e instanceof Error ? e.stack : String(e),
-        );
-      });
+    this.registry.register({
+      key: "academies.renewal_reminders",
+      label: "Recordatorios de renovación de academias",
+      description:
+        "Barrido diario de enrollments por vencer: mails + notificaciones de renovación a alumnos.",
+      defaultCron: "0 9 * * *",
+      handler: async () => this.reminders.runDaily() as Promise<Record<string, unknown> | void>,
     });
-    this.logger.log("cron de recordatorios de academia registrado (0 9 * * *)");
   }
 }

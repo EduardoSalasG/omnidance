@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
 import { PrismaModule } from "../prisma.module";
 import { ParamsModule } from "../params/params.module";
+import { JobsModule } from "../jobs/jobs.module";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "./domain/ports";
 import {
   GatewayRegistry,
@@ -47,6 +48,7 @@ import { StorageModule } from "../storage/storage.module";
 @Module({
   imports: [
     AuthModule,
+    JobsModule,
     ParamsModule,
     NotificationsModule,
     PrismaModule,

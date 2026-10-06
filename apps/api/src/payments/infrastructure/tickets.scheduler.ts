@@ -1,29 +1,29 @@
-import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
-import { schedule } from "node-cron";
+import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
+import { JOB_REGISTRY, type JobRegistry } from "../../jobs/registry";
 import { TicketDayOfService } from "../application/ticket-day-of.service";
 
 /**
- * Cron day-of de tickets (spec wallet-passes): corre 13:00 UTC (≈09:00
- * Chile) - la notificación llega la mañana del evento. Mismo patrón que
- * AcademiesScheduler: la lógica vive en el servicio y el scheduler solo
- * dispara; en test no se registra.
+ * Job day-of de tickets (spec wallet-passes + admin-jobs-mail-campaigns):
+ * horario en ScheduledJob (DB, /admin/jobs) - default 09:00
+ * America/Santiago explícito (antes corría a las 13:00 hora servidor,
+ * frágil a la zona del host). La lógica vive en TicketDayOfService; el
+ * handler solo dispara y reporta {events, notified} a JobRun.meta.
  */
 @Injectable()
 export class TicketsScheduler implements OnModuleInit {
-  private readonly logger = new Logger(TicketsScheduler.name);
-
-  constructor(private readonly dayOf: TicketDayOfService) {}
+  constructor(
+    private readonly dayOf: TicketDayOfService,
+    @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
+  ) {}
 
   onModuleInit(): void {
-    if (process.env.NODE_ENV === "test") return;
-    schedule("0 13 * * *", () => {
-      this.dayOf.runDaily().catch((e: unknown) => {
-        this.logger.error(
-          "barrido day-of de tickets falló",
-          e instanceof Error ? e.stack : String(e),
-        );
-      });
+    this.registry.register({
+      key: "tickets.day_of",
+      label: "Notificaciones day-of de tickets",
+      description:
+        "La mañana del evento avisa por push a cada dueño de ticket activo que su entrada es válida hoy.",
+      defaultCron: "0 9 * * *",
+      handler: async () => this.dayOf.runDaily(),
     });
-    this.logger.log("cron day-of de tickets registrado (0 13 * * * UTC)");
   }
 }

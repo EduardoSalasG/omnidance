@@ -3,6 +3,7 @@ import { AuthModule } from "../auth/auth.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { PrismaModule } from "../prisma.module";
+import { JobsModule } from "../jobs/jobs.module";
 import { ParamsModule } from "../params/params.module";
 import { StorageModule } from "../storage/storage.module";
 import { AdminController } from "./infrastructure/admin.controller";
@@ -17,10 +18,12 @@ import { CatalogsController } from "./infrastructure/catalogs.controller";
 import { AdminProducerParamsController } from "./infrastructure/producer-params.controller";
 import { SupportController } from "./infrastructure/support.controller";
 import { UserIntelController } from "./infrastructure/user-intel.controller";
+import { AdminJobsController } from "./infrastructure/jobs.controller";
 
 @Module({
   imports: [
     AuthModule,
+    JobsModule,
     NotificationsModule,
     PrismaModule,
     ParamsModule,
@@ -37,6 +40,7 @@ import { UserIntelController } from "./infrastructure/user-intel.controller";
     AdminProducerParamsController,
     SupportController,
     UserIntelController,
+    AdminJobsController,
   ],
   providers: [AdminBillingService],
 })

@@ -2,7 +2,7 @@
 
 Plataforma unificada para la escena SBK de Santiago: bailarines, eventos sociales, productores, DJs, venues, academias, staff y administración.
 
-> Última actualización: 2026-10-04 (suscripciones de plataforma - SaaS academia + Producer Pro). Mantener sincronizado con `apps/api/src/app.module.ts` y `apps/api/prisma/schema.prisma`.
+> Última actualización: 2026-10-19 (consola de jobs + campañas de mail). Mantener sincronizado con `apps/api/src/app.module.ts` y `apps/api/prisma/schema.prisma`.
 
 ## Vista general
 
@@ -70,7 +70,8 @@ src/<dominio>/
 | params | `/api/params/public`, `/api/admin/params` | público / `admin.access` |
 | leads | `POST /api/leads` (upsert por email, devuelve `demoToken`, notifica a ADMIN) + `POST /api/leads/:id/demo` (token en body → crea `Person` `isDemoAccount` con los roles del lead en APPROVED, enlaza `lead.personId`, emite sesión; email ya registrado → 409) | público, rate-limited por IP |
 | storage | módulo global (sin rutas): puerto `STORAGE` + adaptador disco local sobre `UPLOADS_DIR` (dev `./uploads`, prod `/app/uploads` con bind mount al disco dedicado VM). Guard contra path traversal; usado por comprobantes de pago de academia (`claims/<academyId>/<uuid>.<ext>`) - los archivos **nunca** se sirven por estático público, solo por endpoint autenticado (dueño del claim o admin de la academia). | - |
-| admin | `/api/admin/*` usuarios (búsqueda, ficha 360°, asignación de roles), analítica por usuario, explorador `/admin/browse/:entity` (incl. `payment-events`, `gateway-transactions`, `membership-subscriptions`), `/admin/payments/:id/verify-chain` (integridad del ledger), consola financiera `/admin/finance/summary|accrual|mrr` (GMV segmentado, devengado no liquidado por actor vía `PayoutSettlementService.unliquidatedOnly`, MRR/ARR de `PlatformSubscription`), roles, permisos, audit | `admin.access` |
+| admin | `/api/admin/*` usuarios (búsqueda, ficha 360°, asignación de roles), analítica por usuario, explorador `/admin/browse/:entity` (incl. `payment-events`, `gateway-transactions`, `membership-subscriptions`), `/admin/payments/:id/verify-chain` (integridad del ledger), consola financiera `/admin/finance/summary|accrual|mrr` (GMV segmentado, devengado no liquidado por actor vía `PayoutSettlementService.unliquidatedOnly`, MRR/ARR de `PlatformSubscription`), roles, permisos, audit, `/admin/jobs*` (consola de jobs programados: horario/pausa/corrida/historial) | `admin.access` |
+| mail | `/api/admin/mail-campaigns*` campañas de mail programadas: CRUD, `audience-count` (preview), `:id/test|run|cancel`, `:id/runs` | `admin.access` |
 
 ## Cuentas demo (leads /pro)
 
@@ -314,11 +315,21 @@ Segundo cron 09:00 (dominio academias, mismo patrón: provider fino + skip en `N
 
 ### Push day-of + wallet passes (spec wallet-passes)
 
-`TicketsScheduler` corre 13:00 UTC (≈09:00 Chile) → `TicketDayOfService.runDaily()`: eventos `PUBLISHED`/`LIVE` cuyo `startsAt` cae **hoy en America/Santiago** (`clDayBounds` - día calendario CL, no 24h) → `Notification` `ticket.day_of` (SOCIAL) a cada dueño de ticket `ACTIVE` con `data:{eventId, url:"/qr"}`. Dedup por (persona, evento, día): consulta la notification del tipo con `data.eventId` creada desde la medianoche CL - el barrido es reentrante (un crash a mitad del fan-out solo completa los que faltaron al reintentar). El QR sigue siendo la credencial canónica: el push aterriza en `/qr` y la cadena de instalación ya existe (`PushOptIn` + `InstallPrompt` globales).
+`TicketsScheduler` registra el job `tickets.day_of` (default 09:00 America/Santiago explícito - antes 13:00 hora servidor; ver "Consola de jobs") → `TicketDayOfService.runDaily()`: eventos `PUBLISHED`/`LIVE` cuyo `startsAt` cae **hoy en America/Santiago** (`clDayBounds` - día calendario CL, no 24h) → `Notification` `ticket.day_of` (SOCIAL) a cada dueño de ticket `ACTIVE` con `data:{eventId, url:"/qr"}`. Dedup por (persona, evento, día): consulta la notification del tipo con `data.eventId` creada desde la medianoche CL - el barrido es reentrante (un crash a mitad del fan-out solo completa los que faltaron al reintentar). El QR sigue siendo la credencial canónica: el push aterriza en `/qr` y la cadena de instalación ya existe (`PushOptIn` + `InstallPrompt` globales).
 
 `GET /wallet/google` devuelve el saveUrl "Add to Google Wallet": `GenericPass` firmado JWT RS256 con la service account (`GOOGLE_WALLET_ISSUER_ID` + `GOOGLE_WALLET_SA_EMAIL` + `GOOGLE_WALLET_SA_PRIVATE_KEY` PEM con `\n` escapados - `importPKCS8` de jose) cuyo único contenido accionable es el deep link a `${WEB_URL}/qr` - **sin barcode** (decisión de producto: el QR personal rotativo HS256 no es reproducible por `RotatingBarcode` sin cambiar la verificación; una segunda credencial redundaría). Sin credenciales → 503 `wallet.not_configured` y el front oculta el botón.
 
 La vista "Mis entradas" (`/eventos?view=mios` → `TicketWallet`) muestra las órdenes `PENDING` TICKET/SERIES_PASS de `/payments/mine` como cards ámbar "pago en validación" - sin link al QR ni sello de entrada válida: una compra por método propio espera la aprobación del comprobante y no genera ticket hasta el settle.
+
+### Consola de jobs + campañas de mail (spec admin-jobs-mail-campaigns)
+
+**La DB es la fuente de verdad del horario** (`ScheduledJob`/`JobRun`): los schedulers ya no llaman `node-cron.schedule()` directo - cada uno registra `{key, label, defaultCron, handler}` en el `JOB_REGISTRY` (token global del `JobsModule`, patrón STORAGE) en `onModuleInit`, y `JobsService.sync()` en `onApplicationBootstrap` hace upsert por key: job nuevo → `cronExpr=defaultCron`; existente → solo refresca label/descripción (el `cronExpr`/`enabled`/`timezone` editados por el admin nunca se pisan); key que desaparece del registry → `orphaned` (sin ejecutar, historial intacto). Corridas `RUNNING` huérfanas de un crash → `ERROR` y libera el mutex.
+
+`JobsRunner` agenda UN tick `* * * * *` (skip `NODE_ENV=test`): ejecuta jobs `enabled && !orphaned && nextRunAt <= now` secuencialmente - catch-up automático tras downtime (un job vencido corre una vez al boot). `nextRunAt` se calcula con `cron-parser` (respeta timezone y DST de America/Santiago). Cada corrida persiste un `JobRun` (RUNNING→OK|ERROR, trigger `CRON|MANUAL`, actorId, duración, `meta` con los contadores del handler) y actualiza `lastRunAt/lastStatus/lastError/runCount` del job. `runningRunId` evita solapamiento (un run manual concurrente → 409). Los 5 jobs registrados: `academies.renewal_reminders`, `subscriptions.reconcile`, `crm.triggers`, `tickets.day_of` (todos default 09:00 America/Santiago - antes corrían hora local del servidor) y `mail.campaign_dispatch` (`* * * * *`).
+
+Consola admin (`admin.access`, todo auditado en `AuditLog`): `GET /admin/jobs`, `PATCH /admin/jobs/:key` (cronExpr/timezone/enabled - cron inválida → 400, reactivar recalcula nextRunAt sin catch-up), `POST /admin/jobs/:key/run` (manual async, 409 si ya corre), `GET /admin/jobs/:key/runs`; front `/admin/jobs` con edición + presets, pausa, corrida e historial expandible.
+
+**Campañas de mail** (`MailCampaign`/`MailCampaignRun`/`MailCampaignRecipient`): el admin compone `subject` + `htmlBody` libre en `/admin/campanas` (preview iframe `sandbox`), elige audiencia `ALL` | `ROLE`+roleKey APPROVED | `EVENT`+eventId (owners de tickets ACTIVE, solo personas con email) - la especificación se **re-ancla en cada corrida** (nunca snapshot) y programa `ONCE` (`runAt`) o `CRON` (`cronExpr`+`timezone`). El dispatch lo hace el job `mail.campaign_dispatch`: toma `SCHEDULED` con `nextRunAt` vencido → `sendRun` crea el run + recipients (`@@unique(runId,personId)`), envía secuencial ~150ms por destinatario (≈6 req/s Resend), marca `SENT|FAILED|SKIPPED` por recipient y agrega contadores. `cancel` mid-send corta entre destinatarios (re-lee status) y marca los PENDING restantes SKIPPED. Crash recovery en bootstrap: runs RUNNING → ERROR + recipients PENDING→SKIPPED; campaña SENDING → SCHEDULED (CRON, re-agenda) o FAILED (ONCE). Endpoints: CRUD + `GET audience-count` (preview), `POST :id/test` (copia al email del admin), `POST :id/run`, `POST :id/cancel`, `GET :id/runs` - todo `admin.access` + audit. Estados: DRAFT→SCHEDULED→SENDING→DONE|FAILED|CANCELLED; editar solo DRAFT/SCHEDULED (SENDING → 409).
 
 ### Equipo de academia - colaboradores por capacidad (spec academy-staff-roles)
 

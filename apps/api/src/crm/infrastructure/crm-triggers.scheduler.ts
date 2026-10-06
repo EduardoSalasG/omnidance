@@ -1,29 +1,28 @@
-import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
-import { schedule } from "node-cron";
+import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
+import { JOB_REGISTRY, type JobRegistry } from "../../jobs/registry";
 import { CrmService } from "../domain/crm.service";
 
 /**
- * Evaluación diaria (09:00) de todos los CrmTrigger activos de la
- * plataforma - provider fino: la lógica vive en
- * CrmService.evaluateAllActiveTriggers().
+ * Job diario de triggers CRM (spec admin-jobs-mail-campaigns): horario
+ * en ScheduledJob (DB, /admin/jobs) - default 09:00 America/Santiago.
+ * Provider fino: la lógica vive en CrmService.evaluateAllActiveTriggers()
+ * y su resultado alimenta JobRun.meta.
  */
 @Injectable()
 export class CrmTriggersScheduler implements OnModuleInit {
-  private readonly logger = new Logger(CrmTriggersScheduler.name);
-
-  constructor(private readonly crm: CrmService) {}
+  constructor(
+    private readonly crm: CrmService,
+    @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
+  ) {}
 
   onModuleInit(): void {
-    // En tests no se registra el cron (los e2e evalúan por endpoint).
-    if (process.env.NODE_ENV === "test") return;
-    schedule("0 9 * * *", () => {
-      this.crm.evaluateAllActiveTriggers().catch((e: unknown) => {
-        this.logger.error(
-          "evaluateAllActiveTriggers falló",
-          e instanceof Error ? e.stack : String(e),
-        );
-      });
+    this.registry.register({
+      key: "crm.triggers",
+      label: "Evaluación de triggers CRM",
+      description:
+        "Evalúa todos los CrmTrigger activos de la plataforma y dispara sus campañas (notificaciones MARKETING).",
+      defaultCron: "0 9 * * *",
+      handler: async () => this.crm.evaluateAllActiveTriggers() as Promise<Record<string, unknown> | void>,
     });
-    this.logger.log("cron de triggers CRM registrado (0 9 * * *)");
   }
 }

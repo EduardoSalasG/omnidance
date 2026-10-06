@@ -5440,6 +5440,87 @@
         }
       }
     },
+    "/api/admin/jobs": {
+      "get": {
+        "operationId": "AdminJobsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/jobs/{key}": {
+      "patch": {
+        "operationId": "AdminJobsController_update",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateJobDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/jobs/{key}/run": {
+      "post": {
+        "operationId": "AdminJobsController_run",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/jobs/{key}/runs": {
+      "get": {
+        "operationId": "AdminJobsController_runs",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/crm/people": {
       "get": {
         "operationId": "CrmController_listPeople",
@@ -5744,6 +5825,175 @@
         ],
         "responses": {
           "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/mail-campaigns": {
+      "get": {
+        "operationId": "MailCampaignsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "MailCampaignsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/mail-campaigns/audience-count": {
+      "get": {
+        "operationId": "MailCampaignsController_audienceCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/mail-campaigns/{id}": {
+      "get": {
+        "operationId": "MailCampaignsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "MailCampaignsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CampaignPatchDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/mail-campaigns/{id}/runs": {
+      "get": {
+        "operationId": "MailCampaignsController_runs",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/mail-campaigns/{id}/test": {
+      "post": {
+        "operationId": "MailCampaignsController_test",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/mail-campaigns/{id}/run": {
+      "post": {
+        "operationId": "MailCampaignsController_run",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/mail-campaigns/{id}/cancel": {
+      "post": {
+        "operationId": "MailCampaignsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
             "description": ""
           }
         }
@@ -6059,6 +6309,10 @@
         "type": "object",
         "properties": {}
       },
+      "UpdateJobDto": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateTagDto": {
         "type": "object",
         "properties": {}
@@ -6080,6 +6334,14 @@
         "properties": {}
       },
       "PatchTriggerDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CampaignDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CampaignPatchDto": {
         "type": "object",
         "properties": {}
       }

@@ -27,6 +27,8 @@ import { ParamsModule } from "./params/params.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { HomeModule } from "./home/home.module";
 import { LeadsModule } from "./leads/leads.module";
+import { JobsModule } from "./jobs/jobs.module";
+import { MailModule } from "./mail/mail.module";
 import { StorageModule } from "./storage/storage.module";
 
 @Module({
@@ -65,6 +67,8 @@ import { StorageModule } from "./storage/storage.module";
     HomeModule,
     AnalyticsModule,
     LeadsModule,
+    JobsModule,
+    MailModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

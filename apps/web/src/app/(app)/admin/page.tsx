@@ -44,6 +44,16 @@ export default function AdminPage() {
             desc={t("modules.facturacionDesc")}
           />
           <ModuleCard
+            href="/admin/jobs"
+            title={t("modules.jobs")}
+            desc={t("modules.jobsDesc")}
+          />
+          <ModuleCard
+            href="/admin/campanas"
+            title={t("modules.campaigns")}
+            desc={t("modules.campaignsDesc")}
+          />
+          <ModuleCard
             href="/admin/auditoria"
             title={t("modules.audit")}
             desc={t("modules.auditDesc")}
