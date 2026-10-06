@@ -2095,6 +2095,45 @@
         }
       }
     },
+    "/api/producer/gateway-account": {
+      "get": {
+        "operationId": "ProducerGatewayAccountsController_view",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "ProducerGatewayAccountsController_upsert",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GatewayAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "ProducerGatewayAccountsController_disable",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/producers/{id}/pro/subscribe": {
       "post": {
         "operationId": "ProducerProController_subscribe",
@@ -5472,6 +5511,10 @@
         "properties": {}
       },
       "PayPayoutDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GatewayAccountDto": {
         "type": "object",
         "properties": {}
       },

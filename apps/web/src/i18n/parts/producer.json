@@ -280,6 +280,28 @@
       "subscribeOk": "¡Producer Pro activado!",
       "subscribeError": "No pudimos iniciar la suscripción. Inténtalo de nuevo.",
       "tierLimit": "Tu facturación supera el tope de los planes autogestionados. Escríbenos para contratar Pro a medida."
+    },
+    "gateway": {
+      "title": "Mi pasarela de cobro",
+      "provider": "Pasarela",
+      "credential": "Credencial",
+      "webhookLabel": "URL de confirmación (configúrala en el panel de tu pasarela)",
+      "lastError": "Último error de la pasarela",
+      "active": "Activa",
+      "inactive": "Inactiva",
+      "empty": "Sin cuenta propia: tus ventas se cobran por la pasarela de Omnidance.",
+      "apiKey": "API key",
+      "accessToken": "Access token",
+      "secretKey": "Secret key",
+      "replacePlaceholder": "Nueva credencial (reemplaza la actual)",
+      "save": "Conectar pasarela",
+      "rotate": "Reemplazar credenciales",
+      "saved": "Pasarela conectada. Configura la URL de confirmación en su panel.",
+      "disable": "Desactivar",
+      "disabled": "Pasarela desactivada: el cobro volvió a la plataforma.",
+      "confirmOff": "¿Desactivar tu pasarela? Las ventas nuevas vuelven a cobrarse por Omnidance.",
+      "confirmYes": "Sí, desactivar",
+      "hint": "Con pasarela propia el dinero de tus ventas llega directo a tu cuenta; la comisión de Omnidance se descuenta en tu liquidación."
     }
   }
 }

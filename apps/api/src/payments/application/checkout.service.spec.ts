@@ -204,6 +204,14 @@ function mkGateway() {
 
 type PrismaMock = ReturnType<typeof mkPrisma>["prisma"];
 
+// Stub de GatewayAccountsService (spec producer-gateway-accounts): sin
+// cuentas → las órdenes salen por el default de la plataforma como
+// siempre. Los tests OWN_GATEWAY sobreescriben activeForProducer.
+const accountsStub = {
+  activeForProducer: vi.fn(async () => null),
+  adapterFor: vi.fn(),
+};
+
 // Settlement real se cubre en su propio spec - acá solo interesa que el
 // camino $0 lo invoque; los checkouts con monto ni siquiera lo tocan.
 const mkSettlement = () => ({
@@ -263,6 +271,7 @@ describe("CheckoutService.purchaseTicket", () => {
       pf.params as unknown as ParamsService,
       stl as never,
       gw.registry,
+      accountsStub as never,
     );
   });
 
@@ -864,6 +873,38 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(res.paymentUrl).toBe(`https://pay.example/${fx.payments[0].refId}`);
   });
 
+  it("productor con cuenta propia → cobra en su adaptador + feeMode OWN_GATEWAY (spec producer-gateway-accounts)", async () => {
+    const ownGateway = {
+      name: "FLOW",
+      createOrder: vi.fn(async () => ({
+        paymentUrl: "https://own.example/pay",
+        gatewayRef: "own-ref",
+      })),
+      verifyWebhook: vi.fn(),
+    };
+    accountsStub.activeForProducer.mockResolvedValueOnce({
+      account: { id: "acct-1" },
+      gateway: ownGateway,
+    } as never);
+    const res = await buy();
+    expect(accountsStub.activeForProducer).toHaveBeenCalledWith("prod-1");
+    // La orden se cobra en SU adaptador - nunca toca el de plataforma.
+    expect(ownGateway.createOrder).toHaveBeenCalledTimes(1);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    const p = fx.payments[0];
+    expect(p.feeMode).toBe("OWN_GATEWAY");
+    expect(p.gatewayAccountId).toBe("acct-1");
+    expect(p.gateway).toBe("FLOW"); // provider de la cuenta
+    // Comisión devengada = all-in − card% (el productor paga su propia
+    // pasarela): se netea en su payout como líneas OWN_METHOD_*.
+    const amount = p.amount as number;
+    expect(p.platformFeeRate).toBeCloseTo(10 - 3.19, 2);
+    expect(p.producerNetClp).toBe(
+      amount - Math.round((amount * (10 - 3.19)) / 100),
+    );
+    expect(res.paymentUrl).toBe("https://own.example/pay");
+  });
+
   // ─── Sugerencia de canción ───
 
   it("songSuggestion reemplaza la anterior (deleteMany + create) y normaliza espacios", async () => {
@@ -905,6 +946,7 @@ describe("CheckoutService.discountQuote", () => {
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
       gw.registry,
+      accountsStub as never,
     );
   });
 
@@ -1014,6 +1056,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
       gw.registry,
+      accountsStub as never,
     );
   });
 
@@ -1114,6 +1157,7 @@ describe("CheckoutService.membershipQuote", () => {
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
       gw.registry,
+      accountsStub as never,
     );
   });
 
@@ -1244,6 +1288,7 @@ describe("CheckoutService.purchaseMembership", () => {
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
       gw.registry,
+      accountsStub as never,
     );
   });
 
@@ -1377,6 +1422,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
       gw.registry,
+      accountsStub as never,
     );
   });
 
@@ -1497,6 +1543,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
       gw.registry,
+      accountsStub as never,
     );
   });
 

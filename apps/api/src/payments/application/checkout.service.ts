@@ -31,10 +31,12 @@ import {
 } from "../../academies/domain/academy.service";
 import {
   managedFeeBreakdown,
+  ownMethodBreakdown,
   resolvePlatformFeeRate,
   academyFeeBreakdown,
   type FeeBreakdown,
 } from "../../common/fee-breakdown";
+import { GatewayAccountsService } from "./gateway-accounts.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import type { Prisma } from "@prisma/client";
 
@@ -292,6 +294,7 @@ export class CheckoutService {
     private readonly settlement: PaymentSettlementService,
     @Inject(PAYMENT_GATEWAYS)
     private readonly gateways: GatewayRegistry,
+    private readonly accounts: GatewayAccountsService,
   ) {}
 
   /**
@@ -303,6 +306,22 @@ export class CheckoutService {
   private async resolveGateway(): Promise<PaymentGateway> {
     const name = await this.params.get("payments.default_gateway");
     return this.gateways.resolve(typeof name === "string" ? name : null);
+  }
+
+  /**
+   * Pasarela propia del productor (spec producer-gateway-accounts): si
+   * tiene cuenta ACTIVE la orden se cobra en SU Flow/MP →
+   * `gatewayAccountId` + feeMode OWN_GATEWAY (comisión devengada,
+   * neteada en su payout). Sin cuenta → default de la plataforma.
+   */
+  private async orderGateway(
+    producerId: string | null | undefined,
+  ): Promise<{ gateway: PaymentGateway; gatewayAccountId: string | null }> {
+    if (producerId) {
+      const own = await this.accounts.activeForProducer(producerId);
+      if (own) return { gateway: own.gateway, gatewayAccountId: own.account.id };
+    }
+    return { gateway: await this.resolveGateway(), gatewayAccountId: null };
   }
 
   /**
@@ -622,7 +641,22 @@ export class CheckoutService {
     });
     const orderTotal = unit.listPrice * quantity - unit.discount;
     const quote: Quote = { ...unit, total: orderTotal };
-    const breakdown = managedFeeBreakdown(orderTotal, allInPct, cardPct, ivaPct);
+    // Pasarela propia del productor (spec producer-gateway-accounts): la
+    // orden se cobra en su cuenta → OWN_GATEWAY (comisión devengada, sin
+    // gross en el payout). Orden $0 → FREE igual que el resto.
+    const { gateway, gatewayAccountId } = await this.orderGateway(
+      event.producerId,
+    );
+    const breakdown =
+      orderTotal > 0 && gatewayAccountId
+        ? ownMethodBreakdown(
+            orderTotal,
+            allInPct,
+            cardPct,
+            ivaPct,
+            "OWN_GATEWAY",
+          )
+        : managedFeeBreakdown(orderTotal, allInPct, cardPct, ivaPct);
 
     // refId correlaciona con la pasarela y el webhook; eventId/discountCodeId
     // también quedan desnormalizados en Payment para reporting. quantity +
@@ -633,7 +667,6 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const gateway = await this.resolveGateway();
     const payment = await this.createAssessedPayment(
       {
         orderType: "TICKET",
@@ -658,6 +691,7 @@ export class CheckoutService {
         // La orden $0 nunca toca la pasarela: "FREE" la distingue en el
         // libro (misma convención que "MANUAL" de los claims).
         gateway: orderTotal === 0 ? "FREE" : gateway.name,
+        gatewayAccountId: orderTotal === 0 ? null : gatewayAccountId,
       },
       breakdown,
     );
@@ -843,12 +877,23 @@ export class CheckoutService {
       producerParams,
     );
     const quote = this.pricing.quote({ listPrice, discount: null });
-    const breakdown = managedFeeBreakdown(
-      quote.total,
-      allInPct,
-      cardPct,
-      ivaPct,
+    const { gateway, gatewayAccountId } = await this.orderGateway(
+      series.producerId,
     );
+    const breakdown = gatewayAccountId
+      ? ownMethodBreakdown(
+          quote.total,
+          allInPct,
+          cardPct,
+          ivaPct,
+          "OWN_GATEWAY",
+        )
+      : managedFeeBreakdown(
+          quote.total,
+          allInPct,
+          cardPct,
+          ivaPct,
+        );
 
     // refId = sp_<seriesId>_<month>_<uuid>: como no hay columna para la serie
     // en Payment (eventId queda null), el refId lleva todo el contexto - el
@@ -859,7 +904,6 @@ export class CheckoutService {
       select: { email: true },
     });
 
-    const gateway = await this.resolveGateway();
     const payment = await this.createAssessedPayment(
       {
         orderType: "SERIES_PASS",
@@ -871,6 +915,7 @@ export class CheckoutService {
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
         gateway: gateway.name,
+        gatewayAccountId,
       },
       breakdown,
     );

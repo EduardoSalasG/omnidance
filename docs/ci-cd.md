@@ -107,6 +107,14 @@ FLOW_BASE_URL="https://sandbox.flow.cl/api"          # sandbox
 # MERCADOPAGO_ACCESS_TOKEN="APP_USR-…"               # test-… = sandbox
 # MERCADOPAGO_BASE_URL="https://api.mercadopago.com" # opcional
 
+# Cuentas de pasarela del productor (spec producer-gateway-accounts) -
+# clave AES-256-GCM que cifra credentialsEnc de ProducerGatewayAccount.
+# Obligatoria si algún productor configura su pasarela: sin ella el
+# PUT /producer/gateway-account falla explícito (no se persiste nada).
+# Generar: `openssl rand -hex 32`. ROTARLA INVALIDA las cuentas
+# existentes - guardar como secreto permanente.
+PRODUCER_GATEWAY_KEY="…64 hex…"
+
 # Mail (Resend) - magic links
 RESEND_API_KEY="…"
 EMAIL_FROM="OmniDance <noreply@…>"
