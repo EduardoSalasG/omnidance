@@ -1031,6 +1031,29 @@ export async function seedDev(prisma: PrismaClient) {
         description: ["Una clase del día", "Ideal para probar antes del plan"],
       });
       await plan(academy.id, "Clase de prueba", "TRIAL", 0);
+      // Método propio demo: el checkout manual ofrece transferencia
+      // con los datos copiables (spec academy-checkout-manual-pay).
+      const mmMethod = await prisma.academyPaymentMethod.findFirst({
+        where: { academyId: academy.id, label: "Transferencia" },
+      });
+      if (!mmMethod) {
+        await prisma.academyPaymentMethod.create({
+          data: {
+            academyId: academy.id,
+            type: "TRANSFER",
+            label: "Transferencia",
+            details: {
+              bank: "Banco Santander",
+              accountType: "Cuenta Corriente",
+              accountNumber: "98765432",
+              holder: "Mambo Madness SpA",
+              rut: "77.888.999-0",
+              email: "pagos@mambomadness.cl",
+            },
+            order: 0,
+          },
+        });
+      }
     } else {
       // Pares de categorías rotados por índice - el naming varía de
       // academia en academia como en la vida real.
