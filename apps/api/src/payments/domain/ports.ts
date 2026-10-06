@@ -22,8 +22,22 @@ export interface NormalizedGatewayData {
   [k: string]: unknown;
 }
 
+/**
+ * Contexto del request del webhook (spec fintoc-gateway-adapter):
+ * Fintoc firma el BODY CRUDO con `Fintoc-Signature` (HMAC-SHA256 de
+ * `t.<rawBody>`), así que el adaptador necesita el buffer tal cual
+ * llegó (rawBody de NestFactory) y los headers. Los demás adaptadores
+ * lo ignoran (Flow re-verifica vía getStatus; MP vía GET /v1/payments).
+ */
+export interface WebhookContext {
+  /** Body crudo UTF-8 tal como llegó - solo presente con rawBody:true. */
+  rawBody?: string;
+  /** Headers del request (Express IncomingHttpHeaders). */
+  headers?: Record<string, string | string[] | undefined>;
+}
+
 export interface PaymentGateway {
-  /** Identificador persistido en Payment.gateway (STUB | FLOW | MERCADOPAGO). */
+  /** Identificador persistido en Payment.gateway (STUB | FLOW | MERCADOPAGO | FINTOC). */
   readonly name: string;
 
   createOrder(p: {
@@ -35,7 +49,10 @@ export interface PaymentGateway {
     currency?: string;
   }): Promise<{ paymentUrl: string; gatewayRef: string }>;
 
-  verifyWebhook(body: unknown): Promise<{
+  verifyWebhook(
+    body: unknown,
+    ctx?: WebhookContext,
+  ): Promise<{
     refId: string;
     status: "PAID" | "FAILED";
     /**
@@ -53,11 +70,16 @@ export interface PaymentGateway {
    * Relevante en sandbox/dev: el webhook de la pasarela no llega a
    * localhost, así que GET /payments/:id puede resolver el estado
    * directamente contra la pasarela por refId (Flow: commerceOrder;
-   * MP: external_reference).
+   * MP: external_reference; Fintoc: `ctx.gatewayRef` = el `cs_…`
+   * persistido en Payment.gatewayRef - sus sesiones no se buscan por
+   * metadata).
    * `gatewayData` = misma verdad monetaria normalizada - el
    * settle la persiste igual sea cual sea el camino de confirmación.
    */
-  refreshStatus?(refId: string): Promise<{
+  refreshStatus?(
+    refId: string,
+    ctx?: { gatewayRef?: string | null },
+  ): Promise<{
     status: "PAID" | "FAILED" | "PENDING";
     gatewayData?: unknown;
   }>;

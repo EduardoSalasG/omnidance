@@ -20,6 +20,7 @@ import { decryptSecret, encryptSecret, maskSecret } from "../../common/secrets";
 import type { PaymentGateway } from "../domain/ports";
 import { FlowGateway } from "../infrastructure/flow.gateway";
 import { MercadoPagoGateway } from "../infrastructure/mercadopago.gateway";
+import { FintocGateway } from "../infrastructure/fintoc.gateway";
 import { StubGateway } from "../infrastructure/stub.gateway";
 import {
   GatewayTransactionsService,
@@ -27,13 +28,15 @@ import {
 } from "../infrastructure/gateway-transactions.service";
 
 const SANDBOX_BASE_URL = "https://sandbox.flow.cl/api";
-const SUPPORTED = new Set(["FLOW", "MERCADOPAGO", "STUB"]);
+const SUPPORTED = new Set(["FLOW", "MERCADOPAGO", "FINTOC", "STUB"]);
 
 /** Credenciales planas por proveedor (solo existen en memoria). */
 interface AccountCredentials {
   apiKey?: string; // FLOW
   secret?: string; // FLOW
   accessToken?: string; // MERCADOPAGO
+  secretKey?: string; // FINTOC
+  webhookSecret?: string; // FINTOC
 }
 
 /** Vista segura de la cuenta - nunca material plano ni blob. */
@@ -151,9 +154,19 @@ export class GatewayAccountsService {
         ? { accessToken: input.apiKey.trim() }
         : provider === "FLOW"
           ? { apiKey: input.apiKey.trim(), secret: input.secret?.trim() }
-          : {};
+          : provider === "FINTOC"
+            ? {
+                secretKey: input.apiKey.trim(),
+                webhookSecret: input.secret?.trim(),
+              }
+            : {};
     if (provider === "FLOW" && !creds.secret) {
       throw new BadRequestException("secret requerido para FLOW");
+    }
+    if (provider === "FINTOC" && !creds.webhookSecret) {
+      throw new BadRequestException(
+        "secret (webhook endpoint secret) requerido para FINTOC",
+      );
     }
 
     const blob = encryptSecret(JSON.stringify(creds));
@@ -234,6 +247,14 @@ export class GatewayAccountsService {
           creds.accessToken!,
           process.env.MERCADOPAGO_BASE_URL ?? "https://api.mercadopago.com",
           confirmUrl,
+          onTx,
+        );
+        break;
+      case "FINTOC":
+        gateway = new FintocGateway(
+          creds.secretKey!,
+          creds.webhookSecret!,
+          process.env.FINTOC_BASE_URL ?? "https://api.fintoc.com",
           onTx,
         );
         break;

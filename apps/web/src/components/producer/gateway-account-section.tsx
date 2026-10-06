@@ -25,9 +25,12 @@ type GatewayAccountView = {
   verifiedAt: string | null;
 };
 
-type Provider = "FLOW" | "MERCADOPAGO";
+type Provider = "FLOW" | "MERCADOPAGO" | "FINTOC";
 
-const PROVIDERS: Provider[] = ["FLOW", "MERCADOPAGO"];
+const PROVIDERS: Provider[] = ["FLOW", "MERCADOPAGO", "FINTOC"];
+
+/** La segunda credencial del proveedor (FLOW: secret · FINTOC: whsec). */
+const NEEDS_SECRET = new Set<Provider>(["FLOW", "FINTOC"]);
 
 /**
  * Sección "Mi pasarela" de /productor/parametros: estado de la cuenta
@@ -64,8 +67,11 @@ export function GatewayAccountSection() {
         account: GatewayAccountView | null;
       };
       setAccount(body.account);
-      if (body.account?.provider === "MERCADOPAGO") {
-        setProvider("MERCADOPAGO");
+      if (
+        body.account?.provider &&
+        PROVIDERS.includes(body.account.provider as Provider)
+      ) {
+        setProvider(body.account.provider as Provider);
       }
       setState("ready");
     } catch {
@@ -87,7 +93,7 @@ export function GatewayAccountSection() {
         body: JSON.stringify({
           provider,
           apiKey: apiKey.trim(),
-          ...(provider === "FLOW" && secret.trim()
+          ...(NEEDS_SECRET.has(provider) && secret.trim()
             ? { secret: secret.trim() }
             : {}),
         }),
@@ -246,7 +252,9 @@ export function GatewayAccountSection() {
                 >
                   {provider === "MERCADOPAGO"
                     ? t("accessToken")
-                    : t("apiKey")}
+                    : provider === "FINTOC"
+                      ? t("secretKey")
+                      : t("apiKey")}
                 </label>
                 <input
                   id="gw-key"
@@ -260,13 +268,15 @@ export function GatewayAccountSection() {
                   className="w-full rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-base outline-none focus:border-neon/60"
                 />
               </li>
-              {provider === "FLOW" && (
+              {NEEDS_SECRET.has(provider) && (
                 <li className="flex flex-col gap-2 px-5 py-4">
                   <label
                     htmlFor="gw-secret"
                     className="text-sm text-white/70"
                   >
-                    {t("secretKey")}
+                    {provider === "FINTOC"
+                      ? t("webhookSecret")
+                      : t("secretKey")}
                   </label>
                   <input
                     id="gw-secret"
@@ -288,7 +298,7 @@ export function GatewayAccountSection() {
               disabled={
                 busy !== null ||
                 !apiKey.trim() ||
-                (provider === "FLOW" && !secret.trim())
+                (NEEDS_SECRET.has(provider) && !secret.trim())
               }
             >
               {busy === "save" ? <Spinner /> : null}

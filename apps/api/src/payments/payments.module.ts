@@ -11,6 +11,7 @@ import { PricingService } from "./domain/pricing.service";
 import { StubGateway } from "./infrastructure/stub.gateway";
 import { FlowGateway } from "./infrastructure/flow.gateway";
 import { MercadoPagoGateway } from "./infrastructure/mercadopago.gateway";
+import { FintocGateway } from "./infrastructure/fintoc.gateway";
 import {
   GatewayTransactionsService,
   type GatewayTxEntry,
@@ -166,13 +167,27 @@ export function resolveGateways(
   onTx?: (e: GatewayTxEntry) => Promise<void>,
 ): GatewayRegistry {
   const adapters: PaymentGateway[] = [resolveGateway(env, onTx)];
+  const apiUrl = env.API_URL ?? "http://localhost:4000";
   if (env.MERCADOPAGO_ACCESS_TOKEN) {
-    const apiUrl = env.API_URL ?? "http://localhost:4000";
     adapters.push(
       new MercadoPagoGateway(
         env.MERCADOPAGO_ACCESS_TOKEN,
         env.MERCADOPAGO_BASE_URL ?? "https://api.mercadopago.com",
         `${apiUrl}/api/payments/webhook/MERCADOPAGO`,
+        onTx,
+      ),
+    );
+  }
+  // Fintoc (spec fintoc-gateway-adapter): checkout sessions v2 +
+  // webhook firmado. El secret del endpoint webhook se puede omitir
+  // solo si el proveedor nunca enviará webhooks (polling cubre) -
+  // el adaptador rechaza cualquier webhook sin firma verificable.
+  if (env.FINTOC_SECRET_KEY) {
+    adapters.push(
+      new FintocGateway(
+        env.FINTOC_SECRET_KEY,
+        env.FINTOC_WEBHOOK_SECRET ?? "",
+        env.FINTOC_BASE_URL ?? "https://api.fintoc.com",
         onTx,
       ),
     );

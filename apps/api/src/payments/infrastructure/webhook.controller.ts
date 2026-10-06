@@ -21,7 +21,11 @@ import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "../../academies/infrastructure/academy-access.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
-import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
+import {
+  PAYMENT_GATEWAY,
+  type PaymentGateway,
+  type WebhookContext,
+} from "../domain/ports";
 import {
   GatewayRegistry,
   PAYMENT_GATEWAYS,
@@ -39,6 +43,17 @@ import {
 } from "../domain/order-ref";
 
 const AUDIT_TAKE = 100;
+
+/** WebhookContext del request actual (spec fintoc-gateway-adapter):
+ *  rawBody viene del `rawBody:true` de NestFactory; los adaptadores
+ *  que no firman body crudo lo ignoran. */
+function ctxOf(req: Request): WebhookContext {
+  const raw = (req as Request & { rawBody?: Buffer }).rawBody;
+  return {
+    rawBody: raw ? raw.toString("utf8") : undefined,
+    headers: req.headers as Record<string, string | string[] | undefined>,
+  };
+}
 
 class WebhookDto {
   @IsOptional()
@@ -88,8 +103,8 @@ export class PaymentsController {
   // prod sigue funcionando.
   @Post("webhook")
   @HttpCode(200)
-  async webhook(@Body() body: WebhookDto) {
-    return this.confirm(this.gateway, body);
+  async webhook(@Body() body: WebhookDto, @Req() req: Request) {
+    return this.confirm(this.gateway, body, undefined, ctxOf(req));
   }
 
   /**
@@ -111,7 +126,9 @@ export class PaymentsController {
     @Param("provider") provider: string,
     @Query("account") accountId: string | undefined,
     @Body() body: unknown,
+    @Req() req: Request,
   ) {
+    const ctx = ctxOf(req);
     if (accountId) {
       const { account, gateway } =
         await this.accounts.adapterFor(accountId);
@@ -120,19 +137,20 @@ export class PaymentsController {
           "la cuenta no corresponde al proveedor de la ruta",
         );
       }
-      return this.confirm(gateway, body, account.id);
+      return this.confirm(gateway, body, account.id, ctx);
     }
     const gateway = this.gateways.get(provider);
     if (!gateway) {
       throw new NotFoundException("proveedor de pago no registrado");
     }
-    return this.confirm(gateway, body);
+    return this.confirm(gateway, body, undefined, ctx);
   }
 
   private async confirm(
     gateway: PaymentGateway,
     body: unknown,
     accountId?: string,
+    ctx?: WebhookContext,
   ) {
     let result: {
       refId: string;
@@ -140,7 +158,7 @@ export class PaymentsController {
       gatewayData?: unknown;
     };
     try {
-      result = await gateway.verifyWebhook(body);
+      result = await gateway.verifyWebhook(body, ctx);
     } catch {
       throw new BadRequestException("webhook inválido");
     }
@@ -417,7 +435,9 @@ export class PaymentsController {
       : this.gateways.get(payment.gateway);
     if (payment.status === "PENDING" && provider?.refreshStatus) {
       try {
-        const remote = await provider.refreshStatus(payment.refId);
+        const remote = await provider.refreshStatus(payment.refId, {
+          gatewayRef: payment.gatewayRef,
+        });
         if (remote.status !== "PENDING") {
           await this.settlement.settle(payment, remote.status, {
             actor: "polling",

@@ -17,16 +17,17 @@ import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { GatewayAccountsService } from "../application/gateway-accounts.service";
 
 class GatewayAccountDto {
-  /** FLOW | MERCADOPAGO (STUB solo fuera de producción, para dev). */
-  @IsIn(["FLOW", "MERCADOPAGO", "STUB"])
+  /** FLOW | MERCADOPAGO | FINTOC (STUB solo fuera de producción). */
+  @IsIn(["FLOW", "MERCADOPAGO", "FINTOC", "STUB"])
   provider!: string;
 
-  /** FLOW: apiKey · MERCADOPAGO: access token · STUB: cualquier string. */
+  /** FLOW: apiKey · MERCADOPAGO: access token · FINTOC: secret key. */
   @IsString()
   @MaxLength(200)
   apiKey!: string;
 
-  /** FLOW: secret key. Obligatorio para FLOW, ignorado en MP/STUB. */
+  /** FLOW: secret key · FINTOC: webhook endpoint secret (whsec_).
+      Obligatorio para FLOW/FINTOC, ignorado en MP/STUB. */
   @IsOptional()
   @IsString()
   @MaxLength(200)

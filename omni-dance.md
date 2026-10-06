@@ -544,7 +544,7 @@ Cada peso debe rastrear a su origen, con la misma disciplina que el ledger banca
 
 ### Arquitectura de pasarelas - puertos, no acoplamiento
 
-Flow y MercadoPago son **adaptadores detrás de un puerto normalizado**, no dependencias del dominio - preparado para más países (incl. Europa):
+Flow, MercadoPago y Fintoc son **adaptadores detrás de un puerto normalizado**, no dependencias del dominio - preparado para más países (incl. Europa):
 
 - **Órdenes**: `PaymentGateway.createOrder/verifyWebhook/refreshStatus` → `GatewayConfirmation` normalizado (`status/amount/feeClp/media/paidAt/raw`) - el dominio nunca parsea campos de proveedor. Webhook por proveedor `/payments/webhook/:provider`.
 - **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow hoy, MP preapproval/Stripe como slots.
