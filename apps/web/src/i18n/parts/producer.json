@@ -41,6 +41,8 @@
       "doorPrice": "Precio en puerta (CLP)",
       "presaleCap": "Tope preventa",
       "doorCap": "Tope puerta",
+      "presaleCutoff": "Preventa hasta",
+      "presaleCutoffHint": "Vacío usa el default. Después de esa hora se vende a precio de puerta.",
       "tablesTotal": "Mesas reservables",
       "primeThreshold": "Umbral Prime Time",
       "happyHourMinutes": "Minutos happy hour",

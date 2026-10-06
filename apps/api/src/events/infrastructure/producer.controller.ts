@@ -8,12 +8,13 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsInt, IsOptional, Min } from "class-validator";
+import { IsInt, IsOptional, Max, Min } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { ParamsService } from "../../params/params.service";
+import { PRESALE_CUTOFF_MAX_MINUTES } from "../../common/presale-cutoff";
 
 class ProducerTableParamsDto {
   /** Mesas reservables por defecto en sus eventos; null = no ofrecer. */
@@ -33,12 +34,26 @@ class ProducerTableParamsDto {
   @IsInt()
   @Min(0)
   tableSeatsTotal?: number | null;
+
+  /**
+   * Default del corte de preventa (minutos desde medianoche del día del
+   * evento; >1439 = post-medianoche). null → param global. Sus eventos
+   * lo heredan salvo override propio.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(PRESALE_CUTOFF_MAX_MINUTES)
+  presaleCutoffMinutes?: number | null;
 }
 
+// Defaults operativos auto-editables del productor (mesas + corte de
+// preventa); los financieros (fees) siguen siendo solo de admin.
 const TABLE_FIELDS = [
   "tablesTotal",
   "tableSeatMax",
   "tableSeatsTotal",
+  "presaleCutoffMinutes",
 ] as const;
 
 /**
@@ -91,9 +106,10 @@ export class ProducerController {
   }
 
   /**
-   * Defaults de mesas del productor (spec checkout-table-reservation):
-   * mesas ofrecidas, tope por reserva y cupo sentable. Los eventos los
-   * heredan al crear/editar; null en un campo = sin default propio.
+   * Defaults operativos del productor: mesas (spec
+   * checkout-table-reservation) y corte de preventa (spec
+   * event-presale-cutoff). Los eventos los heredan al crear/editar;
+   * null en un campo = sin default propio.
    */
   @Get("table-params")
   async getTableParams(@Req() req: Request) {
@@ -104,6 +120,7 @@ export class ProducerController {
       tablesTotal: defaults?.tablesTotal ?? null,
       tableSeatMax: defaults?.tableSeatMax ?? null,
       tableSeatsTotal: defaults?.tableSeatsTotal ?? null,
+      presaleCutoffMinutes: defaults?.presaleCutoffMinutes ?? null,
     };
   }
 

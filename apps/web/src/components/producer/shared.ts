@@ -123,6 +123,8 @@ export type EventDetail = {
   doorAppFeeClp?: number | null;
   doorCashFeeClp?: number | null;
   platformFeePct?: number | null;
+  /** Corte de la preventa en minutos del día del evento; null = hereda. */
+  presaleCutoffMinutes?: number | null;
   // No seleccionados por el endpoint hoy; quedan para pre-cargar el form
   // si el contrato los agrega.
   presaleCap?: number | null;
@@ -168,6 +170,8 @@ export type EventPayload = {
   doorPrice?: number;
   presaleCap?: number;
   doorCap?: number;
+  /** Corte preventa (minutos del día del evento); null = vuelve a heredar. */
+  presaleCutoffMinutes?: number | null;
   primeThreshold?: number;
   happyHourMinutes?: number;
   scheduleBlocks?: {

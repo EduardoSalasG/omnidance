@@ -1014,7 +1014,9 @@
     "tablesHint": "Defaults que heredan tus eventos nuevos. El cupo sentable es la capacidad real que consumen las reservas, distinto al aforo del evento, usualmente menor.",
     "tablesTotalLabel": "Mesas por evento",
     "tableSeatMaxLabel": "Máx. personas por mesa",
-    "tableSeatsTotalLabel": "Personas sentables en mesas"
+    "tableSeatsTotalLabel": "Personas sentables en mesas",
+    "presaleCutoffLabel": "Preventa hasta",
+    "presaleCutoffHint": "Hora del día del evento en que se cierra la preventa. Vacío = hereda el default global. Después se vende a precio de puerta."
   },
   "analytics": {
     "title": "Analítica",
