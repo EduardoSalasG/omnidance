@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { ChevronRightIcon } from "@/components/ui";
 // Las claves de la landing viven en este fragmento, que se fusiona con
 // messages/es-CL.json bajo los namespaces "landing" y "landingPro"
@@ -18,12 +19,29 @@ const primaryCtaClass =
 const secondaryCtaClass =
   "inline-flex min-h-12 w-full max-w-xs items-center justify-center rounded-full border border-white/15 px-8 text-base font-medium text-white/80 transition-colors hover:border-white/30 hover:text-white sm:w-auto";
 
-export type LandingVariant = "dancer" | "pro";
+export type LandingVariant = "dancer" | "academy" | "producer";
+
+// Copy por audiencia: `landing` es la base, `landingPro` aporta los
+// defaults pro (CTAs, strip semanal, form) y la variante sobrescribe.
+const VARIANT_COPY = {
+  dancer: {},
+  academy: landingParts.landingAcademy,
+  producer: landingParts.landingProducer,
+} as const;
+
+// La landing de academias hereda el acento del modo Academy (esmeralda)
+// - el mismo que verá el dueño dentro de su consola. Productor queda en
+// el violeta de marca (default :root).
+const ACADEMY_ACCENT = {
+  "--accent": "52 211 153",
+  "--accent-soft": "110 231 183",
+} as CSSProperties;
 
 /**
- * Landing de marketing en dos variantes que comparten layout y estilo:
+ * Landing de marketing por audiencia, mismo layout y estilo:
  * - `dancer` ("/"): bailarines y alumnos - QR, Academy, Nightlife.
- * - `pro` ("/pro"): productores, academias y venues - consolas de negocio.
+ * - `academy` ("/para-academias"): dueños de academia - consola Academy.
+ * - `producer` ("/para-productores"): productores - ticketing y puerta.
  * `weeklyEvents` alimenta el strip "esta semana" (0 → copy genérico).
  */
 export function Landing({
@@ -37,18 +55,31 @@ export function Landing({
   // landing muestra la escena en vez de solo afirmarla.
   weekEvents?: JsonLdEvent[];
 }) {
+  const isPro = variant !== "dancer";
   const t = {
     ...landingParts.landing,
-    ...(variant === "pro" ? landingParts.landingPro : {}),
+    ...(isPro ? landingParts.landingPro : {}),
+    ...VARIANT_COPY[variant],
   };
+
+  // Enlace cruzado entre landings pro - el visitante multi-rol (academia
+  // que también produce, frecuente en la escena) llega a su otra página.
+  const cross =
+    variant === "academy"
+      ? {
+          href: "/para-productores",
+          label: landingParts.landingAcademy.crossLink,
+        }
+      : {
+          href: "/para-academias",
+          label: landingParts.landingProducer.crossLink,
+        };
 
   const features = [
     { index: "01", title: t.featureQrTitle, desc: t.featureQrDesc },
     { index: "02", title: t.featureLearnTitle, desc: t.featureLearnDesc },
     { index: "03", title: t.featureSceneTitle, desc: t.featureSceneDesc },
   ];
-
-  const isPro = variant === "pro";
 
   const weekLabel =
     weeklyEvents > 0
@@ -67,7 +98,7 @@ export function Landing({
   });
 
   return (
-    <>
+    <div style={variant === "academy" ? ACADEMY_ACCENT : undefined}>
       <a
         href="#contenido"
         className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-xl focus-visible:bg-neon focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-night-950"
@@ -79,11 +110,17 @@ export function Landing({
       <header className="sticky top-0 z-50 border-b border-white/5 bg-night-950/80 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2 sm:px-6">
           <Link
-            href={variant === "pro" ? "/pro" : "/"}
+            href={
+              variant === "academy"
+                ? "/para-academias"
+                : variant === "producer"
+                  ? "/para-productores"
+                  : "/"
+            }
             className="inline-flex min-h-11 items-center text-sm font-bold tracking-tight"
           >
             Omni<span className="text-neon">dance</span>
-            {variant === "pro" && (
+            {isPro && (
               <span className="ml-2 rounded-full border border-neon/40 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-neon">
                 Pro
               </span>
@@ -253,7 +290,17 @@ export function Landing({
           </p>
           {isPro ? (
             <div className="mt-10">
-              <ProLeadForm />
+              <ProLeadForm
+                fixedRole={
+                  variant === "academy" ? "ACADEMY_OWNER" : "PRODUCER"
+                }
+              />
+              <Link
+                href={cross.href}
+                className="mt-4 inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              >
+                {cross.label} →
+              </Link>
             </div>
           ) : (
             <Link href="/login" className={`${primaryCtaClass} mt-8`}>
@@ -273,11 +320,19 @@ export function Landing({
           <p className="text-xs text-white/50">{t.footerTagline}</p>
           <nav aria-label={t.navFooter} className="mt-2 flex items-center gap-6">
             <Link
-              href={variant === "pro" ? "/" : "/pro"}
+              href={isPro ? "/" : "/pro"}
               className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
             >
               {t.footerAlt}
             </Link>
+            {isPro && (
+              <Link
+                href={cross.href}
+                className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              >
+                {cross.label}
+              </Link>
+            )}
             <Link
               href="/terminos"
               className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
@@ -293,6 +348,6 @@ export function Landing({
           </nav>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
