@@ -84,21 +84,33 @@ crons existentes Y campañas de mail programables por el admin
   `/api/admin/jobs` y `/api/admin/mail-campaigns` → 401 sin sesión
 - Dep nueva: `cron-parser@^5.10.1` (aprobada por usuario)
 
+## Credenciales prod (confirmado por usuario)
+
+- `RESEND_API_KEY` — **cargada en prod** ✅
+- `VAPID_*` (web push) — **cargadas en prod back + Netlify** ✅
+- Pendientes sin verificar: `GOOGLE_WALLET_*` (el botón se oculta sin
+  ellas), `FINTOC_*` (adaptador testeado solo con mocks).
+- Al promover a prod, primer chequeo operativo: test-send de una
+  campaña DRAFT en `/admin/campanas` + verificar un push `ticket.day_of`
+  real en el próximo evento del día.
+
 ## Gaps conocidos
 
 - Sin e2e de los nuevos endpoints (unit specs de service+controller
   cubren la lógica; falta spec e2e del wiring completo).
-- Envío real nunca ejercido: test-send/Resend no probado con key real.
+- Envío real nunca ejercido en dev (key cargada solo en prod - el
+  test-send post-deploy es la verificación).
 - Campañas sin opt-out/unsubscribe (declarado en proposal - las
   audiencias son usuarios registrados de la plataforma).
 - Multi-instancia: el runner asume 1 proceso (prod actual). Si se
   escala hay que agregar claim atómico (`UPDATE ... WHERE runningRunId
   IS NULL`) - documentado en design.md.
 - Selector de eventos del form trae solo PUBLISHED (browse take ~50).
+- Audiencias de ciclo: 1 mail por persona por corrida (ctx del primer
+  match si tiene N inscripciones por vencer).
 - QA visual de ambas páginas en browser real pendiente.
 
 ## Próximos pasos posibles
 
 - QA visual + e2e sandbox antes del release gate `dev → main`.
-- Credenciales prod pendientes de otros slices: GOOGLE_WALLET_*,
-  FINTOC_*, VAPID, RESEND.
+- Credenciales prod pendientes: GOOGLE_WALLET_*, FINTOC_*.
