@@ -198,3 +198,38 @@ corregido y regenerados los 4 PNG (commit `98ad610`).
   Neon SQL Editor - SQL exacto en `docs/ci-cd.md` (sección
   troubleshooting, "Email del admin con comillas en la DB"). Sin eso el
   magic link del admin no lo encuentra.
+
+## v0.3.0-candidates en dev (sin promover)
+
+### split-pro-landings (d7f2f14)
+
+- `/pro` queda como selector de audiencia (cards + form DJ/VENUE_MANAGER).
+- `/para-academias` (acento esmeralda, rol fijo ACADEMY_OWNER) y
+  `/para-productores` (violeta, rol fijo PRODUCER): copy PAS por rol,
+  meta/canonical propios, sitemap, cross-links.
+- Strip de prueba social por audiencia: eventos reales en productor/
+  pro; academias reales en academias (ver abajo).
+
+### academy-operations-insights (0d32a84)
+
+- `Person.birthDate` (migración `20261010000000_person_birthdate`):
+  autodeclarada en `PATCH /me` (ISO pasada, año>=1900, null/vacío limpia)
+  y editable en `/perfil/datos` (input date). `GET /me` la devuelve.
+- `GET /academies/public` SIN sesión: `{id,name,styles}` de academias
+  activas sin mora - alimenta el strip de `/para-academias`. Exposición
+  mínima (sin dirección/instructores/métricas).
+- Dashboard `GET /academies/:id/dashboard` gana `expiringEnrollments`
+  (ACTIVE/TRIAL/ONLINE con endsAt en ventana, default 14d) y
+  `upcomingBirthdays` (cumpleaños de alumnos en 30d, día/mes solamente,
+  wrap dic a ene). Ventanas = PlatformParam
+  `academy.insights.expiring_days` / `academy.insights.birthday_days`.
+- Consola `/academia`: listas "Planes por vencer" y "Cumpleaños
+  próximos" (render condicional, link a ficha del alumno).
+- Seed: params nuevos + birthDates demo relativas a hoy (camila +6d,
+  antonia +14d, daniela +27d, diego +45d fuera de ventana).
+- Verificado: 138/138 tests tocados (33 dominio, 28 people, 77 e2e),
+  tsc web limpio, i18n ALL_KEYS_OK, openspec validate x2 verde.
+- Stack local levantado y verificado: api 200, /academies/public con
+  academias reales, /para-academias renderiza el strip + copy nuevo.
+- **Release**: acumular en dev hasta QA visual del usuario; v0.3.0
+  (MINOR) junto con split-pro-landings al promover.
