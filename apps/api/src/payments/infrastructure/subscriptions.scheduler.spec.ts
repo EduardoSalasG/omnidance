@@ -1,114 +1,74 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-
-vi.mock("node-cron", () => ({ schedule: vi.fn() }));
-
-import { schedule } from "node-cron";
+import { describe, it, expect, vi } from "vitest";
 import { SubscriptionsScheduler } from "./subscriptions.scheduler";
+import { JobRegistry } from "../../jobs/registry";
 
-// Scheduler T7 - patrón crm-triggers: cron diario 09:00 → reconcileAll
-// ("cron"); en NODE_ENV=test no se registra (los specs ejercen
-// reconcileAll directo).
-
-const scheduleMock = vi.mocked(schedule);
+// Scheduler (spec admin-jobs-mail-campaigns): ya no agenda node-cron -
+// registra el job `subscriptions.reconcile` en el JOB_REGISTRY. El
+// horario vive en ScheduledJob (DB); el handler agrupa los 3 barridos
+// y reporta sus contadores a JobRun.meta.
 
 function mkSubs() {
   return {
-    reconcileAll: vi.fn(async () => ({ checked: 0, settled: 0 })),
+    reconcileAll: vi.fn(async () => ({ checked: 4, settled: 1 })),
   };
 }
 
 /** PlatformSubscriptionsService stub - reconcileAll + enforceAcademyBlocks. */
 function mkPlatSubs() {
   return {
-    reconcileAll: vi.fn(async () => ({ checked: 0, settled: 0 })),
-    enforceAcademyBlocks: vi.fn(async () => ({ blocked: 0 })),
+    reconcileAll: vi.fn(async () => ({ checked: 2, settled: 0 })),
+    enforceAcademyBlocks: vi.fn(async () => ({ blocked: 3 })),
   };
 }
 
 describe("SubscriptionsScheduler", () => {
-  beforeEach(() => {
-    scheduleMock.mockClear();
+  it("registra subscriptions.reconcile con default 09:00", () => {
+    const registry = new JobRegistry();
+    new SubscriptionsScheduler(
+      mkSubs() as never,
+      mkPlatSubs() as never,
+      registry,
+    ).onModuleInit();
+    const reg = registry.get("subscriptions.reconcile");
+    expect(reg).toBeDefined();
+    expect(reg!.defaultCron).toBe("0 9 * * *");
+    expect(reg!.label).toBeTruthy();
   });
 
-  it("registra cron '0 9 * * *' cuyo tick dispara reconcileAll('cron') en ambos servicios", async () => {
-    const prev = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
-    try {
-      const subs = mkSubs();
-      const platSubs = mkPlatSubs();
-      new SubscriptionsScheduler(subs as never, platSubs as never).onModuleInit();
-      expect(scheduleMock).toHaveBeenCalledWith(
-        "0 9 * * *",
-        expect.any(Function),
-      );
-      const tick = scheduleMock.mock.calls[0]![1] as () => void;
-      tick();
-      expect(subs.reconcileAll).toHaveBeenCalledWith("cron");
-      expect(platSubs.reconcileAll).toHaveBeenCalledWith("cron");
-      // S3: el mismo tick corre el bloqueo por gracia vencida.
-      expect(platSubs.enforceAcademyBlocks).toHaveBeenCalled();
-    } finally {
-      process.env.NODE_ENV = prev;
-    }
+  it("el handler corre los 3 barridos y reporta contadores a meta", async () => {
+    const registry = new JobRegistry();
+    const subs = mkSubs();
+    const platSubs = mkPlatSubs();
+    new SubscriptionsScheduler(
+      subs as never,
+      platSubs as never,
+      registry,
+    ).onModuleInit();
+    const meta = await registry.get("subscriptions.reconcile")!.handler();
+    expect(subs.reconcileAll).toHaveBeenCalledWith("cron");
+    expect(platSubs.reconcileAll).toHaveBeenCalledWith("cron");
+    expect(platSubs.enforceAcademyBlocks).toHaveBeenCalled();
+    expect(meta).toEqual({
+      memberships: { checked: 4, settled: 1 },
+      platform: { checked: 2, settled: 0 },
+      blocks: { blocked: 3 },
+    });
   });
 
-  it("un enforceAcademyBlocks que rechaza no rompe el scheduler", async () => {
-    const prev = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
-    try {
-      const platSubs = {
-        ...mkPlatSubs(),
-        enforceAcademyBlocks: vi.fn(async () => {
-          throw new Error("db caída");
-        }),
-      };
-      new SubscriptionsScheduler(
-        mkSubs() as never,
-        platSubs as never,
-      ).onModuleInit();
-      const tick = scheduleMock.mock.calls[0]![1] as () => void;
-      expect(() => tick()).not.toThrow();
-      await new Promise((r) => setTimeout(r, 10));
-      expect(platSubs.enforceAcademyBlocks).toHaveBeenCalled();
-    } finally {
-      process.env.NODE_ENV = prev;
-    }
-  });
-
-  it("un reconcileAll que rechaza no rompe el scheduler (catch+log)", async () => {
-    const prev = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
-    try {
-      const subs = {
-        reconcileAll: vi.fn(async () => {
-          throw new Error("flow caído");
-        }),
-      };
-      new SubscriptionsScheduler(
-        subs as never,
-        mkPlatSubs() as never,
-      ).onModuleInit();
-      const tick = scheduleMock.mock.calls[0]![1] as () => void;
-      expect(() => tick()).not.toThrow();
-      // el catch interno absorbe el rechazo - esperar el tick async
-      await new Promise((r) => setTimeout(r, 10));
-      expect(subs.reconcileAll).toHaveBeenCalled();
-    } finally {
-      process.env.NODE_ENV = prev;
-    }
-  });
-
-  it("NODE_ENV=test → no registra el cron", () => {
-    const prev = process.env.NODE_ENV;
-    process.env.NODE_ENV = "test";
-    try {
-      new SubscriptionsScheduler(
-        mkSubs() as never,
-        mkPlatSubs() as never,
-      ).onModuleInit();
-      expect(scheduleMock).not.toHaveBeenCalled();
-    } finally {
-      process.env.NODE_ENV = prev;
-    }
+  it("un barrido que rechaza propaga el error al JobRun", async () => {
+    const registry = new JobRegistry();
+    const subs = {
+      reconcileAll: vi.fn(async () => {
+        throw new Error("flow caído");
+      }),
+    };
+    new SubscriptionsScheduler(
+      subs as never,
+      mkPlatSubs() as never,
+      registry,
+    ).onModuleInit();
+    await expect(
+      registry.get("subscriptions.reconcile")!.handler(),
+    ).rejects.toThrow("flow caído");
   });
 });

@@ -78,6 +78,7 @@ model Person {
   ticketClaimsAsProducer TicketClaim[] @relation("TicketClaimProducer")
   ticketClaimsReviewed   TicketClaim[] @relation("TicketClaimReviewer")
   billingDocs   BillingDocument[] @relation("BillingReceiver")
+  mailCampaigns MailCampaign[]
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -1681,4 +1682,104 @@ model PlatformSubscription {
   @@index([kind, academyId])
   @@index([kind, producerId])
   @@index([personId])
+}
+
+// ═══════════════════ JOBS PROGRAMADOS + CAMPAÑAS DE MAIL ═══════════════════
+
+// Trabajos programados administrables desde /admin/jobs (spec
+// admin-jobs-mail-campaigns): la DB es la fuente de verdad del horario
+// (cronExpr/enabled/timezone los edita el admin y el bootstrap NUNCA los
+// pisa; defaultCron queda como referencia del valor de código). El
+// JobsRunner ejecuta por tick cada minuto los jobs enabled con nextRunAt
+// vencido y persiste un JobRun por corrida. `orphaned` = el handler ya
+// no existe en código tras un deploy.
+model ScheduledJob {
+  id           String   @id @default(cuid())
+  key          String   @unique // academies.renewal_reminders | subscriptions.reconcile | crm.triggers | tickets.day_of | mail.campaign_dispatch
+  label        String
+  description  String?
+  cronExpr     String
+  defaultCron  String
+  timezone     String   @default("America/Santiago")
+  enabled      Boolean  @default(true)
+  orphaned     Boolean  @default(false)
+  runningRunId String?
+  lastRunAt    DateTime?
+  lastStatus   String? // OK | ERROR | RUNNING
+  lastError    String?
+  nextRunAt    DateTime?
+  runCount     Int      @default(0)
+  runs         JobRun[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model JobRun {
+  id         String       @id @default(cuid())
+  job        ScheduledJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId      String
+  trigger    String // CRON | MANUAL
+  actorId    String?
+  status     String // RUNNING | OK | ERROR
+  error      String?
+  meta       Json? // contadores reportados por el handler (sent, scanned…)
+  startedAt  DateTime
+  finishedAt DateTime?
+
+  @@index([jobId, startedAt])
+}
+
+// Campaña de mail compuesta por el admin (spec admin-jobs-mail-campaigns):
+// audience es ESPECIFICACIÓN re-anclada en cada corrida (nunca snapshot),
+// scheduleKind ONCE (runAt) | CRON (cronExpr+timezone). El job
+// mail.campaign_dispatch (* * * * *) despacha las SCHEDULED vencidas.
+model MailCampaign {
+  id           String    @id @default(cuid())
+  name         String
+  subject      String
+  htmlBody     String
+  audience     Json // {kind:"ALL"} | {kind:"ROLE",roleKey} | {kind:"EVENT",eventId}
+  scheduleKind String // ONCE | CRON
+  runAt        DateTime?
+  cronExpr     String?
+  timezone     String    @default("America/Santiago")
+  status       String    @default("DRAFT") // DRAFT | SCHEDULED | SENDING | DONE | FAILED | CANCELLED
+  nextRunAt    DateTime?
+  lastRunAt    DateTime?
+  sentCount    Int       @default(0)
+  failCount    Int       @default(0)
+  createdBy    Person    @relation(fields: [createdById], references: [id])
+  createdById  String
+  runs         MailCampaignRun[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status, nextRunAt])
+}
+
+model MailCampaignRun {
+  id         String                @id @default(cuid())
+  campaign   MailCampaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  trigger    String // CRON | MANUAL
+  status     String // RUNNING | OK | ERROR | CANCELLED
+  sentCount  Int                   @default(0)
+  failCount  Int                   @default(0)
+  startedAt  DateTime
+  finishedAt DateTime?
+  recipients MailCampaignRecipient[]
+
+  @@index([campaignId, startedAt])
+}
+
+model MailCampaignRecipient {
+  id       String          @id @default(cuid())
+  run      MailCampaignRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId    String
+  personId String
+  status   String          @default("PENDING") // PENDING | SENT | FAILED | SKIPPED
+  sentAt   DateTime?
+  error    String?
+
+  @@unique([runId, personId])
 }

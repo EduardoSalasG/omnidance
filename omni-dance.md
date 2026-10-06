@@ -622,6 +622,8 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 
 **Estados del `payout`**: `pending → approved → paid` con evidencia de transferencia; todo auditado. La operación completa vive en **`/admin/finanzas`** (consola de finanzas, spec `admin-finance-console`): KPIs del período (GMV segmentado social/academia/SaaS, ingreso plataforma neto+IVA, costo pasarela, por transferir), tabs de Liquidaciones (líneas expandibles, aprobar, marcar pagada con comprobante), Por liberar (devengado no liquidado por actor - incluye lo que los actores **nos deben** por métodos propios, que se netea), Pagos (desglose congelado por orden) y SaaS (MRR/ARR, funnel de suscripciones).
 
+**Jobs programados y correos (spec `admin-jobs-mail-campaigns`)**: los crons del sistema (recordatorios de renovación, reconcile de suscripciones, triggers CRM, day-of, despacho de campañas) viven como filas `ScheduledJob` - `/admin/jobs` los muestra con próxima corrida, último resultado e historial por corrida, y permite editar horario, pausar/reactivar y ejecutar a mano (todo auditado). **`/admin/campanas`** permite crear envíos de mail propios: asunto + HTML (preview), audiencia (todos / por rol / asistentes de un evento) y envío único o recurrente - cada corrida registra destinatario por destinatario con reanudación y cancelación mid-send.
+
 ### Modelo SaaS - suscripción de academia y Producer Pro (implementado oct-2026)
 
 El cargo por venta desaparece para la academia: pasa a **suscripción mensual por tier de alumnos activos** (spec `academy-billing`, precios en `PlatformParam` - `academy_tier.*`, ajustables desde `/admin` sin deploy; referencia de mercado: BoxMagic).

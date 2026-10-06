@@ -4,6 +4,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { ParamsModule } from "../params/params.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { PrismaModule } from "../prisma.module";
+import { JobsModule } from "../jobs/jobs.module";
 import { StorageModule } from "../storage/storage.module";
 import { AcademyAccessModule } from "./academy-access.module";
 import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
@@ -28,6 +29,7 @@ import { VideosController } from "./infrastructure/videos.controller";
   imports: [
     AcademyAccessModule,
     AuthModule,
+    JobsModule,
     NotificationsModule,
     ParamsModule,
     PaymentsModule,

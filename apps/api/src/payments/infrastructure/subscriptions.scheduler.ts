@@ -1,54 +1,42 @@
-import { Injectable, Logger, type OnModuleInit } from "@nestjs/common";
-import { schedule } from "node-cron";
+import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
+import { JOB_REGISTRY, type JobRegistry } from "../../jobs/registry";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
 
 /**
- * Reconcile diario (09:00) de las suscripciones Flow vivas - provider
- * fino: la lógica vive en SubscriptionsService.reconcileAll() (membresías
- * de alumnos) y PlatformSubscriptionsService.reconcileAll() (SaaS de
- * academias + Producer Pro - spec academy-saas-billing): settle de
- * invoices pagados, sync de estado/nextInvoiceAt, reminder del cobro del
- * día siguiente, mora (grace de academia) y aplicación de cambios de plan
- * pendientes. Es la red de seguridad del webhook (subscription/callback
- * dispara el mismo barrido fire-and-forget) y del refresh de las vistas.
- * En el mismo tick corre `enforceAcademyBlocks` (S3): academias con
- * `billingGraceUntil` vencido pasan a `billingBlockedAt` - el desbloqueo
- * no depende del cron, lo hace `settlePlatformSub` al RENEWAL_SETTLED.
+ * Job diario de suscripciones (spec admin-jobs-mail-campaigns): el
+ * horario vive en ScheduledJob (DB) administrable desde /admin/jobs -
+ * el código solo registra handler + default (09:00 America/Santiago).
+ * El handler agrupa los tres barridos: reconcileAll de membresías y de
+ * suscripciones de plataforma (SaaS academias + Producer Pro - spec
+ * academy-saas-billing: settle de invoices pagados, sync de
+ * estado/nextInvoiceAt, reminder del cobro del día siguiente, mora y
+ * cambios de plan pendientes) + enforceAcademyBlocks (S3). Los
+ * contadores de cada barrido van a JobRun.meta. Es la red de seguridad
+ * del webhook (subscription/callback dispara el mismo barrido) y del
+ * refresh de las vistas.
  */
 @Injectable()
 export class SubscriptionsScheduler implements OnModuleInit {
-  private readonly logger = new Logger(SubscriptionsScheduler.name);
-
   constructor(
     private readonly subs: SubscriptionsService,
     private readonly platformSubs: PlatformSubscriptionsService,
+    @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
   ) {}
 
   onModuleInit(): void {
-    // En tests no se registra el cron (el spec ejerce reconcileAll
-    // directo, sin scheduler).
-    if (process.env.NODE_ENV === "test") return;
-    schedule("0 9 * * *", () => {
-      this.subs.reconcileAll("cron").catch((e: unknown) => {
-        this.logger.error(
-          "reconcileAll de suscripciones falló",
-          e instanceof Error ? e.stack : String(e),
-        );
-      });
-      this.platformSubs.reconcileAll("cron").catch((e: unknown) => {
-        this.logger.error(
-          "reconcileAll de suscripciones de plataforma falló",
-          e instanceof Error ? e.stack : String(e),
-        );
-      });
-      this.platformSubs.enforceAcademyBlocks().catch((e: unknown) => {
-        this.logger.error(
-          "enforceAcademyBlocks falló",
-          e instanceof Error ? e.stack : String(e),
-        );
-      });
+    this.registry.register({
+      key: "subscriptions.reconcile",
+      label: "Reconcile de suscripciones",
+      description:
+        "Sync diario de membresías de alumnos y suscripciones SaaS (academias + Producer Pro) con la pasarela, más enforcement de bloqueos por mora.",
+      defaultCron: "0 9 * * *",
+      handler: async () => {
+        const memberships = await this.subs.reconcileAll("cron");
+        const platform = await this.platformSubs.reconcileAll("cron");
+        const blocks = await this.platformSubs.enforceAcademyBlocks();
+        return { memberships, platform, blocks };
+      },
     });
-    this.logger.log("cron de reconcile de suscripciones registrado (0 9 * * *)");
   }
 }
