@@ -24,11 +24,13 @@ import {
   MePayoutsController,
 } from "./infrastructure/payouts.controller";
 import { CheckoutService } from "./application/checkout.service";
+import { GatewayAccountsService } from "./application/gateway-accounts.service";
 import { PaymentSettlementService } from "./application/payment-settlement.service";
 import { PayoutSettlementService } from "./application/payout-settlement.service";
 import { SubscriptionsService } from "./application/subscriptions.service";
 import { PlatformSubscriptionsService } from "./application/platform-subscriptions.service";
 import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
+import { ProducerGatewayAccountsController } from "./infrastructure/producer-gateway.controller";
 import { ProducerProController } from "./infrastructure/producer-pro.controller";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
@@ -49,10 +51,12 @@ import { AcademyAccessModule } from "../academies/academy-access.module";
     AdminPayoutsController,
     MePayoutsController,
     SubscriptionsController,
+    ProducerGatewayAccountsController,
     ProducerProController,
   ],
   providers: [
     CheckoutService,
+    GatewayAccountsService,
     PaymentSettlementService,
     PayoutSettlementService,
     SubscriptionsService,
@@ -82,6 +86,7 @@ import { AcademyAccessModule } from "../academies/academy-access.module";
     PAYMENT_GATEWAY,
     PAYMENT_GATEWAYS,
     GatewayTransactionsService,
+    GatewayAccountsService,
     PaymentSettlementService,
     PayoutSettlementService,
     SubscriptionsService,

@@ -9,6 +9,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
@@ -26,6 +27,7 @@ import {
   PAYMENT_GATEWAYS,
 } from "../domain/gateway-registry";
 import { PaymentSettlementService } from "../application/payment-settlement.service";
+import { GatewayAccountsService } from "../application/gateway-accounts.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
 import {
@@ -74,6 +76,7 @@ export class PaymentsController {
     private readonly access: AcademyAccess,
     @Inject(PAYMENT_GATEWAYS)
     private readonly gateways: GatewayRegistry,
+    private readonly accounts: GatewayAccountsService,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -95,13 +98,30 @@ export class PaymentsController {
    * normaliza la notificación a la misma confirmación. Provider no
    * registrado → 404 (el proveedor no debería estar notificando a una
    * ruta que no tiene credenciales configuradas).
+   *
+   * `?account=<id>` (spec producer-gateway-accounts): la notificación va
+   * dirigida a una cuenta propia de productor - el adaptador se resuelve
+   * con SUS credenciales (la URL es la que el productor configura como
+   * urlConfirmation en su panel). Cuenta inexistente/apagada o provider
+   * que no calza → 404/400; un Payment de otra cuenta → 400.
    */
   @Post("webhook/:provider")
   @HttpCode(200)
   async webhookByProvider(
     @Param("provider") provider: string,
+    @Query("account") accountId: string | undefined,
     @Body() body: unknown,
   ) {
+    if (accountId) {
+      const { account, gateway } =
+        await this.accounts.adapterFor(accountId);
+      if (account.provider !== provider.toUpperCase()) {
+        throw new BadRequestException(
+          "la cuenta no corresponde al proveedor de la ruta",
+        );
+      }
+      return this.confirm(gateway, body, account.id);
+    }
     const gateway = this.gateways.get(provider);
     if (!gateway) {
       throw new NotFoundException("proveedor de pago no registrado");
@@ -109,7 +129,11 @@ export class PaymentsController {
     return this.confirm(gateway, body);
   }
 
-  private async confirm(gateway: PaymentGateway, body: unknown) {
+  private async confirm(
+    gateway: PaymentGateway,
+    body: unknown,
+    accountId?: string,
+  ) {
     let result: {
       refId: string;
       status: "PAID" | "FAILED";
@@ -125,6 +149,14 @@ export class PaymentsController {
       where: { refId: result.refId },
     });
     if (!payment) throw new NotFoundException("pago no encontrado");
+
+    // La cuenta que confirma debe ser la que creó la orden: una cuenta
+    // propia no puede liquidar pagos de la plataforma ni de otra cuenta.
+    if ((payment.gatewayAccountId ?? null) !== (accountId ?? null)) {
+      throw new BadRequestException(
+        "la notificación no corresponde a la cuenta de la orden",
+      );
+    }
 
     // WEBHOOK_RECEIVED se emite SIEMPRE - un webhook duplicado también es
     // evidencia. Los eventos de transición (STATUS_CONFIRMED, SETTLED,
@@ -372,9 +404,17 @@ export class PaymentsController {
       throw new NotFoundException("pago no encontrado");
     }
 
-    // Polling contra el provider que creó la orden (Payment.gateway) -
-    // "MANUAL"/"FREE" no están en el registry → no hay consulta activa.
-    const provider = this.gateways.get(payment.gateway);
+    // Polling contra el provider que creó la orden: cuenta propia del
+    // productor (spec producer-gateway-accounts) o el adaptador
+    // persistido en Payment.gateway - "MANUAL"/"FREE" no tienen
+    // consulta activa.
+    const provider = payment.gatewayAccountId
+      ? await this.accounts
+          .adapterFor(payment.gatewayAccountId)
+          .then((r) => r.gateway)
+          // Cuenta apagada/borrada → sin consulta activa (best-effort).
+          .catch(() => null)
+      : this.gateways.get(payment.gateway);
     if (payment.status === "PENDING" && provider?.refreshStatus) {
       try {
         const remote = await provider.refreshStatus(payment.refId);

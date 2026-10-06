@@ -21,6 +21,9 @@ export interface GatewayTxEntry {
   ok: boolean;
   error?: string;
   paymentId?: string;
+  /** Cuenta del productor que ejecutó la llamada (spec
+   * producer-gateway-accounts); ausente = credenciales de plataforma. */
+  gatewayAccountId?: string;
 }
 
 /**
@@ -73,6 +76,7 @@ export class GatewayTransactionsService {
           ok: entry.ok,
           error: entry.error,
           paymentId: entry.paymentId,
+          gatewayAccountId: entry.gatewayAccountId,
         },
       });
     } catch (e) {

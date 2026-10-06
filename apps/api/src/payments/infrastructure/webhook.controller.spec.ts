@@ -221,6 +221,7 @@ function mkCtrl(prisma: FakePrisma) {
     {} as unknown as PlatformSubscriptionsService,
     access as never,
     new GatewayRegistry([], "STUB"),
+    {} as never, // GatewayAccountsService - las vistas no lo usan
   );
 }
 
@@ -488,6 +489,9 @@ describe("PaymentsController - webhook normalizado", () => {
     prisma: FakePrisma;
     def: ReturnType<typeof mkGateway>;
     extra?: ReturnType<typeof mkGateway>[];
+    accounts?: {
+      adapterFor: ReturnType<typeof vi.fn>;
+    };
   }) {
     const settlement = {
       recordWebhookReceived: vi.fn(async () => undefined),
@@ -505,6 +509,7 @@ describe("PaymentsController - webhook normalizado", () => {
       {} as unknown as PlatformSubscriptionsService,
       {} as never,
       registry,
+      (opts.accounts ?? { adapterFor: vi.fn() }) as never,
     );
     return { ctrl, settlement };
   }
@@ -531,7 +536,9 @@ describe("PaymentsController - webhook normalizado", () => {
     const def = mkGateway("FLOW");
     const mp = mkGateway("MERCADOPAGO");
     const { ctrl } = mkWebhookCtrl({ prisma, def, extra: [mp] });
-    await ctrl.webhookByProvider("MERCADOPAGO", { type: "payment" });
+    await ctrl.webhookByProvider("MERCADOPAGO", undefined, {
+      type: "payment",
+    });
     expect(mp.verifyWebhook).toHaveBeenCalledWith({ type: "payment" });
     expect(def.verifyWebhook).not.toHaveBeenCalled();
   });
@@ -541,7 +548,7 @@ describe("PaymentsController - webhook normalizado", () => {
     const def = mkGateway("STUB");
     const { ctrl } = mkWebhookCtrl({ prisma, def });
     await expect(
-      ctrl.webhookByProvider("STRIPE", {}),
+      ctrl.webhookByProvider("STRIPE", undefined, {}),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(def.verifyWebhook).not.toHaveBeenCalled();
   });
@@ -611,5 +618,142 @@ describe("PaymentsController - webhook normalizado", () => {
     expect(def.refreshStatus).not.toHaveBeenCalled();
     expect(settlement.settle).not.toHaveBeenCalled();
     expect(out.status).toBe("PENDING");
+  });
+});
+
+// Webhook dirigido a cuenta propia del productor (spec
+// producer-gateway-accounts): ?account=<id> resuelve el adaptador con
+// las credenciales del productor; la cuenta que confirma debe ser la
+// que creó la orden.
+describe("PaymentsController - webhook por cuenta propia", () => {
+  const mkGateway = (name: string) => ({
+    name,
+    verifyWebhook: vi.fn(async () => ({
+      refId: "tkt_evt-1_x",
+      status: "PAID" as const,
+      gatewayData: { fee: 319 },
+    })),
+    refreshStatus: vi.fn(async () => ({
+      status: "PAID" as const,
+      gatewayData: { fee: 319 },
+    })),
+  });
+
+  function mkAccountCtrl(prisma: FakePrisma, accountGateway = mkGateway("FLOW")) {
+    const settlement = {
+      recordWebhookReceived: vi.fn(async () => undefined),
+      settle: vi.fn(async () => ({ ok: true, status: "PAID" })),
+    };
+    const accounts = {
+      adapterFor: vi.fn(async () => ({
+        account: { id: "acct-A", provider: "FLOW" },
+        gateway: accountGateway,
+      })),
+    };
+    const ctrl = new PaymentsController(
+      prisma as unknown as PrismaService,
+      {} as unknown as PaymentGateway,
+      settlement as unknown as PaymentSettlementService,
+      {} as unknown as SubscriptionsService,
+      {} as unknown as PlatformSubscriptionsService,
+      {} as never,
+      new GatewayRegistry([], "STUB"),
+      accounts as never,
+    );
+    return { ctrl, settlement, accounts, accountGateway };
+  }
+
+  it("?account= resuelve el adaptador de la cuenta y confirma su pago", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(
+      mkPayment({
+        refId: "tkt_evt-1_x",
+        gatewayAccountId: "acct-A",
+      }),
+    );
+    const { ctrl, settlement, accounts, accountGateway } =
+      mkAccountCtrl(prisma);
+    await ctrl.webhookByProvider("FLOW", "acct-A", { token: "t1" });
+    expect(accounts.adapterFor).toHaveBeenCalledWith("acct-A");
+    expect(accountGateway.verifyWebhook).toHaveBeenCalledWith({
+      token: "t1",
+    });
+    expect(settlement.settle).toHaveBeenCalled();
+  });
+
+  it("provider de la ruta ≠ provider de la cuenta → 400", async () => {
+    const prisma = new FakePrisma();
+    const { ctrl } = mkAccountCtrl(prisma);
+    await expect(
+      ctrl.webhookByProvider("MERCADOPAGO", "acct-A", {}),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("pago de otra cuenta → 400 (una cuenta no confirma ajenos)", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(
+      mkPayment({
+        refId: "tkt_evt-1_x",
+        gatewayAccountId: "acct-B",
+      }),
+    );
+    const { ctrl, settlement } = mkAccountCtrl(prisma);
+    await expect(
+      ctrl.webhookByProvider("FLOW", "acct-A", { token: "t1" }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(settlement.settle).not.toHaveBeenCalled();
+  });
+
+  it("pago de cuenta propia notificado SIN ?account → 400 (la ruta de plataforma no confirma ajenos)", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(
+      mkPayment({
+        refId: "tkt_evt-1_x",
+        gatewayAccountId: "acct-A",
+      }),
+    );
+    const def = mkGateway("FLOW");
+    const settlement = {
+      recordWebhookReceived: vi.fn(async () => undefined),
+      settle: vi.fn(async () => ({ ok: true })),
+    };
+    const ctrl = new PaymentsController(
+      prisma as unknown as PrismaService,
+      def as unknown as PaymentGateway,
+      settlement as never,
+      {} as unknown as SubscriptionsService,
+      {} as unknown as PlatformSubscriptionsService,
+      {} as never,
+      new GatewayRegistry([def as unknown as PaymentGateway], "FLOW"),
+      { adapterFor: vi.fn() } as never,
+    );
+    await expect(ctrl.webhook({ token: "t1" })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(settlement.settle).not.toHaveBeenCalled();
+  });
+
+  it("polling consulta al adaptador de la cuenta, no al del registry", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(
+      mkPayment({
+        id: "p-own",
+        refId: "tkt_evt-1_x",
+        personId: "u1",
+        status: "PENDING",
+        gateway: "FLOW",
+        gatewayAccountId: "acct-A",
+      }),
+    );
+    const { ctrl, settlement, accounts, accountGateway } =
+      mkAccountCtrl(prisma);
+    await ctrl.getPayment(req("u1"), "p-own");
+    expect(accounts.adapterFor).toHaveBeenCalledWith("acct-A");
+    expect(accountGateway.refreshStatus).toHaveBeenCalledWith("tkt_evt-1_x");
+    expect(settlement.settle).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "p-own" }),
+      "PAID",
+      expect.objectContaining({ actor: "polling" }),
+    );
   });
 });

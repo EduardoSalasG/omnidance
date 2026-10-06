@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 import { ProducerProSection } from "@/components/producer/pro-section";
+import { GatewayAccountSection } from "@/components/producer/gateway-account-section";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
@@ -241,6 +242,11 @@ export default function ProducerParamsPage() {
               tiene el rol (un ADMIN operando la consola no se suscribe
               a sí mismo). */}
           {isProducer && <ProducerProSection producerId={meId} />}
+
+          {/* Pasarela propia (spec producer-gateway-accounts): cuenta
+              Flow/MP cifrada que cobra sus ventas; sin cuenta, la
+              plataforma cobra por el default MANAGED. */}
+          {isProducer && <GatewayAccountSection />}
 
           <p className="text-xs text-white/50">{tp("hint")}</p>
 

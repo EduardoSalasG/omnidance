@@ -72,6 +72,7 @@ model Person {
   platformSubscriptionsAsProducer PlatformSubscription[] @relation("PlatformSubscriptionProducer")
   paymentClaims  PaymentClaim[]
   claimsReviewed PaymentClaim[] @relation("ClaimReviewer")
+  gatewayAccounts ProducerGatewayAccount[] @relation("ProducerGatewayAccounts")
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -1191,6 +1192,10 @@ model Payment {
   currency           String   @default("CLP") // ISO 4217 - multi-país
   gateway   String        @default("FLOW")
   gatewayRef String?
+  // Cuenta del productor que cobró la orden (spec
+  // producer-gateway-accounts): null = pasarela de la plataforma.
+  gatewayAccountId String?
+  gatewayAccount   ProducerGatewayAccount? @relation(fields: [gatewayAccountId], references: [id])
   // Verdad monetaria reportada por la pasarela al confirmar PAID - auditable
   // contra la tarifa esperada (~3.19% tarjeta) y contra Payment.amount.
   gatewayFeeClp         Int?
@@ -1437,6 +1442,30 @@ model Lead {
 
 // ═══════════════════ PASARELA / AUDITORÍA ═══════════════════
 
+/// Credenciales de pasarela propias del productor (spec
+/// producer-gateway-accounts): la venta de sus eventos/series se cobra
+/// en SU cuenta Flow/MP, la plata va directo a él y la plataforma
+/// devenga su comisión (all-in − card%) neteada en el payout
+/// (feeMode OWN_GATEWAY). Las credenciales se guardan cifradas
+/// AES-256-GCM (`PRODUCER_GATEWAY_KEY`) - nunca salen por API.
+model ProducerGatewayAccount {
+  id             String   @id @default(cuid())
+  producerId     String   // Person.id con rol PRODUCER
+  producer       Person   @relation("ProducerGatewayAccounts", fields: [producerId], references: [id])
+  provider       String   // FLOW | MERCADOPAGO | STUB (STUB solo no-prod)
+  credentialsEnc String   // blob v1.<iv>.<tag>.<ct> base64 del JSON de credenciales
+  keyMask        String   // últimos 4 del apiKey/token ("••••1234") - lo único visible
+  status         String   @default("ACTIVE") // ACTIVE | DISABLED
+  lastError      String?  // último fallo de una llamada con estas credenciales
+  verifiedAt     DateTime? // primer uso exitoso evidenciado (implícito)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  payments Payment[]
+
+  @@index([producerId, status])
+}
+
 /// Cada request/response contra la pasarela (append-only, nunca update/delete).
 /// Evidencia primaria ante disputas con Flow.
 model GatewayTransaction {
@@ -1452,10 +1481,14 @@ model GatewayTransaction {
   ok            Boolean
   error         String?
   paymentId     String?
+  // Cuenta del productor que ejecutó la llamada (spec
+  // producer-gateway-accounts); null = credenciales de la plataforma.
+  gatewayAccountId String?
   createdAt     DateTime @default(now())
 
   @@index([correlationId])
   @@index([paymentId])
+  @@index([gatewayAccountId])
   @@index([createdAt])
 }
 

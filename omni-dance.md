@@ -548,7 +548,7 @@ Flow y MercadoPago son **adaptadores detrás de un puerto normalizado**, no depe
 
 - **Órdenes**: `PaymentGateway.createOrder/verifyWebhook/refreshStatus` → `GatewayConfirmation` normalizado (`status/amount/feeClp/media/paidAt/raw`) - el dominio nunca parsea campos de proveedor. Webhook por proveedor `/payments/webhook/:provider`.
 - **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow hoy, MP preapproval/Stripe como slots.
-- **Credenciales por actor**: `GatewayAccount` cifrado (AES-256-GCM) - cuenta de plataforma o del productor; el checkout y el webhook resuelven credenciales por orden.
+- **Credenciales por actor**: `ProducerGatewayAccount` cifrado (AES-256-GCM, `PRODUCER_GATEWAY_KEY`) — implementado (spec producer-gateway-accounts): el productor configura su cuenta Flow/MP desde `/productor/parametros`, el checkout cobra por su adaptador (`OWN_GATEWAY`), el webhook se enruta por `?account=<id>` y la comisión se netea en su payout.
 - **Moneda**: `Payment.currency` + `Event.currency` (ISO 4217, default CLP).
 
 **Política: sin reembolsos.** Los tickets son **transferibles a otro usuario** (mismo mecanismo que gift ticket). Reembolso excepcional solo manual, a pedido del productor.
