@@ -28,6 +28,19 @@ describe("AuthService", () => {
     expect(mins).toBeLessThan(16);
   });
 
+  it("createMagicToken con ttl explícito respeta la duración pedida", async () => {
+    // Invitaciones (staff/alumnos importados): el link dura días.
+    const token = await svc.createMagicToken("inv@b.cl", false, "7d");
+    const { payload } = await jwtVerify(token, secretKey);
+    const days = (payload.exp! - payload.iat!) / 86400;
+    expect(days).toBeGreaterThan(6.9);
+    expect(days).toBeLessThan(7.1);
+    expect(await svc.verifyMagicToken(token)).toEqual({
+      email: "inv@b.cl",
+      consent: false,
+    });
+  });
+
   it("verifyMagicToken rechaza un token de sesión", async () => {
     const session = await svc.issueSession("p1");
     await expect(svc.verifyMagicToken(session)).rejects.toThrow();

@@ -98,7 +98,7 @@ export class AttendanceController {
     @Query("from") from?: string,
     @Query("to") to?: string,
   ) {
-    await this.access.requireAdminister(id, req.person!); // solo owner/admin
+    await this.access.requireCapability(id, req.person!, "students"); // solo owner/admin
     const gte = from ? new Date(from) : new Date(Date.now() - 30 * 86400000);
     const lte = to ? new Date(to) : new Date();
     lte.setUTCHours(23, 59, 59, 999);

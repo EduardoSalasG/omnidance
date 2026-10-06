@@ -61,7 +61,7 @@ function subscribeResponse(r: PlatformSubscribeResult) {
 /**
  * Billing SaaS de la academia (spec academy-saas-billing): contratación,
  * cambio de plan, cancelación y vista de billing del owner.
- * Todo pasa por `AcademyAccess.requireAdminister` (owner o ADMIN - el
+ * Todo pasa por `AcademyAccess.requireCapability("billing")` (owner,
  * mismo gate de los planes/enrollments de la academia); el service
  * verifica el límite de alumnos del tier y el motor Flow replica el ciclo
  * de las membresías de alumnos. El retorno del disclaimer de tarjeta es
@@ -89,7 +89,7 @@ export class AcademyBillingController {
     @Body() dto: SubscribeAcademyDto,
     @Req() req: Request,
   ) {
-    const { academy } = await this.access.requireAdminister(id, req.person!);
+    const { academy } = await this.access.requireCapability(id, req.person!, "billing");
     const r = await this.platformSubs.subscribeAcademy(req.person!.id, academy, {
       tier: dto.tier,
       cycle: dto.cycle,
@@ -111,7 +111,7 @@ export class AcademyBillingController {
     @Body() dto: UpdateAcademySubscriptionDto,
     @Req() req: Request,
   ) {
-    const { academy } = await this.access.requireAdminister(id, req.person!);
+    const { academy } = await this.access.requireCapability(id, req.person!, "billing");
     const sub = await this.platformSubs.updateAcademySubscription(
       req.person!.id,
       academy,
@@ -134,7 +134,7 @@ export class AcademyBillingController {
    */
   @Post(":id/subscription/cancel")
   async cancel(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireCapability(id, req.person!, "billing");
     return this.platformSubs.cancelAcademySubscription(id);
   }
 
@@ -146,7 +146,7 @@ export class AcademyBillingController {
    */
   @Get(":id/billing")
   async billing(@Param("id") id: string, @Req() req: Request) {
-    const { academy } = await this.access.requireAdminister(id, req.person!);
+    const { academy } = await this.access.requireCapability(id, req.person!, "billing");
     return this.platformSubs.academyBillingView(academy);
   }
 }

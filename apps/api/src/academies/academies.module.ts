@@ -5,11 +5,12 @@ import { ParamsModule } from "../params/params.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { PrismaModule } from "../prisma.module";
 import { StorageModule } from "../storage/storage.module";
-import { AcademyAccess } from "./infrastructure/academy-access.service";
+import { AcademyAccessModule } from "./academy-access.module";
 import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
 import { AcademyClaimsController } from "./infrastructure/academy-claims.controller";
 import { AcademyClaimsService } from "./infrastructure/academy-claims.service";
 import { AcademyRemindersService } from "./infrastructure/academy-reminders.service";
+import { AcademyStaffController } from "./infrastructure/academy-staff.controller";
 import { AcademiesScheduler } from "./infrastructure/academies.scheduler";
 import {
   AcademiesController,
@@ -23,6 +24,7 @@ import { VideosController } from "./infrastructure/videos.controller";
 
 @Module({
   imports: [
+    AcademyAccessModule,
     AuthModule,
     NotificationsModule,
     ParamsModule,
@@ -34,6 +36,7 @@ import { VideosController } from "./infrastructure/videos.controller";
     AcademiesController,
     AcademyBillingController,
     AcademyClaimsController,
+    AcademyStaffController,
     EnrollmentsController,
     AttendanceController,
     ClassesController,
@@ -42,7 +45,6 @@ import { VideosController } from "./infrastructure/videos.controller";
     VideosController,
   ],
   providers: [
-    AcademyAccess,
     AcademyClaimsService,
     AcademyRemindersService,
     AcademiesScheduler,

@@ -14,7 +14,7 @@ import type { PlatformSubscriptionsService } from "../../payments/application/pl
 import "../../auth/infrastructure/auth.controller";
 import { AcademyBillingController } from "./academy-billing.controller";
 
-// AcademyBillingController - gate de acceso (requireAdminister → 403/404
+// AcademyBillingController - gate de acceso (capacidad billing → 403/404
 // propagado, el service no se toca), shape del subscribe
 // (needs_card → {paymentUrl}, subscribed → status ACTIVE) y la
 // propagación del 400 tier_limit del dominio (body {error,active,max}
@@ -26,7 +26,7 @@ const req = (id: string) =>
 
 function mkAccess(behavior: "ok" | "forbidden" | "notfound" = "ok") {
   return {
-    requireAdminister: vi.fn(async () => {
+    requireCapability: vi.fn(async () => {
       if (behavior === "forbidden") {
         throw new ForbiddenException("requiere ser owner o ADMIN");
       }
@@ -94,9 +94,10 @@ describe("AcademyBillingController", () => {
       { tier: "STARTER", cycle: "MONTHLY", acceptRecurring: true },
       req("p1"),
     );
-    expect(access.requireAdminister).toHaveBeenCalledWith(
+    expect(access.requireCapability).toHaveBeenCalledWith(
       "ac1",
       expect.objectContaining({ id: "p1" }),
+      "billing",
     );
     expect(service.subscribeAcademy).toHaveBeenCalledWith(
       "p1",

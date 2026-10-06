@@ -240,6 +240,9 @@ export class AcademyClaimsService {
         reviewNote: true,
         createdAt: true,
         reviewedAt: true,
+        // Auditoría (spec academy-staff-roles): con varios revisando,
+        // el owner ve quién aprobó/rechazó cada comprobante.
+        reviewedBy: { select: { id: true, name: true } },
         person: { select: { id: true, name: true } },
         plan: { select: { id: true, name: true, type: true } },
       },

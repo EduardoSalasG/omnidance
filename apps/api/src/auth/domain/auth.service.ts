@@ -40,11 +40,17 @@ export class AuthService {
   // `consent` viaja dentro del token: quien pidió el link marcó el
   // checkbox en el form → al verificar (GET /auth/verify, al crear la
   // sesión) se estampa en la Person (spec legal-consent).
-  createMagicToken(email: string, consent = false): Promise<string> {
+  // `ttl` opcional: las invitaciones (staff/import de alumnos, spec
+  // academy-staff-roles) necesitan un link que dure días, no 15min.
+  createMagicToken(
+    email: string,
+    consent = false,
+    ttl: string | number = "15m",
+  ): Promise<string> {
     return new SignJWT({ purpose: "magic", email, ...(consent ? { consent: true } : {}) })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("15m")
+      .setExpirationTime(ttl)
       .sign(this.key);
   }
 

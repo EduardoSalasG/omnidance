@@ -160,6 +160,9 @@ describe("academies e2e", () => {
     // Claims + métodos BYO: FK a academy (RESTRICT) - antes de borrarla.
     // Los Payment MANUAL del flujo quedan como data histórica (personId
     // string sin FK) igual que los de pasarela.
+    await prisma.academyStaff.deleteMany({
+      where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
+    });
     await prisma.paymentClaim.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
@@ -1515,6 +1518,150 @@ describe("academies e2e", () => {
         where: { personId: ids.outsiderId, type: "academy.plan_expiring" },
       });
       expect(notif).toBe(0);
+    });
+  });
+
+  describe("staff con capacidades (academy-staff-roles)", () => {
+    let staffId = "";
+    let staffSession = "";
+
+    it("POST /staff con email nuevo → crea stub + invita", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/staff`,
+        { email: "staff-test@omnidance.dev", payments: true, students: true },
+        ownerSession,
+      );
+      expect(res.status).toBe(201);
+      const body = (await res.json()) as { personId: string; invited: boolean };
+      expect(body.invited).toBe(true);
+      const person = await prisma.person.findUniqueOrThrow({
+        where: { email: "staff-test@omnidance.dev" },
+      });
+      staffId = person.id;
+      createdPersonIds.push(person.id);
+      staffSession = await auth.issueSession(person.id);
+      const row = await prisma.academyStaff.findUniqueOrThrow({
+        where: {
+          academyId_personId: {
+            academyId: ids.academyId,
+            personId: person.id,
+          },
+        },
+      });
+      expect(row.canPayments).toBe(true);
+      expect(row.canSchedule).toBe(false);
+    });
+
+    it("GET /access del staff → caps solo en los flags dados", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/access`,
+        staffSession,
+      );
+      const body = (await res.json()) as {
+        isStaff: boolean;
+        caps: Record<string, boolean>;
+      };
+      expect(body.isStaff).toBe(true);
+      expect(body.caps.payments).toBe(true);
+      expect(body.caps.students).toBe(true);
+      expect(body.caps.schedule).toBe(false);
+      expect(body.caps.team).toBe(false);
+    });
+
+    it("staff con payments pasa la cola de claims; sin schedule → 403 capability", async () => {
+      const list = await get(
+        `/api/academies/${ids.academyId}/claims`,
+        staffSession,
+      );
+      expect(list.status).toBe(200);
+      // GET /series está gated por capacidad schedule - sin flag → 403
+      const blocked = await get(
+        `/api/academies/${ids.academyId}/series`,
+        staffSession,
+      );
+      expect(blocked.status).toBe(403);
+      const body = (await blocked.json()) as { error?: string };
+      expect(body.error).toBe("academy.capability");
+    });
+
+    it("outsider no puede gestionar staff (cap team)", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/staff`,
+        { email: "otro@omnidance.dev", payments: true },
+        outsiderSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("owner no es fila staff (400) y staff no se edita a sí mismo", async () => {
+      await prisma.person.update({
+        where: { id: ids.ownerId },
+        data: { email: "owner-staff-test@omnidance.dev" },
+      });
+      const ownerRes = await post(
+        `/api/academies/${ids.academyId}/staff`,
+        { email: "owner-staff-test@omnidance.dev" },
+        ownerSession,
+      );
+      expect(ownerRes.status).toBe(400);
+      // staff sin flag team no puede gestionar → 403 de capacidad
+      const staffPatch = await patch(
+        `/api/academies/${ids.academyId}/staff/${staffId}`,
+        { students: false },
+        staffSession,
+      );
+      expect(staffPatch.status).toBe(403);
+    });
+
+    it("DELETE /staff → pierde acceso de inmediato", async () => {
+      const del = await req(
+        "DELETE",
+        `/api/academies/${ids.academyId}/staff/${staffId}`,
+        undefined,
+        ownerSession,
+      );
+      expect(del.status).toBe(200);
+      const after = await get(
+        `/api/academies/${ids.academyId}/claims`,
+        staffSession,
+      );
+      expect(after.status).toBe(403);
+    });
+
+    it("la cola expone quién revisó cada claim (auditoría)", async () => {
+      // claim del alumno aprobado por el owner
+      const method = await prisma.academyPaymentMethod.create({
+        data: {
+          academyId: ids.academyId,
+          type: "CASH",
+          label: "Efectivo",
+          details: {},
+        },
+      });
+      const claim = await prisma.paymentClaim.create({
+        data: {
+          academyId: ids.academyId,
+          personId: ids.studentId,
+          amount: 5000,
+          methodType: "CASH",
+          methodLabel: method.label,
+          receiptKey: "claims/test/receipt.png",
+          status: "APPROVED",
+          reviewedById: ids.ownerId,
+          reviewedAt: new Date(),
+        },
+      });
+      const res = await get(
+        `/api/academies/${ids.academyId}/claims`,
+        ownerSession,
+      );
+      const rows = (await res.json()) as {
+        id: string;
+        reviewedBy: { id: string; name: string } | null;
+      }[];
+      const row = rows.find((r) => r.id === claim.id);
+      expect(row?.reviewedBy?.id).toBe(ids.ownerId);
+      expect(row?.reviewedBy?.name).toBe("Owner Academia Test");
     });
   });
 });

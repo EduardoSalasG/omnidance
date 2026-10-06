@@ -412,7 +412,7 @@ sequenceDiagram
     U->>API: POST /academies/:id/claims multipart<br/>{receipt imagen|pdf ≤5MB, amount, methodId?, planId?, note?}
     API->>FS: put claims/<academyId>/<uuid>.<ext>
     API->>DB: PaymentClaim PENDING + notifySafe al owner
-    Ow->>API: GET /academies/:id/claims?status=PENDING (consola /academia/cobros)
+    Ow->>API: GET /academies/:id/claims (consola /academia/cobros - cap payments)
     Ow->>API: GET /academies/:id/claims/:claimId/receipt (stream autenticado)
     Ow->>API: POST .../claims/:id/approve
     API->>DB: tx: claim PENDING? (409 si no) + reviewer administra academia<br/>+ Payment{orderType MEMBERSHIP, gateway MANUAL, PAID}<br/>+ si planId: Enrollment findFirst→update/create<br/>endsAt por membershipBase/membershipEndsAt (misma regla webhook Flow)
@@ -425,6 +425,7 @@ sequenceDiagram
 - Approve sin `planId` solo registra el pago (no toca enrollment); con `planId` extiende desde `endsAt` vigente o crea el enrollment si el alumno no tiene uno para esa academia.
 - Los archivos viven bajo `UPLOADS_DIR` (dev `./uploads`, prod `/app/uploads` con bind mount al disco dedicado de la VM) - **nunca** se sirven por estático público; el endpoint exige ser dueño del claim o admin de la academia.
 - Academia sin métodos propios configurados: la card no aparece y el alumno sigue el checkout Flow normal (passthrough con comisión plataforma).
+- **Quién valida queda auditado** (academy-staff-roles): cualquier colaborador con capacidad `payments` puede aprobar/rechazar (no solo el owner) y cada claim resuelto expone `reviewedBy{id,name}` + `reviewedAt` - la consola muestra "Aprobado/Rechazado por X · fecha" en el historial.
 
 ## Recordatorios de renovación - barrido diario → email + notificación (academy-renewal-reminders)
 
@@ -451,6 +452,35 @@ sequenceDiagram
 - **Elegibilidad**: solo `ACTIVE`/`ONLINE` con `endsAt` (TRIAL no recibe avisos de renovación pagada; `endsAt` null = packs/legado nunca expira). Alumno sin email igual recibe la notificación in-app y queda marcado.
 - **Vigencia efectiva en reservas**: `resolveQuota` exige `now <= endsAt + grace_days` para clases dentro de ese rango - una inscripción vencida habilita clases solo hasta `endsAt + grace` (mismo número del mail); pasada la gracia no resuelve cuota.
 - **Notificación al owner por pago**: `settleMembership` envía `payment.membership.received` a `academy.ownerId` dentro del bloque `paidNow` (compra online y renovaciones automáticas Flow - nunca en webhooks/reconcile duplicados). Los claims MANUAL ya notifican al owner al crearse (`payment_claim_new`); la aprobación la hace el mismo owner.
+
+## Equipo de academia - invitación → acceso por capacidad (academy-staff-roles)
+
+```mermaid
+sequenceDiagram
+    actor Ow as Dueño academia
+    actor C as Colaborador
+    participant API as AcademyStaffController
+    participant DB as Postgres
+    participant MAIL as Resend (MAILER)
+
+    Ow->>API: POST /academies/:id/staff (cap team)<br/>{email, name?, caps: {payments, students, ...}}
+    alt correo ya registrado
+        API->>DB: AcademyStaff upsert (flags)
+    else correo nuevo
+        API->>DB: Person stub {email,name} + AcademyStaff
+        API->>MAIL: invitación con magic link 7d<br/>("X te agregó a su equipo")
+    end
+    C->>API: GET /api/auth/verify?token (crea sesión + cuenta)
+    C->>API: GET /academies/mine (incluye academias como staff)
+    C->>API: operación de consola (p.ej. GET /:id/claims)
+    API->>DB: requireCapability(academyId, me, "payments")<br/>staff sin flag → 403 {error:"academy.capability"}
+```
+
+- **Capacidades granulares** (`AcademyStaff.can*`): `students` (alumnos/enrollments), `payments` (comprobantes + medios de pago + libro), `plans` (membresías), `schedule` (series/horarios/videos), `profile` (ficha pública), `team` (gestionar colaboradores y comisiones), `billing` (suscripción SaaS). Owner y `admin.access` pasan todo implícito; el instructor sigue operativo (asistencia/clases) sin capacidades administrativas.
+- **Mantenedor `/academia/equipo`**: alta por email con toggles por capacidad, PATCH por flag individual, quitar (DELETE) con efecto inmediato. Restricciones: el owner no es fila staff (400 `owner_not_staff`) y nadie se edita a sí mismo (400 `cannot_modify_self`).
+- **La consola se adapta al acceso**: `GET /academies/:id/access` devuelve `{isOwner,isAdmin,isInstructor,isStaff,caps}`; el hub `/academia` muestra solo los módulos que el acceso cubre.
+- **Auditoría de comprobantes**: cada aprobación/rechazo de `PaymentClaim` guarda `reviewedById`+`reviewedAt`; el historial de `/academia/cobros` muestra quién validó cada pago - clave cuando varios colaboradores procesan comprobantes.
+- **Mora aplica igual**: toda mutación staff pasa por `requireCapabilityWrite` → academia bloqueada por suscripción impaga = read-only también para el equipo (la lectura sigue abierta).
 
 ## Clase suelta / taller - compra → asiento pagado (WORKSHOP)
 

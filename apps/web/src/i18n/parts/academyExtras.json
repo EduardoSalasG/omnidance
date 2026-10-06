@@ -22,7 +22,9 @@
       "crm": "CRM",
       "crmDesc": "Relación con tus alumnos",
       "payments": "Cobros",
-      "paymentsDesc": "Membresías cobradas a tus alumnos"
+      "paymentsDesc": "Membresías cobradas a tus alumnos",
+      "team": "Equipo",
+      "teamDesc": "Colaboradores y sus accesos"
     },
     "today": {
       "title": "Clases de hoy",

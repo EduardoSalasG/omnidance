@@ -14,6 +14,37 @@ export interface PersonContext {
 export interface AcademyContext {
   ownerId: string;
   instructorIds: string[];
+  /** Colaboradores delegados (spec academy-staff-roles). */
+  staff?: AcademyStaffContext[];
+}
+
+/**
+ * Capacidades delegables de la consola de academia (spec
+ * academy-staff-roles). Cada flag de `AcademyStaff` abre una familia de
+ * endpoints; el owner las tiene todas implícitas.
+ */
+export type AcademyCapability =
+  | "students"
+  | "payments"
+  | "plans"
+  | "schedule"
+  | "profile"
+  | "team"
+  | "billing";
+
+export const ACADEMY_CAPABILITIES: readonly AcademyCapability[] = [
+  "students",
+  "payments",
+  "plans",
+  "schedule",
+  "profile",
+  "team",
+  "billing",
+];
+
+export interface AcademyStaffContext {
+  personId: string;
+  caps: Record<AcademyCapability, boolean>;
 }
 
 /** Cupos por defecto cuando ningún nivel de la cadena declara quórum. */
@@ -60,8 +91,9 @@ export class InvalidEnrollmentTransitionError extends Error {
 }
 
 /**
- * Gestión operativa de la academia (ver detalle, tomar asistencia):
- * owner de la academia, instructor asignado o ADMIN de plataforma.
+ * Gestión operativa de la academia (ver detalle, tomar asistencia,
+ * listado de alumnos): owner, instructor asignado, colaborador staff
+ * (cualquier flag - spec academy-staff-roles) o ADMIN de plataforma.
  */
 export function canManageAcademy(
   person: PersonContext,
@@ -69,6 +101,7 @@ export function canManageAcademy(
 ): boolean {
   if (person.isAdmin) return true;
   if (academy.ownerId === person.id) return true;
+  if (academy.staff?.some((s) => s.personId === person.id)) return true;
   return academy.instructorIds.includes(person.id);
 }
 
@@ -82,6 +115,33 @@ export function canAdministerAcademy(
 ): boolean {
   if (person.isAdmin) return true;
   return academy.ownerId === person.id;
+}
+
+/**
+ * Acceso por capacidad delegada (spec academy-staff-roles): owner y
+ * ADMIN pasan siempre; un colaborador pasa solo si su fila staff tiene
+ * el flag de la capacidad pedida. El instructor no tiene capacidades.
+ */
+export function canAcademy(
+  person: PersonContext,
+  academy: AcademyContext,
+  cap: AcademyCapability,
+): boolean {
+  if (canAdministerAcademy(person, academy)) return true;
+  const row = academy.staff?.find((s) => s.personId === person.id);
+  return row?.caps[cap] === true;
+}
+
+/**
+ * Miembro del equipo (owner, staff con cualquier flag, ADMIN): gates de
+ * lectura operativa como el dashboard - no expone una capacidad concreta.
+ */
+export function isAcademyStaff(
+  person: PersonContext,
+  academy: AcademyContext,
+): boolean {
+  if (canAdministerAcademy(person, academy)) return true;
+  return academy.staff?.some((s) => s.personId === person.id) === true;
 }
 
 /**

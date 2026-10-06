@@ -7,8 +7,11 @@ import type { Academy } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import {
+  canAcademy,
   canAdministerAcademy,
   canManageAcademy,
+  isAcademyStaff,
+  type AcademyCapability,
   type AcademyContext,
   type PersonContext,
 } from "../domain/academy.service";
@@ -28,6 +31,7 @@ export class AcademyAccess {
       where: { id: academyId },
       include: {
         instructors: { select: { personId: true, commissionPct: true } },
+        staff: true,
       },
     });
     if (!academy) throw new NotFoundException("academia no encontrada");
@@ -36,8 +40,25 @@ export class AcademyAccess {
       ctx: {
         ownerId: academy.ownerId,
         instructorIds: academy.instructors.map((i) => i.personId),
+        staff: (academy.staff ?? []).map((s) => ({
+          personId: s.personId,
+          caps: {
+            students: s.canStudents,
+            payments: s.canPayments,
+            plans: s.canPlans,
+            schedule: s.canSchedule,
+            profile: s.canProfile,
+            team: s.canTeam,
+            billing: s.canBilling,
+          },
+        })),
       },
     };
+  }
+
+  /** ¿La persona tiene `admin.access` de plataforma? (GET /:id/access). */
+  async isPlatformAdmin(person: PersonContext): Promise<boolean> {
+    return (await this.withAdmin(person)).isAdmin === true;
   }
 
   /** Resuelve admin.access desde el catálogo DB (cacheado por el guard). */
@@ -68,6 +89,40 @@ export class AcademyAccess {
     const loaded = await this.loadContext(academyId);
     if (!canAdministerAcademy(await this.withAdmin(person), loaded.ctx)) {
       throw new ForbiddenException("requiere ser owner o ADMIN");
+    }
+    return loaded;
+  }
+
+  /**
+   * Acceso por capacidad delegada (spec academy-staff-roles): owner,
+   * ADMIN o staff con el flag. La familia de endpoints que abre cada
+   * capacidad está en el spec (payments/students/plans/schedule/
+   * profile/team/billing).
+   */
+  async requireCapability(
+    academyId: string,
+    person: PersonContext,
+    cap: AcademyCapability,
+  ): Promise<{ academy: Academy; ctx: AcademyContext }> {
+    const loaded = await this.loadContext(academyId);
+    if (!canAcademy(await this.withAdmin(person), loaded.ctx, cap)) {
+      throw new ForbiddenException({
+        error: "academy.capability",
+        message: `requiere permiso de ${cap} en esta academia`,
+        capability: cap,
+      });
+    }
+    return loaded;
+  }
+
+  /** Miembro del equipo (owner / cualquier staff / ADMIN) - lecturas. */
+  async requireStaff(
+    academyId: string,
+    person: PersonContext,
+  ): Promise<{ academy: Academy; ctx: AcademyContext }> {
+    const loaded = await this.loadContext(academyId);
+    if (!isAcademyStaff(await this.withAdmin(person), loaded.ctx)) {
+      throw new ForbiddenException("requiere ser del equipo de la academia");
     }
     return loaded;
   }
@@ -107,6 +162,17 @@ export class AcademyAccess {
     person: PersonContext,
   ): Promise<{ academy: Academy; ctx: AcademyContext }> {
     const loaded = await this.requireAdminister(academyId, person);
+    this.assertWritable(loaded.academy);
+    return loaded;
+  }
+
+  /** requireCapability + no bloqueada - mutaciones delegables. */
+  async requireCapabilityWrite(
+    academyId: string,
+    person: PersonContext,
+    cap: AcademyCapability,
+  ): Promise<{ academy: Academy; ctx: AcademyContext }> {
+    const loaded = await this.requireCapability(academyId, person, cap);
     this.assertWritable(loaded.academy);
     return loaded;
   }

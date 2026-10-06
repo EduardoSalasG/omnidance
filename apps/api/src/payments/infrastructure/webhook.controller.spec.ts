@@ -190,12 +190,29 @@ const mkPayment = (over: Row): Row => ({
 });
 
 function mkCtrl(prisma: FakePrisma) {
+  // AcademyAccess real queda cubierto por academy-access.service.spec; acá
+  // el fake replica la semántica del gate (owner / ADMIN / staff con cap).
+  const access = {
+    requireCapability: async (
+      academyId: string,
+      person: { id: string; roles: string[] },
+    ) => {
+      const academy = prisma.academies.find((a) => a.id === academyId);
+      if (!academy) throw new NotFoundException("academia no encontrada");
+      const isAdmin = person.roles.includes("ADMIN");
+      if (academy.ownerId !== person.id && !isAdmin) {
+        throw new ForbiddenException("requiere permiso de payments");
+      }
+      return { academy };
+    },
+  };
   return new PaymentsController(
     prisma as unknown as PrismaService,
     {} as unknown as PaymentGateway,
     {} as unknown as PaymentSettlementService,
     {} as unknown as SubscriptionsService,
     {} as unknown as PlatformSubscriptionsService,
+    access as never,
   );
 }
 

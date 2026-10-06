@@ -430,6 +430,9 @@ export class AcademiesController {
         OR: [
           { ownerId: personId },
           { instructors: { some: { personId } } },
+          // Colaboradores (academy-staff-roles): su academia también
+          // aparece en la consola; los flags granulares mandan dentro.
+          { staff: { some: { personId } } },
         ],
       },
       orderBy: { createdAt: "asc" },
@@ -724,7 +727,7 @@ export class AcademiesController {
     @Body() dto: UpdateAcademySettingsDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "profile");
     const data: Prisma.AcademyUpdateInput = {
       // undefined = no enviado → no toca; null explícito limpia el override.
       defaultQuorum: dto.defaultQuorum,
@@ -754,7 +757,7 @@ export class AcademiesController {
     @Body() dto: UpdateInstructorDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "team");
     const pct = dto.commissionPct;
     if (!Number.isInteger(pct) || pct < 0 || pct > 100) {
       throw new BadRequestException("commissionPct debe ser entero 0-100");
@@ -780,7 +783,7 @@ export class AcademiesController {
     @Body() dto: CreatePlanDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "plans");
     return this.prisma.membershipPlan.create({
       data: {
         academyId: id,
@@ -799,7 +802,7 @@ export class AcademiesController {
   @Get(":id/plans")
   @UseGuards(SessionGuard)
   async listPlans(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireCapability(id, req.person!, "plans");
     return this.prisma.membershipPlan.findMany({
       where: { academyId: id },
       orderBy: { name: "asc" },
@@ -823,7 +826,7 @@ export class AcademiesController {
     @Body() dto: UpdatePlanDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "plans");
     const plan = await this.prisma.membershipPlan.findFirst({
       where: { id: planId, academyId: id },
       include: { academy: { select: { name: true } } },
@@ -888,7 +891,7 @@ export class AcademiesController {
     @Body() dto: CreateEnrollmentDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "students");
 
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId },
@@ -1097,7 +1100,7 @@ export class AcademiesController {
   @Get(":id/slots")
   @UseGuards(SessionGuard)
   async listSlots(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireCapability(id, req.person!, "schedule");
     return this.prisma.classSlot.findMany({
       where: { academyId: id },
       orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
@@ -1113,7 +1116,7 @@ export class AcademiesController {
   @Get(":id/dashboard")
   @UseGuards(SessionGuard)
   async dashboard(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireStaff(id, req.person!);
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     // Class.date vive a medianoche UTC (misma convención que
     // ClassSeriesController.monthDates) - "hoy" = el día UTC actual.
@@ -1277,7 +1280,7 @@ export class EnrollmentsController {
       where: { id },
     });
     if (!enrollment) throw new NotFoundException("enrollment no encontrado");
-    await this.access.requireAdministerWrite(enrollment.academyId, req.person!);
+    await this.access.requireCapabilityWrite(enrollment.academyId, req.person!, "students");
     try {
       assertEnrollmentTransition(enrollment.status, dto.status);
     } catch (e) {

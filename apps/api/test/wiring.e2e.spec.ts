@@ -8,6 +8,7 @@ import { QrService } from "../src/qr/domain/qr.service";
 import { ParamsModule } from "../src/params/params.module";
 import { NotificationsModule } from "../src/notifications/notifications.module";
 import { GamificationModule } from "../src/gamification/gamification.module";
+import { AcademyAccessModule } from "../src/academies/academy-access.module";
 import { SessionsService } from "../src/sessions/domain/sessions.service";
 import { SessionsController } from "../src/sessions/infrastructure/sessions.controller";
 import { PaymentsController } from "../src/payments/infrastructure/webhook.controller";
@@ -80,6 +81,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
         ParamsModule,
         NotificationsModule,
         GamificationModule,
+        AcademyAccessModule,
       ],
       controllers: [SessionsController, WaitlistController, PaymentsController],
       providers: [

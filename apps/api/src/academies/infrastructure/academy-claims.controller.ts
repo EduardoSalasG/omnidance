@@ -102,7 +102,7 @@ export class AcademyClaimsController {
   /** Todos los métodos (incluye inactivos) - solo owner/admin. */
   @Get(":id/payment-methods/admin")
   async listMethodsAdmin(@Param("id") id: string, @Req() req: Request) {
-    const { academy } = await this.access.requireAdminister(id, req.person!);
+    const { academy } = await this.access.requireCapability(id, req.person!, "payments");
     return this.claims.listMethods(academy.id, { includeInactive: true });
   }
 
@@ -112,9 +112,10 @@ export class AcademyClaimsController {
     @Body() dto: CreateMethodDto,
     @Req() req: Request,
   ) {
-    const { academy } = await this.access.requireAdministerWrite(
+    const { academy } = await this.access.requireCapabilityWrite(
       id,
       req.person!,
+      "payments",
     );
     return this.claims.createMethod(academy.id, dto);
   }
@@ -126,7 +127,7 @@ export class AcademyClaimsController {
     @Body() dto: UpdateMethodDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "payments");
     return this.claims.updateMethod(id, methodId, dto);
   }
 
@@ -136,7 +137,7 @@ export class AcademyClaimsController {
     @Param("methodId") methodId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "payments");
     return this.claims.deleteMethod(id, methodId);
   }
 
@@ -181,7 +182,7 @@ export class AcademyClaimsController {
     @Query("status") status: ClaimStatus | undefined,
     @Req() req: Request,
   ) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireCapability(id, req.person!, "payments");
     return this.claims.listClaims(id, status);
   }
 
@@ -206,7 +207,7 @@ export class AcademyClaimsController {
     const claim = await this.claims.loadClaimForReceipt(id, claimId);
     const isOwner = claim.personId === req.person!.id;
     if (!isOwner) {
-      await this.access.requireAdminister(id, req.person!);
+      await this.access.requireCapability(id, req.person!, "payments");
     }
     const buffer = await this.claims.readReceipt(claim.receiptKey);
     res.setHeader("Content-Type", mimeForKey(claim.receiptKey));
@@ -222,7 +223,7 @@ export class AcademyClaimsController {
     @Param("claimId") claimId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "payments");
     return this.claims.approve(id, claimId, req.person!.id);
   }
 
@@ -234,7 +235,7 @@ export class AcademyClaimsController {
     @Body() dto: RejectClaimDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "payments");
     return this.claims.reject(id, claimId, req.person!.id, dto.note);
   }
 }

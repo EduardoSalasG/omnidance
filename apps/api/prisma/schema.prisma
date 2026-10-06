@@ -71,6 +71,7 @@ model Person {
   platformSubscriptionsPayer      PlatformSubscription[] @relation("PlatformSubscriptionPayer")
   platformSubscriptionsAsProducer PlatformSubscription[] @relation("PlatformSubscriptionProducer")
   paymentClaims  PaymentClaim[]
+  claimsReviewed PaymentClaim[] @relation("ClaimReviewer")
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -739,6 +740,7 @@ model Academy {
   createdAt DateTime @default(now())
 
   instructors  AcademyInstructor[]
+  staff        AcademyStaff[]
   plans        MembershipPlan[]
   classSlots   ClassSlot[]
   classSeries  ClassSeries[]
@@ -757,6 +759,27 @@ model AcademyInstructor {
   // instructor; snapshot a la lección al crearla (null/0 = sin comisión).
   commissionPct Int?
   createdAt DateTime @default(now())
+
+  @@unique([academyId, personId])
+}
+
+// Colaborador delegado de la academia (spec academy-staff-roles): cada
+// flag abre una familia de endpoints de la consola. El owner puede todo
+// implícitamente (no necesita fila); el instructor NO es staff (solo
+// gestiona asistencia/detalle). Un staff no es instructor ni viceversa.
+model AcademyStaff {
+  id        String  @id @default(cuid())
+  academy   Academy @relation(fields: [academyId], references: [id])
+  academyId String
+  personId  String
+  canStudents Boolean @default(false) // alumnos + enrollments + asistencia
+  canPayments Boolean @default(false) // claims + métodos de pago + payouts
+  canPlans    Boolean @default(false) // planes de membresía
+  canSchedule Boolean @default(false) // series + slots + clases + videos
+  canProfile  Boolean @default(false) // perfil público de la academia
+  canTeam     Boolean @default(false) // colaboradores + instructores
+  canBilling  Boolean @default(false) // suscripción SaaS de la academia
+  createdAt   DateTime @default(now())
 
   @@unique([academyId, personId])
 }
@@ -872,6 +895,9 @@ model PaymentClaim {
   receiptKey   String  // storageKey en UPLOADS_DIR (claims/<academyId>/<uuid>.<ext>)
   status       ClaimStatus @default(PENDING)
   note         String? // nota del alumno ("pagué el lunes")
+  // Auditoría de revisión (spec academy-staff-roles): quién aprobó o
+  // rechazó - con varios colaboradores validando, el owner lo ve en la cola.
+  reviewedBy   Person?   @relation("ClaimReviewer", fields: [reviewedById], references: [id])
   reviewedById String?
   reviewedAt   DateTime?
   reviewNote   String? // motivo del rechazo / nota del owner

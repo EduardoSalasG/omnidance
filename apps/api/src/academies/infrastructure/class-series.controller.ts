@@ -210,7 +210,8 @@ const SERIES_INCLUDE: Prisma.ClassSeriesInclude = {
  * Series de clases recurrentes mensuales (omni-dance §academias):
  * una serie agrupa 1+ horarios semanales; al crearla se materializan
  * las instancias Class de ese mes para que los alumnos puedan reservar.
- * Gestión restringida a owner/ADMIN vía AcademyAccess.requireAdminister.
+ * Gestión por capacidad `schedule` (owner/ADMIN/staff con el flag -
+ * spec academy-staff-roles).
  */
 @Controller("academies")
 @UseGuards(SessionGuard)
@@ -224,7 +225,7 @@ export class ClassSeriesController {
   /** Lista las series de la academia (gestión). */
   @Get(":id/series")
   async list(@Param("id") id: string, @Req() req: Request) {
-    await this.access.requireAdminister(id, req.person!);
+    await this.access.requireCapability(id, req.person!, "schedule");
     return this.prisma.classSeries.findMany({
       where: { academyId: id },
       orderBy: [{ month: "desc" }, { name: "asc" }],
@@ -242,7 +243,7 @@ export class ClassSeriesController {
     @Body() dto: CreateSeriesDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
     const dates = monthDates(dto.month);
     if (dates.length === 0) {
       throw new BadRequestException("month inválido");
@@ -322,7 +323,7 @@ export class ClassSeriesController {
     @Body() dto: UpdateSeriesDto,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
     const prev = await this.findSeriesOr404(id, seriesId);
     const reactivated = dto.active === true && !prev.active;
 
@@ -501,7 +502,7 @@ export class ClassSeriesController {
     @Param("seriesId") seriesId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
     await this.findSeriesOr404(id, seriesId);
 
     return this.prisma.$transaction(async (tx) => {
@@ -542,7 +543,7 @@ export class ClassSeriesController {
     @Param("slotId") slotId: string,
     @Req() req: Request,
   ) {
-    await this.access.requireAdministerWrite(id, req.person!);
+    await this.access.requireCapabilityWrite(id, req.person!, "schedule");
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: slotId, academyId: id },
     });
