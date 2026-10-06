@@ -13,7 +13,7 @@ Plataforma integral para el ecosistema SBK (salsa, bachata, cubano) que conecta 
 
 - Validación de actividad real (QR)
 - Reputación privada y justa (promedios agregados, nunca evaluaciones individuales)
-- Ticketing con cargo de servicio
+- Ticketing con comisión todo incluido al productor (precio exacto al asistente)
 - Analíticas operativas B2B (SaaS)
 - Suscripciones académicas y talleres
 
@@ -481,36 +481,92 @@ Micro-encuentros de baile **creados por cualquier bailarín** - no requieren aca
 
 ---
 
-## 10. Ticketing y modelo de comisiones (rediseñado)
+## 10. Ticketing y modelo de comisiones (rediseñado oct-2026)
 
-### Modelo de precio - cargo de servicio al comprador
+### Modelo de precio - comisión "todo incluido" al productor
 
-El comprador paga: **precio de lista + cargo por servicio** (comisión omni-dance + fee de pasarela). El productor recibe el 100% de su precio de lista.
+**El comprador paga exactamente el precio de lista** - no hay cargo por servicio al asistente. La plataforma monetiza cobrando al **productor** un % todo incluido sobre la venta, descontado en la liquidación.
 
-| Canal | Modelo | Detalle |
+| Tier comercial | % todo incluido | Uso |
 |---|---|---|
-| **Preventa** | Cargo de servicio fijo: **+$500 por ticket** | Ej: $5.300 + $500 = $5.800 al comprador. Flow cobra ~$199 (3,44%) → **neto omni ~$300/ticket (~5,7%)**. Productor recibe $5.300 íntegro |
-| **Puerta efectivo** | Registro + check-in **gratis** en lanzamiento (opcional después: **$150 flat** al productor por ticket registrado) | El 80% de la puerta es cash - no se puede recargar al comprador. El valor es la data de asistencia |
-| **Puerta app/QR pago** | Cargo de servicio fijo: **+$700 por ticket** | Comprador paga ej. $7.000 + $700 = $7.700; neto omni ~$435/ticket |
+| **Precio de lista** | **10%** | Default de `platformFeePct` - conversación inicial |
+| **Promo de cierre** | **8%** | Override por productor (`ProducerParams.platformFeePct`) - "oferta" para convencerlo; es el objetivo económico real |
 
-**Convención de precios:** cargos en pesos redondos ($500 / $700 / $150), no porcentajes - así se comunica en Chile ("+$500 de cargo por servicio").
+**Desglose del % todo incluido** (ej. 10% sobre $6.000 → deducción $600):
+
+| Línea de liquidación | % sobre venta | CLP | Destino |
+|---|---|---|---|
+| `GATEWAY_FEE_PASSTHROUGH` | ~3,19% (real por medio) | $191 | Pasarela, al costo |
+| `PLATFORM_FEE_NET` | ~5,72% | $344 | Ingreso omni-dance |
+| `PLATFORM_FEE_IVA` | ~1,09% | $65 | IVA 19% sobre nuestro fee - facturado al productor |
+| **Total** | **10%** | **$600** | |
+
+Con promo 8%: neto omni ~4,05% ($243/ticket), productor recibe $5.520. El neto omni por ticket queda **en torno a los ~$300 históricos** del flat $500 - el cambio es de estructura, no de nivel de ingreso.
+
+**Un solo parámetro deriva todos los modos de cobro:**
+
+| Modo de cobro | Tasa | Detalle |
+|---|---|---|
+| **Gestionada** (nuestra pasarela) | `platformFeePct` (10% / promo 8%) | Recaudamos nosotros → payout |
+| **Métodos propios** (transferencia/link/comprobante) | `platformFeePct − gateway card pct` → **6,81% / 4,81%** | Mismo all-in menos la pasarela que no usamos; la promo baja sola. El fee se **devenga y se netea** contra payouts gestionados (o se factura mensual) |
+| **Pasarela propia** (su cuenta Flow/MP) | mismo derivado que métodos propios | Credenciales cifradas del productor; la plata va directo a él; fee devengado igual |
+| **Efectivo en puerta** (staff registra) | **0%** | Es validación/QR + data, no procesamos plata |
+| **Entrada liberada** ($0) | **0%** | Nada que cobrar |
+
+Justificación: la diferencia gestionada↔propia es exactamente el costo de pasarela que evitamos - "con nosotros no pagas el 3,19% de Flow aparte, está dentro del 10%". Más honesto y más vendible que un surcharge arbitrario.
+
+### Estudio de mercado (oct-2026) - por qué 8-10% es defendible
+
+| Plataforma | Fee | Quién paga |
+|---|---|---|
+| PortalTickets (Chile) | 10% IVA incl. todo incluido | Organizador o comprador, a elección |
+| Ticketeras grandes Chile (Puntoticket…) | 10–20% | Comprador |
+| Passline (AR/CL) | hasta ~15% | Según acuerdo |
+| Shotgun (EU electrónica) | ~15% cap €15/$30 | Comprador |
+| DICE (EU) | ~10–12% | Comprador |
+| Resident Advisor | ~9,5% + processing | Comprador |
+| Eventbrite | ~8% Essentials / ~11% Pro | Comprador |
+| Sway | 3% + €0,30 | Comprador |
+
+El mercado cobra al **comprador** 8–15%+. Cobrar al **productor** es contracultural pero es nuestro USP: *"publicas tu precio, el asistente paga exactamente eso"*. Y 8–10% todo incluido compite contra el 10–20% chileno sin regalar el producto - el diferencial real es la plataforma completa (check-in, CRM, analítica, academias), no el precio.
+
+### Trazabilidad BIAN - auditoría a nivel banco
+
+Cada peso debe rastrear a su origen, con la misma disciplina que el ledger bancario:
+
+- **Descomposición congelada por pago**: `Payment` persiste `feeMode` (MANAGED/OWN_METHOD/OWN_GATEWAY/FREE), `platformFeeRate` (snapshot de la tasa aplicada - un cambio de param nunca recalcula órdenes viejas), `platformFeeNetClp`, `platformFeeVatClp`, `gatewayFeeExpected`, `producerNetClp`, `currency` (ISO 4217 - Europa).
+- **`PayoutLine` como tabla real**: cada deducción es una fila tipada (`PLATFORM_FEE_NET`, `PLATFORM_FEE_IVA`, `GATEWAY_FEE_PASSTHROUGH`, `OWN_METHOD_FEE_NET/VAT`, `MANUAL_ADJUSTMENT`) enlazada a la orden que la generó - el neto del payout es auditable peso a peso. Las ventas por métodos propios generan líneas `OWN_METHOD_*` que se **netean** en el payout del período.
+- **Ledger hash-chain** (ya existe): nuevos eventos `FEE_ASSESSED` (al crear la orden - congela la tasa en la cadena) y `PAYOUT_LINE_ASSIGNED` (al liquidar). `AMOUNT_MISMATCH` reconcilia fee esperado vs reportado por la pasarela.
+- **Reglas**: montos Int en unidad menor, nada se actualiza post-PAID (solo append), `GatewayTransaction` append-only sanitizado de cada llamada a la pasarela.
+- **Deuda declarada**: `BillingDocument` - la factura formal al productor por nuestro fee (folio, RUT, neto, IVA, período). El `PayoutLine` deja la contabilidad lista; el documento tributario es slice posterior.
+
+### Arquitectura de pasarelas - puertos, no acoplamiento
+
+Flow y MercadoPago son **adaptadores detrás de un puerto normalizado**, no dependencias del dominio - preparado para más países (incl. Europa):
+
+- **Órdenes**: `PaymentGateway.createOrder/verifyWebhook/refreshStatus` → `GatewayConfirmation` normalizado (`status/amount/feeClp/media/paidAt/raw`) - el dominio nunca parsea campos de proveedor. Webhook por proveedor `/payments/webhook/:provider`.
+- **Suscripciones**: puerto `SubscriptionProvider` con tipos normalizados (los `Flow*` salen del contrato); Flow hoy, MP preapproval/Stripe como slots.
+- **Credenciales por actor**: `GatewayAccount` cifrado (AES-256-GCM) - cuenta de plataforma o del productor; el checkout y el webhook resuelven credenciales por orden.
+- **Moneda**: `Payment.currency` + `Event.currency` (ISO 4217, default CLP).
 
 **Política: sin reembolsos.** Los tickets son **transferibles a otro usuario** (mismo mecanismo que gift ticket). Reembolso excepcional solo manual, a pedido del productor.
 
-**Fiscal:** omni-dance emite boleta por el cargo de servicio; el productor emite por el precio de lista (split en la liquidación).
+**Fiscal:** omni-dance emite **factura al productor por su comisión** (neto + IVA, via `BillingDocument` posterior); el productor emite por el precio de lista (split en la liquidación).
 
-### Unit economics por evento (200 personas, preventa migrada a la app)
+### Unit economics por evento (200 personas, preventa migrada a la app, 8% promo)
 
 | Concepto | Monto |
 |---|---|
-| Preventa: 160 × neto ~$300/ticket ($500 cargo − ~$199 Flow) | **~$48.000** |
-| Puerta por app/QR (~20%): 8 × ~$435 | ~$3.500 |
-| Puerta cash registrada (32, gratis en lanzamiento) | $0 |
-| **Neto omni por evento** | **~$48–52k** |
+| Preventa gestionada: 160 × ($5.300 × ~4,05% neto + iva ≈ $243 neto/ticket) | **~$38.900** |
+| Puerta por app/QR (~20%, gestionada): 8 × $7.000 × ~4,05% | ~$2.270 |
+| Puerta cash registrada (32, 0%) | $0 |
+| **Neto omni por evento** | **~$41k** |
 
-**Sensibilidad:** si solo 50% de la preventa migra a la app → ~$24k/evento. La mitigación: la preventa oficial del productor es solo por la app - la transferencia muere sola cuando el ticket-QR con check-in es el único camino.
+A precio de lista 10% el neto sube a ~$57k/evento (160 × $303 + 8 × $401). Rango real: **$41–57k/evento** según mezcla de tasas negociadas - igual al rango histórico del flat ($48–52k) pero con upside en preventas más caras.
 
-**Proyección mensual:** ~20–25 eventos/mes → **$0,9–1,3M CLP** a captura total. Con un solo productor (4–6 eventos/mes): ~$200–300k - valida el modelo sin escalar.
+**Sensibilidad:** si solo 50% de la preventa migra a la app → ~$20k/evento. La mitigación: la preventa oficial del productor es solo por la app - la transferencia muere sola cuando el ticket-QR con check-in es el único camino.
+
+**Proyección mensual:** ~20–25 eventos/mes → **$0,8–1,4M CLP** a captura total. Con un solo productor (4–6 eventos/mes): ~$165–340k - valida el modelo sin escalar.
 
 ### Comparativa de pasarelas (investigación sep-2026)
 
@@ -528,13 +584,13 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 
 | Perfil | Qué recauda omni por ellos | Liquidación |
 |---|---|---|
-| **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: bruto cobrado − $0 comisión (el cargo lo paga el comprador) → transferencia + comprobante |
+| **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: **bruto − % todo incluido** (`platformFeePct`, default 10 / promo 8; líneas `PLATFORM_FEE_NET` + `PLATFORM_FEE_IVA` + `GATEWAY_FEE_PASSTHROUGH` al costo) − fee devengado por métodos propios neteado → transferencia + comprobante |
 | **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado: **bruto − tarifa Flow** (`GATEWAY_FEE_PASSTHROUGH`, ~3,19%); **sin comisión ni cargo al comprador** - la academia monetiza vía suscripción SaaS (ver abajo) |
 | **Instructor** | Clases privadas (vía academia - liquida a través de la academia, que cobra su comisión) | Dentro del payout de la academia, desglosado |
 | **Venue** | Futuro: arriendos (`venue_rental`), cortesías cobradas | `payout` cuando aplique |
-| **omni-dance** | Cargos de servicio, suscripciones SaaS, futuro premium bailarín | Es nuestra plata - no se liquida, se factura |
+| **omni-dance** | Comisiones todo incluido (neto+IVA de productor, fee propio de métodos), suscripciones SaaS, futuro premium bailarín | Es nuestra plata - no se liquida, se factura |
 
-**Flujo fiscal**: omni-dance emite boleta/factura por **su cargo de servicio + SaaS**; cada actor emite por **su precio de lista** (el dinero que recaudamos en su nombre). El desglose queda en el `payout` - el actor ve exactamente qué facturar.
+**Flujo fiscal**: omni-dance emite **factura al productor por su comisión** (neto + IVA; `BillingDocument` posterior - la trazabilidad ya queda en `PayoutLine`) y factura el SaaS; cada actor emite por **su precio de lista** (el dinero que recaudamos en su nombre). El desglose queda en el `payout` - el actor ve exactamente qué facturar.
 
 **Estados del `payout`**: `pending → approved → paid` con evidencia de transferencia; todo auditado.
 
@@ -554,7 +610,7 @@ El cargo por venta desaparece para la academia: pasa a **suscripción mensual po
 - **Mora**: renovación fallida → 5 días de gracia → día 6 bloqueo (`billingBlockedAt`): consola read-only, academia y clases fuera de explorar, sin reservas ni compras nuevas - **el alumno conserva todo su historial**. Un pago recuperado desbloquea solo (`RENEWAL_SETTLED`).
 - Los productos de la academia **no cobran cargo de servicio al alumno**; la academia absorbe la tarifa Flow como línea `GATEWAY_FEE_PASSTHROUGH` explícita en su payout.
 
-**Productor**: mantiene `platformFeePct` por venta (la monetización core del ticketing) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d): `PRO_STARTER ≤$2,5M → $99.990`, `PRO_GROWTH ≤$8M → $249.990` (ciclos con −2%/−4%), `PRO_BIG` manual. Pro desbloquea analítica avanzada, exports CSV/PDF, CRM y multi-staff - el ticketing base, venta y check-in **nunca se cortan** por la suscripción. Trial de lanzamiento: +90d a productores registrados.
+**Productor**: su monetización core es la **comisión todo incluido por venta** (`platformFeePct`, default 10% / promo 8% - ver "Modelo de precio" arriba) **+ Producer Pro opcional** - suscripción por tier de facturación mensual media (90d): `PRO_STARTER ≤$2,5M → $99.990`, `PRO_GROWTH ≤$8M → $249.990` (ciclos con −2%/−4%), `PRO_BIG` manual. Pro desbloquea analítica avanzada, exports CSV/PDF, CRM y multi-staff - el ticketing base, venta y check-in **nunca se cortan** por la suscripción. Trial de lanzamiento: +90d a productores registrados.
 
 **Contexto competitivo (evaluado oct-2026, decisión: no competir en precio)**:
 - **BoxMagic** (gestión deportiva): ~$39.900+IVA hasta 120 clientes - referencia del pricing de tiers.
@@ -567,7 +623,7 @@ El cargo por venta desaparece para la academia: pasa a **suscripción mensual po
 
 **Caso B - sin ticket (venta puerta): todos entran con cuenta.** Ya no hay conteo anónimo:
 - Staff crea **cuenta ligera en el momento** (nombre + teléfono, sin onboarding completo) → genera QR personal al instante
-- Luego: asocia una **entrada ya pagada** (cash/transferencia registrada por staff, aprobada por staff) **o** la persona **compra en la app** recién creada (cargo +$700)
+- Luego: asocia una **entrada ya pagada** (cash/transferencia registrada por staff, aprobada por staff) **o** la persona **compra en la app** recién creada (paga el precio de lista exacto - la comisión va al productor)
 - El staff aprueba la operación en su pantalla - queda auditado
 - Casos borde en puerta (precio distinto, cortesía de último minuto, error) → el productor genera **`discount_code`** para resolverlos
 
@@ -612,7 +668,7 @@ El cargo por venta desaparece para la academia: pasa a **suscripción mensual po
 - **Auth**: Google OAuth + **magic link por email vía Resend** (free tier ~100/día - suficiente para MVP; escalar a AWS SES si se acaba). OTP por WhatsApp queda como opción cara a evaluar
 - **Onboarding B2B - landings por rol**: cualquiera puede registrarse bajo el rol que quiera (productor, venue, academia, DJ, instructor) desde su landing → queda en **sandbox/demo** (data de prueba, puede explorar su consola) **hasta que admin aprueba**. Nadie se autoproclama productor de "La Gozadera", pero todos pueden ver su consola funcionando antes de la aprobación
 - **Roles con dinero requieren `fiscal_profile`**: RUT, razón social, tipo (empresa / persona natural), giro - obligatorio para cualquier rol que reciba liquidaciones o emita boletas/facturas
-- **omni-dance opera como empresa de software propia** (SpA) - contrata la pasarela de pagos, emite boletas por el cargo de servicio, factura el SaaS
+- **omni-dance opera como empresa de software propia** (SpA) - contrata la pasarela de pagos, emite **factura al productor por su comisión todo incluido** (neto + IVA), factura el SaaS
 - **18+**: la app se declara para mayores de edad (eventos con alcohol)
 - **Legal**: ToS + política de privacidad (ley 21.719 Chile) - los ratings son data que requiere consentimiento informado
 - **i18n - bases listas desde el día 1**: solo `es-CL` habilitado, pero todos los strings pasan por catálogo de mensajes (next-intl), fechas/moneda/timezone por APIs Intl. Refactor tardío sería mucho peor
@@ -712,7 +768,7 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 | Home / feed | Próximos eventos de la semana, actividad de amigos ("X va a Gozadera"), tu streak, progreso de misiones |
 | Calendario | Global, por serie, por productor, por local |
 | Landing de evento | Lineup (DJ, sets, shows, cumpleañeros), quién va + amigos con mesa, leaderboard de la serie, comprar / guest list / reservar mesa, carta, fotos (Drive), sugerir canción |
-| Checkout preventa | Ticket + cargo de servicio, reserva de mesa opcional, sugerir canción opcional |
+| Checkout preventa | Ticket a precio de lista exacto, reserva de mesa opcional, sugerir canción opcional |
 | Mi QR | QR rotativo + badge destacado / corona 👑 - la pantalla que muestras en puerta y en pista |
 | En vivo | Escanear QR (registrar baile), Mi QR, contador Prime Time, progreso de la noche |
 | Cola de ratings | "Bailes pendientes de puntuar" - 4 filas × 5 estrellas por sesión |
@@ -1086,7 +1142,7 @@ Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia)
 - Bailes sin escanear: **eliminados** (declaración retroactiva retirada - solo escaneo QR en pista)
 - Ratings diferidos: **editables mientras la ventana esté abierta** (24h), bloqueados al cerrar
 - Roadmap: **ticketing primero** (fase 1), sesiones en fase 2
-- Comercial: **% diferenciado por canal** (cargo al comprador en preventa / comisión al productor en puerta); **sin reembolsos**, tickets transferibles
+- Comercial: **comisión todo incluido al productor** (10% lista / 8% promo gestionada; derivado por modo de cobro; efectivo puerta y entrada liberada 0%); **sin reembolsos**, tickets transferibles
 - QR personal **rotativo (~30s TOTP)** - anti-screenshot
 - Staff app **offline-first** con lista de tickets cacheada
 - Staff puede **anular check-in erróneo** (con auditoría)
@@ -1097,7 +1153,7 @@ Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia)
 - Confirmación retroactiva conserva **timestamp del escaneo** (género inferido correcto)
 - Gift ticket a persona sin cuenta: **sí** - el regalo es el onboarding (claim por link)
 - QR rotativo aplica a sesiones: **sí** - solo escaneo presencial en vivo; mata el escaneo remoto de amigos
-- Cargos de servicio en **pesos redondos**: preventa **+$500**, puerta app **+$700**, registro puerta cash gratis (luego $150 flat opcional)
+- Comisión **% todo incluido al productor** (reemplaza el cargo flat al comprador): 10% lista / 8% promo gestionada, derivada por modo de cobro; desglose pasarela al costo + fee neto + IVA; trazabilidad BIAN por pago y `PayoutLine` por liquidación
 - **Una app, dos superficies** (consumidora + gestión role-gated) sobre un backend - no dos apps
 - Instructor = rol de `person`: dueño de academia, profe en academias, o independiente (academia de uno); **clases privadas se venden vía gestión de academia** (`private_lesson`, la academia cobra comisión)
 - Academias modeladas con **estructura tipo BoxMagic**: planes/membresías (mensual, pack, periodo, trial), estados (activo/pausado/trial/congelado/online), horarios con cupos, check-in QR, reportes, clase de prueba con link
@@ -1112,7 +1168,7 @@ Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia)
 - `discount_code` con **tipos predeterminados** (cumpleaños, cortesía, caso_borde_puerta, campaign, winback, staff_comp) + tracking completo de usos
 - **Sin reembolsos de ningún tipo** - cancelación → productor honra ticket en fecha reprogramada o emite cortesía (⚠️ validar ley del consumidor)
 - **Onboarding B2B**: landings por rol, auto-registro → **sandbox/demo hasta aprobación de admin**; roles con dinero requieren `fiscal_profile` (RUT, razón social, empresa/persona)
-- **omni-dance = empresa de software propia**: contrata pasarela, emite boletas por cargo de servicio, factura SaaS; liquidaciones por transferencia a todos los perfiles que recaudan
+- **omni-dance = empresa de software propia**: contrata pasarela, emite factura al productor por su comisión, factura SaaS; liquidaciones por transferencia a todos los perfiles que recaudan
 - Auth: Google OAuth + **magic link vía Resend** (~100/día gratis); OTP WhatsApp como opción cara
 - Reglas de sistema: estados de evento (draft→published→live→closed→cancelled), claim histórico solo para historial personal, 18+, i18n con bases listas (catálogos + Intl, solo es-CL habilitado)
 - Analytics: **Postgres + materialized views** (v1); PostHog/Metabase self-hosted opcionales después
@@ -1125,7 +1181,7 @@ Flow (pagos + webhooks + suscripciones recurrentes de mensualidades de academia)
 
 ## 19. Pendientes externos (fuera del doc)
 
-- **Fiscal/legal**: boleta por cargo de servicio + split en liquidación - validar con contador antes de fase 1
+- **Fiscal/legal**: factura por comisión todo incluido (neto+IVA) + split en liquidación - validar con contador antes de fase 1
 - **Legal cancelación**: "sin reembolsos" vs ley del consumidor chilena en eventos cancelados - revisar con abogado
 - **ToS + privacidad** (ley 21.719): redactar antes de producción
 - **Seed data pendiente**: productor/DJ de Tierra Dura, productor de Havana, precios exactos de La Gozadera, confirmación Social con Estilo (pagos) y Ashe (DJ)
