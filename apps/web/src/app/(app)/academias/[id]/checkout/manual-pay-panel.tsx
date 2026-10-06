@@ -216,22 +216,13 @@ export function ManualPayPanel({
             <div className="flex flex-col gap-1.5 rounded-xl border border-night-700 bg-night-800 p-4">
               {TRANSFER_FIELDS.map((f) =>
                 activeMethod.details[f.key] ? (
-                  <div key={f.key} className="flex items-center gap-2">
+                  <div key={f.key} className="flex items-baseline gap-2">
                     <span className="w-28 shrink-0 text-sm text-white/50">
                       {t(f.label)}
                     </span>
                     <span className="break-all font-mono text-sm text-white/90">
                       {activeMethod.details[f.key]}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void copy(f.key, activeMethod.details[f.key])
-                      }
-                      className="ml-auto min-h-8 shrink-0 rounded-lg px-2 text-xs text-neon hover:bg-neon/10"
-                    >
-                      {copied === f.key ? t("copied") : t("copy")}
-                    </button>
                   </div>
                 ) : null,
               )}
