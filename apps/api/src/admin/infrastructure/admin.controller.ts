@@ -244,6 +244,7 @@ export class AdminController {
       this.prisma.eventDj.deleteMany({ where: { personId } }),
       this.prisma.notification.deleteMany({ where: { personId } }),
       this.prisma.pushToken.deleteMany({ where: { personId } }),
+      this.prisma.paymentClaim.deleteMany({ where: { personId } }),
       this.prisma.person.delete({ where: { id: personId } }),
     ]);
     await this.audit(req, "USER_DELETE", "Person", personId, {

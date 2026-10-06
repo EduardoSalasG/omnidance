@@ -11,6 +11,7 @@ import {
   type SubscriptionInfo,
 } from "@/components/academy/subscription-manage";
 import { ProfilePlansSection } from "@/components/academy/profile-plans-section";
+import { AcademyPaySection } from "@/components/academy/academy-pay-section";
 
 export const dynamic = "force-dynamic";
 
@@ -366,6 +367,13 @@ export default async function AcademiaDetailPage({
             planTypeLabels: t.planTypes as Record<string, string>,
           }}
         />
+      )}
+
+      {/* Medios BYO + comprobante (spec academy-payment-claims): solo se
+          renderiza si la academia publicó métodos activos - sin ellos
+          la ficha queda como antes (checkout por la plataforma). */}
+      {!academy.billingBlocked && (
+        <AcademyPaySection academyId={academy.id} plans={academy.plans} />
       )}
 
       <section aria-label={t.profile.classes}>

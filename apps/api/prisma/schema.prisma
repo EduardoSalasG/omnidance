@@ -70,6 +70,7 @@ model Person {
   rsvps          Rsvp[]
   platformSubscriptionsPayer      PlatformSubscription[] @relation("PlatformSubscriptionPayer")
   platformSubscriptionsAsProducer PlatformSubscription[] @relation("PlatformSubscriptionProducer")
+  paymentClaims  PaymentClaim[]
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -743,6 +744,8 @@ model Academy {
   classSeries  ClassSeries[]
   enrollments  Enrollment[]
   platformSubscriptions PlatformSubscription[]
+  paymentMethods AcademyPaymentMethod[]
+  paymentClaims  PaymentClaim[]
 }
 
 model AcademyInstructor {
@@ -787,6 +790,7 @@ model MembershipPlan {
 
   enrollments   Enrollment[]
   subscriptions MembershipSubscription[]
+  claims        PaymentClaim[]
   // plan espejo en Flow (lazy create al primer subscribe - interval 3 mensual,
   // interval_count según tipo). null = aún no sincronizado.
   flowPlanId    String?
@@ -815,6 +819,63 @@ model Enrollment {
   endsAt    DateTime?
   pausedAt  DateTime?
   createdAt DateTime         @default(now())
+
+  claims    PaymentClaim[]
+}
+
+// Medios de pago propios de la academia (spec academy-payment-claims):
+// la academia cobra por su lado (MercadoPago, transferencia, efectivo) y
+// la plataforma ordena - el alumno paga fuera y sube el comprobante.
+model AcademyPaymentMethod {
+  id        String   @id @default(cuid())
+  academy   Academy  @relation(fields: [academyId], references: [id])
+  academyId String
+  type      String   // TRANSFER | PAYMENT_LINK | CASH
+  label     String   // "Transferencia", "MercadoPago", "Efectivo en clase"
+  // TRANSFER: {bank, accountType, accountNumber, holder, rut, email?}
+  // PAYMENT_LINK: {url} - CASH: {instructions}
+  details   Json
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Comprobante subido por el alumno: el owner lo valida contra su cartola
+// y al aprobar se extiende la vigencia (membershipEndsAt) + Payment
+// gateway MANUAL queda en el libro - nunca entra a Payout (la plataforma
+// no tocó el dinero).
+model PaymentClaim {
+  id           String      @id @default(cuid())
+  academy      Academy     @relation(fields: [academyId], references: [id])
+  academyId    String
+  person       Person      @relation(fields: [personId], references: [id])
+  personId     String
+  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id])
+  enrollmentId String?
+  plan         MembershipPlan? @relation(fields: [planId], references: [id])
+  planId       String? // lo que declara haber pagado (null = otro/suelta)
+  amount       Int     // CLP declarados por el alumno
+  methodType   String  // snapshot del método usado al momento del claim
+  methodLabel  String  // snapshot - el método pudo editarse o borrarse
+  receiptKey   String  // storageKey en UPLOADS_DIR (claims/<academyId>/<uuid>.<ext>)
+  status       ClaimStatus @default(PENDING)
+  note         String? // nota del alumno ("pagué el lunes")
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String? // motivo del rechazo / nota del owner
+  paymentId    String? // Payment MANUAL creado al aprobar
+
+  createdAt    DateTime @default(now())
+
+  @@index([academyId, status])
+  @@index([personId])
 }
 
 // Catálogos mantenibles por admin - los valores los edita el negocio,

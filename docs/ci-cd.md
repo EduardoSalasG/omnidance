@@ -119,7 +119,25 @@ SEED_ADMIN_NAME="Admin Omnidance"                    # opcional
 # Cookies de sesión - same-origin vía proxy Netlify → lax alcanza
 SESSION_SECURE="true"
 SESSION_SAMESITE="lax"
+
+# Comprobantes de pago directo (academy-payment-claims): path dentro
+# del contenedor persistido por volumen al disco dedicado de la VM.
+UPLOADS_DIR="/app/uploads"
 ```
+
+**Volumen de uploads (obligatorio si hay academias con pago directo)**:
+los comprobantes viven en disco, no en Neon - el service `api` del
+compose de la VM debe montar el disco dedicado:
+
+```yaml
+services:
+  api:
+    volumes:
+      - /data/omnidance-uploads:/app/uploads
+```
+
+Sin el volumen, los archivos se pierden en cada `--force-recreate` del
+deploy. El env `UPLOADS_DIR` debe calzar con el destino del mount.
 
 Otros knobs opcionales ya tienen default: `PORT` (4000 interno del
 contenedor - el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,

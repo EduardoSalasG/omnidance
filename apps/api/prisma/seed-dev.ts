@@ -293,6 +293,47 @@ export async function seedDev(prisma: PrismaClient) {
     });
   }
 
+  // Medios de pago BYO (academy-payment-claims): Muévete cobra por
+  // transferencia y link MP; Tumbao solo efectivo. El alumno los ve en
+  // la ficha y sube el comprobante - el owner lo valida en /academia/cobros.
+  for (const m of [
+    {
+      academyId: muvet.id,
+      type: "TRANSFER",
+      label: "Transferencia",
+      details: {
+        bank: "BancoEstado",
+        accountType: "Cuenta Corriente",
+        accountNumber: "70123456",
+        holder: "Muévete SpA",
+        rut: "77.123.456-7",
+        email: "pagos@muvet.cl",
+      },
+      order: 0,
+    },
+    {
+      academyId: muvet.id,
+      type: "PAYMENT_LINK",
+      label: "MercadoPago",
+      details: { url: "https://mpago.la/muvet-demo" },
+      order: 1,
+    },
+    {
+      academyId: tumbao.id,
+      type: "CASH",
+      label: "Efectivo en clase",
+      details: { instructions: "Paga al llegar, al instructor a cargo." },
+      order: 0,
+    },
+  ]) {
+    const existing = await prisma.academyPaymentMethod.findFirst({
+      where: { academyId: m.academyId, label: m.label },
+    });
+    if (!existing) {
+      await prisma.academyPaymentMethod.create({ data: m });
+    }
+  }
+
   // ─── Planes de membresía ───
   // El nombre del plan es categoría propia de la academia (Básico, Plata,
   // Oro, Premium, VIP…) - el periodo y la cuota semanal ya los muestran
