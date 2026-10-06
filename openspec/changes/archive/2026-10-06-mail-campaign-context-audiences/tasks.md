@@ -11,5 +11,5 @@
   `days`, hint de `{{vars}}` por audiencia. i18n.
 - [x] Docs: architecture.md + omni-dance.md (sección campañas),
   openapi/postman regen.
-- [ ] Verificación: specs, suite API, tsc api+web, build, i18n,
+- [x] Verificación: specs, suite API, tsc api+web, build, i18n,
   openspec validate. Commit + push dev + handoff.

@@ -110,6 +110,14 @@ Cada destinatario de ciclo lleva `dedupKey` — una corrida posterior
 lo marca SKIPPED si el ciclo ya fue recordado en `MailCampaignSent`.
 Toda persona con `mailOptOutAt` queda excluida de la resolución.
 
+#### Scenario: recordatorio de vencimiento de inscripción
+
+- **WHEN** una campaña CRON diaria con audiencia
+  `ENROLLMENTS_EXPIRING {days:5}` corre
+- **THEN** solo recibe el mail quien tiene una inscripción por vencer
+  dentro de 5 días, con `{{academy}}`, `{{plan}}` y `{{endsAt}}` de su
+  propia inscripción
+
 #### Scenario: opt-out excluido del ciclo
 
 - **WHEN** un alumno con `mailOptOutAt` tiene una inscripción por

@@ -26,6 +26,6 @@
   hub `/admin`. i18n part `adminJobs`.
 - [x] Docs: architecture.md (jobs runner + campañas), omni-dance.md,
   openapi+postman regen, `.env.example` si aplica.
-- [ ] Verificación: specs nuevos, suite completa, tsc api+web,
+- [x] Verificación: specs nuevos, suite completa, tsc api+web,
   next build, i18n audit, openspec validate. Commit + push dev +
   handoff.
