@@ -22,7 +22,12 @@ import { SubscriptionsService } from "./subscriptions.service";
 
 type Row = Record<string, unknown>;
 
-const ACADEMY = { id: "ac1", name: "Academia X", active: true };
+const ACADEMY = {
+  id: "ac1",
+  name: "Academia X",
+  active: true,
+  ownerId: "owner1",
+};
 
 const PLAN_MONTHLY = {
   id: "plan1",

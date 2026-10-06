@@ -73,6 +73,7 @@ interface FakeEnrollment {
   academyId: string;
   status: string;
   startedAt: Date;
+  endsAt: Date | null;
   plan: FakePlan | null;
 }
 
@@ -145,6 +146,7 @@ class FakePrisma {
     academyId = "acad-1",
     status = "ACTIVE",
     plan: FakePlan | null = null,
+    endsAt: Date | null = null,
   ) {
     const enrollment: FakeEnrollment = {
       id: `enr-${++this.seq}`,
@@ -152,6 +154,7 @@ class FakePrisma {
       academyId,
       status,
       startedAt: new Date(Date.now() - 86_400_000),
+      endsAt,
       plan,
     };
     this.enrollments.push(enrollment);
@@ -487,6 +490,63 @@ describe("ClassesController.book", () => {
   it("inscripción TRIAL habilita reserva → BOOKED", async () => {
     prisma.addEnrollment("per-3", "acad-1", "TRIAL");
     const res = await ctrl.book("cls-1", reqAs("per-3"));
+    expect(res.status).toBe("BOOKED");
+  });
+
+  // ── Vigencia efectiva (spec academy-renewal-reminders) ────────────
+  // grace_days default 5 (fakeParams devuelve el fallback).
+
+  it("endsAt vencido pero en gracia + clase dentro de la gracia → BOOKED", async () => {
+    prisma.addEnrollment(
+      "per-3",
+      "acad-1",
+      "ACTIVE",
+      null,
+      new Date(Date.now() - 86_400_000), // venció ayer, gracia hasta +4d
+    );
+    const res = await ctrl.book("cls-1", reqAs("per-3")); // clase mañana
+    expect(res.status).toBe("BOOKED");
+  });
+
+  it("en gracia, clase fuera de la ventana de gracia → ForbiddenException", async () => {
+    prisma.addEnrollment(
+      "per-3",
+      "acad-1",
+      "ACTIVE",
+      null,
+      new Date(Date.now() - 86_400_000), // gracia hasta ~+4d
+    );
+    const { date, startTime } = classStartingIn(10 * 24 * 60); // +10d
+    prisma.addClass("cls-lejos", { date, slot: { startTime } });
+    await expect(
+      ctrl.book("cls-lejos", reqAs("per-3")),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("gracia completa vencida → ForbiddenException", async () => {
+    prisma.addEnrollment(
+      "per-3",
+      "acad-1",
+      "ACTIVE",
+      null,
+      new Date(Date.now() - 10 * 86_400_000), // venció hace 10d > gracia 5d
+    );
+    await expect(ctrl.book("cls-1", reqAs("per-3"))).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it("vigente agenda clases posteriores al endsAt → BOOKED", async () => {
+    prisma.addEnrollment(
+      "per-3",
+      "acad-1",
+      "ACTIVE",
+      null,
+      new Date(Date.now() + 5 * 86_400_000), // endsAt +5d, clase +30d
+    );
+    const { date, startTime } = classStartingIn(30 * 24 * 60);
+    prisma.addClass("cls-lejos", { date, slot: { startTime } });
+    const res = await ctrl.book("cls-lejos", reqAs("per-3"));
     expect(res.status).toBe("BOOKED");
   });
 

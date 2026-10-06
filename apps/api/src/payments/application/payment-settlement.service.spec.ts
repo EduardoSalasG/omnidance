@@ -147,14 +147,14 @@ function mkPrisma() {
           type: string;
           periodDays: number | null;
           academyId: string;
-          academy: { name: string };
+          academy: { name: string; ownerId: string };
         } | null> => ({
           id: "plan1",
           name: "Mensual",
           type: "MONTHLY",
           periodDays: null,
           academyId: "ac1",
-          academy: { name: "Academia X" },
+          academy: { name: "Academia X", ownerId: "owner1" },
         }),
       ),
     },
@@ -317,6 +317,16 @@ describe("PaymentSettlementService", () => {
         "p1",
         expect.objectContaining({ type: "payment.membership" }),
       );
+      // spec academy-renewal-reminders: el owner recibe cada pago de plan
+      expect(notifications.notifySafe).toHaveBeenCalledWith(
+        "owner1",
+        expect.objectContaining({ type: "payment.membership.received" }),
+      );
+      const ownerNotif = notifications.notifySafe.mock.calls.find(
+        ([pid, input]) =>
+          pid === "owner1" && input.type === "payment.membership.received",
+      )![1] as { body?: string };
+      expect(ownerNotif.body).toBe("Comprador · Mensual · $10.500");
     });
 
     it("kind 'renewal' → RENEWAL_SETTLED en vez de SETTLED", async () => {
@@ -344,7 +354,7 @@ describe("PaymentSettlementService", () => {
         type: "TRIAL",
         periodDays: null,
         academyId: "ac1",
-        academy: { name: "Academia X" },
+        academy: { name: "Academia X", ownerId: "owner1" },
       });
       const payment = seed(
         mkPayment({ refId: `mem_plantrial_${randomUUID()}` }),
@@ -385,7 +395,7 @@ describe("PaymentSettlementService", () => {
         type: "TRIAL",
         periodDays: 7,
         academyId: "ac1",
-        academy: { name: "Academia X" },
+        academy: { name: "Academia X", ownerId: "owner1" },
       });
       const payment = seed(
         mkPayment({ refId: `mem_plantrial_${randomUUID()}` }),
@@ -404,7 +414,7 @@ describe("PaymentSettlementService", () => {
         type: "TRIAL",
         periodDays: null,
         academyId: "ac1",
-        academy: { name: "Academia X" },
+        academy: { name: "Academia X", ownerId: "owner1" },
       });
       const p1 = seed(mkPayment({ refId: `mem_plantrial_${randomUUID()}` }));
       const p2 = seed(

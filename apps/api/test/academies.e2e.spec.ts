@@ -54,6 +54,10 @@ describe("academies e2e", () => {
     req("PATCH", path, body, session);
 
   beforeAll(async () => {
+    // Los recordatorios de renovación ejercen el Mailer real - sin key
+    // ResendMailer solo loguea. Se limpia antes de instanciar providers
+    // para que el e2e nunca dispare emails reales a direcciones seed.
+    delete process.env.RESEND_API_KEY;
     const moduleRef = await Test.createTestingModule({
       imports: [AcademiesModule, AuthModule],
     }).compile();
@@ -1419,6 +1423,98 @@ describe("academies e2e", () => {
       const rejected = mine.find((c: { id: string }) => c.id === claim2);
       expect(rejected.status).toBe("REJECTED");
       expect(rejected.reviewNote).toBe("el monto no calza con la cartola");
+    });
+  });
+
+  describe("recordatorios de renovación (academy-renewal-reminders)", () => {
+    // El cron no corre en tests (NODE_ENV=test): se ejerce runDaily
+    // directo contra la DB real. Sin RESEND_API_KEY el mailer solo
+    // loguea - se verifica marcador + notificación in-app.
+    it("endsAt en ventana → marca reminderExpiringFor + notificación; segundo run no duplica", async () => {
+      const { AcademyRemindersService } = await import(
+        "../src/academies/infrastructure/academy-reminders.service"
+      );
+      const reminders = app.get(AcademyRemindersService);
+      const endsAt = new Date(Date.now() + 4 * 86_400_000);
+      const enr = await prisma.enrollment.create({
+        data: {
+          academyId: ids.academyId,
+          personId: ids.studentId,
+          status: "ACTIVE",
+          endsAt,
+        },
+      });
+
+      const r1 = await reminders.runDaily();
+      expect(r1.expiring).toBeGreaterThanOrEqual(1);
+      const after1 = await prisma.enrollment.findUniqueOrThrow({
+        where: { id: enr.id },
+      });
+      expect(after1.reminderExpiringFor?.getTime()).toBe(endsAt.getTime());
+      const notif1 = await prisma.notification.count({
+        where: { personId: ids.studentId, type: "academy.plan_expiring" },
+      });
+      expect(notif1).toBe(1);
+
+      const r2 = await reminders.runDaily();
+      // El enrollment ya marcado no reenvía - solo cuenta si otra fila
+      // del seed global calza (no debe duplicar la nuestra).
+      const notif2 = await prisma.notification.count({
+        where: { personId: ids.studentId, type: "academy.plan_expiring" },
+      });
+      expect(notif2).toBe(1);
+      expect(r2.expiring).toBeLessThanOrEqual(r1.expiring);
+    });
+
+    it("endsAt vencido en gracia → notificación academy.plan_grace + marcador", async () => {
+      const { AcademyRemindersService } = await import(
+        "../src/academies/infrastructure/academy-reminders.service"
+      );
+      const reminders = app.get(AcademyRemindersService);
+      const endsAt = new Date(Date.now() - 86_400_000);
+      const enr = await prisma.enrollment.create({
+        data: {
+          academyId: ids.academyId,
+          personId: ids.studentId,
+          status: "ACTIVE",
+          endsAt,
+        },
+      });
+
+      await reminders.runDaily();
+      const after = await prisma.enrollment.findUniqueOrThrow({
+        where: { id: enr.id },
+      });
+      expect(after.reminderExpiredFor?.getTime()).toBe(endsAt.getTime());
+      const notif = await prisma.notification.count({
+        where: { personId: ids.studentId, type: "academy.plan_grace" },
+      });
+      expect(notif).toBe(1);
+    });
+
+    it("TRIAL no recibe avisos aunque esté en ventana", async () => {
+      const { AcademyRemindersService } = await import(
+        "../src/academies/infrastructure/academy-reminders.service"
+      );
+      const reminders = app.get(AcademyRemindersService);
+      const endsAt = new Date(Date.now() + 2 * 86_400_000);
+      const enr = await prisma.enrollment.create({
+        data: {
+          academyId: ids.academyId,
+          personId: ids.outsiderId,
+          status: "TRIAL",
+          endsAt,
+        },
+      });
+      await reminders.runDaily();
+      const after = await prisma.enrollment.findUniqueOrThrow({
+        where: { id: enr.id },
+      });
+      expect(after.reminderExpiringFor).toBeNull();
+      const notif = await prisma.notification.count({
+        where: { personId: ids.outsiderId, type: "academy.plan_expiring" },
+      });
+      expect(notif).toBe(0);
     });
   });
 });

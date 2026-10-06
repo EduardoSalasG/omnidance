@@ -108,12 +108,24 @@ export class ClassesController {
       select: {
         id: true,
         startedAt: true,
+        endsAt: true,
         plan: {
           select: { type: true, weeklyClasses: true, classCount: true },
         },
       },
     });
     if (!enrollments.length) return { ok: false, reason: "no_enrollment" };
+
+    // Vigencia efectiva (spec academy-renewal-reminders): una inscripción
+    // con endsAt vencido solo habilita clases dentro de la gracia
+    // (endsAt + grace_days - el mismo número que anuncia el mail de
+    // aviso). Vigente (now <= endsAt) agenda libre; endsAt null nunca
+    // expira (pack, legado).
+    const graceDays = await this.params.getNumber(
+      "academy.renewal.grace_days",
+      5,
+    );
+    const now = new Date();
 
     const countIn = async (range: { gte: Date; lt?: Date }) =>
       tx.classBooking.count({
@@ -139,6 +151,12 @@ export class ClassesController {
     let exhausted: QuotaResolution | null = null;
 
     for (const e of enrollments) {
+      if (e.endsAt != null) {
+        const graceEnd = new Date(
+          e.endsAt.getTime() + graceDays * 24 * 60 * 60 * 1000,
+        );
+        if (now > e.endsAt && classDate > graceEnd) continue;
+      }
       const plan = e.plan;
       if (plan?.weeklyClasses != null) {
         const used = await countIn({ gte: start, lt: end });

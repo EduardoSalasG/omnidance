@@ -248,3 +248,27 @@ Feature completa: pagos directos alumno a academia con validacion por comprobant
 - Verificado: 90/90 e2e academias, 1470/1470 suite API, tsc web limpio, i18n ALL_KEYS_OK, smoke en vivo (claim -> aprobacion -> 409 re-approve, receipt 200, exe -> 400).
 - OpenSpec: change academy-payment-claims validado, tasks completas - pendiente archivar al release.
 - Pendiente antes de prod: montar /data/omnidance-uploads en la VM (docs/ci-cd.md tiene el snippet de compose), review visual de las dos superficies, y QA del flujo completo en dev.
+
+## Update 2026-10-06b - academy-renewal-reminders en dev
+
+Feature: recordatorios por email de renovacion de plan + notificacion al owner por cada pago.
+
+- Schema: `Enrollment.reminderExpiringFor` / `reminderExpiredFor` (`DateTime?`) - migracion `20261012000000_enrollment_renewal_reminders`. Guardan el `endsAt` del ciclo que gatillo cada aviso; un `endsAt` nuevo (renovacion Flow, claim aprobado, alta staff) re-arma los dos avisos.
+- `AcademyRemindersService.runDaily(now)` (`src/academies/infrastructure/`): barre `ACTIVE`/`ONLINE` con endsAt - "por vencer" si endsAt ∈ [now, now+first_notice_days), "en gracia" si ∈ [now-grace_days, now). Email Resend + notifySafe por ciclo; mail fallido loguea y no marca (reintenta manana). TRIAL excluido a proposito. Ojo: **Enrollment no tiene relacion Person** (personId suelto) - el servicio resuelve con person.findMany por lote; sin email igual va in-app + marcador.
+- `AcademiesScheduler`: cron 09:00 (`0 9 * * *`), skip en NODE_ENV=test - mismo patron que SubscriptionsScheduler. Registrado en academies.module.ts.
+- Plantillas `renewal-emails.ts`: reusan `emailShell`/`ctaButton`/`fallbackLink`/`escapeHtml` de auth (ahora exportados). CTA a `/academias/:id`. El mail de gracia dice "tienes hasta X para pagar, si no no podras agendar clases del mes".
+- **Vigencia efectiva en reservas**: `resolveQuota` (classes.controller) ahora aplica la gracia - inscripcion con endsAt vencido solo resuelve cuota para clases <= endsAt+grace_days (el mismo param que anuncia el mail). Vigente agenda libre; endsAt null nunca expira. Esto hace real el "no podras agendar".
+- **Owner notificado por pago**: `settleMembership` hace notifySafe a `academy.ownerId` con `payment.membership.received` (alumno + plan + monto) dentro del bloque paidNow - cubre compra online y renovaciones automaticas Flow, nunca duplica en webhook/reconcile repetido. Claims MANUAL ya notifican al owner al crearse (payment_claim_new).
+- Params nuevos en seed-common (PlatformParam): `academy.renewal.first_notice_days`=5, `academy.renewal.grace_days`=5 (upsert, no pisa edits).
+- Semantica "dia 1": para planes MONTHLY endsAt = fin de mes -> el mail de gracia sale el dia 1 y el limite cae el dia 5, exacto como pidio el usuario.
+- **Seguridad tests**: `academies.e2e.spec.ts` hace `delete process.env.RESEND_API_KEY` antes de crear la app - .env local tiene key real y el sweep mandaria emails a direcciones seed. Preservar esa linea.
+- Fix durante la sesion: el shared select con `as const` rompia inferencia Prisma -> selects inline; y `person` no existe como relacion en Enrollment (ver arriba).
+- Verificado: 1483/1483 tests API (65 archivos, incluye spec nuevo del servicio, casos de vigencia en classes.controller.spec, owner-notify en settlement spec y e2e del sweep), tsc limpio, openspec validate OK.
+- OpenSpec: change `academy-renewal-reminders` validado con tasks completas - pendiente archivar al release.
+- Docs: flows.md (seccion del barrido con diagrama), architecture.md (params + seccion del scheduler).
+
+### Pendiente
+- Reseed prod para los params nuevos (o insertarlos a mano - el cron corre con defaults 5/5 aunque falten).
+- Verificar que RESEND_API_KEY + EMAIL_FROM esten en la VM (mismo pendiente que magic links).
+- QA: correr runDaily() manual contra dev seed y revisar el HTML real del mail.
+- Release: candidato v0.3.0 junto con split-pro-landings, insights y payment-claims.

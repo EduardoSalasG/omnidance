@@ -121,6 +121,11 @@ export const PARAM_DEFAULTS: Array<{
   // (spec academies/owner-insights): planes por vencer y cumpleaños.
   { key: "academy.insights.expiring_days", value: 14, description: "Días hacia adelante para listar planes por vencer en el dashboard de academia" },
   { key: "academy.insights.birthday_days", value: 30, description: "Días hacia adelante para listar cumpleaños de alumnos en el dashboard de academia" },
+  // Recordatorios de renovación (spec academy-renewal-reminders):
+  // primer aviso por email N días antes del endsAt; la gracia es además
+  // la ventana en que resolveQuota sigue habilitando reservas vencidas.
+  { key: "academy.renewal.first_notice_days", value: 5, description: "Días antes del endsAt para el primer email de renovación" },
+  { key: "academy.renewal.grace_days", value: 5, description: "Días de gracia tras endsAt: aviso de regularización + reservas habilitadas" },
 ];
 
 /** Catálogo de badges - las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */

@@ -8,7 +8,7 @@
  * wordmark es texto, la "O" un tile de tabla - cero assets bloqueados.
  */
 
-const escapeHtml = (s: string) =>
+export const escapeHtml = (s: string) =>
   s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -16,7 +16,7 @@ const escapeHtml = (s: string) =>
     .replace(/"/g, "&quot;");
 
 /** Botón pill morado - mismo lenguaje que los CTAs de la app. */
-const ctaButton = (href: string, label: string) => `
+export const ctaButton = (href: string, label: string) => `
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
     <tr>
       <td align="center" style="padding:8px 0 0 0;">
@@ -28,7 +28,7 @@ const ctaButton = (href: string, label: string) => `
   </table>`;
 
 /** Link de respaldo bajo el botón - para clientes que no renderizan <a> styled. */
-const fallbackLink = (href: string) => `
+export const fallbackLink = (href: string) => `
   <p style="margin:20px 0 0 0;color:rgba(255,255,255,0.45);font-size:12px;line-height:1.6;text-align:center;word-break:break-all;">
     Si el botón no funciona, copia este link:<br>
     <a href="${href}" style="color:#c4b5fd;">${href}</a>
@@ -38,7 +38,7 @@ const fallbackLink = (href: string) => `
  * Shell de marca: wordmark + card night-900 sobre night-950 + footer.
  * `content` es el interior de la card (tablas/p inline ya estilizados).
  */
-function emailShell(preheader: string, content: string): string {
+export function emailShell(preheader: string, content: string): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Omnidance</title></head>

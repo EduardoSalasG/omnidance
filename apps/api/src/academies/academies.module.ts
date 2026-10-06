@@ -9,6 +9,8 @@ import { AcademyAccess } from "./infrastructure/academy-access.service";
 import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
 import { AcademyClaimsController } from "./infrastructure/academy-claims.controller";
 import { AcademyClaimsService } from "./infrastructure/academy-claims.service";
+import { AcademyRemindersService } from "./infrastructure/academy-reminders.service";
+import { AcademiesScheduler } from "./infrastructure/academies.scheduler";
 import {
   AcademiesController,
   EnrollmentsController,
@@ -39,6 +41,11 @@ import { VideosController } from "./infrastructure/videos.controller";
     PrivateLessonsController,
     VideosController,
   ],
-  providers: [AcademyAccess, AcademyClaimsService],
+  providers: [
+    AcademyAccess,
+    AcademyClaimsService,
+    AcademyRemindersService,
+    AcademiesScheduler,
+  ],
 })
 export class AcademiesModule {}
