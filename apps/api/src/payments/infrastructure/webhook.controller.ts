@@ -21,6 +21,10 @@ import { AcademyAccess } from "../../academies/infrastructure/academy-access.ser
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
+import {
+  GatewayRegistry,
+  PAYMENT_GATEWAYS,
+} from "../domain/gateway-registry";
 import { PaymentSettlementService } from "../application/payment-settlement.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
 import { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
@@ -68,22 +72,51 @@ export class PaymentsController {
     private readonly subscriptions: SubscriptionsService,
     private readonly platformSubs: PlatformSubscriptionsService,
     private readonly access: AcademyAccess,
+    @Inject(PAYMENT_GATEWAYS)
+    private readonly gateways: GatewayRegistry,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
   // Idempotente: re-notificación PAID no duplica ticket ni usedCount -
   // la transición real vive en PaymentSettlementService.settle; aquí solo
   // queda verificación + lookup + evidencia WEBHOOK_RECEIVED.
+  // Legacy: la ruta sin provider usa el adaptador default (PAYMENT_GATEWAY
+  // = default del registry) - el urlConfirmation de Flow configurado en
+  // prod sigue funcionando.
   @Post("webhook")
   @HttpCode(200)
   async webhook(@Body() body: WebhookDto) {
+    return this.confirm(this.gateway, body);
+  }
+
+  /**
+   * Webhook normalizado por proveedor (spec gateway-port-normalization):
+   * `/payments/webhook/FLOW|MERCADOPAGO|...` despacha al adaptador que
+   * normaliza la notificación a la misma confirmación. Provider no
+   * registrado → 404 (el proveedor no debería estar notificando a una
+   * ruta que no tiene credenciales configuradas).
+   */
+  @Post("webhook/:provider")
+  @HttpCode(200)
+  async webhookByProvider(
+    @Param("provider") provider: string,
+    @Body() body: unknown,
+  ) {
+    const gateway = this.gateways.get(provider);
+    if (!gateway) {
+      throw new NotFoundException("proveedor de pago no registrado");
+    }
+    return this.confirm(gateway, body);
+  }
+
+  private async confirm(gateway: PaymentGateway, body: unknown) {
     let result: {
       refId: string;
       status: "PAID" | "FAILED";
       gatewayData?: unknown;
     };
     try {
-      result = await this.gateway.verifyWebhook(body);
+      result = await gateway.verifyWebhook(body);
     } catch {
       throw new BadRequestException("webhook inválido");
     }
@@ -339,9 +372,12 @@ export class PaymentsController {
       throw new NotFoundException("pago no encontrado");
     }
 
-    if (payment.status === "PENDING" && this.gateway.refreshStatus) {
+    // Polling contra el provider que creó la orden (Payment.gateway) -
+    // "MANUAL"/"FREE" no están en el registry → no hay consulta activa.
+    const provider = this.gateways.get(payment.gateway);
+    if (payment.status === "PENDING" && provider?.refreshStatus) {
       try {
-        const remote = await this.gateway.refreshStatus(payment.refId);
+        const remote = await provider.refreshStatus(payment.refId);
         if (remote.status !== "PENDING") {
           await this.settlement.settle(payment, remote.status, {
             actor: "polling",

@@ -1,8 +1,13 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { ForbiddenException, NotFoundException } from "@nestjs/common";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
 import type { Request } from "express";
 import type { PrismaService } from "../../prisma.service";
 import type { PaymentGateway } from "../domain/ports";
+import { GatewayRegistry } from "../domain/gateway-registry";
 import type { PaymentSettlementService } from "../application/payment-settlement.service";
 import type { SubscriptionsService } from "../application/subscriptions.service";
 import type { PlatformSubscriptionsService } from "../application/platform-subscriptions.service";
@@ -120,6 +125,8 @@ class FakePrisma {
     },
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.payments.find((p) => p.id === where.id) ?? null,
+    findFirst: async ({ where }: { where: Row }) =>
+      this.payments.find((p) => matchWhere(p, where)) ?? null,
   };
 
   event = {
@@ -213,6 +220,7 @@ function mkCtrl(prisma: FakePrisma) {
     {} as unknown as SubscriptionsService,
     {} as unknown as PlatformSubscriptionsService,
     access as never,
+    new GatewayRegistry([], "STUB"),
   );
 }
 
@@ -456,5 +464,152 @@ describe("PaymentsController - vistas de auditoría", () => {
         NotFoundException,
       );
     });
+  });
+});
+
+// Webhook normalizado (spec gateway-port-normalization): el confirm es
+// el mismo para todos los adaptadores; lo que cambia es QUÉ gateway
+// resuelve la notificación.
+describe("PaymentsController - webhook normalizado", () => {
+  const mkGateway = (name: string) => ({
+    name,
+    verifyWebhook: vi.fn(async () => ({
+      refId: "tkt_evt-1_x",
+      status: "PAID" as const,
+      gatewayData: { fee: 319 },
+    })),
+    refreshStatus: vi.fn(async () => ({
+      status: "PAID" as const,
+      gatewayData: { fee: 319 },
+    })),
+  });
+
+  function mkWebhookCtrl(opts: {
+    prisma: FakePrisma;
+    def: ReturnType<typeof mkGateway>;
+    extra?: ReturnType<typeof mkGateway>[];
+  }) {
+    const settlement = {
+      recordWebhookReceived: vi.fn(async () => undefined),
+      settle: vi.fn(async () => ({ ok: true, status: "PAID" })),
+    };
+    const registry = new GatewayRegistry(
+      [opts.def, ...(opts.extra ?? [])] as unknown as PaymentGateway[],
+      opts.def.name,
+    );
+    const ctrl = new PaymentsController(
+      opts.prisma as unknown as PrismaService,
+      opts.def as unknown as PaymentGateway,
+      settlement as unknown as PaymentSettlementService,
+      {} as unknown as SubscriptionsService,
+      {} as unknown as PlatformSubscriptionsService,
+      {} as never,
+      registry,
+    );
+    return { ctrl, settlement };
+  }
+
+  it("webhook legacy despacha al adaptador default", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(mkPayment({ refId: "tkt_evt-1_x" }));
+    const def = mkGateway("FLOW");
+    const other = mkGateway("MERCADOPAGO");
+    const { ctrl, settlement } = mkWebhookCtrl({
+      prisma,
+      def,
+      extra: [other],
+    });
+    await ctrl.webhook({ token: "abc" });
+    expect(def.verifyWebhook).toHaveBeenCalledWith({ token: "abc" });
+    expect(other.verifyWebhook).not.toHaveBeenCalled();
+    expect(settlement.settle).toHaveBeenCalled();
+  });
+
+  it("webhook :provider despacha al adaptador de ese proveedor", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(mkPayment({ refId: "tkt_evt-1_x" }));
+    const def = mkGateway("FLOW");
+    const mp = mkGateway("MERCADOPAGO");
+    const { ctrl } = mkWebhookCtrl({ prisma, def, extra: [mp] });
+    await ctrl.webhookByProvider("MERCADOPAGO", { type: "payment" });
+    expect(mp.verifyWebhook).toHaveBeenCalledWith({ type: "payment" });
+    expect(def.verifyWebhook).not.toHaveBeenCalled();
+  });
+
+  it("provider no registrado → 404", async () => {
+    const prisma = new FakePrisma();
+    const def = mkGateway("STUB");
+    const { ctrl } = mkWebhookCtrl({ prisma, def });
+    await expect(
+      ctrl.webhookByProvider("STRIPE", {}),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(def.verifyWebhook).not.toHaveBeenCalled();
+  });
+
+  it("verifyWebhook rechaza la firma → 400 webhook inválido", async () => {
+    const prisma = new FakePrisma();
+    const def = mkGateway("STUB");
+    def.verifyWebhook.mockRejectedValueOnce(new Error("firma inválida"));
+    const { ctrl, settlement } = mkWebhookCtrl({ prisma, def });
+    await expect(ctrl.webhook({})).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(settlement.settle).not.toHaveBeenCalled();
+  });
+
+  it("refId sin Payment → 404", async () => {
+    const prisma = new FakePrisma();
+    const def = mkGateway("STUB");
+    const { ctrl } = mkWebhookCtrl({ prisma, def });
+    await expect(ctrl.webhook({})).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it("polling consulta al provider persistido en Payment.gateway, no al default", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(
+      mkPayment({
+        id: "p-mp",
+        refId: "tkt_evt-1_x",
+        personId: "u1",
+        status: "PENDING",
+        gateway: "MERCADOPAGO",
+      }),
+    );
+    const def = mkGateway("FLOW");
+    const mp = mkGateway("MERCADOPAGO");
+    const { ctrl, settlement } = mkWebhookCtrl({
+      prisma,
+      def,
+      extra: [mp],
+    });
+    await ctrl.getPayment(req("u1"), "p-mp");
+    expect(mp.refreshStatus).toHaveBeenCalledWith("tkt_evt-1_x");
+    expect(def.refreshStatus).not.toHaveBeenCalled();
+    expect(settlement.settle).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "p-mp" }),
+      "PAID",
+      expect.objectContaining({ actor: "polling" }),
+    );
+  });
+
+  it("polling con gateway fuera del registry (MANUAL/FREE) → sin consulta activa", async () => {
+    const prisma = new FakePrisma();
+    prisma.payments.push(
+      mkPayment({
+        id: "p-man",
+        refId: "tkt_evt-1_x",
+        personId: "u1",
+        status: "PENDING",
+        gateway: "MANUAL",
+      }),
+    );
+    const def = mkGateway("FLOW");
+    const { ctrl, settlement } = mkWebhookCtrl({ prisma, def });
+    const out = await ctrl.getPayment(req("u1"), "p-man");
+    expect(def.refreshStatus).not.toHaveBeenCalled();
+    expect(settlement.settle).not.toHaveBeenCalled();
+    expect(out.status).toBe("PENDING");
   });
 });

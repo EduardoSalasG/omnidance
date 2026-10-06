@@ -3765,6 +3765,32 @@
           }
         },
         {
+          "name": "POST /api/payments/webhook/{provider}",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments/webhook/{provider}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments",
+                "webhook",
+                "{provider}"
+              ],
+              "variable": [
+                {
+                  "key": "provider",
+                  "value": ":provider"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "POST /api/payments/flow/customer-return",
           "request": {
             "method": "POST",

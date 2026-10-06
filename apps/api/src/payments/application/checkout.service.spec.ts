@@ -3,6 +3,7 @@ import type { PrismaService } from "../../prisma.service";
 import type { ParamsService } from "../../params/params.service";
 import type { ProducerFeeDefaults } from "../../params/params.service";
 import type { PaymentGateway } from "../domain/ports";
+import { GatewayRegistry } from "../domain/gateway-registry";
 import { PricingService } from "../domain/pricing.service";
 import {
   decodeClassRef,
@@ -158,11 +159,13 @@ function mkPrisma() {
 
 function mkParams() {
   const numbers = new Map<string, number>();
+  const strings = new Map<string, unknown>();
   const producers = new Map<string, ProducerFeeDefaults>();
   const params = {
     getNumber: vi.fn(
       async (key: string, fallback: number) => numbers.get(key) ?? fallback,
     ),
+    get: vi.fn(async (key: string) => strings.get(key)),
     getProducerParams: vi.fn(
       async (producerId: string | null | undefined) =>
         producerId ? (producers.get(producerId) ?? null) : null,
@@ -178,6 +181,7 @@ function mkGateway() {
       amount: number;
       email: string;
       returnUrl: string;
+      currency?: string;
     }) => ({
       paymentUrl: `https://pay.example/${p.refId}`,
       gatewayRef: `gw-${p.refId}`,
@@ -188,7 +192,11 @@ function mkGateway() {
     createOrder,
     verifyWebhook: vi.fn(),
   };
-  return { gateway, createOrder };
+  return {
+    gateway,
+    createOrder,
+    registry: new GatewayRegistry([gateway], "STUB"),
+  };
 }
 
 type PrismaMock = ReturnType<typeof mkPrisma>["prisma"];
@@ -251,6 +259,7 @@ describe("CheckoutService.purchaseTicket", () => {
       new PricingService(),
       pf.params as unknown as ParamsService,
       stl as never,
+      gw.registry,
     );
   });
 
@@ -842,6 +851,9 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(orderArgs.returnUrl).toContain(
       `/checkout/return?paymentId=${res.paymentId}`,
     );
+    // Moneda de la orden persistida viaja al gateway (spec
+    // gateway-port-normalization) - el adaptador decide si la soporta.
+    expect(orderArgs.currency).toBe("CLP");
     expect(fx.prisma.payment.update).toHaveBeenCalledWith({
       where: { id: res.paymentId },
       data: { gatewayRef: `gw-${fx.payments[0].refId}` },
@@ -889,6 +901,7 @@ describe("CheckoutService.discountQuote", () => {
       new PricingService(),
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
+      gw.registry,
     );
   });
 
@@ -997,6 +1010,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
       new PricingService(),
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
+      gw.registry,
     );
   });
 
@@ -1089,13 +1103,14 @@ describe("CheckoutService.membershipQuote", () => {
   beforeEach(() => {
     fx = mkPrisma();
     pf = mkParams();
-    const { gateway } = mkGateway();
+    const gw = mkGateway();
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,
-      gateway,
+      gw.gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
+      gw.registry,
     );
   });
 
@@ -1225,6 +1240,7 @@ describe("CheckoutService.purchaseMembership", () => {
       new PricingService(),
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
+      gw.registry,
     );
   });
 
@@ -1357,6 +1373,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
       new PricingService(),
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
+      gw.registry,
     );
   });
 
@@ -1476,6 +1493,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
       new PricingService(),
       pf.params as unknown as ParamsService,
       mkSettlement() as never,
+      gw.registry,
     );
   });
 

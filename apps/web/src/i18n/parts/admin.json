@@ -83,7 +83,7 @@
         "people": "Personas",
         "leads": "Leads",
         "payment-events": "Eventos de pago",
-        "gateway-transactions": "Transacciones Flow",
+        "gateway-transactions": "Transacciones de pasarela",
         "membership-subscriptions": "Suscripciones"
       },
       "filters": {

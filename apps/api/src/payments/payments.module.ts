@@ -3,9 +3,14 @@ import { AuthModule } from "../auth/auth.module";
 import { PrismaModule } from "../prisma.module";
 import { ParamsModule } from "../params/params.module";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "./domain/ports";
+import {
+  GatewayRegistry,
+  PAYMENT_GATEWAYS,
+} from "./domain/gateway-registry";
 import { PricingService } from "./domain/pricing.service";
 import { StubGateway } from "./infrastructure/stub.gateway";
 import { FlowGateway } from "./infrastructure/flow.gateway";
+import { MercadoPagoGateway } from "./infrastructure/mercadopago.gateway";
 import {
   GatewayTransactionsService,
   type GatewayTxEntry,
@@ -56,16 +61,26 @@ import { AcademyAccessModule } from "../academies/academy-access.module";
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {
-      provide: PAYMENT_GATEWAY,
-      useFactory: (prisma: PrismaService): PaymentGateway => {
+      provide: PAYMENT_GATEWAYS,
+      useFactory: (prisma: PrismaService): GatewayRegistry => {
         const txWriter = new GatewayTransactionsService(prisma);
-        return resolveGateway(process.env, (e) => txWriter.record(e));
+        return resolveGateways(process.env, (e) => txWriter.record(e));
       },
       inject: [PrismaService],
+    },
+    {
+      // Compat: los consumers que inyectan el gateway único (checkout,
+      // subscriptions) reciben el default del registry - comportamiento
+      // idéntico al resolveGateway anterior.
+      provide: PAYMENT_GATEWAY,
+      useFactory: (registry: GatewayRegistry): PaymentGateway =>
+        registry.default(),
+      inject: [PAYMENT_GATEWAYS],
     },
   ],
   exports: [
     PAYMENT_GATEWAY,
+    PAYMENT_GATEWAYS,
     GatewayTransactionsService,
     PaymentSettlementService,
     PayoutSettlementService,
@@ -120,4 +135,36 @@ export function resolveGateway(
     );
   }
   return new StubGateway();
+}
+
+/**
+ * Registry multi-proveedor (spec gateway-port-normalization): instancia
+ * todos los adaptadores con credenciales disponibles y los indexa por
+ * name (FLOW / MERCADOPAGO / STUB). El default sigue la misma regla de
+ * `resolveGateway` (PAYMENT_GATEWAY=flow o stub según env) - los
+ * providers extra quedan disponibles para `webhook/:provider` y la
+ * selección por param `payments.default_gateway` sin cambiar el
+ * comportamiento actual.
+ *
+ * MercadoPago se registra cuando existe MERCADOPAGO_ACCESS_TOKEN -
+ * convive con Flow: cada orden persiste Payment.gateway y el webhook
+ * :provider la confirma con su adaptador.
+ */
+export function resolveGateways(
+  env: NodeJS.ProcessEnv,
+  onTx?: (e: GatewayTxEntry) => Promise<void>,
+): GatewayRegistry {
+  const adapters: PaymentGateway[] = [resolveGateway(env, onTx)];
+  if (env.MERCADOPAGO_ACCESS_TOKEN) {
+    const apiUrl = env.API_URL ?? "http://localhost:4000";
+    adapters.push(
+      new MercadoPagoGateway(
+        env.MERCADOPAGO_ACCESS_TOKEN,
+        env.MERCADOPAGO_BASE_URL ?? "https://api.mercadopago.com",
+        `${apiUrl}/api/payments/webhook/MERCADOPAGO`,
+        onTx,
+      ),
+    );
+  }
+  return new GatewayRegistry(adapters, adapters[0].name);
 }

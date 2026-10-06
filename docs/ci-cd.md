@@ -99,6 +99,14 @@ FLOW_API_KEY="…"
 FLOW_SECRET_KEY="…"
 FLOW_BASE_URL="https://sandbox.flow.cl/api"          # sandbox
 
+# MercadoPago - opcional: el adaptador se registra en el
+# GatewayRegistry si existe el token (convive con Flow; el proveedor
+# de cada orden lo decide el param `payments.default_gateway`, que
+# cae al default del env si el provider no está registrado).
+# Webhook a configurar en el panel MP: {API_URL}/api/payments/webhook/MERCADOPAGO
+# MERCADOPAGO_ACCESS_TOKEN="APP_USR-…"               # test-… = sandbox
+# MERCADOPAGO_BASE_URL="https://api.mercadopago.com" # opcional
+
 # Mail (Resend) - magic links
 RESEND_API_KEY="…"
 EMAIL_FROM="OmniDance <noreply@…>"

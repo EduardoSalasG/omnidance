@@ -61,11 +61,15 @@ interface GatewayFields {
   gatewayMedia: string | null;
   gatewayPaidAt: Date | null;
   gatewayRaw: Prisma.InputJsonValue;
+  /** ISO 4217 reportada (NormalizedGatewayData.currency) - cruce vs Payment.currency. */
+  gatewayCurrency: string | null;
 }
 
 interface AmountMismatch {
   expected: number;
   reported: number;
+  expectedCurrency?: string | null;
+  reportedCurrency?: string | null;
 }
 
 /**
@@ -96,6 +100,10 @@ function extractGatewayFields(gatewayData: unknown): GatewayFields | null {
     gatewayPaidAt:
       paidAtDate && !Number.isNaN(paidAtDate.getTime()) ? paidAtDate : null,
     gatewayRaw: gatewayData as Prisma.InputJsonValue,
+    gatewayCurrency:
+      typeof pd.currency === "string" && pd.currency.trim() !== ""
+        ? pd.currency.toUpperCase()
+        : null,
   };
 }
 
@@ -259,17 +267,28 @@ export class PaymentSettlementService {
       gatewayRef: payment.gatewayRef ?? null,
     });
     let mismatch: AmountMismatch | null = null;
-    if (
+    const amountDiff =
       gw?.gatewayReportedAmount != null &&
-      gw.gatewayReportedAmount !== payment.amount
-    ) {
+      gw.gatewayReportedAmount !== payment.amount;
+    // Cruce de moneda normalizada (spec gateway-port-normalization):
+    // un cobro confirmado en otra ISO es la misma evidencia de
+    // discrepancia - se reporta en el mismo evento AMOUNT_MISMATCH.
+    const currencyDiff =
+      gw?.gatewayCurrency != null &&
+      payment.currency != null &&
+      gw.gatewayCurrency !== payment.currency.toUpperCase();
+    if (amountDiff || currencyDiff) {
       mismatch = {
         expected: payment.amount,
-        reported: gw.gatewayReportedAmount,
+        reported: gw?.gatewayReportedAmount ?? payment.amount,
+        expectedCurrency: payment.currency,
+        reportedCurrency: gw?.gatewayCurrency ?? null,
       };
       await emitPaymentEvent(tx, payment.id, "AMOUNT_MISMATCH", meta.actor, {
         expected: mismatch.expected,
         reported: mismatch.reported,
+        expectedCurrency: mismatch.expectedCurrency,
+        reportedCurrency: mismatch.reportedCurrency,
       });
     }
     await emitPaymentEvent(

@@ -1757,6 +1757,26 @@
         }
       }
     },
+    "/api/payments/webhook/{provider}": {
+      "post": {
+        "operationId": "PaymentsController_webhookByProvider",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/payments/flow/customer-return": {
       "post": {
         "operationId": "PaymentsController_customerReturn",

@@ -1,8 +1,29 @@
 // Puerto de pasarela de pago (hexagonal) - el dominio no conoce Flow ni el stub.
 export const PAYMENT_GATEWAY = "PAYMENT_GATEWAY";
 
+/**
+ * Verdad monetaria normalizada que todo adaptador produce en
+ * `gatewayData` (spec gateway-port-normalization): shape plana que el
+ * settlement persiste en los campos gateway* del Payment.
+ * - fee: costo que la pasarela nos cobró (merchant fee).
+ * - amount: monto bruto cobrado al comprador (cruce AMOUNT_MISMATCH).
+ * - media: medio de pago ("Visa", "master", "account_money"...).
+ * - transferDate: fecha de aprobación/abono reportada.
+ * - currency: ISO 4217 reportada (cruce contra Payment.currency).
+ * - raw: payload original del proveedor, para evidencia.
+ */
+export interface NormalizedGatewayData {
+  fee?: number;
+  amount?: number;
+  media?: string;
+  transferDate?: string;
+  currency?: string;
+  raw?: unknown;
+  [k: string]: unknown;
+}
+
 export interface PaymentGateway {
-  /** Identificador persistido en Payment.gateway (STUB | FLOW). */
+  /** Identificador persistido en Payment.gateway (STUB | FLOW | MERCADOPAGO). */
   readonly name: string;
 
   createOrder(p: {
@@ -10,15 +31,18 @@ export interface PaymentGateway {
     amount: number;
     email: string;
     returnUrl: string;
+    /** ISO 4217 del Payment - el adaptador rechaza monedas no soportadas. */
+    currency?: string;
   }): Promise<{ paymentUrl: string; gatewayRef: string }>;
 
   verifyWebhook(body: unknown): Promise<{
     refId: string;
     status: "PAID" | "FAILED";
     /**
-     * Verdad monetaria reportada por la pasarela (Flow: `paymentData` de
-     * payment/getStatus - fee, amount, media, transferDate). El settle la
-     * persiste en los campos gateway* del Payment cuando hay PAID.
+     * Verdad monetaria normalizada (NormalizedGatewayData - Flow la
+     * produce desde paymentData, MercadoPago la mapea desde
+     * /v1/payments/:id). El settle la persiste en los campos gateway*
+     * del Payment cuando hay PAID.
      * Opcional: StubGateway no la produce.
      */
     gatewayData?: unknown;
@@ -28,8 +52,9 @@ export interface PaymentGateway {
    * Consulta activa del estado de una orden (polling del checkout).
    * Relevante en sandbox/dev: el webhook de la pasarela no llega a
    * localhost, así que GET /payments/:id puede resolver el estado
-   * directamente contra la pasarela por refId (commerceOrder).
-   * `gatewayData` = misma verdad monetaria que verifyWebhook - el
+   * directamente contra la pasarela por refId (Flow: commerceOrder;
+   * MP: external_reference).
+   * `gatewayData` = misma verdad monetaria normalizada - el
    * settle la persiste igual sea cual sea el camino de confirmación.
    */
   refreshStatus?(refId: string): Promise<{
