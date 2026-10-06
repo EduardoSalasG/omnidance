@@ -2,6 +2,7 @@ import base from "../../messages/es-CL.json";
 import academyBilling from "./parts/academyBilling.json";
 import academyExtras from "./parts/academyExtras.json";
 import academyPay from "./parts/academyPay.json";
+import academyStaff from "./parts/academyStaff.json";
 import admin from "./parts/admin.json";
 import analytics from "./parts/analytics.json";
 import claim from "./parts/claim.json";
@@ -56,6 +57,7 @@ const parts = [
   academyBilling,
   academyExtras,
   academyPay,
+  academyStaff,
   admin,
   analytics,
   claim,

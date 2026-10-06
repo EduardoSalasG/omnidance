@@ -26,9 +26,16 @@ import { SubscriptionsController } from "./infrastructure/subscriptions.controll
 import { ProducerProController } from "./infrastructure/producer-pro.controller";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { AcademyAccessModule } from "../academies/academy-access.module";
 
 @Module({
-  imports: [AuthModule, ParamsModule, NotificationsModule, PrismaModule],
+  imports: [
+    AuthModule,
+    ParamsModule,
+    NotificationsModule,
+    PrismaModule,
+    AcademyAccessModule,
+  ],
   controllers: [
     CheckoutController,
     TicketsController,

@@ -6,6 +6,7 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 import { AcademySettings } from "@/components/academy/academy-settings";
 import { AcademyProfile } from "@/components/academy/academy-profile";
+import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 
 import {
@@ -13,28 +14,27 @@ import {
   type TourStep,
 } from "@/components/onboarding/OnboardingRunner";
 
-// Módulos de la consola - keys de academy.modules.* en es-CL.json.
-// "myClasses" primero: es la vista diaria del instructor (la consola se
-// comparte con owner; si no imparte clases la lista sale vacía).
+// Módulos de la consola - keys de academy.modules.* en es-CL.json +
+// parts/academyExtras.json + parts/academyBilling.json. `cap` mapea a los
+// flags granulares de AcademyStaff (spec academy-staff-roles): el owner y
+// ADMIN de plataforma reportan todos en GET /:id/access; staff e
+// instructor solo ven lo que su acceso cubre. Sin `cap` = nivel operativo
+// (owner, instructor o cualquier staff - requireManage del backend).
 const MODULES = [
   { href: "/academia/clases", key: "myClasses" },
-  { href: "/academia/planes", key: "plans" },
+  { href: "/academia/planes", key: "plans", cap: "plans" },
   { href: "/academia/alumnos", key: "students" },
-  { href: "/academia/horarios", key: "slots" },
-  { href: "/academia/series", key: "series" },
+  { href: "/academia/horarios", key: "slots", cap: "schedule" },
+  { href: "/academia/series", key: "series", cap: "schedule" },
   { href: "/academia/asistencia", key: "attendance" },
   { href: "/academia/particulares", key: "lessons" },
-  { href: "/academia/videos", key: "videos" },
-  // Cobros MEMBERSHIP de los planes (GET /payments/by-academy/:id) -
-  // solo owner/ADMIN: el endpoint 403 al resto (misma política que CRM).
-  { href: "/academia/cobros", key: "payments", ownerOnly: true },
-  // CRM con actorType=ACADEMY - la API ya segmenta por academia; el
-  // ActorPicker la resuelve via GET /academies/mine. Solo owner/ADMIN:
-  // CRM_ROLES no incluye instructor (el card se filtra abajo).
+  { href: "/academia/videos", key: "videos", cap: "schedule" },
+  { href: "/academia/cobros", key: "payments", cap: "payments" },
+  { href: "/academia/equipo", key: "team", cap: "team" },
+  // CRM con actorType=ACADEMY: sigue owner/ADMIN-only (requireAdminister
+  // del backend - no es delegable por flags).
   { href: "/crm", key: "crm", ownerOnly: true },
-  // Suscripción SaaS de la plataforma (academy-saas-billing): tier,
-  // ciclo, contratación Flow e invoices - requireAdminister → owner/ADMIN.
-  { href: "/academia/suscripcion", key: "subscription", ownerOnly: true },
+  { href: "/academia/suscripcion", key: "subscription", cap: "billing" },
 ] as const;
 
 /**
@@ -58,65 +58,101 @@ export default function AcademiaPage() {
 
       <AcademyGate>
         {({ academy }) => (
-          <>
-            {/* key por id: cambiar de academia remonta el resumen. */}
-            <AcademyDashboard key={academy.id} academy={academy} />
-            {/* Settings (quórum default) y perfil público - solo
-                owner/ADMIN; instructores no ven los cards (canAdminister
-                interno vía GET /me). */}
-            <AcademySettings academy={academy} />
-            <AcademyProfile academy={academy} />
-            <ModuleGrid>
-              {MODULES.filter(
-                (m) =>
-                  !("ownerOnly" in m && m.ownerOnly) ||
-                  me?.roles.includes("ADMIN") ||
-                  me?.id === academy.ownerId,
-              ).map((m) => (
-                <ModuleCard
-                  key={m.href}
-                  href={m.href}
-                  title={t(`modules.${m.key}`)}
-                  desc={t(`modules.${m.key}Desc`)}
-                />
-              ))}
-              {/* Los módulos owner-only esperan a /me (useMe) sin
-                  skeleton: para el no-owner un skeleton que colapsa
-                  sería flash; para el owner (audiencia real de esta
-                  consola) /me ya viene resuelto del provider del layout
-                  en navegación interna. */}
-            </ModuleGrid>
-
-            {/* Tour de primera visita - targets del chrome (tabs +
-                menú lateral), presentes una vez pasa el gate. */}
-            <OnboardingRunner
-              tour="academia"
-              steps={
-                [
-                  {
-                    element: "[data-tour='nav-academy']",
-                    title: tt("s1.title"),
-                    description: tt("s1.desc"),
-                    side: "top",
-                  },
-                  {
-                    element: "[data-tour='nav-attendance']",
-                    title: tt("s2.title"),
-                    description: tt("s2.desc"),
-                    side: "top",
-                  },
-                  {
-                    element: "[data-tour='appbar-menu']",
-                    title: tt("s3.title"),
-                    description: tt("s3.desc"),
-                    side: "bottom",
-                  },
-                ] satisfies TourStep[]
-              }
-            />
-          </>
+          <AcademyHub academy={academy} t={t} tt={tt} me={me} />
         )}
       </AcademyGate>
     </main>
+  );
+}
+
+// Contenido del hub separado para poder llamar useAcademyAccess por
+// academia (el hook depende del id seleccionado en el gate).
+function AcademyHub({
+  academy,
+  t,
+  tt,
+  me,
+}: {
+  academy: Parameters<
+    Parameters<typeof AcademyGate>[0]["children"]
+  >[0]["academy"];
+  t: ReturnType<typeof useTranslations>;
+  tt: ReturnType<typeof useTranslations>;
+  me: ReturnType<typeof useMe>["me"];
+}) {
+  const access = useAcademyAccess(academy.id);
+
+  // Mientras /access resuelve (null) se muestran los módulos operativos
+  // (los del día a día que el gate ya garantiza) - mismo criterio que el
+  // filtro owner-only previo: sin skeleton para no causar flash.
+  const operational =
+    access === null ||
+    access.isOwner ||
+    access.isAdmin ||
+    access.isInstructor ||
+    access.isStaff;
+
+  const visible = MODULES.filter((m) => {
+    if ("ownerOnly" in m && m.ownerOnly) {
+      return (
+        access?.isAdmin === true ||
+        access?.isOwner === true ||
+        me?.roles.includes("ADMIN") ||
+        me?.id === academy.ownerId
+      );
+    }
+    if ("cap" in m && m.cap) {
+      return access?.caps[m.cap] === true;
+    }
+    return operational;
+  });
+
+  return (
+    <>
+      {/* key por id: cambiar de academia remonta el resumen. */}
+      <AcademyDashboard key={academy.id} academy={academy} />
+      {/* Settings (quórum default) y perfil público - capacidad profile;
+          el componente decide solo si no tiene acceso. */}
+      <AcademySettings academy={academy} />
+      <AcademyProfile academy={academy} />
+      <ModuleGrid>
+        {visible.map((m) => (
+          <ModuleCard
+            key={m.href}
+            href={m.href}
+            title={t(`modules.${m.key}`)}
+            desc={t(`modules.${m.key}Desc`)}
+          />
+        ))}
+      </ModuleGrid>
+
+      {/* Tour de primera visita - targets del chrome (tabs +
+          menú lateral), presentes una vez pasa el gate. */}
+      <OnboardingRunner
+        tour="academia"
+        steps={
+          [
+            {
+              element: "[data-tour='nav-academy']",
+              title: tt("s1.title"),
+              description: tt("s1.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-attendance']",
+              title: tt("s2.title"),
+              description: tt("s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='appbar-menu']",
+              title: tt("s3.title"),
+              description: tt("s3.desc"),
+              side: "bottom",
+            },
+          ] satisfies TourStep[]
+        }
+      />
+    </>
   );
 }

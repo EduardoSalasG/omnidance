@@ -24,11 +24,13 @@ function mkAcademy(over: Partial<Academy> = {}): Academy {
   } as Academy;
 }
 
-function mkPrisma(academy: Academy | null) {
+function mkPrisma(academy: Academy | null, staff: unknown[] = []) {
   return {
     academy: {
       findUnique: vi.fn(async () =>
-        academy ? { ...academy, instructors: [{ personId: "p-inst" }] } : null,
+        academy
+          ? { ...academy, instructors: [{ personId: "p-inst" }], staff }
+          : null,
       ),
     },
     role: { findMany: vi.fn(async () => [] as unknown[]) },
@@ -38,6 +40,18 @@ function mkPrisma(academy: Academy | null) {
 const owner: PersonContext = { id: "p1", roles: [] };
 const instructor: PersonContext = { id: "p-inst", roles: [] };
 const outsider: PersonContext = { id: "p-x", roles: [] };
+const staffPerson: PersonContext = { id: "p-staff", roles: [] };
+
+const STAFF_PAYMENTS = {
+  personId: "p-staff",
+  canStudents: false,
+  canPayments: true,
+  canPlans: false,
+  canSchedule: false,
+  canProfile: false,
+  canTeam: false,
+  canBilling: false,
+};
 
 /** Body de respuesta de una HttpException. */
 function errBody(e: unknown): Record<string, unknown> {
@@ -129,6 +143,66 @@ describe("AcademyAccess", () => {
       expect(err).toBeInstanceOf(ForbiddenException);
       // no es el error de billing - es el de acceso
       expect(errBody(err).error).not.toBe("billing.blocked");
+    });
+  });
+
+  describe("capacidades delegadas (spec academy-staff-roles)", () => {
+    beforeEach(() => {
+      prisma = mkPrisma(mkAcademy(), [STAFF_PAYMENTS]);
+      access = new AcademyAccess(prisma as unknown as PrismaService);
+    });
+
+    it("staff con el flag pasa su capacidad", async () => {
+      await expect(
+        access.requireCapability("ac-1", staffPerson, "payments"),
+      ).resolves.toBeTruthy();
+      await expect(
+        access.requireCapabilityWrite("ac-1", staffPerson, "payments"),
+      ).resolves.toBeTruthy();
+    });
+
+    it("staff sin el flag → 403 academy.capability", async () => {
+      const err = await access
+        .requireCapability("ac-1", staffPerson, "schedule")
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ForbiddenException);
+      expect(errBody(err).error).toBe("academy.capability");
+      expect(errBody(err).capability).toBe("schedule");
+    });
+
+    it("outsider sin fila staff → 403 en cualquier capacidad", async () => {
+      await expect(
+        access.requireCapability("ac-1", outsider, "payments"),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it("owner y cualquier staff pasan requireStaff; instructor no", async () => {
+      await expect(
+        access.requireStaff("ac-1", owner),
+      ).resolves.toBeTruthy();
+      await expect(
+        access.requireStaff("ac-1", staffPerson),
+      ).resolves.toBeTruthy();
+      await expect(
+        access.requireStaff("ac-1", instructor),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it("staff pasa requireManage (nivel operativo ≥ instructor)", async () => {
+      await expect(
+        access.requireManage("ac-1", staffPerson),
+      ).resolves.toBeTruthy();
+    });
+
+    it("requireCapabilityWrite respeta billing.blocked", async () => {
+      prisma = mkPrisma(mkAcademy({ billingBlockedAt: new Date() }), [
+        STAFF_PAYMENTS,
+      ]);
+      access = new AcademyAccess(prisma as unknown as PrismaService);
+      const err = await access
+        .requireCapabilityWrite("ac-1", staffPerson, "payments")
+        .catch((e: unknown) => e);
+      expect(errBody(err).error).toBe("billing.blocked");
     });
   });
 });

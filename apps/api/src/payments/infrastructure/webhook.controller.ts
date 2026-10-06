@@ -17,6 +17,7 @@ import { IsOptional, IsString } from "class-validator";
 import type { Request, Response } from "express";
 import type { Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
+import { AcademyAccess } from "../../academies/infrastructure/academy-access.service";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
@@ -66,6 +67,7 @@ export class PaymentsController {
     private readonly settlement: PaymentSettlementService,
     private readonly subscriptions: SubscriptionsService,
     private readonly platformSubs: PlatformSubscriptionsService,
+    private readonly access: AcademyAccess,
   ) {}
 
   // Público: lo llama la pasarela (o el stub en dev).
@@ -252,9 +254,8 @@ export class PaymentsController {
    * academia: el refId (mem_<planId>_<uid> / wks_<classId>_<uid> /
    * pvt_<academyId>_<uid>) decodifica al plan, la clase o la academia
    * misma - el filtro `refId startsWith` es el mismo decode+belongs
-   * de payouts, resuelto en SQL. Owner de la academia o admin.access
-   * (no existe permiso academies.manage - la administración financiera
-   * de la academia es owner|admin, como canAdministerAcademy).
+   * de payouts, resuelto en SQL. Owner de la academia, ADMIN o staff
+   * con capacidad `payments` (spec academy-staff-roles).
    */
   @Get("by-academy/:academyId")
   @UseGuards(SessionGuard)
@@ -262,20 +263,13 @@ export class PaymentsController {
     @Req() req: Request,
     @Param("academyId") academyId: string,
   ) {
-    const academy = await this.prisma.academy.findUnique({
-      where: { id: academyId },
-      select: { id: true, ownerId: true },
-    });
-    if (!academy) throw new NotFoundException("academia no encontrada");
-    const person = req.person!;
-    const isAdmin = await roleKeysHavePermission(this.prisma, person.roles, [
-      "admin.access",
-    ]);
-    if (academy.ownerId !== person.id && !isAdmin) {
-      throw new ForbiddenException(
-        "requiere ser el owner de la academia o admin",
-      );
-    }
+    // Capacidad payments (spec academy-staff-roles): owner, ADMIN o
+    // staff con el flag. requireCapability ya resuelve 404/403.
+    const { academy } = await this.access.requireCapability(
+      academyId,
+      req.person!,
+      "payments",
+    );
     const [plans, classes] = await Promise.all([
       this.prisma.membershipPlan.findMany({
         where: { academyId: academy.id },

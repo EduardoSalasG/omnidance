@@ -132,8 +132,8 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     ctrl = new ClassSeriesController(
       prisma as unknown as PrismaService,
       {
-        requireAdminister: vi.fn(async () => undefined),
-        requireAdministerWrite: vi.fn(async () => undefined),
+        requireCapability: vi.fn(async () => undefined),
+        requireCapabilityWrite: vi.fn(async () => undefined),
       } as unknown as AcademyAccess,
       { notifySafe: vi.fn() } as unknown as NotificationsService,
     );

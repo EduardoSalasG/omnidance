@@ -13,6 +13,8 @@ type QueueClaim = {
   status: "PENDING" | "APPROVED" | "REJECTED";
   note: string | null;
   createdAt: string;
+  reviewedAt: string | null;
+  reviewedBy: { id: string; name: string } | null;
   person: { id: string; name: string };
   plan: { id: string; name: string; type: string } | null;
 };
@@ -30,9 +32,9 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
 });
 
 /**
- * Cola "Pagos por validar" del owner (spec academy-payment-claims):
- * comprobantes PENDING con link al archivo, aprobar (extiende la
- * vigencia sola) o rechazar con motivo.
+ * Cola "Pagos por validar" del owner (spec academy-payment-claims) +
+ * historial de validaciones con auditoría (spec academy-staff-roles):
+ * cada comprobante resuelto muestra quién lo aprobó o rechazó.
  */
 export function ClaimsQueue({ academyId }: { academyId: string }) {
   const t = useTranslations("academyPay");
@@ -44,9 +46,11 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const res = await apiFetch(
-      `/academies/${academyId}/claims?status=PENDING`,
-    ).catch(() => null);
+    // Sin filtro: la cola necesita PENDING y el historial los resueltos;
+    // una sola llamada cubre ambos.
+    const res = await apiFetch(`/academies/${academyId}/claims`).catch(
+      () => null,
+    );
     setClaims(res?.ok ? await res.json() : []);
   }, [academyId]);
 
@@ -92,21 +96,32 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   if (claims === null) return <SkeletonList />;
   if (claims.length === 0) return null;
 
+  const pending = claims.filter((c) => c.status === "PENDING");
+  const resolved = claims
+    .filter((c) => c.status !== "PENDING" && c.reviewedAt)
+    .sort(
+      (a, b) =>
+        new Date(b.reviewedAt!).getTime() - new Date(a.reviewedAt!).getTime(),
+    )
+    .slice(0, 20);
+
   return (
-    <Card className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-          {t("queueTitle")}
-        </h2>
-        <p className="mt-1 text-xs text-white/50">{t("queueDesc")}</p>
-      </div>
-      {msg && (
-        <p role="status" className="text-sm text-neon">
-          {msg}
-        </p>
-      )}
-      <ul className="flex flex-col gap-3">
-        {claims.map((c) => (
+    <>
+      {pending.length > 0 && (
+        <Card className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              {t("queueTitle")}
+            </h2>
+            <p className="mt-1 text-xs text-white/50">{t("queueDesc")}</p>
+          </div>
+          {msg && (
+            <p role="status" className="text-sm text-neon">
+              {msg}
+            </p>
+          )}
+          <ul className="flex flex-col gap-3">
+            {pending.map((c) => (
           <li
             key={c.id}
             className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800 p-4"
@@ -181,9 +196,55 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                 </div>
               </div>
             )}
-          </li>
-        ))}
-      </ul>
-    </Card>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {resolved.length > 0 && (
+        <Card className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              {t("historyTitle")}
+            </h2>
+            <p className="mt-1 text-xs text-white/50">{t("historyDesc")}</p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {resolved.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+              >
+                <span className="font-semibold">{c.person.name}</span>
+                <span className="text-white/60">
+                  {c.plan?.name ?? c.methodLabel} · {clp.format(c.amount)}
+                </span>
+                <span
+                  className={`ml-auto text-xs ${
+                    c.status === "APPROVED" ? "text-neon" : "text-red-400"
+                  }`}
+                >
+                  {c.reviewedBy
+                    ? t(
+                        c.status === "APPROVED"
+                          ? "reviewedByApproved"
+                          : "reviewedByRejected",
+                        { name: c.reviewedBy.name },
+                      )
+                    : t(
+                        c.status === "APPROVED"
+                          ? "statusApproved"
+                          : "statusRejected",
+                      )}
+                  {" · "}
+                  {dayFmt.format(new Date(c.reviewedAt!))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </>
   );
 }

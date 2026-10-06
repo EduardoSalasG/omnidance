@@ -5785,6 +5785,174 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/access",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/access",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "access"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "staff"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "staff"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/academies/{id}/staff/{personId}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/staff/{personId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "staff",
+                "{personId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/academies/{id}/staff/{personId}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/staff/{personId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "staff",
+                "{personId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "POST /api/academies/{id}/attendance",
           "request": {
             "method": "POST",
