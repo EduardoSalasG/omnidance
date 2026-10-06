@@ -95,7 +95,7 @@ export const PARAM_DEFAULTS: Array<{
   // gateway-port-normalization): el checkout lo resuelve contra el
   // GatewayRegistry; si el provider no está registrado (sin
   // credenciales) cae al default del env. Valores: FLOW | MERCADOPAGO.
-  { key: "payments.default_gateway", value: "FLOW", description: "Proveedor de pago por defecto para órdenes nuevas (FLOW | MERCADOPAGO) - resuelto contra el GatewayRegistry; sin credenciales cae al default del env" },
+  { key: "payments.default_gateway", value: "FLOW", description: "Proveedor de pago por defecto para órdenes nuevas (FLOW | MERCADOPAGO | FINTOC) - resuelto contra el GatewayRegistry; sin credenciales cae al default del env" },
   // Proveedor del motor de suscripciones (spec
   // subscription-port-generic): mismo mecanismo de resolución que
   // default_gateway; si el provider elegido no implementa

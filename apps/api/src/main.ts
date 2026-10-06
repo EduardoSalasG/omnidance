@@ -11,6 +11,8 @@ async function bootstrap() {
   const winston = buildLogger();
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger({ instance: winston }),
+    // rawBody: la firma Fintoc-Signature cubre el body crudo del webhook.
+    rawBody: true,
   });
   // Security headers (spec api-hardening): primero en el pipeline.
   // CSP off: la única superficie HTML es Swagger UI (/api/docs), que

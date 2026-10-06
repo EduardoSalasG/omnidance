@@ -169,6 +169,7 @@ class FakePrisma {
   };
 }
 
+const webReq = { headers: {} } as unknown as Request;
 const req = (id: string, roles: string[] = ["DANCER"]) =>
   ({ person: { id, roles } }) as unknown as Request;
 
@@ -524,8 +525,8 @@ describe("PaymentsController - webhook normalizado", () => {
       def,
       extra: [other],
     });
-    await ctrl.webhook({ token: "abc" });
-    expect(def.verifyWebhook).toHaveBeenCalledWith({ token: "abc" });
+    await ctrl.webhook({ token: "abc" }, webReq);
+    expect(def.verifyWebhook).toHaveBeenCalledWith({ token: "abc" }, expect.anything());
     expect(other.verifyWebhook).not.toHaveBeenCalled();
     expect(settlement.settle).toHaveBeenCalled();
   });
@@ -538,8 +539,8 @@ describe("PaymentsController - webhook normalizado", () => {
     const { ctrl } = mkWebhookCtrl({ prisma, def, extra: [mp] });
     await ctrl.webhookByProvider("MERCADOPAGO", undefined, {
       type: "payment",
-    });
-    expect(mp.verifyWebhook).toHaveBeenCalledWith({ type: "payment" });
+    }, webReq);
+    expect(mp.verifyWebhook).toHaveBeenCalledWith({ type: "payment" }, expect.anything());
     expect(def.verifyWebhook).not.toHaveBeenCalled();
   });
 
@@ -548,7 +549,7 @@ describe("PaymentsController - webhook normalizado", () => {
     const def = mkGateway("STUB");
     const { ctrl } = mkWebhookCtrl({ prisma, def });
     await expect(
-      ctrl.webhookByProvider("STRIPE", undefined, {}),
+      ctrl.webhookByProvider("STRIPE", undefined, {}, webReq),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(def.verifyWebhook).not.toHaveBeenCalled();
   });
@@ -558,7 +559,7 @@ describe("PaymentsController - webhook normalizado", () => {
     const def = mkGateway("STUB");
     def.verifyWebhook.mockRejectedValueOnce(new Error("firma inválida"));
     const { ctrl, settlement } = mkWebhookCtrl({ prisma, def });
-    await expect(ctrl.webhook({})).rejects.toBeInstanceOf(
+    await expect(ctrl.webhook({}, webReq)).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(settlement.settle).not.toHaveBeenCalled();
@@ -568,7 +569,7 @@ describe("PaymentsController - webhook normalizado", () => {
     const prisma = new FakePrisma();
     const def = mkGateway("STUB");
     const { ctrl } = mkWebhookCtrl({ prisma, def });
-    await expect(ctrl.webhook({})).rejects.toBeInstanceOf(
+    await expect(ctrl.webhook({}, webReq)).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
@@ -592,7 +593,10 @@ describe("PaymentsController - webhook normalizado", () => {
       extra: [mp],
     });
     await ctrl.getPayment(req("u1"), "p-mp");
-    expect(mp.refreshStatus).toHaveBeenCalledWith("tkt_evt-1_x");
+    expect(mp.refreshStatus).toHaveBeenCalledWith(
+      "tkt_evt-1_x",
+      expect.objectContaining({ gatewayRef: undefined }),
+    );
     expect(def.refreshStatus).not.toHaveBeenCalled();
     expect(settlement.settle).toHaveBeenCalledWith(
       expect.objectContaining({ id: "p-mp" }),
@@ -673,11 +677,12 @@ describe("PaymentsController - webhook por cuenta propia", () => {
     );
     const { ctrl, settlement, accounts, accountGateway } =
       mkAccountCtrl(prisma);
-    await ctrl.webhookByProvider("FLOW", "acct-A", { token: "t1" });
+    await ctrl.webhookByProvider("FLOW", "acct-A", { token: "t1" }, webReq);
     expect(accounts.adapterFor).toHaveBeenCalledWith("acct-A");
-    expect(accountGateway.verifyWebhook).toHaveBeenCalledWith({
-      token: "t1",
-    });
+    expect(accountGateway.verifyWebhook).toHaveBeenCalledWith(
+      { token: "t1" },
+      expect.anything(),
+    );
     expect(settlement.settle).toHaveBeenCalled();
   });
 
@@ -685,7 +690,7 @@ describe("PaymentsController - webhook por cuenta propia", () => {
     const prisma = new FakePrisma();
     const { ctrl } = mkAccountCtrl(prisma);
     await expect(
-      ctrl.webhookByProvider("MERCADOPAGO", "acct-A", {}),
+      ctrl.webhookByProvider("MERCADOPAGO", "acct-A", {}, webReq),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -699,7 +704,7 @@ describe("PaymentsController - webhook por cuenta propia", () => {
     );
     const { ctrl, settlement } = mkAccountCtrl(prisma);
     await expect(
-      ctrl.webhookByProvider("FLOW", "acct-A", { token: "t1" }),
+      ctrl.webhookByProvider("FLOW", "acct-A", { token: "t1" }, webReq),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(settlement.settle).not.toHaveBeenCalled();
   });
@@ -727,7 +732,7 @@ describe("PaymentsController - webhook por cuenta propia", () => {
       new GatewayRegistry([def as unknown as PaymentGateway], "FLOW"),
       { adapterFor: vi.fn() } as never,
     );
-    await expect(ctrl.webhook({ token: "t1" })).rejects.toBeInstanceOf(
+    await expect(ctrl.webhook({ token: "t1" }, webReq)).rejects.toBeInstanceOf(
       BadRequestException,
     );
     expect(settlement.settle).not.toHaveBeenCalled();
@@ -749,7 +754,10 @@ describe("PaymentsController - webhook por cuenta propia", () => {
       mkAccountCtrl(prisma);
     await ctrl.getPayment(req("u1"), "p-own");
     expect(accounts.adapterFor).toHaveBeenCalledWith("acct-A");
-    expect(accountGateway.refreshStatus).toHaveBeenCalledWith("tkt_evt-1_x");
+    expect(accountGateway.refreshStatus).toHaveBeenCalledWith(
+      "tkt_evt-1_x",
+      expect.objectContaining({ gatewayRef: undefined }),
+    );
     expect(settlement.settle).toHaveBeenCalledWith(
       expect.objectContaining({ id: "p-own" }),
       "PAID",
