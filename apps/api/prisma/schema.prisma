@@ -1751,6 +1751,7 @@ model MailCampaign {
   createdBy    Person    @relation(fields: [createdById], references: [id])
   createdById  String
   runs         MailCampaignRun[]
+  sent         MailCampaignSent[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -1782,4 +1783,23 @@ model MailCampaignRecipient {
   error    String?
 
   @@unique([runId, personId])
+}
+
+// Dedup por ciclo entre corridas (spec mail-campaign-context-audiences):
+// las audiencias con contexto (vencimiento de inscripción/suscripción)
+// marcan cada destinatario con dedupKey del ciclo recordado
+// ("enr:<enrollmentId>:<endsAt>" | "psub:<subId>:<nextInvoiceAt>") - un
+// cron diario no re-envía por el mismo ciclo; al renovar cambia la clave
+// y el recordatorio se rearma. Solo un envío SENT registra la fila.
+model MailCampaignSent {
+  id         String       @id @default(cuid())
+  campaign   MailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  dedupKey   String
+  personId   String
+  runId      String
+  sentAt     DateTime     @default(now())
+
+  @@unique([campaignId, dedupKey])
+  @@index([campaignId])
 }

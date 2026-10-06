@@ -10,18 +10,44 @@ import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
 
-// Campañas de mail (spec admin-jobs-mail-campaigns): el admin compone
-// subject + HTML libre (preview en iframe sandbox), elige audiencia
-// (todos / rol / asistentes de evento, con conteo en vivo) y programa
-// envío único o recurrente. Test-send al propio correo, corrida
-// manual, cancelación y runs con contadores.
+// Campañas de mail (spec admin-jobs-mail-campaigns + context-audiences):
+// el admin compone subject + HTML libre (preview en iframe sandbox) con
+// variables {{var}} por destinatario, elige audiencia (todos / rol /
+// evento / ciclo de vida con ventana en días, con conteo en vivo) y
+// programa envío único o recurrente. Las audiencias de ciclo llevan
+// dedup por ciclo - un cron diario no re-envía el mismo recordatorio.
+
+const AUDIENCE_KINDS = [
+  "ALL",
+  "ROLE",
+  "EVENT",
+  "ENROLLMENTS_EXPIRING",
+  "ENROLLMENTS_EXPIRED",
+  "PLATFORM_SUB_EXPIRING",
+] as const;
+type AudienceKind = (typeof AUDIENCE_KINDS)[number];
+
+const LIFECYCLE = new Set<AudienceKind>([
+  "ENROLLMENTS_EXPIRING",
+  "ENROLLMENTS_EXPIRED",
+  "PLATFORM_SUB_EXPIRING",
+]);
+
+const VARS_BY_KIND: Record<AudienceKind, string[]> = {
+  ALL: ["name", "email"],
+  ROLE: ["name", "email"],
+  EVENT: ["name", "email"],
+  ENROLLMENTS_EXPIRING: ["name", "email", "academy", "plan", "endsAt"],
+  ENROLLMENTS_EXPIRED: ["name", "email", "academy", "plan", "endsAt"],
+  PLATFORM_SUB_EXPIRING: ["name", "email", "plan", "nextInvoiceAt"],
+};
 
 type Campaign = {
   id: string;
   name: string;
   subject: string;
   htmlBody: string;
-  audience: { kind: "ALL" | "ROLE" | "EVENT"; roleKey?: string; eventId?: string };
+  audience: { kind: AudienceKind; roleKey?: string; eventId?: string; days?: number };
   scheduleKind: "ONCE" | "CRON";
   runAt: string | null;
   cronExpr: string | null;
@@ -75,7 +101,11 @@ function statusBadge(s: Campaign["status"], t: (k: string) => string) {
 function audienceLabel(a: Campaign["audience"], t: (k: string, v?: Record<string, string>) => string) {
   if (a.kind === "ALL") return t("campaigns.audienceAll");
   if (a.kind === "ROLE") return t("campaigns.audienceRole", { role: a.roleKey ?? "" });
-  return t("campaigns.audienceEvent", { event: a.eventId?.slice(0, 8) ?? "" });
+  if (a.kind === "EVENT") return t("campaigns.audienceEvent", { event: a.eventId?.slice(0, 8) ?? "" });
+  return t("campaigns.audienceLifecycle", {
+    label: t(`campaigns.kind.${a.kind}`),
+    days: String(a.days ?? 7),
+  });
 }
 
 function scheduleLabel(c: Campaign, t: (k: string, v?: Record<string, string>) => string) {
@@ -261,9 +291,10 @@ function CampaignForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [subject, setSubject] = useState(initial?.subject ?? "");
   const [htmlBody, setHtmlBody] = useState(initial?.htmlBody ?? "");
-  const [kind, setKind] = useState<"ALL" | "ROLE" | "EVENT">(initial?.audience.kind ?? "ALL");
+  const [kind, setKind] = useState<AudienceKind>(initial?.audience.kind ?? "ALL");
   const [roleKey, setRoleKey] = useState(initial?.audience.roleKey ?? "DANCER");
   const [eventId, setEventId] = useState(initial?.audience.eventId ?? "");
+  const [days, setDays] = useState(String(initial?.audience.days ?? 7));
   const [scheduleKind, setScheduleKind] = useState<"ONCE" | "CRON">(initial?.scheduleKind ?? "ONCE");
   const [runAt, setRunAt] = useState(
     initial?.runAt ? initial.runAt.slice(0, 16) : "",
@@ -292,6 +323,7 @@ function CampaignForm({
       const params = new URLSearchParams({ kind });
       if (kind === "ROLE") params.set("roleKey", roleKey);
       if (kind === "EVENT") params.set("eventId", eventId);
+      if (LIFECYCLE.has(kind)) params.set("days", days);
       const res = await apiFetch(`/admin/mail-campaigns/audience-count?${params}`);
       if (res.ok) setCount((await res.json()).count);
       else setCount(null);
@@ -299,7 +331,7 @@ function CampaignForm({
     return () => {
       if (countTimer.current) clearTimeout(countTimer.current);
     };
-  }, [kind, roleKey, eventId]);
+  }, [kind, roleKey, eventId, days]);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -310,7 +342,9 @@ function CampaignForm({
         ? { kind, roleKey }
         : kind === "EVENT"
           ? { kind, eventId }
-          : { kind };
+          : LIFECYCLE.has(kind)
+            ? { kind, days: Number(days) || 7 }
+            : { kind };
     const body = {
       name,
       subject,
@@ -386,7 +420,7 @@ function CampaignForm({
             {t("campaigns.audience")}
           </p>
           <div className="flex flex-wrap gap-2">
-            {(["ALL", "ROLE", "EVENT"] as const).map((k) => (
+            {AUDIENCE_KINDS.map((k) => (
               <label key={k} className="flex items-center gap-1 text-xs">
                 <input
                   type="radio"
@@ -398,6 +432,20 @@ function CampaignForm({
               </label>
             ))}
           </div>
+          {LIFECYCLE.has(kind) && (
+            <label className="flex items-center gap-2 text-xs text-white/70">
+              {t("campaigns.daysLabel")}
+              <input
+                type="number"
+                min={1}
+                max={365}
+                className={`${inputCls} w-20`}
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+                required
+              />
+            </label>
+          )}
           {kind === "ROLE" && (
             <select
               className={inputCls}
@@ -431,6 +479,16 @@ function CampaignForm({
               ? t("campaigns.countLoading")
               : t("campaigns.count", { n: count })}
           </p>
+          <p className="font-mono text-[11px] text-white/40">
+            {t("campaigns.varsHint", {
+              vars: VARS_BY_KIND[kind].map((v) => `{{${v}}}`).join(" "),
+            })}
+          </p>
+          {LIFECYCLE.has(kind) && (
+            <p className="text-[11px] text-white/40">
+              {t("campaigns.dedupHint")}
+            </p>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
