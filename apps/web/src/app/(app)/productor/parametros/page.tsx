@@ -15,6 +15,7 @@ import {
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 import { ProducerProSection } from "@/components/producer/pro-section";
 import { GatewayAccountSection } from "@/components/producer/gateway-account-section";
+import { ProducerPaymentMethodsSection } from "@/components/producer/payment-methods-section";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
@@ -247,6 +248,12 @@ export default function ProducerParamsPage() {
               Flow/MP cifrada que cobra sus ventas; sin cuenta, la
               plataforma cobra por el default MANAGED. */}
           {isProducer && <GatewayAccountSection />}
+
+          {/* Medios de cobro propios (spec producer-own-methods):
+              transferencia/link/efectivo que el comprador elige en el
+              checkout; la cola de comprobantes vive en
+              /productor/comprobantes. */}
+          {isProducer && <ProducerPaymentMethodsSection />}
 
           <p className="text-xs text-white/50">{tp("hint")}</p>
 

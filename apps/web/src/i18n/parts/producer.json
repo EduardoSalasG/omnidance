@@ -302,6 +302,14 @@
       "confirmOff": "¿Desactivar tu pasarela? Las ventas nuevas vuelven a cobrarse por Omnidance.",
       "confirmYes": "Sí, desactivar",
       "hint": "Con pasarela propia el dinero de tus ventas llega directo a tu cuenta; la comisión de Omnidance se descuenta en tu liquidación."
+    },
+    "ownMethods": {
+      "title": "Medios de cobro directos",
+      "desc": "Transferencia, link de pago o efectivo: el comprador elige el medio en el checkout y sube el comprobante; tú validas y la entrada se emite sola.",
+      "queueTitle": "Comprobantes por validar",
+      "queueDesc": "Aprueba para emitir la entrada al instante; rechaza con un motivo que el comprador podrá ver.",
+      "orderTicket": "Entrada",
+      "orderSeriesPass": "Pase de serie"
     }
   }
 }

@@ -31,10 +31,13 @@ import { SubscriptionsService } from "./application/subscriptions.service";
 import { PlatformSubscriptionsService } from "./application/platform-subscriptions.service";
 import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
 import { ProducerGatewayAccountsController } from "./infrastructure/producer-gateway.controller";
+import { ProducerClaimsController } from "./infrastructure/producer-claims.controller";
+import { ProducerClaimsService } from "./infrastructure/producer-claims.service";
 import { ProducerProController } from "./infrastructure/producer-pro.controller";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { AcademyAccessModule } from "../academies/academy-access.module";
+import { StorageModule } from "../storage/storage.module";
 
 @Module({
   imports: [
@@ -43,6 +46,7 @@ import { AcademyAccessModule } from "../academies/academy-access.module";
     NotificationsModule,
     PrismaModule,
     AcademyAccessModule,
+    StorageModule,
   ],
   controllers: [
     CheckoutController,
@@ -52,11 +56,13 @@ import { AcademyAccessModule } from "../academies/academy-access.module";
     MePayoutsController,
     SubscriptionsController,
     ProducerGatewayAccountsController,
+    ProducerClaimsController,
     ProducerProController,
   ],
   providers: [
     CheckoutService,
     GatewayAccountsService,
+    ProducerClaimsService,
     PaymentSettlementService,
     PayoutSettlementService,
     SubscriptionsService,

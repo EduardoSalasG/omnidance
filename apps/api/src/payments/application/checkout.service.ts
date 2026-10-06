@@ -220,6 +220,14 @@ export class TablePartyTooLargeError extends Error {
 }
 
 /** No queda cupo sentable en mesas para el grupo pedido. */
+/** methodId no pertenece al productor de la venta o está inactivo. */
+export class OwnMethodUnavailableError extends Error {
+  constructor(message = "método propio no disponible") {
+    super(message);
+    this.name = "OwnMethodUnavailableError";
+  }
+}
+
 export class TableSoldOutError extends Error {
   constructor() {
     super("sin cupo en mesas para esa cantidad de personas");
@@ -237,12 +245,20 @@ export interface PurchaseTicketInput {
   quantity?: number;
   /** Personas para reserva de mesa (solo si el evento tiene tablesTotal). */
   tablePartySize?: number;
+  /**
+   * Método propio del productor (spec producer-own-methods): si viene,
+   * la orden queda MANUAL PENDING esperando el comprobante - no toca
+   * la pasarela ni cuenta propia.
+   */
+  methodId?: string;
 }
 
 export interface PurchaseSeriesPassInput {
   seriesId: string;
   /** Mes de vigencia "YYYY-MM" - validado por el DTO del controller. */
   month: string;
+  /** Método propio del productor (spec producer-own-methods). */
+  methodId?: string;
 }
 
 export interface PurchaseMembershipInput {
@@ -258,11 +274,18 @@ export interface PurchasePrivateClassInput {
 }
 
 export interface PurchaseTicketResult {
-  paymentUrl: string;
+  /** null cuando la orden es por método propio (espera comprobante). */
+  paymentUrl: string | null;
   paymentId: string;
   quote: Quote;
   /** Tickets de la orden (1 comprador + N regalos); 1 en series pass. */
   quantity: number;
+  /** Snapshot del método propio elegido - instrucciones al comprador. */
+  method?: {
+    type: string;
+    label: string;
+    details: unknown;
+  };
 }
 
 /**
@@ -322,6 +345,31 @@ export class CheckoutService {
       if (own) return { gateway: own.gateway, gatewayAccountId: own.account.id };
     }
     return { gateway: await this.resolveGateway(), gatewayAccountId: null };
+  }
+
+  /**
+   * Método propio del productor (spec producer-own-methods): el
+   * comprador elige pagar por transferencia/link/efectivo del
+   * productor → la orden queda MANUAL PENDING esperando comprobante.
+   * Solo métodos `active` del dueño del evento/serie; eventos sin
+   * productor no admiten el modo.
+   */
+  private async ownMethodFor(
+    producerId: string | null | undefined,
+    methodId: string,
+  ) {
+    if (!producerId) {
+      throw new OwnMethodUnavailableError(
+        "esta venta no admite pago por métodos propios",
+      );
+    }
+    const method = await this.prisma.producerPaymentMethod.findFirst({
+      where: { id: methodId, producerId, active: true },
+    });
+    if (!method) {
+      throw new OwnMethodUnavailableError();
+    }
+    return method;
   }
 
   /**
@@ -641,20 +689,24 @@ export class CheckoutService {
     });
     const orderTotal = unit.listPrice * quantity - unit.discount;
     const quote: Quote = { ...unit, total: orderTotal };
-    // Pasarela propia del productor (spec producer-gateway-accounts): la
-    // orden se cobra en su cuenta → OWN_GATEWAY (comisión devengada, sin
-    // gross en el payout). Orden $0 → FREE igual que el resto.
-    const { gateway, gatewayAccountId } = await this.orderGateway(
-      event.producerId,
-    );
+    // Modo de cobro de la orden (specs producer-gateway-accounts /
+    // producer-own-methods): método propio → MANUAL PENDING esperando
+    // comprobante (OWN_METHOD); cuenta propia → su adaptador
+    // (OWN_GATEWAY); resto → plataforma (MANAGED). Orden $0 → FREE.
+    const ownMethod = input.methodId
+      ? await this.ownMethodFor(event.producerId, input.methodId)
+      : null;
+    const { gateway, gatewayAccountId } = ownMethod
+      ? { gateway: null, gatewayAccountId: null }
+      : await this.orderGateway(event.producerId);
     const breakdown =
-      orderTotal > 0 && gatewayAccountId
+      orderTotal > 0 && (gatewayAccountId || ownMethod)
         ? ownMethodBreakdown(
             orderTotal,
             allInPct,
             cardPct,
             ivaPct,
-            "OWN_GATEWAY",
+            gatewayAccountId ? "OWN_GATEWAY" : "OWN_METHOD",
           )
         : managedFeeBreakdown(orderTotal, allInPct, cardPct, ivaPct);
 
@@ -689,9 +741,11 @@ export class CheckoutService {
         unitListPrice: unit.listPrice,
         unitServiceFee: 0, // ya no existe fee al comprador
         // La orden $0 nunca toca la pasarela: "FREE" la distingue en el
-        // libro (misma convención que "MANUAL" de los claims).
-        gateway: orderTotal === 0 ? "FREE" : gateway.name,
-        gatewayAccountId: orderTotal === 0 ? null : gatewayAccountId,
+        // libro; "MANUAL" = método propio esperando comprobante.
+        gateway:
+          orderTotal === 0 ? "FREE" : ownMethod ? "MANUAL" : gateway!.name,
+        gatewayAccountId:
+          orderTotal === 0 || ownMethod ? null : gatewayAccountId,
       },
       breakdown,
     );
@@ -723,7 +777,23 @@ export class CheckoutService {
       return { paymentUrl: returnUrl, paymentId: payment.id, quote, quantity };
     }
 
-    const order = await gateway.createOrder({
+    // Método propio: sin cobro en pasarela - la orden espera el
+    // comprobante del comprador y el productor la valida.
+    if (ownMethod) {
+      return {
+        paymentUrl: null,
+        paymentId: payment.id,
+        quote,
+        quantity,
+        method: {
+          type: ownMethod.type,
+          label: ownMethod.label,
+          details: ownMethod.details,
+        },
+      };
+    }
+
+    const order = await gateway!.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
@@ -877,23 +947,29 @@ export class CheckoutService {
       producerParams,
     );
     const quote = this.pricing.quote({ listPrice, discount: null });
-    const { gateway, gatewayAccountId } = await this.orderGateway(
-      series.producerId,
-    );
-    const breakdown = gatewayAccountId
-      ? ownMethodBreakdown(
-          quote.total,
-          allInPct,
-          cardPct,
-          ivaPct,
-          "OWN_GATEWAY",
-        )
-      : managedFeeBreakdown(
-          quote.total,
-          allInPct,
-          cardPct,
-          ivaPct,
-        );
+    // Misma selección de modo que el ticket: método propio → MANUAL
+    // PENDING (OWN_METHOD); cuenta propia → su adaptador (OWN_GATEWAY).
+    const ownMethod = input.methodId
+      ? await this.ownMethodFor(series.producerId, input.methodId)
+      : null;
+    const { gateway, gatewayAccountId } = ownMethod
+      ? { gateway: null, gatewayAccountId: null }
+      : await this.orderGateway(series.producerId);
+    const breakdown =
+      quote.total > 0 && (gatewayAccountId || ownMethod)
+        ? ownMethodBreakdown(
+            quote.total,
+            allInPct,
+            cardPct,
+            ivaPct,
+            gatewayAccountId ? "OWN_GATEWAY" : "OWN_METHOD",
+          )
+        : managedFeeBreakdown(
+            quote.total,
+            allInPct,
+            cardPct,
+            ivaPct,
+          );
 
     // refId = sp_<seriesId>_<month>_<uuid>: como no hay columna para la serie
     // en Payment (eventId queda null), el refId lleva todo el contexto - el
@@ -914,14 +990,28 @@ export class CheckoutService {
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
-        gateway: gateway.name,
-        gatewayAccountId,
+        gateway: ownMethod ? "MANUAL" : gateway!.name,
+        gatewayAccountId: ownMethod ? null : gatewayAccountId,
       },
       breakdown,
     );
 
+    if (ownMethod) {
+      return {
+        paymentUrl: null,
+        paymentId: payment.id,
+        quote,
+        quantity: 1,
+        method: {
+          type: ownMethod.type,
+          label: ownMethod.label,
+          details: ownMethod.details,
+        },
+      };
+    }
+
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const order = await gateway.createOrder({
+    const order = await gateway!.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",

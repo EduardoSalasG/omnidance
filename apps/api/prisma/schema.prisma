@@ -73,6 +73,10 @@ model Person {
   paymentClaims  PaymentClaim[]
   claimsReviewed PaymentClaim[] @relation("ClaimReviewer")
   gatewayAccounts ProducerGatewayAccount[] @relation("ProducerGatewayAccounts")
+  paymentMethods ProducerPaymentMethod[] @relation("ProducerPaymentMethods")
+  ticketClaims   TicketClaim[]
+  ticketClaimsAsProducer TicketClaim[] @relation("TicketClaimProducer")
+  ticketClaimsReviewed   TicketClaim[] @relation("TicketClaimReviewer")
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -1208,6 +1212,7 @@ model Payment {
 
   events PaymentEvent[]
   payoutLines PayoutLine[]
+  ticketClaims TicketClaim[]
 }
 
 enum PayoutStatus {
@@ -1464,6 +1469,56 @@ model ProducerGatewayAccount {
   payments Payment[]
 
   @@index([producerId, status])
+}
+
+// Medios de cobro propios del productor (spec producer-own-methods):
+// espejo de AcademyPaymentMethod - la venta se cobra por su lado
+// (transferencia, link, efectivo) y la plataforma devenga su comisión
+// (OWN_METHOD) neteada en el payout.
+model ProducerPaymentMethod {
+  id         String   @id @default(cuid())
+  producer   Person   @relation("ProducerPaymentMethods", fields: [producerId], references: [id])
+  producerId String
+  type       String   // TRANSFER | PAYMENT_LINK | CASH
+  label      String
+  // TRANSFER: {bank, accountType, accountNumber, holder, rut, email?}
+  // PAYMENT_LINK: {url} - CASH: {instructions}
+  details    Json
+  order      Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([producerId, active])
+}
+
+// Comprobante de una orden pagada por método propio (spec
+// producer-own-methods): a diferencia de PaymentClaim (academia: el
+// claim CREA el pago al aprobarse), acá la orden ya existe como
+// Payment PENDING gateway MANUAL - el claim adjunta la evidencia y al
+// aprobarse el payment se liquida por el mismo settle del webhook.
+model TicketClaim {
+  id           String      @id @default(cuid())
+  payment      Payment     @relation(fields: [paymentId], references: [id])
+  paymentId    String
+  person       Person      @relation(fields: [personId], references: [id])
+  personId     String      // comprador que sube el comprobante
+  producer     Person      @relation("TicketClaimProducer", fields: [producerId], references: [id])
+  producerId   String      // dueño de la orden (su cola de validación)
+  receiptKey   String      // storageKey en UPLOADS_DIR (claims/<producerId>/<uuid>.<ext>)
+  methodType   String      // snapshot del método al momento del claim
+  methodLabel  String      // snapshot
+  status       ClaimStatus @default(PENDING)
+  note         String?     // nota del comprador
+  reviewedBy   Person?     @relation("TicketClaimReviewer", fields: [reviewedById], references: [id])
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?     // motivo del rechazo
+
+  createdAt    DateTime @default(now())
+
+  @@index([producerId, status])
+  @@index([paymentId])
 }
 
 /// Cada request/response contra la pasarela (append-only, nunca update/delete).

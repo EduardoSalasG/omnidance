@@ -14,6 +14,11 @@ import {
   XIcon,
 } from "@/components/ui";
 import type { CheckoutEvent } from "./page";
+import {
+  OwnMethodPicker,
+  type OwnMethod,
+} from "@/components/checkout/own-method-picker";
+import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
 
 type Quote = {
   listPrice: number;
@@ -25,6 +30,10 @@ type Phase =
   | { kind: "form" }
   | { kind: "processing" }
   | { kind: "awaiting"; paymentId: string; paymentUrl: string; quote: Quote }
+  // Orden por método propio del productor (spec producer-own-methods):
+  // MANUAL PENDING - el comprador sube el comprobante y el productor
+  // valida; el poll de /payments/:id detecta el PAID como siempre.
+  | { kind: "manual"; paymentId: string; method: OwnMethod }
   // El polling se agotó sin respuesta del webhook (~30s): el pago puede
   // confirmar igual - el ticket aparece en la wallet al llegar.
   | { kind: "stillPending"; paymentId: string; paymentUrl: string; quote: Quote }
@@ -81,6 +90,10 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
   const [discountBusy, setDiscountBusy] = useState(false);
   const [songSuggestion, setSongSuggestion] = useState("");
   const [simulating, setSimulating] = useState(false);
+  // Métodos propios del productor (spec producer-own-methods): si los
+  // hay activos se ofrecen como alternativa a la pasarela.
+  const [ownMethods, setOwnMethods] = useState<OwnMethod[]>([]);
+  const [methodId, setMethodId] = useState<string | null>(null);
 
   // Cantidad de la orden (1–10): 1 propia + asignadas a amigos +
   // reclamables (link por WhatsApp para quien no esté en la app).
@@ -125,11 +138,21 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    apiFetch(`/events/${event.id}/payment-methods`)
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((data: { methods?: OwnMethod[] } | null) => {
+        setOwnMethods(data?.methods ?? []);
+      })
+      .catch(() => undefined);
+  }, [event.id]);
+
   const isStub =
     phase.kind === "awaiting" && phase.paymentUrl.startsWith("stub://");
   const busy =
     phase.kind === "processing" ||
     phase.kind === "awaiting" ||
+    phase.kind === "manual" ||
     phase.kind === "stillPending";
 
   // Canal de venta: puerta-app cuando el evento está en vivo o la
@@ -269,6 +292,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           ...(wantsTable && hasTables && tableAvailable
             ? { tablePartySize: partySize }
             : {}),
+          ...(methodId ? { methodId } : {}),
         }),
       });
 
@@ -319,12 +343,25 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       }
 
       const data = (await res.json()) as {
-        paymentUrl: string;
+        paymentUrl: string | null;
         paymentId: string;
         quote: Quote;
+        method?: Omit<OwnMethod, "id">;
       };
 
-      if (data.paymentUrl.startsWith("stub://")) {
+      if (data.paymentUrl === null) {
+        // Método propio: sin redirect - la orden espera el comprobante.
+        setPhase({
+          kind: "manual",
+          paymentId: data.paymentId,
+          method: {
+            id: methodId!,
+            type: data.method?.type ?? "TRANSFER",
+            label: data.method?.label ?? "",
+            details: (data.method?.details ?? {}) as Record<string, string>,
+          },
+        });
+      } else if (data.paymentUrl.startsWith("stub://")) {
         // Dev: gateway stub - el pago se simula con el webhook desde esta página
         setPhase({
           kind: "awaiting",
@@ -340,6 +377,14 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       setPhase({ kind: "form" });
     }
   }
+
+  // La orden manual aprobada → PAID → la misma pantalla de éxito del
+  // flujo de pasarela (ticket emitido por el settle).
+  const onClaimPaid = () => {
+    if (phase.kind === "manual") {
+      setPhase({ kind: "success", paymentId: phase.paymentId });
+    }
+  };
 
   async function simulate(status: "PAID" | "FAILED") {
     if (phase.kind !== "awaiting") return;
@@ -679,6 +724,20 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </p>
         </Card>
 
+        {/* Forma de pago: pasarela vs métodos propios del productor
+            (spec producer-own-methods) - solo si el productor publicó
+            métodos activos. */}
+        {ownMethods.length > 0 && (
+          <Card>
+            <OwnMethodPicker
+              methods={ownMethods}
+              value={methodId}
+              onChange={setMethodId}
+              disabled={busy}
+            />
+          </Card>
+        )}
+
         {/* Código de descuento - "Aplicar" valida sin generar la orden
             (GET /checkout/discount-quote) y el estimado del breakdown
             muestra el total con descuento antes de pagar. */}
@@ -795,6 +854,14 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           </Card>
         )}
 
+        {phase.kind === "manual" && (
+          <OwnMethodClaim
+            paymentId={phase.paymentId}
+            method={phase.method}
+            onPaid={onClaimPaid}
+          />
+        )}
+
         {phase.kind === "failed" ? (
           <div className="flex flex-col gap-4">
             <p role="alert" className="text-center text-red-400">
@@ -809,10 +876,12 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             </Button>
           </div>
         ) : (
-          <Button type="submit" size="lg" disabled={busy}>
-            {phase.kind === "processing" && <Spinner size="sm" />}
-            {phase.kind === "processing" ? t("processing") : t("pay")}
-          </Button>
+          phase.kind !== "manual" && (
+            <Button type="submit" size="lg" disabled={busy}>
+              {phase.kind === "processing" && <Spinner size="sm" />}
+              {phase.kind === "processing" ? t("processing") : t("pay")}
+            </Button>
+          )
         )}
 
         {/* Esperando confirmación + simulación dev (solo stub://) */}
