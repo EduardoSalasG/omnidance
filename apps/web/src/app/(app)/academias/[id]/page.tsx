@@ -355,6 +355,7 @@ export default async function AcademiaDetailPage({
             title: t.profile.plans,
             planActive: t.profile.planActive,
             buyPlan: t.profile.buyPlan,
+            buyClass: t.profile.buyClass,
             extendPlan: t.profile.extendPlan,
             privateLesson: t.profile.privateLesson,
             privateLessonDesc: t.profile.privateLessonDesc,

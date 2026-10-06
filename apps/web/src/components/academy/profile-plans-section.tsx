@@ -58,6 +58,8 @@ export function ProfilePlansSection({
     title: string;
     planActive: string;
     buyPlan: string;
+    /** CTA para plan SINGLE - se compra una clase, no un plan. */
+    buyClass: string;
     extendPlan: string;
     privateLesson: string;
     privateLessonDesc: string;
@@ -95,6 +97,8 @@ export function ProfilePlansSection({
         {visible.map((p) => {
           const isActivePlan = p.id === activePlanId;
           const subscribedToPlan = p.id === subscribedPlanId;
+          // SINGLE vende UNA clase - el CTA dice "Comprar clase", no plan.
+          const cta = p.type === "SINGLE" ? labels.buyClass : isActivePlan ? labels.extendPlan : labels.buyPlan;
           // TRIAL sin precio no se compra (el backend rechaza el
           // checkout) - la academia lo asigna desde su consola.
           const freeTrial = p.type === "TRIAL" && p.price <= 0;
@@ -151,14 +155,14 @@ export function ProfilePlansSection({
                 !subscribedToPlan &&
                 (blocked ? (
                   <Button className="w-full" disabled>
-                    {isActivePlan ? labels.extendPlan : labels.buyPlan}
+                    {cta}
                   </Button>
                 ) : (
                   <Button
                     href={`/academias/${academyId}/checkout?plan=${p.id}`}
                     className="w-full"
                   >
-                    {isActivePlan ? labels.extendPlan : labels.buyPlan}
+                    {cta}
                   </Button>
                 ))
               )}
