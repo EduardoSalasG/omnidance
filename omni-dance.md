@@ -677,9 +677,11 @@ El cargo por venta desaparece para la academia: pasa a **suscripción mensual po
 | **Doble escaneo** | "Ya ingresó a las 23:14" → el staff decide; puede anular check-in erróneo (con auditoría) |
 | **Todos entran con cuenta** | No hay anónimos: el staff crea cuenta ligera en puerta al momento (nombre + teléfono → QR al instante). Sin esto no hay grafo de baile completo ni CRM completo |
 
+**El QR personal es la única credencial - no hay QR por entrada** (decisión oct-2026, spec wallet-passes): redundar credenciales suma fricción. El wallet pass de Google (`/wallet/google`, GenericPass) es un **lanzador** que abre `/qr` - sin barcode propio. La visibilidad day-of la resuelve el **push `ticket.day_of`** (cron ≈09:00 Chile a dueños de ticket ACTIVE de eventos del día, dedup por día) + la cadena de instalación (`PushOptIn`/`InstallPrompt`); no hay gating del QR por fecha. Y las órdenes manuales en revisión se muestran en "Mis entradas" como **"pago en validación"** (ámbar, sin QR) - nadie llega a puerta creyendo que tiene entrada antes de la aprobación del comprobante.
+
 ### Regalos / gift tickets
 
-- Comprar entrada para un amigo → el QR del ticket queda ligado a la cuenta del receptor
+- Comprar entrada para un amigo → el ticket queda ligado a la cuenta del receptor (entra con su propio QR personal)
 - Sin cuenta → el regalo es el onboarding (link + claim)
 
 ### Códigos de descuento (`discount_code`)

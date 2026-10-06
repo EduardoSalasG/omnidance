@@ -4827,6 +4827,29 @@
       ]
     },
     {
+      "name": "wallet",
+      "item": [
+        {
+          "name": "GET /api/wallet/google",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "wallet",
+                "google"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "discount-codes",
       "item": [
         {

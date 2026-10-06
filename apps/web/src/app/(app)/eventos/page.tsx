@@ -4,7 +4,10 @@ import type { Metadata } from "next";
 import { messages } from "@/i18n/messages";
 import { EventCard, type EventCardData } from "@/components/events/event-card";
 import EventsMap, { type MapVenue } from "@/components/events/EventsMap";
-import { TicketWallet } from "@/components/tickets/TicketWallet";
+import {
+  TicketWallet,
+  type PendingOrder,
+} from "@/components/tickets/TicketWallet";
 import { Button, ChevronDownIcon, RefreshIcon } from "@/components/ui";
 import { Segmented, SegmentedMulti } from "@/components/ui/segmented";
 import { EscapableDetails } from "@/components/ui/escapable-details";
@@ -114,6 +117,25 @@ async function getMyTickets(): Promise<MyTicket[] | null> {
   return (await res.json()) as MyTicket[];
 }
 
+/** Órdenes PENDING del usuario (spec wallet-passes): la compra por
+    método propio queda en revisión del productor y NO genera ticket
+    hasta el settle - la wallet las muestra como "pago en validación"
+    para que nadie llegue a puerta creyendo que tiene entrada. [] en
+    fallo (mejor omitir la sección que bloquear la wallet). */
+async function getPendingOrders(): Promise<PendingOrder[]> {
+  const res = await fetch(`${API_URL}/api/payments/mine`, {
+    cache: "no-store",
+    headers: { cookie: cookies().toString() },
+  }).catch(() => null);
+  if (!res?.ok) return [];
+  const rows = (await res.json()) as (PendingOrder & { status: string })[];
+  return rows.filter(
+    (r) =>
+      r.status === "PENDING" &&
+      (r.orderType === "TICKET" || r.orderType === "SERIES_PASS"),
+  );
+}
+
 /** Las celdas del grid mensual que cubre `month`, con sus eventos. */
 function eventCells(
   month: Date,
@@ -142,9 +164,10 @@ export default async function EventosPage({
   const tc = messages.common as Record<string, string>;
   // El middleware exige sesión para esta ruta - todo visitante está
   // autenticado (no hay ramas anónimas).
-  const [res, myTickets] = await Promise.all([
+  const [res, myTickets, pendingOrders] = await Promise.all([
     fetch(`${API_URL}/api/events`, { cache: "no-store" }).catch(() => null),
     getMyTickets(),
+    getPendingOrders(),
   ]);
   // Fallo de carga ≠ cartelera vacía: el empty diría "no hay eventos"
   // cuando el problema es el API/red.
@@ -542,7 +565,7 @@ export default async function EventosPage({
             </Button>
           </div>
         ) : (
-          <TicketWallet tickets={myTickets} />
+          <TicketWallet tickets={myTickets} pendingOrders={pendingOrders} />
         )
       ) : eventsError ? (
         /* 500/red en /events no es cartelera vacía - error honesto

@@ -54,7 +54,27 @@ const inputCls =
  * antigua /entradas redirige acá. Los tickets llegan por props desde el
  * server component (cookie-forwarded), el estado interactivo es local.
  */
-export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
+/** Orden PENDING renderizada como "pago en validación" (spec
+    wallet-passes): una compra por método propio espera la aprobación
+    del comprobante por el productor - NO es una entrada válida todavía
+    (sin QR, sin acceso). Visualmente distinta del ticket para que
+    nadie llegue a puerta creyendo que tiene entrada. */
+export type PendingOrder = {
+  id: string;
+  orderType: string;
+  amount: number;
+  createdAt: string;
+  eventName: string | null;
+  seriesName: string | null;
+};
+
+export function TicketWallet({
+  tickets,
+  pendingOrders = [],
+}: {
+  tickets: WalletTicket[];
+  pendingOrders?: PendingOrder[];
+}) {
   const t = useTranslations("wallet");
   const tc = useTranslations("common");
   const tcClaim = useTranslations("claim");
@@ -147,7 +167,7 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
   // Más futuro/reciente primero - lo próximo es lo que se usa en puerta.
   const sorted = sortWalletTickets(items);
 
-  if (sorted.length === 0) {
+  if (sorted.length === 0 && pendingOrders.length === 0) {
     return (
       <Card className="flex flex-col items-center gap-4 py-10 text-center">
         <p role="status" className="text-white/70">
@@ -164,6 +184,31 @@ export function TicketWallet({ tickets }: { tickets: WalletTicket[] }) {
         <p role="status" className="text-sm font-medium text-neon">
           {t("transferSuccess")}
         </p>
+      )}
+
+      {pendingOrders.length > 0 && (
+        <ul className="mb-4 flex flex-col gap-4" aria-label={t("pendingTitle")}>
+          {pendingOrders.map((o) => (
+            <li key={o.id}>
+              <Card className="flex flex-col gap-2 border-amber-500/40 bg-amber-500/5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <p className="text-lg font-semibold">
+                      {o.eventName ?? o.seriesName ?? t("pendingOrder")}
+                    </p>
+                    <p className="text-sm text-white/60">
+                      {t("pendingValidating")}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <Badge variant="outline">{t("pendingBadge")}</Badge>
+                    <PriceTag amount={o.amount} className="text-base" />
+                  </div>
+                </div>
+              </Card>
+            </li>
+          ))}
+        </ul>
       )}
 
       <ul className="flex flex-col gap-4">
