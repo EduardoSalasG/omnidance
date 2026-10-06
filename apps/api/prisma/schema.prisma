@@ -818,6 +818,11 @@ model Enrollment {
   // cobrar; null = sin fecha de término registrada.
   endsAt    DateTime?
   pausedAt  DateTime?
+  // Dedup de recordatorios de renovación (spec academy-renewal-reminders):
+  // guardan el endsAt del ciclo ya avisado - al renovar, el endsAt nuevo
+  // difiere del marcador y el aviso se rearma solo.
+  reminderExpiringFor DateTime?
+  reminderExpiredFor  DateTime?
   createdAt DateTime         @default(now())
 
   claims    PaymentClaim[]

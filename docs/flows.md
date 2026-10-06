@@ -426,6 +426,32 @@ sequenceDiagram
 - Los archivos viven bajo `UPLOADS_DIR` (dev `./uploads`, prod `/app/uploads` con bind mount al disco dedicado de la VM) - **nunca** se sirven por estático público; el endpoint exige ser dueño del claim o admin de la academia.
 - Academia sin métodos propios configurados: la card no aparece y el alumno sigue el checkout Flow normal (passthrough con comisión plataforma).
 
+## Recordatorios de renovación - barrido diario → email + notificación (academy-renewal-reminders)
+
+```mermaid
+sequenceDiagram
+    participant CRON as AcademiesScheduler (09:00)
+    participant SVC as AcademyRemindersService
+    participant DB as Postgres
+    participant MAIL as Resend (MAILER)
+    actor U as Alumno
+
+    CRON->>SVC: runDaily() (skip en NODE_ENV=test)
+    SVC->>DB: Enrollment ACTIVE|ONLINE<br/>endsAt ∈ [now, now+first_notice_days)<br/>+ endsAt ∈ [now-grace_days, now)<br/>person.findMany por lote (Enrollment no<br/>tiene relación a Person - personId suelto)
+    loop por ciclo sin avisar
+        SVC->>MAIL: mail "por vencer" o "en gracia"<br/>(academia + plan + fecha + CTA /academias/:id)
+        SVC->>DB: notifySafe academy.plan_expiring / plan_grace
+        SVC->>DB: reminderExpiringFor|ExpiredFor = endsAt del ciclo
+    end
+    U->>DB: paga (Flow online o claim MANUAL aprobado)<br/>→ endsAt nuevo re-arma los avisos del siguiente ciclo
+```
+
+- **Dos avisos por ciclo**: "por vencer" cuando `endsAt` cae dentro de `academy.renewal.first_notice_days` (default 5d); "en gracia" cuando `endsAt` ya venció pero dentro de `academy.renewal.grace_days` (default 5d) - el mail dice hasta qué fecha puede pagar y que después no podrá agendar clases del mes.
+- **Idempotente por ciclo**: `Enrollment.reminderExpiringFor`/`reminderExpiredFor` guardan el `endsAt` que gatilló cada aviso; un `endsAt` nuevo (renovación, extensión manual) re-arma los dos avisos. Un mail que falla loguea y no marca - reintenta el día siguiente.
+- **Elegibilidad**: solo `ACTIVE`/`ONLINE` con `endsAt` (TRIAL no recibe avisos de renovación pagada; `endsAt` null = packs/legado nunca expira). Alumno sin email igual recibe la notificación in-app y queda marcado.
+- **Vigencia efectiva en reservas**: `resolveQuota` exige `now <= endsAt + grace_days` para clases dentro de ese rango - una inscripción vencida habilita clases solo hasta `endsAt + grace` (mismo número del mail); pasada la gracia no resuelve cuota.
+- **Notificación al owner por pago**: `settleMembership` envía `payment.membership.received` a `academy.ownerId` dentro del bloque `paidNow` (compra online y renovaciones automáticas Flow - nunca en webhooks/reconcile duplicados). Los claims MANUAL ya notifican al owner al crearse (`payment_claim_new`); la aprobación la hace el mismo owner.
+
 ## Clase suelta / taller - compra → asiento pagado (WORKSHOP)
 
 ```mermaid

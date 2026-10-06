@@ -161,6 +161,10 @@ flowchart LR
 | `prime_time.window_minutes` | gamificación (default de creación de eventos) | 30 |
 | `prime_time.threshold_pct` | gamificación fallback aforo | 0.2 |
 | `classes.cancel_refund_minutes` | cancelación de reserva con devolución de crédito | 60 |
+| `academy.insights.expiring_days` | dashboard de academia - ventana "planes por vencer" | 14 |
+| `academy.insights.birthday_days` | dashboard de academia - ventana "cumpleaños próximos" | 30 |
+| `academy.renewal.first_notice_days` | `AcademyRemindersService` - email "por vencer" si `endsAt` cae en esta ventana | 5 |
+| `academy.renewal.grace_days` | `AcademyRemindersService` (email "en gracia") + `resolveQuota` (vigencia efectiva de reservas: vencido solo agenda clases ≤ `endsAt + grace`) | 5 |
 
 Edición en vivo vía `PUT /api/admin/params/:key` (audita `PARAM_UPDATE`). El seed hace `upsert` con `update:{}` - **no pisa valores editados**.
 
@@ -277,6 +281,16 @@ Mismo ciclo de vida y mismas reglas de concurrencia que `SubscriptionsService` (
 - **Enforcement suave Producer Pro**: tras liquidar una renovación se re-evalúa la facturación 90d; si supera el tope del tier vigente se agenda el tier que califica como pending (upgrade en próximo ciclo, sin cortar el período en curso) + `producer.pro_upgrade_required` una vez por tier requerido. Sobre el máximo autogestionado solo avisa (PRO_BIG manual). Nunca bloquea ventas en curso.
 - **Enforcement de mora de academia (S3)**: en el mismo tick del cron 09:00 corre `PlatformSubscriptionsService.enforceAcademyBlocks` - academias con `billingGraceUntil < now` y `billingBlockedAt = null` pasan a bloqueadas (updateMany que repite la condición: un settle entremedio deja count=0 y no notifica un bloqueo falso) + `academy.billing_blocked` al owner (una vez por episodio - la condición excluye las ya bloqueadas). El bloqueo es **estado, no lazy check**: la escritura está gated centralmente en `AcademyAccess.requireManageWrite`/`requireAdministerWrite` (mutaciones de consola → 403 `{error:"billing.blocked"}`; las lecturas siguen por `requireManage`/`requireAdminister`), y **los endpoints de billing quedan exentos a propósito** (`POST /academies/:id/subscribe`, `PATCH /:id/subscription`, `POST /:id/subscription/cancel`, `GET /:id/billing` - el owner debe poder pagar para desbloquearse). Fuera de la consola: `GET /academies`, `GET /classes/browse`, `GET /styles/:id/landing` y la sugerencia "próxima clase" de /home filtran `billingBlockedAt: null`; `POST /classes/:id/book` y todo checkout hacia la academia (membership, clase suelta, particular, membership-subscription) rechazan con 400 `{error:"academy.unavailable"}` - copy honesto, la falta es del owner. El alumno conserva todo: `/academies/enrolled`, `/classes/mine`, `/classes/:id` y `/academies/:id/profile` siguen respondiendo y exponen `billingBlocked: true` para que la UI los marque "no disponible" (S6). `PATCH /private-lessons/:id` de staff también bloquea, pero el `cancel` del propio alumno queda abierto.
 - **Gatillos compartidos**: el `subscription-webhook` público dispara ambos `reconcileAll` (mismo INBOUND auditado una vez); el cron 09:00 del `SubscriptionsScheduler` barre membresías **y** plataforma (+ `enforceAcademyBlocks`); `GET /academies/:id/billing` y `GET /producers/:id/pro` hacen refresh activo por sub como `GET /subscriptions/:id`.
+
+### Recordatorios de renovación de plan (`AcademiesScheduler` → `AcademyRemindersService` - spec academy-renewal-reminders)
+
+Segundo cron 09:00 (dominio academias, mismo patrón: provider fino + skip en `NODE_ENV=test`). `runDaily()` barre inscripciones `ACTIVE`/`ONLINE` con `endsAt` (TRIAL excluido a propósito: no es plan pagado) en dos ventanas y envía **email Resend + notificación in-app** por ciclo:
+
+- **"Por vencer"**: `endsAt ∈ [now, now + academy.renewal.first_notice_days)` → mail con academia/plan/fecha y CTA a `/academias/:id`.
+- **"En gracia"**: `endsAt ∈ [now - academy.renewal.grace_days, now)` → mail "tienes hasta `endsAt + grace` para pagar, si no no podrás agendar".
+- **Dedup por ciclo**: `Enrollment.reminderExpiringFor`/`reminderExpiredFor` guardan el `endsAt` que gatilló cada aviso - renovar re-arma los dos; un mail fallido no marca (reintenta al día siguiente). `Enrollment` no tiene relación `Person` (`personId` suelto) - el servicio resuelve nombre/email con un `person.findMany` por lote; sin email igual va la notificación in-app y queda marcado.
+- **Vigencia efectiva en reservas** (`resolveQuota` en `ClassesController`): inscripción con `endsAt` vencido solo resuelve cuota para clases `<= endsAt + grace_days` (el mismo param del mail - es lo que el aviso promete); vigente agenda libre, `endsAt` null nunca expira.
+- **Owner notificado por pago**: `settleMembership` hace `notifySafe(academy.ownerId, type:"payment.membership.received")` dentro del bloque `paidNow` (compra online y renovaciones automáticas; nunca en webhook/reconcile duplicado). En claims MANUAL el owner ya recibe `payment_claim_new` al crearse el claim.
 
 ### Gating Producer Pro (S5 - spec producer-pro)
 

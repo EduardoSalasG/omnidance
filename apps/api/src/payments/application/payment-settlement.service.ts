@@ -677,7 +677,7 @@ export class PaymentSettlementService {
         type: true,
         periodDays: true,
         academyId: true,
-        academy: { select: { name: true } },
+        academy: { select: { name: true, ownerId: true } },
       },
     });
     if (!plan) {
@@ -788,6 +788,26 @@ export class PaymentSettlementService {
           planName: plan.name,
           academyId: plan.academyId,
           academyName: plan.academy.name,
+          amount: payment.amount,
+        },
+      });
+      // Al owner le llega cada pago de plan (spec
+      // academy-renewal-reminders): compra online y renovación de
+      // suscripción Flow pasan por el mismo settle.
+      const payer = await this.prisma.person.findUnique({
+        where: { id: payment.personId },
+        select: { name: true },
+      });
+      await this.notifications.notifySafe(plan.academy.ownerId, {
+        category: "TRANSACTIONAL",
+        type: "payment.membership.received",
+        title: "Pago de plan recibido",
+        body: `${payer?.name ?? "Un alumno"} · ${plan.name} · ${clp}`,
+        data: {
+          paymentId: payment.id,
+          planId: plan.id,
+          academyId: plan.academyId,
+          personId: payment.personId,
           amount: payment.amount,
         },
       });
