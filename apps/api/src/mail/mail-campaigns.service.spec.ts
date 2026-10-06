@@ -18,12 +18,14 @@ function mkPrisma() {
   const campaigns = new Map<string, Row>();
   const runs: Row[] = [];
   const recipients: Row[] = [];
+  const sents: Row[] = [];
   const audit: Row[] = [];
+  const inDays = (n: number) => new Date(Date.now() + n * 86_400_000);
   const people = new Map<string, Row>([
-    ["p1", { id: "p1", email: "a@test.cl" }],
-    ["p2", { id: "p2", email: "b@test.cl" }],
-    ["p3", { id: "p3", email: null }],
-    ["admin", { id: "admin", email: "admin@test.cl" }],
+    ["p1", { id: "p1", email: "a@test.cl", name: "Ana" }],
+    ["p2", { id: "p2", email: "b@test.cl", name: "Beto" }],
+    ["p3", { id: "p3", email: null, name: "Coro" }],
+    ["admin", { id: "admin", email: "admin@test.cl", name: "Root" }],
   ]);
   const personRoles: Row[] = [
     { personId: "p1", role: "PRODUCER", status: "APPROVED" },
@@ -37,21 +39,57 @@ function mkPrisma() {
     { ownerId: "p2", eventId: "ev1", status: "USED" }, // no ACTIVE
     { ownerId: "p2", eventId: "ev2", status: "ACTIVE" }, // otro evento
   ];
+  const enrollments: Row[] = [
+    {
+      id: "e1", personId: "p1", status: "ACTIVE", endsAt: inDays(3),
+      academy: { name: "La Gozadera" }, plan: { name: "Mensual" },
+    },
+    {
+      id: "e2", personId: "p2", status: "ACTIVE", endsAt: inDays(4),
+      academy: { name: "Clave" }, plan: null, // sin plan
+    },
+    {
+      id: "e3", personId: "p3", status: "ACTIVE", endsAt: inDays(3),
+      academy: { name: "Clave" }, plan: { name: "Trimestral" }, // sin email
+    },
+    {
+      id: "e4", personId: "p1", status: "TRIAL", endsAt: inDays(3),
+      academy: { name: "Clave" }, plan: { name: "Trial" }, // TRIAL no aplica
+    },
+    {
+      id: "e5", personId: "p1", status: "ACTIVE", endsAt: inDays(-2),
+      academy: { name: "La Gozadera" }, plan: { name: "Mensual" }, // gracia
+    },
+    {
+      id: "e6", personId: "p1", status: "ACTIVE", endsAt: null,
+      academy: { name: "Clave" }, plan: { name: "Mensual" }, // sin vigencia
+    },
+  ];
+  const psubs: Row[] = [
+    { id: "s1", personId: "p1", status: "ACTIVE", nextInvoiceAt: inDays(4), tierCode: "PRO" },
+    { id: "s2", personId: "p2", status: "CANCELED", nextInvoiceAt: inDays(4), tierCode: "PRO" },
+    { id: "s3", personId: "p2", status: "ACTIVE", nextInvoiceAt: null, tierCode: "PRO" },
+  ];
   const match = (row: Row, where: Row) =>
     Object.entries(where).every(([k, v]) => {
-      if (v && typeof v === "object" && "not" in (v as Row)) {
-        return row[k] !== (v as Row).not;
-      }
-      if (v && typeof v === "object" && "lte" in (v as Row)) {
-        return row[k] instanceof Date && (row[k] as Date) <= (v as Row).lte;
-      }
-      if (v && typeof v === "object" && "in" in (v as Row)) {
-        return ((v as Row).in as unknown[]).includes(row[k]);
-      }
-      if (v && typeof v === "object" && "status" in (v as Row)) {
-        return ((v as Row).status as Row)?.not === undefined
-          ? row[k] === v
-          : row[k] !== (v as { not: unknown }).not;
+      if (v && typeof v === "object" && !(v instanceof Date)) {
+        const o = v as Row;
+        if ("gte" in o || "gt" in o || "lt" in o || "lte" in o) {
+          const d = row[k] as Date;
+          if (!(d instanceof Date)) return false;
+          if ("gte" in o && d < (o.gte as Date)) return false;
+          if ("gt" in o && d <= (o.gt as Date)) return false;
+          if ("lt" in o && d >= (o.lt as Date)) return false;
+          if ("lte" in o && d > (o.lte as Date)) return false;
+          return true;
+        }
+        if ("not" in o) return row[k] !== o.not;
+        if ("in" in o) return (o.in as unknown[]).includes(row[k]);
+        if ("status" in o) {
+          return (o.status as Row)?.not === undefined
+            ? row[k] === v
+            : row[k] !== (v as { not: unknown }).not;
+        }
       }
       return row[k] === v;
     });
@@ -59,6 +97,7 @@ function mkPrisma() {
     campaigns,
     runs,
     recipients,
+    sents,
     audit,
     person: {
       findMany: vi.fn(async ({ where }: { where: Row }) =>
@@ -73,7 +112,7 @@ function mkPrisma() {
         personRoles.filter((r) => {
           if (where.role && r.role !== where.role) return false;
           if (where.status && r.status !== where.status) return false;
-          if (where.person?.email?.not === null) {
+          if ((where.person as Row | undefined)?.email != null && ((where.person as Row).email as Row).not === null) {
             return people.get(r.personId as string)?.email != null;
           }
           return true;
@@ -84,6 +123,28 @@ function mkPrisma() {
       findMany: vi.fn(async ({ where }: { where: Row }) =>
         tickets.filter((t) => match(t, where)),
       ),
+    },
+    enrollment: {
+      findMany: vi.fn(async ({ where }: { where: Row }) =>
+        enrollments.filter((e) => match(e, where)),
+      ),
+    },
+    platformSubscription: {
+      findMany: vi.fn(async ({ where }: { where: Row }) =>
+        psubs.filter((s) => match(s, where)),
+      ),
+    },
+    mailCampaignSent: {
+      findMany: vi.fn(async ({ where }: { where: Row }) =>
+        sents.filter((s) => match(s, where)),
+      ),
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        if (sents.some((s) => s.campaignId === data.campaignId && s.dedupKey === data.dedupKey)) {
+          throw new Error("unique constraint");
+        }
+        sents.push({ ...data, id: `ms-${sents.length}` });
+        return data;
+      }),
     },
     mailCampaign: {
       findMany: vi.fn(async ({ where }: { where: Row }) =>
@@ -109,7 +170,7 @@ function mkPrisma() {
         if (!row) throw new Error("not found");
         for (const [k, v] of Object.entries(data)) {
           if (v && typeof v === "object" && "increment" in (v as Row)) {
-            row[k] = (row[k] as number) + (v as Row).increment;
+            row[k] = (row[k] as number) + ((v as Row).increment as number);
           } else {
             row[k] = v;
           }
@@ -179,19 +240,56 @@ const baseInput = {
 };
 
 describe("resolveAudience", () => {
+  const ids = (entries: { personId: string }[]) => entries.map((e) => e.personId);
+
   it("ALL devuelve personas con email", async () => {
     const { svc } = mkService();
-    expect(await svc.resolveAudience({ kind: "ALL" })).toEqual(["p1", "p2", "admin"]);
+    expect(ids(await svc.resolveAudience({ kind: "ALL" }))).toEqual(["p1", "p2", "admin"]);
   });
 
   it("ROLE filtra por roleKey APPROVED con email", async () => {
     const { svc } = mkService();
-    expect(await svc.resolveAudience({ kind: "ROLE", roleKey: "PRODUCER" })).toEqual(["p1"]);
+    expect(ids(await svc.resolveAudience({ kind: "ROLE", roleKey: "PRODUCER" }))).toEqual(["p1"]);
   });
 
   it("EVENT devuelve owners de tickets ACTIVE con email, deduplicados", async () => {
     const { svc } = mkService();
-    expect(await svc.resolveAudience({ kind: "EVENT", eventId: "ev1" })).toEqual(["p1"]);
+    expect(ids(await svc.resolveAudience({ kind: "EVENT", eventId: "ev1" }))).toEqual(["p1"]);
+  });
+
+  it("ENROLLMENTS_EXPIRING trae ctx + dedupKey; excluye TRIAL, sin email y sin endsAt", async () => {
+    const { svc } = mkService();
+    const entries = await svc.resolveAudience({ kind: "ENROLLMENTS_EXPIRING", days: 5 });
+    expect(ids(entries)).toEqual(["p1", "p2"]);
+    const e1 = entries.find((e) => e.personId === "p1")!;
+    expect(e1.ctx.academy).toBe("La Gozadera");
+    expect(e1.ctx.plan).toBe("Mensual");
+    expect(e1.ctx.endsAt).toMatch(/\d{4}/);
+    expect(e1.dedupKey).toMatch(/^enr:e1:/);
+    // p2 sin plan → placeholder legible
+    expect(entries.find((e) => e.personId === "p2")!.ctx.plan).toBe("tu plan");
+  });
+
+  it("ENROLLMENTS_EXPIRED trae las de gracia (endsAt pasado dentro de days)", async () => {
+    const { svc } = mkService();
+    const entries = await svc.resolveAudience({ kind: "ENROLLMENTS_EXPIRED", days: 5 });
+    expect(ids(entries)).toEqual(["p1"]);
+  });
+
+  it("PLATFORM_SUB_EXPIRING trae solo ACTIVE con nextInvoiceAt en ventana", async () => {
+    const { svc } = mkService();
+    const entries = await svc.resolveAudience({ kind: "PLATFORM_SUB_EXPIRING", days: 7 });
+    expect(ids(entries)).toEqual(["p1"]);
+    expect(entries[0].ctx).toMatchObject({ plan: "PRO" });
+    expect(entries[0].dedupKey).toMatch(/^psub:s1:/);
+  });
+
+  it("audiencias inválidas → 400", async () => {
+    const { svc } = mkService();
+    await expect(svc.resolveAudience({ kind: "ROLE", roleKey: "" })).rejects.toThrow("roleKey");
+    await expect(
+      svc.resolveAudience({ kind: "ENROLLMENTS_EXPIRING", days: 0 }),
+    ).rejects.toThrow("days");
   });
 });
 
@@ -287,6 +385,88 @@ describe("dispatchDue + sendRun", () => {
     seedCampaign(prisma, { nextRunAt: new Date(Date.now() + 86_400_000) });
     prisma.campaigns.set("c2", { id: "c2", status: "DRAFT", nextRunAt: new Date(0) });
     expect(await svc.dispatchDue()).toMatchObject({ dispatched: 0 });
+  });
+});
+
+describe("variables de plantilla + dedup por ciclo", () => {
+  const seedCtxCampaign = (prisma: ReturnType<typeof mkPrisma>) =>
+    prisma.campaigns.set("c1", {
+      id: "c1",
+      name: "vencimientos",
+      subject: "Tu plan {{plan}} en {{academy}} vence",
+      htmlBody: "<p>hasta el {{endsAt}}</p>",
+      audience: { kind: "ENROLLMENTS_EXPIRING", days: 5 },
+      scheduleKind: "CRON",
+      cronExpr: "0 9 * * *",
+      status: "SCHEDULED",
+      nextRunAt: new Date(Date.now() - 60_000),
+      timezone: "America/Santiago",
+      sentCount: 0,
+      failCount: 0,
+    });
+
+  it("guardar con variable no soportada por la audiencia → 400", async () => {
+    const { svc } = mkService();
+    await expect(
+      svc.create("admin", {
+        ...baseInput,
+        subject: "Vence {{nextInvoiceAt}}",
+        audience: { kind: "ENROLLMENTS_EXPIRING", days: 5 },
+        scheduleKind: "CRON",
+        cronExpr: "0 9 * * *",
+      }),
+    ).rejects.toThrow("no soportadas");
+    // {{endsAt}} sí la aporta esa audiencia
+    const ok = await svc.create("admin", {
+      ...baseInput,
+      subject: "Vence {{endsAt}}",
+      audience: { kind: "ENROLLMENTS_EXPIRING", days: 5 },
+      scheduleKind: "CRON",
+      cronExpr: "0 9 * * *",
+    });
+    expect(ok.id).toBeTruthy();
+  });
+
+  it("interpola ctx por destinatario y marca el ciclo enviado", async () => {
+    const { prisma, mailer, svc } = mkService();
+    seedCtxCampaign(prisma);
+    await svc.dispatchDue();
+    expect(mailer.send).toHaveBeenCalledTimes(2);
+    const calls = mailer.send.mock.calls as unknown as [string, string, string][];
+    const toAna = calls.find((c) => c[0] === "a@test.cl")!;
+    expect(toAna[1]).toBe("Tu plan Mensual en La Gozadera vence");
+    expect(toAna[2]).toContain("hasta el");
+    const toBeto = calls.find((c) => c[0] === "b@test.cl")!;
+    expect(toBeto[1]).toContain("tu plan");
+    expect(prisma.sents).toHaveLength(2);
+    expect(prisma.sents.map((s) => s.dedupKey)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^enr:e1:/), expect.stringMatching(/^enr:e2:/)]),
+    );
+  });
+
+  it("la segunda corrida salta el mismo ciclo (SKIPPED) sin re-enviar", async () => {
+    const { prisma, mailer, svc } = mkService();
+    seedCtxCampaign(prisma);
+    await svc.dispatchDue();
+    expect(prisma.sents).toHaveLength(2);
+    const res = await svc.runNow("c1", "admin");
+    expect(res.sent).toBe(0);
+    expect(mailer.send).toHaveBeenCalledTimes(2); // no envió de nuevo
+    const run2 = prisma.recipients.filter((r) => r.runId === prisma.runs[1].id);
+    expect(run2.every((r) => r.status === "SKIPPED")).toBe(true);
+  });
+
+  it("fallo de envío no quema la dedup: el próximo run reintenta", async () => {
+    const { prisma, mailer, svc } = mkService(async () => {
+      throw new Error("resend caído");
+    });
+    seedCtxCampaign(prisma);
+    await svc.dispatchDue();
+    expect(prisma.sents).toHaveLength(0);
+    mailer.send.mockImplementation(async () => {});
+    const res = await svc.runNow("c1", "admin");
+    expect(res.sent).toBe(2);
+    expect(prisma.sents).toHaveLength(2);
   });
 });
 

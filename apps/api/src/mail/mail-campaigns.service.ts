@@ -17,7 +17,104 @@ import { PrismaService } from "../prisma.service";
 export type AudienceSpec =
   | { kind: "ALL" }
   | { kind: "ROLE"; roleKey: string }
-  | { kind: "EVENT"; eventId: string };
+  | { kind: "EVENT"; eventId: string }
+  | { kind: "ENROLLMENTS_EXPIRING"; days: number }
+  | { kind: "ENROLLMENTS_EXPIRED"; days: number }
+  | { kind: "PLATFORM_SUB_EXPIRING"; days: number };
+
+/**
+ * Destinatario resuelto: personId + variables de plantilla propias
+ * (audiencias con contexto) + dedupKey del ciclo recordado - solo las
+ * audiencias de ciclo de vida la traen; sin dedupKey no hay dedup
+ * entre corridas (semántica newsletter).
+ */
+export interface ResolvedEntry {
+  personId: string;
+  ctx: Record<string, string>;
+  dedupKey?: string;
+}
+
+const BASE_VARS = ["name", "email"];
+
+/** Variables de plantilla que una audiencia aporta por destinatario. */
+export function varsForAudience(spec: AudienceSpec): string[] {
+  if (
+    spec.kind === "ENROLLMENTS_EXPIRING" ||
+    spec.kind === "ENROLLMENTS_EXPIRED"
+  ) {
+    return [...BASE_VARS, "academy", "plan", "endsAt"];
+  }
+  if (spec.kind === "PLATFORM_SUB_EXPIRING") {
+    return [...BASE_VARS, "plan", "nextInvoiceAt"];
+  }
+  return BASE_VARS;
+}
+
+const VAR_RE = /\{\{\s*([a-zA-Z][a-zA-Z0-9_]*)\s*\}\}/g;
+
+function extractVars(text: string): Set<string> {
+  const vars = new Set<string>();
+  for (const m of text.matchAll(VAR_RE)) vars.add(m[1]);
+  return vars;
+}
+
+function applyTemplate(text: string, vars: Record<string, string>): string {
+  return text.replace(VAR_RE, (_m, key: string) => vars[key] ?? "");
+}
+
+const DAY_MS = 86_400_000;
+
+const fmtCl = (d: Date) =>
+  d.toLocaleDateString("es-CL", {
+    timeZone: "America/Santiago",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+function validateAudience(spec: AudienceSpec): void {
+  switch (spec.kind) {
+    case "ALL":
+      return;
+    case "ROLE":
+      if (!spec.roleKey) {
+        throw new BadRequestException("audiencia ROLE requiere roleKey");
+      }
+      return;
+    case "EVENT":
+      if (!spec.eventId) {
+        throw new BadRequestException("audiencia EVENT requiere eventId");
+      }
+      return;
+    case "ENROLLMENTS_EXPIRING":
+    case "ENROLLMENTS_EXPIRED":
+    case "PLATFORM_SUB_EXPIRING":
+      if (!Number.isInteger(spec.days) || spec.days < 1 || spec.days > 365) {
+        throw new BadRequestException(
+          `audiencia ${spec.kind} requiere days entero entre 1 y 365`,
+        );
+      }
+      return;
+    default:
+      throw new BadRequestException("audiencia inválida");
+  }
+}
+
+function validateTemplate(
+  subject: string,
+  html: string,
+  spec: AudienceSpec,
+): void {
+  const allowed = new Set(varsForAudience(spec));
+  const used = new Set([...extractVars(subject), ...extractVars(html)]);
+  const bad = [...used].filter((v) => !allowed.has(v));
+  if (bad.length > 0) {
+    throw new BadRequestException(
+      `variables no soportadas por la audiencia ${spec.kind}: ${bad.join(", ")} ` +
+        `(disponibles: {{${[...allowed].join("}}, {{")}}})`,
+    );
+  }
+}
 
 export interface CampaignInput {
   name: string;
@@ -113,21 +210,22 @@ export class MailCampaignsService implements OnApplicationBootstrap {
 
   // ─── Audiencias ─────────────────────────────────────────────────
 
-  /** Resuelve los personIds CON email de una audiencia, en el momento actual. */
-  async resolveAudience(spec: AudienceSpec): Promise<string[]> {
+  /** Resuelve destinatarios CON email + ctx/dedupKey, en el momento actual. */
+  async resolveAudience(spec: AudienceSpec): Promise<ResolvedEntry[]> {
+    validateAudience(spec);
     if (spec.kind === "ALL") {
       const people = await this.prisma.person.findMany({
         where: { email: { not: null } },
         select: { id: true },
       });
-      return people.map((p) => p.id);
+      return people.map((p) => ({ personId: p.id, ctx: {} }));
     }
     if (spec.kind === "ROLE") {
       const roles = await this.prisma.personRole.findMany({
         where: { role: spec.roleKey, status: "APPROVED", person: { email: { not: null } } },
         select: { personId: true },
       });
-      return roles.map((r) => r.personId);
+      return roles.map((r) => ({ personId: r.personId, ctx: {} }));
     }
     if (spec.kind === "EVENT") {
       // Ticket.ownerId es string plano (sin relación) - dos pasos.
@@ -140,9 +238,80 @@ export class MailCampaignsService implements OnApplicationBootstrap {
         where: { id: { in: ownerIds }, email: { not: null } },
         select: { id: true },
       });
-      return people.map((p) => p.id);
+      return people.map((p) => ({ personId: p.id, ctx: {} }));
     }
-    throw new BadRequestException("audiencia inválida");
+    const now = new Date();
+    if (spec.kind === "ENROLLMENTS_EXPIRING") {
+      return this.enrollmentsInWindow(now, new Date(now.getTime() + spec.days * DAY_MS));
+    }
+    if (spec.kind === "ENROLLMENTS_EXPIRED") {
+      return this.enrollmentsInWindow(new Date(now.getTime() - spec.days * DAY_MS), now);
+    }
+    return this.platformSubsExpiring(now, new Date(now.getTime() + spec.days * DAY_MS));
+  }
+
+  /**
+   * Inscripciones pagadas con endsAt en la ventana (por vencer o en
+   * gracia). `Enrollment.personId` es string plano - el email se
+   * resuelve en segunda query. dedupKey por ciclo: una renovación
+   * cambia endsAt y rearma el recordatorio.
+   */
+  private async enrollmentsInWindow(lo: Date, hi: Date): Promise<ResolvedEntry[]> {
+    const rows = await this.prisma.enrollment.findMany({
+      where: { status: { in: ["ACTIVE", "ONLINE"] }, endsAt: { gte: lo, lt: hi } },
+      select: {
+        id: true,
+        personId: true,
+        endsAt: true,
+        academy: { select: { name: true } },
+        plan: { select: { name: true } },
+      },
+    });
+    const withEmail = new Set(
+      (
+        await this.prisma.person.findMany({
+          where: { id: { in: rows.map((r) => r.personId) }, email: { not: null } },
+          select: { id: true },
+        })
+      ).map((p) => p.id),
+    );
+    return rows
+      .filter((r) => r.endsAt && withEmail.has(r.personId))
+      .map((r) => ({
+        personId: r.personId,
+        dedupKey: `enr:${r.id}:${r.endsAt!.toISOString()}`,
+        ctx: {
+          academy: r.academy.name,
+          plan: r.plan?.name ?? "tu plan",
+          endsAt: fmtCl(r.endsAt!),
+        },
+      }));
+  }
+
+  /** Suscripciones de plataforma (SaaS academia / Producer Pro) por cobrar. */
+  private async platformSubsExpiring(lo: Date, hi: Date): Promise<ResolvedEntry[]> {
+    const rows = await this.prisma.platformSubscription.findMany({
+      where: { status: "ACTIVE", nextInvoiceAt: { gte: lo, lt: hi } },
+      select: { id: true, personId: true, nextInvoiceAt: true, tierCode: true },
+    });
+    const withEmail = new Set(
+      (
+        await this.prisma.person.findMany({
+          where: { id: { in: rows.map((r) => r.personId) }, email: { not: null } },
+          select: { id: true },
+        })
+      ).map((p) => p.id),
+    );
+    return rows
+      .filter((r) => r.nextInvoiceAt && withEmail.has(r.personId))
+      .map((r) => ({
+        personId: r.personId,
+        dedupKey: `psub:${r.id}:${r.nextInvoiceAt!.toISOString()}`,
+        ctx: {
+          plan: r.tierCode,
+          nextInvoiceAt: fmtCl(r.nextInvoiceAt!),
+        },
+      }));
   }
 
   async audienceCount(spec: AudienceSpec): Promise<{ count: number }> {
@@ -177,6 +346,8 @@ export class MailCampaignsService implements OnApplicationBootstrap {
   }
 
   async create(actorId: string, input: CampaignInput) {
+    validateAudience(input.audience);
+    validateTemplate(input.subject, input.htmlBody, input.audience);
     const schedule = this.validateSchedule(input);
     const campaign = await this.prisma.mailCampaign.create({
       data: {
@@ -220,6 +391,8 @@ export class MailCampaignsService implements OnApplicationBootstrap {
       timezone: input.timezone ?? campaign.timezone,
       status: input.status ?? (campaign.status as "DRAFT" | "SCHEDULED"),
     };
+    validateAudience(merged.audience);
+    validateTemplate(merged.subject, merged.htmlBody, merged.audience);
     const next = merged.status === "SCHEDULED" ? this.validateSchedule(merged) : null;
     const updated = await this.prisma.mailCampaign.update({
       where: { id },
@@ -275,17 +448,27 @@ export class MailCampaignsService implements OnApplicationBootstrap {
     return updated;
   }
 
-  /** Copia de prueba al email del admin - sin run ni recipients. */
+  /** Copia de prueba al email del admin - sin run ni recipients. Las
+   *  variables se sustituyen con el ctx del primer destinatario real
+   *  resuelto (o quedan vacías si la audiencia está vacía). */
   async testSend(id: string, actorId: string) {
     const campaign = await this.get(id);
     const actor = await this.prisma.person.findUnique({
       where: { id: actorId },
-      select: { email: true },
+      select: { email: true, name: true },
     });
     if (!actor?.email) {
       throw new BadRequestException("tu cuenta no tiene email para la prueba");
     }
-    await this.mailer.send(actor.email, `[TEST] ${campaign.subject}`, campaign.htmlBody);
+    const spec = campaign.audience as unknown as AudienceSpec;
+    const entries = await this.resolveAudience(spec);
+    const vars = {
+      name: actor.name ?? "Admin",
+      email: actor.email,
+      ...(entries[0]?.ctx ?? {}),
+    };
+    const subject = `[TEST] ${applyTemplate(campaign.subject, vars)}`;
+    await this.mailer.send(actor.email, subject, applyTemplate(campaign.htmlBody, vars));
     await this.audit(actorId, "MAIL_CAMPAIGN_TEST", id, { to: actor.email });
     return { sent: actor.email };
   }
@@ -340,13 +523,28 @@ export class MailCampaignsService implements OnApplicationBootstrap {
     const run = await this.prisma.mailCampaignRun.create({
       data: { campaignId: campaign.id, trigger, status: "RUNNING", startedAt: new Date() },
     });
-    const personIds = await this.resolveAudience(
+    const entries = await this.resolveAudience(
       campaign.audience as unknown as AudienceSpec,
     );
     await this.prisma.mailCampaignRecipient.createMany({
-      data: personIds.map((personId) => ({ runId: run.id, personId })),
+      data: entries.map((e) => ({ runId: run.id, personId: e.personId })),
       skipDuplicates: true,
     });
+    // Un mail por persona por corrida: con N inscripciones por vencer
+    // se usa el ctx de la primera (el recipient es único por personId).
+    const byPerson = new Map<string, ResolvedEntry>();
+    for (const e of entries) {
+      if (!byPerson.has(e.personId)) byPerson.set(e.personId, e);
+    }
+    // Ciclos ya recordados en corridas anteriores de esta campaña.
+    const sentKeys = new Set(
+      (
+        await this.prisma.mailCampaignSent.findMany({
+          where: { campaignId: campaign.id },
+          select: { dedupKey: true },
+        })
+      ).map((s) => s.dedupKey),
+    );
     const pending = await this.prisma.mailCampaignRecipient.findMany({
       where: { runId: run.id, status: "PENDING" },
     });
@@ -362,9 +560,17 @@ export class MailCampaignsService implements OnApplicationBootstrap {
         cancelled = true;
         break;
       }
+      const entry = byPerson.get(recipient.personId);
+      if (entry?.dedupKey && sentKeys.has(entry.dedupKey)) {
+        await this.prisma.mailCampaignRecipient.update({
+          where: { id: recipient.id },
+          data: { status: "SKIPPED", error: "ciclo ya recordado" },
+        });
+        continue;
+      }
       const person = await this.prisma.person.findUnique({
         where: { id: recipient.personId },
-        select: { email: true },
+        select: { email: true, name: true },
       });
       if (!person?.email) {
         await this.prisma.mailCampaignRecipient.update({
@@ -373,12 +579,36 @@ export class MailCampaignsService implements OnApplicationBootstrap {
         });
         continue;
       }
+      const vars = {
+        name: person.name ?? "",
+        email: person.email,
+        ...(entry?.ctx ?? {}),
+      };
       try {
-        await this.mailer.send(person.email, campaign.subject, campaign.htmlBody);
+        await this.mailer.send(
+          person.email,
+          applyTemplate(campaign.subject, vars),
+          applyTemplate(campaign.htmlBody, vars),
+        );
         await this.prisma.mailCampaignRecipient.update({
           where: { id: recipient.id },
           data: { status: "SENT", sentAt: new Date() },
         });
+        if (entry?.dedupKey) {
+          // Marca el ciclo como recordado; un choque de unique (mismo
+          // dedupKey en otro run) es benigno - significa ya enviado.
+          await this.prisma.mailCampaignSent
+            .create({
+              data: {
+                campaignId: campaign.id,
+                dedupKey: entry.dedupKey,
+                personId: recipient.personId,
+                runId: run.id,
+              },
+            })
+            .catch(() => {});
+          sentKeys.add(entry.dedupKey);
+        }
         sent++;
       } catch (e) {
         await this.prisma.mailCampaignRecipient.update({

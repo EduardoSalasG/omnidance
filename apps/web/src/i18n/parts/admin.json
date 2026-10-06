@@ -223,9 +223,15 @@
       "kind": {
         "ALL": "Todos",
         "ROLE": "Por rol",
-        "EVENT": "Asistentes de evento"
+        "EVENT": "Asistentes de evento",
+        "ENROLLMENTS_EXPIRING": "Inscripciones por vencer",
+        "ENROLLMENTS_EXPIRED": "Inscripciones en gracia",
+        "PLATFORM_SUB_EXPIRING": "Suscripciones por cobrar"
       },
       "pickEvent": "Elige un evento",
+      "daysLabel": "Ventana (días):",
+      "varsHint": "Variables: {vars}",
+      "dedupHint": "No re-envía: cada destinatario recibe 1 mail por ciclo de vencimiento.",
       "count": "{n, plural, one {# destinatario} other {# destinatarios}}",
       "countLoading": "Calculando destinatarios…",
       "schedule": "Programación",
@@ -244,6 +250,7 @@
       "audienceAll": "Todos los usuarios",
       "audienceRole": "Rol {role}",
       "audienceEvent": "Evento {event}",
+      "audienceLifecycle": "{label} · ventana {days}d",
       "scheduleOnce": "Única: {at}",
       "status": {
         "DRAFT": "Borrador",

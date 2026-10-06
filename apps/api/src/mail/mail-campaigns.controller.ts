@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request } from "express";
-import { IsDateString, IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from "class-validator";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { RolesGuard } from "../common/rbac/roles.guard";
 import { RequirePermissions } from "../common/rbac/roles.decorator";
@@ -20,8 +20,21 @@ import {
 } from "./mail-campaigns.service";
 
 class AudienceDto {
-  @IsIn(["ALL", "ROLE", "EVENT"])
-  kind!: "ALL" | "ROLE" | "EVENT";
+  @IsIn([
+    "ALL",
+    "ROLE",
+    "EVENT",
+    "ENROLLMENTS_EXPIRING",
+    "ENROLLMENTS_EXPIRED",
+    "PLATFORM_SUB_EXPIRING",
+  ])
+  kind!:
+    | "ALL"
+    | "ROLE"
+    | "EVENT"
+    | "ENROLLMENTS_EXPIRING"
+    | "ENROLLMENTS_EXPIRED"
+    | "PLATFORM_SUB_EXPIRING";
 
   @IsOptional()
   @IsString()
@@ -30,6 +43,13 @@ class AudienceDto {
   @IsOptional()
   @IsString()
   eventId?: string;
+
+  /** Ventana en días para las audiencias de ciclo de vida (default 7). */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  days?: number;
 }
 
 class CampaignDto {
@@ -107,12 +127,12 @@ class CampaignPatchDto {
   status?: "DRAFT" | "SCHEDULED";
 }
 
-const toSpec = (a: AudienceDto): AudienceSpec =>
-  a.kind === "ROLE"
-    ? { kind: "ROLE", roleKey: a.roleKey ?? "" }
-    : a.kind === "EVENT"
-      ? { kind: "EVENT", eventId: a.eventId ?? "" }
-      : { kind: "ALL" };
+const toSpec = (a: AudienceDto): AudienceSpec => {
+  if (a.kind === "ROLE") return { kind: "ROLE", roleKey: a.roleKey ?? "" };
+  if (a.kind === "EVENT") return { kind: "EVENT", eventId: a.eventId ?? "" };
+  if (a.kind === "ALL") return { kind: "ALL" };
+  return { kind: a.kind, days: a.days ?? 7 };
+};
 
 /**
  * Campañas de mail del admin (spec admin-jobs-mail-campaigns): CRUD,

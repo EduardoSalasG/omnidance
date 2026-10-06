@@ -1,6 +1,34 @@
-# Handoff - 2026-10-19c (admin-jobs-mail-campaigns)
+# Handoff - 2026-10-19c (admin-jobs-mail-campaigns + context-audiences)
 
-## Completado en esta sesión (commit en dev)
+## Completado en esta sesión (commits en dev)
+
+### `mail-campaign-context-audiences` → audiencias con ctx + plantillas
+
+Decisión (conversada): el admin quería crear recordatorios tipo
+"vencimiento del plan" por su cuenta — las campañas con HTML estático
+no alcanzaban.
+
+- **Variables `{{var}}`** en subject+HTML interpoladas por destinatario;
+  `{{name}}`/`{{email}}` siempre. Variable no soportada por la audiencia
+  → 400 al guardar (lista las disponibles).
+- **Audiencias de ciclo de vida** `{days}` (default 7, 1-365):
+  `ENROLLMENTS_EXPIRING` (endsAt en [now,now+days), ACTIVE/ONLINE →
+  `{{academy}}`,`{{plan}}`,`{{endsAt}}`), `ENROLLMENTS_EXPIRED` (gracia)
+  y `PLATFORM_SUB_EXPIRING` (nextInvoiceAt → `{{plan}}` tier,
+  `{{nextInvoiceAt}}`).
+- **Dedup por ciclo** `MailCampaignSent` (`@@unique(campaignId,dedupKey)`,
+  `enr:<id>:<endsAt>`/`psub:<id>:<nextInvoiceAt>`): un cron diario no
+  re-envía por el mismo ciclo (SKIPPED "ciclo ya recordado"); FAILED no
+  quema la marca; renovar cambia la clave y rearma. Audiencias genéricas
+  sin dedupKey → cada corrida envía a todos (newsletter).
+- testSend sustituye vars con el ctx del primer destinatario real.
+- Un mail por persona por corrida (ctx del primer match si tiene 2
+  inscripciones por vencer - el recipient es único por personId).
+- Migración `20261019000002_mail_campaign_sent`.
+- Suite: **1717/1717, 86 archivos** (+8 specs del slice); web build
+  71/71; i18n OK; OpenSpec válido; openapi/postman regenerados (249).
+
+
 
 ### `admin-jobs-mail-campaigns` → consola de jobs + campañas de mail
 
