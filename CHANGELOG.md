@@ -3,6 +3,78 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.3.0] - 2026-10-06
+
+Release mayor de plataforma: consola admin operativa (jobs + campañas
+de mail), programa completo de pagos directos (academia y productor)
+con validación por comprobante, puertos de pago multi-proveedor,
+consola financiera, check-in offline y wallet.
+
+### Added
+
+- **Consola de jobs `/admin/jobs`**: `ScheduledJob` + `JobRun` en DB
+  (la DB es la fuente de verdad del horario — sobrevive deploys),
+  registro central `JOB_REGISTRY` con 5 jobs, catch-up al boot,
+  `nextRunAt` real vía `cron-parser` en `America/Santiago`, editar
+  cron/pausar/ejecutar-ahora e historial por corrida con contadores.
+  Claim atómico `runningRunId IS NULL` para multi-instancia.
+- **Campañas de mail `/admin/campanas`**: asunto + HTML con preview,
+  audiencias ALL/ROLE/EVENT (con búsqueda `q` de eventos) y con
+  contexto `ENROLLMENTS_EXPIRING`/`ENROLLMENTS_EXPIRED`/
+  `PLATFORM_SUB_EXPIRING`/`CLAIMS_PENDING`; variables `{{var}}` por
+  destinatario validadas al guardar; dedup por ciclo vía
+  `MailCampaignSent`; envío único o cron, test-send, cancelación
+  mid-send y tracking por destinatario.
+- **Opt-out de campañas**: `Person.mailOptOutAt`, footer con link
+  firmado `GET /api/mail/unsubscribe?p=&t=` (HMAC-SHA256 con
+  `JWT_SECRET`, público), exclusión en resolución y re-chequeo al
+  enviar; el correo transaccional no se ve afectado.
+- **Pagos directos alumno → academia**: medios propios del owner
+  (transferencia/link/efectivo) configurables en `/academia/cobros` y
+  visibles en el checkout; claim `AWAITING` persistente (el alumno
+  sale a pagar y retoma), datos de transferencia copiables en bloque,
+  comprobante adjunto y validación del owner con seguimiento de
+  intentos sin comprobante.
+- **Medios de cobro propios del productor** (transferencia/link/
+  efectivo con comprobante validado, `OWN_METHOD`) y **cuentas de
+  pasarela del productor** (credenciales cifradas, `OWN_GATEWAY`,
+  webhook `?account=`).
+- **Puertos de pago multi-proveedor**: `GatewayRegistry` con webhook
+  `:provider`, adaptador MercadoPago, adaptador Fintoc (A2A CL/MX) y
+  `SubscriptionProvider` normalizado (Flow como adaptador, provider
+  por param).
+- **Comisión todo incluido**: el comprador paga el precio exacto y la
+  comisión se descuenta al productor.
+- **Consola financiera `/admin/finanzas`**: KPIs, liquidaciones,
+  devengado y SaaS; notas de cobro internas `BillingDocument` por
+  liquidación.
+- **Check-in offline en puerta**: manifiesto cacheado + cola
+  IndexedDB + sync batch.
+- **Wallet**: push day-of de tickets, lanzador Google Wallet y
+  pendiente en wallet.
+- **Academias**: carga masiva CSV (`bulk-import`), colaboradores por
+  capacidad con auditoría, emails de renovación con gracia + aviso al
+  owner, insights de retención (planes por vencer + cumpleaños),
+  `Person.birthDate`, `GET /academies/public`.
+- **Eventos**: corte de preventa por evento/productor con entrada
+  liberada online.
+- **Landings pro separadas**: `/para-academias` y `/para-productores`
+  con copy por rol.
+
+### Changed
+
+- Selector de eventos de campañas: búsqueda por nombre sin límite de
+  ~50 PUBLISHED, muestra fecha y status.
+- CTA de compra de planes/clases unificado a "Comprar" ("Extender
+  vigencia" cuando hay plan vigente).
+- Copy: "consola"/"panel" → lenguaje simple; encuesta "Sofocante" →
+  "Calurosa"; landing academias reordenada por operación.
+
+### Fixed
+
+- CI: comilla suelta en el extractor de `SEED_ADMIN_EMAIL` rompía el
+  script remoto del deploy.
+
 ## [0.2.1] - 2026-10-05
 
 ### Fixed
