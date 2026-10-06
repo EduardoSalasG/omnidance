@@ -90,6 +90,17 @@ export function EventForm({
   const [doorCap, setDoorCap] = useState(
     initial?.doorCap != null ? String(initial.doorCap) : "",
   );
+  // Corte de preventa como "HH:MM" del día del evento (spec
+  // event-presale-cutoff). Los valores post-medianoche (>1439) no caben
+  // en un input time - el dirty flag conserva el valor guardado si el
+  // productor no toca el campo al editar.
+  const [presaleCutoff, setPresaleCutoff] = useState(() => {
+    const m = initial?.presaleCutoffMinutes;
+    if (m == null || m >= 1440) return "";
+    const h = Math.floor(m / 60);
+    return `${String(h).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  });
+  const [cutoffDirty, setCutoffDirty] = useState(false);
   const [tablesTotal, setTablesTotal] = useState(
     initial?.tablesTotal != null ? String(initial.tablesTotal) : "",
   );
@@ -206,6 +217,20 @@ export function EventForm({
         : {}),
       ...(toOptionalInt(doorCap) !== undefined
         ? { doorCap: toOptionalInt(doorCap) }
+        : {}),
+      // Corte: en edit solo se envía si el productor lo tocó (así un
+      // valor guardado vía API -ej. post-medianoche- no se pierde al
+      // guardar otros campos). Vacío + tocado = vuelve a heredar (null).
+      ...(mode === "create" || cutoffDirty
+        ? presaleCutoff.trim() !== ""
+          ? {
+              presaleCutoffMinutes:
+                Number(presaleCutoff.slice(0, 2)) * 60 +
+                Number(presaleCutoff.slice(3, 5)),
+            }
+          : mode === "edit"
+            ? { presaleCutoffMinutes: null }
+            : {}
         : {}),
       // vacío = sin servicio de mesas → en edit se envía null (limpia)
       ...(mode === "edit" && tablesTotal.trim() === ""
@@ -425,6 +450,23 @@ export function EventForm({
             className={inputCls}
           />
         </label>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-white/70">
+            {t("form.presaleCutoff")}
+          </span>
+          <input
+            type="time"
+            value={presaleCutoff}
+            onChange={(e) => {
+              setCutoffDirty(true);
+              setPresaleCutoff(e.target.value);
+            }}
+            className={inputCls}
+          />
+        </label>
+        <p className="-mt-2 text-xs text-white/40 sm:col-span-2">
+          {t("form.presaleCutoffHint")}
+        </p>
         <label className="flex flex-col gap-2">
           <span className="text-sm text-white/70">
             {t("form.tablesTotal")}

@@ -43,6 +43,11 @@ import {
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { buildTablePdf } from "../../common/pdf-report";
 import { assertProducerPro } from "../../common/producer-pro";
+import {
+  PRESALE_CUTOFF_MAX_MINUTES,
+  presaleCutoffDate,
+  resolvePresaleCutoffMinutes,
+} from "../../common/presale-cutoff";
 
 // Valores del enum EventType del schema (no confundir con la spec: PRACTICA,
 // no PRACTICE).
@@ -137,6 +142,17 @@ class CreateEventDto {
   @IsOptional()
   @IsInt()
   doorCap?: number;
+
+  /**
+   * Corte de la preventa en minutos desde medianoche del día del evento
+   * (ej. 1425 = 23:45; >1439 = post-medianoche). null/vacío → default del
+   * productor → param global presale.cutoff_hour.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(PRESALE_CUTOFF_MAX_MINUTES)
+  presaleCutoffMinutes?: number | null;
 
   /**
    * Override admin del cargo por servicio de preventa (null → default del
@@ -250,6 +266,13 @@ class UpdateEventDto {
   @IsOptional()
   @IsInt()
   doorCap?: number;
+
+  /** Corte de la preventa (minutos del día del evento) - null hereda. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(PRESALE_CUTOFF_MAX_MINUTES)
+  presaleCutoffMinutes?: number | null;
 
   /** Override admin del cargo por servicio - null limpia el override. */
   @IsOptional()
@@ -913,6 +936,7 @@ export class EventsController {
         doorPrice: true,
         presaleCap: true,
         doorCap: true,
+        presaleCutoffMinutes: true,
         serviceFeeClp: true,
         doorAppFeeClp: true,
         doorCashFeeClp: true,
@@ -988,12 +1012,17 @@ export class EventsController {
     const { _count, ...rest } = event;
     const tablesActive = tablesAgg?._count ?? 0;
     const seatsUsed = tablesAgg?._sum.partySize ?? 0;
-    // Corte de preventa - mismo cálculo que CheckoutService.purchaseTicket
-    // (presale.cutoff_hour del día del evento, hora local del server). El
+    // Corte de preventa efectivo - misma cadena que
+    // CheckoutService.purchaseTicket (evento → productor → global). El
     // checkout lo usa para estimar preventa vs puerta sin replicar la regla.
     const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
-    const presaleEndsAt = new Date(event.startsAt);
-    presaleEndsAt.setHours(cutoffHour, 0, 0, 0);
+    const producerParams = await this.params.getProducerParams(
+      event.producerId,
+    );
+    const presaleEndsAt = presaleCutoffDate(
+      event.startsAt,
+      resolvePresaleCutoffMinutes(event, producerParams, cutoffHour),
+    );
     return {
       ...rest,
       host,
@@ -1095,6 +1124,7 @@ export class EventsController {
         doorPrice: dto.doorPrice ?? null,
         presaleCap: dto.presaleCap ?? null,
         doorCap: dto.doorCap ?? null,
+        presaleCutoffMinutes: dto.presaleCutoffMinutes ?? null,
         serviceFeeClp: dto.serviceFeeClp ?? null,
         doorAppFeeClp: dto.doorAppFeeClp ?? null,
         doorCashFeeClp: dto.doorCashFeeClp ?? null,
@@ -1179,6 +1209,9 @@ export class EventsController {
     if (dto.doorPrice !== undefined) data.doorPrice = dto.doorPrice;
     if (dto.presaleCap !== undefined) data.presaleCap = dto.presaleCap;
     if (dto.doorCap !== undefined) data.doorCap = dto.doorCap;
+    if (dto.presaleCutoffMinutes !== undefined) {
+      data.presaleCutoffMinutes = dto.presaleCutoffMinutes;
+    }
     if (dto.serviceFeeClp !== undefined) {
       // campo operativo (no contenido): solo admin.access lo fija/limpia.
       await this.assertAdminFeeOverride(me);

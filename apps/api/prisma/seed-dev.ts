@@ -1407,7 +1407,7 @@ export async function seedDev(prisma: PrismaClient) {
   ];
   const bcsEvent = await mkSeries(
     "Bachata con Salsa", krrera.id, tierraDura.id, "weekly:wed",
-    // entrada gratis → sin preventa; puerta $5.000 desde las 23:45.
+    // preventa $0 (entrada liberada) hasta 23:45; puerta $5.000 después.
     0, 5000, 3, [krrera.id],
     [Genre.BACHATA, Genre.SALSA], [], 0,
     // 4 bachatas, 2 salsas → 67/33
@@ -1415,9 +1415,17 @@ export async function seedDev(prisma: PrismaClient) {
     PROG_BCS,
   );
   // mkSeries asume 22:00→04:00 - la noche real abre 21:00 y cierra 02:00.
+  // La entrada liberada ES la preventa $0 (spec event-presale-cutoff):
+  // corte propio a las 23:45 del día del evento (1425 min) - desde ahí la
+  // app vende a doorPrice. El item "Hasta 23:45" del programa queda como
+  // copy; la regla real vive en presaleCutoffMinutes.
   await prisma.event.update({
     where: { id: bcsEvent.id },
-    data: { startsAt: nextDay(3, 21), endsAt: nextDay(3, 26) },
+    data: {
+      startsAt: nextDay(3, 21),
+      endsAt: nextDay(3, 26),
+      presaleCutoffMinutes: 23 * 60 + 45,
+    },
   });
 
   // Noches standalone (sin serie) - nombre = marca de la noche. Las

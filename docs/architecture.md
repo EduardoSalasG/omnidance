@@ -165,6 +165,7 @@ flowchart LR
 | `academy.insights.birthday_days` | dashboard de academia - ventana "cumpleaños próximos" | 30 |
 | `academy.renewal.first_notice_days` | `AcademyRemindersService` - email "por vencer" si `endsAt` cae en esta ventana | 5 |
 | `academy.renewal.grace_days` | `AcademyRemindersService` (email "en gracia") + `resolveQuota` (vigencia efectiva de reservas: vencido solo agenda clases ≤ `endsAt + grace`) | 5 |
+| `presale.cutoff_hour` | fallback global del corte de preventa (hora del día del evento); la cadena real es `Event.presaleCutoffMinutes` → `ProducerParams.presaleCutoffMinutes` → este param (`resolvePresaleCutoffMinutes`, spec event-presale-cutoff) | 19 |
 
 Edición en vivo vía `PUT /api/admin/params/:key` (audita `PARAM_UPDATE`). El seed hace `upsert` con `update:{}` - **no pisa valores editados**.
 

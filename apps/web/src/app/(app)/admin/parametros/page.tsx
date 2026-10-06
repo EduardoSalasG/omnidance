@@ -146,6 +146,7 @@ const FEE_FIELDS = [
   "doorAppFeeClp",
   "doorCashFeeClp",
   "platformFeePct",
+  "presaleCutoffMinutes",
 ] as const;
 type FeeField = (typeof FEE_FIELDS)[number];
 type FeeValues = Record<FeeField, number | null>;
@@ -155,6 +156,20 @@ const FEE_LABEL_KEY: Record<FeeField, string> = {
   doorAppFeeClp: "doorAppFee",
   doorCashFeeClp: "doorCashFee",
   platformFeePct: "platformFeePct",
+  presaleCutoffMinutes: "presaleCutoffLabel",
+};
+
+// El corte se guarda en minutos del día del evento pero se edita como
+// "HH:MM" (input time). Valores post-medianoche (>1439) no caben en el
+// input: se muestran vacíos y se preservan al guardar (ver save()).
+const minutesToTime = (m: number | null): string =>
+  m == null || m >= 1440
+    ? ""
+    : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const timeToMinutes = (t: string): number | null => {
+  const trimmed = t.trim();
+  if (!/^\d{2}:\d{2}$/.test(trimmed)) return null;
+  return Number(trimmed.slice(0, 2)) * 60 + Number(trimmed.slice(3, 5));
 };
 
 type ProducerRow = {
@@ -186,6 +201,7 @@ function draftsFromDefaults(defaults: FeeValues): Record<FeeField, string> {
     doorAppFeeClp: defaults.doorAppFeeClp?.toString() ?? "",
     doorCashFeeClp: defaults.doorCashFeeClp?.toString() ?? "",
     platformFeePct: defaults.platformFeePct?.toString() ?? "",
+    presaleCutoffMinutes: minutesToTime(defaults.presaleCutoffMinutes),
   };
 }
 
@@ -207,8 +223,13 @@ function ProducerParamsSection() {
     doorAppFeeClp: "",
     doorCashFeeClp: "",
     platformFeePct: "",
+    presaleCutoffMinutes: "",
   });
   const [listError, setListError] = useState(false);
+  // Valor crudo del corte tal como vino del GET: si es post-medianoche
+  // (>1439) el input time no puede mostrarlo - un guardado con el campo
+  // vacío lo preserva en vez de limpiarlo (save()).
+  const [cutoffLoadedRaw, setCutoffLoadedRaw] = useState<number | null>(null);
   const [paramsLoading, setParamsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -245,6 +266,7 @@ function ProducerParamsSection() {
         if (cancelled) return;
         setView(data);
         setDrafts(draftsFromDefaults(data.defaults));
+        setCutoffLoadedRaw(data.defaults.presaleCutoffMinutes ?? null);
       } catch {
         if (!cancelled) setListError(true);
       } finally {
@@ -272,6 +294,13 @@ function ProducerParamsSection() {
             doorAppFeeClp: parseFeeDraft(drafts.doorAppFeeClp, true),
             doorCashFeeClp: parseFeeDraft(drafts.doorCashFeeClp, true),
             platformFeePct: parseFeeDraft(drafts.platformFeePct, false),
+            presaleCutoffMinutes:
+              drafts.presaleCutoffMinutes.trim() !== ""
+                ? timeToMinutes(drafts.presaleCutoffMinutes)
+                : // post-medianoche no representable en el input: conservar
+                  (cutoffLoadedRaw ?? 0) >= 1440
+                  ? cutoffLoadedRaw
+                  : null,
           }),
         },
       );
@@ -341,6 +370,7 @@ function ProducerParamsSection() {
         <Card className="flex flex-col gap-4">
           {FEE_FIELDS.map((f) => {
             const isPct = f === "platformFeePct";
+            const isCutoff = f === "presaleCutoffMinutes";
             const effective = view.effective[f];
             return (
               <div key={f} className="flex flex-col gap-1">
@@ -352,12 +382,14 @@ function ProducerParamsSection() {
                 </label>
                 <input
                   id={`producer-fee-${f}`}
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step={isPct ? "any" : 1}
+                  type={isCutoff ? "time" : "number"}
+                  inputMode={isCutoff ? undefined : "decimal"}
+                  min={isCutoff ? undefined : 0}
+                  step={isPct ? "any" : isCutoff ? undefined : 1}
                   value={drafts[f]}
-                  placeholder={effective != null ? String(effective) : ""}
+                  placeholder={
+                    !isCutoff && effective != null ? String(effective) : ""
+                  }
                   onChange={(e) =>
                     setDrafts((d) => ({ ...d, [f]: e.target.value }))
                   }
@@ -365,7 +397,17 @@ function ProducerParamsSection() {
                 />
                 <p className="text-xs text-white/50">
                   {tp("effective")}:{" "}
-                  {isPct ? (
+                  {isCutoff ? (
+                    effective != null ? (
+                      effective >= 1440 ? (
+                        `${minutesToTime(effective % 1440)} (+1d)`
+                      ) : (
+                        minutesToTime(effective)
+                      )
+                    ) : (
+                      "·"
+                    )
+                  ) : isPct ? (
                     effective != null ? (
                       `${effective}%`
                     ) : (
@@ -375,6 +417,11 @@ function ProducerParamsSection() {
                     <PriceTag amount={effective} />
                   )}
                 </p>
+                {isCutoff && (
+                  <p className="text-xs text-white/50">
+                    {tp("presaleCutoffHint")}
+                  </p>
+                )}
               </div>
             );
           })}

@@ -104,6 +104,32 @@ El webhook resuelve la orden por `refId` (order-ref `tkt_<event>_<code>` embebid
 
 > **Flow real**: la notificación llega como `{token}` → la API consulta `payment/getStatus` firmado para confirmar (nunca confía en el body). Si la orden sigue PENDING al volver del pago, el polling de `GET /payments/:id` la consulta directamente vía `payment/getStatusByCommerceId` - mismo `settle` idempotente del webhook. Esto permite probar el sandbox de Flow desde localhost sin exponer la API (Flow no puede hacer POST a localhost).
 
+## Corte de preventa + orden gratuita (event-presale-cutoff)
+
+```mermaid
+flowchart TD
+    A[compra ticket / quote / detalle evento] --> B{event.presaleCutoffMinutes?}
+    B -->|set| C[corte = startsAt local + N min<br/>0-2879 · >1439 = día siguiente]
+    B -->|null| D{producerParams.presaleCutoffMinutes?}
+    D -->|set| C
+    D -->|null| E[corte = event-day + presale.cutoff_hour h<br/>default 19:00]
+    C --> F{now < corte?}
+    E --> F
+    F -->|sí + presalePrice| G[channel PRESALE - listPrice=presalePrice]
+    F -->|no| H{doorPrice?}
+    H -->|sí| I[channel DOOR - listPrice=doorPrice]
+    H -->|no| J[409 - venta cerrada]
+    G --> K{total = 0?<br/>precio 0 o descuento 100%<br/>→ fee también 0}
+    K -->|no| L[Payment PENDING → gateway.createOrder<br/>→ redirect Flow]
+    K -->|sí| M[Payment gateway=FREE amount=0<br/>→ settle PAID directo actor=checkout<br/>→ tickets emitidos ya<br/>→ paymentUrl = /checkout/return]
+```
+
+La cadena de resolución del corte es la misma de las fees (evento → productor → global). El helper puro `resolvePresaleCutoffMinutes` en `src/common/presale-cutoff.ts` la centraliza - la usan `purchaseTicket`, `discountQuote` y el detalle de evento (`presaleEndsAt` que muestra la app). Post-medianoche: `presaleCutoffMinutes` es minutos desde las 00:00 del día local del evento, así 1500 = 01:00 del día siguiente.
+
+**Orden $0**: `PricingService.quote` ya exime el fee cuando el neto es 0 (preventa gratis o cupón 100% cobran $0 de fee). Si el total final es 0 no hay nada que cobrar: el checkout marca el Payment `gateway="FREE"`, salta `gateway.createOrder` y lo liquida por el mismo `settle(...,"PAID")` del webhook - tickets, claim links y notificaciones idénticos a un pago normal. El front ve un `paymentUrl` normal de retorno, nada distinto.
+
+Edición: `presaleCutoffMinutes` del evento lo define el productor en el form (`type="time"`, vacío = heredar; valores post-medianoche solo por API) o el admin; el default por productor se edita en `/productor/parametros` (PUT `/producer/table-params`) y en `/admin/parametros` (`/admin/producers/:id/fee-params`).
+
 ## Check-in en puerta (staff)
 
 ```mermaid

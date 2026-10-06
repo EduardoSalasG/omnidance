@@ -16,6 +16,11 @@ import {
 } from "../domain/membership-vigency";
 import { isRedeemable } from "../../discounts/domain/discounts.service";
 import { ParamsService } from "../../params/params.service";
+import { PaymentSettlementService } from "./payment-settlement.service";
+import {
+  presaleCutoffDate,
+  resolvePresaleCutoffMinutes,
+} from "../../common/presale-cutoff";
 import {
   classStart,
   effectiveCapacity,
@@ -269,6 +274,7 @@ export class CheckoutService {
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     private readonly pricing: PricingService,
     private readonly params: ParamsService,
+    private readonly settlement: PaymentSettlementService,
   ) {}
 
   async purchaseTicket(
@@ -290,6 +296,7 @@ export class CheckoutService {
         seriesId: true,
         serviceFeeClp: true,
         producerId: true,
+        presaleCutoffMinutes: true,
         tablesTotal: true,
         tableSeatMax: true,
         tableSeatsTotal: true,
@@ -322,16 +329,24 @@ export class CheckoutService {
     }
 
     // Canal de venta (spec: cargos diferenciados por canal - preventa
-    // +$500 / puerta app +$700). La preventa cierra a las 19:00 del día
-    // del evento (parametrizable: presale.cutoff_hour); desde ahí y
-    // durante el evento LIVE la app vende a precio de puerta.
+    // +$500 / puerta app +$700). El corte de la preventa se resuelve en
+    // cadena (event-presale-cutoff): override del evento → default del
+    // productor → presale.cutoff_hour global; desde ahí y durante el
+    // evento LIVE la app vende a precio de puerta.
     const now = new Date();
     // Un evento que ya terminó no vende por ningún canal - un evento que
     // quedó LIVE pasado su endsAt tampoco (el staff pudo no cerrarlo).
     if (now >= event.endsAt) throw new EventEndedError();
+    // producerParams se lee una vez: gobierna el corte y los fees (cache
+    // 30s en ParamsService - el segundo uso no pega a la DB).
+    const producerParams = await this.params.getProducerParams(
+      event.producerId,
+    );
     const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
-    const cutoff = new Date(event.startsAt);
-    cutoff.setHours(cutoffHour, 0, 0, 0);
+    const cutoff = presaleCutoffDate(
+      event.startsAt,
+      resolvePresaleCutoffMinutes(event, producerParams, cutoffHour),
+    );
     const presaleOpen =
       event.status === "PUBLISHED" &&
       event.presalePrice != null &&
@@ -508,9 +523,6 @@ export class CheckoutService {
 
     // fee parametrizable por canal: override del evento → default del
     // productor → PlatformParam → env → default del shared.
-    const producerParams = await this.params.getProducerParams(
-      event.producerId,
-    );
     const serviceFeeClp =
       channel === "PRESALE"
         ? (event.serviceFeeClp ??
@@ -567,7 +579,9 @@ export class CheckoutService {
         channel,
         unitListPrice: unit.listPrice,
         unitServiceFee: unit.serviceFee,
-        gateway: this.gateway.name,
+        // La orden $0 nunca toca la pasarela: "FREE" la distingue en el
+        // libro (misma convención que "MANUAL" de los claims).
+        gateway: orderTotal === 0 ? "FREE" : this.gateway.name,
       },
     });
 
@@ -586,11 +600,23 @@ export class CheckoutService {
     }
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const returnUrl = `${webUrl}/checkout/return?paymentId=${payment.id}`;
+
+    // Orden con total $0 (preventa liberada o descuento que la dejó en
+    // cero): no hay cobro que derivar a la pasarela - se liquida al
+    // instante por el mismo settle del webhook (tickets, mesa, redención
+    // del código, ledger, notificación) y el cliente cae en la pantalla
+    // de retorno, que ya lee el pago PAID.
+    if (orderTotal === 0) {
+      await this.settlement.settle(payment, "PAID", { actor: "checkout" });
+      return { paymentUrl: returnUrl, paymentId: payment.id, quote, quantity };
+    }
+
     const order = await this.gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
-      returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      returnUrl,
     });
 
     await this.prisma.payment.update({
@@ -629,6 +655,8 @@ export class CheckoutService {
         presalePrice: true,
         doorPrice: true,
         seriesId: true,
+        producerId: true,
+        presaleCutoffMinutes: true,
       },
     });
     if (!event) throw new EventNotFoundError();
@@ -656,14 +684,19 @@ export class CheckoutService {
     }
 
     // Misma regla de canal que purchaseTicket: preventa hasta el corte
-    // (presale.cutoff_hour del día del evento), puerta app en LIVE o
-    // post-corte; evento terminado no cotiza.
+    // resuelto en cadena (evento → productor → global), puerta app en
+    // LIVE o post-corte; evento terminado no cotiza.
     const now = new Date();
     let listPrice: number | null = null;
     if (now < event.endsAt) {
+      const producerParams = await this.params.getProducerParams(
+        event.producerId,
+      );
       const cutoffHour = await this.params.getNumber("presale.cutoff_hour", 19);
-      const cutoff = new Date(event.startsAt);
-      cutoff.setHours(cutoffHour, 0, 0, 0);
+      const cutoff = presaleCutoffDate(
+        event.startsAt,
+        resolvePresaleCutoffMinutes(event, producerParams, cutoffHour),
+      );
       if (
         event.status === "PUBLISHED" &&
         event.presalePrice != null &&

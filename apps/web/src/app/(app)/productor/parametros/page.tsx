@@ -54,7 +54,23 @@ const TABLE_LABEL_KEY: Record<TableField, string> = {
 };
 
 /** GET /producer/table-params - defaults editables del productor. */
-type TableParams = Record<TableField, number | null>;
+type TableParams = Record<TableField, number | null> & {
+  /** Corte de preventa en minutos del día del evento (spec
+   *  event-presale-cutoff); null = hereda el global. */
+  presaleCutoffMinutes: number | null;
+};
+
+// "HH:MM" ↔ minutos del día del evento. >1439 (post-medianoche) no cabe
+// en input time: queda vacío y el dirty flag evita pisarlo al guardar.
+const minutesToTime = (m: number | null): string =>
+  m == null || m >= 1440
+    ? ""
+    : `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const timeToMinutes = (t: string): number | null => {
+  const trimmed = t.trim();
+  if (!/^\d{2}:\d{2}$/.test(trimmed)) return null;
+  return Number(trimmed.slice(0, 2)) * 60 + Number(trimmed.slice(3, 5));
+};
 
 /**
  * /productor/parametros - defaults del productor. Fees: read-only (los
@@ -84,6 +100,8 @@ export default function ProducerParamsPage() {
     tableSeatMax: "",
     tableSeatsTotal: "",
   });
+  const [presaleCutoff, setPresaleCutoff] = useState("");
+  const [cutoffDirty, setCutoffDirty] = useState(false);
   const [tableSaving, setTableSaving] = useState(false);
   const [tableMsg, setTableMsg] = useState<"saved" | "error" | null>(null);
 
@@ -121,6 +139,8 @@ export default function ProducerParamsPage() {
           tableSeatsTotal:
             tp_.tableSeatsTotal != null ? String(tp_.tableSeatsTotal) : "",
         });
+        setPresaleCutoff(minutesToTime(tp_.presaleCutoffMinutes));
+        setCutoffDirty(false);
       })
       .catch(() => {
         if (!cancelled) setDataError(true);
@@ -134,14 +154,23 @@ export default function ProducerParamsPage() {
     setTableSaving(true);
     setTableMsg(null);
     try {
-      const body = Object.fromEntries(
+      const body: Record<string, number | null> = Object.fromEntries(
         TABLE_FIELDS.map((f) => {
           const v = tables[f].trim();
           return [f, v === "" ? null : Math.max(0, parseInt(v, 10) || 0)];
         }),
       );
+      // El corte solo se envía si el productor lo tocó: sin dirty, un
+      // valor post-medianoche guardado por admin/API no se pisa.
+      if (cutoffDirty) {
+        body.presaleCutoffMinutes =
+          presaleCutoff.trim() === ""
+            ? null
+            : timeToMinutes(presaleCutoff);
+      }
       const res = await apiFetch("/producer/table-params", {
         method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       setTableMsg(res.ok ? "saved" : "error");
@@ -302,7 +331,30 @@ export default function ProducerParamsPage() {
                 ))}
               </ul>
             </Card>
+            <Card padded={false}>
+              <ul className="flex flex-col divide-y divide-night-700">
+                <li className="flex items-center justify-between gap-3 px-5 py-4">
+                  <label
+                    htmlFor="tp-presaleCutoff"
+                    className="text-sm text-white/70"
+                  >
+                    {tp("presaleCutoffLabel")}
+                  </label>
+                  <input
+                    id="tp-presaleCutoff"
+                    type="time"
+                    value={presaleCutoff}
+                    onChange={(e) => {
+                      setCutoffDirty(true);
+                      setPresaleCutoff(e.target.value);
+                    }}
+                    className="w-28 rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
+                  />
+                </li>
+              </ul>
+            </Card>
             <p className="text-xs text-white/50">{tp("tablesHint")}</p>
+            <p className="text-xs text-white/50">{tp("presaleCutoffHint")}</p>
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => void saveTables()}

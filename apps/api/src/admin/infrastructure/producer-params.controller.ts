@@ -17,6 +17,7 @@ import { PrismaService } from "../../prisma.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { ParamsService } from "../../params/params.service";
+import { PRESALE_CUTOFF_MAX_MINUTES } from "../../common/presale-cutoff";
 
 class ProducerFeeParamsDto {
   @IsOptional()
@@ -39,6 +40,18 @@ class ProducerFeeParamsDto {
   @Min(0)
   @Max(100)
   platformFeePct?: number | null;
+
+  /**
+   * Default del corte de preventa (minutos desde medianoche del día del
+   * evento; >1439 = post-medianoche). null → param global
+   * presale.cutoff_hour. Los eventos del productor lo heredan salvo
+   * override propio.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(PRESALE_CUTOFF_MAX_MINUTES)
+  presaleCutoffMinutes?: number | null;
 }
 
 const FEE_FIELDS = [
@@ -46,6 +59,7 @@ const FEE_FIELDS = [
   "doorAppFeeClp",
   "doorCashFeeClp",
   "platformFeePct",
+  "presaleCutoffMinutes",
 ] as const;
 
 /**
@@ -145,12 +159,14 @@ export class AdminProducerParamsController {
    */
   private async buildView(producerId: string) {
     const defaults = await this.params.getProducerParams(producerId);
-    const [presale, doorApp, doorCash, platformPct] = await Promise.all([
-      this.params.getNumber("service_fee.presale_clp", 500),
-      this.params.getNumber("service_fee.door_app_clp", 700),
-      this.params.getNumber("service_fee.door_cash_clp", 0),
-      this.params.getNumber("platform_fee.default_pct", 0),
-    ]);
+    const [presale, doorApp, doorCash, platformPct, cutoffHour] =
+      await Promise.all([
+        this.params.getNumber("service_fee.presale_clp", 500),
+        this.params.getNumber("service_fee.door_app_clp", 700),
+        this.params.getNumber("service_fee.door_cash_clp", 0),
+        this.params.getNumber("platform_fee.default_pct", 0),
+        this.params.getNumber("presale.cutoff_hour", 19),
+      ]);
     return {
       producerId,
       defaults: defaults ?? {
@@ -158,12 +174,17 @@ export class AdminProducerParamsController {
         doorAppFeeClp: null,
         doorCashFeeClp: null,
         platformFeePct: null,
+        presaleCutoffMinutes: null,
       },
       effective: {
         serviceFeeClp: defaults?.serviceFeeClp ?? presale,
         doorAppFeeClp: defaults?.doorAppFeeClp ?? doorApp,
         doorCashFeeClp: defaults?.doorCashFeeClp ?? doorCash,
         platformFeePct: defaults?.platformFeePct ?? platformPct,
+        // el efectivo del corte se expresa en los mismos minutos del día
+        // del evento (el global se guarda en horas).
+        presaleCutoffMinutes:
+          defaults?.presaleCutoffMinutes ?? cutoffHour * 60,
       },
     };
   }

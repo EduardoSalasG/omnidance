@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { PrismaService } from "../../prisma.service";
 import type { ParamsService } from "../../params/params.service";
 import type { ProducerFeeDefaults } from "../../params/params.service";
@@ -179,6 +179,12 @@ function mkGateway() {
 
 type PrismaMock = ReturnType<typeof mkPrisma>["prisma"];
 
+// Settlement real se cubre en su propio spec - acá solo interesa que el
+// camino $0 lo invoque; los checkouts con monto ni siquiera lo tocan.
+const mkSettlement = () => ({
+  settle: vi.fn(async () => ({ ok: true, status: "PAID" as const })),
+});
+
 const mkEvent = (over: Record<string, unknown> = {}) => ({
   id: "evt-1",
   status: "PUBLISHED",
@@ -212,19 +218,28 @@ describe("CheckoutService.purchaseTicket", () => {
   let fx: ReturnType<typeof mkPrisma>;
   let pf: ReturnType<typeof mkParams>;
   let gw: ReturnType<typeof mkGateway>;
+  let stl: { settle: ReturnType<typeof vi.fn> };
   let svc: CheckoutService;
 
   beforeEach(() => {
     fx = mkPrisma();
     pf = mkParams();
     gw = mkGateway();
+    stl = {
+      settle: vi.fn(async () => ({ ok: true, status: "PAID" as const })),
+    };
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent());
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,
       gw.gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
+      stl as never,
     );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   const buy = (input: Record<string, unknown> = {}) =>
@@ -340,6 +355,138 @@ describe("CheckoutService.purchaseTicket", () => {
       mkEvent({ startsAt: new Date(Date.now() - 25 * 60 * 60 * 1000) }),
     );
     await expect(buy()).rejects.toBeInstanceOf(PresaleClosedError);
+  });
+
+  // ─── Corte de preventa por evento/productor (event-presale-cutoff) ───
+  // Fechas fijas con fake timers: el corte se deriva del DÍA del evento
+  // (medianoche + minutos), así que fijamos el reloj en esa fecha.
+
+  it("override del evento: preventa $0 abierta a las 23:30 con corte 23:45 → PRESALE", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 14, 23, 30)); // mié 14 oct, 23:30
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(2026, 9, 14, 21, 0),
+        endsAt: new Date(2026, 9, 15, 2, 0),
+        presalePrice: 0,
+        doorPrice: 5000,
+        presaleCutoffMinutes: 23 * 60 + 45,
+      }),
+    );
+    const res = await buy();
+    expect(fx.payments[0]!.channel).toBe("PRESALE");
+    expect(res.quote.total).toBe(0);
+  });
+
+  it("pasado el corte del evento (23:46 > 23:45) con puerta → canal DOOR", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 14, 23, 46));
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(2026, 9, 14, 21, 0),
+        endsAt: new Date(2026, 9, 15, 2, 0),
+        presalePrice: 0,
+        doorPrice: 5000,
+        presaleCutoffMinutes: 23 * 60 + 45,
+      }),
+    );
+    const res = await buy();
+    expect(fx.payments[0]!.channel).toBe("DOOR");
+    expect(res.quote.listPrice).toBe(5000);
+    expect(gw.createOrder).toHaveBeenCalledTimes(1); // puerta > 0 → pasarela
+  });
+
+  it("sin override del evento gobierna el default del productor sobre el global", async () => {
+    vi.useFakeTimers();
+    // 20:00: el global (19:00) ya habría cerrado; el productor corta 21:00.
+    vi.setSystemTime(new Date(2026, 9, 14, 20, 0));
+    pf.producers.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: null,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+      presaleCutoffMinutes: 21 * 60,
+    });
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(2026, 9, 14, 22, 0),
+        endsAt: new Date(2026, 9, 15, 4, 0),
+        presaleCutoffMinutes: null,
+      }),
+    );
+    const res = await buy();
+    expect(fx.payments[0]!.channel).toBe("PRESALE");
+    expect(res.quote.listPrice).toBe(10000);
+  });
+
+  it("el default del productor también corta: 22:00 > 21:00 sin puerta → PresaleClosedError", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 14, 22, 0));
+    pf.producers.set("prod-1", {
+      serviceFeeClp: null,
+      doorAppFeeClp: null,
+      doorCashFeeClp: null,
+      platformFeePct: null,
+      presaleCutoffMinutes: 21 * 60,
+    });
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(2026, 9, 14, 23, 0),
+        endsAt: new Date(2026, 9, 15, 4, 0),
+        presaleCutoffMinutes: null,
+      }),
+    );
+    await expect(buy()).rejects.toBeInstanceOf(PresaleClosedError);
+  });
+
+  it("corte post-medianoche (1500 = 01:00 del día siguiente) sigue abierto a las 00:30", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 15, 0, 30)); // 00:30 del día 15
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(2026, 9, 14, 22, 0),
+        endsAt: new Date(2026, 9, 15, 4, 0),
+        presaleCutoffMinutes: 25 * 60,
+      }),
+    );
+    await buy();
+    expect(fx.payments[0]!.channel).toBe("PRESALE");
+  });
+
+  // ─── Orden con total $0: sin pasarela, liquida al instante ───
+
+  it("preventa $0: no llama al gateway, pago PAID gateway FREE y paymentUrl = retorno", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 14, 23, 30));
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        startsAt: new Date(2026, 9, 14, 21, 0),
+        endsAt: new Date(2026, 9, 15, 2, 0),
+        presalePrice: 0,
+        doorPrice: 5000,
+        presaleCutoffMinutes: 23 * 60 + 45,
+      }),
+    );
+    const res = await buy();
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    const p = fx.payments[0]!;
+    expect(p.gateway).toBe("FREE");
+    expect(p.amount).toBe(0);
+    expect(stl.settle).toHaveBeenCalledTimes(1);
+    expect(stl.settle.mock.calls[0]![0]!.id).toBe(p.id);
+    expect(stl.settle.mock.calls[0]![1]).toBe("PAID");
+    expect(res.paymentUrl).toContain(`/checkout/return?paymentId=${p.id}`);
+  });
+
+  it("descuento 100% deja la orden en $0 → mismo camino sin pasarela", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({ percentOff: 100 }),
+    );
+    const res = await buy({ discountCode: "FREE100" });
+    expect(res.quote.total).toBe(0);
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    expect(fx.payments[0]!.gateway).toBe("FREE");
+    expect(stl.settle).toHaveBeenCalledTimes(1);
   });
 
   it("doorCap: ventas staff (MANUAL) + órdenes DOOR alcanzan el cap → DoorSoldOutError", async () => {
@@ -712,6 +859,7 @@ describe("CheckoutService.discountQuote", () => {
       gw.gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
+      mkSettlement() as never,
     );
   });
 
@@ -819,6 +967,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
       gw.gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
+      mkSettlement() as never,
     );
   });
 
@@ -914,6 +1063,7 @@ describe("CheckoutService.membershipQuote", () => {
       gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
+      mkSettlement() as never,
     );
   });
 
@@ -1047,6 +1197,7 @@ describe("CheckoutService.purchaseMembership", () => {
       gw.gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
+      mkSettlement() as never,
     );
   });
 
@@ -1179,6 +1330,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
       gw.gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
+      mkSettlement() as never,
     );
   });
 
@@ -1300,6 +1452,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
       gw.gateway,
       new PricingService(),
       pf.params as unknown as ParamsService,
+      mkSettlement() as never,
     );
   });
 

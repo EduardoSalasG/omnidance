@@ -269,6 +269,10 @@ model Event {
   doorPrice    Int?
   presaleCap  Int?
   doorCap     Int?
+  // Corte de la preventa en minutos desde medianoche del día del evento
+  // (0–2879; >1439 = post-medianoche del día siguiente). null → default
+  // del productor → param global presale.cutoff_hour.
+  presaleCutoffMinutes Int?
   serviceFeeClp Int?      // override admin del cargo por servicio de preventa; null → default del productor → param global
   doorAppFeeClp Int?      // override fee venta en puerta por app; misma cadena
   doorCashFeeClp Int?     // override fee registro en efectivo en puerta
@@ -1362,6 +1366,9 @@ model ProducerParams {
   tablesTotal     Int?
   tableSeatMax    Int?
   tableSeatsTotal Int?
+  // Default del corte de preventa (minutos desde medianoche del día del
+  // evento, 0–2879). null → param global presale.cutoff_hour.
+  presaleCutoffMinutes Int?
   updatedById    String?
   updatedAt      DateTime @updatedAt
 }

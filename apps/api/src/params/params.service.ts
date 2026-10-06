@@ -18,6 +18,9 @@ export interface ProducerFeeDefaults {
   tablesTotal?: number | null;
   tableSeatMax?: number | null;
   tableSeatsTotal?: number | null;
+  /** Default del corte de preventa (minutos desde medianoche del día del
+   *  evento); null → param global presale.cutoff_hour. */
+  presaleCutoffMinutes?: number | null;
 }
 
 @Injectable()
@@ -74,6 +77,7 @@ export class ParamsService {
           tablesTotal: row.tablesTotal,
           tableSeatMax: row.tableSeatMax,
           tableSeatsTotal: row.tableSeatsTotal,
+          presaleCutoffMinutes: row.presaleCutoffMinutes,
         }
       : null;
     this.producerCache.set(producerId, { value, at: Date.now() });
