@@ -482,6 +482,36 @@ sequenceDiagram
 - **Auditoría de comprobantes**: cada aprobación/rechazo de `PaymentClaim` guarda `reviewedById`+`reviewedAt`; el historial de `/academia/cobros` muestra quién validó cada pago - clave cuando varios colaboradores procesan comprobantes.
 - **Mora aplica igual**: toda mutación staff pasa por `requireCapabilityWrite` → academia bloqueada por suscripción impaga = read-only también para el equipo (la lectura sigue abierta).
 
+## Migración desde otra plataforma - import CSV → alumnos y horario (academy-bulk-import)
+
+```mermaid
+sequenceDiagram
+    actor Ow as Dueño/Staff
+    participant API as AcademyImportController
+    participant DB as Postgres
+    participant MAIL as Resend (MAILER)
+
+    Note over Ow: /academia/importar - descarga plantilla<br/>GET /academies/:id/import/template/students|schedule
+    Ow->>API: POST /academies/:id/import/students (cap students)<br/>multipart CSV: email,nombre,telefono?,plan,pagado_hasta?
+    loop por fila (reporte por fila - un error no aborta)
+        alt Person existe
+            API->>DB: enrollment findFirst → update (endsAt=max, planId)<br/>o create ACTIVE si no tenía
+        else correo nuevo
+            API->>DB: Person stub + Enrollment ACTIVE con endsAt importado
+            API->>MAIL: invitación magic link 7d (studentInviteEmailHtml)
+        end
+    end
+    API-->>Ow: results[] {row,email,status: imported|updated|invited|error,detail}
+
+    Ow->>API: POST /academies/:id/import/schedule (cap schedule)<br/>CSV: serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,...
+    API->>API: agrupa por serie+mes → upsert ClassSeries<br/>slot dedup por weekday+start+end → Class del mes materializadas
+    API-->>Ow: results[] {row,serie,status: ok|warn|error,detail}
+```
+
+- **Alumnos**: el plan se resuelve por nombre contra los planes activos de la academia (match case/acento-insensible); `pagado_hasta` (YYYY-MM-DD) → `endsAt` al mediodía UTC (el día completo cubierto en Chile). Re-importar es seguro: `endsAt = max(existente, importado)`.
+- **Horario**: `dia_semana` acepta 0-6 o nombre en español; `estilo`/`nivel` se validan contra catálogo (no se auto-crean); `instructor_email` debe ser instructor de la academia - si no existe, el slot queda sin instructor con `warn`. Los Class del mes se materializan igual que `POST /series`.
+- **Límites**: CSV ≤2MB y ≤500 filas; columnas requeridas ausentes → 400. Parser propio en `src/common/csv.ts` (comillas, `""`, \r\n, BOM) - sin dependencia nueva.
+
 ## Clase suelta / taller - compra → asiento pagado (WORKSHOP)
 
 ```mermaid

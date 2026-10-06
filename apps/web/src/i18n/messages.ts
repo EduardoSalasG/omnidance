@@ -1,6 +1,7 @@
 import base from "../../messages/es-CL.json";
 import academyBilling from "./parts/academyBilling.json";
 import academyExtras from "./parts/academyExtras.json";
+import academyImport from "./parts/academyImport.json";
 import academyPay from "./parts/academyPay.json";
 import academyStaff from "./parts/academyStaff.json";
 import admin from "./parts/admin.json";
@@ -56,6 +57,7 @@ function merge(a: Dict, b: Dict): Dict {
 const parts = [
   academyBilling,
   academyExtras,
+  academyImport,
   academyPay,
   academyStaff,
   admin,

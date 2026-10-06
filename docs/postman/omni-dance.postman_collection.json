@@ -5785,6 +5785,116 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/import/template/students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/import/template/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "import",
+                "template",
+                "students"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/import/template/schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/import/template/schedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "import",
+                "template",
+                "schedule"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/import/students",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/import/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "import",
+                "students"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/import/schedule",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/import/schedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "import",
+                "schedule"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/academies/{id}/access",
           "request": {
             "method": "GET",

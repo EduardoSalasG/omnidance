@@ -31,6 +31,7 @@ const MODULES = [
   { href: "/academia/videos", key: "videos", cap: "schedule" },
   { href: "/academia/cobros", key: "payments", cap: "payments" },
   { href: "/academia/equipo", key: "team", cap: "team" },
+  { href: "/academia/importar", key: "import", capAny: ["students", "schedule"] },
   // CRM con actorType=ACADEMY: sigue owner/ADMIN-only (requireAdminister
   // del backend - no es delegable por flags).
   { href: "/crm", key: "crm", ownerOnly: true },
@@ -103,6 +104,9 @@ function AcademyHub({
     }
     if ("cap" in m && m.cap) {
       return access?.caps[m.cap] === true;
+    }
+    if ("capAny" in m && m.capAny) {
+      return m.capAny.some((c) => access?.caps[c] === true);
     }
     return operational;
   });

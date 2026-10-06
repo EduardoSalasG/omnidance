@@ -3507,6 +3507,86 @@
         }
       }
     },
+    "/api/academies/{id}/import/template/students": {
+      "get": {
+        "operationId": "AcademyImportController_studentsTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/import/template/schedule": {
+      "get": {
+        "operationId": "AcademyImportController_scheduleTemplate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/import/students": {
+      "post": {
+        "operationId": "AcademyImportController_importStudents",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/import/schedule": {
+      "post": {
+        "operationId": "AcademyImportController_importSchedule",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/academies/{id}/access": {
       "get": {
         "operationId": "AcademyStaffController_myAccess",
