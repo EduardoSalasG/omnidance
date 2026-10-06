@@ -521,7 +521,7 @@ Justificación: la diferencia gestionada↔propia es exactamente el costo de pas
 |---|---|---|
 | PortalTickets (Chile) | 10% IVA incl. todo incluido | Organizador o comprador, a elección |
 | Ticketeras grandes Chile (Puntoticket…) | 10–20% | Comprador |
-| Passline (AR/CL) | hasta ~15% | Según acuerdo |
+| **Passline (AR/CL) — techo** | hasta ~15% (no publica, va en acuerdo) | Según acuerdo |
 | Shotgun (EU electrónica) | ~15% cap €15/$30 | Comprador |
 | DICE (EU) | ~10–12% | Comprador |
 | Resident Advisor | ~9,5% + processing | Comprador |
@@ -529,6 +529,8 @@ Justificación: la diferencia gestionada↔propia es exactamente el costo de pas
 | Sway | 3% + €0,30 | Comprador |
 
 El mercado cobra al **comprador** 8–15%+. Cobrar al **productor** es contracultural pero es nuestro USP: *"publicas tu precio, el asistente paga exactamente eso"*. Y 8–10% todo incluido compite contra el 10–20% chileno sin regalar el producto - el diferencial real es la plataforma completa (check-in, CRM, analítica, academias), no el precio.
+
+**Passline es el techo explícito**: ~15% comisión sola, sin SaaS encima, liquidando 7 días hábiles post-evento (mata el cashflow de preventa). Nosotros cobramos **además** SaaS (tiers de academia + Producer Pro) → la comisión de ticketing debe quedar claramente bajo ese techo para que el take total del ecosistema no se compare con una ticketera pura: **8–10% todo incluido vs 15% + payout diferido de Passline** es la conversación ganadora, y el 10% deja margen de negociación hasta el 8% objetivo.
 
 ### Trazabilidad BIAN - auditoría a nivel banco
 
