@@ -620,7 +620,7 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 
 **Flujo fiscal**: omni-dance emite **factura al productor por su comisión** (neto + IVA; `BillingDocument` posterior - la trazabilidad ya queda en `PayoutLine`) y factura el SaaS; cada actor emite por **su precio de lista** (el dinero que recaudamos en su nombre). El desglose queda en el `payout` - el actor ve exactamente qué facturar.
 
-**Estados del `payout`**: `pending → approved → paid` con evidencia de transferencia; todo auditado.
+**Estados del `payout`**: `pending → approved → paid` con evidencia de transferencia; todo auditado. La operación completa vive en **`/admin/finanzas`** (consola de finanzas, spec `admin-finance-console`): KPIs del período (GMV segmentado social/academia/SaaS, ingreso plataforma neto+IVA, costo pasarela, por transferir), tabs de Liquidaciones (líneas expandibles, aprobar, marcar pagada con comprobante), Por liberar (devengado no liquidado por actor - incluye lo que los actores **nos deben** por métodos propios, que se netea), Pagos (desglose congelado por orden) y SaaS (MRR/ARR, funnel de suscripciones).
 
 ### Modelo SaaS - suscripción de academia y Producer Pro (implementado oct-2026)
 

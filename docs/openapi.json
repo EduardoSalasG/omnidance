@@ -4525,6 +4525,56 @@
         }
       }
     },
+    "/api/admin/finance/summary": {
+      "get": {
+        "operationId": "AdminFinanceController_summary",
+        "parameters": [
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/finance/accrual": {
+      "get": {
+        "operationId": "AdminFinanceController_accrual",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/finance/mrr": {
+      "get": {
+        "operationId": "AdminFinanceController_mrr",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/admin/browse/{entity}": {
       "get": {
         "operationId": "BrowseController_browse",

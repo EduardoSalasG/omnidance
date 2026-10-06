@@ -162,7 +162,79 @@
     "modules": {
       "datos": "Datos",
       "datosDesc": "Explora eventos, clases, pagos y más",
-      "analyticsUser": "Analítica por usuario"
+      "analyticsUser": "Analítica por usuario",
+      "finanzas": "Finanzas",
+      "finanzasDesc": "Liquidaciones, devengado, pagos y SaaS"
+    },
+    "finance": {
+      "from": "Desde",
+      "to": "Hasta",
+      "loadError": "No se pudo cargar. Intenta de nuevo.",
+      "tabsLabel": "Secciones de finanzas",
+      "tabs": {
+        "payouts": "Liquidaciones",
+        "accrual": "Por liberar",
+        "payments": "Pagos",
+        "saas": "SaaS"
+      },
+      "kpiGmv": "GMV del período",
+      "kpiGmvHint": "Social {social} · Academia {academy} · SaaS {saas}",
+      "kpiRevenue": "Ingreso plataforma",
+      "kpiRevenueHint": "Neto {net} + IVA {vat}",
+      "kpiToTransfer": "Por transferir",
+      "kpiToTransferHint": "{count, plural, one {# liquidación} other {# liquidaciones}}",
+      "kpiGateway": "Costo pasarela",
+      "kpiOwnMethod": "+ {amount} cobrado por métodos propios",
+      "payoutsEmpty": "Sin liquidaciones generadas todavía.",
+      "payoutSplit": "Bruto {gross} − deducciones {fees}",
+      "showLines": "Ver detalle ({count})",
+      "hideLines": "Ocultar detalle",
+      "approve": "Aprobar",
+      "markPaid": "Marcar pagada",
+      "evidence": "Comprobante",
+      "evidencePlaceholder": "Link al comprobante de transferencia…",
+      "accrualEmpty": "Todo liquidado — no hay pagos pendientes de liquidar.",
+      "accrualSince": "{count, plural, one {# orden} other {# órdenes}} desde el {date}",
+      "accrualSplit": "Bruto {gross} − deducciones est. {deductions}",
+      "receivable": "El actor debe {amount} por métodos propios (se netea)",
+      "generate": "Generar liquidación",
+      "generated": "Liquidación generada para {name} — revisa la pestaña Liquidaciones.",
+      "generateError": "No se pudo generar la liquidación.",
+      "paymentsHint": "Órdenes pagadas con su desglose de comisión congelado. La cadena de eventos completa está en Datos → Pagos.",
+      "paymentSplit": "Tasa {rate} · neto actor {producerNet} · pasarela {gateway}",
+      "mrr": "MRR",
+      "arr": "ARR",
+      "customContracts": "Contratos a medida",
+      "perMonth": "mes",
+      "nextInvoice": "Próximo cobro {date}",
+      "actorTypes": {
+        "PRODUCER": "Productor",
+        "ACADEMY": "Academia",
+        "VENUE": "Local"
+      },
+      "lineTypes": {
+        "PLATFORM_FEE_NET": "Comisión plataforma",
+        "PLATFORM_FEE_VAT": "IVA sobre comisión",
+        "GATEWAY_FEE_PASSTHROUGH": "Costo pasarela",
+        "OWN_METHOD_FEE_NET": "Comisión por métodos propios",
+        "OWN_METHOD_FEE_VAT": "IVA métodos propios",
+        "MANUAL_ADJUSTMENT": "Ajuste manual"
+      },
+      "feeModes": {
+        "MANAGED": "Gestionado",
+        "OWN_METHOD": "Método propio",
+        "OWN_GATEWAY": "Pasarela propia",
+        "ACADEMY": "Academia",
+        "FREE": "Sin cargo",
+        "LEGACY": "Histórico"
+      },
+      "subStatuses": {
+        "ACTIVE": "Activa",
+        "PENDING_CARD": "Tarjeta pendiente",
+        "FAILED_CARD": "Tarjeta fallida",
+        "CANCEL_PENDING": "Cancela al cierre",
+        "CANCELLED": "Cancelada"
+      }
     },
     "roles": {
       "superuser": "Superusuario",

@@ -397,6 +397,17 @@ export class BrowseController {
         createdAt: true,
         personId: true,
         eventId: true,
+        // Desglose congelado (spec admin-finance-console): trazabilidad
+        // del fee por orden en la consola de finanzas.
+        gateway: true,
+        feeMode: true,
+        platformFeeRate: true,
+        platformFeeNetClp: true,
+        platformFeeVatClp: true,
+        gatewayFeeExpected: true,
+        gatewayFeeClp: true,
+        producerNetClp: true,
+        currency: true,
       },
     });
     const [people, events] = await Promise.all([
@@ -412,6 +423,14 @@ export class BrowseController {
       status: p.status,
       orderType: p.orderType,
       createdAt: p.createdAt,
+      gateway: p.gateway,
+      feeMode: p.feeMode,
+      platformFeeRate: p.platformFeeRate,
+      platformFeeNetClp: p.platformFeeNetClp,
+      platformFeeVatClp: p.platformFeeVatClp,
+      gatewayFeeExpected: p.gatewayFeeClp ?? p.gatewayFeeExpected,
+      producerNetClp: p.producerNetClp,
+      currency: p.currency,
       person: people.get(p.personId) ?? null,
       event: p.eventId ? (events.get(p.eventId) ?? null) : null,
     }));
