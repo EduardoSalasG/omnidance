@@ -13,6 +13,7 @@ import type { ProducerFeeDefaults } from "../../params/params.service";
 // undefined. Cargar auth.controller antes rompe el ciclo a favor del test.
 import "../../auth/infrastructure/auth.controller";
 import { AdminPayoutsController } from "./payouts.controller";
+import { PayoutSettlementService } from "../application/payout-settlement.service";
 import { encodePrivateRef, encodeSeriesPassRef } from "../domain/order-ref";
 import { managedFeeBreakdown } from "../../common/fee-breakdown";
 
@@ -40,6 +41,11 @@ function matchWhere(row: Row, where: Row): boolean {
       continue;
     }
     if (cond !== null && typeof cond === "object") {
+      // OR/AND (array): el fake no las evalúa - la pertenencia por
+      // evento/ref se filtra en el loop del settlement. OJO: un array
+      // hereda `some`/`every` del prototipo y colisiona con el check de
+      // operador `{ some }`, por eso se corta acá explícitamente.
+      if (Array.isArray(cond)) continue;
       const c = cond as Row;
       if ("in" in c && !(c.in as unknown[]).includes(v)) return false;
       if ("not" in c && v === c.not) return false;
@@ -47,6 +53,18 @@ function matchWhere(row: Row, where: Row): boolean {
         return false;
       if ("lte" in c && (!(v instanceof Date) || v > (c.lte as Date)))
         return false;
+      // Relación: { payoutLines: { none: {} } } / { some: {...} } sobre la
+      // relación materializada como array en el fake.
+      if ("none" in c || "some" in c) {
+        const arr = Array.isArray(v) ? (v as Row[]) : [];
+        if ("none" in c && arr.length > 0) return false;
+        if (
+          "some" in c &&
+          !arr.some((item) => matchWhere(item, c.some as Row))
+        )
+          return false;
+        continue;
+      }
       // Objeto anidado sin operador (p.ej. slot: { academyId }) →
       // matcheo recursivo sobre la relación materializada del fake.
       if (
@@ -84,6 +102,8 @@ interface FakePayment {
   platformFeeVatClp?: number | null;
   gatewayFeeExpected?: number | null;
   producerNetClp?: number | null;
+  /** Relación materializada para el filtro `payoutLines: { none }`. */
+  payoutLines?: Row[];
 }
 
 interface FakePayout {
@@ -301,7 +321,10 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
     pf = mkParams();
     ctrl = new AdminPayoutsController(
       prisma as unknown as PrismaService,
-      pf.params as unknown as ParamsService,
+      new PayoutSettlementService(
+        prisma as unknown as PrismaService,
+        pf.params as unknown as ParamsService,
+      ),
     );
 
     prisma.events.push(
@@ -694,7 +717,10 @@ describe("AdminPayoutsController - ciclo approve/pay", () => {
     const pf = mkParams();
     ctrl = new AdminPayoutsController(
       prisma as unknown as PrismaService,
-      pf.params as unknown as ParamsService,
+      new PayoutSettlementService(
+        prisma as unknown as PrismaService,
+        pf.params as unknown as ParamsService,
+      ),
     );
     const payout = await ctrl.generate(
       {

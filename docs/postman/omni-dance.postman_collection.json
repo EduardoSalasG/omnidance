@@ -1082,6 +1082,76 @@
           }
         },
         {
+          "name": "GET /api/admin/finance/summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/finance/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "finance",
+                "summary"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/finance/accrual",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/finance/accrual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "finance",
+                "accrual"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/admin/finance/mrr",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/finance/mrr",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "finance",
+                "mrr"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/admin/browse/{entity}",
           "request": {
             "method": "GET",

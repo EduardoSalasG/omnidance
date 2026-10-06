@@ -20,6 +20,7 @@ import {
 } from "./infrastructure/payouts.controller";
 import { CheckoutService } from "./application/checkout.service";
 import { PaymentSettlementService } from "./application/payment-settlement.service";
+import { PayoutSettlementService } from "./application/payout-settlement.service";
 import { SubscriptionsService } from "./application/subscriptions.service";
 import { PlatformSubscriptionsService } from "./application/platform-subscriptions.service";
 import { SubscriptionsController } from "./infrastructure/subscriptions.controller";
@@ -48,6 +49,7 @@ import { AcademyAccessModule } from "../academies/academy-access.module";
   providers: [
     CheckoutService,
     PaymentSettlementService,
+    PayoutSettlementService,
     SubscriptionsService,
     PlatformSubscriptionsService,
     SubscriptionsScheduler,
@@ -66,6 +68,7 @@ import { AcademyAccessModule } from "../academies/academy-access.module";
     PAYMENT_GATEWAY,
     GatewayTransactionsService,
     PaymentSettlementService,
+    PayoutSettlementService,
     SubscriptionsService,
     PlatformSubscriptionsService,
   ],
