@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type {
-  FlowInvoice,
-  FlowSubscription,
   PaymentGateway,
+  RemoteSubscription,
   SubscriptionCallOpts,
+  SubscriptionInvoice,
   SubscriptionProvider,
 } from "../domain/ports";
 
@@ -14,16 +14,16 @@ type StubCustomer = {
   email: string;
   name: string;
   externalId: string;
-  creditCardType?: string;
+  hasCard: boolean;
 };
 type StubSub = {
   subscriptionId: string;
   planId: string;
   customerId: string;
-  status: number;
-  next_invoice_date?: string;
-  cancel_at_period_end?: number;
-  invoices: FlowInvoice[];
+  canceled: boolean;
+  nextInvoiceDate?: string;
+  cancelAtPeriodEnd: boolean;
+  invoices: SubscriptionInvoice[];
 };
 
 // Gateway de desarrollo: no sale a ninguna red; el webhook acepta
@@ -37,10 +37,10 @@ type StubSub = {
 // le pasa el caller (el callback real customer-return del API), así que el
 // browser nunca sale de localhost.
 //
-// Tras un restart, getSubscription de un id desconocido reporta status 4
-// (cancelada) para que la fila local converja a CANCELED en el próximo
-// reconcile en vez de quedar viva para siempre - la simulación no intenta
-// sobrevivir al proceso.
+// Tras un restart, getSubscription de un id desconocido reporta CANCELED
+// para que la fila local converja a CANCELED en el próximo reconcile en
+// vez de quedar viva para siempre - la simulación no intenta sobrevivir
+// al proceso.
 @Injectable()
 export class StubGateway implements PaymentGateway, SubscriptionProvider {
   readonly name = "STUB";
@@ -112,7 +112,7 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
     const customerId = `stub_cus_${p.externalId}`;
     const cur = this.customers.get(customerId);
     if (cur) return Promise.resolve({ customerId: cur.customerId });
-    this.customers.set(customerId, { customerId, ...p });
+    this.customers.set(customerId, { customerId, hasCard: false, ...p });
     return Promise.resolve({ customerId });
   }
 
@@ -121,12 +121,9 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
   getCustomer(
     customerId: string,
     _opts?: SubscriptionCallOpts,
-  ): Promise<{ creditCardType?: string; status?: number }> {
+  ): Promise<{ hasCard: boolean }> {
     const c = this.customers.get(customerId);
-    return Promise.resolve({
-      creditCardType: c?.creditCardType,
-      status: c ? 1 : 0,
-    });
+    return Promise.resolve({ hasCard: c?.hasCard === true });
   }
 
   // registerUrl = returnUrl + ?token= → el browser cae directo en el
@@ -144,6 +141,7 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
         email: "",
         name: "",
         externalId: p.customerId,
+        hasCard: false,
       });
     }
     const token = `stub_reg_${randomUUID()}`;
@@ -155,17 +153,17 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
   }
 
   // Consume el token de registro: marca la tarjeta del customer y devuelve
-  // status 1 + customerId (lo que getRegisterStatus de Flow reporta).
+  // registered + customerId.
   getRegisterStatus(
     token: string,
     _opts?: SubscriptionCallOpts,
-  ): Promise<{ status: number; customerId?: string }> {
+  ): Promise<{ registered: boolean; customerId?: string }> {
     const customerId = this.registerTokens.get(token);
-    if (!customerId) return Promise.resolve({ status: 0 });
+    if (!customerId) return Promise.resolve({ registered: false });
     this.registerTokens.delete(token);
     const c = this.customers.get(customerId);
-    if (c) c.creditCardType = "STUB";
-    return Promise.resolve({ status: 1, customerId });
+    if (c) c.hasCard = true;
+    return Promise.resolve({ registered: true, customerId });
   }
 
   // Crea la sub con su invoice inicial YA pagada (Flow cobra el primer
@@ -173,26 +171,25 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
   createSubscription(
     p: { planId: string; customerId: string; subscriptionStart: string },
     _opts?: SubscriptionCallOpts,
-  ): Promise<FlowSubscription> {
+  ): Promise<RemoteSubscription> {
     const plan = this.plans.get(p.planId);
     const amount = plan?.amount ?? 0;
     const intervalMonths = plan?.intervalCount ?? 1;
     const next = new Date(`${p.subscriptionStart}T00:00:00Z`);
     next.setUTCMonth(next.getUTCMonth() + intervalMonths);
-    const invoice: FlowInvoice = {
+    const invoice: SubscriptionInvoice = {
       id: ++this.invoiceSeq,
-      status: 1,
       amount,
-      period_start: p.subscriptionStart,
-      period_end: next.toISOString().slice(0, 10),
+      paid: true,
+      periodStart: p.subscriptionStart,
+      periodEnd: next.toISOString().slice(0, 10),
       payment: {
-        status: 2,
-        flowOrder: ++this.orderSeq,
-        paymentData: {
+        orderRef: String(++this.orderSeq),
+        data: {
           amount,
           fee: 0,
           media: "STUB",
-          date: new Date().toISOString(),
+          transferDate: new Date().toISOString(),
         },
       },
     };
@@ -200,31 +197,38 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
       subscriptionId: `stub_sub_${randomUUID().slice(0, 12)}`,
       planId: p.planId,
       customerId: p.customerId,
-      status: 1,
-      next_invoice_date: next.toISOString().slice(0, 10),
-      cancel_at_period_end: 0,
+      canceled: false,
+      nextInvoiceDate: next.toISOString().slice(0, 10),
+      cancelAtPeriodEnd: false,
       invoices: [invoice],
     };
     this.subs.set(sub.subscriptionId, sub);
-    return Promise.resolve({ ...sub });
+    return Promise.resolve(this.toRemote(sub));
   }
 
-  // Id desconocido (restart del proceso) → status 4: la fila local
+  // Id desconocido (restart del proceso) → CANCELED: la fila local
   // converge a CANCELED en el próximo reconcile en vez de vivir siempre.
   getSubscription(
     subscriptionId: string,
     _opts?: SubscriptionCallOpts,
-  ): Promise<FlowSubscription> {
+  ): Promise<RemoteSubscription> {
     const s = this.subs.get(subscriptionId);
     return Promise.resolve(
       s
-        ? { ...s }
-        : { subscriptionId, planId: "", status: 4, invoices: [] },
+        ? this.toRemote(s)
+        : {
+            subscriptionId,
+            planId: "",
+            status: "CANCELED",
+            morose: false,
+            cancelAtPeriodEnd: false,
+            invoices: [],
+          },
     );
   }
 
-  // at_period_end por default; immediate solo para la compensación de
-  // huérfanas. Id desconocido → no-op (cancel es idempotente en dev).
+  // cancel al fin del período por default; immediate solo para la
+  // compensación de huérfanas. Id desconocido → no-op (idempotente).
   cancelSubscription(
     subscriptionId: string,
     opts?: SubscriptionCallOpts & { immediate?: boolean },
@@ -232,12 +236,25 @@ export class StubGateway implements PaymentGateway, SubscriptionProvider {
     const s = this.subs.get(subscriptionId);
     if (s) {
       if (opts?.immediate) {
-        s.status = 4;
-        s.cancel_at_period_end = 0;
+        s.canceled = true;
+        s.cancelAtPeriodEnd = false;
       } else {
-        s.cancel_at_period_end = 1;
+        s.cancelAtPeriodEnd = true;
       }
     }
     return Promise.resolve();
+  }
+
+  private toRemote(s: StubSub): RemoteSubscription {
+    return {
+      subscriptionId: s.subscriptionId,
+      planId: s.planId,
+      status: s.canceled ? "CANCELED" : "ACTIVE",
+      rawStatus: s.canceled ? 4 : 1,
+      morose: false,
+      cancelAtPeriodEnd: s.cancelAtPeriodEnd,
+      nextInvoiceDate: s.nextInvoiceDate,
+      invoices: s.invoices,
+    };
   }
 }

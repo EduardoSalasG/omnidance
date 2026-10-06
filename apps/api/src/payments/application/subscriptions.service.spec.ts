@@ -8,7 +8,8 @@ import type { MembershipSubscription } from "@prisma/client";
 import type { PrismaService } from "../../prisma.service";
 import type { ParamsService } from "../../params/params.service";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
-import type { PaymentGateway } from "../domain/ports";
+import type { PaymentGateway, RemoteSubscription } from "../domain/ports";
+import { GatewayRegistry } from "../domain/gateway-registry";
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
 import { StubGateway } from "../infrastructure/stub.gateway";
@@ -417,7 +418,7 @@ function mkFlow() {
     ),
     getCustomer: vi.fn(
       async (_customerId: string, _opts?: Opts) =>
-        ({}) as { creditCardType?: string; status?: number },
+        ({ hasCard: false }) as { hasCard: boolean },
     ),
     registerCustomerCard: vi.fn(
       async (
@@ -429,8 +430,8 @@ function mkFlow() {
     ),
     getRegisterStatus: vi.fn(
       async (_token: string, _opts?: Opts) =>
-        ({ status: 1, customerId: "cus_p1" }) as {
-          status: number;
+        ({ registered: true, customerId: "cus_p1" }) as {
+          registered: boolean;
           customerId?: string;
         },
     ),
@@ -438,17 +439,19 @@ function mkFlow() {
       async (
         p: { planId: string; customerId: string; subscriptionStart: string },
         _opts?: Opts,
-      ) => ({
+      ): Promise<RemoteSubscription> => ({
         subscriptionId: "fsub-1",
         planId: p.planId,
-        status: 1,
-        next_invoice_date: "2026-10-24",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-10-24",
         invoices: [],
       }),
     ),
     getSubscription: vi.fn(
       async (_subscriptionId: string, _opts?: Opts) =>
-        ({}) as Record<string, unknown>,
+        ({}) as RemoteSubscription,
     ),
     cancelSubscription: vi.fn(
       async (_subscriptionId: string, _opts?: Opts) => undefined,
@@ -465,6 +468,7 @@ function mkNotifications() {
 
 function mkParams() {
   return {
+    get: vi.fn(async (_k: string) => null),
     getNumber: vi.fn(async (_k: string, fallback: number) => fallback),
   };
 }
@@ -499,11 +503,11 @@ describe("SubscriptionsService", () => {
     const notif = notifications as unknown as NotificationsService;
     svc = new SubscriptionsService(
       prisma,
-      flow as unknown as PaymentGateway,
       paramsSvc,
       new PaymentSettlementService(prisma, paramsSvc, notif),
       notif,
       new GatewayTransactionsService(prisma),
+      new GatewayRegistry([flow as unknown as PaymentGateway], "FLOW"),
     );
   });
 
@@ -547,9 +551,13 @@ describe("SubscriptionsService", () => {
       const params = mkParams();
       const prisma = fx.prisma as unknown as PrismaService;
       const notif = notifications as unknown as NotificationsService;
+      const stubGw = {
+        name: "STUB",
+        createOrder: vi.fn(),
+        verifyWebhook: vi.fn(),
+      };
       const stubSvc = new SubscriptionsService(
         prisma,
-        { name: "STUB", createOrder: vi.fn(), verifyWebhook: vi.fn() },
         params as unknown as ParamsService,
         new PaymentSettlementService(
           prisma,
@@ -558,9 +566,13 @@ describe("SubscriptionsService", () => {
         ),
         notif,
         new GatewayTransactionsService(prisma),
+        new GatewayRegistry(
+          [stubGw as unknown as PaymentGateway],
+          "STUB",
+        ),
       );
       await expect(stubSvc.subscribe("p1", "plan1", true)).rejects.toThrow(
-        "no soporta suscripciones",
+        "motor de suscripciones",
       );
     });
 
@@ -612,7 +624,7 @@ describe("SubscriptionsService", () => {
     });
 
     it("con tarjeta → subscription/create + ACTIVE + nextInvoiceAt + notify", async () => {
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       const r = await svc.subscribe("p1", "plan1", true);
 
       expect(r.kind).toBe("subscribed");
@@ -667,7 +679,7 @@ describe("SubscriptionsService", () => {
         createdAt: new Date(Date.now() - 20 * 60_000),
       });
       fx.subs.push(old);
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       await svc.subscribe("p1", "plan1", true);
       const oldRow = fx.subs.find((s) => s.id === old.id)!;
       expect(oldRow.status).toBe("CANCELED");
@@ -694,7 +706,7 @@ describe("SubscriptionsService", () => {
       // sin llamar subscription/create (no hay doble cobro).
       const pending = mkSub({ status: "PENDING_CARD" });
       fx.subs.push(pending);
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       const inner = fx.prisma.membershipSubscription as unknown as {
         updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
       };
@@ -714,13 +726,15 @@ describe("SubscriptionsService", () => {
       expect(flow.createSubscription).not.toHaveBeenCalled();
     });
 
-    it("createSubscription reporta status 4 → CANCELED, no asume ACTIVE", async () => {
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+    it("createSubscription reporta CANCELED → sub CANCELED, no asume ACTIVE", async () => {
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       flow.createSubscription.mockResolvedValue({
         subscriptionId: "fsub-x",
         planId: "omni_plan1",
-        status: 4,
-        next_invoice_date: "2026-10-24",
+        status: "CANCELED",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-10-24",
         invoices: [],
       });
       const r = await svc.subscribe("p1", "plan1", true);
@@ -733,7 +747,7 @@ describe("SubscriptionsService", () => {
     });
 
     it("update post-createSubscription falla → cancel inmediata compensa la sub Flow huérfana", async () => {
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       const inner = fx.prisma.membershipSubscription as unknown as {
         updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
       };
@@ -825,7 +839,7 @@ describe("SubscriptionsService", () => {
     it("claim perdido y la sub quedó CANCELED → 409 con mensaje de cancelada (N3)", async () => {
       const pending = mkSub({ status: "PENDING_CARD" });
       fx.subs.push(pending);
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       const inner = fx.prisma.membershipSubscription as unknown as {
         updateMany: (a: { where: Row; data: Row }) => Promise<{ count: number }>;
       };
@@ -846,21 +860,26 @@ describe("SubscriptionsService", () => {
       expect(flow.createSubscription).not.toHaveBeenCalled();
     });
 
-    it("createSubscription devuelve status como STRING '4' → CANCELED (coerción M4)", async () => {
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+    it("createSubscription reporta UNKNOWN (código no mapeado) → queda ACTIVE para el reconcile (M4)", async () => {
+      // El adaptador normaliza: un código del proveedor que no mapea
+      // llega como UNKNOWN + rawStatus - la sub existe y cobra, así que
+      // el dominio la trata como vigente (warn) y el reconcile corrige.
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       flow.createSubscription.mockResolvedValue({
         subscriptionId: "fsub-s",
         planId: "omni_plan1",
-        status: "4" as unknown as number, // Flow a veces manda string
-        next_invoice_date: "2026-10-24",
+        status: "UNKNOWN",
+        rawStatus: "4",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-10-24",
         invoices: [],
       });
       const r = await svc.subscribe("p1", "plan1", true);
       expect(r.kind).toBe("subscribed");
       const sub = fx.subs[0]!;
-      expect(sub.status).toBe("CANCELED");
+      expect(sub.status).toBe("ACTIVE");
       expect(sub.flowSubscriptionId).toBe("fsub-s");
-      expect(notifications.notifySafe).not.toHaveBeenCalled();
     });
   });
 
@@ -896,8 +915,8 @@ describe("SubscriptionsService", () => {
       });
     });
 
-    it("status !== 1 → ok:false sin crear suscripción", async () => {
-      flow.getRegisterStatus.mockResolvedValue({ status: 0 });
+    it("registered=false → ok:false sin crear suscripción", async () => {
+      flow.getRegisterStatus.mockResolvedValue({ registered: false });
       const r = await svc.customerReturn("tok-bad");
       expect(r).toEqual({ ok: false, academyId: null });
       expect(flow.createSubscription).not.toHaveBeenCalled();
@@ -956,17 +975,18 @@ describe("SubscriptionsService", () => {
       const fs = {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        next_invoice_date: "2026-10-24",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-10-24",
         invoices: [
           {
             id: 42,
-            status: 1,
             amount: 10500,
+            paid: true,
             payment: {
-              status: 2,
-              flowOrder: 777,
-              paymentData: { amount: 10500, fee: 335 },
+              orderRef: "777",
+              data: { amount: 10500, fee: 335 },
             },
           },
         ],
@@ -980,7 +1000,7 @@ describe("SubscriptionsService", () => {
       expect(payment.orderType).toBe("MEMBERSHIP");
       expect(payment.status).toBe("PAID"); // settleMembership lo liquidó
       expect(payment.gatewayRef).toBe("777");
-      expect(payment.gatewayFeeClp).toBe(335); // paymentData → campos gateway*
+      expect(payment.gatewayFeeClp).toBe(335); // payment.data → campos gateway*
 
       // el settle materializó el enrollment (misma fuente de verdad)
       expect(fx.enrollments).toHaveLength(1);
@@ -1027,16 +1047,17 @@ describe("SubscriptionsService", () => {
       const fs = {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [
           {
             id: 42,
-            status: 1,
             amount: 10500,
+            paid: true,
             payment: {
-              status: 2,
-              flowOrder: 777,
-              paymentData: { amount: 10500, fee: 335 },
+              orderRef: "777",
+              data: { amount: 10500, fee: 335 },
             },
           },
         ],
@@ -1072,8 +1093,10 @@ describe("SubscriptionsService", () => {
       const fs = {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        invoices: [{ id: 42, status: 1, amount: 10500 }],
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        invoices: [{ id: 42, amount: 10500, paid: true }],
       };
       expect(await svc.reconcileSubscription(sub, fs as never)).toBe(1);
       // segunda pasada: lastInvoiceId dedup
@@ -1089,36 +1112,21 @@ describe("SubscriptionsService", () => {
       expect(row.lastInvoiceId).toBe("42");
     });
 
-    it("cancel_at_period_end remoto → CANCEL_PENDING local", async () => {
+    it("cancelAtPeriodEnd remoto → CANCEL_PENDING local", async () => {
       const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
       fx.subs.push(sub);
       await svc.reconcileSubscription(sub, {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        cancel_at_period_end: 1,
-        next_invoice_date: "2026-10-24",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: true,
+        nextInvoiceDate: "2026-10-24",
         invoices: [],
       } as never);
       const row = fx.subs.find((s) => s.id === sub.id)!;
       expect(row.status).toBe("CANCEL_PENDING");
       expect(row.canceledAt).toBeInstanceOf(Date);
-    });
-
-    it("cancel_at_period_end como STRING '1' → CANCEL_PENDING (coerción)", async () => {
-      const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
-      fx.subs.push(sub);
-      await svc.reconcileSubscription(sub, {
-        subscriptionId: "fsub-1",
-        planId: "omni_plan1",
-        status: 1,
-        cancel_at_period_end: "1" as unknown as number,
-        next_invoice_date: "2026-10-24",
-        invoices: [],
-      } as never);
-      expect(fx.subs.find((s) => s.id === sub.id)!.status).toBe(
-        "CANCEL_PENDING",
-      );
     });
 
     it("nextInvoiceAt dentro de 24h → reminder renewal_reminder + reminderSentFor", async () => {
@@ -1128,8 +1136,10 @@ describe("SubscriptionsService", () => {
       await svc.reconcileSubscription(sub, {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        next_invoice_date: in12h.toISOString(),
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: in12h.toISOString(),
         invoices: [],
       } as never);
       expect(notifications.notifySafe).toHaveBeenCalledWith(
@@ -1161,8 +1171,10 @@ describe("SubscriptionsService", () => {
       const fs = {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        next_invoice_date: in12h.toISOString(),
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: in12h.toISOString(),
         invoices: [],
       };
       await svc.reconcileSubscription(sub, fs as never);
@@ -1177,7 +1189,7 @@ describe("SubscriptionsService", () => {
       } as MembershipSubscription;
       await svc.reconcileSubscription(sub2, {
         ...fs,
-        next_invoice_date: in20h.toISOString(),
+        nextInvoiceDate: in20h.toISOString(),
       } as never);
       expect(notifications.notifySafe).toHaveBeenCalledTimes(1);
       expect(
@@ -1191,20 +1203,22 @@ describe("SubscriptionsService", () => {
       const base = {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [],
       };
       // próximo cobro en 7 días → fuera de la ventana de 24h
       await svc.reconcileSubscription(sub, {
         ...base,
-        next_invoice_date: new Date(
+        nextInvoiceDate: new Date(
           Date.now() + 7 * 24 * 60 * 60_000,
         ).toISOString(),
       } as never);
       // cobro ya pasado → nunca se recuerda atrasado
       await svc.reconcileSubscription(sub, {
         ...base,
-        next_invoice_date: new Date(Date.now() - 60_000).toISOString(),
+        nextInvoiceDate: new Date(Date.now() - 60_000).toISOString(),
       } as never);
       expect(notifications.notifySafe).not.toHaveBeenCalled();
       expect(
@@ -1212,17 +1226,18 @@ describe("SubscriptionsService", () => {
       ).toBeNull();
     });
 
-    it("cancel_at_period_end con cobro <24h → CANCEL_PENDING y SIN reminder", async () => {
+    it("cancelAtPeriodEnd con cobro <24h → CANCEL_PENDING y SIN reminder", async () => {
       // Una sub cancelada al fin de período no tiene próximo cobro real
-      // aunque Flow siga reportando next_invoice_date.
+      // aunque el proveedor siga reportando nextInvoiceDate.
       const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
       fx.subs.push(sub);
       await svc.reconcileSubscription(sub, {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        cancel_at_period_end: 1,
-        next_invoice_date: new Date(
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: true,
+        nextInvoiceDate: new Date(
           Date.now() + 12 * 60 * 60_000,
         ).toISOString(),
         invoices: [],
@@ -1232,16 +1247,17 @@ describe("SubscriptionsService", () => {
       expect(notifications.notifySafe).not.toHaveBeenCalled();
     });
 
-    it("morose=1 con invoice impaga → renewal_failed + enrollment intacto + sub sigue ACTIVE", async () => {
+    it("morose con invoice impaga → renewal_failed + enrollment intacto + sub sigue ACTIVE", async () => {
       const sub = mkSub({ status: "ACTIVE", flowSubscriptionId: "fsub-1" });
       fx.subs.push(sub);
       await svc.reconcileSubscription(sub, {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        morose: 1,
-        next_invoice_date: "2026-10-24",
-        invoices: [{ id: 55, status: 0, amount: 10500 }],
+        status: "ACTIVE",
+        morose: true,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-10-24",
+        invoices: [{ id: 55, amount: 10500, paid: false }],
       } as never);
       expect(notifications.notifySafe).toHaveBeenCalledWith(
         "p1",
@@ -1268,9 +1284,10 @@ describe("SubscriptionsService", () => {
       const fs = {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        morose: 1,
-        invoices: [{ id: 55, status: 0, amount: 10500 }],
+        status: "ACTIVE",
+        morose: true,
+        cancelAtPeriodEnd: false,
+        invoices: [{ id: 55, amount: 10500, paid: false }],
       };
       await svc.reconcileSubscription(sub, fs as never);
       await svc.reconcileSubscription(sub, fs as never);
@@ -1282,8 +1299,8 @@ describe("SubscriptionsService", () => {
       await svc.reconcileSubscription(sub, {
         ...fs,
         invoices: [
-          { id: 55, status: 0, amount: 10500 },
-          { id: 56, status: 0, amount: 10500 },
+          { id: 55, amount: 10500, paid: false },
+          { id: 56, amount: 10500, paid: false },
         ],
       } as never);
       // la clave del episodio es la invoice impaga más antigua (55) -
@@ -1309,9 +1326,10 @@ describe("SubscriptionsService", () => {
       await svc.reconcileSubscription(sub, {
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        morose: 1,
-        invoices: [{ id: 55, status: 0, amount: 10500 }],
+        status: "ACTIVE",
+        morose: true,
+        cancelAtPeriodEnd: false,
+        invoices: [{ id: 55, amount: 10500, paid: false }],
       } as never);
       const ev = fx.events.find(
         (e) => e.paymentId === "pay-1" && e.type === "RENEWAL_FAILED",
@@ -1334,8 +1352,10 @@ describe("SubscriptionsService", () => {
       flow.getSubscription.mockImplementation(async (id: string) => ({
         subscriptionId: id,
         planId: "omni_plan1",
-        status: 1,
-        next_invoice_date: "2026-10-24",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-10-24",
         invoices: [],
       }));
       const r = await svc.reconcileAll();
@@ -1356,9 +1376,10 @@ describe("SubscriptionsService", () => {
       flow.getSubscription.mockResolvedValue({
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
-        morose: 1,
-        invoices: [{ id: 55, status: 0, amount: 10500 }],
+        status: "ACTIVE",
+        morose: true,
+        cancelAtPeriodEnd: false,
+        invoices: [{ id: 55, amount: 10500, paid: false }],
       });
       const r = await svc.reconcileAll("cron");
       expect(r).toEqual({ checked: 1, settled: 0 });
@@ -1388,7 +1409,9 @@ describe("SubscriptionsService", () => {
       flow.getSubscription.mockResolvedValue({
         subscriptionId: "fsub-huerfana",
         planId: "omni_plan1",
-        status: 1,
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [],
       });
       const r = await svc.reconcileAll();
@@ -1407,7 +1430,9 @@ describe("SubscriptionsService", () => {
       flow.getSubscription.mockResolvedValue({
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [],
       });
       await svc.reconcileAll();
@@ -1425,7 +1450,9 @@ describe("SubscriptionsService", () => {
       flow.getSubscription.mockResolvedValue({
         subscriptionId: "fsub-stuck",
         planId: "omni_plan1",
-        status: 1,
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [],
       });
       await svc.reconcileAll();
@@ -1446,7 +1473,9 @@ describe("SubscriptionsService", () => {
       flow.getSubscription.mockResolvedValue({
         subscriptionId: "fsub-race",
         planId: "omni_plan1",
-        status: 1,
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [],
       });
       await svc.reconcileAll();
@@ -1456,12 +1485,14 @@ describe("SubscriptionsService", () => {
       });
     });
 
-    it("idempotente: remota ya cancelada (status 4) → no llama cancel", async () => {
+    it("idempotente: remota ya CANCELED → no llama cancel", async () => {
       auditCreate("fsub-dead");
       flow.getSubscription.mockResolvedValue({
         subscriptionId: "fsub-dead",
         planId: "omni_plan1",
-        status: 4,
+        status: "CANCELED",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [],
       });
       await svc.reconcileAll();
@@ -1486,7 +1517,9 @@ describe("SubscriptionsService", () => {
       flow.getSubscription.mockResolvedValue({
         subscriptionId: "fsub-1",
         planId: "omni_plan1",
-        status: 1,
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
         invoices: [],
       });
       await svc.subscriptionWebhook("tok-wh");
@@ -1556,9 +1589,13 @@ describe("SubscriptionsService", () => {
       const params = mkParams();
       const prisma = fx.prisma as unknown as PrismaService;
       const notif = notifications as unknown as NotificationsService;
+      const stubGw = {
+        name: "STUB",
+        createOrder: vi.fn(),
+        verifyWebhook: vi.fn(),
+      };
       const stubSvc = new SubscriptionsService(
         prisma,
-        { name: "STUB", createOrder: vi.fn(), verifyWebhook: vi.fn() },
         params as unknown as ParamsService,
         new PaymentSettlementService(
           prisma,
@@ -1567,6 +1604,10 @@ describe("SubscriptionsService", () => {
         ),
         notif,
         new GatewayTransactionsService(prisma),
+        new GatewayRegistry(
+          [stubGw as unknown as PaymentGateway],
+          "STUB",
+        ),
       );
       await stubSvc.syncMirrorPlan(
         { flowPlanId: "omni_x", academy: { name: "X" } },
@@ -1600,11 +1641,11 @@ describe("SubscriptionsService", () => {
       const notif = notifications as unknown as NotificationsService;
       stubSvc = new SubscriptionsService(
         prisma,
-        stub as unknown as PaymentGateway,
         paramsSvc,
         new PaymentSettlementService(prisma, paramsSvc, notif),
         notif,
         new GatewayTransactionsService(prisma),
+        new GatewayRegistry([stub as unknown as PaymentGateway], "STUB"),
       );
     });
 
@@ -1676,7 +1717,7 @@ describe("SubscriptionsService", () => {
       expect(fx.subs[0]!.status).toBe("ACTIVE");
     });
 
-    it("cancel → CANCEL_PENDING y el remoto queda cancel_at_period_end", async () => {
+    it("cancel → CANCEL_PENDING y el remoto queda cancelAtPeriodEnd", async () => {
       const c = await stub.createCustomer({
         email: "fan@example.cl",
         name: "Fan Uno",
@@ -1698,8 +1739,8 @@ describe("SubscriptionsService", () => {
       const remote = await stub.getSubscription(
         fx.subs[0]!.flowSubscriptionId as string,
       );
-      expect(Number(remote.cancel_at_period_end)).toBe(1);
-      expect(Number(remote.status)).toBe(1);
+      expect(remote.cancelAtPeriodEnd).toBe(true);
+      expect(remote.status).toBe("ACTIVE");
     });
 
     it("reconcileAll con stub: sub remota perdida (restart) → local converge a CANCELED", async () => {

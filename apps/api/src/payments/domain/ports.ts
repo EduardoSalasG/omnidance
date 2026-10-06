@@ -66,48 +66,51 @@ export interface PaymentGateway {
 // ---- Suscripciones recurrentes (motor nativo de la pasarela) ----
 
 /**
- * Factura de una suscripción Flow (subscription/get → invoices[]).
- *
- * Regla "pagada" - la doc de Flow no la explicita con claridad; esta es
- * la interpretación segura que usa el reconcile (cron + GET /subscriptions):
- *
- *   paid = invoice.status === 1 || invoice.payment?.status === 2
- *
- * Es decir: la invoice marcada cobrada, o su intento de pago asociado
- * con status 2 (pagado - el mismo código que payment/getStatus).
+ * Estado remoto de suscripción normalizado (spec
+ * subscription-port-generic): el ADAPTADOR traduce los códigos del
+ * proveedor - el dominio jamás interpreta números de estado.
+ * `UNKNOWN` conserva el código crudo en `rawStatus` (logging) y el
+ * consumer lo trata como vigente + warning, misma semántica previa.
  */
-export interface FlowInvoice {
-  id: number;
-  status: number;
+export type RemoteSubscriptionStatus =
+  | "ACTIVE"
+  | "CANCELED"
+  | "PENDING"
+  | "UNKNOWN";
+
+/**
+ * Invoice de suscripción normalizada: `paid` ya viene resuelto por el
+ * adaptador según la regla del proveedor (Flow: invoice.status===1 o
+ * su pago con status===2); `payment.data` es la verdad monetaria
+ * normalizada que el settle persiste en los campos gateway* del
+ * Payment de renovación, igual que el gatewayData del webhook.
+ */
+export interface SubscriptionInvoice {
+  id: string | number;
   amount: number;
-  period_start?: string;
-  period_end?: string;
+  paid: boolean;
+  periodStart?: string;
+  periodEnd?: string;
   payment?: {
-    status?: number;
-    flowOrder?: number;
-    paymentData?: {
-      amount?: number;
-      fee?: number;
-      media?: string;
-      date?: string;
-      transferDate?: string;
-    };
+    /** id de orden/cobro en el proveedor (Flow: flowOrder). */
+    orderRef?: string;
+    data?: NormalizedGatewayData;
   };
 }
 
-export interface FlowSubscription {
+/** Suscripción remota tal como la ve el dominio (normalizada). */
+export interface RemoteSubscription {
   subscriptionId: string;
   planId: string;
-  status: number;
-  next_invoice_date?: string;
-  morose?: number;
-  cancel_at_period_end?: number;
-  invoices?: FlowInvoice[];
-}
-
-/** Regla documentada en FlowInvoice: invoice cobrada o su pago confirmado. */
-export function isFlowInvoicePaid(inv: FlowInvoice): boolean {
-  return inv.status === 1 || inv.payment?.status === 2;
+  status: RemoteSubscriptionStatus;
+  /** Código crudo del proveedor - solo logging/diagnóstico. */
+  rawStatus?: number | string;
+  /** Mora reportada por el proveedor (Flow: morose=1). */
+  morose: boolean;
+  /** Cancelación programada al fin del período pagado. */
+  cancelAtPeriodEnd: boolean;
+  nextInvoiceDate?: string;
+  invoices?: SubscriptionInvoice[];
 }
 
 /** Opciones por llamada: propaga el correlationId de negocio a la auditoría. */
@@ -117,10 +120,12 @@ export interface SubscriptionCallOpts {
 
 /**
  * Puerto opcional: las pasarelas con motor de suscripciones lo
- * implementan (Flow en sandbox/prod; StubGateway en dev - simulación en
- * memoria). Los consumers resuelven el PAYMENT_GATEWAY inyectado y
- * verifican capability por presencia de métodos (p.ej. `typeof
- * gateway.createSubscription === "function"`), nunca por `name`.
+ * implementan (Flow hoy; StubGateway en dev - simulación en memoria;
+ * MP preapproval / Stripe Billing como slots futuros). Los consumers
+ * resuelven el adaptador vía `GatewayRegistry` + param
+ * `payments.subscription_gateway` y verifican capability por
+ * presencia de métodos (p.ej. `typeof gateway.createSubscription ===
+ * "function"`), nunca por `name` ni por el gateway de órdenes.
  */
 export interface SubscriptionProvider {
   /** plans/get → si no existe, plans/create (idempotente por planId). */
@@ -145,39 +150,39 @@ export interface SubscriptionProvider {
     opts?: SubscriptionCallOpts,
   ): Promise<{ customerId: string }>;
 
-  /** `creditCardType` presente = el customer ya registró tarjeta. */
+  /** `hasCard` = el customer ya registró medio de pago recurrente. */
   getCustomer(
     customerId: string,
     opts?: SubscriptionCallOpts,
-  ): Promise<{ creditCardType?: string; status?: number }>;
+  ): Promise<{ hasCard: boolean }>;
 
-  /** URL de registro de tarjeta (disclaimer de Flow + retorno con token). */
+  /** URL de registro de tarjeta (disclaimer del proveedor + retorno con token). */
   registerCustomerCard(
     p: { customerId: string; returnUrl: string },
     opts?: SubscriptionCallOpts,
   ): Promise<{ registerUrl: string }>;
 
-  /** Flow devuelve status como STRING ("1"); aquí ya parseado a number. */
+  /** `registered` = el registro de tarjeta terminó con éxito. */
   getRegisterStatus(
     token: string,
     opts?: SubscriptionCallOpts,
-  ): Promise<{ status: number; customerId?: string }>;
+  ): Promise<{ registered: boolean; customerId?: string }>;
 
   createSubscription(
     p: { planId: string; customerId: string; subscriptionStart: string },
     opts?: SubscriptionCallOpts,
-  ): Promise<FlowSubscription>;
+  ): Promise<RemoteSubscription>;
 
   getSubscription(
     subscriptionId: string,
     opts?: SubscriptionCallOpts,
-  ): Promise<FlowSubscription>;
+  ): Promise<RemoteSubscription>;
 
   /**
-   * Cancela al fin del período ya pagado (at_period_end=1). Con
-   * `immediate: true` → at_period_end=0: cancelación inmediata, usada
-   * solo como compensación de una sub Flow huérfana (creada pero no
-   * persistida localmente) - nunca para la cancelación del usuario.
+   * Cancela al fin del período ya pagado. Con `immediate: true` la
+   * cancelación es inmediata - solo para compensar una suscripción
+   * remota huérfana (creada pero no persistida localmente), nunca
+   * para la cancelación del usuario.
    */
   cancelSubscription(
     subscriptionId: string,

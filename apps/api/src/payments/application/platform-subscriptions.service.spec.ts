@@ -9,9 +9,10 @@ import type { PrismaService } from "../../prisma.service";
 import type { ParamsService } from "../../params/params.service";
 import type { NotificationsService } from "../../notifications/domain/notifications.service";
 import type {
-  FlowSubscription,
   PaymentGateway,
+  RemoteSubscription,
 } from "../domain/ports";
+import { GatewayRegistry } from "../domain/gateway-registry";
 import { PaymentSettlementService } from "./payment-settlement.service";
 import { GatewayTransactionsService } from "../infrastructure/gateway-transactions.service";
 import { PlatformSubscriptionsService } from "./platform-subscriptions.service";
@@ -413,7 +414,7 @@ function mkFlow() {
     ),
     getCustomer: vi.fn(
       async (_customerId: string, _opts?: Opts) =>
-        ({}) as { creditCardType?: string; status?: number },
+        ({ hasCard: false }) as { hasCard: boolean },
     ),
     registerCustomerCard: vi.fn(
       async (
@@ -425,8 +426,8 @@ function mkFlow() {
     ),
     getRegisterStatus: vi.fn(
       async (_token: string, _opts?: Opts) =>
-        ({ status: 1, customerId: "cus_p1" }) as {
-          status: number;
+        ({ registered: true, customerId: "cus_p1" }) as {
+          registered: boolean;
           customerId?: string;
         },
     ),
@@ -437,8 +438,10 @@ function mkFlow() {
       ) => ({
         subscriptionId: `fsub-${++subSeq}`,
         planId: p.planId,
-        status: 1,
-        next_invoice_date: "2026-11-05",
+        status: "ACTIVE",
+        morose: false,
+        cancelAtPeriodEnd: false,
+        nextInvoiceDate: "2026-11-05",
         invoices: [],
       }),
     ),
@@ -461,12 +464,16 @@ function mkNotifications() {
 
 const ACADEMY_ROW = mkAcademy();
 
-function mkFlowSub(over: Partial<FlowSubscription> = {}): FlowSubscription {
+function mkFlowSub(
+  over: Partial<RemoteSubscription> = {},
+): RemoteSubscription {
   return {
     subscriptionId: "fsub-1",
     planId: "plat_academy_starter_monthly",
-    status: 1,
-    next_invoice_date: "2026-11-05",
+    status: "ACTIVE",
+    morose: false,
+    cancelAtPeriodEnd: false,
+    nextInvoiceDate: "2026-11-05",
     invoices: [],
     ...over,
   };
@@ -507,6 +514,7 @@ describe("PlatformSubscriptionsService", () => {
     });
     const prisma = fx.prisma as unknown as PrismaService;
     const paramsSvc = {
+      get: vi.fn(async (_k: string) => null),
       getNumber: vi.fn(
         async (k: string, fallback: number) => PARAMS.get(k) ?? fallback,
       ),
@@ -514,11 +522,11 @@ describe("PlatformSubscriptionsService", () => {
     const notif = notifications as unknown as NotificationsService;
     svc = new PlatformSubscriptionsService(
       prisma,
-      flow as unknown as PaymentGateway,
       paramsSvc,
       new PaymentSettlementService(prisma, paramsSvc, notif),
       notif,
       new GatewayTransactionsService(prisma),
+      new GatewayRegistry([flow as unknown as PaymentGateway], "FLOW"),
     );
   });
 
@@ -652,7 +660,7 @@ describe("PlatformSubscriptionsService", () => {
     });
 
     it("con tarjeta → subscription/create + ACTIVE + tier en la academia", async () => {
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       const r = await svc.subscribeAcademy(
         "p1",
         ACADEMY_ROW as never,
@@ -801,7 +809,7 @@ describe("PlatformSubscriptionsService", () => {
     });
 
     it("con tarjeta → ACTIVE + Person.proTier restaurado", async () => {
-      flow.getCustomer.mockResolvedValue({ creditCardType: "Visa" });
+      flow.getCustomer.mockResolvedValue({ hasCard: true });
       addSale(100000);
       const r = await svc.subscribeProducer("p2", input);
       expect(r.kind).toBe("subscribed");
@@ -1019,9 +1027,9 @@ describe("PlatformSubscriptionsService", () => {
         invoices: [
           {
             id: 501,
-            status: 1,
             amount: 39990,
-            payment: { status: 2, flowOrder: 991 },
+            paid: true,
+            payment: { orderRef: "991" },
           },
         ],
       });
@@ -1064,7 +1072,7 @@ describe("PlatformSubscriptionsService", () => {
       });
       fx.platSubs.push(sub);
       const fs = mkFlowSub({
-        invoices: [{ id: 501, status: 1, amount: 19990 }],
+        invoices: [{ id: 501, amount: 19990, paid: true }],
       });
       const settled = await svc.reconcileSubscription(sub, fs);
       expect(settled).toBe(0);
@@ -1091,7 +1099,7 @@ describe("PlatformSubscriptionsService", () => {
         createdAt: new Date(),
       });
       const fs = mkFlowSub({
-        invoices: [{ id: 502, status: 1, amount: 19990 }],
+        invoices: [{ id: 502, amount: 19990, paid: true }],
       });
       const settled = await svc.reconcileSubscription(sub, fs);
       expect(settled).toBe(1);
@@ -1123,8 +1131,8 @@ describe("PlatformSubscriptionsService", () => {
       });
       const before = Date.now();
       const fs = mkFlowSub({
-        morose: 1,
-        invoices: [{ id: 600, status: 0, amount: 19990 }],
+        morose: true,
+        invoices: [{ id: 600, amount: 19990, paid: false }],
       });
       await svc.reconcileSubscription(sub, fs);
 
@@ -1161,8 +1169,8 @@ describe("PlatformSubscriptionsService", () => {
         createdAt: new Date(),
       });
       const fs = mkFlowSub({
-        morose: 1,
-        invoices: [{ id: 600, status: 0, amount: 19990 }],
+        morose: true,
+        invoices: [{ id: 600, amount: 19990, paid: false }],
       });
       await svc.reconcileSubscription(sub, fs);
       const grace = fx.academies.get("ac1")!.billingGraceUntil as Date;
@@ -1191,7 +1199,7 @@ describe("PlatformSubscriptionsService", () => {
 
       const fs = mkFlowSub({
         subscriptionId: "fsub-old",
-        status: 4,
+        status: "CANCELED",
       });
       await svc.reconcileSubscription(sub, fs);
 
@@ -1224,13 +1232,13 @@ describe("PlatformSubscriptionsService", () => {
       fx.platSubs.push(sub);
       await svc.reconcileSubscription(
         sub,
-        mkFlowSub({ subscriptionId: "fsub-old", status: 4 }),
+        mkFlowSub({ subscriptionId: "fsub-old", status: "CANCELED" }),
       );
       expect(sub.status).toBe("CANCELED");
       expect(flow.createSubscription).not.toHaveBeenCalled();
     });
 
-    it("cancel_at_period_end remoto → CANCEL_PENDING", async () => {
+    it("cancelAtPeriodEnd remoto → CANCEL_PENDING", async () => {
       const sub = mkPlatSub({
         status: "ACTIVE",
         flowSubscriptionId: "fsub-1",
@@ -1238,7 +1246,7 @@ describe("PlatformSubscriptionsService", () => {
       fx.platSubs.push(sub);
       await svc.reconcileSubscription(
         sub,
-        mkFlowSub({ cancel_at_period_end: 1 }),
+        mkFlowSub({ cancelAtPeriodEnd: true }),
       );
       expect(sub.status).toBe("CANCEL_PENDING");
       expect(sub.canceledAt).toBeInstanceOf(Date);
@@ -1252,7 +1260,7 @@ describe("PlatformSubscriptionsService", () => {
       fx.platSubs.push(sub);
       const tomorrow = new Date(Date.now() + 20 * 60 * 60_000);
       const fs = mkFlowSub({
-        next_invoice_date: tomorrow.toISOString().slice(0, 10),
+        nextInvoiceDate: tomorrow.toISOString().slice(0, 10),
       });
       await svc.reconcileSubscription(sub, fs);
       await svc.reconcileSubscription(sub, fs);
@@ -1274,7 +1282,7 @@ describe("PlatformSubscriptionsService", () => {
       });
       fx.platSubs.push(sub);
       const fs = mkFlowSub({
-        invoices: [{ id: 700, status: 1, amount: 19990 }],
+        invoices: [{ id: 700, amount: 19990, paid: true }],
       });
       await svc.reconcileSubscription(sub, fs);
       expect(fx.persons.get("p1")!.proTier).toBe("PRO_GROWTH");
@@ -1295,7 +1303,10 @@ describe("PlatformSubscriptionsService", () => {
       fx.platSubs.push(sub);
       await svc.reconcileSubscription(
         sub,
-        mkFlowSub({ morose: 1, invoices: [{ id: 800, status: 0, amount: 9990 }] }),
+        mkFlowSub({
+          morose: true,
+          invoices: [{ id: 800, amount: 9990, paid: false }],
+        }),
       );
       expect(
         fx.sentNotifs.filter((n) => n.type === "producer.pro_renewal_failed"),
@@ -1330,7 +1341,7 @@ describe("PlatformSubscriptionsService", () => {
     });
 
     it("registro no completado → ok:false", async () => {
-      flow.getRegisterStatus.mockResolvedValue({ status: 0 });
+      flow.getRegisterStatus.mockResolvedValue({ registered: false });
       fx.platSubs.push(mkPlatSub({ status: "PENDING_CARD" }));
       const r = await svc.customerReturn("tok-bad");
       expect(r.ok).toBe(false);
