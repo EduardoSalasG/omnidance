@@ -9,7 +9,7 @@
     "initialHint": "Busca un usuario por nombre o correo",
     "noResults": "Sin resultados",
     "searchError": "No se pudo buscar",
-    "forbidden": "Esta consola requiere rol de soporte",
+    "forbidden": "Esta sección requiere rol de soporte",
     "backToResults": "Volver a los resultados",
     "memberSince": "Miembro desde",
     "sections": {

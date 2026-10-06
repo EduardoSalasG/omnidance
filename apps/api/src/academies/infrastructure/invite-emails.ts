@@ -31,7 +31,7 @@ export function staffInviteEmailHtml(input: InviteEmailInput): string {
       te agregó como colaborador en Omnidance. Con este link entras
       directo a tu cuenta — no necesitas contraseña.
     </p>
-    ${ctaButton(input.link, "Entrar a la consola")}
+    ${ctaButton(input.link, "Entrar a la plataforma")}
     ${fallbackLink(input.link)}`,
   );
 }
