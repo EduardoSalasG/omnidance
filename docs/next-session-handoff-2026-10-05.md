@@ -233,3 +233,18 @@ corregido y regenerados los 4 PNG (commit `98ad610`).
   academias reales, /para-academias renderiza el strip + copy nuevo.
 - **Release**: acumular en dev hasta QA visual del usuario; v0.3.0
   (MINOR) junto con split-pro-landings al promover.
+
+---
+
+## Update 2026-10-06 - academy-payment-claims en dev (commit bd93b63)
+
+Feature completa: pagos directos alumno a academia con validacion por comprobante.
+
+- Schema: AcademyPaymentMethod (TRANSFER/PAYMENT_LINK/CASH + details JSON) y PaymentClaim (PENDING/APPROVED/REJECTED + receiptKey) - migracion 20261011000000.
+- src/storage: puerto STORAGE + LocalDiskStorage en UPLOADS_DIR (dev ./uploads, prod /app/uploads con bind mount /data/omnidance-uploads en la VM - sin el volumen los comprobantes se pierden en cada recreate). Stream autenticado, nunca estatico publico.
+- API: metodos CRUD admin + listado sesion; POST claims multipart (imagen/pdf <=5MB, limite multer + mime -> 400); cola owner; approve (tx: Payment MEMBERSHIP gateway MANUAL + enrollment extendido/creado con membershipBase/membershipEndsAt + planId actualizado al plan declarado); reject con motivo; notificaciones a owner y alumno.
+- refId claim-<id> no decodifica a plan en decodeMembershipRef -> los pagos MANUAL nunca entran a Payout (verificado en payouts.controller.ts).
+- Web: 'Pagar a la academia' en /academias/[id] (metodos + upload + historial); /academia/cobros con ClaimsQueue + PaymentMethodsAdmin; i18n academyPay.
+- Verificado: 90/90 e2e academias, 1470/1470 suite API, tsc web limpio, i18n ALL_KEYS_OK, smoke en vivo (claim -> aprobacion -> 409 re-approve, receipt 200, exe -> 400).
+- OpenSpec: change academy-payment-claims validado, tasks completas - pendiente archivar al release.
+- Pendiente antes de prod: montar /data/omnidance-uploads en la VM (docs/ci-cd.md tiene el snippet de compose), review visual de las dos superficies, y QA del flujo completo en dev.
