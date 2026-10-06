@@ -53,7 +53,7 @@ function mk(over: {
     listMethods: vi.fn(async () => [{ id: "m1" }]),
     createMethod: vi.fn(async (_p: string, dto: unknown) => ({
       id: "m1",
-      ...dto,
+      ...(dto as Record<string, unknown>),
     })),
     updateMethod: vi.fn(async () => ({ id: "m1", label: "nuevo" })),
     deleteMethod: vi.fn(async () => ({ ok: true })),

@@ -156,6 +156,35 @@ sequenceDiagram
     Note over S,API: POST /checkins/manual - sin QR,<br/>busca por nombre + note opcional
 ```
 
+### Puerta sin señal (offline check-in)
+
+```mermaid
+sequenceDiagram
+    actor S as Staff
+    participant W as Web (/staff/[eventId])
+    participant IDB as IndexedDB (door-db)
+    participant API as CheckinsController
+
+    Note over W,IDB: Al entrar (y con cada poll): GET /events/:id/door-manifest<br/>→ se guarda el padrón (pases ACTIVE + check-ins abiertos)
+    W->>API: GET /events/:id/door-manifest
+    API-->>W: {tickets, entryPasses, seriesPasses, checkins, generatedAt}
+    W->>IDB: saveManifest
+
+    Note over S,W: Sin señal (navigator.onLine=false o fetch rechazado)
+    S->>W: escanea QR personal
+    W->>W: decodifica JWT local (sin verificar firma),<br/>exp vencido → ámbar "búscalo por nombre"
+    W->>IDB: lookup personId en manifest + dedup local<br/>→ enqueue {clientRef, qrToken, scannedAt}
+    W-->>S: overlay verde/ámbar con sello "offline"<br/>(la firma la confirma el server al volver)
+
+    Note over W,API: Al volver la señal / cada ~30s
+    W->>API: POST /checkins/sync {items[≤500]}
+    API->>API: por ítem: verify JWT → register(inAt=scannedAt,<br/>method=OFFLINE, clientRef) → misma lógica de siempre
+    API-->>W: results[] {synced | duplicate | invalid_token | error}
+    W->>IDB: synced → sale de la cola;<br/>duplicate → conflicto visible (decisión humana)
+```
+
+El registro **manual offline** sigue el mismo camino: el staff busca por nombre sobre el manifest cacheado (sin personId crudo) y el ítem se encola con `personId` en vez de `qrToken`. Un `clientRef` existente responde `duplicate` sin insertar — el retry del dispositivo es exacto. La integridad del QR se conserva: el dispositivo solo lee el payload para mostrar el nombre; la verificación HMAC sigue siendo exclusiva del server al sincronizar (migración a firma asimétrica para verificación offline real quedó fuera de scope).
+
 ## Waitlist → promoción
 
 ```mermaid

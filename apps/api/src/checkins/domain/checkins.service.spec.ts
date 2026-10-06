@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import type { Checkin, EntryPass, Ticket } from "@prisma/client";
+import type {
+  Checkin,
+  EntryPass,
+  SeriesPass,
+  Ticket,
+} from "@prisma/client";
 import {
   AlreadyVoidedError,
   CheckinForbiddenError,
@@ -191,6 +196,56 @@ class FakeCheckinsRepo implements CheckinsRepo {
     );
   }
 
+  seriesPasses: { seriesId: string; personId: string; month: string }[] = [];
+
+  async findActiveSeriesPass(seriesId: string, personId: string, month: string) {
+    const row = this.seriesPasses.find(
+      (p) => p.seriesId === seriesId && p.personId === personId && p.month === month,
+    );
+    return (row as SeriesPass | undefined) ?? null;
+  }
+
+  async listActiveTicketsForEvent(eventId: string) {
+    return this.tickets
+      .filter((t) => t.eventId === eventId && t.status === "ACTIVE")
+      .map((t) => ({
+        personId: t.ownerId,
+        name: this.people.get(t.ownerId)?.name ?? "?",
+        photoUrl: this.people.get(t.ownerId)?.photoUrl ?? null,
+      }));
+  }
+
+  async listActiveEntryPassesForEvent(eventId: string) {
+    return this.entryPasses
+      .filter((p) => p.eventId === eventId && p.status === "ACTIVE")
+      .map((p) => ({
+        personId: p.personId,
+        type: p.type,
+        name: this.people.get(p.personId)?.name ?? "?",
+        photoUrl: this.people.get(p.personId)?.photoUrl ?? null,
+      }));
+  }
+
+  async listActiveSeriesPasses(seriesId: string, month: string) {
+    return this.seriesPasses
+      .filter((p) => p.seriesId === seriesId && p.month === month)
+      .map((p) => ({
+        personId: p.personId,
+        name: this.people.get(p.personId)?.name ?? "?",
+        photoUrl: this.people.get(p.personId)?.photoUrl ?? null,
+      }));
+  }
+
+  async listOpenCheckins(eventId: string) {
+    return this.checkins
+      .filter((c) => c.eventId === eventId && c.outAt === null)
+      .map((c) => ({ personId: c.personId, inAt: c.inAt }));
+  }
+
+  async findCheckinByClientRef(clientRef: string) {
+    return this.checkins.find((c) => c.clientRef === clientRef) ?? null;
+  }
+
   async createCheckin(data: CreateCheckinData, pass: ResolvedPass | null) {
     this.createdWith.push({ data, pass });
     const checkin: Checkin = {
@@ -200,9 +255,10 @@ class FakeCheckinsRepo implements CheckinsRepo {
       passId: data.passId,
       staffId: data.staffId,
       method: data.method,
-      inAt: new Date(),
+      inAt: data.inAt ?? new Date(),
       outAt: null,
       syncedAt: new Date(),
+      clientRef: data.clientRef ?? null,
       voidedAt: null,
       voidReason: null,
       note: data.note,
@@ -678,5 +734,144 @@ describe("CheckinsService.doorSale", () => {
         { id: "admin-1" },
       ),
     ).rejects.toBeInstanceOf(EventNotFoundError);
+  });
+});
+
+describe("CheckinsService.doorManifest", () => {
+  let repo: FakeCheckinsRepo;
+  let svc: CheckinsService;
+
+  beforeEach(() => {
+    repo = new FakeCheckinsRepo();
+    repo.addEvent("evt-1", { seriesId: "ser-1" });
+    repo.people.set("per-1", { id: "per-1", name: "Ana", photoUrl: null });
+    repo.people.set("per-2", { id: "per-2", name: "Beto", photoUrl: "u.jpg" });
+    svc = new CheckinsService(repo);
+  });
+
+  it("devuelve pases ACTIVE + check-ins abiertos + generatedAt", async () => {
+    repo.tickets.push(mkTicket({ id: "t1", eventId: "evt-1", ownerId: "per-1" }));
+    repo.tickets.push(
+      mkTicket({ id: "t2", eventId: "evt-1", ownerId: "per-2", status: "USED" }),
+    );
+    repo.entryPasses.push({
+      id: "ep-1",
+      eventId: "evt-1",
+      personId: "per-2",
+      type: "LIST",
+      status: "ACTIVE",
+      price: 0,
+      validUntil: null,
+      createdAt: new Date(),
+    } as EntryPass);
+    const month = new Date().toISOString().slice(0, 7);
+    repo.seriesPasses.push({ seriesId: "ser-1", personId: "per-1", month });
+    repo.seriesPasses.push({
+      seriesId: "ser-1",
+      personId: "per-2",
+      month: "2000-01",
+    });
+    repo.checkins.push({
+      id: "c1",
+      eventId: "evt-1",
+      personId: "per-1",
+      passId: null,
+      staffId: "s1",
+      method: "SCAN",
+      inAt: new Date(),
+      outAt: null,
+      syncedAt: new Date(),
+      clientRef: null,
+      voidedAt: null,
+      voidReason: null,
+      note: null,
+    });
+
+    const m = await svc.doorManifest("evt-1");
+    expect(m.event.id).toBe("evt-1");
+    expect(m.tickets).toEqual([
+      { personId: "per-1", name: "Ana", photoUrl: null },
+    ]);
+    expect(m.entryPasses).toHaveLength(1);
+    expect(m.entryPasses[0].type).toBe("LIST");
+    expect(m.seriesPasses).toEqual([
+      { personId: "per-1", name: "Ana", photoUrl: null },
+    ]);
+    expect(m.checkins).toHaveLength(1);
+    expect(m.generatedAt).toBeTruthy();
+  });
+
+  it("evento sin serie → seriesPasses vacío", async () => {
+    repo.addEvent("evt-2", { seriesId: null });
+    const m = await svc.doorManifest("evt-2");
+    expect(m.seriesPasses).toEqual([]);
+  });
+
+  it("evento inexistente → EventNotFoundError", async () => {
+    await expect(svc.doorManifest("no")).rejects.toBeInstanceOf(
+      EventNotFoundError,
+    );
+  });
+});
+
+describe("CheckinsService.syncCheckin", () => {
+  let repo: FakeCheckinsRepo;
+  let svc: CheckinsService;
+  const scannedAt = new Date("2026-10-18T01:23:45Z");
+
+  beforeEach(() => {
+    repo = new FakeCheckinsRepo();
+    repo.addEvent("evt-1");
+    repo.people.set("per-1", { id: "per-1", name: "Ana", photoUrl: null });
+    svc = new CheckinsService(repo);
+  });
+
+  const item = (over: Record<string, unknown> = {}) => ({
+    eventId: "evt-1",
+    personId: "per-1",
+    staffId: "staff-1",
+    clientRef: "uuid-1",
+    scannedAt,
+    ...over,
+  });
+
+  it("ítem válido → synced con inAt=scannedAt + method OFFLINE + clientRef", async () => {
+    repo.tickets.push(mkTicket({ id: "t1", eventId: "evt-1", ownerId: "per-1" }));
+    const r = await svc.syncCheckin(item());
+    expect(r.result).toBe("synced");
+    if (r.result !== "synced") return;
+    expect(r.checkin.checkin.inAt).toEqual(scannedAt);
+    expect(r.checkin.checkin.method).toBe("OFFLINE");
+    expect(r.checkin.checkin.clientRef).toBe("uuid-1");
+    expect(r.checkin.checkin.syncedAt).toBeInstanceOf(Date);
+  });
+
+  it("mismo clientRef → duplicate sin segundo check-in", async () => {
+    await svc.syncCheckin(item());
+    const r = await svc.syncCheckin(item());
+    expect(r.result).toBe("duplicate");
+    expect(repo.checkins).toHaveLength(1);
+  });
+
+  it("segunda puerta para la misma persona → duplicate (dedup abierto)", async () => {
+    await svc.syncCheckin(item());
+    const r = await svc.syncCheckin(item({ clientRef: "uuid-2" }));
+    expect(r.result).toBe("duplicate");
+    expect(repo.checkins).toHaveLength(1);
+  });
+
+  it("evento inexistente → propaga EventNotFoundError (falla el batch)", async () => {
+    await expect(svc.syncCheckin(item({ eventId: "no" }))).rejects.toBeInstanceOf(
+      EventNotFoundError,
+    );
+  });
+
+  it("check-in cerrado no cuenta como duplicado (outAt set)", async () => {
+    const first = await svc.syncCheckin(item());
+    if (first.result === "synced") {
+      first.checkin.checkin.outAt = new Date();
+    }
+    const r = await svc.syncCheckin(item({ clientRef: "uuid-2" }));
+    expect(r.result).toBe("synced");
   });
 });

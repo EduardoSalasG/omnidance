@@ -8,7 +8,7 @@ import type {
 
 export const CHECKINS_REPO = "CHECKINS_REPO";
 
-export type CheckinMethod = "SCAN" | "MANUAL";
+export type CheckinMethod = "SCAN" | "MANUAL" | "OFFLINE";
 export type DoorSaleChannel = "CASH" | "APP";
 
 /** Tipo de pase expuesto en CheckinResult.passType. PassType cubre los
@@ -34,6 +34,10 @@ export interface CreateCheckinData {
   passId: string | null;
   /** Nota del staff (cortesías manuales) - se persiste en Checkin.note. */
   note: string | null;
+  /** Hora real del escaneo en puerta (offline sync) - default now(). */
+  inAt?: Date | null;
+  /** Idempotencia exacta de /checkins/sync (uuid del dispositivo). */
+  clientRef?: string | null;
 }
 
 export type ListedCheckin = Checkin & {
@@ -99,6 +103,31 @@ export interface CheckinsRepo {
     pass: ResolvedPass | null,
   ): Promise<Checkin>;
   listEventCheckins(eventId: string): Promise<ListedCheckin[]>;
+
+  /** Manifiesto de puerta (spec staff-offline-checkin): pases ACTIVE
+   * del evento con persona resuelta, para validar offline. */
+  listActiveTicketsForEvent(
+    eventId: string,
+  ): Promise<{ personId: string; name: string; photoUrl: string | null }[]>;
+  listActiveEntryPassesForEvent(eventId: string): Promise<
+    {
+      personId: string;
+      type: EntryPass["type"];
+      name: string;
+      photoUrl: string | null;
+    }[]
+  >;
+  /** SeriesPass vigentes de la serie en el mes ("YYYY-MM") con persona. */
+  listActiveSeriesPasses(
+    seriesId: string,
+    month: string,
+  ): Promise<{ personId: string; name: string; photoUrl: string | null }[]>;
+  /** Check-ins abiertos del evento (sin outAt) - estado de puerta. */
+  listOpenCheckins(
+    eventId: string,
+  ): Promise<{ personId: string; inAt: Date }[]>;
+  /** Idempotencia de sync: check-in ya registrado con ese clientRef. */
+  findCheckinByClientRef(clientRef: string): Promise<Checkin | null>;
 
   /** Permiso RBAC DB-driven: rol APPROVED con grant o isSuperuser. */
   personHasPermission(personId: string, permissionKey: string): Promise<boolean>;

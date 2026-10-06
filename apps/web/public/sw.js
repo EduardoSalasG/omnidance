@@ -1,20 +1,73 @@
-/* Omnidance - service worker mínimo para Web Push.
+/* Omnidance - service worker: Web Push + cache mínimo para puerta offline.
  *
- * Payload que envía el backend (web-push.sender.ts):
- *   { type, title, body, data }
- * `data` es el JSON libre de la notificación; si trae `url` se usa al hacer
- * click, si no cae a /notificaciones (el centro in-app).
+ * Push (web-push.sender.ts): { type, title, body, data }; `data.url`
+ * decide la navegación al click (fallback /notificaciones).
  *
+ * Cache (spec staff-offline-checkin):
+ * - _next/static/* (JS/CSS con hash) → cache-first, sin límite de edad
+ *   (el hash versiona el contenido).
+ * - Documentos /staff/* → network-first con fallback a cache (la página
+ *   de puerta debe abrir aunque el venue no tenga señal).
+ * - Todo lo demás (incluido /api/*) → pasa directo a la red: el manifiesto
+ *   y la cola viven en IndexedDB, no en el cache del SW.
  */
+
+const STATIC_CACHE = "omnidance-static-v1";
+const PAGES_CACHE = "omnidance-pages-v1";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Purga caches de versiones anteriores del SW.
+      const keep = new Set([STATIC_CACHE, PAGES_CACHE]);
+      const names = await caches.keys();
+      await Promise.all(
+        names.filter((n) => !keep.has(n)).map((n) => caches.delete(n)),
+      );
+      await self.clients.claim();
+    })(),
+  );
 });
 
-// Handler vacío: Chrome exige un fetch handler para considerar la PWA
-// instalable (beforeinstallprompt). Sin respondWith no intercepta nada.
-self.addEventListener("fetch", () => {});
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // Assets inmutables de Next → cache-first.
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then(async (cache) => {
+        const hit = await cache.match(request);
+        if (hit) return hit;
+        const res = await fetch(request);
+        if (res.ok) void cache.put(request, res.clone());
+        return res;
+      }),
+    );
+    return;
+  }
+
+  // Documentos de puerta → network-first con cache de respaldo.
+  if (request.mode === "navigate" && url.pathname.startsWith("/staff")) {
+    event.respondWith(
+      caches.open(PAGES_CACHE).then(async (cache) => {
+        try {
+          const res = await fetch(request);
+          if (res.ok) void cache.put(request, res.clone());
+          return res;
+        } catch {
+          const hit = await cache.match(request);
+          if (hit) return hit;
+          throw new Error("offline");
+        }
+      }),
+    );
+    return;
+  }
+});
 
 self.addEventListener("push", (event) => {
   let payload = {};
