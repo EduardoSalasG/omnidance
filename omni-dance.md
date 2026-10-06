@@ -555,20 +555,46 @@ Flow y MercadoPago son **adaptadores detrás de un puerto normalizado**, no depe
 
 **Fiscal:** omni-dance emite **factura al productor por su comisión** (neto + IVA, via `BillingDocument` posterior); el productor emite por el precio de lista (split en la liquidación).
 
-### Unit economics por evento (200 personas, preventa migrada a la app, 8% promo)
+### Unit economics por evento (200 personas, preventa migrada a la app)
 
-| Concepto | Monto |
-|---|---|
-| Preventa gestionada: 160 × ($5.300 × ~4,05% neto + iva ≈ $243 neto/ticket) | **~$38.900** |
-| Puerta por app/QR (~20%, gestionada): 8 × $7.000 × ~4,05% | ~$2.270 |
-| Puerta cash registrada (32, 0%) | $0 |
-| **Neto omni por evento** | **~$41k** |
+Neto omni por ticket gestionado = `(all-in% − pasarela%) / 1,19` del precio:
 
-A precio de lista 10% el neto sube a ~$57k/evento (160 × $303 + 8 × $401). Rango real: **$41–57k/evento** según mezcla de tasas negociadas - igual al rango histórico del flat ($48–52k) pero con upside en preventas más caras.
+| Tasa | Preventa $5.300 | Puerta app $7.000 | Neto/evento (160 + 8) |
+|---|---|---|---|
+| **10% lista** | $303 (5,72%) | $401 | **~$51.700** |
+| **8% promo** | $214 (4,04%) | $283 | **~$36.500** |
 
-**Sensibilidad:** si solo 50% de la preventa migra a la app → ~$20k/evento. La mitigación: la preventa oficial del productor es solo por la app - la transferencia muere sola cuando el ticket-QR con check-in es el único camino.
+Puerta cash registrada (32) y entrada liberada: **$0** — el valor es la data de asistencia. Rango real: **$36–52k/evento** según mezcla de tasas negociadas - equivalente al flat histórico pero con upside en preventas más caras y trazabilidad limpia.
 
-**Proyección mensual:** ~20–25 eventos/mes → **$0,8–1,4M CLP** a captura total. Con un solo productor (4–6 eventos/mes): ~$165–340k - valida el modelo sin escalar.
+**Sensibilidad:** si solo 50% de la preventa migra a la app → ~$18–26k/evento. La mitigación: la preventa oficial del productor es solo por la app - la transferencia muere sola cuando el ticket-QR con check-in es el único camino.
+
+### Métricas startup - GMV, take rate, MRR, ARR
+
+Lo que se mide cada mes (el `PayoutLine` + `Payment.platformFee*` dejan todo queryable):
+
+| Métrica | Definición | Para qué |
+|---|---|---|
+| **GMV** | Bruto vendido por nuestros rails (tickets + planes gestionados) | Volumen real del marketplace |
+| **Net revenue** | `PLATFORM_FEE_NET` + `OWN_METHOD_FEE_NET` + SaaS cobrado | Ingreso nuestro post-pasarela, pre-IVA |
+| **Take rate efectivo** | Net revenue ticketing / GMV tickets | Debe moverse en 4–5,7% según mix de tasas |
+| **MRR** | SaaS recurrente del mes (academias + Producer Pro) | La base estable, separada del transactional |
+| **ARR run-rate** | MRR × 12 (+ transactional anualizado si se quiere "revenue run-rate") | El número de conversación con inversores |
+| **NRR / churn / LTV / CAC** | Retención neta por actor, bajas, valor de vida, costo de adquisición | Salud del modelo SaaS - medir desde el día 1 |
+
+### Proyecciones por escenario (CLP/mes → ARR)
+
+Supuestos: ticket ponderado ~$5.5k gestionado a tasa media 9% (~5% neto tras pasarela e IVA); mezcla SaaS academia promedio ~$90k/mes; Producer Pro promedio ~$140k/mes.
+
+| Escenario | Eventos/mes | Neto ticketing | Acad. SaaS (MRR) | Producer Pro (MRR) | Total/mes | ARR run-rate |
+|---|---|---|---|---|---|---|
+| **Piloto** (1 productor + 2 academias) | 5 | ~$0,23M | ~$0,1M | ~$0,1M | **~$0,43M** | **~$5,2M** |
+| **Tracción** (3 productores + 8 academias) | 15 | ~$0,69M | ~$0,72M | ~$0,55M | **~$1,96M** | **~$23,5M** |
+| **Captura escena** (20–25 eventos + 15 academias) | 22 | ~$1,01M | ~$1,35M | ~$1,12M | **~$3,48M** | **~$42M** |
+
+Lecturas:
+- **El SaaS pesa más que el ticketing** desde tracción — es la tesis de margen: comisión valida volumen, suscripción sostiene MRR. La comisión no puede acercarse al techo Passline porque el take total (fee + SaaS) ya es mayor.
+- A captura total de escena (~20–25 eventos/mes, ~15 academias): **~$42M ARR** sin contar venue-pro, marketplace de instructores ni otros países — la expansión multi-país/multi-gateway del rediseño de puertos es el siguiente multiplicador.
+- Sensibilidad a la tasa: cada punto de % gestionado ≈ ±$7k/evento neto → la negociación 10→8% cuesta ~$15k/evento de neto vs lista.
 
 ### Comparativa de pasarelas (investigación sep-2026)
 
