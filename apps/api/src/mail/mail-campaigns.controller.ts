@@ -27,6 +27,7 @@ class AudienceDto {
     "ENROLLMENTS_EXPIRING",
     "ENROLLMENTS_EXPIRED",
     "PLATFORM_SUB_EXPIRING",
+    "CLAIMS_PENDING",
   ])
   kind!:
     | "ALL"
@@ -34,7 +35,8 @@ class AudienceDto {
     | "EVENT"
     | "ENROLLMENTS_EXPIRING"
     | "ENROLLMENTS_EXPIRED"
-    | "PLATFORM_SUB_EXPIRING";
+    | "PLATFORM_SUB_EXPIRING"
+    | "CLAIMS_PENDING";
 
   @IsOptional()
   @IsString()

@@ -183,3 +183,39 @@ persistido reanudable al salir de la app, y seguimiento del intento.
 - Claim AWAITING huérfano de método borrado: muestra "confirma con la
   academia" y el upload sigue disponible.
 - QA visual pendiente; falta e2e del flujo completo.
+
+---
+
+## Addendum — platform-polish-gaps (sesión siguiente, 21-oct)
+
+Todos los gaps menores del slice jobs/campañas cerrados (menos i18n,
+decisión de producto pendiente):
+
+- **Opt-out de campañas**: `Person.mailOptOutAt` + footer automático
+  con link firmado `GET /api/mail/unsubscribe?p=&t=` (HMAC-SHA256 del
+  personId con JWT_SECRET, ruta pública, solo ThrottlerGuard). Las
+  audiencias excluyen opt-outs al resolver Y en el loop de envío. Los
+  mails transaccionales no se tocan.
+- **Recipient por contexto**: `MailCampaignRecipient.dedupKey` +
+  unique `(runId,personId,dedupKey)` — N inscripciones por vencer = N
+  mails con su propio ctx (antes 1/persona con el primer ctx).
+- **Claim atómico de jobs**: `updateMany(id, runningRunId IS NULL)`
+  como mutex — multi-instancia seguro, quien pierde descarta el run
+  (CRON skip / MANUAL 409).
+- **Audiencia `CLAIMS_PENDING {days}`**: owners con claims PENDING
+  >N días → vars `{{academy}}`/`{{count}}`, dedup diario por academia.
+- **Selector de eventos**: búsqueda por `q` sin filtro de status
+  (eventos pasados elegibles — caso mail post-evento).
+- **E2e del flujo manual**: intent→AWAITING (idempotente)→receipt→
+  PENDING→approve→Payment MANUAL + enrollment; cancel propio.
+- Migración `20261021000000_platform_polish_gaps` aplicada (ojo: el
+  unique viejo de MailCampaignRecipient era INDEX, no CONSTRAINT —
+  la migración usa DROP INDEX).
+
+Verificación: 1739/1739 tests (87 archivos; gap-crm flake conocido por
+dev-server compartiendo DB - pasa solo), tsc api+web, build 71/71,
+i18n ALL_KEYS_OK, openspec válido, openapi/postman 252 paths,
+impeccable detect = [].
+
+Pendiente del usuario: promoción dev→main aprobada tras este slice
+(release gate: SemVer+changelog+tag+supervisión).

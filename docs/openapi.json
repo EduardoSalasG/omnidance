@@ -6082,6 +6082,34 @@
           }
         }
       }
+    },
+    "/api/mail/unsubscribe": {
+      "get": {
+        "operationId": "MailUnsubscribeController_unsubscribe",
+        "parameters": [
+          {
+            "name": "p",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "t",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
     }
   },
   "info": {

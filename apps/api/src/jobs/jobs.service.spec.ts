@@ -66,14 +66,18 @@ function mkPrisma() {
         },
       ),
       updateMany: vi.fn(
-        async ({ where, data }: { where: { key?: { notIn: string[] }; runningRunId?: { not: null }; orphaned?: boolean }; data: JobRow }) => {
+        async ({ where, data }: { where: { key?: { notIn: string[] }; id?: string; runningRunId?: { not: null } | null; orphaned?: boolean }; data: JobRow }) => {
+          let count = 0;
           for (const row of jobs.values()) {
             if (where.key?.notIn && where.key.notIn.includes(row.key as string)) continue;
+            if (where.id !== undefined && row.id !== where.id) continue;
             if (where.orphaned !== undefined && row.orphaned !== where.orphaned) continue;
-            if (where.runningRunId?.not !== undefined && row.runningRunId == null) continue;
+            if (where.runningRunId && typeof where.runningRunId === "object" && "not" in where.runningRunId && row.runningRunId == null) continue;
+            if (where.runningRunId === null && row.runningRunId != null) continue;
             Object.assign(row, data);
+            count++;
           }
-          return { count: 0 };
+          return { count };
         },
       ),
     },
@@ -93,6 +97,10 @@ function mkPrisma() {
           if (row.status === "RUNNING") Object.assign(row, data);
         }
         return { count: 0 };
+      }),
+      delete: vi.fn(async ({ where }: { where: { id: string } }) => {
+        const i = runs.findIndex((r) => r.id === where.id);
+        if (i >= 0) runs.splice(i, 1);
       }),
       findMany: vi.fn(async () => [...runs].reverse()),
     },
@@ -256,6 +264,25 @@ describe("JobsService.tick", () => {
     expect(spy).not.toHaveBeenCalled();
     expect(prisma.runs).toHaveLength(0);
   });
+
+  it("claim atómico: otra instancia gana el mutex → descarta el run (spec platform-polish-gaps)", async () => {
+    const { prisma, registry, svc } = mkService();
+    seedJob(prisma);
+    const spy = vi.fn(async () => ({}));
+    registry.register({ key: "test.job", label: "t", defaultCron: "0 9 * * *", handler: spy });
+    // Simula otra instancia tomando el job entre el findMany y el
+    // updateMany del claim: el JobRun creado se descarta.
+    const origCreate = prisma.jobRun.create.getMockImplementation()!;
+    prisma.jobRun.create.mockImplementation(async (args: { data: JobRow }) => {
+      const row = await origCreate(args);
+      prisma.jobs.get("test.job")!.runningRunId = "other-instance";
+      return row;
+    });
+    await svc.tick();
+    expect(spy).not.toHaveBeenCalled();
+    expect(prisma.runs).toHaveLength(0);
+    expect(prisma.jobs.get("test.job")!.runningRunId).toBe("other-instance");
+  });
 });
 
 describe("JobsService.update", () => {
@@ -329,5 +356,23 @@ describe("JobsService.runNow", () => {
     prisma.jobs.set("orphan", { id: "j2", key: "orphan", runningRunId: null, orphaned: true });
     await expect(svc.runNow("busy", "a")).rejects.toThrow("corrida activa");
     await expect(svc.runNow("orphan", "a")).rejects.toThrow("sin handler");
+  });
+
+  it("409 si pierde la carrera del claim contra otra instancia", async () => {
+    const { prisma, registry, svc } = mkService();
+    prisma.jobs.set("test.job", {
+      id: "j1", key: "test.job", cronExpr: "0 9 * * *",
+      timezone: "America/Santiago", enabled: true, orphaned: false,
+      runningRunId: null,
+    });
+    registry.register({ key: "test.job", label: "t", defaultCron: "0 9 * * *", handler: vi.fn(async () => ({})) });
+    const origCreate = prisma.jobRun.create.getMockImplementation()!;
+    prisma.jobRun.create.mockImplementation(async (args: { data: JobRow }) => {
+      const row = await origCreate(args);
+      prisma.jobs.get("test.job")!.runningRunId = "other-instance";
+      return row;
+    });
+    await expect(svc.runNow("test.job", "a")).rejects.toThrow("corrida activa");
+    expect(prisma.runs).toHaveLength(0);
   });
 });

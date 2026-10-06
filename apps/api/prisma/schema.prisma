@@ -58,6 +58,10 @@ model Person {
   // cuenta legada que aún no acepta → el front muestra el aviso.
   consentVersion    String?
   consentAcceptedAt DateTime?
+  // Baja de correos de campañas (spec platform-polish-gaps): timestamp
+  // del opt-out vía link firmado en el footer. Solo afecta campañas —
+  // los mails transaccionales (magic link, recibos) siguen llegando.
+  mailOptOutAt    DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1782,11 +1786,12 @@ model MailCampaignRecipient {
   run      MailCampaignRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   runId    String
   personId String
+  dedupKey String          @default("") // ciclo de la audiencia; "" = genérica (1 por persona)
   status   String          @default("PENDING") // PENDING | SENT | FAILED | SKIPPED
   sentAt   DateTime?
   error    String?
 
-  @@unique([runId, personId])
+  @@unique([runId, personId, dedupKey])
 }
 
 // Dedup por ciclo entre corridas (spec mail-campaign-context-audiences):

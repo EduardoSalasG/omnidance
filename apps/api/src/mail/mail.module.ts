@@ -4,6 +4,7 @@ import { JobsModule } from "../jobs/jobs.module";
 import { PrismaModule } from "../prisma.module";
 import { MailCampaignsService } from "./mail-campaigns.service";
 import { MailCampaignsController } from "./mail-campaigns.controller";
+import { MailUnsubscribeController } from "./mail-unsubscribe.controller";
 
 /**
  * Campañas de mail programadas (spec admin-jobs-mail-campaigns).
@@ -11,7 +12,7 @@ import { MailCampaignsController } from "./mail-campaigns.controller";
  */
 @Module({
   imports: [PrismaModule, AuthModule, JobsModule],
-  controllers: [MailCampaignsController],
+  controllers: [MailCampaignsController, MailUnsubscribeController],
   providers: [MailCampaignsService],
 })
 export class MailModule {}
