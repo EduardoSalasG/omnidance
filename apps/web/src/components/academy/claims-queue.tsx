@@ -10,7 +10,8 @@ type QueueClaim = {
   amount: number;
   methodType: string;
   methodLabel: string;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "AWAITING" | "PENDING" | "APPROVED" | "REJECTED";
+  receiptKey: string | null;
   note: string | null;
   createdAt: string;
   reviewedAt: string | null;
@@ -97,8 +98,11 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   if (claims.length === 0) return null;
 
   const pending = claims.filter((c) => c.status === "PENDING");
+  // Intentos declarados en el checkout que aún no traen comprobante:
+  // seguimiento, no accionables.
+  const awaiting = claims.filter((c) => c.status === "AWAITING");
   const resolved = claims
-    .filter((c) => c.status !== "PENDING" && c.reviewedAt)
+    .filter((c) => c.status !== "PENDING" && c.status !== "AWAITING" && c.reviewedAt)
     .sort(
       (a, b) =>
         new Date(b.reviewedAt!).getTime() - new Date(a.reviewedAt!).getTime(),
@@ -139,6 +143,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
               <p className="text-xs italic text-white/50">“{c.note}”</p>
             )}
             <div className="flex flex-wrap items-center gap-2">
+              {c.receiptKey && (
               <a
                 href={`/api/academies/${academyId}/claims/${c.id}/receipt`}
                 target="_blank"
@@ -147,6 +152,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
               >
                 {t("viewReceipt")}
               </a>
+              )}
               <span className="ml-auto flex gap-2">
                 <Button
                   size="sm"
@@ -196,6 +202,33 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
                 </div>
               </div>
             )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {awaiting.length > 0 && (
+        <Card className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              {t("awaitingTitle")}
+            </h2>
+            <p className="mt-1 text-xs text-white/50">{t("awaitingDesc")}</p>
+          </div>
+          <ul className="flex flex-col gap-2">
+            {awaiting.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+              >
+                <span className="font-semibold">{c.person.name}</span>
+                <span className="text-white/60">
+                  {c.plan?.name ?? c.methodLabel} · {clp.format(c.amount)}
+                </span>
+                <span className="ml-auto text-xs text-white/40">
+                  {dayFmt.format(new Date(c.createdAt))}
+                </span>
               </li>
             ))}
           </ul>

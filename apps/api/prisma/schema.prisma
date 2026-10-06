@@ -885,6 +885,9 @@ enum ClaimStatus {
   PENDING
   APPROVED
   REJECTED
+  // Intento declarado sin comprobante aún (checkout manual): se
+  // registra al elegir el medio y persiste si el alumno sale de la app.
+  AWAITING
 }
 
 // Comprobante subido por el alumno: el owner lo valida contra su cartola
@@ -902,9 +905,10 @@ model PaymentClaim {
   plan         MembershipPlan? @relation(fields: [planId], references: [id])
   planId       String? // lo que declara haber pagado (null = otro/suelta)
   amount       Int     // CLP declarados por el alumno
+  methodId     String? // AcademyPaymentMethod elegido (reanuda el intento)
   methodType   String  // snapshot del método usado al momento del claim
   methodLabel  String  // snapshot - el método pudo editarse o borrarse
-  receiptKey   String  // storageKey en UPLOADS_DIR (claims/<academyId>/<uuid>.<ext>)
+  receiptKey   String? // null en AWAITING (aún no sube comprobante)
   status       ClaimStatus @default(PENDING)
   note         String? // nota del alumno ("pagué el lunes")
   // Auditoría de revisión (spec academy-staff-roles): quién aprobó o

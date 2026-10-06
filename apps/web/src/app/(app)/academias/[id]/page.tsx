@@ -11,7 +11,7 @@ import {
   type SubscriptionInfo,
 } from "@/components/academy/subscription-manage";
 import { ProfilePlansSection } from "@/components/academy/profile-plans-section";
-import { AcademyPaySection } from "@/components/academy/academy-pay-section";
+import { AcademyClaimsMine } from "@/components/academy/academy-claims-mine";
 
 export const dynamic = "force-dynamic";
 
@@ -370,12 +370,10 @@ export default async function AcademiaDetailPage({
         />
       )}
 
-      {/* Medios BYO + comprobante (spec academy-payment-claims): solo se
-          renderiza si la academia publicó métodos activos - sin ellos
-          la ficha queda como antes (checkout por la plataforma). */}
-      {!academy.billingBlocked && (
-        <AcademyPaySection academyId={academy.id} plans={academy.plans} />
-      )}
+      {/* Estado de mis comprobantes/intentos (spec
+          academy-checkout-manual-pay): el pago como tal vive en el
+          checkout de cada plan - acá solo se ve el seguimiento. */}
+      <AcademyClaimsMine academyId={academy.id} />
 
       <section aria-label={t.profile.classes}>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">

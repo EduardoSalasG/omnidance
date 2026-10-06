@@ -131,6 +131,141 @@ export class AcademyClaimsService {
   // ── Claims del alumno ──────────────────────────────────────────────
 
   /**
+   * Intento de pago del checkout (spec academy-checkout-manual-pay):
+   * el alumno elige el medio de la academia y el intento queda
+   * registrado como claim AWAITING - sin comprobante todavía. Si sale
+   * de la app y vuelve, el checkout lo reanuda. Idempotente por
+   * person+plan: un AWAITING o PENDING vivo se devuelve tal cual.
+   */
+  async createIntent(
+    academyId: string,
+    personId: string,
+    dto: { planId: string; methodId: string },
+  ) {
+    const method = await this.prisma.academyPaymentMethod.findFirst({
+      where: { id: dto.methodId, academyId, active: true },
+    });
+    if (!method) throw new NotFoundException("método no encontrado");
+    const plan = await this.prisma.membershipPlan.findFirst({
+      where: { id: dto.planId, academyId, active: true },
+      select: { id: true, name: true, price: true },
+    });
+    if (!plan) throw new NotFoundException("plan no encontrado");
+
+    const existing = await this.prisma.paymentClaim.findFirst({
+      where: {
+        academyId,
+        personId,
+        planId: plan.id,
+        status: { in: ["AWAITING", "PENDING"] },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) return existing;
+
+    const enrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        academyId,
+        personId,
+        status: { in: ["ACTIVE", "TRIAL", "ONLINE", "PAUSED", "FROZEN"] },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+
+    return this.prisma.paymentClaim.create({
+      data: {
+        academyId,
+        personId,
+        enrollmentId: enrollment?.id ?? null,
+        planId: plan.id,
+        // Snapshot del precio vigente: el intento declara pagar el
+        // plan, no un monto libre (a diferencia del claim "suelto").
+        amount: plan.price,
+        methodId: method.id,
+        methodType: method.type,
+        methodLabel: method.label,
+        status: "AWAITING",
+      },
+    });
+  }
+
+  /**
+   * Adjunta el comprobante a un claim AWAITING propio → PENDING en la
+   * cola del owner. Es la transición que hace el intento accionable.
+   */
+  async attachReceipt(
+    academyId: string,
+    claimId: string,
+    personId: string,
+    file: StoredFile,
+  ) {
+    if (!file?.buffer?.length) {
+      throw new BadRequestException("comprobante requerido");
+    }
+    if (file.size > CLAIM_MAX_BYTES) {
+      throw new BadRequestException("el archivo supera 5MB");
+    }
+    if (!extForMime(file.mimetype)) {
+      throw new BadRequestException(
+        "formato no soportado (solo imagen o PDF)",
+      );
+    }
+    const claim = await this.prisma.paymentClaim.findFirst({
+      where: { id: claimId, academyId, personId },
+    });
+    if (!claim) throw new NotFoundException("intento no encontrado");
+    if (claim.status !== "AWAITING") {
+      throw new ConflictException("el intento ya tiene comprobante");
+    }
+    const receiptKey = await this.storage.save(
+      file,
+      `${CLAIM_FOLDER}/${academyId}`,
+    );
+    const updated = await this.prisma.paymentClaim.update({
+      where: { id: claim.id },
+      data: { receiptKey, status: "PENDING" },
+    });
+
+    const [academy, person] = await Promise.all([
+      this.prisma.academy.findUnique({
+        where: { id: academyId },
+        select: { name: true, ownerId: true },
+      }),
+      this.prisma.person.findUnique({
+        where: { id: personId },
+        select: { name: true },
+      }),
+    ]);
+    if (academy) {
+      await this.notifications.notifySafe(academy.ownerId, {
+        category: "TRANSACTIONAL",
+        type: "payment_claim_new",
+        title: `Comprobante por validar: ${person?.name ?? "un alumno"}`,
+        body: `${academy.name} · $${claim.amount.toLocaleString("es-CL")}`,
+        data: { academyId, claimId: claim.id },
+      });
+    }
+    return updated;
+  }
+
+  /**
+   * Cancela un intento AWAITING propio (borrador sin efecto financiero
+   * ni comprobante - no queda registro porque nunca fue accionable).
+   */
+  async cancel(academyId: string, claimId: string, personId: string) {
+    const claim = await this.prisma.paymentClaim.findFirst({
+      where: { id: claimId, academyId, personId },
+    });
+    if (!claim) throw new NotFoundException("intento no encontrado");
+    if (claim.status !== "AWAITING") {
+      throw new ConflictException("solo se cancela un intento sin comprobante");
+    }
+    await this.prisma.paymentClaim.delete({ where: { id: claim.id } });
+    return { ok: true };
+  }
+
+  /**
    * Persiste el comprobante y crea el claim PENDING enlazado al
    * enrollment vigente del alumno si existe. Notifica al owner.
    */
@@ -163,6 +298,7 @@ export class AcademyClaimsService {
 
     let methodType: ClaimMethodType | null = null;
     let methodLabel = "Otro";
+    let methodId: string | null = null;
     if (dto.methodId) {
       const method = await this.prisma.academyPaymentMethod.findFirst({
         where: { id: dto.methodId, academyId },
@@ -170,6 +306,7 @@ export class AcademyClaimsService {
       if (!method) throw new NotFoundException("método no encontrado");
       methodType = method.type as ClaimMethodType;
       methodLabel = method.label;
+      methodId = method.id;
     }
 
     let plan: { id: string; name: string } | null = null;
@@ -203,6 +340,7 @@ export class AcademyClaimsService {
         enrollmentId: enrollment?.id ?? null,
         planId: plan?.id ?? null,
         amount: dto.amount,
+        methodId,
         methodType: methodType ?? "TRANSFER",
         methodLabel,
         receiptKey,
@@ -240,6 +378,9 @@ export class AcademyClaimsService {
         reviewNote: true,
         createdAt: true,
         reviewedAt: true,
+        // AWAITING = intento sin comprobante todavía (checkout manual):
+        // la cola lo muestra como seguimiento, no accionable.
+        receiptKey: true,
         // Auditoría (spec academy-staff-roles): con varios revisando,
         // el owner ve quién aprobó/rechazó cada comprobante.
         reviewedBy: { select: { id: true, name: true } },
@@ -256,10 +397,16 @@ export class AcademyClaimsService {
       select: {
         id: true,
         amount: true,
+        methodType: true,
         methodLabel: true,
         status: true,
         reviewNote: true,
         createdAt: true,
+        // planId + methodId planos: el checkout reanuda el intento
+        // AWAITING/PENDING del plan que está comprando con los datos
+        // vigentes del método elegido.
+        planId: true,
+        methodId: true,
         plan: { select: { name: true } },
       },
     });
@@ -419,8 +566,15 @@ export class AcademyClaimsService {
       where: { id: claimId, academyId },
       select: { id: true, personId: true, receiptKey: true },
     });
-    if (!claim) throw new NotFoundException("comprobante no encontrado");
-    return claim;
+    if (!claim?.receiptKey) {
+      throw new NotFoundException("comprobante no encontrado");
+    }
+    // Devuelve receiptKey ya narrowed a string (AWAITING no tiene).
+    return {
+      id: claim.id,
+      personId: claim.personId,
+      receiptKey: claim.receiptKey,
+    };
   }
 
   readReceipt(receiptKey: string) {
