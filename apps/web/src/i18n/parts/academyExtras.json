@@ -1,5 +1,11 @@
 {
   "academy": {
+    "insights": {
+      "expiringTitle": "Planes por vencer",
+      "expiringUntil": "vence {date}",
+      "noPlan": "Sin plan",
+      "birthdaysTitle": "Cumpleaños próximos"
+    },
     "planTypes": {
       "MONTHLY": "Mensual",
       "CLASS_PACK": "Pack de clases",

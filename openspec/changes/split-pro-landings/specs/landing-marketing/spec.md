@@ -6,13 +6,16 @@
 
 La captación B2B SHALL separarse por rol: `/para-academias` y
 `/para-productores` comparten el esqueleto de landing (header, hero,
-dolor PAS, prueba social de eventos reales, features, lead form) pero
-MUST tener copy, meta title/description y rol de lead específicos de su
-audiencia. `/pro` MUST ser un selector de audiencia con cards a cada
-landing y un form compacto para los roles sin landing (DJ, VENUE). El
-lead form de cada landing MUST enviar el rol fijo de esa audiencia sin
-preguntarlo; cada landing MUST enlazar a la otra para visitantes
-multi-rol. SEO: canonical propio por ruta y ambas indexables en sitemap.
+dolor PAS, prueba social, features, lead form) pero MUST tener copy,
+meta title/description y rol de lead específicos de su audiencia. La
+prueba social SHALL ser afín al rol: eventos reales de la semana en
+`/para-productores` y `/pro`; academias reales de la plataforma
+(`GET /academies/public`) en `/para-academias`. `/pro` MUST ser un
+selector de audiencia con cards a cada landing y un form compacto para
+los roles sin landing (DJ, VENUE). El lead form de cada landing MUST
+enviar el rol fijo de esa audiencia sin preguntarlo; cada landing MUST
+enlazar a la otra para visitantes multi-rol. SEO: canonical propio por
+ruta y ambas indexables en sitemap.
 
 #### Scenario: Academia aterriza en su landing
 

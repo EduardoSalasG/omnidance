@@ -35,6 +35,7 @@ export type MeContextData = {
   phone?: string | null;
   photoUrl: string | null;
   instagram?: string | null;
+  birthDate?: string | null;
   createdAt?: string;
   verifiedAt?: string | null;
   gender?: "M" | "F" | "OTHER" | null;

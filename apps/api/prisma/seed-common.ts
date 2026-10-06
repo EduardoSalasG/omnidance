@@ -117,6 +117,10 @@ export const PARAM_DEFAULTS: Array<{
   { key: "producer_tier.growth_annual_clp", value: 239990, description: "Precio mensual cobrando anual tier PRO_GROWTH (CLP)" },
   // Costo de pasarela descontado del payout de academia (línea GATEWAY_FEE_PASSTHROUGH).
   { key: "gateway_fee.academy_passthrough_pct", value: 3.19, description: "% de pasarela descontado del payout de academia" },
+  // Ventanas de los insights de retención del dashboard de academia
+  // (spec academies/owner-insights): planes por vencer y cumpleaños.
+  { key: "academy.insights.expiring_days", value: 14, description: "Días hacia adelante para listar planes por vencer en el dashboard de academia" },
+  { key: "academy.insights.birthday_days", value: 30, description: "Días hacia adelante para listar cumpleaños de alumnos en el dashboard de academia" },
 ];
 
 /** Catálogo de badges - las keys deben coincidir con BadgeAwarder (gamification/rules.ts). */

@@ -48,6 +48,15 @@ const dateFmt = new Intl.DateTimeFormat("es-CL", {
   year: "numeric",
 });
 
+// birthDate llega a medianoche UTC - formatear en UTC para que el día
+// no se corra en zonas horarias negativas (CL).
+const birthDateFmt = new Intl.DateTimeFormat("es-CL", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
 const ENROLLMENT_VARIANT: Record<string, "neon" | "outline" | "muted"> = {
   ACTIVE: "neon",
   TRIAL: "outline",
@@ -149,6 +158,7 @@ export default function DatosPage() {
   const [phoneInput, setPhoneInput] = useState("");
   const [igInput, setIgInput] = useState("");
   const [genderDraft, setGenderDraft] = useState<Gender | null>(null);
+  const [birthDraft, setBirthDraft] = useState("");
   const [personalState, setPersonalState] = useState<
     "idle" | "saving" | "saved" | "err" | "nameRequired"
   >("idle");
@@ -164,12 +174,17 @@ export default function DatosPage() {
   const [srErr, setSrErr] = useState(false);
   const keySeq = useRef(0);
 
+  // birthDate llega como ISO completa - el input date usa solo la
+  // fecha ("YYYY-MM-DD").
+  const meBirth = me?.birthDate ? me.birthDate.slice(0, 10) : "";
+
   function startPersonalEdit() {
     if (!me) return;
     setNameInput(me.name);
     setPhoneInput(me.phone ?? "");
     setIgInput(me.instagram ?? "");
     setGenderDraft(me.gender ?? null);
+    setBirthDraft(meBirth);
     setPersonalState("idle");
     setPersonalEditing(true);
   }
@@ -179,6 +194,7 @@ export default function DatosPage() {
     setPhoneInput(me?.phone ?? "");
     setIgInput(me?.instagram ?? "");
     setGenderDraft(me?.gender ?? null);
+    setBirthDraft(meBirth);
     setPersonalState("idle");
     setPersonalEditing(false);
   }
@@ -196,7 +212,8 @@ export default function DatosPage() {
       name === me?.name &&
       ig === (me?.instagram ?? "") &&
       phone === (me?.phone ?? "") &&
-      genderDraft === (me?.gender ?? null)
+      genderDraft === (me?.gender ?? null) &&
+      birthDraft === meBirth
     ) {
       setPersonalEditing(false);
       return;
@@ -211,6 +228,8 @@ export default function DatosPage() {
           phone,
           instagram: ig,
           gender: genderDraft,
+          // "" limpia la fecha (el server lo mapea a null).
+          birthDate: birthDraft || null,
         }),
       });
       if (!res.ok) {
@@ -425,6 +444,43 @@ export default function DatosPage() {
               label={t("instagram")}
               value={
                 me.instagram ? `@${me.instagram}` : t("datos.instagramEmpty")
+              }
+            />
+          )}
+          {/* Cumpleaños: alimenta "Cumpleaños próximos" de la consola
+              de academia (spec academies/owner-insights). */}
+          {personalEditing ? (
+            <div className="flex items-baseline justify-between gap-4 py-1">
+              <label
+                htmlFor="birth-input"
+                className="shrink-0 text-xs uppercase tracking-wide text-white/50"
+              >
+                {t("datos.birthDate")}
+              </label>
+              <input
+                id="birth-input"
+                type="date"
+                max="9999-12-31"
+                disabled={personalState === "saving"}
+                value={birthDraft}
+                onChange={(e) => {
+                  setBirthDraft(e.target.value);
+                  setPersonalState("idle");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void savePersonal();
+                  if (e.key === "Escape") cancelPersonalEdit();
+                }}
+                className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neon/50"
+              />
+            </div>
+          ) : (
+            <Field
+              label={t("datos.birthDate")}
+              value={
+                me.birthDate
+                  ? birthDateFmt.format(new Date(me.birthDate))
+                  : t("datos.birthDateEmpty")
               }
             />
           )}

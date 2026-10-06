@@ -20,6 +20,7 @@ interface FakePerson {
   photoUrl: string | null;
   instagram: string | null;
   gender: string | null;
+  birthDate: Date | null;
   createdAt: Date;
   verifiedAt: Date | null;
   isDemoAccount: boolean;
@@ -179,6 +180,7 @@ const mkPerson = (id: string, gender: string | null = null): FakePerson => ({
   photoUrl: null,
   instagram: null,
   gender,
+  birthDate: null,
   createdAt: new Date("2026-01-01"),
   verifiedAt: null,
   isDemoAccount: false,
@@ -239,6 +241,40 @@ describe("PeopleController", () => {
         plainToInstance(UpdateMeDto, { gender: "X" }),
       );
       expect(errors.some((e) => e.property === "gender")).toBe(true);
+    });
+  });
+
+  describe("PATCH /me birthDate", () => {
+    it("persiste fecha válida en el pasado", async () => {
+      await ctrl.updateMe(reqAs("me"), { birthDate: "1994-03-15" });
+      expect(prisma.personUpdates.at(-1)).toEqual({
+        birthDate: new Date("1994-03-15"),
+      });
+    });
+
+    it.each([null, "", "  "])("limpiar con %j → null", async (v) => {
+      prisma.people.get("me")!.birthDate = new Date("1994-03-15");
+      await ctrl.updateMe(reqAs("me"), { birthDate: v });
+      expect(prisma.personUpdates.at(-1)).toEqual({ birthDate: null });
+    });
+
+    it.each([
+      "no-es-fecha",
+      "2999-01-01", // futura
+      "1800-01-01", // año < 1900
+    ])("fecha inválida %j → 400 sin mutar", async (v) => {
+      await expect(
+        ctrl.updateMe(reqAs("me"), { birthDate: v }),
+      ).rejects.toThrow("birthDate inválida");
+      expect(prisma.personUpdates).toHaveLength(0);
+    });
+
+    it("no toca birthDate si el campo no viene", async () => {
+      const prev = new Date("1994-03-15");
+      prisma.people.get("me")!.birthDate = prev;
+      await ctrl.updateMe(reqAs("me"), { name: "Otro Nombre" });
+      expect(prisma.personUpdates.at(-1)).toEqual({ name: "Otro Nombre" });
+      expect(prisma.people.get("me")!.birthDate).toEqual(prev);
     });
   });
 

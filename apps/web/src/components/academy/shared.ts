@@ -68,6 +68,29 @@ export type AcademyDashboard = {
   // Spec §13: "asistencia de hoy, clases del día" en el dashboard.
   attendanceToday: number;
   todayClasses: TodayClass[];
+  // Insights de retención (spec academies/owner-insights): vigencias
+  // dentro de academy.insights.expiring_days y cumpleaños dentro de
+  // academy.insights.birthday_days (PlatformParam, defaults 14/30).
+  expiringEnrollments: ExpiringEnrollment[];
+  upcomingBirthdays: UpcomingBirthday[];
+};
+
+// Inscripción con vigencia próxima a terminar (GET dashboard).
+export type ExpiringEnrollment = {
+  personId: string;
+  personName: string | null;
+  planName: string | null;
+  status: EnrollmentStatus;
+  endsAt: string;
+};
+
+// Cumpleaños próximo de un alumno - `date` es día/mes de celebración
+// (este año o el siguiente); el año de nacimiento nunca se expone.
+export type UpcomingBirthday = {
+  personId: string;
+  name: string;
+  date: string;
+  daysUntil: number;
 };
 
 // Clase del día en el dashboard de la academia (GET /academies/:id/dashboard).
@@ -207,6 +230,14 @@ export const planDateFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
   year: "numeric",
+});
+
+// Cumpleaños (date llega a medianoche UTC - formatear en UTC para que
+// el día no se corra; solo día/mes, el año nunca se muestra).
+export const birthdayFmt = new Intl.DateTimeFormat("es-CL", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
 });
 
 // Fallback visible cuando el API no entrega nombre (personId crudo).

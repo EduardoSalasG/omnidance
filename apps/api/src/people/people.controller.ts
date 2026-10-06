@@ -75,6 +75,12 @@ export class UpdateMeDto {
   @IsOptional()
   @IsIn([Gender.M, Gender.F, Gender.OTHER])
   gender?: Gender | null;
+
+  // Fecha de nacimiento autodeclarada - alimenta "cumpleaños próximos"
+  // del dashboard de academia (solo día/mes se expone). null/"" limpia.
+  @IsOptional()
+  @IsString()
+  birthDate?: string | null;
 }
 
 // Nivel autodeclarado del bailarín - valores sembrados por el seed y
@@ -177,6 +183,7 @@ export class PeopleController {
       photoUrl: person.photoUrl,
       instagram: person.instagram,
       gender: person.gender,
+      birthDate: person.birthDate,
       createdAt: person.createdAt,
       verifiedAt: person.verifiedAt,
       roles: person.roles
@@ -221,6 +228,7 @@ export class PeopleController {
       name?: string;
       phone?: string | null;
       gender?: Gender | null;
+      birthDate?: Date | null;
     } = {};
     if (dto.instagram !== undefined) {
       const handle = (dto.instagram ?? "").trim().replace(/^@+/, "");
@@ -262,6 +270,22 @@ export class PeopleController {
     }
     if (dto.gender !== undefined) {
       data.gender = dto.gender; // null = prefiere no declarar
+    }
+    if (dto.birthDate !== undefined) {
+      if (dto.birthDate === null || dto.birthDate.trim() === "") {
+        data.birthDate = null;
+      } else {
+        const parsed = new Date(dto.birthDate);
+        const now = new Date();
+        if (
+          Number.isNaN(parsed.getTime()) ||
+          parsed.getTime() > now.getTime() ||
+          parsed.getUTCFullYear() < 1900
+        ) {
+          throw new BadRequestException("birthDate inválida");
+        }
+        data.birthDate = parsed;
+      }
     }
     await this.prisma.person.update({ where: { id: personId }, data });
     return { ok: true };

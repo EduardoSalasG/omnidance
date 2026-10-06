@@ -118,6 +118,22 @@ export async function seedDev(prisma: PrismaClient) {
   const felipe = await alumno("felipe", "Felipe Contreras");
   const daniela = await alumno("daniela", "Daniela Fuentes", Gender.F);
 
+  // Cumpleaños demo relativos a hoy - la lista "Cumpleaños próximos"
+  // del dashboard de academia siempre tiene data (spec
+  // academies/owner-insights). Diego a 45d queda fuera de la ventana.
+  const birthdayIn = (personId: string, days: number, year: number) => {
+    const d = new Date(Date.now() + days * 86_400_000);
+    d.setUTCFullYear(year);
+    return prisma.person.update({
+      where: { id: personId },
+      data: { birthDate: d },
+    });
+  };
+  await birthdayIn(camila.id, 6, 1995);
+  await birthdayIn(antonia.id, 14, 1998);
+  await birthdayIn(daniela.id, 27, 1992);
+  await birthdayIn(diego.id, 45, 1990);
+
   // ─── Venues ───
   const venue = (
     name: string,
