@@ -8,6 +8,7 @@ import { ChevronRightIcon } from "@/components/ui";
 import landingParts from "@/i18n/parts/landing.json";
 import { ProLeadForm } from "./ProLeadForm";
 import type { JsonLdEvent } from "./JsonLd";
+import type { PublicAcademy } from "@/lib/public-academies";
 
 // Acento de marca via token `neon` (#a78bfa violeta en :root) - icon.svg,
 // og-image e íconos PWA comparten el mismo valor. La atmósfera del hero es
@@ -43,17 +44,23 @@ const ACADEMY_ACCENT = {
  * - `academy` ("/para-academias"): dueños de academia - consola Academy.
  * - `producer` ("/para-productores"): productores - ticketing y puerta.
  * `weeklyEvents` alimenta el strip "esta semana" (0 → copy genérico).
+ * En la variante academy el strip muestra `academies` (las academias
+ * no producen eventos - su prueba social es quién ya opera acá).
  */
 export function Landing({
   variant = "dancer",
   weeklyEvents = 0,
   weekEvents = [],
+  academies = [],
 }: {
   variant?: LandingVariant;
   weeklyEvents?: number;
   // Eventos reales de la semana para el strip de prueba social - la
   // landing muestra la escena en vez de solo afirmarla.
   weekEvents?: JsonLdEvent[];
+  // Academias reales (GET /academies/public) - strip de la landing
+  // de academias (spec academies/owner-insights).
+  academies?: PublicAcademy[];
 }) {
   const isPro = variant !== "dancer";
   const t = {
@@ -82,9 +89,16 @@ export function Landing({
   ];
 
   const weekLabel =
-    weeklyEvents > 0
-      ? t.weekCount.replace("{count}", String(weeklyEvents))
-      : t.weekEmpty;
+    variant === "academy"
+      ? academies.length > 0
+        ? landingParts.landingAcademy.academyCount.replace(
+            "{count}",
+            String(academies.length),
+          )
+        : landingParts.landingAcademy.academyEmpty
+      : weeklyEvents > 0
+        ? t.weekCount.replace("{count}", String(weeklyEvents))
+        : t.weekEmpty;
 
   // En pro ambos CTAs llevan al formulario (los datos van primero);
   // en dancer van a la app: registro y catálogo público de eventos.
@@ -195,11 +209,29 @@ export function Landing({
           </section>
         )}
 
-        {/* ─── Prueba social: eventos reales de la semana → registro ─── */}
+        {/* ─── Prueba social por audiencia: eventos reales (dancer/
+            producer) o academias reales (academy). ─── */}
         <section className="border-t border-white/5 px-6 py-10">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
             <p className="text-sm font-semibold text-white">{weekLabel}</p>
-            {weekEvents.length > 0 && (
+            {variant === "academy" && academies.length > 0 && (
+              <ul className="flex flex-col items-center gap-1">
+                {academies.slice(0, 3).map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-2 text-sm text-white/60"
+                  >
+                    <span className="text-white/80">{a.name}</span>
+                    {a.styles.length > 0 && (
+                      <span className="text-neon">
+                        · {a.styles.map((s) => s.name).join(", ")}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {variant !== "academy" && weekEvents.length > 0 && (
               <ul className="flex flex-col items-center gap-1">
                 {weekEvents.map((event) => (
                   <li key={event.id}>

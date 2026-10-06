@@ -168,3 +168,47 @@ export function computeDashboard(input: DashboardInput): AcademyDashboard {
     attendanceLast30d: input.attendanceLast30d,
   };
 }
+
+export interface UpcomingBirthday {
+  personId: string;
+  name: string;
+  // Cumpleaños de este año (o del siguiente si ya pasó) - día/mes de
+  // celebración; el año de nacimiento nunca se expone.
+  date: Date;
+  daysUntil: number;
+}
+
+/**
+ * Cumpleaños próximos de los alumnos (spec academies/owner-insights):
+ * día/mes de `birthDate` dentro de `windowDays` desde `todayUTC`
+ * (medianoche UTC, misma convención que Class.date). El 29-feb en año
+ * no bisiesto cae al 1-mar por overflow de Date.UTC - aceptable como
+ * fecha de celebración.
+ */
+export function computeUpcomingBirthdays(
+  persons: { id: string; name: string; birthDate: Date | null }[],
+  todayUTC: Date,
+  windowDays: number,
+): UpcomingBirthday[] {
+  const todayMs = todayUTC.getTime();
+  const year = todayUTC.getUTCFullYear();
+  const out: UpcomingBirthday[] = [];
+  for (const p of persons) {
+    if (!p.birthDate) continue;
+    const month = p.birthDate.getUTCMonth();
+    const day = p.birthDate.getUTCDate();
+    let bday = Date.UTC(year, month, day);
+    if (bday < todayMs) bday = Date.UTC(year + 1, month, day);
+    const daysUntil = Math.round((bday - todayMs) / 86_400_000);
+    if (daysUntil > windowDays) continue;
+    out.push({
+      personId: p.id,
+      name: p.name,
+      date: new Date(bday),
+      daysUntil,
+    });
+  }
+  return out.sort(
+    (a, b) => a.daysUntil - b.daysUntil || a.name.localeCompare(b.name, "es"),
+  );
+}

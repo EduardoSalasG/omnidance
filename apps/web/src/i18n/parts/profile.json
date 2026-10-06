@@ -16,6 +16,8 @@
       "socialEmpty": "Aún no declaras tus estilos de baile",
       "gender": "Género",
       "genderEmpty": "Sin declarar",
+      "birthDate": "Cumpleaños",
+      "birthDateEmpty": "Sin declarar",
       "genderOptions": {
         "M": "Hombre",
         "F": "Mujer",

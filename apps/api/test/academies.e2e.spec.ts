@@ -598,6 +598,81 @@ describe("academies e2e", () => {
     });
   });
 
+  describe("GET /api/academies/public", () => {
+    it("sin sesión → lista mínima de academias activas", async () => {
+      const res = await get("/api/academies/public");
+      expect(res.status).toBe(200);
+      const list = await res.json();
+      const a = list.find(
+        (x: { id: string }) => x.id === ids.academyId,
+      );
+      expect(a).toBeTruthy();
+      // Exposición mínima: solo id/name/styles - nada de dirección,
+      // instructores ni métricas.
+      expect(Object.keys(a).sort()).toEqual(["id", "name", "styles"]);
+    });
+  });
+
+  describe("dashboard insights (por vencer + cumpleaños)", () => {
+    let bdayStudentId = "";
+
+    beforeAll(async () => {
+      // Cumpleaños a 10 días y plan que vence a 5 - ambos dentro de las
+      // ventanas default (30d y 14d respectivamente).
+      const bd = new Date(Date.now() + 10 * 86_400_000);
+      bd.setUTCFullYear(1995);
+      const s = await prisma.person.create({
+        data: {
+          name: "Cumpleañera Test",
+          birthDate: bd,
+          roles: { create: [{ role: "DANCER", status: "APPROVED" }] },
+        },
+      });
+      createdPersonIds.push(s.id);
+      bdayStudentId = s.id;
+      await prisma.enrollment.create({
+        data: {
+          academyId: ids.academyId,
+          personId: s.id,
+          status: "ACTIVE",
+          endsAt: new Date(Date.now() + 5 * 86_400_000),
+        },
+      });
+    });
+
+    it("expiringEnrollments lista la inscripción por vencer", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/dashboard`,
+        ownerSession,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      const row = body.expiringEnrollments.find(
+        (r: { personId: string }) => r.personId === bdayStudentId,
+      );
+      expect(row).toBeTruthy();
+      expect(row.personName).toBe("Cumpleañera Test");
+      expect(row.status).toBe("ACTIVE");
+      expect(new Date(row.endsAt).getTime()).toBeGreaterThan(Date.now());
+    });
+
+    it("upcomingBirthdays lista el cumpleaños próximo (sin año de nacimiento)", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/dashboard`,
+        ownerSession,
+      );
+      const body = await res.json();
+      const row = body.upcomingBirthdays.find(
+        (r: { personId: string }) => r.personId === bdayStudentId,
+      );
+      expect(row).toBeTruthy();
+      expect(row.name).toBe("Cumpleañera Test");
+      // `date` es el cumpleaños de este año (o el siguiente) - nunca
+      // el año de nacimiento (1995).
+      expect(new Date(row.date).getUTCFullYear()).not.toBe(1995);
+    });
+  });
+
   describe("vista alumno (learner)", () => {
     const dayAt = (daysAgo: number) => {
       const d = new Date(Date.now() - daysAgo * 86_400_000);

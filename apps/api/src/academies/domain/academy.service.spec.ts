@@ -4,6 +4,7 @@ import {
   canAdministerAcademy,
   canManageAcademy,
   computeDashboard,
+  computeUpcomingBirthdays,
   InvalidEnrollmentTransitionError,
   type AcademyContext,
   type PersonContext,
@@ -150,5 +151,54 @@ describe("computeDashboard", () => {
       plansCount: 0,
       attendanceLast30d: 0,
     });
+  });
+});
+
+describe("computeUpcomingBirthdays", () => {
+  const today = new Date(Date.UTC(2026, 2, 1)); // 1 mar 2026
+  const person = (id: string, birthDate: string | null) => ({
+    id,
+    name: `Alumno ${id}`,
+    birthDate: birthDate ? new Date(birthDate) : null,
+  });
+
+  it("cumpleaños de hoy entra con daysUntil 0", () => {
+    const [r] = computeUpcomingBirthdays([person("a", "1994-03-01")], today, 30);
+    expect(r.daysUntil).toBe(0);
+    expect(r.date).toEqual(new Date(Date.UTC(2026, 2, 1)));
+  });
+
+  it("dentro de la ventana entra; fuera queda excluido", () => {
+    const res = computeUpcomingBirthdays(
+      [person("dentro", "1994-03-20"), person("fuera", "1994-05-01")],
+      today,
+      30,
+    );
+    expect(res.map((r) => r.personId)).toEqual(["dentro"]);
+  });
+
+  it("cumpleaños ya pasado este año → cae al siguiente", () => {
+    const [r] = computeUpcomingBirthdays([person("a", "1994-02-15")], today, 400);
+    expect(r.date).toEqual(new Date(Date.UTC(2027, 1, 15)));
+  });
+
+  it("wrap dic → ene cruza el año", () => {
+    const dec20 = new Date(Date.UTC(2026, 11, 20));
+    const [r] = computeUpcomingBirthdays([person("a", "1994-01-05")], dec20, 30);
+    expect(r.daysUntil).toBe(16);
+    expect(r.date).toEqual(new Date(Date.UTC(2027, 0, 5)));
+  });
+
+  it("sin birthDate → excluido; orden por daysUntil", () => {
+    const res = computeUpcomingBirthdays(
+      [
+        person("sin-fecha", null),
+        person("tarde", "1994-03-28"),
+        person("pronto", "1994-03-03"),
+      ],
+      today,
+      30,
+    );
+    expect(res.map((r) => r.personId)).toEqual(["pronto", "tarde"]);
   });
 });

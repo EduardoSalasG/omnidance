@@ -35,6 +35,7 @@ import { SubscriptionsService } from "../../payments/application/subscriptions.s
 import {
   assertEnrollmentTransition,
   computeDashboard,
+  computeUpcomingBirthdays,
   InvalidEnrollmentTransitionError,
 } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
@@ -379,6 +380,43 @@ export class AcademiesController {
           name: byId.get(i.personId)?.name ?? null,
         })),
         enrolled: enrolledIds.has(a.id),
+      };
+    });
+  }
+
+  /**
+   * Directorio público mínimo (spec academies/owner-insights): alimenta
+   * el strip de prueba social de /para-academias. Sin sesión y con
+   * exposición mínima - solo id, nombre y estilos de las series
+   * activas. Nada de dirección, instructores ni métricas.
+   */
+  @Get("public")
+  async publicDirectory() {
+    const academies = await this.prisma.academy.findMany({
+      where: { active: true, billingBlockedAt: null },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        classSeries: {
+          where: { active: true },
+          select: {
+            style: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+    return academies.map((a) => {
+      const styles = new Map<string, { id: string; name: string }>();
+      for (const s of a.classSeries) {
+        if (s.style && !styles.has(s.style.id)) styles.set(s.style.id, s.style);
+      }
+      return {
+        id: a.id,
+        name: a.name,
+        styles: [...styles.values()].sort((x, y) =>
+          x.name.localeCompare(y.name, "es"),
+        ),
       };
     });
   }
@@ -1087,7 +1125,7 @@ export class AcademiesController {
       await Promise.all([
         this.prisma.enrollment.findMany({
           where: { academyId: id },
-          select: { status: true },
+          select: { status: true, personId: true },
         }),
         this.prisma.membershipPlan.count({ where: { academyId: id } }),
         this.prisma.attendance.count({
@@ -1147,8 +1185,64 @@ export class AcademiesController {
       : [];
     const instructorNameBy = new Map(instructors.map((p) => [p.id, p.name]));
 
+    // ─── Insights de retención (spec academies/owner-insights):
+    // planes por vencer y cumpleaños de alumnos en ventanas
+    // configurables por PlatformParam. ───
+    const [expiringDays, birthdayDays] = await Promise.all([
+      this.params.getNumber("academy.insights.expiring_days", 14),
+      this.params.getNumber("academy.insights.birthday_days", 30),
+    ]);
+    const expiringRows = await this.prisma.enrollment.findMany({
+      where: {
+        academyId: id,
+        status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+        endsAt: {
+          gte: todayUTC,
+          lte: new Date(todayUTC.getTime() + expiringDays * 86_400_000),
+        },
+      },
+      orderBy: { endsAt: "asc" },
+      select: {
+        personId: true,
+        status: true,
+        endsAt: true,
+        plan: { select: { name: true } },
+      },
+    });
+    // personId es escalar sin FK - nombres y cumpleaños por join manual
+    // (mismo patrón que instructorNameBy arriba).
+    const studentIds = [
+      ...new Set([
+        ...enrollments.map((e) => e.personId),
+        ...expiringRows.map((e) => e.personId),
+      ]),
+    ];
+    const students = studentIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: studentIds } },
+          select: { id: true, name: true, birthDate: true },
+        })
+      : [];
+    const studentById = new Map(students.map((p) => [p.id, p]));
+
     return {
       ...computeDashboard({ enrollments, plansCount, attendanceLast30d }),
+      expiringEnrollments: expiringRows.map((e) => ({
+        personId: e.personId,
+        personName: studentById.get(e.personId)?.name ?? null,
+        planName: e.plan?.name ?? null,
+        status: e.status,
+        endsAt: e.endsAt,
+      })),
+      upcomingBirthdays: computeUpcomingBirthdays(
+        students.map((p) => ({
+          id: p.id,
+          name: p.name,
+          birthDate: p.birthDate,
+        })),
+        todayUTC,
+        birthdayDays,
+      ),
       attendanceToday: todayAttendance,
       todayClasses: today.map((c) => ({
         id: c.id,
