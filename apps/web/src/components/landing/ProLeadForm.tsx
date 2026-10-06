@@ -29,16 +29,29 @@ const inputErrorClass =
   "min-h-12 w-full rounded-xl border border-red-400/70 bg-night-900/60 px-4 text-base text-white placeholder:text-white/50 outline-none transition-colors focus:border-red-400";
 
 /**
- * Formulario de lead de la landing /pro: captura nombre, correo, teléfono y
- * roles declarados antes de los dos intents (contacto / demo). Tras el
+ * Formulario de lead de las landings pro: captura nombre, correo,
+ * teléfono y roles antes de los dos intents (contacto / demo). Tras el
  * éxito ofrece "ingresa acá": crea la cuenta demo con esos roles y entra
  * directo a /inicio con sesión.
+ * `fixedRole` fija el rol de la audiencia y oculta el selector (landings
+ * por rol); `roleOptions` restringe el multiselect (selector /pro).
  */
-export function ProLeadForm() {
+export function ProLeadForm({
+  fixedRole,
+  roleOptions,
+}: {
+  fixedRole?: string;
+  roleOptions?: readonly string[];
+}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [roles, setRoles] = useState<string[]>([]);
+  const [roles, setRoles] = useState<string[]>(
+    fixedRole ? [fixedRole] : [],
+  );
+  const options = roleOptions
+    ? ROLE_OPTIONS.filter((o) => roleOptions.includes(o.value))
+    : ROLE_OPTIONS;
   const [missing, setMissing] = useState<Missing[]>([]);
   const [pending, setPending] = useState<Intent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +76,7 @@ export function ProLeadForm() {
     if (name.trim().length < 2) miss.push("name");
     if (!EMAIL_RE.test(email.trim())) miss.push("email");
     if (intent === "CONTACT" && !phone.trim()) miss.push("phone");
-    if (roles.length === 0) miss.push("roles");
+    if (!fixedRole && roles.length === 0) miss.push("roles");
     return miss;
   }
 
@@ -241,6 +254,7 @@ export function ProLeadForm() {
         />
       </label>
 
+      {!fixedRole && (
       <fieldset>
         <legend className="text-xs font-medium text-white/60">
           {t.fieldRoles}{" "}
@@ -253,7 +267,7 @@ export function ProLeadForm() {
               : ""
           }`}
         >
-          {ROLE_OPTIONS.map((option) => {
+          {options.map((option) => {
             const active = roles.includes(option.value);
             return (
               <button
@@ -273,6 +287,7 @@ export function ProLeadForm() {
           })}
         </div>
       </fieldset>
+      )}
 
       {error && (
         <p

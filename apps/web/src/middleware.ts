@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from "next/server";
 const PUBLIC_PATHS = new Set([
   "/",
   "/pro",
+  "/para-academias",
+  "/para-productores",
   "/login",
   // Páginas legales (spec legal-consent) - deben leerse sin sesión,
   // incluidas desde el checkbox de consentimiento del login.
