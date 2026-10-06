@@ -18,5 +18,5 @@
   aprobar/pagar + card en hub `/admin` + i18n `parts/admin.json`.
 - [x] Verificación: specs nuevos + suite afectada + tsc api/web +
   i18n audit + impeccable detect.
-- [ ] Docs: `architecture.md` (módulo + endpoints) + handoff +
+- [x] Docs: `architecture.md` (módulo + endpoints) + handoff +
   openapi/postman regen + commit en `dev`.
