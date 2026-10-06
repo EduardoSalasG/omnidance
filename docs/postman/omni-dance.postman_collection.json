@@ -6738,12 +6738,17 @@
           }
         },
         {
-          "name": "GET /api/academies/{id}/claims/mine",
+          "name": "POST /api/academies/{id}/claims/intent",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/api/academies/{id}/claims/mine",
+              "raw": "{{baseUrl}}/api/academies/{id}/claims/intent",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -6752,12 +6757,53 @@
                 "academies",
                 "{id}",
                 "claims",
-                "mine"
+                "intent"
               ],
               "variable": [
                 {
                   "key": "id",
                   "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/claims/{claimId}/receipt",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/claims/{claimId}/receipt",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "claims",
+                "{claimId}",
+                "receipt"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "claimId",
+                  "value": ":claimId"
                 }
               ],
               "query": []
@@ -6790,6 +6836,65 @@
                 {
                   "key": "claimId",
                   "value": ":claimId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/claims/{claimId}/cancel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/claims/{claimId}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "claims",
+                "{claimId}",
+                "cancel"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "claimId",
+                  "value": ":claimId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/claims/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/claims/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "claims",
+                "mine"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
                 }
               ],
               "query": []

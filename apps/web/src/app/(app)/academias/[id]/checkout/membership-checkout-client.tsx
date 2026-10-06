@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PriceTag, Segmented, Spinner } from "@/components/ui";
 import { planDateFmt } from "@/components/academy/shared";
+import { ManualPayPanel } from "./manual-pay-panel";
 import type { MembershipQuote } from "./page";
 
 type Phase =
@@ -62,6 +63,9 @@ export function MembershipCheckoutClient({
   const [subError, setSubError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
   const [simulating, setSimulating] = useState(false);
+  // El panel manual toma el control cuando el alumno elige un método
+  // propio de la academia o tiene un intento AWAITING/PENDING vivo.
+  const [manualActive, setManualActive] = useState(false);
 
   const isSub = mode === "sub";
   const busy =
@@ -322,6 +326,18 @@ export function MembershipCheckoutClient({
         </Card>
       )}
 
+      {/* Medio de pago: pasarela o método propio de la academia
+          (spec academy-checkout-manual-pay). Solo pago único - la
+          suscripción necesita la recurrencia de la pasarela. */}
+      {!isSub && (
+        <ManualPayPanel
+          academyId={quote.academy.id}
+          planId={quote.plan.id}
+          planPrice={quote.totalClp}
+          onBlockingChange={setManualActive}
+        />
+      )}
+
       {/* Breakdown - el total mostrado es EXACTAMENTE lo que se cobra. */}
       <Card>
         <dl className="flex flex-col gap-2">
@@ -467,7 +483,8 @@ export function MembershipCheckoutClient({
         >
           {tc("retry")}
         </Button>
-      ) : phase.kind === "form" || phase.kind === "processing" ? (
+      ) : (phase.kind === "form" || phase.kind === "processing") &&
+        !manualActive ? (
         <div className="flex flex-col gap-2">
           <Button
             type="button"

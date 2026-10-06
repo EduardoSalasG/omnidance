@@ -71,6 +71,16 @@ class UpdateMethodDto {
   active?: boolean;
 }
 
+class IntentClaimDto {
+  @IsString()
+  @IsNotEmpty()
+  planId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  methodId!: string;
+}
+
 class RejectClaimDto {
   @IsString()
   @IsNotEmpty()
@@ -173,6 +183,56 @@ export class AcademyClaimsController {
       },
       academy,
     );
+  }
+
+  /**
+   * POST /academies/:id/claims/intent - intento de pago del checkout
+   * manual (spec academy-checkout-manual-pay): crea el claim AWAITING
+   * (sin comprobante) con snapshot del plan/método, o devuelve el
+   * existente del alumno para ese plan (idempotente - reanudable).
+   */
+  @Post(":id/claims/intent")
+  async intent(
+    @Param("id") id: string,
+    @Body() dto: IntentClaimDto,
+    @Req() req: Request,
+  ) {
+    const { academy } = await this.access.loadContext(id);
+    return this.claims.createIntent(academy.id, req.person!.id, dto);
+  }
+
+  /**
+   * POST /academies/:id/claims/:claimId/receipt - multipart `receipt`
+   * sobre un claim AWAITING propio → PENDING en la cola del owner.
+   */
+  @Post(":id/claims/:claimId/receipt")
+  @UseInterceptors(
+    FileInterceptor("receipt", { limits: { fileSize: CLAIM_MAX_BYTES } }),
+  )
+  async attachReceipt(
+    @Param("id") id: string,
+    @Param("claimId") claimId: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: Request,
+  ) {
+    await this.access.loadContext(id);
+    return this.claims.attachReceipt(
+      id,
+      claimId,
+      req.person!.id,
+      file as Express.Multer.File,
+    );
+  }
+
+  /** Cancela un intento AWAITING propio (cambio de medio). */
+  @Post(":id/claims/:claimId/cancel")
+  async cancel(
+    @Param("id") id: string,
+    @Param("claimId") claimId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.loadContext(id);
+    return this.claims.cancel(id, claimId, req.person!.id);
   }
 
   /** Cola de validación del owner (ordenada, con ?status=PENDING). */

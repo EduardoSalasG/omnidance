@@ -114,3 +114,72 @@ crons existentes Y campañas de mail programables por el admin
 
 - QA visual + e2e sandbox antes del release gate `dev → main`.
 - Credenciales prod pendientes: GOOGLE_WALLET_*, FINTOC_*.
+
+---
+
+# Append - academy-checkout-manual-pay (misma sesión, commit propio)
+
+### Qué cambió
+
+La sección "Pagar a la academia" salió de la ficha pública y entró al
+checkout de membresía. Pedido del usuario: elegir el medio en el
+checkout, datos de transferencia copiables (nombre/RUT/banco/tipo/n°
+cuenta/email + bloque completo para pegar en la app del banco), intento
+persistido reanudable al salir de la app, y seguimiento del intento.
+
+### Modelo
+
+- `ClaimStatus` + `AWAITING` (agregado al final del enum para que
+  `ORDER BY status ASC` siga mostrando PENDING primero en la cola).
+- `PaymentClaim.receiptKey` nullable (null solo en AWAITING) +
+  `methodId` (reanuda el intento con los datos vigentes del método).
+- Migración `20261020000000_academy_claim_intents`. **Ojo**: la migración
+  se aplicó a la DB dev ANTES de agregar `methodId` al archivo - la
+  columna se aplicó aparte con `prisma db execute`. El archivo final es
+  íntegro para prod/fresh installs.
+
+### Endpoints nuevos (SessionGuard)
+
+- `POST /academies/:id/claims/intent {planId,methodId}` → claim
+  AWAITING idempotente por person+plan (devuelve el AWAITING/PENDING
+  vivo si existe; REJECTED no bloquea). Snapshot `amount=plan.price`.
+- `POST /academies/:id/claims/:claimId/receipt` multipart → AWAITING→
+  PENDING + notifica owner (mismas reglas de archivo que POST /claims).
+- `POST /academies/:id/claims/:claimId/cancel` → borra el AWAITING
+  propio (borrador sin efecto financiero).
+- `GET /academies/:id/claims/mine` ahora incluye `planId`, `methodId`,
+  `methodType` (el checkout reanuda el intento del plan en curso).
+- Cola del owner: `listClaims` incluye `receiptKey`; AWAITING se
+  muestran aparte ("Pagos iniciados sin comprobante"), no accionables.
+
+### Front
+
+- `ManualPayPanel` en `checkout/membership-checkout-client.tsx`: radio
+  "Tarjeta o Webpay" + métodos activos (solo mode=once - la suscripción
+  recurrente no aplica a medios manuales). Confirmar → intent → panel
+  de instrucciones: TRANSFER con copy por campo + "Copiar todos"
+  (incluye monto), PAYMENT_LINK con botón, CASH con instrucciones;
+  upload de comprobante → "Comprobante en revisión"; "Cambiar medio de
+  pago" cancela el intento. Claim REJECTED muestra el motivo y permite
+  reintentar. Cuando el panel está activo se oculta el CTA de Flow
+  (evita doble pago).
+- Ficha `/academias/:id`: `AcademyPaySection` eliminado →
+  `AcademyClaimsMine` (lista read-only de intentos/comprobantes propios).
+
+### Verificación
+
+- 11 specs nuevas (`academy-claims.service.spec.ts` - el servicio no
+  tenía spec); suite **1728/1728, 87 archivos** (gap-crm e2e falló una
+  vez por Notification creada por el JobsRunner del dev server sobre la
+  DB compartida - pasó aislado).
+- tsc api+web limpio; build web 71/71; i18n ALL_KEYS_OK;
+  `impeccable detect` = []; OpenSpec válido; openapi/postman 251 paths.
+- Endpoints nuevos verificados en vivo: 401 sin sesión.
+
+### Gaps
+
+- Un PENDING deja al alumno sin CTA de Flow (no puede pagar dos veces);
+  si el owner nunca revisa, el alumno queda esperando - natural.
+- Claim AWAITING huérfano de método borrado: muestra "confirma con la
+  academia" y el upload sigue disponible.
+- QA visual pendiente; falta e2e del flujo completo.

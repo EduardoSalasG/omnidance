@@ -3721,12 +3721,76 @@
         }
       }
     },
-    "/api/academies/{id}/claims/mine": {
-      "get": {
-        "operationId": "AcademyClaimsController_myClaims",
+    "/api/academies/{id}/claims/intent": {
+      "post": {
+        "operationId": "AcademyClaimsController_intent",
         "parameters": [
           {
             "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntentClaimDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/claims/{claimId}/receipt": {
+      "post": {
+        "operationId": "AcademyClaimsController_attachReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "AcademyClaimsController_receipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "claimId",
             "required": true,
             "in": "path",
             "schema": {
@@ -3741,9 +3805,9 @@
         }
       }
     },
-    "/api/academies/{id}/claims/{claimId}/receipt": {
-      "get": {
-        "operationId": "AcademyClaimsController_receipt",
+    "/api/academies/{id}/claims/{claimId}/cancel": {
+      "post": {
+        "operationId": "AcademyClaimsController_cancel",
         "parameters": [
           {
             "name": "id",
@@ -3755,6 +3819,26 @@
           },
           {
             "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/claims/mine": {
+      "get": {
+        "operationId": "AcademyClaimsController_myClaims",
+        "parameters": [
+          {
+            "name": "id",
             "required": true,
             "in": "path",
             "schema": {
@@ -6234,6 +6318,10 @@
         "properties": {}
       },
       "UpdateAcademySubscriptionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "IntentClaimDto": {
         "type": "object",
         "properties": {}
       },

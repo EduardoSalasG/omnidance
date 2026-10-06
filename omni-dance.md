@@ -922,7 +922,7 @@ Wireframe - Mi QR:
 |---|---|
 | Dashboard | Alumnos activos/trial/en riesgo, asistencia de hoy, ingresos del mes, clases del día |
 | Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`, historial de pagos y asistencia |
-| Planes | CRUD de `membership_plan`, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático |
+| Planes | CRUD de `membership_plan`, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático; pagos directos validados por cola de comprobantes (incluye intentos `AWAITING` sin comprobante aún) |
 | Horarios | `class_slot` semanal: cupos, reservas, lista de espera, instructor asignado |
 | Asistencia | Check-in QR del alumno, registro manual |
 | Clases privadas | `private_lesson`: instructor, alumno, slot, precio, comisión - compra online como producto (`Academy.privateLessonPrice`, orden PRIVATE), el owner asigna instructor+fecha post-pago |
@@ -930,6 +930,8 @@ Wireframe - Mi QR:
 | Contenido | Links de videos por clase (YouTube/Vimeo privado), quién puede ver qué |
 | CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (trial expira, asistencia cayó) |
 | Reportes | Ingresos, nuevos alumnos, retención por cohorte, performance por plan e instructor |
+
+**Pago del plan con medios propios** (spec academy-checkout-manual-pay): si la academia publica `AcademyPaymentMethod`, el checkout de membresía ofrece elegir entre la pasarela y sus medios (transferencia/link/efectivo). Al confirmar un método propio se registra el `payment_claim` en `AWAITING` (intento persistido - el alumno puede salir a transferir y volver); transferencia muestra los datos bancarios copiables (nombre, RUT, banco, tipo y número de cuenta, email) con copia en bloque para pegar en la app del banco. Subir el comprobante pasa el claim a `PENDING` en la cola del owner; aprobar extiende la vigencia como un pago de pasarela. La suscripción recurrente sigue solo por pasarela (el método manual no puede cobrar sola).
 
 ### Local / Local Pro
 
