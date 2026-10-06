@@ -272,3 +272,16 @@ Feature: recordatorios por email de renovacion de plan + notificacion al owner p
 - Verificar que RESEND_API_KEY + EMAIL_FROM esten en la VM (mismo pendiente que magic links).
 - QA: correr runDaily() manual contra dev seed y revisar el HTML real del mail.
 - Release: candidato v0.3.0 junto con split-pro-landings, insights y payment-claims.
+
+## Update 2026-10-06c - academy-staff-roles + academy-bulk-import en dev
+
+Dos changes implementados y commiteados (e8ed736 + commit de bulk-import):
+
+**academy-staff-roles**: `AcademyStaff(academyId,personId)` con 7 flags (`can*` → caps students/payments/plans/schedule/profile/team/billing). `AcademyAccess.requireCapability(Write)`/`requireStaff` reemplazan `requireAdminister` en call sites administrativos (requireAdminister queda para lo no delegable: CRM, deletes). `AcademyAccessModule` propio (payments lo consume sin ciclo). `AcademyStaffController`: CRUD `/:id/staff` + `GET /:id/access`; alta por email → Person stub + invitación magic link 7d (`createMagicToken(email,consent,ttl)`). `/academies/mine` incluye staff. Auditoría: `PaymentClaim.reviewedBy{id,name}` expuesto en listClaims + historial en /academia/cobros. Web: `/academia/equipo` (staff-section.tsx) + hub con gating por caps vía `useAcademyAccess` (cap / capAny / ownerOnly / operational). `GET /payments/by-academy/:id` pasó de check ad-hoc owner/admin a cap `payments` (wiring.e2e importa AcademyAccessModule — estaba roto en el primer run).
+
+**academy-bulk-import**: migración desde otra plataforma. Parser propio `src/common/csv.ts` (comillas, `""`, \r\n, BOM, ≤500 filas) + spec. `AcademyImportService`: `importStudents` (Person stub + invitación studentInviteEmailHtml 7d, enrollment upsert endsAt=max, plan por nombre case/acento-insensible; retry sin phone ante P2002 de Person.phone @unique) e `importSchedule` (grupo serie+mes → ClassSeries upsert, ClassSlot dedup weekday+start+end, Class del mes materializadas; estilo/nivel contra catálogo = error de fila, instructor_email desconocido = warn). `AcademyImportController`: `POST /:id/import/students` (cap students) + `/import/schedule` (cap schedule), multipart campo `file` ≤2MB; `GET /:id/import/template/{students,schedule}` → CSV descargable. Web `/academia/importar` (import-section.tsx: dos cards gated por cap, upload + tabla de resultados con Badge por estado); hub muestra el módulo con capAny[students,schedule]. i18n part `academyImport` + keys academy.modules.import.
+
+- Bug en desarrollo: destructuré `r.startTime` pero las columnas son `hora_inicio`/`hora_fin` → filas schedule todas "error interno" (lo pescó el e2e).
+- Verificado: **1513/1513 tests API (67 archivos)** incl. csv.spec (10) + academy-import.e2e (6: template, gate 403, invited/imported/updated/error por fila, 400 columnas, serie+slots+clases+dedup re-import, warn instructor); web tsc limpio; i18n ALL_KEYS_OK; impeccable detect [] en staff-section/claims-queue/import-section/hub/equipo/importar; openapi+postman regenerados (215 paths); openspec validate 6/6.
+- Docs: flows.md (secciones equipo + migración, mermaid), architecture.md (capacidades, gates, sección bulk-import).
+- Pendiente: archivar ambos changes al release (candidato v0.3.0); QA visual de /academia/equipo e /academia/importar; smoke real de un CSV de migración con la academia demo; reseed prod (params renewal ya pendían).

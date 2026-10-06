@@ -311,6 +311,13 @@ Segundo cron 09:00 (dominio academias, mismo patrón: provider fino + skip en `N
 - **Auditoría de validación de comprobantes**: `PaymentClaim.reviewedById→Person` + `reviewedAt`/`reviewNote` ya se escribían; `listClaims` ahora devuelve `reviewedBy{id,name}` y `/academia/cobros` muestra "Aprobado/Rechazado por {nombre} · {fecha}" - con varios colaboradores validando, el owner sabe quién ejecutó cada revisión.
 - Toda escritura staff pasa por `*Write` → la academia en mora (`billingBlockedAt`) queda read-only también para colaboradores.
 
+### Carga masiva para migración (spec academy-bulk-import)
+
+`AcademyImportController`/`AcademyImportService` + parser propio `src/common/csv.ts` (comillas/`""`/\r\n/BOM, ≤2MB, ≤500 filas). Consola `/academia/importar` con plantillas descargables (`GET /academies/:id/import/template/students|schedule`) y reporte por fila.
+
+- **`POST /:id/import/students`** (cap `students`): columnas `email,nombre,telefono?,plan,pagado_hasta?`. Person inexistente → stub + invitación magic link 7d (`studentInviteEmailHtml`); enrollment upsert (`endsAt = max`, plan por nombre case/acento-insensible). Resultado `imported|updated|invited|error` por fila.
+- **`POST /:id/import/schedule`** (cap `schedule`): columnas `serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,capacidad?,instructor_email?,mes?`. Agrupa por serie+mes → `ClassSeries` upsert + `ClassSlot` dedup (weekday+start+end) + `Class` del mes materializadas (misma lógica que `POST /series`). Resultado `ok|warn|error`; `instructor_email` desconocido → `warn`, no aborta.
+
 ### Gating Producer Pro (S5 - spec producer-pro)
 
 Las features premium del productor responden 403 `{error:"pro.required", upgrade:true}` cuando el actor resuelto es el productor sin Pro efectivo (`isProActive`: `proTier != FREE || proTrialEndsAt > now`). El gate vive en el controller vía `assertProducerPro(prisma, producerId)` (`src/common/producer-pro.ts`) - es feature-gating por actor, no RBAC: se evalúa **después** de la autorización (owner/admin) y solo cuando el caller ES el productor dueño (admin operando recursos ajenos y actores `ACADEMY` del CRM pasan sin gate; el CRM de academia se gatea por su billing). Features gated:

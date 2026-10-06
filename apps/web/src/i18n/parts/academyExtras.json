@@ -24,7 +24,9 @@
       "payments": "Cobros",
       "paymentsDesc": "Membresías cobradas a tus alumnos",
       "team": "Equipo",
-      "teamDesc": "Colaboradores y sus accesos"
+      "teamDesc": "Colaboradores y sus accesos",
+      "import": "Importar",
+      "importDesc": "Carga masiva de alumnos y horario (CSV)"
     },
     "today": {
       "title": "Clases de hoy",
