@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { apiFetch } from "@/lib/api";
 import { MyQr } from "@/components/qr/MyQr";
 import { DanceScanner } from "@/components/qr/DanceScanner";
 import {
@@ -33,6 +34,42 @@ function persistMode(mode: Mode) {
   } catch {
     // storage lleno/bloqueado - la vista igual funciona
   }
+}
+
+/**
+ * Google Wallet como lanzador (spec wallet-passes): el pase abre /qr -
+ * el QR personal rotativo sigue siendo la única credencial. El botón se
+ * oculta cuando la API responde 503 (feature sin credenciales).
+ */
+function WalletLauncher() {
+  const tQr = useTranslations("qr");
+  const [saveUrl, setSaveUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/wallet/google")
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        const body = (await res.json()) as { saveUrl?: string };
+        if (body.saveUrl) setSaveUrl(body.saveUrl);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!saveUrl) return null;
+  return (
+    <a
+      href={saveUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-white/80 transition-colors hover:border-neon/60 hover:text-neon"
+    >
+      {tQr("addToWallet")}
+    </a>
+  );
 }
 
 function QrHub() {
@@ -130,9 +167,12 @@ function QrHub() {
         {mode === "escanear" ? (
           <DanceScanner eventId={eventId} />
         ) : mode === "mio" ? (
-          <div data-tour="qr-code">
-            <MyQr />
-          </div>
+          <>
+            <div data-tour="qr-code">
+              <MyQr />
+            </div>
+            <WalletLauncher />
+          </>
         ) : null}
       </section>
 

@@ -36,6 +36,10 @@ import { ProducerClaimsController } from "./infrastructure/producer-claims.contr
 import { ProducerClaimsService } from "./infrastructure/producer-claims.service";
 import { ProducerProController } from "./infrastructure/producer-pro.controller";
 import { SubscriptionsScheduler } from "./infrastructure/subscriptions.scheduler";
+import { TicketsScheduler } from "./infrastructure/tickets.scheduler";
+import { WalletController } from "./infrastructure/wallet.controller";
+import { WalletService } from "./application/wallet.service";
+import { TicketDayOfService } from "./application/ticket-day-of.service";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { AcademyAccessModule } from "../academies/academy-access.module";
 import { StorageModule } from "../storage/storage.module";
@@ -59,6 +63,7 @@ import { StorageModule } from "../storage/storage.module";
     ProducerGatewayAccountsController,
     ProducerClaimsController,
     ProducerProController,
+    WalletController,
   ],
   providers: [
     CheckoutService,
@@ -69,6 +74,9 @@ import { StorageModule } from "../storage/storage.module";
     SubscriptionsService,
     PlatformSubscriptionsService,
     SubscriptionsScheduler,
+    TicketsScheduler,
+    TicketDayOfService,
+    WalletService,
     GatewayTransactionsService,
     { provide: PricingService, useFactory: () => new PricingService() },
     {

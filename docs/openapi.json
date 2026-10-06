@@ -2462,6 +2462,17 @@
         }
       }
     },
+    "/api/wallet/google": {
+      "get": {
+        "operationId": "WalletController_google",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/discount-codes": {
       "post": {
         "operationId": "DiscountsController_create",

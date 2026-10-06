@@ -33,7 +33,8 @@
     "unread": "Sin leer"
   },
   "qr": {
-    "loadError": "No pudimos generar tu QR."
+    "loadError": "No pudimos generar tu QR.",
+    "addToWallet": "Agregar a Google Wallet"
   },
   "practices": {
     "venuePlaceholder": "Elige o escribe el lugar",

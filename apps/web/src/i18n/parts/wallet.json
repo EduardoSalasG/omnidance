@@ -1,5 +1,9 @@
 {
   "wallet": {
-    "eventRemoved": "Evento eliminado"
+    "eventRemoved": "Evento eliminado",
+    "pendingTitle": "Pagos en validación",
+    "pendingOrder": "Orden de entrada",
+    "pendingValidating": "El productor está revisando tu comprobante. Todavía no es una entrada válida.",
+    "pendingBadge": "En validación"
   }
 }
