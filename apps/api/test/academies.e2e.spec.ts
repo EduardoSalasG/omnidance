@@ -153,8 +153,20 @@ describe("academies e2e", () => {
     await prisma.academyInstructor.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
+    // Claims + métodos BYO: FK a academy (RESTRICT) - antes de borrarla.
+    // Los Payment MANUAL del flujo quedan como data histórica (personId
+    // string sin FK) igual que los de pasarela.
+    await prisma.paymentClaim.deleteMany({
+      where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
+    });
+    await prisma.academyPaymentMethod.deleteMany({
+      where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
+    });
     await prisma.academy.deleteMany({
       where: { id: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
+    });
+    await prisma.notification.deleteMany({
+      where: { personId: { in: createdPersonIds } },
     });
     await prisma.personRole.deleteMany({
       where: { personId: { in: createdPersonIds } },
@@ -1148,6 +1160,265 @@ describe("academies e2e", () => {
         outsiderSession,
       );
       expect(res.status).toBe(403);
+    });
+  });
+
+  describe("payment-claims (medios BYO + comprobantes)", () => {
+    let methodId = "";
+    let claimId = "";
+    let planPeriodId = "";
+
+    const png = () =>
+      new Blob(
+        [Buffer.from("89504e470d0a1a0a0000000d49484452", "hex")],
+        { type: "image/png" },
+      );
+    const postClaim = (session: string, fields: Record<string, string>) => {
+      const fd = new FormData();
+      fd.set("receipt", png(), "comprobante.png");
+      for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+      return fetch(`${baseUrl}/api/academies/${ids.academyId}/claims`, {
+        method: "POST",
+        headers: { cookie: `omnidance_session=${session}` },
+        body: fd,
+      });
+    };
+
+    beforeAll(async () => {
+      const plan = await prisma.membershipPlan.create({
+        data: {
+          academyId: ids.academyId,
+          name: "Pase 30 días",
+          type: "PERIOD",
+          price: 30000,
+          periodDays: 30,
+        },
+      });
+      planPeriodId = plan.id;
+    });
+
+    // ── medios de pago ──
+
+    it("owner crea método TRANSFER", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/payment-methods`,
+        {
+          type: "TRANSFER",
+          label: "Cuenta vista",
+          details: { bank: "BancoEstado", accountNumber: "123456" },
+        },
+        ownerSession,
+      );
+      expect(res.status).toBe(201);
+      methodId = (await res.json()).id;
+      expect(methodId).toBeTruthy();
+    });
+
+    it("método inválido → 400", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/payment-methods`,
+        { type: "CRYPTO", label: "X", details: {} },
+        ownerSession,
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("outsider no puede crear método → 403", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/payment-methods`,
+        { type: "CASH", label: "X", details: {} },
+        outsiderSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("alumno lista métodos activos con sesión", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/payment-methods`,
+        studentSession,
+      );
+      expect(res.status).toBe(200);
+      const list = await res.json();
+      expect(list.length).toBe(1);
+      expect(list[0].label).toBe("Cuenta vista");
+      expect(list[0].details.bank).toBe("BancoEstado");
+    });
+
+    it("método inactivo queda fuera del listado del alumno", async () => {
+      await patch(
+        `/api/academies/${ids.academyId}/payment-methods/${methodId}`,
+        { active: false },
+        ownerSession,
+      );
+      const list = await (
+        await get(
+          `/api/academies/${ids.academyId}/payment-methods`,
+          studentSession,
+        )
+      ).json();
+      expect(list.length).toBe(0);
+      const admin = await (
+        await get(
+          `/api/academies/${ids.academyId}/payment-methods/admin`,
+          ownerSession,
+        )
+      ).json();
+      expect(admin.length).toBe(1);
+      // reactivar para los tests siguientes
+      await patch(
+        `/api/academies/${ids.academyId}/payment-methods/${methodId}`,
+        { active: true },
+        ownerSession,
+      );
+    });
+
+    // ── claims del alumno ──
+
+    it("alumno sube comprobante → PENDING", async () => {
+      const res = await postClaim(studentSession, {
+        planId: planPeriodId,
+        methodId,
+        amount: "30000",
+        note: "transferí hoy",
+      });
+      expect(res.status).toBe(201);
+      const claim = await res.json();
+      claimId = claim.id;
+      expect(claim.status).toBe("PENDING");
+      expect(claim.methodLabel).toBe("Cuenta vista");
+    });
+
+    it("comprobante sin archivo → 400", async () => {
+      const fd = new FormData();
+      fd.set("amount", "30000");
+      const res = await fetch(
+        `${baseUrl}/api/academies/${ids.academyId}/claims`,
+        {
+          method: "POST",
+          headers: { cookie: `omnidance_session=${studentSession}` },
+          body: fd,
+        },
+      );
+      expect(res.status).toBe(400);
+    });
+
+    it("owner ve el claim en la cola", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/claims?status=PENDING`,
+        ownerSession,
+      );
+      expect(res.status).toBe(200);
+      const list = await res.json();
+      const mine = list.find((c: { id: string }) => c.id === claimId);
+      expect(mine).toBeTruthy();
+      expect(mine.person.name).toBe("Alumno Academia Test");
+      expect(mine.plan.name).toBe("Pase 30 días");
+    });
+
+    it("outsider no ve la cola → 403", async () => {
+      const res = await get(
+        `/api/academies/${ids.academyId}/claims`,
+        outsiderSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("receipt: dueño del claim y owner → 200; otro → 403; sin sesión → 401", async () => {
+      const byStudent = await get(
+        `/api/academies/${ids.academyId}/claims/${claimId}/receipt`,
+        studentSession,
+      );
+      expect(byStudent.status).toBe(200);
+      expect(byStudent.headers.get("content-type")).toBe("image/png");
+
+      const byOwner = await get(
+        `/api/academies/${ids.academyId}/claims/${claimId}/receipt`,
+        ownerSession,
+      );
+      expect(byOwner.status).toBe(200);
+
+      const byOutsider = await get(
+        `/api/academies/${ids.academyId}/claims/${claimId}/receipt`,
+        outsiderSession,
+      );
+      expect(byOutsider.status).toBe(403);
+
+      const anon = await get(
+        `/api/academies/${ids.academyId}/claims/${claimId}/receipt`,
+      );
+      expect(anon.status).toBe(401);
+    });
+
+    it("approve extiende vigencia y deja Payment MANUAL PAID", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/claims/${claimId}/approve`,
+        {},
+        ownerSession,
+      );
+      expect(res.status).toBe(201);
+
+      const enrollment = await prisma.enrollment.findFirstOrThrow({
+        where: { academyId: ids.academyId, personId: ids.studentId },
+      });
+      // PERIOD 30d: endsAt = hoy + 30 días (±1 día por el corte horario)
+      const diffDays =
+        (enrollment.endsAt!.getTime() - Date.now()) / 86_400_000;
+      expect(diffDays).toBeGreaterThan(28);
+      expect(diffDays).toBeLessThan(32);
+
+      const claim = await prisma.paymentClaim.findUniqueOrThrow({
+        where: { id: claimId },
+      });
+      expect(claim.status).toBe("APPROVED");
+      expect(claim.paymentId).toBeTruthy();
+      const payment = await prisma.payment.findUniqueOrThrow({
+        where: { id: claim.paymentId! },
+      });
+      expect(payment.gateway).toBe("MANUAL");
+      expect(payment.status).toBe("PAID");
+      expect(payment.amount).toBe(30000);
+    });
+
+    it("claim resuelto no puede re-aprobarse → 409", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/claims/${claimId}/approve`,
+        {},
+        ownerSession,
+      );
+      expect(res.status).toBe(409);
+    });
+
+    it("reject exige motivo y lo devuelve al alumno", async () => {
+      const res2 = await postClaim(studentSession, {
+        planId: planPeriodId,
+        methodId,
+        amount: "30000",
+      });
+      const claim2 = (await res2.json()).id;
+
+      const badReject = await post(
+        `/api/academies/${ids.academyId}/claims/${claim2}/reject`,
+        {},
+        ownerSession,
+      );
+      expect(badReject.status).toBe(400);
+
+      const res = await post(
+        `/api/academies/${ids.academyId}/claims/${claim2}/reject`,
+        { note: "el monto no calza con la cartola" },
+        ownerSession,
+      );
+      expect(res.status).toBe(201);
+
+      const mine = await (
+        await get(
+          `/api/academies/${ids.academyId}/claims/mine`,
+          studentSession,
+        )
+      ).json();
+      const rejected = mine.find((c: { id: string }) => c.id === claim2);
+      expect(rejected.status).toBe("REJECTED");
+      expect(rejected.reviewNote).toBe("el monto no calza con la cartola");
     });
   });
 });

@@ -27,11 +27,13 @@ import { ParamsModule } from "./params/params.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { HomeModule } from "./home/home.module";
 import { LeadsModule } from "./leads/leads.module";
+import { StorageModule } from "./storage/storage.module";
 
 @Module({
   imports: [
     // Carga .env del paquete primero (gana) y cae al .env raíz del
     // monorepo para vars compartidas (RESEND_API_KEY, WEB_URL…).
+    StorageModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [".env", "../../.env"],

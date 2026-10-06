@@ -3,6 +3,8 @@
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyPayments } from "@/components/academy/academy-payments";
+import { ClaimsQueue } from "@/components/academy/claims-queue";
+import { PaymentMethodsAdmin } from "@/components/academy/payment-methods-admin";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
@@ -18,7 +20,11 @@ export default function AcademiaCobrosPage() {
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
-          <AcademyPayments key={academy.id} academyId={academy.id} />
+          <>
+            <ClaimsQueue academyId={academy.id} />
+            <AcademyPayments key={academy.id} academyId={academy.id} />
+            <PaymentMethodsAdmin academyId={academy.id} />
+          </>
         )}
       </AcademyGate>
     </main>

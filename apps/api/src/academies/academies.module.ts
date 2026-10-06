@@ -4,8 +4,11 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { ParamsModule } from "../params/params.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { PrismaModule } from "../prisma.module";
+import { StorageModule } from "../storage/storage.module";
 import { AcademyAccess } from "./infrastructure/academy-access.service";
 import { AcademyBillingController } from "./infrastructure/academy-billing.controller";
+import { AcademyClaimsController } from "./infrastructure/academy-claims.controller";
+import { AcademyClaimsService } from "./infrastructure/academy-claims.service";
 import {
   AcademiesController,
   EnrollmentsController,
@@ -23,10 +26,12 @@ import { VideosController } from "./infrastructure/videos.controller";
     ParamsModule,
     PaymentsModule,
     PrismaModule,
+    StorageModule,
   ],
   controllers: [
     AcademiesController,
     AcademyBillingController,
+    AcademyClaimsController,
     EnrollmentsController,
     AttendanceController,
     ClassesController,
@@ -34,6 +39,6 @@ import { VideosController } from "./infrastructure/videos.controller";
     PrivateLessonsController,
     VideosController,
   ],
-  providers: [AcademyAccess],
+  providers: [AcademyAccess, AcademyClaimsService],
 })
 export class AcademiesModule {}

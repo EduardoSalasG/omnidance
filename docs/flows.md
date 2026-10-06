@@ -397,6 +397,35 @@ sequenceDiagram
 
 `Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido - misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow), salvo plan TRIAL que siempre crea una fila `status: TRIAL` nueva sin tocar la inscripción vigente (la re-compra acumula filas). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId, fee % global).
 
+## Pago directo a la academia - comprobante → validación → vigencia (MANUAL)
+
+```mermaid
+sequenceDiagram
+    actor U as Alumno
+    actor Ow as Dueño academia
+    participant API as AcademyClaimsController
+    participant DB as Postgres
+    participant FS as Storage disco (UPLOADS_DIR)
+
+    Note over U: ficha /academias/:id - "Pagar a la academia"<br/>muestra AcademyPaymentMethod activos<br/>(TRANSFER datos bancarios / PAYMENT_LINK url / CASH)
+    U->>API: GET /academies/:id/payment-methods (sesión)
+    U->>API: POST /academies/:id/claims multipart<br/>{receipt imagen|pdf ≤5MB, amount, methodId?, planId?, note?}
+    API->>FS: put claims/<academyId>/<uuid>.<ext>
+    API->>DB: PaymentClaim PENDING + notifySafe al owner
+    Ow->>API: GET /academies/:id/claims?status=PENDING (consola /academia/cobros)
+    Ow->>API: GET /academies/:id/claims/:claimId/receipt (stream autenticado)
+    Ow->>API: POST .../claims/:id/approve
+    API->>DB: tx: claim PENDING? (409 si no) + reviewer administra academia<br/>+ Payment{orderType MEMBERSHIP, gateway MANUAL, PAID}<br/>+ si planId: Enrollment findFirst→update/create<br/>endsAt por membershipBase/membershipEndsAt (misma regla webhook Flow)
+    API->>DB: notifySafe payment.claim.approved al alumno
+    Note over Ow: rechazo: POST .../claims/:id/reject {reason}<br/>claim REJECTED + reviewNote + notifySafe al alumno
+```
+
+- El comprobante es una **declaración** del alumno: la plataforma no verifica el pago externo; el dueño valida contra su cartola. La UI lo explicita.
+- `Payment{gateway:"MANUAL"}` queda en el libro para analítica pero **nunca devenga payout** - el dinero no pasó por la plataforma.
+- Approve sin `planId` solo registra el pago (no toca enrollment); con `planId` extiende desde `endsAt` vigente o crea el enrollment si el alumno no tiene uno para esa academia.
+- Los archivos viven bajo `UPLOADS_DIR` (dev `./uploads`, prod `/app/uploads` con bind mount al disco dedicado de la VM) - **nunca** se sirven por estático público; el endpoint exige ser dueño del claim o admin de la academia.
+- Academia sin métodos propios configurados: la card no aparece y el alumno sigue el checkout Flow normal (passthrough con comisión plataforma).
+
 ## Clase suelta / taller - compra → asiento pagado (WORKSHOP)
 
 ```mermaid
