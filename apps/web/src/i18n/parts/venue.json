@@ -6,7 +6,7 @@
     "loginRequired": "Inicia sesión para gestionar tus locales.",
     "forbidden": "No tienes locales asignados a tu cuenta.",
     "empty": "No tienes venues asignados. Si administras un local, pide al equipo de Omnidance que lo vincule a tu cuenta.",
-    "error": "No se pudo cargar la consola del local.",
+    "error": "No se pudo cargar la sección del local.",
     "pickVenue": "Elige un local",
     "capacity": "Capacidad: {count} personas",
     "kpi": {

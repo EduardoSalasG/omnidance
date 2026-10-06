@@ -29,9 +29,9 @@
     "staffHeroCta": "Abrir puerta",
     "producerHeroCta": "Ver mis eventos",
     "academyHeroDesc": "Alumnos, planes y asistencia",
-    "academyHeroCta": "Ir al panel",
+    "academyHeroCta": "Ir a mi academia",
     "adminHeroDesc": "Usuarios, roles y parámetros",
-    "adminHeroCta": "Abrir consola",
+    "adminHeroCta": "Abrir administración",
     "modeLabel": "Vista",
     "modeSocial": "Social",
     "modeAcademy": "Academia",
@@ -109,7 +109,7 @@
     "closeMenu": "Cerrar menú",
     "close": "Cerrar",
     "socialSection": "Social",
-    "consoleSection": "Consola",
+    "consoleSection": "Gestión",
     "academies": "Academias",
     "lessons": "Particulares",
     "notificationsUnread": "Notificaciones ({count} sin leer)",
@@ -434,7 +434,7 @@
       "5": "Viernes",
       "6": "Sábado"
     },
-    "hubDesc": "Tu consola de academia",
+    "hubDesc": "Tu academia en la plataforma",
     "modules": {
       "plans": "Planes",
       "plansDesc": "Membresías y precios",
@@ -685,7 +685,7 @@
       "datesInvalid": "Revisa las fechas",
       "optional": "opcional"
     },
-    "hubDesc": "Tu consola de producción",
+    "hubDesc": "Tus eventos en la plataforma",
     "modules": {
       "codes": "Códigos de descuento",
       "codesDesc": "Promociones y cortesías por código",
