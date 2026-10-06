@@ -164,7 +164,34 @@
       "datosDesc": "Explora eventos, clases, pagos y más",
       "analyticsUser": "Analítica por usuario",
       "finanzas": "Finanzas",
-      "finanzasDesc": "Liquidaciones, devengado, pagos y SaaS"
+      "finanzasDesc": "Liquidaciones, devengado, pagos y SaaS",
+      "facturacion": "Facturación",
+      "facturacionDesc": "Notas de cobro internas por liquidación"
+    },
+    "billing": {
+      "title": "Facturación",
+      "desc": "Notas de cobro internas por las deducciones de cada liquidación. Documento interno - no es DTE tributario.",
+      "candidatesTitle": "Emitir desde liquidaciones",
+      "candidatesEmpty": "No hay liquidaciones con cargos pendientes de documento.",
+      "docsTitle": "Documentos emitidos",
+      "docsEmpty": "Aún no hay notas de cobro emitidas.",
+      "actor": {
+        "PRODUCER": "Productor",
+        "ACADEMY": "Academia",
+        "VENUE": "Local"
+      },
+      "charges": "cargos {amount}",
+      "generate": "Emitir nota",
+      "folio": "Nota N° {n}",
+      "status": {
+        "ISSUED": "Emitida",
+        "VOID": "Anulada"
+      },
+      "openPdf": "Ver PDF",
+      "void": "Anular",
+      "voidConfirm": "Anular nota",
+      "voidReasonPlaceholder": "Motivo de la anulación",
+      "voidedReason": "Anulada: {reason}"
     },
     "finance": {
       "from": "Desde",

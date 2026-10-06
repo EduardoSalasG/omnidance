@@ -540,7 +540,7 @@ Cada peso debe rastrear a su origen, con la misma disciplina que el ledger banca
 - **`PayoutLine` como tabla real**: cada deducción es una fila tipada (`PLATFORM_FEE_NET`, `PLATFORM_FEE_IVA`, `GATEWAY_FEE_PASSTHROUGH`, `OWN_METHOD_FEE_NET/VAT`, `MANUAL_ADJUSTMENT`) enlazada a la orden que la generó - el neto del payout es auditable peso a peso. Las ventas por métodos propios generan líneas `OWN_METHOD_*` que se **netean** en el payout del período.
 - **Ledger hash-chain** (ya existe): nuevos eventos `FEE_ASSESSED` (al crear la orden - congela la tasa en la cadena) y `PAYOUT_LINE_ASSIGNED` (al liquidar). `AMOUNT_MISMATCH` reconcilia fee esperado vs reportado por la pasarela.
 - **Reglas**: montos Int en unidad menor, nada se actualiza post-PAID (solo append), `GatewayTransaction` append-only sanitizado de cada llamada a la pasarela.
-- **Deuda declarada**: `BillingDocument` - la factura formal al productor por nuestro fee (folio, RUT, neto, IVA, período). El `PayoutLine` deja la contabilidad lista; el documento tributario es slice posterior.
+- **`BillingDocument` (implementado, spec admin-billing-documents)**: nota de cobro **interna** por las deducciones de cada liquidación (folio correlativo atómico, snapshot RUT/nombre del receptor desde `FiscalProfile`, líneas agregadas por tipo de cargo, neto/IVA/total, PDF en storage privado). Emisión idempotente por `payoutId`; VOID conserva el PDF como evidencia. **No es DTE tributario** (sin CAF/SII) - el documento formal al productor por nuestro fee sigue siendo deuda para cuando exista facturación electrónica.
 
 ### Arquitectura de pasarelas - puertos, no acoplamiento
 
@@ -553,7 +553,7 @@ Flow, MercadoPago y Fintoc son **adaptadores detrás de un puerto normalizado**,
 
 **Política: sin reembolsos.** Los tickets son **transferibles a otro usuario** (mismo mecanismo que gift ticket). Reembolso excepcional solo manual, a pedido del productor.
 
-**Fiscal:** omni-dance emite **factura al productor por su comisión** (neto + IVA, via `BillingDocument` posterior); el productor emite por el precio de lista (split en la liquidación).
+**Fiscal:** omni-dance emite **nota de cobro interna al productor por su comisión** (neto + IVA, `BillingDocument` por liquidación - documento interno, no DTE); el productor emite por el precio de lista (split en la liquidación).
 
 ### Unit economics por evento (200 personas, preventa migrada a la app)
 
@@ -618,7 +618,7 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 | **Venue** | Futuro: arriendos (`venue_rental`), cortesías cobradas | `payout` cuando aplique |
 | **omni-dance** | Comisiones todo incluido (neto+IVA de productor, fee propio de métodos), suscripciones SaaS, futuro premium bailarín | Es nuestra plata - no se liquida, se factura |
 
-**Flujo fiscal**: omni-dance emite **factura al productor por su comisión** (neto + IVA; `BillingDocument` posterior - la trazabilidad ya queda en `PayoutLine`) y factura el SaaS; cada actor emite por **su precio de lista** (el dinero que recaudamos en su nombre). El desglose queda en el `payout` - el actor ve exactamente qué facturar.
+**Flujo fiscal**: omni-dance emite **nota de cobro interna al actor por su comisión** (neto + IVA; `BillingDocument` por liquidación - documento interno, la trazabilidad de cada línea queda en `PayoutLine`) y cobra el SaaS; cada actor emite por **su precio de lista** (el dinero que recaudamos en su nombre). El desglose queda en el `payout` - el actor ve exactamente qué facturar.
 
 **Estados del `payout`**: `pending → approved → paid` con evidencia de transferencia; todo auditado. La operación completa vive en **`/admin/finanzas`** (consola de finanzas, spec `admin-finance-console`): KPIs del período (GMV segmentado social/academia/SaaS, ingreso plataforma neto+IVA, costo pasarela, por transferir), tabs de Liquidaciones (líneas expandibles, aprobar, marcar pagada con comprobante), Por liberar (devengado no liquidado por actor - incluye lo que los actores **nos deben** por métodos propios, que se netea), Pagos (desglose congelado por orden) y SaaS (MRR/ARR, funnel de suscripciones).
 

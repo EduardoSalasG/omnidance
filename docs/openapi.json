@@ -4842,6 +4842,130 @@
         }
       }
     },
+    "/api/admin/billing/generate": {
+      "post": {
+        "operationId": "AdminBillingController_generate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/billing/candidates": {
+      "get": {
+        "operationId": "AdminBillingController_candidates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/billing": {
+      "get": {
+        "operationId": "AdminBillingController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/billing/{id}/pdf": {
+      "get": {
+        "operationId": "AdminBillingController_pdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/admin/billing/{id}/void": {
+      "post": {
+        "operationId": "AdminBillingController_void",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/billing": {
+      "get": {
+        "operationId": "MeBillingController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/billing/{id}/pdf": {
+      "get": {
+        "operationId": "MeBillingController_pdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/admin/finance/summary": {
       "get": {
         "operationId": "AdminFinanceController_summary",
@@ -5893,6 +6017,14 @@
         "properties": {}
       },
       "GrantPermissionDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GenerateDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "VoidDto": {
         "type": "object",
         "properties": {}
       },

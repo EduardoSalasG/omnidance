@@ -77,6 +77,7 @@ model Person {
   ticketClaims   TicketClaim[]
   ticketClaimsAsProducer TicketClaim[] @relation("TicketClaimProducer")
   ticketClaimsReviewed   TicketClaim[] @relation("TicketClaimReviewer")
+  billingDocs   BillingDocument[] @relation("BillingReceiver")
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -1240,7 +1241,8 @@ model Payout {
   paidAt      DateTime?
   createdAt   DateTime     @default(now())
 
-  lines PayoutLine[]
+  lines       PayoutLine[]
+  billingDoc  BillingDocument?
 }
 
 // Deducción auditable por liquidación (spec producer-fee-model, BIAN):
@@ -1259,6 +1261,53 @@ model PayoutLine {
   amount    Int    // deducción (positivo) o abono (negativo)
   meta      Json?  // {rate, gatewayFeeReal, reason...}
   createdAt DateTime @default(now())
+}
+
+// Documento interno de cobro (spec admin-billing-documents): nota por la
+// comisión que la plataforma cobró al actor en una liquidación. NO es un
+// DTE tributario (sin CAF/SII) — es la pieza auditable del "debe" hacia
+// el actor hasta que exista facturación formal. Emisión idempotente por
+// payoutId @unique; el folio sale de BillingCounter (incremento atómico,
+// sin saltos ni duplicados bajo concurrencia). VOID conserva el PDF como
+// evidencia - nunca se borra.
+enum BillingDocStatus {
+  ISSUED
+  VOID
+}
+
+model BillingDocument {
+  id           String           @id @default(cuid())
+  folio        Int              @unique
+  type         String           @default("FEE_NOTE") // nota de cobro por comisión
+  payout       Payout?          @relation(fields: [payoutId], references: [id])
+  payoutId     String?          @unique // idempotencia: un doc por liquidación
+  actorType    String // PRODUCER | ACADEMY (del payout origen)
+  receiver     Person           @relation("BillingReceiver", fields: [receiverId], references: [id])
+  receiverId   String
+  receiverRut  String? // snapshot FiscalProfile.rut al emitir
+  receiverName String // snapshot razón social/nombre al emitir
+  periodStart  DateTime
+  periodEnd    DateTime
+  lines        Json // [{label, amount}] agregadas desde PayoutLine por tipo
+  netClp       Int
+  vatClp       Int
+  totalClp     Int
+  currency     String           @default("CLP")
+  status       BillingDocStatus @default(ISSUED)
+  pdfKey       String? // storageKey en UPLOADS_DIR (billing/<folio>.pdf)
+  issuedAt     DateTime         @default(now())
+  issuedById   String?
+  voidedAt     DateTime?
+  voidReason   String?
+
+  @@index([receiverId, status])
+}
+
+// Contador correlativo de folios — UPDATE con increment dentro de la tx
+// de emisión, así dos emisiones concurrentes nunca toman el mismo folio.
+model BillingCounter {
+  id   String @id @default("billing")
+  next Int    @default(1)
 }
 
 enum DiscountCodeType {

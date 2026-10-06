@@ -4,7 +4,13 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { PaymentsModule } from "../payments/payments.module";
 import { PrismaModule } from "../prisma.module";
 import { ParamsModule } from "../params/params.module";
+import { StorageModule } from "../storage/storage.module";
 import { AdminController } from "./infrastructure/admin.controller";
+import { AdminBillingService } from "./application/billing.service";
+import {
+  AdminBillingController,
+  MeBillingController,
+} from "./infrastructure/billing.controller";
 import { AdminFinanceController } from "./infrastructure/finance.controller";
 import { BrowseController } from "./infrastructure/browse.controller";
 import { CatalogsController } from "./infrastructure/catalogs.controller";
@@ -19,9 +25,12 @@ import { UserIntelController } from "./infrastructure/user-intel.controller";
     PrismaModule,
     ParamsModule,
     PaymentsModule,
+    StorageModule,
   ],
   controllers: [
     AdminController,
+    AdminBillingController,
+    MeBillingController,
     AdminFinanceController,
     BrowseController,
     CatalogsController,
@@ -29,5 +38,6 @@ import { UserIntelController } from "./infrastructure/user-intel.controller";
     SupportController,
     UserIntelController,
   ],
+  providers: [AdminBillingService],
 })
 export class AdminModule {}

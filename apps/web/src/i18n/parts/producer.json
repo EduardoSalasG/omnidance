@@ -311,6 +311,12 @@
       "queueDesc": "Aprueba para emitir la entrada al instante; rechaza con un motivo que el comprador podrá ver.",
       "orderTicket": "Entrada",
       "orderSeriesPass": "Pase de serie"
+    },
+    "billingDocs": {
+      "title": "Notas de cobro",
+      "desc": "Documentos internos por las deducciones de tus liquidaciones.",
+      "folio": "Nota N° {n}",
+      "openPdf": "Ver PDF"
     }
   }
 }

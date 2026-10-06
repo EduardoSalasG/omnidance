@@ -252,6 +252,79 @@ export default function ProducerPayoutsPage() {
           ))}
         </ul>
       )}
+
+      {gate === "ready" && <BillingDocsSection />}
     </main>
+  );
+}
+
+// ── Notas de cobro (spec admin-billing-documents) ─────────────────────
+// Documentos internos ISSUED que la plataforma emitió al actor por las
+// deducciones de sus liquidaciones (GET /me/billing). El PDF abre inline
+// en otra pestaña (auth por cookie). Vacío → no renderiza la sección.
+
+type MyBillingDoc = {
+  id: string;
+  folio: number;
+  periodStart: string;
+  periodEnd: string;
+  totalClp: number;
+  issuedAt: string;
+};
+
+function BillingDocsSection() {
+  const t = useTranslations("producer");
+  const [docs, setDocs] = useState<MyBillingDoc[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch("/me/billing")
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        setDocs((await res.json()) as MyBillingDoc[]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (docs === null || docs.length === 0) return null;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-semibold text-white/80">
+        {t("billingDocs.title")}
+      </h2>
+      <p className="text-xs text-white/50">{t("billingDocs.desc")}</p>
+      <ul className="flex flex-col gap-2">
+        {docs.map((d) => (
+          <li key={d.id}>
+            <Card className="flex items-center justify-between gap-2 p-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">
+                  {t("billingDocs.folio", { n: d.folio })}
+                </p>
+                <p className="text-xs text-white/50">
+                  <EventDate start={d.periodStart} variant="compact" />
+                  {" – "}
+                  <EventDate start={d.periodEnd} variant="compact" /> ·{" "}
+                  <PriceTag amount={d.totalClp} />
+                </p>
+              </div>
+              <a
+                href={`/api/me/billing/${d.id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 text-sm text-neon underline-offset-2 hover:underline"
+              >
+                {t("billingDocs.openPdf")}
+                <ArrowUpRightIcon className="h-3.5 w-3.5" />
+              </a>
+            </Card>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
