@@ -79,10 +79,10 @@ sequenceDiagram
     participant DB as Postgres
 
     U->>W: POST /checkout/quote {eventId, code?}
-    W->>API: quote → {amount, discount, fee(flat), total}
+    W->>API: quote → {listPrice, discount, total}<br/>(total = lista − descuento; sin cargo al comprador)
     U->>API: POST /checkout {eventId, quantity?, recipientIds?, code?}
     API->>API: PricingService + valida DiscountCode<br/>(vigencia, usos, XOR %/monto)<br/>+ recipients: existen, amigos ACCEPTED, sin ACTIVE<br/>+ recipientIds.length ≤ quantity-1
-    API->>DB: Payment(PENDING, refId=tkt_…,<br/>quantity, recipients, eventId, discountCodeId)
+    API->>DB: tx: Payment(PENDING, refId=tkt_…,<br/>quantity, recipients, eventId, discountCodeId)<br/>+ desglose fee congelado (feeMode MANAGED, rate,<br/>neto/IVA, gatewayExpected, producerNet)<br/>+ FEE_ASSESSED al ledger
     API->>GW: createPayment → redirectUrl
     API-->>W: {paymentId, redirectUrl}
     W->>GW: redirect
@@ -119,14 +119,14 @@ flowchart TD
     F -->|no| H{doorPrice?}
     H -->|sí| I[channel DOOR - listPrice=doorPrice]
     H -->|no| J[409 - venta cerrada]
-    G --> K{total = 0?<br/>precio 0 o descuento 100%<br/>→ fee también 0}
+    G --> K{total = 0?<br/>precio 0 o descuento 100%}
     K -->|no| L[Payment PENDING → gateway.createOrder<br/>→ redirect Flow]
     K -->|sí| M[Payment gateway=FREE amount=0<br/>→ settle PAID directo actor=checkout<br/>→ tickets emitidos ya<br/>→ paymentUrl = /checkout/return]
 ```
 
 La cadena de resolución del corte es la misma de las fees (evento → productor → global). El helper puro `resolvePresaleCutoffMinutes` en `src/common/presale-cutoff.ts` la centraliza - la usan `purchaseTicket`, `discountQuote` y el detalle de evento (`presaleEndsAt` que muestra la app). Post-medianoche: `presaleCutoffMinutes` es minutos desde las 00:00 del día local del evento, así 1500 = 01:00 del día siguiente.
 
-**Orden $0**: `PricingService.quote` ya exime el fee cuando el neto es 0 (preventa gratis o cupón 100% cobran $0 de fee). Si el total final es 0 no hay nada que cobrar: el checkout marca el Payment `gateway="FREE"`, salta `gateway.createOrder` y lo liquida por el mismo `settle(...,"PAID")` del webhook - tickets, claim links y notificaciones idénticos a un pago normal. El front ve un `paymentUrl` normal de retorno, nada distinto.
+**Orden $0**: el comprador paga `lista − descuento` exacto (producer-fee-model: nunca se suma cargo). Si el total final es 0 (preventa gratis o cupón 100%) no hay nada que cobrar: el checkout marca el Payment `gateway="FREE"` + `feeMode=FREE` (desglose en cero, FEE_ASSESSED igual lo registra), salta `gateway.createOrder` y lo liquida por el mismo `settle(...,"PAID")` del webhook - tickets, claim links y notificaciones idénticos a un pago normal. El front ve un `paymentUrl` normal de retorno, nada distinto.
 
 Edición: `presaleCutoffMinutes` del evento lo define el productor en el form (`type="time"`, vacío = heredar; valores post-medianoche solo por API) o el admin; el default por productor se edita en `/productor/parametros` (PUT `/producer/table-params`) y en `/admin/parametros` (`/admin/producers/:id/fee-params`).
 
@@ -282,7 +282,7 @@ sequenceDiagram
     else cuenta ligera
         Dom->>DB: create Person{isLightAccount, phone} + rol DANCER APPROVED
     end
-    Dom->>DB: tx: Ticket USED (doorPrice + fee del canal) + Checkin MANUAL
+    Dom->>DB: tx: Ticket USED (doorPrice, serviceFee=0 - sin cargo<br/>al comprador) + Checkin MANUAL
     Dom->>QR: mint(personId) → qrToken para mostrar al instante
     API-->>S: {person, ticket, checkin, qrToken}
 ```
@@ -387,7 +387,7 @@ sequenceDiagram
 
     U->>API: POST /checkout/series-pass {seriesId, month:"YYYY-MM"}
     API->>DB: serie activa + ¿ya tiene pase? (409)
-    API->>DB: params series_pass.price_clp + service_fee
+    API->>DB: params series_pass.price_clp (precio exacto)
     API->>GW: createOrder (refId sp_<series>_<mes>_<uuid>)
     API-->>U: {paymentUrl, paymentId}
     GW->>WH: POST /payments/webhook PAID
@@ -412,7 +412,7 @@ sequenceDiagram
     Note over U: entrada 1: ficha /academias/:id (card de plan → Comprar)<br/>entrada 2: /clases/:id sin inscripción → "Ver planes"
     U->>API: POST /checkout/membership {planId}
     API->>DB: plan activo + academia activa (TRIAL solo con price>0;<br/>la gratis es asignación staff → 400)
-    API->>DB: params service_fee.membership_clp + precio del plan
+    API->>DB: precio del plan (exacto - feeMode ACADEMY,<br/>sin comisión: modelo SaaS)
     API->>GW: createOrder (refId mem_<planId>_<uuid>)
     API-->>U: {paymentUrl, paymentId}
     GW->>WH: POST /payments/webhook PAID
@@ -421,7 +421,7 @@ sequenceDiagram
     Note over WH,DB: vigencia: MONTHLY fin de mes · QUARTERLY 3er mes ·<br/>SEMIANNUAL 6º · SINGLE día+1 · PERIOD +periodDays<br/>TRIAL +periodDays si configurado, si no sin fecha<br/>renovación: base = endsAt vigente + 1d
 ```
 
-`Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido - misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow), salvo plan TRIAL que siempre crea una fila `status: TRIAL` nueva sin tocar la inscripción vigente (la re-compra acumula filas). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId, fee % global).
+`Enrollment.endsAt` de compras online usa mediodía Chile (~15:00 UTC) del último día válido - misma convención que el alta staff por input date. Enrollment no tiene @@unique(academyId,personId) - el histórico se permite; el settle hace findFirst + update/create en la tx (idempotente por paidNow), salvo plan TRIAL que siempre crea una fila `status: TRIAL` nueva sin tocar la inscripción vigente (la re-compra acumula filas). Los pagos MEMBERSHIP devengan a la academia en payouts (refId → plan → academyId; sin comisión - solo pasarela al costo como `GATEWAY_FEE_PASSTHROUGH`).
 
 ## Pago directo a la academia - comprobante → validación → vigencia (MANUAL)
 
@@ -450,7 +450,7 @@ sequenceDiagram
 - `Payment{gateway:"MANUAL"}` queda en el libro para analítica pero **nunca devenga payout** - el dinero no pasó por la plataforma.
 - Approve sin `planId` solo registra el pago (no toca enrollment); con `planId` extiende desde `endsAt` vigente o crea el enrollment si el alumno no tiene uno para esa academia.
 - Los archivos viven bajo `UPLOADS_DIR` (dev `./uploads`, prod `/app/uploads` con bind mount al disco dedicado de la VM) - **nunca** se sirven por estático público; el endpoint exige ser dueño del claim o admin de la academia.
-- Academia sin métodos propios configurados: la card no aparece y el alumno sigue el checkout Flow normal (passthrough con comisión plataforma).
+- Academia sin métodos propios configurados: la card no aparece y el alumno sigue el checkout Flow normal (precio exacto; la academia solo absorbe el costo de pasarela al costo).
 - **Quién valida queda auditado** (academy-staff-roles): cualquier colaborador con capacidad `payments` puede aprobar/rechazar (no solo el owner) y cada claim resuelto expone `reviewedBy{id,name}` + `reviewedAt` - la consola muestra "Aprobado/Rechazado por X · fecha" en el historial.
 
 ## Recordatorios de renovación - barrido diario → email + notificación (academy-renewal-reminders)
@@ -560,7 +560,7 @@ sequenceDiagram
 ```
 
 - El asiento pagado **no consume cuota** del plan (`resolveQuota` excluye bookings con `paymentId`); convive con una membresía sin interacción.
-- Devenga a la academia en payouts (`wks_` → class → slot.academyId, fee % global).
+- Devenga a la academia en payouts (`wks_` → class → slot.academyId; sin comisión - solo pasarela al costo).
 
 ## Clase particular - compra como producto → asignación por el owner (PRIVATE)
 
@@ -749,11 +749,11 @@ sequenceDiagram
     participant DB as Postgres
 
     Ad->>API: POST /admin/payouts/generate {actorType:PRODUCER, actorId, periodo}
-    API->>DB: Σ Payment PAID (TICKET por eventId del producer<br/>+ SERIES_PASS por refId→serie del producer)
-    API->>DB: Payout PENDING (idempotente actor+período) + AuditLog
+    API->>DB: Σ Payment PAID (TICKET por eventId del producer<br/>+ SERIES_PASS por refId→serie del producer)<br/>lee SOLO el desglose congelado (feeMode + rates<br/>snapshoteados - nunca recalcula params)
+    API->>DB: tx: Payout PENDING + PayoutLine por deducción<br/>(GATEWAY_FEE_PASSTHROUGH / PLATFORM_FEE_NET /<br/>PLATFORM_FEE_VAT / OWN_METHOD_* / MANUAL_ADJUSTMENT)<br/>+ PAYOUT_LINE_ASSIGNED por orden al ledger<br/>+ AuditLog (idempotente actor+período)
     Ad->>API: POST /admin/payouts/:id/approve → APPROVED
     Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
-    Pr->>API: GET /me/payouts (crm.manage) → solo los suyos
+    Pr->>API: GET /me/payouts (crm.manage) → solo los suyos<br/>(net = gross − Σ líneas; cada línea rastrea a su orden)
 ```
 
 ## CRM - score → segmento → campaña/trigger
@@ -807,7 +807,7 @@ sequenceDiagram
 
     Ad->>API: POST /admin/payouts/generate {actorType, actorId, período}
     API->>DB: idempotente: payout existente → devuelve sin recalcular
-    Note over API,DB: PRODUCER: tickets de sus eventos + series-pass de sus series<br/>ACADEMY/VENUE: tickets PAID de eventos con<br/>academyId|venueId=actorId AND producerId=null<br/>(entidad produjo directo - con productor, éste devenga)<br/>gross = Σ amount · net = gross − Σ fee
+    Note over API,DB: PRODUCER: tickets de sus eventos + series-pass de sus series<br/>ACADEMY/VENUE: tickets PAID de eventos con<br/>academyId|venueId=actorId AND producerId=null<br/>(entidad produjo directo - con productor, éste devenga)<br/>gross = Σ amount · net = gross − Σ PayoutLine<br/>(MANAGED: all-in% = pasarela + neto + IVA; OWN_*: comisión<br/>devengada neteada; ACADEMY: solo pasarela al costo;<br/>legacy feeMode null: regla vieja fee real + pct)
     API->>DB: create Payout PENDING + AuditLog PAYOUT_GENERATE
     Ad->>API: POST /admin/payouts/:id/approve → APPROVED
     Ad->>API: POST /admin/payouts/:id/pay {evidenceUrl} → PAID + paidAt
@@ -815,18 +815,21 @@ sequenceDiagram
     API->>DB: PRODUCER por personId + ACADEMY por Academy.ownerId<br/>+ VENUE por Venue.ownerId → unión
 ```
 
-## Comisión parametrizable - cadena de resolución
+## Comisión todo incluido al productor (producer-fee-model)
+
+El comprador paga `lista − descuento` exacto - nunca se suma cargo. La monetización es una comisión **all-in** que se descuenta de la liquidación del productor: incluye pasarela al costo + fee neto de plataforma + IVA del fee. El desglose se **congela en el Payment al crear la orden** (`feeMode`, `platformFeeRate`, `platformFeeNetClp`, `platformFeeVatClp`, `gatewayFeeExpected`, `producerNetClp`, `currency`) y se emite `FEE_ASSESSED` al ledger hash-chain - una tasa editada después nunca retroafecta órdenes creadas.
 
 ```mermaid
 flowchart TD
-    A[checkout ticket / webhook PAID] --> B{event.serviceFeeClp != null?}
-    B -->|sí| C[fee = event.serviceFeeClp<br/>override admin por evento]
-    B -->|no| D[fee = param service_fee.presale_clp]
-    D --> E[→ env SERVICE_FEE_CLP → default shared]
-    C --> F[quote = listPrice + fee − descuento]
+    A[checkout ticket / series-pass] --> B{event.platformFeePct?}
+    B -->|set| C[rate = override del evento<br/>solo admin lo fija]
+    B -->|null| D{producerParams.platformFeePct?}
+    D -->|set| C
+    D -->|null| E[rate = param fees.managed_allin_pct<br/>default 10 - la "oferta" es bajarlo ej. 8]
+    C --> F[deduction = amount × rate<br/>= gatewayExpected card_pct<br/>+ platformFeeNet + platformFeeVat iva_pct]
     E --> F
-    F --> G[Payment.amount / Payment.fee]
-    H[POST/PATCH /events con serviceFeeClp] --> I{admin.access?}
-    I -->|sí| J[persiste override · null limpia]
-    I -->|no| K[403 - solo admin fija comisión]
+    F --> G[Payment.amount = total lista<br/>producerNetClp = amount − deduction]
+    G --> H[payout: líneas PLATFORM_FEE_NET + _VAT<br/>+ GATEWAY_FEE_PASSTHROUGH por orden]
 ```
+
+Modos derivados del mismo parámetro: **OWN_METHOD/OWN_GATEWAY** (plata cobrada por el actor: tasa = all-in − card_pct, devengada como líneas `OWN_METHOD_*` neteadas contra el payout), **ACADEMY** (0% comisión - solo pasarela al costo, modelo SaaS), **FREE** (orden $0) y efectivo en puerta staff (0% - solo validación+QR). Pagos legacy sin desglose (`feeMode=null`) siguen la regla vieja (Σ fee real + platformFeePct).

@@ -14,19 +14,20 @@ import type { ProducerFeeDefaults } from "../../params/params.service";
 import "../../auth/infrastructure/auth.controller";
 import { AdminPayoutsController } from "./payouts.controller";
 import { encodePrivateRef, encodeSeriesPassRef } from "../domain/order-ref";
+import { managedFeeBreakdown } from "../../common/fee-breakdown";
 
-// AdminPayoutsController.generate → computeSettlement:
-// - PRODUCER: tickets PAID de sus eventos + SERIES_PASS cuyo refId decodifica
-//   a una EventSeries suya. platformFeePct efectivo por evento:
-//   override del evento → default del productor → param global.
-//   net = gross − fees − platformFee (regla legacy, sin cambio).
-// - VENUE: tickets PAID de eventos con venueId = actor y producerId null,
-//   misma regla legacy.
-// - ACADEMY (modelo SaaS, spec academy-saas-billing): mismas líneas que
-//   VENUE + MEMBERSHIP/WORKSHOP/PRIVATE por refId, pero SIN platformFee -
-//   solo descuenta GATEWAY_FEE_PASSTHROUGH = round(gross ×
-//   gateway_fee.academy_passthrough_pct / 100), línea explícita en
-//   Payout.gatewayFee + lines[] del response.
+// AdminPayoutsController.generate → computeSettlement (producer-fee-model):
+// la liquidación se arma por PayoutLine auditables - cada deducción rastrea
+// a la orden que la generó.
+// - MANAGED: gross += amount; deducción = amount − producerNetClp (all-in%
+//   congelado) descompuesta en GATEWAY_FEE_PASSTHROUGH (costo real si la
+//   pasarela lo reportó, si no el esperado) + PLATFORM_FEE_NET + _VAT.
+// - OWN_METHOD/OWN_GATEWAY: la plata nunca pasó por nosotros → NO suma al
+//   gross; su comisión devengada se netea (líneas OWN_METHOD_*).
+// - FREE: no devenga nada. MANUAL legacy sin feeMode: no suma al gross.
+// - feeMode null (legacy): regla vieja (Σ fee real + platformFeePct).
+// - ACADEMY (SaaS): gross − GATEWAY_FEE_PASSTHROUGH por pago (real si lo
+//   reportó la pasarela, si no amount × gateway_fee.academy_passthrough_pct).
 // PrismaService se simula in-memory con matching mínimo de `where`.
 
 type Row = Record<string, unknown>;
@@ -75,6 +76,14 @@ interface FakePayment {
   amount: number;
   fee: number;
   createdAt: Date;
+  gateway?: string;
+  gatewayFeeClp?: number | null;
+  feeMode?: string | null;
+  platformFeeRate?: number | null;
+  platformFeeNetClp?: number | null;
+  platformFeeVatClp?: number | null;
+  gatewayFeeExpected?: number | null;
+  producerNetClp?: number | null;
 }
 
 interface FakePayout {
@@ -101,8 +110,30 @@ class FakePrisma {
   privateLessons: Row[] = [];
   payments: FakePayment[] = [];
   payouts: FakePayout[] = [];
+  payoutLines: Row[] = [];
+  paymentEvents: Row[] = [];
   auditLogs: Row[] = [];
   private seq = 0;
+
+  $transaction = async (fn: (tx: unknown) => Promise<unknown>) => fn(this);
+  $executeRaw = async () => 0;
+
+  payoutLine = {
+    createMany: async ({ data }: { data: Row[] }) => {
+      this.payoutLines.push(...data);
+      return { count: data.length };
+    },
+    findMany: async ({ where }: { where: Row }) =>
+      this.payoutLines.filter((l) => matchWhere(l, where)),
+  };
+
+  paymentEvent = {
+    findFirst: async () => null,
+    create: async ({ data }: { data: Row }) => {
+      this.paymentEvents.push(data);
+      return data;
+    },
+  };
 
   event = {
     findMany: async ({ where }: { where: Row }) =>
@@ -139,13 +170,36 @@ class FakePrisma {
       this.payments.filter((p) => matchWhere(p as unknown as Row, where)),
   };
 
+  private attachLines(payout: FakePayout, args: { include?: { lines?: boolean } }) {
+    return args.include?.lines
+      ? {
+          ...payout,
+          lines: this.payoutLines.filter((l) => l.payoutId === payout.id),
+        }
+      : payout;
+  }
+
   payout = {
-    findFirst: async ({ where }: { where: Row }) =>
-      this.payouts.find((p) =>
-        matchWhere(p as unknown as Row, where),
-      ) ?? null,
+    findFirst: async (args: { where: Row; include?: { lines?: boolean } }) => {
+      const found = this.payouts.find((p) =>
+        matchWhere(p as unknown as Row, args.where),
+      );
+      return found ? this.attachLines(found, args) : null;
+    },
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.payouts.find((p) => p.id === where.id) ?? null,
+    findUniqueOrThrow: async (args: {
+      where: { id: string };
+      include?: { lines?: boolean };
+    }) => {
+      const found = this.payouts.find((p) => p.id === args.where.id);
+      if (!found) throw new Error("payout no encontrado");
+      return this.attachLines(found, args);
+    },
+    findMany: async (args?: { where?: Row; include?: { lines?: boolean } }) =>
+      this.payouts
+        .filter((p) => !args?.where || matchWhere(p as unknown as Row, args.where))
+        .map((p) => this.attachLines(p, args ?? {})),
     create: async ({
       data,
     }: {
@@ -223,9 +277,19 @@ const mkPayment = (over: Partial<FakePayment>): FakePayment => ({
   refId: "tkt_x__u",
   amount: 10000,
   fee: 0,
+  gateway: "FLOW",
   createdAt: IN_PERIOD,
   ...over,
 });
+
+// Pago del modelo nuevo: desglose congelado al crear la orden (mismo
+// helper de producción - la liquidación solo lee, nunca recalcula).
+const mkManaged = (over: Partial<FakePayment> = {}): FakePayment => {
+  const amount = over.amount ?? 10000;
+  const rate = over.platformFeeRate ?? 10;
+  const b = managedFeeBreakdown(amount, rate, 3.19, 19);
+  return mkPayment({ gateway: "FLOW", ...b, ...over });
+};
 
 describe("AdminPayoutsController.generate - computeSettlement", () => {
   let prisma: FakePrisma;
@@ -261,80 +325,223 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
     prisma.series.push({ id: "ser-p1", producerId: "prod-1" });
 
     prisma.payments.push(
-      mkPayment({ eventId: "evt-p1", amount: 10000, fee: 300 }),
-      mkPayment({ eventId: "evt-p2", amount: 5000, fee: 100 }),
-      mkPayment({ eventId: "evt-other", amount: 7777 }),
-      mkPayment({
+      // evt-p1 al 10% (snapshot); la pasarela reportó costo real 325
+      // (vs esperado 319) - la deducción del productor se mantiene y la
+      // reconciliación ajusta el split interno pasarela/fee nuestro.
+      mkManaged({
+        eventId: "evt-p1",
+        amount: 10000,
+        platformFeeRate: 10,
+        gatewayFeeClp: 325,
+      }),
+      // evt-p2 a la promo del productor (8% congelado).
+      mkManaged({ eventId: "evt-p2", amount: 5000, platformFeeRate: 8 }),
+      mkManaged({ eventId: "evt-other", amount: 7777 }),
+      mkManaged({
         orderType: "SERIES_PASS",
         refId: encodeSeriesPassRef("ser-p1", "2025-11"),
         amount: 25000,
+        platformFeeRate: 8,
       }),
-      mkPayment({
+      mkManaged({
         orderType: "SERIES_PASS",
         refId: encodeSeriesPassRef("ser-ajena", "2025-11"),
         amount: 25000,
       }),
-      mkPayment({ eventId: "evt-p1", status: "FAILED", amount: 10000 }),
-      mkPayment({
+      // Venta por métodos propios del productor: la plata no pasó por la
+      // pasarela → no suma al gross; su comisión se netea (OWN_METHOD).
+      mkManaged({
+        eventId: "evt-p1",
+        amount: 20000,
+        gateway: "MANUAL",
+        feeMode: "OWN_METHOD",
+        platformFeeRate: 6.81,
+        platformFeeNetClp: 1144,
+        platformFeeVatClp: 218,
+        gatewayFeeExpected: 0,
+        producerNetClp: 20000 - 1362,
+      }),
+      // Entrada liberada: no devenga nada.
+      mkManaged({
+        eventId: "evt-p1",
+        amount: 0,
+        feeMode: "FREE",
+        platformFeeRate: null,
+        platformFeeNetClp: 0,
+        platformFeeVatClp: 0,
+        gatewayFeeExpected: 0,
+        producerNetClp: 0,
+      }),
+      mkManaged({ eventId: "evt-p1", status: "FAILED", amount: 10000 }),
+      mkManaged({
         eventId: "evt-p1",
         amount: 10000,
         createdAt: new Date("2025-10-01T00:00:00Z"),
       }),
-      mkPayment({ eventId: "evt-acad", amount: 8000, fee: 200 }),
-      mkPayment({ eventId: "evt-acad-p", amount: 9000 }),
+      // Legacy (pre-modelo, feeMode null): regla vieja Σ fee + pct.
+      mkPayment({ eventId: "evt-p1", amount: 7000, fee: 300 }),
+      // Orden de academia: solo pasarela (real 200 reportado).
+      mkManaged({
+        eventId: "evt-acad",
+        amount: 8000,
+        feeMode: "ACADEMY",
+        platformFeeRate: null,
+        platformFeeNetClp: 0,
+        platformFeeVatClp: 0,
+        gatewayFeeExpected: null,
+        producerNetClp: null,
+        gatewayFeeClp: 200,
+      }),
+      mkManaged({ eventId: "evt-acad-p", amount: 9000 }),
       mkPayment({ eventId: "evt-venue", amount: 4000, fee: 50 }),
       // PRIVATE (clase particular comprable): refId pvt_<academyId>_ - se
       // atribuye a la academia aunque no tenga eventos/planes/clases.
-      mkPayment({
+      // Sin costo real reportado → passthrough estimado por param.
+      mkManaged({
         orderType: "PRIVATE",
         refId: encodePrivateRef("ac-1"),
         amount: 25000,
-        fee: 500,
+        feeMode: "ACADEMY",
+        platformFeeRate: null,
+        platformFeeNetClp: 0,
+        platformFeeVatClp: 0,
+        gatewayFeeExpected: null,
+        producerNetClp: null,
       }),
-      mkPayment({
+      mkManaged({
         orderType: "PRIVATE",
         refId: encodePrivateRef("ac-ajena"),
         amount: 30000,
+        feeMode: "ACADEMY",
+        platformFeeRate: null,
       }),
     );
   });
 
-  it("PRODUCER: suma tickets de sus eventos + pases de sus series; excluye ajenos/no-PAID/fuera de período", async () => {
+  it("PRODUCER: gross solo cuenta lo cobrado por la pasarela; excluye ajenos/no-PAID/fuera de período/OWN_METHOD", async () => {
     const payout = await ctrl.generate(
       { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
       adminReq,
     );
-    // 10000 (evt-p1) + 5000 (evt-p2) + 25000 (ser-p1). No cuenta evt-other,
-    // ser-ajena, FAILED ni el pago de octubre.
-    expect(payout.gross).toBe(40000);
+    // 10000 (evt-p1) + 5000 (evt-p2) + 25000 (ser-p1) + 7000 (legacy).
+    // NO cuenta: evt-other, ser-ajena, FAILED, octubre, OWN_METHOD
+    // (20000 - la plata nunca pasó por la pasarela) ni FREE.
+    expect(payout.gross).toBe(47000);
   });
 
-  it("PRODUCER: platformFeePct por evento (override) y pases al default del productor; net = gross − fees − platformFee", async () => {
-    pf.producers.set("prod-1", {
-      serviceFeeClp: null,
-      doorAppFeeClp: null,
-      doorCashFeeClp: null,
-      platformFeePct: 5,
-    });
+  it("PRODUCER: deducción por snapshot congelado, descompuesta en líneas auditables por orden", async () => {
     const payout = await ctrl.generate(
       { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
       adminReq,
     );
-    // evt-p1 al 10% (override): 1000; evt-p2 al 5% (productor): 250;
-    // pase ser-p1 al 5% (productor): 1250 → platformFee 2500.
-    expect(payout.platformFee).toBe(2500);
-    expect(payout.net).toBe(40000 - 400 - 2500);
+    // Deducciones MANAGED: 1000 (10% de 10000) + 400 (8% de 5000) +
+    // 2000 (8% de 25000). Pasarela real 325/estimada 160/798; legacy
+    // 300 + 700 (10% de 7000 por pct del evento). OWN_METHOD netea 1362.
+    expect(payout.gatewayFee).toBe(325 + 160 + 798 + 300);
+    // platformFee = (neto+IVA de cada orden) + legacy pct + own netting
+    expect(payout.platformFee).toBe(675 + 240 + 1202 + 700 + 1144 + 218);
+    expect(payout.net).toBe(
+      47000 - (325 + 160 + 798 + 300) - (675 + 240 + 1202 + 700 + 1144 + 218),
+    );
+    // Cada deducción rastrea a la orden: 3 líneas por orden MANAGED,
+    // 2 por own-method, 2 por el pago legacy.
+    expect(prisma.payoutLines).toHaveLength(3 + 3 + 3 + 2 + 2);
+    const gw = prisma.payoutLines.find(
+      (l) => l.type === "GATEWAY_FEE_PASSTHROUGH" && l.amount === 325,
+    );
+    expect(gw?.paymentId).toBeDefined();
   });
 
-  it("PRODUCER: sin override ni default del productor usa platform_fee.default_pct", async () => {
-    pf.numbers.set("platform_fee.default_pct", 8);
+  it("PRODUCER: el costo real de pasarela reemplaza al esperado sin tocar la deducción del productor", async () => {
     const payout = await ctrl.generate(
       { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
       adminReq,
     );
-    // evt-p1 10% → 1000; evt-p2 y pase al 8% global → 400 + 2000.
-    expect(payout.platformFee).toBe(1000 + 400 + 2000);
-    expect(payout.net).toBe(40000 - 400 - 3400);
+    // evt-p1: la pasarela cobró 325 real (vs 319 esperado). El productor
+    // sigue descontando su all-in congelado (1000): la diferencia la
+    // absorbe el split interno neto/IVA nuestro, no el productor.
+    const linesP1 = prisma.payoutLines.filter(
+      (l) =>
+        (l.meta as { orderAmount?: number } | undefined)?.orderAmount === 10000,
+    );
+    const gwLine = linesP1.find((l) => l.type === "GATEWAY_FEE_PASSTHROUGH")!;
+    expect(gwLine.amount).toBe(325);
+    const deduccionP1 = linesP1
+      .filter((l) => l.type !== "MANUAL_ADJUSTMENT")
+      .reduce((s, l) => s + (l.amount as number), 0);
+    expect(deduccionP1).toBe(1000); // all-in congelado: 10% de 10000
+    expect(payout.net).toBeDefined();
+  });
+
+  it("PRODUCER: tasa 0% (override promo) liquida sin deducción - la pasarela la absorbe la plataforma", async () => {
+    prisma.payments.push(
+      mkManaged({ eventId: "evt-p1", amount: 6000, platformFeeRate: 0 }),
+    );
+    const payout = await ctrl.generate(
+      { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
+      adminReq,
+    );
+    // gross +6000 sin líneas: el gatewayFeeExpected (319) no se traspasa -
+    // all-in 0% significa que el productor paga nada, ni siquiera la pasarela.
+    const promo = prisma.payments[prisma.payments.length - 1];
+    expect(
+      prisma.payoutLines.filter((l) => l.paymentId === promo.id),
+    ).toHaveLength(0);
+    expect(payout.gross).toBe(47000 + 6000);
+    expect(payout.net).toBe(
+      payout.gross - payout.platformFee - payout.gatewayFee,
+    );
+  });
+
+  it("PRODUCER: métodos propios netean su comisión sin inflar el gross (OWN_METHOD)", async () => {
+    const payout = await ctrl.generate(
+      { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
+      adminReq,
+    );
+    const own = prisma.payoutLines.filter((l) =>
+      (l.type as string).startsWith("OWN_METHOD_"),
+    );
+    expect(own).toHaveLength(2);
+    expect(own.map((l) => l.type).sort()).toEqual([
+      "OWN_METHOD_FEE_NET",
+      "OWN_METHOD_FEE_VAT",
+    ]);
+    expect(own.reduce((s, l) => s + (l.amount as number), 0)).toBe(1362);
+    // Los 20000 de la venta propia jamás entraron al gross ni al neto.
+    expect(payout.gross).toBe(47000);
+  });
+
+  it("PRODUCER: pago legacy (feeMode null) liquida con la regla vieja (fee real + pct del evento)", async () => {
+    const payout = await ctrl.generate(
+      { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
+      adminReq,
+    );
+    const legacy = prisma.payoutLines.filter(
+      (l) => (l.meta as { legacy?: boolean } | undefined)?.legacy === true,
+    );
+    // 7000 a evt-p1 (pct 10): fee real 300 + comisión 700.
+    expect(legacy.map((l) => [l.type, l.amount])).toEqual(
+      expect.arrayContaining([
+        ["GATEWAY_FEE_PASSTHROUGH", 300],
+        ["PLATFORM_FEE_NET", 700],
+      ]),
+    );
+    expect(payout.gross).toBe(47000);
+  });
+
+  it("PRODUCER: cada pago con deducción emite PAYOUT_LINE_ASSIGNED en su ledger", async () => {
+    await ctrl.generate(
+      { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
+      adminReq,
+    );
+    const assigned = prisma.paymentEvents.filter(
+      (e) => e.type === "PAYOUT_LINE_ASSIGNED",
+    );
+    // 3 órdenes MANAGED + 1 OWN_METHOD + 1 legacy (FREE no devenga).
+    expect(assigned).toHaveLength(5);
+    expect(
+      (assigned[0]!.payload as Record<string, unknown>).payoutId,
+    ).toBeDefined();
   });
 
   it("PRODUCER: el pago queda auditado (PAYOUT_GENERATE) y nace PENDING", async () => {
@@ -352,7 +559,7 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
     });
   });
 
-  it("idempotente: segundo generate con el mismo actor+período devuelve el existente sin auditar", async () => {
+  it("idempotente: segundo generate devuelve el existente con sus líneas, sin auditar", async () => {
     const first = await ctrl.generate(
       { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
       adminReq,
@@ -364,9 +571,10 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
     expect(second.id).toBe(first.id);
     expect(prisma.payouts).toHaveLength(1);
     expect(prisma.auditLogs).toHaveLength(1);
+    expect(second.lines.length).toBeGreaterThan(0);
   });
 
-  it("ACADEMY (modelo SaaS): solo eventos propios sin productor; descuenta GATEWAY_FEE_PASSTHROUGH, nunca platformFee", async () => {
+  it("ACADEMY (modelo SaaS): pasarela al costo real por orden, estimada si no hay reporte; nunca platformFee", async () => {
     const payout = await ctrl.generate(
       { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
       adminReq,
@@ -374,18 +582,19 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
     // evt-acad (8000) sí; evt-acad-p (9000) tiene productor → no devenga
     // aquí; el PRIVATE de ac-1 (25000) sí entra por refId, el de ac-ajena no.
     expect(payout.gross).toBe(33000);
-    // Modelo SaaS: la academia no paga comisión por venta (paga su
-    // suscripción) - platformFeePct del evento y el param global son
-    // inertes para ACADEMY. Solo el costo Flow como línea explícita:
-    // round(33000 × 3.19%) = 1053; el fee real del Payment (700) NO se
-    // usa - la tasa viene del param, no del pago.
+    // Costo real reportado en evt-acad (200) + estimado en el PRIVATE
+    // (round(25000 × 3.19%) = 798). La academia paga su suscripción, no
+    // comisión por venta - platformFee siempre 0.
     expect(payout.platformFee).toBe(0);
-    expect(payout.gatewayFee).toBe(1053);
-    expect(payout.net).toBe(33000 - 1053);
-    // La deducción viaja como línea tipada - nunca escondida en net.
-    expect(payout.lines).toEqual([
-      { type: "GATEWAY_FEE_PASSTHROUGH", amount: 1053 },
-    ]);
+    expect(payout.gatewayFee).toBe(998);
+    expect(payout.net).toBe(33000 - 998);
+    // Una línea por orden - nunca un monto agregado escondido.
+    expect(payout.lines.map((l) => [l.type, l.amount])).toEqual(
+      expect.arrayContaining([
+        ["GATEWAY_FEE_PASSTHROUGH", 200],
+        ["GATEWAY_FEE_PASSTHROUGH", 798],
+      ]),
+    );
   });
 
   it("ACADEMY sin eventos/clases/planes igual liquida su PRIVATE (refId pvt_)", async () => {
@@ -418,38 +627,15 @@ describe("AdminPayoutsController.generate - computeSettlement", () => {
     expect(payout.lines).toEqual([]); // sin bruto → sin líneas de descuento
   });
 
-  it("ACADEMY: la tasa del passthrough viene de gateway_fee.academy_passthrough_pct", async () => {
+  it("ACADEMY: el estimado usa gateway_fee.academy_passthrough_pct solo cuando no hay costo real", async () => {
     pf.numbers.set("gateway_fee.academy_passthrough_pct", 5);
     const payout = await ctrl.generate(
       { actorType: "ACADEMY", actorId: "ac-1", ...DTO },
       adminReq,
     );
-    // 33000 × 5% = 1650 - parametrizable desde /admin sin deploy.
-    expect(payout.gatewayFee).toBe(1650);
-    expect(payout.net).toBe(31350);
-    expect(payout.lines).toEqual([
-      { type: "GATEWAY_FEE_PASSTHROUGH", amount: 1650 },
-    ]);
-  });
-
-  it("PRODUCER: sin línea GATEWAY_FEE_PASSTHROUGH - solo PLATFORM_FEE en el desglose", async () => {
-    pf.producers.set("prod-1", {
-      serviceFeeClp: null,
-      doorAppFeeClp: null,
-      doorCashFeeClp: null,
-      platformFeePct: 5,
-    });
-    pf.numbers.set("gateway_fee.academy_passthrough_pct", 5);
-    const payout = await ctrl.generate(
-      { actorType: "PRODUCER", actorId: "prod-1", ...DTO },
-      adminReq,
-    );
-    expect(payout.platformFee).toBe(2500);
-    expect(payout.gatewayFee).toBe(0);
-    expect(payout.net).toBe(40000 - 400 - 2500); // Σ fee real, no %
-    expect(payout.lines).toEqual([
-      { type: "PLATFORM_FEE", amount: 2500 },
-    ]);
+    // 200 real (evt-acad) + round(25000 × 5%) = 1250 estimado.
+    expect(payout.gatewayFee).toBe(1450);
+    expect(payout.net).toBe(31550);
   });
 
   it("VENUE: regla legacy intacta (Σ fee real + platformFeePct, sin passthrough)", async () => {

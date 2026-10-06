@@ -18,6 +18,15 @@ export type PaymentAuditRow = {
   gatewayReportedAmount: number | null;
   gatewayMedia: string | null;
   gatewayPaidAt: string | null;
+  // Descomposición de comisión congelada al crear la orden
+  // (spec producer-fee-model) - null en pagos legacy.
+  feeMode: string | null;
+  platformFeeRate: number | null;
+  platformFeeNetClp: number | null;
+  platformFeeVatClp: number | null;
+  gatewayFeeExpected: number | null;
+  producerNetClp: number | null;
+  currency: string | null;
   /** Cantidad de eventos del ledger (evidencia tamper-evident). */
   eventCount: number;
   // Contexto de compra resuelto por la API según orderType (los ids
@@ -66,6 +75,15 @@ export function paymentHref(p: PaymentAuditRow): string | null {
 /** Fecha real de cobro: la reportada por la pasarela si existe. */
 export function paymentPaidAt(p: PaymentAuditRow): string {
   return p.gatewayPaidAt ?? p.createdAt;
+}
+
+/**
+ * Neto que recibe el actor por esta orden: el snapshot congelado
+ * (`producerNetClp`) si existe; en pagos legacy cae al neto denormalizado
+ * (amount − costo pasarela), que es lo que la liquidación vieja pagó.
+ */
+export function paymentProducerNet(p: PaymentAuditRow): number {
+  return p.producerNetClp ?? p.net;
 }
 
 export const paymentDateTimeFmt = new Intl.DateTimeFormat("es-CL", {

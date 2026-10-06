@@ -6,11 +6,11 @@ import { PrismaService } from "../prisma.service";
 // y cambian solo por /admin - 30s de TTL es tolerancia sobrada.
 const CACHE_TTL_MS = 30_000;
 
-/** Defaults configurables por productor (null = hereda global / sin config). */
+/** Defaults configurables por productor (null = hereda global / sin config).
+ * Spec producer-fee-model: la única comisión activa es platformFeePct (todo
+ * incluido); los serviceFeeClp/door*FeeClp del schema quedan inertes - solo
+ * los lee el settlement para reconstruir tickets de pagos legacy. */
 export interface ProducerFeeDefaults {
-  serviceFeeClp: number | null;
-  doorAppFeeClp: number | null;
-  doorCashFeeClp: number | null;
   platformFeePct: number | null;
   /** Defaults de mesas (spec checkout-table-reservation): los edita el
    *  propio productor; el evento los hereda al crear/editar. Opcionales -
@@ -70,9 +70,6 @@ export class ParamsService {
     });
     const value: ProducerFeeDefaults | null = row
       ? {
-          serviceFeeClp: row.serviceFeeClp,
-          doorAppFeeClp: row.doorAppFeeClp,
-          doorCashFeeClp: row.doorCashFeeClp,
           platformFeePct: row.platformFeePct,
           tablesTotal: row.tablesTotal,
           tableSeatMax: row.tableSeatMax,

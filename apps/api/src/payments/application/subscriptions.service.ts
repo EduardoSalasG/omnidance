@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import type { MembershipSubscription, Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { ParamsService } from "../../params/params.service";
+import { academyFeeBreakdown } from "../../common/fee-breakdown";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import {
@@ -974,6 +975,13 @@ export class SubscriptionsService {
         // academy-saas-billing): si Flow no reporta monto, el Payment
         // local registra solo el precio del plan.
         const amount = inv.amount > 0 ? inv.amount : (plan?.price ?? 0);
+        // Desglose congelado igual que el checkout (spec
+        // producer-fee-model): feeMode ACADEMY - sin comisión, la
+        // pasarela esperada por card_pct queda para reconciliar.
+        const cardPct = await this.params.getNumber(
+          "gateway_fee.card_pct",
+          3.19,
+        );
         const payment = await this.prisma.payment.create({
           data: {
             orderType: "MEMBERSHIP",
@@ -987,6 +995,7 @@ export class SubscriptionsService {
               inv.payment?.flowOrder != null
                 ? String(inv.payment.flowOrder)
                 : null,
+            ...academyFeeBreakdown(amount, cardPct),
           },
         });
         await this.prisma.$transaction((tx) =>

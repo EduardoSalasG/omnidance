@@ -37,11 +37,10 @@ const clp = new Intl.NumberFormat("es-CL", {
 /**
  * Checkout de membresía - paso de revisión antes del cobro (mismo
  * patrón que /eventos/[id]/checkout): qué plan, academia, vigencia
- * resultante y breakdown del total real que Flow debita (modelo SaaS:
- * productos de academia sin cargo de servicio - la línea solo aparece
- * si el quote la reporta > 0), y elección pago único vs suscripción
- * cuando el plan es recurrente. Nunca se muestra un monto distinto al
- * que se cobra.
+ * resultante y total real que Flow debita (modelo SaaS: la academia
+ * paga solo la pasarela; el comprador paga el precio exacto del plan),
+ * y elección pago único vs suscripción cuando el plan es recurrente.
+ * Nunca se muestra un monto distinto al que se cobra.
  */
 export function MembershipCheckoutClient({
   quote,
@@ -332,18 +331,6 @@ export function MembershipCheckoutClient({
               <PriceTag amount={quote.plan.price} />
             </dd>
           </div>
-          {/* Modelo SaaS: la academia vende sin comisión - la línea de
-              cargo de servicio solo se muestra si el quote la trae > 0
-              (defensivo ante órdenes de eventos que reutilicen el
-              patrón). */}
-          {quote.serviceFeeClp > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <dt className="text-white/70">{tco("serviceFee")}</dt>
-              <dd>
-                <PriceTag amount={quote.serviceFeeClp} />
-              </dd>
-            </div>
-          )}
           <div className="flex items-center justify-between border-t border-night-700 pt-3">
             <dt className="text-base font-semibold">{tco("total")}</dt>
             <dd>

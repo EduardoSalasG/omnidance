@@ -590,13 +590,13 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
     });
   });
 
-  // ═══════════════ serviceFeeClp (override admin-only) ═══════════════
-  describe("serviceFeeClp (override admin del cargo por servicio)", () => {
+  // ═══════════ platformFeePct (override admin-only, comisión all-in) ═══════════
+  describe("platformFeePct (override admin de la comisión todo incluido)", () => {
     let adminEventId = "";
     let producerEventId = "";
 
     beforeAll(async () => {
-      // evento propio del producer (sin fee) para probar el PATCH no-admin
+      // evento propio del producer (sin override) para probar el PATCH no-admin
       const res = await req(
         "POST",
         "/api/events",
@@ -611,7 +611,7 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
       producerEventId = (await res.json()).id;
     });
 
-    it("POST con serviceFeeClp sin admin.access → 403", async () => {
+    it("POST con platformFeePct sin admin.access → 403", async () => {
       const res = await req(
         "POST",
         "/api/events",
@@ -619,7 +619,7 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
           name: `GP Fee NoAdmin ${suffix}`,
           startsAt: future(96),
           endsAt: future(100),
-          serviceFeeClp: 900,
+          platformFeePct: 8,
         },
         sessions.producer,
       );
@@ -630,7 +630,7 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
       );
     });
 
-    it("POST con serviceFeeClp por admin → 201 y persiste el campo", async () => {
+    it("POST con platformFeePct por admin → 201 y persiste el campo", async () => {
       const res = await req(
         "POST",
         "/api/events",
@@ -639,49 +639,49 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
           startsAt: future(96),
           endsAt: future(100),
           presalePrice: 10000,
-          serviceFeeClp: 900,
+          platformFeePct: 8,
         },
         sessions.admin,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
-      expect(body.serviceFeeClp).toBe(900);
+      expect(body.platformFeePct).toBe(8);
       adminEventId = body.id;
     });
 
-    it("GET /events/:id expone serviceFeeClp", async () => {
+    it("GET /events/:id expone platformFeePct", async () => {
       const res = await req("GET", `/api/events/${adminEventId}`);
       expect(res.status).toBe(200);
-      expect((await res.json()).serviceFeeClp).toBe(900);
+      expect((await res.json()).platformFeePct).toBe(8);
     });
 
-    it("PATCH serviceFeeClp por el owner sin admin → 403", async () => {
+    it("PATCH platformFeePct por el owner sin admin → 403", async () => {
       const res = await req(
         "PATCH",
         `/api/events/${producerEventId}`,
-        { serviceFeeClp: 700 },
+        { platformFeePct: 8 },
         sessions.producer,
       );
       expect(res.status).toBe(403);
       // el campo quedó intacto
       const event = await prisma.event.findUniqueOrThrow({
         where: { id: producerEventId },
-        select: { serviceFeeClp: true },
+        select: { platformFeePct: true },
       });
-      expect(event.serviceFeeClp).toBeNull();
+      expect(event.platformFeePct).toBeNull();
     });
 
-    it("PATCH serviceFeeClp negativo → 400", async () => {
+    it("PATCH platformFeePct negativo → 400", async () => {
       const res = await req(
         "PATCH",
         `/api/events/${adminEventId}`,
-        { serviceFeeClp: -5 },
+        { platformFeePct: -5 },
         sessions.admin,
       );
       expect(res.status).toBe(400);
     });
 
-    it("admin publica y edita serviceFeeClp en PUBLISHED → 200", async () => {
+    it("admin publica y edita platformFeePct en PUBLISHED → 200", async () => {
       const pub = await req(
         "POST",
         `/api/events/${adminEventId}/publish`,
@@ -693,14 +693,14 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
       const res = await req(
         "PATCH",
         `/api/events/${adminEventId}`,
-        { serviceFeeClp: 1200 },
+        { platformFeePct: 9 },
         sessions.admin,
       );
       expect(res.status).toBe(200);
-      expect((await res.json()).serviceFeeClp).toBe(1200);
+      expect((await res.json()).platformFeePct).toBe(9);
     });
 
-    it("GET /events lista el serviceFeeClp del evento PUBLISHED", async () => {
+    it("GET /events lista el platformFeePct del evento PUBLISHED", async () => {
       const res = await req("GET", "/api/events");
       expect(res.status).toBe(200);
       const list = await res.json();
@@ -708,18 +708,18 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
         (e: { id: string }) => e.id === adminEventId,
       );
       expect(mine).toBeTruthy();
-      expect(mine.serviceFeeClp).toBe(1200);
+      expect(mine.platformFeePct).toBe(9);
     });
 
-    it("admin limpia el override con null → serviceFeeClp null", async () => {
+    it("admin limpia el override con null → platformFeePct null", async () => {
       const res = await req(
         "PATCH",
         `/api/events/${adminEventId}`,
-        { serviceFeeClp: null },
+        { platformFeePct: null },
         sessions.admin,
       );
       expect(res.status).toBe(200);
-      expect((await res.json()).serviceFeeClp).toBeNull();
+      expect((await res.json()).platformFeePct).toBeNull();
     });
   });
 });

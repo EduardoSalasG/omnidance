@@ -9,7 +9,6 @@ import {
   Badge,
   Button,
   Card,
-  PriceTag,
   RefreshIcon,
   SkeletonCard,
 } from "@/components/ui";
@@ -18,19 +17,11 @@ import { ProducerProSection } from "@/components/producer/pro-section";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
-const FEE_FIELDS = [
-  "serviceFeeClp",
-  "doorAppFeeClp",
-  "doorCashFeeClp",
-  "platformFeePct",
-] as const;
+const FEE_FIELDS = ["platformFeePct"] as const;
 type FeeField = (typeof FEE_FIELDS)[number];
 type FeeValues = Record<FeeField, number | null>;
 
 const FEE_LABEL_KEY: Record<FeeField, string> = {
-  serviceFeeClp: "serviceFee",
-  doorAppFeeClp: "doorAppFee",
-  doorCashFeeClp: "doorCashFee",
   platformFeePct: "platformFeePct",
 };
 
@@ -256,7 +247,6 @@ export default function ProducerParamsPage() {
           <Card padded={false}>
             <ul className="flex flex-col divide-y divide-night-700">
               {FEE_FIELDS.map((f) => {
-                const isPct = f === "platformFeePct";
                 const custom = params.defaults[f] != null;
                 const effective = params.effective[f];
                 return (
@@ -273,16 +263,12 @@ export default function ProducerParamsPage() {
                       </Badge>
                     </div>
                     <span className="text-base">
-                      {isPct ? (
-                        effective != null ? (
-                          <span className="font-semibold text-neon">
-                            {effective}%
-                          </span>
-                        ) : (
-                          <span className="text-white/50">·</span>
-                        )
+                      {effective != null ? (
+                        <span className="font-semibold text-neon">
+                          {effective}%
+                        </span>
                       ) : (
-                        <PriceTag amount={effective} />
+                        <span className="text-white/50">·</span>
                       )}
                     </span>
                   </li>

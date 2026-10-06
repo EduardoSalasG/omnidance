@@ -19,9 +19,30 @@ import {
   PAYOUT_STATUS_VARIANT,
   PRODUCER_ROLES,
   type Payout,
+  type PayoutLine,
 } from "@/components/producer/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
+
+/**
+ * Agrupa las líneas de deducción por tipo (spec producer-fee-model):
+ * cada línea rastrea a una orden, pero la vista resume por concepto -
+ * [type, total, órdenes].
+ */
+function groupLines(lines: PayoutLine[]): [string, number, number][] {
+  const byType = new Map<string, { total: number; count: number }>();
+  for (const l of lines) {
+    const g = byType.get(l.type) ?? { total: 0, count: 0 };
+    g.total += l.amount;
+    g.count += 1;
+    byType.set(l.type, g);
+  }
+  return [...byType.entries()].map(([type, g]) => [
+    type,
+    g.total,
+    g.count,
+  ]);
+}
 
 /**
  * /productor/pagos - liquidaciones del productor (GET /me/payouts,
@@ -173,10 +194,38 @@ export default function ProducerPayoutsPage() {
                       {t("payoutsPage.net")}
                     </dt>
                     <dd>
-                      <PriceTag amount={p.net} />
+                      <PriceTag amount={p.net} className="font-semibold" />
                     </dd>
                   </div>
                 </dl>
+
+                {/* Desglose auditable: cada deducción rastrea a la orden
+                    que la originó - acá se resume por concepto. */}
+                {p.lines.length > 0 && (
+                  <dl className="flex flex-col gap-1 border-t border-night-700 pt-3">
+                    <dt className="text-xs uppercase tracking-wide text-white/50">
+                      {t("payoutsPage.deductions")}
+                    </dt>
+                    {groupLines(p.lines).map(([type, total, count]) => (
+                      <div
+                        key={type}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <dd className="text-white/60">
+                          {t.has(`payoutsPage.lineTypes.${type}`)
+                            ? t(`payoutsPage.lineTypes.${type}`)
+                            : type}
+                          {count > 1 && (
+                            <span className="text-white/40"> ×{count}</span>
+                          )}
+                        </dd>
+                        <dd>
+                          <PriceTag amount={-total} />
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/50">
                   {p.paidAt && (

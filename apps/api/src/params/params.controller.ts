@@ -19,13 +19,9 @@ import { ParamsService } from "./params.service";
 // Whitelist de params legibles sin sesión: lo que el cliente necesita para
 // estimar precios y ventanas antes de operar. Datos sensibles quedan fuera.
 const PUBLIC_KEYS = new Set([
-  "service_fee.presale_clp",
-  "service_fee.door_app_clp",
-  "service_fee.door_cash_clp",
-  // Deprecated (modelo SaaS, spec academy-saas-billing): las órdenes de
-  // academia ya no cobran cargo - el key sigue expuesto para clientes
-  // legacy pero ningún checkout lo aplica.
-  "service_fee.membership_clp",
+  // Los keys service_fee.* quedaron fuera del modelo (spec
+  // producer-fee-model): el comprador paga el precio publicado exacto y
+  // la comisión all-in la paga el productor - nada que estimar en cliente.
   "session.cooldown_minutes",
   "qr.rotation_seconds",
   "prime_time.window_minutes",

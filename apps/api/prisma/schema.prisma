@@ -1176,6 +1176,19 @@ model Payment {
   // materializa como TableReservation REQUESTED solo al PAID - una mesa
   // sin ticket pagado nunca ocupa cupo.
   tablePartySize Int?
+  // Descomposición del fee "todo incluido" cobrado al actor
+  // (spec producer-fee-model, trazabilidad BIAN). Se congela al crear la
+  // orden - un cambio de parámetro nunca recalcula órdenes viejas.
+  // feeMode: MANAGED (nuestra pasarela) | OWN_METHOD (métodos propios) |
+  // OWN_GATEWAY (su pasarela) | FREE ($0) | ACADEMY (SaaS - solo
+  // passthrough de pasarela). null = pago legacy (pre-modelo).
+  feeMode            String?
+  platformFeeRate    Float?   // % todo incluido aplicado (snapshot)
+  platformFeeNetClp  Int?     // nuestro fee neto devengado
+  platformFeeVatClp  Int?     // IVA 19% sobre el fee neto
+  gatewayFeeExpected Int?     // esperado al crear - reconcile vs gatewayFeeClp real
+  producerNetClp     Int?     // amount − deducción total (lo que recibe el actor)
+  currency           String   @default("CLP") // ISO 4217 - multi-país
   gateway   String        @default("FLOW")
   gatewayRef String?
   // Verdad monetaria reportada por la pasarela al confirmar PAID - auditable
@@ -1189,6 +1202,7 @@ model Payment {
   createdAt DateTime      @default(now())
 
   events PaymentEvent[]
+  payoutLines PayoutLine[]
 }
 
 enum PayoutStatus {
@@ -1214,6 +1228,26 @@ model Payout {
   evidenceUrl String? // comprobante de transferencia
   paidAt      DateTime?
   createdAt   DateTime     @default(now())
+
+  lines PayoutLine[]
+}
+
+// Deducción auditable por liquidación (spec producer-fee-model, BIAN):
+// cada fila rastrea una deducción a la orden que la generó - el neto del
+// payout es verificable peso a peso, y las ventas por métodos propios del
+// actor se netean aquí contra su payout gestionado del período.
+model PayoutLine {
+  id        String   @id @default(cuid())
+  payout    Payout   @relation(fields: [payoutId], references: [id])
+  payoutId  String
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+  paymentId String? // null en ajustes manuales
+  type      String // PLATFORM_FEE_NET | PLATFORM_FEE_VAT |
+                   // GATEWAY_FEE_PASSTHROUGH | OWN_METHOD_FEE_NET |
+                   // OWN_METHOD_FEE_VAT | MANUAL_ADJUSTMENT
+  amount    Int    // deducción (positivo) o abono (negativo)
+  meta      Json?  // {rate, gatewayFeeReal, reason...}
+  createdAt DateTime @default(now())
 }
 
 enum DiscountCodeType {

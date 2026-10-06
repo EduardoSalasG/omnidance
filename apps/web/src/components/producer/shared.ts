@@ -118,10 +118,8 @@ export type EventDetail = {
   presalePrice: number | null;
   doorPrice: number | null;
   primeThreshold: number | null;
-  /** Overrides de fees (solo admin los fija); null → default del productor → global. */
-  serviceFeeClp?: number | null;
-  doorAppFeeClp?: number | null;
-  doorCashFeeClp?: number | null;
+  /** Override de la comisión todo incluido (solo admin lo fija);
+      null → default del productor → fees.managed_allin_pct. */
   platformFeePct?: number | null;
   /** Corte de la preventa en minutos del día del evento; null = hereda. */
   presaleCutoffMinutes?: number | null;
@@ -241,6 +239,19 @@ export type RatingsSummary = {
   } | null;
 };
 
+/**
+ * Línea de deducción de la liquidación (spec producer-fee-model): cada
+ * una rastrea a la orden que la generó. types:
+ * GATEWAY_FEE_PASSTHROUGH | PLATFORM_FEE_NET | PLATFORM_FEE_VAT |
+ * OWN_METHOD_FEE_NET | OWN_METHOD_FEE_VAT | MANUAL_ADJUSTMENT.
+ */
+export type PayoutLine = {
+  id: string;
+  type: string;
+  amount: number;
+  paymentId: string | null;
+};
+
 export type Payout = {
   id: string;
   actorType: string;
@@ -253,6 +264,7 @@ export type Payout = {
   evidenceUrl: string | null;
   paidAt: string | null;
   createdAt: string;
+  lines: PayoutLine[];
 };
 
 // Inputs dark-first; min-h-12 = touch target (mismo lenguaje que /productor).

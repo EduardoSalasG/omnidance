@@ -16,6 +16,7 @@ import {
   paymentDateTimeFmt,
   paymentHref,
   paymentPaidAt,
+  paymentProducerNet,
   type PaymentAuditRow,
   type PaymentLedgerEvent,
 } from "./shared";
@@ -131,7 +132,7 @@ function PaymentCard({
           <div>
             <dt className="text-xs text-white/50">{t("cols.net")}</dt>
             <dd>
-              <PriceTag amount={p.net} />
+              <PriceTag amount={paymentProducerNet(p)} />
             </dd>
           </div>
         </dl>

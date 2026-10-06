@@ -19,8 +19,8 @@
     "cols": {
       "paidAt": "Cobrado",
       "amount": "Monto",
-      "gatewayFee": "Fee Flow",
-      "net": "Neto",
+      "gatewayFee": "Costo pasarela",
+      "net": "Neto al actor",
       "status": "Estado"
     },
     "ledger": {
@@ -38,6 +38,8 @@
         "SUBSCRIPTION_CANCELED": "Suscripción cancelada",
         "RENEWAL_FAILED": "Renovación fallida",
         "AMOUNT_MISMATCH": "Monto distinto al esperado",
+        "FEE_ASSESSED": "Comisión calculada",
+        "PAYOUT_LINE_ASSIGNED": "Asignado a liquidación",
         "IMPORTED": "Registro importado"
       }
     },

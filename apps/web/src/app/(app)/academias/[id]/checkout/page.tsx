@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
 // GET /checkout/membership-quote - revisión de orden del plan: precio,
-// cargo de servicio, total real, vigencia resultante y suscripción viva
-// del viewer a este plan. El paso "review" del checkout de membresía.
+// total real, vigencia resultante y suscripción viva del viewer a este
+// plan. El paso "review" del checkout de membresía.
 export type MembershipQuote = {
   plan: {
     id: string;
@@ -23,7 +23,6 @@ export type MembershipQuote = {
     description: string[];
   };
   academy: { id: string; name: string };
-  serviceFeeClp: number;
   totalClp: number;
   recurring: boolean;
   vigenciaEndsAt: string | null;

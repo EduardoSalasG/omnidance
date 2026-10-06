@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { SERVICE_FEE } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
@@ -19,7 +18,6 @@ import type { CheckoutEvent } from "./page";
 type Quote = {
   listPrice: number;
   discount: number;
-  serviceFee: number;
   total: number;
 };
 
@@ -136,7 +134,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
 
   // Canal de venta: puerta-app cuando el evento está en vivo o la
   // preventa ya cortó - misma resolución que el server (LIVE, o
-  // PUBLISHED post-corte vende a doorPrice + fee DOOR). El instante de
+  // PUBLISHED post-corte vende a doorPrice). El instante de
   // corte viene del detalle (presaleEndsAt - el server lo calcula con
   // el PlatformParam presale.cutoff_hour, sin replicar la regla acá).
   // Solo mueve el estimado local - el precio real lo decide el quote.
@@ -157,24 +155,16 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     phase.kind === "awaiting" || phase.kind === "stillPending"
       ? phase.quote
       : null;
-  // Estimado con descuento aplicado: el fee del canal (override propio
-  // del evento o default de plataforma) y la regla del server "entrada
-  // en $0 no cobra fee". Overrides de productor/PlatformParam no son
-  // públicos - el quote del POST sigue siendo la fuente de verdad.
+  // Precio exacto (spec producer-fee-model): el comprador paga solo la
+  // lista menos el descuento - no hay cargo por servicio que estimar.
+  // El quote del POST sigue siendo la fuente de verdad.
   const estDiscount = appliedDiscount?.clp ?? 0;
-  const estFee =
-    listPrice - estDiscount > 0
-      ? doorChannel
-        ? (event.doorAppFeeClp ?? SERVICE_FEE.DOOR_APP_CLP)
-        : (event.serviceFeeClp ?? SERVICE_FEE.PRESALE_CLP)
-      : 0;
   const breakdown = quote
     ? quote // el API ya devuelve el total de la orden completa
     : {
         listPrice,
         discount: estDiscount,
-        serviceFee: estFee,
-        total: (listPrice + estFee) * quantity - estDiscount,
+        total: listPrice * quantity - estDiscount,
       };
 
   // Polling del pago mientras esperamos confirmación (stub o retorno del gateway)
@@ -677,15 +667,6 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                 </dd>
               </div>
             )}
-            <div className="flex items-center justify-between">
-              <dt className="text-sm text-white/60">
-                {t("serviceFee")}
-                {quantity > 1 && ` ×${quantity}`}
-              </dt>
-              <dd>
-                <PriceTag amount={breakdown.serviceFee * quantity} />
-              </dd>
-            </div>
             <div className="mt-1 flex items-center justify-between border-t border-night-700 pt-4">
               <dt className="text-base font-semibold">{t("total")}</dt>
               <dd aria-live="polite">

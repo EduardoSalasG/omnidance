@@ -155,27 +155,10 @@ class CreateEventDto {
   presaleCutoffMinutes?: number | null;
 
   /**
-   * Override admin del cargo por servicio de preventa (null → default del
-   * productor → param global). Solo seteable por admin.access.
+   * Override admin de la comisión todo incluido (0–100, spec
+   * producer-fee-model). El comprador siempre paga el precio publicado
+   * exacto - esta tasa se descuenta de la liquidación del productor.
    */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  serviceFeeClp?: number | null;
-
-  /** Override admin del fee de venta en puerta por app. */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  doorAppFeeClp?: number | null;
-
-  /** Override admin del fee de registro en efectivo en puerta. */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  doorCashFeeClp?: number | null;
-
-  /** Override admin del % comisión plataforma (0–100). */
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -274,25 +257,7 @@ class UpdateEventDto {
   @Max(PRESALE_CUTOFF_MAX_MINUTES)
   presaleCutoffMinutes?: number | null;
 
-  /** Override admin del cargo por servicio - null limpia el override. */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  serviceFeeClp?: number | null;
-
-  /** Override admin del fee de puerta app - null limpia el override. */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  doorAppFeeClp?: number | null;
-
-  /** Override admin del fee de puerta efectivo - null limpia el override. */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  doorCashFeeClp?: number | null;
-
-  /** Override admin del % comisión plataforma - null limpia el override. */
+  /** Override admin de la comisión todo incluido - null limpia el override. */
   @IsOptional()
   @IsNumber()
   @Min(0)
@@ -898,9 +863,6 @@ export class EventsController {
         doorPrice: true,
         genres: true,
         genreMix: true,
-        serviceFeeClp: true,
-        doorAppFeeClp: true,
-        doorCashFeeClp: true,
         platformFeePct: true,
         series: { select: { id: true, name: true, genres: true, genreMix: true } },
         venue: { select: { id: true, name: true, address: true, lat: true, lng: true } },
@@ -937,9 +899,6 @@ export class EventsController {
         presaleCap: true,
         doorCap: true,
         presaleCutoffMinutes: true,
-        serviceFeeClp: true,
-        doorAppFeeClp: true,
-        doorCashFeeClp: true,
         platformFeePct: true,
         primeThreshold: true,
         happyHourMinutes: true,
@@ -1080,12 +1039,7 @@ export class EventsController {
   @RequirePermissions("events.manage")
   async create(@Body() dto: CreateEventDto, @Req() req: Request) {
     const me = req.person!;
-    if (
-      dto.serviceFeeClp !== undefined ||
-      dto.doorAppFeeClp !== undefined ||
-      dto.doorCashFeeClp !== undefined ||
-      dto.platformFeePct !== undefined
-    ) {
+    if (dto.platformFeePct !== undefined) {
       await this.assertAdminFeeOverride(me);
     }
     if (dto.seriesId) {
@@ -1125,9 +1079,6 @@ export class EventsController {
         presaleCap: dto.presaleCap ?? null,
         doorCap: dto.doorCap ?? null,
         presaleCutoffMinutes: dto.presaleCutoffMinutes ?? null,
-        serviceFeeClp: dto.serviceFeeClp ?? null,
-        doorAppFeeClp: dto.doorAppFeeClp ?? null,
-        doorCashFeeClp: dto.doorCashFeeClp ?? null,
         platformFeePct: dto.platformFeePct ?? null,
         primeThreshold: dto.primeThreshold ?? null,
         ...(dto.happyHourMinutes !== undefined
@@ -1211,19 +1162,6 @@ export class EventsController {
     if (dto.doorCap !== undefined) data.doorCap = dto.doorCap;
     if (dto.presaleCutoffMinutes !== undefined) {
       data.presaleCutoffMinutes = dto.presaleCutoffMinutes;
-    }
-    if (dto.serviceFeeClp !== undefined) {
-      // campo operativo (no contenido): solo admin.access lo fija/limpia.
-      await this.assertAdminFeeOverride(me);
-      data.serviceFeeClp = dto.serviceFeeClp;
-    }
-    if (dto.doorAppFeeClp !== undefined) {
-      await this.assertAdminFeeOverride(me);
-      data.doorAppFeeClp = dto.doorAppFeeClp;
-    }
-    if (dto.doorCashFeeClp !== undefined) {
-      await this.assertAdminFeeOverride(me);
-      data.doorCashFeeClp = dto.doorCashFeeClp;
     }
     if (dto.platformFeePct !== undefined) {
       await this.assertAdminFeeOverride(me);
@@ -1406,7 +1344,7 @@ export class EventsController {
   }
 
   /**
-   * serviceFeeClp es un campo operativo admin-only: cualquier actor que lo
+   * platformFeePct es un campo operativo admin-only: cualquier actor que lo
    * envíe en POST/PATCH sin admin.access → 403 (aunque sea el owner).
    */
   private async assertAdminFeeOverride(person: {
