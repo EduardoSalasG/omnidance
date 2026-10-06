@@ -49,7 +49,17 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
     amount: number;
     email: string;
     returnUrl: string;
+    currency?: string;
   }): Promise<{ paymentUrl: string; gatewayRef: string }> {
+    // Flow solo opera CLP - una orden multi-moneda no puede crearse
+    // por este adaptador (spec gateway-port-normalization: el
+    // adaptador rechaza monedas que no soporta).
+    const currency = (p.currency ?? "CLP").toUpperCase();
+    if (currency !== "CLP") {
+      throw new Error(
+        `flow createOrder: moneda no soportada ${currency} (Flow solo CLP)`,
+      );
+    }
     const params: Record<string, string> = {
       apiKey: this.apiKey,
       commerceOrder: p.refId,
@@ -60,7 +70,7 @@ export class FlowGateway implements PaymentGateway, SubscriptionProvider {
         : p.refId.startsWith("sp_")
           ? "Pase de serie Omnidance"
           : "Ticket Omnidance",
-      currency: "CLP",
+      currency,
       amount: String(p.amount),
       email: p.email,
       urlConfirmation: this.confirmationUrl,

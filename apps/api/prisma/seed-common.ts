@@ -91,6 +91,11 @@ export const PARAM_DEFAULTS: Array<{
   { key: "fees.managed_allin_pct", value: 10, description: "Comisión todo incluido sobre ventas gestionadas (%) - default global; cadena: override evento → default productor (platformFeePct) → este param" },
   { key: "gateway_fee.card_pct", value: 3.19, description: "Costo esperado de pasarela por tarjeta (%) - base del desglose all-in de órdenes MANAGED" },
   { key: "tax.iva_pct", value: 19, description: "IVA (%) aplicado sobre el fee neto de plataforma - componente de la comisión all-in" },
+  // Proveedor que procesa las órdenes nuevas (spec
+  // gateway-port-normalization): el checkout lo resuelve contra el
+  // GatewayRegistry; si el provider no está registrado (sin
+  // credenciales) cae al default del env. Valores: FLOW | MERCADOPAGO.
+  { key: "payments.default_gateway", value: "FLOW", description: "Proveedor de pago por defecto para órdenes nuevas (FLOW | MERCADOPAGO) - resuelto contra el GatewayRegistry; sin credenciales cae al default del env" },
   { key: "crm.winback_days", value: 21, description: "Días sin actividad para que el trigger WINBACK dispare" },
   { key: "classes.cancel_refund_minutes", value: 60, description: "Minutos antes del inicio de la clase hasta los que cancelar devuelve el crédito de la cuota - después la reserva se puede cancelar pero la clase se pierde" },
   // ─── SaaS billing (spec academy-saas-billing) ───

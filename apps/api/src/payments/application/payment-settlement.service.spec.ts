@@ -455,7 +455,11 @@ describe("PaymentSettlementService", () => {
         "SETTLED",
       ]);
       const mismatch = fx.events.find((e) => e.type === "AMOUNT_MISMATCH")!;
-      expect(mismatch.payload).toEqual({ expected: 10500, reported: 9999 });
+      expect(mismatch.payload).toEqual({
+        expected: 10500,
+        reported: 9999,
+        reportedCurrency: null,
+      });
 
       const adminCalls = notifications.notifySafe.mock.calls.filter(
         ([personId, input]) =>
@@ -472,6 +476,21 @@ describe("PaymentSettlementService", () => {
         gatewayData: GATEWAY_DATA,
       });
       expect(eventTypes()).not.toContain("AMOUNT_MISMATCH");
+    });
+
+    it("moneda reportada ≠ Payment.currency → AMOUNT_MISMATCH aun con monto igual", async () => {
+      const payment = seed(mkPayment({ currency: "CLP" } as Partial<Row>));
+      await svc.settle(payment, "PAID", {
+        actor: "webhook",
+        gatewayData: { ...GATEWAY_DATA, currency: "USD" },
+      });
+      const mismatch = fx.events.find((e) => e.type === "AMOUNT_MISMATCH")!;
+      expect(mismatch.payload).toEqual({
+        expected: 10500,
+        reported: 10500,
+        expectedCurrency: "CLP",
+        reportedCurrency: "USD",
+      });
     });
   });
 

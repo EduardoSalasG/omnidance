@@ -14,6 +14,10 @@ import { SessionsController } from "../src/sessions/infrastructure/sessions.cont
 import { PaymentsController } from "../src/payments/infrastructure/webhook.controller";
 import { WaitlistController } from "../src/social/infrastructure/waitlist.controller";
 import { PAYMENT_GATEWAY } from "../src/payments/domain/ports";
+import {
+  GatewayRegistry,
+  PAYMENT_GATEWAYS,
+} from "../src/payments/domain/gateway-registry";
 import { PricingService } from "../src/payments/domain/pricing.service";
 import { StubGateway } from "../src/payments/infrastructure/stub.gateway";
 import { PaymentSettlementService } from "../src/payments/application/payment-settlement.service";
@@ -89,6 +93,11 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
         { provide: SessionsService, useFactory: () => new SessionsService() },
         { provide: PricingService, useFactory: () => new PricingService() },
         { provide: PAYMENT_GATEWAY, useClass: StubGateway },
+        {
+          provide: PAYMENT_GATEWAYS,
+          useFactory: () =>
+            new GatewayRegistry([new StubGateway()], "STUB"),
+        },
         PaymentSettlementService,
         SubscriptionsService,
         PlatformSubscriptionsService,

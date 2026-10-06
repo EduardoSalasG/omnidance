@@ -1,6 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { PAYMENT_GATEWAY, type PaymentGateway } from "../domain/ports";
+import {
+  GatewayRegistry,
+  PAYMENT_GATEWAYS,
+} from "../domain/gateway-registry";
 import { PricingService, type Quote } from "../domain/pricing.service";
 import {
   encodeClassRef,
@@ -286,7 +290,20 @@ export class CheckoutService {
     private readonly pricing: PricingService,
     private readonly params: ParamsService,
     private readonly settlement: PaymentSettlementService,
+    @Inject(PAYMENT_GATEWAYS)
+    private readonly gateways: GatewayRegistry,
   ) {}
+
+  /**
+   * Provider que procesa la orden (spec gateway-port-normalization):
+   * param `payments.default_gateway` resuelto contra el registry; si el
+   * provider pedido no está registrado (sin credenciales) cae al
+   * default del env - `this.gateway` es ese mismo default.
+   */
+  private async resolveGateway(): Promise<PaymentGateway> {
+    const name = await this.params.get("payments.default_gateway");
+    return this.gateways.resolve(typeof name === "string" ? name : null);
+  }
 
   /**
    * Crea la orden y congela la descomposición del fee en la misma tx +
@@ -616,6 +633,7 @@ export class CheckoutService {
       select: { email: true },
     });
 
+    const gateway = await this.resolveGateway();
     const payment = await this.createAssessedPayment(
       {
         orderType: "TICKET",
@@ -639,7 +657,7 @@ export class CheckoutService {
         unitServiceFee: 0, // ya no existe fee al comprador
         // La orden $0 nunca toca la pasarela: "FREE" la distingue en el
         // libro (misma convención que "MANUAL" de los claims).
-        gateway: orderTotal === 0 ? "FREE" : this.gateway.name,
+        gateway: orderTotal === 0 ? "FREE" : gateway.name,
       },
       breakdown,
     );
@@ -671,11 +689,12 @@ export class CheckoutService {
       return { paymentUrl: returnUrl, paymentId: payment.id, quote, quantity };
     }
 
-    const order = await this.gateway.createOrder({
+    const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
       returnUrl,
+      currency: payment.currency,
     });
 
     await this.prisma.payment.update({
@@ -840,6 +859,7 @@ export class CheckoutService {
       select: { email: true },
     });
 
+    const gateway = await this.resolveGateway();
     const payment = await this.createAssessedPayment(
       {
         orderType: "SERIES_PASS",
@@ -850,17 +870,18 @@ export class CheckoutService {
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
-        gateway: this.gateway.name,
+        gateway: gateway.name,
       },
       breakdown,
     );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const order = await this.gateway.createOrder({
+    const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
       returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      currency: payment.currency,
     });
 
     await this.prisma.payment.update({
@@ -926,6 +947,7 @@ export class CheckoutService {
       select: { email: true },
     });
 
+    const gateway = await this.resolveGateway();
     const payment = await this.createAssessedPayment(
       {
         orderType: "MEMBERSHIP",
@@ -936,17 +958,18 @@ export class CheckoutService {
         amount: quote.total,
         fee: 0, // costo pasarela: desconocido hasta la liquidación
         net: quote.total,
-        gateway: this.gateway.name,
+        gateway: gateway.name,
       },
       await this.academyBreakdown(quote.total),
     );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const order = await this.gateway.createOrder({
+    const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
       returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      currency: payment.currency,
     });
 
     await this.prisma.payment.update({
@@ -1020,7 +1043,7 @@ export class CheckoutService {
           membershipEndsAt(plan, new Date())?.toISOString() ?? null,
         currentEndsAt: null,
         subscription: null,
-        gateway: this.gateway.name,
+        gateway: (await this.resolveGateway()).name,
       };
     }
 
@@ -1071,7 +1094,7 @@ export class CheckoutService {
       // compra extiende ("vence el X - la nueva vigencia parte después").
       currentEndsAt: enrollment?.endsAt?.toISOString() ?? null,
       subscription: subscription ?? null,
-      gateway: this.gateway.name,
+      gateway: (await this.resolveGateway()).name,
     };
   }
 
@@ -1168,7 +1191,7 @@ export class CheckoutService {
       },
       series: { id: cls.slot.series.id, name: cls.slot.series.name },
       academy: { id: cls.slot.academy.id, name: cls.slot.academy.name },
-      gateway: this.gateway.name,
+      gateway: (await this.resolveGateway()).name,
     };
   }
 
@@ -1220,6 +1243,7 @@ export class CheckoutService {
       select: { email: true },
     });
 
+    const gateway = await this.resolveGateway();
     const payment = await this.createAssessedPayment(
       {
         orderType: "WORKSHOP",
@@ -1233,17 +1257,18 @@ export class CheckoutService {
         quantity: 1,
         unitListPrice: quote.listPrice,
         unitServiceFee: 0,
-        gateway: this.gateway.name,
+        gateway: gateway.name,
       },
       await this.academyBreakdown(quote.total),
     );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const order = await this.gateway.createOrder({
+    const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
       returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      currency: payment.currency,
     });
 
     await this.prisma.payment.update({
@@ -1297,7 +1322,7 @@ export class CheckoutService {
     return {
       ...quote,
       academy: { id: academy.id, name: academy.name },
-      gateway: this.gateway.name,
+      gateway: (await this.resolveGateway()).name,
     };
   }
 
@@ -1325,6 +1350,7 @@ export class CheckoutService {
       select: { email: true },
     });
 
+    const gateway = await this.resolveGateway();
     const payment = await this.createAssessedPayment(
       {
         orderType: "PRIVATE",
@@ -1338,17 +1364,18 @@ export class CheckoutService {
         quantity: 1,
         unitListPrice: quote.listPrice,
         unitServiceFee: 0,
-        gateway: this.gateway.name,
+        gateway: gateway.name,
       },
       await this.academyBreakdown(quote.total),
     );
 
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const order = await this.gateway.createOrder({
+    const order = await gateway.createOrder({
       refId,
       amount: quote.total,
       email: person?.email ?? "",
       returnUrl: `${webUrl}/checkout/return?paymentId=${payment.id}`,
+      currency: payment.currency,
     });
 
     await this.prisma.payment.update({
