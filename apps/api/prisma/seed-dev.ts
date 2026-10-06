@@ -77,6 +77,12 @@ export async function seedDev(prisma: PrismaClient) {
     { role: "DJ" },
   ]);
   const jesus = await person("jesus", "DJ Jesús", [{ role: "DJ" }]);
+  // DJ Krrera (Andrés Carrera) - produce su propia noche semanal en
+  // Tierra: "Bachata con Salsa" (ig @bachataclub), los miércoles.
+  const krrera = await person("krrera", "DJ Krrera", [
+    { role: "DJ" },
+    { role: "PRODUCER" },
+  ]);
   const muvetOwner = await person("muvet", "Dueño MuéveteOnTour", [
     { role: "ACADEMY_OWNER" },
     { role: "PRODUCER" },
@@ -1388,6 +1394,32 @@ export async function seedDev(prisma: PrismaClient) {
     // Pura timba
     mix([Genre.CUBANO, 1]));
 
+  // Tierra - el miércoles es de DJ Krrera: "Bachata con Salsa" (ig
+  // @bachataclub), serie propia del productor como Bachatamanía en
+  // Orixas. Clase 21:30, entrada liberada hasta 23:45 (después
+  // $5.000 en puerta), cierre 02:00.
+  const PROG_BCS: ProgramItem[] = [
+    { t: "21:00", label: "Apertura de puertas" },
+    { t: "21:30", end: "22:30", label: "Clase de bachata" },
+    { t: "22:30", label: "Inicio del social" },
+    { t: "Hasta 23:45", label: "Entrada liberada" },
+    { t: "02:00", label: "Cierre del social" },
+  ];
+  const bcsEvent = await mkSeries(
+    "Bachata con Salsa", krrera.id, tierraDura.id, "weekly:wed",
+    // entrada gratis → sin preventa; puerta $5.000 desde las 23:45.
+    0, 5000, 3, [krrera.id],
+    [Genre.BACHATA, Genre.SALSA], [], 0,
+    // 4 bachatas, 2 salsas → 67/33
+    mix([Genre.BACHATA, 4], [Genre.SALSA, 2]),
+    PROG_BCS,
+  );
+  // mkSeries asume 22:00→04:00 - la noche real abre 21:00 y cierra 02:00.
+  await prisma.event.update({
+    where: { id: bcsEvent.id },
+    data: { startsAt: nextDay(3, 21), endsAt: nextDay(3, 26) },
+  });
+
   // Noches standalone (sin serie) - nombre = marca de la noche. Las
   // homónimas ("Tierra" ×5) se distinguen por el weekday de su
   // startsAt, que persiste entre reseeds.
@@ -1465,11 +1497,11 @@ export async function seedDev(prisma: PrismaClient) {
   };
 
   // Tierra - programación mensual con la rotación real: martes fijo
-  // Bachata Club, miércoles fijo Miércoles Salseros, jueves alterna
-  // Switch/AbraZouk, vie+sáb rotan Exóticas/Bachatazo/Galaxy/BC/Lovers.
-  // Puerta siempre > preventa: mar/mié $6.000, jue a sáb $7.000.
+  // Bachata Club, jueves alterna Switch/AbraZouk, vie+sáb rotan
+  // Exóticas/Bachatazo/Galaxy/BC/Lovers. El miércoles lo produce DJ
+  // Krrera con su serie "Bachata con Salsa" (arriba - no es standalone).
+  // Puerta siempre > preventa: mar $6.000, jue a sáb $7.000.
   const PURE_B = mix([Genre.BACHATA, 1]);
-  const PURE_S = mix([Genre.SALSA, 1]);
   const GALAXY_MIX = mix([Genre.BACHATA, 5], [Genre.SALSA, 2]); // 5×2
   const tierraNights: [string, number, number, Genre[], MixBlock[] | null][] = [
     // [nombre, weekday, weeksAhead, genres, ciclo de mezcla]
@@ -1477,10 +1509,6 @@ export async function seedDev(prisma: PrismaClient) {
     ["Bachata Club", 2, 1, [Genre.BACHATA], PURE_B],
     ["Bachata Club", 2, 2, [Genre.BACHATA], PURE_B],
     ["Bachata Club", 2, 3, [Genre.BACHATA], PURE_B],
-    ["Miércoles Salseros", 3, 0, [Genre.SALSA], PURE_S],
-    ["Miércoles Salseros", 3, 1, [Genre.SALSA], PURE_S],
-    ["Miércoles Salseros", 3, 2, [Genre.SALSA], PURE_S],
-    ["Miércoles Salseros", 3, 3, [Genre.SALSA], PURE_S],
     ["Switch", 4, 0, [Genre.BACHATA], PURE_B],
     ["AbraZouk", 4, 1, [], null], // zouk - sin género en el catálogo
     ["Switch", 4, 2, [Genre.BACHATA], PURE_B],
@@ -2001,6 +2029,7 @@ export async function seedDev(prisma: PrismaClient) {
     ig(matias, "matias.dj"),
     ig(fabian, "fabian.baila"),
     ig(cesar, "cesar.casino"),
+    ig(krrera, "bachataclub"),
     ig(ardilla, "ardilla.dance"),
   ]);
 
