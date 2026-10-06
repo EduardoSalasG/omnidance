@@ -299,9 +299,9 @@ export async function seedDev(prisma: PrismaClient) {
     });
   }
 
-  // Medios de pago BYO (academy-payment-claims): Muévete cobra por
-  // transferencia y link MP; Tumbao solo efectivo. El alumno los ve en
-  // la ficha y sube el comprobante - el owner lo valida en /academia/cobros.
+  // Medios de pago BYO (academy-checkout-manual-pay): el alumno los
+  // elige dentro del checkout de membresía - el owner los administra
+  // en /academia/cobros y valida el comprobante ahí mismo.
   for (const m of [
     {
       academyId: muvet.id,
@@ -326,10 +326,24 @@ export async function seedDev(prisma: PrismaClient) {
     },
     {
       academyId: tumbao.id,
+      type: "TRANSFER",
+      label: "Transferencia",
+      details: {
+        bank: "Banco de Chile",
+        accountType: "Cuenta Vista",
+        accountNumber: "0011223344",
+        holder: "Tumbao Escuela",
+        rut: "76.555.444-3",
+        email: "pagos@tumbao.cl",
+      },
+      order: 0,
+    },
+    {
+      academyId: tumbao.id,
       type: "CASH",
       label: "Efectivo en clase",
       details: { instructions: "Paga al llegar, al instructor a cargo." },
-      order: 0,
+      order: 1,
     },
   ]) {
     const existing = await prisma.academyPaymentMethod.findFirst({
