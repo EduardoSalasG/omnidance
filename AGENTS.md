@@ -42,6 +42,8 @@ Ejecutar desde la raíz del repo:
 
 Para una modificación acotada, verifica primero la superficie afectada (`pnpm --filter @omnidance/api build`, etc.) y amplía según riesgo.
 
+**CSS stale en dev**: si tras cambiar `tailwind.config.ts` o los tokens de `globals.css` el browser no refleja el cambio, el `.next` cache sirve el CSS viejo y HMR no lo invalida. Fix: matar el dev server, `rm -rf apps/web/.next`, reiniciar. Verificación rápida: `curl -s localhost:3000/_next/static/css/app/layout.css | grep -c '<token>'` debe dar >0.
+
 ## Flujo de trabajo
 
 ### Gates obligatorios (no saltarse)
