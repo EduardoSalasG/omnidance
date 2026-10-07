@@ -19,6 +19,7 @@ import landing from "./parts/landing.json";
 import legal from "./parts/legal.json";
 import locales from "./parts/locales.json";
 import membershipCheckout from "./parts/membershipCheckout.json";
+import navExtra from "./parts/navExtra.json";
 import payments from "./parts/payments.json";
 import producer from "./parts/producer.json";
 import profile from "./parts/profile.json";
@@ -75,6 +76,7 @@ const parts = [
   legal,
   locales,
   membershipCheckout,
+  navExtra,
   payments,
   producer,
   profile,

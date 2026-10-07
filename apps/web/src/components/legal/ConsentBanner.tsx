@@ -69,7 +69,7 @@ export function ConsentBanner() {
     <div
       role="region"
       aria-label={t("bannerTitle")}
-      className={`fixed inset-x-0 z-40 px-4 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 ${
+      className={`fixed inset-x-0 z-40 px-4 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 lg:bottom-6 ${
         chromeHidden
           ? "bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
           : "bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)]"

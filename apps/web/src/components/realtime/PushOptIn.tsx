@@ -159,7 +159,7 @@ export function PushOptIn() {
   return (
     <section
       aria-label={t("title")}
-      className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-40 flex justify-center px-4"
+      className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-40 flex justify-center px-4 lg:bottom-6"
     >
       <Card className="w-full max-w-md border-neon/30 bg-night-900/95 shadow-2xl shadow-black/50 backdrop-blur">
         {phase === "done" ? (

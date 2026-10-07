@@ -110,7 +110,7 @@ export function InstallPrompt() {
     <div
       role="region"
       aria-label={t("title")}
-      className="fixed inset-x-0 z-40 px-4 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)]"
+      className="fixed inset-x-0 z-40 px-4 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] lg:bottom-6"
     >
       <div className="rounded-2xl border border-white/15 bg-night-900/95 p-4 shadow-xl shadow-black/40 backdrop-blur">
         <div className="flex items-start gap-3">

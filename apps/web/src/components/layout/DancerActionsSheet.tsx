@@ -64,7 +64,7 @@ export function DancerActionsSheet({
   return (
     <div
       role="presentation"
-      className="fixed inset-0 z-50 bg-night-950/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-night-950/80 backdrop-blur-sm lg:hidden"
       onClick={onClose}
     >
       <div
