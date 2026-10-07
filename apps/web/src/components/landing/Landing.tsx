@@ -7,7 +7,6 @@ import { ChevronRightIcon } from "@/components/ui";
 // compartidas (nav, CTAs de header, footerTagline) vienen de `landing`.
 import landingParts from "@/i18n/parts/landing.json";
 import { ProLeadForm } from "./ProLeadForm";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import type { JsonLdEvent } from "./JsonLd";
 import type { PublicAcademy } from "@/lib/public-academies";
 
@@ -379,9 +378,6 @@ export function Landing({
               {t.footerPrivacy}
             </Link>
           </nav>
-          <div className="mt-3 w-full max-w-56">
-            <ThemeToggle />
-          </div>
         </div>
       </footer>
     </div>
