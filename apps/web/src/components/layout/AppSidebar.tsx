@@ -144,6 +144,7 @@ export function AppSidebar({
       <div className="border-t border-night-700 p-2">
         <button
           type="button"
+          data-tour="appbar-menu"
           onClick={onToggle}
           aria-expanded={!collapsed}
           aria-controls={NAV_ID}

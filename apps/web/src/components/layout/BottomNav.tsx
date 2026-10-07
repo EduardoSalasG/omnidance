@@ -627,6 +627,34 @@ const DANCER_SIDEBAR: Record<"social" | "academy", DrawerGroupSpec[]> = {
   ],
 };
 
+// Rutas que la sidebar desktop lista como destino directo (tabs +
+// drawer + dancer por lente + perfil). Las páginas de creación
+// (/nueva|/nuevo) quedan fuera a propósito: son flujos, no destinos -
+// conservan su "volver" en desktop.
+const SIDEBAR_ROUTES = new Set(
+  [
+    "/inicio",
+    "/perfil",
+    ...Object.values(TABS_BY_ROLE)
+      .flat()
+      .map((tab) => tab.href),
+    ...DANCER_ACADEMY_TABS.map((tab) => tab.href),
+    ...Object.values(DRAWER_BY_ROLE).flatMap((groups) =>
+      groups.flatMap((g) => g.items.map((i) => i.href)),
+    ),
+    ...Object.values(DANCER_SIDEBAR).flatMap((groups) =>
+      groups.flatMap((g) => g.items.map((i) => i.href)),
+    ),
+  ]
+    .map((href) => href.split("?")[0])
+    .filter((href) => href.startsWith("/") && !/\/(nueva|nuevo)$/.test(href)),
+);
+
+/** true si la ruta es un destino directo de la sidebar desktop. */
+export function isSidebarRoute(pathname: string): boolean {
+  return SIDEBAR_ROUTES.has(pathname);
+}
+
 /** unreadCount acotado para el badge - 99+ como en el home hub. */
 function badgeText(count: number): string {
   return count > 99 ? "99+" : String(count);
@@ -1155,41 +1183,6 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                     </svg>
                   </button>
                 )}
-                {/* Toggle de la sidebar - solo desktop; en roles con
-                    drawer convive en el mismo slot que la hamburguesa
-                    móvil (uno u otro es visible según el breakpoint). */}
-                <button
-                  type="button"
-                  data-tour="appbar-menu"
-                  aria-expanded={!sidebarCollapsed}
-                  aria-controls="app-sidebar-nav"
-                  aria-label={
-                    sidebarCollapsed ? t("expandMenu") : t("collapseMenu")
-                  }
-                  title={
-                    sidebarCollapsed ? t("expandMenu") : t("collapseMenu")
-                  }
-                  onClick={() =>
-                    setSidebarState(
-                      sidebarCollapsed ? "expanded" : "collapsed",
-                    )
-                  }
-                  className="hidden h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon lg:flex"
-                >
-                  <svg
-                    aria-hidden
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M9 3v18" />
-                  </svg>
-                </button>
               </>
             )}
           </div>
