@@ -163,7 +163,7 @@ export function TriggerList({
       )}
 
       {items !== null && items.length > 0 && (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
           {items.map((tr) => {
             const cfg = (tr.config ?? {}) as Record<string, unknown>;
             return (

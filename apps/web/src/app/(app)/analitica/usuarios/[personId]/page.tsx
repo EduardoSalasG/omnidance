@@ -133,7 +133,7 @@ function Kpi({ label, value }: { label: string; value: string }) {
 function KpiGrid({ items }: { items: { label: string; value: string }[] }) {
   if (items.length === 0) return null;
   return (
-    <ul className="grid grid-cols-2 gap-3">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {items.map((k) => (
         <Kpi key={k.label} label={k.label} value={k.value} />
       ))}
@@ -195,7 +195,7 @@ export default function AnaliticaUsuarioPage({
   const t = useTranslations("analytics");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-4xl lg:px-8">
       <AdminGate>
         <UserPanel personId={params.personId} />
       </AdminGate>

@@ -95,7 +95,7 @@ export default function ProducerPayoutsPage() {
   }, [listNonce]);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
       <BackLink href="/productor">{t("title")}</BackLink>
 
       {gate === "loading" && <SkeletonList items={3} />}
@@ -158,7 +158,7 @@ export default function ProducerPayoutsPage() {
       )}
 
       {gate === "ready" && !listError && payouts !== null && payouts.length > 0 && (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
           {payouts.map((p) => (
             <li key={p.id}>
               <Card className="flex flex-col gap-3">
@@ -297,7 +297,7 @@ function BillingDocsSection() {
         {t("billingDocs.title")}
       </h2>
       <p className="text-xs text-white/50">{t("billingDocs.desc")}</p>
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">
         {docs.map((d) => (
           <li key={d.id}>
             <Card className="flex items-center justify-between gap-2 p-3">

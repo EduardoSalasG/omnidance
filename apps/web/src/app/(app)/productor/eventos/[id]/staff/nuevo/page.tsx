@@ -217,7 +217,7 @@ export default function NewEventStaffPage({
   params: { id: string };
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-3xl lg:px-8">
       <ProducerGate>
         <NewEventStaff eventId={params.id} />
       </ProducerGate>

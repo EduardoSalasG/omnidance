@@ -31,7 +31,7 @@ export default function AnaliticaUsuariosPage() {
   const t = useTranslations("analytics");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
       <ConsoleHeader backHref="/analitica" backLabel={t("title")} />
       <AdminGate>
         <SearchPanel />
@@ -116,7 +116,7 @@ function SearchPanel() {
         <p className="text-sm text-white/50">{t("userSearch.noResults")}</p>
       )}
 
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
         {users.map((u) => (
           <li key={u.id}>
             <Link

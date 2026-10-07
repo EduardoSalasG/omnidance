@@ -154,7 +154,7 @@ export function CampaignList({
       )}
 
       {items !== null && items.length > 0 && (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
           {items.map((c) => (
             <li key={c.id}>
               <Card className="flex flex-col gap-3">

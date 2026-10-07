@@ -187,7 +187,7 @@ export default function ProducerEventDetailPage({
     effectivePro === false;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-4xl lg:px-8">
       {gate === "loading" && (
         <div className="flex flex-col gap-6" aria-hidden="true">
           <SkeletonCard lines={3} />

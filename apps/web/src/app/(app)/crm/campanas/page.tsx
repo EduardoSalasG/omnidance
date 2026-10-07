@@ -24,7 +24,7 @@ export default function CrmCampanasPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
       <h1 className="text-2xl font-bold">{t("campaigns.title")}</h1>
       <CrmNav active="campaigns" />
 

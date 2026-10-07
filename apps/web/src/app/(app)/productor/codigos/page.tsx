@@ -113,7 +113,7 @@ function DiscountCodes() {
           </Card>
         )}
         {codes !== null && codes.length > 0 && (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             {codes.map((c) => (
               <li key={c.id}>
                 <Card className="flex flex-col gap-2">
@@ -165,7 +165,7 @@ function DiscountCodes() {
 
 export default function ProducerCodesPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
       <ProducerGate>
         <DiscountCodes />
       </ProducerGate>
