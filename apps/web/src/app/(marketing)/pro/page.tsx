@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { ChevronRightIcon } from "@/components/ui";
 import { JsonLd } from "@/components/landing/JsonLd";
 import { ProLeadForm } from "@/components/landing/ProLeadForm";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import landingParts from "@/i18n/parts/landing.json";
 import { fetchPublicEvents } from "@/lib/public-events";
 
@@ -152,9 +151,6 @@ export default async function ProHub() {
               {base.footerPrivacy}
             </Link>
           </nav>
-          <div className="mt-3 w-full max-w-56">
-            <ThemeToggle />
-          </div>
         </div>
       </footer>
     </>

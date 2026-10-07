@@ -65,6 +65,26 @@
   --accent-soft: 110 231 183; /* #6ee7b7 */
 }
 
+/* ─── Públicas siempre oscuras ───
+   El grupo (marketing) marca su subárbol con .force-dark (layout):
+   landings, login, legales, reclamar son identidad nocturna sin toggle.
+   html:has() aplica el tema dark a nivel documento (también al <body>
+   y al overscroll) sin importar la clase .light/.dark elegida. */
+html:has(.force-dark) {
+  color-scheme: dark;
+  --canvas: 10 10 15;
+  --surface: 18 18 26;
+  --elevated: 28 28 40;
+  --raised: 42 42 58;
+  --ink: 255 255 255;
+  --line: 42 42 58;
+  --on-accent: 11 11 16;
+  --shadow-strength: 0.5;
+  --glow-alpha: 0.14;
+  --accent: 167 139 250;
+  --accent-soft: 196 181 253;
+}
+
 /* ─── Base táctil: el flash gris de iOS compite con nuestro feedback
    (active:scale). Lo apagamos y dejamos que la escala hable. ─── */
 html {
