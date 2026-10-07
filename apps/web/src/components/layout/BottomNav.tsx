@@ -230,7 +230,7 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
     HOME_TAB,
     { href: "/productor/eventos", key: "events", icon: icon(ICONS.events) },
     {
-      href: "/productor/eventos?crear=1",
+      href: "/productor/eventos/nuevo",
       key: "create",
       icon: icon(ICONS.plus),
       center: true,

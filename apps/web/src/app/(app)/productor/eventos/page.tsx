@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -15,15 +15,10 @@ import {
   RefreshIcon,
   SkeletonList,
 } from "@/components/ui";
-import { EventForm } from "@/components/producer/event-form";
 import {
   EVENT_STATUS_VARIANT,
   PRODUCER_ROLES,
-  readError,
   type EventListItem,
-  type EventPayload,
-  type Style,
-  type Venue,
 } from "@/components/producer/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
@@ -35,13 +30,15 @@ const clp = new Intl.NumberFormat("es-CL", {
 });
 
 /**
- * /productor/eventos - lista de mis eventos + formulario de creación.
+ * /productor/eventos - lista de mis eventos. La creación/edición vive en
+ * /productor/eventos/nuevo (patrón CTA → página dedicada).
  * GET /events/mine devuelve todos los estados del productor autenticado.
  */
 function ProducerEvents() {
   const t = useTranslations("producer");
   const te = useTranslations("events");
   const tc = useTranslations("common");
+  const router = useRouter();
 
   // /me compartido (MeProvider) - el gate se deriva del contexto y los
   // datos se piden en paralelo desde el mount (un no-productor recibe
@@ -64,15 +61,13 @@ function ProducerEvents() {
   const [events, setEvents] = useState<EventListItem[] | null>(null);
   const [eventsError, setEventsError] = useState(false);
   const [eventsNonce, setEventsNonce] = useState(0);
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [styles, setStyles] = useState<Style[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
-  // Deep-link del tab central "Crear" del productor (/productor/eventos?crear=1).
+
+  // Deep-link viejo del tab central "Crear" (/productor/eventos?crear=1)
+  // → redirige a la página dedicada (el tab ya apunta directo).
   const crearParam = useSearchParams().get("crear");
   useEffect(() => {
-    if (crearParam) setShowForm(true);
-  }, [crearParam]);
+    if (crearParam) router.replace("/productor/eventos/nuevo");
+  }, [crearParam, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,57 +89,10 @@ function ProducerEvents() {
     };
   }, [eventsNonce]);
 
-  // Catálogos del formulario - fetch único, no reintentan con el listado.
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([apiFetch("/venues"), apiFetch("/styles")])
-      .then(async ([vRes, sRes]) => {
-        if (cancelled) return;
-        if (vRes.ok) setVenues((await vRes.json()) as Venue[]);
-        if (sRes.ok) setStyles((await sRes.json()) as Style[]);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function submitCreate(payload: EventPayload): Promise<string | null> {
-    try {
-      const res = await apiFetch("/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        return (await readError(res)) ?? tc("error");
-      }
-      const created = (await res.json()) as EventListItem;
-      setEvents((evs) => [created, ...(evs ?? [])]);
-      setShowForm(false);
-      setNotice(t("created"));
-      return null;
-    } catch {
-      return tc("error");
-    }
-  }
-
   const mine = [...(events ?? [])].sort(
     (a, b) =>
       new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime(),
   );
-
-  const seriesOptions = [
-    ...new Map(
-      mine
-        .map((e) => e.series)
-        .filter(
-          (s): s is { id: string; name: string } =>
-            Boolean(s?.id && s.name),
-        )
-        .map((s) => [s.id, s]),
-    ).values(),
-  ];
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
@@ -154,19 +102,11 @@ function ProducerEvents() {
         {gate === "ready" && (
           <Button
             size="sm"
-            variant={showForm ? "ghost" : "secondary"}
-            onClick={() => setShowForm((v) => !v)}
+            variant="secondary"
+            href="/productor/eventos/nuevo"
           >
-            {showForm ? tc("cancel") : `＋ ${t("createEvent")}`}
+            {`＋ ${t("createEvent")}`}
           </Button>
-        )}
-      </div>
-
-      <div aria-live="polite">
-        {notice && (
-          <p role="status" className="text-sm font-medium text-neon">
-            {notice}
-          </p>
         )}
       </div>
 
@@ -198,19 +138,6 @@ function ProducerEvents() {
 
       {gate === "ready" && (
         <>
-          {showForm && (
-            <Card>
-              <EventForm
-                mode="create"
-                venues={venues}
-                styles={styles}
-                seriesOptions={seriesOptions}
-                onSubmit={submitCreate}
-                onCancel={() => setShowForm(false)}
-              />
-            </Card>
-          )}
-
           {eventsError && (
             <div className="flex items-center gap-3">
               <p role="alert" className="text-sm text-red-400">
@@ -237,7 +164,7 @@ function ProducerEvents() {
               <p role="status" className="text-white/70">
                 {t("emptyEvents")}
               </p>
-              <Button onClick={() => setShowForm(true)}>
+              <Button href="/productor/eventos/nuevo">
                 {t("emptyEventsCta")}
               </Button>
             </Card>

@@ -46,6 +46,24 @@ export const CANCELLABLE_STATUSES: readonly string[] = [
 export const STAFF_ROLES = ["DOOR", "DOOR_SALES"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
+// Enum cerrado del dominio (DISCOUNT_CODE_TYPES en apps/api) - no libre.
+export const CODE_TYPES = [
+  "CUMPLEANOS",
+  "CORTESIA",
+  "CASO_BORDE_PUERTA",
+  "CAMPAIGN",
+  "WINBACK",
+  "STAFF_COMP",
+] as const;
+
+/** Evento como opción de selector (listas/códigos) - id + nombre basta. */
+export type EventOption = {
+  id: string;
+  name: string;
+  startsAt: string;
+  series: { name: string } | null;
+};
+
 export const PASS_TYPES = [
   "PAID",
   "ARTIST",

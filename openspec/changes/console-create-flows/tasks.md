@@ -20,15 +20,15 @@
 
 ## 6. Productor — eventos
 
-- [ ] 6.1 Crear `/productor/eventos/nuevo` reusando `EventForm` (crear + `?edit=<id>`); el listado muestra CTA; el detalle reemplaza el toggle `editing` por navegación al edit; el tab `?crear=1` y TABS_BY_ROLE apuntan a la nueva ruta. Verificar: crear evento, editar desde detalle, deep-link del tab central.
+- [x] 6.1 Crear `/productor/eventos/nuevo` reusando `EventForm` (crear + `?edit=<id>`); el listado muestra CTA; el detalle reemplaza el toggle `editing` por navegación al edit; el tab `?crear=1` y TABS_BY_ROLE apuntan a la nueva ruta. Verificar: crear evento, editar desde detalle, deep-link del tab central.
 
 ## 7. Productor — códigos y listas
 
-- [ ] 7.1 Crear `/productor/codigos/nuevo` con el form extraído; `/productor/listas/nueva` para crear lista (addEntry por fila queda). Verificar: crear código y lista desde páginas dedicadas.
+- [x] 7.1 Crear `/productor/codigos/nuevo` con el form extraído; `/productor/listas/nueva` para crear lista (addEntry por fila queda). Verificar: crear código y lista desde páginas dedicadas.
 
 ## 8. Productor — staff del evento
 
-- [ ] 8.1 Crear `/productor/eventos/[id]/staff/nuevo` con el alta extraída de `producer/staff-section.tsx`; la sección muestra CTA + lista + acciones por fila. Verificar: alta de staff desde página dedicada.
+- [x] 8.1 Crear `/productor/eventos/[id]/staff/nuevo` con el alta extraída de `producer/staff-section.tsx`; la sección muestra CTA + lista + acciones por fila. Verificar: alta de staff desde página dedicada.
 
 ## 9. Cierre
 

@@ -13,7 +13,6 @@ import {
   RefreshIcon,
   SkeletonCard,
 } from "@/components/ui";
-import { EventForm } from "@/components/producer/event-form";
 import { EventFeesSection } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
 import { PassesSection } from "@/components/producer/passes-section";
@@ -31,10 +30,6 @@ import {
   PRODUCER_ROLES,
   readError,
   type EventDetail,
-  type EventListItem,
-  type EventPayload,
-  type Style,
-  type Venue,
 } from "@/components/producer/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "notFound" | "ready";
@@ -72,12 +67,7 @@ export default function ProducerEventDetailPage({
   const effectivePro = me?.effectivePro ?? null;
   const [eventState, setEventState] = useState<EventState>("loading");
   const [event, setEvent] = useState<EventDetail | null>(null);
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [styles, setStyles] = useState<Style[]>([]);
-  const [myEvents, setMyEvents] = useState<EventListItem[]>([]);
 
-  const [editing, setEditing] = useState(false);
-  const [editKey, setEditKey] = useState(0);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -107,27 +97,6 @@ export default function ProducerEventDetailPage({
   useEffect(() => {
     void loadEvent();
   }, [loadEvent]);
-
-  // Catálogos del formulario/series - fetch único en paralelo.
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([
-      apiFetch("/venues"),
-      apiFetch("/styles"),
-      apiFetch("/events"),
-    ])
-      .then(async ([vRes, sRes, listRes]) => {
-        if (cancelled) return;
-        if (vRes.ok) setVenues((await vRes.json()) as Venue[]);
-        if (sRes.ok) setStyles((await sRes.json()) as Style[]);
-        if (listRes.ok)
-          setMyEvents((await listRes.json()) as EventListItem[]);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const gate: Gate = meLoading
     ? "loading"
@@ -204,26 +173,6 @@ export default function ProducerEventDetailPage({
     }
   }
 
-  async function submitEdit(payload: EventPayload): Promise<string | null> {
-    try {
-      const res = await apiFetch(`/events/${eventId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        return (await readError(res)) ?? tc("error");
-      }
-      setEditing(false);
-      setNotice(t("updated"));
-      await loadEvent();
-      setEditKey((k) => k + 1); // remount del form con datos frescos
-      return null;
-    } catch {
-      return tc("error");
-    }
-  }
-
   const canManage =
     event != null &&
     (event.producerId === undefined ||
@@ -236,21 +185,6 @@ export default function ProducerEventDetailPage({
     event != null &&
     event.producerId === meId &&
     effectivePro === false;
-
-  const seriesOptions = (() => {
-    const fromMine = myEvents
-      .filter((e) => e.producerId === meId)
-      .map((e) => e.series)
-      .filter((s): s is { id: string; name: string } =>
-        Boolean(s?.id && s.name),
-      );
-    const map = new Map(fromMine.map((s) => [s.id, s]));
-    const currentId = event?.seriesId ?? event?.series?.id;
-    if (currentId && event?.series?.name && !map.has(currentId)) {
-      map.set(currentId, { id: currentId, name: event.series.name });
-    }
-    return [...map.values()];
-  })();
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6">
@@ -339,11 +273,10 @@ export default function ProducerEventDetailPage({
                 {EDITABLE_STATUSES.includes(event.status) && (
                   <Button
                     size="sm"
-                    variant={editing ? "ghost" : "secondary"}
-                    onClick={() => setEditing((v) => !v)}
-                    disabled={actionBusy}
+                    variant="secondary"
+                    href={`/productor/eventos/nuevo?edit=${event.id}`}
                   >
-                    {editing ? tc("cancel") : t("editEvent")}
+                    {t("editEvent")}
                   </Button>
                 )}
                 {CANCELLABLE_STATUSES.includes(event.status) && (
@@ -373,24 +306,6 @@ export default function ProducerEventDetailPage({
               )}
             </div>
           </header>
-
-          {editing && EDITABLE_STATUSES.includes(event.status) && (
-            <Card>
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
-                {t("editEvent")}
-              </h2>
-              <EventForm
-                key={`${event.id}-${editKey}`}
-                mode="edit"
-                initial={event}
-                venues={venues}
-                styles={styles}
-                seriesOptions={seriesOptions}
-                onSubmit={submitEdit}
-                onCancel={() => setEditing(false)}
-              />
-            </Card>
-          )}
 
           {canManage && <LiveSection eventId={eventId} status={event.status} />}
 
