@@ -191,7 +191,7 @@ function BienvenidaForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[60dvh] w-full max-w-lg flex-col justify-center px-4 py-8">
+    <main className="mx-auto flex min-h-[60dvh] w-full max-w-lg flex-col justify-center px-4 py-8 lg:max-w-xl">
       <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
       <p className="mt-1 text-sm text-white/60">{t("subtitle")}</p>
 

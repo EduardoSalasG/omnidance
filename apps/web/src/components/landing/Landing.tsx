@@ -163,7 +163,7 @@ export function Landing({
 
       <main id="contenido" tabIndex={-1}>
         {/* ─── Hero: una promesa + dos CTAs ─── */}
-        <section className="relative overflow-hidden px-6 pb-12 pt-16 text-center sm:pb-16 sm:pt-24">
+        <section className="relative overflow-hidden px-6 pb-12 pt-16 text-center sm:pb-16 sm:pt-24 lg:pb-24 lg:pt-32">
           <div aria-hidden="true" className="glow-neon absolute inset-0" />
           <div className="relative mx-auto max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neon">
@@ -194,8 +194,8 @@ export function Landing({
         {/* ─── Solo pro: el caos que reemplaza la app (PAS) - los ítems
             van densos y apagados; la resolución, limpia. ─── */}
         {isPro && (
-          <section className="border-t border-white/5 px-6 py-12">
-            <div className="mx-auto max-w-2xl text-center">
+          <section className="border-t border-white/5 px-6 py-12 lg:py-16">
+            <div className="mx-auto max-w-2xl text-center lg:max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
                 {t.painLabel}
               </p>
@@ -211,11 +211,11 @@ export function Landing({
 
         {/* ─── Prueba social por audiencia: eventos reales (dancer/
             producer) o academias reales (academy). ─── */}
-        <section className="border-t border-white/5 px-6 py-10">
+        <section className="border-t border-white/5 px-6 py-10 lg:py-14">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
             <p className="text-sm font-semibold text-white">{weekLabel}</p>
             {variant === "academy" && academies.length > 0 && (
-              <ul className="flex flex-col items-center gap-1">
+              <ul className="flex flex-col items-center gap-1 lg:flex-row lg:flex-wrap lg:justify-center lg:gap-x-5">
                 {academies.slice(0, 3).map((a) => (
                   <li
                     key={a.id}
@@ -232,7 +232,7 @@ export function Landing({
               </ul>
             )}
             {variant !== "academy" && weekEvents.length > 0 && (
-              <ul className="flex flex-col items-center gap-1">
+              <ul className="flex flex-col items-center gap-1 lg:flex-row lg:flex-wrap lg:justify-center lg:gap-x-3">
                 {weekEvents.map((event) => (
                   <li key={event.id}>
                     <Link
@@ -269,7 +269,7 @@ export function Landing({
         {/* ─── Features: 3 cards, menos texto más claridad ─── */}
         <section
           aria-labelledby="features-title"
-          className="border-t border-white/5 px-6 py-16 sm:py-20"
+          className="border-t border-white/5 px-6 py-16 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-5xl">
             <h2
@@ -285,11 +285,11 @@ export function Landing({
                 {t.featuresLead}
               </p>
             )}
-            <ul className="mt-10 grid gap-4 sm:grid-cols-3">
+            <ul className="mt-10 grid gap-4 sm:grid-cols-3 lg:gap-6">
               {features.map((feature) => (
                 <li
                   key={feature.index}
-                  className="rounded-2xl border border-white/10 bg-night-900/60 p-6"
+                  className="rounded-2xl border border-white/10 bg-night-900/60 p-6 lg:p-8"
                 >
                   <span
                     aria-hidden="true"
@@ -312,7 +312,7 @@ export function Landing({
         {/* ─── CTA final: botón (dancer) o formulario de lead (pro) ─── */}
         <section
           id={isPro ? "contacto" : undefined}
-          className="border-t border-white/5 px-6 py-20 text-center sm:py-24"
+          className="border-t border-white/5 px-6 py-20 text-center sm:py-24 lg:py-28"
         >
           <h2 className="text-display text-3xl font-extrabold sm:text-4xl">
             {t.finalCta}

@@ -154,9 +154,12 @@ export default function LoginForm({
 
   return (
     // flex-1 (no min-h-dvh): el alto restante lo da el layout tras el
-    // header - si no, la página sumaría viewport + barra.
-    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
-      <h1 className="text-2xl font-bold">
+    // header - si no, la página sumaría viewport + barra. En ≥lg el
+    // contenido va dentro de una card (borde + fondo): la página deja
+    // de sentirse como un formulario flotando en el vacío.
+    <main className="flex flex-1 flex-col items-center justify-center p-6">
+      <div className="flex w-full max-w-sm flex-col items-center gap-6 lg:max-w-md lg:rounded-3xl lg:border lg:border-night-700 lg:bg-night-900/60 lg:px-10 lg:py-12 lg:shadow-xl lg:shadow-black/40">
+      <h1 className="text-2xl font-bold lg:text-3xl">
         {isRegister ? t("registerTitle") : t("title")}
       </h1>
 
@@ -169,7 +172,7 @@ export default function LoginForm({
           {!isRegister && (
             // Selector de método: radio nativo (rol/roles del teclado
             // gratuitos) con pills visuales - mismo patrón del hub /qr.
-            <fieldset className="w-full max-w-sm">
+            <fieldset className="w-full">
               <legend className="sr-only">{t("methodLabel")}</legend>
               <div
                 role="radiogroup"
@@ -205,7 +208,7 @@ export default function LoginForm({
 
           <form
             onSubmit={submit}
-            className="flex w-full max-w-sm flex-col gap-4"
+            className="flex w-full flex-col gap-4"
           >
             {isRegister && (
               <Field label={t("nameLabel")} required={false}>
@@ -381,6 +384,7 @@ export default function LoginForm({
           </form>
         </>
       )}
+      </div>
     </main>
   );
 }

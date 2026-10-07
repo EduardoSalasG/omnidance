@@ -26,7 +26,7 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
   const sections = data.sections as LegalSection[];
 
   return (
-    <main id="contenido" className="mx-auto max-w-2xl px-6 py-10 sm:py-14">
+    <main id="contenido" className="mx-auto max-w-2xl px-6 py-10 sm:py-14 lg:py-16">
       <Link
         href="/"
         className="inline-flex min-h-11 items-center text-sm text-white/60 transition-colors hover:text-white"

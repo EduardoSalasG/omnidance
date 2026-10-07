@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 const cardClass =
-  "group flex flex-col gap-2 rounded-2xl border border-white/10 bg-night-900/60 p-6 text-left transition-colors hover:border-neon/50 sm:p-8";
+  "group flex flex-col gap-2 rounded-2xl border border-white/10 bg-night-900/60 p-6 text-left transition-colors hover:border-neon/50 sm:p-8 lg:p-10";
 
 // Selector de audiencia: cada rol tiene su landing propia; DJ y locales
 // usan el form compacto de abajo (roles restringidos).
@@ -64,7 +64,7 @@ export default async function ProHub() {
       </header>
 
       <main id="contenido" tabIndex={-1}>
-        <section className="relative overflow-hidden px-6 pb-12 pt-16 text-center sm:pb-16 sm:pt-24">
+        <section className="relative overflow-hidden px-6 pb-12 pt-16 text-center sm:pb-16 sm:pt-24 lg:pb-20 lg:pt-28">
           <div aria-hidden="true" className="glow-neon absolute inset-0" />
           <div className="relative mx-auto max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-neon">
@@ -79,8 +79,8 @@ export default async function ProHub() {
           </div>
         </section>
 
-        <section className="border-t border-white/5 px-6 py-12">
-          <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2">
+        <section className="border-t border-white/5 px-6 py-12 lg:py-16">
+          <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2 lg:gap-6">
             <Link href="/para-productores" className={cardClass}>
               <span className="text-lg font-semibold">
                 {t.cardProducerTitle}
@@ -112,7 +112,7 @@ export default async function ProHub() {
           </div>
         </section>
 
-        <section className="border-t border-white/5 px-6 py-16 text-center sm:py-20">
+        <section className="border-t border-white/5 px-6 py-16 text-center sm:py-20 lg:py-24">
           <h2 className="text-display text-3xl font-extrabold sm:text-4xl">
             {t.otherTitle}
           </h2>
