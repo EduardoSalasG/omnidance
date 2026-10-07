@@ -117,7 +117,7 @@ function QrHub() {
   ];
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 pt-6 sm:px-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col px-4 pt-6 sm:px-6 lg:max-w-3xl">
       <header className="flex flex-col gap-4">
         {/* sr-only: el h1 visible es el large title del chrome; este span
             conserva el accessible name del radiogroup y el modo activo. */}

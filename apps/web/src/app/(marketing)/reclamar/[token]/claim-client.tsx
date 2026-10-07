@@ -74,7 +74,7 @@ export function ClaimClient({
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
       <h1 className="text-center text-2xl font-bold">{t("title")}</h1>
 
-      <Card className="flex w-full max-w-sm flex-col gap-3 text-center">
+      <Card className="flex w-full max-w-sm flex-col gap-3 text-center lg:max-w-md lg:p-6">
         <p className="text-base text-white/80">
           {t("giftLine", { name: info.buyerName })}
         </p>
@@ -99,7 +99,7 @@ export function ClaimClient({
         </p>
       )}
 
-      <div className="flex w-full max-w-sm flex-col gap-3">
+      <div className="flex w-full max-w-sm flex-col gap-3 lg:max-w-md">
         {hasSession ? (
           <Button
             size="lg"
