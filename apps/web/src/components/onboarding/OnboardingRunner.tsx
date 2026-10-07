@@ -49,10 +49,15 @@ export function OnboardingRunner({
         .catch(() => {});
     };
 
-    // Solo steps cuyo target existe - contenido variable no rompe
-    // el tour (p.ej. primera card de eventos si la lista está vacía).
+    // Solo steps cuyo target existe Y es visible - contenido variable
+    // no rompe el tour (p.ej. primera card vacía), y en desktop (≥lg)
+    // los targets del chrome móvil (tab bar, drawer) están con
+    // display:none: getClientRects()=0 los excluye sin JS de breakpoint.
     const valid: DriveStep[] = steps
-      .filter((s) => document.querySelector(s.element))
+      .filter((s) => {
+        const el = document.querySelector(s.element);
+        return el instanceof HTMLElement && el.getClientRects().length > 0;
+      })
       .map((s) => ({
         element: s.element,
         popover: {

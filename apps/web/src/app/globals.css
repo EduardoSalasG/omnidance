@@ -135,6 +135,14 @@ body {
   transform: translateY(-100%);
 }
 
+/* En desktop (≥lg) el appbar queda fijo - el hide-on-scroll es patrón
+   de pantalla táctil estrecha; con sidebar persistente no aplica. */
+@media (min-width: 1024px) {
+  .appbar-hidden {
+    transform: none;
+  }
+}
+
 /* ─── Estados de carga (estándar de carga percibida) ───
    <100ms se siente instantáneo; un spinner que aparece <300ms y
    desaparece es "flash" y hace la app sentirse más lenta.

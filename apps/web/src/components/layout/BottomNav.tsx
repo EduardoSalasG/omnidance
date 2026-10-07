@@ -10,6 +10,8 @@ import { notificationLens } from "@/lib/notification-lens";
 import { useActiveRole, type AppRole } from "@/lib/active-role";
 import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
+import { AppSidebar } from "./AppSidebar";
+import { useSidebarState, setSidebarState } from "@/lib/sidebar-state";
 import {
   DancerActionsSheet,
   type SheetItem,
@@ -576,6 +578,55 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
 // del "+" lleva los módulos de aprendizaje (SHEET_ACADEMY_ITEMS).
 const DANCER_ACADEMY_DRAWER: DrawerGroupSpec[] = [];
 
+// Sidebar del DANCER en desktop (≥lg): el tab bar y el sheet móviles se
+// reemplazan por la lista completa de destinos de la lente activa.
+// Ítems con query ("/qr?modo=escanear") son acciones, no secciones -
+// nunca toman aria-current (ver sidebarGroups).
+const DANCER_SIDEBAR: Record<"social" | "academy", DrawerGroupSpec[]> = {
+  social: [
+    {
+      labelNs: "nav",
+      labelKey: "socialSection",
+      items: [
+        { href: "/inicio", ns: "nav", key: "home", icon: ICONS.home },
+        { href: "/eventos", ns: "nav", key: "events", icon: ICONS.events },
+        { href: "/amigos", ns: "nav", key: "friends", icon: ICONS.users },
+        { href: "/bailes", ns: "nav", key: "dances", icon: ICONS.dances },
+        {
+          href: "/practicas",
+          ns: "nav",
+          key: "practices",
+          icon: ICONS.practices,
+        },
+        { href: "/qr", ns: "nav", key: "qr", icon: ICONS.qr },
+        {
+          href: "/qr?modo=escanear",
+          ns: "nav",
+          key: "scanQr",
+          icon: ICONS.scan,
+        },
+      ],
+    },
+  ],
+  academy: [
+    {
+      labelNs: "nav",
+      labelKey: "academy",
+      items: [
+        { href: "/inicio", ns: "nav", key: "home", icon: ICONS.home },
+        { href: "/clases", ns: "nav", key: "classes", icon: ICONS.clock },
+        {
+          href: "/academias",
+          ns: "nav",
+          key: "academies",
+          icon: ICONS.academy,
+        },
+        { href: "/qr", ns: "nav", key: "qr", icon: ICONS.qr },
+      ],
+    },
+  ],
+};
+
 /** unreadCount acotado para el badge - 99+ como en el home hub. */
 function badgeText(count: number): string {
   return count > 99 ? "99+" : String(count);
@@ -619,6 +670,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Hide-on-scroll del appbar (patrón iOS).
   const [barHidden, setBarHidden] = useState(false);
+  // Estado expandido/colapsado de la sidebar desktop (≥lg) - persiste
+  // en localStorage; no afecta el chrome móvil.
+  const sidebarCollapsed = useSidebarState() === "collapsed";
   // ¿La sesión ya navegó dentro de la app? El ref persiste entre
   // navegaciones client-side (este componente no remonta) y se resetea
   // en recarga completa - proxy de "hay historial interno al que volver".
@@ -785,6 +839,79 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const tabLabel = (tab: Tab) =>
     tab.key === "create" ? tp("createEvent") : t(tab.key);
 
+  // /inicio es match exacto (prefijo "/" marcaría todo); el resto
+  // por prefijo - /productor/eventos solo se activa con ese
+  // prefijo, no con /productor ni /productor/pagos.
+  const isTabActive = (tab: Tab) =>
+    tab.href === "/inicio"
+      ? pathname === "/inicio"
+      : pathname.startsWith(tab.href);
+
+  // Grupos de la sidebar desktop (≥lg): todos los destinos del rol,
+  // no solo los del drawer - en desktop no hay tab bar, así que la
+  // sidebar lista los tabs como primer grupo y los módulos del drawer
+  // debajo. El DANCER usa sus propios grupos por lente.
+  // dataTour replica los anchors del tab bar móvil (nav-home,
+  // nav-events, nav-profile) para que los tours de onboarding sigan
+  // resolviendo targets en ≥lg.
+  const SIDEBAR_TOUR: Record<string, string> = {
+    "/inicio": "nav-home",
+    "/eventos": "nav-events",
+    "/perfil": "nav-profile",
+  };
+  const personalGroup: DrawerGroup = {
+    label: t("personal"),
+    items: [
+      {
+        href: "/perfil",
+        label: t("profile"),
+        icon: icon(ICONS.profile)(pathname.startsWith("/perfil")),
+        active: pathname.startsWith("/perfil"),
+        dataTour: SIDEBAR_TOUR["/perfil"],
+      },
+    ],
+  };
+  const sidebarGroups: DrawerGroup[] = !me
+    ? [personalGroup]
+    : activeRole === "DANCER"
+      ? [
+          ...DANCER_SIDEBAR[dancerAcademy ? "academy" : "social"].map(
+            (g) => ({
+              label: labelFor(g.labelNs, g.labelKey),
+              items: g.items.map((spec) => {
+                const itemPath = spec.href.split("?")[0];
+                return {
+                  href: spec.href,
+                  label: labelFor(spec.ns, spec.key),
+                  icon: icon(spec.icon)(pathname.startsWith(itemPath)),
+                  active:
+                    !spec.href.includes("?") &&
+                    (itemPath === "/inicio"
+                      ? pathname === "/inicio"
+                      : pathname.startsWith(itemPath)),
+                  dataTour: SIDEBAR_TOUR[itemPath],
+                };
+              }),
+            }),
+          ),
+          personalGroup,
+        ]
+      : [
+          {
+            label: roleLabel,
+            items: allTabs
+              .filter((tab) => !tab.sheet)
+              .map((tab) => ({
+                href: tab.href,
+                label: tabLabel(tab),
+                icon: tab.icon(isTabActive(tab)),
+                active: isTabActive(tab),
+                dataTour: SIDEBAR_TOUR[tab.href],
+              })),
+          },
+          ...drawerGroups,
+        ];
+
   // Título contextual junto a la hamburguesa: longest-prefix match sobre
   // tabs + ítems del drawer de todos los roles (solo resuelve el nombre
   // de la ruta actual - /admin/usuarios → "Usuarios", /eventos/1 →
@@ -861,14 +988,6 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       router.push(backFallback);
     }
   };
-
-  // /inicio es match exacto (prefijo "/" marcaría todo); el resto
-  // por prefijo - /productor/eventos solo se activa con ese
-  // prefijo, no con /productor ni /productor/pagos.
-  const isTabActive = (tab: Tab) =>
-    tab.href === "/inicio"
-      ? pathname === "/inicio"
-      : pathname.startsWith(tab.href);
 
   // Índice del tab activo - alimenta la píldora deslizante del nav.
   // -1 en rutas fuera del tab bar (p.ej. /checkout) → indicador oculto.
@@ -956,6 +1075,25 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   return (
     <>
+      {/* Sidebar desktop (≥lg) - drawer colapsable persistente; toma
+          el rol de navegación principal donde el tab bar se oculta. */}
+      <AppSidebar
+        groups={sidebarGroups}
+        roleLabel={me ? roleLabel : undefined}
+        collapsed={sidebarCollapsed}
+        onToggle={() =>
+          setSidebarState(sidebarCollapsed ? "expanded" : "collapsed")
+        }
+      />
+
+      {/* En ≥lg el contenido corre a la derecha de la sidebar y sigue
+          su ancho (expandida w-64 / riel w-16); bajo ese breakpoint el
+          padding es 0 y el chrome es el móvil (appbar + tab bar). */}
+      <div
+        className={`transition-[padding] duration-300 motion-reduce:transition-none ${
+          sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
+        }`}
+      >
       {/* Appbar sticky - en el flujo del layout, con fondo sólido:
           nunca se sobrepone al contenido. 3 slots de ancho fijo
           (hamburguesa | título | campana) para que el título quede
@@ -967,7 +1105,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           barHidden ? " appbar-hidden" : ""
         }`}
       >
-        <div className="mx-auto flex h-14 max-w-lg items-center px-3">
+        <div className="mx-auto flex h-14 max-w-lg items-center px-3 lg:max-w-none lg:px-5">
           <div className="flex w-10 items-center">
             {backFallback ? (
               <button
@@ -990,30 +1128,69 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 </svg>
               </button>
             ) : (
-              hasDrawerItems && (
+              <>
+                {/* Hamburguesa → drawer overlay; solo móvil - en ≥lg la
+                    sidebar persistente cubre esa navegación. */}
+                {hasDrawerItems && (
+                  <button
+                    type="button"
+                    data-tour="appbar-menu"
+                    aria-haspopup="dialog"
+                    aria-expanded={drawerOpen}
+                    aria-controls="app-side-drawer"
+                    aria-label={t("menu")}
+                    onClick={() => setDrawerOpen((o) => !o)}
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon lg:hidden"
+                  >
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      className="h-6 w-6"
+                    >
+                      <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                )}
+                {/* Toggle de la sidebar - solo desktop; en roles con
+                    drawer convive en el mismo slot que la hamburguesa
+                    móvil (uno u otro es visible según el breakpoint). */}
                 <button
                   type="button"
                   data-tour="appbar-menu"
-                aria-haspopup="dialog"
-                aria-expanded={drawerOpen}
-                aria-controls="app-side-drawer"
-                aria-label={t("menu")}
-                onClick={() => setDrawerOpen((o) => !o)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-              >
-                <svg
-                  aria-hidden
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  className="h-6 w-6"
+                  aria-expanded={!sidebarCollapsed}
+                  aria-controls="app-sidebar-nav"
+                  aria-label={
+                    sidebarCollapsed ? t("expandMenu") : t("collapseMenu")
+                  }
+                  title={
+                    sidebarCollapsed ? t("expandMenu") : t("collapseMenu")
+                  }
+                  onClick={() =>
+                    setSidebarState(
+                      sidebarCollapsed ? "expanded" : "collapsed",
+                    )
+                  }
+                  className="hidden h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon lg:flex"
                 >
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              </button>
-              )
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M9 3v18" />
+                  </svg>
+                </button>
+              </>
             )}
           </div>
 
@@ -1077,7 +1254,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       {me?.pendingProfile && !pathname.startsWith("/perfil/completar") && (
         <Link
           href="/perfil/completar"
-          className="mx-auto flex max-w-lg items-center justify-between gap-3 border-b border-neon/30 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon transition-colors hover:bg-neon/15"
+          className="mx-auto flex max-w-lg items-center justify-between gap-3 border-b border-neon/30 bg-neon/10 px-4 py-2.5 text-sm font-medium text-neon transition-colors hover:bg-neon/15 lg:max-w-none"
         >
           <span className="truncate">{tpr("pendingBanner")}</span>
           <span className="inline-flex shrink-0 items-center gap-1 font-semibold">
@@ -1091,7 +1268,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
       <nav
         aria-label={t("main")}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
       >
         <ul className="relative mx-auto flex h-16 max-w-lg items-stretch justify-between">
           {/* Píldora activa - se desliza al tab con transform puro;
@@ -1112,6 +1289,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           {meChecked && allTabs.map(renderTab)}
         </ul>
       </nav>
+      </div>
 
       <SideDrawer
         open={drawerOpen}
