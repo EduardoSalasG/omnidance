@@ -34,7 +34,7 @@ export function ModuleGrid({ children }: { children: React.ReactNode }) {
   return (
     <nav
       aria-label="Módulos"
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
     >
       {children}
     </nav>

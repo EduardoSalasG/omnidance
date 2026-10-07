@@ -91,7 +91,7 @@ export default function StaffPage() {
   }, [eventsNonce]);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
       {(gate === "loading" || (gate === "ready" && events === null && !eventsError)) && (
         <SkeletonList items={3} />
       )}
@@ -142,7 +142,7 @@ export default function StaffPage() {
         (events.length === 0 ? (
           <p className="text-white/60">{te("empty")}</p>
         ) : (
-          <ul className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             {events.map((e) => (
               <li key={e.id}>
                 <Link href={`/staff/${e.id}`} className="block">
