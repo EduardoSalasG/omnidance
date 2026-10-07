@@ -48,7 +48,7 @@ export function ProducerGate({ children }: { children: React.ReactNode }) {
   if (gate === "notProducer") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p className="text-white/70">{t("notProducer")}</p>
+        <p className="text-ink/70">{t("notProducer")}</p>
         <Button href="/inicio" variant="secondary">
           {tc("appName")}
         </Button>
@@ -59,7 +59,7 @@ export function ProducerGate({ children }: { children: React.ReactNode }) {
   if (gate === "error") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p className="text-white/70">{tc("error")}</p>
+        <p className="text-ink/70">{tc("error")}</p>
         <Button variant="secondary" onClick={() => void refreshMe()}>
           <RefreshIcon /> {tc("retry")}
         </Button>

@@ -153,10 +153,10 @@ export function StaffSection({ academyId }: { academyId: string }) {
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("listTitle")}
         </h2>
-        <p className="mt-1 text-xs text-white/50">{t("desc")}</p>
+        <p className="mt-1 text-xs text-ink/50">{t("desc")}</p>
       </div>
       {msg && (
         <p role="status" className="text-sm text-neon">
@@ -170,7 +170,7 @@ export function StaffSection({ academyId }: { academyId: string }) {
       )}
       {rows.length === 0 ? (
         <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-white/60">{t("empty")}</p>
+          <p className="text-sm text-ink/60">{t("empty")}</p>
           <Button href="/academia/equipo/nuevo" size="sm">
             + {t("addTitle")}
           </Button>
@@ -180,16 +180,16 @@ export function StaffSection({ academyId }: { academyId: string }) {
           {rows.map((r) => (
             <li
               key={r.person.id}
-              className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800 p-4"
+              className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4"
             >
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="font-semibold">
                   {r.person.name ?? r.person.email}
                 </span>
                 {r.person.email && (
-                  <span className="text-white/60">{r.person.email}</span>
+                  <span className="text-ink/60">{r.person.email}</span>
                 )}
-                <span className="ml-auto text-xs text-white/40">
+                <span className="ml-auto text-xs text-ink/40">
                   {t("since", {
                     date: dayFmt.format(new Date(r.createdAt)),
                   })}

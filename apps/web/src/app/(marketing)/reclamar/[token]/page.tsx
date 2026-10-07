@@ -41,7 +41,7 @@ export default async function ClaimPage({
           {info === "gone" ? t.goneTitle : t.errorTitle}
         </h1>
         {info === "gone" && (
-          <p className="max-w-sm text-sm text-white/60">{t.goneDesc}</p>
+          <p className="max-w-sm text-sm text-ink/60">{t.goneDesc}</p>
         )}
         <Button href="/" variant="secondary">
           {t.exploreCta}

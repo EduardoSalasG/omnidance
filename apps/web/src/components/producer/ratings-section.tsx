@@ -90,7 +90,7 @@ export function RatingsSection({ eventId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("sections.ratings")}
       </h2>
 
@@ -107,20 +107,20 @@ export function RatingsSection({ eventId }: Props) {
       )}
 
       {state === "ready" && summary && !summary.exposed && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {t("ratings.notEnough", { count: summary.count })}
         </p>
       )}
 
       {state === "ready" && summary?.exposed && (
         <>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-ink/50">
             {t("ratings.ratingsCount", { count: summary.count })}
           </p>
           <div className="flex flex-col gap-3">
             {groups.map((g) => (
               <Card key={g.actor} className="flex flex-col gap-2 p-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
                   {t(`ratings.actors.${g.actor}`)}
                 </h3>
                 <ul className="flex flex-col gap-1.5">
@@ -129,7 +129,7 @@ export function RatingsSection({ eventId }: Props) {
                       key={dim}
                       className="flex items-center justify-between gap-3 text-sm"
                     >
-                      <span className="text-white/70">
+                      <span className="text-ink/70">
                         {t.has(`ratings.dims.${dim}`)
                           ? t(`ratings.dims.${dim}`)
                           : dim}
@@ -137,12 +137,12 @@ export function RatingsSection({ eventId }: Props) {
                       {agg.avg !== null ? (
                         <span className="font-semibold text-neon">
                           {agg.avg.toFixed(1)}{" "}
-                          <span className="font-normal text-white/50">
+                          <span className="font-normal text-ink/50">
                             / 5 · n={agg.count}
                           </span>
                         </span>
                       ) : (
-                        <span className="text-white/50">-</span>
+                        <span className="text-ink/50">-</span>
                       )}
                     </li>
                   ))}

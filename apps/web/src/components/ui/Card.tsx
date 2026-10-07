@@ -8,7 +8,7 @@ export type CardProps = HTMLAttributes<HTMLDivElement> & {
 export function Card({ padded = true, className = "", ...rest }: CardProps) {
   return (
     <div
-      className={`rounded-2xl border border-night-700 bg-night-900 ${
+      className={`rounded-2xl border border-line bg-surface ${
         padded ? "p-5" : ""
       } ${className}`}
       {...rest}

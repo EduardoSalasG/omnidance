@@ -76,7 +76,7 @@ export function EnrollmentForm({
     // Sin planes el select queda vacío: la salida es crear uno primero.
     return (
       <Card className="flex flex-col items-start gap-3">
-        <p className="text-sm text-white/60">{t("noPlansForEnrollment")}</p>
+        <p className="text-sm text-ink/60">{t("noPlansForEnrollment")}</p>
         <Button href="/academia/planes/nueva" size="sm" variant="secondary">
           + {t("newPlan")}
         </Button>
@@ -92,7 +92,7 @@ export function EnrollmentForm({
         </p>
       ) : (
         <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("newEnrollment")}
           </h2>
           <form
@@ -100,7 +100,7 @@ export function EnrollmentForm({
             className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("personId")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -112,7 +112,7 @@ export function EnrollmentForm({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("plans")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -133,7 +133,7 @@ export function EnrollmentForm({
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("students")}</span>
+              <span className="text-xs text-ink/50">{t("students")}</span>
               <select
                 className={inputCls}
                 value={status}
@@ -149,7 +149,7 @@ export function EnrollmentForm({
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{tp("startsAt")}</span>
+              <span className="text-xs text-ink/50">{tp("startsAt")}</span>
               <input
                 className={inputCls}
                 type="date"
@@ -158,7 +158,7 @@ export function EnrollmentForm({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{tp("endsAt")}</span>
+              <span className="text-xs text-ink/50">{tp("endsAt")}</span>
               <input
                 className={inputCls}
                 type="date"

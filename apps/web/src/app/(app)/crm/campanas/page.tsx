@@ -34,7 +34,7 @@ export default function CrmCampanasPage() {
         <>
           <ActorPicker ctx={ctx} />
           {!ctx.actor ? (
-            <p className="text-white/60">{t("pickActor")}</p>
+            <p className="text-ink/60">{t("pickActor")}</p>
           ) : ctx.proBlocked ? (
             // El CRM del productor es feature Producer Pro - el API
             // responde 403 pro.required en todos sus endpoints.

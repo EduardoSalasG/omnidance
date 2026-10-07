@@ -22,12 +22,12 @@ const GENDERS: Gender[] = ["M", "F", "OTHER"];
 const chipCls = (active: boolean) =>
   `flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:active:scale-100 ${
     active
-      ? "border-neon bg-neon text-night-950"
-      : "border-night-700 bg-night-800 text-white/70 hover:text-white"
+      ? "border-neon bg-neon text-on-accent"
+      : "border-line bg-elevated text-ink/70 hover:text-ink"
   }`;
 
 const selectCls =
-  "min-h-11 min-w-0 rounded-lg border border-night-700 bg-night-900 px-3 text-sm text-white focus:border-neon focus:outline-none";
+  "min-h-11 min-w-0 rounded-lg border border-line bg-surface px-3 text-sm text-ink focus:border-neon focus:outline-none";
 
 /**
  * Paso post-registro (spec post-signup-profile-setup): tras crear la
@@ -193,12 +193,12 @@ function BienvenidaForm() {
   return (
     <main className="mx-auto flex min-h-[60dvh] w-full max-w-lg flex-col justify-center px-4 py-8 lg:max-w-xl">
       <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-      <p className="mt-1 text-sm text-white/60">{t("subtitle")}</p>
+      <p className="mt-1 text-sm text-ink/60">{t("subtitle")}</p>
 
       <Card className="mt-6 p-5">
         <form onSubmit={submit} className="flex flex-col gap-5">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-white/60">
+            <span className="text-xs font-medium text-ink/60">
               {t("name")}
             </span>
             <input
@@ -213,7 +213,7 @@ function BienvenidaForm() {
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-white/60">
+            <span className="text-xs font-medium text-ink/60">
               {t("phone")}
             </span>
             <input
@@ -229,7 +229,7 @@ function BienvenidaForm() {
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-white/60">
+            <span className="text-xs font-medium text-ink/60">
               {t("instagram")}
             </span>
             <input
@@ -254,12 +254,12 @@ function BienvenidaForm() {
           />
 
           <div>
-            <span className="text-xs font-medium uppercase tracking-wide text-white/50">
+            <span className="text-xs font-medium uppercase tracking-wide text-ink/50">
               {t("danceTitle")}
             </span>
-            <p className="mt-0.5 text-xs text-white/40">{t("danceHint")}</p>
+            <p className="mt-0.5 text-xs text-ink/40">{t("danceHint")}</p>
             {styles === null ? (
-              <p className="mt-3 text-xs text-white/40">{t("danceEmpty")}</p>
+              <p className="mt-3 text-xs text-ink/40">{t("danceEmpty")}</p>
             ) : (
               <div className="mt-3 flex flex-col gap-3">
                 <div className="flex flex-wrap gap-2">
@@ -286,7 +286,7 @@ function BienvenidaForm() {
                     return (
                       <div
                         key={s.id}
-                        className="rounded-xl border border-night-700 bg-night-800/50 p-3"
+                        className="rounded-xl border border-line bg-elevated/50 p-3"
                       >
                         <p className="text-sm font-medium">{s.name}</p>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -345,7 +345,7 @@ function BienvenidaForm() {
         type="button"
         onClick={() => void skip()}
         disabled={saving}
-        className="mt-4 min-h-11 text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
+        className="mt-4 min-h-11 text-sm text-ink/60 underline-offset-4 hover:text-ink hover:underline"
       >
         {t("skip")}
       </button>

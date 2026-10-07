@@ -161,7 +161,7 @@ function CampaignsPanel() {
     <>
       <section className="flex flex-col gap-3">
         <h1 className="text-lg font-semibold">{t("campaigns.title")}</h1>
-        <p className="text-sm text-white/60">{t("campaigns.desc")}</p>
+        <p className="text-sm text-ink/60">{t("campaigns.desc")}</p>
         {error && (
           <Card className="border-red-500/40 p-3 text-sm text-red-300">
             {error}
@@ -195,7 +195,7 @@ function CampaignsPanel() {
       {campaigns === null ? (
         <SkeletonList items={3} />
       ) : campaigns.length === 0 ? (
-        <Card className="p-4 text-sm text-white/60">{t("campaigns.empty")}</Card>
+        <Card className="p-4 text-sm text-ink/60">{t("campaigns.empty")}</Card>
       ) : (
         <ul className="flex flex-col gap-3">
           {campaigns.map((c) => (
@@ -203,22 +203,22 @@ function CampaignsPanel() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{c.name}</p>
-                  <p className="text-xs text-white/50">{c.subject}</p>
+                  <p className="text-xs text-ink/50">{c.subject}</p>
                 </div>
                 {statusBadge(c.status, t)}
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
                 <div>
-                  <p className="text-white/40">{t("campaigns.audience")}</p>
-                  <p className="text-white/80">{audienceLabel(c.audience, t)}</p>
+                  <p className="text-ink/40">{t("campaigns.audience")}</p>
+                  <p className="text-ink/80">{audienceLabel(c.audience, t)}</p>
                 </div>
                 <div>
-                  <p className="text-white/40">{t("campaigns.schedule")}</p>
-                  <p className="text-white/80">{scheduleLabel(c, t)}</p>
+                  <p className="text-ink/40">{t("campaigns.schedule")}</p>
+                  <p className="text-ink/80">{scheduleLabel(c, t)}</p>
                 </div>
                 <div>
-                  <p className="text-white/40">{t("campaigns.counters")}</p>
-                  <p className="text-white/80">
+                  <p className="text-ink/40">{t("campaigns.counters")}</p>
+                  <p className="text-ink/80">
                     {c.sentCount} ✓ / {c.failCount} ✗
                   </p>
                 </div>
@@ -421,21 +421,23 @@ function CampaignForm({
           required
         />
         {htmlBody && (
-          <details className="rounded-xl border border-white/10">
-            <summary className="cursor-pointer p-2 text-xs text-white/60">
+          <details className="rounded-xl border border-ink/10">
+            <summary className="cursor-pointer p-2 text-xs text-ink/60">
               {t("campaigns.preview")}
             </summary>
             <iframe
               sandbox=""
               title={t("campaigns.preview")}
               srcDoc={htmlBody}
+              // bg-white literal: es un documento de email preview -
+              // superficie de documento, no de UI, siempre blanca.
               className="h-64 w-full rounded-b-xl bg-white"
             />
           </details>
         )}
 
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold text-white/60">
+          <p className="text-xs font-semibold text-ink/60">
             {t("campaigns.audience")}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -452,7 +454,7 @@ function CampaignForm({
             ))}
           </div>
           {LIFECYCLE.has(kind) && (
-            <label className="flex items-center gap-2 text-xs text-white/70">
+            <label className="flex items-center gap-2 text-xs text-ink/70">
               {t("campaigns.daysLabel")}
               <input
                 type="number"
@@ -501,25 +503,25 @@ function CampaignForm({
               </select>
             </div>
           )}
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-ink/50">
             {count === null
               ? t("campaigns.countLoading")
               : t("campaigns.count", { n: count })}
           </p>
-          <p className="font-mono text-[11px] text-white/40">
+          <p className="font-mono text-[11px] text-ink/40">
             {t("campaigns.varsHint", {
               vars: VARS_BY_KIND[kind].map((v) => `{{${v}}}`).join(" "),
             })}
           </p>
           {LIFECYCLE.has(kind) && (
-            <p className="text-[11px] text-white/40">
+            <p className="text-[11px] text-ink/40">
               {t("campaigns.dedupHint")}
             </p>
           )}
         </div>
 
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold text-white/60">
+          <p className="text-xs font-semibold text-ink/60">
             {t("campaigns.schedule")}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -564,7 +566,7 @@ function CampaignForm({
                   <button
                     key={p.expr}
                     type="button"
-                    className="rounded-full border border-white/15 px-2 py-1 text-xs text-white/60 hover:border-white/30"
+                    className="rounded-full border border-ink/15 px-2 py-1 text-xs text-ink/60 hover:border-ink/30"
                     onClick={() => setCronExpr(p.expr)}
                   >
                     {p.label}
@@ -573,7 +575,7 @@ function CampaignForm({
               </div>
             </>
           )}
-          <label className="flex items-center gap-2 text-xs text-white/70">
+          <label className="flex items-center gap-2 text-xs text-ink/70">
             <input
               type="checkbox"
               checked={schedule}

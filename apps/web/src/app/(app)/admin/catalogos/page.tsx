@@ -228,7 +228,7 @@ function CatalogSection({
 
       {loadError && (
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-sm text-white/60">
+          <p role="alert" className="text-sm text-ink/60">
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
@@ -306,7 +306,7 @@ function CatalogSection({
                         <Badge variant="muted">{t(`genres.${item.genre}`)}</Badge>
                       )}
                       {field === "order" && (
-                        <span className="text-xs tabular-nums text-white/50">
+                        <span className="text-xs tabular-nums text-ink/50">
                           {t("order")}: {item.order ?? 0}
                         </span>
                       )}
@@ -339,7 +339,7 @@ function CatalogSection({
               className="flex flex-wrap items-end gap-2"
             >
               <label className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("name")}
                   <span aria-hidden="true" className="text-neon">
                     {" "}
@@ -355,7 +355,7 @@ function CatalogSection({
               </label>
               {field === "genre" && (
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-white/50">{t("genre")}</span>
+                  <span className="text-xs text-ink/50">{t("genre")}</span>
                   <select
                     className={inputCls}
                     value={genre}
@@ -371,7 +371,7 @@ function CatalogSection({
               )}
               {field === "order" && (
                 <label className="flex w-24 flex-col gap-1">
-                  <span className="text-xs text-white/50">{t("order")}</span>
+                  <span className="text-xs text-ink/50">{t("order")}</span>
                   <input
                     type="number"
                     inputMode="numeric"

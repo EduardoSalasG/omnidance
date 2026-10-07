@@ -49,7 +49,7 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("sections.staff")}
         </h2>
         {!proLocked && (
@@ -75,7 +75,7 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
         </div>
       )}
       {staff !== null && staff.length === 0 && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {t("staffSection.empty")}
         </p>
       )}
@@ -89,7 +89,7 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
                     {s.person.name ?? s.person.email ?? s.person.id}
                   </p>
                   {s.person.email && s.person.name && (
-                    <p className="truncate text-xs text-white/50">
+                    <p className="truncate text-xs text-ink/50">
                       {s.person.email}
                     </p>
                   )}

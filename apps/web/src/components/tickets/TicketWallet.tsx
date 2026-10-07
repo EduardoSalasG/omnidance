@@ -44,8 +44,8 @@ const STATUS_VARIANT: Record<TicketStatus, BadgeVariant> = {
 };
 
 const inputCls =
-  "min-h-11 w-full rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
-  "text-white placeholder:text-white/50 " +
+  "min-h-11 w-full rounded-xl border border-line bg-elevated px-4 py-3 " +
+  "text-ink placeholder:text-ink/50 " +
   "focus:border-neon focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/50";
 
 /**
@@ -170,7 +170,7 @@ export function TicketWallet({
   if (sorted.length === 0 && pendingOrders.length === 0) {
     return (
       <Card className="flex flex-col items-center gap-4 py-10 text-center">
-        <p role="status" className="text-white/70">
+        <p role="status" className="text-ink/70">
           {t("empty")}
         </p>
         <Button href="/eventos">{t("emptyCta")}</Button>
@@ -196,7 +196,7 @@ export function TicketWallet({
                     <p className="text-lg font-semibold">
                       {o.eventName ?? o.seriesName ?? t("pendingOrder")}
                     </p>
-                    <p className="text-sm text-white/60">
+                    <p className="text-sm text-ink/60">
                       {t("pendingValidating")}
                     </p>
                   </div>
@@ -227,10 +227,10 @@ export function TicketWallet({
                       </Link>
                       <EventDate
                         start={ticket.event.startsAt}
-                        className="text-sm text-white/60"
+                        className="text-sm text-ink/60"
                       />
                       {ticket.event.venue && (
-                        <p className="text-sm text-white/50">
+                        <p className="text-sm text-ink/50">
                           {ticket.event.venue.name}
                         </p>
                       )}
@@ -239,7 +239,7 @@ export function TicketWallet({
                     /* Ticket huérfano: el evento se eliminó tras la
                         compra - sin link, pero el QR/estado sigue
                         visible y usable en puerta. */
-                    <p className="text-lg font-semibold text-white/50">
+                    <p className="text-lg font-semibold text-ink/50">
                       {t("eventRemoved")}
                     </p>
                   )}
@@ -274,13 +274,13 @@ export function TicketWallet({
                     <span>{t("sendClaimLink")}</span>
                     <ArrowUpRightIcon />
                   </a>
-                  <p className="text-xs text-white/50">{t("claimHint")}</p>
+                  <p className="text-xs text-ink/50">{t("claimHint")}</p>
                 </>
               )}
               {ticket.status === "ACTIVE" && !ticket.claimToken && (
                 <Link
                   href="/qr"
-                  className="flex min-h-11 items-center justify-between rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-neon transition-colors hover:border-neon/60"
+                  className="flex min-h-11 items-center justify-between rounded-xl border border-line bg-elevated px-4 text-sm text-neon transition-colors hover:border-neon/60"
                 >
                   <span>{t("showQrHint")}</span>
                   <ChevronRightIcon />
@@ -308,7 +308,7 @@ export function TicketWallet({
         <div
           ref={transferDialogRef}
           role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={closeTransfer}
         >
           <Card
@@ -321,13 +321,13 @@ export function TicketWallet({
             <h2 id="transfer-title" className="text-lg font-semibold">
               {t("transferTitle")}
             </h2>
-            <p className="mt-1 text-sm text-white/60">{t("transferDesc")}</p>
+            <p className="mt-1 text-sm text-ink/60">{t("transferDesc")}</p>
             <p className="mt-3 text-sm font-medium">
               {transferFor.event?.name ?? t("eventRemoved")}
             </p>
             <form onSubmit={submitTransfer} className="mt-4 flex flex-col gap-4">
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("transferEmail")}
                   <span aria-hidden="true" className="text-neon"> *</span>
                 </span>

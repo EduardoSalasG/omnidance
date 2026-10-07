@@ -82,10 +82,10 @@ export function MyQr({ compact = false }: { compact?: boolean }) {
   if (state === "unauth") {
     return (
       <div className="flex flex-col items-center gap-6 py-10 text-center">
-        <p className="text-sm text-white/60">{t("subtitle")}</p>
+        <p className="text-sm text-ink/60">{t("subtitle")}</p>
         <Link
           href="/login"
-          className="rounded-xl bg-neon px-5 py-3 font-semibold text-night-950"
+          className="rounded-xl bg-neon px-5 py-3 font-semibold text-on-accent"
         >
           {t("loginRequired")}
         </Link>
@@ -97,13 +97,13 @@ export function MyQr({ compact = false }: { compact?: boolean }) {
     <div
       className={`flex flex-col items-center ${compact ? "gap-3" : "gap-6 py-4"}`}
     >
-      {!compact && <p className="text-sm text-white/60">{t("subtitle")}</p>}
+      {!compact && <p className="text-sm text-ink/60">{t("subtitle")}</p>}
       <div
-        className={`rounded-2xl border border-night-700 bg-night-900 ${compact ? "p-3" : "p-6"}`}
+        className={`rounded-2xl border border-line bg-surface ${compact ? "p-3" : "p-6"}`}
       >
         <canvas ref={canvasRef} role="img" aria-label={t("title")} />
         {state === "loading" && (
-          <p role="status" className="mt-3 text-center text-sm text-white/50">
+          <p role="status" className="mt-3 text-center text-sm text-ink/50">
             {t("refreshIn")}
           </p>
         )}
@@ -111,7 +111,7 @@ export function MyQr({ compact = false }: { compact?: boolean }) {
           <div className="mt-3 flex flex-col items-center gap-3">
             <p
               role="alert"
-              className="text-center text-sm font-medium text-white/80"
+              className="text-center text-sm font-medium text-ink/80"
             >
               {t("loadError")}
             </p>

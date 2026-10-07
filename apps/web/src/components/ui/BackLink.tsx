@@ -18,7 +18,7 @@ export function BackLink({
   return (
     <Link
       href={href}
-      className={`inline-flex min-h-10 w-fit items-center gap-0.5 rounded-full border border-white/10 bg-white/5 pl-2.5 pr-4 text-sm font-medium text-white/70 transition-colors hover:border-white/25 hover:text-white active:scale-[0.97] ${className}`}
+      className={`inline-flex min-h-10 w-fit items-center gap-0.5 rounded-full border border-ink/10 bg-ink/5 pl-2.5 pr-4 text-sm font-medium text-ink/70 transition-colors hover:border-ink/25 hover:text-ink active:scale-[0.97] ${className}`}
     >
       <svg
         aria-hidden="true"

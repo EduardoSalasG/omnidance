@@ -9,7 +9,7 @@ export default function AdminPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6">
-      <p className="text-sm text-white/60">{t("hubDesc")}</p>
+      <p className="text-sm text-ink/60">{t("hubDesc")}</p>
 
       <AdminGate>
         <ModuleGrid>

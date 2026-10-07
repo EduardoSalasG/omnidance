@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { DrawerGroup } from "./SideDrawer";
+import { ThemeToggle } from "./ThemeToggle";
 
 const NAV_ID = "app-sidebar-nav";
 
@@ -62,12 +63,12 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-night-700 bg-night-900 transition-[width] duration-300 motion-reduce:transition-none lg:flex ${
+      className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-line bg-surface transition-[width] duration-300 motion-reduce:transition-none lg:flex ${
         collapsed ? "w-16" : "w-64"
       }`}
     >
       <div
-        className={`flex h-14 items-center border-b border-night-700 ${
+        className={`flex h-14 items-center border-b border-line ${
           collapsed ? "justify-center" : "px-4"
         }`}
       >
@@ -98,12 +99,12 @@ export function AppSidebar({
               key={group.label}
               className={
                 collapsed && i > 0
-                  ? "mt-3 border-t border-night-700 pt-3"
+                  ? "mt-3 border-t border-line pt-3"
                   : undefined
               }
             >
               {!collapsed && (
-                <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-white/40">
+                <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
                   {group.label}
                 </h3>
               )}
@@ -122,12 +123,12 @@ export function AppSidebar({
                       } ${
                         item.active
                           ? "bg-neon/10 text-neon"
-                          : "text-white/80 hover:bg-night-800 hover:text-white"
+                          : "text-ink/80 hover:bg-elevated hover:text-ink"
                       }`}
                     >
                       <span
                         aria-hidden
-                        className={item.active ? "text-neon" : "text-white/50"}
+                        className={item.active ? "text-neon" : "text-ink/50"}
                       >
                         {item.icon}
                       </span>
@@ -141,7 +142,10 @@ export function AppSidebar({
         </ul>
       </nav>
 
-      <div className="border-t border-night-700 p-2">
+      <div className="flex flex-col gap-1 border-t border-line p-2">
+        {/* En riel colapsado (w-16) el segmentado no cabe: botón único
+            que cicla la preferencia con el ícono del estado actual. */}
+        <ThemeToggle variant={collapsed ? "compact" : "segmented"} />
         <button
           type="button"
           data-tour="appbar-menu"
@@ -150,7 +154,7 @@ export function AppSidebar({
           aria-controls={NAV_ID}
           aria-label={toggleLabel}
           title={toggleLabel}
-          className={`flex min-h-11 w-full items-center rounded-xl py-2 text-sm font-medium text-white/80 transition-colors hover:bg-night-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98] ${
+          className={`flex min-h-11 w-full items-center rounded-xl py-2 text-sm font-medium text-ink/80 transition-colors hover:bg-elevated hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98] ${
             collapsed ? "justify-center" : "gap-3 px-3"
           }`}
         >

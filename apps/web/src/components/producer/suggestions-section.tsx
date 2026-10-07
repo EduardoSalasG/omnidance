@@ -40,7 +40,7 @@ export function SuggestionsSection({ eventId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("sections.suggestions")}
       </h2>
 
@@ -56,7 +56,7 @@ export function SuggestionsSection({ eventId }: Props) {
         </div>
       )}
       {items !== null && items.length === 0 && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {t("suggestions.empty")}
         </p>
       )}
@@ -65,10 +65,10 @@ export function SuggestionsSection({ eventId }: Props) {
           {items.map((s, i) => (
             <li
               key={`${s.title}-${i}`}
-              className="flex items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-2.5"
+              className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-2.5"
             >
               <span className="min-w-0 truncate text-sm">
-                <span className="mr-2 text-white/50">{i + 1}.</span>
+                <span className="mr-2 text-ink/50">{i + 1}.</span>
                 {s.title}
               </span>
               <span className="shrink-0 text-sm font-semibold text-neon">

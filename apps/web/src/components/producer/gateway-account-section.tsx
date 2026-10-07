@@ -142,7 +142,7 @@ export function GatewayAccountSection() {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("title")}
       </h2>
 
@@ -150,7 +150,7 @@ export function GatewayAccountSection() {
 
       {state === "error" && (
         <div className="flex flex-col items-start gap-3">
-          <p role="alert" className="text-sm text-white/70">
+          <p role="alert" className="text-sm text-ink/70">
             {tc("error")}
           </p>
           <Button
@@ -169,9 +169,9 @@ export function GatewayAccountSection() {
         <>
           {account ? (
             <Card padded={false}>
-              <ul className="flex flex-col divide-y divide-night-700">
+              <ul className="flex flex-col divide-y divide-line">
                 <li className="flex items-center justify-between gap-3 px-5 py-4">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("provider")}
                   </span>
                   <span className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export function GatewayAccountSection() {
                   </span>
                 </li>
                 <li className="flex items-center justify-between gap-3 px-5 py-4">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("credential")}
                   </span>
                   <span className="text-base tabular-nums">
@@ -198,10 +198,10 @@ export function GatewayAccountSection() {
                   </span>
                 </li>
                 <li className="flex flex-col gap-2 px-5 py-4">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("webhookLabel")}
                   </span>
-                  <code className="break-all rounded-lg bg-night-800 px-3 py-2 text-xs text-white/80">
+                  <code className="break-all rounded-lg bg-elevated px-3 py-2 text-xs text-ink/80">
                     {account.webhookUrl}
                   </code>
                 </li>
@@ -210,7 +210,7 @@ export function GatewayAccountSection() {
                     <span className="text-sm text-live">
                       {t("lastError")}
                     </span>
-                    <span className="break-all text-xs text-white/60">
+                    <span className="break-all text-xs text-ink/60">
                       {account.lastError}
                     </span>
                   </li>
@@ -218,15 +218,15 @@ export function GatewayAccountSection() {
               </ul>
             </Card>
           ) : (
-            <p className="text-sm text-white/60">{t("empty")}</p>
+            <p className="text-sm text-ink/60">{t("empty")}</p>
           )}
 
           <Card padded={false}>
-            <ul className="flex flex-col divide-y divide-night-700">
+            <ul className="flex flex-col divide-y divide-line">
               <li className="flex items-center justify-between gap-3 px-5 py-4">
                 <label
                   htmlFor="gw-provider"
-                  className="text-sm text-white/70"
+                  className="text-sm text-ink/70"
                 >
                   {t("provider")}
                 </label>
@@ -236,7 +236,7 @@ export function GatewayAccountSection() {
                   onChange={(e) =>
                     setProvider(e.target.value as Provider)
                   }
-                  className="rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-base outline-none focus:border-neon/60"
+                  className="rounded-xl border border-line bg-elevated px-3 py-2 text-base outline-none focus:border-neon/60"
                 >
                   {PROVIDERS.map((p) => (
                     <option key={p} value={p}>
@@ -248,7 +248,7 @@ export function GatewayAccountSection() {
               <li className="flex flex-col gap-2 px-5 py-4">
                 <label
                   htmlFor="gw-key"
-                  className="text-sm text-white/70"
+                  className="text-sm text-ink/70"
                 >
                   {provider === "MERCADOPAGO"
                     ? t("accessToken")
@@ -265,14 +265,14 @@ export function GatewayAccountSection() {
                   placeholder={
                     account ? t("replacePlaceholder") : "••••"
                   }
-                  className="w-full rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-base outline-none focus:border-neon/60"
+                  className="w-full rounded-xl border border-line bg-elevated px-3 py-2 text-base outline-none focus:border-neon/60"
                 />
               </li>
               {NEEDS_SECRET.has(provider) && (
                 <li className="flex flex-col gap-2 px-5 py-4">
                   <label
                     htmlFor="gw-secret"
-                    className="text-sm text-white/70"
+                    className="text-sm text-ink/70"
                   >
                     {provider === "FINTOC"
                       ? t("webhookSecret")
@@ -284,13 +284,13 @@ export function GatewayAccountSection() {
                     autoComplete="off"
                     value={secret}
                     onChange={(e) => setSecret(e.target.value)}
-                    className="w-full rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-base outline-none focus:border-neon/60"
+                    className="w-full rounded-xl border border-line bg-elevated px-3 py-2 text-base outline-none focus:border-neon/60"
                   />
                 </li>
               )}
             </ul>
           </Card>
-          <p className="text-xs text-white/50">{t("hint")}</p>
+          <p className="text-xs text-ink/50">{t("hint")}</p>
 
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -307,7 +307,7 @@ export function GatewayAccountSection() {
             {account?.status === "ACTIVE" &&
               (confirmOff ? (
                 <>
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("confirmOff")}
                   </span>
                   <Button
@@ -335,7 +335,7 @@ export function GatewayAccountSection() {
                 </Button>
               ))}
             {msg && (
-              <span role="status" className="text-sm text-white/70">
+              <span role="status" className="text-sm text-ink/70">
                 {msg}
               </span>
             )}

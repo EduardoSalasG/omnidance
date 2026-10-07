@@ -286,7 +286,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
   if (loadError) {
     return (
       <div className="flex items-center gap-3">
-        <p role="alert" className="text-sm text-white/60">
+        <p role="alert" className="text-sm text-ink/60">
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void reload()}>
@@ -313,7 +313,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
 
       {series.length === 0 ? (
         <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-white/50">{t("empty")}</p>
+          <p className="text-sm text-ink/50">{t("empty")}</p>
           <Button href="/academia/series/nueva" size="sm">
             + {t("new")}
           </Button>
@@ -326,12 +326,12 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <p className="font-semibold">{s.name}</p>
                   {!s.active && <Badge variant="live">{t("inactive")}</Badge>}
-                  <span className="text-xs capitalize text-white/50">
+                  <span className="text-xs capitalize text-ink/50">
                     {monthLabel(s.month)}
                   </span>
                 </div>
                 {s.description && (
-                  <p className="text-sm text-white/60">{s.description}</p>
+                  <p className="text-sm text-ink/60">{s.description}</p>
                 )}
                 {(s.style ||
                   s.level ||
@@ -365,7 +365,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                     {s.slots.map((slot) => (
                       <li
                         key={slot.id}
-                        className="flex items-center gap-2 text-sm text-white/70"
+                        className="flex items-center gap-2 text-sm text-ink/70"
                       >
                         <span className="tabular-nums">
                           {ta(`weekday.${slot.weekday}`).slice(0, 3)}{" "}
@@ -414,14 +414,14 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 )}
                 {s.active && slotFormFor === s.id && (
                   <form
-                    className="flex flex-wrap items-end gap-2 rounded-xl border border-night-700 bg-night-800 p-3"
+                    className="flex flex-wrap items-end gap-2 rounded-xl border border-line bg-elevated p-3"
                     onSubmit={(e) => {
                       e.preventDefault();
                       void addSlot(s);
                     }}
                   >
                     <label className="flex flex-col gap-1">
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-ink/50">
                         {t("weekday")}
                       </span>
                       <select
@@ -437,7 +437,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       </select>
                     </label>
                     <label className="flex flex-col gap-1">
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-ink/50">
                         {t("start")}
                       </span>
                       <input
@@ -449,7 +449,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       />
                     </label>
                     <label className="flex flex-col gap-1">
-                      <span className="text-xs text-white/50">{t("end")}</span>
+                      <span className="text-xs text-ink/50">{t("end")}</span>
                       <input
                         type="time"
                         className={inputCls}
@@ -459,7 +459,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       />
                     </label>
                     <label className="flex w-24 flex-col gap-1">
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-ink/50">
                         {t("capacity")}
                       </span>
                       <input
@@ -474,7 +474,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                       />
                     </label>
                     <label className="flex flex-col gap-1">
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-ink/50">
                         {t("instructor")}
                       </span>
                       <select
@@ -503,13 +503,13 @@ function SeriesModule({ academyId }: { academyId: string }) {
                     ) : (
                       types.length > 0 && (
                       <div className="flex w-full flex-wrap items-center gap-1.5">
-                        <span className="text-xs text-white/40">
+                        <span className="text-xs text-ink/40">
                           {t("slotTypes")}:
                         </span>
                         {types.map((ty) => (
                           <label
                             key={ty.id}
-                            className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-night-700 bg-night-900 px-2 text-xs text-white"
+                            className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-2 text-xs text-ink"
                           >
                             <input
                               type="checkbox"
@@ -522,7 +522,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                             {ty.name}
                           </label>
                         ))}
-                        <span className="text-xs text-white/40">
+                        <span className="text-xs text-ink/40">
                           {t("slotTypesHint")}
                         </span>
                       </div>
@@ -545,7 +545,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         {tc("cancel")}
                       </Button>
                     </div>
-                    <p className="w-full text-xs text-white/40">
+                    <p className="w-full text-xs text-ink/40">
                       {t("addSlotHint")}
                     </p>
                   </form>

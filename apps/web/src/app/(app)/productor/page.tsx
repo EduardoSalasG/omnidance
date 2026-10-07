@@ -23,7 +23,7 @@ export default function ProducerPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
-      <p className="text-white/60">{t("hubDesc")}</p>
+      <p className="text-ink/60">{t("hubDesc")}</p>
 
       {/* Retorno del disclaimer de tarjeta de Flow (platform-customer-
           return → 303 ?pro=ok). useSearchParams exige Suspense. */}

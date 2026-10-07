@@ -295,7 +295,7 @@ export function EventForm({
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <label className="flex flex-col gap-2">
-        <span className="text-sm text-white/70">
+        <span className="text-sm text-ink/70">
           {t("form.name")}
           <span aria-hidden="true" className="text-neon"> *</span>
         </span>
@@ -311,7 +311,7 @@ export function EventForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.startsAt")}
             <span aria-hidden="true" className="text-neon"> *</span>
           </span>
@@ -324,7 +324,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.endsAt")}
             <span aria-hidden="true" className="text-neon"> *</span>
           </span>
@@ -340,7 +340,7 @@ export function EventForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.venue")}</span>
+          <span className="text-sm text-ink/70">{t("form.venue")}</span>
           <select
             value={venueId}
             onChange={(e) => setVenueId(e.target.value)}
@@ -355,7 +355,7 @@ export function EventForm({
           </select>
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.type")}</span>
+          <span className="text-sm text-ink/70">{t("form.type")}</span>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
@@ -373,7 +373,7 @@ export function EventForm({
 
       {seriesChoices.length > 0 && (
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.series")}</span>
+          <span className="text-sm text-ink/70">{t("form.series")}</span>
           <select
             value={seriesId}
             onChange={(e) => setSeriesId(e.target.value)}
@@ -391,7 +391,7 @@ export function EventForm({
 
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.presalePrice")}
           </span>
           <input
@@ -404,7 +404,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.doorPrice")}</span>
+          <span className="text-sm text-ink/70">{t("form.doorPrice")}</span>
           <input
             type="number"
             inputMode="numeric"
@@ -418,7 +418,7 @@ export function EventForm({
 
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.capacity")}</span>
+          <span className="text-sm text-ink/70">{t("form.capacity")}</span>
           <input
             type="number"
             inputMode="numeric"
@@ -429,7 +429,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.presaleCap")}</span>
+          <span className="text-sm text-ink/70">{t("form.presaleCap")}</span>
           <input
             type="number"
             inputMode="numeric"
@@ -440,7 +440,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("form.doorCap")}</span>
+          <span className="text-sm text-ink/70">{t("form.doorCap")}</span>
           <input
             type="number"
             inputMode="numeric"
@@ -451,7 +451,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.presaleCutoff")}
           </span>
           <input
@@ -464,11 +464,11 @@ export function EventForm({
             className={inputCls}
           />
         </label>
-        <p className="-mt-2 text-xs text-white/40 sm:col-span-2">
+        <p className="-mt-2 text-xs text-ink/40 sm:col-span-2">
           {t("form.presaleCutoffHint")}
         </p>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.tablesTotal")}
           </span>
           <input
@@ -481,7 +481,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.tableSeatMax")}
           </span>
           <input
@@ -495,7 +495,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.tableSeatsTotal")}
           </span>
           <input
@@ -508,11 +508,11 @@ export function EventForm({
             className={inputCls}
           />
         </label>
-        <p className="text-xs text-white/40 sm:col-span-2">
+        <p className="text-xs text-ink/40 sm:col-span-2">
           {t("form.tablesHint")}
         </p>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.primeThreshold")}
           </span>
           <input
@@ -525,7 +525,7 @@ export function EventForm({
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("form.happyHourMinutes")}
           </span>
           <input
@@ -540,18 +540,18 @@ export function EventForm({
       </div>
 
       {/* Bloques horarios (opcional) */}
-      <fieldset className="flex flex-col gap-3 rounded-2xl border border-night-700 p-4">
-        <legend className="px-1 text-sm font-semibold text-white/70">
+      <fieldset className="flex flex-col gap-3 rounded-2xl border border-line p-4">
+        <legend className="px-1 text-sm font-semibold text-ink/70">
           {t("form.schedule")}
         </legend>
         {blocks.map((b, i) => (
           <div
             key={i}
-            className="flex flex-col gap-3 rounded-xl border border-night-700 bg-night-950 p-3"
+            className="flex flex-col gap-3 rounded-xl border border-line bg-canvas p-3"
           >
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("form.blockStart")}
                 </span>
                 <input
@@ -564,7 +564,7 @@ export function EventForm({
                 />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("form.blockEnd")}
                 </span>
                 <input
@@ -577,7 +577,7 @@ export function EventForm({
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("form.blockStyle")}
                 </span>
                 <select
@@ -594,7 +594,7 @@ export function EventForm({
                 </select>
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("form.blockDj")}
                 </span>
                 <input
@@ -638,9 +638,9 @@ export function EventForm({
       </fieldset>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm text-white/70">
+        <span className="text-sm text-ink/70">
           {t("form.djs")}{" "}
-          <span className="text-white/50">({t("form.optional")})</span>
+          <span className="text-ink/50">({t("form.optional")})</span>
         </span>
         <input
           type="text"
@@ -653,11 +653,11 @@ export function EventForm({
           className={inputCls}
           aria-describedby="producer-djs-help"
         />
-        <span id="producer-djs-help" className="text-xs text-white/50">
+        <span id="producer-djs-help" className="text-xs text-ink/50">
           {t("form.djsHelp")}
         </span>
         {mode === "edit" && currentDjNames.length > 0 && (
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-ink/50">
             {t("form.currentDjs")}: {currentDjNames.join(", ")}
           </span>
         )}

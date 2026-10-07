@@ -43,7 +43,7 @@ export default function CrmTriggersPage() {
         <>
           <ActorPicker ctx={ctx} />
           {!ctx.actor ? (
-            <p className="text-white/60">{t("pickActor")}</p>
+            <p className="text-ink/60">{t("pickActor")}</p>
           ) : ctx.proBlocked ? (
             // El CRM del productor es feature Producer Pro - el API
             // responde 403 pro.required en todos sus endpoints.
@@ -52,7 +52,7 @@ export default function CrmTriggersPage() {
             <>
               <div className="flex items-center justify-end gap-3">
                 {remaining <= 0 && !showForm && (
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-ink/50">
                     {t("triggers.allCreated")}
                   </p>
                 )}

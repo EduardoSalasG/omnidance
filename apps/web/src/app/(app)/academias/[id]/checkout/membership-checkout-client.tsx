@@ -246,7 +246,7 @@ export function MembershipCheckoutClient({
   ) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p className="text-white/60">{t("alreadySubscribed")}</p>
+        <p className="text-ink/60">{t("alreadySubscribed")}</p>
         <Button href={academyHref} variant="secondary">
           {t("backToAcademy")}
         </Button>
@@ -261,7 +261,7 @@ export function MembershipCheckoutClient({
       {/* Resumen de la orden: qué plan, en qué academia, qué cubre. */}
       <Card>
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-white/50">{quote.academy.name}</p>
+          <p className="text-sm text-ink/50">{quote.academy.name}</p>
           <div className="flex items-start justify-between gap-3">
             <h2 className="text-lg font-semibold">{quote.plan.name}</h2>
             <Badge variant="outline" className="normal-case tracking-normal">
@@ -269,7 +269,7 @@ export function MembershipCheckoutClient({
             </Badge>
           </div>
           {quote.plan.description.length > 0 && (
-            <ul className="list-disc space-y-1 pl-5 text-sm text-white/70">
+            <ul className="list-disc space-y-1 pl-5 text-sm text-ink/70">
               {quote.plan.description.map((d, i) => (
                 <li key={i}>{d}</li>
               ))}
@@ -289,7 +289,7 @@ export function MembershipCheckoutClient({
                     : null}
           </p>
           {quote.currentEndsAt && (
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-ink/50">
               {t("vigenciaExtends", {
                 date: planDateFmt.format(new Date(quote.currentEndsAt)),
               })}
@@ -318,7 +318,7 @@ export function MembershipCheckoutClient({
               ]}
             />
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-white/50">
+          <p className="mt-3 text-xs leading-relaxed text-ink/50">
             {isSub
               ? t("modeSubHint", { period: ts(`period.${quote.plan.type}`) })
               : t("modeOnceHint")}
@@ -342,12 +342,12 @@ export function MembershipCheckoutClient({
       <Card>
         <dl className="flex flex-col gap-2">
           <div className="flex items-center justify-between text-sm">
-            <dt className="text-white/70">{t("plan")}</dt>
+            <dt className="text-ink/70">{t("plan")}</dt>
             <dd>
               <PriceTag amount={quote.plan.price} />
             </dd>
           </div>
-          <div className="flex items-center justify-between border-t border-night-700 pt-3">
+          <div className="flex items-center justify-between border-t border-line pt-3">
             <dt className="text-base font-semibold">{tco("total")}</dt>
             <dd>
               <PriceTag amount={quote.totalClp} className="text-2xl" />
@@ -360,16 +360,16 @@ export function MembershipCheckoutClient({
           al cobro + anticipación del registro de tarjeta en Flow. */}
       {isSub && (
         <Card>
-          <p className="text-xs leading-relaxed text-white/60">
+          <p className="text-xs leading-relaxed text-ink/60">
             {ts("consent", {
               amount: clp.format(quote.totalClp),
               period: ts(`period.${quote.plan.type}`),
             })}
           </p>
-          <p className="mt-2 text-xs leading-relaxed text-white/50">
+          <p className="mt-2 text-xs leading-relaxed text-ink/50">
             {t("cardNext")}
           </p>
-          <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-2 text-sm text-white/80">
+          <label className="mt-3 flex min-h-11 cursor-pointer items-start gap-2 text-sm text-ink/80">
             <input
               type="checkbox"
               checked={consent}
@@ -388,7 +388,7 @@ export function MembershipCheckoutClient({
       {phase.kind === "card_redirect" && (
         <Card>
           <h2 className="text-base font-semibold">{t("cardRedirectTitle")}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-white/70">
+          <p className="mt-2 text-sm leading-relaxed text-ink/70">
             {t("cardRedirectDesc")}
           </p>
           <Button
@@ -404,19 +404,19 @@ export function MembershipCheckoutClient({
       )}
 
       {phase.kind === "activating" && (
-        <p className="animate-pulse text-sm text-white/70">
+        <p className="animate-pulse text-sm text-ink/70">
           {ts("activating")}
         </p>
       )}
 
       {phase.kind === "awaiting" && (
         <Card>
-          <p className="animate-pulse text-sm text-white/70">
+          <p className="animate-pulse text-sm text-ink/70">
             {tco("pending")}
           </p>
           {isStub && (
             <div className="mt-3 flex flex-col gap-2">
-              <p className="text-xs uppercase tracking-wide text-white/50">
+              <p className="text-xs uppercase tracking-wide text-ink/50">
                 {tco("devSimTitle")}
               </p>
               <div className="flex gap-2">
@@ -450,7 +450,7 @@ export function MembershipCheckoutClient({
       {phase.kind === "stillPending" && (
         <Card className="flex flex-col items-center gap-4 text-center">
           <Badge variant="muted">{tco("stillPendingTitle")}</Badge>
-          <p role="status" className="text-sm text-white/70">
+          <p role="status" className="text-sm text-ink/70">
             {tco("stillPendingDesc")}
           </p>
           <Button href={academyHref} className="w-full">
@@ -500,7 +500,7 @@ export function MembershipCheckoutClient({
                 ? `${ts("subscribe")} · ${clp.format(quote.totalClp)}/${ts(`period.${quote.plan.type}`)}`
                 : t("payTotal", { total: clp.format(quote.totalClp) })}
           </Button>
-          <p className="text-center text-xs text-white/40">
+          <p className="text-center text-xs text-ink/40">
             {t("trustFlow")}
           </p>
         </div>
@@ -522,13 +522,13 @@ export function MembershipCheckoutClient({
         </p>
       )}
       {notice === "unavailable" && (
-        <p role="alert" className="text-sm text-white/60">
+        <p role="alert" className="text-sm text-ink/60">
           {t("planUnavailable")}
         </p>
       )}
       {notice === "loginRequired" && (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-white/70">{tco("loginRequired")}</p>
+          <p className="text-sm text-ink/70">{tco("loginRequired")}</p>
           <Button href="/login" size="sm">
             {tc("login")}
           </Button>

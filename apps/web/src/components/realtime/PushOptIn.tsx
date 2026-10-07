@@ -161,14 +161,14 @@ export function PushOptIn() {
       aria-label={t("title")}
       className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.75rem)] z-40 flex justify-center px-4 lg:bottom-6"
     >
-      <Card className="w-full max-w-md border-neon/30 bg-night-900/95 shadow-2xl shadow-black/50 backdrop-blur">
+      <Card className="w-full max-w-md border-neon/30 bg-surface/95 shadow-2xl shadow-black/50 backdrop-blur">
         {phase === "done" ? (
           <p className="text-sm font-medium text-neon">{t("enabled")}</p>
         ) : (
           <div className="flex flex-col gap-3">
             <div>
-              <p className="font-semibold text-white">{t("title")}</p>
-              <p className="mt-1 text-sm text-white/60">{t("description")}</p>
+              <p className="font-semibold text-ink">{t("title")}</p>
+              <p className="mt-1 text-sm text-ink/60">{t("description")}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button

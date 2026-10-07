@@ -264,7 +264,7 @@ export function SeriesForm({
         </p>
       ) : (
         <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {editing ? t("edit") : t("new")}
           </h2>
           <form
@@ -272,7 +272,7 @@ export function SeriesForm({
             className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("name")}
                 <span aria-hidden="true" className="text-neon">
                   {" "}
@@ -289,7 +289,7 @@ export function SeriesForm({
             </label>
 
             <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-white/50">{t("description")}</span>
+              <span className="text-xs text-ink/50">{t("description")}</span>
               <textarea
                 className={inputCls}
                 rows={2}
@@ -300,7 +300,7 @@ export function SeriesForm({
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("style")}</span>
+              <span className="text-xs text-ink/50">{t("style")}</span>
               <select
                 className={`${inputCls} disabled:opacity-50`}
                 value={styleId}
@@ -318,7 +318,7 @@ export function SeriesForm({
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("level")}</span>
+              <span className="text-xs text-ink/50">{t("level")}</span>
               <select
                 className={`${inputCls} disabled:opacity-50`}
                 value={levelId}
@@ -336,7 +336,7 @@ export function SeriesForm({
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("instructor")}</span>
+              <span className="text-xs text-ink/50">{t("instructor")}</span>
               <select
                 className={`${inputCls} disabled:opacity-50`}
                 value={instructorId}
@@ -354,7 +354,7 @@ export function SeriesForm({
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("quorum")}</span>
+              <span className="text-xs text-ink/50">{t("quorum")}</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -364,11 +364,11 @@ export function SeriesForm({
                 value={quorum}
                 onChange={(e) => setQuorum(e.target.value)}
               />
-              <span className="text-xs text-white/40">{t("quorumHint")}</span>
+              <span className="text-xs text-ink/40">{t("quorumHint")}</span>
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("dropIn")}</span>
+              <span className="text-xs text-ink/50">{t("dropIn")}</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -379,12 +379,12 @@ export function SeriesForm({
                 onChange={(e) => setDropIn(e.target.value)}
                 placeholder="8000"
               />
-              <span className="text-xs text-white/40">{t("dropInHint")}</span>
+              <span className="text-xs text-ink/40">{t("dropInHint")}</span>
             </label>
 
             {!editing && (
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("month")}
                   <span aria-hidden="true" className="text-neon">
                     {" "}
@@ -398,7 +398,7 @@ export function SeriesForm({
                   onChange={(e) => setMonth(e.target.value)}
                   required
                 />
-                <span className="text-xs text-white/40">{t("monthHint")}</span>
+                <span className="text-xs text-ink/40">{t("monthHint")}</span>
               </label>
             )}
 
@@ -409,7 +409,7 @@ export function SeriesForm({
                 aria-hidden="true"
                 className="flex flex-col gap-2 sm:col-span-2"
               >
-                <legend className="text-xs text-white/50">
+                <legend className="text-xs text-ink/50">
                   {t("types")}
                 </legend>
                 <div className="page-loading flex flex-wrap gap-2">
@@ -421,12 +421,12 @@ export function SeriesForm({
             ) : (
               types.length > 0 && (
               <fieldset className="flex flex-col gap-2 sm:col-span-2">
-                <legend className="text-xs text-white/50">{t("types")}</legend>
+                <legend className="text-xs text-ink/50">{t("types")}</legend>
                 <div className="flex flex-wrap gap-2">
                   {types.map((ty) => (
                     <label
                       key={ty.id}
-                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-night-700 bg-night-800 px-3 text-sm text-white"
+                      className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-line bg-elevated px-3 text-sm text-ink"
                     >
                       <input
                         type="checkbox"
@@ -444,12 +444,12 @@ export function SeriesForm({
 
             {!editing && (
               <fieldset className="flex flex-col gap-2 sm:col-span-2">
-                <legend className="text-xs text-white/50">{t("slots")}</legend>
+                <legend className="text-xs text-ink/50">{t("slots")}</legend>
                 <ul className="flex flex-col gap-2">
                   {slots.map((s, i) => (
                     <li key={i} className="flex flex-wrap items-end gap-2">
                       <label className="flex flex-col gap-1">
-                        <span className="text-xs text-white/50">
+                        <span className="text-xs text-ink/50">
                           {t("weekday")}
                         </span>
                         <select
@@ -469,7 +469,7 @@ export function SeriesForm({
                         </select>
                       </label>
                       <label className="flex flex-col gap-1">
-                        <span className="text-xs text-white/50">
+                        <span className="text-xs text-ink/50">
                           {t("start")}
                         </span>
                         <input
@@ -483,7 +483,7 @@ export function SeriesForm({
                         />
                       </label>
                       <label className="flex flex-col gap-1">
-                        <span className="text-xs text-white/50">{t("end")}</span>
+                        <span className="text-xs text-ink/50">{t("end")}</span>
                         <input
                           type="time"
                           className={inputCls}
@@ -495,7 +495,7 @@ export function SeriesForm({
                         />
                       </label>
                       <label className="flex w-24 flex-col gap-1">
-                        <span className="text-xs text-white/50">
+                        <span className="text-xs text-ink/50">
                           {t("capacity")}
                         </span>
                         <input
@@ -534,13 +534,13 @@ export function SeriesForm({
                       ) : (
                         types.length > 0 && (
                         <div className="flex basis-full flex-wrap items-center gap-1.5">
-                          <span className="text-xs text-white/40">
+                          <span className="text-xs text-ink/40">
                             {t("slotTypes")}:
                           </span>
                           {types.map((ty) => (
                             <label
                               key={ty.id}
-                              className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-night-700 bg-night-900 px-2 text-xs text-white"
+                              className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-2 text-xs text-ink"
                             >
                               <input
                                 type="checkbox"
@@ -551,7 +551,7 @@ export function SeriesForm({
                               {ty.name}
                             </label>
                           ))}
-                          <span className="text-xs text-white/40">
+                          <span className="text-xs text-ink/40">
                             {t("slotTypesHint")}
                           </span>
                         </div>

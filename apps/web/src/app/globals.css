@@ -2,23 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Theming claro/oscuro ───
+   :root = tema claro (default cuando la clase no es .dark). La clase
+   .light/.dark en <html> la decide el script inline del root layout
+   según localStorage + prefers-color-scheme (ver lib/theme.ts).
+   Tokens semánticos: el código usa canvas/surface/elevated/raised/ink/
+   line/on-accent - los literales night-* mapean a estas mismas vars
+   en tailwind.config para compat durante la migración. */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --canvas: 246 246 248; /* #f6f6f8 */
+  --surface: 255 255 255; /* #ffffff */
+  --elevated: 255 255 255;
+  --raised: 234 234 239; /* #eaeaef */
+  --ink: 22 22 30; /* #16161e */
+  --line: 226 226 232; /* #e2e2e8 - hairline sólido */
+  --on-accent: 11 11 16;
+  --shadow-strength: 0.16;
+  --glow-alpha: 0.09;
   /* Acento de marca: morado. Es el default fuera de la app (landing,
      marketing) y el fallback si no hay data-mode. Dentro de la app el
      chrome siempre setea data-mode según la lente: morado = Social y
      todos los roles de gestión, verde = Academia (Mi Aprendizaje del
-     bailarín, ACADEMY_OWNER e INSTRUCTOR). */
-  --accent: 167 139 250; /* #a78bfa */
-  --accent-soft: 196 181 253; /* #c4b5fd */
+     bailarín, ACADEMY_OWNER e INSTRUCTOR). En claro el acento baja de
+     luminosidad para contraste ≥4.5:1 sobre superficie. */
+  --accent: 124 58 237; /* #7c3aed */
+  --accent-soft: 109 40 217; /* #6d28d9 */
 }
 
 [data-mode="social"] {
+  --accent: 124 58 237;
+  --accent-soft: 109 40 217;
+}
+
+[data-mode="academy"] {
+  --accent: 5 150 105; /* #059669 */
+  --accent-soft: 4 120 87; /* #047857 */
+}
+
+.dark {
+  color-scheme: dark;
+  --canvas: 10 10 15; /* #0a0a0f */
+  --surface: 18 18 26; /* #12121a */
+  --elevated: 28 28 40; /* #1c1c28 */
+  --raised: 42 42 58; /* #2a2a3a */
+  --ink: 255 255 255;
+  --line: 42 42 58; /* #2a2a3a - hairline sólido */
+  --on-accent: 11 11 16;
+  --shadow-strength: 0.5;
+  --glow-alpha: 0.14;
   --accent: 167 139 250; /* #a78bfa */
   --accent-soft: 196 181 253; /* #c4b5fd */
 }
 
-[data-mode="academy"] {
+.dark[data-mode="social"] {
+  --accent: 167 139 250;
+  --accent-soft: 196 181 253;
+}
+
+.dark[data-mode="academy"] {
   --accent: 52 211 153; /* #34d399 */
   --accent-soft: 110 231 183; /* #6ee7b7 */
 }
@@ -45,20 +87,20 @@ body {
 /* ─── Selección acorde al tema ─── */
 ::selection {
   background: rgb(var(--accent) / 0.35);
-  color: #fff;
+  color: rgb(var(--ink));
 }
 
-/* ─── Scrollbar sutil en dark ─── */
+/* ─── Scrollbar sutil, sigue al tema ─── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2a2a3a transparent;
+  scrollbar-color: rgb(var(--raised)) transparent;
 }
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a3a;
+  background: rgb(var(--raised));
   border-radius: 4px;
 }
 
@@ -182,11 +224,12 @@ body {
     line-height: 1.05;
   }
 
-  /* Glow radial sutil - la pista de baile como material de fondo */
+  /* Glow radial sutil - la pista de baile como material de fondo.
+     --glow-alpha baja en claro (el tinte se nota más sobre fondo claro). */
   .glow-neon {
     background: radial-gradient(
       ellipse 80% 50% at 50% 0%,
-      rgb(var(--accent) / 0.14),
+      rgb(var(--accent) / var(--glow-alpha, 0.14)),
       transparent 70%
     );
   }
@@ -227,35 +270,35 @@ details.venue-filter[open] > summary::before {
   display: none; /* sin flecha - el pin ya ancla la etiqueta */
 }
 
-/* ─── Onboarding (driver.js) - popover dark-first con acento neon ─── */
+/* ─── Onboarding (driver.js) - popover con acento neon, sigue al tema ─── */
 .driver-popover.omnidance-tour {
-  background: var(--color-night-800, #17171f);
-  color: #fff;
-  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(var(--elevated));
+  color: rgb(var(--ink));
+  border: 1px solid rgb(var(--ink) / 0.12);
   border-radius: 16px;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  box-shadow: 0 12px 40px rgb(0 0 0 / var(--shadow-strength));
 }
 .driver-popover.omnidance-tour .driver-popover-title {
   font-size: 15px;
   font-weight: 700;
-  color: #fff;
+  color: rgb(var(--ink));
 }
 .driver-popover.omnidance-tour .driver-popover-description {
-  color: rgb(255 255 255 / 0.65);
+  color: rgb(var(--ink) / 0.65);
   font-size: 13px;
   line-height: 1.5;
 }
 .driver-popover.omnidance-tour .driver-popover-progress-text {
-  color: rgb(255 255 255 / 0.45);
+  color: rgb(var(--ink) / 0.45);
   font-size: 11px;
 }
 .driver-popover.omnidance-tour .driver-popover-navigation-btns {
   gap: 8px;
 }
 .driver-popover.omnidance-tour .driver-popover-next-btn {
-  /* --accent es triplete RGB (167 139 250) - va dentro de rgb(). */
-  background: rgb(var(--accent, 167 139 250));
-  color: #0b0b10;
+  /* --accent es triplete RGB - va dentro de rgb(). */
+  background: rgb(var(--accent));
+  color: rgb(var(--on-accent));
   font-weight: 700;
   border: none;
   border-radius: 9999px;
@@ -265,19 +308,19 @@ details.venue-filter[open] > summary::before {
 }
 .driver-popover.omnidance-tour .driver-popover-prev-btn {
   background: transparent;
-  color: rgb(255 255 255 / 0.7);
-  border: 1px solid rgb(255 255 255 / 0.15);
+  color: rgb(var(--ink) / 0.7);
+  border: 1px solid rgb(var(--ink) / 0.15);
   border-radius: 9999px;
   padding: 8px 14px;
   font-size: 13px;
   text-shadow: none;
 }
 .driver-popover.omnidance-tour .driver-popover-close-btn {
-  color: rgb(255 255 255 / 0.5);
+  color: rgb(var(--ink) / 0.5);
   font-size: 18px;
 }
 .driver-popover.omnidance-tour .driver-popover-close-btn:hover {
-  color: #fff;
+  color: rgb(var(--ink));
 }
 .driver-popover.omnidance-tour .driver-popover-arrow-side-left,
 .driver-popover.omnidance-tour .driver-popover-arrow-side-right,

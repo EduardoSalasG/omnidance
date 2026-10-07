@@ -187,8 +187,8 @@ export function useCrmContext(): CrmContextValue {
 }
 
 const inputCls =
-  "min-h-11 w-full rounded-lg border border-night-700 bg-night-950 px-3 text-sm " +
-  "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
+  "min-h-11 w-full rounded-lg border border-line bg-canvas px-3 text-sm " +
+  "text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
 
 /** Estados previos al contenido: carga, sin sesión, sin permiso, error. */
 export function CrmGateScreen({
@@ -214,7 +214,7 @@ export function CrmGateScreen({
   if (gate === "forbidden") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p className="text-white/70">{t("forbidden")}</p>
+        <p className="text-ink/70">{t("forbidden")}</p>
         <Button href="/inicio" variant="secondary">
           {tc("appName")}
         </Button>
@@ -225,7 +225,7 @@ export function CrmGateScreen({
   if (gate === "error") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p className="text-white/70">{tc("error")}</p>
+        <p className="text-ink/70">{tc("error")}</p>
         <Button variant="secondary" onClick={onRetry}>
           <RefreshIcon /> {tc("retry")}
         </Button>
@@ -241,13 +241,13 @@ export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
   const t = useTranslations("crm");
 
   if (ctx.actors.length === 0 && !ctx.isAdmin) {
-    return <p className="text-white/60">{t("noActor")}</p>;
+    return <p className="text-ink/60">{t("noActor")}</p>;
   }
 
   return (
     <section className="flex flex-col gap-3" aria-label={t("actor.label")}>
       <label className="flex flex-col gap-2">
-        <span className="text-sm text-white/70">{t("actor.label")}</span>
+        <span className="text-sm text-ink/70">{t("actor.label")}</span>
         <select
           value={ctx.actorSel}
           onChange={(e) => ctx.setActorSel(e.target.value)}
@@ -265,7 +265,7 @@ export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
       {ctx.actorSel === "manual" && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex flex-1 flex-col gap-2">
-            <span className="text-sm text-white/70">{t("actor.type")}</span>
+            <span className="text-sm text-ink/70">{t("actor.type")}</span>
             <select
               value={ctx.manualType}
               onChange={(e) => ctx.setManualType(e.target.value as ActorType)}
@@ -276,7 +276,7 @@ export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
             </select>
           </label>
           <label className="flex flex-[2] flex-col gap-2">
-            <span className="text-sm text-white/70">{t("actor.id")}</span>
+            <span className="text-sm text-ink/70">{t("actor.id")}</span>
             <input
               type="text"
               value={ctx.manualId}
@@ -318,7 +318,7 @@ export function CrmNav({ active }: { active: CrmSection }) {
           href={SECTION_HREF[k]}
           aria-current={active === k ? "page" : undefined}
           className={`inline-flex min-h-[44px] shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-            active === k ? "bg-neon text-black" : "bg-white/10 text-white/70"
+            active === k ? "bg-neon text-on-accent" : "bg-ink/10 text-ink/70"
           }`}
         >
           {t(`nav.${k}`)}

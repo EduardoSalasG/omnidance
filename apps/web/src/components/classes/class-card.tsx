@@ -86,7 +86,7 @@ export function ClassCard({
   const style = cls.series?.style;
   const booked = cls.myBooking === "BOOKED" || cls.myBooking === "WAITLIST";
   return (
-    <div className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
+    <div className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
       {/* Contenido (link a la ficha) + columna de acción que solo
           existe cuando la clase no está reservada. */}
       <div className="flex items-stretch gap-3">
@@ -129,7 +129,7 @@ export function ClassCard({
           </div>
           {/* Meta: profesor */}
           {cls.instructor?.name && (
-            <p className="mt-1.5 truncate text-xs text-white/50">
+            <p className="mt-1.5 truncate text-xs text-ink/50">
               {cls.instructor.name}
             </p>
           )}
@@ -177,13 +177,13 @@ export function ClassCard({
               // informa mejor que el candado.
               cls.series?.dropInPrice != null ? (
                 <span className="flex flex-col items-center gap-0.5">
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-ink/40">
                     {t("dropIn")}
                   </span>
                   <PriceTag amount={cls.series.dropInPrice} />
                 </span>
               ) : (
-                <span className="text-center text-xs leading-tight text-white/40">
+                <span className="text-center text-xs leading-tight text-ink/40">
                   {t("requiresEnrollment")}
                 </span>
               )
@@ -206,7 +206,7 @@ export function ClassCard({
             <span
               className={`text-center text-xs font-medium leading-tight ${
                 full
-                  ? "text-white/50"
+                  ? "text-ink/50"
                   : cls.spotsLeft <= 3
                     ? "text-amber-300"
                     : "text-neon"

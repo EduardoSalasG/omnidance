@@ -22,7 +22,7 @@ export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
   if (kpis.length === 0) return null;
   return (
     <section aria-label={label} data-tour="home-stats">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
         {label}
       </h2>
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -33,16 +33,16 @@ export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
           return (
             <li
               key={k.key}
-              className={`rounded-xl border bg-night-800/60 px-4 py-3 ${
+              className={`rounded-xl border bg-elevated/60 px-4 py-3 ${
                 ATTENTION_KEYS.has(k.key) && k.value > 0
                   ? "border-neon/60"
-                  : "border-night-700"
+                  : "border-line"
               }`}
             >
               <span className="block text-2xl font-bold tabular-nums">
                 {k.format === "clp" ? clp.format(k.value) : k.value}
               </span>
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t.has(key) ? t(key) : k.key}
               </span>
             </li>

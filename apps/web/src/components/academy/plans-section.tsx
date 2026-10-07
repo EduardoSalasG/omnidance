@@ -20,7 +20,7 @@ export function PlansSection({ plans }: Props) {
     // Empty state con el CTA de crear como acción principal.
     return (
       <div className="flex flex-col items-start gap-3">
-        <p className="text-sm text-white/50">{t("plansEmpty")}</p>
+        <p className="text-sm text-ink/50">{t("plansEmpty")}</p>
         <Button href="/academia/planes/nueva" size="sm">
           + {t("newPlan")}
         </Button>
@@ -36,17 +36,17 @@ export function PlansSection({ plans }: Props) {
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{p.name}</p>
               {p.classCount != null && (
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-ink/50">
                   {t("planClasses")}: {p.classCount}
                 </p>
               )}
               {p.weeklyClasses != null && (
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-ink/50">
                   {t("planWeeklyCount", { count: p.weeklyClasses })}
                 </p>
               )}
               {p.description.length > 0 && (
-                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-white/60">
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-ink/60">
                   {p.description.map((d, i) => (
                     <li key={i}>{d}</li>
                   ))}

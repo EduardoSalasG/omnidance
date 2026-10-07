@@ -149,7 +149,7 @@ function JobsPanel() {
     <>
       <section className="flex flex-col gap-3">
         <h1 className="text-lg font-semibold">{t("jobs.title")}</h1>
-        <p className="text-sm text-white/60">{t("jobs.desc")}</p>
+        <p className="text-sm text-ink/60">{t("jobs.desc")}</p>
         {error && (
           <Card className="border-red-500/40 p-3 text-sm text-red-300">
             {error}
@@ -160,7 +160,7 @@ function JobsPanel() {
       {jobs === null ? (
         <SkeletonList items={4} />
       ) : jobs.length === 0 ? (
-        <Card className="p-4 text-sm text-white/60">{t("jobs.empty")}</Card>
+        <Card className="p-4 text-sm text-ink/60">{t("jobs.empty")}</Card>
       ) : (
         <ul className="flex flex-col gap-3">
           {jobs.map((job) => (
@@ -168,9 +168,9 @@ function JobsPanel() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold">{job.label}</p>
-                  <p className="font-mono text-xs text-white/40">{job.key}</p>
+                  <p className="font-mono text-xs text-ink/40">{job.key}</p>
                   {job.description && (
-                    <p className="mt-1 text-xs text-white/50">{job.description}</p>
+                    <p className="mt-1 text-xs text-ink/50">{job.description}</p>
                   )}
                 </div>
                 {statusBadge(job, t)}
@@ -178,21 +178,21 @@ function JobsPanel() {
 
               <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                 <div>
-                  <p className="text-white/40">{t("jobs.schedule")}</p>
-                  <p className="font-mono text-white/80">{job.cronExpr}</p>
-                  <p className="text-white/40">{job.timezone}</p>
+                  <p className="text-ink/40">{t("jobs.schedule")}</p>
+                  <p className="font-mono text-ink/80">{job.cronExpr}</p>
+                  <p className="text-ink/40">{job.timezone}</p>
                 </div>
                 <div>
-                  <p className="text-white/40">{t("jobs.nextRun")}</p>
-                  <p className="text-white/80">{fmt(job.nextRunAt)}</p>
+                  <p className="text-ink/40">{t("jobs.nextRun")}</p>
+                  <p className="text-ink/80">{fmt(job.nextRunAt)}</p>
                 </div>
                 <div>
-                  <p className="text-white/40">{t("jobs.lastRun")}</p>
-                  <p className="text-white/80">{fmt(job.lastRunAt)}</p>
+                  <p className="text-ink/40">{t("jobs.lastRun")}</p>
+                  <p className="text-ink/80">{fmt(job.lastRunAt)}</p>
                 </div>
                 <div>
-                  <p className="text-white/40">{t("jobs.runs")}</p>
-                  <p className="text-white/80">{job.runCount}</p>
+                  <p className="text-ink/40">{t("jobs.runs")}</p>
+                  <p className="text-ink/80">{job.runCount}</p>
                 </div>
               </div>
               {job.lastStatus === "ERROR" && job.lastError && (
@@ -203,14 +203,14 @@ function JobsPanel() {
 
               {editing === job.key ? (
                 <form
-                  className="flex flex-col gap-2 rounded-xl border border-white/10 p-3"
+                  className="flex flex-col gap-2 rounded-xl border border-ink/10 p-3"
                   onSubmit={async (e) => {
                     e.preventDefault();
                     await patch(job.key, { cronExpr: cronDraft });
                     setEditing(null);
                   }}
                 >
-                  <label className="text-xs text-white/60">
+                  <label className="text-xs text-ink/60">
                     {t("jobs.cronLabel")}
                   </label>
                   <input
@@ -224,7 +224,7 @@ function JobsPanel() {
                       <button
                         key={p.expr}
                         type="button"
-                        className="rounded-full border border-white/15 px-2 py-1 text-xs text-white/60 hover:border-white/30"
+                        className="rounded-full border border-ink/15 px-2 py-1 text-xs text-ink/60 hover:border-ink/30"
                         onClick={() => setCronDraft(p.expr)}
                       >
                         {p.label}
@@ -283,19 +283,19 @@ function JobsPanel() {
               )}
 
               {runsFor === job.key && (
-                <div className="rounded-xl border border-white/10">
+                <div className="rounded-xl border border-ink/10">
                   {runs === null ? (
                     <div className="p-3">
                       <SkeletonList items={2} />
                     </div>
                   ) : runs.length === 0 ? (
-                    <p className="p-3 text-xs text-white/50">{t("jobs.noRuns")}</p>
+                    <p className="p-3 text-xs text-ink/50">{t("jobs.noRuns")}</p>
                   ) : (
                     <ul className="flex flex-col">
                       {runs.map((run) => (
                         <li
                           key={run.id}
-                          className="flex flex-col gap-1 border-t border-white/10 p-3 text-xs first:border-t-0"
+                          className="flex flex-col gap-1 border-t border-ink/10 p-3 text-xs first:border-t-0"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="flex items-center gap-2">
@@ -310,11 +310,11 @@ function JobsPanel() {
                               >
                                 {t(`jobs.runStatus.${run.status}`)}
                               </Badge>
-                              <span className="text-white/50">
+                              <span className="text-ink/50">
                                 {t(`jobs.trigger.${run.trigger}`)}
                               </span>
                             </span>
-                            <span className="text-white/40">
+                            <span className="text-ink/40">
                               {fmt(run.startedAt)}
                             </span>
                           </div>
@@ -322,7 +322,7 @@ function JobsPanel() {
                             <p className="text-red-300">{run.error}</p>
                           )}
                           {run.meta && (
-                            <p className="font-mono text-white/40">
+                            <p className="font-mono text-ink/40">
                               {JSON.stringify(run.meta)}
                             </p>
                           )}

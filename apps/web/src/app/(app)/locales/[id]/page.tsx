@@ -154,7 +154,7 @@ export default async function VenueProfilePage({
   if (venue === "error") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p role="alert" className="text-white/60">{tc.error}</p>
+        <p role="alert" className="text-ink/60">{tc.error}</p>
         <div className="flex flex-wrap justify-center gap-3">
           {/* Server page: el retry es recargar la misma ruta. */}
           <Button href={`/locales/${params.id}`}>
@@ -209,7 +209,7 @@ export default async function VenueProfilePage({
     `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] ${
       active
         ? "border-neon bg-neon/15 text-neon"
-        : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+        : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
     }`;
 
   // ─── Calendario mensual (?mes=YYYY-MM; legado semana=<día> → su mes) ───
@@ -250,7 +250,7 @@ export default async function VenueProfilePage({
 
   const iconBtn = (active: boolean) =>
     `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
-      active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
+      active ? "bg-neon text-on-accent" : "text-ink/60 hover:text-ink"
     }`;
 
   const eventCard = (e: VenueEvent) => {
@@ -264,7 +264,7 @@ export default async function VenueProfilePage({
           {/* Solo la hora - el día es agrupador (lista) o selección
               (calendario); repetirlo en cada card era ruido. */}
           <div className="flex w-1/4 shrink-0 flex-col items-start gap-0.5">
-            <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
+            <span className="pt-0.5 text-sm font-semibold tabular-nums text-ink/80">
               <EventDate start={e.startsAt} variant="time" />
             </span>
           </div>
@@ -276,8 +276,8 @@ export default async function VenueProfilePage({
               <p className="mt-1 text-xs">
                 {orderedGenres.map((g, i) => (
                   <span key={g}>
-                    {i > 0 && <span className="text-white/30"> · </span>}
-                    <span className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}>
+                    {i > 0 && <span className="text-ink/30"> · </span>}
+                    <span className={GENRE_TEXT[g as GenreKey] ?? "text-ink/50"}>
                       {te.genre[g] ?? g}
                     </span>
                   </span>
@@ -295,13 +295,13 @@ export default async function VenueProfilePage({
           <div className="w-1/4 shrink-0 pt-0.5 text-right">
             {e.presalePrice != null ? (
               <>
-                <span className="block text-xs leading-tight text-white/50">
+                <span className="block text-xs leading-tight text-ink/50">
                   {t.presale}
                 </span>
                 <PriceTag amount={e.presalePrice} />
               </>
             ) : (
-              <span className="text-sm text-white/60">{t.free}</span>
+              <span className="text-sm text-ink/60">{t.free}</span>
             )}
           </div>
         </div>
@@ -318,7 +318,7 @@ export default async function VenueProfilePage({
           <img
             src={venue.logoUrl}
             alt=""
-            className="h-16 w-16 shrink-0 rounded-2xl border border-white/10 object-cover"
+            className="h-16 w-16 shrink-0 rounded-2xl border border-ink/10 object-cover"
           />
         ) : (
           <span
@@ -342,7 +342,7 @@ export default async function VenueProfilePage({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`${t.directions}: ${venue.address}`}
-              className="mt-1 inline-flex items-center gap-1.5 rounded-lg text-sm text-white/60 transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="mt-1 inline-flex items-center gap-1.5 rounded-lg text-sm text-ink/60 transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               <svg
                 aria-hidden="true"
@@ -357,13 +357,13 @@ export default async function VenueProfilePage({
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
-              <span className="underline decoration-white/20 underline-offset-2">
+              <span className="underline decoration-ink/20 underline-offset-2">
                 {venue.address}
               </span>
             </a>
           )}
           {venue.hours && (
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-white/60">
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-ink/60">
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
@@ -381,7 +381,7 @@ export default async function VenueProfilePage({
             </p>
           )}
           {venue.capacity != null && (
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-ink/50">
               {t.capacity.replace(
                 "{count}",
                 venue.capacity.toLocaleString("es-CL"),
@@ -395,7 +395,7 @@ export default async function VenueProfilePage({
       <section>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-neon">{t.upcoming}</h2>
-          <div className="flex items-center rounded-full border border-white/15 p-0.5">
+          <div className="flex items-center rounded-full border border-ink/15 p-0.5">
             <Link
               href={hrefFor({ vista: undefined, mes: undefined, dia: undefined })}
               aria-label={te.viewList}
@@ -450,9 +450,9 @@ export default async function VenueProfilePage({
           </nav>
         )}
         {venue.events.length === 0 ? (
-          <p className="text-sm text-white/50">{t.noUpcoming}</p>
+          <p className="text-sm text-ink/50">{t.noUpcoming}</p>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-white/50">{te.emptyFiltered}</p>
+          <p className="text-sm text-ink/50">{te.emptyFiltered}</p>
         ) : vista === "calendario" ? (
           <>
             <div className="mb-4 flex items-center justify-between">
@@ -482,7 +482,7 @@ export default async function VenueProfilePage({
               {WEEKDAY_HEADERS.map((h, i) => (
                 <span
                   key={i}
-                  className="text-center text-[10px] font-semibold uppercase text-white/40"
+                  className="text-center text-[10px] font-semibold uppercase text-ink/40"
                 >
                   {h}
                 </span>
@@ -500,7 +500,7 @@ export default async function VenueProfilePage({
                     <span className="sr-only">{dayName}</span>
                     <span
                       className={`text-sm font-semibold ${
-                        isToday ? "text-neon" : isSelected ? "text-white" : "text-white/70"
+                        isToday ? "text-neon" : isSelected ? "text-ink" : "text-ink/70"
                       }`}
                     >
                       {cell.day}
@@ -510,13 +510,13 @@ export default async function VenueProfilePage({
                         <span
                           key={e.id}
                           className={`h-1.5 w-1.5 rounded-full ${
-                            DOT_COLOR[e.genres[0] as GenreKey] ?? "bg-white/50"
+                            DOT_COLOR[e.genres[0] as GenreKey] ?? "bg-ink/50"
                           }`}
                         />
                       ))}
                     </span>
                     {cell.events.length > 3 && (
-                      <span className="text-[10px] leading-none text-white/50">
+                      <span className="text-[10px] leading-none text-ink/50">
                         {te.more.replace("{count}", String(cell.events.length - 3))}
                       </span>
                     )}
@@ -535,7 +535,7 @@ export default async function VenueProfilePage({
                     href={hrefFor({ dia: cell.key })}
                     aria-label={`${dayName} ${cell.day}`}
                     aria-current={isSelected ? "date" : undefined}
-                    className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
+                    className={`${cellClass} transition-colors hover:bg-ink/5 active:scale-[0.97]`}
                   >
                     {inner}
                   </Link>
@@ -546,13 +546,13 @@ export default async function VenueProfilePage({
             {/* Eventos del día seleccionado */}
             {selectedDay && (
               <div className="mt-6">
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
                   {selectedDay === todayKey
                     ? te.today
                     : dayFmt.format(new Date(`${selectedDay}T12:00:00`))}
                 </h3>
                 {selectedEvents.length === 0 ? (
-                  <p className="text-sm text-white/50">{te.noEventsDay}</p>
+                  <p className="text-sm text-ink/50">{te.noEventsDay}</p>
                 ) : (
                   <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                     {selectedEvents.map((e) => (
@@ -574,7 +574,7 @@ export default async function VenueProfilePage({
           <div className="flex flex-col gap-6">
             {groupByDay(filtered).map((g) => (
               <section key={g.key}>
-                <h3 className="mb-2 text-xs font-semibold capitalize tracking-wide text-white/50">
+                <h3 className="mb-2 text-xs font-semibold capitalize tracking-wide text-ink/50">
                   {dayLabel(g.key, te)}
                 </h3>
                 <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">

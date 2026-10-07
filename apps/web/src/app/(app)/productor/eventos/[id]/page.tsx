@@ -203,7 +203,7 @@ export default function ProducerEventDetailPage({
 
       {gate === "notProducer" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{t("notProducer")}</p>
+          <p className="text-ink/70">{t("notProducer")}</p>
           <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
@@ -212,7 +212,7 @@ export default function ProducerEventDetailPage({
 
       {gate === "notFound" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{tc("error")}</p>
+          <p className="text-ink/70">{tc("error")}</p>
           <Button href="/productor/eventos" variant="secondary">
             {t("myEvents")}
           </Button>
@@ -221,7 +221,7 @@ export default function ProducerEventDetailPage({
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p role="alert" className="text-white/70">
+          <p role="alert" className="text-ink/70">
             {tc("error")}
           </p>
           <Button variant="secondary" onClick={retryBoot}>
@@ -247,9 +247,9 @@ export default function ProducerEventDetailPage({
               start={event.startsAt}
               end={event.endsAt}
               variant="full"
-              className="text-sm text-white/60"
+              className="text-sm text-ink/60"
             />
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/50">
               {event.venue?.name && <span>{event.venue.name}</span>}
               <span>
                 {te.has(`type.${event.type}`)
@@ -346,7 +346,7 @@ export default function ProducerEventDetailPage({
         <div
           ref={cancelDialogRef}
           role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setConfirmCancel(false)}
         >
           <Card
@@ -359,7 +359,7 @@ export default function ProducerEventDetailPage({
             <h2 id="cancel-event-title" className="text-lg font-semibold">
               {t("cancelConfirmTitle")}
             </h2>
-            <p className="mt-1 text-sm text-white/60">
+            <p className="mt-1 text-sm text-ink/60">
               {t("cancelConfirmDesc")}
             </p>
             <p className="mt-3 text-sm font-medium">{event.name}</p>

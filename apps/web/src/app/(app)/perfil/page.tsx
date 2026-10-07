@@ -108,7 +108,7 @@ function ProfileReminder() {
     <Card className="flex items-center gap-3 border-neon/30 p-4">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{t("reminder.title")}</p>
-        <p className="mt-0.5 text-xs text-white/60">{t("reminder.body")}</p>
+        <p className="mt-0.5 text-xs text-ink/60">{t("reminder.body")}</p>
       </div>
       <Button
         href="/perfil/datos"
@@ -123,7 +123,7 @@ function ProfileReminder() {
         onClick={() => void dismiss()}
         disabled={busy}
         aria-label={t("reminder.dismiss")}
-        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-ink/50 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
       >
         <XIcon className="h-5 w-5" />
       </button>
@@ -313,7 +313,7 @@ export default function PerfilPage() {
   if (state === "error") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-        <p role="alert" className="text-white/50">
+        <p role="alert" className="text-ink/50">
           {tc("error")}
         </p>
         <Button variant="secondary" onClick={() => void refreshMe()}>
@@ -429,19 +429,19 @@ export default function PerfilPage() {
             <img
               src={me.photoUrl}
               alt=""
-              className="h-16 w-16 shrink-0 rounded-full border border-night-700 object-cover"
+              className="h-16 w-16 shrink-0 rounded-full border border-line object-cover"
             />
           ) : (
             <span
               aria-hidden="true"
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-night-700 bg-night-800 text-2xl font-bold text-neon"
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-line bg-elevated text-2xl font-bold text-neon"
             >
               {me.name.charAt(0).toUpperCase()}
             </span>
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold">{me.name}</p>
-            <p className="truncate text-sm text-white/50">
+            <p className="truncate text-sm text-ink/50">
               {me.email ?? "·"}
             </p>
             {(me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" })))
@@ -456,7 +456,7 @@ export default function PerfilPage() {
                   >
                     {roleLabel(rs.role)}
                     {rs.status !== "APPROVED" && (
-                      <span className="ml-1 text-white/50">
+                      <span className="ml-1 text-ink/50">
                         ·{" "}
                         {rs.status === "SANDBOX"
                           ? t("roleSandbox")
@@ -471,7 +471,7 @@ export default function PerfilPage() {
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            className="h-5 w-5 shrink-0 text-white/40"
+            className="h-5 w-5 shrink-0 text-ink/40"
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
@@ -519,7 +519,7 @@ export default function PerfilPage() {
         <Card data-tour="perfil-actas">
           <h2
             id="act-as-title"
-            className="text-sm font-semibold uppercase tracking-wide text-white/50"
+            className="text-sm font-semibold uppercase tracking-wide text-ink/50"
           >
             {t("actAs")}
           </h2>
@@ -541,7 +541,7 @@ export default function PerfilPage() {
                   }}
                   className="peer sr-only"
                 />
-                <span className="flex min-h-11 select-none items-center rounded-full border border-night-700 bg-night-800 px-4 text-sm font-semibold text-white/70 transition-colors peer-checked:border-neon peer-checked:bg-neon peer-checked:text-night-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-white active:scale-[0.98] motion-reduce:active:scale-100">
+                <span className="flex min-h-11 select-none items-center rounded-full border border-line bg-elevated px-4 text-sm font-semibold text-ink/70 transition-colors peer-checked:border-neon peer-checked:bg-neon peer-checked:text-on-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink active:scale-[0.98] motion-reduce:active:scale-100">
                   {roleLabel(role)}
                 </span>
               </label>
@@ -558,7 +558,7 @@ export default function PerfilPage() {
            streak null = fetch en vuelo → skeleton; jamás "0" como
            placeholder de un dato real. */
         <Card data-tour="perfil-gamif">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {tg("streak")}
           </h2>
           {streak === null ? (
@@ -571,7 +571,7 @@ export default function PerfilPage() {
               <p className="mt-2 text-6xl font-bold leading-none text-neon">
                 {streak.currentWeeks}
               </p>
-              <p className="mt-2 text-sm text-white/50">
+              <p className="mt-2 text-sm text-ink/50">
                 {tg(viewMode === "academy" ? "streakAcademy" : "streakSocial")}
                 {" · "}
                 {tg("streakBest")}: {streak.bestWeeks}
@@ -586,7 +586,7 @@ export default function PerfilPage() {
           del otro modo se filtran - academy_score sigue privado (spec). */}
       {currentActAs !== "ADMIN" && (
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {tg("badges")}
           </h2>
           {!gamifFetched ? (
@@ -604,7 +604,7 @@ export default function PerfilPage() {
               ))}
             </ul>
           ) : visibleBadges.length === 0 ? (
-            <p className="mt-3 text-sm text-white/60">
+            <p className="mt-3 text-sm text-ink/60">
               {tg(viewMode === "academy" ? "badgesEmptyAcademy" : "badgesEmpty")}
             </p>
           ) : (
@@ -612,7 +612,7 @@ export default function PerfilPage() {
               {visibleBadges.map((b) => (
                 <li
                   key={b.badge.key}
-                  className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 p-3"
+                  className="flex flex-col gap-2 rounded-xl border border-line bg-elevated/50 p-3"
                 >
                   <span className="font-medium leading-tight">
                     {b.badge.name}
@@ -639,7 +639,7 @@ export default function PerfilPage() {
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            className="h-5 w-5 shrink-0 text-white/40"
+            className="h-5 w-5 shrink-0 text-ink/40"
             fill="none"
             stroke="currentColor"
             strokeWidth={2}

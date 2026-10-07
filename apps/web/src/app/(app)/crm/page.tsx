@@ -33,7 +33,7 @@ export default function CrmPage() {
               <PeopleTable actor={ctx.actor} />
             )
           ) : (
-            <p className="text-white/60">{t("pickActor")}</p>
+            <p className="text-ink/60">{t("pickActor")}</p>
           )}
         </>
       )}

@@ -155,7 +155,7 @@ export function StudentsSection({
         <SkeletonList items={3} lines={1} />
       ) : error ? (
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-sm text-white/60">
+          <p role="alert" className="text-sm text-ink/60">
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
@@ -164,7 +164,7 @@ export function StudentsSection({
         </div>
       ) : students.length === 0 ? (
         <div className="flex flex-col items-start gap-3">
-          <p role="status" className="text-sm text-white/50">
+          <p role="status" className="text-sm text-ink/50">
             {t("studentsEmpty")}
           </p>
           {!readOnly && (
@@ -193,7 +193,7 @@ export function StudentsSection({
                     {t(`status.${s.status}`)}
                   </Badge>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-white/50">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-ink/50">
                   <span className="truncate">{s.plan?.name ?? "-"}</span>
                   {s.startsAt && <EventDate start={s.startsAt} />}
                   {readOnly ? (

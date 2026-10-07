@@ -46,7 +46,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   if (gate === "notAdmin") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p className="text-white/70">{t("notAdmin")}</p>
+        <p className="text-ink/70">{t("notAdmin")}</p>
         <Button href="/inicio" variant="secondary">
           {tc("appName")}
         </Button>
@@ -57,7 +57,7 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   if (gate === "error") {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p role="alert" className="text-white/70">
+        <p role="alert" className="text-ink/70">
           {tc("error")}
         </p>
         <Button variant="secondary" onClick={() => void refreshMe()}>

@@ -177,7 +177,7 @@ export default async function EventoDetailPage({
   if (event === "error") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p role="alert" className="text-white/60">{t.loadError}</p>
+        <p role="alert" className="text-ink/60">{t.loadError}</p>
         <div className="flex flex-wrap justify-center gap-3">
           {/* Server page: el retry es recargar la misma ruta. */}
           <Button href={`/eventos/${params.id}`}>
@@ -277,14 +277,14 @@ export default async function EventoDetailPage({
           variant="full"
           start={event.startsAt}
           end={event.endsAt}
-          className="text-white/70"
+          className="text-ink/70"
         />
         {/* Host de la práctica - "quién organiza" es dato clave de la ficha */}
         {isPractice && event.host?.name && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             <Link
               href={`/amigos/${event.host.id}`}
-              className="font-medium text-white underline-offset-4 transition-colors hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="font-medium text-ink underline-offset-4 transition-colors hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               {t.organizedBy.replace("{name}", event.host.name)}
             </Link>
@@ -295,8 +295,8 @@ export default async function EventoDetailPage({
           <p className="text-sm">
             {orderedGenres.map((g, i) => (
               <span key={g}>
-                {i > 0 && <span className="text-white/30"> · </span>}
-                <span className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}>
+                {i > 0 && <span className="text-ink/30"> · </span>}
+                <span className={GENRE_TEXT[g as GenreKey] ?? "text-ink/50"}>
                   {t.genre[g] ?? g}
                 </span>
               </span>
@@ -317,7 +317,7 @@ export default async function EventoDetailPage({
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
-              className="h-4 w-4 shrink-0 text-white/50"
+              className="h-4 w-4 shrink-0 text-ink/50"
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
@@ -340,7 +340,7 @@ export default async function EventoDetailPage({
                   (event.venue?.name ?? event.venueText)
                 )}
               </p>
-              <p className="text-white/50">
+              <p className="text-ink/50">
                 {[
                   event.venue?.address ?? event.venueNotes,
                   capacity != null
@@ -377,7 +377,7 @@ export default async function EventoDetailPage({
             className="flex shrink-0 -space-x-2"
           >
             {friendsGoing.slice(0, 4).map((f) => (
-              <li key={f.id} className="rounded-full ring-2 ring-night-950">
+              <li key={f.id} className="rounded-full ring-2 ring-line">
                 <PartnerAvatar
                   name={f.name}
                   photoUrl={f.photoUrl}
@@ -386,12 +386,12 @@ export default async function EventoDetailPage({
               </li>
             ))}
             {friendsGoing.length > 4 && (
-              <li className="flex h-8 w-8 items-center justify-center rounded-full bg-night-700 text-[10px] font-semibold text-white/70 ring-2 ring-night-950">
+              <li className="flex h-8 w-8 items-center justify-center rounded-full bg-raised text-[10px] font-semibold text-ink/70 ring-2 ring-line">
                 +{friendsGoing.length - 4}
               </li>
             )}
           </ul>
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-ink/70">
             {(() => {
               const first = friendsGoing[0].name.split(" ")[0];
               if (friendsGoing.length === 1) {
@@ -416,7 +416,7 @@ export default async function EventoDetailPage({
           exista. En prácticas es el contenido principal de la ficha. */}
       {event.description && (
         <Card>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink/80">
             {event.description}
           </p>
         </Card>
@@ -437,7 +437,7 @@ export default async function EventoDetailPage({
           ) : (
             <dl className="grid grid-cols-2 gap-4">
               <div>
-                <dt className="text-xs uppercase tracking-wide text-white/50">
+                <dt className="text-xs uppercase tracking-wide text-ink/50">
                   {t.presale}
                 </dt>
                 <dd className="mt-1">
@@ -445,7 +445,7 @@ export default async function EventoDetailPage({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs uppercase tracking-wide text-white/50">
+                <dt className="text-xs uppercase tracking-wide text-ink/50">
                   {t.door}
                 </dt>
                 <dd className="mt-1">
@@ -461,17 +461,17 @@ export default async function EventoDetailPage({
           prácticas: son un solo bloque de baile) */}
       {!isPractice && program != null && program.length > 0 && (
         <Card>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.program}
           </h2>
-          <ol className="relative ml-2 flex flex-col gap-3.5 border-l border-night-700 pl-5">
+          <ol className="relative ml-2 flex flex-col gap-3.5 border-l border-line pl-5">
             {program.map((p, i) => (
               <li key={i} className="relative flex items-baseline gap-3">
                 <span
                   aria-hidden="true"
                   className="absolute -left-[1.6875rem] top-1.5 h-2.5 w-2.5 rounded-full bg-neon"
                 />
-                <span className="w-24 shrink-0 text-sm tabular-nums text-white/50">
+                <span className="w-24 shrink-0 text-sm tabular-nums text-ink/50">
                   {p.t}
                   {p.end ? `–${p.end}` : ""}
                 </span>
@@ -500,7 +500,7 @@ export default async function EventoDetailPage({
           <Card>
             <h2
               id="missions-heading"
-              className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50"
+              className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50"
             >
               {tg.missions}
             </h2>
@@ -517,7 +517,7 @@ export default async function EventoDetailPage({
                       {m.completed ? (
                         <Badge variant="neon">{tg.completed}</Badge>
                       ) : (
-                        <span className="shrink-0 text-sm text-white/50">
+                        <span className="shrink-0 text-sm text-ink/50">
                           {tg.primeProgress
                             .replace("{current}", String(m.progress))
                             .replace("{threshold}", String(m.target))}
@@ -525,7 +525,7 @@ export default async function EventoDetailPage({
                       )}
                     </div>
                     {m.description && (
-                      <p className="text-sm text-white/60">{m.description}</p>
+                      <p className="text-sm text-ink/60">{m.description}</p>
                     )}
                     <div
                       role="progressbar"
@@ -533,7 +533,7 @@ export default async function EventoDetailPage({
                       aria-valuemin={0}
                       aria-valuemax={m.target}
                       aria-label={m.name}
-                      className="h-2 w-full overflow-hidden rounded-full bg-night-800"
+                      className="h-2 w-full overflow-hidden rounded-full bg-elevated"
                     >
                       <div
                         className={`h-full rounded-full transition-[width] duration-500 ${
@@ -553,7 +553,7 @@ export default async function EventoDetailPage({
       {/* Lineup - no aplica a prácticas (no hay DJs en cartel) */}
       {!isPractice && event.djs.length > 0 && (
         <Card>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.lineup}
           </h2>
           <ul className="flex flex-col gap-4">
@@ -564,12 +564,12 @@ export default async function EventoDetailPage({
                   <img
                     src={dj.person.photoUrl}
                     alt=""
-                    className="h-11 w-11 shrink-0 rounded-full border border-night-700 object-cover"
+                    className="h-11 w-11 shrink-0 rounded-full border border-line object-cover"
                   />
                 ) : (
                   <span
                     aria-hidden="true"
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-night-700 bg-night-800 text-sm font-bold text-neon"
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-elevated text-sm font-bold text-neon"
                   >
                     {dj.person.name.charAt(0).toUpperCase()}
                   </span>
@@ -577,7 +577,7 @@ export default async function EventoDetailPage({
                 <div>
                   <p className="font-medium">{dj.person.name}</p>
                   {dj.slotNote && (
-                    <p className="text-xs text-white/50">{dj.slotNote}</p>
+                    <p className="text-xs text-ink/50">{dj.slotNote}</p>
                   )}
                 </div>
               </li>
@@ -590,18 +590,18 @@ export default async function EventoDetailPage({
           0..n (típico 3–5); vacío → sección oculta. No aplica a prácticas. */}
       {!isPractice && event.shows.length > 0 && (
         <Card>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.shows}
           </h2>
           <ul className="flex flex-col gap-4">
             {event.shows.map((show, i) => (
               <li key={`${show.academy}-${show.name}-${i}`}>
                 <p className="font-medium">{show.academy}</p>
-                <p className="text-sm text-white/60">
+                <p className="text-sm text-ink/60">
                   {(t.showTeam as Record<string, string>)[show.teamType] ??
                     show.teamType}
                   {" · "}
-                  <span className="text-white/80">{show.name}</span>
+                  <span className="text-ink/80">{show.name}</span>
                 </p>
               </li>
             ))}
@@ -613,10 +613,10 @@ export default async function EventoDetailPage({
           está como badge en el hero */}
       {!isPractice && blocks.length > 0 && (
         <Card>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.schedule}
           </h2>
-          <ol className="relative ml-2 flex flex-col gap-5 border-l border-night-700 pl-5">
+          <ol className="relative ml-2 flex flex-col gap-5 border-l border-line pl-5">
             {blocks.map((b, i) => (
               <li key={i} className="relative">
                 <span
@@ -627,7 +627,7 @@ export default async function EventoDetailPage({
                   variant="time"
                   start={b.startsAt}
                   end={b.endsAt}
-                  className="block text-sm text-white/50"
+                  className="block text-sm text-ink/50"
                 />
                 <p className="font-medium">{b.style?.name ?? t.openFloor}</p>
               </li>
@@ -639,10 +639,10 @@ export default async function EventoDetailPage({
       {/* CTA sticky (mobile-first) - flota sobre la BottomNav. Evento
           pasado/cancelado: aviso en vez de compra; la ficha completa
           (descripción, lineup, programa) sigue visible arriba. */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur lg:bottom-0">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-line bg-canvas/90 backdrop-blur lg:bottom-0">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:max-w-4xl lg:px-8">
           {isPast ? (
-            <p className="w-full text-center text-sm font-medium text-white/60">
+            <p className="w-full text-center text-sm font-medium text-ink/60">
               {isCancelled ? t.cancelled : t.past}
             </p>
           ) : event.type === "PRACTICA" ? (
@@ -652,7 +652,7 @@ export default async function EventoDetailPage({
           ) : (
             <>
               <div className="min-w-0">
-                <span className="block text-xs text-white/50">{ctaLabel}</span>
+                <span className="block text-xs text-ink/50">{ctaLabel}</span>
                 {ctaPrice != null ? (
                   <PriceTag amount={ctaPrice} className="text-lg" />
                 ) : (

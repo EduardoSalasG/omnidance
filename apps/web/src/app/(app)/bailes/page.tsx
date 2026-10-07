@@ -231,7 +231,7 @@ function Bailes() {
       {eventId && (
         <Link
           href="/bailes"
-          className="inline-flex w-fit items-center gap-2 rounded-full border border-night-700 bg-night-800 px-3 py-1.5 text-xs text-white/70 transition-colors hover:border-neon/50 hover:text-white"
+          className="inline-flex w-fit items-center gap-2 rounded-full border border-line bg-elevated px-3 py-1.5 text-xs text-ink/70 transition-colors hover:border-neon/50 hover:text-ink"
         >
           <span className="truncate">
             {/* /events/:id en vuelo → skeleton inline en el chip: el
@@ -244,7 +244,7 @@ function Bailes() {
               /* Va dentro de un <span> → no puede ser Skeleton <div>. */
               <span
                 aria-hidden="true"
-                className="page-loading inline-block h-3 w-24 animate-pulse rounded-lg bg-night-800 align-middle motion-reduce:animate-none"
+                className="page-loading inline-block h-3 w-24 animate-pulse rounded-lg bg-elevated align-middle motion-reduce:animate-none"
               />
             )}
           </span>
@@ -297,11 +297,11 @@ function Bailes() {
               data-tour="bailes-pending"
               className="flex flex-col gap-3"
             >
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("pending")}
               </h2>
               {incoming.length > 0 && outgoing.length > 0 && (
-                <h3 className="text-xs font-medium text-white/60">
+                <h3 className="text-xs font-medium text-ink/60">
                   {t("pendingIn")}
                 </h3>
               )}
@@ -316,7 +316,7 @@ function Bailes() {
                 ))}
               </div>
               {incoming.length > 0 && outgoing.length > 0 && (
-                <h3 className="mt-1 text-xs font-medium text-white/60">
+                <h3 className="mt-1 text-xs font-medium text-ink/60">
                   {t("pendingOut")}
                 </h3>
               )}
@@ -339,7 +339,7 @@ function Bailes() {
             <section
               aria-labelledby="last-social-heading"
               data-tour="bailes-insights"
-              className="relative overflow-hidden rounded-2xl border border-night-700 bg-night-900 p-4"
+              className="relative overflow-hidden rounded-2xl border border-line bg-surface p-4"
             >
               {/* La pista como material: glow radial del acento sobre la
                   superficie - mismo lenguaje que el hero de /inicio */}
@@ -351,7 +351,7 @@ function Bailes() {
                 <div className="flex items-center justify-between gap-3">
                   <h2
                     id="last-social-heading"
-                    className="text-sm font-semibold uppercase tracking-wide text-white/50"
+                    className="text-sm font-semibold uppercase tracking-wide text-ink/50"
                   >
                     {lastEvent.status === "LIVE"
                       ? t("tonight")
@@ -367,11 +367,11 @@ function Bailes() {
                 </div>
                 <Link
                   href={`/eventos/${lastEventId}`}
-                  className="text-display mt-1 block truncate text-xl font-bold text-white transition-colors hover:text-neon"
+                  className="text-display mt-1 block truncate text-xl font-bold text-ink transition-colors hover:text-neon"
                 >
                   {lastEvent.name}
                 </Link>
-                <p className="mt-0.5 text-xs text-white/50">
+                <p className="mt-0.5 text-xs text-ink/50">
                   {lastEvent.status !== "LIVE" && (
                     <>
                       <EventDate start={lastEvent.startsAt} />
@@ -385,7 +385,7 @@ function Bailes() {
                     <dd className="font-semibold tabular-nums text-neon">
                       {danced.length}
                     </dd>
-                    <dt className="text-white/60">
+                    <dt className="text-ink/60">
                       {t("dancesStat", { count: danced.length })}
                     </dt>
                   </div>
@@ -393,7 +393,7 @@ function Bailes() {
                     <dd className="font-semibold tabular-nums text-neon">
                       {lastPartners}
                     </dd>
-                    <dt className="text-white/60">
+                    <dt className="text-ink/60">
                       {t("partnersStat", { count: lastPartners })}
                     </dt>
                   </div>
@@ -403,7 +403,7 @@ function Bailes() {
                         <StarIcon filled className="h-4 w-4" />
                         {lastAvg.toFixed(1)}
                       </dd>
-                      <dt className="text-white/60">{t("avgGiven")}</dt>
+                      <dt className="text-ink/60">{t("avgGiven")}</dt>
                     </div>
                   )}
                 </dl>
@@ -415,9 +415,9 @@ function Bailes() {
                 {streakDone &&
                   (bestDance?.partner ||
                     (streak !== null && streak >= 2)) && (
-                  <div className="mt-3 flex flex-col gap-1.5 border-t border-night-700/60 pt-3">
+                  <div className="mt-3 flex flex-col gap-1.5 border-t border-line/60 pt-3">
                     {bestDance?.partner && (
-                      <p className="flex items-center gap-2 text-sm text-white/70">
+                      <p className="flex items-center gap-2 text-sm text-ink/70">
                         <PartnerAvatar
                           name={bestDance.partner.name}
                           photoUrl={bestDance.partner.photoUrl}
@@ -449,11 +449,11 @@ function Bailes() {
           {history.length > 0 && (
             <section data-tour="bailes-history" className="flex flex-col gap-3">
               <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("history")}
                 </h2>
                 {eventId && confirmed.length > 0 && (
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-ink/50">
                     {t("summary", {
                       dances: confirmed.length,
                       partners: partnerCount,
@@ -482,14 +482,14 @@ function Bailes() {
                 ) : (
                   <details
                     key={g.eventId}
-                    className="group rounded-2xl border border-night-700 bg-night-800/40 transition-colors open:bg-night-800/60"
+                    className="group rounded-2xl border border-line bg-elevated/40 transition-colors open:bg-elevated/60"
                   >
                     <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">
+                        <p className="truncate text-sm font-semibold text-ink">
                           {g.event?.name ?? t("unknownEvent")}
                         </p>
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-ink/50">
                           {g.event && (
                             <>
                               <EventDate start={g.event.startsAt} />
@@ -502,7 +502,7 @@ function Bailes() {
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         {g.dances > 0 && (
-                          <p className="text-xs text-white/50">
+                          <p className="text-xs text-ink/50">
                             {t("summary", {
                               dances: g.dances,
                               partners: g.partners,
@@ -512,7 +512,7 @@ function Bailes() {
                         <svg
                           aria-hidden="true"
                           viewBox="0 0 16 16"
-                          className="h-4 w-4 text-white/40 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                          className="h-4 w-4 text-ink/40 transition-transform group-open:rotate-180 motion-reduce:transition-none"
                           fill="none"
                           stroke="currentColor"
                           strokeWidth="1.5"
@@ -596,7 +596,7 @@ function Bailes() {
 export default function BailesPage() {
   return (
     <Suspense
-      fallback={<main className="min-h-dvh bg-night-950" aria-hidden="true" />}
+      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
     >
       <Bailes />
     </Suspense>

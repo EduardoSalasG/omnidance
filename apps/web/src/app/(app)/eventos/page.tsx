@@ -317,11 +317,11 @@ export default async function EventosPage({
     `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] ${
       active
         ? "border-neon bg-neon/15 text-neon"
-        : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+        : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
     }`;
   const iconBtn = (active: boolean) =>
     `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
-      active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
+      active ? "bg-neon text-on-accent" : "text-ink/60 hover:text-ink"
     }`;
   // Género multiselect → SegmentedMulti: cada chip activo lleva su
   // pill propio y un anillo neon itinerante se desliza al último
@@ -343,7 +343,7 @@ export default async function EventosPage({
     items: EventListItem[];
   }) => (
     <section key={key}>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
         {dayLabel(label, t)}
       </h3>
       <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
@@ -457,7 +457,7 @@ export default async function EventosPage({
                 data-tour="ev-mios"
                 aria-label={t.viewMios}
                 aria-current={view === "mios" ? "true" : undefined}
-                className={`${iconBtn(view === "mios")} border border-white/15`}
+                className={`${iconBtn(view === "mios")} border border-ink/15`}
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M2 9a3 3 0 0 1 0 6v3a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-3a3 3 0 0 1 0-6V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1zm13-5v2m0 10v2m0-8v2" />
@@ -520,12 +520,12 @@ export default async function EventosPage({
               </svg>
               {venueLabel}
             </summary>
-            <ul className="absolute left-0 z-20 mt-2 flex max-h-72 w-56 flex-col overflow-y-auto rounded-xl border border-night-700 bg-night-900 p-1 shadow-xl shadow-black/40">
+            <ul className="absolute left-0 z-20 mt-2 flex max-h-72 w-56 flex-col overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-xl shadow-black/40">
               <li>
                 <Link
                   href={hrefFor({ venue: undefined })}
                   className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
-                    !venueId ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
+                    !venueId ? "font-semibold text-neon" : "text-ink/80 hover:bg-ink/5"
                   }`}
                 >
                   {t.allVenues}
@@ -536,7 +536,7 @@ export default async function EventosPage({
                   <Link
                     href={hrefFor({ venue: id })}
                     className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${
-                      venueId === id ? "font-semibold text-neon" : "text-white/80 hover:bg-white/5"
+                      venueId === id ? "font-semibold text-neon" : "text-ink/80 hover:bg-ink/5"
                     }`}
                   >
                     {name}
@@ -557,7 +557,7 @@ export default async function EventosPage({
            el empty falso de la wallet. */
         myTickets === null ? (
           <div className="flex items-center gap-3">
-            <p role="alert" className="text-sm text-white/60">
+            <p role="alert" className="text-sm text-ink/60">
               {t.loadError}
             </p>
             <Button href={hrefFor({})} variant="secondary" size="sm">
@@ -571,7 +571,7 @@ export default async function EventosPage({
         /* 500/red en /events no es cartelera vacía - error honesto
            con retry a la misma ruta (conserva vista y filtros). */
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-sm text-white/60">
+          <p role="alert" className="text-sm text-ink/60">
             {t.loadError}
           </p>
           <Button href={hrefFor({})} variant="secondary" size="sm">
@@ -581,15 +581,15 @@ export default async function EventosPage({
       ) : view === "map" ? (
         <section aria-label={t.viewMap}>
           {mapVenues.length === 0 ? (
-            <p className="text-white/60">
+            <p className="text-ink/60">
               {genreSet.size || venueId ? t.emptyFiltered : t.empty}
             </p>
           ) : (
             <>
-              <div className="h-[68dvh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-night-700">
+              <div className="h-[68dvh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-line">
                 <EventsMap venues={mapVenues} />
               </div>
-              <p className="mt-3 text-center text-xs text-white/50">
+              <p className="mt-3 text-center text-xs text-ink/50">
                 {t.mapHint}
               </p>
             </>
@@ -627,7 +627,7 @@ export default async function EventosPage({
             {WEEKDAY_HEADERS.map((h, i) => (
               <span
                 key={i}
-                className="text-center text-[10px] font-semibold uppercase text-white/40"
+                className="text-center text-[10px] font-semibold uppercase text-ink/40"
               >
                 {h}
               </span>
@@ -645,7 +645,7 @@ export default async function EventosPage({
                   <span className="sr-only">{dayName}</span>
                   <span
                     className={`text-sm font-semibold ${
-                      isToday ? "text-neon" : isSelected ? "text-white" : "text-white/70"
+                      isToday ? "text-neon" : isSelected ? "text-ink" : "text-ink/70"
                     }`}
                   >
                     {cell.day}
@@ -655,13 +655,13 @@ export default async function EventosPage({
                       <span
                         key={e.id}
                         className={`h-1.5 w-1.5 rounded-full ${
-                          DOT_COLOR[e.genres[0] as GenreKey] ?? "bg-white/50"
+                          DOT_COLOR[e.genres[0] as GenreKey] ?? "bg-ink/50"
                         }`}
                       />
                     ))}
                   </span>
                   {cell.events.length > 3 && (
-                    <span className="text-[10px] leading-none text-white/50">
+                    <span className="text-[10px] leading-none text-ink/50">
                       {t.more.replace("{count}", String(cell.events.length - 3))}
                     </span>
                   )}
@@ -680,7 +680,7 @@ export default async function EventosPage({
                   href={hrefFor({ day: cell.key })}
                   aria-label={`${dayName} ${cell.day}`}
                   aria-current={isSelected ? "date" : undefined}
-                  className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
+                  className={`${cellClass} transition-colors hover:bg-ink/5 active:scale-[0.97]`}
                 >
                   {inner}
                 </Link>
@@ -691,11 +691,11 @@ export default async function EventosPage({
           {/* Eventos del día seleccionado */}
           {selectedDay && (
             <section className="mt-6">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
                 {dayLabel(selectedDay, t)}
               </h3>
               {selectedEvents.length === 0 ? (
-                <p className="text-sm text-white/50">{t.noEventsDay}</p>
+                <p className="text-sm text-ink/50">{t.noEventsDay}</p>
               ) : (
                 <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                   {selectedEvents.map((e) => (
@@ -707,7 +707,7 @@ export default async function EventosPage({
           )}
         </section>
       ) : filtered.length === 0 ? (
-        <p className="text-white/60">
+        <p className="text-ink/60">
           {genreSet.size || venueId ? t.emptyFiltered : t.empty}
         </p>
       ) : (
@@ -719,13 +719,13 @@ export default async function EventosPage({
             <div className="flex flex-col gap-6">
               {groupByDay(thisWeek).map(renderDayGroup)}
               {thisWeek.length === 0 && (
-                <p className="text-sm text-white/60">{t.emptyFiltered}</p>
+                <p className="text-sm text-ink/60">{t.emptyFiltered}</p>
               )}
             </div>
           </section>
           {later.length > 0 && (
             <section>
-              <h2 className="mb-3 text-sm font-semibold text-white/60">
+              <h2 className="mb-3 text-sm font-semibold text-ink/60">
                 {t.upcoming}
               </h2>
               <div className="flex flex-col gap-6">
@@ -737,7 +737,7 @@ export default async function EventosPage({
           {hasLater && (
             <Link
               href={hrefFor({ upto: String(upto + 1) })}
-              className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-white/15 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.98]"
+              className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-ink/15 text-sm font-medium text-ink/70 transition-colors hover:border-neon/50 hover:text-ink active:scale-[0.98]"
             >
               {t.loadLater}
               <ChevronDownIcon />

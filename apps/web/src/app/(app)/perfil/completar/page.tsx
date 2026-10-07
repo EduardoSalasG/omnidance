@@ -104,7 +104,7 @@ export default function CompletarPerfilPage() {
         /* Error de CARGA (/me), no de guardado: copy propia + retry +
            salida a /login (un 401 también aterriza acá). */
         <div className="flex flex-col items-center gap-4 text-center">
-          <p role="alert" className="text-sm text-white/70">
+          <p role="alert" className="text-sm text-ink/70">
             {t("complete.loadError")}
           </p>
           <div className="flex gap-3">
@@ -137,13 +137,13 @@ export default function CompletarPerfilPage() {
           <h1 className="text-2xl font-bold tracking-tight">
             {t("complete.title")}
           </h1>
-          <p className="mt-1 text-sm text-white/60">
+          <p className="mt-1 text-sm text-ink/60">
             {t("complete.subtitle")}
           </p>
           <Card className="mt-6 p-5">
             <form onSubmit={submit} className="flex flex-col gap-4">
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/60">
+                <span className="text-xs font-medium text-ink/60">
                   {t("complete.name")}
                 </span>
                 <input
@@ -157,7 +157,7 @@ export default function CompletarPerfilPage() {
                 />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/60">
+                <span className="text-xs font-medium text-ink/60">
                   {t("complete.phone")}
                 </span>
                 <input
@@ -172,7 +172,7 @@ export default function CompletarPerfilPage() {
                 />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-white/60">
+                <span className="text-xs font-medium text-ink/60">
                   {t("complete.password")}
                 </span>
                 <input
@@ -183,7 +183,7 @@ export default function CompletarPerfilPage() {
                   disabled={saving}
                   className={inputCls}
                 />
-                <span className="text-[11px] text-white/40">
+                <span className="text-[11px] text-ink/40">
                   {t("complete.passwordHint")}
                 </span>
               </label>

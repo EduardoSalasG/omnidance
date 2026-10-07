@@ -36,8 +36,8 @@ export function PillTabs({ items, active, onSelect, ariaLabel }: PillTabsProps) 
           onClick={() => onSelect(item.key)}
           className={`inline-flex min-h-[44px] shrink-0 items-center rounded-full px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
             active === item.key
-              ? "bg-neon text-black"
-              : "bg-white/10 text-white/70 hover:text-white"
+              ? "bg-neon text-on-accent"
+              : "bg-ink/10 text-ink/70 hover:text-ink"
           }`}
         >
           {item.label}

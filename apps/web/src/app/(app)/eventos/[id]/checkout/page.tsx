@@ -52,7 +52,7 @@ export default async function CheckoutPage({
   if (event === "error") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p className="text-white/60">{t.loadError}</p>
+        <p className="text-ink/60">{t.loadError}</p>
         <Button href={`/eventos/${params.id}`} variant="secondary">
           {t.backToList}
         </Button>
@@ -70,7 +70,7 @@ export default async function CheckoutPage({
   if (noTicket) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p className="text-white/60">
+        <p className="text-ink/60">
           {event.status === "CANCELLED"
             ? t.cancelled
             : event.type === "PRACTICA"

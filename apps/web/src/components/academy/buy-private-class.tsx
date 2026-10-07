@@ -126,11 +126,11 @@ export function BuyPrivateClass({
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <Spinner size="sm" />
-            <p role="status" className="text-sm text-white/70">
+            <p role="status" className="text-sm text-ink/70">
               {tco("pending")}
             </p>
           </div>
-          <p className="text-xs uppercase tracking-wide text-white/50">
+          <p className="text-xs uppercase tracking-wide text-ink/50">
             {tco("devSimTitle")}
           </p>
           <div className="flex gap-2">

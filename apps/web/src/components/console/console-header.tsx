@@ -32,7 +32,7 @@ export function ConsoleHeader({
     >
       <Link
         href={backHref}
-        className={`inline-flex min-h-11 w-fit items-center gap-1 text-sm text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+        className={`inline-flex min-h-11 w-fit items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
           hideBackDesktop ? "lg:hidden" : ""
         }`}
       >

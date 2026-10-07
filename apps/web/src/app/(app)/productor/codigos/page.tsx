@@ -104,7 +104,7 @@ function DiscountCodes() {
         )}
         {codes !== null && codes.length === 0 && (
           <Card className="flex flex-col items-center gap-4 py-10 text-center">
-            <p role="status" className="text-white/70">
+            <p role="status" className="text-ink/70">
               {t("empty")}
             </p>
             <Button href="/productor/codigos/nuevo">
@@ -127,7 +127,7 @@ function DiscountCodes() {
                         : c.type}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/70">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/70">
                     <span>
                       {c.percentOff !== null ? (
                         <span className="font-semibold text-neon">
@@ -148,7 +148,7 @@ function DiscountCodes() {
                       </span>
                     )}
                     {eventName(c.eventId) && (
-                      <span className="text-white/50">
+                      <span className="text-ink/50">
                         {eventName(c.eventId)}
                       </span>
                     )}

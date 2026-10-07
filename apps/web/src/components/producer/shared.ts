@@ -287,8 +287,8 @@ export type Payout = {
 
 // Inputs dark-first; min-h-12 = touch target (mismo lenguaje que /productor).
 export const inputCls =
-  "min-h-12 w-full rounded-xl border border-night-700 bg-night-950 px-4 py-3 " +
-  "text-white placeholder:text-white/50 " +
+  "min-h-12 w-full rounded-xl border border-line bg-canvas px-4 py-3 " +
+  "text-ink placeholder:text-ink/50 " +
   "focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50";
 
 /** ISO → valor de <input type="datetime-local"> en hora local. */

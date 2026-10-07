@@ -109,7 +109,7 @@ export function OwnMethodClaim({
       <div>
         <Badge variant="muted">{t("ownMethodPendingTitle")}</Badge>
         <h2 className="mt-2 text-base font-semibold">{method.label}</h2>
-        <p className="mt-1 text-sm text-white/60">
+        <p className="mt-1 text-sm text-ink/60">
           {t("ownMethodPendingDesc")}
         </p>
       </div>
@@ -129,29 +129,29 @@ export function OwnMethodClaim({
       )}
 
       {hasPending ? (
-        <p role="status" className="animate-pulse text-sm text-white/70">
+        <p role="status" className="animate-pulse text-sm text-ink/70">
           {t("claimPending")}
         </p>
       ) : (
-        <div className="flex flex-col gap-3 border-t border-night-700 pt-4">
+        <div className="flex flex-col gap-3 border-t border-line pt-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-white/60">{t("claimNote")}</span>
+            <span className="text-ink/60">{t("claimNote")}</span>
             <input
               type="text"
               value={note}
               maxLength={200}
               onChange={(e) => setNote(e.target.value)}
-              className="min-h-11 rounded-xl border border-night-700 bg-night-900 px-3 text-sm"
+              className="min-h-11 rounded-xl border border-line bg-surface px-3 text-sm"
             />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-white/60">{t("claimFile")}</span>
+            <span className="text-ink/60">{t("claimFile")}</span>
             <input
               ref={fileRef}
               type="file"
               accept="image/png,image/jpeg,image/webp,application/pdf"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="text-sm text-white/70 file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-night-700 file:px-4 file:text-sm file:text-white"
+              className="text-sm text-ink/70 file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-raised file:px-4 file:text-sm file:text-ink"
             />
           </label>
           {msg && (

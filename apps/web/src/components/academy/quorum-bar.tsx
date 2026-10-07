@@ -19,7 +19,7 @@ export function QuorumBar({
       aria-valuenow={booked}
       aria-valuemin={0}
       aria-valuemax={quorum}
-      className={`h-2 w-full overflow-hidden rounded-full bg-night-800 ${className}`}
+      className={`h-2 w-full overflow-hidden rounded-full bg-elevated ${className}`}
     >
       <div
         className={`h-full rounded-full transition-[width] ${

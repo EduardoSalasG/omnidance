@@ -55,7 +55,7 @@ export default function AcademiaPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
-      <p className="text-sm text-white/50">{t("hubDesc")}</p>
+      <p className="text-sm text-ink/50">{t("hubDesc")}</p>
 
       <AcademyGate>
         {({ academy }) => (

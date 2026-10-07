@@ -18,7 +18,7 @@ export function SlotsSection({ slots }: Props) {
   const te = useTranslations("events");
 
   if (slots.length === 0) {
-    return <p className="text-sm text-white/50">·</p>;
+    return <p className="text-sm text-ink/50">·</p>;
   }
   return (
     <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -29,11 +29,11 @@ export function SlotsSection({ slots }: Props) {
             <span className="font-medium tabular-nums">
               {s.startTime} – {s.endTime}
             </span>
-            <span className="truncate text-sm text-white/70">
+            <span className="truncate text-sm text-ink/70">
               {s.series.name}
             </span>
             {s.capacity != null && (
-              <span className="ml-auto text-xs text-white/50">
+              <span className="ml-auto text-xs text-ink/50">
                 {te("capacity", { count: s.capacity })}
               </span>
             )}

@@ -217,7 +217,7 @@ export function SeriesPassCta({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="font-semibold">{sp.title}</p>
-          <p className="mt-0.5 text-sm text-white/60">
+          <p className="mt-0.5 text-sm text-ink/60">
             {sp.desc.replace("{series}", seriesName)}
           </p>
         </div>
@@ -276,14 +276,14 @@ export function SeriesPassCta({
         </p>
       )}
       {notice === "unavailable" && (
-        <p className="text-sm text-white/60">{sp.unavailable}</p>
+        <p className="text-sm text-ink/60">{sp.unavailable}</p>
       )}
       {notice === "alreadyOwned" && (
-        <p className="text-sm text-white/60">{sp.alreadyOwned}</p>
+        <p className="text-sm text-ink/60">{sp.alreadyOwned}</p>
       )}
       {notice === "loginRequired" && (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-white/70">{tco("loginRequired")}</p>
+          <p className="text-sm text-ink/70">{tco("loginRequired")}</p>
           <Button href="/login" size="sm">
             {tc("login")}
           </Button>
@@ -292,13 +292,13 @@ export function SeriesPassCta({
 
       {/* Esperando confirmación + simulación dev (solo stub://) */}
       {phase.kind === "awaiting" && (
-        <div className="flex flex-col gap-3 border-t border-night-700 pt-3">
-          <p className="animate-pulse text-sm text-white/70">
+        <div className="flex flex-col gap-3 border-t border-line pt-3">
+          <p className="animate-pulse text-sm text-ink/70">
             {tco("pending")}
           </p>
           {isStub && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs uppercase tracking-wide text-white/50">
+              <p className="text-xs uppercase tracking-wide text-ink/50">
                 {tco("devSimTitle")}
               </p>
               <div className="flex gap-3">
@@ -330,8 +330,8 @@ export function SeriesPassCta({
       {/* Polling agotado sin webhook: el pase puede confirmar igual -
           aparece en Mis entradas cuando llegue la confirmación. */}
       {phase.kind === "stillPending" && (
-        <div className="flex flex-col gap-3 border-t border-night-700 pt-3">
-          <p role="status" className="text-sm text-white/70">
+        <div className="flex flex-col gap-3 border-t border-line pt-3">
+          <p role="status" className="text-sm text-ink/70">
             {tco("stillPendingTitle")} - {tco("stillPendingDesc")}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">

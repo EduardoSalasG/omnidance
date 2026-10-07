@@ -229,7 +229,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
 
   return (
     <section aria-label={t("sectionTitle")} className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("sectionTitle")}
       </h2>
 
@@ -256,12 +256,12 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
         </div>
 
         {onTrial && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {t("trialDaysLeft", { count: trialDaysLeft })}
           </p>
         )}
         {view.status === "CANCEL_PENDING" && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {view.nextInvoiceAt
               ? t("activeUntil", {
                   date: planDateFmt.format(new Date(view.nextInvoiceAt)),
@@ -270,29 +270,29 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
           </p>
         )}
         {view.status === "ACTIVE" && view.nextInvoiceAt && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {t("nextCharge", {
               date: planDateFmt.format(new Date(view.nextInvoiceAt)),
             })}
           </p>
         )}
         {activating && (
-          <p role="status" className="text-sm text-white/60">
+          <p role="status" className="text-sm text-ink/60">
             {t("activatingHint")}
           </p>
         )}
 
         {/* Facturación media 90d - el tier Pro se calcula con ella. */}
-        <dl className="flex flex-col gap-1 border-t border-night-700 pt-3 text-sm">
+        <dl className="flex flex-col gap-1 border-t border-line pt-3 text-sm">
           <div className="flex items-center justify-between gap-3">
-            <dt className="text-white/60">{t("gross")}</dt>
+            <dt className="text-ink/60">{t("gross")}</dt>
             <dd>
               <PriceTag amount={view.monthlyGross} />
             </dd>
           </div>
           {view.maxGross != null && view.maxGross > 0 && (
             <div className="flex items-center justify-between gap-3">
-              <dt className="text-white/60">{t("grossMax")}</dt>
+              <dt className="text-ink/60">{t("grossMax")}</dt>
               <dd>
                 <PriceTag amount={view.maxGross} />
               </dd>
@@ -302,10 +302,10 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
 
         {/* Gestión: cancelar a fin del período ya pagado. */}
         {view.status === "ACTIVE" && (
-          <div className="border-t border-night-700 pt-3">
+          <div className="border-t border-line pt-3">
             {confirmCancel ? (
               <div className="flex flex-col gap-3">
-                <p className="text-sm text-white/70">{t("cancelConfirm")}</p>
+                <p className="text-sm text-ink/70">{t("cancelConfirm")}</p>
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -344,8 +344,8 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
           autogestionado la contratación es manual (PRO_BIG). */}
       {!hasLiveSub && (
         <Card className="flex flex-col gap-4">
-          <p className="text-sm text-white/70">{t("pitch")}</p>
-          <ul className="flex flex-col gap-1.5 text-sm text-white/70">
+          <p className="text-sm text-ink/70">{t("pitch")}</p>
+          <ul className="flex flex-col gap-1.5 text-sm text-ink/70">
             <li>· {t("benefits.analytics")}</li>
             <li>· {t("benefits.exports")}</li>
             <li>· {t("benefits.crm")}</li>
@@ -359,7 +359,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
               <h3 className="text-base font-semibold">
                 {t("cardRedirectTitle")}
               </h3>
-              <p className="text-sm leading-relaxed text-white/70">
+              <p className="text-sm leading-relaxed text-ink/70">
                 {t("cardRedirectDesc")}
               </p>
               <Button
@@ -374,7 +374,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
           ) : (
             <>
               <fieldset className="flex flex-col gap-2">
-                <legend className="text-xs uppercase tracking-wide text-white/50">
+                <legend className="text-xs uppercase tracking-wide text-ink/50">
                   {t("cycle.label")}
                 </legend>
                 <div className="grid grid-cols-3 gap-2">
@@ -394,7 +394,7 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                         className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl border px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
                           selected
                             ? "border-neon bg-neon/15 text-neon"
-                            : "border-white/15 text-white/70 hover:border-white/30 hover:text-white"
+                            : "border-ink/15 text-ink/70 hover:border-ink/30 hover:text-ink"
                         }`}
                       >
                         <span className="font-medium">{t(`cycle.${c}`)}</span>
@@ -415,14 +415,14 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                 <Skeleton className="page-loading h-4 w-56" />
               ) : (
                 <>
-                  <p className="text-xs leading-relaxed text-white/50">
+                  <p className="text-xs leading-relaxed text-ink/50">
                     {chargeTotal != null &&
                       t("consent", {
                         amount: clp.format(chargeTotal),
                         period: t(`period.${cycle}`),
                       })}
                   </p>
-                  <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-white/80">
+                  <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-ink/80">
                     <input
                       type="checkbox"
                       checked={consent}

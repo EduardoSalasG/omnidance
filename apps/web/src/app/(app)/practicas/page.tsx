@@ -172,7 +172,7 @@ function PracticasInner() {
     `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] ${
       active
         ? "border-neon bg-neon/15 text-neon"
-        : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+        : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
     }`;
 
   const dayLabel = (iso: string) => {
@@ -195,11 +195,11 @@ function PracticasInner() {
           <div className="flex items-start gap-2">
             {/* Col 1: hora + lugar */}
             <div className="flex w-1/4 shrink-0 flex-col items-start gap-1">
-              <span className="pt-0.5 text-sm font-semibold tabular-nums text-white/80">
+              <span className="pt-0.5 text-sm font-semibold tabular-nums text-ink/80">
                 <EventDate start={p.startsAt} variant="time" />
               </span>
               {p.venueText && (
-                <span className="inline-flex max-w-full items-center gap-1 text-xs text-white/60">
+                <span className="inline-flex max-w-full items-center gap-1 text-xs text-ink/60">
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 24 24"
@@ -238,14 +238,14 @@ function PracticasInner() {
                 )}
               </div>
               {!hosting && p.host?.name && (
-                <p className="mt-1 truncate text-xs text-white/50">
+                <p className="mt-1 truncate text-xs text-ink/50">
                   {t("hostedBy", { name: p.host.name })}
                 </p>
               )}
             </div>
             {/* Col 3: prueba social - cuántos van */}
             <div className="w-1/4 shrink-0 pt-0.5 text-right">
-              <span className="text-sm text-white/60">
+              <span className="text-sm text-ink/60">
                 {t("goingCount", { count: p.rsvpCount })}
               </span>
             </div>
@@ -261,7 +261,7 @@ function PracticasInner() {
 
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("upcoming")}
           </h2>
           <Button href="/practicas/nueva" size="sm" data-tour="practicas-create">
@@ -309,14 +309,14 @@ function PracticasInner() {
         {view === "mias" && meChecked && me === null ? (
           /* Sin sesión no hay "mías" - el login desbloquea la vista */
           <Card className="flex flex-col items-start gap-3">
-            <p className="text-sm text-white/60">{t("loginRequired")}</p>
+            <p className="text-sm text-ink/60">{t("loginRequired")}</p>
             <Button href="/login" size="sm">
               {tc("login")}
             </Button>
           </Card>
         ) : view === "mias" && mine === null && mineError ? (
           <div className="flex items-center gap-3">
-            <p role="alert" className="text-sm text-white/60">
+            <p role="alert" className="text-sm text-ink/60">
               {tc("error")}
             </p>
             <Button
@@ -336,7 +336,7 @@ function PracticasInner() {
           <SkeletonList />
         ) : view === "todas" && state === "error" ? (
           <div className="flex items-center gap-3">
-            <p role="alert" className="text-sm text-white/60">
+            <p role="alert" className="text-sm text-ink/60">
               {tc("error")}
             </p>
             <Button
@@ -352,7 +352,7 @@ function PracticasInner() {
           </div>
         ) : visible.length === 0 ? (
           <Card className="flex flex-col items-start gap-3">
-            <p role="status" className="text-white/60">
+            <p role="status" className="text-ink/60">
               {/* Con filtro de estilo activo "no hay prácticas" es
                   falso - existen, solo no de ese estilo. */}
               {styleFilter
@@ -373,7 +373,7 @@ function PracticasInner() {
           <div data-tour="practicas-list" className="flex flex-col gap-6">
             {groupByDay(visible).map((g) => (
               <section key={g.key}>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
                   {dayLabel(g.label)}
                 </h3>
                 <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">

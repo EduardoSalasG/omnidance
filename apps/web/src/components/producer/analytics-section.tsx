@@ -46,7 +46,7 @@ function AvgStars({ avg }: { avg: number }) {
           <StarIcon
             key={i}
             filled={i < lit}
-            className={`h-3.5 w-3.5 ${i < lit ? "text-neon" : "text-white/30"}`}
+            className={`h-3.5 w-3.5 ${i < lit ? "text-neon" : "text-ink/30"}`}
           />
         ))}
       </span>
@@ -71,11 +71,11 @@ function SplitRow({
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
     <li className="flex items-center gap-3 text-sm">
-      <span className="w-24 shrink-0 text-white/70">{label}</span>
+      <span className="w-24 shrink-0 text-ink/70">{label}</span>
       <span
         role="img"
         aria-label={`${label} ${pct}%`}
-        className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10"
+        className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-ink/10"
       >
         <span
           className="absolute inset-y-0 left-0 rounded-full bg-neon/70"
@@ -142,7 +142,7 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
   if (state === "pro") {
     return (
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("sections.analytics")}
         </h2>
         <ProPaywall />
@@ -173,7 +173,7 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("sections.analytics")}
       </h2>
 
@@ -197,13 +197,13 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
             <span className="text-2xl font-bold tabular-nums text-neon">
               {data.attendees}
             </span>
-            <span className="text-sm text-white/60">
+            <span className="text-sm text-ink/60">
               {t("eventAnalytics.attendees", { count: data.attendees })}
             </span>
           </Card>
 
           {!data.genderSplit && !data.roleSplit && !data.ratings ? (
-            <p role="status" className="text-sm text-white/50">
+            <p role="status" className="text-sm text-ink/50">
               {t("eventAnalytics.insufficient")}
             </p>
           ) : (
@@ -212,7 +212,7 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
                 <Card className="flex flex-col gap-4 p-4">
                   {data.genderSplit && (
                     <div>
-                      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+                      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">
                         {t("eventAnalytics.genderSplit")}
                       </h3>
                       <ul className="flex flex-col gap-2">
@@ -229,7 +229,7 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
                   )}
                   {data.roleSplit && (
                     <div>
-                      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+                      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">
                         {t("eventAnalytics.roleSplit")}
                       </h3>
                       <ul className="flex flex-col gap-2">
@@ -250,10 +250,10 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
               {data.ratings && (
                 <Card className="flex flex-col gap-2 p-4">
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
                       {t("eventAnalytics.ratingsTitle")}
                     </h3>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {t("eventAnalytics.ratingsCount", {
                         count: data.ratings.count,
                       })}
@@ -266,7 +266,7 @@ export function AnalyticsSection({ eventId, proLocked = false }: Props) {
                           key={dim}
                           className="flex items-center justify-between gap-3 text-sm"
                         >
-                          <span className="text-white/70">
+                          <span className="text-ink/70">
                             {t.has(`ratings.dims.${dim}`)
                               ? t(`ratings.dims.${dim}`)
                               : dim}

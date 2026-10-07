@@ -185,7 +185,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
       <div className="flex flex-col gap-5 pt-2">
         <h2 className="text-xl font-bold">{tEvents("title")}</h2>
         {events.length === 0 ? (
-          <p role="status" className="text-white/60">
+          <p role="status" className="text-ink/60">
             {tEvents("empty")}
           </p>
         ) : (
@@ -204,7 +204,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
                       )}
                     </div>
                     <h3 className="mt-1 text-lg font-semibold">{e.name}</h3>
-                    <p className="text-sm text-white/60">
+                    <p className="text-sm text-ink/60">
                       <EventDate start={e.startsAt} />
                       {e.venue ? ` · ${e.venue.name}` : ""}
                     </p>
@@ -221,7 +221,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
   // ── Escáner (checking incluido: la cámara tarda en abrir) ─
   return (
     <div className="flex min-h-[60dvh] flex-1 flex-col">
-      <div className="relative flex-1 overflow-hidden rounded-2xl border border-night-700 bg-night-950">
+      <div className="relative flex-1 overflow-hidden rounded-2xl border border-line bg-canvas">
         {phase === "checking" ? (
           <div className="flex h-full items-center justify-center">
             <Spinner size="lg" className="page-loading" />
@@ -271,7 +271,7 @@ export function DanceScanner({ eventId }: { eventId?: string }) {
                     : tCommon("error")}
               </p>
               {feedback.kind === "sent" && feedback.partnerName && (
-                <p className="mt-1 text-base font-semibold text-white">
+                <p className="mt-1 text-base font-semibold text-ink">
                   {feedback.partnerName}
                 </p>
               )}

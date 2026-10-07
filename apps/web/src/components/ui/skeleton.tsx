@@ -19,7 +19,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse rounded-lg bg-night-800 motion-reduce:animate-none ${className}`}
+      className={`animate-pulse rounded-lg bg-elevated motion-reduce:animate-none ${className}`}
     />
   );
 }
@@ -59,7 +59,7 @@ export function SkeletonCard({ lines = 2, title = true }: SkeletonCardProps) {
   return (
     <div
       aria-hidden="true"
-      className="page-loading flex flex-col gap-3 rounded-2xl border border-night-700 bg-night-900 p-5"
+      className="page-loading flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5"
     >
       {title && <Skeleton className="h-5 w-2/3" />}
       {Array.from({ length: lines }, (_, i) => (

@@ -122,7 +122,7 @@ function NewGuestList() {
 
         {!created && events !== null && events.length === 0 && (
           <Card className="flex flex-col items-center gap-4 py-10 text-center">
-            <p role="status" className="text-white/70">
+            <p role="status" className="text-ink/70">
               {t("emptyEvents")}
             </p>
             <Button href="/productor/eventos/nuevo">
@@ -135,7 +135,7 @@ function NewGuestList() {
           <Card>
             <form onSubmit={submit} className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("event")}
                   <span aria-hidden="true" className="text-neon"> *</span>
                 </span>
@@ -154,7 +154,7 @@ function NewGuestList() {
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("listName")}
                   <span aria-hidden="true" className="text-neon"> *</span>
                 </span>

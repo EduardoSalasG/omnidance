@@ -429,13 +429,13 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
           <EventDate
             variant="full"
             start={event.startsAt}
-            className="text-sm text-white/70"
+            className="text-sm text-ink/70"
           />
           {event.venue && (
             <p className="text-sm">
               <span className="font-medium">{event.venue.name}</span>
               {event.venue.address && (
-                <span className="block text-white/50">
+                <span className="block text-ink/50">
                   {event.venue.address}
                 </span>
               )}
@@ -456,7 +456,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                 disabled={busy || quantity <= 1 + giftIds.size}
                 onClick={() => setQuantity((q) => Math.max(1 + giftIds.size, q - 1))}
                 aria-label={t("qtyMinus")}
-                className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+                className="flex size-11 items-center justify-center rounded-xl border border-line text-lg font-bold text-ink/80 transition-colors hover:border-neon/60 hover:text-ink disabled:opacity-30"
               >
                 −
               </button>
@@ -471,17 +471,17 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                 disabled={busy || quantity >= MAX_TICKETS}
                 onClick={() => setQuantity((q) => Math.min(MAX_TICKETS, q + 1))}
                 aria-label={t("qtyPlus")}
-                className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+                className="flex size-11 items-center justify-center rounded-xl border border-line text-lg font-bold text-ink/80 transition-colors hover:border-neon/60 hover:text-ink disabled:opacity-30"
               >
                 +
               </button>
             </div>
-            <p className="max-w-[55%] text-right text-xs text-white/50">
+            <p className="max-w-[55%] text-right text-xs text-ink/50">
               {t("qtyHint")}
             </p>
           </div>
           {quantity > 1 && (
-            <p className="mt-3 rounded-xl bg-night-800 px-3 py-2 text-xs text-white/60">
+            <p className="mt-3 rounded-xl bg-elevated px-3 py-2 text-xs text-ink/60">
               {t("qtyBreakdown", {
                 assigned: giftIds.size,
                 claimable,
@@ -496,7 +496,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {friends.length > 0 && (
           <Card>
             <h2 className="text-base font-semibold">{t("giftTitle")}</h2>
-            <p className="mt-1 text-xs text-white/50">{t("giftHint")}</p>
+            <p className="mt-1 text-xs text-ink/50">{t("giftHint")}</p>
 
             {giftIds.size > 0 && (
               <ul className="mt-3 flex flex-wrap gap-2">
@@ -538,7 +538,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               placeholder={t("giftSearchPlaceholder")}
               aria-label={t("giftTitle")}
               disabled={busy}
-              className="mt-3 min-h-11 w-full rounded-xl border border-night-700 bg-night-900 px-4 text-white placeholder:text-white/40 focus:border-neon focus:outline-none disabled:opacity-50"
+              className="mt-3 min-h-11 w-full rounded-xl border border-line bg-surface px-4 text-ink placeholder:text-ink/40 focus:border-neon focus:outline-none disabled:opacity-50"
             />
 
             {giftQuery.trim().length > 0 && (
@@ -575,7 +575,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                               ? "bg-neon/10 font-medium text-neon"
                               : full
                                 ? "cursor-not-allowed opacity-40"
-                                : "hover:bg-white/5"
+                                : "hover:bg-ink/5"
                           }`}
                         >
                           {f.person!.name}
@@ -591,7 +591,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                 ).length === 0 && (
                   <li
                     role="status"
-                    className="px-3 py-2 text-sm text-white/50"
+                    className="px-3 py-2 text-sm text-ink/50"
                   >
                     {t("giftNoResults")}
                   </li>
@@ -607,7 +607,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {hasTables && !tableAvailable && (
           <Card className="opacity-70">
             <h2 className="text-base font-semibold">{t("tableTitle")}</h2>
-            <p role="status" className="mt-1 text-sm text-white/50">
+            <p role="status" className="mt-1 text-sm text-ink/50">
               {t("tableSoldOut")}
             </p>
           </Card>
@@ -619,7 +619,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               <div
                 role="radiogroup"
                 aria-label={t("tableTitle")}
-                className="flex shrink-0 rounded-full border border-night-700 p-1"
+                className="flex shrink-0 rounded-full border border-line p-1"
               >
                 {([false, true] as const).map((v) => (
                   <button
@@ -631,8 +631,8 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                     onClick={() => setWantsTable(v)}
                     className={`min-h-11 min-w-14 rounded-full px-4 text-sm font-medium transition-colors active:scale-[0.97] disabled:opacity-50 ${
                       wantsTable === v
-                        ? "bg-neon text-night-950"
-                        : "text-white/60 hover:text-white"
+                        ? "bg-neon text-on-accent"
+                        : "text-ink/60 hover:text-ink"
                     }`}
                   >
                     {v ? t("tableYes") : t("tableNo")}
@@ -640,15 +640,15 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                 ))}
               </div>
             </div>
-            <p className="mt-1 text-xs text-white/50">
+            <p className="mt-1 text-xs text-ink/50">
               {t("tableAvailable", { count: tablesLeft })}
               {seatsLeft != null && ` · ${t("tableSeatsLeft", { count: seatsLeft })}`}
             </p>
 
             {wantsTable && (
               <>
-                <div className="mt-4 flex items-center justify-between border-t border-night-700 pt-4">
-                  <span className="text-sm text-white/70">
+                <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
+                  <span className="text-sm text-ink/70">
                     {t("tablePartySize")}
                   </span>
                   <div
@@ -661,7 +661,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                       disabled={busy || partySize <= 1}
                       onClick={() => setPartySize((n) => Math.max(1, n - 1))}
                       aria-label={t("tableMinus")}
-                      className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+                      className="flex size-11 items-center justify-center rounded-xl border border-line text-lg font-bold text-ink/80 transition-colors hover:border-neon/60 hover:text-ink disabled:opacity-30"
                     >
                       −
                     </button>
@@ -678,13 +678,13 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
                         setPartySize((n) => Math.min(partyMax, n + 1))
                       }
                       aria-label={t("tablePlus")}
-                      className="flex size-11 items-center justify-center rounded-xl border border-night-700 text-lg font-bold text-white/80 transition-colors hover:border-neon/60 hover:text-white disabled:opacity-30"
+                      className="flex size-11 items-center justify-center rounded-xl border border-line text-lg font-bold text-ink/80 transition-colors hover:border-neon/60 hover:text-ink disabled:opacity-30"
                     >
                       +
                     </button>
                   </div>
                 </div>
-                <p className="mt-3 rounded-xl bg-night-800 px-3 py-2 text-xs text-white/60">
+                <p className="mt-3 rounded-xl bg-elevated px-3 py-2 text-xs text-ink/60">
                   {t("tableDisclaimer")}
                 </p>
               </>
@@ -696,7 +696,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         <Card>
           <dl className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <dt className="text-sm text-white/60">
+              <dt className="text-sm text-ink/60">
                 {t("price")}
                 {quantity > 1 && ` ×${quantity}`}
               </dt>
@@ -706,20 +706,20 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             </div>
             {breakdown.discount > 0 && (
               <div className="flex items-center justify-between">
-                <dt className="text-sm text-white/60">{t("discount")}</dt>
+                <dt className="text-sm text-ink/60">{t("discount")}</dt>
                 <dd>
                   <PriceTag amount={-breakdown.discount} />
                 </dd>
               </div>
             )}
-            <div className="mt-1 flex items-center justify-between border-t border-night-700 pt-4">
+            <div className="mt-1 flex items-center justify-between border-t border-line pt-4">
               <dt className="text-base font-semibold">{t("total")}</dt>
               <dd aria-live="polite">
                 <PriceTag amount={breakdown.total} className="text-2xl" />
               </dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-white/50">
+          <p className="mt-3 text-xs text-ink/50">
             {doorChannel ? t("doorChannelNote") : t("presaleCutoff")}
           </p>
         </Card>
@@ -742,7 +742,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             (GET /checkout/discount-quote) y el estimado del breakdown
             muestra el total con descuento antes de pagar. */}
         <div className="flex flex-col gap-2">
-          <label htmlFor="checkout-discount" className="text-sm text-white/70">
+          <label htmlFor="checkout-discount" className="text-sm text-ink/70">
             {t("discountCode")}
           </label>
           <div className="flex items-stretch gap-2">
@@ -769,7 +769,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
               aria-describedby={
                 error === "invalidCode" ? "checkout-discount-error" : undefined
               }
-              className="min-h-12 flex-1 rounded-xl border border-night-700 bg-night-900 px-4 py-3 uppercase text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
+              className="min-h-12 flex-1 rounded-xl border border-line bg-surface px-4 py-3 uppercase text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
             />
             <Button
               type="button"
@@ -792,9 +792,9 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {/* Canción pedida al DJ (opcional, máx. 140) - viaja en la orden
             y el top-N del evento la cuenta solo con ticket pagado. */}
         <div className="flex flex-col gap-2">
-          <label htmlFor="checkout-song" className="text-sm text-white/70">
+          <label htmlFor="checkout-song" className="text-sm text-ink/70">
             {t("songLabel")}
-            <span className="text-white/40"> · {t("songOptional")}</span>
+            <span className="text-ink/40"> · {t("songOptional")}</span>
           </label>
           <input
             id="checkout-song"
@@ -806,12 +806,12 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
             disabled={busy}
             autoComplete="off"
             aria-describedby="checkout-song-count"
-            className="min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
+            className="min-h-12 rounded-xl border border-line bg-surface px-4 py-3 text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50"
           />
           <p
             id="checkout-song-count"
             aria-live="polite"
-            className="text-right text-xs text-white/40 tabular-nums"
+            className="text-right text-xs text-ink/40 tabular-nums"
           >
             {songSuggestion.length}/140
           </p>
@@ -849,7 +849,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         )}
         {error === "loginRequired" && (
           <Card className="flex flex-col items-center gap-4 text-center">
-            <p className="text-white/70">{t("loginRequired")}</p>
+            <p className="text-ink/70">{t("loginRequired")}</p>
             <Button href="/login">{tc("login")}</Button>
           </Card>
         )}
@@ -887,10 +887,10 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {/* Esperando confirmación + simulación dev (solo stub://) */}
         {phase.kind === "awaiting" && (
           <Card className="flex flex-col items-center gap-4 text-center">
-            <p className="animate-pulse text-white/70">{t("pending")}</p>
+            <p className="animate-pulse text-ink/70">{t("pending")}</p>
             {isStub && (
-              <div className="flex w-full flex-col gap-3 border-t border-night-700 pt-4">
-                <p className="text-xs uppercase tracking-wide text-white/50">
+              <div className="flex w-full flex-col gap-3 border-t border-line pt-4">
+                <p className="text-xs uppercase tracking-wide text-ink/50">
                   {t("devSimTitle")}
                 </p>
                 <div className="flex gap-3">
@@ -922,7 +922,7 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         {phase.kind === "stillPending" && (
           <Card className="flex flex-col items-center gap-4 text-center">
             <Badge variant="muted">{t("stillPendingTitle")}</Badge>
-            <p role="status" className="text-white/70">
+            <p role="status" className="text-ink/70">
               {t("stillPendingDesc")}
             </p>
             <Button href="/eventos?view=mios" className="w-full">
@@ -992,12 +992,12 @@ function CheckoutSuccess({
       <Badge variant="neon">{t("success")}</Badge>
       <h1 className="text-2xl font-bold">{eventName}</h1>
       {giftCount > 0 && (
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-ink/70">
           {t("giftSuccess", { count: giftCount })}
         </p>
       )}
       {tablePartySize != null && (
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-ink/70">
           {t("tableSuccess", { count: tablePartySize })}
         </p>
       )}
@@ -1005,7 +1005,7 @@ function CheckoutSuccess({
       {claimables.length > 0 && (
         <Card className="flex w-full flex-col gap-3 text-left">
           <h2 className="text-base font-semibold">{t("shareTitle")}</h2>
-          <p className="text-xs text-white/50">{t("shareHint")}</p>
+          <p className="text-xs text-ink/50">{t("shareHint")}</p>
           <ul className="flex flex-col gap-2">
             {claimables.map((tk, i) => (
               <li key={tk.id}>

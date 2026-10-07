@@ -117,7 +117,7 @@ export function PlanForm({
         </p>
       ) : (
         <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {plan ? t("editPlan") : t("newPlan")}
           </h2>
           <form
@@ -125,7 +125,7 @@ export function PlanForm({
             className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("planName")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -137,7 +137,7 @@ export function PlanForm({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{tp("type")}</span>
+              <span className="text-xs text-ink/50">{tp("type")}</span>
               <select
                 className={inputCls}
                 value={type}
@@ -151,13 +151,13 @@ export function PlanForm({
                 ))}
               </select>
               {plan?.flowPlanId && (
-                <span className="text-xs text-white/40">
+                <span className="text-xs text-ink/40">
                   {t("planTypeLocked")}
                 </span>
               )}
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("planPrice")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -173,7 +173,7 @@ export function PlanForm({
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("planClasses")}</span>
+              <span className="text-xs text-ink/50">{t("planClasses")}</span>
               <input
                 className={inputCls}
                 type="number"
@@ -190,7 +190,7 @@ export function PlanForm({
               type === "QUARTERLY" ||
               type === "SEMIANNUAL") && (
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("planWeeklyClasses")}
                 </span>
                 <input
@@ -208,7 +208,7 @@ export function PlanForm({
                 se derivan del tipo al pagar). */}
             {type === "PERIOD" && (
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("planPeriodDays")}
                 </span>
                 <input
@@ -223,7 +223,7 @@ export function PlanForm({
               </label>
             )}
             <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-xs text-white/50">{t("planDesc")}</span>
+              <span className="text-xs text-ink/50">{t("planDesc")}</span>
               <textarea
                 className={inputCls}
                 rows={3}
@@ -240,7 +240,7 @@ export function PlanForm({
                   onChange={(e) => setActive(e.target.checked)}
                   className="h-4 w-4 accent-neon"
                 />
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("planActive")}
                 </span>
               </label>

@@ -150,7 +150,7 @@ export function CampaignList({
       )}
 
       {items !== null && items.length === 0 && !error && (
-        <p className="text-white/60">{t("campaigns.empty")}</p>
+        <p className="text-ink/60">{t("campaigns.empty")}</p>
       )}
 
       {items !== null && items.length > 0 && (
@@ -167,11 +167,11 @@ export function CampaignList({
                   </Badge>
                   <Badge variant="outline">{actionLabel(c)}</Badge>
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/60">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/60">
                   <span>
                     {t("campaigns.audience")}: {audienceLabel(c)}
                   </span>
-                  <span className="text-white/50">
+                  <span className="text-ink/50">
                     {fmtDay.format(new Date(c.createdAt))}
                   </span>
                 </div>

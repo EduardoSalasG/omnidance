@@ -80,7 +80,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex flex-col">
       <span className="text-base font-semibold tabular-nums">{value}</span>
-      <span className="text-xs text-white/50">{label}</span>
+      <span className="text-xs text-ink/50">{label}</span>
     </div>
   );
 }
@@ -176,7 +176,7 @@ export default function AnaliticaPage() {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-white/70">{t("error")}</p>
+          <p className="text-sm text-ink/70">{t("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
             {tc("retry")}
           </Button>
@@ -189,7 +189,7 @@ export default function AnaliticaPage() {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("forbidden")}</p>
+          <p className="text-sm text-ink/70">{t("forbidden")}</p>
         </Card>
       </main>
     );
@@ -226,7 +226,7 @@ export default function AnaliticaPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
       <header className="flex flex-col gap-3 pt-4">
-        <p className="text-sm text-white/50">{t("period")}</p>
+        <p className="text-sm text-ink/50">{t("period")}</p>
 
         {/* Selector de lente - radiogroup nativo de pills (mismo patrón
             que "Interactuar como" de /perfil): un tab stop, flechas
@@ -247,7 +247,7 @@ export default function AnaliticaPage() {
                   onChange={() => setRole(r)}
                   className="peer sr-only"
                 />
-                <span className="flex min-h-11 select-none items-center rounded-full border border-night-700 bg-night-800 px-4 text-sm font-semibold text-white/70 transition-colors peer-checked:border-neon peer-checked:bg-neon peer-checked:text-night-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-white active:scale-[0.98] motion-reduce:active:scale-100">
+                <span className="flex min-h-11 select-none items-center rounded-full border border-line bg-elevated px-4 text-sm font-semibold text-ink/70 transition-colors peer-checked:border-neon peer-checked:bg-neon peer-checked:text-on-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink active:scale-[0.98] motion-reduce:active:scale-100">
                   {roleLabel(r)}
                 </span>
               </label>
@@ -260,7 +260,7 @@ export default function AnaliticaPage() {
 
       {summaryPhase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-white/70">{t("error")}</p>
+          <p className="text-sm text-ink/70">{t("error")}</p>
           <Button
             variant="secondary"
             size="sm"
@@ -273,7 +273,7 @@ export default function AnaliticaPage() {
 
       {summaryPhase === "forbidden" && (
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("forbidden")}</p>
+          <p className="text-sm text-ink/70">{t("forbidden")}</p>
         </Card>
       )}
 
@@ -287,12 +287,12 @@ export default function AnaliticaPage() {
                 {summary.kpis.map((k) => (
                   <li
                     key={k.key}
-                    className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3"
+                    className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
                   >
                     <span className="block text-2xl font-bold tabular-nums text-neon">
                       {formatKpi(k)}
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {t.has(`kpi.${k.key}`) ? t(`kpi.${k.key}`) : k.key}
                     </span>
                   </li>
@@ -303,7 +303,7 @@ export default function AnaliticaPage() {
 
           {sectionsEmpty && (
             <Card className="py-6 text-center">
-              <p className="text-sm text-white/70">{t("empty")}</p>
+              <p className="text-sm text-ink/70">{t("empty")}</p>
             </Card>
           )}
 
@@ -312,10 +312,10 @@ export default function AnaliticaPage() {
             sections.eventsByStatus &&
             Object.keys(sections.eventsByStatus).length > 0 && (
               <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.eventsByStatus")}
                 </h2>
-                <ul className="mt-3 flex flex-col divide-y divide-night-700">
+                <ul className="mt-3 flex flex-col divide-y divide-line">
                   {Object.entries(sections.eventsByStatus).map(
                     ([status, count]) => (
                       <li
@@ -339,7 +339,7 @@ export default function AnaliticaPage() {
 
           {role === "ADMIN" && sections.payouts && (
             <section aria-label={t("sections.payouts")}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("sections.payouts")}
               </h2>
               <ul className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-3">
@@ -358,12 +358,12 @@ export default function AnaliticaPage() {
                 ).map(([label, value]) => (
                   <li
                     key={label}
-                    className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3"
+                    className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
                   >
                     <span className="block text-lg font-bold tabular-nums text-neon">
                       {clp.format(value)}
                     </span>
-                    <span className="text-xs text-white/50">{label}</span>
+                    <span className="text-xs text-ink/50">{label}</span>
                   </li>
                 ))}
               </ul>
@@ -373,10 +373,10 @@ export default function AnaliticaPage() {
           {role === "ADMIN" &&
             (sections.topProducers ?? []).length > 0 && (
               <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.topProducers")}
                 </h2>
-                <ol className="mt-3 flex flex-col divide-y divide-night-700">
+                <ol className="mt-3 flex flex-col divide-y divide-line">
                   {sections.topProducers!.map((p, i) => (
                     <li
                       key={p.id}
@@ -384,7 +384,7 @@ export default function AnaliticaPage() {
                     >
                       <span
                         aria-hidden
-                        className="w-5 text-sm font-semibold tabular-nums text-white/40"
+                        className="w-5 text-sm font-semibold tabular-nums text-ink/40"
                       >
                         {i + 1}
                       </span>
@@ -404,21 +404,21 @@ export default function AnaliticaPage() {
           {role === "PRODUCER" &&
             (sections.events ?? []).length > 0 && (
               <section aria-label={t("sections.events")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.events")}
                 </h2>
                 <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                   {sections.events!.map((e) => (
                     <li
                       key={e.id}
-                      className="rounded-2xl border border-night-700 bg-night-900 p-4"
+                      className="rounded-2xl border border-line bg-surface p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold">
                             {e.name}
                           </p>
-                          <p className="mt-0.5 text-xs text-white/50">
+                          <p className="mt-0.5 text-xs text-ink/50">
                             {dayFmt.format(new Date(e.startsAt))}
                           </p>
                         </div>
@@ -457,14 +457,14 @@ export default function AnaliticaPage() {
           {role === "ACADEMY_OWNER" &&
             (sections.academies ?? []).length > 0 && (
               <section aria-label={t("sections.academies")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.academies")}
                 </h2>
                 <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                   {sections.academies!.map((a) => (
                     <li
                       key={a.id}
-                      className="rounded-2xl border border-night-700 bg-night-900 p-4"
+                      className="rounded-2xl border border-line bg-surface p-4"
                     >
                       <p className="truncate text-sm font-semibold">
                         {a.name}
@@ -505,14 +505,14 @@ export default function AnaliticaPage() {
           {role === "VENUE_MANAGER" &&
             (sections.venues ?? []).length > 0 && (
               <section aria-label={t("sections.venues")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.venues")}
                 </h2>
                 <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                   {sections.venues!.map((v) => (
                     <li
                       key={v.id}
-                      className="rounded-2xl border border-night-700 bg-night-900 p-4"
+                      className="rounded-2xl border border-line bg-surface p-4"
                     >
                       <p className="truncate text-sm font-semibold">
                         {v.name}

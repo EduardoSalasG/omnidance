@@ -111,7 +111,7 @@ function ProfileModule({
   }
   if (state === "forbidden") {
     return (
-      <p role="alert" className="text-sm text-white/60">
+      <p role="alert" className="text-sm text-ink/60">
         {tp("forbidden")}
       </p>
     );
@@ -119,7 +119,7 @@ function ProfileModule({
   if (state === "error") {
     return (
       <div className="flex items-center gap-3">
-        <p role="alert" className="text-sm text-white/60">
+        <p role="alert" className="text-sm text-ink/60">
           {tc("error")}
         </p>
         <Button variant="secondary" size="sm" onClick={() => void load()}>
@@ -140,7 +140,7 @@ function ProfileModule({
         <p className="text-lg font-semibold">
           {profile.person.name ?? shortId(profile.person.id)}
         </p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-white/60">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
           <span>
             {tp("plan")}: {profile.plan?.name ?? "·"}
           </span>
@@ -149,7 +149,7 @@ function ProfileModule({
           </Badge>
         </div>
         {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-ink/50">
             {profile.enrollmentStartedAt &&
               `${tp("startsAt")}: ${planDateFmt.format(new Date(profile.enrollmentStartedAt))}`}
             {profile.enrollmentStartedAt && profile.enrollmentEndsAt && " · "}
@@ -167,23 +167,23 @@ function ProfileModule({
         aria-label={tp("history")}
         className="flex flex-col gap-2"
       >
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("history")}
         </h3>
         {profile.history.length === 0 ? (
-          <p className="text-sm text-white/50">{tp("emptyHistory")}</p>
+          <p className="text-sm text-ink/50">{tp("emptyHistory")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {profile.history.map((h) => (
               <li
                 key={h.classId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-night-700 bg-night-800/60 px-4 py-3"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-elevated/60 px-4 py-3"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold capitalize tabular-nums">
                     {classDayFmt.format(new Date(h.date))}
                   </p>
-                  <p className="truncate text-xs text-white/60">
+                  <p className="truncate text-xs text-ink/60">
                     {h.seriesName ?? "·"}
                     {h.styleName ? ` · ${h.styleName}` : ""}
                   </p>
@@ -203,23 +203,23 @@ function ProfileModule({
         aria-label={tp("upcoming")}
         className="flex flex-col gap-2"
       >
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {tp("upcoming")}
         </h3>
         {profile.upcoming.length === 0 ? (
-          <p className="text-sm text-white/50">{tp("emptyUpcoming")}</p>
+          <p className="text-sm text-ink/50">{tp("emptyUpcoming")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {profile.upcoming.map((u) => (
               <li
                 key={u.classId}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-night-700 bg-night-800/60 px-4 py-3"
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-elevated/60 px-4 py-3"
               >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold capitalize tabular-nums">
                     {classDayFmt.format(new Date(u.date))}
                   </p>
-                  <p className="truncate text-xs text-white/60">
+                  <p className="truncate text-xs text-ink/60">
                     {u.seriesName ?? "·"}
                   </p>
                 </div>

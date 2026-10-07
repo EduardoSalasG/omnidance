@@ -7,6 +7,7 @@ import { ChevronRightIcon } from "@/components/ui";
 // compartidas (nav, CTAs de header, footerTagline) vienen de `landing`.
 import landingParts from "@/i18n/parts/landing.json";
 import { ProLeadForm } from "./ProLeadForm";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import type { JsonLdEvent } from "./JsonLd";
 import type { PublicAcademy } from "@/lib/public-academies";
 
@@ -15,10 +16,10 @@ import type { PublicAcademy } from "@/lib/public-academies";
 // el utility `glow-neon` (globals.css), que ya lee el token: cero JS.
 
 const primaryCtaClass =
-  "inline-flex min-h-12 w-full max-w-xs items-center justify-center rounded-full bg-neon px-8 text-base font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97] sm:w-auto";
+  "inline-flex min-h-12 w-full max-w-xs items-center justify-center rounded-full bg-neon px-8 text-base font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97] sm:w-auto";
 
 const secondaryCtaClass =
-  "inline-flex min-h-12 w-full max-w-xs items-center justify-center rounded-full border border-white/15 px-8 text-base font-medium text-white/80 transition-colors hover:border-white/30 hover:text-white sm:w-auto";
+  "inline-flex min-h-12 w-full max-w-xs items-center justify-center rounded-full border border-ink/15 px-8 text-base font-medium text-ink/80 transition-colors hover:border-ink/30 hover:text-ink sm:w-auto";
 
 export type LandingVariant = "dancer" | "academy" | "producer";
 
@@ -115,13 +116,13 @@ export function Landing({
     <div style={variant === "academy" ? ACADEMY_ACCENT : undefined}>
       <a
         href="#contenido"
-        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-xl focus-visible:bg-neon focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-night-950"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-xl focus-visible:bg-neon focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-on-accent"
       >
         {t.skipToContent}
       </a>
 
       {/* ─── Header sticky mínimo: marca + entrar + crear cuenta ─── */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-night-950/80 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-ink/5 bg-canvas/80 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2 sm:px-6">
           <Link
             href={
@@ -143,7 +144,7 @@ export function Landing({
           <nav aria-label={t.navPrimary} className="flex items-center gap-1">
             <Link
               href="/login"
-              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white sm:px-4"
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-ink/60 transition-colors hover:text-ink sm:px-4"
             >
               {t.ctaLogin}
             </Link>
@@ -152,7 +153,7 @@ export function Landing({
             {!isPro && (
               <Link
                 href="/login?mode=register"
-                className="inline-flex min-h-11 items-center rounded-full bg-neon px-4 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97]"
+                className="inline-flex min-h-11 items-center rounded-full bg-neon px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97]"
               >
                 {t.ctaSignup}
               </Link>
@@ -172,7 +173,7 @@ export function Landing({
             <h1 className="text-display mt-6 text-4xl font-extrabold sm:text-6xl lg:text-7xl">
               {t.heroPromise}
             </h1>
-            <p className="mx-auto mt-6 max-w-md whitespace-pre-line text-base leading-relaxed text-white/60 sm:text-lg">
+            <p className="mx-auto mt-6 max-w-md whitespace-pre-line text-base leading-relaxed text-ink/60 sm:text-lg">
               {t.heroLead}
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -186,7 +187,7 @@ export function Landing({
             {/* Solo pro: la demo es acceso inmediato, no una llamada de
                 ventas - la promesa va visible en el hero. */}
             {isPro && (
-              <p className="mt-4 text-xs text-white/50">{t.heroNote}</p>
+              <p className="mt-4 text-xs text-ink/50">{t.heroNote}</p>
             )}
           </div>
         </section>
@@ -194,15 +195,15 @@ export function Landing({
         {/* ─── Solo pro: el caos que reemplaza la app (PAS) - los ítems
             van densos y apagados; la resolución, limpia. ─── */}
         {isPro && (
-          <section className="border-t border-white/5 px-6 py-12 lg:py-16">
+          <section className="border-t border-ink/5 px-6 py-12 lg:py-16">
             <div className="mx-auto max-w-2xl text-center lg:max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/50">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">
                 {t.painLabel}
               </p>
-              <p className="mt-4 text-sm leading-loose text-white/50">
+              <p className="mt-4 text-sm leading-loose text-ink/50">
                 {t.painItems}
               </p>
-              <p className="mt-6 text-lg font-semibold text-white">
+              <p className="mt-6 text-lg font-semibold text-ink">
                 {t.painResolution}
               </p>
             </div>
@@ -211,17 +212,17 @@ export function Landing({
 
         {/* ─── Prueba social por audiencia: eventos reales (dancer/
             producer) o academias reales (academy). ─── */}
-        <section className="border-t border-white/5 px-6 py-10 lg:py-14">
+        <section className="border-t border-ink/5 px-6 py-10 lg:py-14">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
-            <p className="text-sm font-semibold text-white">{weekLabel}</p>
+            <p className="text-sm font-semibold text-ink">{weekLabel}</p>
             {variant === "academy" && academies.length > 0 && (
               <ul className="flex flex-col items-center gap-1 lg:flex-row lg:flex-wrap lg:justify-center lg:gap-x-5">
                 {academies.slice(0, 3).map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center gap-2 text-sm text-white/60"
+                    className="flex items-center gap-2 text-sm text-ink/60"
                   >
-                    <span className="text-white/80">{a.name}</span>
+                    <span className="text-ink/80">{a.name}</span>
                     {a.styles.length > 0 && (
                       <span className="text-neon">
                         · {a.styles.map((s) => s.name).join(", ")}
@@ -237,14 +238,14 @@ export function Landing({
                   <li key={event.id}>
                     <Link
                       href={`/eventos/${event.id}`}
-                      className="inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm text-white/60 transition-colors hover:text-white"
+                      className="inline-flex min-h-9 items-center gap-2 rounded-full px-3 text-sm text-ink/60 transition-colors hover:text-ink"
                     >
                       <span className="font-medium capitalize text-neon">
                         {eventDayFmt.format(new Date(event.startsAt))}
                       </span>
-                      <span className="text-white/80">{event.name}</span>
+                      <span className="text-ink/80">{event.name}</span>
                       {event.venue?.name && (
-                        <span className="text-white/50">
+                        <span className="text-ink/50">
                           · {event.venue.name}
                         </span>
                       )}
@@ -253,7 +254,7 @@ export function Landing({
                 ))}
               </ul>
             )}
-            <p className="text-xs uppercase tracking-[0.2em] text-white/60">
+            <p className="text-xs uppercase tracking-[0.2em] text-ink/60">
               {t.weekStyles}
             </p>
             <Link
@@ -269,7 +270,7 @@ export function Landing({
         {/* ─── Features: 3 cards, menos texto más claridad ─── */}
         <section
           aria-labelledby="features-title"
-          className="border-t border-white/5 px-6 py-16 sm:py-20 lg:py-24"
+          className="border-t border-ink/5 px-6 py-16 sm:py-20 lg:py-24"
         >
           <div className="mx-auto max-w-5xl">
             <h2
@@ -281,7 +282,7 @@ export function Landing({
             {/* Solo dancer: "la app de la comunidad…" baja del hero - el
                 heroPromise ya comunica pertenencia por sí solo. */}
             {!isPro && (
-              <p className="mx-auto mt-3 max-w-md text-center text-sm text-white/50">
+              <p className="mx-auto mt-3 max-w-md text-center text-sm text-ink/50">
                 {t.featuresLead}
               </p>
             )}
@@ -289,7 +290,7 @@ export function Landing({
               {features.map((feature) => (
                 <li
                   key={feature.index}
-                  className="rounded-2xl border border-white/10 bg-night-900/60 p-6 lg:p-8"
+                  className="rounded-2xl border border-ink/10 bg-surface/60 p-6 lg:p-8"
                 >
                   <span
                     aria-hidden="true"
@@ -300,7 +301,7 @@ export function Landing({
                   <h3 className="mt-3 text-lg font-semibold">
                     {feature.title}
                   </h3>
-                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-white/60">
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink/60">
                     {feature.desc}
                   </p>
                 </li>
@@ -312,12 +313,12 @@ export function Landing({
         {/* ─── CTA final: botón (dancer) o formulario de lead (pro) ─── */}
         <section
           id={isPro ? "contacto" : undefined}
-          className="border-t border-white/5 px-6 py-20 text-center sm:py-24 lg:py-28"
+          className="border-t border-ink/5 px-6 py-20 text-center sm:py-24 lg:py-28"
         >
           <h2 className="text-display text-3xl font-extrabold sm:text-4xl">
             {t.finalCta}
           </h2>
-          <p className="mx-auto mt-4 max-w-md whitespace-pre-line text-base leading-relaxed text-white/60">
+          <p className="mx-auto mt-4 max-w-md whitespace-pre-line text-base leading-relaxed text-ink/60">
             {t.finalCtaDesc}
           </p>
           {isPro ? (
@@ -329,7 +330,7 @@ export function Landing({
               />
               <Link
                 href={cross.href}
-                className="mt-4 inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+                className="mt-4 inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
               >
                 {cross.label} →
               </Link>
@@ -344,40 +345,43 @@ export function Landing({
 
       {/* ─── Footer mínimo: marca + tagline + cruce a la otra
           audiencia - todo centrado, una cosa por línea. ─── */}
-      <footer className="border-t border-white/5 px-6 py-8">
+      <footer className="border-t border-ink/5 px-6 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 text-center">
           <p className="text-sm font-bold tracking-tight">
             Omni<span className="text-neon">dance</span>
           </p>
-          <p className="text-xs text-white/50">{t.footerTagline}</p>
+          <p className="text-xs text-ink/50">{t.footerTagline}</p>
           <nav aria-label={t.navFooter} className="mt-2 flex items-center gap-6">
             <Link
               href={isPro ? "/" : "/pro"}
-              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
             >
               {t.footerAlt}
             </Link>
             {isPro && (
               <Link
                 href={cross.href}
-                className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+                className="inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
               >
                 {cross.label}
               </Link>
             )}
             <Link
               href="/terminos"
-              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
             >
               {t.footerTerms}
             </Link>
             <Link
               href="/privacidad"
-              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
             >
               {t.footerPrivacy}
             </Link>
           </nav>
+          <div className="mt-3 w-full max-w-56">
+            <ThemeToggle />
+          </div>
         </div>
       </footer>
     </div>

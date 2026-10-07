@@ -116,7 +116,7 @@ export function TriggerList({
   return (
     <section className="flex flex-col gap-4" aria-label={t("triggers.title")}>
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("triggers.title")}
         </h2>
         <Button
@@ -159,7 +159,7 @@ export function TriggerList({
       )}
 
       {items !== null && items.length === 0 && !error && (
-        <p className="text-white/60">{t("triggers.empty")}</p>
+        <p className="text-ink/60">{t("triggers.empty")}</p>
       )}
 
       {items !== null && items.length > 0 && (
@@ -194,7 +194,7 @@ export function TriggerList({
                     )}
                   </div>
                   {t.has(`triggers.desc.${tr.key}`) && (
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {t(`triggers.desc.${tr.key}`)}
                     </p>
                   )}
@@ -208,7 +208,7 @@ export function TriggerList({
                       className={`inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl border text-sm font-semibold transition ${
                         tr.active
                           ? "border-neon/60 bg-neon/10 text-neon"
-                          : "border-night-700 bg-night-900 text-white/60"
+                          : "border-line bg-surface text-ink/60"
                       }`}
                     >
                       {tr.active

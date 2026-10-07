@@ -121,11 +121,11 @@ function fmtHour(v: number): string {
 /** Tile KPI - mismo patrón que los tiles de /analitica (neon + label). */
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
-    <li className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
+    <li className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
       <span className="block text-2xl font-bold tabular-nums text-neon">
         {value}
       </span>
-      <span className="text-xs text-white/50">{label}</span>
+      <span className="text-xs text-ink/50">{label}</span>
     </li>
   );
 }
@@ -145,7 +145,7 @@ function KpiGrid({ items }: { items: { label: string; value: string }[] }) {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <li className="flex items-center justify-between gap-3 py-2.5">
-      <span className="text-sm text-white/60">{label}</span>
+      <span className="text-sm text-ink/60">{label}</span>
       <span className="min-w-0 text-right text-sm font-medium">{value}</span>
     </li>
   );
@@ -160,10 +160,10 @@ function SectionCard({
 }) {
   return (
     <Card>
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {title}
       </h3>
-      <ul className="mt-1 flex flex-col divide-y divide-night-700">
+      <ul className="mt-1 flex flex-col divide-y divide-line">
         {children}
       </ul>
     </Card>
@@ -282,7 +282,7 @@ function UserPanel({ personId }: { personId: string }) {
   if (phase === "notfound") {
     return (
       <Card className="py-6 text-center">
-        <p className="text-sm text-white/70">{t("user.notFound")}</p>
+        <p className="text-sm text-ink/70">{t("user.notFound")}</p>
       </Card>
     );
   }
@@ -290,7 +290,7 @@ function UserPanel({ personId }: { personId: string }) {
   if (phase === "error" || !detail) {
     return (
       <Card className="flex flex-col items-center gap-3 py-6 text-center">
-        <p className="text-sm text-white/70">{tc("error")}</p>
+        <p className="text-sm text-ink/70">{tc("error")}</p>
         <Button variant="secondary" size="sm" onClick={() => void boot()}>
           {tc("retry")}
         </Button>
@@ -309,7 +309,7 @@ function UserPanel({ personId }: { personId: string }) {
       <header className="flex min-w-0 flex-col gap-1">
         <h2 className="truncate text-xl font-semibold">{detail.person.name}</h2>
         {(detail.person.email ?? detail.person.phone) && (
-          <p className="truncate text-sm text-white/60">
+          <p className="truncate text-sm text-ink/60">
             {detail.person.email ?? detail.person.phone}
           </p>
         )}
@@ -317,7 +317,7 @@ function UserPanel({ personId }: { personId: string }) {
 
       {approvedRoles.length > 0 && (
         <section aria-label={t("user.roleLens")} className="flex flex-col gap-2">
-          <span className="text-sm text-white/50">{t("user.roleLens")}</span>
+          <span className="text-sm text-ink/50">{t("user.roleLens")}</span>
           <PillTabs
             ariaLabel={t("user.roleLens")}
             active={role ?? ""}
@@ -329,7 +329,7 @@ function UserPanel({ personId }: { personId: string }) {
 
       {approvedRoles.length === 0 && (
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("user.empty")}</p>
+          <p className="text-sm text-ink/70">{t("user.empty")}</p>
         </Card>
       )}
 
@@ -337,7 +337,7 @@ function UserPanel({ personId }: { personId: string }) {
 
       {sectionPhase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-white/70">{tc("error")}</p>
+          <p className="text-sm text-ink/70">{tc("error")}</p>
           <Button
             variant="secondary"
             size="sm"
@@ -354,7 +354,7 @@ function UserPanel({ personId }: { personId: string }) {
           role !== null &&
           isEmpty(role, sections))) && (
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("user.empty")}</p>
+          <p className="text-sm text-ink/70">{t("user.empty")}</p>
         </Card>
       )}
 
@@ -458,7 +458,7 @@ function RoleSections({
               aria-label={t("user.sections.social")}
               className="flex flex-col gap-3"
             >
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("user.sections.social")}
               </h2>
               <KpiGrid
@@ -476,7 +476,7 @@ function RoleSections({
               />
               {(social.lastEvent || social.avgCheckinHour != null) && (
                 <Card>
-                  <ul className="flex flex-col divide-y divide-night-700">
+                  <ul className="flex flex-col divide-y divide-line">
                     {social.lastEvent && (
                       <Row
                         label={f("lastEvent")}
@@ -494,7 +494,7 @@ function RoleSections({
               )}
               {social.badges.length > 0 && (
                 <section aria-label={f("badges")} className="flex flex-col gap-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
                     {f("badges")}
                   </h3>
                   <ul className="flex flex-wrap gap-1.5">
@@ -527,7 +527,7 @@ function RoleSections({
               aria-label={t("user.sections.academy")}
               className="flex flex-col gap-3"
             >
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("user.sections.academy")}
               </h2>
               <KpiGrid
@@ -550,7 +550,7 @@ function RoleSections({
                           {e.academy.name}
                         </p>
                         {e.plan && (
-                          <p className="truncate text-xs text-white/50">
+                          <p className="truncate text-xs text-ink/50">
                             {e.plan.name} · {clp.format(e.plan.price)}
                           </p>
                         )}
@@ -739,14 +739,14 @@ function RoleSections({
           aria-label={f("academies")}
           className="flex flex-col gap-3"
         >
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {f("academies")}
           </h2>
           <ul className="flex flex-col gap-3">
             {d.academies.map((a) => (
               <li
                 key={a.id}
-                className="rounded-2xl border border-night-700 bg-night-900 p-4"
+                className="rounded-2xl border border-line bg-surface p-4"
               >
                 <p className="truncate text-sm font-semibold">{a.name}</p>
                 <div className="mt-3 grid grid-cols-3 gap-3">
@@ -754,7 +754,7 @@ function RoleSections({
                     <span className="text-base font-semibold tabular-nums">
                       {num.format(a.students)}
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {f("students")}
                     </span>
                   </div>
@@ -762,7 +762,7 @@ function RoleSections({
                     <span className="text-base font-semibold tabular-nums">
                       {num.format(a.attendance30d)}
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {f("attendance30d")}
                     </span>
                   </div>
@@ -770,7 +770,7 @@ function RoleSections({
                     <span className="text-base font-semibold tabular-nums">
                       {num.format(a.classes30d)}
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {f("classes30d")}
                     </span>
                   </div>
@@ -791,11 +791,11 @@ function RoleSections({
           aria-label={t("user.sections.overview")}
           className="flex flex-col gap-3"
         >
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("user.sections.overview")}
           </h2>
           <Card>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-ink/70">
               {t("user.fields.accountAge", { days: meta.accountAgeDays })}
             </p>
           </Card>
@@ -816,7 +816,7 @@ function RoleSections({
                       {statusLabel(r.status)}
                     </Badge>
                   </div>
-                  <span className="shrink-0 text-xs text-white/50">
+                  <span className="shrink-0 text-xs text-ink/50">
                     {dateFmt.format(new Date(r.createdAt))}
                   </span>
                 </li>

@@ -128,7 +128,7 @@ function Avatar({
   return (
     <span
       aria-hidden
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-night-800 text-lg font-bold text-neon"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-elevated text-lg font-bold text-neon"
     >
       {name.trim().charAt(0).toUpperCase() || "?"}
     </span>
@@ -693,12 +693,12 @@ export default function DoorConsolePage({
     result?.kind === "ok"
       ? "bg-green-600 text-white"
       : result?.kind === "nopass"
-        ? "bg-amber-400 text-night-950"
+        ? "bg-amber-400 text-on-accent"
         : "bg-red-600 text-white";
 
   const tabCls = (active: boolean) =>
     `flex min-h-14 items-center justify-center gap-2 text-base font-semibold transition-colors ${
-      active ? "bg-night-800 text-neon" : "text-white/60 active:bg-night-800"
+      active ? "bg-elevated text-neon" : "text-ink/60 active:bg-elevated"
     }`;
 
   // ≥lg ambas columnas visibles (el tab bar inferior se oculta); <lg
@@ -707,15 +707,15 @@ export default function DoorConsolePage({
   const showList = isDesktop || view === "list";
 
   return (
-    <main className="flex min-h-dvh flex-col bg-night-950">
+    <main className="flex min-h-dvh flex-col bg-canvas">
       {/* Header compacto: volver + evento + contador de la noche.
           En ≥lg el contenido se centra en max-w-6xl (contents en móvil:
           el DOM no cambia bajo lg). */}
-      <header className="flex items-center gap-3 border-b border-night-700 px-4 py-2.5 lg:block lg:px-8">
+      <header className="flex items-center gap-3 border-b border-line px-4 py-2.5 lg:block lg:px-8">
         <div className="contents lg:mx-auto lg:flex lg:max-w-6xl lg:items-center lg:gap-3">
         <Link
           href="/staff"
-          className="flex min-h-11 items-center text-sm font-semibold text-white/70"
+          className="flex min-h-11 items-center text-sm font-semibold text-ink/70"
         >
           ‹ {t("title")}
         </Link>
@@ -728,13 +728,13 @@ export default function DoorConsolePage({
                  porque h1 solo admite phrasing content. */
               <span
                 aria-hidden="true"
-                className="page-loading inline-block h-4 w-32 animate-pulse rounded-lg bg-night-800 align-middle motion-reduce:animate-none"
+                className="page-loading inline-block h-4 w-32 animate-pulse rounded-lg bg-elevated align-middle motion-reduce:animate-none"
               />
             ))}
         </h1>
         <div className="flex min-h-11 items-baseline gap-1.5">
           <span className="text-2xl font-black text-neon">{count}</span>
-          <span className="text-xs text-white/50">{t("list")}</span>
+          <span className="text-xs text-ink/50">{t("list")}</span>
         </div>
         </div>
       </header>
@@ -771,7 +771,7 @@ export default function DoorConsolePage({
       {/* Volvió la señal con cola viva: sincronizando en segundo plano
           o conflictos que requieren decisión del staff */}
       {!offline && (pendingCount > 0 || conflictCount > 0) && (
-        <div className="flex items-center justify-center gap-2 border-b border-night-700 bg-night-900 px-4 py-2 text-sm font-medium text-white/70">
+        <div className="flex items-center justify-center gap-2 border-b border-line bg-surface px-4 py-2 text-sm font-medium text-ink/70">
           {pendingCount > 0 && t("pendingSyncCount", { count: pendingCount })}
           {pendingCount > 0 && conflictCount > 0 && " · "}
           {conflictCount > 0 && (
@@ -800,7 +800,7 @@ export default function DoorConsolePage({
 
       {gate === "notStaff" && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
-          <p className="text-white/70">{t("notStaff")}</p>
+          <p className="text-ink/70">{t("notStaff")}</p>
           <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
@@ -823,10 +823,10 @@ export default function DoorConsolePage({
           }
         >
           {/* Cámara grande - el teléfono se sostiene a la altura del pecho */}
-          <div className="relative min-h-0 flex-1 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-night-700">
+          <div className="relative min-h-0 flex-1 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-line">
             {cameraError ? (
               <div className="flex h-full items-center justify-center p-6">
-                <p className="text-center text-white/70">{t("cameraError")}</p>
+                <p className="text-center text-ink/70">{t("cameraError")}</p>
               </div>
             ) : (
               <Scanner
@@ -844,19 +844,19 @@ export default function DoorConsolePage({
                 }}
               />
             )}
-            <p className="pointer-events-none absolute inset-x-0 bottom-0 bg-night-950/70 py-2 text-center text-sm text-white/80">
+            <p className="pointer-events-none absolute inset-x-0 bottom-0 bg-canvas/70 py-2 text-center text-sm text-ink/80">
               {t("scanning")}
             </p>
           </div>
 
           {/* Check-in manual colapsable - v1 por personId.
               TODO(ux): selector por nombre cuando exista búsqueda de personas. */}
-          <section className="border-t border-night-700 px-4 lg:rounded-2xl lg:border lg:bg-night-900 lg:p-4">
+          <section className="border-t border-line px-4 lg:rounded-2xl lg:border lg:bg-surface lg:p-4">
             <button
               type="button"
               aria-expanded={manualOpen}
               onClick={() => setManualOpen((o) => !o)}
-              className="flex min-h-11 w-full items-center justify-between text-sm font-semibold text-white/80"
+              className="flex min-h-11 w-full items-center justify-between text-sm font-semibold text-ink/80"
             >
               {t("manual")}
               <span aria-hidden className="text-lg">
@@ -875,10 +875,10 @@ export default function DoorConsolePage({
                     autoCapitalize="off"
                     autoCorrect="off"
                     spellCheck={false}
-                    className="min-h-12 w-full rounded-xl border border-night-700 bg-night-900 px-4 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
+                    className="min-h-12 w-full rounded-xl border border-line bg-surface px-4 text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
                   />
                   {manualCandidates.length > 0 && (
-                    <ul className="mt-1 divide-y divide-night-700 overflow-hidden rounded-xl border border-night-700">
+                    <ul className="mt-1 divide-y divide-line overflow-hidden rounded-xl border border-line">
                       {manualCandidates.map((p) => (
                         <li key={p.personId}>
                           <button
@@ -886,7 +886,7 @@ export default function DoorConsolePage({
                             onClick={() =>
                               void registerManual(p.personId, p.name, p.photoUrl)
                             }
-                            className="flex min-h-12 w-full items-center gap-3 px-4 text-left active:bg-night-800"
+                            className="flex min-h-12 w-full items-center gap-3 px-4 text-left active:bg-elevated"
                           >
                             <Avatar name={p.name} photoUrl={p.photoUrl} />
                             <span className="min-w-0 flex-1 truncate font-medium">
@@ -909,7 +909,7 @@ export default function DoorConsolePage({
                     autoCapitalize="off"
                     autoCorrect="off"
                     spellCheck={false}
-                    className="min-h-12 min-w-0 flex-1 rounded-xl border border-night-700 bg-night-900 px-4 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
+                    className="min-h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50"
                   />
                   <Button type="submit" disabled={!personId.trim()}>
                     {t("manual")}
@@ -929,9 +929,9 @@ export default function DoorConsolePage({
               : "hidden lg:flex lg:min-h-0 lg:flex-col"
           }
         >
-        <ul className="min-h-0 flex-1 divide-y divide-night-700 overflow-y-auto lg:rounded-2xl lg:border lg:border-night-700 lg:bg-night-900">
+        <ul className="min-h-0 flex-1 divide-y divide-line overflow-y-auto lg:rounded-2xl lg:border lg:border-line lg:bg-surface">
           {mergedList.length === 0 ? (
-            <li className="p-8 text-center text-sm text-white/50">
+            <li className="p-8 text-center text-sm text-ink/50">
               {t("scanning")}
             </li>
           ) : (
@@ -945,7 +945,7 @@ export default function DoorConsolePage({
                 <Avatar name={c.name} photoUrl={c.photoUrl} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{c.name}</p>
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-ink/50">
                     <EventDate start={c.inAt} variant="time" />
                   </p>
                 </div>
@@ -968,7 +968,7 @@ export default function DoorConsolePage({
       {/* Tabs inferiores - al alcance del pulgar con una mano.
           En ≥lg no aplican: las dos columnas ya están visibles. */}
       {gate === "ok" && (
-        <nav className="grid grid-cols-2 border-t border-night-700 bg-night-900 lg:hidden">
+        <nav className="grid grid-cols-2 border-t border-line bg-surface lg:hidden">
           <button
             type="button"
             onClick={() => setView("scan")}

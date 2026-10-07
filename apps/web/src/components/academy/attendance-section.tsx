@@ -101,7 +101,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
     <div className="flex flex-col gap-4">
       {/* Registro rápido - operación diaria primero, historial después */}
       <Card>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("markPresent")}
         </h3>
         <form
@@ -109,7 +109,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
           className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
         >
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">
+            <span className="text-xs text-ink/50">
               {t("personId")}
               <span aria-hidden="true" className="text-neon"> *</span>
             </span>
@@ -121,7 +121,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">
+            <span className="text-xs text-ink/50">
               {t("slots")}
               <span aria-hidden="true" className="text-neon"> *</span>
             </span>
@@ -142,7 +142,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{tp("startsAt")}</span>
+            <span className="text-xs text-ink/50">{tp("startsAt")}</span>
             <input
               className={inputCls}
               type="date"
@@ -167,7 +167,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
         <SkeletonList items={2} lines={1} />
       ) : error ? (
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-sm text-white/60">
+          <p role="alert" className="text-sm text-ink/60">
             {tc("error")}
           </p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
@@ -175,7 +175,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
           </Button>
         </div>
       ) : items.length === 0 ? (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           -
         </p>
       ) : (
@@ -186,12 +186,12 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
                 <span className="min-w-0 flex-1 truncate font-mono text-sm">
                   {a.person.name ?? a.personId}
                 </span>
-                <span className="text-sm text-white/60">
+                <span className="text-sm text-ink/60">
                   {slotText(slotById.get(a.class.classSlotId))}
                 </span>
                 <EventDate
                   start={a.checkedAt}
-                  className="text-xs text-white/50"
+                  className="text-xs text-ink/50"
                 />
               </Card>
             </li>

@@ -190,7 +190,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
           const end =
             enrollment.endsAt ?? enrollment.subscription!.nextInvoiceAt;
           return (
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-ink/50">
               {end
                 ? tsb("cancelPending", {
                     date: planDateFmt.format(new Date(end)),
@@ -201,18 +201,18 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
         })()}
       {(enrollment.subscription?.status === "ACTIVATING" ||
         enrollment.subscription?.status === "PENDING_CARD") && (
-        <p className="text-xs text-white/50">{tsb("activating")}</p>
+        <p className="text-xs text-ink/50">{tsb("activating")}</p>
       )}
 
       {enrollment.academy.address && (
-        <p className="flex items-center gap-1.5 text-sm text-white/50">
+        <p className="flex items-center gap-1.5 text-sm text-ink/50">
           <PinIcon className="h-3.5 w-3.5 shrink-0" />
           <span className="truncate">{enrollment.academy.address}</span>
         </p>
       )}
 
       {enrollment.plan && (
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-ink/60">
           {enrollment.plan.name}
           {tp.has(enrollment.plan.type) ? ` · ${tp(enrollment.plan.type)}` : ""}
         </p>
@@ -229,7 +229,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
         // "Pagado hasta el 12" incluye el día 12 - vence al día siguiente.
         const expired = !!endD && endD.getTime() < new Date().setHours(0, 0, 0, 0);
         return (
-          <p className={`text-xs ${expired ? "text-red-400" : "text-white/50"}`}>
+          <p className={`text-xs ${expired ? "text-red-400" : "text-ink/50"}`}>
             {expired && endD
               ? tl("planExpired", { end: planDateFmt.format(endD) })
               : startD && endD
@@ -259,7 +259,7 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
             v.locked || !v.url ? (
               <li
                 key={v.id}
-                className="flex items-center gap-2 text-sm text-white/40"
+                className="flex items-center gap-2 text-sm text-ink/40"
                 title={tv("lockedHint")}
               >
                 <LockIcon />
@@ -311,13 +311,13 @@ function AcademyCard({ academy }: { academy: DirectoryAcademy }) {
           </div>
         )}
         {academy.address && (
-          <p className="flex items-center gap-1.5 text-sm text-white/50">
+          <p className="flex items-center gap-1.5 text-sm text-ink/50">
             <PinIcon className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{academy.address}</span>
           </p>
         )}
         {academy.instructors.length > 0 && (
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-ink/50">
             {t("instructorsLabel")}:{" "}
             {academy.instructors
               .map((i) => i.name)
@@ -471,7 +471,7 @@ function AcademiasInner() {
     `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
       active
         ? "border-neon bg-neon/15 text-neon"
-        : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+        : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
     }`;
 
   return (
@@ -568,7 +568,7 @@ function AcademiasInner() {
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
-              className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${styleId ? "text-neon" : "text-white/40"}`}
+              className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${styleId ? "text-neon" : "text-ink/40"}`}
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
@@ -583,7 +583,7 @@ function AcademiasInner() {
               <svg
                 aria-hidden="true"
                 viewBox="0 0 24 24"
-                className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+                className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={2}
@@ -601,7 +601,7 @@ function AcademiasInner() {
                 }
                 placeholder={t("searchName")}
                 aria-label={t("searchName")}
-                className="min-h-11 w-full rounded-full border border-white/15 bg-night-800 pl-11 pr-4 text-sm text-white placeholder:text-white/40 focus:border-neon focus:outline-none"
+                className="min-h-11 w-full rounded-full border border-ink/15 bg-elevated pl-11 pr-4 text-sm text-ink placeholder:text-ink/40 focus:border-neon focus:outline-none"
               />
             </div>
           )}
@@ -619,7 +619,7 @@ function AcademiasInner() {
       {state === "loading" && <SkeletonList />}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-sm text-white/60">
+          <p role="alert" className="text-sm text-ink/60">
             {tc("error")}
           </p>
           <Button
@@ -637,9 +637,9 @@ function AcademiasInner() {
           /* ─── Mapa del scope activo - pins a la ficha /academias/:id ─── */
           <section aria-label={t("viewMap")}>
             {mapPins.length === 0 ? (
-              <p className="text-sm text-white/50">{t("noLocation")}</p>
+              <p className="text-sm text-ink/50">{t("noLocation")}</p>
             ) : (
-              <div className="h-[58dvh] min-h-[340px] w-full overflow-hidden rounded-2xl border border-night-700">
+              <div className="h-[58dvh] min-h-[340px] w-full overflow-hidden rounded-2xl border border-line">
                 <EventsMap venues={mapPins} />
               </div>
             )}
@@ -670,7 +670,7 @@ function AcademiasInner() {
                  esté vacío - la persona no tiene inscripciones. El CTA
                  lleva a explorar (patrón emptyMine de /clases). */
               <Card className="flex flex-col items-center gap-4 py-10 text-center">
-                <p role="status" className="text-white/70">
+                <p role="status" className="text-ink/70">
                   {t("myAcademiesEmpty")}
                 </p>
                 <Button href={hrefFor({ s: "explorar" })}>
@@ -686,7 +686,7 @@ function AcademiasInner() {
             className="flex flex-col gap-3"
           >
             {filtered.length === 0 ? (
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-ink/60">
                 {styleId || query
                   ? t("exploreEmptyFiltered")
                   : t("exploreEmpty")}

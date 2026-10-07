@@ -299,7 +299,7 @@ function FinancePanel() {
       {/* KPIs del período */}
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-col gap-1 text-xs text-white/50">
+          <label className="flex flex-col gap-1 text-xs text-ink/50">
             {t("finance.from")}
             <input
               type="date"
@@ -308,7 +308,7 @@ function FinancePanel() {
               className={`${inputCls} w-36`}
             />
           </label>
-          <label className="flex flex-col gap-1 text-xs text-white/50">
+          <label className="flex flex-col gap-1 text-xs text-ink/50">
             {t("finance.to")}
             <input
               type="date"
@@ -321,7 +321,7 @@ function FinancePanel() {
         {summaryPhase === "loading" ? (
           <SkeletonList items={2} />
         ) : summaryPhase === "error" || !summary ? (
-          <p className="text-sm text-white/50">{t("finance.loadError")}</p>
+          <p className="text-sm text-ink/50">{t("finance.loadError")}</p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <Kpi
@@ -376,13 +376,13 @@ function FinancePanel() {
       />
 
       {notice && (
-        <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-white/70">
+        <p className="rounded-lg bg-ink/5 px-3 py-2 text-sm text-ink/70">
           {notice}
         </p>
       )}
 
       {tabError && (
-        <p className="text-sm text-white/50">{t("finance.loadError")}</p>
+        <p className="text-sm text-ink/50">{t("finance.loadError")}</p>
       )}
 
       {/* ── Liquidaciones ── */}
@@ -390,7 +390,7 @@ function FinancePanel() {
         (payouts == null ? (
           <SkeletonList items={3} />
         ) : payouts.length === 0 ? (
-          <p className="text-sm text-white/50">{t("finance.payoutsEmpty")}</p>
+          <p className="text-sm text-ink/50">{t("finance.payoutsEmpty")}</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {payouts.map((p) => (
@@ -401,7 +401,7 @@ function FinancePanel() {
                       <p className="truncate text-sm font-semibold">
                         {clp.format(p.net)}
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink/50">
                         {actorLabel(p.actorType)} ·{" "}
                         {dateFmt.format(new Date(p.periodStart))} –{" "}
                         {dateFmt.format(new Date(p.periodEnd))}
@@ -411,7 +411,7 @@ function FinancePanel() {
                       {statusLabel(p.status)}
                     </Badge>
                   </div>
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-ink/50">
                     {t("finance.payoutSplit", {
                       gross: clp.format(p.gross),
                       fees: clp.format(p.platformFee + p.gatewayFee),
@@ -422,27 +422,27 @@ function FinancePanel() {
                     onClick={() =>
                       setExpanded(expanded === p.id ? null : p.id)
                     }
-                    className="self-start text-xs text-white/60 underline underline-offset-2"
+                    className="self-start text-xs text-ink/60 underline underline-offset-2"
                   >
                     {expanded === p.id
                       ? t("finance.hideLines")
                       : t("finance.showLines", { count: p.lines.length })}
                   </button>
                   {expanded === p.id && (
-                    <ul className="flex flex-col gap-1 border-t border-white/10 pt-2">
+                    <ul className="flex flex-col gap-1 border-t border-ink/10 pt-2">
                       {groupLines(p.lines).map(([type, amount]) => (
                         <li
                           key={type}
                           className="flex justify-between text-xs"
                         >
-                          <span className="text-white/60">
+                          <span className="text-ink/60">
                             {lineTypeLabel(type)}
                           </span>
                           <span
                             className={
                               type.startsWith("OWN_METHOD_")
                                 ? "text-amber-300/90"
-                                : "text-white/80"
+                                : "text-ink/80"
                             }
                           >
                             {clp.format(amount)}
@@ -456,13 +456,13 @@ function FinancePanel() {
                       type="button"
                       disabled={busy === p.id}
                       onClick={() => void approve(p.id)}
-                      className="mt-1 self-start rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                      className="mt-1 self-start rounded-lg bg-ink/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
                     >
                       {busy === p.id ? <Spinner /> : t("finance.approve")}
                     </button>
                   )}
                   {p.status === "APPROVED" && (
-                    <div className="flex flex-col gap-2 border-t border-white/10 pt-2">
+                    <div className="flex flex-col gap-2 border-t border-ink/10 pt-2">
                       <input
                         type="url"
                         value={evidence[p.id] ?? ""}
@@ -479,7 +479,7 @@ function FinancePanel() {
                         type="button"
                         disabled={busy === p.id}
                         onClick={() => void pay(p.id)}
-                        className="self-start rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                        className="self-start rounded-lg bg-ink/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
                       >
                         {busy === p.id ? <Spinner /> : t("finance.markPaid")}
                       </button>
@@ -490,7 +490,7 @@ function FinancePanel() {
                       href={p.evidenceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-white/60 underline underline-offset-2"
+                      className="text-xs text-ink/60 underline underline-offset-2"
                     >
                       {t("finance.evidence")}
                     </a>
@@ -506,7 +506,7 @@ function FinancePanel() {
         (accrual == null ? (
           <SkeletonList items={3} />
         ) : accrual.length === 0 ? (
-          <p className="text-sm text-white/50">{t("finance.accrualEmpty")}</p>
+          <p className="text-sm text-ink/50">{t("finance.accrualEmpty")}</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {accrual.map((a) => (
@@ -517,7 +517,7 @@ function FinancePanel() {
                       <p className="truncate text-sm font-semibold">
                         {a.actorName}
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink/50">
                         {actorLabel(a.actorType)} ·{" "}
                         {t("finance.accrualSince", {
                           date: dateFmt.format(new Date(a.oldestPaymentAt)),
@@ -529,7 +529,7 @@ function FinancePanel() {
                       {clp.format(a.estimatedNet)}
                     </p>
                   </div>
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-ink/50">
                     {t("finance.accrualSplit", {
                       gross: clp.format(a.gross),
                       deductions: clp.format(a.gross - a.estimatedNet),
@@ -546,7 +546,7 @@ function FinancePanel() {
                     type="button"
                     disabled={busy === `gen-${a.actorId}`}
                     onClick={() => void generate(a)}
-                    className="mt-1 self-start rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                    className="mt-1 self-start rounded-lg bg-ink/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
                   >
                     {busy === `gen-${a.actorId}` ? (
                       <Spinner />
@@ -566,7 +566,7 @@ function FinancePanel() {
           <SkeletonList items={3} />
         ) : (
           <>
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-ink/50">
               {t("finance.paymentsHint")}
             </p>
             <ul className="flex flex-col gap-3">
@@ -581,11 +581,11 @@ function FinancePanel() {
                         {feeModeLabel(p.feeMode)}
                       </Badge>
                     </div>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {p.person?.name} · {p.event?.name} ·{" "}
                       {dateTimeFmt.format(new Date(p.createdAt))}
                     </p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {t("finance.paymentSplit", {
                         rate:
                           p.platformFeeRate != null
@@ -623,7 +623,7 @@ function FinancePanel() {
               />
             </div>
             {Object.keys(mrr.funnel).length > 0 && (
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-ink/50">
                 {Object.entries(mrr.funnel)
                   .map(([s, c]) => `${subStatusLabel(s)}: ${num.format(c)}`)
                   .join(" · ")}
@@ -638,7 +638,7 @@ function FinancePanel() {
                         <p className="truncate text-sm font-semibold">
                           {s.actorName}
                         </p>
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-ink/50">
                           {s.tierCode} · {s.billingCycle.toLowerCase()}
                         </p>
                       </div>
@@ -646,7 +646,7 @@ function FinancePanel() {
                         {s.monthlyAmount != null && (
                           <span className="text-sm font-semibold">
                             {clp.format(s.monthlyAmount)}
-                            <span className="text-xs font-normal text-white/50">
+                            <span className="text-xs font-normal text-ink/50">
                               /{t("finance.perMonth")}
                             </span>
                           </span>
@@ -661,7 +661,7 @@ function FinancePanel() {
                       </div>
                     </div>
                     {s.nextInvoiceAt && (
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink/50">
                         {t("finance.nextInvoice", {
                           date: dateFmt.format(new Date(s.nextInvoiceAt)),
                         })}
@@ -689,9 +689,9 @@ function Kpi({
 }) {
   return (
     <Card className="flex flex-col gap-1 p-4">
-      <p className="text-xs text-white/50">{label}</p>
+      <p className="text-xs text-ink/50">{label}</p>
       <p className="text-lg font-semibold">{value}</p>
-      {hint && <p className="text-[11px] leading-snug text-white/40">{hint}</p>}
+      {hint && <p className="text-[11px] leading-snug text-ink/40">{hint}</p>}
     </Card>
   );
 }

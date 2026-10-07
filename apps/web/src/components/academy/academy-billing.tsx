@@ -322,7 +322,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
   if (state === "loading") return <SkeletonList items={2} lines={2} />;
   if (state === "denied") {
     return (
-      <p role="status" className="text-sm text-white/60">
+      <p role="status" className="text-sm text-ink/60">
         {t("noAccess")}
       </p>
     );
@@ -401,7 +401,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
               className={`flex min-h-11 flex-col items-start gap-1 rounded-xl border px-4 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:cursor-not-allowed disabled:opacity-50 ${
                 selected
                   ? "border-neon bg-neon/15"
-                  : "border-white/15 hover:border-white/30"
+                  : "border-ink/15 hover:border-ink/30"
               }`}
             >
               <span className="flex w-full items-center justify-between gap-2">
@@ -412,7 +412,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                   </Badge>
                 )}
               </span>
-              <span className="text-xs text-white/60">
+              <span className="text-xs text-ink/60">
                 {overLimit
                   ? t("tierExceeded", {
                       active: view.activeStudents,
@@ -431,9 +431,9 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           );
         })}
       </div>
-      <p className="text-xs text-white/50">
+      <p className="text-xs text-ink/50">
         {t("enterpriseNote")}{" "}
-        <a href="/soporte" className="underline underline-offset-4 hover:text-white">
+        <a href="/soporte" className="underline underline-offset-4 hover:text-ink">
           {t("enterpriseCta")}
         </a>
       </p>
@@ -442,7 +442,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           Pro: el descuento se calcula del precio real del param, no se
           hardcodea el −2%/−4% del design. */}
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs uppercase tracking-wide text-white/50">
+        <legend className="text-xs uppercase tracking-wide text-ink/50">
           {t("cycleLabel")}
         </legend>
         <div className="grid grid-cols-3 gap-2">
@@ -463,7 +463,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
                 className={`flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl border px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
                   selected
                     ? "border-neon bg-neon/15 text-neon"
-                    : "border-white/15 text-white/70 hover:border-white/30 hover:text-white"
+                    : "border-ink/15 text-ink/70 hover:border-ink/30 hover:text-ink"
                 }`}
               >
                 <span className="font-medium">{t(`cycles.${c}`)}</span>
@@ -488,7 +488,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       aria-label={t("title")}
       className="flex flex-col gap-4"
     >
-      <p className="text-sm text-white/50">{t("desc")}</p>
+      <p className="text-sm text-ink/50">{t("desc")}</p>
 
       {/* ── Estado actual ─────────────────────────────────────────── */}
       <Card className="flex flex-col gap-4">
@@ -513,7 +513,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
             tier; ≥90% ámbar, al tope rojo. */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="text-white/60">
+            <span className="text-ink/60">
               {view.maxStudents != null
                 ? t("studentsUsage", {
                     count: view.activeStudents,
@@ -529,7 +529,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
               role="progressbar"
               aria-valuenow={view.activeStudents}
               aria-valuemax={view.maxStudents}
-              className="h-2 overflow-hidden rounded-full bg-night-700"
+              className="h-2 overflow-hidden rounded-full bg-raised"
             >
               <div
                 className={`h-full rounded-full ${usageTone}`}
@@ -540,29 +540,29 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         </div>
 
         {view.status === "ACTIVE" && nextDate && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {t("nextInvoice", { date: nextDate })}
           </p>
         )}
         {view.status === "CANCEL_PENDING" && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {nextDate
               ? t("cancelPending", { date: nextDate })
               : t("cancelPendingNoDate")}
           </p>
         )}
         {view.status === "ACTIVATING" && (
-          <p role="status" className="flex items-center gap-2 text-sm text-white/60">
+          <p role="status" className="flex items-center gap-2 text-sm text-ink/60">
             <Spinner size="sm" />
             {t("statusActivating")}
           </p>
         )}
         {(view.status === "PENDING_CARD" ||
           view.status === "FAILED_CARD") && (
-          <p className="text-sm text-white/60">{t("pendingCardHint")}</p>
+          <p className="text-sm text-ink/60">{t("pendingCardHint")}</p>
         )}
         {onTrial && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {t("trialDaysLeft", { days: trialDaysLeft })}
           </p>
         )}
@@ -605,7 +605,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       {registerUrl && (
         <Card className="flex flex-col gap-3">
           <h2 className="text-base font-semibold">{t("cardRedirectTitle")}</h2>
-          <p className="text-sm leading-relaxed text-white/70">
+          <p className="text-sm leading-relaxed text-ink/70">
             {t("cardRedirectDesc")}
           </p>
           <Button
@@ -622,12 +622,12 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
       {/* ── Gestión del plan vigente ──────────────────────────────── */}
       {hasLiveSub && !registerUrl && (
         <Card className="flex flex-col gap-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("changePlan")}
           </h2>
           {planSelector}
           {(reverting || !selectionIsCurrent) && (
-            <p className="text-xs leading-relaxed text-white/50">
+            <p className="text-xs leading-relaxed text-ink/50">
               {reverting
                 ? t("changeRevert", {
                     tier: currentTierKey ? t(`tiers.${currentTierKey}`) : "",
@@ -653,10 +653,10 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           </div>
 
           {view.status === "ACTIVE" && (
-            <div className="border-t border-night-700 pt-3">
+            <div className="border-t border-line pt-3">
               {confirmCancel ? (
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm text-white/70">
+                  <p className="text-sm text-ink/70">
                     {t("cancelConfirm")}
                   </p>
                   <div className="flex gap-3">
@@ -698,18 +698,18 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
         <Card className="flex flex-col gap-4">
           {planSelector}
           {chargeTotal == null ? (
-            <p role="status" className="text-sm text-white/60">
+            <p role="status" className="text-sm text-ink/60">
               {t("subscribeError")}
             </p>
           ) : (
             <>
-              <p className="text-xs leading-relaxed text-white/50">
+              <p className="text-xs leading-relaxed text-ink/50">
                 {t("consent", {
                   amount: clp.format(chargeTotal),
                   period: t(`period.${selCycle}`),
                 })}
               </p>
-              <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-white/80">
+              <label className="flex min-h-11 cursor-pointer items-start gap-2 text-sm text-ink/80">
                 <input
                   type="checkbox"
                   checked={consent}
@@ -739,19 +739,19 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
 
       {/* ── Invoices (Payment PLATFORM_SUB) ───────────────────────── */}
       <Card className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("invoices")}
         </h2>
         {view.invoices.length === 0 ? (
-          <p className="text-sm text-white/50">{t("invoicesEmpty")}</p>
+          <p className="text-sm text-ink/50">{t("invoicesEmpty")}</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-night-700">
+          <ul className="flex flex-col divide-y divide-line">
             {view.invoices.map((inv) => (
               <li
                 key={inv.id}
                 className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
               >
-                <span className="text-sm text-white/60 tabular-nums">
+                <span className="text-sm text-ink/60 tabular-nums">
                   {planDateFmt.format(new Date(inv.createdAt))}
                 </span>
                 <span className="flex items-center gap-3">

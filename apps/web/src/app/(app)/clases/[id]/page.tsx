@@ -159,7 +159,7 @@ export default async function ClaseDetailPage({
 
   const errorView = (
     <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-      <p role="alert" className="text-white/60">{tc.error}</p>
+      <p role="alert" className="text-ink/60">{tc.error}</p>
       <div className="flex flex-wrap justify-center gap-3">
         {/* Server page: el retry es recargar la misma ruta. */}
         <Button href={`/clases/${params.id}`}>
@@ -218,7 +218,7 @@ export default async function ClaseDetailPage({
               {tl.status[lesson.status]}
             </Badge>
           </div>
-          <p className="text-white/70">
+          <p className="text-ink/70">
             {lesson.scheduledAt
               ? lessonFmt.format(new Date(lesson.scheduledAt))
               : tl.toSchedule}
@@ -227,7 +227,7 @@ export default async function ClaseDetailPage({
 
         {/* Instructor - quién la imparte; sin asignar se declara. */}
         <Card>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.instructor}
           </h2>
           {lesson.instructor?.name ? (
@@ -252,7 +252,7 @@ export default async function ClaseDetailPage({
               </div>
             </div>
           ) : (
-            <p className="text-sm text-white/60">{tl.toAssign}</p>
+            <p className="text-sm text-ink/60">{tl.toAssign}</p>
           )}
         </Card>
 
@@ -260,7 +260,7 @@ export default async function ClaseDetailPage({
         <Card>
           <dl className="grid grid-cols-2 gap-4">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-white/50">
+              <dt className="text-xs uppercase tracking-wide text-ink/50">
                 {tl.price}
               </dt>
               <dd className="mt-1">
@@ -331,13 +331,13 @@ export default async function ClaseDetailPage({
           {cls.cancelled && <Badge variant="outline">{t.cancelledTag}</Badge>}
           {cls.attended && <Badge variant="neon">{t.attendedTag}</Badge>}
         </div>
-        <p className="text-white/70">{dateLabel}</p>
+        <p className="text-ink/70">{dateLabel}</p>
       </header>
 
       {/* Profesor - quién la imparte es dato clave de la ficha */}
       {cls.instructor?.name && (
         <Card>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.instructor}
           </h2>
           <div className="flex items-center gap-3">
@@ -365,7 +365,7 @@ export default async function ClaseDetailPage({
 
       {cls.series.description && (
         <Card>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink/80">
             {cls.series.description}
           </p>
         </Card>
@@ -375,15 +375,15 @@ export default async function ClaseDetailPage({
       <Card>
         <dl className="grid grid-cols-2 gap-4">
           <div>
-            <dt className="text-xs uppercase tracking-wide text-white/50">
+            <dt className="text-xs uppercase tracking-wide text-ink/50">
               {t.capacityLabel}
             </dt>
             <dd className="mt-1 text-lg font-semibold tabular-nums">
               {full ? (
-                <span className="text-white/60">
+                <span className="text-ink/60">
                   {t.full}
                   {cls.waitlistCount > 0 && (
-                    <span className="text-white/40">
+                    <span className="text-ink/40">
                       {" "}
                       · {t.waitlistCount.replace("{count}", String(cls.waitlistCount))}
                     </span>
@@ -402,7 +402,7 @@ export default async function ClaseDetailPage({
           </div>
           {cls.series.dropInPrice != null && (
             <div>
-              <dt className="text-xs uppercase tracking-wide text-white/50">
+              <dt className="text-xs uppercase tracking-wide text-ink/50">
                 {t.dropIn}
               </dt>
               <dd className="mt-1">
@@ -416,7 +416,7 @@ export default async function ClaseDetailPage({
       {/* Próximas sesiones de la misma serie - navegación entre fechas */}
       {cls.upcoming.length > 0 && (
         <section aria-label={t.upcomingSessions}>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.upcomingSessions}
           </h2>
           <ul className="flex flex-wrap gap-2">
@@ -424,7 +424,7 @@ export default async function ClaseDetailPage({
               <li key={u.id}>
                 <Link
                   href={`/clases/${u.id}`}
-                  className="inline-flex min-h-11 items-center rounded-full border border-white/15 px-4 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.97]"
+                  className="inline-flex min-h-11 items-center rounded-full border border-ink/15 px-4 text-sm font-medium text-ink/70 transition-colors hover:border-neon/50 hover:text-ink active:scale-[0.97]"
                 >
                   {dayShortFmt.format(new Date(u.date))} · {u.startTime}
                 </Link>

@@ -193,7 +193,7 @@ export default function ProducerParamsPage() {
 
       {gate === "notProducer" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{t("notProducer")}</p>
+          <p className="text-ink/70">{t("notProducer")}</p>
           <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
@@ -202,7 +202,7 @@ export default function ProducerParamsPage() {
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p role="alert" className="text-white/70">
+          <p role="alert" className="text-ink/70">
             {tc("error")}
           </p>
           <Button variant="secondary" onClick={() => void refreshMe()}>
@@ -213,7 +213,7 @@ export default function ProducerParamsPage() {
 
       {gate === "ready" && dataError && (
         <div className="flex flex-col items-start gap-4">
-          <p role="alert" className="text-white/70">
+          <p role="alert" className="text-ink/70">
             {tc("error")}
           </p>
           <Button
@@ -255,10 +255,10 @@ export default function ProducerParamsPage() {
               /productor/comprobantes. */}
           {isProducer && <ProducerPaymentMethodsSection />}
 
-          <p className="text-xs text-white/50">{tp("hint")}</p>
+          <p className="text-xs text-ink/50">{tp("hint")}</p>
 
           <Card padded={false}>
-            <ul className="flex flex-col divide-y divide-night-700">
+            <ul className="flex flex-col divide-y divide-line">
               {FEE_FIELDS.map((f) => {
                 const custom = params.defaults[f] != null;
                 const effective = params.effective[f];
@@ -268,7 +268,7 @@ export default function ProducerParamsPage() {
                     className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
                   >
                     <div className="flex min-w-0 flex-col gap-1">
-                      <span className="text-sm text-white/70">
+                      <span className="text-sm text-ink/70">
                         {tp(FEE_LABEL_KEY[f])}
                       </span>
                       <Badge variant={custom ? "neon" : "muted"}>
@@ -281,7 +281,7 @@ export default function ProducerParamsPage() {
                           {effective}%
                         </span>
                       ) : (
-                        <span className="text-white/50">·</span>
+                        <span className="text-ink/50">·</span>
                       )}
                     </span>
                   </li>
@@ -291,18 +291,18 @@ export default function ProducerParamsPage() {
           </Card>
 
           <div className="flex flex-col gap-1">
-            <p className="text-xs text-white/50">{tp("readOnly")}</p>
-            <p className="text-xs text-white/50">{tp("perEvent")}</p>
+            <p className="text-xs text-ink/50">{tp("readOnly")}</p>
+            <p className="text-xs text-ink/50">{tp("perEvent")}</p>
           </div>
 
           {/* Defaults de mesas - editables por el productor. Los eventos
               nuevos los heredan salvo que el productor los cambie ahí. */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {tp("tablesTitle")}
             </h2>
             <Card padded={false}>
-              <ul className="flex flex-col divide-y divide-night-700">
+              <ul className="flex flex-col divide-y divide-line">
                 {TABLE_FIELDS.map((f) => (
                   <li
                     key={f}
@@ -310,7 +310,7 @@ export default function ProducerParamsPage() {
                   >
                     <label
                       htmlFor={`tp-${f}`}
-                      className="text-sm text-white/70"
+                      className="text-sm text-ink/70"
                     >
                       {tp(TABLE_LABEL_KEY[f])}
                     </label>
@@ -324,18 +324,18 @@ export default function ProducerParamsPage() {
                         setTables((s) => ({ ...s, [f]: e.target.value }))
                       }
                       placeholder="·"
-                      className="w-24 rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
+                      className="w-24 rounded-xl border border-line bg-elevated px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
                     />
                   </li>
                 ))}
               </ul>
             </Card>
             <Card padded={false}>
-              <ul className="flex flex-col divide-y divide-night-700">
+              <ul className="flex flex-col divide-y divide-line">
                 <li className="flex items-center justify-between gap-3 px-5 py-4">
                   <label
                     htmlFor="tp-presaleCutoff"
-                    className="text-sm text-white/70"
+                    className="text-sm text-ink/70"
                   >
                     {tp("presaleCutoffLabel")}
                   </label>
@@ -347,13 +347,13 @@ export default function ProducerParamsPage() {
                       setCutoffDirty(true);
                       setPresaleCutoff(e.target.value);
                     }}
-                    className="w-28 rounded-xl border border-night-700 bg-night-800 px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
+                    className="w-28 rounded-xl border border-line bg-elevated px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
                   />
                 </li>
               </ul>
             </Card>
-            <p className="text-xs text-white/50">{tp("tablesHint")}</p>
-            <p className="text-xs text-white/50">{tp("presaleCutoffHint")}</p>
+            <p className="text-xs text-ink/50">{tp("tablesHint")}</p>
+            <p className="text-xs text-ink/50">{tp("presaleCutoffHint")}</p>
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => void saveTables()}

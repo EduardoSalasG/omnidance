@@ -85,7 +85,7 @@ function ParamsPanel() {
       )}
 
       <section className="flex flex-col gap-4">
-        <p className="text-xs text-white/50">{t("params.hint")}</p>
+        <p className="text-xs text-ink/50">{t("params.hint")}</p>
         {params === null ? (
           <SkeletonList items={4} lines={1} />
         ) : (
@@ -95,7 +95,7 @@ function ParamsPanel() {
               <Card className="flex flex-col gap-2">
                 <span className="font-mono text-sm text-neon">{p.key}</span>
                 {p.description && (
-                  <span className="text-xs text-white/50">
+                  <span className="text-xs text-ink/50">
                     {p.description}
                   </span>
                 )}
@@ -108,7 +108,7 @@ function ParamsPanel() {
                         [p.key]: e.target.value,
                       }))
                     }
-                    className="min-h-[44px] flex-1 rounded-lg border border-white/15 bg-black/40 px-3 font-mono text-sm"
+                    className="min-h-[44px] flex-1 rounded-lg border border-ink/15 bg-canvas px-3 font-mono text-sm"
                     aria-label={p.key}
                   />
                   <Button
@@ -314,11 +314,11 @@ function ProducerParamsSection() {
       <div className="flex flex-col gap-1">
         <h2
           id="producer-params-heading"
-          className="text-sm font-semibold uppercase tracking-wide text-white/50"
+          className="text-sm font-semibold uppercase tracking-wide text-ink/50"
         >
           {tp("adminSection")}
         </h2>
-        <p className="text-xs text-white/50">{tp("adminHint")}</p>
+        <p className="text-xs text-ink/50">{tp("adminHint")}</p>
       </div>
 
       {listError && (
@@ -332,7 +332,7 @@ function ProducerParamsSection() {
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
-            className="min-h-[44px] flex-1 rounded-lg border border-white/15 bg-black/40 px-3 text-sm"
+            className="min-h-[44px] flex-1 rounded-lg border border-ink/15 bg-canvas px-3 text-sm"
             aria-label={tp("selectProducer")}
           >
             {producers.map((p) => (
@@ -360,7 +360,7 @@ function ProducerParamsSection() {
               <div key={f} className="flex flex-col gap-1">
                 <label
                   htmlFor={`producer-fee-${f}`}
-                  className="text-sm text-white/70"
+                  className="text-sm text-ink/70"
                 >
                   {tp(FEE_LABEL_KEY[f])}
                 </label>
@@ -377,9 +377,9 @@ function ProducerParamsSection() {
                   onChange={(e) =>
                     setDrafts((d) => ({ ...d, [f]: e.target.value }))
                   }
-                  className="min-h-[44px] rounded-lg border border-white/15 bg-black/40 px-3 font-mono text-sm"
+                  className="min-h-[44px] rounded-lg border border-ink/15 bg-canvas px-3 font-mono text-sm"
                 />
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-ink/50">
                   {tp("effective")}:{" "}
                   {isCutoff ? (
                     effective != null ? (
@@ -398,7 +398,7 @@ function ProducerParamsSection() {
                   )}
                 </p>
                 {isCutoff && (
-                  <p className="text-xs text-white/50">
+                  <p className="text-xs text-ink/50">
                     {tp("presaleCutoffHint")}
                   </p>
                 )}

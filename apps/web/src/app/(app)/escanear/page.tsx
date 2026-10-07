@@ -16,13 +16,13 @@ function RedirectToQr() {
     );
   }, [router, eventId]);
 
-  return <main className="min-h-dvh bg-night-950" aria-hidden="true" />;
+  return <main className="min-h-dvh bg-canvas" aria-hidden="true" />;
 }
 
 export default function EscanearPage() {
   return (
     <Suspense
-      fallback={<main className="min-h-dvh bg-night-950" aria-hidden="true" />}
+      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
     >
       <RedirectToQr />
     </Suspense>

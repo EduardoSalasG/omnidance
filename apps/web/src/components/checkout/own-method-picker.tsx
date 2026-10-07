@@ -41,10 +41,10 @@ export function OwnMethodDetails({ method }: { method: OwnMethod }) {
           {TRANSFER_FIELDS.map((f) =>
             method.details[f] ? (
               <div key={f} className="flex items-center gap-2">
-                <dt className="w-28 shrink-0 text-white/50">
+                <dt className="w-28 shrink-0 text-ink/50">
                   {t(TRANSFER_FIELD_KEYS[f])}
                 </dt>
-                <dd className="font-mono text-white/90">
+                <dd className="font-mono text-ink/90">
                   {method.details[f]}
                 </dd>
                 <button
@@ -64,16 +64,16 @@ export function OwnMethodDetails({ method }: { method: OwnMethod }) {
           href={method.details.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-11 items-center rounded-xl bg-neon px-4 text-sm font-semibold text-night-950"
+          className="inline-flex min-h-11 items-center rounded-xl bg-neon px-4 text-sm font-semibold text-on-accent"
         >
           {t("payLink")}
         </a>
       )}
       {method.type === "CASH" && method.details.instructions && (
-        <p className="text-sm text-white/70">{method.details.instructions}</p>
+        <p className="text-sm text-ink/70">{method.details.instructions}</p>
       )}
       {method.details.instructions && method.type !== "CASH" && (
-        <p className="mt-1 text-sm text-white/70">
+        <p className="mt-1 text-sm text-ink/70">
           {method.details.instructions}
         </p>
       )}
@@ -113,7 +113,7 @@ export function OwnMethodPicker({
           className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 transition-colors ${
             value === null
               ? "border-neon/60 bg-neon/10"
-              : "border-night-700 hover:border-night-600"
+              : "border-line hover:border-line"
           }`}
         >
           <input
@@ -131,7 +131,7 @@ export function OwnMethodPicker({
             className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 transition-colors ${
               value === m.id
                 ? "border-neon/60 bg-neon/10"
-                : "border-night-700 hover:border-night-600"
+                : "border-line hover:border-line"
             }`}
           >
             <input
@@ -146,9 +146,9 @@ export function OwnMethodPicker({
         ))}
       </div>
       {selected && (
-        <div className="rounded-xl border border-night-700 bg-night-800 p-4">
+        <div className="rounded-xl border border-line bg-elevated p-4">
           <OwnMethodDetails method={selected} />
-          <p className="mt-3 text-xs text-white/50">{t("ownMethodHint")}</p>
+          <p className="mt-3 text-xs text-ink/50">{t("ownMethodHint")}</p>
         </div>
       )}
     </fieldset>

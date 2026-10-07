@@ -38,7 +38,7 @@ type VideoItem = {
 
 const linkBtnCls =
   "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl " +
-  "border border-night-700 bg-night-900 px-4 text-sm font-semibold text-neon " +
+  "border border-line bg-surface px-4 text-sm font-semibold text-neon " +
   "transition-colors hover:border-neon/60 " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon";
 
@@ -118,7 +118,7 @@ export function Videos({ academy }: { academy: Academy }) {
       {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-white/60">{tc("error")}</p>
+          <p className="text-sm text-ink/60">{tc("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void load()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
@@ -127,7 +127,7 @@ export function Videos({ academy }: { academy: Academy }) {
       {state === "ready" &&
         (videos.length === 0 ? (
           <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-white/50">{t.empty}</p>
+            <p className="text-sm text-ink/50">{t.empty}</p>
             {canAdminister && (
               <Button href="/academia/videos/nuevo" size="sm">
                 + {t.addTitle}
@@ -156,7 +156,7 @@ export function Videos({ academy }: { academy: Academy }) {
                       </Badge>
                     </div>
                     {locked ? (
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink/50">
                         {t.lockedHint}
                       </p>
                     ) : (

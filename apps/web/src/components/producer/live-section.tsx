@@ -75,7 +75,7 @@ export function LiveSection({ eventId, status }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {status === "LIVE" ? t("live.title") : t("live.titlePast")}
       </h2>
 
@@ -99,10 +99,10 @@ export function LiveSection({ eventId, status }: Props) {
               <span className="block text-xl font-bold tabular-nums text-neon">
                 {num.format(data.sales.presale.count)}
               </span>
-              <span className="block text-xs text-white/50">
+              <span className="block text-xs text-ink/50">
                 {t("live.presale")}
               </span>
-              <span className="block text-xs tabular-nums text-white/40">
+              <span className="block text-xs tabular-nums text-ink/40">
                 {clp.format(data.sales.presale.amount)}
               </span>
             </li>
@@ -110,10 +110,10 @@ export function LiveSection({ eventId, status }: Props) {
               <span className="block text-xl font-bold tabular-nums text-neon">
                 {num.format(data.sales.door.count + data.sales.door.manual)}
               </span>
-              <span className="block text-xs text-white/50">
+              <span className="block text-xs text-ink/50">
                 {t("live.door")}
               </span>
-              <span className="block text-xs tabular-nums text-white/40">
+              <span className="block text-xs tabular-nums text-ink/40">
                 {clp.format(data.sales.door.amount)}
                 {data.sales.door.manual > 0 &&
                   ` · ${t("live.doorManual", { count: data.sales.door.manual })}`}
@@ -123,29 +123,29 @@ export function LiveSection({ eventId, status }: Props) {
               <span className="block text-xl font-bold tabular-nums text-neon">
                 {num.format(data.sales.total.count)}
               </span>
-              <span className="block text-xs text-white/50">
+              <span className="block text-xs text-ink/50">
                 {t("live.totalSold")}
               </span>
-              <span className="block text-xs tabular-nums text-white/40">
+              <span className="block text-xs tabular-nums text-ink/40">
                 {clp.format(data.sales.total.amount)}
               </span>
             </li>
           </ul>
 
           {/* Check-ins + ocupación vs aforo. */}
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-night-700 pt-3 text-sm">
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-t border-line pt-3 text-sm">
             <p>
               <span className="text-xl font-bold tabular-nums text-neon">
                 {num.format(data.checkins.total)}
               </span>{" "}
-              <span className="text-white/50">{t("live.checkins")}</span>
+              <span className="text-ink/50">{t("live.checkins")}</span>
             </p>
             {status === "LIVE" && (
               <p>
                 <span className="font-semibold tabular-nums">
                   +{num.format(data.checkins.lastHour)}
                 </span>{" "}
-                <span className="text-white/50">{t("live.lastHour")}</span>
+                <span className="text-ink/50">{t("live.lastHour")}</span>
               </p>
             )}
             {data.occupancy != null && data.capacity != null && (
@@ -153,13 +153,13 @@ export function LiveSection({ eventId, status }: Props) {
                 <span className="font-semibold tabular-nums">
                   {Math.round(data.occupancy * 100)}%
                 </span>{" "}
-                <span className="text-white/50">
+                <span className="text-ink/50">
                   {t("live.occupancy", { capacity: data.capacity })}
                 </span>
               </p>
             )}
             {data.passes > 0 && (
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-ink/40">
                 {t("live.passes", { count: data.passes })}
               </p>
             )}
@@ -188,7 +188,7 @@ export function LiveSection({ eventId, status }: Props) {
                   );
                 })}
               </div>
-              <div className="mt-1 flex justify-between text-[10px] tabular-nums text-white/40">
+              <div className="mt-1 flex justify-between text-[10px] tabular-nums text-ink/40">
                 <span>19:00</span>
                 <span>00:00</span>
                 <span>05:00</span>

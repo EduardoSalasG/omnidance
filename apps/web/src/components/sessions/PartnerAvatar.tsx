@@ -23,7 +23,7 @@ export function PartnerAvatar({
       <img
         src={photoUrl}
         alt=""
-        className={`${dims} shrink-0 rounded-full border border-night-700 object-cover`}
+        className={`${dims} shrink-0 rounded-full border border-line object-cover`}
       />
     );
   }
@@ -31,7 +31,7 @@ export function PartnerAvatar({
   return (
     <span
       aria-hidden="true"
-      className={`${dims} flex shrink-0 items-center justify-center rounded-full border border-night-700 bg-night-800 font-bold text-neon`}
+      className={`${dims} flex shrink-0 items-center justify-center rounded-full border border-line bg-elevated font-bold text-neon`}
     >
       {name.charAt(0).toUpperCase() || "?"}
     </span>

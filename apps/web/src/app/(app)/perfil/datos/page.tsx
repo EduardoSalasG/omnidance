@@ -69,7 +69,7 @@ const ENROLLMENT_VARIANT: Record<string, "neon" | "outline" | "muted"> = {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-1">
-      <span className="shrink-0 text-xs uppercase tracking-wide text-white/50">
+      <span className="shrink-0 text-xs uppercase tracking-wide text-ink/50">
         {label}
       </span>
       <span className="min-w-0 truncate text-right text-sm">{value}</span>
@@ -103,7 +103,7 @@ function EditField({
     <div className="flex items-baseline justify-between gap-4 py-1">
       <label
         htmlFor={id}
-        className="shrink-0 text-xs uppercase tracking-wide text-white/50"
+        className="shrink-0 text-xs uppercase tracking-wide text-ink/50"
       >
         {label}
       </label>
@@ -118,14 +118,14 @@ function EditField({
           if (e.key === "Enter") onEnter();
           if (e.key === "Escape") onEscape();
         }}
-        className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white placeholder:text-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-neon/50"
+        className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-surface px-2 py-1 text-right text-sm text-ink placeholder:text-ink/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-neon/50"
       />
     </div>
   );
 }
 
 const selectCls =
-  "min-h-11 min-w-0 rounded-lg border border-night-700 bg-night-900 px-3 text-sm text-white focus:border-neon focus:outline-none";
+  "min-h-11 min-w-0 rounded-lg border border-line bg-surface px-3 text-sm text-ink focus:border-neon focus:outline-none";
 
 export default function DatosPage() {
   const t = useTranslations("profile");
@@ -323,7 +323,7 @@ export default function DatosPage() {
   if (state === "error") {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
-        <p role="alert" className="text-white/50">
+        <p role="alert" className="text-ink/50">
           {tc("error")}
         </p>
         <Button variant="secondary" onClick={() => void refreshMe()}>
@@ -375,10 +375,10 @@ export default function DatosPage() {
 
       {/* Datos personales - comunes a ambos modos (social y academia) */}
       <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("datos.personal")}
         </h2>
-        <div className="mt-2 flex flex-col divide-y divide-white/5">
+        <div className="mt-2 flex flex-col divide-y divide-ink/5">
           {personalEditing ? (
             <>
               <EditField
@@ -453,7 +453,7 @@ export default function DatosPage() {
             <div className="flex items-baseline justify-between gap-4 py-1">
               <label
                 htmlFor="birth-input"
-                className="shrink-0 text-xs uppercase tracking-wide text-white/50"
+                className="shrink-0 text-xs uppercase tracking-wide text-ink/50"
               >
                 {t("datos.birthDate")}
               </label>
@@ -471,7 +471,7 @@ export default function DatosPage() {
                   if (e.key === "Enter") void savePersonal();
                   if (e.key === "Escape") cancelPersonalEdit();
                 }}
-                className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-night-900 px-2 py-1 text-right text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neon/50"
+                className="min-w-0 max-w-52 flex-1 rounded-lg border border-neon/60 bg-surface px-2 py-1 text-right text-sm text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-neon/50"
               />
             </div>
           ) : (
@@ -557,7 +557,7 @@ export default function DatosPage() {
             <button
               type="button"
               onClick={startPersonalEdit}
-              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-ink/60 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               {t("datos.edit")}
             </button>
@@ -569,11 +569,11 @@ export default function DatosPage() {
           academia: inscripciones vigentes con plan y estado. */}
       {viewMode === "academy" ? (
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("datos.academySection")}
           </h2>
           {(me.enrollments ?? []).length === 0 ? (
-            <p className="mt-3 text-sm text-white/60">
+            <p className="mt-3 text-sm text-ink/60">
               {t("datos.academyEmpty")}
             </p>
           ) : (
@@ -581,13 +581,13 @@ export default function DatosPage() {
               {(me.enrollments ?? []).map((e) => (
                 <li
                   key={e.academy.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/50 px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-xl border border-line bg-elevated/50 px-4 py-3"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
                       {e.academy.name}
                     </p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {e.plan ? `${t("datos.plan", { name: e.plan.name })} · ` : ""}
                       {t("datos.since", {
                         date: dateFmt.format(new Date(e.startedAt)),
@@ -607,7 +607,7 @@ export default function DatosPage() {
         </Card>
       ) : (
         <Card>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("datos.socialSection")}
           </h2>
           {srEditing ? (
@@ -616,7 +616,7 @@ export default function DatosPage() {
                 {srDraft.map((r) => (
                   <li
                     key={r.key}
-                    className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800/50 px-3 py-3"
+                    className="flex flex-col gap-2 rounded-xl border border-line bg-elevated/50 px-3 py-3"
                   >
                     <select
                       aria-label={t("datos.chooseStyle")}
@@ -681,7 +681,7 @@ export default function DatosPage() {
                             rows.filter((x) => x.key !== r.key),
                           )
                         }
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white/50 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-ink/50 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                       >
                         <XIcon className="h-4 w-4" />
                       </button>
@@ -732,7 +732,7 @@ export default function DatosPage() {
           ) : (
             <>
               {(me.styleRoles ?? []).length === 0 ? (
-                <p className="mt-3 text-sm text-white/60">
+                <p className="mt-3 text-sm text-ink/60">
                   {t("datos.socialEmpty")}
                 </p>
               ) : (
@@ -740,7 +740,7 @@ export default function DatosPage() {
                   {(me.styleRoles ?? []).map((sr) => (
                     <li
                       key={`${sr.style.id}-${sr.role}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/50 px-4 py-3"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-line bg-elevated/50 px-4 py-3"
                     >
                       <p className="min-w-0 truncate text-sm font-medium">
                         {sr.style.name}
@@ -753,7 +753,7 @@ export default function DatosPage() {
                               name={levelLabel(sr.level) ?? ""}
                             />
                           ) : (
-                            <span className="text-xs text-white/50">
+                            <span className="text-xs text-ink/50">
                               {sr.level}
                             </span>
                           ))}
@@ -769,7 +769,7 @@ export default function DatosPage() {
                 <button
                   type="button"
                   onClick={startStyleRoleEdit}
-                  className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-ink/60 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   {t("datos.edit")}
                 </button>

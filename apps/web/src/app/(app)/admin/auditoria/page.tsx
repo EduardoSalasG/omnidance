@@ -56,7 +56,7 @@ function AuditPanel() {
         {audit === null ? (
           <SkeletonList items={4} lines={1} />
         ) : audit.length === 0 ? (
-          <p role="status" className="text-white/60">
+          <p role="status" className="text-ink/60">
             {t("audit.empty")}
           </p>
         ) : (
@@ -64,20 +64,20 @@ function AuditPanel() {
             {audit.map((a) => (
               <li
                 key={a.id}
-                className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs"
+                className="rounded-xl border border-ink/10 bg-ink/5 p-3 text-xs"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{a.action}</Badge>
-                  <span className="text-white/50">
+                  <span className="text-ink/50">
                     {a.targetType}
                     {a.targetId ? `:${a.targetId.slice(0, 8)}` : ""}
                   </span>
-                  <span className="ml-auto text-white/50">
+                  <span className="ml-auto text-ink/50">
                     {fmtTime.format(new Date(a.createdAt))}
                   </span>
                 </div>
                 {a.payload != null && (
-                  <pre className="mt-1 overflow-x-auto text-white/50">
+                  <pre className="mt-1 overflow-x-auto text-ink/50">
                     {JSON.stringify(a.payload)}
                   </pre>
                 )}

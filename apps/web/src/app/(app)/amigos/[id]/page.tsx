@@ -169,7 +169,7 @@ export default function AmigoPerfilPage({
       {state === "loading" && <SkeletonList />}
       {state === "notfound" && (
         <Card className="flex flex-col items-start gap-3">
-          <p role="status" className="text-white/60">
+          <p role="status" className="text-ink/60">
             {t("notFound")}
           </p>
           <Button href="/amigos" variant="secondary" size="sm">
@@ -179,7 +179,7 @@ export default function AmigoPerfilPage({
       )}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-white/50">
+          <p role="alert" className="text-ink/50">
             {tc("error")}
           </p>
           <Button
@@ -297,7 +297,7 @@ export default function AmigoPerfilPage({
               amigos (el server decide; ausente = sin acceso a agenda) */}
           {person.upcomingEvents && person.upcomingEvents.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("upcomingTitle")}
               </h2>
               <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
@@ -306,7 +306,7 @@ export default function AmigoPerfilPage({
                     <Link href={`/eventos/${e.id}`} className="block">
                       <Card className="transition-colors hover:border-neon/50">
                         <p className="font-semibold">{e.name}</p>
-                        <p className="text-sm text-white/60">
+                        <p className="text-sm text-ink/60">
                           <EventDate start={e.startsAt} />
                           {e.venue ? ` · ${e.venue.name}` : ""}
                         </p>
@@ -321,7 +321,7 @@ export default function AmigoPerfilPage({
           {/* Estilos */}
           {person.styleRoles.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("stylesTitle")}
               </h2>
               <div className="flex flex-wrap gap-2">
@@ -360,7 +360,7 @@ export default function AmigoPerfilPage({
         <div
           ref={dialogRef}
           role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setConfirmRemove(false)}
         >
           <Card
@@ -373,7 +373,7 @@ export default function AmigoPerfilPage({
             <h2 id="remove-friend-title" className="text-lg font-semibold">
               {t("remove")}
             </h2>
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-ink/70">
               {t("removeConfirm", { name: person.name })}
             </p>
             <div className="flex items-center justify-end gap-3">

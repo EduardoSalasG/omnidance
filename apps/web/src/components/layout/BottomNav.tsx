@@ -1051,7 +1051,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
             <span
               className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${
                 sheetOpen
-                  ? "border-neon bg-neon text-night-950"
+                  ? "border-neon bg-neon text-on-accent"
                   : "border-neon/50 bg-neon/10 text-neon"
               }`}
             >
@@ -1073,7 +1073,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
               ? "text-neon"
               : active
                 ? "text-neon"
-                : "text-white/50 hover:text-white/80"
+                : "text-ink/50 hover:text-ink/80"
           }`}
         >
           {tab.center ? (
@@ -1082,7 +1082,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 active ? "tab-pop " : ""
               }${
                 active
-                  ? "border-neon bg-neon text-night-950"
+                  ? "border-neon bg-neon text-on-accent"
                   : "border-neon/50 bg-neon/10 text-neon"
               }`}
             >
@@ -1129,7 +1129,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           el slot central lo ocupa el switch Social/Academia y el h1
           queda sr-only para conservar el encabezado de página. */}
       <header
-        className={`appbar sticky top-0 z-40 bg-night-950/90 backdrop-blur pt-[env(safe-area-inset-top)]${
+        className={`appbar sticky top-0 z-40 bg-canvas/90 backdrop-blur pt-[env(safe-area-inset-top)]${
           barHidden ? " appbar-hidden" : ""
         }`}
       >
@@ -1140,7 +1140,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 type="button"
                 aria-label={tcg("back")}
                 onClick={goBack}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-95"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-ink/80 transition-colors hover:bg-ink/10 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-95"
               >
                 <svg
                   aria-hidden
@@ -1168,7 +1168,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                     aria-controls="app-side-drawer"
                     aria-label={t("menu")}
                     onClick={() => setDrawerOpen((o) => !o)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon lg:hidden"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-ink/80 transition-colors hover:bg-ink/10 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon lg:hidden"
                   >
                     <svg
                       aria-hidden
@@ -1195,7 +1195,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
               </>
             ) : (
               pageLabel && (
-                <h1 className="pointer-events-none truncate text-center text-lg font-semibold tracking-tight text-white">
+                <h1 className="pointer-events-none truncate text-center text-lg font-semibold tracking-tight text-ink">
                   {pageLabel}
                 </h1>
               )
@@ -1221,7 +1221,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
                   pathname.startsWith("/notificaciones")
                     ? "text-neon"
-                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                    : "text-ink/80 hover:bg-ink/10 hover:text-ink"
                 }`}
               >
                 <span className="relative">
@@ -1229,7 +1229,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                   {badge > 0 && (
                     <span
                       aria-hidden
-                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-night-950"
+                      className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-bold leading-none text-on-accent"
                     >
                       {badgeText(badge)}
                     </span>
@@ -1261,7 +1261,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
       <nav
         aria-label={t("main")}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-night-700 bg-night-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
       >
         <ul className="relative mx-auto flex h-16 max-w-lg items-stretch justify-between">
           {/* Píldora activa - se desliza al tab con transform puro;
