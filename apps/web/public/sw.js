@@ -15,6 +15,14 @@
 const STATIC_CACHE = "omnidance-static-v1";
 const PAGES_CACHE = "omnidance-pages-v1";
 
+// En dev (localhost) el SW no intercepta requests: los assets de
+// _next/static se versionan por ?v (no por hash de contenido), así que
+// un cache-first podría servir CSS/JS viejo contra HTML nuevo tras
+// reiniciar el dev server. El cache solo aplica en producción.
+const IS_DEV =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1";
+
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -32,6 +40,7 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  if (IS_DEV) return;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
