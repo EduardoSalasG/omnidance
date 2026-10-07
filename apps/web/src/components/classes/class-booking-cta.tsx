@@ -286,8 +286,8 @@ export function ClassBookingCta({
 
   if (closedLabel) {
     return (
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
-        <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur lg:bottom-0">
+        <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 lg:max-w-4xl lg:px-8">
           <p className="text-center text-sm font-medium text-white/60">
             {closedLabel}
           </p>
@@ -303,8 +303,8 @@ export function ClassBookingCta({
           acción: reservada/en espera → el estado va en los chips del
           header, no en la barra. */}
       {!booking && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-4 sm:px-6">
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur lg:bottom-0">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-4 sm:px-6 lg:max-w-4xl lg:px-8">
             {awaiting ? (
               /* Orden stub PENDING: esperando el webhook simulado -
                  la barra ofrece aprobar/fallar el pago en dev. */

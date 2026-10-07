@@ -346,7 +346,7 @@ export default async function EventosPage({
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
         {dayLabel(label, t)}
       </h3>
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
         {items.map((e) => (
           <li key={e.id}>{renderCard(e)}</li>
         ))}
@@ -395,7 +395,7 @@ export default async function EventosPage({
   ];
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3 lg:max-w-5xl lg:px-8">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">
@@ -697,7 +697,7 @@ export default async function EventosPage({
               {selectedEvents.length === 0 ? (
                 <p className="text-sm text-white/50">{t.noEventsDay}</p>
               ) : (
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                   {selectedEvents.map((e) => (
                     <li key={e.id}>{renderCard(e)}</li>
                   ))}

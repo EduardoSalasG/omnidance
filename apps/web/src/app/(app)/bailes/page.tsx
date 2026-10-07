@@ -225,7 +225,7 @@ function Bailes() {
     allNights || eventId ? historyGroups : historyGroups.slice(0, VISIBLE_NIGHTS);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6 lg:max-w-5xl lg:px-8">
       <h1 className="sr-only">{t("title")}</h1>
       {/* Contexto del filtro ?event= - permite salir de la vista acotada */}
       {eventId && (
@@ -305,27 +305,31 @@ function Bailes() {
                   {t("pendingIn")}
                 </h3>
               )}
-              {incoming.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  busy={busyId === s.id}
-                  onAct={(action) => void act(s, action)}
-                />
-              ))}
+              <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+                {incoming.map((s) => (
+                  <SessionCard
+                    key={s.id}
+                    session={s}
+                    busy={busyId === s.id}
+                    onAct={(action) => void act(s, action)}
+                  />
+                ))}
+              </div>
               {incoming.length > 0 && outgoing.length > 0 && (
                 <h3 className="mt-1 text-xs font-medium text-white/60">
                   {t("pendingOut")}
                 </h3>
               )}
-              {outgoing.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  busy={busyId === s.id}
-                  onAct={(action) => void act(s, action)}
-                />
-              ))}
+              <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
+                {outgoing.map((s) => (
+                  <SessionCard
+                    key={s.id}
+                    session={s}
+                    busy={busyId === s.id}
+                    onAct={(action) => void act(s, action)}
+                  />
+                ))}
+              </div>
             </section>
           )}
 
@@ -461,7 +465,10 @@ function Bailes() {
                 // Vista filtrada ?event=: un solo grupo - lista plana, el
                 // chip ya da el contexto. Sin filtro: acordeón por noche.
                 eventId ? (
-                  <div key={g.eventId} className="flex flex-col gap-2">
+                  <div
+                    key={g.eventId}
+                    className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3"
+                  >
                     {g.items.map((s) => (
                       <SessionCard
                         key={s.id}
@@ -516,11 +523,11 @@ function Bailes() {
                         </svg>
                       </div>
                     </summary>
-                    <div className="flex flex-col gap-2 px-3 pb-3">
+                    <div className="flex flex-col gap-2 px-3 pb-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
                       {g.event && (
                         <Link
                           href={`/eventos/${g.event.id}`}
-                          className="w-fit text-xs text-neon underline-offset-4 transition-colors hover:underline"
+                          className="w-fit text-xs text-neon underline-offset-4 transition-colors hover:underline sm:col-span-2 lg:col-span-3"
                         >
                           {t("viewEvent")}
                         </Link>

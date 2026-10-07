@@ -340,7 +340,7 @@ export default function DatosPage() {
       <main
         aria-busy="true"
         aria-label={tc("loading")}
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8"
       >
         <Skeleton className="page-loading h-8 w-48" />
         <Card aria-hidden="true">
@@ -370,7 +370,7 @@ export default function DatosPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
       <h1 className="text-2xl font-bold">{t("datos.title")}</h1>
 
       {/* Datos personales - comunes a ambos modos (social y academia) */}

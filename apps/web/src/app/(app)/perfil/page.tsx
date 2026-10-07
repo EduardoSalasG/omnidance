@@ -336,7 +336,7 @@ export default function PerfilPage() {
       <main
         aria-busy="true"
         aria-label={tc("loading")}
-        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6"
+        className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8"
       >
         <Card className="flex items-center gap-4" aria-hidden="true">
           <Skeleton className="page-loading h-16 w-16 shrink-0 rounded-full" />
@@ -349,7 +349,7 @@ export default function PerfilPage() {
         {shellLens === "DANCER" && (
           <section aria-hidden="true">
             <Skeleton className="page-loading mb-3 h-4 w-36" />
-            <ul className="grid grid-cols-2 gap-3">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {/* El skeleton debe medir lo mismo que la grilla real:
                   social trae 4 KPIs (racha/puntos/insignias/bailes),
                   academia solo 2 (inscripciones/clases del mes) - con 4
@@ -375,7 +375,7 @@ export default function PerfilPage() {
             </Card>
             <Card aria-hidden="true">
               <Skeleton className="page-loading h-4 w-24" />
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 {[0, 1, 2].map((i) => (
                   <Skeleton
                     key={i}
@@ -410,7 +410,7 @@ export default function PerfilPage() {
   return (
     // Sin min-h-dvh: el wrapper del chrome ya reserva el clearance de
     // la tab bar - forzar alto de viewport dejaba scroll muerto al pie.
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
       {/* Fallback del retorno de suscripción de plataforma (?sub=error)
           - useSearchParams exige Suspense. */}
       <Suspense>
@@ -494,7 +494,7 @@ export default function PerfilPage() {
         (kpis === null && !kpisFailed ? (
           <section aria-hidden="true">
             <Skeleton className="page-loading mb-3 h-4 w-36" />
-            <ul className="grid grid-cols-2 gap-3">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {/* Mismo conteo por modo que el shell: academy = 2 KPIs. */}
               {Array.from(
                 { length: viewMode === "academy" ? 2 : 4 },
@@ -595,7 +595,7 @@ export default function PerfilPage() {
                cuando el fetch ya resolvió. */
             <ul
               aria-hidden="true"
-              className="page-loading mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3"
+              className="page-loading mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
             >
               {[0, 1, 2].map((i) => (
                 <li key={i}>
@@ -608,7 +608,7 @@ export default function PerfilPage() {
               {tg(viewMode === "academy" ? "badgesEmptyAcademy" : "badgesEmpty")}
             </p>
           ) : (
-            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {visibleBadges.map((b) => (
                 <li
                   key={b.badge.key}

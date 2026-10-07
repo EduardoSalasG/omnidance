@@ -219,7 +219,7 @@ export default function NotificacionesPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
       {/* Header solo cuando hay no-leídas - vacío reservaba una franja
           muerta sobre la lista. */}
       {unreadCount > 0 && (
