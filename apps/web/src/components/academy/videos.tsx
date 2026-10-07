@@ -13,7 +13,7 @@ import {
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import academyExtras from "@/i18n/parts/academyExtras.json";
-import { inputCls, readError, type Academy } from "./shared";
+import { readError, type Academy } from "./shared";
 
 const t = academyExtras.academyExtras.videos;
 
@@ -43,12 +43,13 @@ const linkBtnCls =
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon";
 
 /**
- * Videos de la academia (links externos).
+ * Videos de la academia (links externos) - solo listado.
  * - Lista para cualquier usuario autenticado con contexto de academia;
  *   locked → metadatos + hint, unlocked → link "Ver video" externo.
- * - POST/DELETE exigen owner/ADMIN (requireAdminister): el form y el
- *   botón eliminar solo se renderizan con canAdminister (misma regla que
- *   canAdministerAcademy del dominio: ADMIN u ownerId === me.id).
+ * - Crear vive en /academia/videos/nuevo y DELETE exige owner/ADMIN
+ *   (requireAdminister): el CTA y el botón eliminar solo se renderizan
+ *   con canAdminister (misma regla que canAdministerAcademy del dominio:
+ *   ADMIN u ownerId === me.id).
  */
 export function Videos({ academy }: { academy: Academy }) {
   const tc = useTranslations("common");
@@ -57,13 +58,6 @@ export function Videos({ academy }: { academy: Academy }) {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [feedback, setFeedback] = useState<string | null>(null);
-
-  const [title, setTitle] = useState("");
-  const [url, setUrl] = useState("");
-  const [classId, setClassId] = useState("");
-  const [restricted, setRestricted] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const canAdminister =
@@ -87,39 +81,6 @@ export function Videos({ academy }: { academy: Academy }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function submit(e: React.FormEvent): Promise<void> {
-    e.preventDefault();
-    setBusy(true);
-    setFormError(null);
-    setFeedback(null);
-    try {
-      const res = await apiFetch(`/academies/${academy.id}/videos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          url: url.trim(),
-          ...(classId.trim() ? { classId: classId.trim() } : {}),
-          restrictedToAttended: restricted,
-        }),
-      });
-      if (!res.ok) {
-        setFormError((await readError(res)) ?? tc("error"));
-        return;
-      }
-      setFeedback(t.added);
-      setTitle("");
-      setUrl("");
-      setClassId("");
-      setRestricted(true);
-      await load();
-    } catch {
-      setFormError(tc("error"));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function remove(v: VideoItem): Promise<void> {
     if (!window.confirm(t.confirmDelete)) return;
@@ -145,7 +106,14 @@ export function Videos({ academy }: { academy: Academy }) {
 
   return (
     <section aria-label={t.title} className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">{t.title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{t.title}</h2>
+        {canAdminister && (
+          <Button href="/academia/videos/nuevo" size="sm">
+            + {t.addTitle}
+          </Button>
+        )}
+      </div>
 
       {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (
@@ -158,7 +126,14 @@ export function Videos({ academy }: { academy: Academy }) {
       )}
       {state === "ready" &&
         (videos.length === 0 ? (
-          <p className="text-sm text-white/50">{t.empty}</p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-sm text-white/50">{t.empty}</p>
+            {canAdminister && (
+              <Button href="/academia/videos/nuevo" size="sm">
+                + {t.addTitle}
+              </Button>
+            )}
+          </div>
         ) : (
           <ul className="flex flex-col gap-2">
             {videos.map((v) => {
@@ -214,73 +189,6 @@ export function Videos({ academy }: { academy: Academy }) {
             })}
           </ul>
         ))}
-
-      {canAdminister && (
-        <Card>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-            {t.addTitle}
-          </h3>
-          <form
-            onSubmit={submit}
-            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
-          >
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
-                {t.videoTitle}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                className={inputCls}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
-                {t.videoUrl}
-                <span aria-hidden="true" className="text-neon"> *</span>
-              </span>
-              <input
-                className={inputCls}
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t.classId}</span>
-              <input
-                className={inputCls}
-                value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-              />
-            </label>
-            <label className="flex items-end gap-2 pb-1">
-              <input
-                type="checkbox"
-                className="h-5 w-5 rounded border-night-700 bg-night-800 accent-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-                checked={restricted}
-                onChange={(e) => setRestricted(e.target.checked)}
-              />
-              <span className="text-xs text-white/70">
-                {t.restrictedLabel}
-              </span>
-            </label>
-            {formError && (
-              <p role="alert" className="text-sm text-red-400 sm:col-span-2">
-                {formError}
-              </p>
-            )}
-            <div className="sm:col-span-2">
-              <Button type="submit" size="sm" disabled={busy}>
-                {busy ? tc("loading") : tc("create")}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
 
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}

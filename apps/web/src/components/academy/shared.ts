@@ -132,6 +132,45 @@ export type Student = {
   endsAt: string | null;
 };
 
+// GET /academies/:id/series - espejo del SERIES_INCLUDE del controller
+// (style/level/types via join, slots ordenados por weekday+startTime).
+export type NamedRef = { id: string; name: string };
+export type SeriesStyle = NamedRef & { genre: string };
+export type SeriesLevel = NamedRef & { order: number };
+
+export type SeriesSlot = {
+  id: string;
+  weekday: number; // 0-6, domingo = 0
+  startTime: string; // "19:00"
+  endTime: string;
+  capacity: number;
+  instructorId: string | null;
+  // Modalidad propia del horario - vacío = hereda los types de la serie.
+  types: { type: NamedRef }[];
+};
+
+export type Series = {
+  id: string;
+  name: string;
+  description: string | null;
+  month: string; // "YYYY-MM"
+  active: boolean;
+  instructorId: string | null;
+  // Override de quórum por serie (PATCH acepta quorum; null = hereda el
+  // defaultQuorum de la academia). Opcional hasta que el backend lo exponga.
+  quorum?: number | null;
+  // CLP - precio de la clase suelta (null = no se vende suelta).
+  dropInPrice?: number | null;
+  style: NamedRef | null;
+  level: NamedRef | null;
+  types: { type: NamedRef }[];
+  slots: SeriesSlot[];
+};
+
+// GET /academies/:id solo devuelve personIds; los nombres se cosechan
+// del directorio GET /academies (mismo patrón que private-lessons).
+export type AcademyInstructor = { personId: string; name: string | null };
+
 // GET /academies/:id/slots - todo slot pertenece a una serie (invariante
 // de schema); capacity null = hereda el quórum de la serie/academia.
 export type ClassSlot = {
@@ -244,6 +283,20 @@ export const birthdayFmt = new Intl.DateTimeFormat("es-CL", {
 export function shortId(id: string): string {
   return id.slice(0, 8);
 }
+
+// <input type="date"> trabaja en fecha local YYYY-MM-DD; endsAt llega ISO.
+export const toDateInput = (iso: string) => {
+  const d = new Date(iso);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+};
+
+// Un "YYYY-MM-DD" del input se manda como mediodía local - si se envía
+// crudo el server lo parsea como medianoche UTC y el día se corre en
+// zonas negativas (CLT = UTC-3/-4).
+export const fromDateInput = (v: string) =>
+  new Date(`${v}T12:00:00`).toISOString();
 
 /**
  * Extrae `message` de una respuesta de error de NestJS

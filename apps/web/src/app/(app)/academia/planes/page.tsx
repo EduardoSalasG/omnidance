@@ -12,15 +12,23 @@ import type { MembershipPlan } from "@/components/academy/shared";
 
 /**
  * /academia/planes - membresías de la academia seleccionada.
- * La página fetchea GET /academies/:id/plans; el alta y el refresh los
- * maneja PlansSection vía onChanged.
+ * La página fetchea GET /academies/:id/plans; crear/editar vive en
+ * /academia/planes/nueva (?edit=<planId>) detrás del CTA del header.
  */
 export default function AcademiaPlanesPage() {
   const t = useTranslations("academy");
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
-      <ConsoleHeader backHref="/academia" backLabel={t("title")} />
+      <ConsoleHeader
+        backHref="/academia"
+        backLabel={t("title")}
+        actions={
+          <Button href="/academia/planes/nueva" size="sm">
+            + {t("newPlan")}
+          </Button>
+        }
+      />
       <AcademyGate>
         {({ academy }) => (
           <PlansModule key={academy.id} academyId={academy.id} />
@@ -68,7 +76,5 @@ function PlansModule({ academyId }: { academyId: string }) {
   if (plans === null) {
     return <SkeletonList />;
   }
-  return (
-    <PlansSection academyId={academyId} plans={plans} onChanged={reload} />
-  );
+  return <PlansSection plans={plans} />;
 }

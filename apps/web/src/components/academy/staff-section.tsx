@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, SkeletonList, Spinner } from "@/components/ui";
-import { inputCls, readError } from "./shared";
+import { readError } from "./shared";
 import type { AcademyCap } from "./use-academy-access";
 
-type Caps = Record<AcademyCap, boolean>;
+export type Caps = Record<AcademyCap, boolean>;
 
 type StaffRow = {
   person: { id: string; name: string | null; email: string | null };
@@ -15,7 +15,7 @@ type StaffRow = {
   createdAt: string;
 };
 
-const CAPS: AcademyCap[] = [
+export const CAPS: AcademyCap[] = [
   "students",
   "payments",
   "plans",
@@ -25,7 +25,7 @@ const CAPS: AcademyCap[] = [
   "billing",
 ];
 
-const EMPTY_CAPS: Caps = {
+export const EMPTY_CAPS: Caps = {
   students: false,
   payments: false,
   plans: false,
@@ -41,7 +41,7 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   year: "numeric",
 });
 
-function CapCheckbox({
+export function CapCheckbox({
   cap,
   checked,
   disabled,
@@ -71,18 +71,15 @@ function CapCheckbox({
 }
 
 /**
- * Mantenedor de colaboradores (spec academy-staff-roles): lista staff con
- * flags granulares, alta por email (stub + invitación si no existe cuenta),
- * PATCH por flag y baja. Gated por capacidad `team` en el backend.
+ * Mantenedor de colaboradores (spec academy-staff-roles) - lista staff
+ * con flags granulares, PATCH por flag y baja (acciones por fila). El
+ * alta por email vive en /academia/equipo/nuevo. Gated por capacidad
+ * `team` en el backend.
  */
 export function StaffSection({ academyId }: { academyId: string }) {
   const t = useTranslations("academyStaff");
 
   const [rows, setRows] = useState<StaffRow[] | null>(null);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [newCaps, setNewCaps] = useState<Caps>(EMPTY_CAPS);
-  const [busy, setBusy] = useState(false);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -97,36 +94,6 @@ export function StaffSection({ academyId }: { academyId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setMsg(null);
-    setErr(null);
-    try {
-      const res = await apiFetch(`/academies/${academyId}/staff`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          name: name.trim() || undefined,
-          ...newCaps,
-        }),
-      });
-      if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
-        return;
-      }
-      const body = (await res.json()) as { invited: boolean };
-      setMsg(body.invited ? t("invitedMsg") : t("added"));
-      setEmail("");
-      setName("");
-      setNewCaps(EMPTY_CAPS);
-      await load();
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function toggle(personId: string, cap: AcademyCap, next: boolean) {
     setRowBusy(personId);
@@ -184,131 +151,76 @@ export function StaffSection({ academyId }: { academyId: string }) {
   if (rows === null) return <SkeletonList />;
 
   return (
-    <div className="flex flex-col gap-6">
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-            {t("listTitle")}
-          </h2>
-          <p className="mt-1 text-xs text-white/50">{t("desc")}</p>
-        </div>
-        {msg && (
-          <p role="status" className="text-sm text-neon">
-            {msg}
-          </p>
-        )}
-        {err && (
-          <p role="alert" className="text-sm text-red-400">
-            {err}
-          </p>
-        )}
-        {rows.length === 0 ? (
+    <Card className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          {t("listTitle")}
+        </h2>
+        <p className="mt-1 text-xs text-white/50">{t("desc")}</p>
+      </div>
+      {msg && (
+        <p role="status" className="text-sm text-neon">
+          {msg}
+        </p>
+      )}
+      {err && (
+        <p role="alert" className="text-sm text-red-400">
+          {err}
+        </p>
+      )}
+      {rows.length === 0 ? (
+        <div className="flex flex-col items-start gap-3">
           <p className="text-sm text-white/60">{t("empty")}</p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {rows.map((r) => (
-              <li
-                key={r.person.id}
-                className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800 p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-semibold">
-                    {r.person.name ?? r.person.email}
-                  </span>
-                  {r.person.email && (
-                    <span className="text-white/60">{r.person.email}</span>
-                  )}
-                  <span className="ml-auto text-xs text-white/40">
-                    {t("since", {
-                      date: dayFmt.format(new Date(r.createdAt)),
-                    })}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => void remove(r)}
-                    disabled={rowBusy === r.person.id}
-                  >
-                    {rowBusy === r.person.id ? (
-                      <Spinner size="sm" />
-                    ) : null}
-                    {t("remove")}
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-x-3 sm:grid-cols-3">
-                  {CAPS.map((cap) => (
-                    <CapCheckbox
-                      key={cap}
-                      cap={cap}
-                      checked={r.caps[cap]}
-                      disabled={rowBusy === r.person.id}
-                      onToggle={(c, next) => void toggle(r.person.id, c, next)}
-                    />
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      <Card className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-            {t("addTitle")}
-          </h2>
-          <p className="mt-1 text-xs text-white/50">{t("addDesc")}</p>
+          <Button href="/academia/equipo/nuevo" size="sm">
+            + {t("addTitle")}
+          </Button>
         </div>
-        <form onSubmit={add} className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">
-              {t("fieldEmail")}
-              <span aria-hidden="true" className="text-neon">
-                {" "}
-                *
-              </span>
-            </span>
-            <input
-              type="email"
-              required
-              className={inputCls}
-              placeholder={t("fieldEmailPh")}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("fieldName")}</span>
-            <input
-              className={inputCls}
-              placeholder={t("fieldNamePh")}
-              maxLength={120}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <fieldset className="flex flex-col gap-1">
-            <legend className="text-xs text-white/50">{t("capsLegend")}</legend>
-            <div className="grid grid-cols-2 gap-x-3 sm:grid-cols-3">
-              {CAPS.map((cap) => (
-                <CapCheckbox
-                  key={cap}
-                  cap={cap}
-                  checked={newCaps[cap]}
-                  onToggle={(c, next) =>
-                    setNewCaps((prev) => ({ ...prev, [c]: next }))
-                  }
-                />
-              ))}
-            </div>
-          </fieldset>
-          <div>
-            <Button type="submit" size="sm" disabled={busy}>
-              {busy ? t("adding") : t("add")}
-            </Button>
-          </div>
-        </form>
-      </Card>
-    </div>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {rows.map((r) => (
+            <li
+              key={r.person.id}
+              className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800 p-4"
+            >
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-semibold">
+                  {r.person.name ?? r.person.email}
+                </span>
+                {r.person.email && (
+                  <span className="text-white/60">{r.person.email}</span>
+                )}
+                <span className="ml-auto text-xs text-white/40">
+                  {t("since", {
+                    date: dayFmt.format(new Date(r.createdAt)),
+                  })}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void remove(r)}
+                  disabled={rowBusy === r.person.id}
+                >
+                  {rowBusy === r.person.id ? (
+                    <Spinner size="sm" />
+                  ) : null}
+                  {t("remove")}
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 sm:grid-cols-3">
+                {CAPS.map((cap) => (
+                  <CapCheckbox
+                    key={cap}
+                    cap={cap}
+                    checked={r.caps[cap]}
+                    disabled={rowBusy === r.person.id}
+                    onToggle={(c, next) => void toggle(r.person.id, c, next)}
+                  />
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
