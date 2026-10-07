@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { DrawerGroup } from "./SideDrawer";
-import { ThemeToggle } from "./ThemeToggle";
 
 const NAV_ID = "app-sidebar-nav";
 
@@ -142,10 +141,7 @@ export function AppSidebar({
         </ul>
       </nav>
 
-      <div className="flex flex-col gap-1 border-t border-line p-2">
-        {/* En riel colapsado (w-16) el segmentado no cabe: botón único
-            que cicla la preferencia con el ícono del estado actual. */}
-        <ThemeToggle variant={collapsed ? "compact" : "segmented"} />
+      <div className="border-t border-line p-2">
         <button
           type="button"
           data-tour="appbar-menu"

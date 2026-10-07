@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { ThemeToggle } from "./ThemeToggle";
 
 export type DrawerItem = {
   href: string;
@@ -155,10 +154,6 @@ export function SideDrawer({
             )}
           </ul>
         </nav>
-
-        <div className="border-t border-line px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3">
-          <ThemeToggle />
-        </div>
       </div>
     </div>
   );

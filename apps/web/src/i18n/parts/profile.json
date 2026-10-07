@@ -1,5 +1,6 @@
 {
   "profile": {
+    "appearance": "Apariencia",
     "pendingBanner": "Completa tus datos para activar tu cuenta",
     "pendingBannerCta": "Completar",
     "datos": {
