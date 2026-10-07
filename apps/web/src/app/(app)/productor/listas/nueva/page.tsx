@@ -190,7 +190,7 @@ function NewGuestList() {
 
 export default function NewGuestListPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-3xl lg:px-8">
       <ProducerGate>
         <NewGuestList />
       </ProducerGate>

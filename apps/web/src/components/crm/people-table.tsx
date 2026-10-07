@@ -299,7 +299,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       )}
 
       {pageRows.length > 0 && (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
           {pageRows.map((r) => {
             const segKey = r.segment ?? "NONE";
             return (

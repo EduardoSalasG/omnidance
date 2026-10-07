@@ -192,7 +192,7 @@ function GuestLists() {
                     </Button>
                   </Card>
                 ) : (
-                  <ul className="flex flex-col gap-3">
+                  <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                     {lists.map((l) => (
                       <li key={l.id}>
                         <Card className="flex flex-col gap-3">
@@ -288,7 +288,7 @@ function GuestLists() {
 
 export default function ProducerListsPage() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
       <ProducerGate>
         <GuestLists />
       </ProducerGate>

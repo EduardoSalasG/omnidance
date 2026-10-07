@@ -22,7 +22,7 @@ export default function ProducerPage() {
   const tt = useTranslations("tours.productor");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
       <p className="text-white/60">{t("hubDesc")}</p>
 
       {/* Retorno del disclaimer de tarjeta de Flow (platform-customer-

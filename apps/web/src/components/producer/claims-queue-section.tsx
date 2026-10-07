@@ -122,7 +122,7 @@ export function ProducerClaimsQueue() {
               {msg}
             </p>
           )}
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
             {pending.map((c) => (
               <li
                 key={c.id}
