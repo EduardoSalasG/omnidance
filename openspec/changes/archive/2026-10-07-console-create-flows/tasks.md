@@ -33,5 +33,5 @@
 ## 9. Cierre
 
 - [x] 9.1 i18n: todas las keys nuevas (títulos, CTAs, feedbacks) en `parts/*.json`; chequeo de keys ALL_KEYS_OK.
-- [ ] 9.2 `pnpm --filter @omnidance/web build` (o typecheck) verde; `impeccable detect --json` sobre los archivos tocados sin findings nuevos.
+- [x] 9.2 `pnpm --filter @omnidance/web build` verde (79/79 páginas); `impeccable detect --json` sobre los archivos tocados: 1 warning falso positivo documentado (`<img>` real con photoUrl remota en `staff/[eventId]`).
 - [x] 9.3 Revisar diff completo: sin forms sueltos restantes en los listados migrados (los `addSlot`/`addEntry` por fila quedan inline por diseño), sin `any`/ts-ignore, empty states con CTA.
