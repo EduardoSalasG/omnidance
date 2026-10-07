@@ -22,4 +22,4 @@
 ## 5. Cierre
 
 - [x] 5.1 i18n keys nuevas (`nav.collapseMenu`/`nav.expandMenu` en `parts/navExtra.json`); ALL_KEYS_OK.
-- [ ] 5.2 Build/tsc web verde; `impeccable detect --json` sobre el diff sin findings nuevos; QA visual 320px/768px/1024px/1440px de cada arquetipo.
+- [x] 5.2 Build web verde (79/79) + `tsc --noEmit` limpio; `impeccable detect --json` sin findings nuevos (1 falso positivo documentado en `staff/[eventId]`). Brecha declarada: QA visual manual en browser a 320px/768px/1024px/1440px pendiente (requiere sesión + backend).
