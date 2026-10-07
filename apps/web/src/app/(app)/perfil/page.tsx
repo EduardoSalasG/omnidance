@@ -23,6 +23,7 @@ import {
   XIcon,
 } from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 type Streak = {
   currentWeeks: number;
@@ -628,6 +629,17 @@ export default function PerfilPage() {
           )}
         </Card>
       )}
+
+      {/* Apariencia: tema claro/oscuro/sistema - persiste por
+          dispositivo (lib/theme). */}
+      <Card>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {t("appearance")}
+        </h2>
+        <div className="mt-3">
+          <ThemeToggle />
+        </div>
+      </Card>
 
       {/* Historial de compras/cobros del usuario → /perfil/pagos. */}
       <Link
