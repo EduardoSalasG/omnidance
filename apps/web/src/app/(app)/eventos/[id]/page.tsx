@@ -253,7 +253,7 @@ export default async function EventoDetailPage({
   const practiceStyle = blocks[0]?.style?.name ?? null;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6 lg:max-w-4xl lg:px-8">
       {/* Hero */}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -639,8 +639,8 @@ export default async function EventoDetailPage({
       {/* CTA sticky (mobile-first) - flota sobre la BottomNav. Evento
           pasado/cancelado: aviso en vez de compra; la ficha completa
           (descripción, lineup, programa) sigue visible arriba. */}
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur lg:bottom-0">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:max-w-4xl lg:px-8">
           {isPast ? (
             <p className="w-full text-center text-sm font-medium text-white/60">
               {isCancelled ? t.cancelled : t.past}

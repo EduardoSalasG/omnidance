@@ -25,7 +25,7 @@ export function KpiGrid({ kpis, label }: { kpis: Kpi[]; label: string }) {
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
         {label}
       </h2>
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {kpis.map((k) => {
           // KPI nuevo del API sin key en el catálogo → fallback al
           // key crudo en vez de error de next-intl.

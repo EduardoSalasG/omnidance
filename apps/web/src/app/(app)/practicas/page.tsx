@@ -256,7 +256,7 @@ function PracticasInner() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pb-4 pt-3 sm:px-6 lg:max-w-5xl lg:px-8">
       <h1 className="sr-only">{t("title")}</h1>
 
       <section className="flex flex-col gap-3">
@@ -376,7 +376,7 @@ function PracticasInner() {
                 <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
                   {dayLabel(g.label)}
                 </h3>
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                   {g.items.map((p) => (
                     <li key={p.id}>{renderCard(p)}</li>
                   ))}

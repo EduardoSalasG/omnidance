@@ -246,7 +246,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
             {t("myEntries")}
           </h3>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             {myEntries.map((e) => (
               <li key={e.id}>
                 <Link
@@ -278,7 +278,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
           <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
             {isTonight ? t("moreTonight") : t("upcoming")}
           </h3>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             {more.map((e) => (
               <li key={e.id}>
                 <Link
@@ -514,7 +514,7 @@ export function HomeHub() {
           desc: tpr("navEventsDesc"),
           cta: t("producerHeroCta"),
           secondary: {
-            href: "/productor/eventos?crear=1",
+            href: "/productor/eventos/nuevo",
             label: tpr("createEvent"),
           },
         };
@@ -585,7 +585,7 @@ export function HomeHub() {
   );
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6">
+    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
       <header className="flex flex-col gap-1 pt-4">
         <h2 className="text-lg font-medium">
           {t("hi", { name: me.name.split(" ")[0] })}
@@ -695,7 +695,7 @@ export function HomeHub() {
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("myClassesTitle")}
               </h2>
-              <ul className="flex flex-col gap-3">
+              <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                 {stats!.myClasses!.map((c) => (
                   <li key={c.id}>
                     <ClassCard

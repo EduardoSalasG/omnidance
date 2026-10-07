@@ -310,7 +310,7 @@ export default async function VenueProfilePage({
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-6 pt-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-6 pt-6 sm:px-6 lg:max-w-4xl lg:px-8">
       {/* Perfil: logo (o inicial), nombre, dirección y horarios */}
       <header className="flex items-start gap-4">
         {venue.logoUrl ? (
@@ -554,7 +554,7 @@ export default async function VenueProfilePage({
                 {selectedEvents.length === 0 ? (
                   <p className="text-sm text-white/50">{te.noEventsDay}</p>
                 ) : (
-                  <ul className="flex flex-col gap-3">
+                  <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                     {selectedEvents.map((e) => (
                       <li key={e.id}>
                         <Link
@@ -577,7 +577,7 @@ export default async function VenueProfilePage({
                 <h3 className="mb-2 text-xs font-semibold capitalize tracking-wide text-white/50">
                   {dayLabel(g.key, te)}
                 </h3>
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                   {g.items.map((e) => (
                     <li key={e.id}>
                       <Link

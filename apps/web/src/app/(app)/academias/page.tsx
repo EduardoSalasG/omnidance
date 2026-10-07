@@ -475,7 +475,7 @@ function AcademiasInner() {
     }`;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3 lg:max-w-5xl lg:px-8">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{t("directoryTitle")}</h1>
@@ -651,7 +651,7 @@ function AcademiasInner() {
             className="flex flex-col gap-3"
           >
             {enrollments && enrollments.length > 0 ? (
-              <ul className="grid gap-3">
+              <ul className="grid gap-3 sm:grid-cols-2">
                 {enrollments
                   .filter((e) => {
                     // El filtro de estilo lee el directorio (styles
@@ -692,7 +692,7 @@ function AcademiasInner() {
                   : t("exploreEmpty")}
               </p>
             ) : (
-              <ul className="grid gap-3">
+              <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((a) => (
                   <li key={a.id}>
                     <AcademyCard academy={a} />

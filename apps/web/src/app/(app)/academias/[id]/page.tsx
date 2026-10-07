@@ -134,7 +134,7 @@ export default async function AcademiaDetailPage({
   const website = academy.website ? resolveWebsite(academy.website) : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-6 pt-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-6 pt-6 sm:px-6 lg:max-w-4xl lg:px-8">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-bold leading-tight">
@@ -385,7 +385,7 @@ export default async function AcademiaDetailPage({
           <>
             {/* Las 2 próximas; el resto vive en /clases?s=explorar con el
                 filtro de academia - la ficha no es el explorador. */}
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
               {academy.classes.slice(0, 2).map((c) => (
                 <li key={c.id}>
                   <ClassCard

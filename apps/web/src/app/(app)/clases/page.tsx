@@ -544,7 +544,7 @@ function ClasesInner() {
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
         {dayLabel(g.key, g.items[0].date)}
       </h3>
-      <ul className="flex flex-col gap-2">{g.items.map(render)}</ul>
+      <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">{g.items.map(render)}</ul>
     </section>
   );
 
@@ -582,7 +582,7 @@ function ClasesInner() {
         {groupByHour(g.items).map((h) => (
           <div key={h.time}>
             <p className={hourLabelCls}>{h.time}</p>
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">
               {h.items.map(renderClassCard)}
             </ul>
           </div>
@@ -592,7 +592,7 @@ function ClasesInner() {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-6 pb-6 pt-3 lg:max-w-5xl lg:px-8">
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">{t("title")}</h1>
@@ -990,7 +990,7 @@ function ClasesInner() {
                 selectedMine.length === 0 ? (
                   <p className="text-sm text-white/50">{t("noClassesDay")}</p>
                 ) : (
-                  <ul className="flex flex-col gap-4">
+                  <ul className="flex flex-col gap-4 lg:grid lg:grid-cols-2">
                     {selectedMine.map(renderMyCard)}
                   </ul>
                 )
@@ -1003,7 +1003,7 @@ function ClasesInner() {
                   {groupByHour(selectedClasses).map((h) => (
                     <div key={h.time}>
                       <p className={hourLabelCls}>{h.time}</p>
-                      <ul className="flex flex-col gap-2">
+                      <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">
                         {h.items.map(renderClassCard)}
                       </ul>
                     </div>
@@ -1046,7 +1046,7 @@ function ClasesInner() {
                     <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
                       {tl("toSchedule")}
                     </h3>
-                    <ul className="flex flex-col gap-2">
+                    <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">
                       {unscheduledReserved.map(renderMyCard)}
                     </ul>
                   </section>

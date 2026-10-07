@@ -165,7 +165,7 @@ export default function AmigoPerfilPage({
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
       {state === "loading" && <SkeletonList />}
       {state === "notfound" && (
         <Card className="flex flex-col items-start gap-3">
@@ -300,7 +300,7 @@ export default function AmigoPerfilPage({
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("upcomingTitle")}
               </h2>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
                 {person.upcomingEvents.map((e) => (
                   <li key={e.id}>
                     <Link href={`/eventos/${e.id}`} className="block">

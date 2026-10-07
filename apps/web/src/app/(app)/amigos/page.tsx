@@ -317,7 +317,7 @@ export default function AmigosPage() {
   const trimmed = query.trim();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
       {/* Agregar amigos: buscador por nombre + link de invitación.
           El link apunta a mi propio perfil - quien lo abre sin sesión
           cae a login/registro y aterriza aquí con el botón Agregar. */}
@@ -414,7 +414,7 @@ export default function AmigosPage() {
           </p>
         )}
         {results !== null && results.length > 0 && (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
             {results.map((r) => (
               <Row key={r.id} person={r}>
                 <SearchActions r={r} />
@@ -460,7 +460,7 @@ export default function AmigosPage() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("goingTitle")}
               </h2>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
                 {/* Preview de 2 - el resto queda tras "ver más" (la
                     agenda semanal puede ser larga y tapar la lista
                     de amigos, que es el contenido principal). */}
@@ -539,7 +539,7 @@ export default function AmigosPage() {
             {data.pendingReceived.length === 0 ? (
               <p className="text-sm text-white/40">{t("emptyRequests")}</p>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
                 {data.pendingReceived.map((f) => (
                   <Row key={f.id} person={f.person}>
                     <Button
@@ -569,7 +569,7 @@ export default function AmigosPage() {
               <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
                 {t("sentSection")}
               </h2>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
                 {data.pendingSent.map((f) => (
                   <Row key={f.id} person={f.person}>
                     <Badge variant="muted">{t("sentBadge")}</Badge>
@@ -608,7 +608,7 @@ export default function AmigosPage() {
                 </Button>
               </Card>
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
                 {data.friends.map((f) => (
                   <Row key={f.id} person={f.person} />
                 ))}
