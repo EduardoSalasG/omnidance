@@ -50,7 +50,7 @@ export default function AcademiaAlumnoPage({
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-4xl lg:px-8">
       <AcademyGate>
         {({ academy }) => (
           <ProfileModule
@@ -159,7 +159,10 @@ function ProfileModule({
         )}
       </Card>
 
-      {/* Historial */}
+      {/* Historial + próximas reservas: en desktop van a dos columnas
+          (display:contents en móvil preserva el stack con gap-6 del
+          padre - el DOM no cambia bajo lg). */}
+      <div className="contents lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
       <section
         aria-label={tp("history")}
         className="flex flex-col gap-2"
@@ -196,7 +199,6 @@ function ProfileModule({
         )}
       </section>
 
-      {/* Próximas reservas */}
       <section
         aria-label={tp("upcoming")}
         className="flex flex-col gap-2"
@@ -233,6 +235,7 @@ function ProfileModule({
           </ul>
         )}
       </section>
+      </div>
     </div>
   );
 }

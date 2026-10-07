@@ -15,7 +15,7 @@ export default function AcademiaClasesPage() {
   const ti = useTranslations("instructor");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <section aria-label={ti("title")} className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{ti("title")}</h2>

@@ -27,7 +27,7 @@ export default function AcademiaSeriesPage() {
   const t = useTranslations("academy");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (
@@ -319,7 +319,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
           </Button>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:items-start">
           {series.map((s) => (
             <li key={s.id}>
               <Card className="flex flex-col gap-3 p-4">

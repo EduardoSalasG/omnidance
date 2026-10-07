@@ -22,7 +22,7 @@ function NuevaSerie() {
   const t = useTranslations("academySeries");
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
       <ConsoleHeader backHref="/academia/series" backLabel={t("title")} />
       <AcademyGate>
         {({ academy }) => (

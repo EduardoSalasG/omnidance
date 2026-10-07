@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
 } from "react";
 import Link from "next/link";
@@ -32,6 +33,19 @@ const RESULT_MS = 2500;
 // Evita doble POST si la cámara re-detecta el mismo QR de inmediato.
 const RESCAN_MS = 1500;
 const POLL_MS = 15_000;
+
+// Breakpoint lg (1024px): en desktop la consola muestra a la vez la
+// columna de acciones (escáner + ingreso manual) y la lista de
+// check-ins; `view` solo alterna paneles en pantallas chicas.
+// useSyncExternalStore suscribe el media query sin render extra.
+const LG_QUERY = "(min-width: 1024px)";
+const subscribeLg = (onChange: () => void) => {
+  const mq = window.matchMedia(LG_QUERY);
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+};
+const getLgSnapshot = () => window.matchMedia(LG_QUERY).matches;
+const getLgServerSnapshot = () => false;
 
 type CheckinResult = {
   checkin: { id: string; inAt: string; method: string };
@@ -146,6 +160,11 @@ export default function DoorConsolePage({
   // Spec staff-offline-checkin: manifiesto cacheado + cola de escaneos.
   const [manifest, setManifest] = useState<DoorManifest | null>(null);
   const [queue, setQueue] = useState<QueuedScan[]>([]);
+  const isDesktop = useSyncExternalStore(
+    subscribeLg,
+    getLgSnapshot,
+    getLgServerSnapshot,
+  );
 
   const inFlight = useRef(false);
   const lastScan = useRef({ token: "", at: 0 });
@@ -682,10 +701,18 @@ export default function DoorConsolePage({
       active ? "bg-night-800 text-neon" : "text-white/60 active:bg-night-800"
     }`;
 
+  // ≥lg ambas columnas visibles (el tab bar inferior se oculta); <lg
+  // `view` alterna paneles y la cámara se desmonta al pasar a la lista.
+  const showScan = isDesktop || view === "scan";
+  const showList = isDesktop || view === "list";
+
   return (
     <main className="flex min-h-dvh flex-col bg-night-950">
-      {/* Header compacto: volver + evento + contador de la noche */}
-      <header className="flex items-center gap-3 border-b border-night-700 px-4 py-2.5">
+      {/* Header compacto: volver + evento + contador de la noche.
+          En ≥lg el contenido se centra en max-w-6xl (contents en móvil:
+          el DOM no cambia bajo lg). */}
+      <header className="flex items-center gap-3 border-b border-night-700 px-4 py-2.5 lg:block lg:px-8">
+        <div className="contents lg:mx-auto lg:flex lg:max-w-6xl lg:items-center lg:gap-3">
         <Link
           href="/staff"
           className="flex min-h-11 items-center text-sm font-semibold text-white/70"
@@ -708,6 +735,7 @@ export default function DoorConsolePage({
         <div className="flex min-h-11 items-baseline gap-1.5">
           <span className="text-2xl font-black text-neon">{count}</span>
           <span className="text-xs text-white/50">{t("list")}</span>
+        </div>
         </div>
       </header>
 
@@ -757,7 +785,7 @@ export default function DoorConsolePage({
       {gate === "loading" && (
         /* Filas de asistentes en vuelo → SkeletonList (layout conocido),
            nunca spinner desnudo a nivel panel. */
-        <div className="flex-1 px-4 py-3">
+        <div className="flex-1 px-4 py-3 lg:mx-auto lg:w-full lg:max-w-6xl lg:px-8">
           <SkeletonList items={4} lines={1} />
         </div>
       )}
@@ -779,10 +807,23 @@ export default function DoorConsolePage({
         </div>
       )}
 
-      {gate === "ok" && view === "scan" && (
-        <>
+      {/* ≥lg: dos columnas - izquierda métricas/acciones (escáner +
+          ingreso manual), derecha la lista de check-ins con scroll
+          propio. El wrapper es display:contents en móvil: el DOM y el
+          layout <lg no cambian, `view` solo alterna paneles ahí. */}
+      {gate === "ok" && (
+        <div className="contents lg:mx-auto lg:grid lg:min-h-0 lg:w-full lg:max-w-6xl lg:flex-1 lg:grid-cols-[380px_1fr] lg:items-stretch lg:gap-8 lg:px-8 lg:py-6">
+      {showScan && (
+        <section
+          aria-label={t("scan")}
+          className={
+            view === "scan"
+              ? "flex min-h-0 flex-1 flex-col lg:gap-4"
+              : "hidden lg:flex lg:min-h-0 lg:flex-col lg:gap-4"
+          }
+        >
           {/* Cámara grande - el teléfono se sostiene a la altura del pecho */}
-          <div className="relative min-h-0 flex-1">
+          <div className="relative min-h-0 flex-1 lg:overflow-hidden lg:rounded-2xl lg:border lg:border-night-700">
             {cameraError ? (
               <div className="flex h-full items-center justify-center p-6">
                 <p className="text-center text-white/70">{t("cameraError")}</p>
@@ -810,7 +851,7 @@ export default function DoorConsolePage({
 
           {/* Check-in manual colapsable - v1 por personId.
               TODO(ux): selector por nombre cuando exista búsqueda de personas. */}
-          <section className="border-t border-night-700 px-4">
+          <section className="border-t border-night-700 px-4 lg:rounded-2xl lg:border lg:bg-night-900 lg:p-4">
             <button
               type="button"
               aria-expanded={manualOpen}
@@ -876,11 +917,19 @@ export default function DoorConsolePage({
                 </form>
               ))}
           </section>
-        </>
+        </section>
       )}
 
-      {gate === "ok" && view === "list" && (
-        <ul className="min-h-0 flex-1 divide-y divide-night-700 overflow-y-auto">
+      {showList && (
+        <section
+          aria-label={t("list")}
+          className={
+            view === "list"
+              ? "flex min-h-0 flex-1 flex-col"
+              : "hidden lg:flex lg:min-h-0 lg:flex-col"
+          }
+        >
+        <ul className="min-h-0 flex-1 divide-y divide-night-700 overflow-y-auto lg:rounded-2xl lg:border lg:border-night-700 lg:bg-night-900">
           {mergedList.length === 0 ? (
             <li className="p-8 text-center text-sm text-white/50">
               {t("scanning")}
@@ -911,11 +960,15 @@ export default function DoorConsolePage({
             ))
           )}
         </ul>
+        </section>
+      )}
+        </div>
       )}
 
-      {/* Tabs inferiores - al alcance del pulgar con una mano */}
+      {/* Tabs inferiores - al alcance del pulgar con una mano.
+          En ≥lg no aplican: las dos columnas ya están visibles. */}
       {gate === "ok" && (
-        <nav className="grid grid-cols-2 border-t border-night-700 bg-night-900">
+        <nav className="grid grid-cols-2 border-t border-night-700 bg-night-900 lg:hidden">
           <button
             type="button"
             onClick={() => setView("scan")}
