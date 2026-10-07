@@ -179,10 +179,10 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
           -
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {items.map((a) => (
             <li key={a.id}>
-              <Card className="flex flex-wrap items-center gap-x-4 gap-y-1 p-4">
+              <Card className="flex h-full flex-wrap items-center gap-x-4 gap-y-1 p-4">
                 <span className="min-w-0 flex-1 truncate font-mono text-sm">
                   {a.person.name ?? a.personId}
                 </span>

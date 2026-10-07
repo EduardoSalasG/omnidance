@@ -94,7 +94,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
         {t("title")}
       </h2>
       <p className="mt-1 text-xs text-white/40">{t("desc")}</p>
-      <form onSubmit={submit} className="mt-3 flex flex-col gap-3">
+      <form onSubmit={submit} className="mt-3 flex flex-col gap-3 lg:max-w-xl">
         <label className="flex flex-col gap-1">
           <span className="text-xs text-white/50">{t("description")}</span>
           <textarea

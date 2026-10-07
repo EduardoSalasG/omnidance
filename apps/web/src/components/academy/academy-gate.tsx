@@ -140,7 +140,10 @@ export function AcademyGate({
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
               {t("create")}
             </h2>
-            <form onSubmit={create} className="mt-3 flex flex-col gap-3">
+            <form
+              onSubmit={create}
+              className="mt-3 flex flex-col gap-3 lg:max-w-xl"
+            >
               <label className="flex flex-col gap-1">
                 <span className="text-xs text-white/50">
                   {t("academyName")}
@@ -175,7 +178,7 @@ export function AcademyGate({
               componente se auto-omite - el estado va detallado ahí). */}
           <AcademyBillingBanner academy={selected} />
           {academies.length > 1 && (
-            <label className="flex flex-col gap-1">
+            <label className="flex flex-col gap-1 sm:max-w-xs">
               <span className="sr-only">{t("title")}</span>
               <select
                 className={inputCls}

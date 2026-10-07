@@ -124,7 +124,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
               {msg}
             </p>
           )}
-          <ul className="flex flex-col gap-3">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {pending.map((c) => (
           <li
             key={c.id}
@@ -216,7 +216,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
             </h2>
             <p className="mt-1 text-xs text-white/50">{t("awaitingDesc")}</p>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {awaiting.map((c) => (
               <li
                 key={c.id}
@@ -243,7 +243,7 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
             </h2>
             <p className="mt-1 text-xs text-white/50">{t("historyDesc")}</p>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {resolved.map((c) => (
               <li
                 key={c.id}

@@ -90,14 +90,14 @@ export function TeachingClasses() {
   }
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {classes.map((c) => {
         const reached = c.quorum > 0 && c.bookedCount >= c.quorum;
         return (
           <li key={c.id}>
             <Link
               href={`/academia/clases/${c.id}`}
-              className="flex flex-col gap-2 rounded-2xl border border-night-700 bg-night-900 p-4 transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="flex h-full flex-col gap-2 rounded-2xl border border-night-700 bg-night-900 p-4 transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="text-sm font-semibold capitalize">

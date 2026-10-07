@@ -248,7 +248,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
           <p className="mt-1 text-xs text-white/40">
             {t("instructorsHint")}
           </p>
-          <ul className="mt-3 flex flex-col gap-2">
+          <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {instructors.map((i) => (
               <li
                 key={i.personId}
