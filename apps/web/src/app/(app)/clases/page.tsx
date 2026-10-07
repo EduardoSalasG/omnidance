@@ -86,7 +86,7 @@ const weekdayNameFmt = new Intl.DateTimeFormat("es-CL", {
 });
 
 const genreDot = (g: string | null | undefined) =>
-  DOT_COLOR[(g ?? "") as GenreKey] ?? "bg-white/50";
+  DOT_COLOR[(g ?? "") as GenreKey] ?? "bg-ink/50";
 
 // useSearchParams exige Suspense en el componente client-side.
 export default function ClasesPage() {
@@ -512,11 +512,11 @@ function ClasesInner() {
     `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
       active
         ? "border-neon bg-neon/15 text-neon"
-        : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+        : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
     }`;
   const iconBtn = (active: boolean) =>
     `inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.97] ${
-      active ? "bg-neon text-night-950" : "text-white/60 hover:text-white"
+      active ? "bg-neon text-on-accent" : "text-ink/60 hover:text-ink"
     }`;
 
   // ─── Card del explorador (componente compartido con el home). El
@@ -541,7 +541,7 @@ function ClasesInner() {
     render: (item: T) => React.ReactNode,
   ) => (
     <section key={g.key}>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
         {dayLabel(g.key, g.items[0].date)}
       </h3>
       <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">{g.items.map(render)}</ul>
@@ -569,13 +569,13 @@ function ClasesInner() {
 
   // Día de clases: heading del día + bloques "hh:mm" con sus cards.
   const hourLabelCls =
-    "mb-1.5 text-sm font-semibold tabular-nums text-white/70";
+    "mb-1.5 text-sm font-semibold tabular-nums text-ink/70";
 
   // private-lesson-product: la particular ya no es un escape al final del
   // recorrido - es un producto comprable del perfil de la academia.
   const renderClassDayGroup = (g: { key: string; items: BrowseClass[] }) => (
     <section key={g.key}>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
         {dayLabel(g.key, g.items[0].date)}
       </h3>
       <div className="flex flex-col gap-4">
@@ -715,7 +715,7 @@ function ClasesInner() {
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
-                  className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${styleId ? "text-neon" : "text-white/40"}`}
+                  className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${styleId ? "text-neon" : "text-ink/40"}`}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
@@ -746,7 +746,7 @@ function ClasesInner() {
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 24 24"
-                  className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${levelId ? "text-neon" : "text-white/40"}`}
+                  className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${levelId ? "text-neon" : "text-ink/40"}`}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={2}
@@ -780,7 +780,7 @@ function ClasesInner() {
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 24 24"
-                    className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${academyId ? "text-neon" : "text-white/40"}`}
+                    className={`pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 ${academyId ? "text-neon" : "text-ink/40"}`}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={2}
@@ -824,7 +824,7 @@ function ClasesInner() {
           {historyState === "loading" && <SkeletonList items={2} />}
           {historyState === "error" && (
             <div className="flex items-center gap-3">
-              <p role="alert" className="text-sm text-white/60">
+              <p role="alert" className="text-sm text-ink/60">
                 {tc("error")}
               </p>
               <Button
@@ -858,7 +858,7 @@ function ClasesInner() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-white/50">{t("historyEmpty")}</p>
+              <p className="text-sm text-ink/50">{t("historyEmpty")}</p>
             ))}
         </section>
       ) : view === "calendar" ? (
@@ -867,7 +867,7 @@ function ClasesInner() {
           <div className="mb-4 flex items-center justify-between">
             {isCurrentMonth ? (
               <span className={iconBtn(false)} aria-hidden="true">
-                <svg viewBox="0 0 24 24" className="h-5 w-5 text-white/20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" className="h-5 w-5 text-ink/20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </span>
@@ -902,7 +902,7 @@ function ClasesInner() {
             {WEEKDAY_HEADERS.map((h, i) => (
               <span
                 key={i}
-                className="text-center text-[10px] font-semibold uppercase text-white/40"
+                className="text-center text-[10px] font-semibold uppercase text-ink/40"
               >
                 {h}
               </span>
@@ -935,7 +935,7 @@ function ClasesInner() {
                 <>
                   <span
                     className={`text-sm font-semibold ${
-                      isToday ? "text-neon" : isSelected ? "text-white" : "text-white/70"
+                      isToday ? "text-neon" : isSelected ? "text-ink" : "text-ink/70"
                     }`}
                   >
                     {cell.day}
@@ -949,7 +949,7 @@ function ClasesInner() {
                     ))}
                   </span>
                   {dots.length > 3 && (
-                    <span className="text-[10px] leading-none text-white/40">
+                    <span className="text-[10px] leading-none text-ink/40">
                       {te("more", { count: dots.length - 3 })}
                     </span>
                   )}
@@ -969,7 +969,7 @@ function ClasesInner() {
                   href={hrefFor({ day: cell.key })}
                   aria-label={`${dayName} ${cell.day}: ${t("dayClasses", { count: dots.length })}`}
                   aria-current={isSelected ? "date" : undefined}
-                  className={`${cellClass} transition-colors hover:bg-white/5 active:scale-[0.97]`}
+                  className={`${cellClass} transition-colors hover:bg-ink/5 active:scale-[0.97]`}
                 >
                   {inner}
                 </Link>
@@ -980,7 +980,7 @@ function ClasesInner() {
           {/* Clases del día seleccionado */}
           {selectedDay && (
             <section className="mt-6">
-              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
                 {dayLabel(
                   selectedDay,
                   `${selectedDay}T00:00:00.000Z`,
@@ -988,7 +988,7 @@ function ClasesInner() {
               </h3>
               {scope === "mias" && calScope === "reservadas" ? (
                 selectedMine.length === 0 ? (
-                  <p className="text-sm text-white/50">{t("noClassesDay")}</p>
+                  <p className="text-sm text-ink/50">{t("noClassesDay")}</p>
                 ) : (
                   <ul className="flex flex-col gap-4 lg:grid lg:grid-cols-2">
                     {selectedMine.map(renderMyCard)}
@@ -997,7 +997,7 @@ function ClasesInner() {
               ) : browseState === "loading" ? (
                 <SkeletonList items={2} />
               ) : selectedClasses.length === 0 ? (
-                <p className="text-sm text-white/50">{t("noClassesDay")}</p>
+                <p className="text-sm text-ink/50">{t("noClassesDay")}</p>
               ) : (
                 <div className="flex flex-col gap-4">
                   {groupByHour(selectedClasses).map((h) => (
@@ -1023,7 +1023,7 @@ function ClasesInner() {
           {mineState === "loading" && <SkeletonList items={2} />}
           {mineState === "error" && (
             <div className="flex items-center gap-3">
-              <p role="alert" className="text-sm text-white/60">
+              <p role="alert" className="text-sm text-ink/60">
                 {tc("error")}
               </p>
               <Button
@@ -1043,7 +1043,7 @@ function ClasesInner() {
                     invisible). */}
                 {unscheduledReserved.length > 0 && (
                   <section aria-label={tl("toSchedule")}>
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-ink/50">
                       {tl("toSchedule")}
                     </h3>
                     <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">
@@ -1057,10 +1057,10 @@ function ClasesInner() {
               </div>
             ) : (mine?.length ?? 0) > 0 ? (
               // Hay reservas pero los filtros las excluyen todas.
-              <p className="text-sm text-white/60">{t("empty")}</p>
+              <p className="text-sm text-ink/60">{t("empty")}</p>
             ) : (
               <Card className="flex flex-col items-center gap-4 py-10 text-center">
-                <p role="status" className="text-white/70">
+                <p role="status" className="text-ink/70">
                   {t("emptyMine")}
                 </p>
                 <Button href={hrefFor({ s: "explorar" })}>
@@ -1076,7 +1076,7 @@ function ClasesInner() {
           {browseState === "loading" && <SkeletonList items={2} />}
           {browseState === "error" && (
             <div className="flex items-center gap-3">
-              <p role="alert" className="text-sm text-white/60">
+              <p role="alert" className="text-sm text-ink/60">
                 {tc("error")}
               </p>
               <Button
@@ -1091,12 +1091,12 @@ function ClasesInner() {
           {browseState === "ready" &&
             (pool.length === 0 ? (
               scope === "explorar" ? (
-                <p className="text-white/60">{t("empty")}</p>
+                <p className="text-ink/60">{t("empty")}</p>
               ) : (
                 // Sin inscripciones vigentes (o sin clases en ellas):
                 // el camino es explorar el resto de la escena.
                 <Card className="flex flex-col items-center gap-4 py-10 text-center">
-                  <p role="status" className="text-white/70">
+                  <p role="status" className="text-ink/70">
                     {t("emptyEnrolled")}
                   </p>
                   <Button href={hrefFor({ s: "explorar" })}>
@@ -1113,13 +1113,13 @@ function ClasesInner() {
                   <div className="flex flex-col gap-6">
                     {groupByDay(thisWeek).map(renderClassDayGroup)}
                     {thisWeek.length === 0 && (
-                      <p className="text-sm text-white/60">{t("empty")}</p>
+                      <p className="text-sm text-ink/60">{t("empty")}</p>
                     )}
                   </div>
                 </section>
                 {later.length > 0 && (
                   <section>
-                    <h2 className="mb-3 text-sm font-semibold text-white/60">
+                    <h2 className="mb-3 text-sm font-semibold text-ink/60">
                       {te("upcoming")}
                     </h2>
                     <div className="flex flex-col gap-6">
@@ -1132,7 +1132,7 @@ function ClasesInner() {
                 {hasLater && (
                   <Link
                     href={hrefFor({ upto: String(upto + 1) })}
-                    className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-white/15 text-sm font-medium text-white/70 transition-colors hover:border-neon/50 hover:text-white active:scale-[0.98]"
+                    className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-ink/15 text-sm font-medium text-ink/70 transition-colors hover:border-neon/50 hover:text-ink active:scale-[0.98]"
                   >
                     {te("loadLater")}
                     <ChevronDownIcon />

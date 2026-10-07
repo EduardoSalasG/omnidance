@@ -83,7 +83,7 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
 
   return (
     <Card className="flex flex-col gap-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("fees.title")}
       </h2>
 
@@ -92,12 +92,12 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
           {canEdit ? (
             <label
               htmlFor="event-fee-platformFeePct"
-              className="text-sm text-white/70"
+              className="text-sm text-ink/70"
             >
               {t("fees.platformPct")}
             </label>
           ) : (
-            <span className="text-sm text-white/70">
+            <span className="text-sm text-ink/70">
               {t("fees.platformPct")}
             </span>
           )}
@@ -114,18 +114,18 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
             step="any"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="min-h-[44px] rounded-lg border border-white/15 bg-black/40 px-3 font-mono text-sm"
+            className="min-h-[44px] rounded-lg border border-ink/15 bg-canvas px-3 font-mono text-sm"
           />
         ) : (
           <span className="text-base">
             {value != null ? (
               <span className="font-semibold text-neon">{value}%</span>
             ) : (
-              <span className="text-white/50">-</span>
+              <span className="text-ink/50">-</span>
             )}
           </span>
         )}
-        <p className="text-xs text-white/50">{t("fees.allinHint")}</p>
+        <p className="text-xs text-ink/50">{t("fees.allinHint")}</p>
       </div>
 
       {canEdit && (
@@ -142,7 +142,7 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
       )}
 
       {!isAdmin && (
-        <p className="text-xs text-white/50">{t("fees.adminOnly")}</p>
+        <p className="text-xs text-ink/50">{t("fees.adminOnly")}</p>
       )}
     </Card>
   );

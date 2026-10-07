@@ -118,7 +118,7 @@ export default async function AcademiaDetailPage({
   if (academy === "error") {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col items-center justify-center gap-4 p-6">
-        <p className="text-white/60">{tc.error}</p>
+        <p className="text-ink/60">{tc.error}</p>
         <Button href="/academias" variant="secondary">
           {tc.back}
         </Button>
@@ -169,7 +169,7 @@ export default async function AcademiaDetailPage({
           </div>
         )}
         {academy.address && (
-          <p className="flex items-center gap-1.5 text-white/70">
+          <p className="flex items-center gap-1.5 text-ink/70">
             <svg
               aria-hidden
               viewBox="0 0 24 24"
@@ -199,7 +199,7 @@ export default async function AcademiaDetailPage({
                   academy.instagram,
                 )}
                 title={`@${academy.instagram}`}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-night-700 bg-night-800 text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-elevated text-ink/80 transition-colors hover:border-neon/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
               >
                 <svg
                   aria-hidden
@@ -224,7 +224,7 @@ export default async function AcademiaDetailPage({
                 rel="noopener noreferrer"
                 aria-label={t.profile.contactWhatsapp}
                 title="WhatsApp"
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-night-700 bg-night-800 text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-elevated text-ink/80 transition-colors hover:border-neon/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
               >
                 <svg
                   aria-hidden
@@ -250,7 +250,7 @@ export default async function AcademiaDetailPage({
                   website.host,
                 )}
                 title={website.host}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-night-700 bg-night-800 text-white/80 transition-colors hover:border-neon/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-elevated text-ink/80 transition-colors hover:border-neon/50 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon/60"
               >
                 <svg
                   aria-hidden
@@ -276,7 +276,7 @@ export default async function AcademiaDetailPage({
           honesto, la falta es del owner, no del alumno. */}
       {academy.billingBlocked && (
         <Card role="status">
-          <p className="text-sm text-white/70">{t.profile.unavailable}</p>
+          <p className="text-sm text-ink/70">{t.profile.unavailable}</p>
         </Card>
       )}
 
@@ -312,10 +312,10 @@ export default async function AcademiaDetailPage({
 
       {academy.description && (
         <Card>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.profile.about}
           </h2>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink/80">
             {academy.description}
           </p>
         </Card>
@@ -376,11 +376,11 @@ export default async function AcademiaDetailPage({
       <AcademyClaimsMine academyId={academy.id} />
 
       <section aria-label={t.profile.classes}>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t.profile.classes}
         </h2>
         {academy.classes.length === 0 ? (
-          <p className="text-sm text-white/50">{t.profile.classesEmpty}</p>
+          <p className="text-sm text-ink/50">{t.profile.classesEmpty}</p>
         ) : (
           <>
             {/* Las 2 próximas; el resto vive en /clases?s=explorar con el

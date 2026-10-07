@@ -123,8 +123,8 @@ export function SubscriptionManage({
 
   if (subscription.status === "PENDING_CARD" || subscription.status === "FAILED_CARD") {
     return (
-      <div className="flex flex-col gap-2 rounded-2xl border border-night-700 p-4">
-        <p className="text-sm text-white/70">
+      <div className="flex flex-col gap-2 rounded-2xl border border-line p-4">
+        <p className="text-sm text-ink/70">
           {subscription.status === "FAILED_CARD"
             ? ts("failedCard")
             : ts("pendingCard")}
@@ -150,7 +150,7 @@ export function SubscriptionManage({
 
   if (subscription.status === "ACTIVATING") {
     return (
-      <p className="flex items-center gap-2 text-sm text-white/60">
+      <p className="flex items-center gap-2 text-sm text-ink/60">
         <Spinner size="sm" label={ts("activating")} />
         <span className="animate-pulse">{ts("activating")}</span>
       </p>
@@ -179,13 +179,13 @@ export function SubscriptionManage({
     : null;
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-night-700 p-4">
+    <div className="flex flex-col gap-2 rounded-2xl border border-line p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="neon" className="normal-case tracking-normal">
           {ts("activeBadge")}
         </Badge>
         {nextCharge && (
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {nextAmount != null
               ? ts("nextChargeAmount", {
                   date: nextCharge,
@@ -198,7 +198,7 @@ export function SubscriptionManage({
 
       {confirming ? (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-white/70">{ts("cancelConfirm")}</p>
+          <p className="text-sm text-ink/70">{ts("cancelConfirm")}</p>
           <div className="flex gap-2">
             <Button
               type="button"

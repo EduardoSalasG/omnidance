@@ -112,18 +112,18 @@ export function InstallPrompt() {
       aria-label={t("title")}
       className="fixed inset-x-0 z-40 px-4 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] lg:bottom-6"
     >
-      <div className="rounded-2xl border border-white/15 bg-night-900/95 p-4 shadow-xl shadow-black/40 backdrop-blur">
+      <div className="rounded-2xl border border-ink/15 bg-surface/95 p-4 shadow-xl shadow-black/40 backdrop-blur">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">{t("title")}</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/60">
+            <p className="text-sm font-semibold text-ink">{t("title")}</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink/60">
               {deferred ? t("body") : isIos ? t("iosBody") : t("androidBody")}
             </p>
             {deferred && (
               <button
                 type="button"
                 onClick={() => void install()}
-                className="mt-3 inline-flex min-h-11 items-center rounded-full bg-neon px-5 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97]"
+                className="mt-3 inline-flex min-h-11 items-center rounded-full bg-neon px-5 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97]"
               >
                 {t("cta")}
               </button>
@@ -133,7 +133,7 @@ export function InstallPrompt() {
             type="button"
             onClick={() => void markSeen()}
             aria-label={t("dismiss")}
-            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:text-white"
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-ink/50 transition-colors hover:text-ink"
           >
             <XIcon className="h-5 w-5" />
           </button>

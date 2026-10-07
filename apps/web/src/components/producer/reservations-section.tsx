@@ -129,19 +129,19 @@ export function ReservationsSection({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("sections.reservations")}
       </h2>
 
       {tablesTotal != null && (
-        <p className="text-xs text-white/50">
+        <p className="text-xs text-ink/50">
           {t("reservations.occupancy", { used: activeCount, total: tablesTotal })}
           {tableSeatsTotal != null &&
             ` · ${t("reservations.seatsOccupancy", { used: seatsUsed, total: tableSeatsTotal })}`}
         </p>
       )}
       {tablesTotal === null && items !== null && items.length === 0 && (
-        <p className="text-xs text-white/40">{t("reservations.noTables")}</p>
+        <p className="text-xs text-ink/40">{t("reservations.noTables")}</p>
       )}
 
       {items === null && !error && <SkeletonList items={2} lines={1} />}
@@ -156,7 +156,7 @@ export function ReservationsSection({
         </div>
       )}
       {items !== null && items.length === 0 && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {t("reservations.empty")}
         </p>
       )}
@@ -172,7 +172,7 @@ export function ReservationsSection({
                       <p className="truncate font-medium">
                         {r.person.name ?? "-"}
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink/50">
                         {t("reservations.partySize", {
                           count: r.partySize,
                         })}
@@ -193,12 +193,12 @@ export function ReservationsSection({
                   </div>
 
                   {manageable && r.status !== "CANCELLED" && (
-                    <div className="flex flex-wrap items-end gap-2 border-t border-night-700 pt-3">
+                    <div className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
                       {/* El productor ajusta el tamaño al confirmar - la
                           disponibilidad es referencial (checkout declara
                           que el tamaño podría cambiar). */}
                       <label className="flex w-24 flex-col gap-1.5">
-                        <span className="text-xs text-white/50">
+                        <span className="text-xs text-ink/50">
                           {t("reservations.partySizeField")}
                         </span>
                         <input
@@ -216,7 +216,7 @@ export function ReservationsSection({
                         />
                       </label>
                       <label className="flex min-w-28 flex-1 flex-col gap-1.5">
-                        <span className="text-xs text-white/50">
+                        <span className="text-xs text-ink/50">
                           {t("reservations.assignTable")}
                         </span>
                         <input

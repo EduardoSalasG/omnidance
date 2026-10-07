@@ -40,7 +40,7 @@ export function PassesSection({ eventId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("sections.passes")}
       </h2>
 
@@ -56,7 +56,7 @@ export function PassesSection({ eventId }: Props) {
         </div>
       )}
       {passes !== null && passes.length === 0 && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {t("passes.empty")}
         </p>
       )}
@@ -70,7 +70,7 @@ export function PassesSection({ eventId }: Props) {
         >
           <table className="w-full min-w-[32rem] text-left text-sm">
             <thead>
-              <tr className="border-b border-night-700 text-xs uppercase tracking-wide text-white/50">
+              <tr className="border-b border-line text-xs uppercase tracking-wide text-ink/50">
                 <th scope="col" className="px-4 py-3 font-medium">
                   {t("passes.person")}
                 </th>
@@ -92,14 +92,14 @@ export function PassesSection({ eventId }: Props) {
               {passes.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-b border-night-700 last:border-0"
+                  className="border-b border-line last:border-0"
                 >
                   <td className="px-4 py-3">
                     <span className="block truncate">
                       {p.person?.name ?? p.person?.id ?? "-"}
                     </span>
                     {p.person?.phone && (
-                      <span className="block text-xs text-white/50">
+                      <span className="block text-xs text-ink/50">
                         {p.person.phone}
                       </span>
                     )}
@@ -114,7 +114,7 @@ export function PassesSection({ eventId }: Props) {
                   <td className="px-4 py-3">
                     <PriceTag amount={p.price} />
                   </td>
-                  <td className="px-4 py-3 text-white/70">
+                  <td className="px-4 py-3 text-ink/70">
                     {p.validUntil ? (
                       <EventDate start={p.validUntil} />
                     ) : (

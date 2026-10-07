@@ -80,9 +80,9 @@ export function EventCard({ e, when }: { e: EventCardData; when?: string }) {
                 <span>
                   {orderedGenres.map((g, i) => (
                     <span key={g}>
-                      {i > 0 && <span className="text-white/30"> · </span>}
+                      {i > 0 && <span className="text-ink/30"> · </span>}
                       <span
-                        className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}
+                        className={GENRE_TEXT[g as GenreKey] ?? "text-ink/50"}
                       >
                         {t(`genre.${g}`)}
                       </span>
@@ -129,18 +129,18 @@ export function EventCard({ e, when }: { e: EventCardData; when?: string }) {
           {/* Rail de decisión: hora arriba (ancla de escaneo), precio
               debajo - misma posición que el CTA/estado del ClassCard. */}
           <div className="flex shrink-0 flex-col items-center gap-1 self-start py-0.5 text-center">
-            <span className="text-sm font-semibold tabular-nums text-white/80">
+            <span className="text-sm font-semibold tabular-nums text-ink/80">
               <EventDate start={e.startsAt} variant="time" />
             </span>
             {e.presalePrice != null ? (
               <>
-                <span className="text-xs leading-tight text-white/50">
+                <span className="text-xs leading-tight text-ink/50">
                   {t("presale")}
                 </span>
                 <PriceTag amount={e.presalePrice} />
               </>
             ) : (
-              <span className="text-sm text-white/60">{t("free")}</span>
+              <span className="text-sm text-ink/60">{t("free")}</span>
             )}
           </div>
         </div>

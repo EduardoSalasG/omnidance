@@ -62,7 +62,7 @@ export function ClaimClient({
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <h1 className="text-2xl font-bold">{t("claimedTitle")}</h1>
-        <p className="max-w-sm text-sm text-white/60">{t("claimedDesc")}</p>
+        <p className="max-w-sm text-sm text-ink/60">{t("claimedDesc")}</p>
         <Button href="/eventos?view=mios" size="lg">
           {t("goToTickets")}
         </Button>
@@ -75,19 +75,19 @@ export function ClaimClient({
       <h1 className="text-center text-2xl font-bold">{t("title")}</h1>
 
       <Card className="flex w-full max-w-sm flex-col gap-3 text-center lg:max-w-md lg:p-6">
-        <p className="text-base text-white/80">
+        <p className="text-base text-ink/80">
           {t("giftLine", { name: info.buyerName })}
         </p>
         {info.event && (
-          <div className="border-t border-night-700 pt-3">
+          <div className="border-t border-line pt-3">
             <p className="text-lg font-semibold">{info.event.name}</p>
             <EventDate
               variant="full"
               start={info.event.startsAt}
-              className="mt-1 text-sm text-white/60"
+              className="mt-1 text-sm text-ink/60"
             />
             {info.event.venue && (
-              <p className="text-sm text-white/50">{info.event.venue.name}</p>
+              <p className="text-sm text-ink/50">{info.event.venue.name}</p>
             )}
           </div>
         )}

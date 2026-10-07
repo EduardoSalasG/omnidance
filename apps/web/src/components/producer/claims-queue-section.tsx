@@ -112,10 +112,10 @@ export function ProducerClaimsQueue() {
       {pending.length > 0 && (
         <Card className="flex flex-col gap-4">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {tp("queueTitle")}
             </h2>
-            <p className="mt-1 text-xs text-white/50">{tp("queueDesc")}</p>
+            <p className="mt-1 text-xs text-ink/50">{tp("queueDesc")}</p>
           </div>
           {msg && (
             <p role="status" className="text-sm text-neon">
@@ -126,27 +126,27 @@ export function ProducerClaimsQueue() {
             {pending.map((c) => (
               <li
                 key={c.id}
-                className="flex flex-col gap-2 rounded-xl border border-night-700 bg-night-800 p-4"
+                className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4"
               >
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="font-semibold">{c.person.name}</span>
-                  <span className="text-white/60">
+                  <span className="text-ink/60">
                     {orderLabel(c.payment.orderType)} · {c.methodLabel} ·{" "}
                     {clp.format(c.payment.amount)}
                   </span>
-                  <span className="ml-auto text-xs text-white/40">
+                  <span className="ml-auto text-xs text-ink/40">
                     {dayFmt.format(new Date(c.createdAt))}
                   </span>
                 </div>
                 {c.note && (
-                  <p className="text-xs italic text-white/50">“{c.note}”</p>
+                  <p className="text-xs italic text-ink/50">“{c.note}”</p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
                   <a
                     href={`/api/producer/claims/${c.id}/receipt`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex min-h-9 items-center rounded-lg border border-night-600 px-3 text-xs text-neon hover:bg-neon/10"
+                    className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-xs text-neon hover:bg-neon/10"
                   >
                     {t("viewReceipt")}
                   </a>
@@ -171,14 +171,14 @@ export function ProducerClaimsQueue() {
                   </span>
                 </div>
                 {rejectId === c.id && (
-                  <div className="flex flex-col gap-2 border-t border-night-700 pt-3">
-                    <label className="flex flex-col gap-1 text-xs text-white/60">
+                  <div className="flex flex-col gap-2 border-t border-line pt-3">
+                    <label className="flex flex-col gap-1 text-xs text-ink/60">
                       {t("rejectPrompt")}
                       <input
                         value={rejectNote}
                         onChange={(e) => setRejectNote(e.target.value)}
                         maxLength={500}
-                        className="min-h-11 rounded-xl border border-night-700 bg-night-900 px-3 text-sm"
+                        className="min-h-11 rounded-xl border border-line bg-surface px-3 text-sm"
                       />
                     </label>
                     <div className="flex gap-2">
@@ -208,10 +208,10 @@ export function ProducerClaimsQueue() {
       {resolved.length > 0 && (
         <Card className="flex flex-col gap-4">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("historyTitle")}
             </h2>
-            <p className="mt-1 text-xs text-white/50">{t("historyDesc")}</p>
+            <p className="mt-1 text-xs text-ink/50">{t("historyDesc")}</p>
           </div>
           <ul className="flex flex-col gap-2">
             {resolved.map((c) => (
@@ -220,7 +220,7 @@ export function ProducerClaimsQueue() {
                 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
               >
                 <span className="font-semibold">{c.person.name}</span>
-                <span className="text-white/60">
+                <span className="text-ink/60">
                   {orderLabel(c.payment.orderType)} · {c.methodLabel} ·{" "}
                   {clp.format(c.payment.amount)}
                 </span>

@@ -23,7 +23,7 @@ export function LevelBars({ order, name }: { order: number; name: string }) {
         <span
           key={i}
           aria-hidden="true"
-          className={`w-1 rounded-[1px] ${i < filled ? color : "bg-white/15"}`}
+          className={`w-1 rounded-[1px] ${i < filled ? color : "bg-ink/15"}`}
           style={{ height: 4 + i * 3 }}
         />
       ))}

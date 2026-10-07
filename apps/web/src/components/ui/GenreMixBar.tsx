@@ -47,12 +47,12 @@ export function GenreMixBar({
       role="img"
       aria-label={ariaLabel}
       title={ariaLabel}
-      className={`flex h-1 w-full overflow-hidden rounded-full bg-white/10 ${className}`}
+      className={`flex h-1 w-full overflow-hidden rounded-full bg-ink/10 ${className}`}
     >
       {segs.map((s) => (
         <span
           key={s.genre}
-          className={MIX_COLOR[s.genre] ?? "bg-white/30"}
+          className={MIX_COLOR[s.genre] ?? "bg-ink/30"}
           style={{ width: `${s.pct}%` }}
         />
       ))}

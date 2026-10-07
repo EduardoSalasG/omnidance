@@ -20,7 +20,7 @@ export function ModeToggle() {
       role="radiogroup"
       aria-label={t("modeLabel")}
       data-tour="appbar-mode"
-      className="relative grid w-full grid-cols-2 rounded-full border border-night-700 bg-night-800 p-1"
+      className="relative grid w-full grid-cols-2 rounded-full border border-line bg-elevated p-1"
     >
       <span
         aria-hidden
@@ -39,8 +39,8 @@ export function ModeToggle() {
             className="peer sr-only"
           />
           <span
-            className={`flex min-h-8 items-center justify-center rounded-full text-sm font-medium transition-colors peer-checked:text-night-950 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-neon ${
-              mode === opt.value ? "font-semibold" : "text-white/60"
+            className={`flex min-h-8 items-center justify-center rounded-full text-sm font-medium transition-colors peer-checked:text-on-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-neon ${
+              mode === opt.value ? "font-semibold" : "text-ink/60"
             }`}
           >
             {opt.label}

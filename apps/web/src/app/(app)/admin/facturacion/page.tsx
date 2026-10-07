@@ -137,7 +137,7 @@ function BillingPanel() {
     <>
       <section className="flex flex-col gap-3">
         <h1 className="text-lg font-semibold">{t("title")}</h1>
-        <p className="text-sm text-white/60">{t("desc")}</p>
+        <p className="text-sm text-ink/60">{t("desc")}</p>
         {error && (
           <Card className="border-red-500/40 p-3 text-sm text-red-300">
             {error}
@@ -147,13 +147,13 @@ function BillingPanel() {
 
       {/* ── Emitir desde liquidaciones ─────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-white/80">
+        <h2 className="text-sm font-semibold text-ink/80">
           {t("candidatesTitle")}
         </h2>
         {candidates === null ? (
           <SkeletonList items={3} />
         ) : pending.length === 0 ? (
-          <Card className="p-4 text-sm text-white/60">
+          <Card className="p-4 text-sm text-ink/60">
             {t("candidatesEmpty")}
           </Card>
         ) : (
@@ -164,11 +164,11 @@ function BillingPanel() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
                       {t(`actor.${c.actorType}`)} ·{" "}
-                      <span className="text-white/50">
+                      <span className="text-ink/50">
                         {c.actorId.slice(0, 8)}
                       </span>
                     </p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {dmy(c.periodStart)} – {dmy(c.periodEnd)} ·{" "}
                       {t("charges", { amount: clp.format(c.chargeTotal) })}
                     </p>
@@ -194,13 +194,13 @@ function BillingPanel() {
 
       {/* ── Documentos emitidos ────────────────────────────────── */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-white/80">
+        <h2 className="text-sm font-semibold text-ink/80">
           {t("docsTitle")}
         </h2>
         {docs === null ? (
           <SkeletonList items={3} />
         ) : docs.length === 0 ? (
-          <Card className="p-4 text-sm text-white/60">{t("docsEmpty")}</Card>
+          <Card className="p-4 text-sm text-ink/60">{t("docsEmpty")}</Card>
         ) : (
           <ul className="flex flex-col gap-2">
             {docs.map((d) => (
@@ -215,11 +215,11 @@ function BillingPanel() {
                         {t(`status.${d.status}`)}
                       </Badge>
                     </p>
-                    <p className="truncate text-xs text-white/60">
+                    <p className="truncate text-xs text-ink/60">
                       {d.receiverName}
                       {d.receiverRut ? ` · ${d.receiverRut}` : ""}
                     </p>
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {dmy(d.periodStart)} – {dmy(d.periodEnd)} ·{" "}
                       {clp.format(d.totalClp)}
                     </p>

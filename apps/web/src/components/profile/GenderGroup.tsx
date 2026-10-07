@@ -48,7 +48,7 @@ export function GenderGroup({
 
   return (
     <div ref={groupRef} role="radiogroup" aria-label={label}>
-      <span className="text-xs uppercase tracking-wide text-white/50">
+      <span className="text-xs uppercase tracking-wide text-ink/50">
         {label}
       </span>
       <div className="mt-1.5 flex flex-wrap gap-2">
@@ -71,8 +71,8 @@ export function GenderGroup({
               }}
               className={`flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:active:scale-100 ${
                 active
-                  ? "border-neon bg-neon text-night-950"
-                  : "border-night-700 bg-night-800 text-white/70 hover:text-white"
+                  ? "border-neon bg-neon text-on-accent"
+                  : "border-line bg-elevated text-ink/70 hover:text-ink"
               }`}
             >
               {o.label}

@@ -88,7 +88,7 @@ export function ProducerPulse() {
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-[74px] animate-pulse rounded-xl bg-night-800"
+            className="h-[74px] animate-pulse rounded-xl bg-elevated"
           />
         ))}
       </div>
@@ -99,10 +99,10 @@ export function ProducerPulse() {
 
   return (
     <section aria-label={t("kpi.title")}>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("kpi.title")}
         {isLast30d && (
-          <span className="ml-2 font-normal normal-case tracking-normal text-white/40">
+          <span className="ml-2 font-normal normal-case tracking-normal text-ink/40">
             · {t("kpi.periodLast30d")}
           </span>
         )}
@@ -121,12 +121,12 @@ export function ProducerPulse() {
         ).map(([label, value]) => (
           <li
             key={label}
-            className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3"
+            className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
           >
             <span className="block text-2xl font-bold tabular-nums text-neon">
               {value}
             </span>
-            <span className="text-xs text-white/50">{label}</span>
+            <span className="text-xs text-ink/50">{label}</span>
           </li>
         ))}
       </ul>

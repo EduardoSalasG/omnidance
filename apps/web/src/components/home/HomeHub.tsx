@@ -123,7 +123,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
       <section aria-label={t("tonight")}>
         <Link
           href="/eventos"
-          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+          className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-elevated/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
         >
           <span className="text-xl font-bold leading-tight">
             {t("noEventTonight")}
@@ -147,7 +147,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
 
   return (
     <section aria-label={heroEvent.name} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5">
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-neon/40 bg-elevated/70 p-5">
         <Link
           href={`/eventos/${heroEvent.id}`}
           className="flex flex-col gap-2.5 rounded-lg transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
@@ -170,7 +170,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
               </Badge>
             )}
           </span>
-          <span className="text-sm text-white/60">
+          <span className="text-sm text-ink/60">
             {timeFmt.format(start)}
             {heroEvent.venueName ? ` · ${heroEvent.venueName}` : ""}
           </span>
@@ -179,7 +179,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
               {heroEvent.genres.map((g) => (
                 <span
                   key={g}
-                  className={GENRE_TEXT[g as GenreKey] ?? "text-white/50"}
+                  className={GENRE_TEXT[g as GenreKey] ?? "text-ink/50"}
                 >
                   {genreLabel(g, t("genre.other"))}
                 </span>
@@ -197,7 +197,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
             <p className="text-sm">
               {heroEvent.presalePrice != null && (
                 <>
-                  <span className="text-white/50">{t("presaleLabel")} </span>
+                  <span className="text-ink/50">{t("presaleLabel")} </span>
                   <span className="font-semibold text-neon">
                     {clp.format(heroEvent.presalePrice)}
                   </span>
@@ -205,10 +205,10 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
               )}
               {heroEvent.presalePrice != null &&
                 heroEvent.doorPrice != null && (
-                  <span className="text-white/30"> · </span>
+                  <span className="text-ink/30"> · </span>
                 )}
               {heroEvent.doorPrice != null && (
-                <span className="text-white/50">
+                <span className="text-ink/50">
                   {t("doorLabel")} {clp.format(heroEvent.doorPrice)}
                 </span>
               )}
@@ -217,7 +217,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
         )}
 
         {heroEvent.friendsGoing > 0 && (
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-ink/70">
             {t("friendsGoing", { count: heroEvent.friendsGoing })}
           </p>
         )}
@@ -243,7 +243,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
 
       {myEntries.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
             {t("myEntries")}
           </h3>
           <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
@@ -251,13 +251,13 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
               <li key={e.id}>
                 <Link
                   href="/qr"
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neon/30 bg-night-800/50 px-4 py-3 transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-neon/30 bg-elevated/50 px-4 py-3 transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">
                       {e.name}
                     </span>
-                    <span className="block truncate text-xs text-white/50">
+                    <span className="block truncate text-xs text-ink/50">
                       {dayFmt.format(new Date(e.startsAt))}
                       {e.venueName ? ` · ${e.venueName}` : ""}
                     </span>
@@ -275,7 +275,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
 
       {more.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
             {isTonight ? t("moreTonight") : t("upcoming")}
           </h3>
           <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
@@ -283,13 +283,13 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
               <li key={e.id}>
                 <Link
                   href={`/eventos/${e.id}`}
-                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 >
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">
                       {e.name}
                     </span>
-                    <span className="block truncate text-xs text-white/50">
+                    <span className="block truncate text-xs text-ink/50">
                       {isTonight
                         ? timeFmt.format(new Date(e.startsAt))
                         : dayFmt.format(new Date(e.startsAt))}
@@ -299,7 +299,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
                         : ""}
                     </span>
                   </span>
-                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-white/40" />
+                  <ChevronRightIcon className="h-4 w-4 shrink-0 text-ink/40" />
                 </Link>
               </li>
             ))}
@@ -444,7 +444,7 @@ export function HomeHub() {
         <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
           <Card className="flex flex-col items-center gap-3 py-6 text-center">
             <h1 className="text-xl font-bold">{t("serverError")}</h1>
-            <p role="alert" className="text-sm text-white/60">
+            <p role="alert" className="text-sm text-ink/60">
               {t("serverErrorDesc")}
             </p>
             <Button
@@ -462,7 +462,7 @@ export function HomeHub() {
       <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <h1 className="text-xl font-bold">{t("sessionExpired")}</h1>
-          <p className="text-sm text-white/60">
+          <p className="text-sm text-ink/60">
             {t("sessionExpiredDesc")}
           </p>
           <Button href="/login" size="lg" className="w-full">
@@ -591,7 +591,7 @@ export function HomeHub() {
           {t("hi", { name: me.name.split(" ")[0] })}
         </h2>
         {dancerSocial && (
-          <p className="text-xs capitalize text-white/50">
+          <p className="text-xs capitalize text-ink/50">
             {fullDayFmt.format(new Date())}
           </p>
         )}
@@ -629,7 +629,7 @@ export function HomeHub() {
             <Link
               key={s.eventId}
               href={`/eventos/${s.eventId}/evaluar`}
-              className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-night-800/70 px-5 py-4 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+              className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-elevated/70 px-5 py-4 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
             >
               <span className="min-w-0 truncate text-base font-semibold">
                 {ts("prompt", { name: s.name })}
@@ -664,12 +664,12 @@ export function HomeHub() {
             <section aria-label={hero.title}>
               <Link
                 href={hero.href}
-                className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-night-800/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+                className="flex min-h-11 flex-col gap-1.5 rounded-2xl border border-neon/40 bg-elevated/70 p-5 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
               >
                 <span className="text-xl font-bold leading-tight">
                   {hero.title}
                 </span>
-                <span className="text-sm text-white/60">{hero.desc}</span>
+                <span className="text-sm text-ink/60">{hero.desc}</span>
                 <span className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-neon">
                   {hero.cta}
                   <ChevronRightIcon />
@@ -692,7 +692,7 @@ export function HomeHub() {
               Reservado/En espera va arriba a la derecha. */}
           {dancerAcademy && (stats?.myClasses?.length ?? 0) > 0 && (
             <section aria-label={t("myClassesTitle")}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("myClassesTitle")}
               </h2>
               <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
@@ -717,7 +717,7 @@ export function HomeHub() {
       {multiRole && (
         <Link
           href="/perfil"
-          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-sm text-white/55 transition-colors hover:border-neon/40 hover:text-white/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink/55 transition-colors hover:border-neon/40 hover:text-ink/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           <span>{t("switchRoleHint")}</span>
           <ChevronRightIcon className="h-4 w-4 shrink-0 text-neon" />

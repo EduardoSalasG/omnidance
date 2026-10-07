@@ -83,7 +83,7 @@ function SearchPanel() {
     <section className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
         <h2 className="text-xl font-semibold">{t("userSearch.title")}</h2>
-        <p className="text-sm text-white/60">{t("userSearch.subtitle")}</p>
+        <p className="text-sm text-ink/60">{t("userSearch.subtitle")}</p>
       </header>
 
       {actionError && (
@@ -98,22 +98,22 @@ function SearchPanel() {
         placeholder={t("userSearch.search")}
         aria-label={t("userSearch.search")}
         type="search"
-        className="min-h-[44px] w-full rounded-lg border border-white/15 bg-black/40 px-3 text-sm"
+        className="min-h-[44px] w-full rounded-lg border border-ink/15 bg-canvas px-3 text-sm"
       />
 
       {q.length === 0 && (
-        <p className="text-sm text-white/50">{t("userSearch.searchHint")}</p>
+        <p className="text-sm text-ink/50">{t("userSearch.searchHint")}</p>
       )}
       {q.length === 1 && (
-        <p className="text-sm text-white/50">{t("userSearch.minChars")}</p>
+        <p className="text-sm text-ink/50">{t("userSearch.minChars")}</p>
       )}
       {searching && q.length >= MIN_QUERY && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {tc("loading")}
         </p>
       )}
       {!searching && searched && users.length === 0 && (
-        <p className="text-sm text-white/50">{t("userSearch.noResults")}</p>
+        <p className="text-sm text-ink/50">{t("userSearch.noResults")}</p>
       )}
 
       <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
@@ -127,7 +127,7 @@ function SearchPanel() {
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold">{u.name}</span>
                   {u.email && (
-                    <span className="truncate text-sm text-white/60">
+                    <span className="truncate text-sm text-ink/60">
                       {u.email}
                     </span>
                   )}

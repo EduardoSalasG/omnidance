@@ -498,7 +498,7 @@ function DatosPanel() {
   // ── Render de filas por entidad ───────────────────────────────────────
 
   const meta = (text: string) => (
-    <span className="text-xs text-white/50">{text}</span>
+    <span className="text-xs text-ink/50">{text}</span>
   );
 
   function renderRow(row: unknown, i: number) {
@@ -614,7 +614,7 @@ function DatosPanel() {
                 <p className="min-w-0 truncate text-sm font-semibold">
                   {r.name}
                 </p>
-                <span className="shrink-0 text-xs text-white/40">
+                <span className="shrink-0 text-xs text-ink/40">
                   {dateFmt.format(new Date(r.createdAt))}
                 </span>
               </div>
@@ -788,7 +788,7 @@ function DatosPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-white/60">{t("datos.subtitle")}</p>
+      <p className="text-sm text-ink/60">{t("datos.subtitle")}</p>
 
       <PillTabs
         ariaLabel={t("datos.title")}
@@ -816,7 +816,7 @@ function DatosPanel() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {selectKeys.map((key) => (
               <label key={key} className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {filterLabel(key)}
                 </span>
                 {isOptionKey(key) ? (
@@ -845,7 +845,7 @@ function DatosPanel() {
             {HAS_DATES.has(entity) && (
               <>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-white/50">
+                  <span className="text-xs text-ink/50">
                     {t("datos.filters.from")}
                   </span>
                   <input
@@ -856,7 +856,7 @@ function DatosPanel() {
                   />
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-xs text-white/50">
+                  <span className="text-xs text-ink/50">
                     {t("datos.filters.to")}
                   </span>
                   <input
@@ -880,7 +880,7 @@ function DatosPanel() {
           <button
             type="button"
             onClick={() => void load()}
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-semibold text-white/70"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink/10 px-4 text-sm font-semibold text-ink/70"
           >
             <RefreshIcon /> {tc("retry")}
           </button>
@@ -889,7 +889,7 @@ function DatosPanel() {
 
       {phase === "loading" && rows === null && <SkeletonList />}
       {phase === "loading" && rows !== null && (
-        <p role="status" className="page-loading text-sm text-white/50">
+        <p role="status" className="page-loading text-sm text-ink/50">
           {tc("loading")}
         </p>
       )}
@@ -897,10 +897,10 @@ function DatosPanel() {
       {phase === "ready" && rows !== null && (
         <>
           {peopleNeedsQuery ? (
-            <p className="text-sm text-white/50">{t("users.searchHint")}</p>
+            <p className="text-sm text-ink/50">{t("users.searchHint")}</p>
           ) : rows.length === 0 ? (
             <Card className="py-6 text-center">
-              <p className="text-sm text-white/70">{t("datos.empty")}</p>
+              <p className="text-sm text-ink/70">{t("datos.empty")}</p>
             </Card>
           ) : (
             <ul className="flex flex-col gap-3">{rows.map(renderRow)}</ul>
@@ -940,12 +940,12 @@ function RowShell({
           )}
         </div>
         {metaParts.length > 0 && (
-          <p className="truncate text-xs text-white/50">
+          <p className="truncate text-xs text-ink/50">
             {metaParts.join(" · ")}
           </p>
         )}
         {tail && (
-          <p className="text-xs font-medium tabular-nums text-white/70">
+          <p className="text-xs font-medium tabular-nums text-ink/70">
             {tail}
           </p>
         )}
@@ -964,10 +964,10 @@ function JsonDetails({ label, value }: { label: string; value: unknown }) {
   if (value === null || value === undefined) return null;
   return (
     <details className="mt-1">
-      <summary className="w-fit cursor-pointer text-xs font-medium text-white/50 transition-colors hover:text-white/80">
+      <summary className="w-fit cursor-pointer text-xs font-medium text-ink/50 transition-colors hover:text-ink/80">
         {label}
       </summary>
-      <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-night-950/70 p-2 text-[11px] leading-snug whitespace-pre-wrap break-all text-white/60">
+      <pre className="mt-1 max-h-48 overflow-auto rounded-lg bg-canvas/70 p-2 text-[11px] leading-snug whitespace-pre-wrap break-all text-ink/60">
         {JSON.stringify(value, null, 2)}
       </pre>
     </details>

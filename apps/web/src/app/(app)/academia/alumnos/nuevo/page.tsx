@@ -81,7 +81,7 @@ function EnrollmentLoader({
   }
   if (canAdminister === false) {
     return (
-      <p role="alert" className="text-sm text-white/60">
+      <p role="alert" className="text-sm text-ink/60">
         {t("forbidden")}
       </p>
     );
@@ -89,7 +89,7 @@ function EnrollmentLoader({
   if (error) {
     return (
       <div className="flex items-center gap-3">
-        <p role="alert" className="text-sm text-white/60">
+        <p role="alert" className="text-sm text-ink/60">
           {tc("error")}
         </p>
         <Button

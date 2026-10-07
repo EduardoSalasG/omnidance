@@ -110,7 +110,7 @@ function GigRating({ eventId }: { eventId: string }) {
   if (!rating) return null;
   if (!rating.exposed || !rating.music) {
     return (
-      <span className="text-xs text-white/40" title={t("rating.fewHint")}>
+      <span className="text-xs text-ink/40" title={t("rating.fewHint")}>
         {t("rating.few", { count: rating.count })}
       </span>
     );
@@ -188,13 +188,13 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
       )}
 
       {phase === "forbidden" && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {t("suggestions.forbidden")}
         </p>
       )}
 
       {phase === "ready" && items.length === 0 && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {t("suggestions.empty")}
         </p>
       )}
@@ -202,7 +202,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
       {phase === "ready" && items.length > 0 && (
         <>
           {total != null && (
-            <p className="text-xs text-white/50">
+            <p className="text-xs text-ink/50">
               {t("suggestions.total", { count: total })}
             </p>
           )}
@@ -210,11 +210,11 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
             {items.map((s, i) => (
               <li
                 key={`${s.title}-${s.artist}-${i}`}
-                className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-950 px-4 py-2.5"
+                className="flex items-center gap-3 rounded-xl border border-line bg-canvas px-4 py-2.5"
               >
                 <span
                   aria-hidden
-                  className="w-5 shrink-0 text-sm font-semibold tabular-nums text-white/40"
+                  className="w-5 shrink-0 text-sm font-semibold tabular-nums text-ink/40"
                 >
                   {i + 1}
                 </span>
@@ -222,7 +222,7 @@ function SuggestionsPanel({ eventId }: { eventId: string }) {
                   <span className="block truncate text-sm font-medium">
                     {s.title}
                   </span>
-                  <span className="block truncate text-xs text-white/50">
+                  <span className="block truncate text-xs text-ink/50">
                     {s.artist}
                   </span>
                 </span>
@@ -255,7 +255,7 @@ function GigCard({ gig }: { gig: Gig }) {
           {gig.slotNote && <Badge variant="neon">{gig.slotNote}</Badge>}
         </div>
         <h3 className="mt-2 text-base font-semibold">{gig.name}</h3>
-        <p className="mt-0.5 text-sm text-white/60">
+        <p className="mt-0.5 text-sm text-ink/60">
           <EventDate start={gig.startsAt} end={gig.endsAt} />
           {gig.venueName ? ` · ${gig.venueName}` : ""}
         </p>
@@ -266,7 +266,7 @@ function GigCard({ gig }: { gig: Gig }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-night-700 bg-night-800/60 px-4 text-sm font-semibold text-white/80 transition-colors hover:border-neon/60 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:active:scale-100"
+        className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-line bg-elevated/60 px-4 text-sm font-semibold text-ink/80 transition-colors hover:border-neon/60 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon active:scale-[0.98] motion-reduce:active:scale-100"
       >
         {open ? t("suggestions.hide") : t("suggestions.show")}
         <svg
@@ -286,7 +286,7 @@ function GigCard({ gig }: { gig: Gig }) {
       </button>
 
       {open && (
-        <div id={panelId} className="border-t border-night-700 pt-3">
+        <div id={panelId} className="border-t border-line pt-3">
           <SuggestionsPanel eventId={gig.eventId} />
         </div>
       )}
@@ -357,7 +357,7 @@ export default function DjPage() {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-white/70">{t("loadError")}</p>
+          <p className="text-sm text-ink/70">{t("loadError")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
             {tc("retry")}
           </Button>
@@ -370,7 +370,7 @@ export default function DjPage() {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("forbidden")}</p>
+          <p className="text-sm text-ink/70">{t("forbidden")}</p>
         </Card>
       </main>
     );
@@ -382,13 +382,13 @@ export default function DjPage() {
       <section aria-labelledby="dj-upcoming">
         <h2
           id="dj-upcoming"
-          className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50"
+          className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50"
         >
           {t("upcoming")}
         </h2>
         {upcoming.length === 0 ? (
           <Card className="py-6 text-center">
-            <p className="text-sm text-white/70">{t("emptyUpcoming")}</p>
+            <p className="text-sm text-ink/70">{t("emptyUpcoming")}</p>
           </Card>
         ) : (
           <ul className="flex flex-col gap-3">
@@ -403,8 +403,8 @@ export default function DjPage() {
 
       {/* Historial - colapsado al final; fecha + nombre + venue. */}
       {past.length > 0 && (
-        <details className="group rounded-2xl border border-night-700 bg-night-900">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-semibold text-white/70 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon [&::-webkit-details-marker]:hidden">
+        <details className="group rounded-2xl border border-line bg-surface">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 text-sm font-semibold text-ink/70 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon [&::-webkit-details-marker]:hidden">
             <span className="flex items-center gap-2">
               {t("history")}
               <Badge variant="muted">{num.format(past.length)}</Badge>
@@ -422,7 +422,7 @@ export default function DjPage() {
               <path d="m6 9 6 6 6-6" />
             </svg>
           </summary>
-          <ul className="flex flex-col divide-y divide-night-700 border-t border-night-700 px-5">
+          <ul className="flex flex-col divide-y divide-line border-t border-line px-5">
             {past.map((g) => (
               <li
                 key={g.eventId}
@@ -433,7 +433,7 @@ export default function DjPage() {
                     {g.name}
                   </span>
                   {g.venueName && (
-                    <span className="block truncate text-xs text-white/50">
+                    <span className="block truncate text-xs text-ink/50">
                       {g.venueName}
                     </span>
                   )}
@@ -442,7 +442,7 @@ export default function DjPage() {
                   <GigRating eventId={g.eventId} />
                   <time
                     dateTime={new Date(g.startsAt).toISOString()}
-                    className="text-xs tabular-nums text-white/50"
+                    className="text-xs tabular-nums text-ink/50"
                   >
                     {pastFmt.format(new Date(g.startsAt))}
                   </time>

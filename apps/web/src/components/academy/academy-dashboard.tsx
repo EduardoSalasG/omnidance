@@ -58,7 +58,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
             <Skeleton className="page-loading h-4 w-56 self-center" />
           )
         ) : (
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-ink/50">
             {t("students")} {dashboard.totalStudents} · {t("plans")}{" "}
             {dashboard.plansCount} · {t("attendance")}{" "}
             {dashboard.attendanceLast30d}
@@ -70,7 +70,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
       <section aria-label={t("dashboard")}>
         {dashError ? (
           <div className="flex items-center gap-3">
-            <p role="alert" className="text-sm text-white/60">
+            <p role="alert" className="text-sm text-ink/60">
               {tc("error")}
             </p>
             <Button variant="secondary" size="sm" onClick={() => void refresh()}>
@@ -98,7 +98,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
             {STAT_KEYS.map((k) => (
               <li key={k}>
                 <Card className="flex h-full flex-col gap-1 p-4">
-                  <span className="text-xs font-medium uppercase tracking-wide text-white/50">
+                  <span className="text-xs font-medium uppercase tracking-wide text-ink/50">
                     {t(`stats.${k}`)}
                   </span>
                   <span className="text-3xl font-bold leading-none text-neon">
@@ -115,10 +115,10 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
       {dashboard && dashboard.todayClasses.length > 0 && (
         <section aria-label={t("today.title")}>
           <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("today.title")}
             </h3>
-            <p className="text-xs tabular-nums text-white/50">
+            <p className="text-xs tabular-nums text-ink/50">
               {t("today.attendance", { count: dashboard.attendanceToday })}
             </p>
           </div>
@@ -126,7 +126,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
             {dashboard.todayClasses.map((c) => (
               <li
                 key={c.id}
-                className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3"
+                className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3"
               >
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
                   {c.startTime}
@@ -136,12 +136,12 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
                     {c.seriesName ?? t("today.unnamed")}
                   </span>
                   {c.instructorName && (
-                    <span className="block truncate text-xs text-white/50">
+                    <span className="block truncate text-xs text-ink/50">
                       {c.instructorName}
                     </span>
                   )}
                 </span>
-                <span className="shrink-0 text-xs tabular-nums text-white/50">
+                <span className="shrink-0 text-xs tabular-nums text-ink/50">
                   {c.capacity != null
                     ? t("today.bookedOf", {
                         booked: c.bookedCount,
@@ -160,7 +160,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
           fila lleva a la ficha del alumno. */}
       {dashboard && dashboard.expiringEnrollments.length > 0 && (
         <section aria-label={t("insights.expiringTitle")}>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("insights.expiringTitle")}
           </h3>
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -168,13 +168,13 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
               <li key={e.personId}>
                 <Link
                   href={`/academia/alumnos/${e.personId}`}
-                  className="flex h-full items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
+                  className="flex h-full items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:border-neon/40"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
                       {e.personName ?? shortId(e.personId)}
                     </span>
-                    <span className="block truncate text-xs text-white/50">
+                    <span className="block truncate text-xs text-ink/50">
                       {e.planName ?? t("insights.noPlan")}
                     </span>
                   </span>
@@ -192,7 +192,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
 
       {dashboard && dashboard.upcomingBirthdays.length > 0 && (
         <section aria-label={t("insights.birthdaysTitle")}>
-          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("insights.birthdaysTitle")}
           </h3>
           <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -200,7 +200,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
               <li key={b.personId}>
                 <Link
                   href={`/academia/alumnos/${b.personId}`}
-                  className="flex h-full items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
+                  className="flex h-full items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:border-neon/40"
                 >
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
                     {b.name}

@@ -124,24 +124,24 @@ function SkeletonBlocks() {
   return (
     <>
       <div className="page-loading flex flex-col gap-2 pt-4" aria-hidden>
-        <div className="h-6 w-2/3 animate-pulse rounded-lg bg-night-800" />
-        <div className="h-4 w-1/2 animate-pulse rounded-lg bg-night-800" />
+        <div className="h-6 w-2/3 animate-pulse rounded-lg bg-elevated" />
+        <div className="h-4 w-1/2 animate-pulse rounded-lg bg-elevated" />
       </div>
       <div className="page-loading grid grid-cols-3 gap-3" aria-hidden>
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="h-20 animate-pulse rounded-xl border border-night-700 bg-night-800/60"
+            className="h-20 animate-pulse rounded-xl border border-line bg-elevated/60"
           />
         ))}
       </div>
       <div
         aria-hidden
-        className="page-loading h-36 animate-pulse rounded-2xl border border-night-700 bg-night-900"
+        className="page-loading h-36 animate-pulse rounded-2xl border border-line bg-surface"
       />
       <div
         aria-hidden
-        className="page-loading h-36 animate-pulse rounded-2xl border border-night-700 bg-night-900"
+        className="page-loading h-36 animate-pulse rounded-2xl border border-line bg-surface"
       />
     </>
   );
@@ -281,7 +281,7 @@ export default function VenuePage() {
 
       {phase === "unauth" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-white/70">{t("loginRequired")}</p>
+          <p className="text-sm text-ink/70">{t("loginRequired")}</p>
           <Button href="/login" size="sm">
             {tc("login")}
           </Button>
@@ -290,7 +290,7 @@ export default function VenuePage() {
 
       {phase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-white/70">{t("error")}</p>
+          <p className="text-sm text-ink/70">{t("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
@@ -299,14 +299,14 @@ export default function VenuePage() {
 
       {phase === "forbidden" && (
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("forbidden")}</p>
+          <p className="text-sm text-ink/70">{t("forbidden")}</p>
         </Card>
       )}
 
       {/* mine=[] no es error: la cuenta simplemente no tiene venues. */}
       {phase === "empty" && (
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("empty")}</p>
+          <p className="text-sm text-ink/70">{t("empty")}</p>
         </Card>
       )}
 
@@ -335,7 +335,7 @@ export default function VenuePage() {
 
           {dashPhase === "error" && (
             <Card className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm text-white/70">{t("error")}</p>
+              <p className="text-sm text-ink/70">{t("error")}</p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -348,7 +348,7 @@ export default function VenuePage() {
 
           {dashPhase === "forbidden" && (
             <Card className="py-6 text-center">
-              <p className="text-sm text-white/70">{t("forbidden")}</p>
+              <p className="text-sm text-ink/70">{t("forbidden")}</p>
             </Card>
           )}
 
@@ -359,12 +359,12 @@ export default function VenuePage() {
               <header className="flex flex-col gap-1 pt-4">
                 <p className="text-xl font-bold">{dash.venue.name}</p>
                 {dash.venue.address && (
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-ink/50">
                     {dash.venue.address}
                   </p>
                 )}
                 {dash.venue.capacity != null && (
-                  <p className="text-sm text-white/50">
+                  <p className="text-sm text-ink/50">
                     {t("capacity", { count: num.format(dash.venue.capacity) })}
                   </p>
                 )}
@@ -384,36 +384,36 @@ export default function VenuePage() {
                 ).map(([label, value]) => (
                   <li
                     key={label}
-                    className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3"
+                    className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
                   >
                     <span className="block text-2xl font-bold tabular-nums text-neon">
                       {num.format(value)}
                     </span>
-                    <span className="text-xs text-white/50">{label}</span>
+                    <span className="text-xs text-ink/50">{label}</span>
                   </li>
                 ))}
               </ul>
 
               {/* Próximos eventos */}
               <section aria-label={t("sections.upcoming")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.upcoming")}
                 </h2>
                 {dash.upcoming.length === 0 ? (
-                  <p className="text-sm text-white/50">{t("emptyUpcoming")}</p>
+                  <p className="text-sm text-ink/50">{t("emptyUpcoming")}</p>
                 ) : (
                   <ul className="flex flex-col gap-3">
                     {dash.upcoming.map((e) => (
                       <li
                         key={e.id}
-                        className="rounded-2xl border border-night-700 bg-night-900 p-4"
+                        className="rounded-2xl border border-line bg-surface p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold">
                               {e.name}
                             </p>
-                            <p className="mt-0.5 text-xs text-white/50">
+                            <p className="mt-0.5 text-xs text-ink/50">
                               <EventDate start={e.startsAt} end={e.endsAt} />
                               {" · "}
                               {te.has(`type.${e.type}`)
@@ -439,31 +439,31 @@ export default function VenuePage() {
 
               {/* Reservas de mesa - qué mesas esperar cada noche. */}
               <section aria-label={t("sections.tables")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.tables")}
                 </h2>
                 {dash.tables.length === 0 ? (
-                  <p className="text-sm text-white/50">{t("emptyTables")}</p>
+                  <p className="text-sm text-ink/50">{t("emptyTables")}</p>
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {dash.tables.map((r) => (
                       <li
                         key={r.id}
-                        className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3"
+                        className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3"
                       >
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">
                             {r.personName ?? t("tables.anonymous")}
                             {r.tableNo ? ` · ${r.tableNo}` : ""}
                           </span>
-                          <span className="block truncate text-xs text-white/50">
+                          <span className="block truncate text-xs text-ink/50">
                             {r.event.name}
                             {r.event.startsAt
                               ? ` · ${dayFmt.format(new Date(r.event.startsAt))}`
                               : ""}
                           </span>
                         </span>
-                        <span className="shrink-0 text-xs tabular-nums text-white/50">
+                        <span className="shrink-0 text-xs tabular-nums text-ink/50">
                           {t("tables.party", { count: r.partySize })}
                         </span>
                         <Badge
@@ -485,11 +485,11 @@ export default function VenuePage() {
                   por hora (30d). La ventana nocturna 19→05 ordena las
                   barras como vive la noche. */}
               <section aria-label={t("sections.flow")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.flow")}
                 </h2>
                 {dash.flow.checkins === 0 ? (
-                  <p className="text-sm text-white/50">{t("emptyFlow")}</p>
+                  <p className="text-sm text-ink/50">{t("emptyFlow")}</p>
                 ) : (
                   <Card className="flex flex-col gap-4">
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -498,7 +498,7 @@ export default function VenuePage() {
                           <span className="font-semibold text-neon">
                             {dash.flow.peakHour}:00
                           </span>{" "}
-                          <span className="text-white/50">
+                          <span className="text-ink/50">
                             {t("flow.peakHour")}
                           </span>
                         </p>
@@ -511,7 +511,7 @@ export default function VenuePage() {
                               minutes: dash.flow.avgStayMinutes % 60,
                             })}
                           </span>{" "}
-                          <span className="text-white/50">
+                          <span className="text-ink/50">
                             {t("flow.avgStay")}
                           </span>
                         </p>
@@ -538,7 +538,7 @@ export default function VenuePage() {
                         );
                       })}
                     </div>
-                    <div className="flex justify-between text-[10px] tabular-nums text-white/40">
+                    <div className="flex justify-between text-[10px] tabular-nums text-ink/40">
                       <span>19:00</span>
                       <span>00:00</span>
                       <span>05:00</span>
@@ -550,11 +550,11 @@ export default function VenuePage() {
               {/* Arriendos - Confirmar/Cancelar solo en REQUESTED, con
                   mini-confirmación inline antes del PATCH. */}
               <section aria-label={t("sections.rentals")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.rentals")}
                 </h2>
                 {dash.rentals.length === 0 ? (
-                  <p className="text-sm text-white/50">{t("emptyRentals")}</p>
+                  <p className="text-sm text-ink/50">{t("emptyRentals")}</p>
                 ) : (
                   <ul className="flex flex-col gap-3">
                     {dash.rentals.map((r) => {
@@ -562,14 +562,14 @@ export default function VenuePage() {
                       return (
                         <li
                           key={r.id}
-                          className="rounded-2xl border border-night-700 bg-night-900 p-4"
+                          className="rounded-2xl border border-line bg-surface p-4"
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="text-sm font-semibold">
                                 {rentalDayFmt.format(new Date(r.date))}
                               </p>
-                              <p className="mt-0.5 text-xs text-white/50">
+                              <p className="mt-0.5 text-xs text-ink/50">
                                 {clp.format(r.price)}
                               </p>
                             </div>
@@ -585,7 +585,7 @@ export default function VenuePage() {
                           </div>
 
                           {r.status === "REQUESTED" && !isConfirming && (
-                            <div className="mt-3 flex gap-2 border-t border-night-700 pt-3">
+                            <div className="mt-3 flex gap-2 border-t border-line pt-3">
                               <Button
                                 type="button"
                                 size="sm"
@@ -617,8 +617,8 @@ export default function VenuePage() {
                           )}
 
                           {r.status === "REQUESTED" && isConfirming && (
-                            <div className="mt-3 flex flex-col gap-2 border-t border-night-700 pt-3">
-                              <p className="text-sm text-white/70">
+                            <div className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+                              <p className="text-sm text-ink/70">
                                 {confirming.status === "CONFIRMED"
                                   ? t("rentals.confirmAsk")
                                   : t("rentals.cancelAsk")}
@@ -665,11 +665,11 @@ export default function VenuePage() {
 
               {/* Cartas/menús - PDFs externos en pestaña nueva. */}
               <section aria-label={t("sections.menus")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.menus")}
                 </h2>
                 {dash.menus.length === 0 ? (
-                  <p className="text-sm text-white/50">{t("emptyMenus")}</p>
+                  <p className="text-sm text-ink/50">{t("emptyMenus")}</p>
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {dash.menus.map((m) => (
@@ -678,10 +678,10 @@ export default function VenuePage() {
                           href={m.pdfUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-night-700 bg-night-900 px-4 py-3 text-sm font-medium transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
+                          className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-sm font-medium transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
                         >
                           <span>{t("menus.item", { version: m.version })}</span>
-                          <ArrowUpRightIcon className="h-4 w-4 shrink-0 text-white/50" />
+                          <ArrowUpRightIcon className="h-4 w-4 shrink-0 text-ink/50" />
                           <span className="sr-only">{tc("newTab")}</span>
                         </a>
                       </li>

@@ -120,7 +120,7 @@ function ProducerEvents() {
 
       {gate === "notProducer" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{t("notProducer")}</p>
+          <p className="text-ink/70">{t("notProducer")}</p>
           <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
@@ -129,7 +129,7 @@ function ProducerEvents() {
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{tc("error")}</p>
+          <p className="text-ink/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void refreshMe()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
@@ -161,7 +161,7 @@ function ProducerEvents() {
 
           {!eventsError && events !== null && mine.length === 0 && (
             <Card className="flex flex-col items-center gap-4 py-10 text-center">
-              <p role="status" className="text-white/70">
+              <p role="status" className="text-ink/70">
                 {t("emptyEvents")}
               </p>
               <Button href="/productor/eventos/nuevo">
@@ -191,9 +191,9 @@ function ProducerEvents() {
                       <EventDate
                         start={ev.startsAt}
                         end={ev.endsAt}
-                        className="text-sm text-white/60"
+                        className="text-sm text-ink/60"
                       />
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/50">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink/50">
                         {ev.venue?.name && <span>{ev.venue.name}</span>}
                         {ev.type && (
                           <span>
@@ -205,7 +205,7 @@ function ProducerEvents() {
                         {ev.series?.name && <span>{ev.series.name}</span>}
                       </div>
                       {ev.stats && (
-                        <p className="text-xs tabular-nums text-white/60">
+                        <p className="text-xs tabular-nums text-ink/60">
                           {t("stats.sold", { count: ev.stats.sold })}
                           {" · "}
                           {clp.format(ev.stats.grossClp)}
@@ -228,7 +228,7 @@ function ProducerEvents() {
 export default function ProducerEventsPage() {
   return (
     <Suspense
-      fallback={<main className="min-h-dvh bg-night-950" aria-hidden="true" />}
+      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
     >
       <ProducerEvents />
     </Suspense>

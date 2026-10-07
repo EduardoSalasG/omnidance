@@ -90,13 +90,13 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("title")}
       </h2>
-      <p className="mt-1 text-xs text-white/40">{t("desc")}</p>
+      <p className="mt-1 text-xs text-ink/40">{t("desc")}</p>
       <form onSubmit={submit} className="mt-3 flex flex-col gap-3 lg:max-w-xl">
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-white/50">{t("description")}</span>
+          <span className="text-xs text-ink/50">{t("description")}</span>
           <textarea
             rows={3}
             className={inputCls}
@@ -106,7 +106,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-white/50">{t("address")}</span>
+          <span className="text-xs text-ink/50">{t("address")}</span>
           <input
             type="text"
             className={inputCls}
@@ -117,7 +117,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("lat")}</span>
+            <span className="text-xs text-ink/50">{t("lat")}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -128,7 +128,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("lng")}</span>
+            <span className="text-xs text-ink/50">{t("lng")}</span>
             <input
               type="text"
               inputMode="decimal"
@@ -139,10 +139,10 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
             />
           </label>
         </div>
-        <p className="text-xs text-white/40">{t("coordsHint")}</p>
+        <p className="text-xs text-ink/40">{t("coordsHint")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("instagram")}</span>
+            <span className="text-xs text-ink/50">{t("instagram")}</span>
             <input
               type="text"
               inputMode="text"
@@ -154,7 +154,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-white/50">{t("whatsapp")}</span>
+            <span className="text-xs text-ink/50">{t("whatsapp")}</span>
             <input
               type="tel"
               inputMode="tel"
@@ -166,7 +166,7 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
           </label>
         </div>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-white/50">{t("website")}</span>
+          <span className="text-xs text-ink/50">{t("website")}</span>
           <input
             type="url"
             inputMode="url"

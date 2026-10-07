@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/Button";
 type Mode = "password" | "magic" | "register";
 
 const inputClass =
-  "min-h-12 rounded-xl border border-night-700 bg-night-900 px-4 py-3 text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 aria-[invalid=true]:border-red-400";
+  "min-h-12 rounded-xl border border-line bg-surface px-4 py-3 text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 aria-[invalid=true]:border-red-400";
 
 const labelClass = "flex flex-col gap-2";
-const labelTextClass = "text-sm text-white/70";
+const labelTextClass = "text-sm text-ink/70";
 
 function Field({
   label,
@@ -158,13 +158,13 @@ export default function LoginForm({
     // contenido va dentro de una card (borde + fondo): la página deja
     // de sentirse como un formulario flotando en el vacío.
     <main className="flex flex-1 flex-col items-center justify-center p-6">
-      <div className="flex w-full max-w-sm flex-col items-center gap-6 lg:max-w-md lg:rounded-3xl lg:border lg:border-night-700 lg:bg-night-900/60 lg:px-10 lg:py-12 lg:shadow-xl lg:shadow-black/40">
+      <div className="flex w-full max-w-sm flex-col items-center gap-6 lg:max-w-md lg:rounded-3xl lg:border lg:border-line lg:bg-surface/60 lg:px-10 lg:py-12 lg:shadow-xl lg:shadow-black/40">
       <h1 className="text-2xl font-bold lg:text-3xl">
         {isRegister ? t("registerTitle") : t("title")}
       </h1>
 
       {sent ? (
-        <p aria-live="polite" className="max-w-sm text-center text-white/70">
+        <p aria-live="polite" className="max-w-sm text-center text-ink/70">
           {t("sent")}
         </p>
       ) : (
@@ -177,15 +177,15 @@ export default function LoginForm({
               <div
                 role="radiogroup"
                 aria-label={t("methodLabel")}
-                className="grid grid-cols-2 gap-1 rounded-2xl bg-night-800 p-1"
+                className="grid grid-cols-2 gap-1 rounded-2xl bg-elevated p-1"
               >
                 {(["password", "magic"] as const).map((m) => (
                   <label
                     key={m}
                     className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl text-sm font-semibold transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-neon/50 ${
                       mode === m
-                        ? "bg-night-950 text-white shadow-sm"
-                        : "text-white/50 hover:text-white/80"
+                        ? "bg-canvas text-ink shadow-sm"
+                        : "text-ink/50 hover:text-ink/80"
                     }`}
                   >
                     <input
@@ -262,14 +262,14 @@ export default function LoginForm({
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute inset-y-0 right-0 flex min-w-12 items-center justify-center text-sm text-white/50 hover:text-white"
+                    className="absolute inset-y-0 right-0 flex min-w-12 items-center justify-center text-sm text-ink/50 hover:text-ink"
                     aria-pressed={showPassword}
                   >
                     {showPassword ? t("hidePassword") : t("showPassword")}
                   </button>
                 </div>
                 {isRegister && (
-                  <span id="pw-hint" className="text-xs text-white/50">
+                  <span id="pw-hint" className="text-xs text-ink/50">
                     {t("passwordHint")}
                   </span>
                 )}
@@ -315,7 +315,7 @@ export default function LoginForm({
                   aria-describedby={error ? "login-error" : undefined}
                   className="mt-0.5 size-5 shrink-0 accent-neon focus-visible:ring-2 focus-visible:ring-neon/50"
                 />
-                <span className="text-sm leading-snug text-white/70">
+                <span className="text-sm leading-snug text-ink/70">
                   {tc.rich("checkboxLabel", {
                     terms: (chunks) => (
                       <Link
@@ -377,7 +377,7 @@ export default function LoginForm({
                 setMode(isRegister ? "password" : "register");
                 setError(null);
               }}
-              className="min-h-11 text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
+              className="min-h-11 text-sm text-ink/60 underline-offset-4 hover:text-ink hover:underline"
             >
               {isRegister ? t("hasAccount") : t("noAccount")}
             </button>

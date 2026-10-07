@@ -140,7 +140,7 @@ function GuestLists() {
           <SkeletonList items={2} lines={1} />
         ) : events.length === 0 ? (
           <Card className="flex flex-col items-center gap-4 py-10 text-center">
-            <p role="status" className="text-white/70">
+            <p role="status" className="text-ink/70">
               {t("emptyEvents")}
             </p>
             <Button href="/productor/eventos/nuevo">
@@ -150,7 +150,7 @@ function GuestLists() {
         ) : (
           <>
             <label className="flex flex-col gap-2">
-              <span className="text-sm text-white/70">{t("event")}</span>
+              <span className="text-sm text-ink/70">{t("event")}</span>
               <select
                 value={listEventId}
                 onChange={(e) => {
@@ -184,7 +184,7 @@ function GuestLists() {
               <>
                 {lists.length === 0 ? (
                   <Card className="flex flex-col items-center gap-4 py-10 text-center">
-                    <p role="status" className="text-white/70">
+                    <p role="status" className="text-ink/70">
                       {t("listsEmpty")}
                     </p>
                     <Button href="/productor/listas/nueva">
@@ -209,7 +209,7 @@ function GuestLists() {
                           </div>
 
                           {l.entries.length > 0 && (
-                            <ul className="flex flex-col gap-1.5 border-t border-night-700 pt-3">
+                            <ul className="flex flex-col gap-1.5 border-t border-line pt-3">
                               {l.entries.map((en) => (
                                 <li
                                   key={en.id}
@@ -235,7 +235,7 @@ function GuestLists() {
                           )}
 
                           <form
-                            className="flex gap-2 border-t border-night-700 pt-3"
+                            className="flex gap-2 border-t border-line pt-3"
                             onSubmit={(e) => {
                               e.preventDefault();
                               void addEntry(l.id);

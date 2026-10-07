@@ -12,8 +12,8 @@ import {
 } from "./types";
 
 const inputCls =
-  "min-h-11 w-full rounded-lg border border-night-700 bg-night-950 px-3 text-sm " +
-  "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
+  "min-h-11 w-full rounded-lg border border-line bg-canvas px-3 text-sm " +
+  "text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
 
 function numOrUndef(v: string): number | undefined {
   if (v.trim() === "") return undefined;
@@ -103,7 +103,7 @@ export function TriggerForm({
       <form onSubmit={submit} className="flex flex-col gap-4">
         {editing === null ? (
           <label className="flex flex-col gap-2">
-            <span className="text-sm text-white/70">{t("triggers.key")}</span>
+            <span className="text-sm text-ink/70">{t("triggers.key")}</span>
             <select
               value={key}
               onChange={(e) => setKey(e.target.value as CrmTriggerKey)}
@@ -125,12 +125,12 @@ export function TriggerForm({
         )}
 
         {t.has(`triggers.desc.${key}`) && (
-          <p className="text-xs text-white/50">{t(`triggers.desc.${key}`)}</p>
+          <p className="text-xs text-ink/50">{t(`triggers.desc.${key}`)}</p>
         )}
 
         {showDays && (
           <label className="flex flex-col gap-2">
-            <span className="text-sm text-white/70">{t("triggers.days")}</span>
+            <span className="text-sm text-ink/70">{t("triggers.days")}</span>
             <input
               type="number"
               inputMode="numeric"
@@ -139,14 +139,14 @@ export function TriggerForm({
               onChange={(e) => setDays(e.target.value)}
               className={inputCls}
             />
-            <span className="text-xs text-white/50">
+            <span className="text-xs text-ink/50">
               {t("triggers.daysHint")}
             </span>
           </label>
         )}
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("triggers.cooldownDays")}
           </span>
           <input

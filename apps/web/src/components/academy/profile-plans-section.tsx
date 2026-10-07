@@ -83,17 +83,17 @@ export function ProfilePlansSection({
 
   return (
     <Card>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
         {labels.title}
       </h2>
       {blocked && (
-        <p role="status" className="mb-3 text-sm text-white/60">
+        <p role="status" className="mb-3 text-sm text-ink/60">
           {labels.unavailable}
         </p>
       )}
       {/* Ítems planos con dividers - son filas de la Card padre, no
           cards anidadas (borde+dentro-de-borde ensuciaba la jerarquía). */}
-      <ul className="flex flex-col divide-y divide-night-700">
+      <ul className="flex flex-col divide-y divide-line">
         {visible.map((p) => {
           const isActivePlan = p.id === activePlanId;
           const subscribedToPlan = p.id === subscribedPlanId;
@@ -120,7 +120,7 @@ export function ProfilePlansSection({
                       {labels.planTypeLabels[p.type] ?? p.type}
                     </Badge>
                     {(p.classCount || p.weeklyClasses) && (
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-ink/50">
                         {[
                           p.classCount
                             ? countLabel(labels.planClassCount, p.classCount)
@@ -143,14 +143,14 @@ export function ProfilePlansSection({
                 </div>
               </div>
               {p.description.length > 0 && (
-                <ul className="list-disc space-y-1 pl-5 text-sm text-white/70">
+                <ul className="list-disc space-y-1 pl-5 text-sm text-ink/70">
                   {p.description.map((d, i) => (
                     <li key={i}>{d}</li>
                   ))}
                 </ul>
               )}
               {freeTrial ? (
-                <p className="text-sm text-white/50">{labels.trialAssigned}</p>
+                <p className="text-sm text-ink/50">{labels.trialAssigned}</p>
               ) : (
                 !subscribedToPlan &&
                 (blocked ? (
@@ -177,7 +177,7 @@ export function ProfilePlansSection({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-medium">{labels.privateLesson}</p>
-                <p className="mt-0.5 text-xs text-white/50">
+                <p className="mt-0.5 text-xs text-ink/50">
                   {labels.privateLessonDesc}
                 </p>
               </div>

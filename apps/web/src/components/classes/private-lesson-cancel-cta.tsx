@@ -88,7 +88,7 @@ export function PrivateLessonCancelCta({ lessonId }: { lessonId: string }) {
         <div
           ref={dialogRef}
           role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setConfirming(false)}
         >
           <Card
@@ -103,7 +103,7 @@ export function PrivateLessonCancelCta({ lessonId }: { lessonId: string }) {
             </h2>
             {/* El copy declara la consecuencia antes de confirmar: la
                 devolución del pago es gestión manual con la academia. */}
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-ink/70">
               {tl("confirmCancel")} {t("cancelPaid")}
             </p>
             <div className="flex items-center justify-end gap-3">

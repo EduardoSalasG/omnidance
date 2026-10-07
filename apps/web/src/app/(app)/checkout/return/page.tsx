@@ -117,7 +117,7 @@ function CheckoutReturn() {
         <>
           <Spinner size="lg" />
           <h1 className="text-xl font-bold">{t("returnVerifying")}</h1>
-          <p className="text-sm text-white/60">{t("pending")}</p>
+          <p className="text-sm text-ink/60">{t("pending")}</p>
         </>
       )}
 
@@ -153,7 +153,7 @@ function CheckoutReturn() {
           </Button>
           <Link
             href="/eventos"
-            className="inline-flex min-h-11 items-center text-sm text-white/60 underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center text-sm text-ink/60 underline-offset-4 hover:underline"
           >
             {t("returnToEvents")}
           </Link>
@@ -164,7 +164,7 @@ function CheckoutReturn() {
         <>
           <Badge variant="live">{t("failed")}</Badge>
           <h1 className="text-2xl font-bold">{t("returnFailedTitle")}</h1>
-          <p className="text-sm text-white/60">{t("returnFailedDesc")}</p>
+          <p className="text-sm text-ink/60">{t("returnFailedDesc")}</p>
           {/* TICKET: reintento directo al checkout del evento - la orden
               fallida no cobró ni reservó cupo. */}
           {orderType === "TICKET" && eventId && (
@@ -229,7 +229,7 @@ function CheckoutReturn() {
         <>
           <Badge variant="muted">{t("pending")}</Badge>
           <h1 className="text-xl font-bold">{t("returnPendingTitle")}</h1>
-          <p className="text-sm text-white/60">{t("returnPendingDesc")}</p>
+          <p className="text-sm text-ink/60">{t("returnPendingDesc")}</p>
           <Button
             href={
               orderType === "MEMBERSHIP"
@@ -256,7 +256,7 @@ function CheckoutReturn() {
 
       {phase.kind === "unauth" && (
         <Card className="flex w-full flex-col items-center gap-4">
-          <p className="text-white/70">{t("loginRequired")}</p>
+          <p className="text-ink/70">{t("loginRequired")}</p>
           <Button href="/login" size="lg" className="w-full">
             {tc("login")}
           </Button>

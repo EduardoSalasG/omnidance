@@ -90,11 +90,11 @@ export function SessionCard({
                   >
                     {name}
                   </Link>{" "}
-                  <span className="text-white/70">{t("invitedYou")}</span>
+                  <span className="text-ink/70">{t("invitedYou")}</span>
                 </>
               ) : (
                 <>
-                  <span className="text-white/70">{t("youInvited")}</span>{" "}
+                  <span className="text-ink/70">{t("youInvited")}</span>{" "}
                   <Link
                     href={`/amigos/${partnerId}`}
                     className="font-semibold hover:text-neon"
@@ -117,7 +117,7 @@ export function SessionCard({
           <EventDate
             variant="time"
             start={session.scannedAt}
-            className="block text-xs text-white/50"
+            className="block text-xs text-ink/50"
           />
         </div>
         {meta && <Badge variant={meta.variant}>{t(meta.key)}</Badge>}
@@ -150,7 +150,7 @@ export function SessionCard({
             {(session.myRating.connection !== null ||
               session.myRating.comfort !== null ||
               session.myRating.musicality !== null) && (
-              <p className="mt-1 text-xs text-white/50">
+              <p className="mt-1 text-xs text-ink/50">
                 {[
                   session.myRating.connection !== null &&
                     `${t("subConnection")} ${session.myRating.connection}`,
@@ -166,7 +166,7 @@ export function SessionCard({
           </div>
         ) : ratingOpen ? (
           <div className="mt-3">
-            <p className="text-sm text-white/60">{t("ratePrompt")}</p>
+            <p className="text-sm text-ink/60">{t("ratePrompt")}</p>
             <div className="flex items-center gap-2">
               <StarRating busy={busy} onSelect={(score) => onRate?.(score)} />
               {busy && <Spinner size="sm" />}

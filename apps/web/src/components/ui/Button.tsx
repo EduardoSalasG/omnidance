@@ -11,10 +11,10 @@ const base =
   "disabled:pointer-events-none disabled:opacity-50";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-neon text-night-950 hover:bg-neon-soft",
+  primary: "bg-neon text-on-accent hover:bg-neon-soft",
   secondary:
-    "border border-night-700 bg-night-900 text-white hover:border-neon/60",
-  ghost: "text-white/70 hover:text-white",
+    "border border-line bg-surface text-ink hover:border-neon/60",
+  ghost: "text-ink/70 hover:text-ink",
 };
 
 // Todos los tamaños mantienen touch target >= 44px (mobile-first)

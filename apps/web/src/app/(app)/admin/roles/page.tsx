@@ -109,14 +109,14 @@ function RolesPanel() {
                   {r.requestable && (
                     <Badge variant="outline">{t("roles.requestable")}</Badge>
                   )}
-                  <span className="ml-auto text-xs text-white/50">
+                  <span className="ml-auto text-xs text-ink/50">
                     {t("roles.peopleCount", {
                       count: r._count.personRoles,
                     })}
                   </span>
                 </div>
                 {r.description && (
-                  <p className="text-xs text-white/50">{r.description}</p>
+                  <p className="text-xs text-ink/50">{r.description}</p>
                 )}
                 {!r.isSuperuser && (
                   <div className="flex flex-wrap gap-2">
@@ -136,7 +136,7 @@ function RolesPanel() {
                           className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3 font-mono text-xs transition ${
                             granted
                               ? "border-neon bg-neon/15 text-neon"
-                              : "border-white/15 text-white/50"
+                              : "border-ink/15 text-ink/50"
                           }`}
                         >
                           {granted && <CheckIcon className="h-3.5 w-3.5" />}

@@ -19,7 +19,7 @@ export default function LoginLayout({
 }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="border-b border-white/5 pt-[env(safe-area-inset-top)]">
+      <header className="border-b border-ink/5 pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-2 sm:px-6">
           <Link
             href="/"
@@ -30,7 +30,7 @@ export default function LoginLayout({
           <nav aria-label={landingParts.landing.navPrimary}>
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white sm:px-4"
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-ink/60 transition-colors hover:text-ink sm:px-4"
             >
               {baseMessages.common.back}
             </Link>

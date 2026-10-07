@@ -140,7 +140,7 @@ function NewDiscountCode() {
           <Card>
             <form onSubmit={submit} className="flex flex-col gap-4">
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("code")}
                   <span aria-hidden="true" className="text-neon"> *</span>
                 </span>
@@ -157,7 +157,7 @@ function NewDiscountCode() {
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">{t("type")}</span>
+                <span className="text-sm text-ink/70">{t("type")}</span>
                 <select
                   value={form.type}
                   onChange={(e) =>
@@ -175,7 +175,7 @@ function NewDiscountCode() {
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("percentOff")}
                   </span>
                   <input
@@ -195,7 +195,7 @@ function NewDiscountCode() {
                   />
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("amountOff")}
                   </span>
                   <input
@@ -217,7 +217,7 @@ function NewDiscountCode() {
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("maxUses")}
                   </span>
                   <input
@@ -235,7 +235,7 @@ function NewDiscountCode() {
                   />
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("expiresAt")}
                   </span>
                   <input
@@ -253,7 +253,7 @@ function NewDiscountCode() {
               </div>
 
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">{te("title")}</span>
+                <span className="text-sm text-ink/70">{te("title")}</span>
                 <select
                   value={form.eventId}
                   onChange={(e) =>

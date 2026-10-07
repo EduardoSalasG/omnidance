@@ -69,7 +69,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
   }
   if (!canAdminister) {
     return (
-      <p role="alert" className="text-sm text-white/60">
+      <p role="alert" className="text-sm text-ink/60">
         {ta("forbidden")}
       </p>
     );
@@ -83,7 +83,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
         </p>
       ) : (
         <>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t.addTitle}
           </h2>
           <form
@@ -91,7 +91,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
             className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
           >
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t.videoTitle}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -103,7 +103,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t.videoUrl}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -116,7 +116,7 @@ export function VideoForm({ academy }: { academy: Academy }) {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t.classId}</span>
+              <span className="text-xs text-ink/50">{t.classId}</span>
               <input
                 className={inputCls}
                 value={classId}
@@ -126,11 +126,11 @@ export function VideoForm({ academy }: { academy: Academy }) {
             <label className="flex items-end gap-2 pb-1">
               <input
                 type="checkbox"
-                className="h-5 w-5 rounded border-night-700 bg-night-800 accent-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                className="h-5 w-5 rounded border-line bg-elevated accent-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                 checked={restricted}
                 onChange={(e) => setRestricted(e.target.checked)}
               />
-              <span className="text-xs text-white/70">
+              <span className="text-xs text-ink/70">
                 {t.restrictedLabel}
               </span>
             </label>

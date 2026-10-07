@@ -126,7 +126,7 @@ export default function PerfilPagosPage() {
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6">
         {gate === "error" ? (
           <>
-            <p role="alert" className="text-white/50">
+            <p role="alert" className="text-ink/50">
               {tc("error")}
             </p>
             <Button variant="secondary" onClick={() => void boot()}>
@@ -144,13 +144,13 @@ export default function PerfilPagosPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-sm text-white/50">{t("subtitle")}</p>
+        <p className="text-sm text-ink/50">{t("subtitle")}</p>
       </div>
 
       {/* Suscripciones vivas - contexto de los cobros MEMBERSHIP de abajo. */}
       {subs.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("sub.title")}
           </h2>
           <ul className="flex flex-col gap-3">
@@ -177,7 +177,7 @@ export default function PerfilPagosPage() {
                     </Badge>
                   </div>
                   {s.nextInvoiceAt && s.status === "ACTIVE" && (
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {t("sub.nextCharge", {
                         date: dateFmt.format(new Date(s.nextInvoiceAt)),
                       })}
@@ -190,7 +190,7 @@ export default function PerfilPagosPage() {
                   {s.status === "ACTIVE" &&
                     (confirmId === s.id ? (
                       <div className="mt-1 flex flex-col gap-2">
-                        <p className="text-xs text-white/60">
+                        <p className="text-xs text-ink/60">
                           {ts("cancelConfirm")}
                         </p>
                         <div className="flex gap-2">
@@ -234,7 +234,7 @@ export default function PerfilPagosPage() {
                       </Button>
                     ))}
                   {s.status === "CANCEL_PENDING" && (
-                    <p className="text-xs text-white/50">
+                    <p className="text-xs text-ink/50">
                       {s.nextInvoiceAt
                         ? ts("cancelPending", {
                             date: dateFmt.format(new Date(s.nextInvoiceAt)),
@@ -256,7 +256,7 @@ export default function PerfilPagosPage() {
 
       {payments.length === 0 ? (
         <Card className="py-8 text-center">
-          <p role="status" className="text-sm text-white/70">
+          <p role="status" className="text-sm text-ink/70">
             {t("empty")}
           </p>
         </Card>

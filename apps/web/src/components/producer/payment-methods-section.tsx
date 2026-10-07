@@ -108,16 +108,16 @@ export function ProducerPaymentMethodsSection() {
   }
 
   const inputCls =
-    "min-h-11 rounded-xl border border-night-700 bg-night-900 px-3 text-sm";
+    "min-h-11 rounded-xl border border-line bg-surface px-3 text-sm";
 
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {tp("title")}
           </h2>
-          <p className="mt-1 text-xs text-white/50">{tp("desc")}</p>
+          <p className="mt-1 text-xs text-ink/50">{tp("desc")}</p>
         </div>
         <Button
           variant="secondary"
@@ -129,9 +129,9 @@ export function ProducerPaymentMethodsSection() {
       </div>
 
       {showForm && (
-        <div className="flex flex-col gap-3 rounded-xl border border-night-700 bg-night-800 p-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-line bg-elevated p-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-white/60">{t("fType")}</span>
+            <span className="text-ink/60">{t("fType")}</span>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as Method["type"])}
@@ -147,7 +147,7 @@ export function ProducerPaymentMethodsSection() {
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-white/60">{t("fLabel")}</span>
+            <span className="text-ink/60">{t("fLabel")}</span>
             <input
               value={label}
               onChange={(e) => setLabel(e.target.value)}
@@ -159,7 +159,7 @@ export function ProducerPaymentMethodsSection() {
           {type === "TRANSFER" &&
             TRANSFER_DETAIL_KEYS.map(([key, i18n]) => (
               <label key={key} className="flex flex-col gap-1 text-sm">
-                <span className="text-white/60">{t(i18n)}</span>
+                <span className="text-ink/60">{t(i18n)}</span>
                 <input
                   value={details[key] ?? ""}
                   onChange={(e) => setDetail(key, e.target.value)}
@@ -169,7 +169,7 @@ export function ProducerPaymentMethodsSection() {
             ))}
           {type === "PAYMENT_LINK" && (
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-white/60">{t("fUrl")}</span>
+              <span className="text-ink/60">{t("fUrl")}</span>
               <input
                 type="url"
                 value={details.url ?? ""}
@@ -181,7 +181,7 @@ export function ProducerPaymentMethodsSection() {
           )}
           {type === "CASH" && (
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-white/60">{t("fInstructions")}</span>
+              <span className="text-ink/60">{t("fInstructions")}</span>
               <input
                 value={details.instructions ?? ""}
                 onChange={(e) => setDetail("instructions", e.target.value)}
@@ -191,7 +191,7 @@ export function ProducerPaymentMethodsSection() {
             </label>
           )}
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-white/60">{t("fOrder")}</span>
+            <span className="text-ink/60">{t("fOrder")}</span>
             <input
               type="number"
               inputMode="numeric"
@@ -228,13 +228,13 @@ export function ProducerPaymentMethodsSection() {
       {methods === null ? (
         <SkeletonList items={2} />
       ) : methods.length === 0 ? (
-        <p className="text-sm text-white/50">{t("methodsEmpty")}</p>
+        <p className="text-sm text-ink/50">{t("methodsEmpty")}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {methods.map((m) => (
             <li
               key={m.id}
-              className="flex flex-wrap items-center gap-2 rounded-lg border border-night-700 px-3 py-2 text-sm"
+              className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm"
             >
               <span className="font-medium">{m.label}</span>
               <Badge variant="outline">{t(TYPE_KEYS[m.type])}</Badge>

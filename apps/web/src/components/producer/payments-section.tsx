@@ -58,7 +58,7 @@ export function PaymentsSection({ eventId }: Props) {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("sections.payments")}
       </h2>
 
@@ -76,7 +76,7 @@ export function PaymentsSection({ eventId }: Props) {
         </div>
       )}
       {payments !== null && payments.length === 0 && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {tp("byEvent.empty")}
         </p>
       )}
@@ -90,7 +90,7 @@ export function PaymentsSection({ eventId }: Props) {
         >
           <table className="w-full min-w-[36rem] text-left text-sm">
             <thead>
-              <tr className="border-b border-night-700 text-xs uppercase tracking-wide text-white/50">
+              <tr className="border-b border-line text-xs uppercase tracking-wide text-ink/50">
                 <th scope="col" className="px-4 py-3 font-medium">
                   {tp("cols.paidAt")}
                 </th>
@@ -112,13 +112,13 @@ export function PaymentsSection({ eventId }: Props) {
               {payments.map((p) => (
                 <tr
                   key={p.id}
-                  className="border-b border-night-700 last:border-0"
+                  className="border-b border-line last:border-0"
                 >
-                  <td className="px-4 py-3 text-white/70">
+                  <td className="px-4 py-3 text-ink/70">
                     <span className="block whitespace-nowrap">
                       {paymentDateTimeFmt.format(new Date(paymentPaidAt(p)))}
                     </span>
-                    <span className="block text-xs text-white/40">
+                    <span className="block text-xs text-ink/40">
                       {p.gatewayMedia ?? p.refId.slice(0, 12)}
                     </span>
                   </td>

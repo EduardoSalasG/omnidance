@@ -60,7 +60,7 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
 };
 
 const FALLBACK_META: CategoryMeta = {
-  color: "text-white/60",
+  color: "text-ink/60",
   paths: [
     "M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9",
     "M13.7 21a2 2 0 0 1-3.4 0",
@@ -115,7 +115,7 @@ export function NotificationToast() {
       className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-[calc(3.5rem+0.5rem+env(safe-area-inset-top))]"
     >
       <div
-        className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-night-700 bg-night-900/95 p-4 shadow-2xl shadow-black/50 backdrop-blur transition-all duration-300 ease-out motion-reduce:transition-none ${
+        className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-line bg-surface/95 p-4 shadow-2xl shadow-black/50 backdrop-blur transition-all duration-300 ease-out motion-reduce:transition-none ${
           entered ? "translate-y-0 opacity-100" : "-translate-y-3 opacity-0"
         }`}
       >
@@ -141,11 +141,11 @@ export function NotificationToast() {
           aria-label={t("open")}
           className="min-w-0 flex-1 rounded-lg"
         >
-          <span className="block truncate text-sm font-semibold text-white">
+          <span className="block truncate text-sm font-semibold text-ink">
             {shown.title}
           </span>
           {shown.body ? (
-            <span className="mt-0.5 line-clamp-2 block text-sm text-white/60">
+            <span className="mt-0.5 line-clamp-2 block text-sm text-ink/60">
               {shown.body}
             </span>
           ) : null}
@@ -155,7 +155,7 @@ export function NotificationToast() {
           type="button"
           onClick={dismiss}
           aria-label={t("close")}
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-white/50 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-ink/50 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon"
         >
           <svg
             aria-hidden

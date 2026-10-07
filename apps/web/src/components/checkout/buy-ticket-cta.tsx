@@ -59,7 +59,7 @@ export function BuyTicketCta({
         <div
           ref={dialogRef}
           role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setOpen(false)}
         >
           <Card
@@ -72,7 +72,7 @@ export function BuyTicketCta({
             <h2 id="dup-ticket-title" className="text-lg font-semibold">
               {t("alreadyTicket")}
             </h2>
-            <p className="text-sm text-white/70">{t("alreadyTicketDesc")}</p>
+            <p className="text-sm text-ink/70">{t("alreadyTicketDesc")}</p>
             <div className="flex items-center justify-end gap-3">
               <Button
                 type="button"
@@ -93,7 +93,7 @@ export function BuyTicketCta({
             <p className="text-center">
               <Link
                 href="/qr"
-                className="text-xs text-white/50 underline-offset-2 hover:text-white/80 hover:underline"
+                className="text-xs text-ink/50 underline-offset-2 hover:text-ink/80 hover:underline"
               >
                 {t("alreadyTicketQrHint")}
               </Link>

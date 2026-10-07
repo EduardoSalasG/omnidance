@@ -233,13 +233,13 @@ export default function AmigosPage() {
     children?: ReactNode;
   }) {
     return (
-      <li className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-800/60 p-3">
+      <li className="flex items-center gap-3 rounded-xl border border-line bg-elevated/60 p-3">
         <Link
           href={`/amigos/${person.id}`}
           className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           <PartnerAvatar name={person.name} photoUrl={person.photoUrl} />
-          <span className="truncate font-medium text-white">
+          <span className="truncate font-medium text-ink">
             {person.name}
           </span>
         </Link>
@@ -329,7 +329,7 @@ export default function AmigosPage() {
         <div className="flex items-center justify-between gap-3">
           <h2
             id="add-friends-title"
-            className="text-sm font-semibold uppercase tracking-wide text-white/50"
+            className="text-sm font-semibold uppercase tracking-wide text-ink/50"
           >
             {t("addTitle")}
           </h2>
@@ -356,7 +356,7 @@ export default function AmigosPage() {
                   setTimeout(() => setInviteErr(false), 3000);
                 }
               }}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-night-700 bg-night-800 px-4 text-sm font-medium text-neon transition-colors hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line bg-elevated px-4 text-sm font-medium text-neon transition-colors hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               <svg
                 aria-hidden="true"
@@ -379,7 +379,7 @@ export default function AmigosPage() {
             <button
               type="button"
               onClick={() => void refreshMe()}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-night-700 px-4 text-sm font-medium text-white/60 transition-colors hover:border-white/30 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line px-4 text-sm font-medium text-ink/60 transition-colors hover:border-ink/30 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               <RefreshIcon />
               {tc("retry")}
@@ -402,14 +402,14 @@ export default function AmigosPage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("searchPlaceholder")}
           aria-label={t("search")}
-          className="min-h-11 w-full rounded-xl border border-night-700 bg-night-900 px-4 text-white placeholder:text-white/40 focus:border-neon focus:outline-none"
+          className="min-h-11 w-full rounded-xl border border-line bg-surface px-4 text-ink placeholder:text-ink/40 focus:border-neon focus:outline-none"
         />
         {trimmed.length > 0 && trimmed.length < MIN_CHARS && (
-          <p className="text-sm text-white/50">{t("minChars")}</p>
+          <p className="text-sm text-ink/50">{t("minChars")}</p>
         )}
         {searching && <Spinner size="sm" className="page-loading" />}
         {!searching && results !== null && results.length === 0 && (
-          <p role="status" className="text-sm text-white/50">
+          <p role="status" className="text-sm text-ink/50">
             {t("noResults")}
           </p>
         )}
@@ -433,7 +433,7 @@ export default function AmigosPage() {
       {state === "loading" && <SkeletonList />}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-white/50">
+          <p role="alert" className="text-ink/50">
             {tc("error")}
           </p>
           <Button
@@ -457,7 +457,7 @@ export default function AmigosPage() {
               o no pinta nunca; no hay skeleton que aparezca y colapse. */}
           {friendEvents !== null && friendEvents.length > 0 && (
             <section data-tour="amigos-going" className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("goingTitle")}
               </h2>
               <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3">
@@ -475,7 +475,7 @@ export default function AmigosPage() {
                           <p className="truncate font-semibold">
                             {event.name}
                           </p>
-                          <p className="truncate text-sm text-white/60">
+                          <p className="truncate text-sm text-ink/60">
                             <EventDate start={event.startsAt} />
                             {event.venue ? ` · ${event.venue.name}` : ""}
                           </p>
@@ -490,7 +490,7 @@ export default function AmigosPage() {
                           {friends.slice(0, 4).map((f) => (
                             <li
                               key={f.id}
-                              className="rounded-full ring-2 ring-night-800"
+                              className="rounded-full ring-2 ring-line"
                             >
                               <PartnerAvatar
                                 name={f.name}
@@ -500,7 +500,7 @@ export default function AmigosPage() {
                             </li>
                           ))}
                           {friends.length > 4 && (
-                            <li className="flex h-8 w-8 items-center justify-center rounded-full bg-night-700 text-[10px] font-semibold text-white/70 ring-2 ring-night-800">
+                            <li className="flex h-8 w-8 items-center justify-center rounded-full bg-raised text-[10px] font-semibold text-ink/70 ring-2 ring-line">
                               +{friends.length - 4}
                             </li>
                           )}
@@ -533,11 +533,11 @@ export default function AmigosPage() {
 
           {/* Solicitudes recibidas */}
           <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("requests")}
             </h2>
             {data.pendingReceived.length === 0 ? (
-              <p className="text-sm text-white/40">{t("emptyRequests")}</p>
+              <p className="text-sm text-ink/40">{t("emptyRequests")}</p>
             ) : (
               <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
                 {data.pendingReceived.map((f) => (
@@ -566,7 +566,7 @@ export default function AmigosPage() {
           {/* Solicitudes enviadas */}
           {data.pendingSent.length > 0 && (
             <section className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {t("sentSection")}
               </h2>
               <ul className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
@@ -589,12 +589,12 @@ export default function AmigosPage() {
 
           {/* Amigos */}
           <section data-tour="amigos-list" className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("list")}
             </h2>
             {data.friends.length === 0 ? (
               <Card className="flex flex-col items-center gap-3 py-10 text-center">
-                <p role="status" className="text-white/60">
+                <p role="status" className="text-ink/60">
                   {t("empty")}
                 </p>
                 {/* Sin dead-end: el buscador de arriba es la acción -

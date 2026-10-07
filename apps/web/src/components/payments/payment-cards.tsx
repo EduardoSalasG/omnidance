@@ -92,7 +92,7 @@ function PaymentCard({
           {paymentHref(p) ? (
             <Link
               href={paymentHref(p)!}
-              className="min-w-0 flex-1 truncate text-sm font-semibold text-white underline-offset-2 hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              className="min-w-0 flex-1 truncate text-sm font-semibold text-ink underline-offset-2 hover:text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
               {title}
             </Link>
@@ -106,7 +106,7 @@ function PaymentCard({
           </Badge>
         </div>
 
-        <p className="truncate text-xs text-white/50">
+        <p className="truncate text-xs text-ink/50">
           {[
             orderTypeLabel(t, p.orderType),
             p.gatewayMedia,
@@ -118,19 +118,19 @@ function PaymentCard({
 
         <dl className="grid grid-cols-3 gap-2">
           <div>
-            <dt className="text-xs text-white/50">{t("cols.amount")}</dt>
+            <dt className="text-xs text-ink/50">{t("cols.amount")}</dt>
             <dd>
               <PriceTag amount={p.amount} />
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-white/50">{t("cols.gatewayFee")}</dt>
+            <dt className="text-xs text-ink/50">{t("cols.gatewayFee")}</dt>
             <dd>
               <PriceTag amount={p.gatewayFeeClp} />
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-white/50">{t("cols.net")}</dt>
+            <dt className="text-xs text-ink/50">{t("cols.net")}</dt>
             <dd>
               <PriceTag amount={paymentProducerNet(p)} />
             </dd>
@@ -138,12 +138,12 @@ function PaymentCard({
         </dl>
 
         {withLedger && (
-          <div className="border-t border-night-700 pt-2">
+          <div className="border-t border-line pt-2">
             <button
               type="button"
               onClick={() => void toggleLedger()}
               aria-expanded={expanded}
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-white/60 transition-colors hover:border-white/25 hover:text-white"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-ink/10 px-3 text-xs font-medium text-ink/60 transition-colors hover:border-ink/25 hover:text-ink"
             >
               <ChevronDownIcon
                 className={`h-3.5 w-3.5 transition-transform motion-reduce:transition-none ${
@@ -161,7 +161,7 @@ function PaymentCard({
                   </p>
                 )}
                 {events !== null && events.length === 0 && (
-                  <p role="status" className="text-xs text-white/50">
+                  <p role="status" className="text-xs text-ink/50">
                     {t("ledger.empty")}
                   </p>
                 )}
@@ -172,15 +172,15 @@ function PaymentCard({
                         key={e.id}
                         className="flex items-baseline gap-2 text-xs"
                       >
-                        <span className="shrink-0 tabular-nums text-white/50">
+                        <span className="shrink-0 tabular-nums text-ink/50">
                           #{e.seq}
                         </span>
-                        <span className="min-w-0 flex-1 truncate font-medium text-white/80">
+                        <span className="min-w-0 flex-1 truncate font-medium text-ink/80">
                           {t.has(`ledger.type.${e.type}`)
                             ? t(`ledger.type.${e.type}`)
                             : e.type}
                         </span>
-                        <span className="shrink-0 text-white/50">
+                        <span className="shrink-0 text-ink/50">
                           {e.actor} ·{" "}
                           {paymentDateTimeFmt.format(new Date(e.createdAt))}
                         </span>

@@ -88,22 +88,22 @@ function UsersPanel() {
         placeholder={t("users.search")}
         aria-label={t("users.search")}
         type="search"
-        className="min-h-[44px] w-full rounded-lg border border-white/15 bg-black/40 px-3 text-sm"
+        className="min-h-[44px] w-full rounded-lg border border-ink/15 bg-canvas px-3 text-sm"
       />
 
       {q.length === 0 && (
-        <p className="text-sm text-white/50">{t("users.searchHint")}</p>
+        <p className="text-sm text-ink/50">{t("users.searchHint")}</p>
       )}
       {q.length === 1 && (
-        <p className="text-sm text-white/50">{t("users.minChars")}</p>
+        <p className="text-sm text-ink/50">{t("users.minChars")}</p>
       )}
       {searching && q.length >= MIN_QUERY && (
-        <p role="status" className="text-sm text-white/50">
+        <p role="status" className="text-sm text-ink/50">
           {tc("loading")}
         </p>
       )}
       {!searching && searched && users.length === 0 && (
-        <p className="text-sm text-white/50">{t("users.noResults")}</p>
+        <p className="text-sm text-ink/50">{t("users.noResults")}</p>
       )}
 
       <ul className="flex flex-col gap-3">
@@ -117,7 +117,7 @@ function UsersPanel() {
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate font-semibold">{u.name}</span>
                   {u.email && (
-                    <span className="truncate text-sm text-white/60">
+                    <span className="truncate text-sm text-ink/60">
                       {u.email}
                     </span>
                   )}

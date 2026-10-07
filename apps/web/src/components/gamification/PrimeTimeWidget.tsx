@@ -69,7 +69,7 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
       <div className="flex items-center justify-between gap-3">
         <h2
           id="prime-time-heading"
-          className="text-sm font-semibold uppercase tracking-wide text-white/50"
+          className="text-sm font-semibold uppercase tracking-wide text-ink/50"
         >
           {t("primeTime")}
         </h2>
@@ -81,7 +81,7 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
         aria-valuenow={data.current}
         aria-valuemin={0}
         aria-valuemax={data.threshold}
-        className="mt-4 h-3 w-full overflow-hidden rounded-full bg-night-800"
+        className="mt-4 h-3 w-full overflow-hidden rounded-full bg-elevated"
       >
         <div
           className={`h-full rounded-full transition-[width] duration-500 ${
@@ -92,7 +92,7 @@ export function PrimeTimeWidget({ eventId }: { eventId: string }) {
       </div>
       <p
         className={`mt-2 text-sm ${
-          data.unlocked ? "font-semibold text-neon" : "text-white/70"
+          data.unlocked ? "font-semibold text-neon" : "text-ink/70"
         }`}
       >
         {t("primeProgress", {

@@ -239,7 +239,7 @@ export default function NotificacionesPage() {
       {state === "loading" && <SkeletonList items={4} lines={1} />}
       {state === "error" && (
         <div className="flex items-center gap-3">
-          <p role="alert" className="text-sm text-white/60">
+          <p role="alert" className="text-sm text-ink/60">
             {tc("error")}
           </p>
           <Button
@@ -258,7 +258,7 @@ export default function NotificacionesPage() {
       {state === "ready" &&
         (visible.length === 0 ? (
           <Card className="py-12 text-center">
-            <p role="status" className="text-white/60">
+            <p role="status" className="text-ink/60">
               {t("empty")}
             </p>
           </Card>
@@ -278,14 +278,14 @@ export default function NotificacionesPage() {
                     onClick={() => markRead(n)}
                     className={`flex min-h-11 w-full items-start gap-3 rounded-2xl border p-4 text-left transition-colors transition-transform active:scale-[0.99] ${
                       unread
-                        ? "border-neon/40 bg-night-900"
-                        : "border-night-700 bg-night-900/60"
+                        ? "border-neon/40 bg-surface"
+                        : "border-line bg-surface/60"
                     }`}
                   >
                     <span
                       aria-hidden="true"
                       className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                        unread ? "bg-neon" : "bg-night-700"
+                        unread ? "bg-neon" : "bg-raised"
                       }`}
                     />
                     {unread && (
@@ -294,13 +294,13 @@ export default function NotificacionesPage() {
                     <span className="min-w-0 flex-1">
                       <span
                         className={`block ${
-                          unread ? "font-semibold text-white" : "text-white/70"
+                          unread ? "font-semibold text-ink" : "text-ink/70"
                         }`}
                       >
                         {n.title}
                       </span>
                       {n.body && (
-                        <span className="mt-0.5 block text-sm text-white/50">
+                        <span className="mt-0.5 block text-sm text-ink/50">
                           {n.body}
                         </span>
                       )}
@@ -309,12 +309,12 @@ export default function NotificacionesPage() {
                           {eventDateFmt.format(new Date(eventAt))}
                         </span>
                       )}
-                      <span className="mt-1 block text-xs text-white/50">
+                      <span className="mt-1 block text-xs text-ink/50">
                         {relativeTime(n.createdAt)}
                       </span>
                     </span>
                     {href && (
-                      <ChevronRightIcon className="mt-0.5 h-5 w-5 shrink-0 self-center text-white/30" />
+                      <ChevronRightIcon className="mt-0.5 h-5 w-5 shrink-0 self-center text-ink/30" />
                     )}
                   </button>
                 </li>

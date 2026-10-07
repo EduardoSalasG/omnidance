@@ -68,11 +68,11 @@ function ImportCard({
   return (
     <Card className="flex flex-col gap-4">
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t(`${kind}Title`)}
         </h2>
-        <p className="mt-1 text-xs text-white/50">{t(`${kind}Desc`)}</p>
-        <p className="mt-1 text-xs text-white/40">{t(`${kind}Cols`)}</p>
+        <p className="mt-1 text-xs text-ink/50">{t(`${kind}Desc`)}</p>
+        <p className="mt-1 text-xs text-ink/40">{t(`${kind}Cols`)}</p>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         {/* eslint-disable-next-line jsx-a11y/anchor-is-valid -- link directo a CSV descargable */}
@@ -99,7 +99,7 @@ function ImportCard({
         >
           {t("chooseFile")}
         </Button>
-        <span className="text-xs text-white/50">
+        <span className="text-xs text-ink/50">
           {fileName ?? t("noFile")}
         </span>
         <Button
@@ -117,12 +117,12 @@ function ImportCard({
       )}
       {results && (
         <div className="overflow-x-auto">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">
             {t("resultsTitle")}
           </h3>
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-xs text-white/40">
+              <tr className="text-xs text-ink/40">
                 <th className="pr-3 font-medium">{t("colRow")}</th>
                 <th className="pr-3 font-medium">{t("colItem")}</th>
                 <th className="pr-3 font-medium">{t("colStatus")}</th>
@@ -131,15 +131,15 @@ function ImportCard({
             </thead>
             <tbody>
               {results.map((r, i) => (
-                <tr key={i} className="border-t border-night-700 align-top">
-                  <td className="py-2 pr-3 text-white/50">{r.row}</td>
+                <tr key={i} className="border-t border-line align-top">
+                  <td className="py-2 pr-3 text-ink/50">{r.row}</td>
                   <td className="py-2 pr-3">{r.email ?? r.serie ?? "—"}</td>
                   <td className="py-2 pr-3">
                     <Badge variant={STATUS_VARIANT[r.status] ?? "neutral"}>
                       {t(`status.${r.status}`)}
                     </Badge>
                   </td>
-                  <td className="py-2 text-white/60">{r.detail}</td>
+                  <td className="py-2 text-ink/60">{r.detail}</td>
                 </tr>
               ))}
             </tbody>
@@ -163,12 +163,12 @@ export function ImportSection({ academyId }: { academyId: string }) {
   const canSchedule = access?.caps.schedule === true;
 
   if (access !== null && !canStudents && !canSchedule) {
-    return <p className="text-sm text-white/60">{t("forbidden")}</p>;
+    return <p className="text-sm text-ink/60">{t("forbidden")}</p>;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-white/50">{t("desc")}</p>
+      <p className="text-sm text-ink/50">{t("desc")}</p>
       {(access === null || canStudents) && (
         <ImportCard academyId={academyId} kind="students" />
       )}

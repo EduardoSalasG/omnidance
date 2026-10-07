@@ -53,7 +53,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0f",
+  // Sigue al tema del SO (el meta no puede leer la preferencia del
+  // usuario - el override por toggle solo afecta el chrome interno).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f6f6f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0f" },
+  ],
   width: "device-width",
   initialScale: 1,
   // Sin "cover" los env(safe-area-inset-*) son 0 - la bottom nav se solapa
@@ -61,14 +66,28 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Aplica la preferencia de tema ANTES del primer paint (sin FOUC):
+// localStorage gana; "system"/ausente sigue prefers-color-scheme.
+// Corre síncrono en <head>; el estado vivo lo mantiene lib/theme.ts.
+const THEME_BOOT_SCRIPT = `(function(){try{var p=localStorage.getItem("omnidance:theme");var d=p==="dark"||(p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);var e=document.documentElement;e.classList.toggle("dark",d);e.classList.toggle("light",!d);e.dataset.theme=d?"dark":"light";}catch(_){}})()`;
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es-CL" className="dark scroll-smooth motion-reduce:scroll-auto">
-      <body className="bg-night-950 text-white min-h-dvh antialiased">
+    // suppressHydrationWarning: la clase dark/light la ajusta el script
+    // inline según preferencia - React no debe reconciliarla.
+    <html
+      lang="es-CL"
+      className="dark scroll-smooth motion-reduce:scroll-auto"
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
+      <body className="bg-canvas text-ink min-h-dvh antialiased">
         <NextIntlClientProvider locale="es-CL" messages={messages}>
           {children}
           {/* Host del beacon de carga: spinner único para navegación

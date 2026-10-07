@@ -182,12 +182,12 @@ export function AcademySettings({ academy }: { academy: Academy }) {
 
   return (
     <Card>
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("title")}
       </h2>
       <form onSubmit={submit} className="mt-3 flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-white/50">{t("defaultQuorum")}</span>
+          <span className="text-xs text-ink/50">{t("defaultQuorum")}</span>
           <input
             type="number"
             inputMode="numeric"
@@ -198,7 +198,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
             onChange={(e) => setQuorum(e.target.value)}
             placeholder={String(DEFAULT_QUORUM_FALLBACK)}
           />
-          <span className="text-xs text-white/40">
+          <span className="text-xs text-ink/40">
             {t("defaultQuorumHint")}{" "}
             {t("defaultQuorumCurrent", {
               value: current ?? DEFAULT_QUORUM_FALLBACK,
@@ -206,7 +206,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
           </span>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-ink/50">
             {t("privateLessonPrice")}
           </span>
           <input
@@ -218,7 +218,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
             value={lessonPrice}
             onChange={(e) => setLessonPrice(e.target.value)}
           />
-          <span className="text-xs text-white/40">
+          <span className="text-xs text-ink/40">
             {t("privateLessonPriceHint")}{" "}
             {currentLessonPrice != null && `$${currentLessonPrice.toLocaleString("es-CL")}`}
           </span>
@@ -241,11 +241,11 @@ export function AcademySettings({ academy }: { academy: Academy }) {
       </form>
 
       {instructors.length > 0 && (
-        <div className="mt-4 border-t border-night-700 pt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+        <div className="mt-4 border-t border-line pt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
             {t("instructors")}
           </h3>
-          <p className="mt-1 text-xs text-white/40">
+          <p className="mt-1 text-xs text-ink/40">
             {t("instructorsHint")}
           </p>
           <ul className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -273,7 +273,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
                     }))
                   }
                 />
-                <span className="text-xs text-white/40">%</span>
+                <span className="text-xs text-ink/40">%</span>
                 <Button
                   size="sm"
                   variant="secondary"

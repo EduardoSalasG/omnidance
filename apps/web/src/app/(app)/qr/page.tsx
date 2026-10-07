@@ -65,7 +65,7 @@ function WalletLauncher() {
       href={saveUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-night-700 bg-night-800 px-4 text-sm text-white/80 transition-colors hover:border-neon/60 hover:text-neon"
+      className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-elevated px-4 text-sm text-ink/80 transition-colors hover:border-neon/60 hover:text-neon"
     >
       {tQr("addToWallet")}
     </a>
@@ -133,7 +133,7 @@ function QrHub() {
           role="radiogroup"
           aria-labelledby="qr-hub-title"
           data-tour="qr-mode"
-          className="relative grid grid-cols-2 rounded-full border border-night-700 bg-night-800 p-1"
+          className="relative grid grid-cols-2 rounded-full border border-line bg-elevated p-1"
         >
           <span
             aria-hidden
@@ -152,8 +152,8 @@ function QrHub() {
                 className="peer sr-only"
               />
               <span
-                className={`flex min-h-11 select-none items-center justify-center rounded-full px-4 text-sm font-semibold transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-white active:scale-[0.98] active:transition-transform motion-reduce:active:scale-100 ${
-                  mode === opt.value ? "text-night-950" : "text-white/70"
+                className={`flex min-h-11 select-none items-center justify-center rounded-full px-4 text-sm font-semibold transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink active:scale-[0.98] active:transition-transform motion-reduce:active:scale-100 ${
+                  mode === opt.value ? "text-on-accent" : "text-ink/70"
                 }`}
               >
                 {opt.label}
@@ -204,7 +204,7 @@ function QrHub() {
 export default function QrPage() {
   return (
     <Suspense
-      fallback={<main className="min-h-dvh bg-night-950" aria-hidden="true" />}
+      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
     >
       <QrHub />
     </Suspense>

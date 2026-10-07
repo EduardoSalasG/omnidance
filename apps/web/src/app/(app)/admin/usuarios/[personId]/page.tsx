@@ -111,7 +111,7 @@ const fmtDate = (iso: string) => dateFmt.format(new Date(iso));
 const fmtClp = (n: number) => clpFmt.format(n);
 
 const selectCls =
-  "min-h-[44px] rounded-lg border border-white/15 bg-black/40 px-3 text-sm";
+  "min-h-[44px] rounded-lg border border-ink/15 bg-canvas px-3 text-sm";
 
 export default function UsuarioDetallePage({
   params,
@@ -268,7 +268,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
   }
   if (state === "notFound") {
     return (
-      <p role="alert" className="text-sm text-white/60">
+      <p role="alert" className="text-sm text-ink/60">
         {t("users.detail.notFound")}
       </p>
     );
@@ -276,7 +276,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
   if (state === "error" || !detail) {
     return (
       <div className="flex flex-col items-start gap-4">
-        <p role="alert" className="text-sm text-white/70">
+        <p role="alert" className="text-sm text-ink/70">
           {tc("error")}
         </p>
         <Button variant="secondary" onClick={() => void load()}>
@@ -305,7 +305,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
       >
         <h2
           id="personal-h"
-          className="text-sm font-semibold uppercase tracking-wide text-white/50"
+          className="text-sm font-semibold uppercase tracking-wide text-ink/50"
         >
           {t("users.detail.personal")}
         </h2>
@@ -316,12 +316,12 @@ function UserDetailPanel({ personId }: { personId: string }) {
               <img
                 src={person.photoUrl}
                 alt=""
-                className="h-16 w-16 shrink-0 rounded-full border border-night-700 object-cover"
+                className="h-16 w-16 shrink-0 rounded-full border border-line object-cover"
               />
             ) : (
               <span
                 aria-hidden="true"
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-night-700 bg-night-800 text-2xl font-bold text-neon"
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-line bg-elevated text-2xl font-bold text-neon"
               >
                 {person.name.charAt(0).toUpperCase()}
               </span>
@@ -343,7 +343,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
           <dl className="flex flex-col gap-1.5 text-sm">
             {person.email && (
               <div className="flex gap-2">
-                <dt className="shrink-0 text-white/50">
+                <dt className="shrink-0 text-ink/50">
                   {t("users.detail.email")}
                 </dt>
                 <dd className="min-w-0 truncate">{person.email}</dd>
@@ -351,14 +351,14 @@ function UserDetailPanel({ personId }: { personId: string }) {
             )}
             {person.phone && (
               <div className="flex gap-2">
-                <dt className="shrink-0 text-white/50">
+                <dt className="shrink-0 text-ink/50">
                   {t("users.detail.phone")}
                 </dt>
                 <dd className="min-w-0 truncate">{person.phone}</dd>
               </div>
             )}
             <div className="flex gap-2">
-              <dt className="shrink-0 text-white/50">
+              <dt className="shrink-0 text-ink/50">
                 {t("users.detail.memberSince")}
               </dt>
               <dd>{fmtDate(person.createdAt)}</dd>
@@ -371,12 +371,12 @@ function UserDetailPanel({ personId }: { personId: string }) {
       <section className="flex flex-col gap-3" aria-labelledby="roles-h">
         <h2
           id="roles-h"
-          className="text-sm font-semibold uppercase tracking-wide text-white/50"
+          className="text-sm font-semibold uppercase tracking-wide text-ink/50"
         >
           {t("users.detail.roleHistory")}
         </h2>
         {detail.roles.length === 0 ? (
-          <p className="text-sm text-white/50">{t("users.noRoles")}</p>
+          <p className="text-sm text-ink/50">{t("users.noRoles")}</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {detail.roles.map((r) => (
@@ -389,7 +389,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
                       {roleLabel(r.role)}
                     </Badge>
                     <Badge variant="muted">{statusLabel(r.status)}</Badge>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {t("users.detail.grantedAt", {
                         date: fmtDate(r.createdAt),
                       })}
@@ -456,12 +456,12 @@ function UserDetailPanel({ personId }: { personId: string }) {
       <section className="flex flex-col gap-3" aria-labelledby="roledata-h">
         <h2
           id="roledata-h"
-          className="text-sm font-semibold uppercase tracking-wide text-white/50"
+          className="text-sm font-semibold uppercase tracking-wide text-ink/50"
         >
           {t("users.detail.roleData")}
         </h2>
         {Object.keys(detail.roleData).length === 0 ? (
-          <p className="text-sm text-white/50">{t("users.roleData.empty")}</p>
+          <p className="text-sm text-ink/50">{t("users.roleData.empty")}</p>
         ) : (
           Object.entries(detail.roleData).map(([role, data]) => (
             <Card key={role} className="flex flex-col gap-3">
@@ -485,7 +485,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-red-400/80">
           {t("users.delete.title")}
         </h2>
-        <p className="text-sm text-white/60">{t("users.delete.body")}</p>
+        <p className="text-sm text-ink/60">{t("users.delete.body")}</p>
         <Button
           variant="secondary"
           onClick={() => void deleteUser()}
@@ -503,7 +503,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
 
 function SubTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h4 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+    <h4 className="text-xs font-semibold uppercase tracking-wide text-ink/50">
       {children}
     </h4>
   );
@@ -511,7 +511,7 @@ function SubTitle({ children }: { children: React.ReactNode }) {
 
 function EmptyNote() {
   const t = useTranslations("admin");
-  return <p className="text-sm text-white/50">{t("users.roleData.empty")}</p>;
+  return <p className="text-sm text-ink/50">{t("users.roleData.empty")}</p>;
 }
 
 /** Badge de estado para tickets/eventos/arriendos; status desconocido se muestra crudo. */
@@ -543,9 +543,9 @@ function DataRow({
     <li className="flex min-h-[44px] items-center justify-between gap-3 py-1">
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-sm">{name}</span>
-        {sub && <span className="truncate text-xs text-white/50">{sub}</span>}
+        {sub && <span className="truncate text-xs text-ink/50">{sub}</span>}
       </span>
-      <span className="flex shrink-0 items-center gap-2 text-xs text-white/50">
+      <span className="flex shrink-0 items-center gap-2 text-xs text-ink/50">
         {date && fmtDate(date)}
         {badge}
       </span>
@@ -568,7 +568,7 @@ function DataList({
       {empty ? (
         <EmptyNote />
       ) : (
-        <ul className="flex flex-col divide-y divide-white/5">{children}</ul>
+        <ul className="flex flex-col divide-y divide-ink/5">{children}</ul>
       )}
     </div>
   );
@@ -582,7 +582,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
       const d = data as DancerData;
       return (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-ink/70">
             {t("users.roleData.dances")}: {d.dancesCount} ·{" "}
             {t("users.roleData.checkins")}: {d.checkinsCount}
           </p>
@@ -702,7 +702,7 @@ function RoleDataBody({ role, data }: { role: string; data: unknown }) {
               />
             ))}
           </DataList>
-          <p className="text-sm text-white/70">
+          <p className="text-sm text-ink/70">
             {t("users.roleData.classesPast")}: {d.classesPastCount}
           </p>
         </div>

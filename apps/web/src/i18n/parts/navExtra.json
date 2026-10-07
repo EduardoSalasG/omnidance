@@ -1,6 +1,10 @@
 {
   "nav": {
     "collapseMenu": "Contraer menú",
-    "expandMenu": "Expandir menú"
+    "expandMenu": "Expandir menú",
+    "theme": "Tema",
+    "themeSystem": "Sistema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro"
   }
 }

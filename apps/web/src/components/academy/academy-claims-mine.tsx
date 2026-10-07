@@ -58,19 +58,19 @@ export function AcademyClaimsMine({ academyId }: { academyId: string }) {
 
   return (
     <Card className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
         {t("myClaimsTitle")}
       </h2>
       <ul className="flex flex-col gap-2">
         {claims.map((c) => (
           <li
             key={c.id}
-            className="flex flex-wrap items-center gap-2 rounded-lg border border-night-700 px-3 py-2 text-sm"
+            className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm"
           >
             <span className="font-medium">
               {c.plan?.name ?? c.methodLabel}
             </span>
-            <span className="text-white/50">
+            <span className="text-ink/50">
               {clp.format(c.amount)} · {dayFmt.format(new Date(c.createdAt))}
             </span>
             <Badge

@@ -130,7 +130,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
 
         {!added && eventState === "notFound" && (
           <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-white/70">{t("eventNotFound")}</p>
+            <p className="text-sm text-ink/70">{t("eventNotFound")}</p>
             <Button href="/productor/eventos" variant="secondary" size="sm">
               {t("myEvents")}
             </Button>
@@ -160,7 +160,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
             <Card>
               <form onSubmit={submit} className="flex flex-col gap-4">
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("staffSection.personId")}
                     <span aria-hidden="true" className="text-neon"> *</span>
                   </span>
@@ -175,7 +175,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
                 </label>
 
                 <label className="flex flex-col gap-2">
-                  <span className="text-sm text-white/70">
+                  <span className="text-sm text-ink/70">
                     {t("staffSection.role")}
                   </span>
                   <select

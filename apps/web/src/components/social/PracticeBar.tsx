@@ -60,7 +60,7 @@ export function PracticeBar({ eventId, initialCount }: PracticeBarProps) {
   return (
     <>
       <div className="min-w-0">
-        <span className="block text-xs text-white/50">
+        <span className="block text-xs text-ink/50">
           {going
             ? t("goingCount", { count })
             : `${t("practiceFree")} · ${t("goingCount", { count })}`}
@@ -87,7 +87,7 @@ export function PracticeBar({ eventId, initialCount }: PracticeBarProps) {
             type="button"
             disabled={busy}
             onClick={() => void toggle(false)}
-            className="min-h-11 px-2 text-xs text-white/50 underline-offset-4 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
+            className="min-h-11 px-2 text-xs text-ink/50 underline-offset-4 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
           >
             {t("notGoing")}
           </button>

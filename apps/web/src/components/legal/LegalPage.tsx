@@ -29,7 +29,7 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
     <main id="contenido" className="mx-auto max-w-2xl px-6 py-10 sm:py-14 lg:py-16">
       <Link
         href="/"
-        className="inline-flex min-h-11 items-center text-sm text-white/60 transition-colors hover:text-white"
+        className="inline-flex min-h-11 items-center text-sm text-ink/60 transition-colors hover:text-ink"
       >
         {legalParts.legal.backHome}
       </Link>
@@ -37,27 +37,27 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
       <h1 className="text-display mt-4 text-3xl font-extrabold sm:text-4xl">
         {data.title}
       </h1>
-      <p className="mt-2 text-xs uppercase tracking-[0.2em] text-white/40">
+      <p className="mt-2 text-xs uppercase tracking-[0.2em] text-ink/40">
         {legalParts.legal.versionNote}
       </p>
-      <p className="mt-6 leading-relaxed text-white/70">{data.intro}</p>
+      <p className="mt-6 leading-relaxed text-ink/70">{data.intro}</p>
 
       <div className="mt-10 space-y-8">
         {sections.map((section) => (
           <section key={section.title}>
-            <h2 className="text-lg font-semibold text-white">
+            <h2 className="text-lg font-semibold text-ink">
               {section.title}
             </h2>
             {section.paragraphs?.map((p) => (
               <p
                 key={p.slice(0, 48)}
-                className="mt-3 leading-relaxed text-white/70"
+                className="mt-3 leading-relaxed text-ink/70"
               >
                 {p}
               </p>
             ))}
             {section.list && (
-              <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-white/70">
+              <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-ink/70">
                 {section.list.map((item) => (
                   <li key={item.slice(0, 48)}>{item}</li>
                 ))}
@@ -66,7 +66,7 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
             {section.listAfter?.map((p) => (
               <p
                 key={p.slice(0, 48)}
-                className="mt-3 leading-relaxed text-white/70"
+                className="mt-3 leading-relaxed text-ink/70"
               >
                 {p}
               </p>
@@ -75,7 +75,7 @@ export function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
         ))}
       </div>
 
-      <p className="mt-12 border-t border-white/10 pt-6 text-sm text-white/50">
+      <p className="mt-12 border-t border-ink/10 pt-6 text-sm text-ink/50">
         <Link href={otherHref} className={linkClass}>
           {legalParts.legal[other].title}
         </Link>

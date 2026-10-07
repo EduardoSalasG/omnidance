@@ -34,7 +34,7 @@ export function InstructorsSection({
 
   return (
     <Card>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
         {title}
       </h2>
       <ul className="flex flex-col gap-3">

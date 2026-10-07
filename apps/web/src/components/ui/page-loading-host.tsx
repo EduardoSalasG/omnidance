@@ -22,7 +22,7 @@ export function PageLoadingHost() {
       role="presentation"
       className="pointer-events-none fixed inset-x-0 top-14 bottom-20 z-[60] flex items-center justify-center"
     >
-      <span className="loading-fade-in rounded-full bg-night-950/80 p-3 shadow-lg backdrop-blur-sm">
+      <span className="loading-fade-in rounded-full bg-canvas/80 p-3 shadow-lg backdrop-blur-sm">
         <Spinner size="lg" />
       </span>
     </div>

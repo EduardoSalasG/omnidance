@@ -24,9 +24,9 @@ type Missing = "name" | "email" | "phone" | "roles";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const inputClass =
-  "min-h-12 w-full rounded-xl border border-white/10 bg-night-900/60 px-4 text-base text-white placeholder:text-white/50 outline-none transition-colors focus:border-neon/60";
+  "min-h-12 w-full rounded-xl border border-ink/10 bg-surface/60 px-4 text-base text-ink placeholder:text-ink/50 outline-none transition-colors focus:border-neon/60";
 const inputErrorClass =
-  "min-h-12 w-full rounded-xl border border-red-400/70 bg-night-900/60 px-4 text-base text-white placeholder:text-white/50 outline-none transition-colors focus:border-red-400";
+  "min-h-12 w-full rounded-xl border border-red-400/70 bg-surface/60 px-4 text-base text-ink placeholder:text-ink/50 outline-none transition-colors focus:border-red-400";
 
 /**
  * Formulario de lead de las landings pro: captura nombre, correo,
@@ -160,14 +160,14 @@ export function ProLeadForm({
         <p className="text-xl font-bold text-neon">
           {t.successTitle.replace("{name}", name.split(" ")[0])}
         </p>
-        <p className="mt-2 text-sm text-white/60">
+        <p className="mt-2 text-sm text-ink/60">
           {done === "DEMO" ? t.successDemo : t.successContact}
         </p>
 
         {demoPhase === "exists" ? (
           <a
             href="/login"
-            className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white/80 transition-colors hover:border-white/30 hover:text-white"
+            className="mt-5 inline-flex min-h-12 items-center justify-center rounded-full border border-ink/15 px-6 text-sm font-semibold text-ink/80 transition-colors hover:border-ink/30 hover:text-ink"
           >
             {t.demoExists} <ChevronRightIcon />
           </a>
@@ -176,7 +176,7 @@ export function ProLeadForm({
             type="button"
             onClick={() => void enterDemo()}
             disabled={demoPhase === "loading"}
-            className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-neon px-6 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
+            className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-neon px-6 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
           >
             {demoPhase === "loading" && <Spinner size="sm" />}
             <span className="whitespace-pre-line">{t.demoCta}</span>
@@ -203,7 +203,7 @@ export function ProLeadForm({
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-white/60">
+          <span className="text-xs font-medium text-ink/60">
             {t.fieldName}
           </span>
           <input
@@ -219,9 +219,9 @@ export function ProLeadForm({
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-white/60">
+          <span className="text-xs font-medium text-ink/60">
             {t.fieldPhone}{" "}
-            <span className="text-white/50">({t.fieldPhoneHint})</span>
+            <span className="text-ink/50">({t.fieldPhoneHint})</span>
           </span>
           <input
             type="tel"
@@ -237,7 +237,7 @@ export function ProLeadForm({
         </label>
       </div>
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs font-medium text-white/60">
+        <span className="text-xs font-medium text-ink/60">
           {t.fieldEmail}
         </span>
         <input
@@ -256,9 +256,9 @@ export function ProLeadForm({
 
       {!fixedRole && (
       <fieldset>
-        <legend className="text-xs font-medium text-white/60">
+        <legend className="text-xs font-medium text-ink/60">
           {t.fieldRoles}{" "}
-          <span className="text-white/50">({t.fieldRolesHint})</span>
+          <span className="text-ink/50">({t.fieldRolesHint})</span>
         </legend>
         <div
           className={`mt-2 flex flex-wrap justify-center gap-2 rounded-xl sm:justify-start ${
@@ -278,7 +278,7 @@ export function ProLeadForm({
                 className={`min-h-11 rounded-full border px-4 text-sm font-medium transition-colors active:scale-[0.97] ${
                   active
                     ? "border-neon bg-neon/15 text-neon"
-                    : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+                    : "border-ink/15 text-ink/60 hover:border-ink/30 hover:text-ink"
                 }`}
               >
                 {option.label}
@@ -303,7 +303,7 @@ export function ProLeadForm({
         <button
           type="submit"
           disabled={pending !== null}
-          className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-neon px-8 text-base font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60 sm:w-auto"
+          className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full bg-neon px-8 text-base font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60 sm:w-auto"
         >
           {pending === "CONTACT" && <Spinner size="sm" />}
           {t.submitContact}
@@ -312,13 +312,13 @@ export function ProLeadForm({
           type="button"
           disabled={pending !== null}
           onClick={() => void submit("DEMO")}
-          className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-white/15 px-8 text-base font-medium text-white/80 transition-colors hover:border-white/30 hover:text-white active:scale-[0.97] disabled:opacity-60 sm:w-auto"
+          className="inline-flex min-h-12 w-full max-w-xs items-center justify-center gap-2 rounded-full border border-ink/15 px-8 text-base font-medium text-ink/80 transition-colors hover:border-ink/30 hover:text-ink active:scale-[0.97] disabled:opacity-60 sm:w-auto"
         >
           {pending === "DEMO" && <Spinner size="sm" />}
           {t.submitDemo}
         </button>
       </div>
-      <p className="text-center text-xs text-white/50">{t.privacyNote}</p>
+      <p className="text-center text-xs text-ink/50">{t.privacyNote}</p>
     </form>
   );
 }

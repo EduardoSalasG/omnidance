@@ -78,7 +78,7 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
   if (state === "error") {
     return (
       <div className="flex items-center gap-3">
-        <p role="alert" className="text-sm text-white/60">
+        <p role="alert" className="text-sm text-ink/60">
           {tc("error")}
         </p>
         <Button
@@ -93,7 +93,7 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
   }
   if (state === "notFound") {
     return (
-      <p role="alert" className="text-sm text-white/60">
+      <p role="alert" className="text-sm text-ink/60">
         {t("notFound")}
       </p>
     );
@@ -104,7 +104,7 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
 export default function AcademiaNuevaSeriePage() {
   return (
     <Suspense
-      fallback={<main className="min-h-dvh bg-night-950" aria-hidden="true" />}
+      fallback={<main className="min-h-dvh bg-canvas" aria-hidden="true" />}
     >
       <NuevaSerie />
     </Suspense>

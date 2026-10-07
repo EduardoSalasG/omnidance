@@ -286,9 +286,9 @@ export function ClassBookingCta({
 
   if (closedLabel) {
     return (
-      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur lg:bottom-0">
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-line bg-canvas/90 backdrop-blur lg:bottom-0">
         <div className="mx-auto w-full max-w-2xl px-4 py-4 sm:px-6 lg:max-w-4xl lg:px-8">
-          <p className="text-center text-sm font-medium text-white/60">
+          <p className="text-center text-sm font-medium text-ink/60">
             {closedLabel}
           </p>
         </div>
@@ -303,7 +303,7 @@ export function ClassBookingCta({
           acción: reservada/en espera → el estado va en los chips del
           header, no en la barra. */}
       {!booking && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-night-700 bg-night-950/90 backdrop-blur lg:bottom-0">
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 border-t border-line bg-canvas/90 backdrop-blur lg:bottom-0">
           <div className="mx-auto flex w-full max-w-2xl flex-col gap-2 px-4 py-4 sm:px-6 lg:max-w-4xl lg:px-8">
             {awaiting ? (
               /* Orden stub PENDING: esperando el webhook simulado -
@@ -311,12 +311,12 @@ export function ClassBookingCta({
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <Spinner size="sm" />
-                  <p role="status" className="text-sm text-white/70">
+                  <p role="status" className="text-sm text-ink/70">
                     {tco("pending")}
                   </p>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs uppercase tracking-wide text-white/50">
+                  <span className="text-xs uppercase tracking-wide text-ink/50">
                     {tco("devSimTitle")}
                   </span>
                   <div className="flex gap-2">
@@ -355,7 +355,7 @@ export function ClassBookingCta({
                   // book/checkout con academy.unavailable - la barra
                   // muestra el estado, sin CTA que lleve a un error.
                   <div className="flex items-center justify-between gap-4">
-                    <p className="min-w-0 text-sm text-white/60">
+                    <p className="min-w-0 text-sm text-ink/60">
                       {t("academyUnavailable")}
                     </p>
                     <Button disabled className="shrink-0">
@@ -367,7 +367,7 @@ export function ClassBookingCta({
                   // de la academia, donde están los planes comprables - la
                   // barra conserva la gramática info-izquierda / acción-derecha.
                   <div className="flex items-center justify-between gap-4">
-                    <p className="min-w-0 text-sm text-white/60">
+                    <p className="min-w-0 text-sm text-ink/60">
                       {t("requiresEnrollment")}
                     </p>
                     <Button
@@ -384,7 +384,7 @@ export function ClassBookingCta({
                   <>
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <span className="block text-xs uppercase tracking-wide text-white/50">
+                        <span className="block text-xs uppercase tracking-wide text-ink/50">
                           {t("dropIn")}
                         </span>
                         <PriceTag
@@ -402,7 +402,7 @@ export function ClassBookingCta({
                     </div>
                     <Link
                       href={`/academias/${academyId}`}
-                      className="inline-flex min-h-11 items-center text-xs text-white/50 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                      className="inline-flex min-h-11 items-center text-xs text-ink/50 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                     >
                       {t("orViewPlans")}
                     </Link>
@@ -412,14 +412,14 @@ export function ClassBookingCta({
                     {/* Cupo junto a la acción - la urgencia es referencia de
                     decisión, mismo patrón que el rail del ClassCard. */}
                     <div className="min-w-0">
-                      <span className="block text-xs uppercase tracking-wide text-white/50">
+                      <span className="block text-xs uppercase tracking-wide text-ink/50">
                         {t("capacityLabel")}
                       </span>
                       {full ? (
-                        <span className="text-sm font-semibold text-white/60">
+                        <span className="text-sm font-semibold text-ink/60">
                           {t("full")}
                           {waitlistCount > 0 && (
-                            <span className="text-white/50">
+                            <span className="text-ink/50">
                               {" "}
                               · {t("waitlistCount", { count: waitlistCount })}
                             </span>
@@ -437,7 +437,7 @@ export function ClassBookingCta({
                       {/* Créditos del plan - referencia de decisión junto al
                       cupo; 0/0 no existe (sin cuota → myCredits null). */}
                       {creditsLeft != null && (
-                        <span className="block text-xs text-white/50">
+                        <span className="block text-xs text-ink/50">
                           {myCredits?.kind === "PACK"
                             ? t("creditsPack", {
                                 left: creditsLeft,
@@ -504,7 +504,7 @@ export function ClassBookingCta({
         <div
           ref={dialogRef}
           role="presentation"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-night-950/80 p-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-canvas/80 p-4 backdrop-blur-sm sm:items-center"
           onClick={() => setConfirming(false)}
         >
           <Card
@@ -520,7 +520,7 @@ export function ClassBookingCta({
             {/* El copy declara la consecuencia antes de confirmar: dentro
                 de la ventana el crédito vuelve al plan; fuera, el cupo
                 se libera pero la clase se consume. */}
-            <p className="text-sm text-white/70">
+            <p className="text-sm text-ink/70">
               {t("cancelConfirm")}{" "}
               {booking === "BOOKED" &&
                 (paid

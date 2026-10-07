@@ -49,7 +49,7 @@ function DimRow({
   const t = useTranslations("survey");
   return (
     <li>
-      <span className="block text-sm font-medium text-white/80">
+      <span className="block text-sm font-medium text-ink/80">
         {t(`dims.${dim}`)}
       </span>
       <StarRating
@@ -60,7 +60,7 @@ function DimRow({
       />
       {/* Extremos bipolares: texto de los polos 1 y 5 - el promedio lo
           interpreta la analítica, la escala vive solo en UI. */}
-      <span className="flex justify-between text-xs text-white/50">
+      <span className="flex justify-between text-xs text-ink/50">
         <span>{t(`scale.${dim}.low`)}</span>
         <span>{t(`scale.${dim}.high`)}</span>
       </span>
@@ -145,7 +145,7 @@ export function SurveyForm({
   } else if (phase === "expired" || phase === "forbidden") {
     content = (
       <Card className="flex flex-col items-center gap-4 py-8 text-center">
-        <p role="alert" className="text-sm text-white/70">
+        <p role="alert" className="text-sm text-ink/70">
           {phase === "expired" ? t("expired") : t("forbidden")}
         </p>
         <Button href={`/eventos/${eventId}`} variant="secondary" size="sm">
@@ -156,7 +156,7 @@ export function SurveyForm({
   } else if (phase === "unauth") {
     content = (
       <Card className="flex flex-col items-center gap-4 py-8 text-center">
-        <p className="text-sm text-white/70">{t("loginRequired")}</p>
+        <p className="text-sm text-ink/70">{t("loginRequired")}</p>
         <Button href="/login" size="lg" className="w-full">
           {tc("login")}
         </Button>
@@ -261,7 +261,7 @@ export function SurveyForm({
         {(phase === "form" ||
           phase === "submitting" ||
           phase === "error") && (
-          <p className="text-sm text-white/50">{t("subtitle")}</p>
+          <p className="text-sm text-ink/50">{t("subtitle")}</p>
         )}
       </header>
       {content}

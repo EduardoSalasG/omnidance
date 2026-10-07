@@ -178,7 +178,7 @@ function EventFormPage() {
 
         {!done && editId && eventState === "notFound" && (
           <div className="flex flex-col items-start gap-3">
-            <p className="text-sm text-white/70">{t("eventNotFound")}</p>
+            <p className="text-sm text-ink/70">{t("eventNotFound")}</p>
             <Button href="/productor/eventos" variant="secondary" size="sm">
               {t("myEvents")}
             </Button>
@@ -202,7 +202,7 @@ function EventFormPage() {
 
         {!done && eventState === "ok" && event && !editable && (
           <div className="flex flex-col items-start gap-3">
-            <p role="status" className="text-sm text-white/70">
+            <p role="status" className="text-sm text-ink/70">
               {t("notEditable")}
             </p>
             <Button href={backHref} variant="secondary" size="sm">

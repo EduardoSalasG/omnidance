@@ -9,8 +9,8 @@ import type { CampaignSegment, CrmActor, CrmPersonRow } from "./types";
 import { SEGMENTS, actorBody, actorQuery } from "./types";
 
 const inputCls =
-  "min-h-11 w-full rounded-lg border border-night-700 bg-night-950 px-3 text-sm " +
-  "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
+  "min-h-11 w-full rounded-lg border border-line bg-canvas px-3 text-sm " +
+  "text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
 
 /**
  * Form de campaña → POST /crm/campaigns (queda DRAFT; el envío es acción
@@ -214,14 +214,14 @@ export function CampaignForm({
 
   const chipCls = (on: boolean) =>
     `inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 text-xs transition ${
-      on ? "border-neon bg-neon/15 text-neon" : "border-white/15 text-white/60"
+      on ? "border-neon bg-neon/15 text-neon" : "border-ink/15 text-ink/60"
     }`;
 
   return (
     <Card>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("campaigns.name")}
             <span aria-hidden="true" className="text-neon"> *</span>
           </span>
@@ -237,7 +237,7 @@ export function CampaignForm({
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("campaigns.actionType")}
           </span>
           <select
@@ -257,7 +257,7 @@ export function CampaignForm({
         {actionType === "NOTIFY" && (
           <>
             <label className="flex flex-col gap-2">
-              <span className="text-sm text-white/70">
+              <span className="text-sm text-ink/70">
                 {t("campaigns.notifyTitle")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -271,7 +271,7 @@ export function CampaignForm({
               />
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-sm text-white/70">
+              <span className="text-sm text-ink/70">
                 {t("campaigns.notifyBody")}
               </span>
               <textarea
@@ -288,7 +288,7 @@ export function CampaignForm({
           <>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("campaigns.percentOff")}
                 </span>
                 <input
@@ -303,7 +303,7 @@ export function CampaignForm({
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("campaigns.amountOff")}
                 </span>
                 <input
@@ -319,7 +319,7 @@ export function CampaignForm({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("campaigns.maxUses")}
                 </span>
                 <input
@@ -332,7 +332,7 @@ export function CampaignForm({
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="text-sm text-white/70">
+                <span className="text-sm text-ink/70">
                   {t("campaigns.expiresAt")}
                 </span>
                 <input
@@ -347,11 +347,11 @@ export function CampaignForm({
         )}
 
         <fieldset className="flex flex-col gap-3">
-          <legend className="text-sm text-white/70">
+          <legend className="text-sm text-ink/70">
             {t("campaigns.audience")}
           </legend>
           <label className="flex flex-col gap-2">
-            <span className="text-xs text-white/50">
+            <span className="text-xs text-ink/50">
               {t("campaigns.audienceSegment")}
             </span>
             <select
@@ -369,7 +369,7 @@ export function CampaignForm({
           </label>
           {availableTags.length > 0 ? (
             <div className="flex flex-col gap-2">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("campaigns.audienceTags")}
               </span>
               <div className="flex flex-wrap gap-2">
@@ -391,12 +391,12 @@ export function CampaignForm({
               </div>
             </div>
           ) : (
-            <p className="text-xs text-white/50">{t("campaigns.noTags")}</p>
+            <p className="text-xs text-ink/50">{t("campaigns.noTags")}</p>
           )}
 
           {isAcademy && (
             <div className="flex flex-col gap-3">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("campaigns.audienceStudents")}
               </span>
               <div className="flex flex-wrap gap-2">
@@ -427,7 +427,7 @@ export function CampaignForm({
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs text-white/50">
+                  <span className="text-xs text-ink/50">
                     {t("campaigns.byPlan")}
                   </span>
                   <select
@@ -444,7 +444,7 @@ export function CampaignForm({
                   </select>
                 </label>
                 <label className="flex flex-col gap-2">
-                  <span className="text-xs text-white/50">
+                  <span className="text-xs text-ink/50">
                     {t("campaigns.bySeries")}
                   </span>
                   <select
@@ -463,13 +463,13 @@ export function CampaignForm({
               </div>
               {people.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-xs text-white/50">
+                  <span className="text-xs text-ink/50">
                     {t("campaigns.pickPeople")}
                   </span>
-                  <ul className="max-h-44 overflow-y-auto rounded-lg border border-night-700 bg-night-950">
+                  <ul className="max-h-44 overflow-y-auto rounded-lg border border-line bg-canvas">
                     {people.map((row) => (
                       <li key={row.personId}>
-                        <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 text-sm text-white/80 transition hover:bg-white/5">
+                        <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 text-sm text-ink/80 transition hover:bg-ink/5">
                           <input
                             type="checkbox"
                             checked={pickedPeople.includes(row.personId)}

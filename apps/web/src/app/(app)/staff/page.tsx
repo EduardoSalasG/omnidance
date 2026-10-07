@@ -104,7 +104,7 @@ export default function StaffPage() {
 
       {gate === "notStaff" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{t("notStaff")}</p>
+          <p className="text-ink/70">{t("notStaff")}</p>
           <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
@@ -113,7 +113,7 @@ export default function StaffPage() {
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{tc("error")}</p>
+          <p className="text-ink/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void refreshMe()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
@@ -122,7 +122,7 @@ export default function StaffPage() {
 
       {gate === "ready" && eventsError && (
         <div className="flex flex-col items-start gap-4">
-          <p role="alert" className="text-white/70">
+          <p role="alert" className="text-ink/70">
             {tc("error")}
           </p>
           <Button
@@ -140,7 +140,7 @@ export default function StaffPage() {
 
       {gate === "ready" && events !== null &&
         (events.length === 0 ? (
-          <p className="text-white/60">{te("empty")}</p>
+          <p className="text-ink/60">{te("empty")}</p>
         ) : (
           <ul className="flex flex-col gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             {events.map((e) => (
@@ -162,7 +162,7 @@ export default function StaffPage() {
                         )}
                       </div>
                       <h2 className="text-lg font-semibold">{e.name}</h2>
-                      <p className="text-sm text-white/60">
+                      <p className="text-sm text-ink/60">
                         <EventDate start={e.startsAt} end={e.endsAt} />
                         {e.venue && ` · ${e.venue.name}`}
                       </p>

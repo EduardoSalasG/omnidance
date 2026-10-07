@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ChevronRightIcon } from "@/components/ui";
 import { JsonLd } from "@/components/landing/JsonLd";
 import { ProLeadForm } from "@/components/landing/ProLeadForm";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import landingParts from "@/i18n/parts/landing.json";
 import { fetchPublicEvents } from "@/lib/public-events";
 
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 const cardClass =
-  "group flex flex-col gap-2 rounded-2xl border border-white/10 bg-night-900/60 p-6 text-left transition-colors hover:border-neon/50 sm:p-8 lg:p-10";
+  "group flex flex-col gap-2 rounded-2xl border border-ink/10 bg-surface/60 p-6 text-left transition-colors hover:border-neon/50 sm:p-8 lg:p-10";
 
 // Selector de audiencia: cada rol tiene su landing propia; DJ y locales
 // usan el form compacto de abajo (roles restringidos).
@@ -36,12 +37,12 @@ export default async function ProHub() {
       <JsonLd events={events.slice(0, 3)} />
       <a
         href="#contenido"
-        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-xl focus-visible:bg-neon focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-night-950"
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-xl focus-visible:bg-neon focus-visible:px-4 focus-visible:py-2 focus-visible:font-semibold focus-visible:text-on-accent"
       >
         {base.skipToContent}
       </a>
 
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-night-950/80 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-ink/5 bg-canvas/80 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-2 sm:px-6">
           <Link
             href="/pro"
@@ -55,7 +56,7 @@ export default async function ProHub() {
           <nav aria-label={base.navPrimary} className="flex items-center gap-1">
             <Link
               href="/login"
-              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-white/60 transition-colors hover:text-white sm:px-4"
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-ink/60 transition-colors hover:text-ink sm:px-4"
             >
               {base.ctaLogin}
             </Link>
@@ -73,19 +74,19 @@ export default async function ProHub() {
             <h1 className="text-display mt-6 text-4xl font-extrabold sm:text-6xl">
               {t.title}
             </h1>
-            <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-white/60 sm:text-lg">
+            <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-ink/60 sm:text-lg">
               {t.lead}
             </p>
           </div>
         </section>
 
-        <section className="border-t border-white/5 px-6 py-12 lg:py-16">
+        <section className="border-t border-ink/5 px-6 py-12 lg:py-16">
           <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-2 lg:gap-6">
             <Link href="/para-productores" className={cardClass}>
               <span className="text-lg font-semibold">
                 {t.cardProducerTitle}
               </span>
-              <span className="text-sm leading-relaxed text-white/60">
+              <span className="text-sm leading-relaxed text-ink/60">
                 {t.cardProducerDesc}
               </span>
               <span
@@ -99,7 +100,7 @@ export default async function ProHub() {
               <span className="text-lg font-semibold">
                 {t.cardAcademyTitle}
               </span>
-              <span className="text-sm leading-relaxed text-white/60">
+              <span className="text-sm leading-relaxed text-ink/60">
                 {t.cardAcademyDesc}
               </span>
               <span
@@ -112,11 +113,11 @@ export default async function ProHub() {
           </div>
         </section>
 
-        <section className="border-t border-white/5 px-6 py-16 text-center sm:py-20 lg:py-24">
+        <section className="border-t border-ink/5 px-6 py-16 text-center sm:py-20 lg:py-24">
           <h2 className="text-display text-3xl font-extrabold sm:text-4xl">
             {t.otherTitle}
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-white/60">
+          <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-ink/60">
             {t.otherLead}
           </p>
           <div className="mt-10">
@@ -125,32 +126,35 @@ export default async function ProHub() {
         </section>
       </main>
 
-      <footer className="border-t border-white/5 px-6 py-8">
+      <footer className="border-t border-ink/5 px-6 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 text-center">
           <p className="text-sm font-bold tracking-tight">
             Omni<span className="text-neon">dance</span>
           </p>
-          <p className="text-xs text-white/50">{base.footerTagline}</p>
+          <p className="text-xs text-ink/50">{base.footerTagline}</p>
           <nav aria-label={base.navFooter} className="mt-2 flex items-center gap-6">
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
             >
               {t.footerAlt}
             </Link>
             <Link
               href="/terminos"
-              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
             >
               {base.footerTerms}
             </Link>
             <Link
               href="/privacidad"
-              className="inline-flex min-h-11 items-center text-xs font-medium text-white/50 transition-colors hover:text-white"
+              className="inline-flex min-h-11 items-center text-xs font-medium text-ink/50 transition-colors hover:text-ink"
             >
               {base.footerPrivacy}
             </Link>
           </nav>
+          <div className="mt-3 w-full max-w-56">
+            <ThemeToggle />
+          </div>
         </div>
       </footer>
     </>

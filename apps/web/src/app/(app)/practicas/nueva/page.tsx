@@ -9,8 +9,8 @@ import { Button, Card } from "@/components/ui";
 import { PageLoading } from "@/components/ui/spinner";
 
 const inputCls =
-  "min-h-11 w-full min-w-0 rounded-xl border border-night-700 bg-night-800 px-4 py-3 " +
-  "text-white placeholder:text-white/50 " +
+  "min-h-11 w-full min-w-0 rounded-xl border border-line bg-elevated px-4 py-3 " +
+  "text-ink placeholder:text-ink/50 " +
   "focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon";
 
 /**
@@ -137,7 +137,7 @@ export default function NuevaPracticaPage() {
       {meLoading && <PageLoading />}
       {!meLoading && !me && (
         <Card className="flex flex-col items-start gap-3">
-          <p className="text-sm text-white/60">{t("loginRequired")}</p>
+          <p className="text-sm text-ink/60">{t("loginRequired")}</p>
           <Button href="/login" size="sm">
             {tc("login")}
           </Button>
@@ -155,7 +155,7 @@ export default function NuevaPracticaPage() {
       {!!me && !created && (
         <form onSubmit={createPractice} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-white/70">
+            <span className="text-ink/70">
               {t("name")}
               <span aria-hidden="true" className="text-neon"> *</span>
             </span>
@@ -170,7 +170,7 @@ export default function NuevaPracticaPage() {
           {/* Dirección + notas del lugar - el "dónde" en un solo bloque */}
           <div className="flex flex-col gap-3">
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("address")}</span>
+              <span className="text-ink/70">{t("address")}</span>
               <input
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
@@ -179,7 +179,7 @@ export default function NuevaPracticaPage() {
               />
             </label>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("addressNotes")}</span>
+              <span className="text-ink/70">{t("addressNotes")}</span>
               <input
                 value={venueNotes}
                 onChange={(e) => setVenueNotes(e.target.value)}
@@ -190,7 +190,7 @@ export default function NuevaPracticaPage() {
           </div>
 
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-white/70">{t("description")}</span>
+            <span className="text-ink/70">{t("description")}</span>
             <textarea
               rows={3}
               value={description}
@@ -201,7 +201,7 @@ export default function NuevaPracticaPage() {
           </label>
 
           <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-white/70">{t("style")}</span>
+            <span className="text-ink/70">{t("style")}</span>
             <select
               value={styleId}
               onChange={(e) => setStyleId(e.target.value)}
@@ -225,7 +225,7 @@ export default function NuevaPracticaPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-1.5 text-sm">
-              <span className="text-white/70">{t("capacityLabel")}</span>
+              <span className="text-ink/70">{t("capacityLabel")}</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -238,7 +238,7 @@ export default function NuevaPracticaPage() {
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1.5 text-sm">
-              <span className="text-white/70">
+              <span className="text-ink/70">
                 {t("date")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -255,7 +255,7 @@ export default function NuevaPracticaPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex min-w-0 flex-col gap-1.5 text-sm">
-              <span className="text-white/70">
+              <span className="text-ink/70">
                 {t("startTime")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -268,7 +268,7 @@ export default function NuevaPracticaPage() {
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1.5 text-sm">
-              <span className="text-white/70">
+              <span className="text-ink/70">
                 {t("endTime")}
                 <span aria-hidden="true" className="text-neon"> *</span>
               </span>
@@ -280,7 +280,7 @@ export default function NuevaPracticaPage() {
                 className={inputCls}
               />
               {crossesMidnight && (
-                <span className="text-[11px] text-white/40">
+                <span className="text-[11px] text-ink/40">
                   {t("endsNextDay")}
                 </span>
               )}

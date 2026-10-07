@@ -20,8 +20,8 @@ const PAGE_SIZE = 20;
 const fmtDay = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
 
 const inputCls =
-  "min-h-11 w-full rounded-lg border border-night-700 bg-night-950 px-3 text-sm " +
-  "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
+  "min-h-11 w-full rounded-lg border border-line bg-canvas px-3 text-sm " +
+  "text-ink focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50";
 
 const SEGMENT_VARIANT: Record<string, "neon" | "outline" | "muted" | "live"> = {
   NEW: "neon",
@@ -176,7 +176,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-white/60">
+        <p className="text-sm text-ink/60">
           {t("people.total", { count: rows?.length ?? 0 })}
         </p>
         <Button
@@ -227,7 +227,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       {/* Filtros */}
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="flex flex-col gap-2 sm:col-span-1">
-          <span className="text-sm text-white/70">{t("people.search")}</span>
+          <span className="text-sm text-ink/70">{t("people.search")}</span>
           <input
             type="search"
             value={q}
@@ -239,7 +239,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
           />
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">
+          <span className="text-sm text-ink/70">
             {t("people.segmentFilter")}
           </span>
           <select
@@ -260,7 +260,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
           </select>
         </label>
         <label className="flex flex-col gap-2">
-          <span className="text-sm text-white/70">{t("people.tagFilter")}</span>
+          <span className="text-sm text-ink/70">{t("people.tagFilter")}</span>
           <select
             value={tag}
             onChange={(e) => {
@@ -283,7 +283,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       {rows === null && !error && <SkeletonList items={4} lines={1} />}
       {rows !== null && rows.length === 0 && (
         <Card className="flex flex-col items-start gap-3">
-          <p className="text-white/60">{t("people.empty")}</p>
+          <p className="text-ink/60">{t("people.empty")}</p>
           <Button
             size="sm"
             variant="secondary"
@@ -295,7 +295,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
         </Card>
       )}
       {rows !== null && rows.length > 0 && filtered.length === 0 && (
-        <p className="text-white/60">{t("people.emptyFiltered")}</p>
+        <p className="text-ink/60">{t("people.emptyFiltered")}</p>
       )}
 
       {pageRows.length > 0 && (
@@ -316,7 +316,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                     ) : (
                       <span
                         aria-hidden
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-night-800 text-sm font-bold text-white/60"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-elevated text-sm font-bold text-ink/60"
                       >
                         {(r.person?.name ?? "?").slice(0, 1).toUpperCase()}
                       </span>
@@ -325,7 +325,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                       <p className="truncate font-semibold">
                         {r.person?.name ?? r.personId.slice(0, 8)}
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink/50">
                         {r.computedAt
                           ? t("people.updatedAt", {
                               date: fmtDay.format(new Date(r.computedAt)),
@@ -337,7 +337,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                       <p className="font-mono text-xl font-bold text-neon">
                         {r.score === null ? "-" : Math.round(r.score)}
                       </p>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-ink/50">
                         {t("people.score")}
                       </p>
                     </div>
@@ -359,7 +359,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                           setTagOpenFor(r.personId);
                           setTagDraft("");
                         }}
-                        className="min-h-[32px] rounded-full border border-dashed border-white/20 px-3 text-xs text-white/60 hover:border-neon/60 hover:text-neon"
+                        className="min-h-[32px] rounded-full border border-dashed border-ink/20 px-3 text-xs text-ink/60 hover:border-neon/60 hover:text-neon"
                       >
                         ＋ {t("people.addTag")}
                       </button>
@@ -418,7 +418,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
           >
             <ChevronLeftIcon /> {t("people.prev")}
           </Button>
-          <p className="text-xs text-white/50">
+          <p className="text-xs text-ink/50">
             {t("people.page", { page: safePage, pages })}
           </p>
           <Button

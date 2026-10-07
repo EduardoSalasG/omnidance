@@ -4,8 +4,8 @@ export type BadgeVariant = "neon" | "muted" | "outline" | "live";
 
 const variants: Record<BadgeVariant, string> = {
   neon: "bg-neon/15 text-neon",
-  muted: "bg-night-800 text-white/70",
-  outline: "border border-night-700 text-white/70",
+  muted: "bg-elevated text-ink/70",
+  outline: "border border-line text-ink/70",
   live: "bg-red-500/15 text-red-400",
 };
 

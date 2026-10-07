@@ -77,8 +77,8 @@ const CHIP_BASE =
 const NEON = "bg-neon/15 text-neon";
 const AMBER = "bg-amber-500/15 text-amber-400";
 const RED = "bg-red-500/15 text-red-400";
-const MUTED = "bg-night-800 text-white/70";
-const OUTLINE = "border border-night-700 text-white/70";
+const MUTED = "bg-elevated text-ink/70";
+const OUTLINE = "border border-line text-ink/70";
 
 const ROLE_STATUS_CHIP: Record<string, string> = {
   APPROVED: NEON,
@@ -109,7 +109,7 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="flex flex-col">
       <span className="text-base font-semibold tabular-nums">{value}</span>
-      <span className="text-xs text-white/50">{label}</span>
+      <span className="text-xs text-ink/50">{label}</span>
     </div>
   );
 }
@@ -224,7 +224,7 @@ export default function SoportePage() {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
         <Card className="py-6 text-center">
-          <p className="text-sm text-white/70">{t("forbidden")}</p>
+          <p className="text-sm text-ink/70">{t("forbidden")}</p>
         </Card>
       </main>
     );
@@ -242,10 +242,10 @@ export default function SoportePage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("searchPlaceholder")}
           aria-label={t("search")}
-          className="min-h-11 w-full rounded-xl border border-night-700 bg-night-900 px-4 text-white placeholder:text-white/40 focus:border-neon focus:outline-none"
+          className="min-h-11 w-full rounded-xl border border-line bg-surface px-4 text-ink placeholder:text-ink/40 focus:border-neon focus:outline-none"
         />
         {trimmed.length > 0 && trimmed.length < MIN_CHARS && (
-          <p className="text-sm text-white/50">{t("minChars")}</p>
+          <p className="text-sm text-ink/50">{t("minChars")}</p>
         )}
         {searching && <Spinner size="sm" className="page-loading" />}
         {searchErr && (
@@ -254,7 +254,7 @@ export default function SoportePage() {
           </p>
         )}
         {!searching && results !== null && results.length === 0 && (
-          <p role="status" className="text-sm text-white/50">
+          <p role="status" className="text-sm text-ink/50">
             {t("noResults")}
           </p>
         )}
@@ -267,7 +267,7 @@ export default function SoportePage() {
           <button
             type="button"
             onClick={closeDetail}
-            className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-white/60 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
             <ChevronLeftIcon /> {t("backToResults")}
           </button>
@@ -275,7 +275,7 @@ export default function SoportePage() {
           {detailPhase === "loading" && <SkeletonList />}
           {detailPhase === "error" && (
             <Card className="flex flex-col items-center gap-3 py-6 text-center">
-              <p role="alert" className="text-sm text-white/70">
+              <p role="alert" className="text-sm text-ink/70">
                 {tc("error")}
               </p>
               <Button
@@ -292,16 +292,16 @@ export default function SoportePage() {
             <>
               {/* Datos personales */}
               <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.person")}
                 </h2>
-                <p className="mt-3 truncate font-semibold text-white">
+                <p className="mt-3 truncate font-semibold text-ink">
                   {detail.person.name}
                 </p>
-                <p className="truncate text-sm text-white/60">
+                <p className="truncate text-sm text-ink/60">
                   {detail.person.email}
                 </p>
-                <p className="mt-1 text-xs text-white/40">
+                <p className="mt-1 text-xs text-ink/40">
                   {t("memberSince")}:{" "}
                   {dateFmt.format(new Date(detail.person.createdAt))}
                 </p>
@@ -309,23 +309,23 @@ export default function SoportePage() {
 
               {/* Contadores */}
               <section aria-label={t("sections.activity")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.activity")}
                 </h2>
                 <ul className="grid grid-cols-2 gap-3">
-                  <li className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
+                  <li className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
                     <span className="block text-2xl font-bold tabular-nums text-neon">
                       {num.format(detail.checkinsCount)}
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {t("checkins")}
                     </span>
                   </li>
-                  <li className="rounded-xl border border-night-700 bg-night-800/60 px-4 py-3">
+                  <li className="rounded-xl border border-line bg-elevated/60 px-4 py-3">
                     <span className="block text-2xl font-bold tabular-nums text-neon">
                       {num.format(detail.friendsCount)}
                     </span>
-                    <span className="text-xs text-white/50">
+                    <span className="text-xs text-ink/50">
                       {t("friends")}
                     </span>
                   </li>
@@ -334,15 +334,15 @@ export default function SoportePage() {
 
               {/* Roles con fecha */}
               <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.roles")}
                 </h2>
                 {detail.roles.length === 0 ? (
-                  <p className="mt-3 text-sm text-white/40">
+                  <p className="mt-3 text-sm text-ink/40">
                     {t("noRoles")}
                   </p>
                 ) : (
-                  <ul className="mt-3 flex flex-col divide-y divide-night-700">
+                  <ul className="mt-3 flex flex-col divide-y divide-line">
                     {detail.roles.map((r) => (
                       <li
                         key={r.role}
@@ -353,11 +353,11 @@ export default function SoportePage() {
                             label={roleLabel(r.role)}
                             tone={ROLE_STATUS_CHIP[r.status]}
                           />
-                          <span className="text-xs text-white/50">
+                          <span className="text-xs text-ink/50">
                             {roleStatusLabel(r.status)}
                           </span>
                         </div>
-                        <span className="shrink-0 text-xs text-white/40">
+                        <span className="shrink-0 text-xs text-ink/40">
                           {t("roleSince", {
                             date: dateFmt.format(new Date(r.createdAt)),
                           })}
@@ -370,15 +370,15 @@ export default function SoportePage() {
 
               {/* Últimos tickets - linkean al evento (solo lectura). */}
               <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.tickets")}
                 </h2>
                 {detail.tickets.length === 0 ? (
-                  <p className="mt-3 text-sm text-white/40">
+                  <p className="mt-3 text-sm text-ink/40">
                     {t("noTickets")}
                   </p>
                 ) : (
-                  <ul className="mt-3 flex flex-col divide-y divide-night-700">
+                  <ul className="mt-3 flex flex-col divide-y divide-line">
                     {detail.tickets.map((tk) => (
                       <li key={tk.id} className="py-2.5">
                         <Link
@@ -389,7 +389,7 @@ export default function SoportePage() {
                             label={ticketStatusLabel(tk.status)}
                             tone={TICKET_STATUS_CHIP[tk.status]}
                           />
-                          <span className="text-xs text-white/50">
+                          <span className="text-xs text-ink/50">
                             {dateFmt.format(new Date(tk.createdAt))}
                           </span>
                         </Link>
@@ -401,15 +401,15 @@ export default function SoportePage() {
 
               {/* Últimos pagos */}
               <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
                   {t("sections.payments")}
                 </h2>
                 {detail.payments.length === 0 ? (
-                  <p className="mt-3 text-sm text-white/40">
+                  <p className="mt-3 text-sm text-ink/40">
                     {t("noPayments")}
                   </p>
                 ) : (
-                  <ul className="mt-3 flex flex-col divide-y divide-night-700">
+                  <ul className="mt-3 flex flex-col divide-y divide-line">
                     {detail.payments.map((p) => (
                       <li
                         key={p.id}
@@ -423,7 +423,7 @@ export default function SoportePage() {
                             label={paymentStatusLabel(p.status)}
                             tone={PAYMENT_STATUS_CHIP[p.status]}
                           />
-                          <span className="text-xs text-white/50">
+                          <span className="text-xs text-ink/50">
                             {dateFmt.format(new Date(p.createdAt))}
                           </span>
                         </div>
@@ -440,7 +440,7 @@ export default function SoportePage() {
           {/* Estado inicial / resultados */}
           {results === null && !searching && (
             <Card className="py-10 text-center">
-              <p className="text-white/60">{t("initialHint")}</p>
+              <p className="text-ink/60">{t("initialHint")}</p>
             </Card>
           )}
           {results !== null && results.length > 0 && (
@@ -450,13 +450,13 @@ export default function SoportePage() {
                   <button
                     type="button"
                     onClick={() => void openDetail(u.id)}
-                    className="flex min-h-11 w-full flex-col gap-2 rounded-xl border border-night-700 bg-night-800/60 p-3 text-left transition-colors hover:border-night-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    className="flex min-h-11 w-full flex-col gap-2 rounded-xl border border-line bg-elevated/60 p-3 text-left transition-colors hover:border-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                   >
                     <span className="flex min-w-0 flex-col">
-                      <span className="truncate font-medium text-white">
+                      <span className="truncate font-medium text-ink">
                         {u.name}
                       </span>
-                      <span className="truncate text-sm text-white/50">
+                      <span className="truncate text-sm text-ink/50">
                         {u.email}
                       </span>
                     </span>

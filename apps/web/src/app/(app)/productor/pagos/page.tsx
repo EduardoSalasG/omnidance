@@ -108,7 +108,7 @@ export default function ProducerPayoutsPage() {
 
       {gate === "notProducer" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{t("notProducer")}</p>
+          <p className="text-ink/70">{t("notProducer")}</p>
           <Button href="/inicio" variant="secondary">
             {tc("appName")}
           </Button>
@@ -117,7 +117,7 @@ export default function ProducerPayoutsPage() {
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p role="alert" className="text-white/70">
+          <p role="alert" className="text-ink/70">
             {tc("error")}
           </p>
           <Button variant="secondary" onClick={() => void refreshMe()}>
@@ -151,7 +151,7 @@ export default function ProducerPayoutsPage() {
 
       {gate === "ready" && !listError && payouts !== null && payouts.length === 0 && (
         <Card className="flex flex-col items-center gap-4 py-10 text-center">
-          <p role="status" className="text-white/70">
+          <p role="status" className="text-ink/70">
             {t("payoutsPage.empty")}
           </p>
         </Card>
@@ -164,7 +164,7 @@ export default function ProducerPayoutsPage() {
               <Card className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wide text-white/50">
+                    <p className="text-xs uppercase tracking-wide text-ink/50">
                       {t("payoutsPage.period")}
                     </p>
                     <p className="font-medium">
@@ -182,7 +182,7 @@ export default function ProducerPayoutsPage() {
 
                 <dl className="grid grid-cols-2 gap-3">
                   <div>
-                    <dt className="text-xs text-white/50">
+                    <dt className="text-xs text-ink/50">
                       {t("payoutsPage.gross")}
                     </dt>
                     <dd>
@@ -190,7 +190,7 @@ export default function ProducerPayoutsPage() {
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-white/50">
+                    <dt className="text-xs text-ink/50">
                       {t("payoutsPage.net")}
                     </dt>
                     <dd>
@@ -202,8 +202,8 @@ export default function ProducerPayoutsPage() {
                 {/* Desglose auditable: cada deducción rastrea a la orden
                     que la originó - acá se resume por concepto. */}
                 {p.lines.length > 0 && (
-                  <dl className="flex flex-col gap-1 border-t border-night-700 pt-3">
-                    <dt className="text-xs uppercase tracking-wide text-white/50">
+                  <dl className="flex flex-col gap-1 border-t border-line pt-3">
+                    <dt className="text-xs uppercase tracking-wide text-ink/50">
                       {t("payoutsPage.deductions")}
                     </dt>
                     {groupLines(p.lines).map(([type, total, count]) => (
@@ -211,12 +211,12 @@ export default function ProducerPayoutsPage() {
                         key={type}
                         className="flex items-center justify-between text-sm"
                       >
-                        <dd className="text-white/60">
+                        <dd className="text-ink/60">
                           {t.has(`payoutsPage.lineTypes.${type}`)
                             ? t(`payoutsPage.lineTypes.${type}`)
                             : type}
                           {count > 1 && (
-                            <span className="text-white/40"> ×{count}</span>
+                            <span className="text-ink/40"> ×{count}</span>
                           )}
                         </dd>
                         <dd>
@@ -227,7 +227,7 @@ export default function ProducerPayoutsPage() {
                   </dl>
                 )}
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/50">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/50">
                   {p.paidAt && (
                     <span>
                       {t("payoutsPage.paidAt")}:{" "}
@@ -293,10 +293,10 @@ function BillingDocsSection() {
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold text-white/80">
+      <h2 className="text-sm font-semibold text-ink/80">
         {t("billingDocs.title")}
       </h2>
-      <p className="text-xs text-white/50">{t("billingDocs.desc")}</p>
+      <p className="text-xs text-ink/50">{t("billingDocs.desc")}</p>
       <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2">
         {docs.map((d) => (
           <li key={d.id}>
@@ -305,7 +305,7 @@ function BillingDocsSection() {
                 <p className="text-sm font-medium">
                   {t("billingDocs.folio", { n: d.folio })}
                 </p>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-ink/50">
                   <EventDate start={d.periodStart} variant="compact" />
                   {" – "}
                   <EventDate start={d.periodEnd} variant="compact" /> ·{" "}

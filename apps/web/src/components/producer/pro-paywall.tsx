@@ -49,12 +49,12 @@ export function ProPaywall({ feature }: { feature?: string }) {
             {feature ? t("featureTitle", { feature }) : t("title")}
           </p>
           {feature && (
-            <p className="text-sm text-white/60">{t("title")}</p>
+            <p className="text-sm text-ink/60">{t("title")}</p>
           )}
         </div>
         <Badge variant="neon">PRO</Badge>
       </div>
-      <ul className="flex flex-col gap-1.5 text-sm text-white/70">
+      <ul className="flex flex-col gap-1.5 text-sm text-ink/70">
         {benefits.map((b) => (
           <li key={b} className="flex items-start gap-2">
             <span aria-hidden="true" className="text-neon">

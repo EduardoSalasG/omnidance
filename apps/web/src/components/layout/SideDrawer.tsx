@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useDialogFocus } from "@/lib/useDialogFocus";
+import { ThemeToggle } from "./ThemeToggle";
 
 export type DrawerItem = {
   href: string;
@@ -70,7 +71,7 @@ export function SideDrawer({
   return (
     <div
       role="presentation"
-      className="fixed inset-0 z-50 bg-night-950/80 backdrop-blur-sm lg:hidden"
+      className="fixed inset-0 z-50 bg-canvas/80 backdrop-blur-sm lg:hidden"
       onClick={onClose}
     >
       <div
@@ -79,12 +80,12 @@ export function SideDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={t("menu")}
-        className={`fixed inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-night-700 bg-night-900 shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        className={`fixed inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-line bg-surface shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
           entered ? "translate-x-0" : "-translate-x-full"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-night-700 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+        <div className="flex items-center justify-between gap-3 border-b border-line px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
           <div className="flex flex-col">
             <span className="text-base font-bold">Omnidance</span>
             {roleLabel && (
@@ -95,7 +96,7 @@ export function SideDrawer({
             type="button"
             onClick={onClose}
             aria-label={t("closeMenu")}
-            className="flex h-11 w-11 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-night-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-ink/60 transition-colors hover:bg-elevated hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
           >
             <svg
               aria-hidden
@@ -120,7 +121,7 @@ export function SideDrawer({
               (group) =>
                 group.items.length > 0 && (
                   <li key={group.label}>
-                    <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-white/40">
+                    <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
                       {group.label}
                     </h3>
                     <ul className="flex flex-col">
@@ -133,13 +134,13 @@ export function SideDrawer({
                             className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
                               item.active
                                 ? "bg-neon/10 text-neon"
-                                : "text-white/80 hover:bg-night-800 hover:text-white"
+                                : "text-ink/80 hover:bg-elevated hover:text-ink"
                             }`}
                           >
                             <span
                               aria-hidden
                               className={
-                                item.active ? "text-neon" : "text-white/50"
+                                item.active ? "text-neon" : "text-ink/50"
                               }
                             >
                               {item.icon}
@@ -154,6 +155,10 @@ export function SideDrawer({
             )}
           </ul>
         </nav>
+
+        <div className="border-t border-line px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3">
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );

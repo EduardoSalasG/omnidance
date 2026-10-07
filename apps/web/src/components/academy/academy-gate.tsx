@@ -119,14 +119,14 @@ export function AcademyGate({
 
       {gate === "unauth" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{t("loginRequired")}</p>
+          <p className="text-ink/70">{t("loginRequired")}</p>
           <Button href="/login">{tc("login")}</Button>
         </div>
       )}
 
       {gate === "error" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-white/70">{tc("error")}</p>
+          <p className="text-ink/70">{tc("error")}</p>
           <Button variant="secondary" onClick={() => void boot()}>
             <RefreshIcon /> {tc("retry")}
           </Button>
@@ -135,9 +135,9 @@ export function AcademyGate({
 
       {gate === "empty" && (
         <div className="flex flex-col gap-4">
-          <p className="text-white/70">{t("empty")}</p>
+          <p className="text-ink/70">{t("empty")}</p>
           <Card>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("create")}
             </h2>
             <form
@@ -145,7 +145,7 @@ export function AcademyGate({
               className="mt-3 flex flex-col gap-3 lg:max-w-xl"
             >
               <label className="flex flex-col gap-1">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-ink/50">
                   {t("academyName")}
                   <span aria-hidden="true" className="text-neon"> *</span>
                 </span>

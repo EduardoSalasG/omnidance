@@ -75,13 +75,13 @@ export function ConsentBanner() {
           : "bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)]"
       }`}
     >
-      <div className="rounded-2xl border border-white/15 bg-night-900/95 p-4 shadow-xl shadow-black/40 backdrop-blur">
+      <div className="rounded-2xl border border-ink/15 bg-surface/95 p-4 shadow-xl shadow-black/40 backdrop-blur">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white">
+            <p className="text-sm font-semibold text-ink">
               {t("bannerTitle")}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-white/60">
+            <p className="mt-1 text-xs leading-relaxed text-ink/60">
               {t("bannerBody")}{" "}
               <Link
                 href="/privacidad"
@@ -100,7 +100,7 @@ export function ConsentBanner() {
               onClick={accept}
               disabled={busy}
               aria-busy={busy}
-              className="mt-3 inline-flex min-h-11 items-center rounded-full bg-neon px-5 text-sm font-semibold text-night-950 transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
+              className="mt-3 inline-flex min-h-11 items-center rounded-full bg-neon px-5 text-sm font-semibold text-on-accent transition-colors hover:bg-neon-soft active:scale-[0.97] disabled:opacity-60"
             >
               {t("bannerAccept")}
             </button>
@@ -109,7 +109,7 @@ export function ConsentBanner() {
             type="button"
             onClick={() => setDismissed(true)}
             aria-label={t("bannerDismiss")}
-            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-white/50 transition-colors hover:text-white"
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-ink/50 transition-colors hover:text-ink"
           >
             <XIcon className="h-5 w-5" />
           </button>

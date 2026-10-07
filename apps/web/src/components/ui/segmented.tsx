@@ -117,7 +117,7 @@ export function Segmented({
       role="group"
       aria-label={ariaLabel}
       data-tour={tour}
-      className={`relative inline-flex rounded-full border border-white/15 p-0.5 ${className ?? ""}`}
+      className={`relative inline-flex rounded-full border border-ink/15 p-0.5 ${className ?? ""}`}
     >
       <div
         ref={innerRef}
@@ -152,9 +152,9 @@ export function Segmented({
               } ${
                 isActive
                   ? tone === "solid"
-                    ? "text-night-950"
+                    ? "text-on-accent"
                     : "text-neon"
-                  : "text-white/60 hover:text-white"
+                  : "text-ink/60 hover:text-ink"
               }`}
             >
               {item.children}
@@ -207,7 +207,7 @@ export function SegmentedMulti({
       role="group"
       aria-label={ariaLabel}
       data-tour={tour}
-      className={`relative inline-flex rounded-full border border-white/15 p-0.5 ${className ?? ""}`}
+      className={`relative inline-flex rounded-full border border-ink/15 p-0.5 ${className ?? ""}`}
     >
       <div ref={innerRef} className="relative flex">
         <span
@@ -229,7 +229,7 @@ export function SegmentedMulti({
             aria-label={item.ariaLabel}
             aria-current={item.active ? "true" : undefined}
             className={`${itemBaseCls} ${item.icon ? "h-11 w-11" : "px-4"} ${
-              item.active ? "text-neon" : "text-white/60 hover:text-white"
+              item.active ? "text-neon" : "text-ink/60 hover:text-ink"
             }`}
           >
             {/* Pill propio del estado activo - se materializa al

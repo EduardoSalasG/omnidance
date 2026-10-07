@@ -342,7 +342,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
           {staffState === "loading" && <SkeletonList items={2} lines={1} />}
           {staffState === "error" && (
             <div className="flex items-center gap-3">
-              <p className="text-sm text-white/60">{tc("error")}</p>
+              <p className="text-sm text-ink/60">{tc("error")}</p>
               <Button
                 variant="secondary"
                 size="sm"
@@ -354,7 +354,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
           )}
           {staffState === "ready" &&
             (lessons.length === 0 ? (
-              <p className="text-sm text-white/50">{t.empty}</p>
+              <p className="text-sm text-ink/50">{t.empty}</p>
             ) : (
               <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {lessons.map((l) => {
@@ -371,7 +371,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                           </span>
                           {l.price > 0 && <PriceTag amount={l.price} />}
                         </div>
-                        <p className="text-xs text-white/60">
+                        <p className="text-xs text-ink/60">
                           {t.student}:{" "}
                           {l.person?.name ?? shortId(l.personId)} ·{" "}
                           {t.instructor}: {lessonInstructor(l)}
@@ -468,7 +468,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                             className="flex flex-wrap items-end gap-2"
                           >
                             <label className="flex flex-col gap-1">
-                              <span className="text-xs text-white/50">
+                              <span className="text-xs text-ink/50">
                                 {t.newDate}
                                 <span aria-hidden="true" className="text-neon"> *</span>
                               </span>
@@ -497,7 +497,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                             className="flex flex-wrap items-end gap-2"
                           >
                             <label className="flex flex-col gap-1">
-                              <span className="text-xs text-white/50">
+                              <span className="text-xs text-ink/50">
                                 {t.instructor}
                                 <span aria-hidden="true" className="text-neon"> *</span>
                               </span>
@@ -525,7 +525,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                               </select>
                             </label>
                             <label className="flex flex-col gap-1">
-                              <span className="text-xs text-white/50">
+                              <span className="text-xs text-ink/50">
                                 {t.scheduledAt}
                                 <span aria-hidden="true" className="text-neon"> *</span>
                               </span>
@@ -569,7 +569,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold">{t.instructorTitle}</h2>
-            <p className="flex items-baseline gap-1 text-sm text-white/60">
+            <p className="flex items-baseline gap-1 text-sm text-ink/60">
               {t.monthNet}:
               <PriceTag
                 amount={mineInstructor
@@ -600,12 +600,12 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                     <p className="truncate font-medium">
                       {academyNames.get(l.academyId) ?? shortId(l.academyId)}
                     </p>
-                    <p className="text-xs text-white/60">
+                    <p className="text-xs text-ink/60">
                       {lessonWhen(l)} · {t.student}:{" "}
                       {l.person?.name ?? shortId(l.personId)}
                     </p>
                     {l.price > 0 && (
-                      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-white/50">
+                      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-ink/50">
                         <PriceTag amount={l.price} />
                         <span>
                           {t.commissionLine.replace(
@@ -615,7 +615,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                           (−
                           <PriceTag amount={l.commissionClp} />)
                         </span>
-                        <span className="font-medium text-white/70">
+                        <span className="font-medium text-ink/70">
                           {t.netLine}{" "}
                           <PriceTag amount={l.netClp} />
                         </span>

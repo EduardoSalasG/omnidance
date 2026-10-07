@@ -36,7 +36,7 @@ export function Spinner({ size = "md", label, className = "" }: SpinnerProps) {
           r="9"
           stroke="currentColor"
           strokeWidth="3"
-          className="text-white/20"
+          className="text-ink/20"
         />
         <path
           d="M21 12a9 9 0 0 0-9-9"

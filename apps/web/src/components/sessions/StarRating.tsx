@@ -26,7 +26,7 @@ const LAST = STARS[STARS.length - 1];
 
 const starCls = (lit: boolean) =>
   `flex min-h-11 min-w-11 items-center justify-center text-3xl transition-transform active:scale-90 ${
-    lit ? "text-neon" : "text-white/40"
+    lit ? "text-neon" : "text-ink/40"
   }`;
 
 /** Cinco estrellas con touch targets >= 44px - usable con pulgar en pista. */

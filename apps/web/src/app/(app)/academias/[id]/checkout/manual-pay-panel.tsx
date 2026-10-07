@@ -199,7 +199,7 @@ export function ManualPayPanel({
       {claim?.status === "PENDING" && (
         <div className="flex flex-col gap-2">
           <Badge variant="muted">{t("pendingTitle")}</Badge>
-          <p role="status" className="text-sm leading-relaxed text-white/70">
+          <p role="status" className="text-sm leading-relaxed text-ink/70">
             {t("pendingDesc", { method: claim.methodLabel })}
           </p>
         </div>
@@ -208,26 +208,26 @@ export function ManualPayPanel({
       {/* Intento registrado: instrucciones + upload. */}
       {claim?.status === "AWAITING" && (
         <div className="flex flex-col gap-4">
-          <p className="text-sm leading-relaxed text-white/70">
+          <p className="text-sm leading-relaxed text-ink/70">
             {t("awaitingHint", { method: claim.methodLabel })}
           </p>
 
           {activeMethod?.type === "TRANSFER" && (
-            <div className="flex flex-col gap-1.5 rounded-xl border border-night-700 bg-night-800 p-4">
+            <div className="flex flex-col gap-1.5 rounded-xl border border-line bg-elevated p-4">
               {TRANSFER_FIELDS.map((f) =>
                 activeMethod.details[f.key] ? (
                   <div key={f.key} className="flex items-baseline gap-2">
-                    <span className="w-28 shrink-0 text-sm text-white/50">
+                    <span className="w-28 shrink-0 text-sm text-ink/50">
                       {t(f.label)}
                     </span>
-                    <span className="break-all font-mono text-sm text-white/90">
+                    <span className="break-all font-mono text-sm text-ink/90">
                       {activeMethod.details[f.key]}
                     </span>
                   </div>
                 ) : null,
               )}
-              <div className="mt-1 flex items-center gap-2 border-t border-night-700 pt-2">
-                <span className="w-28 shrink-0 text-sm text-white/50">
+              <div className="mt-1 flex items-center gap-2 border-t border-line pt-2">
+                <span className="w-28 shrink-0 text-sm text-ink/50">
                   {t("fAmount")}
                 </span>
                 <span className="font-mono text-sm font-semibold text-neon">
@@ -250,7 +250,7 @@ export function ManualPayPanel({
                 href={activeMethod.details.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-neon px-4 text-sm font-semibold text-night-950"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-neon px-4 text-sm font-semibold text-on-accent"
               >
                 {t("payLink")}
               </a>
@@ -258,7 +258,7 @@ export function ManualPayPanel({
 
           {activeMethod?.type === "CASH" &&
             activeMethod.details.instructions && (
-              <p className="text-sm text-white/70">
+              <p className="text-sm text-ink/70">
                 {activeMethod.details.instructions}
               </p>
             )}
@@ -266,17 +266,17 @@ export function ManualPayPanel({
           {/* El método pudo haberse borrado: el intento sigue
               registrado y el upload sigue disponible. */}
           {!activeMethod && (
-            <p className="text-sm text-white/50">{t("methodGone")}</p>
+            <p className="text-sm text-ink/50">{t("methodGone")}</p>
           )}
 
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-white/60">{t("fieldFile")}</span>
+            <span className="text-ink/60">{t("fieldFile")}</span>
             <input
               ref={fileRef}
               type="file"
               accept="image/png,image/jpeg,image/webp,application/pdf"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="text-sm text-white/70 file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-night-700 file:px-4 file:text-sm file:text-white"
+              className="text-sm text-ink/70 file:mr-3 file:min-h-11 file:rounded-xl file:border-0 file:bg-raised file:px-4 file:text-sm file:text-ink"
             />
           </label>
           <Button
@@ -317,7 +317,7 @@ export function ManualPayPanel({
               className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
                 selected === null
                   ? "border-neon/60 bg-neon/10"
-                  : "border-night-700 bg-night-800"
+                  : "border-line bg-elevated"
               }`}
             >
               <input
@@ -335,7 +335,7 @@ export function ManualPayPanel({
                 className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-4 text-sm ${
                   selected === m.id
                     ? "border-neon/60 bg-neon/10"
-                    : "border-night-700 bg-night-800"
+                    : "border-line bg-elevated"
                 }`}
               >
                 <input
@@ -346,7 +346,7 @@ export function ManualPayPanel({
                   className="h-4 w-4 accent-neon"
                 />
                 {m.label}
-                <span className="ml-auto text-xs text-white/40">
+                <span className="ml-auto text-xs text-ink/40">
                   {t(
                     m.type === "TRANSFER"
                       ? "typeTransfer"

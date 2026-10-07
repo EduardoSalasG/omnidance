@@ -64,7 +64,7 @@ export function DancerActionsSheet({
   return (
     <div
       role="presentation"
-      className="fixed inset-0 z-50 bg-night-950/80 backdrop-blur-sm lg:hidden"
+      className="fixed inset-0 z-50 bg-canvas/80 backdrop-blur-sm lg:hidden"
       onClick={onClose}
     >
       <div
@@ -72,7 +72,7 @@ export function DancerActionsSheet({
         role="dialog"
         aria-modal="true"
         aria-label={t("moreMenu")}
-        className={`fixed inset-x-0 bottom-0 mx-auto max-w-lg rounded-t-3xl border-t border-night-700 bg-night-900 px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        className={`fixed inset-x-0 bottom-0 mx-auto max-w-lg rounded-t-3xl border-t border-line bg-surface px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-3 shadow-2xl shadow-black/50 transition-transform duration-300 ease-out motion-reduce:transition-none ${
           entered ? "translate-y-0" : "translate-y-full"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -83,7 +83,7 @@ export function DancerActionsSheet({
           type="button"
           onClick={onClose}
           aria-label={t("close")}
-          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-xl text-white/60 transition-colors hover:bg-night-800 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-xl text-ink/60 transition-colors hover:bg-elevated hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           <svg
             aria-hidden
@@ -101,7 +101,7 @@ export function DancerActionsSheet({
         {/* Grabber */}
         <div
           aria-hidden
-          className="mx-auto mb-4 h-1 w-9 rounded-full bg-white/20"
+          className="mx-auto mb-4 h-1 w-9 rounded-full bg-ink/20"
         />
 
         {/* QR destacado - la acción de pista */}
@@ -149,12 +149,12 @@ export function DancerActionsSheet({
                   className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors active:scale-[0.98] ${
                     item.active
                       ? "bg-neon/10 text-neon"
-                      : "bg-night-800/60 text-white/80 hover:bg-night-800 hover:text-white"
+                      : "bg-elevated/60 text-ink/80 hover:bg-elevated hover:text-ink"
                   }`}
                 >
                   <span
                     aria-hidden
-                    className={item.active ? "text-neon" : "text-white/50"}
+                    className={item.active ? "text-neon" : "text-ink/50"}
                   >
                     {item.icon}
                   </span>

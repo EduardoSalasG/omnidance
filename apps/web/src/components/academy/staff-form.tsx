@@ -64,14 +64,14 @@ export function StaffForm({ academyId }: { academyId: string }) {
       ) : (
         <>
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
               {t("addTitle")}
             </h2>
-            <p className="mt-1 text-xs text-white/50">{t("addDesc")}</p>
+            <p className="mt-1 text-xs text-ink/50">{t("addDesc")}</p>
           </div>
           <form onSubmit={add} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">
+              <span className="text-xs text-ink/50">
                 {t("fieldEmail")}
                 <span aria-hidden="true" className="text-neon">
                   {" "}
@@ -88,7 +88,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
               />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-xs text-white/50">{t("fieldName")}</span>
+              <span className="text-xs text-ink/50">{t("fieldName")}</span>
               <input
                 className={inputCls}
                 placeholder={t("fieldNamePh")}
@@ -98,7 +98,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
               />
             </label>
             <fieldset className="flex flex-col gap-1">
-              <legend className="text-xs text-white/50">
+              <legend className="text-xs text-ink/50">
                 {t("capsLegend")}
               </legend>
               <div className="grid grid-cols-2 gap-x-3 sm:grid-cols-3">
