@@ -137,6 +137,13 @@
     },
     "viewsLabel": "Vistas",
     "scopesLabel": "Sección",
+    "plansEmpty": "Aún no hay planes de membresía.",
+    "planSaved": "Plan guardado.",
+    "planNotFound": "Plan no encontrado.",
+    "studentsEmpty": "Aún no hay alumnos inscritos.",
+    "enrollmentSaved": "Inscripción creada.",
+    "noPlansForEnrollment": "Aún no hay planes: crea uno antes de inscribir alumnos.",
+    "forbidden": "No tienes acceso a esta acción.",
     "editPlan": "Editar plan",
     "planActive": "Plan activo (visible para comprar)",
     "planInactive": "Inactivo",
@@ -156,7 +163,8 @@
     "dropInHint": "Vacío = la clase no se vende suelta.",
     "dropInValue": "Suelta {value}",
     "slotTypes": "Modalidad",
-    "slotTypesHint": "vacío = hereda la serie"
+    "slotTypesHint": "vacío = hereda la serie",
+    "notFound": "Serie no encontrada."
   },
   "instructor": {
     "title": "Mis clases",
