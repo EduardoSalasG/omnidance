@@ -2,17 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch, isProRequired } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ProPaywall } from "./pro-paywall";
-import {
-  STAFF_ROLES,
-  inputCls,
-  readError,
-  type StaffEntry,
-  type StaffRole,
-} from "./shared";
+import { type StaffEntry } from "./shared";
 
 type Props = {
   eventId: string;
@@ -22,10 +16,10 @@ type Props = {
 };
 
 /**
- * Staff del evento (POST /events/:id/staff upsert por personId).
- * v1: personId se ingresa a mano - no hay endpoint de búsqueda de personas.
- * Multi-staff es feature Producer Pro: sin Pro el form se reemplaza por
- * el paywall (la lista de staff ya asignado sigue visible).
+ * Staff del evento (GET /events/:id/staff). El alta vive en
+ * /productor/eventos/[id]/staff/nuevo (POST upsert por personId) - aquí
+ * quedan la lista y las acciones por fila. Sin Pro el CTA se reemplaza
+ * por el paywall (la lista de staff ya asignado sigue visible).
  */
 export function StaffSection({ eventId, proLocked = false }: Props) {
   const t = useTranslations("producer");
@@ -33,15 +27,6 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
 
   const [staff, setStaff] = useState<StaffEntry[] | null>(null);
   const [error, setError] = useState(false);
-  // Lock detectado en el POST (403 pro.required) - complementa el prop
-  // proactivo si /me quedó stale.
-  const [serverLocked, setServerLocked] = useState(false);
-  const locked = proLocked || serverLocked;
-
-  const [personId, setPersonId] = useState("");
-  const [role, setRole] = useState<StaffRole>("DOOR");
-  const [busy, setBusy] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -61,39 +46,22 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
     void load();
   }, [load]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!personId.trim() || busy) return;
-    setBusy(true);
-    setFormError(null);
-    try {
-      const res = await apiFetch(`/events/${eventId}/staff`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personId: personId.trim(), role }),
-      });
-      if (!res.ok) {
-        if (await isProRequired(res)) {
-          setServerLocked(true);
-          return;
-        }
-        setFormError((await readError(res)) ?? tc("error"));
-        return;
-      }
-      setPersonId("");
-      await load();
-    } catch {
-      setFormError(tc("error"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-        {t("sections.staff")}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+          {t("sections.staff")}
+        </h2>
+        {!proLocked && (
+          <Button
+            size="sm"
+            variant="secondary"
+            href={`/productor/eventos/${eventId}/staff/nuevo`}
+          >
+            {`＋ ${t("staffSection.add")}`}
+          </Button>
+        )}
+      </div>
 
       {staff === null && !error && <SkeletonList items={2} lines={1} />}
       {error && (
@@ -137,53 +105,7 @@ export function StaffSection({ eventId, proLocked = false }: Props) {
         </ul>
       )}
 
-      {locked ? (
-        <ProPaywall />
-      ) : (
-        <form
-          onSubmit={submit}
-          className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end"
-        >
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-white/50">
-              {t("staffSection.personId")}
-              <span aria-hidden="true" className="text-neon"> *</span>
-            </span>
-            <input
-              type="text"
-              required
-              autoComplete="off"
-              value={personId}
-              onChange={(e) => setPersonId(e.target.value)}
-              className={`${inputCls} min-h-11 py-2 text-sm`}
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-white/50">
-              {t("staffSection.role")}
-            </span>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as StaffRole)}
-              className={`${inputCls} min-h-11 py-2 text-sm`}
-            >
-              {STAFF_ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {t(`staffSection.roles.${r}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Button type="submit" size="sm" disabled={!personId.trim() || busy}>
-            {busy ? tc("loading") : t("staffSection.add")}
-          </Button>
-          {formError && (
-            <p role="alert" className="text-sm text-red-400 sm:col-span-3">
-              {formError}
-            </p>
-          )}
-        </form>
-      )}
+      {proLocked && <ProPaywall />}
     </section>
   );
 }

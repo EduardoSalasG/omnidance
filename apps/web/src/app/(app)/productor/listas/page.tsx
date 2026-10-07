@@ -3,18 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { useMe } from "@/lib/me-context";
 import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
-
-type EventOption = {
-  id: string;
-  name: string;
-  startsAt: string;
-  series: { name: string } | null;
-};
+import { inputCls, type EventListItem } from "@/components/producer/shared";
 
 type GuestListEntry = {
   id: string;
@@ -33,34 +26,25 @@ type GuestList = {
   entries: GuestListEntry[];
 };
 
-const inputCls =
-  "min-h-12 w-full rounded-xl border border-night-700 bg-night-950 px-4 py-3 " +
-  "text-white focus:border-neon focus-visible:ring-2 focus-visible:ring-neon/50 disabled:opacity-50";
-
 /**
  * /productor/listas - listas de invitados por evento
- * (GET /events, GET/POST /events/:id/guest-lists, POST /guest-lists/:id/entries).
+ * (GET /events/mine, GET /events/:id/guest-lists,
+ * POST /guest-lists/:id/entries). Crear lista vive en
+ * /productor/listas/nueva; agregar personas queda por fila.
  * Monta solo cuando ProducerGate confirma rol.
  */
 function GuestLists() {
   const t = useTranslations("producer");
   const ta = useTranslations("admin");
-  const te = useTranslations("events");
   const tac = useTranslations("academy");
   const tc = useTranslations("common");
 
-  // ownerId del /me compartido (ProducerGate ya validó la sesión).
-  const { me } = useMe();
-  const meId = me?.id ?? "";
-  const [events, setEvents] = useState<EventOption[] | null>(null);
+  const [events, setEvents] = useState<EventListItem[] | null>(null);
 
   const [listEventId, setListEventId] = useState("");
   const [lists, setLists] = useState<GuestList[] | null>(null);
   const [listsLoading, setListsLoading] = useState(false);
   const [listsError, setListsError] = useState(false);
-  const [showListForm, setShowListForm] = useState(false);
-  const [listName, setListName] = useState("");
-  const [listSaving, setListSaving] = useState(false);
   const [entryDrafts, setEntryDrafts] = useState<Record<string, string>>({});
   const [entrySaving, setEntrySaving] = useState<string | null>(null);
   const [entryError, setEntryError] = useState<string | null>(null);
@@ -89,10 +73,11 @@ function GuestLists() {
   }, []);
 
   const boot = useCallback(async () => {
-    // Eventos para el selector (/me ya viene del contexto compartido).
-    const evRes = await apiFetch("/events");
+    // Eventos propios para el selector (/events/mine cubre todos los
+    // estados - las listas también se crean sobre borradores).
+    const evRes = await apiFetch("/events/mine");
     if (evRes.ok) {
-      const evs = (await evRes.json()) as EventOption[];
+      const evs = (await evRes.json()) as EventListItem[];
       setEvents(evs);
       if (evs.length > 0) {
         setListEventId(evs[0].id);
@@ -106,28 +91,6 @@ function GuestLists() {
   useEffect(() => {
     void boot();
   }, [boot]);
-
-  async function submitList(e: React.FormEvent) {
-    e.preventDefault();
-    if (!listName.trim() || !listEventId || !meId || listSaving) return;
-    setListSaving(true);
-    try {
-      const res = await apiFetch(`/events/${listEventId}/guest-lists`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // v1: la lista queda a nombre del productor logueado (ownerId requerido).
-        body: JSON.stringify({ ownerId: meId, label: listName.trim() }),
-      });
-      if (!res.ok) return;
-      setListName("");
-      setShowListForm(false);
-      await loadLists(listEventId);
-    } catch {
-      // El estado de la lista se refleja en el próximo refetch
-    } finally {
-      setListSaving(false);
-    }
-  }
 
   async function addEntry(listId: string) {
     const personId = (entryDrafts[listId] ?? "").trim();
@@ -156,17 +119,38 @@ function GuestLists() {
 
   return (
     <>
-      <ConsoleHeader backHref="/productor" backLabel={t("title")} />
+      <ConsoleHeader
+        backHref="/productor"
+        backLabel={t("title")}
+        actions={
+          events !== null && events.length > 0 ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              href="/productor/listas/nueva"
+            >
+              {`＋ ${t("newList")}`}
+            </Button>
+          ) : null
+        }
+      />
 
       <section className="flex flex-col gap-4">
         {events === null ? (
           <SkeletonList items={2} lines={1} />
         ) : events.length === 0 ? (
-          <p className="text-white/60">{te("empty")}</p>
+          <Card className="flex flex-col items-center gap-4 py-10 text-center">
+            <p role="status" className="text-white/70">
+              {t("emptyEvents")}
+            </p>
+            <Button href="/productor/eventos/nuevo">
+              {t("emptyEventsCta")}
+            </Button>
+          </Card>
         ) : (
           <>
             <label className="flex flex-col gap-2">
-              <span className="text-sm text-white/70">{te("title")}</span>
+              <span className="text-sm text-white/70">{t("event")}</span>
               <select
                 value={listEventId}
                 onChange={(e) => {
@@ -183,43 +167,6 @@ function GuestLists() {
               </select>
             </label>
 
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                variant={showListForm ? "ghost" : "secondary"}
-                onClick={() => setShowListForm((v) => !v)}
-              >
-                {showListForm ? tc("cancel") : `＋ ${t("newList")}`}
-              </Button>
-            </div>
-
-            {showListForm && (
-              <Card>
-                <form onSubmit={submitList} className="flex flex-col gap-4">
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm text-white/70">
-                      {t("listName")}
-                      <span aria-hidden="true" className="text-neon"> *</span>
-                    </span>
-                    <input
-                      type="text"
-                      required
-                      autoComplete="off"
-                      value={listName}
-                      onChange={(e) => setListName(e.target.value)}
-                      className={inputCls}
-                    />
-                  </label>
-                  <Button
-                    type="submit"
-                    disabled={!listName.trim() || listSaving}
-                  >
-                    {listSaving ? tc("loading") : tc("create")}
-                  </Button>
-                </form>
-              </Card>
-            )}
-
             {listsLoading && <SkeletonList items={2} lines={1} />}
             {listsError && (
               <div className="flex items-center gap-3">
@@ -234,90 +181,103 @@ function GuestLists() {
               </div>
             )}
             {!listsLoading && !listsError && lists !== null && (
-              <ul className="flex flex-col gap-3">
-                {lists.map((l) => (
-                  <li key={l.id}>
-                    <Card className="flex flex-col gap-3">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <h3 className="font-semibold">
-                          {l.label ?? l.owner.name}
-                        </h3>
-                        {l.specialPrice !== null && (
-                          <PriceTag
-                            amount={l.specialPrice}
-                            className="text-sm"
-                          />
-                        )}
-                      </div>
+              <>
+                {lists.length === 0 ? (
+                  <Card className="flex flex-col items-center gap-4 py-10 text-center">
+                    <p role="status" className="text-white/70">
+                      {t("listsEmpty")}
+                    </p>
+                    <Button href="/productor/listas/nueva">
+                      {`＋ ${t("newList")}`}
+                    </Button>
+                  </Card>
+                ) : (
+                  <ul className="flex flex-col gap-3">
+                    {lists.map((l) => (
+                      <li key={l.id}>
+                        <Card className="flex flex-col gap-3">
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <h3 className="font-semibold">
+                              {l.label ?? l.owner.name}
+                            </h3>
+                            {l.specialPrice !== null && (
+                              <PriceTag
+                                amount={l.specialPrice}
+                                className="text-sm"
+                              />
+                            )}
+                          </div>
 
-                      {l.entries.length > 0 && (
-                        <ul className="flex flex-col gap-1.5 border-t border-night-700 pt-3">
-                          {l.entries.map((en) => (
-                            <li
-                              key={en.id}
-                              className="flex items-center justify-between gap-3 text-sm"
+                          {l.entries.length > 0 && (
+                            <ul className="flex flex-col gap-1.5 border-t border-night-700 pt-3">
+                              {l.entries.map((en) => (
+                                <li
+                                  key={en.id}
+                                  className="flex items-center justify-between gap-3 text-sm"
+                                >
+                                  <span className="truncate">
+                                    {en.person.name}
+                                  </span>
+                                  <Badge
+                                    variant={
+                                      en.status === "ARRIVED"
+                                        ? "neon"
+                                        : "muted"
+                                    }
+                                  >
+                                    {ta.has(`status.${en.status}`)
+                                      ? ta(`status.${en.status}`)
+                                      : en.status}
+                                  </Badge>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          <form
+                            className="flex gap-2 border-t border-night-700 pt-3"
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              void addEntry(l.id);
+                            }}
+                          >
+                            <input
+                              type="text"
+                              autoComplete="off"
+                              placeholder={tac("personId")}
+                              aria-label={`${t("addPerson")}: ${l.label ?? l.owner.name}`}
+                              value={entryDrafts[l.id] ?? ""}
+                              onChange={(e) =>
+                                setEntryDrafts((d) => ({
+                                  ...d,
+                                  [l.id]: e.target.value,
+                                }))
+                              }
+                              className={`${inputCls} min-h-11 flex-1 py-2 text-sm`}
+                            />
+                            <Button
+                              type="submit"
+                              size="sm"
+                              variant="secondary"
+                              disabled={
+                                !(entryDrafts[l.id] ?? "").trim() ||
+                                entrySaving === l.id
+                              }
                             >
-                              <span className="truncate">
-                                {en.person.name}
-                              </span>
-                              <Badge
-                                variant={
-                                  en.status === "ARRIVED"
-                                    ? "neon"
-                                    : "muted"
-                                }
-                              >
-                                {ta.has(`status.${en.status}`)
-                                  ? ta(`status.${en.status}`)
-                                  : en.status}
-                              </Badge>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      <form
-                        className="flex gap-2 border-t border-night-700 pt-3"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void addEntry(l.id);
-                        }}
-                      >
-                        <input
-                          type="text"
-                          autoComplete="off"
-                          placeholder={tac("personId")}
-                          aria-label={`${t("addPerson")}: ${l.label ?? l.owner.name}`}
-                          value={entryDrafts[l.id] ?? ""}
-                          onChange={(e) =>
-                            setEntryDrafts((d) => ({
-                              ...d,
-                              [l.id]: e.target.value,
-                            }))
-                          }
-                          className={`${inputCls} min-h-11 flex-1 py-2 text-sm`}
-                        />
-                        <Button
-                          type="submit"
-                          size="sm"
-                          variant="secondary"
-                          disabled={
-                            !(entryDrafts[l.id] ?? "").trim() ||
-                            entrySaving === l.id
-                          }
-                        >
-                          {t("addPerson")}
-                        </Button>
-                      </form>
-                      {entryError === l.id && (
-                        <p role="alert" className="text-sm text-red-400">
-                          {tc("error")}
-                        </p>
-                      )}
-                    </Card>
-                  </li>
-                ))}
-              </ul>
+                              {t("addPerson")}
+                            </Button>
+                          </form>
+                          {entryError === l.id && (
+                            <p role="alert" className="text-sm text-red-400">
+                              {tc("error")}
+                            </p>
+                          )}
+                        </Card>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
             )}
           </>
         )}
