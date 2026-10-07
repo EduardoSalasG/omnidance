@@ -136,7 +136,7 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
       </div>
 
       {showForm && (
-        <div className="flex flex-col gap-3 rounded-xl border border-night-700 bg-night-800 p-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-night-700 bg-night-800 p-4 lg:max-w-xl">
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-white/60">{t("fType")}</span>
             <select
@@ -237,7 +237,7 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
       ) : methods.length === 0 ? (
         <p className="text-sm text-white/50">{t("methodsEmpty")}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {methods.map((m) => (
             <li
               key={m.id}

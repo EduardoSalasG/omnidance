@@ -21,10 +21,10 @@ export function SlotsSection({ slots }: Props) {
     return <p className="text-sm text-white/50">·</p>;
   }
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {slots.map((s) => (
         <li key={s.id}>
-          <Card className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4">
+          <Card className="flex h-full flex-wrap items-center gap-x-4 gap-y-2 p-4">
             <Badge variant="neon">{t(`weekday.${s.weekday}`)}</Badge>
             <span className="font-medium tabular-nums">
               {s.startTime} – {s.endTime}

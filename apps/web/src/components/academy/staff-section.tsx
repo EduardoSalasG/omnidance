@@ -176,7 +176,7 @@ export function StaffSection({ academyId }: { academyId: string }) {
           </Button>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {rows.map((r) => (
             <li
               key={r.person.id}

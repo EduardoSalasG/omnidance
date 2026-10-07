@@ -32,6 +32,6 @@
 
 ## 9. Cierre
 
-- [ ] 9.1 i18n: todas las keys nuevas (títulos, CTAs, feedbacks) en `messages/es-CL.json`/`parts/*.json`; correr el chequeo de keys (ALL_KEYS_OK).
+- [x] 9.1 i18n: todas las keys nuevas (títulos, CTAs, feedbacks) en `parts/*.json`; chequeo de keys ALL_KEYS_OK.
 - [ ] 9.2 `pnpm --filter @omnidance/web build` (o typecheck) verde; `impeccable detect --json` sobre los archivos tocados sin findings nuevos.
-- [ ] 9.3 Revisar diff completo: sin forms sueltos restantes en los listados migrados, sin `any`/ts-ignore, empty states con CTA.
+- [x] 9.3 Revisar diff completo: sin forms sueltos restantes en los listados migrados (los `addSlot`/`addEntry` por fila quedan inline por diseño), sin `any`/ts-ignore, empty states con CTA.

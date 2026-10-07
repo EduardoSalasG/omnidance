@@ -174,10 +174,10 @@ export function StudentsSection({
           )}
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {students.map((s) => (
             <li key={s.id}>
-              <Card className="flex flex-col gap-2 p-4">
+              <Card className="flex h-full flex-col gap-2 p-4">
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   {/* Perfil del alumno: historial + próximas reservas. */}
                   <Link

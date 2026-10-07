@@ -135,12 +135,12 @@ export function Videos({ academy }: { academy: Academy }) {
             )}
           </div>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {videos.map((v) => {
               const locked = v.locked === true || !v.url;
               return (
                 <li key={v.id}>
-                  <Card className="flex flex-col gap-3 p-4">
+                  <Card className="flex h-full flex-col gap-3 p-4">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                       <p className="min-w-0 flex-1 truncate font-medium">
                         {v.title}

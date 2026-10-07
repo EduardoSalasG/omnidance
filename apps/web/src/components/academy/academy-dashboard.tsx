@@ -122,7 +122,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
               {t("today.attendance", { count: dashboard.attendanceToday })}
             </p>
           </div>
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {dashboard.todayClasses.map((c) => (
               <li
                 key={c.id}
@@ -163,12 +163,12 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t("insights.expiringTitle")}
           </h3>
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {dashboard.expiringEnrollments.map((e) => (
               <li key={e.personId}>
                 <Link
                   href={`/academia/alumnos/${e.personId}`}
-                  className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
+                  className="flex h-full items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
@@ -195,12 +195,12 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-white/50">
             {t("insights.birthdaysTitle")}
           </h3>
-          <ul className="flex flex-col gap-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {dashboard.upcomingBirthdays.map((b) => (
               <li key={b.personId}>
                 <Link
                   href={`/academia/alumnos/${b.personId}`}
-                  className="flex items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
+                  className="flex h-full items-center gap-3 rounded-xl border border-night-700 bg-night-900 px-4 py-3 transition-colors hover:border-neon/40"
                 >
                   <span className="min-w-0 flex-1 truncate text-sm font-medium">
                     {b.name}
