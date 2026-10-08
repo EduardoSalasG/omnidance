@@ -1114,14 +1114,6 @@
                 "api",
                 "admin",
                 "audit"
-              ],
-              "variable": [],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "",
-                  "disabled": true
-                }
               ]
             }
           }
@@ -2520,13 +2512,7 @@
                   "value": ":id"
                 }
               ],
-              "query": [
-                {
-                  "key": "dataset",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
+              "query": []
             }
           }
         },
@@ -2552,13 +2538,7 @@
                   "value": ":id"
                 }
               ],
-              "query": [
-                {
-                  "key": "dataset",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
+              "query": []
             }
           }
         },
@@ -2585,13 +2565,7 @@
                   "value": ":seriesId"
                 }
               ],
-              "query": [
-                {
-                  "key": "dataset",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
+              "query": []
             }
           }
         },
@@ -2618,13 +2592,7 @@
                   "value": ":seriesId"
                 }
               ],
-              "query": [
-                {
-                  "key": "dataset",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
+              "query": []
             }
           }
         },
@@ -5251,19 +5219,6 @@
               "path": [
                 "api",
                 "discount-codes"
-              ],
-              "variable": [],
-              "query": [
-                {
-                  "key": "eventId",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "seriesId",
-                  "value": "",
-                  "disabled": true
-                }
               ]
             }
           }
@@ -6185,7 +6140,18 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -6296,7 +6262,33 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "planId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -6353,7 +6345,13 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -7137,7 +7135,13 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -7329,6 +7333,16 @@
                   "key": "to",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "instructorId",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }
@@ -7356,7 +7370,23 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "styleId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -7569,7 +7599,33 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "instructorId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "commission",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -7635,7 +7691,13 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -7828,6 +7890,29 @@
                 "api",
                 "classes",
                 "teaching"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "academyId",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -8515,6 +8600,239 @@
                   "disabled": true
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "query",
+      "item": [
+        {
+          "name": "GET /api/query/catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/catalog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "catalog"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/query/options",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/options",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "options"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "scopeId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/query/run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "run"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/query/export.csv",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/export.csv",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "export.csv"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/query/export.pdf",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/export.pdf",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "export.pdf"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/query/saved",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/saved",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "saved"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/query/saved",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/saved",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "saved"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/query/saved/{id}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/saved/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "saved",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/query/saved/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/query/saved/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "query",
+                "saved",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         }
