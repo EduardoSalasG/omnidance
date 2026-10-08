@@ -85,6 +85,13 @@ function mkPrisma() {
         if ("in" in cond) return (cond.in as unknown[]).includes(row[k]);
         if ("not" in cond) return row[k] !== cond.not;
         if ("gt" in cond) return row[k] > cond.gt;
+        if ("gte" in cond || "lte" in cond) {
+          const v = row[k] as Date;
+          return (
+            (cond.gte === undefined || v >= cond.gte) &&
+            (cond.lte === undefined || v <= cond.lte)
+          );
+        }
         if ("OR" in cond) {
           return (cond as Row[]).some((w) => matchWhere(row, w));
         }
@@ -376,5 +383,42 @@ describe("AcademyClaimsService.loadClaimForReceipt", () => {
     await expect(
       service.loadClaimForReceipt(ACADEMY, claim.id),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+// Filtros de la cola (spec analytics/query-console - contrato de
+// filtros compartido): status exacto + rango createdAt por día
+// inclusivo; la whitelist de status vive en el controller (400).
+describe("AcademyClaimsService.listClaims", () => {
+  it("status y createdAt (gte/lte) acotan la cola", async () => {
+    const { service, fx } = mkService();
+    fx.data.claims.push(
+      {
+        id: "c-pen",
+        academyId: ACADEMY,
+        personId: PERSON,
+        status: "PENDING",
+        createdAt: new Date("2026-01-05T10:00:00Z"),
+      },
+      {
+        id: "c-apr",
+        academyId: ACADEMY,
+        personId: PERSON,
+        status: "APPROVED",
+        createdAt: new Date("2026-02-10T10:00:00Z"),
+      },
+    );
+    expect(await service.listClaims(ACADEMY)).toHaveLength(2);
+    expect(
+      (await service.listClaims(ACADEMY, "PENDING")).map((c) => c.id),
+    ).toEqual(["c-pen"]);
+    expect(
+      (
+        await service.listClaims(ACADEMY, undefined, {
+          gte: new Date("2026-02-01T00:00:00Z"),
+          lte: new Date("2026-02-28T23:59:59.999Z"),
+        })
+      ).map((c) => c.id),
+    ).toEqual(["c-apr"]);
   });
 });

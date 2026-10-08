@@ -16,10 +16,12 @@ import {
   IsDateString,
   IsIn,
   IsInt,
+  IsISO8601,
   IsNotEmpty,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from "class-validator";
 import type { Request } from "express";
@@ -75,6 +77,39 @@ class CreateDiscountCodeDto {
   expiresAt?: string;
 }
 
+/**
+ * Filtros de `GET /discount-codes` - contrato compartido de la barra de
+ * filtros (spec analytics/query-console): `q` sobre el código, `status`
+ * derivado de expiresAt (ACTIVE|EXPIRED, whitelist → 400), `from`/`to`
+ * sobre createdAt. Opcionales/aditivos; desconocidos ignorados.
+ */
+class ListDiscountCodesQueryDto {
+  @IsOptional()
+  @IsString()
+  eventId?: string;
+
+  @IsOptional()
+  @IsString()
+  seriesId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  q?: string;
+
+  @IsOptional()
+  @IsIn(["ACTIVE", "EXPIRED"])
+  status?: "ACTIVE" | "EXPIRED";
+
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
+}
+
 function mapDomainError(e: unknown): never {
   if (e instanceof InvalidDiscountCodeError) {
     throw new BadRequestException({
@@ -122,11 +157,15 @@ export class DiscountsController {
   }
 
   @Get()
-  list(
-    @Query("eventId") eventId?: string,
-    @Query("seriesId") seriesId?: string,
-  ): Promise<ListedDiscountCode[]> {
-    return this.discounts.list({ eventId, seriesId });
+  list(@Query() dto: ListDiscountCodesQueryDto): Promise<ListedDiscountCode[]> {
+    return this.discounts.list({
+      eventId: dto.eventId,
+      seriesId: dto.seriesId,
+      q: dto.q,
+      status: dto.status,
+      from: dto.from ? new Date(dto.from) : undefined,
+      to: dto.to ? new Date(dto.to) : undefined,
+    });
   }
 
   @Get(":id/redemptions")

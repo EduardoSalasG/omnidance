@@ -10,6 +10,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -125,8 +126,17 @@ export class AcademyStaffController {
     };
   }
 
+  /**
+   * Lista del equipo. Filtro del contrato compartido (spec
+   * analytics/query-console): q = nombre o email contiene
+   * (case-insensitive); personId es FK plana → post-filtro tras el join.
+   */
   @Get(":id/staff")
-  async list(@Param("id") id: string, @Req() req: Request) {
+  async list(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("q") q?: string,
+  ) {
     await this.access.requireCapability(id, req.person!, "team");
     const rows = await this.prisma.academyStaff.findMany({
       where: { academyId: id },
@@ -151,7 +161,17 @@ export class AcademyStaffController {
         })
       ).map((p) => [p.id, p]),
     );
-    return rows.map((r) => ({
+    const term = q?.trim().toLowerCase();
+    const filtered = term
+      ? rows.filter((r) => {
+          const p = people.get(r.personId);
+          return (
+            (p?.name ?? "").toLowerCase().includes(term) ||
+            (p?.email ?? "").toLowerCase().includes(term)
+          );
+        })
+      : rows;
+    return filtered.map((r) => ({
       person: people.get(r.personId) ?? {
         id: r.personId,
         name: "(cuenta eliminada)",

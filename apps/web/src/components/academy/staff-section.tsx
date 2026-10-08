@@ -2,10 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, SkeletonList, Spinner } from "@/components/ui";
-import { readError } from "./shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import { filterQuery, readError } from "./shared";
 import type { AcademyCap } from "./use-academy-access";
+
+// El equipo no es entidad del catálogo ACADEMY_OWNER: EntityDef local
+// con la clave del contrato (spec analytics/query-console) - q sobre
+// nombre/email del colaborador.
+const STAFF_ENTITY: EntityDef = {
+  entity: "academy_staff",
+  filters: [{ key: "q", type: "text" }],
+  columns: [],
+};
 
 export type Caps = Record<AcademyCap, boolean>;
 
@@ -83,13 +94,14 @@ export function StaffSection({ academyId }: { academyId: string }) {
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
   const load = useCallback(async () => {
-    const res = await apiFetch(`/academies/${academyId}/staff`).catch(
-      () => null,
-    );
+    const res = await apiFetch(
+      `/academies/${academyId}/staff${filterQuery(filters)}`,
+    ).catch(() => null);
     setRows(res?.ok ? await res.json() : []);
-  }, [academyId]);
+  }, [academyId, filters]);
 
   useEffect(() => {
     void load();
@@ -158,6 +170,12 @@ export function StaffSection({ academyId }: { academyId: string }) {
         </h2>
         <p className="mt-1 text-xs text-ink/50">{t("desc")}</p>
       </div>
+      <FilterBar
+        entity={STAFF_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{}}
+      />
       {msg && (
         <p role="status" className="text-sm text-neon">
           {msg}

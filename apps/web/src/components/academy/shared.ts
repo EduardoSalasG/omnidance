@@ -3,6 +3,52 @@
 //   apps/api/src/academies/infrastructure/academies.controller.ts
 //   apps/api/src/academies/infrastructure/attendance.controller.ts
 
+import {
+  entityDef,
+  type EntityDef,
+  type QueryFilters,
+} from "@omnidance/shared";
+
+/**
+ * Entidad del catálogo ACADEMY_OWNER lista para FilterBar en una página
+ * de módulo (spec analytics/query-console — contrato de filtros
+ * compartido): se omiten los filtros `scope` porque la página ya fija la
+ * academia por contexto (AcademyGate).
+ */
+export function academyEntity(entity: string): EntityDef {
+  const def = entityDef("ACADEMY_OWNER", entity);
+  if (!def) {
+    throw new Error(`entidad "${entity}" no está en el catálogo ACADEMY_OWNER`);
+  }
+  return { ...def, filters: def.filters.filter((f) => !f.scope) };
+}
+
+/** Serializa QueryFilters → "?a=b&…" (string vacío si no hay filtros). */
+export function filterQuery(filters: QueryFilters): string {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v) qs.set(k, v);
+  }
+  const s = qs.toString();
+  return s ? `?${s}` : "";
+}
+
+export type FilterOption = { value: string; label: string };
+
+/**
+ * Merge estable de opciones FK cosechadas de los datos ya cargados:
+ * filtrar la lista no debe colapsar las opciones del propio filtro.
+ */
+export function mergeOptions(
+  prev: FilterOption[],
+  next: FilterOption[],
+): FilterOption[] {
+  if (next.length === 0) return prev;
+  const seen = new Set(prev.map((o) => o.value));
+  const added = next.filter((o) => !seen.has(o.value));
+  return added.length ? [...prev, ...added] : prev;
+}
+
 export const PLAN_TYPES = [
   "MONTHLY",
   "QUARTERLY",
@@ -125,7 +171,7 @@ export type MembershipPlan = {
 export type Student = {
   id: string;
   person: { id: string; name: string | null; email: string | null };
-  plan: { name: string } | null;
+  plan: { id: string; name: string } | null;
   status: EnrollmentStatus;
   startsAt: string | null;
   /** "Pagado hasta" - vigencia del plan; null = sin fecha registrada. */
@@ -203,7 +249,9 @@ export type TeachingClass = {
   date: string; // ISO - medianoche UTC (mismo manejo que /clases)
   startTime: string; // "19:00"
   endTime: string;
+  academyId: string;
   academyName: string;
+  seriesId: string;
   seriesName: string | null;
   styleName: string | null;
   levelName: string | null;

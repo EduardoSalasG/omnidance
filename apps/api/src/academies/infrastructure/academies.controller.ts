@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -49,6 +50,7 @@ import {
   AllowSandbox,
   RequirePermissions,
 } from "../../common/rbac/roles.decorator";
+import { dayRange, whitelist } from "./list-filters";
 
 const PLAN_TYPES: PlanType[] = [
   "MONTHLY",
@@ -801,10 +803,24 @@ export class AcademiesController {
 
   @Get(":id/plans")
   @UseGuards(SessionGuard)
-  async listPlans(@Param("id") id: string, @Req() req: Request) {
+  async listPlans(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("q") q?: string,
+    @Query("status") status?: string,
+  ) {
     await this.access.requireCapability(id, req.person!, "plans");
+    // Filtros del contrato compartido (spec analytics/query-console):
+    // q = nombre contiene (case-insensitive), status = active|inactive
+    // (whitelist → 400).
+    const term = q?.trim();
+    const statusF = whitelist(status, ["active", "inactive"] as const, "status");
     return this.prisma.membershipPlan.findMany({
-      where: { academyId: id },
+      where: {
+        academyId: id,
+        ...(term ? { name: { contains: term, mode: "insensitive" } } : {}),
+        ...(statusF ? { active: statusF === "active" } : {}),
+      },
       orderBy: { name: "asc" },
     });
   }
@@ -938,12 +954,46 @@ export class AcademiesController {
 
   // Listado de alumnos - requireManage: el instructor también lo ve
   // (necesita conocer a sus alumnos), no solo el owner.
+  // Filtros del contrato compartido (spec analytics/query-console,
+  // entidad `students`): q = nombre del alumno (misma semántica del
+  // engine: ≥2 chars, contains insensitive), status por whitelist,
+  // planId exacto y from/to = rango inclusivo por día sobre startedAt.
   @Get(":id/students")
   @UseGuards(SessionGuard)
-  async listStudents(@Param("id") id: string, @Req() req: Request) {
+  async listStudents(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("q") q?: string,
+    @Query("status") status?: string,
+    @Query("planId") planId?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+  ) {
     await this.access.requireManage(id, req.person!);
+    const statusF = whitelist(status, ENROLLMENT_STATUSES, "status");
+    const range = dayRange(from, to);
+    const term = q?.trim() ?? "";
+    // q filtra por nombre del alumno (personId es FK plana - join manual,
+    // misma semántica que la entidad students del query engine).
+    let personIdIn: string[] | undefined;
+    if (term.length >= 2) {
+      const matches = await this.prisma.person.findMany({
+        where: { name: { contains: term, mode: "insensitive" } },
+        select: { id: true },
+        take: 500,
+      });
+      personIdIn = matches.map((m) => m.id);
+    } else if (term) {
+      personIdIn = [];
+    }
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { academyId: id },
+      where: {
+        academyId: id,
+        ...(statusF ? { status: statusF } : {}),
+        ...(planId ? { planId } : {}),
+        ...(range ? { startedAt: range } : {}),
+        ...(personIdIn ? { personId: { in: personIdIn } } : {}),
+      },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -951,7 +1001,7 @@ export class AcademiesController {
         startedAt: true,
         endsAt: true,
         personId: true,
-        plan: { select: { name: true } },
+        plan: { select: { id: true, name: true } },
       },
     });
     // Enrollment.personId es FK plana (sin relación en schema) - join manual.
@@ -1099,10 +1149,14 @@ export class AcademiesController {
 
   @Get(":id/slots")
   @UseGuards(SessionGuard)
-  async listSlots(@Param("id") id: string, @Req() req: Request) {
+  async listSlots(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("seriesId") seriesId?: string,
+  ) {
     await this.access.requireCapability(id, req.person!, "schedule");
     return this.prisma.classSlot.findMany({
-      where: { academyId: id },
+      where: { academyId: id, ...(seriesId ? { seriesId } : {}) },
       orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
       include: {
         series: { select: { id: true, name: true } },

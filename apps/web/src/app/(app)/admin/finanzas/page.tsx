@@ -14,6 +14,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import { entityDef, type QueryFilters } from "@omnidance/shared";
 
 // ── Contratos (spec admin-finance-console) ────────────────────────────
 
@@ -119,6 +121,15 @@ type Tab = "payouts" | "accrual" | "payments" | "saas";
 const TABS: Tab[] = ["payouts", "accrual", "payments", "saas"];
 const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"] as const;
 
+// Filtros = EntityDef del catálogo compartido (spec analytics/query-console):
+// mismos params que /query/run. `payments` va a /admin/browse/payments
+// (status/orderType/from/to whitelists del engine); `payouts` va a
+// /admin/payouts que ya acepta actorType/status - el rango from/to se
+// aplica en cliente sobre periodStart porque ese controller vive fuera
+// del módulo admin y no recibe params de fecha.
+const PAYOUTS_DEF = entityDef("ADMIN", "payouts");
+const PAYMENTS_DEF = entityDef("ADMIN", "payments");
+
 function isoDay(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -193,21 +204,39 @@ function FinancePanel() {
   const [mrr, setMrr] = useState<Mrr | null>(null);
   const [tabError, setTabError] = useState(false);
 
+  // Filtros de las dos listas consultables - auto-aplican vía los
+  // useCallback de carga (cambiar un filtro recrea el loader → refetch).
+  // payments arranca en PAID: es la vista histórica actual del tab.
+  const [payoutsFilters, setPayoutsFilters] = useState<QueryFilters>({});
+  const [paymentsFilters, setPaymentsFilters] = useState<QueryFilters>({
+    status: "PAID",
+  });
+
   const loadPayouts = useCallback(async () => {
-    const res = await apiFetch("/admin/payouts");
+    const params = new URLSearchParams();
+    for (const k of ["actorType", "status"] as const) {
+      const v = payoutsFilters[k];
+      if (v) params.set(k, v);
+    }
+    const qs = params.toString();
+    const res = await apiFetch(`/admin/payouts${qs ? `?${qs}` : ""}`);
     if (!res.ok) return setTabError(true);
     setPayouts(await res.json());
-  }, []);
+  }, [payoutsFilters]);
   const loadAccrual = useCallback(async () => {
     const res = await apiFetch("/admin/finance/accrual");
     if (!res.ok) return setTabError(true);
     setAccrual(await res.json());
   }, []);
   const loadPayments = useCallback(async () => {
-    const res = await apiFetch("/admin/browse/payments?status=PAID");
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(paymentsFilters)) {
+      if (v) params.set(k, v);
+    }
+    const res = await apiFetch(`/admin/browse/payments?${params}`);
     if (!res.ok) return setTabError(true);
     setPayments(await res.json());
-  }, []);
+  }, [paymentsFilters]);
   const loadMrr = useCallback(async () => {
     const res = await apiFetch("/admin/finance/mrr");
     if (!res.ok) return setTabError(true);
@@ -286,6 +315,16 @@ function FinancePanel() {
   }
 
   // ── Render ──────────────────────────────────────────────────────────
+
+  // /admin/payouts no recibe from/to (controller fuera del módulo admin):
+  // el rango del FilterBar se aplica en cliente sobre periodStart.
+  const inPayoutRange = (p: PayoutRow) => {
+    const d = p.periodStart.slice(0, 10);
+    if (payoutsFilters.from && d < payoutsFilters.from) return false;
+    if (payoutsFilters.to && d > payoutsFilters.to) return false;
+    return true;
+  };
+  const visiblePayouts = payouts?.filter(inPayoutRange) ?? null;
 
   const gmvTotal = summary
     ? summary.gmv.social + summary.gmv.academy + summary.gmv.saas
@@ -386,14 +425,22 @@ function FinancePanel() {
       )}
 
       {/* ── Liquidaciones ── */}
+      {tab === "payouts" && PAYOUTS_DEF && (
+        <FilterBar
+          entity={PAYOUTS_DEF}
+          filters={payoutsFilters}
+          onChange={setPayoutsFilters}
+          options={{}}
+        />
+      )}
       {tab === "payouts" &&
         (payouts == null ? (
           <SkeletonList items={3} />
-        ) : payouts.length === 0 ? (
+        ) : (visiblePayouts ?? []).length === 0 ? (
           <p className="text-sm text-ink/50">{t("finance.payoutsEmpty")}</p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {payouts.map((p) => (
+            {(visiblePayouts ?? []).map((p) => (
               <li key={p.id}>
                 <Card className="flex flex-col gap-2 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -561,6 +608,14 @@ function FinancePanel() {
         ))}
 
       {/* ── Pagos ── */}
+      {tab === "payments" && PAYMENTS_DEF && (
+        <FilterBar
+          entity={PAYMENTS_DEF}
+          filters={paymentsFilters}
+          onChange={setPaymentsFilters}
+          options={{}}
+        />
+      )}
       {tab === "payments" &&
         (payments == null ? (
           <SkeletonList items={3} />

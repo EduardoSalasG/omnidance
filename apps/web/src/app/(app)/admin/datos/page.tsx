@@ -3,43 +3,37 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, PillTabs, type BadgeVariant, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  PillTabs,
+  RefreshIcon,
+  SkeletonList,
+  type BadgeVariant,
+} from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
-import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
+import { FilterBar, type QueryOption } from "@/components/query/FilterBar";
+import {
+  SavedQueries,
+  type SavedQuery,
+} from "@/components/query/SavedQueries";
+import type {
+  EntityDef,
+  QueryFilters,
+  SavedReportParams,
+} from "@omnidance/shared";
 
-// ── Contrato GET /admin/browse/:entity (BrowseController) ──────────────
-
-type Entity =
-  | "events"
-  | "classes"
-  | "payments"
-  | "tickets"
-  | "academies"
-  | "venues"
-  | "rentals"
-  | "people"
-  | "leads"
-  | "payment-events"
-  | "gateway-transactions"
-  | "membership-subscriptions";
-
-const ENTITIES: Entity[] = [
-  "events",
-  "classes",
-  "payments",
-  "tickets",
-  "academies",
-  "venues",
-  "rentals",
-  "people",
-  "leads",
-  "payment-events",
-  "gateway-transactions",
-  "membership-subscriptions",
-];
+// ── /admin/datos sobre el query engine (spec analytics/query-console, D5+D6)
+// Entidades y filtros vienen del catálogo compartido
+// (GET /query/catalog?role=ADMIN - fuente de verdad de lo consultable);
+// las filas se siguen pidiendo a /admin/browse/:entity (shape `objects`
+// con acciones por fila - convert lead, payloads, verify-chain) con los
+// mismos params que declara el catálogo. Encima: export CSV/PDF de
+// /query/export.* y consultas guardadas de /query/saved (lente ADMIN).
 
 type Ref = { id: string; name: string } | null;
 
@@ -142,116 +136,25 @@ type SubscriptionRow = {
   person: Ref;
   academy: Ref;
 };
-
-// ── Filtros soportados por entidad (whitelist del controller) ──────────
-
-const EVENT_STATUSES = ["DRAFT", "PUBLISHED", "LIVE", "CLOSED", "CANCELLED"];
-const PAYMENT_STATUSES = ["PENDING", "PAID", "FAILED", "REFUNDED"];
-const ORDER_TYPES = [
-  "TICKET",
-  "SERIES_PASS",
-  "MEMBERSHIP",
-  "PRIVATE_LESSON",
-  "WORKSHOP",
-];
-const TICKET_STATUSES = ["ACTIVE", "USED", "CANCELLED", "TRANSFERRED"];
-const RENTAL_STATUSES = ["REQUESTED", "CONFIRMED", "CANCELLED"];
-const LEAD_STATUSES = ["NEW", "CONTACTED", "CONVERTED", "DISCARDED"];
-const LEAD_INTENTS = ["CONTACT", "DEMO"];
-// Whitelists del controller para las entidades de auditoría (el resto
-// de sus filtros son texto libre: paymentId, actor, endpoint…).
-const GATEWAY_DIRECTIONS = ["OUTBOUND", "INBOUND_WEBHOOK"];
-const GATEWAY_OK = ["true", "false"];
-const SUBSCRIPTION_STATUSES = [
-  "PENDING_CARD",
-  "ACTIVATING",
-  "ACTIVE",
-  "CANCEL_PENDING",
-  "CANCELED",
-  "FAILED_CARD",
-];
-
-type Option = { value: string; label: string };
-
-// Fuentes de opciones para selects FK - listados admin ya existentes.
-type OptionSource =
-  | "producers"
-  | "venues"
-  | "academies"
-  | "styles"
-  | "events"
-  | "roles";
-
-const FILTER_SOURCES: Record<Entity, Partial<Record<string, OptionSource>>> = {
-  events: { producerId: "producers", venueId: "venues" },
-  classes: { academyId: "academies", styleId: "styles" },
-  tickets: { eventId: "events" },
-  rentals: { venueId: "venues" },
-  people: { role: "roles" },
-  payments: {},
-  academies: {},
-  venues: {},
-  leads: {},
-  "payment-events": {},
-  "gateway-transactions": {},
-  "membership-subscriptions": { academyId: "academies" },
+// Shape `objects` de la entidad payouts del engine (admin actor resuelto
+// a {id,name} según actorType).
+type PayoutRow = {
+  id: string;
+  actorType: string;
+  actor: Ref;
+  periodStart: string;
+  periodEnd: string;
+  gross: number;
+  platformFee: number;
+  net: number;
+  status: string;
+  paidAt: string | null;
 };
 
-const STATIC_OPTIONS: Record<string, string[]> = {
-  "events.status": EVENT_STATUSES,
-  "payments.status": PAYMENT_STATUSES,
-  "payments.orderType": ORDER_TYPES,
-  "tickets.status": TICKET_STATUSES,
-  "rentals.status": RENTAL_STATUSES,
-  "leads.status": LEAD_STATUSES,
-  "leads.intent": LEAD_INTENTS,
-  "gateway-transactions.direction": GATEWAY_DIRECTIONS,
-  "gateway-transactions.ok": GATEWAY_OK,
-  "membership-subscriptions.status": SUBSCRIPTION_STATUSES,
+type CatalogResponse = {
+  entities: EntityDef[];
+  options: Record<string, QueryOption[]>;
 };
-
-// Claves de filtro → param del query string que entiende el controller.
-const ENTITY_PARAMS: Record<Entity, string[]> = {
-  events: ["q", "status", "from", "to", "producerId", "venueId"],
-  classes: ["academyId", "styleId", "from", "to"],
-  payments: ["status", "orderType", "from", "to"],
-  tickets: ["status", "eventId"],
-  academies: ["q"],
-  venues: ["q"],
-  rentals: ["status", "venueId"],
-  people: ["q", "role"],
-  leads: ["q", "status", "intent", "from", "to"],
-  "payment-events": ["paymentId", "type", "actor", "from", "to"],
-  "gateway-transactions": [
-    "paymentId",
-    "correlationId",
-    "endpoint",
-    "direction",
-    "ok",
-    "from",
-    "to",
-  ],
-  "membership-subscriptions": [
-    "personId",
-    "academyId",
-    "status",
-    "from",
-    "to",
-  ],
-};
-
-const HAS_Q = new Set<Entity>(["events", "academies", "venues", "people", "leads"]);
-const HAS_DATES = new Set<Entity>([
-  "events",
-  "classes",
-  "payments",
-  "leads",
-  "payment-events",
-  "gateway-transactions",
-  "membership-subscriptions",
-]);
-
-const DEBOUNCE_MS = 300;
 
 const clp = new Intl.NumberFormat("es-CL", {
   style: "currency",
@@ -271,6 +174,7 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
   PAID: "neon",
   CONFIRMED: "neon",
   ACTIVE: "neon",
+  APPROVED: "neon",
   CANCELLED: "outline",
   REFUNDED: "outline",
   FAILED: "live",
@@ -279,10 +183,11 @@ const STATUS_VARIANT: Record<string, BadgeVariant> = {
 };
 
 /**
- * /admin/datos - explorador operacional por categoría sobre
- * GET /admin/browse/:entity. Las pills cambian de entidad; los filtros
- * se aplican solos (q con debounce, selects/fechas al cambiar) y el API
- * capa el resultado en 100 filas.
+ * /admin/datos - explorador operacional sobre el catálogo de consultas:
+ * las pills son las entidades del lente ADMIN, la barra de filtros es la
+ * compartida (FilterBar, auto-aplicada) y el listado interactivo sigue
+ * saliendo de GET /admin/browse/:entity (objects, cap 100). Export
+ * CSV/PDF va por /query/export.* y las guardadas por /query/saved.
  */
 export default function AdminDatosPage() {
   const t = useTranslations("admin");
@@ -302,17 +207,34 @@ function DatosPanel() {
   const ta = useTranslations("analytics");
   const tp = useTranslations("profile");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
-  const [entity, setEntity] = useState<Entity>("events");
-  const [q, setQ] = useState("");
-  const [debouncedQ, setDebouncedQ] = useState("");
-  const [filters, setFilters] = useState<Record<string, string>>({});
-  const [fkOptions, setFkOptions] = useState<Record<string, Option[]>>({});
+  // ── Catálogo del lente ADMIN (entidades habilitadas + opciones FK) ───
+  const [catalogPhase, setCatalogPhase] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [entities, setEntities] = useState<EntityDef[]>([]);
+  const [options, setOptions] = useState<Record<string, QueryOption[]>>({});
+
+  const [entity, setEntity] = useState<string>("");
+  const [filters, setFilters] = useState<QueryFilters>({});
 
   const [rows, setRows] = useState<unknown[] | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "error">("loading");
   // Lead en conversión - deshabilita su botón mientras el POST corre.
   const [convertingLead, setConvertingLead] = useState<string | null>(null);
+  // Verify-chain por pago: id en vuelo + último resultado por paymentId.
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [chainResult, setChainResult] = useState<
+    Record<string, { ok: boolean; events: number; firstBadSeq?: number }>
+  >({});
+
+  // ── Consultas guardadas del lente ────────────────────────────────────
+  const [saved, setSaved] = useState<SavedQuery[]>([]);
+  const [savedBusy, setSavedBusy] = useState<string | null>(null);
+  const [saveName, setSaveName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const statusLabel = (s: string) =>
     ta.has(`statusLabels.${s}`) ? ta(`statusLabels.${s}`) : s;
@@ -320,83 +242,39 @@ function DatosPanel() {
     ta.has(`orderTypes.${s}`) ? ta(`orderTypes.${s}`) : s;
   const roleLabel = (r: string) =>
     tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
+  const actorTypeLabel = (s: string) =>
+    tq.has(`optionLabels.${s}`) ? tq(`optionLabels.${s}`) : s;
 
-  // ── Opciones de selects FK ────────────────────────────────────────────
-
-  const loadSource = useCallback(
-    async (source: OptionSource): Promise<Option[]> => {
-      switch (source) {
-        case "producers": {
-          const res = await apiFetch("/admin/browse/people?role=PRODUCER");
-          if (!res.ok) return [];
-          const list = (await res.json()) as { id: string; name: string }[];
-          return list.map((p) => ({ value: p.id, label: p.name }));
-        }
-        case "venues": {
-          const res = await apiFetch("/admin/browse/venues");
-          if (!res.ok) return [];
-          const list = (await res.json()) as VenueRow[];
-          return list.map((v) => ({ value: v.id, label: v.name }));
-        }
-        case "academies": {
-          const res = await apiFetch("/admin/browse/academies");
-          if (!res.ok) return [];
-          const list = (await res.json()) as AcademyRow[];
-          return list.map((a) => ({ value: a.id, label: a.name }));
-        }
-        case "styles": {
-          const res = await apiFetch("/admin/catalogs/styles");
-          if (!res.ok) return [];
-          const list = (await res.json()) as { id: string; name: string }[];
-          return list.map((s) => ({ value: s.id, label: s.name }));
-        }
-        case "events": {
-          const res = await apiFetch("/admin/browse/events");
-          if (!res.ok) return [];
-          const list = (await res.json()) as EventRow[];
-          return list.map((e) => ({
-            value: e.id,
-            label: `${e.name} · ${dateFmt.format(new Date(e.startsAt))}`,
-          }));
-        }
-        case "roles": {
-          const res = await apiFetch("/admin/roles");
-          if (!res.ok) return [];
-          const list = (await res.json()) as { key: string; label: string }[];
-          return list.map((r) => ({ value: r.key, label: r.label }));
-        }
-      }
-    },
-    [],
-  );
-
-  // Carga perezosa: solo las fuentes que la entidad activa necesita.
-  useEffect(() => {
-    const sources = Object.values(FILTER_SOURCES[entity]).filter(
-      (s): s is OptionSource => !!s,
-    );
-    for (const source of sources) {
-      if (fkOptions[source]) continue;
-      void loadSource(source).then((opts) =>
-        setFkOptions((prev) =>
-          prev[source] ? prev : { ...prev, [source]: opts },
-        ),
+  const loadCatalog = useCallback(async () => {
+    setCatalogPhase("loading");
+    try {
+      const res = await apiFetch("/query/catalog?role=ADMIN");
+      if (!res.ok) return setCatalogPhase("error");
+      const data = (await res.json()) as CatalogResponse;
+      const list = data.entities ?? [];
+      setEntities(list);
+      setOptions(data.options ?? {});
+      setEntity((prev) =>
+        prev && list.some((e) => e.entity === prev)
+          ? prev
+          : (list[0]?.entity ?? ""),
       );
+      setCatalogPhase("ready");
+    } catch {
+      setCatalogPhase("error");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entity, loadSource]);
-
-  // ── Fetch de resultados ───────────────────────────────────────────────
+  }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQ(q.trim()), DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [q]);
+    void loadCatalog();
+  }, [loadCatalog]);
 
+  // ── Fetch de resultados (auto-aplica al cambiar filtros/entidad) ────
+  // Los nombres de filtro del catálogo son los params de /admin/browse.
   const load = useCallback(async () => {
+    if (!entity) return;
     const params = new URLSearchParams();
-    for (const key of ENTITY_PARAMS[entity]) {
-      const value = key === "q" ? debouncedQ : (filters[key] ?? "");
+    for (const [key, value] of Object.entries(filters)) {
       if (value) params.set(key, value);
     }
     setPhase("loading");
@@ -410,11 +288,98 @@ function DatosPanel() {
     } catch {
       setPhase("error");
     }
-  }, [entity, debouncedQ, filters]);
+  }, [entity, filters]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // ── Consultas guardadas (GET/POST/PATCH/DELETE /query/saved) ────────
+  const loadSaved = useCallback(async () => {
+    try {
+      const res = await apiFetch("/query/saved?role=ADMIN");
+      if (!res.ok) return;
+      const data = (await res.json()) as { saved?: SavedQuery[] };
+      setSaved(data.saved ?? []);
+    } catch {
+      // Lista auxiliar - si falla queda la del estado previo.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (catalogPhase === "ready") void loadSaved();
+  }, [catalogPhase, loadSaved]);
+
+  async function saveCurrent() {
+    const name = saveName.trim();
+    if (!name || !entity || saving) return;
+    setSaving(true);
+    setNotice(null);
+    try {
+      const res = await apiFetch("/query/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: "ADMIN",
+          name,
+          params: { entity, filters } satisfies SavedReportParams,
+        }),
+      });
+      if (res.ok) {
+        setSaveName("");
+        setNotice(tq("saved.created"));
+        void loadSaved();
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function renameSaved(id: string, name: string) {
+    setSavedBusy(id);
+    try {
+      const res = await apiFetch(`/query/saved/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) await loadSaved();
+    } finally {
+      setSavedBusy(null);
+    }
+  }
+
+  async function deleteSaved(id: string) {
+    setSavedBusy(id);
+    try {
+      const res = await apiFetch(`/query/saved/${id}`, { method: "DELETE" });
+      if (res.ok) await loadSaved();
+    } finally {
+      setSavedBusy(null);
+    }
+  }
+
+  // Plantilla/guardada seleccionada: precarga entidad + filtros (la lista
+  // se re-carga sola por el efecto sobre `filters`/`entity`).
+  function applyParams(params: SavedReportParams) {
+    if (!entities.some((e) => e.entity === params.entity)) return;
+    setEntity(params.entity);
+    setFilters({ ...params.filters });
+  }
+
+  function selectEntity(e: string) {
+    setEntity(e);
+    setFilters({});
+  }
+
+  // Export completo (sin cap) - <a download> por el proxy same-origin.
+  function exportHref(format: "csv" | "pdf"): string {
+    const params = new URLSearchParams({ role: "ADMIN", entity });
+    for (const [key, value] of Object.entries(filters)) {
+      if (value) params.set(key, value);
+    }
+    return `/api/query/export.${format}?${params.toString()}`;
+  }
 
   // Convierte el lead en usuario real: crea/enlaza la Person en modo
   // pendiente y le envía magic link + notificación para completar datos.
@@ -430,70 +395,24 @@ function DatosPanel() {
     }
   }
 
-  function selectEntity(e: string) {
-    setEntity(e as Entity);
-    setQ("");
-    setDebouncedQ("");
-    setFilters({});
-  }
-
-  function setFilter(key: string, value: string) {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  }
-
-  // ── UI helpers ────────────────────────────────────────────────────────
-
-  const filterLabel = (key: string): string => {
-    const map: Record<string, string> = {
-      status: t("datos.filters.status"),
-      orderType: t("datos.filters.orderType"),
-      producerId: t("datos.filters.producer"),
-      venueId: t("datos.filters.venue"),
-      academyId: t("datos.filters.academy"),
-      styleId: t("datos.filters.style"),
-      eventId: t("datos.filters.event"),
-      role: t("datos.filters.role"),
-      intent: t("datos.filters.intent"),
-      paymentId: t("datos.filters.paymentId"),
-      personId: t("datos.filters.personId"),
-      type: t("datos.filters.type"),
-      actor: t("datos.filters.actor"),
-      endpoint: t("datos.filters.endpoint"),
-      direction: t("datos.filters.direction"),
-      correlationId: t("datos.filters.correlationId"),
-      ok: t("datos.filters.ok"),
-    };
-    return map[key] ?? key;
-  };
-
-  // Label de una opción de select: orderType tiene su mapa propio; el
-  // resto intenta datos.optionLabels (true/false, direction…) y cae al
-  // catálogo de estados compartido (statusLabel).
-  const valueLabel = (key: string) => (v: string) =>
-    key === "orderType"
-      ? orderLabel(v)
-      : t.has(`datos.optionLabels.${v}`)
-        ? t(`datos.optionLabels.${v}`)
-        : statusLabel(v);
-
-  const optionsFor = (key: string): Option[] => {
-    const staticList = STATIC_OPTIONS[`${entity}.${key}`];
-    if (staticList) {
-      const labelOf = valueLabel(key);
-      return staticList.map((v) => ({ value: v, label: labelOf(v) }));
+  // Re-calcula el hash-chain del ledger del pago (GET verify-chain) y
+  // muestra integridad en la propia fila - evidencia anti-tamper.
+  async function verifyChain(paymentId: string) {
+    setVerifying(paymentId);
+    try {
+      const res = await apiFetch(`/admin/payments/${paymentId}/verify-chain`);
+      if (res.ok) {
+        const data = (await res.json()) as {
+          ok: boolean;
+          events: number;
+          firstBadSeq?: number;
+        };
+        setChainResult((prev) => ({ ...prev, [paymentId]: data }));
+      }
+    } finally {
+      setVerifying(null);
     }
-    const source = FILTER_SOURCES[entity][key];
-    return source ? (fkOptions[source] ?? []) : [];
-  };
-
-  // Keys con opciones (whitelist estática o fuente FK) → select; el
-  // resto (ids, tipo, actor, endpoint…) → input de texto libre.
-  const isOptionKey = (key: string) =>
-    !!STATIC_OPTIONS[`${entity}.${key}`] || !!FILTER_SOURCES[entity][key];
-
-  const selectKeys = ENTITY_PARAMS[entity].filter(
-    (k) => k !== "q" && k !== "from" && k !== "to",
-  );
+  }
 
   // ── Render de filas por entidad ───────────────────────────────────────
 
@@ -539,6 +458,7 @@ function DatosPanel() {
       }
       case "payments": {
         const r = row as PaymentRow;
+        const chain = chainResult[r.id];
         return (
           <RowShell
             key={r.id}
@@ -552,6 +472,31 @@ function DatosPanel() {
               dateTimeFmt.format(new Date(r.createdAt)),
             ]}
             tail={`${t("datos.cols.net")}: ${clp.format(r.net)}`}
+            action={
+              <span className="mt-1 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={verifying === r.id}
+                  onClick={() => void verifyChain(r.id)}
+                  className="inline-flex min-h-9 items-center gap-2 self-start rounded-full border border-ink/20 px-3.5 text-xs font-semibold text-ink/70 transition-colors hover:bg-ink/10 active:scale-[0.97] disabled:opacity-60"
+                >
+                  {verifying === r.id && <Spinner size="sm" />}
+                  {t("datos.verifyChain")}
+                </button>
+                {chain &&
+                  (chain.ok ? (
+                    <span className="text-xs font-medium text-neon">
+                      {t("datos.chainOk", { events: chain.events })}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-red-400">
+                      {t("datos.chainBroken", {
+                        seq: chain.firstBadSeq ?? 0,
+                      })}
+                    </span>
+                  ))}
+              </span>
+            }
           />
         );
       }
@@ -776,6 +721,27 @@ function DatosPanel() {
           />
         );
       }
+      case "payouts": {
+        const r = row as PayoutRow;
+        return (
+          <RowShell
+            key={r.id}
+            title={r.actor?.name ?? r.id.slice(0, 8)}
+            badge={r.status}
+            badgeLabel={statusLabel(r.status)}
+            meta={[
+              actorTypeLabel(r.actorType),
+              `${dateFmt.format(new Date(r.periodStart))} – ${dateFmt.format(new Date(r.periodEnd))}`,
+              r.paidAt
+                ? t("datos.payoutPaidAt", {
+                    date: dateFmt.format(new Date(r.paidAt)),
+                  })
+                : null,
+            ]}
+            tail={`${t("datos.cols.net")}: ${clp.format(r.net)}`}
+          />
+        );
+      }
       default:
         return <li key={i} />;
     }
@@ -784,102 +750,27 @@ function DatosPanel() {
   // Sin q ni rol, people devuelve [] por diseño - mostrar el hint en vez
   // de un vacío ambiguo.
   const peopleNeedsQuery =
-    entity === "people" && !filters.role && debouncedQ.length < 2;
+    entity === "people" &&
+    !filters.role &&
+    (filters.q ?? "").trim().length < 2;
+
+  const entityDef =
+    entities.find((e) => e.entity === entity) ?? undefined;
 
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-ink/60">{t("datos.subtitle")}</p>
 
-      <PillTabs
-        ariaLabel={t("datos.title")}
-        active={entity}
-        onSelect={selectEntity}
-        items={ENTITIES.map((e) => ({
-          key: e,
-          label: t(`datos.entity.${e}`),
-        }))}
-      />
+      {catalogPhase === "loading" && <SkeletonList />}
 
-      {/* Filtros - auto-aplican; q va con debounce. */}
-      <section className="flex flex-col gap-3" aria-label={t("datos.title")}>
-        {HAS_Q.has(entity) && (
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={t("datos.filters.search")}
-            aria-label={t("datos.filters.search")}
-            className={inputCls}
-          />
-        )}
-        {(selectKeys.length > 0 || HAS_DATES.has(entity)) && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {selectKeys.map((key) => (
-              <label key={key} className="flex flex-col gap-1">
-                <span className="text-xs text-ink/50">
-                  {filterLabel(key)}
-                </span>
-                {isOptionKey(key) ? (
-                  <select
-                    value={filters[key] ?? ""}
-                    onChange={(e) => setFilter(key, e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="">{t("datos.filters.all")}</option>
-                    {optionsFor(key).map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={filters[key] ?? ""}
-                    onChange={(e) => setFilter(key, e.target.value)}
-                    className={inputCls}
-                  />
-                )}
-              </label>
-            ))}
-            {HAS_DATES.has(entity) && (
-              <>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-ink/50">
-                    {t("datos.filters.from")}
-                  </span>
-                  <input
-                    type="date"
-                    value={filters.from ?? ""}
-                    onChange={(e) => setFilter("from", e.target.value)}
-                    className={inputCls}
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-xs text-ink/50">
-                    {t("datos.filters.to")}
-                  </span>
-                  <input
-                    type="date"
-                    value={filters.to ?? ""}
-                    onChange={(e) => setFilter("to", e.target.value)}
-                    className={inputCls}
-                  />
-                </label>
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      {phase === "error" && (
+      {catalogPhase === "error" && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">
             {tc("error")}
           </p>
           <button
             type="button"
-            onClick={() => void load()}
+            onClick={() => void loadCatalog()}
             className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink/10 px-4 text-sm font-semibold text-ink/70"
           >
             <RefreshIcon /> {tc("retry")}
@@ -887,23 +778,120 @@ function DatosPanel() {
         </div>
       )}
 
-      {phase === "loading" && rows === null && <SkeletonList />}
-      {phase === "loading" && rows !== null && (
-        <p role="status" className="page-loading text-sm text-ink/50">
-          {tc("loading")}
-        </p>
-      )}
-
-      {phase === "ready" && rows !== null && (
+      {catalogPhase === "ready" && entities.length > 0 && (
         <>
-          {peopleNeedsQuery ? (
-            <p className="text-sm text-ink/50">{t("users.searchHint")}</p>
-          ) : rows.length === 0 ? (
-            <Card className="py-6 text-center">
-              <p className="text-sm text-ink/70">{t("datos.empty")}</p>
-            </Card>
-          ) : (
-            <ul className="flex flex-col gap-3">{rows.map(renderRow)}</ul>
+          <PillTabs
+            ariaLabel={t("datos.title")}
+            active={entity}
+            onSelect={selectEntity}
+            items={entities.map((e) => ({
+              key: e.entity,
+              label: tq.has(`entities.${e.entity}`)
+                ? tq(`entities.${e.entity}`)
+                : e.entity,
+            }))}
+          />
+
+          {entityDef && (
+            <FilterBar
+              entity={entityDef}
+              filters={filters}
+              onChange={setFilters}
+              options={options}
+            />
+          )}
+
+          {/* Export del resultado completo + guardar la consulta actual. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex gap-2">
+              {(["csv", "pdf"] as const).map((f) => (
+                <a
+                  key={f}
+                  href={exportHref(f)}
+                  download
+                  className={`inline-flex min-h-11 min-w-16 items-center justify-center rounded-xl border px-4 text-xs font-bold uppercase tracking-wide transition-colors ${
+                    f === "csv"
+                      ? "border-line bg-surface text-ink hover:border-neon/60"
+                      : "border-neon/40 bg-neon/10 text-neon hover:border-neon/70"
+                  }`}
+                >
+                  {f}
+                </a>
+              ))}
+            </span>
+            <span className="ms-auto flex min-w-0 flex-1 gap-2 sm:flex-none">
+              <input
+                type="text"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder={tq("savePlaceholder")}
+                aria-label={tq("savePlaceholder")}
+                className={`${inputCls} min-w-0 flex-1 sm:w-56`}
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                className="shrink-0"
+                onClick={() => void saveCurrent()}
+                disabled={!saveName.trim() || saving || !entity}
+              >
+                {saving ? <Spinner size="sm" /> : null}
+                {tq("save")}
+              </Button>
+            </span>
+          </div>
+
+          <div aria-live="polite">
+            {notice && (
+              <p role="status" className="text-sm font-medium text-neon">
+                {notice}
+              </p>
+            )}
+          </div>
+
+          <SavedQueries
+            role="ADMIN"
+            saved={saved}
+            busyId={savedBusy}
+            onSelect={applyParams}
+            onRename={(id, name) => void renameSaved(id, name)}
+            onDelete={(id) => void deleteSaved(id)}
+          />
+
+          {phase === "error" && (
+            <div className="flex items-center gap-3">
+              <p role="alert" className="text-sm text-red-400">
+                {tc("error")}
+              </p>
+              <button
+                type="button"
+                onClick={() => void load()}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-ink/10 px-4 text-sm font-semibold text-ink/70"
+              >
+                <RefreshIcon /> {tc("retry")}
+              </button>
+            </div>
+          )}
+
+          {phase === "loading" && rows === null && <SkeletonList />}
+          {phase === "loading" && rows !== null && (
+            <p role="status" className="page-loading text-sm text-ink/50">
+              {tc("loading")}
+            </p>
+          )}
+
+          {phase === "ready" && rows !== null && (
+            <>
+              {peopleNeedsQuery ? (
+                <p className="text-sm text-ink/50">{t("users.searchHint")}</p>
+              ) : rows.length === 0 ? (
+                <Card className="py-6 text-center">
+                  <p className="text-sm text-ink/70">{t("datos.empty")}</p>
+                </Card>
+              ) : (
+                <ul className="flex flex-col gap-3">{rows.map(renderRow)}</ul>
+              )}
+            </>
           )}
         </>
       )}

@@ -20,6 +20,7 @@ import {
   IsBoolean,
   IsIn,
   IsInt,
+  IsISO8601,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -79,6 +80,33 @@ class RejectClaimDto {
   @IsNotEmpty()
   @MaxLength(500)
   note!: string;
+}
+
+const CLAIM_STATUSES: readonly ClaimStatus[] = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "AWAITING",
+];
+
+/**
+ * Filtros de `GET /producer/claims` - contrato compartido de la barra de
+ * filtros (spec analytics/query-console): `status` whitelist del enum
+ * ClaimStatus (inválido → 400; antes pasaba crudo a Prisma → 500),
+ * `from`/`to` sobre createdAt. Opcionales/aditivos.
+ */
+class ListClaimsQueryDto {
+  @IsOptional()
+  @IsIn(CLAIM_STATUSES)
+  status?: ClaimStatus;
+
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
 }
 
 /**
@@ -202,13 +230,16 @@ export class ProducerClaimsController {
   // ── Cola del productor ─────────────────────────────────────────────
 
   @Get("producer/claims")
-  async listClaims(
-    @Query("status") status: ClaimStatus | undefined,
-    @Req() req: Request,
-  ) {
+  async listClaims(@Query() dto: ListClaimsQueryDto, @Req() req: Request) {
     const me = req.person!;
     await this.assertProducerOrAdmin(me.id, me.roles);
-    return { claims: await this.claims.listClaims(me.id, status) };
+    return {
+      claims: await this.claims.listClaims(me.id, {
+        status: dto.status,
+        from: dto.from ? new Date(dto.from) : undefined,
+        to: dto.to ? new Date(dto.to) : undefined,
+      }),
+    };
   }
 
   /** Stream autenticado del comprobante: comprador dueño, productor o admin. */

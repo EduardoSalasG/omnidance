@@ -34,6 +34,16 @@ import {
   CLAIM_METHOD_TYPES,
 } from "./academy-claims.service";
 import { mimeForKey } from "../../storage/storage.service";
+import { dayRange, whitelist } from "./list-filters";
+
+// Whitelist del filtro `status` de la cola (spec analytics/query-console)
+// - ClaimStatus del schema, orden de la cola: accionable primero.
+const CLAIM_STATUSES: ClaimStatus[] = [
+  "PENDING",
+  "AWAITING",
+  "APPROVED",
+  "REJECTED",
+];
 
 class CreateMethodDto {
   @IsIn([...CLAIM_METHOD_TYPES])
@@ -235,15 +245,22 @@ export class AcademyClaimsController {
     return this.claims.cancel(id, claimId, req.person!.id);
   }
 
-  /** Cola de validación del owner (ordenada, con ?status=PENDING). */
+  /**
+   * Cola de validación del owner (ordenada). Filtros del contrato
+   * compartido (spec analytics/query-console): ?status= por whitelist
+   * (inválido → 400), from/to = rango inclusivo por día sobre createdAt.
+   */
   @Get(":id/claims")
   async listClaims(
     @Param("id") id: string,
-    @Query("status") status: ClaimStatus | undefined,
+    @Query("status") status: string | undefined,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
     @Req() req: Request,
   ) {
     await this.access.requireCapability(id, req.person!, "payments");
-    return this.claims.listClaims(id, status);
+    const statusF = whitelist(status, CLAIM_STATUSES, "status");
+    return this.claims.listClaims(id, statusF, dayRange(from, to));
   }
 
   /** Claims propios del alumno en esta academia. */

@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -31,6 +32,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
+import { whitelist } from "./list-filters";
 
 class SeriesSlotDto {
   @IsInt()
@@ -222,12 +224,29 @@ export class ClassSeriesController {
     private readonly notifications: NotificationsService,
   ) {}
 
-  /** Lista las series de la academia (gestión). */
+  /**
+   * Lista las series de la academia (gestión). Filtros del contrato
+   * compartido (spec analytics/query-console): q = nombre contiene,
+   * status = active|inactive (whitelist → 400), styleId exacto.
+   */
   @Get(":id/series")
-  async list(@Param("id") id: string, @Req() req: Request) {
+  async list(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("q") q?: string,
+    @Query("status") status?: string,
+    @Query("styleId") styleId?: string,
+  ) {
     await this.access.requireCapability(id, req.person!, "schedule");
+    const statusF = whitelist(status, ["active", "inactive"] as const, "status");
+    const term = q?.trim();
     return this.prisma.classSeries.findMany({
-      where: { academyId: id },
+      where: {
+        academyId: id,
+        ...(term ? { name: { contains: term, mode: "insensitive" } } : {}),
+        ...(statusF ? { active: statusF === "active" } : {}),
+        ...(styleId ? { styleId } : {}),
+      },
       orderBy: [{ month: "desc" }, { name: "asc" }],
       include: SERIES_INCLUDE,
     });

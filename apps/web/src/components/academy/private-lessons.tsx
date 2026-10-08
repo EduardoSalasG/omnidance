@@ -2,15 +2,29 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { Skeleton, SkeletonList } from "@/components/ui";
+import { FilterBar } from "@/components/query/FilterBar";
 import academyExtras from "@/i18n/parts/academyExtras.json";
-import { inputCls, readError, type Academy } from "./shared";
+import {
+  academyEntity,
+  filterQuery,
+  inputCls,
+  readError,
+  type Academy,
+  type FilterOption,
+} from "./shared";
 
 const t = academyExtras.academyExtras.lessons;
+
+// Entidad `private_lessons` del catálogo sin el scope (la página fija la
+// academia) - status, instructorId, commission y from/to con la misma
+// semántica del query engine (spec analytics/query-console).
+const LESSONS_ENTITY = academyEntity("private_lessons");
 
 function statusLabel(status: string): string {
   return (t.status as Record<string, string>)[status] ?? status;
@@ -119,6 +133,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   // ─── vista staff ───
   const [lessons, setLessons] = useState<PrivateLesson[]>([]);
   const [staffState, setStaffState] = useState<LoadState>("loading");
+  const [staffFilters, setStaffFilters] = useState<QueryFilters>({});
 
   // ─── vista instructor (mis clases como profesor, con neto) ───
   // null = fetch en vuelo → skeleton en el slot (la sección va arriba
@@ -189,7 +204,9 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
   const loadStaff = useCallback(async () => {
     setStaffState("loading");
     try {
-      const res = await apiFetch(`/academies/${academy.id}/private-lessons`);
+      const res = await apiFetch(
+        `/academies/${academy.id}/private-lessons${filterQuery(staffFilters)}`,
+      );
       if (!res.ok) {
         setStaffState("error");
         return;
@@ -199,7 +216,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     } catch {
       setStaffState("error");
     }
-  }, [academy]);
+  }, [academy, staffFilters]);
 
   useEffect(() => {
     void loadMineInstructor();
@@ -221,6 +238,23 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     if (me?.id && me.name) map.set(me.id, me.name);
     return map;
   }, [lessons, me]);
+
+  // Opciones del filtro instructorId: roster de la academia (+ nombres
+  // cosechados del join de la lista) - mismo origen que el select de
+  // asignación, no /query/options.
+  const instructorOptions = useMemo<FilterOption[]>(() => {
+    const seen = new Map<string, string>();
+    for (const i of academyInstructors) {
+      seen.set(
+        i.personId,
+        i.name ?? instructorNames.get(i.personId) ?? shortId(i.personId),
+      );
+    }
+    for (const [id, name] of instructorNames) {
+      if (!seen.has(id)) seen.set(id, name);
+    }
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
+  }, [academyInstructors, instructorNames]);
 
   const academyNames = useMemo(() => {
     const map = new Map<string, string>();
@@ -339,6 +373,12 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     <div className="flex flex-col gap-6">
       <section aria-label={t.title} className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t.title}</h2>
+          <FilterBar
+            entity={LESSONS_ENTITY}
+            filters={staffFilters}
+            onChange={setStaffFilters}
+            options={{ academyInstructors: instructorOptions }}
+          />
           {staffState === "loading" && <SkeletonList items={2} lines={1} />}
           {staffState === "error" && (
             <div className="flex items-center gap-3">

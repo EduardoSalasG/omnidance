@@ -10,7 +10,13 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { IsIn, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  IsIn,
+  IsISO8601,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from "class-validator";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
@@ -36,6 +42,16 @@ class ListQueryDto {
   @IsOptional()
   @IsString()
   personId?: string;
+
+  // Convención del query engine: rango ISO sobre issuedAt (400 si no
+  // parsea - el pipe valida @IsISO8601).
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
 }
 
 const pdfHeaders = (res: Response, folio: number, length: number) => {
@@ -71,7 +87,12 @@ export class AdminBillingController {
 
   @Get()
   list(@Query() q: ListQueryDto) {
-    return this.billing.list({ status: q.status, receiverId: q.personId });
+    return this.billing.list({
+      status: q.status,
+      receiverId: q.personId,
+      from: q.from,
+      to: q.to,
+    });
   }
 
   @Get(":id/pdf")

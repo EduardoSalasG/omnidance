@@ -3,17 +3,24 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate, type BadgeVariant, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { FilterBar } from "@/components/query/FilterBar";
 import {
+  academyEntity,
   ENROLLMENT_STATUSES,
+  filterQuery,
   fromDateInput,
   inputCls,
+  mergeOptions,
   planDateFmt,
   readError,
   toDateInput,
   type EnrollmentStatus,
+  type FilterOption,
+  type MembershipPlan,
   type Student,
 } from "./shared";
 
@@ -22,6 +29,11 @@ type Props = {
   /** Instructor: ve la lista y fichas, pero no crea enrollments ni cambia status. */
   readOnly?: boolean;
 };
+
+// Entidad `students` del catálogo sin el scope (la página ya fija la
+// academia) - q, status, planId, from, to con semántica idéntica al
+// query engine (spec analytics/query-console).
+const STUDENTS_ENTITY = academyEntity("students");
 
 const STATUS_VARIANT: Record<EnrollmentStatus, BadgeVariant> = {
   ACTIVE: "neon",
@@ -51,27 +63,63 @@ export function StudentsSection({
   const [error, setError] = useState(false);
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
   const [patching, setPatching] = useState<string | null>(null);
+  const [filters, setFilters] = useState<QueryFilters>({});
+  // Opciones del filtro planId: GET plans (cap "plans") + cosecha del
+  // listado como fallback cuando el rol no alcanza ese endpoint.
+  const [planOptions, setPlanOptions] = useState<FilterOption[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
-      const res = await apiFetch(`/academies/${academyId}/students`);
+      const res = await apiFetch(
+        `/academies/${academyId}/students${filterQuery(filters)}`,
+      );
       if (!res.ok) {
         setError(true);
         return;
       }
-      setStudents((await res.json()) as Student[]);
+      const rows = (await res.json()) as Student[];
+      setStudents(rows);
+      setPlanOptions((prev) =>
+        mergeOptions(
+          prev,
+          rows.flatMap((s) =>
+            s.plan ? [{ value: s.plan.id, label: s.plan.name }] : [],
+          ),
+        ),
+      );
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [academyId]);
+  }, [academyId, filters]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiFetch(`/academies/${academyId}/plans`)
+      .then(async (res) =>
+        res.ok ? ((await res.json()) as MembershipPlan[]) : [],
+      )
+      .then((plans) => {
+        if (cancelled) return;
+        setPlanOptions((prev) =>
+          mergeOptions(
+            plans.map((p) => ({ value: p.id, label: p.name })),
+            prev,
+          ),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [academyId]);
 
   async function changeStatus(id: string, next: EnrollmentStatus) {
     setPatching(id);
@@ -150,6 +198,13 @@ export function StudentsSection({
           + {t("newEnrollment")}
         </Button>
       )}
+
+      <FilterBar
+        entity={STUDENTS_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{ academyPlans: planOptions }}
+      />
 
       {loading ? (
         <SkeletonList items={3} lines={1} />

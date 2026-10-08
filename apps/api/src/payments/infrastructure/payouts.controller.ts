@@ -15,6 +15,7 @@ import {
 import {
   IsDateString,
   IsIn,
+  IsISO8601,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -33,6 +34,18 @@ const PAYOUT_STATUSES: readonly PayoutStatus[] = [
   "APPROVED",
   "PAID",
 ];
+// Vocabularios del catálogo de consultas (packages/shared query-catalog.ts:
+// ORDER_TYPES / CHANNELS) - el contrato de filtros los comparte con los
+// endpoints de lista.
+const ORDER_TYPES = [
+  "TICKET",
+  "SERIES_PASS",
+  "MEMBERSHIP",
+  "PRIVATE_LESSON",
+  "WORKSHOP",
+  "PLATFORM_SUB",
+] as const;
+const CHANNELS = ["PRESALE", "DOOR"] as const;
 
 class GeneratePayoutDto {
   @IsIn(ACTOR_TYPES)
@@ -57,6 +70,36 @@ class ListPayoutsQueryDto {
   @IsOptional()
   @IsIn(PAYOUT_STATUSES)
   status?: PayoutStatus;
+}
+
+/**
+ * Filtros de `GET /me/payouts` - contrato compartido de la barra de
+ * filtros (spec analytics/query-console): `status` enum whitelist,
+ * `orderType`/`channel` filtran liquidaciones que contienen líneas
+ * cuya orden origen coincide (PayoutLine → Payment), `from`/`to`
+ * solapan con el período (periodEnd >= from, periodStart <= to).
+ * Opcionales/aditivos; inválido → 400; desconocido → ignorado.
+ */
+class MePayoutsQueryDto {
+  @IsOptional()
+  @IsIn(PAYOUT_STATUSES)
+  status?: PayoutStatus;
+
+  @IsOptional()
+  @IsIn(ORDER_TYPES)
+  orderType?: string;
+
+  @IsOptional()
+  @IsIn(CHANNELS)
+  channel?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
 }
 
 class PayPayoutDto {
@@ -286,7 +329,7 @@ export class MePayoutsController {
 
   @Get()
   @RequirePermissions("crm.manage")
-  async mine(@Req() req: Request) {
+  async mine(@Req() req: Request, @Query() dto: MePayoutsQueryDto) {
     const personId = req.person!.id;
     const [academies, venues] = await Promise.all([
       this.prisma.academy.findMany({
@@ -313,7 +356,37 @@ export class MePayoutsController {
         actorId: { in: venues.map((v) => v.id) },
       });
     }
-    const where: Prisma.PayoutWhereInput = or.length > 1 ? { OR: or } : or[0];
+    const where: Prisma.PayoutWhereInput = {
+      ...(or.length > 1 ? { OR: or } : or[0]),
+      ...(dto.status ? { status: dto.status } : {}),
+      // orderType/channel miran la orden origen de cada línea de deducción
+      // (PayoutLine.paymentId es nullable - ajustes manuales no calzan).
+      ...(dto.orderType || dto.channel
+        ? {
+            lines: {
+              some: {
+                payment: {
+                  ...(dto.orderType ? { orderType: dto.orderType } : {}),
+                  ...(dto.channel ? { channel: dto.channel } : {}),
+                },
+              },
+            },
+          }
+        : {}),
+      // from/to solapan con el período liquidado (no con createdAt).
+      ...(dto.from || dto.to
+        ? {
+            AND: [
+              ...(dto.from
+                ? [{ periodEnd: { gte: new Date(dto.from) } }]
+                : []),
+              ...(dto.to
+                ? [{ periodStart: { lte: new Date(dto.to) } }]
+                : []),
+            ],
+          }
+        : {}),
+    };
     const payouts = await this.prisma.payout.findMany({
       where,
       orderBy: { createdAt: "desc" },

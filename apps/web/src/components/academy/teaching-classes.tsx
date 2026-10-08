@@ -3,16 +3,36 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { FilterBar } from "@/components/query/FilterBar";
 import { QuorumBar } from "./quorum-bar";
 import {
   classDayFmt,
+  filterQuery,
+  mergeOptions,
+  type FilterOption,
   type TeachingClass,
 } from "./shared";
 
 type LoadState = "loading" | "ready" | "unauth" | "forbidden" | "error";
+
+// La consola de instructor no calza con una entidad ACADEMY_OWNER del
+// catálogo (es cross-academia, sin scope): EntityDef local con las
+// mismas claves/semántica del contrato (spec analytics/query-console) -
+// academyId/seriesId por fk y from/to por día inclusivo.
+const TEACHING_ENTITY: EntityDef = {
+  entity: "teaching_classes",
+  filters: [
+    { key: "academyId", type: "fk", source: "myAcademies" },
+    { key: "seriesId", type: "fk", source: "academyClassSeries" },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
 
 /**
  * "Mis clases" del instructor - GET /classes/teaching (próximas ~30d,
@@ -26,11 +46,16 @@ export function TeachingClasses() {
 
   const [classes, setClasses] = useState<TeachingClass[] | null>(null);
   const [state, setState] = useState<LoadState>("loading");
+  const [filters, setFilters] = useState<QueryFilters>({});
+  // Opciones FK cosechadas de la lista (merge estable: filtrar no debe
+  // colapsar las opciones del propio filtro).
+  const [academyOptions, setAcademyOptions] = useState<FilterOption[]>([]);
+  const [seriesOptions, setSeriesOptions] = useState<FilterOption[]>([]);
 
   const load = useCallback(async () => {
     setState("loading");
     try {
-      const res = await apiFetch("/classes/teaching");
+      const res = await apiFetch(`/classes/teaching${filterQuery(filters)}`);
       if (res.status === 401) {
         setState("unauth");
         return;
@@ -49,19 +74,31 @@ export function TeachingClasses() {
         `${a.date}${a.startTime}`.localeCompare(`${b.date}${b.startTime}`),
       );
       setClasses(rows);
+      setAcademyOptions((prev) =>
+        mergeOptions(
+          prev,
+          rows.map((r) => ({ value: r.academyId, label: r.academyName })),
+        ),
+      );
+      setSeriesOptions((prev) =>
+        mergeOptions(
+          prev,
+          rows.map((r) => ({
+            value: r.seriesId,
+            label: r.seriesName ?? r.seriesId.slice(0, 8),
+          })),
+        ),
+      );
       setState("ready");
     } catch {
       setState("error");
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  if (state === "loading") {
-    return <SkeletonList />;
-  }
   if (state === "unauth") {
     return (
       <div className="flex flex-col items-start gap-4">
@@ -73,23 +110,32 @@ export function TeachingClasses() {
   if (state === "forbidden") {
     return <p className="text-sm text-ink/60">{t("forbidden")}</p>;
   }
-  if (state === "error") {
-    return (
-      <div className="flex items-center gap-3">
-        <p role="alert" className="text-sm text-ink/60">
-          {tc("error")}
-        </p>
-        <Button variant="secondary" size="sm" onClick={() => void load()}>
-          <RefreshIcon /> {tc("retry")}
-        </Button>
-      </div>
-    );
-  }
-  if (!classes || classes.length === 0) {
-    return <p className="text-sm text-ink/50">{t("empty")}</p>;
-  }
 
   return (
+    <div className="flex flex-col gap-4">
+      <FilterBar
+        entity={TEACHING_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{
+          myAcademies: academyOptions,
+          academyClassSeries: seriesOptions,
+        }}
+      />
+      {state === "loading" ? (
+        <SkeletonList />
+      ) : state === "error" ? (
+        <div className="flex items-center gap-3">
+          <p role="alert" className="text-sm text-ink/60">
+            {tc("error")}
+          </p>
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            <RefreshIcon /> {tc("retry")}
+          </Button>
+        </div>
+      ) : !classes || classes.length === 0 ? (
+        <p className="text-sm text-ink/50">{t("empty")}</p>
+      ) : (
     <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {classes.map((c) => {
         const reached = c.quorum > 0 && c.bookedCount >= c.quorum;
@@ -136,5 +182,7 @@ export function TeachingClasses() {
         );
       })}
     </ul>
+      )}
+    </div>
   );
 }

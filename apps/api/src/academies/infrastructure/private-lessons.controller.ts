@@ -27,6 +27,7 @@ import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
+import { dayRange, whitelist } from "./list-filters";
 
 const LESSON_ACTIONS = [
   "confirm",
@@ -37,6 +38,16 @@ const LESSON_ACTIONS = [
   "pay-commission",
 ] as const;
 type LessonAction = (typeof LESSON_ACTIONS)[number];
+
+// Filtros del listado staff (spec analytics/query-console, entidad
+// `private_lessons` del catálogo ACADEMY_OWNER) - mismas whitelists.
+const PRIVATE_LESSON_STATUS = [
+  "REQUESTED",
+  "CONFIRMED",
+  "DONE",
+  "CANCELLED",
+] as const;
+const COMMISSION_OPTS = ["all", "paid", "pending"] as const;
 
 class RequestPrivateLessonDto {
   /** personId del instructor (también acepta el id de AcademyInstructor). */
@@ -133,14 +144,41 @@ export class PrivateLessonsController {
     });
   }
 
-  /** Staff (owner/instructor/admin) lista las clases privadas de la academia. */
+  /**
+   * Staff (owner/instructor/admin) lista las clases privadas de la
+   * academia. Filtros del contrato compartido (spec
+   * analytics/query-console): status e instructorId exactos,
+   * commission = paid|pending|all sobre commissionPaidAt, from/to =
+   * rango inclusivo por día sobre createdAt.
+   */
   @Get("academies/:id/private-lessons")
   @UseGuards(SessionGuard)
-  async list(@Param("id") id: string, @Req() req: Request) {
+  async list(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("status") status?: string,
+    @Query("instructorId") instructorId?: string,
+    @Query("commission") commission?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+  ) {
     const me = req.person!;
     const { academy } = await this.access.requireManage(id, me);
+    const statusF = whitelist(status, PRIVATE_LESSON_STATUS, "status");
+    const commissionF = whitelist(commission, COMMISSION_OPTS, "commission");
+    const range = dayRange(from, to);
     const lessons = await this.prisma.privateLesson.findMany({
-      where: { academyId: id },
+      where: {
+        academyId: id,
+        ...(statusF ? { status: statusF } : {}),
+        ...(instructorId ? { instructorId } : {}),
+        ...(commissionF === "paid"
+          ? { commissionPaidAt: { not: null } }
+          : commissionF === "pending"
+            ? { commissionPaidAt: null }
+            : {}),
+        ...(range ? { createdAt: range } : {}),
+      },
       orderBy: { scheduledAt: "asc" },
     });
     const people = await this.prisma.person.findMany({

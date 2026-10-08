@@ -2,13 +2,27 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Button, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { PlansSection } from "@/components/academy/plans-section";
+import { FilterBar } from "@/components/query/FilterBar";
 import { ConsoleHeader } from "@/components/console/console-header";
-import type { MembershipPlan } from "@/components/academy/shared";
+import { filterQuery, type MembershipPlan } from "@/components/academy/shared";
+
+// Los planes no son entidad del catálogo ACADEMY_OWNER: EntityDef local
+// con claves del contrato (spec analytics/query-console) - q sobre el
+// nombre y status = active|inactive (whitelist del endpoint).
+const PLANS_ENTITY: EntityDef = {
+  entity: "membership_plans",
+  filters: [
+    { key: "q", type: "text" },
+    { key: "status", type: "enum", options: ["active", "inactive"] },
+  ],
+  columns: [],
+};
 
 /**
  * /academia/planes - membresías de la academia seleccionada.
@@ -42,11 +56,14 @@ function PlansModule({ academyId }: { academyId: string }) {
   const tc = useTranslations("common");
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [error, setError] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
   const reload = useCallback(async () => {
     setError(false);
     try {
-      const res = await apiFetch(`/academies/${academyId}/plans`);
+      const res = await apiFetch(
+        `/academies/${academyId}/plans${filterQuery(filters)}`,
+      );
       if (!res.ok) {
         setError(true);
         return;
@@ -55,7 +72,7 @@ function PlansModule({ academyId }: { academyId: string }) {
     } catch {
       setError(true);
     }
-  }, [academyId]);
+  }, [academyId, filters]);
 
   useEffect(() => {
     void reload();
@@ -73,8 +90,15 @@ function PlansModule({ academyId }: { academyId: string }) {
       </div>
     );
   }
-  if (plans === null) {
-    return <SkeletonList />;
-  }
-  return <PlansSection plans={plans} />;
+  return (
+    <div className="flex flex-col gap-4">
+      <FilterBar
+        entity={PLANS_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{}}
+      />
+      {plans === null ? <SkeletonList /> : <PlansSection plans={plans} />}
+    </div>
+  );
 }

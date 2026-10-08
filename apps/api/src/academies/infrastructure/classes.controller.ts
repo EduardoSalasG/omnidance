@@ -33,6 +33,7 @@ import {
   lessonCardItem,
   type ClassCardRow,
 } from "./class-card-projection";
+import { filterDate } from "./list-filters";
 
 // Inscripción vigente: la que habilita ver la academia como "mía" en
 // /clases y reservar cupo. PAUSED/FROZEN no cuentan (spec de producto:
@@ -555,9 +556,18 @@ export class ClassesController {
    * por override de la instancia (class.instructorId), del slot o de la
    * serie. Requiere rol INSTRUCTOR aprobado, membresía AcademyInstructor
    * o admin.access.
+   * Filtros del contrato compartido (spec analytics/query-console):
+   * from/to acotan class.date (días inclusivos; default = próximos 30d),
+   * seriesId/academyId por slot. Fecha inválida → 400.
    */
   @Get("teaching")
-  async teaching(@Req() req: Request) {
+  async teaching(
+    @Req() req: Request,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("seriesId") seriesId?: string,
+    @Query("academyId") academyId?: string,
+  ) {
     const me = req.person!;
     const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
       "admin.access",
@@ -574,16 +584,26 @@ export class ClassesController {
       );
     }
 
-    const until = new Date(Date.now() + 30 * 86_400_000);
+    // Class.date es día a medianoche UTC: lte = el propio día `to`.
+    const gte = filterDate(from, "from") ?? new Date();
+    const lte = filterDate(to, "to") ?? new Date(Date.now() + 30 * 86_400_000);
     const classes = await this.prisma.class.findMany({
       where: {
         cancelled: false,
-        date: { gte: new Date(), lte: until },
+        date: { gte, lte },
         OR: [
           { instructorId: me.id },
           { slot: { instructorId: me.id } },
           { slot: { series: { instructorId: me.id } } },
         ],
+        ...(seriesId || academyId
+          ? {
+              slot: {
+                ...(seriesId ? { seriesId } : {}),
+                ...(academyId ? { academyId } : {}),
+              },
+            }
+          : {}),
       },
       orderBy: { date: "asc" },
       take: 200,
@@ -599,10 +619,11 @@ export class ClassesController {
             capacity: true,
             instructorId: true,
             academy: {
-              select: { name: true, defaultQuorum: true },
+              select: { id: true, name: true, defaultQuorum: true },
             },
             series: {
               select: {
+                id: true,
                 name: true,
                 quorum: true,
                 instructorId: true,
@@ -649,7 +670,9 @@ export class ClassesController {
         date: c.date,
         startTime: c.slot.startTime,
         endTime: c.slot.endTime,
+        academyId: c.slot.academy.id,
         academyName: c.slot.academy.name,
+        seriesId: c.slot.series.id,
         seriesName: c.slot.series.name,
         styleName: c.slot.series.style?.name ?? null,
         levelName: c.slot.series.level?.name ?? null,

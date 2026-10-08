@@ -12,6 +12,7 @@ import {
   type FileStorage,
 } from "../../storage/storage.service";
 import { buildBillingPdf } from "../../common/billing-pdf";
+import { dateRange } from "../../query/entities/helpers";
 
 /**
  * Documento interno de cobro (spec admin-billing-documents): emite la
@@ -193,11 +194,25 @@ export class AdminBillingService {
       }));
   }
 
-  list(opts: { status?: string; receiverId?: string; take?: number }) {
+  list(opts: {
+    status?: string;
+    receiverId?: string;
+    from?: string;
+    to?: string;
+    take?: number;
+  }) {
+    const range = dateRange(opts.from, opts.to);
     return this.prisma.billingDocument.findMany({
       where: {
-        ...(opts.status ? { status: opts.status as "ISSUED" } : {}),
+        // El controller whitelist ISSUED|VOID (@IsIn) - el cast refleja
+        // el enum Prisma real, no solo el literal.
+        ...(opts.status
+          ? {
+              status: opts.status as Prisma.BillingDocumentWhereInput["status"],
+            }
+          : {}),
         ...(opts.receiverId ? { receiverId: opts.receiverId } : {}),
+        ...(range ? { issuedAt: range } : {}),
       },
       orderBy: { folio: "desc" },
       take: Math.min(opts.take ?? 50, 200),

@@ -7,11 +7,28 @@ import { Badge, SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { AuditRow } from "@/components/admin/types";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { FilterBar } from "@/components/query/FilterBar";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
 const fmtTime = new Intl.DateTimeFormat("es-CL", {
   dateStyle: "short",
   timeStyle: "short",
 });
+
+// La bitácora no es entidad del catálogo (es ledger de admin, no query
+// de negocio), pero usa la misma barra compartida y los mismos params
+// q/type/actor/from/to que acepta GET /admin/audit.
+const AUDIT_DEF: EntityDef = {
+  entity: "audit",
+  filters: [
+    { key: "q", type: "text" },
+    { key: "type", type: "text" },
+    { key: "actor", type: "text" },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
 
 export default function AuditoriaPage() {
   const t = useTranslations("admin");
@@ -33,12 +50,18 @@ function AuditPanel() {
   // null = fetch en vuelo → skeleton; [] post-fetch = empty-state real.
   const [audit, setAudit] = useState<AuditRow[] | null>(null);
   const [actionError, setActionError] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
+  // Auto-aplicada: cambiar un filtro recrea el loader → refetch.
   const load = useCallback(async () => {
-    const res = await apiFetch("/admin/audit?limit=100");
+    const params = new URLSearchParams({ limit: "100" });
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) params.set(k, v);
+    }
+    const res = await apiFetch(`/admin/audit?${params.toString()}`);
     if (!res.ok) throw new Error("fetch failed");
     setAudit((await res.json()) as AuditRow[]);
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     void load().catch(() => setActionError(true));
@@ -53,6 +76,12 @@ function AuditPanel() {
       )}
 
       <section className="flex flex-col gap-3">
+        <FilterBar
+          entity={AUDIT_DEF}
+          filters={filters}
+          onChange={setFilters}
+          options={{}}
+        />
         {audit === null ? (
           <SkeletonList items={4} lines={1} />
         ) : audit.length === 0 ? (

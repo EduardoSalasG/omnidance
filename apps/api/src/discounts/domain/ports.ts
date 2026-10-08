@@ -19,9 +19,19 @@ export interface CreateDiscountCodeData {
   createdById: string;
 }
 
+/**
+ * Filtros del listado - incluye el contrato compartido de la barra de
+ * filtros (spec analytics/query-console): `q` calza el código (contains,
+ * insensible), `status` es derivado de expiresAt (ACTIVE = vigente o sin
+ * expiración; EXPIRED = expiresAt <= ahora), `from`/`to` sobre createdAt.
+ */
 export interface DiscountCodeFilter {
   eventId?: string;
   seriesId?: string;
+  q?: string;
+  status?: "ACTIVE" | "EXPIRED";
+  from?: Date;
+  to?: Date;
 }
 
 export type ListedDiscountCode = Pick<

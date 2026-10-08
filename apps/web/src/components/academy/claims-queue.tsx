@@ -2,8 +2,28 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, SkeletonList, Spinner } from "@/components/ui";
+import { FilterBar } from "@/components/query/FilterBar";
+import { filterQuery } from "./shared";
+
+// Los claims no son una entidad del catálogo ACADEMY_OWNER: EntityDef
+// local con las mismas claves del contrato (spec analytics/query-console)
+// - status por whitelist de ClaimStatus y from/to sobre createdAt.
+const CLAIMS_ENTITY: EntityDef = {
+  entity: "claims",
+  filters: [
+    {
+      key: "status",
+      type: "enum",
+      options: ["PENDING", "AWAITING", "APPROVED", "REJECTED"],
+    },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
 
 type QueueClaim = {
   id: string;
@@ -45,15 +65,16 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
   const load = useCallback(async () => {
     // Sin filtro: la cola necesita PENDING y el historial los resueltos;
     // una sola llamada cubre ambos.
-    const res = await apiFetch(`/academies/${academyId}/claims`).catch(
-      () => null,
-    );
+    const res = await apiFetch(
+      `/academies/${academyId}/claims${filterQuery(filters)}`,
+    ).catch(() => null);
     setClaims(res?.ok ? await res.json() : []);
-  }, [academyId]);
+  }, [academyId, filters]);
 
   useEffect(() => {
     void load();
@@ -95,7 +116,10 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
   }
 
   if (claims === null) return <SkeletonList />;
-  if (claims.length === 0) return null;
+  // Cola colapsa a nada cuando no hay claims NI filtros activos (default
+  // histórico); con un filtro puesto la barra queda visible aunque el
+  // resultado llegue vacío - si no, no habría cómo limpiarlo.
+  if (claims.length === 0 && Object.keys(filters).length === 0) return null;
 
   const pending = claims.filter((c) => c.status === "PENDING");
   // Intentos declarados en el checkout que aún no traen comprobante:
@@ -110,7 +134,13 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
     .slice(0, 20);
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
+      <FilterBar
+        entity={CLAIMS_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{}}
+      />
       {pending.length > 0 && (
         <Card className="flex flex-col gap-4">
           <div>
@@ -278,6 +308,6 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
           </ul>
         </Card>
       )}
-    </>
+    </div>
   );
 }

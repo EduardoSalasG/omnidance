@@ -16,6 +16,7 @@ import {
 import {
   IsBoolean,
   IsIn,
+  IsISO8601,
   IsOptional,
   IsString,
   Matches,
@@ -35,6 +36,7 @@ import {
   RolesGuard,
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { dateRange } from "../../query/entities/helpers";
 
 const ALL_STATUSES: RoleStatus[] = [
   "PENDING",
@@ -87,6 +89,48 @@ class UsersQueryDto {
   @IsString()
   @MaxLength(120)
   q?: string;
+
+  // Filtro por rol (mismo param/semántica que la entidad `people` del
+  // catálogo de consultas - spec analytics/query-console).
+  @IsOptional()
+  @IsString()
+  @Matches(ROLE_KEY, { message: "rol inválido" })
+  role?: string;
+}
+
+/**
+ * GET /admin/audit - mismos params que la convención del query engine:
+ * q = texto libre sobre action/targetType/targetId; type = contains
+ * sobre action; actor = actorId exacto; from/to = rango ISO sobre
+ * createdAt (mal formadas → 400 por @IsISO8601).
+ */
+class AuditQueryDto {
+  @IsOptional()
+  @IsString()
+  limit?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  q?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  type?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  actor?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
 }
 
 /**
@@ -108,20 +152,39 @@ export class AdminController {
   // ── Usuarios ──────────────────────────────────────────────────────────
 
   /**
-   * Buscador de personas - nunca lista masiva: sin `q` de ≥2 chars
-   * responde []. Busca por nombre, email o teléfono.
+   * Buscador de personas - nunca lista masiva: sin `q` de ≥2 chars ni
+   * filtro `role` responde []. Busca por nombre, email o teléfono;
+   * `role` (key del catálogo RBAC, existe o 400) lista sus titulares -
+   * misma regla que la entidad `people` del query engine.
    */
   @Get("users")
   async users(@Query() q: UsersQueryDto) {
     const term = q.q?.trim() ?? "";
-    if (term.length < 2) return [];
+    const role = q.role;
+    if (role) {
+      const exists = await this.prisma.role.findUnique({
+        where: { key: role },
+        select: { key: true },
+      });
+      if (!exists) {
+        throw new BadRequestException(
+          `rol ${role} no existe en el catálogo`,
+        );
+      }
+    }
+    if (!role && term.length < 2) return [];
     const people = await this.prisma.person.findMany({
       where: {
-        OR: [
-          { name: { contains: term, mode: "insensitive" } },
-          { email: { contains: term, mode: "insensitive" } },
-          { phone: { contains: term, mode: "insensitive" } },
-        ],
+        ...(term.length >= 2
+          ? {
+              OR: [
+                { name: { contains: term, mode: "insensitive" as const } },
+                { email: { contains: term, mode: "insensitive" as const } },
+                { phone: { contains: term, mode: "insensitive" as const } },
+              ],
+            }
+          : {}),
+        ...(role ? { roles: { some: { role } } } : {}),
       },
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -469,9 +532,35 @@ export class AdminController {
   // ── Auditoría ─────────────────────────────────────────────────────────
 
   @Get("audit")
-  auditLog(@Query("limit") limit?: string) {
-    const take = Math.min(200, Math.max(1, Number(limit) || 50));
+  auditLog(@Query() q: AuditQueryDto) {
+    const take = Math.min(200, Math.max(1, Number(q.limit) || 50));
+    const term = q.q?.trim();
+    const type = q.type?.trim();
+    const range = dateRange(q.from, q.to);
     return this.prisma.auditLog.findMany({
+      where: {
+        ...(term
+          ? {
+              OR: [
+                { action: { contains: term, mode: "insensitive" as const } },
+                {
+                  targetType: {
+                    contains: term,
+                    mode: "insensitive" as const,
+                  },
+                },
+                {
+                  targetId: { contains: term, mode: "insensitive" as const },
+                },
+              ],
+            }
+          : {}),
+        ...(type
+          ? { action: { contains: type, mode: "insensitive" as const } }
+          : {}),
+        ...(q.actor ? { actorId: q.actor } : {}),
+        ...(range ? { createdAt: range } : {}),
+      },
       orderBy: { createdAt: "desc" },
       take,
     });

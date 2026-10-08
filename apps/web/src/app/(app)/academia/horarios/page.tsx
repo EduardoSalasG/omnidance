@@ -3,13 +3,31 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Button, ChevronRightIcon, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { SlotsSection } from "@/components/academy/slots-section";
+import { FilterBar } from "@/components/query/FilterBar";
 import { ConsoleHeader } from "@/components/console/console-header";
-import type { ClassSlot } from "@/components/academy/shared";
+import {
+  filterQuery,
+  mergeOptions,
+  type ClassSlot,
+  type FilterOption,
+} from "@/components/academy/shared";
+
+// La parrilla no es entidad del catálogo ACADEMY_OWNER: EntityDef local
+// con la clave del contrato (spec analytics/query-console) - seriesId
+// filtra los slots por su serie.
+const SLOTS_ENTITY: EntityDef = {
+  entity: "class_slots",
+  filters: [
+    { key: "seriesId", type: "fk", source: "academyClassSeries" },
+  ],
+  columns: [],
+};
 
 /**
  * /academia/horarios - parrilla semanal de la academia (ClassSlot). Solo
@@ -36,20 +54,33 @@ function SlotsModule({ academyId }: { academyId: string }) {
   const ts = useTranslations("academySeries");
   const [slots, setSlots] = useState<ClassSlot[] | null>(null);
   const [error, setError] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
+  // Opciones del filtro seriesId cosechadas de la parrilla (merge
+  // estable: filtrar no colapsa las opciones del propio filtro).
+  const [seriesOptions, setSeriesOptions] = useState<FilterOption[]>([]);
 
   const reload = useCallback(async () => {
     setError(false);
     try {
-      const res = await apiFetch(`/academies/${academyId}/slots`);
+      const res = await apiFetch(
+        `/academies/${academyId}/slots${filterQuery(filters)}`,
+      );
       if (!res.ok) {
         setError(true);
         return;
       }
-      setSlots((await res.json()) as ClassSlot[]);
+      const rows = (await res.json()) as ClassSlot[];
+      setSlots(rows);
+      setSeriesOptions((prev) =>
+        mergeOptions(
+          prev,
+          rows.map((s) => ({ value: s.series.id, label: s.series.name })),
+        ),
+      );
     } catch {
       setError(true);
     }
-  }, [academyId]);
+  }, [academyId, filters]);
 
   useEffect(() => {
     void reload();
@@ -72,6 +103,12 @@ function SlotsModule({ academyId }: { academyId: string }) {
   }
   return (
     <div className="flex flex-col gap-4">
+      <FilterBar
+        entity={SLOTS_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{ academyClassSeries: seriesOptions }}
+      />
       <SlotsSection slots={slots} />
       <Link
         href="/academia/series"

@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, SkeletonList, Spinner } from "@/components/ui";
+import { FilterBar } from "@/components/query/FilterBar";
+import { CLAIM_STATUSES, filtersParams } from "./shared";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
 type QueueClaim = {
   id: string;
@@ -38,24 +41,44 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
  * ledger + notificación). El comprobante se abre en pestaña nueva por
  * el endpoint autenticado (evidencia privada).
  */
+/**
+ * Filtros de /productor/comprobantes - contrato compartido (spec
+ * analytics/query-console): status del claim (whitelist PENDING|
+ * APPROVED|REJECTED en UI; la API además acepta AWAITING) y from/to
+ * sobre createdAt. GET /producer/claims los acepta.
+ */
+const CLAIMS_ENTITY: EntityDef = {
+  entity: "claims",
+  filters: [
+    { key: "status", type: "enum", options: CLAIM_STATUSES },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
+
 export function ProducerClaimsQueue() {
   const t = useTranslations("academyPay");
   const tp = useTranslations("producer.ownMethods");
+  const tq = useTranslations("query");
 
   const [claims, setClaims] = useState<QueueClaim[] | null>(null);
+  const [filters, setFilters] = useState<QueryFilters>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const res = await apiFetch("/producer/claims").catch(() => null);
+  const load = useCallback(async (f: QueryFilters) => {
+    const res = await apiFetch(`/producer/claims${filtersParams(f)}`).catch(
+      () => null,
+    );
     setClaims(res?.ok ? ((await res.json()) as { claims: QueueClaim[] }).claims : []);
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(filters);
+  }, [load, filters]);
 
   async function approve(id: string) {
     setBusyId(id);
@@ -67,7 +90,7 @@ export function ProducerClaimsQueue() {
         body: "{}",
       });
       setMsg(res.ok ? t("approvedMsg") : t("error"));
-      await load();
+      await load(filters);
     } finally {
       setBusyId(null);
     }
@@ -86,7 +109,7 @@ export function ProducerClaimsQueue() {
       setMsg(res.ok ? t("rejectedMsg") : t("error"));
       setRejectId(null);
       setRejectNote("");
-      await load();
+      await load(filters);
     } finally {
       setBusyId(null);
     }
@@ -96,7 +119,10 @@ export function ProducerClaimsQueue() {
     orderType === "SERIES_PASS" ? tp("orderSeriesPass") : tp("orderTicket");
 
   if (claims === null) return <SkeletonList items={2} />;
-  if (claims.length === 0) return null;
+  // Sin claims ni filtros → la sección no renderiza nada (comportamiento
+  // previo); con filtros activos la barra queda para poder limpiarlos.
+  const hasFilters = Object.keys(filters).length > 0;
+  if (claims.length === 0 && !hasFilters) return null;
 
   const pending = claims.filter((c) => c.status === "PENDING");
   const resolved = claims
@@ -109,6 +135,19 @@ export function ProducerClaimsQueue() {
 
   return (
     <>
+      <FilterBar
+        entity={CLAIMS_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{}}
+      />
+
+      {claims.length === 0 && (
+        <p role="status" className="text-sm text-ink/50">
+          {tq("empty")}
+        </p>
+      )}
+
       {pending.length > 0 && (
         <Card className="flex flex-col gap-4">
           <div>

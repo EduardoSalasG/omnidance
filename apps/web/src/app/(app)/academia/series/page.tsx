@@ -5,15 +5,34 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon, XIcon } from "@/components/ui";
 import { Skeleton, SkeletonList } from "@/components/ui";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { FilterBar } from "@/components/query/FilterBar";
 import {
+  filterQuery,
   inputCls,
   readError,
   type AcademyInstructor,
+  type FilterOption,
   type NamedRef,
   type Series,
+  type SeriesStyle,
 } from "@/components/academy/shared";
+
+// Las series no son entidad del catálogo ACADEMY_OWNER: EntityDef local
+// con claves del contrato (spec analytics/query-console) - q sobre el
+// nombre, status = active|inactive y styleId exacto (whitelist del
+// endpoint).
+const SERIES_ENTITY: EntityDef = {
+  entity: "class_series",
+  filters: [
+    { key: "q", type: "text" },
+    { key: "status", type: "enum", options: ["active", "inactive"] },
+    { key: "styleId", type: "fk", source: "styles" },
+  ],
+  columns: [],
+};
 
 /**
  * /academia/series - listado de las series de clases mensuales de la
@@ -46,6 +65,10 @@ function SeriesModule({ academyId }: { academyId: string }) {
 
   const [series, setSeries] = useState<Series[] | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
+  // Opciones del filtro styleId - GET /styles (mismo catálogo que el
+  // form de serie).
+  const [styleOptions, setStyleOptions] = useState<FilterOption[]>([]);
 
   // ─── catálogos del mini-form "agregar horario" ───
   // null = fetch en vuelo → el select de instructor queda disabled y
@@ -87,7 +110,9 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const reload = useCallback(async () => {
     setLoadError(false);
     try {
-      const res = await apiFetch(`/academies/${academyId}/series`);
+      const res = await apiFetch(
+        `/academies/${academyId}/series${filterQuery(filters)}`,
+      );
       if (!res.ok) {
         setLoadError(true);
         return;
@@ -96,15 +121,26 @@ function SeriesModule({ academyId }: { academyId: string }) {
     } catch {
       setLoadError(true);
     }
-  }, [academyId]);
+  }, [academyId, filters]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
-  // Catálogos del mini-form de horario (types + instructores). Si fallan
-  // se resuelven a [] - la lista de series igual se muestra.
+  // Catálogos del mini-form de horario (types + instructores) y del
+  // filtro styleId (styles). Si fallan se resuelven a [] - la lista de
+  // series igual se muestra.
   useEffect(() => {
+    apiFetch("/styles")
+      .then(async (res) =>
+        res.ok ? ((await res.json()) as SeriesStyle[]) : [],
+      )
+      .then((styles) =>
+        setStyleOptions(
+          styles.map((s) => ({ value: s.id, label: s.name })),
+        ),
+      )
+      .catch(() => setStyleOptions([]));
     apiFetch("/classes/catalogs")
       .then(async (res) =>
         res.ok
@@ -304,6 +340,13 @@ function SeriesModule({ academyId }: { academyId: string }) {
       <Button href="/academia/series/nueva" size="sm" className="self-start">
         + {t("new")}
       </Button>
+
+      <FilterBar
+        entity={SERIES_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{ styles: styleOptions }}
+      />
 
       {actionError && (
         <p role="alert" className="text-sm text-red-400">
