@@ -15,6 +15,7 @@ import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
+import { filterDate } from "./list-filters";
 
 class RecordAttendanceDto {
   @IsString()
@@ -90,6 +91,13 @@ export class AttendanceController {
     });
   }
 
+  /**
+   * Listado de asistencias. Filtros del contrato compartido (spec
+   * analytics/query-console, entidad `attendance`): from/to = días
+   * inclusivos sobre class.date (default últimos 30d), seriesId del slot,
+   * instructorId = override de la clase o default del slot (misma
+   * semántica del engine). Fecha inválida → 400.
+   */
   @Get(":id/attendance")
   @UseGuards(SessionGuard)
   async list(
@@ -97,16 +105,31 @@ export class AttendanceController {
     @Req() req: Request,
     @Query("from") from?: string,
     @Query("to") to?: string,
+    @Query("seriesId") seriesId?: string,
+    @Query("instructorId") instructorId?: string,
   ) {
     await this.access.requireCapability(id, req.person!, "students"); // solo owner/admin
-    const gte = from ? new Date(from) : new Date(Date.now() - 30 * 86400000);
-    const lte = to ? new Date(to) : new Date();
+    const gte = filterDate(from, "from") ?? new Date(Date.now() - 30 * 86400000);
+    const lte = filterDate(to, "to") ?? new Date();
     lte.setUTCHours(23, 59, 59, 999);
     const rows = await this.prisma.attendance.findMany({
       where: {
         class: {
-          slot: { academyId: id },
+          slot: { academyId: id, ...(seriesId ? { seriesId } : {}) },
           date: { gte, lte },
+          // instructorId matchea el override de la clase o el default
+          // del slot cuando la clase no tiene override.
+          ...(instructorId
+            ? {
+                OR: [
+                  { instructorId },
+                  {
+                    instructorId: null,
+                    slot: { instructorId },
+                  },
+                ],
+              }
+            : {}),
         },
       },
       orderBy: { checkedAt: "desc" },

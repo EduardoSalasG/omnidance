@@ -2,15 +2,26 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, EventDate, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { FilterBar } from "@/components/query/FilterBar";
 import {
+  academyEntity,
+  filterQuery,
   inputCls,
   readError,
+  shortId,
   type AttendanceItem,
   type ClassSlot,
+  type FilterOption,
 } from "./shared";
+
+// Entidad `attendance` del catálogo sin el scope (la página fija la
+// academia) - from/to, seriesId e instructorId con la misma semántica
+// del query engine (spec analytics/query-console).
+const ATTENDANCE_ENTITY = academyEntity("attendance");
 
 type Props = {
   academyId: string;
@@ -32,6 +43,10 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
   const [items, setItems] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
+  const [instructorOptions, setInstructorOptions] = useState<FilterOption[]>(
+    [],
+  );
 
   const [personId, setPersonId] = useState("");
   const [slotId, setSlotId] = useState("");
@@ -44,11 +59,70 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
     [slots],
   );
 
+  // Opciones del filtro seriesId: las series de la parrilla ya cargada
+  // (slots llegan sin filtrar desde la página - la lista es estable).
+  const seriesOptions = useMemo<FilterOption[]>(() => {
+    const seen = new Map<string, string>();
+    for (const s of slots) {
+      if (!seen.has(s.series.id)) seen.set(s.series.id, s.series.name);
+    }
+    return [...seen.entries()].map(([value, label]) => ({ value, label }));
+  }, [slots]);
+
+  // Opciones del filtro instructorId: nombres del directorio
+  // GET /academies; fallback a los personIds de GET /academies/:id
+  // (mismo patrón que series/particulares - el detalle no trae nombres).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [detailRes, dirRes] = await Promise.all([
+          apiFetch(`/academies/${academyId}`),
+          apiFetch("/academies"),
+        ]);
+        const detail = detailRes.ok
+          ? ((await detailRes.json()) as {
+              instructors?: { personId: string }[];
+            })
+          : null;
+        const directory = dirRes.ok
+          ? ((await dirRes.json()) as {
+              id: string;
+              instructors?: { personId: string; name: string | null }[];
+            }[])
+          : [];
+        const dirEntry = directory.find((a) => a.id === academyId);
+        const names = new Map(
+          (dirEntry?.instructors ?? []).map((i) => [i.personId, i.name]),
+        );
+        const ids =
+          detail?.instructors?.map((i) => i.personId) ??
+          dirEntry?.instructors?.map((i) => i.personId) ??
+          [];
+        if (!cancelled) {
+          setInstructorOptions(
+            ids.map((personId) => ({
+              value: personId,
+              label: names.get(personId) ?? shortId(personId),
+            })),
+          );
+        }
+      } catch {
+        if (!cancelled) setInstructorOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [academyId]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
-      const res = await apiFetch(`/academies/${academyId}/attendance`);
+      const res = await apiFetch(
+        `/academies/${academyId}/attendance${filterQuery(filters)}`,
+      );
       if (!res.ok) {
         setError(true);
         return;
@@ -59,7 +133,7 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [academyId]);
+  }, [academyId, filters]);
 
   useEffect(() => {
     void load();
@@ -162,6 +236,16 @@ export function AttendanceSection({ academyId, slots, onChanged }: Props) {
           </div>
         </form>
       </Card>
+
+      <FilterBar
+        entity={ATTENDANCE_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{
+          academyClassSeries: seriesOptions,
+          academyInstructors: instructorOptions,
+        }}
+      />
 
       {loading ? (
         <SkeletonList items={2} lines={1} />

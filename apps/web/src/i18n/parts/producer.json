@@ -9,6 +9,7 @@
     "createEvent": "Crear evento",
     "editEvent": "Editar evento",
     "event": "Evento",
+    "pickEvent": "Elige un evento para ver sus listas.",
     "eventNotFound": "No encontramos este evento.",
     "notEditable": "Este evento ya no se puede editar.",
     "codeCreated": "Código creado.",
@@ -214,19 +215,6 @@
         "PENDING": "Pendiente",
         "APPROVED": "Aprobado",
         "PAID": "Pagado"
-      }
-    },
-    "export": {
-      "title": "Exportar",
-      "hint": "CSV para cuadrar en planilla · PDF como reporte imprimible con resumen.",
-      "sales": "Ventas",
-      "checkins": "Check-ins",
-      "guestlist": "Listas de invitados",
-      "seriesHint": "O agrega todas las fechas de la serie «{name}» (columna «evento»).",
-      "series": {
-        "sales": "Ventas de la serie",
-        "checkins": "Check-ins de la serie",
-        "guestlist": "Listas de la serie"
       }
     },
     "pro": {

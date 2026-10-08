@@ -76,6 +76,43 @@ export const PASS_TYPES = [
 export const PAYOUT_STATUSES = ["PENDING", "APPROVED", "PAID"] as const;
 export type PayoutStatus = (typeof PAYOUT_STATUSES)[number];
 
+// Vocabularios del catálogo de consultas (packages/shared query-catalog.ts:
+// ORDER_TYPES / CHANNELS) - las barras de filtros de la consola las usan
+// como options enum; los endpoints whitelistean los mismos valores.
+export const ORDER_TYPES = [
+  "TICKET",
+  "SERIES_PASS",
+  "MEMBERSHIP",
+  "PRIVATE_LESSON",
+  "WORKSHOP",
+  "PLATFORM_SUB",
+] as const;
+
+export const PAYMENT_CHANNELS = ["PRESALE", "DOOR"] as const;
+
+// GuestListEntry.status es String en el schema (comentario: PENDING|ARRIVED).
+export const GUESTLIST_ENTRY_STATUSES = ["PENDING", "ARRIVED"] as const;
+
+// ClaimStatus del schema; AWAITING es de academia (PaymentClaim) - la cola
+// del productor (TicketClaim) solo muestra estos tres.
+export const CLAIM_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
+
+// Vigencia derivada de expiresAt (el modelo no tiene status persistido).
+export const CODE_STATUSES = ["ACTIVE", "EXPIRED"] as const;
+
+/**
+ * QueryFilters (mapa plano string→string del FilterBar) → querystring.
+ * Claves con valor vacío se omiten (mismo contrato que /query/run).
+ */
+export function filtersParams(filters: Record<string, string>): string {
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(filters)) {
+    if (v) params.set(k, v);
+  }
+  const s = params.toString();
+  return s ? `?${s}` : "";
+}
+
 export const EVENT_STATUS_VARIANT: Record<string, BadgeVariant> = {
   DRAFT: "outline",
   PUBLISHED: "neon",

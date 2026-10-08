@@ -96,7 +96,7 @@ describe("ProducerClaimsController — gate", () => {
     await expect(
       ctrl.createMethod(req("me"), { type: "TRANSFER", label: "x", details: {} }),
     ).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(ctrl.listClaims(undefined, req("me"))).rejects.toBeInstanceOf(
+    await expect(ctrl.listClaims({}, req("me"))).rejects.toBeInstanceOf(
       ForbiddenException,
     );
     await expect(ctrl.approve("clm-1", req("me"))).rejects.toBeInstanceOf(
@@ -119,8 +119,22 @@ describe("ProducerClaimsController — gate", () => {
       label: "Banco",
       details: { bank: "Estado" },
     });
-    await ctrl.listClaims("PENDING" as never, req("me"));
-    expect(claims.listClaims).toHaveBeenCalledWith("me", "PENDING");
+    await ctrl.listClaims({ status: "PENDING" }, req("me"));
+    expect(claims.listClaims).toHaveBeenCalledWith("me", {
+      status: "PENDING",
+      from: undefined,
+      to: undefined,
+    });
+    // Filtros opcionales del contrato compartido: from/to se parsean a Date.
+    await ctrl.listClaims(
+      { from: "2026-10-01", to: "2026-10-31" },
+      req("me"),
+    );
+    expect(claims.listClaims).toHaveBeenCalledWith("me", {
+      status: undefined,
+      from: new Date("2026-10-01"),
+      to: new Date("2026-10-31"),
+    });
     await ctrl.approve("clm-1", req("me"));
     expect(claims.approve).toHaveBeenCalledWith("me", "clm-1", "me");
     await ctrl.reject("clm-1", { note: "monto no calza" }, req("me"));

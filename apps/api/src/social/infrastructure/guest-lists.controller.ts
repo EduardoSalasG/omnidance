@@ -7,11 +7,19 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
 } from "@nestjs/common";
-import { IsInt, IsOptional, IsString, Min } from "class-validator";
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from "class-validator";
 import type { Request, Response } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
@@ -38,6 +46,23 @@ class CreateGuestListDto {
 class AddEntryDto {
   @IsString()
   personId!: string;
+}
+
+/**
+ * Filtros de `GET /events/:eventId/guest-lists` - contrato compartido de
+ * la barra de filtros (spec analytics/query-console): `status` filtra las
+ * entries (whitelist PENDING|ARRIVED → 400 inválido), `q` busca por nombre
+ * del invitado, dueño de la lista o etiqueta. Opcionales/aditivos.
+ */
+class ListGuestListsDto {
+  @IsOptional()
+  @IsIn(["PENDING", "ARRIVED"])
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  q?: string;
 }
 
 /** Listas de invitados por evento - solo productor/staff/admin. */
@@ -78,7 +103,7 @@ export class EventGuestListsController {
   @Get(":eventId/guest-lists")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("social.manage")
-  async list(@Param("eventId") eventId: string) {
+  async list(@Param("eventId") eventId: string, @Query() dto: ListGuestListsDto) {
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       select: { id: true },
@@ -87,7 +112,11 @@ export class EventGuestListsController {
 
     const lists = await this.prisma.guestList.findMany({
       where: { eventId },
-      include: { entries: true },
+      include: {
+        entries: {
+          where: dto.status ? { status: dto.status } : {},
+        },
+      },
     });
 
     // GuestList.ownerId / GuestListEntry.personId son escalares → join manual
@@ -107,11 +136,27 @@ export class EventGuestListsController {
       return { personId: id, name: p?.name ?? "?", photoUrl: p?.photoUrl ?? null };
     };
 
-    return lists.map((l) => ({
+    const mapped = lists.map((l) => ({
       ...l,
       owner: brief(l.ownerId),
       entries: l.entries.map((e) => ({ ...e, person: brief(e.personId) })),
     }));
+
+    // q: una lista sobrevive si calza su etiqueta/dueño (conserva todas sus
+    // entries filtradas por status) o si tiene ≥1 invitado que calza (solo
+    // se muestran las entries que calzan).
+    const q = dto.q?.trim().toLowerCase();
+    if (!q) return mapped;
+    return mapped.flatMap((l) => {
+      const listMatches =
+        (l.label ?? "").toLowerCase().includes(q) ||
+        l.owner.name.toLowerCase().includes(q);
+      if (listMatches) return [l];
+      const entries = l.entries.filter((e) =>
+        e.person.name.toLowerCase().includes(q),
+      );
+      return entries.length ? [{ ...l, entries }] : [];
+    });
   }
 }
 

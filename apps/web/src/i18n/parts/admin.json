@@ -84,7 +84,8 @@
         "leads": "Leads",
         "payment-events": "Eventos de pago",
         "gateway-transactions": "Transacciones de pasarela",
-        "membership-subscriptions": "Suscripciones"
+        "membership-subscriptions": "Suscripciones",
+        "payouts": "Payouts"
       },
       "filters": {
         "search": "Buscar…",
@@ -128,6 +129,10 @@
         "canceledAt": "Cancelada {date}",
         "flowRef": "flow {id}"
       },
+      "payoutPaidAt": "Pagada {date}",
+      "verifyChain": "Verificar cadena",
+      "chainOk": "Cadena íntegra · {events} eventos",
+      "chainBroken": "Cadena rota desde seq {seq}",
       "cols": {
         "name": "Nombre",
         "date": "Fecha",

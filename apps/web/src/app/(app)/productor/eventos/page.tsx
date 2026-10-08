@@ -18,10 +18,37 @@ import {
 import {
   EVENT_STATUS_VARIANT,
   PRODUCER_ROLES,
+  filtersParams,
   type EventListItem,
 } from "@/components/producer/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import {
+  EVENT_STATUSES,
+  EVENT_TYPES,
+  type EntityDef,
+  type QueryFilters,
+} from "@omnidance/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
+
+/**
+ * Filtros de /productor/eventos - contrato compartido (spec
+ * analytics/query-console): mismos params/semántica que declara el
+ * catálogo para events, sin el scope (siempre eventos propios).
+ * GET /events/mine los acepta: q (nombre), status/type, from/to sobre
+ * startsAt.
+ */
+const EVENTS_ENTITY: EntityDef = {
+  entity: "events",
+  filters: [
+    { key: "q", type: "text" },
+    { key: "status", type: "enum", options: EVENT_STATUSES },
+    { key: "type", type: "enum", options: EVENT_TYPES },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
 
 const clp = new Intl.NumberFormat("es-CL", {
   style: "currency",
@@ -38,6 +65,7 @@ function ProducerEvents() {
   const t = useTranslations("producer");
   const te = useTranslations("events");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
   const router = useRouter();
 
   // /me compartido (MeProvider) - el gate se deriva del contexto y los
@@ -61,6 +89,7 @@ function ProducerEvents() {
   const [events, setEvents] = useState<EventListItem[] | null>(null);
   const [eventsError, setEventsError] = useState(false);
   const [eventsNonce, setEventsNonce] = useState(0);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
   // Deep-link viejo del tab central "Crear" (/productor/eventos?crear=1)
   // → redirige a la página dedicada (el tab ya apunta directo).
@@ -71,7 +100,7 @@ function ProducerEvents() {
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch("/events/mine")
+    apiFetch(`/events/mine${filtersParams(filters)}`)
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
@@ -87,7 +116,7 @@ function ProducerEvents() {
     return () => {
       cancelled = true;
     };
-  }, [eventsNonce]);
+  }, [eventsNonce, filters]);
 
   const mine = [...(events ?? [])].sort(
     (a, b) =>
@@ -138,6 +167,12 @@ function ProducerEvents() {
 
       {gate === "ready" && (
         <>
+          <FilterBar
+            entity={EVENTS_ENTITY}
+            filters={filters}
+            onChange={setFilters}
+            options={{}}
+          />
           {eventsError && (
             <div className="flex items-center gap-3">
               <p role="alert" className="text-sm text-red-400">
@@ -159,16 +194,25 @@ function ProducerEvents() {
 
           {!eventsError && events === null && <SkeletonList items={3} />}
 
-          {!eventsError && events !== null && mine.length === 0 && (
-            <Card className="flex flex-col items-center gap-4 py-10 text-center">
-              <p role="status" className="text-ink/70">
-                {t("emptyEvents")}
-              </p>
-              <Button href="/productor/eventos/nuevo">
-                {t("emptyEventsCta")}
-              </Button>
-            </Card>
-          )}
+          {!eventsError &&
+            events !== null &&
+            mine.length === 0 &&
+            (Object.keys(filters).length > 0 ? (
+              <Card className="py-10 text-center">
+                <p role="status" className="text-ink/70">
+                  {tq("empty")}
+                </p>
+              </Card>
+            ) : (
+              <Card className="flex flex-col items-center gap-4 py-10 text-center">
+                <p role="status" className="text-ink/70">
+                  {t("emptyEvents")}
+                </p>
+                <Button href="/productor/eventos/nuevo">
+                  {t("emptyEventsCta")}
+                </Button>
+              </Card>
+            ))}
 
           {mine.length > 0 && (
             <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">

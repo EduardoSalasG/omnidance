@@ -6,6 +6,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Query,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -81,12 +82,24 @@ export class VideosController {
 
   @Get(":id/videos")
   @UseGuards(SessionGuard)
-  async list(@Param("id") id: string, @Req() req: Request) {
+  async list(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("q") q?: string,
+  ) {
     const { ctx } = await this.access.loadContext(id);
     const me = req.person!;
 
+    // Filtro del contrato compartido (spec analytics/query-console):
+    // q = título contiene (case-insensitive), antes de la máscara locked.
+    const term = q?.trim();
     const videos = await this.prisma.video.findMany({
-      where: { academyId: id },
+      where: {
+        academyId: id,
+        ...(term
+          ? { title: { contains: term, mode: "insensitive" } }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
     });
 

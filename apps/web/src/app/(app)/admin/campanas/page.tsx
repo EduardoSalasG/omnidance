@@ -9,6 +9,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
 // Campañas de mail (spec admin-jobs-mail-campaigns + context-audiences):
 // el admin compone subject + HTML libre (preview en iframe sandbox) con
@@ -77,6 +79,25 @@ const CRON_PRESETS = [
   { label: "Semanal (viernes 18:00)", expr: "0 18 * * 5" },
 ];
 
+const CAMPAIGN_STATUSES = [
+  "DRAFT",
+  "SCHEDULED",
+  "SENDING",
+  "DONE",
+  "FAILED",
+  "CANCELLED",
+] as const;
+
+// Las campañas no son entidad del query catalog y su endpoint vive en el
+// módulo mail (fuera del scope admin) - la barra compartida filtra por
+// status en cliente sobre la lista ya cargada. Sin from/to: el payload
+// no expone una fecha de creación consistente.
+const CAMPAIGNS_DEF: EntityDef = {
+  entity: "campaigns",
+  filters: [{ key: "status", type: "enum", options: CAMPAIGN_STATUSES }],
+  columns: [],
+};
+
 export default function AdminCampanasPage() {
   const t = useTranslations("admin");
   return (
@@ -119,6 +140,7 @@ function scheduleLabel(c: Campaign, t: (k: string, v?: Record<string, string>) =
 function CampaignsPanel() {
   const t = useTranslations("admin");
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null);
+  const [filters, setFilters] = useState<QueryFilters>({});
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Campaign | null>(null);
@@ -157,6 +179,10 @@ function CampaignsPanel() {
   const cancellable = (c: Campaign) =>
     c.status === "DRAFT" || c.status === "SCHEDULED" || c.status === "SENDING";
 
+  const visibleCampaigns =
+    campaigns?.filter((c) => !filters.status || c.status === filters.status) ??
+    null;
+
   return (
     <>
       <section className="flex flex-col gap-3">
@@ -192,13 +218,20 @@ function CampaignsPanel() {
         />
       )}
 
+      <FilterBar
+        entity={CAMPAIGNS_DEF}
+        filters={filters}
+        onChange={setFilters}
+        options={{}}
+      />
+
       {campaigns === null ? (
         <SkeletonList items={3} />
-      ) : campaigns.length === 0 ? (
+      ) : (visibleCampaigns ?? []).length === 0 ? (
         <Card className="p-4 text-sm text-ink/60">{t("campaigns.empty")}</Card>
       ) : (
         <ul className="flex flex-col gap-3">
-          {campaigns.map((c) => (
+          {(visibleCampaigns ?? []).map((c) => (
             <Card key={c.id} className="flex flex-col gap-3 p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">

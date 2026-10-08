@@ -7,8 +7,10 @@ import { apiFetch } from "@/lib/api";
 import { Badge, Card } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { FilterBar, type QueryOption } from "@/components/query/FilterBar";
+import { entityDef, type QueryFilters } from "@omnidance/shared";
 
-// Respuesta de GET /admin/users?q= - liviana, sin detalle por rol.
+// Respuesta de GET /admin/users?q=&role= - liviana, sin detalle por rol.
 type SearchUser = {
   id: string;
   name: string;
@@ -17,8 +19,11 @@ type SearchUser = {
   roles: { role: string; status: string }[];
 };
 
+// Filtros = los de la entidad `people` del catálogo (q + role fk) - mismo
+// componente y mismos params que /admin/datos (spec analytics/query-console).
+const PEOPLE_DEF = entityDef("ADMIN", "people");
+
 const MIN_QUERY = 2;
-const DEBOUNCE_MS = 300;
 
 export default function UsuariosPage() {
   const t = useTranslations("admin");
@@ -38,36 +43,55 @@ function UsersPanel() {
   const tp = useTranslations("profile");
   const tc = useTranslations("common");
 
-  const [userQuery, setUserQuery] = useState("");
+  const [filters, setFilters] = useState<QueryFilters>({});
+  const [roleOptions, setRoleOptions] = useState<QueryOption[]>([]);
   const [users, setUsers] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [actionError, setActionError] = useState(false);
 
-  const q = userQuery.trim();
+  const q = (filters.q ?? "").trim();
+  const role = filters.role ?? "";
 
-  // Búsqueda con debounce: solo consulta el server con ≥2 caracteres
-  // (el endpoint devuelve [] con menos, nunca lista masiva).
+  // Opciones del filtro de rol - catálogo RBAC (mismas keys que acepta
+  // /admin/users?role=).
   useEffect(() => {
-    if (q.length < MIN_QUERY) {
+    apiFetch("/admin/roles")
+      .then(async (res) => {
+        if (!res.ok) return;
+        const list = (await res.json()) as { key: string; label: string }[];
+        setRoleOptions(list.map((r) => ({ value: r.key, label: r.label })));
+      })
+      .catch(() => {});
+  }, []);
+
+  // Búsqueda auto-aplicada: el endpoint nunca lista masiva - exige q de
+  // ≥2 chars o un rol (FilterBar ya mete debounce al texto).
+  useEffect(() => {
+    if (!role && q.length < MIN_QUERY) {
       setUsers([]);
       setSearched(false);
       setSearching(false);
       return;
     }
     setSearching(true);
-    const timer = setTimeout(() => {
-      apiFetch(`/admin/users?q=${encodeURIComponent(q)}`)
-        .then(async (res) => {
-          if (!res.ok) throw new Error("fetch failed");
-          setUsers((await res.json()) as SearchUser[]);
-          setSearched(true);
-        })
-        .catch(() => setActionError(true))
-        .finally(() => setSearching(false));
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [q]);
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (role) params.set("role", role);
+    apiFetch(`/admin/users?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("fetch failed");
+        if (cancelled) return;
+        setUsers((await res.json()) as SearchUser[]);
+        setSearched(true);
+      })
+      .catch(() => !cancelled && setActionError(true))
+      .finally(() => !cancelled && setSearching(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [q, role]);
 
   const roleLabel = (r: string) =>
     tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
@@ -82,23 +106,23 @@ function UsersPanel() {
         </p>
       )}
 
-      <input
-        value={userQuery}
-        onChange={(e) => setUserQuery(e.target.value)}
-        placeholder={t("users.search")}
-        aria-label={t("users.search")}
-        type="search"
-        className="min-h-[44px] w-full rounded-lg border border-ink/15 bg-canvas px-3 text-sm"
-      />
+      {PEOPLE_DEF && (
+        <FilterBar
+          entity={PEOPLE_DEF}
+          filters={filters}
+          onChange={setFilters}
+          options={{ roles: roleOptions }}
+        />
+      )}
 
-      {q.length === 0 && (
+      {!role && q.length === 0 && (
         <p className="text-sm text-ink/50">{t("users.searchHint")}</p>
       )}
-      {q.length === 1 && (
+      {!role && q.length === 1 && (
         <p className="text-sm text-ink/50">{t("users.minChars")}</p>
       )}
-      {searching && q.length >= MIN_QUERY && (
-        <p role="status" className="text-sm text-ink/50">
+      {searching && (role || q.length >= MIN_QUERY) && (
+        <p role="status" className="page-loading text-sm text-ink/50">
           {tc("loading")}
         </p>
       )}

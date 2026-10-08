@@ -9,6 +9,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls } from "@/components/academy/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
 // Consola de facturación (spec admin-billing-documents): emisión de la
 // nota de cobro interna por liquidación (idempotente - candidates sin
@@ -44,6 +46,20 @@ type BillingDoc = {
   receiver: { id: string; name: string; email: string | null };
 };
 
+// Los documentos emitidos son consultables - misma barra compartida y
+// mismos params que acepta GET /admin/billing (status whitelisted,
+// personId → receiverId, from/to sobre issuedAt).
+const BILLING_DOCS_DEF: EntityDef = {
+  entity: "billing-documents",
+  filters: [
+    { key: "status", type: "enum", options: ["ISSUED", "VOID"] },
+    { key: "personId", type: "text" },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
+
 const clp = new Intl.NumberFormat("es-CL", {
   style: "currency",
   currency: "CLP",
@@ -73,12 +89,20 @@ function BillingPanel() {
   const [voidingId, setVoidingId] = useState<string | null>(null);
   const [voidReason, setVoidReason] = useState("");
   const [voidBusy, setVoidBusy] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
+  // Auto-aplicada: cambiar un filtro recrea el loader → refetch del
+  // listado (los candidatos a emitir siempre van completos).
   const load = useCallback(async () => {
     setError(null);
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) params.set(k, v);
+    }
+    const qs = params.toString();
     const [rc, rd] = await Promise.all([
       apiFetch("/admin/billing/candidates"),
-      apiFetch("/admin/billing"),
+      apiFetch(`/admin/billing${qs ? `?${qs}` : ""}`),
     ]);
     if (!rc.ok || !rd.ok) {
       setError(await readError(rc.ok ? rd : rc));
@@ -88,7 +112,7 @@ function BillingPanel() {
     }
     setCandidates(await rc.json());
     setDocs(await rd.json());
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     void load();
@@ -197,6 +221,12 @@ function BillingPanel() {
         <h2 className="text-sm font-semibold text-ink/80">
           {t("docsTitle")}
         </h2>
+        <FilterBar
+          entity={BILLING_DOCS_DEF}
+          filters={filters}
+          onChange={setFilters}
+          options={{}}
+        />
         {docs === null ? (
           <SkeletonList items={3} />
         ) : docs.length === 0 ? (

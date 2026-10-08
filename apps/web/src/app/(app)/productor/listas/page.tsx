@@ -7,7 +7,14 @@ import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
-import { inputCls, type EventListItem } from "@/components/producer/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import {
+  GUESTLIST_ENTRY_STATUSES,
+  filtersParams,
+  inputCls,
+  type EventListItem,
+} from "@/components/producer/shared";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
 type GuestListEntry = {
   id: string;
@@ -27,12 +34,23 @@ type GuestList = {
 };
 
 /**
- * /productor/listas - listas de invitados por evento
- * (GET /events/mine, GET /events/:id/guest-lists,
- * POST /guest-lists/:id/entries). Crear lista vive en
- * /productor/listas/nueva; agregar personas queda por fila.
- * Monta solo cuando ProducerGate confirma rol.
+ * Filtros de /productor/listas - contrato compartido (spec
+ * analytics/query-console), mismo vocabulario que la entidad guestlist
+ * del catálogo: evento propio (fk, opciones del mismo /events/mine que
+ * ya cargaba la página), status de entries (PENDING|ARRIVED) y q
+ * (invitado / dueño / etiqueta) — status y q van a
+ * GET /events/:id/guest-lists.
  */
+const LISTS_ENTITY: EntityDef = {
+  entity: "guestlist",
+  filters: [
+    { key: "eventId", type: "fk", source: "events" },
+    { key: "status", type: "enum", options: GUESTLIST_ENTRY_STATUSES },
+    { key: "q", type: "text" },
+  ],
+  columns: [],
+};
+
 function GuestLists() {
   const t = useTranslations("producer");
   const ta = useTranslations("admin");
@@ -41,7 +59,10 @@ function GuestLists() {
 
   const [events, setEvents] = useState<EventListItem[] | null>(null);
 
-  const [listEventId, setListEventId] = useState("");
+  // Filtros compartidos: eventId elige el evento (path param), status/q
+  // van como query params al endpoint de guest-lists.
+  const [filters, setFilters] = useState<QueryFilters>({});
+  const listEventId = filters.eventId ?? "";
   const [lists, setLists] = useState<GuestList[] | null>(null);
   const [listsLoading, setListsLoading] = useState(false);
   const [listsError, setListsError] = useState(false);
@@ -49,7 +70,8 @@ function GuestLists() {
   const [entrySaving, setEntrySaving] = useState<string | null>(null);
   const [entryError, setEntryError] = useState<string | null>(null);
 
-  const loadLists = useCallback(async (eventId: string) => {
+  const loadLists = useCallback(async (f: QueryFilters) => {
+    const eventId = f.eventId;
     if (!eventId) {
       setLists(null);
       return;
@@ -57,7 +79,12 @@ function GuestLists() {
     setListsLoading(true);
     setListsError(false);
     try {
-      const res = await apiFetch(`/events/${eventId}/guest-lists`);
+      const res = await apiFetch(
+        `/events/${eventId}/guest-lists${filtersParams({
+          status: f.status ?? "",
+          q: f.q ?? "",
+        })}`,
+      );
       if (!res.ok) {
         setListsError(true);
         setLists([]);
@@ -80,17 +107,22 @@ function GuestLists() {
       const evs = (await evRes.json()) as EventListItem[];
       setEvents(evs);
       if (evs.length > 0) {
-        setListEventId(evs[0].id);
-        void loadLists(evs[0].id);
+        setFilters({ eventId: evs[0].id });
       }
     } else {
       setEvents([]);
     }
-  }, [loadLists]);
+  }, []);
 
   useEffect(() => {
     void boot();
   }, [boot]);
+
+  // El FilterBar es controlled: cualquier cambio (evento, status, q
+  // debounced) recarga las listas del evento elegido.
+  useEffect(() => {
+    void loadLists(filters);
+  }, [filters, loadLists]);
 
   async function addEntry(listId: string) {
     const personId = (entryDrafts[listId] ?? "").trim();
@@ -109,7 +141,7 @@ function GuestLists() {
         return;
       }
       setEntryDrafts((d) => ({ ...d, [listId]: "" }));
-      await loadLists(listEventId);
+      await loadLists(filters);
     } catch {
       setEntryError(listId);
     } finally {
@@ -149,32 +181,29 @@ function GuestLists() {
           </Card>
         ) : (
           <>
-            <label className="flex flex-col gap-2">
-              <span className="text-sm text-ink/70">{t("event")}</span>
-              <select
-                value={listEventId}
-                onChange={(e) => {
-                  setListEventId(e.target.value);
-                  void loadLists(e.target.value);
-                }}
-                className={inputCls}
-              >
-                {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <FilterBar
+              entity={LISTS_ENTITY}
+              filters={filters}
+              onChange={setFilters}
+              options={{
+                events: events.map((ev) => ({ value: ev.id, label: ev.name })),
+              }}
+            />
 
-            {listsLoading && <SkeletonList items={2} lines={1} />}
+            {!listEventId && (
+              <p className="text-sm text-ink/60">{t("pickEvent")}</p>
+            )}
+
+            {listEventId && listsLoading && (
+              <SkeletonList items={2} lines={1} />
+            )}
             {listsError && (
               <div className="flex items-center gap-3">
                 <p className="text-sm text-red-400">{tc("error")}</p>
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => void loadLists(listEventId)}
+                  onClick={() => void loadLists(filters)}
                 >
                   <RefreshIcon /> {tc("retry")}
                 </Button>

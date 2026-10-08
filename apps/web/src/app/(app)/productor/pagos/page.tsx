@@ -16,13 +16,38 @@ import {
   SkeletonList,
 } from "@/components/ui";
 import {
+  ORDER_TYPES,
+  PAYOUT_STATUSES,
   PAYOUT_STATUS_VARIANT,
+  PAYMENT_CHANNELS,
   PRODUCER_ROLES,
+  filtersParams,
   type Payout,
   type PayoutLine,
 } from "@/components/producer/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
+
+/**
+ * Filtros de /productor/pagos - contrato compartido (spec
+ * analytics/query-console), mismo vocabulario que la entidad payouts
+ * del catálogo admin: status de la liquidación, orderType/channel de la
+ * orden origen de sus líneas, from/to solapando el período.
+ * GET /me/payouts los acepta.
+ */
+const PAYOUTS_ENTITY: EntityDef = {
+  entity: "payouts",
+  filters: [
+    { key: "status", type: "enum", options: PAYOUT_STATUSES },
+    { key: "orderType", type: "enum", options: ORDER_TYPES },
+    { key: "channel", type: "enum", options: PAYMENT_CHANNELS },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
 
 /**
  * Agrupa las líneas de deducción por tipo (spec producer-fee-model):
@@ -51,6 +76,7 @@ function groupLines(lines: PayoutLine[]): [string, number, number][] {
 export default function ProducerPayoutsPage() {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
   // /me compartido (MeProvider) - el gate se deriva del contexto y las
   // liquidaciones se piden en paralelo desde el mount (un no-productor
@@ -73,10 +99,11 @@ export default function ProducerPayoutsPage() {
   const [payouts, setPayouts] = useState<Payout[] | null>(null);
   const [listError, setListError] = useState(false);
   const [listNonce, setListNonce] = useState(0);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch("/me/payouts")
+    apiFetch(`/me/payouts${filtersParams(filters)}`)
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
@@ -92,11 +119,20 @@ export default function ProducerPayoutsPage() {
     return () => {
       cancelled = true;
     };
-  }, [listNonce]);
+  }, [listNonce, filters]);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
       <BackLink href="/productor">{t("title")}</BackLink>
+
+      {gate === "ready" && (
+        <FilterBar
+          entity={PAYOUTS_ENTITY}
+          filters={filters}
+          onChange={setFilters}
+          options={{}}
+        />
+      )}
 
       {gate === "loading" && <SkeletonList items={3} />}
 
@@ -152,7 +188,9 @@ export default function ProducerPayoutsPage() {
       {gate === "ready" && !listError && payouts !== null && payouts.length === 0 && (
         <Card className="flex flex-col items-center gap-4 py-10 text-center">
           <p role="status" className="text-ink/70">
-            {t("payoutsPage.empty")}
+            {Object.keys(filters).length > 0
+              ? tq("empty")
+              : t("payoutsPage.empty")}
           </p>
         </Card>
       )}

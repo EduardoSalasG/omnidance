@@ -7,7 +7,13 @@ import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
-import type { EventOption } from "@/components/producer/shared";
+import { FilterBar } from "@/components/query/FilterBar";
+import {
+  CODE_STATUSES,
+  filtersParams,
+  type EventOption,
+} from "@/components/producer/shared";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
 type DiscountCode = {
   id: string;
@@ -26,13 +32,26 @@ type DiscountCode = {
 const fmtDay = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
 
 /**
- * /productor/codigos - códigos de descuento del productor
- * (GET /discount-codes). La creación vive en /productor/codigos/nuevo.
- * Monta solo cuando ProducerGate confirma rol.
+ * Filtros de /productor/codigos - contrato compartido (spec
+ * analytics/query-console): q sobre el código, status derivado de
+ * expiresAt (ACTIVE|EXPIRED), from/to sobre createdAt.
+ * GET /discount-codes los acepta.
  */
+const CODES_ENTITY: EntityDef = {
+  entity: "discountCodes",
+  filters: [
+    { key: "q", type: "text" },
+    { key: "status", type: "enum", options: CODE_STATUSES },
+    { key: "from", type: "date" },
+    { key: "to", type: "date" },
+  ],
+  columns: [],
+};
+
 function DiscountCodes() {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
+  const tq = useTranslations("query");
 
   // null = GET /events en vuelo - solo se usa para resolver el nombre del
   // evento ligado a cada código.
@@ -40,11 +59,12 @@ function DiscountCodes() {
 
   const [codes, setCodes] = useState<DiscountCode[] | null>(null);
   const [codesError, setCodesError] = useState(false);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
-  const loadCodes = useCallback(async () => {
+  const loadCodes = useCallback(async (f: QueryFilters) => {
     setCodesError(false);
     try {
-      const res = await apiFetch("/discount-codes");
+      const res = await apiFetch(`/discount-codes${filtersParams(f)}`);
       if (!res.ok) {
         setCodesError(true);
         return;
@@ -58,20 +78,23 @@ function DiscountCodes() {
   const boot = useCallback(async () => {
     // Eventos para el label del código + listado en paralelo. Fallo de
     // /events → [] resuelto: la columna "evento" simplemente no aparece.
-    const [evRes] = await Promise.all([
-      apiFetch("/events").catch(() => null),
-      loadCodes(),
-    ]);
+    const evRes = await apiFetch("/events").catch(() => null);
     if (evRes?.ok) {
       setEvents((await evRes.json()) as EventOption[]);
     } else {
       setEvents([]);
     }
-  }, [loadCodes]);
+  }, []);
 
   useEffect(() => {
     void boot();
   }, [boot]);
+
+  // El FilterBar es controlled: cada cambio recarga la lista (q va
+  // debounced desde la barra).
+  useEffect(() => {
+    void loadCodes(filters);
+  }, [loadCodes, filters]);
 
   const eventName = (id: string | null) =>
     id ? ((events ?? []).find((e) => e.id === id)?.name ?? null) : null;
@@ -89,6 +112,12 @@ function DiscountCodes() {
       />
 
       <section className="flex flex-col gap-4">
+        <FilterBar
+          entity={CODES_ENTITY}
+          filters={filters}
+          onChange={setFilters}
+          options={{}}
+        />
         {codes === null && !codesError && <SkeletonList />}
         {codesError && (
           <div className="flex items-center gap-3">
@@ -96,22 +125,30 @@ function DiscountCodes() {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => void loadCodes()}
+              onClick={() => void loadCodes(filters)}
             >
               <RefreshIcon /> {tc("retry")}
             </Button>
           </div>
         )}
-        {codes !== null && codes.length === 0 && (
-          <Card className="flex flex-col items-center gap-4 py-10 text-center">
-            <p role="status" className="text-ink/70">
-              {t("empty")}
-            </p>
-            <Button href="/productor/codigos/nuevo">
-              {`＋ ${t("newCode")}`}
-            </Button>
-          </Card>
-        )}
+        {codes !== null &&
+          codes.length === 0 &&
+          (Object.keys(filters).length > 0 ? (
+            <Card className="py-10 text-center">
+              <p role="status" className="text-ink/70">
+                {tq("empty")}
+              </p>
+            </Card>
+          ) : (
+            <Card className="flex flex-col items-center gap-4 py-10 text-center">
+              <p role="status" className="text-ink/70">
+                {t("empty")}
+              </p>
+              <Button href="/productor/codigos/nuevo">
+                {`＋ ${t("newCode")}`}
+              </Button>
+            </Card>
+          ))}
         {codes !== null && codes.length > 0 && (
           <ul className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             {codes.map((c) => (

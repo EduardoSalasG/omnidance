@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import {
@@ -12,10 +13,20 @@ import {
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { FilterBar } from "@/components/query/FilterBar";
 import academyExtras from "@/i18n/parts/academyExtras.json";
-import { readError, type Academy } from "./shared";
+import { filterQuery, readError, type Academy } from "./shared";
 
 const t = academyExtras.academyExtras.videos;
+
+// Los videos no son entidad del catálogo ACADEMY_OWNER: EntityDef local
+// con la clave del contrato (spec analytics/query-console) - q sobre el
+// título del video.
+const VIDEOS_ENTITY: EntityDef = {
+  entity: "academy_videos",
+  filters: [{ key: "q", type: "text" }],
+  columns: [],
+};
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -59,6 +70,7 @@ export function Videos({ academy }: { academy: Academy }) {
   const [state, setState] = useState<LoadState>("loading");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<QueryFilters>({});
 
   const canAdminister =
     !!me && (me.roles.includes("ADMIN") || me.id === academy.ownerId);
@@ -66,7 +78,9 @@ export function Videos({ academy }: { academy: Academy }) {
   const load = useCallback(async () => {
     setState("loading");
     try {
-      const res = await apiFetch(`/academies/${academy.id}/videos`);
+      const res = await apiFetch(
+        `/academies/${academy.id}/videos${filterQuery(filters)}`,
+      );
       if (!res.ok) {
         setState("error");
         return;
@@ -76,7 +90,7 @@ export function Videos({ academy }: { academy: Academy }) {
     } catch {
       setState("error");
     }
-  }, [academy.id]);
+  }, [academy.id, filters]);
 
   useEffect(() => {
     void load();
@@ -114,6 +128,13 @@ export function Videos({ academy }: { academy: Academy }) {
           </Button>
         )}
       </div>
+
+      <FilterBar
+        entity={VIDEOS_ENTITY}
+        filters={filters}
+        onChange={setFilters}
+        options={{}}
+      />
 
       {state === "loading" && <SkeletonList items={2} lines={1} />}
       {state === "error" && (

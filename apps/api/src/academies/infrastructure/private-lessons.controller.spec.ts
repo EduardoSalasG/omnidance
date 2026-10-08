@@ -169,14 +169,31 @@ class FakePrisma {
     findMany: async ({
       where,
     }: {
-      where: { academyId?: string; personId?: string; instructorId?: string };
+      where: {
+        academyId?: string;
+        personId?: string;
+        instructorId?: string;
+        status?: string;
+        commissionPaidAt?: { not: null } | null;
+        createdAt?: { gte?: Date; lte?: Date };
+      };
     }) =>
       this.lessons.filter(
         (l) =>
           (where.academyId === undefined || l.academyId === where.academyId) &&
           (where.personId === undefined || l.personId === where.personId) &&
           (where.instructorId === undefined ||
-            l.instructorId === where.instructorId),
+            l.instructorId === where.instructorId) &&
+          (where.status === undefined || l.status === where.status) &&
+          (where.commissionPaidAt === undefined ||
+            (where.commissionPaidAt === null
+              ? l.commissionPaidAt == null
+              : l.commissionPaidAt != null)) &&
+          (where.createdAt === undefined ||
+            ((where.createdAt.gte === undefined ||
+              l.createdAt >= where.createdAt.gte) &&
+              (where.createdAt.lte === undefined ||
+                l.createdAt <= where.createdAt.lte))),
       ),
   };
 
@@ -709,5 +726,155 @@ describe("GET /private-lessons/:id - ficha de la particular", () => {
     expect(res.instructor).toBeNull();
     expect(res.scheduledAt).toBeNull();
     expect(res.academy).toMatchObject({ name: "Academia Uno" });
+  });
+});
+
+// Filtros del listado staff (spec analytics/query-console, entidad
+// `private_lessons` del catálogo): status/instructorId/commission/
+// from,to con la misma semántica del query engine; enums por whitelist.
+describe("list staff - filtros del contrato compartido", () => {
+  let prisma: FakePrisma;
+  let lessons: PrivateLessonsController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    const access = new AcademyAccess(prisma as unknown as PrismaService);
+    lessons = new PrivateLessonsController(
+      prisma as unknown as PrismaService,
+      access,
+      { notifySafe: async () => undefined } as unknown as NotificationsService,
+    );
+    prisma.academies.push({
+      id: "ac-1",
+      ownerId: "owner",
+      name: "Academia Uno",
+      active: true,
+    });
+    prisma.instructors.push({
+      academyId: "ac-1",
+      personId: "inst",
+      commissionPct: 25,
+    });
+    prisma.lessons.push(
+      {
+        id: "les-done",
+        academyId: "ac-1",
+        instructorId: "inst",
+        personId: "alumno",
+        scheduledAt: new Date(),
+        price: 40000,
+        commissionPct: 25,
+        commissionPaidAt: new Date(),
+        status: "DONE",
+        createdAt: new Date("2026-01-10T12:00:00Z"),
+      },
+      {
+        id: "les-conf",
+        academyId: "ac-1",
+        instructorId: "inst",
+        personId: "alumno",
+        scheduledAt: new Date(),
+        price: 40000,
+        commissionPct: 25,
+        commissionPaidAt: null,
+        status: "CONFIRMED",
+        createdAt: new Date("2026-02-10T12:00:00Z"),
+      },
+      {
+        id: "les-req",
+        academyId: "ac-1",
+        instructorId: null,
+        personId: "alumno",
+        scheduledAt: null,
+        price: 40000,
+        commissionPct: 0,
+        status: "REQUESTED",
+        createdAt: new Date("2026-03-15T12:00:00Z"),
+      },
+    );
+  });
+
+  it("sin params devuelve todo; status e instructorId filtran", async () => {
+    const all = await lessons.list("ac-1", reqAs("owner"));
+    expect(all).toHaveLength(3);
+    const done = await lessons.list("ac-1", reqAs("owner"), "DONE");
+    expect(done.map((l) => l.id)).toEqual(["les-done"]);
+    const byInstructor = await lessons.list(
+      "ac-1",
+      reqAs("owner"),
+      undefined,
+      "inst",
+    );
+    expect(byInstructor.map((l) => l.id)).toEqual(["les-done", "les-conf"]);
+  });
+
+  it("enum inválido → 400 (status y commission)", async () => {
+    await expect(
+      lessons.list("ac-1", reqAs("owner"), "NOPE"),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      lessons.list("ac-1", reqAs("owner"), undefined, undefined, "quizas"),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("commission=paid/pending mapea a commissionPaidAt", async () => {
+    const paid = await lessons.list(
+      "ac-1",
+      reqAs("owner"),
+      undefined,
+      undefined,
+      "paid",
+    );
+    expect(paid.map((l) => l.id)).toEqual(["les-done"]);
+    const pending = await lessons.list(
+      "ac-1",
+      reqAs("owner"),
+      undefined,
+      undefined,
+      "pending",
+    );
+    expect(pending.map((l) => l.id)).toEqual(["les-conf", "les-req"]);
+    const todo = await lessons.list(
+      "ac-1",
+      reqAs("owner"),
+      undefined,
+      undefined,
+      "all",
+    );
+    expect(todo).toHaveLength(3);
+  });
+
+  it("from/to acotan createdAt por día inclusivo; fecha inválida → 400", async () => {
+    const feb = await lessons.list(
+      "ac-1",
+      reqAs("owner"),
+      undefined,
+      undefined,
+      undefined,
+      "2026-02-01",
+      "2026-02-28",
+    );
+    expect(feb.map((l) => l.id)).toEqual(["les-conf"]);
+    // `to` del mismo día incluye createdAt a cualquier hora del día.
+    const mismoDia = await lessons.list(
+      "ac-1",
+      reqAs("owner"),
+      undefined,
+      undefined,
+      undefined,
+      "2026-02-10",
+      "2026-02-10",
+    );
+    expect(mismoDia.map((l) => l.id)).toEqual(["les-conf"]);
+    await expect(
+      lessons.list(
+        "ac-1",
+        reqAs("owner"),
+        undefined,
+        undefined,
+        undefined,
+        "no-es-fecha",
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

@@ -364,9 +364,17 @@ export class AcademyClaimsService {
   }
 
   /** Cola de validación del owner, ordenada por antigüedad. */
-  listClaims(academyId: string, status?: ClaimStatus) {
+  listClaims(
+    academyId: string,
+    status?: ClaimStatus,
+    createdAt?: { gte?: Date; lte?: Date },
+  ) {
     return this.prisma.paymentClaim.findMany({
-      where: { academyId, ...(status ? { status } : {}) },
+      where: {
+        academyId,
+        ...(status ? { status } : {}),
+        ...(createdAt ? { createdAt } : {}),
+      },
       orderBy: [{ status: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,

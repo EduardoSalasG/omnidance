@@ -249,9 +249,28 @@ export class ProducerClaimsService {
 
   // ── Cola del productor ─────────────────────────────────────────────
 
-  listClaims(producerId: string, status?: ClaimStatus) {
+  /**
+   * Cola del productor con filtros opcionales del contrato compartido
+   * (spec analytics/query-console): `status` ya whitelisteado en el
+   * controller, `from`/`to` sobre createdAt.
+   */
+  listClaims(
+    producerId: string,
+    filter: { status?: ClaimStatus; from?: Date; to?: Date } = {},
+  ) {
     return this.prisma.ticketClaim.findMany({
-      where: { producerId, ...(status ? { status } : {}) },
+      where: {
+        producerId,
+        ...(filter.status ? { status: filter.status } : {}),
+        ...(filter.from || filter.to
+          ? {
+              createdAt: {
+                ...(filter.from ? { gte: filter.from } : {}),
+                ...(filter.to ? { lte: filter.to } : {}),
+              },
+            }
+          : {}),
+      },
       orderBy: [{ status: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
