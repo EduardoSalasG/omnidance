@@ -286,9 +286,13 @@ type DrawerSpec = {
     | "academySeries"
     | "adminCatalogs"
     | "producerParams"
-    | "analytics";
+    | "analytics"
+    | "query";
   key: string;
   icon: string;
+  // true = active solo con match exacto (raíces de módulo cuyo prefijo
+  // también matchea sus sub-páginas - p.ej. /analitica vs /analitica/*).
+  exact?: boolean;
 };
 
 type DrawerGroupSpec = {
@@ -297,20 +301,32 @@ type DrawerGroupSpec = {
   labelNs: "nav" | "producer" | "academy" | "admin" | "analytics";
   labelKey: string;
   items: DrawerSpec[];
+  // true = el grupo se renderiza como acordeón plegable en drawer y
+  // sidebar (ver DrawerGroup.collapsible en SideDrawer).
+  collapsible?: boolean;
 };
 
 // Grupo "Analítica" del drawer - módulo transversal a los roles con
-// analítica (no vive bajo el dominio de ninguna consola).
+// analítica (no vive bajo el dominio de ninguna consola). Acordeón:
+// el header "Analítica" pliega sus páginas (Dashboard + Consultas).
 const ANALYTICS_DRAWER_GROUP = (items: DrawerSpec[]): DrawerGroupSpec => ({
   labelNs: "analytics",
   labelKey: "title",
+  collapsible: true,
   items,
 });
-const ANALYTICS_DRAWER_ITEM: DrawerSpec = {
+const ANALYTICS_DASHBOARD_ITEM: DrawerSpec = {
   href: "/analitica",
-  ns: "analytics",
-  key: "title",
+  ns: "query",
+  key: "tabs.dashboard",
   icon: ICONS.slider,
+  exact: true,
+};
+const ANALYTICS_QUERIES_ITEM: DrawerSpec = {
+  href: "/analitica/consultas",
+  ns: "query",
+  key: "tabs.queries",
+  icon: ICONS.list,
 };
 
 // Sheet del bailarín - módulos secundarios por lente (social/academia).
@@ -380,7 +396,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
-    ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM]),
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_DASHBOARD_ITEM, ANALYTICS_QUERIES_ITEM]),
     {
       labelNs: "nav",
       labelKey: "socialSection",
@@ -445,7 +461,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
-    ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM]),
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_DASHBOARD_ITEM, ANALYTICS_QUERIES_ITEM]),
   ],
   INSTRUCTOR: [
     {
@@ -510,7 +526,8 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
   ],
   SUPPORT: [],
-  VENUE_MANAGER: [ANALYTICS_DRAWER_GROUP([ANALYTICS_DRAWER_ITEM])],
+  // Venue: solo dashboard - no tiene datasets en Consultas este slice.
+  VENUE_MANAGER: [ANALYTICS_DRAWER_GROUP([ANALYTICS_DASHBOARD_ITEM])],
   ADMIN: [
     {
       labelNs: "admin",
@@ -555,7 +572,8 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       ],
     },
     ANALYTICS_DRAWER_GROUP([
-      ANALYTICS_DRAWER_ITEM,
+      ANALYTICS_DASHBOARD_ITEM,
+      ANALYTICS_QUERIES_ITEM,
       {
         href: "/analitica/usuarios",
         ns: "admin",
@@ -684,6 +702,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     adminCatalogs: useTranslations("adminCatalogs"),
     producerParams: useTranslations("producerParams"),
     analytics: useTranslations("analytics"),
+    query: useTranslations("query"),
   } as const;
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
@@ -849,14 +868,20 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       ]
     : roleDrawer.map((g) => ({
         label: labelFor(g.labelNs, g.labelKey),
-        items: g.items.map((spec) => ({
-          href: spec.href,
-          label: labelFor(spec.ns, spec.key),
-          icon: icon(spec.icon)(
-            !tabHrefs.has(spec.href) && pathname.startsWith(spec.href),
-          ),
-          active: !tabHrefs.has(spec.href) && pathname.startsWith(spec.href),
-        })),
+        collapsible: g.collapsible,
+        items: g.items.map((spec) => {
+          const active =
+            !tabHrefs.has(spec.href) &&
+            (spec.exact
+              ? pathname === spec.href
+              : pathname.startsWith(spec.href));
+          return {
+            href: spec.href,
+            label: labelFor(spec.ns, spec.key),
+            icon: icon(spec.icon)(active),
+            active,
+          };
+        }),
       }));
 
   const hasDrawerItems = drawerGroups.some((g) => g.items.length > 0);

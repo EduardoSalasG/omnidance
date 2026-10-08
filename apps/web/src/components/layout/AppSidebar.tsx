@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
-import type { DrawerGroup } from "./SideDrawer";
+import type { DrawerGroup, DrawerItem } from "./SideDrawer";
 
 const NAV_ID = "app-sidebar-nav";
 
@@ -94,49 +95,12 @@ export function AppSidebar({
       >
         <ul className={`flex flex-col ${collapsed ? "" : "gap-5"}`}>
           {visibleGroups.map((group, i) => (
-            <li
+            <SidebarGroup
               key={group.label}
-              className={
-                collapsed && i > 0
-                  ? "mt-3 border-t border-line pt-3"
-                  : undefined
-              }
-            >
-              {!collapsed && (
-                <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
-                  {group.label}
-                </h3>
-              )}
-              <ul className="flex flex-col">
-                {group.items.map((item) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      data-tour={item.dataTour}
-                      aria-current={item.active ? "page" : undefined}
-                      {...(collapsed
-                        ? { "aria-label": item.label, title: item.label }
-                        : {})}
-                      className={`flex min-h-11 items-center rounded-xl py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98] ${
-                        collapsed ? "justify-center px-0" : "gap-3 px-3"
-                      } ${
-                        item.active
-                          ? "bg-neon/10 text-neon"
-                          : "text-ink/80 hover:bg-elevated hover:text-ink"
-                      }`}
-                    >
-                      <span
-                        aria-hidden
-                        className={item.active ? "text-neon" : "text-ink/50"}
-                      >
-                        {item.icon}
-                      </span>
-                      {!collapsed && item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </li>
+              group={group}
+              collapsed={collapsed}
+              separated={collapsed && i > 0}
+            />
           ))}
         </ul>
       </nav>
@@ -159,5 +123,109 @@ export function AppSidebar({
         </button>
       </div>
     </aside>
+  );
+}
+
+/**
+ * Grupo de la sidebar desktop. Con `collapsible` (solo en modo expandido)
+ * el header es un toggle acordeón que pliega los ítems - arranca abierto
+ * si la ruta activa está dentro y reabre al aterrizar en un ítem suyo.
+ * En riel colapsado los ítems van planos con separador entre grupos.
+ */
+function SidebarGroup({
+  group,
+  collapsed,
+  separated,
+}: {
+  group: DrawerGroup;
+  collapsed: boolean;
+  separated: boolean;
+}) {
+  const anyActive = group.items.some((item) => item.active);
+  const [open, setOpen] = useState(anyActive);
+  const listId = useId();
+  const collapsible = !!group.collapsible && !collapsed;
+
+  useEffect(() => {
+    if (anyActive) setOpen(true);
+  }, [anyActive]);
+
+  const headerCls =
+    "text-xs font-semibold uppercase tracking-wide text-ink/40";
+
+  return (
+    <li className={separated ? "mt-3 border-t border-line pt-3" : undefined}>
+      {!collapsed &&
+        (collapsible ? (
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls={listId}
+            onClick={() => setOpen((o) => !o)}
+            className={`mb-1 flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-left transition-colors hover:text-ink/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${headerCls}`}
+          >
+            {group.label}
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`h-4 w-4 transition-transform motion-reduce:transition-none ${
+                open ? "rotate-90" : ""
+              }`}
+            >
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </button>
+        ) : (
+          <h3 className={`mb-1 px-3 ${headerCls}`}>{group.label}</h3>
+        ))}
+      {(!collapsible || open) && (
+        <ul id={listId} className="flex flex-col">
+          {group.items.map((item) => (
+            <SidebarItem key={item.href} item={item} collapsed={collapsed} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function SidebarItem({
+  item,
+  collapsed,
+}: {
+  item: DrawerItem;
+  collapsed: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        href={item.href}
+        data-tour={item.dataTour}
+        aria-current={item.active ? "page" : undefined}
+        {...(collapsed
+          ? { "aria-label": item.label, title: item.label }
+          : {})}
+        className={`flex min-h-11 items-center rounded-xl py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98] ${
+          collapsed ? "justify-center px-0" : "gap-3 px-3"
+        } ${
+          item.active
+            ? "bg-neon/10 text-neon"
+            : "text-ink/80 hover:bg-elevated hover:text-ink"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={item.active ? "text-neon" : "text-ink/50"}
+        >
+          {item.icon}
+        </span>
+        {!collapsed && item.label}
+      </Link>
+    </li>
   );
 }
