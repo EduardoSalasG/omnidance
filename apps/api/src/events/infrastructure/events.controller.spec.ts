@@ -100,14 +100,19 @@ class FakePrisma {
   payments: FakePayment[] = [];
   roles: FakeRole[] = [];
   people = new Map<string, FakePerson>();
+  /** Último `where` recibido por event.findMany - tests de mine() lo inspeccionan. */
+  eventLastWhere: unknown = null;
 
   event = {
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.events.find((e) => e.id === where.id) ?? null,
-    findMany: async ({ where }: { where: { seriesId?: string } }) =>
-      this.events.filter(
+    findMany: async (args: { where?: { seriesId?: string } }) => {
+      const where = args.where ?? {};
+      this.eventLastWhere = where;
+      return this.events.filter(
         (e) => where.seriesId === undefined || e.seriesId === where.seriesId,
-      ),
+      );
+    },
   };
 
   eventSeries = {
@@ -122,6 +127,8 @@ class FakePrisma {
       where: { eventId: string | { in: string[] } };
     }) =>
       this.checkins.filter((c) => matchEventId(c.eventId, where.eventId)),
+    // mine() agrega el pulso por groupBy - stub vacío (sin stats).
+    groupBy: async () => [] as { eventId: string; _count: { _all: number } }[],
   };
 
   guestList = {
@@ -136,6 +143,8 @@ class FakePrisma {
   payment = {
     findMany: async ({ where }: { where: { id: { in: string[] } } }) =>
       this.payments.filter((p) => where.id.in.includes(p.id)),
+    // mine() agrega el bruto por groupBy - stub vacío.
+    groupBy: async () => [] as { eventId: string; _sum: { amount: number | null } }[],
   };
 
   role = {
@@ -197,6 +206,8 @@ class FakePrisma {
       }
       return rows;
     },
+    // mine() agrega vendidas por groupBy - stub vacío.
+    groupBy: async () => [] as { eventId: string; _count: { _all: number } }[],
   };
 
   person = {
@@ -370,7 +381,7 @@ describe("EventsController.exportCsv", () => {
     });
 
     const { res, headers } = fakeRes();
-    const csv = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+    const csv = await ctrl.exportCsv("ev-1", { dataset: "sales" }, reqAs("prod-1"), res);
 
     expect(headers["content-type"]).toContain("text/csv");
     expect(headers["content-disposition"]).toContain("attachment");
@@ -399,7 +410,7 @@ describe("EventsController.exportCsv", () => {
       createdAt: new Date("2026-09-01T21:00:00Z"),
     });
     const { res } = fakeRes();
-    const csv = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+    const csv = await ctrl.exportCsv("ev-1", { dataset: "sales" }, reqAs("prod-1"), res);
     expect(rows(csv)[1]).toMatch(/,USED,,$/);
   });
 
@@ -425,7 +436,7 @@ describe("EventsController.exportCsv", () => {
       },
     );
     const { res } = fakeRes();
-    const csv = await ctrl.exportCsv("ev-1", "checkins", reqAs("prod-1"), res);
+    const csv = await ctrl.exportCsv("ev-1", { dataset: "checkins" }, reqAs("prod-1"), res);
     const [head, r1, r2] = rows(csv);
     expect(head).toBe("entrada,salida,metodo,persona,anulado,nota");
     expect(r1).toBe(
@@ -449,7 +460,7 @@ describe("EventsController.exportCsv", () => {
       ],
     });
     const { res } = fakeRes();
-    const csv = await ctrl.exportCsv("ev-1", "guestlist", reqAs("prod-1"), res);
+    const csv = await ctrl.exportCsv("ev-1", { dataset: "guestlist" }, reqAs("prod-1"), res);
     const [head, r1, r2] = rows(csv);
     expect(head).toBe("lista,dueno_lista,invitado,estado,creado");
     expect(r1).toBe(
@@ -462,7 +473,7 @@ describe("EventsController.exportCsv", () => {
     const { res } = fakeRes();
     const csv = await ctrl.exportCsv(
       "ev-1",
-      "sales",
+      { dataset: "sales" },
       reqAs("otro", ["ADMIN"]),
       res,
     );
@@ -472,24 +483,24 @@ describe("EventsController.exportCsv", () => {
   it("otro productor (no owner, sin admin) → 403", async () => {
     const { res } = fakeRes();
     await expect(
-      ctrl.exportCsv("ev-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+      ctrl.exportCsv("ev-1", { dataset: "sales" }, reqAs("otro", ["PRODUCER"]), res),
     ).rejects.toMatchObject({ status: 403 });
   });
 
   it("evento inexistente → 404", async () => {
     const { res } = fakeRes();
     await expect(
-      ctrl.exportCsv("nope", "sales", reqAs("prod-1"), res),
+      ctrl.exportCsv("nope", { dataset: "sales" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 404 });
   });
 
   it("dataset inválido o ausente → 400", async () => {
     const { res } = fakeRes();
     await expect(
-      ctrl.exportCsv("ev-1", "nudes", reqAs("prod-1"), res),
+      ctrl.exportCsv("ev-1", { dataset: "nudes" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 400 });
     await expect(
-      ctrl.exportCsv("ev-1", undefined as unknown as string, reqAs("prod-1"), res),
+      ctrl.exportCsv("ev-1", { dataset: undefined as unknown as string }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 400 });
   });
 
@@ -505,7 +516,7 @@ describe("EventsController.exportCsv", () => {
       note: null,
     });
     const { res } = fakeRes();
-    const csv = await ctrl.exportCsv("ev-1", "checkins", reqAs("prod-1"), res);
+    const csv = await ctrl.exportCsv("ev-1", { dataset: "checkins" }, reqAs("prod-1"), res);
     expect(rows(csv)[1]).toContain('"DJ ""Nico"""');
   });
 
@@ -518,7 +529,7 @@ describe("EventsController.exportCsv", () => {
     );
     const { res } = fakeRes();
     const err = await ctrl
-      .exportCsv("ev-1", "sales", reqAs("prod-1"), res)
+      .exportCsv("ev-1", { dataset: "sales" }, reqAs("prod-1"), res)
       .catch((e: unknown) => e);
     expect(err).toMatchObject({ status: 403 });
     expect(errBody(err)).toMatchObject({
@@ -526,21 +537,21 @@ describe("EventsController.exportCsv", () => {
       upgrade: true,
     });
     await expect(
-      ctrl.exportPdf("ev-1", "sales", reqAs("prod-1"), res),
+      ctrl.exportPdf("ev-1", { dataset: "sales" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 403 });
   });
 
   it("owner FREE con trial vigente → exporta; PRO_* → exporta", async () => {
     const { res } = fakeRes();
     // trial vigente ya es el default del seed (mkProducer)
-    const csv = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+    const csv = await ctrl.exportCsv("ev-1", { dataset: "sales" }, reqAs("prod-1"), res);
     expect(csv.charCodeAt(0)).toBe(0xfeff);
 
     prisma.people.set(
       "prod-1",
       mkProducer("prod-1", { proTier: "PRO_GROWTH", proTrialEndsAt: null }),
     );
-    const csv2 = await ctrl.exportCsv("ev-1", "sales", reqAs("prod-1"), res);
+    const csv2 = await ctrl.exportCsv("ev-1", { dataset: "sales" }, reqAs("prod-1"), res);
     expect(csv2.charCodeAt(0)).toBe(0xfeff);
   });
 
@@ -552,7 +563,7 @@ describe("EventsController.exportCsv", () => {
     const { res } = fakeRes();
     const csv = await ctrl.exportCsv(
       "ev-1",
-      "sales",
+      { dataset: "sales" },
       reqAs("soporte", ["ADMIN"]),
       res,
     );
@@ -626,7 +637,7 @@ describe("EventsController.exportSeriesCsv", () => {
     const { res, headers } = fakeRes();
     const csv = await ctrl.exportSeriesCsv(
       "ser-1",
-      "checkins",
+      { dataset: "checkins" },
       reqAs("prod-1"),
       res,
     );
@@ -664,7 +675,7 @@ describe("EventsController.exportSeriesCsv", () => {
     const { res } = fakeRes();
     const csv = await ctrl.exportSeriesCsv(
       "ser-1",
-      "sales",
+      { dataset: "sales" },
       reqAs("prod-1"),
       res,
     );
@@ -676,18 +687,18 @@ describe("EventsController.exportSeriesCsv", () => {
   it("serie inexistente → 404; otro productor → 403; dataset inválido → 400", async () => {
     const { res } = fakeRes();
     await expect(
-      ctrl.exportSeriesCsv("nope", "sales", reqAs("prod-1"), res),
+      ctrl.exportSeriesCsv("nope", { dataset: "sales" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 404 });
     await expect(
-      ctrl.exportSeriesCsv("ser-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+      ctrl.exportSeriesCsv("ser-1", { dataset: "sales" }, reqAs("otro", ["PRODUCER"]), res),
     ).rejects.toMatchObject({ status: 403 });
     await expect(
-      ctrl.exportSeriesCsv("ser-1", "nudes", reqAs("prod-1"), res),
+      ctrl.exportSeriesCsv("ser-1", { dataset: "nudes" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 400 });
     // admin siempre puede
     const csv = await ctrl.exportSeriesCsv(
       "ser-1",
-      "sales",
+      { dataset: "sales" },
       reqAs("otro", ["ADMIN"]),
       res,
     );
@@ -701,7 +712,7 @@ describe("EventsController.exportSeriesCsv", () => {
     );
     const { res } = fakeRes();
     const err = await ctrl
-      .exportSeriesCsv("ser-1", "sales", reqAs("prod-1"), res)
+      .exportSeriesCsv("ser-1", { dataset: "sales" }, reqAs("prod-1"), res)
       .catch((e: unknown) => e);
     expect(errBody(err).error).toBe("pro.required");
   });
@@ -748,7 +759,7 @@ describe("EventsController.exportPdf", () => {
       createdAt: new Date("2026-09-01T20:00:00Z"),
     });
     const { res, headers } = fakeRes();
-    const pdf = await ctrl.exportPdf("ev-1", "sales", reqAs("prod-1"), res);
+    const pdf = await ctrl.exportPdf("ev-1", { dataset: "sales" }, reqAs("prod-1"), res);
     expect(headers["content-type"]).toBe("application/pdf");
     expect(headers["content-disposition"]).toContain("ev-1-sales.pdf");
     expect(isPdf(pdf)).toBe(true);
@@ -757,23 +768,23 @@ describe("EventsController.exportPdf", () => {
   it("misma frontera que el CSV: stranger 403, evento 404, dataset 400", async () => {
     const { res } = fakeRes();
     await expect(
-      ctrl.exportPdf("ev-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+      ctrl.exportPdf("ev-1", { dataset: "sales" }, reqAs("otro", ["PRODUCER"]), res),
     ).rejects.toMatchObject({ status: 403 });
     await expect(
-      ctrl.exportPdf("nope", "sales", reqAs("prod-1"), res),
+      ctrl.exportPdf("nope", { dataset: "sales" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 404 });
     await expect(
-      ctrl.exportPdf("ev-1", "nudes", reqAs("prod-1"), res),
+      ctrl.exportPdf("ev-1", { dataset: "nudes" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 400 });
   });
 
   it("checkins y guestlist también generan PDF", async () => {
     const { res } = fakeRes();
     expect(
-      isPdf(await ctrl.exportPdf("ev-1", "checkins", reqAs("prod-1"), res)),
+      isPdf(await ctrl.exportPdf("ev-1", { dataset: "checkins" }, reqAs("prod-1"), res)),
     ).toBe(true);
     expect(
-      isPdf(await ctrl.exportPdf("ev-1", "guestlist", reqAs("prod-1"), res)),
+      isPdf(await ctrl.exportPdf("ev-1", { dataset: "guestlist" }, reqAs("prod-1"), res)),
     ).toBe(true);
   });
 });
@@ -808,7 +819,7 @@ describe("EventsController.exportSeriesPdf", () => {
     const { res, headers } = fakeRes();
     const pdf = await ctrl.exportSeriesPdf(
       "ser-1",
-      "checkins",
+      { dataset: "checkins" },
       reqAs("prod-1"),
       res,
     );
@@ -822,10 +833,10 @@ describe("EventsController.exportSeriesPdf", () => {
   it("serie inexistente → 404; otro productor → 403", async () => {
     const { res } = fakeRes();
     await expect(
-      ctrl.exportSeriesPdf("nope", "sales", reqAs("prod-1"), res),
+      ctrl.exportSeriesPdf("nope", { dataset: "sales" }, reqAs("prod-1"), res),
     ).rejects.toMatchObject({ status: 404 });
     await expect(
-      ctrl.exportSeriesPdf("ser-1", "sales", reqAs("otro", ["PRODUCER"]), res),
+      ctrl.exportSeriesPdf("ser-1", { dataset: "sales" }, reqAs("otro", ["PRODUCER"]), res),
     ).rejects.toMatchObject({ status: 403 });
   });
 });
@@ -924,5 +935,52 @@ describe("EventsController.addStaff - gating Producer Pro", () => {
     );
     const res = await ctrl.addStaff("ev-1", dto, reqAs("soporte", ["ADMIN"]));
     expect(res).toMatchObject({ personId: "door" });
+  });
+});
+
+// EventsController.mine - filtros del contrato compartido (spec
+// analytics/query-console): q sobre nombre, status/type como whitelist
+// (los @IsIn del DTO hacen 400 en Nest; acá se verifica que bajen al
+// where) y from/to acotando startsAt. Sin params → solo producerId.
+describe("EventsController.mine - filtros", () => {
+  let prisma: FakePrisma;
+  let ctrl: EventsController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    ctrl = new EventsController(
+      prisma as unknown as PrismaService,
+      { getProducerParams: async () => null } as never,
+    );
+    prisma.events.push(
+      { id: "ev-1", producerId: "prod-1", name: "Noche de Salsa" },
+      { id: "ev-2", producerId: "prod-1", name: "Práctica" },
+    );
+  });
+
+  it("sin filtros → where solo producerId", async () => {
+    const res = await ctrl.mine(reqAs("prod-1"), {});
+    expect(prisma.eventLastWhere).toEqual({ producerId: "prod-1" });
+    expect(res).toHaveLength(2);
+  });
+
+  it("q/status/type/from+to bajan al where", async () => {
+    await ctrl.mine(reqAs("prod-1"), {
+      q: "  goza  ",
+      status: "PUBLISHED",
+      type: "SOCIAL",
+      from: "2026-10-01",
+      to: "2026-10-31",
+    });
+    expect(prisma.eventLastWhere).toEqual({
+      producerId: "prod-1",
+      name: { contains: "goza", mode: "insensitive" },
+      status: "PUBLISHED",
+      type: "SOCIAL",
+      startsAt: {
+        gte: new Date("2026-10-01"),
+        lte: new Date("2026-10-31"),
+      },
+    });
   });
 });
