@@ -1,0 +1,361 @@
+{
+  "query": {
+    "tabs": {
+      "label": "Secciones de analítica",
+      "dashboard": "Dashboard",
+      "queries": "Consultas"
+    },
+    "noQueries": "Sin consultas para este lente",
+    "entitiesLabel": "Entidad",
+    "filtersLabel": "Filtros",
+    "filtersAll": "Todos",
+    "range": "Rango de fechas",
+    "apply": "Consultar",
+    "reset": "Limpiar",
+    "empty": "Sin resultados para esta consulta",
+    "showing": "{total, plural, one {# resultado} other {# resultados}}",
+    "showingCapped": "Mostrando {shown} de {total}",
+    "savePlaceholder": "Nombre de la consulta…",
+    "save": "Guardar consulta",
+    "presets": {
+      "today": "Hoy",
+      "7d": "7 días",
+      "30d": "30 días",
+      "all": "Todo"
+    },
+    "filters": {
+      "q": "Buscar",
+      "status": "Estado",
+      "from": "Desde",
+      "to": "Hasta",
+      "scopeId": "Evento o serie",
+      "academyId": "Academia",
+      "channel": "Canal",
+      "method": "Método",
+      "voided": "Anulados",
+      "listId": "Lista",
+      "planId": "Plan",
+      "seriesId": "Serie",
+      "instructorId": "Instructor",
+      "orderType": "Tipo de orden",
+      "producerId": "Productor",
+      "venueId": "Local",
+      "role": "Rol",
+      "intent": "Intención",
+      "paymentId": "ID de pago",
+      "personId": "ID de persona",
+      "type": "Tipo",
+      "actor": "Actor",
+      "endpoint": "Endpoint",
+      "direction": "Dirección",
+      "correlationId": "Correlación",
+      "ok": "Resultado",
+      "eventId": "Evento",
+      "styleId": "Estilo",
+      "actorType": "Tipo de actor",
+      "commission": "Comisión"
+    },
+    "optionLabels": {
+      "SCAN": "Escaneo",
+      "MANUAL": "Manual",
+      "OFFLINE": "Offline",
+      "PRESALE": "Preventa",
+      "DOOR": "Puerta",
+      "ARRIVED": "Llegó",
+      "WAITING": "En espera",
+      "PROMOTED": "Promovido",
+      "EXPIRED": "Expirado",
+      "BOOKED": "Reservado",
+      "WAITLIST": "Lista de espera",
+      "DONE": "Realizada",
+      "PLATFORM_SUB": "Suscripción plataforma",
+      "OUTBOUND": "Saliente",
+      "INBOUND_WEBHOOK": "Webhook",
+      "PRODUCER": "Productor",
+      "ACADEMY": "Academia",
+      "VENUE": "Local",
+      "PAUSED": "Pausada",
+      "TRIAL": "Prueba",
+      "FROZEN": "Congelada",
+      "ONLINE": "Online",
+      "all": "Todos",
+      "only": "Solo anulados",
+      "exclude": "Sin anulados",
+      "paid": "Pagada",
+      "pending": "Pendiente",
+      "true": "Sí",
+      "false": "No",
+      "SOCIAL": "Social",
+      "PRACTICA": "Práctica",
+      "GALA": "Gala",
+      "CONGRESS": "Congreso",
+      "COMPETITION": "Competencia",
+      "DRAFT": "Borrador",
+      "PUBLISHED": "Publicado",
+      "LIVE": "En vivo",
+      "CLOSED": "Cerrado",
+      "CANCELLED": "Cancelado",
+      "PENDING": "Pendiente",
+      "PAID": "Pagado",
+      "FAILED": "Fallido",
+      "REFUNDED": "Reembolsado",
+      "TICKET": "Ticket",
+      "SERIES_PASS": "Pase ciclo",
+      "MEMBERSHIP": "Membresía",
+      "PRIVATE_LESSON": "Clase particular",
+      "WORKSHOP": "Taller",
+      "ACTIVE": "Activo",
+      "USED": "Usado",
+      "TRANSFERRED": "Transferido",
+      "REQUESTED": "Solicitado",
+      "CONFIRMED": "Confirmado",
+      "NEW": "Nuevo",
+      "CONTACTED": "Contactado",
+      "CONVERTED": "Convertido",
+      "DISCARDED": "Descartado",
+      "CONTACT": "Contacto",
+      "DEMO": "Demo",
+      "PENDING_CARD": "Tarjeta pendiente",
+      "ACTIVATING": "Activando",
+      "CANCEL_PENDING": "Anulación pendiente",
+      "CANCELED": "Anulada",
+      "FAILED_CARD": "Tarjeta rechazada",
+      "APPROVED": "Aprobado",
+      "SCHEDULED": "Agendada",
+      "SENDING": "Enviando",
+      "ISSUED": "Emitida",
+      "VOID": "Anulada",
+      "AWAITING": "Sin comprobante",
+      "active": "Activo",
+      "inactive": "Inactivo"
+    },
+    "entities": {
+      "sales": "Ventas",
+      "checkins": "Check-ins",
+      "guestlist": "Listas de invitados",
+      "attendees": "Asistentes",
+      "reservations": "Reservas de mesa",
+      "waitlist": "Lista de espera",
+      "rsvps": "Confirmaciones",
+      "students": "Alumnos",
+      "attendance": "Asistencia",
+      "bookings": "Reservas",
+      "memberships": "Membresías",
+      "payments": "Pagos",
+      "private_lessons": "Clases particulares",
+      "events": "Eventos",
+      "classes": "Clases",
+      "tickets": "Tickets",
+      "academies": "Academias",
+      "venues": "Locales",
+      "rentals": "Arriendos",
+      "people": "Personas",
+      "leads": "Leads",
+      "payment-events": "Eventos de pago",
+      "gateway-transactions": "Transacciones pasarela",
+      "membership-subscriptions": "Suscripciones",
+      "payouts": "Payouts"
+    },
+    "system": {
+      "sales": "Ventas",
+      "checkins": "Check-ins",
+      "guestlist": "Lista de invitados",
+      "students": "Alumnos",
+      "attendance": "Asistencia",
+      "payments": "Pagos",
+      "events": "Eventos",
+      "payouts": "Payouts"
+    },
+    "saved": {
+      "system": "Consultas rápidas",
+      "mine": "Mis consultas",
+      "empty": "Aún no guardas consultas",
+      "rename": "Renombrar",
+      "delete": "Borrar",
+      "created": "Consulta guardada"
+    },
+    "cols": {
+      "sales": {
+        "fecha": "Fecha",
+        "comprador": "Comprador",
+        "asistente": "Asistente",
+        "precio_lista": "Precio lista",
+        "cargo_servicio": "Cargo servicio",
+        "total": "Total",
+        "estado": "Estado",
+        "canal": "Canal",
+        "payment_id": "ID pago"
+      },
+      "checkins": {
+        "entrada": "Entrada",
+        "salida": "Salida",
+        "metodo": "Método",
+        "persona": "Persona",
+        "anulado": "Anulado",
+        "nota": "Nota"
+      },
+      "guestlist": {
+        "lista": "Lista",
+        "dueno_lista": "Dueño de lista",
+        "invitado": "Invitado",
+        "estado": "Estado",
+        "creado": "Creado"
+      },
+      "attendees": {
+        "persona": "Persona",
+        "primera_entrada": "Primera entrada",
+        "ultima_entrada": "Última entrada",
+        "visitas": "Visitas"
+      },
+      "reservations": {
+        "creado": "Creado",
+        "persona": "Persona",
+        "personas": "Personas",
+        "mesa": "Mesa",
+        "estado": "Estado"
+      },
+      "waitlist": {
+        "creado": "Creado",
+        "persona": "Persona",
+        "posicion": "Posición",
+        "estado": "Estado"
+      },
+      "rsvps": {
+        "persona": "Persona",
+        "creado": "Creado"
+      },
+      "students": {
+        "alumno": "Alumno",
+        "plan": "Plan",
+        "estado": "Estado",
+        "inicio": "Inicio",
+        "pagado_hasta": "Pagado hasta"
+      },
+      "attendance": {
+        "fecha": "Fecha",
+        "clase": "Clase",
+        "alumno": "Alumno",
+        "instructor": "Instructor"
+      },
+      "bookings": {
+        "fecha": "Fecha",
+        "clase": "Clase",
+        "alumno": "Alumno",
+        "estado": "Estado",
+        "reembolsada": "Reembolsada"
+      },
+      "memberships": {
+        "alumno": "Alumno",
+        "plan": "Plan",
+        "estado": "Estado",
+        "proximo_cobro": "Próximo cobro"
+      },
+      "payments": {
+        "fecha": "Fecha",
+        "alumno": "Alumno",
+        "persona": "Persona",
+        "evento": "Evento",
+        "tipo": "Tipo",
+        "monto": "Monto",
+        "neto": "Neto",
+        "estado": "Estado"
+      },
+      "private_lessons": {
+        "creado": "Creado",
+        "alumno": "Alumno",
+        "instructor": "Instructor",
+        "agendada": "Agendada",
+        "precio": "Precio",
+        "comision_pct": "Comisión %",
+        "comision_pagada": "Comisión pagada",
+        "estado": "Estado"
+      },
+      "events": {
+        "nombre": "Nombre",
+        "fecha": "Fecha",
+        "estado": "Estado",
+        "productor": "Productor",
+        "local": "Local",
+        "vendidas": "Vendidas"
+      },
+      "classes": {
+        "fecha": "Fecha",
+        "estilo": "Estilo",
+        "academia": "Academia",
+        "instructor": "Instructor",
+        "reservas": "Reservas",
+        "capacidad": "Capacidad",
+        "cancelada": "Cancelada"
+      },
+      "tickets": {
+        "evento": "Evento",
+        "fecha_evento": "Fecha evento",
+        "asistente": "Asistente",
+        "precio": "Precio",
+        "estado": "Estado"
+      },
+      "academies": {
+        "nombre": "Nombre",
+        "alumnos": "Alumnos",
+        "series_activas": "Series activas"
+      },
+      "venues": {
+        "nombre": "Nombre",
+        "direccion": "Dirección",
+        "arriendos": "Arriendos"
+      },
+      "rentals": {
+        "fecha": "Fecha",
+        "local": "Local",
+        "evento": "Evento",
+        "estado": "Estado"
+      },
+      "people": {
+        "nombre": "Nombre",
+        "email": "Email",
+        "roles": "Roles",
+        "registro": "Registro"
+      },
+      "leads": {
+        "nombre": "Nombre",
+        "email": "Email",
+        "telefono": "Teléfono",
+        "roles": "Roles",
+        "intent": "Intención",
+        "estado": "Estado",
+        "creado": "Creado"
+      },
+      "payment-events": {
+        "fecha": "Fecha",
+        "payment_id": "ID pago",
+        "seq": "Seq",
+        "tipo": "Tipo",
+        "actor": "Actor"
+      },
+      "gateway-transactions": {
+        "fecha": "Fecha",
+        "provider": "Proveedor",
+        "endpoint": "Endpoint",
+        "http": "HTTP",
+        "ok": "OK",
+        "payment_id": "ID pago"
+      },
+      "membership-subscriptions": {
+        "persona": "Persona",
+        "academia": "Academia",
+        "plan": "Plan",
+        "estado": "Estado",
+        "proximo_cobro": "Próximo cobro"
+      },
+      "payouts": {
+        "periodo": "Período",
+        "actor": "Actor",
+        "bruto": "Bruto",
+        "fee_plataforma": "Fee plataforma",
+        "neto": "Neto",
+        "estado": "Estado",
+        "pagada": "Pagada"
+      }
+    }
+  }
+}
