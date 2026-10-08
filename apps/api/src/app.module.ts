@@ -25,6 +25,7 @@ import { CrmModule } from "./crm/crm.module";
 import { GamificationModule } from "./gamification/gamification.module";
 import { ParamsModule } from "./params/params.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
+import { QueryModule } from "./query/query.module";
 import { HomeModule } from "./home/home.module";
 import { LeadsModule } from "./leads/leads.module";
 import { JobsModule } from "./jobs/jobs.module";
@@ -66,6 +67,7 @@ import { StorageModule } from "./storage/storage.module";
     CrmModule,
     HomeModule,
     AnalyticsModule,
+    QueryModule,
     LeadsModule,
     JobsModule,
     MailModule,

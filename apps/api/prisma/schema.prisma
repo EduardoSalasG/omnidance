@@ -1812,3 +1812,20 @@ model MailCampaignSent {
   @@unique([campaignId, dedupKey])
   @@index([campaignId])
 }
+
+// ═══════════════════ CONSULTAS GUARDADAS (analítica) ═══════════════════
+
+// Consulta guardada por usuario y lente (spec analytics/query-console):
+// params = {entity, filters, scope} validado contra el catálogo shared.
+// Las plantillas del sistema NO se persisten (viven en shared).
+model SavedReport {
+  id        String   @id @default(cuid())
+  personId  String
+  role      String // PRODUCER | ACADEMY_OWNER | ADMIN
+  name      String
+  params    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([personId, role])
+}

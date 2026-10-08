@@ -26,6 +26,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from "class-validator";
@@ -43,6 +44,14 @@ import {
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { buildTablePdf } from "../../common/pdf-report";
 import { assertProducerPro } from "../../common/producer-pro";
+import {
+  assertDataset,
+  DATASET_TITLES,
+  datasetFilters,
+  exportDataset,
+  toCsv,
+} from "../../query/producer-export";
+import { fmtCl } from "../../query/entities/helpers";
 import {
   PRESALE_CUTOFF_MAX_MINUTES,
   presaleCutoffDate,
@@ -62,6 +71,43 @@ const STAFF_ROLES = ["DOOR", "DOOR_SALES"] as const;
 type StaffRole = (typeof STAFF_ROLES)[number];
 const EDITABLE_STATUSES: EventStatus[] = ["DRAFT", "PUBLISHED"];
 const CANCELLABLE_STATUSES: EventStatus[] = ["DRAFT", "PUBLISHED", "LIVE"];
+const MINE_EVENT_STATUSES: EventStatus[] = [
+  "DRAFT",
+  "PUBLISHED",
+  "LIVE",
+  "CLOSED",
+  "CANCELLED",
+];
+
+/**
+ * Filtros de lista de `GET /events/mine` - mismo contrato que la barra de
+ * filtros compartida (spec analytics/query-console): q (nombre),
+ * status/type enum (whitelist → 400), from/to sobre `startsAt`
+ * (ISO8601 → 400). Opcionales y aditivos; desconocidos ignorados por el
+ * ValidationPipe global (whitelist: true).
+ */
+class MineEventsQueryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  q?: string;
+
+  @IsOptional()
+  @IsIn(MINE_EVENT_STATUSES)
+  status?: EventStatus;
+
+  @IsOptional()
+  @IsIn(EVENT_TYPES)
+  type?: EventType;
+
+  @IsOptional()
+  @IsISO8601()
+  from?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  to?: string;
+}
 
 class ScheduleBlockDto {
   @IsISO8601()
@@ -298,47 +344,47 @@ class AddStaffDto {
   role?: StaffRole;
 }
 
-/** Celda CSV: quotea si contiene , " \n \r; comillas internas → "". */
-function csvCell(v: unknown): string {
-  const s = v === null || v === undefined ? "" : String(v);
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/**
+ * Filtros opcionales de los exports (spec events/producer-export delta):
+ * comparten la whitelist del motor de consultas (QUERY_CATALOG.PRODUCER) -
+ * from/to sobre el campo temporal del dataset + enums por dataset
+ * (sales: status/channel; checkins: method/voided; guestlist: status/listId).
+ * Inválido → 400 vía datasetFilters; desconocido → ignorado (el DTO no lo
+ * declara).
+ */
+class EventExportDto {
+  @IsString()
+  @IsNotEmpty()
+  dataset!: string;
+
+  @IsOptional()
+  @IsString()
+  from?: string;
+
+  @IsOptional()
+  @IsString()
+  to?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  channel?: string;
+
+  @IsOptional()
+  @IsString()
+  method?: string;
+
+  @IsOptional()
+  @IsString()
+  voided?: string;
+
+  @IsOptional()
+  @IsString()
+  listId?: string;
 }
-
-/** CSV con BOM UTF-8 (Excel es-CL) + CRLF. */
-function toCsv(headers: string[], rows: unknown[][]): string {
-  const lines = [headers, ...rows].map((r) => r.map(csvCell).join(","));
-  return String.fromCharCode(0xfeff) + lines.join("\r\n") + "\r\n";
-}
-
-/** Datasets exportables (CSV y PDF comparten la misma tabla). */
-const EXPORT_DATASETS = ["sales", "checkins", "guestlist"] as const;
-type ExportDataset = (typeof EXPORT_DATASETS)[number];
-const DATASET_TITLES: Record<ExportDataset, string> = {
-  sales: "Ventas",
-  checkins: "Check-ins",
-  guestlist: "Listas de invitados",
-};
-interface ExportTable {
-  headers: string[];
-  rows: unknown[][];
-  /** Líneas de resumen que el PDF muestra sobre la tabla. */
-  summary: string[];
-}
-
-function assertDataset(d: string): asserts d is ExportDataset {
-  if (!EXPORT_DATASETS.includes(d as ExportDataset)) {
-    throw new BadRequestException("dataset inválido");
-  }
-}
-
-/** $ es-CL para resúmenes del PDF ($10.500). */
-const clp = (n: number) => `$${n.toLocaleString("es-CL")}`;
-
-const fmtCl = (d: Date) =>
-  new Intl.DateTimeFormat("es-CL", {
-    dateStyle: "long",
-    timeStyle: "short",
-  }).format(d);
 
 @Controller("events")
 export class EventsController {
@@ -350,13 +396,29 @@ export class EventsController {
   /**
    * Eventos del productor autenticado - todos los estados, para la consola.
    * Debe declararse antes de @Get(":id") para que "mine" no matchee :id.
+   * Filtros opcionales del contrato compartido (q sobre nombre, status/type
+   * enum, from/to sobre startsAt); sin params = comportamiento anterior.
    */
   @Get("mine")
   @UseGuards(SessionGuard, RolesGuard)
   @RequirePermissions("events.manage")
-  async mine(@Req() req: Request) {
+  async mine(@Req() req: Request, @Query() dto: MineEventsQueryDto) {
+    const q = dto.q?.trim();
     const events = await this.prisma.event.findMany({
-      where: { producerId: req.person!.id },
+      where: {
+        producerId: req.person!.id,
+        ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+        ...(dto.status ? { status: dto.status } : {}),
+        ...(dto.type ? { type: dto.type } : {}),
+        ...(dto.from || dto.to
+          ? {
+              startsAt: {
+                ...(dto.from ? { gte: new Date(dto.from) } : {}),
+                ...(dto.to ? { lte: new Date(dto.to) } : {}),
+              },
+            }
+          : {}),
+      },
       orderBy: { startsAt: "desc" },
       select: {
         id: true,
@@ -489,25 +551,28 @@ export class EventsController {
    * descarga CSV operativa del evento (cuadratura post-evento en
    * planilla). Owner o admin - mismo patrón que /live. BOM UTF-8 para
    * Excel es-CL; nunca expone claimToken ni ids internos de persona.
+   * Filtros opcionales del catálogo (from/to/status/channel/method/
+   * voided/listId) - inválido → 400, desconocido → ignorado.
    */
   @Get(":id/export.csv")
   @UseGuards(SessionGuard)
   async exportCsv(
     @Param("id") id: string,
-    @Query("dataset") dataset: string,
+    @Query() dto: EventExportDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
     await this.requireProSelf(event.producerId, req.person!);
-    assertDataset(dataset);
+    assertDataset(dto.dataset);
 
-    const table = await this.exportDataset(dataset, id);
+    const filters = datasetFilters(dto.dataset, dto);
+    const table = await exportDataset(this.prisma, dto.dataset, id, undefined, filters);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${id}-${dataset}.csv"`,
+      `attachment; filename="${id}-${dto.dataset}.csv"`,
     );
     return toCsv(table.headers, table.rows);
   }
@@ -515,24 +580,25 @@ export class EventsController {
   /**
    * GET /events/:id/export.pdf?dataset=sales|checkins|guestlist - misma
    * tabla que el CSV pero como reporte imprimible (título, fecha,
-   * resumen con totales). Owner o admin.
+   * resumen con totales). Owner o admin. Acepta los mismos filtros.
    */
   @Get(":id/export.pdf")
   @UseGuards(SessionGuard)
   async exportPdf(
     @Param("id") id: string,
-    @Query("dataset") dataset: string,
+    @Query() dto: EventExportDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const event = await this.findEventOr404(id);
     await this.requireOwnerOrAdmin(event.producerId, req.person!);
     await this.requireProSelf(event.producerId, req.person!);
-    assertDataset(dataset);
+    assertDataset(dto.dataset);
 
-    const table = await this.exportDataset(dataset, id);
+    const filters = datasetFilters(dto.dataset, dto);
+    const table = await exportDataset(this.prisma, dto.dataset, id, undefined, filters);
     const pdf = await buildTablePdf({
-      title: `${DATASET_TITLES[dataset]} - ${event.name}`,
+      title: `${DATASET_TITLES[dto.dataset]} - ${event.name}`,
       subtitle: `${fmtCl(event.startsAt)} · generado ${fmtCl(new Date())}`,
       summary: table.summary,
       headers: table.headers,
@@ -541,7 +607,7 @@ export class EventsController {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${id}-${dataset}.pdf"`,
+      `attachment; filename="${id}-${dto.dataset}.pdf"`,
     );
     return new StreamableFile(pdf);
   }
@@ -550,27 +616,28 @@ export class EventsController {
    * GET /events/series/:seriesId/export.csv?dataset=sales|checkins|guestlist -
    * mismo CSV que el export por evento pero agregando todas las fechas de
    * la serie, con columna `evento` al inicio (nombre de la instancia).
-   * Owner de la serie o admin.
+   * Owner de la serie o admin. Acepta los mismos filtros opcionales.
    */
   @Get("series/:seriesId/export.csv")
   @UseGuards(SessionGuard)
   async exportSeriesCsv(
     @Param("seriesId") seriesId: string,
-    @Query("dataset") dataset: string,
+    @Query() dto: EventExportDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const series = await this.findSeriesOr404(seriesId);
     await this.requireOwnerOrAdmin(series.producerId, req.person!);
     await this.requireProSelf(series.producerId, req.person!);
-    assertDataset(dataset);
+    assertDataset(dto.dataset);
 
+    const filters = datasetFilters(dto.dataset, dto);
     const { scope, labelByEvent } = await this.seriesScope(seriesId);
-    const table = await this.exportDataset(dataset, scope, labelByEvent);
+    const table = await exportDataset(this.prisma, dto.dataset, scope, labelByEvent, filters);
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="serie-${seriesId}-${dataset}.csv"`,
+      `attachment; filename="serie-${seriesId}-${dto.dataset}.csv"`,
     );
     return toCsv(table.headers, table.rows);
   }
@@ -578,25 +645,26 @@ export class EventsController {
   /**
    * GET /events/series/:seriesId/export.pdf?dataset=sales|checkins|guestlist -
    * reporte PDF agregado de todas las fechas de la serie (columna
-   * `evento`). Owner de la serie o admin.
+   * `evento`). Owner de la serie o admin. Acepta los mismos filtros.
    */
   @Get("series/:seriesId/export.pdf")
   @UseGuards(SessionGuard)
   async exportSeriesPdf(
     @Param("seriesId") seriesId: string,
-    @Query("dataset") dataset: string,
+    @Query() dto: EventExportDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const series = await this.findSeriesOr404(seriesId);
     await this.requireOwnerOrAdmin(series.producerId, req.person!);
     await this.requireProSelf(series.producerId, req.person!);
-    assertDataset(dataset);
+    assertDataset(dto.dataset);
 
+    const filters = datasetFilters(dto.dataset, dto);
     const { events, scope, labelByEvent } = await this.seriesScope(seriesId);
-    const table = await this.exportDataset(dataset, scope, labelByEvent);
+    const table = await exportDataset(this.prisma, dto.dataset, scope, labelByEvent, filters);
     const pdf = await buildTablePdf({
-      title: `${DATASET_TITLES[dataset]} - Serie «${series.name}»`,
+      title: `${DATASET_TITLES[dto.dataset]} - Serie «${series.name}»`,
       subtitle: `${events.length} fechas · generado ${fmtCl(new Date())}`,
       summary: table.summary,
       headers: table.headers,
@@ -605,7 +673,7 @@ export class EventsController {
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="serie-${seriesId}-${dataset}.pdf"`,
+      `attachment; filename="serie-${seriesId}-${dto.dataset}.pdf"`,
     );
     return new StreamableFile(pdf);
   }
@@ -635,167 +703,6 @@ export class EventsController {
         ]),
       ),
     };
-  }
-
-  private exportDataset(
-    dataset: ExportDataset,
-    eventId: string | { in: string[] },
-    labelByEvent?: Map<string, string>,
-  ): Promise<ExportTable> {
-    return dataset === "sales"
-      ? this.exportSales(eventId, labelByEvent)
-      : dataset === "checkins"
-        ? this.exportCheckins(eventId, labelByEvent)
-        : this.exportGuestlist(eventId, labelByEvent);
-  }
-
-  /** Una fila por Ticket - incluye cancelados, la cuadratura los mira. */
-  private async exportSales(
-    eventId: string | { in: string[] },
-    labelByEvent?: Map<string, string>,
-  ): Promise<ExportTable> {
-    const tickets = await this.prisma.ticket.findMany({
-      where: { eventId },
-      orderBy: { createdAt: "asc" },
-    });
-    const payIds = [
-      ...new Set(
-        tickets.map((t) => t.paymentId).filter((p): p is string => !!p),
-      ),
-    ];
-    const payments = payIds.length
-      ? await this.prisma.payment.findMany({
-          where: { id: { in: payIds } },
-          select: { id: true, channel: true },
-        })
-      : [];
-    const channel = new Map(payments.map((p) => [p.id, p.channel]));
-    const names = await this.personNames(
-      tickets.flatMap((t) => [t.buyerId, t.ownerId]),
-    );
-    const evCol = (id: string) =>
-      labelByEvent ? [labelByEvent.get(id) ?? ""] : [];
-    const cancelled = tickets.filter((t) => t.status === "CANCELLED").length;
-    const gross = tickets
-      .filter((t) => t.status !== "CANCELLED")
-      .reduce((s, t) => s + t.listPrice + t.serviceFee, 0);
-    return {
-      headers: [
-        ...(labelByEvent ? ["evento"] : []),
-        "fecha",
-        "comprador",
-        "asistente",
-        "precio_lista",
-        "cargo_servicio",
-        "total",
-        "estado",
-        "canal",
-        "payment_id",
-      ],
-      rows: tickets.map((t) => [
-        ...evCol(t.eventId),
-        t.createdAt.toISOString(),
-        names.get(t.buyerId) ?? "?",
-        names.get(t.ownerId) ?? "?",
-        t.listPrice,
-        t.serviceFee,
-        t.listPrice + t.serviceFee,
-        t.status,
-        (t.paymentId && channel.get(t.paymentId)) ?? "",
-        t.paymentId ?? "",
-      ]),
-      summary: [
-        `${tickets.length} tickets · recaudado ${clp(gross)} (precio + cargo, sin cancelados)`,
-        ...(cancelled ? [`${cancelled} cancelados incluidos en la tabla`] : []),
-      ],
-    };
-  }
-
-  /** Una fila por Checkin - incluye anulados con anulado=si. */
-  private async exportCheckins(
-    eventId: string | { in: string[] },
-    labelByEvent?: Map<string, string>,
-  ): Promise<ExportTable> {
-    const checkins = await this.prisma.checkin.findMany({
-      where: { eventId },
-      orderBy: { inAt: "asc" },
-    });
-    const names = await this.personNames(checkins.map((c) => c.personId));
-    const voided = checkins.filter((c) => c.voidedAt).length;
-    return {
-      headers: [
-        ...(labelByEvent ? ["evento"] : []),
-        "entrada",
-        "salida",
-        "metodo",
-        "persona",
-        "anulado",
-        "nota",
-      ],
-      rows: checkins.map((c) => [
-        ...(labelByEvent ? [labelByEvent.get(c.eventId) ?? ""] : []),
-        c.inAt.toISOString(),
-        c.outAt?.toISOString() ?? "",
-        c.method,
-        names.get(c.personId) ?? "?",
-        c.voidedAt ? "si" : "",
-        c.note ?? "",
-      ]),
-      summary: [
-        `${checkins.length} check-ins` +
-          (voided ? ` · ${voided} anulados (incluidos en la tabla)` : ""),
-      ],
-    };
-  }
-
-  /** Una fila por GuestListEntry de las listas del evento. */
-  private async exportGuestlist(
-    eventId: string | { in: string[] },
-    labelByEvent?: Map<string, string>,
-  ): Promise<ExportTable> {
-    const lists = await this.prisma.guestList.findMany({
-      where: { eventId },
-      include: { entries: { orderBy: { createdAt: "asc" } } },
-    });
-    const names = await this.personNames([
-      ...lists.map((l) => l.ownerId),
-      ...lists.flatMap((l) => l.entries.map((e) => e.personId)),
-    ]);
-    const entries = lists.reduce((s, l) => s + l.entries.length, 0);
-    return {
-      headers: [
-        ...(labelByEvent ? ["evento"] : []),
-        "lista",
-        "dueno_lista",
-        "invitado",
-        "estado",
-        "creado",
-      ],
-      rows: lists.flatMap((l) =>
-        l.entries.map((e) => [
-          ...(labelByEvent ? [labelByEvent.get(l.eventId) ?? ""] : []),
-          l.label ?? "",
-          names.get(l.ownerId) ?? "?",
-          names.get(e.personId) ?? "?",
-          e.status,
-          e.createdAt.toISOString(),
-        ]),
-      ),
-      summary: [`${entries} invitados en ${lists.length} listas`],
-    };
-  }
-
-  /** Join manual a Person (FKs escalares) → mapa id→nombre. */
-  private async personNames(ids: string[]): Promise<Map<string, string>> {
-    const unique = [...new Set(ids)];
-    if (!unique.length) return new Map();
-    const people = await this.prisma.person.findMany({
-      where: { id: { in: unique } },
-      select: { id: true, name: true },
-    });
-    return new Map(
-      people.map((p) => [p.id, p.name ?? "?"] as [string, string]),
-    );
   }
 
   /**

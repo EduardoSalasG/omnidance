@@ -40,6 +40,9 @@ const DEMO_ALLOWED_WRITES = [
   // Aceptación legal self-scoped (spec legal-consent): la cuenta demo
   // también debe poder registrarla si el aviso aparece.
   /^\/api\/me\/consent$/,
+  // Preview del motor de consultas (analytics/query-console): POST solo
+  // porque los filtros viajan en el body - es lectura scopiada al actor.
+  /^\/api\/query\/run$/,
 ];
 
 @Injectable()

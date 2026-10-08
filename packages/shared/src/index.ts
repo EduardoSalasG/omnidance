@@ -231,3 +231,6 @@ export const EVENT_RECENT_LOOKBACK_MS = 12 * 60 * 60 * 1000;
 // publicar una versión nueva se sube este string: las Person con
 // consentVersion distinta vuelven a ver el aviso de aceptación.
 export const CONSENT_VERSION = "2026-10";
+
+// ─── Motor de consultas (analytics/query-console) ───
+export * from "./query-catalog";
