@@ -172,7 +172,10 @@ export default function ConsultasPage() {
     try {
       const res = await apiFetch(`/query/saved?role=${r}`);
       if (!res.ok) return;
-      setSaved((await res.json()) as SavedQuery[]);
+      const body = (await res.json()) as
+        | SavedQuery[]
+        | { saved?: SavedQuery[] };
+      setSaved(Array.isArray(body) ? body : (body.saved ?? []));
     } catch {
       // Lista auxiliar - si falla queda la del estado previo; la acción
       // de guardar reintentará el load.
