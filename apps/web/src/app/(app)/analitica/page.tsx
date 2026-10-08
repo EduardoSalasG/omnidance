@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, SkeletonList, SkeletonText } from "@/components/ui";
 import { EVENT_STATUS_VARIANT } from "@/components/producer/shared";
+import { AnaliticaTabs } from "./tabs";
 
 /**
  * /analitica - métricas por lente de rol. GET /analytics/roles devuelve los
@@ -167,6 +168,9 @@ export default function AnaliticaPage() {
   if (phase === "loading") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
+        <header className="flex flex-col gap-3 pt-4">
+          <AnaliticaTabs />
+        </header>
         <SkeletonList />
       </main>
     );
@@ -175,6 +179,9 @@ export default function AnaliticaPage() {
   if (phase === "error") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
+        <header className="flex flex-col gap-3 pt-4">
+          <AnaliticaTabs />
+        </header>
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
           <p className="text-sm text-ink/70">{t("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
@@ -188,6 +195,9 @@ export default function AnaliticaPage() {
   if (phase === "forbidden") {
     return (
       <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
+        <header className="flex flex-col gap-3 pt-4">
+          <AnaliticaTabs />
+        </header>
         <Card className="py-6 text-center">
           <p className="text-sm text-ink/70">{t("forbidden")}</p>
         </Card>
@@ -226,6 +236,7 @@ export default function AnaliticaPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
       <header className="flex flex-col gap-3 pt-4">
+        <AnaliticaTabs />
         <p className="text-sm text-ink/50">{t("period")}</p>
 
         {/* Selector de lente - radiogroup nativo de pills (mismo patrón

@@ -23,6 +23,7 @@ import navExtra from "./parts/navExtra.json";
 import payments from "./parts/payments.json";
 import producer from "./parts/producer.json";
 import profile from "./parts/profile.json";
+import query from "./parts/query.json";
 import realtime from "./parts/realtime.json";
 import subscriptions from "./parts/subscriptions.json";
 import support from "./parts/support.json";
@@ -80,6 +81,7 @@ const parts = [
   payments,
   producer,
   profile,
+  query,
   realtime,
   subscriptions,
   support,

@@ -22,7 +22,6 @@ import { ReservationsSection } from "@/components/producer/reservations-section"
 import { RatingsSection } from "@/components/producer/ratings-section";
 import { AnalyticsSection } from "@/components/producer/analytics-section";
 import { LiveSection } from "@/components/producer/live-section";
-import { ExportSection } from "@/components/producer/export-section";
 import {
   CANCELLABLE_STATUSES,
   EDITABLE_STATUSES,
@@ -329,14 +328,8 @@ export default function ProducerEventDetailPage({
               403/404 (no-owner); pro.required → paywall (feature Pro).
               Splits k-anónimos ≥3 asistentes. */}
           <AnalyticsSection eventId={eventId} proLocked={proLocked} />
-          {canManage && (
-            <ExportSection
-              eventId={eventId}
-              seriesId={event.seriesId ?? event.series?.id ?? null}
-              seriesName={event.series?.name ?? null}
-              proLocked={proLocked}
-            />
-          )}
+          {/* Los exports CSV/PDF migraron a /analitica/consultas
+              (spec analytics/query-console). */}
         </>
       )}
 
