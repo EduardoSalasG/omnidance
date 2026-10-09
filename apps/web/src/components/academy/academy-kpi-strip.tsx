@@ -68,6 +68,12 @@ export function AcademyKpiCards({
           hint: t("kpis.purchasablePlansHint"),
         },
         {
+          key: "weeklyClasses",
+          href: "/academia/horarios",
+          value: String(data.kpis.weeklyClasses),
+          hint: t("kpis.weeklyClassesHint"),
+        },
+        {
           key: "avgAttendance",
           href: "/academia/asistencia",
           value:
@@ -75,6 +81,12 @@ export function AcademyKpiCards({
               ? null
               : String(data.kpis.avgAttendancePerClassMonth),
           hint: t("kpis.avgAttendanceHint"),
+        },
+        {
+          key: "billedMonth",
+          href: "/academia/cobros",
+          value: clpFmt.format(data.kpis.billedMonth),
+          hint: t("kpis.billedMonthHint"),
         },
         {
           key: "avgTicket",
@@ -93,9 +105,9 @@ export function AcademyKpiCards({
       {data === null ? (
         <ul
           aria-hidden="true"
-          className="page-loading grid grid-cols-2 gap-3 lg:grid-cols-4"
+          className="page-loading grid grid-cols-2 gap-3 sm:grid-cols-3"
         >
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <li key={i}>
               <Card className="flex h-full flex-col gap-1 p-4">
                 <Skeleton className="h-3 w-20" />
@@ -105,7 +117,7 @@ export function AcademyKpiCards({
           ))}
         </ul>
       ) : (
-        <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {items.map((k) => (
             <li key={k.key}>
               <Link

@@ -108,6 +108,8 @@ export type AcademyDashboard = {
     purchasablePlans: number;
     avgAttendancePerClassMonth: number | null;
     avgTicketMonth: number | null;
+    billedMonth: number;
+    weeklyClasses: number;
   };
   studentsByStatus: {
     active: number;

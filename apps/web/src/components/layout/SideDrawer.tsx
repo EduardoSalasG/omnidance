@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 
@@ -19,10 +19,6 @@ export type DrawerItem = {
 export type DrawerGroup = {
   label: string;
   items: DrawerItem[];
-  // true = el header del grupo es un toggle (acordeón) que pliega los
-  // ítems. Arranca abierto si algún ítem está activo; en la sidebar
-  // colapsada (riel de íconos) se ignora y los ítems van planos.
-  collapsible?: boolean;
 };
 
 /**
@@ -138,10 +134,8 @@ export function SideDrawer({
 }
 
 /**
- * Grupo del drawer. Con `collapsible` el header se vuelve un toggle
- * (acordeón) con chevron que pliega los ítems; arranca abierto cuando
- * la ruta actual está dentro del grupo y reabre si la navegación aterriza
- * en un ítem suyo (la apertura manual queda, no se fuerza el cierre).
+ * Grupo del drawer: header estático + ítems siempre visibles (las
+ * secciones no se pliegan).
  */
 function DrawerGroupSection({
   group,
@@ -150,73 +144,35 @@ function DrawerGroupSection({
   group: DrawerGroup;
   onNavigate: () => void;
 }) {
-  const anyActive = group.items.some((item) => item.active);
-  const [open, setOpen] = useState(anyActive);
-  const listId = useId();
-  const collapsible = !!group.collapsible;
-
-  useEffect(() => {
-    if (anyActive) setOpen(true);
-  }, [anyActive]);
-
-  const headerCls =
-    "text-xs font-semibold uppercase tracking-wide text-ink/40";
-
   return (
     <li>
-      {collapsible ? (
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-controls={listId}
-          onClick={() => setOpen((o) => !o)}
-          className={`mb-1 flex min-h-11 w-full items-center justify-between px-3 text-left transition-colors hover:text-ink/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${headerCls}`}
-        >
-          {group.label}
-          <svg
-            aria-hidden
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`h-4 w-4 transition-transform motion-reduce:transition-none ${
-              open ? "rotate-90" : ""
-            }`}
-          >
-            <path d="m9 6 6 6-6 6" />
-          </svg>
-        </button>
-      ) : (
-        <h3 className={`mb-1 px-3 ${headerCls}`}>{group.label}</h3>
-      )}
-      {(!collapsible || open) && (
-        <ul id={listId} className="flex flex-col">
-          {group.items.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={item.active ? "page" : undefined}
-                onClick={onNavigate}
-                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
-                  item.active
-                    ? "bg-neon/10 text-neon"
-                    : "text-ink/80 hover:bg-elevated hover:text-ink"
-                }`}
+      <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
+        {group.label}
+      </h3>
+      <ul className="flex flex-col">
+        {group.items.map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              aria-current={item.active ? "page" : undefined}
+              onClick={onNavigate}
+              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors active:scale-[0.98] ${
+                item.active
+                  ? "bg-neon/10 text-neon"
+                  : "text-ink/80 hover:bg-elevated hover:text-ink"
+              }`}
+            >
+              <span
+                aria-hidden
+                className={item.active ? "text-neon" : "text-ink/50"}
               >
-                <span
-                  aria-hidden
-                  className={item.active ? "text-neon" : "text-ink/50"}
-                >
-                  {item.icon}
-                </span>
-                {item.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+                {item.icon}
+              </span>
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </li>
   );
 }
