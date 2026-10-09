@@ -3,6 +3,38 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.5.0] - 2026-10-09
+
+Onboarding del dueño de academia en ambos viewports y corrección del
+chrome móvil del bailarín.
+
+### Added
+
+- **Checklist de activación persistente** en el home del owner: 5 pasos
+  (primera serie/horario, plan de membresía, medio de pago publicado,
+  equipo invitado, primer alumno) con progreso visible "N de M"; solo
+  desaparece cuando la academia queda completa. Nuevo `methodsCount` en
+  `GET /academies/:id/dashboard` (conteo de medios de pago activos).
+- **Tour de primera visita `academia-owner`** en `/inicio` (clave propia,
+  no pisa el tour `academia` del hub de staff): recorre KPIs, checklist,
+  operación del día, colas pendientes, alertas de retención, navegación
+  (hamburguesa en `<lg` / sidebar en `≥lg`) y campana de notificaciones.
+- **`OnboardingRunner` espera targets async**: sondea cada 250ms hasta
+  que el set de anchors quede estable (~1.5s, máx 8s) en vez de
+  resolverlos una sola vez — las secciones detrás de fetch (dashboard,
+  gates) ya entran al tour; las ausentes se omiten como antes.
+- **Tour de staff `/academia` resuelve en desktop**: anchors
+  `nav-academy`/`nav-classes` replicados en la sidebar; el toggle de la
+  sidebar usa `sidebar-toggle` (sin colisión con `appbar-menu`).
+
+### Fixed
+
+- **DANCER ya no ve drawer ni hamburguesa en `<lg`**: `accountGroup`
+  (Perfil) se agregaba siempre al drawer aunque `DRAWER_BY_ROLE.DANCER`
+  estuviera vacío — cumple `dancer-navigation` (tab bar + sheet `+`).
+- La hamburguesa ya no flashea mientras `/me` carga (`hasDrawerItems`
+  exige sesión resuelta).
+
 ## [0.4.0] - 2026-10-09
 
 Release de consolas y piloto: consola de dueño de academia completa
@@ -242,6 +274,8 @@ de despliegue a producción.
 - DB: Neon Postgres externo (`omnidance`) - pooled para runtime, directo
   para migraciones.
 
+[0.5.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.5.0
+[0.4.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.4.0
 [0.2.1]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.2.1
 [0.2.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/EduardoSalasG/omnidance/releases/tag/v0.1.0
