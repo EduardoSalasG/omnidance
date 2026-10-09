@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, EventDate, type BadgeVariant, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, EventDate, Pager, type BadgeVariant, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import {
@@ -35,6 +35,8 @@ type Props = {
 // query engine (spec analytics/query-console).
 const STUDENTS_ENTITY = academyEntity("students");
 
+const PAGE_SIZE = 24;
+
 const STATUS_VARIANT: Record<EnrollmentStatus, BadgeVariant> = {
   ACTIVE: "neon",
   ONLINE: "neon",
@@ -59,6 +61,8 @@ export function StudentsSection({
   const tp = useTranslations("practices");
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
@@ -72,19 +76,24 @@ export function StudentsSection({
     setLoading(true);
     setError(false);
     try {
+      const qs = filterQuery(filters);
       const res = await apiFetch(
-        `/academies/${academyId}/students${filterQuery(filters)}`,
+        `/academies/${academyId}/students${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
       );
       if (!res.ok) {
         setError(true);
         return;
       }
-      const rows = (await res.json()) as Student[];
-      setStudents(rows);
+      const data = (await res.json()) as {
+        items: Student[];
+        total: number;
+      };
+      setStudents(data.items);
+      setTotal(data.total);
       setPlanOptions((prev) =>
         mergeOptions(
           prev,
-          rows.flatMap((s) =>
+          data.items.flatMap((s) =>
             s.plan ? [{ value: s.plan.id, label: s.plan.name }] : [],
           ),
         ),
@@ -94,7 +103,7 @@ export function StudentsSection({
     } finally {
       setLoading(false);
     }
-  }, [academyId, filters]);
+  }, [academyId, filters, page]);
 
   useEffect(() => {
     void load();
@@ -102,9 +111,9 @@ export function StudentsSection({
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch(`/academies/${academyId}/plans`)
+    apiFetch(`/academies/${academyId}/plans?pageSize=100`)
       .then(async (res) =>
-        res.ok ? ((await res.json()) as MembershipPlan[]) : [],
+        res.ok ? ((await res.json()) as { items: MembershipPlan[] }).items : [],
       )
       .then((plans) => {
         if (cancelled) return;
@@ -202,7 +211,10 @@ export function StudentsSection({
       <FilterBar
         entity={STUDENTS_ENTITY}
         filters={filters}
-        onChange={setFilters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
         options={{ academyPlans: planOptions }}
       />
 
@@ -306,6 +318,14 @@ export function StudentsSection({
             </li>
           ))}
         </ul>
+      )}
+      {!loading && !error && students.length > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+        />
       )}
     </div>
   );

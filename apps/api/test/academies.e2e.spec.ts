@@ -296,10 +296,12 @@ describe("academies e2e", () => {
       expect(res.status).toBe(403);
     });
 
-    it("GET /api/academies/:id/plans owner → lista", async () => {
+    it("GET /api/academies/:id/plans owner → lista paginada", async () => {
       const res = await get(`/api/academies/${ids.academyId}/plans`, ownerSession);
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const page = await res.json();
+      expect(page.total).toBeGreaterThanOrEqual(1);
+      const list = page.items;
       expect(list.some((p: { id: string }) => p.id === ids.planId)).toBe(true);
     });
 
@@ -452,7 +454,7 @@ describe("academies e2e", () => {
         ownerSession,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const list = (await res.json()).items;
       const enr = list.find(
         (e: { id: string }) => e.id === ids.enrollmentId,
       );
@@ -511,18 +513,29 @@ describe("academies e2e", () => {
   });
 
   describe("attendance", () => {
-    it("POST asistencia owner → 201", async () => {
+    // Spec academy-console-v3: marcar presente es exclusivo del instructor
+    // efectivo del slot (o admin plataforma) - el owner ya no registra.
+    it("POST asistencia owner → 403 (solo el instructor marca)", async () => {
       const res = await post(
         `/api/academies/${ids.academyId}/attendance`,
         { slotId: ids.slotId, personId: ids.studentId, date: "2025-06-03" },
         ownerSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("POST asistencia instructor → 201", async () => {
+      const res = await post(
+        `/api/academies/${ids.academyId}/attendance`,
+        { slotId: ids.slotId, personId: ids.studentId, date: "2025-06-03" },
+        instructorSession,
       );
       expect(res.status).toBe(201);
       const body = await res.json();
       expect(body.personId).toBe(ids.studentId);
     });
 
-    it("POST asistencia instructor → 201", async () => {
+    it("POST asistencia instructor (otra persona) → 201", async () => {
       const res = await post(
         `/api/academies/${ids.academyId}/attendance`,
         { slotId: ids.slotId, personId: ids.outsiderId, date: "2025-06-03" },
@@ -535,7 +548,7 @@ describe("academies e2e", () => {
       const res = await post(
         `/api/academies/${ids.academyId}/attendance`,
         { slotId: ids.slotId, personId: ids.studentId, date: "2025-06-03" },
-        ownerSession,
+        instructorSession,
       );
       expect(res.status).toBe(409);
     });
@@ -553,7 +566,7 @@ describe("academies e2e", () => {
       const res = await post(
         `/api/academies/${ids.academyId}/attendance`,
         { slotId: "slot-fantasma", personId: ids.studentId },
-        ownerSession,
+        instructorSession,
       );
       expect(res.status).toBe(404);
     });
@@ -562,7 +575,7 @@ describe("academies e2e", () => {
       const res = await post(
         `/api/academies/${ids.academyId}/attendance`,
         { slotId: ids.slotId, personId: ids.ownerId },
-        ownerSession,
+        instructorSession,
       );
       expect(res.status).toBe(201);
     });
@@ -1316,7 +1329,7 @@ describe("academies e2e", () => {
         ownerSession,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const list = (await res.json()).items;
       const mine = list.find((c: { id: string }) => c.id === claimId);
       expect(mine).toBeTruthy();
       expect(mine.person.name).toBe("Alumno Academia Test");
@@ -1465,12 +1478,14 @@ describe("academies e2e", () => {
     });
 
     it("owner ve el intento AWAITING en la cola (seguimiento)", async () => {
-      const list = await (
-        await get(
-          `/api/academies/${ids.academyId}/claims?status=AWAITING`,
-          ownerSession,
-        )
-      ).json();
+      const list = (
+        await (
+          await get(
+            `/api/academies/${ids.academyId}/claims?status=AWAITING`,
+            ownerSession,
+          )
+        ).json()
+      ).items;
       expect(list.some((c: { id: string }) => c.id === intentId)).toBe(true);
     });
 
@@ -1772,11 +1787,13 @@ describe("academies e2e", () => {
         `/api/academies/${ids.academyId}/claims`,
         ownerSession,
       );
-      const rows = (await res.json()) as {
-        id: string;
-        reviewedBy: { id: string; name: string } | null;
-      }[];
-      const row = rows.find((r) => r.id === claim.id);
+      const body = (await res.json()) as {
+        items: {
+          id: string;
+          reviewedBy: { id: string; name: string } | null;
+        }[];
+      };
+      const row = body.items.find((r) => r.id === claim.id);
       expect(row?.reviewedBy?.id).toBe(ids.ownerId);
       expect(row?.reviewedBy?.name).toBe("Owner Academia Test");
     });

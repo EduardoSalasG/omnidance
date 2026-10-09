@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import type { CrmActor, CrmCampaign } from "./types";
 import { actorQuery } from "./types";
@@ -12,6 +12,8 @@ const fmtDay = new Intl.DateTimeFormat("es-CL", {
   dateStyle: "medium",
   timeStyle: "short",
 });
+
+const PAGE_SIZE = 20;
 
 const STATUS_VARIANT: Record<string, "neon" | "muted" | "outline"> = {
   DRAFT: "outline",
@@ -37,6 +39,8 @@ export function CampaignList({
   const tc = useTranslations("common");
 
   const [items, setItems] = useState<CrmCampaign[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -44,18 +48,25 @@ export function CampaignList({
   const load = useCallback(async () => {
     setError(false);
     try {
-      const res = await apiFetch(`/crm/campaigns?${actorQuery(actor)}`);
+      const res = await apiFetch(
+        `/crm/campaigns?${actorQuery(actor)}&page=${page}&pageSize=${PAGE_SIZE}`,
+      );
       if (!res.ok) {
         setError(true);
         setItems([]);
         return;
       }
-      setItems((await res.json()) as CrmCampaign[]);
+      const data = (await res.json()) as {
+        items: CrmCampaign[];
+        total: number;
+      };
+      setItems(data.items);
+      setTotal(data.total);
     } catch {
       setError(true);
       setItems([]);
     }
-  }, [actor]);
+  }, [actor, page]);
 
   useEffect(() => {
     setItems(null);
@@ -199,6 +210,10 @@ export function CampaignList({
             </li>
           ))}
         </ul>
+      )}
+
+      {items !== null && total > 0 && (
+        <Pager page={page} pageSize={PAGE_SIZE} total={total} onPage={setPage} />
       )}
     </section>
   );

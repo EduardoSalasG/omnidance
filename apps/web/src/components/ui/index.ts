@@ -51,3 +51,4 @@ export { GenreMixBar, aggregateMix } from "./GenreMixBar";
 export type { GenreMixBlock } from "./GenreMixBar";
 
 export { LevelBars } from "./level-bars";
+export { Pager } from "./pager";

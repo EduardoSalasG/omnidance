@@ -234,3 +234,13 @@ export const CONSENT_VERSION = "2026-10";
 
 // ─── Motor de consultas (analytics/query-console) ───
 export * from "./query-catalog";
+
+// ─── Listados paginados (academy-console-v3) ───
+// Contrato {items,total,page,pageSize} de los endpoints de listado de
+// consolas - ninguna vista trae la tabla completa de una vez.
+export type Paged<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+};

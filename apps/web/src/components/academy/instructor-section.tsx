@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Card, SkeletonList } from "@/components/ui";
+import { Card, Pager, SkeletonList } from "@/components/ui";
 
 export type InstructorRow = {
   person: { id: string; name: string | null; email: string | null };
@@ -27,17 +27,25 @@ const clp = new Intl.NumberFormat("es-CL", {
  * el acuerdo económico, las métricas y la baja. Gated por capacidad
  * `team` en el backend.
  */
+const PAGE_SIZE = 20;
+
 export function InstructorSection({ academyId }: { academyId: string }) {
   const t = useTranslations("academyStaff");
 
   const [rows, setRows] = useState<InstructorRow[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
-    const res = await apiFetch(`/academies/${academyId}/instructors`).catch(
-      () => null,
-    );
-    setRows(res?.ok ? ((await res.json()) as InstructorRow[]) : []);
-  }, [academyId]);
+    const res = await apiFetch(
+      `/academies/${academyId}/instructors?page=${page}&pageSize=${PAGE_SIZE}`,
+    ).catch(() => null);
+    const data = res?.ok
+      ? ((await res.json()) as { items: InstructorRow[]; total: number })
+      : { items: [], total: 0 };
+    setRows(data.items);
+    setTotal(data.total);
+  }, [academyId, page]);
 
   useEffect(() => {
     void load();
@@ -89,6 +97,14 @@ export function InstructorSection({ academyId }: { academyId: string }) {
             </li>
           ))}
         </ul>
+      )}
+      {rows.length > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+        />
       )}
     </Card>
   );

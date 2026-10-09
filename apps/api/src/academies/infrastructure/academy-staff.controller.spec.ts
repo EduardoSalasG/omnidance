@@ -54,6 +54,7 @@ function mkPrisma() {
     },
     academyStaff: {
       findMany: vi.fn(async () => []),
+      count: vi.fn(async () => 0),
       upsert: vi.fn(async () => ({})),
       updateMany: vi.fn(async () => ({ count: 1 })),
       deleteMany: vi.fn(async () => ({ count: 1 })),
@@ -62,6 +63,7 @@ function mkPrisma() {
       findMany: vi.fn(async () => [
         { personId: "i1", commissionPct: 20, createdAt: new Date() },
       ]),
+      count: vi.fn(async () => 1),
       upsert: vi.fn(async () => ({})),
       deleteMany: vi.fn(async () => ({ count: 1 })),
     },
@@ -103,8 +105,8 @@ describe("AcademyStaffController - instructores", () => {
       expect.objectContaining({ id: "p1" }),
       "team",
     );
-    expect(r).toHaveLength(1);
-    expect(r[0]).toMatchObject({
+    expect(r.items).toHaveLength(1);
+    expect(r.items[0]).toMatchObject({
       person: { id: "i1", name: "Profe Uno" },
       commissionPct: 20,
     });
@@ -135,7 +137,14 @@ describe("AcademyStaffController - instructores", () => {
     });
     expect(prisma.academyInstructor.upsert).toHaveBeenCalledWith({
       where: { academyId_personId: { academyId: "ac1", personId: "new1" } },
-      create: { academyId: "ac1", personId: "new1", commissionPct: 25 },
+      create: {
+        academyId: "ac1",
+        personId: "new1",
+        commissionPct: 25,
+        payType: null,
+        payAmount: null,
+        payClasses: null,
+      },
       update: { commissionPct: 25 },
     });
     expect(mailer.send).toHaveBeenCalledWith(

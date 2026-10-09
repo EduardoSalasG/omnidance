@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { AcademyGate } from "@/components/academy/academy-gate";
@@ -40,6 +40,8 @@ type Catalogs = {
   types?: { id: string; name: string }[];
 };
 
+const PAGE_SIZE = 12;
+
 /**
  * /academia/series - "Clases": listado de las series de la academia.
  * Los cards no llevan acciones - el tap abre el detalle
@@ -69,6 +71,8 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const access = useAcademyAccess(academyId);
 
   const [series, setSeries] = useState<Series[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loadError, setLoadError] = useState(false);
   // Default del listado: solo clases activas (spec academies/class-series).
   const [filters, setFilters] = useState<QueryFilters>({ status: "active" });
@@ -92,18 +96,21 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const reload = useCallback(async () => {
     setLoadError(false);
     try {
+      const qs = filterQuery(filters);
       const res = await apiFetch(
-        `/academies/${academyId}/series${filterQuery(filters)}`,
+        `/academies/${academyId}/series${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
       );
       if (!res.ok) {
         setLoadError(true);
         return;
       }
-      setSeries((await res.json()) as Series[]);
+      const data = (await res.json()) as { items: Series[]; total: number };
+      setSeries(data.items);
+      setTotal(data.total);
     } catch {
       setLoadError(true);
     }
-  }, [academyId, filters]);
+  }, [academyId, filters, page]);
 
   useEffect(() => {
     void reload();
@@ -177,7 +184,10 @@ function SeriesModule({ academyId }: { academyId: string }) {
       <FilterBar
         entity={SERIES_ENTITY}
         filters={filters}
-        onChange={setFilters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
         options={{
           styles: styleOptions,
           levels: levelOptions,
@@ -269,6 +279,15 @@ function SeriesModule({ academyId }: { academyId: string }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {series.length > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+        />
       )}
     </div>
   );

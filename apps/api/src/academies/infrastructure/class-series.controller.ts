@@ -36,7 +36,7 @@ import {
   AcademyMaterializeService,
   monthDates,
 } from "./class-series-materialize.service";
-import { whitelist } from "./list-filters";
+import { pageParams, whitelist } from "./list-filters";
 
 class SeriesSlotDto {
   @IsInt()
@@ -230,23 +230,33 @@ export class ClassSeriesController {
     @Query("styleId") styleId?: string,
     @Query("levelId") levelId?: string,
     @Query("typeId") typeId?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
   ) {
     await this.access.requireCapability(id, req.person!, "schedule");
     const statusF = whitelist(status, ["active", "inactive"] as const, "status");
+    const pg = pageParams(page, pageSize);
     const term = q?.trim();
-    return this.prisma.classSeries.findMany({
-      where: {
-        academyId: id,
-        deletedAt: null,
-        ...(term ? { name: { contains: term, mode: "insensitive" } } : {}),
-        ...(statusF ? { active: statusF === "active" } : {}),
-        ...(styleId ? { styleId } : {}),
-        ...(levelId ? { levelId } : {}),
-        ...(typeId ? { types: { some: { typeId } } } : {}),
-      },
-      orderBy: [{ name: "asc" }],
-      include: SERIES_INCLUDE,
-    });
+    const where = {
+      academyId: id,
+      deletedAt: null,
+      ...(term ? { name: { contains: term, mode: "insensitive" as const } } : {}),
+      ...(statusF ? { active: statusF === "active" } : {}),
+      ...(styleId ? { styleId } : {}),
+      ...(levelId ? { levelId } : {}),
+      ...(typeId ? { types: { some: { typeId } } } : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.classSeries.findMany({
+        where,
+        orderBy: [{ name: "asc" }],
+        skip: pg.skip,
+        take: pg.take,
+        include: SERIES_INCLUDE,
+      }),
+      this.prisma.classSeries.count({ where }),
+    ]);
+    return { items, total, page: pg.page, pageSize: pg.pageSize };
   }
 
   /**

@@ -1,19 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
   Badge,
   Button,
   Card,
-  ChevronLeftIcon,
-  ChevronRightIcon,
+  Pager,
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { TagBadges } from "./tag-badges";
-import type { CrmActor, CrmPersonRow, CrmTag } from "./types";
+import type { CrmActor, CrmPeoplePage, CrmTag } from "./types";
 import { SEGMENTS, actorBody, actorQuery } from "./types";
 
 const PAGE_SIZE = 20;
@@ -31,17 +30,19 @@ const SEGMENT_VARIANT: Record<string, "neon" | "outline" | "muted" | "live"> = {
 };
 
 /**
- * Lista de personas del actor. GET /crm/people devuelve el universo completo
- * (score + tags) sin filtros - búsqueda, segmento, tag y paginación son
- * client-side sobre ese array.
+ * Lista de personas del actor. GET /crm/people filtra (q/segment/tag) y
+ * pagina en servidor (spec academy-console-v3); la respuesta trae
+ * segmentCounts/allTags del universo completo para stats y opciones.
+ * El input de búsqueda se debouncea 300ms.
  */
 export function PeopleTable({ actor }: { actor: CrmActor }) {
   const t = useTranslations("crm");
   const tc = useTranslations("common");
 
-  const [rows, setRows] = useState<CrmPersonRow[] | null>(null);
+  const [data, setData] = useState<CrmPeoplePage | null>(null);
   const [error, setError] = useState(false);
   const [q, setQ] = useState("");
+  const [qApplied, setQApplied] = useState("");
   const [seg, setSeg] = useState("ALL");
   const [tag, setTag] = useState("ALL");
   const [page, setPage] = useState(1);
@@ -53,31 +54,55 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
   const [tagSaving, setTagSaving] = useState(false);
   const [tagDeleting, setTagDeleting] = useState<string | null>(null);
 
+  // Debounce del input de búsqueda - no golpear la API por tecla.
+  useEffect(() => {
+    const h = setTimeout(() => {
+      setQApplied(q.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(h);
+  }, [q]);
+
   const load = useCallback(async () => {
     setError(false);
     try {
-      const res = await apiFetch(`/crm/people?${actorQuery(actor)}`);
+      const params = new URLSearchParams(actorQuery(actor));
+      if (qApplied) params.set("q", qApplied);
+      if (seg !== "ALL") params.set("segment", seg);
+      if (tag !== "ALL") params.set("tag", tag);
+      params.set("page", String(page));
+      params.set("pageSize", String(PAGE_SIZE));
+      const res = await apiFetch(`/crm/people?${params}`);
       if (!res.ok) {
         setError(true);
-        setRows([]);
+        setData(null);
         return;
       }
-      setRows((await res.json()) as CrmPersonRow[]);
+      setData((await res.json()) as CrmPeoplePage);
     } catch {
       setError(true);
-      setRows([]);
+      setData(null);
     }
-  }, [actor]);
+  }, [actor, qApplied, seg, tag, page]);
 
   useEffect(() => {
-    setRows(null);
+    setData(null);
     setQ("");
+    setQApplied("");
     setSeg("ALL");
     setTag("ALL");
     setPage(1);
     setNotice(null);
+  }, [actor]);
+
+  useEffect(() => {
     void load();
   }, [load]);
+
+  const rows = data?.items ?? null;
+  const segmentCounts = data?.segmentCounts ?? {};
+  const allTags = data?.allTags ?? [];
+  const hasFilters = qApplied !== "" || seg !== "ALL" || tag !== "ALL";
 
   async function recompute() {
     if (recomputing) return;
@@ -135,49 +160,11 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
     }
   }
 
-  const allTags = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of rows ?? []) for (const tg of r.tags) set.add(tg.tag);
-    return [...set].sort((a, b) => a.localeCompare(b, "es"));
-  }, [rows]);
-
-  const segmentCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const r of rows ?? []) {
-      const k = r.segment ?? "NONE";
-      counts[k] = (counts[k] ?? 0) + 1;
-    }
-    return counts;
-  }, [rows]);
-
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return (rows ?? []).filter((r) => {
-      if (seg === "NONE" ? r.segment !== null : seg !== "ALL" && r.segment !== seg)
-        return false;
-      if (tag !== "ALL" && !r.tags.some((tg) => tg.tag === tag)) return false;
-      if (
-        needle &&
-        !(r.person?.name ?? "").toLowerCase().includes(needle) &&
-        !r.tags.some((tg) => tg.tag.toLowerCase().includes(needle))
-      )
-        return false;
-      return true;
-    });
-  }, [rows, q, seg, tag]);
-
-  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage = Math.min(page, pages);
-  const pageRows = filtered.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
-
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-ink/60">
-          {t("people.total", { count: rows?.length ?? 0 })}
+          {t("people.total", { count: data?.total ?? 0 })}
         </p>
         <Button
           size="sm"
@@ -195,8 +182,8 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
         </Button>
       </div>
 
-      {/* Stats por segmento (conteo client-side sobre la respuesta) */}
-      {rows !== null && rows.length > 0 && (
+      {/* Stats por segmento del universo completo (vienen en la respuesta) */}
+      {rows !== null && Object.values(segmentCounts).some((c) => c > 0) && (
         <ul className="flex flex-wrap gap-2">
           {[...SEGMENTS, "NONE"].map((s) =>
             (segmentCounts[s] ?? 0) > 0 ? (
@@ -281,7 +268,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
 
       {/* Lista - cards apiladas (mobile-first, estilo admin) */}
       {rows === null && !error && <SkeletonList items={4} lines={1} />}
-      {rows !== null && rows.length === 0 && (
+      {rows !== null && rows.length === 0 && !hasFilters && (
         <Card className="flex flex-col items-start gap-3">
           <p className="text-ink/60">{t("people.empty")}</p>
           <Button
@@ -294,13 +281,13 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
           </Button>
         </Card>
       )}
-      {rows !== null && rows.length > 0 && filtered.length === 0 && (
+      {rows !== null && rows.length === 0 && hasFilters && (
         <p className="text-ink/60">{t("people.emptyFiltered")}</p>
       )}
 
-      {pageRows.length > 0 && (
+      {rows !== null && rows.length > 0 && (
         <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-          {pageRows.map((r) => {
+          {rows.map((r) => {
             const segKey = r.segment ?? "NONE";
             return (
               <li key={r.personId}>
@@ -407,29 +394,13 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
         </ul>
       )}
 
-      {/* Paginación client-side (el endpoint devuelve el universo completo) */}
-      {filtered.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between gap-3">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={safePage <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            <ChevronLeftIcon /> {t("people.prev")}
-          </Button>
-          <p className="text-xs text-ink/50">
-            {t("people.page", { page: safePage, pages })}
-          </p>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={safePage >= pages}
-            onClick={() => setPage((p) => Math.min(pages, p + 1))}
-          >
-            {t("people.next")} <ChevronRightIcon />
-          </Button>
-        </div>
+      {rows !== null && (data?.total ?? 0) > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={data?.total ?? 0}
+          onPage={setPage}
+        />
       )}
     </section>
   );

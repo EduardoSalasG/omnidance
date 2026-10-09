@@ -264,21 +264,30 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
     expect(statuses).toEqual(["ok", "ok", "error", "error"]);
 
     const series = await prisma.classSeries.findFirstOrThrow({
-      where: { academyId: academyId.v, name: "Serie Import", month },
+      where: { academyId: academyId.v, name: "Serie Import" },
       include: { slots: { include: { classes: true } } },
     });
     expect(series.slots).toHaveLength(2);
 
+    // Spec academy-console-v3: `capacidad` del CSV alimenta el quórum de
+    // la serie (ya no vive por slot); las clases se materializan en la
+    // ventana rodante hoy → fin del mes siguiente.
+    expect(series.quorum).toBe(15);
     const monday = series.slots.find((s) => s.weekday === 1)!;
-    expect(monday.capacity).toBe(15);
-    const daysInMonth = new Date(
-      Date.UTC(+month.slice(0, 4), +month.slice(5, 7), 0),
-    ).getUTCDate();
-    const mondays = Array.from({ length: daysInMonth }, (_, i) => i + 1).filter(
-      (d) =>
-        new Date(Date.UTC(+month.slice(0, 4), +month.slice(5, 7) - 1, d)).getUTCDay() ===
-        1,
-    ).length;
+    const today = new Date();
+    const windowEnd = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 2, 0),
+    );
+    let mondays = 0;
+    for (
+      let d = new Date(
+        Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+      );
+      d <= windowEnd;
+      d = new Date(d.getTime() + 86_400_000)
+    ) {
+      if (d.getUTCDay() === 1) mondays += 1;
+    }
     expect(monday.classes).toHaveLength(mondays);
 
     // Re-import no duplica slots ni clases.
@@ -289,7 +298,7 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
     );
     expect(res2.status).toBe(201);
     const series2 = await prisma.classSeries.findFirstOrThrow({
-      where: { academyId: academyId.v, name: "Serie Import", month },
+      where: { academyId: academyId.v, name: "Serie Import" },
       include: { slots: { include: { classes: true } } },
     });
     expect(series2.slots).toHaveLength(2);

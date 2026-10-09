@@ -31,6 +31,7 @@ import { AuthService } from "../../auth/domain/auth.service";
 import { PrismaService } from "../../prisma.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { AcademyAccess } from "./academy-access.service";
+import { pageParams } from "./list-filters";
 import {
   instructorInviteEmailHtml,
   staffInviteEmailHtml,
@@ -153,23 +154,55 @@ export class AcademyStaffController {
     @Param("id") id: string,
     @Req() req: Request,
     @Query("q") q?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
   ) {
     await this.access.requireCapability(id, req.person!, "team");
-    const rows = await this.prisma.academyStaff.findMany({
-      where: { academyId: id },
-      orderBy: { createdAt: "asc" },
-      select: {
-        personId: true,
-        canStudents: true,
-        canPayments: true,
-        canPlans: true,
-        canSchedule: true,
-        canProfile: true,
-        canTeam: true,
-        canBilling: true,
-        createdAt: true,
-      },
-    });
+    const pg = pageParams(page, pageSize);
+    // q filtra por nombre/email de la persona (personId FK plana -
+    // join manual previo, como en students) para que pagine bien.
+    const term = q?.trim();
+    let personIdIn: string[] | undefined;
+    if (term && term.length >= 2) {
+      personIdIn = (
+        await this.prisma.person.findMany({
+          where: {
+            OR: [
+              { name: { contains: term, mode: "insensitive" } },
+              { email: { contains: term, mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+          take: 500,
+        })
+      ).map((p) => p.id);
+    } else if (term) {
+      personIdIn = [];
+    }
+    const where = {
+      academyId: id,
+      ...(personIdIn ? { personId: { in: personIdIn } } : {}),
+    };
+    const [rows, total] = await Promise.all([
+      this.prisma.academyStaff.findMany({
+        where,
+        orderBy: { createdAt: "asc" },
+        skip: pg.skip,
+        take: pg.take,
+        select: {
+          personId: true,
+          canStudents: true,
+          canPayments: true,
+          canPlans: true,
+          canSchedule: true,
+          canProfile: true,
+          canTeam: true,
+          canBilling: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.academyStaff.count({ where }),
+    ]);
     const people = new Map(
       (
         await this.prisma.person.findMany({
@@ -178,33 +211,28 @@ export class AcademyStaffController {
         })
       ).map((p) => [p.id, p]),
     );
-    const term = q?.trim().toLowerCase();
-    const filtered = term
-      ? rows.filter((r) => {
-          const p = people.get(r.personId);
-          return (
-            (p?.name ?? "").toLowerCase().includes(term) ||
-            (p?.email ?? "").toLowerCase().includes(term)
-          );
-        })
-      : rows;
-    return filtered.map((r) => ({
-      person: people.get(r.personId) ?? {
-        id: r.personId,
-        name: "(cuenta eliminada)",
-        email: null,
-      },
-      caps: {
-        students: r.canStudents,
-        payments: r.canPayments,
-        plans: r.canPlans,
-        schedule: r.canSchedule,
-        profile: r.canProfile,
-        team: r.canTeam,
-        billing: r.canBilling,
-      },
-      createdAt: r.createdAt,
-    }));
+    return {
+      items: rows.map((r) => ({
+        person: people.get(r.personId) ?? {
+          id: r.personId,
+          name: "(cuenta eliminada)",
+          email: null,
+        },
+        caps: {
+          students: r.canStudents,
+          payments: r.canPayments,
+          plans: r.canPlans,
+          schedule: r.canSchedule,
+          profile: r.canProfile,
+          team: r.canTeam,
+          billing: r.canBilling,
+        },
+        createdAt: r.createdAt,
+      })),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**
@@ -299,22 +327,33 @@ export class AcademyStaffController {
   // consola. La membresía AcademyInstructor habilita los endpoints de
   // instructor (clases, asistencia) sin PersonRole INSTRUCTOR.
 
-  /** Lista de profesores con comisión vigente. */
+  /** Lista de profesores con su acuerdo económico (paginada). */
   @Get(":id/instructors")
-  async listInstructors(@Param("id") id: string, @Req() req: Request) {
+  async listInstructors(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
+  ) {
     await this.access.requireCapability(id, req.person!, "team");
-    const rows = await this.prisma.academyInstructor.findMany({
-      where: { academyId: id },
-      orderBy: { createdAt: "asc" },
-      select: {
-        personId: true,
-        commissionPct: true,
-        payType: true,
-        payAmount: true,
-        payClasses: true,
-        createdAt: true,
-      },
-    });
+    const pg = pageParams(page, pageSize);
+    const [rows, total] = await Promise.all([
+      this.prisma.academyInstructor.findMany({
+        where: { academyId: id },
+        orderBy: { createdAt: "asc" },
+        skip: pg.skip,
+        take: pg.take,
+        select: {
+          personId: true,
+          commissionPct: true,
+          payType: true,
+          payAmount: true,
+          payClasses: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.academyInstructor.count({ where: { academyId: id } }),
+    ]);
     const people = new Map(
       (
         await this.prisma.person.findMany({
@@ -323,18 +362,23 @@ export class AcademyStaffController {
         })
       ).map((p) => [p.id, p]),
     );
-    return rows.map((r) => ({
-      person: people.get(r.personId) ?? {
-        id: r.personId,
-        name: "(cuenta eliminada)",
-        email: null,
-      },
-      commissionPct: r.commissionPct,
-      payType: r.payType,
-      payAmount: r.payAmount,
-      payClasses: r.payClasses,
-      createdAt: r.createdAt,
-    }));
+    return {
+      items: rows.map((r) => ({
+        person: people.get(r.personId) ?? {
+          id: r.personId,
+          name: "(cuenta eliminada)",
+          email: null,
+        },
+        commissionPct: r.commissionPct,
+        payType: r.payType,
+        payAmount: r.payAmount,
+        payClasses: r.payClasses,
+        createdAt: r.createdAt,
+      })),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**

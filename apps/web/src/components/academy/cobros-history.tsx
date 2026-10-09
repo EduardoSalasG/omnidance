@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, SkeletonList, Spinner } from "@/components/ui";
 import type { PaymentAuditRow } from "@/components/payments/shared";
 import {
   PAYMENT_STATUS_VARIANT,
@@ -36,33 +36,63 @@ type Row = {
  * resueltos (validaciones manuales) y los pagos por pasarela del mismo
  * libro, ordenados por fecha. Cada card abre su página de detalle.
  */
+const WINDOW = 20;
+
 export function CobrosHistory({ academyId }: { academyId: string }) {
   const t = useTranslations("academyPay");
   const tp = useTranslations("payments");
+  const tc = useTranslations("common");
 
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [shown, setShown] = useState(WINDOW);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  // Merge de dos fuentes (claims resueltos + pagos de pasarela) con
+  // ventana creciente: pide los primeros `shown` de cada fuente y une
+  // - los primeros `shown` del merge son correctos (en el peor caso
+  // todos vienen de una sola fuente). Cap 200 por fuente.
   const load = useCallback(async () => {
-    const [claimsRes, paysRes] = await Promise.all([
-      apiFetch(`/academies/${academyId}/claims`).catch(() => null),
-      apiFetch(`/payments/by-academy/${academyId}`).catch(() => null),
+    const size = Math.min(shown, 200);
+    const fetchClaims = (status: string) =>
+      apiFetch(
+        `/academies/${academyId}/claims?status=${status}&pageSize=${size}`,
+      )
+        .then(async (r) =>
+          r?.ok
+            ? ((await r.json()) as { items: QueueClaim[]; total: number })
+            : { items: [], total: 0 },
+        )
+        .catch(() => ({ items: [], total: 0 }));
+    const [apr, rej, paysRes] = await Promise.all([
+      fetchClaims("APPROVED"),
+      fetchClaims("REJECTED"),
+      apiFetch(`/payments/by-academy/${academyId}?pageSize=${size}`)
+        .then(async (r) =>
+          r?.ok
+            ? ((await r.json()) as {
+                items: PaymentAuditRow[];
+                total: number;
+              })
+            : { items: [], total: 0 },
+        )
+        .catch(() => ({ items: [], total: 0 })),
     ]);
-    const claims = claimsRes?.ok ? ((await claimsRes.json()) as QueueClaim[]) : [];
-    const payments = paysRes?.ok ? ((await paysRes.json()) as PaymentAuditRow[]) : [];
+    const claims = [...apr.items, ...rej.items];
+    const payments = paysRes.items;
+    setTotal(apr.total + rej.total + paysRes.total);
 
-    const claimRows: Row[] = claims
-      .filter((c) => c.status === "APPROVED" || c.status === "REJECTED")
-      .map((c) => ({
-        key: `claim-${c.id}`,
-        href: `/academia/cobros/claim/${c.id}`,
-        title: c.person.name,
-        subtitle: `${c.plan?.name ?? c.methodLabel} · ${clp.format(c.amount)}`,
-        status: c.status,
-        statusLabel:
-          c.status === "APPROVED" ? t("statusApproved") : t("statusRejected"),
-        variant: c.status === "APPROVED" ? "neon" : "live",
-        date: c.reviewedAt ?? c.createdAt,
-      }));
+    const claimRows: Row[] = claims.map((c) => ({
+      key: `claim-${c.id}`,
+      href: `/academia/cobros/claim/${c.id}`,
+      title: c.person.name,
+      subtitle: `${c.plan?.name ?? c.methodLabel} · ${clp.format(c.amount)}`,
+      status: c.status,
+      statusLabel:
+        c.status === "APPROVED" ? t("statusApproved") : t("statusRejected"),
+      variant: c.status === "APPROVED" ? "neon" : "live",
+      date: c.reviewedAt ?? c.createdAt,
+    }));
     const paymentRows: Row[] = payments.map((p) => ({
       key: `pay-${p.id}`,
       href: `/academia/cobros/pago/${p.id}`,
@@ -79,11 +109,14 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
     }));
 
     setRows(
-      [...claimRows, ...paymentRows].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-      ),
+      [...claimRows, ...paymentRows]
+        .sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        )
+        .slice(0, shown),
     );
-  }, [academyId, t, tp]);
+    setLoadingMore(false);
+  }, [academyId, shown, t, tp]);
 
   useEffect(() => {
     void load();
@@ -123,6 +156,20 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
           </li>
         ))}
       </ul>
+      {rows.length < total && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="self-center"
+          disabled={loadingMore}
+          onClick={() => {
+            setLoadingMore(true);
+            setShown((v) => v + WINDOW);
+          }}
+        >
+          {loadingMore ? <Spinner /> : tc("pager.loadMore")}
+        </Button>
+      )}
     </Card>
   );
 }

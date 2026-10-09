@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, SkeletonList, Spinner } from "@/components/ui";
+import { Button, Card, Pager, SkeletonList, Spinner } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { CLAIM_STATUSES, filtersParams } from "./shared";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
@@ -57,6 +57,8 @@ const CLAIMS_ENTITY: EntityDef = {
   columns: [],
 };
 
+const PAGE_SIZE = 20;
+
 export function ProducerClaimsQueue() {
   const t = useTranslations("academyPay");
   const tp = useTranslations("producer.ownMethods");
@@ -64,21 +66,60 @@ export function ProducerClaimsQueue() {
 
   const [claims, setClaims] = useState<QueueClaim[] | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
 
-  const load = useCallback(async (f: QueryFilters) => {
-    const res = await apiFetch(`/producer/claims${filtersParams(f)}`).catch(
-      () => null,
-    );
-    setClaims(res?.ok ? ((await res.json()) as { claims: QueueClaim[] }).claims : []);
+  const load = useCallback(async (f: QueryFilters, p: number) => {
+    // Con filtro de estado explícito la vista es un listado paginado.
+    // Sin filtro la cola operativa trae PENDING (acotado) + historial
+    // resuelto (acotado) en requests separadas - la API solo acepta un
+    // status por request.
+    if (typeof f.status === "string") {
+      const params = filtersParams(f);
+      const sep = params ? "&" : "?";
+      const res = await apiFetch(
+        `/producer/claims${params}${sep}page=${p}&pageSize=${PAGE_SIZE}`,
+      ).catch(() => null);
+      const data = res?.ok
+        ? ((await res.json()) as {
+            claims: QueueClaim[];
+            total: number;
+          })
+        : { claims: [], total: 0 };
+      setClaims(data.claims);
+      setTotal(data.total);
+      return;
+    }
+    const get = (status: string, size: number) =>
+      apiFetch(
+        `/producer/claims?status=${status}&pageSize=${size}`,
+      )
+        .then((r) =>
+          r.ok
+            ? (r.json() as Promise<{ claims: QueueClaim[] }>)
+            : { claims: [] },
+        )
+        .catch(() => ({ claims: [] }));
+    const [pending, approved, rejected] = await Promise.all([
+      get("PENDING", 100),
+      get("APPROVED", 50),
+      get("REJECTED", 50),
+    ]);
+    setClaims([
+      ...pending.claims,
+      ...approved.claims,
+      ...rejected.claims,
+    ]);
+    setTotal(0);
   }, []);
 
   useEffect(() => {
-    void load(filters);
-  }, [load, filters]);
+    void load(filters, page);
+  }, [load, filters, page]);
 
   async function approve(id: string) {
     setBusyId(id);
@@ -90,7 +131,7 @@ export function ProducerClaimsQueue() {
         body: "{}",
       });
       setMsg(res.ok ? t("approvedMsg") : t("error"));
-      await load(filters);
+      await load(filters, page);
     } finally {
       setBusyId(null);
     }
@@ -109,7 +150,7 @@ export function ProducerClaimsQueue() {
       setMsg(res.ok ? t("rejectedMsg") : t("error"));
       setRejectId(null);
       setRejectNote("");
-      await load(filters);
+      await load(filters, page);
     } finally {
       setBusyId(null);
     }
@@ -138,7 +179,10 @@ export function ProducerClaimsQueue() {
       <FilterBar
         entity={CLAIMS_ENTITY}
         filters={filters}
-        onChange={setFilters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
         options={{}}
       />
 
@@ -287,6 +331,10 @@ export function ProducerClaimsQueue() {
             ))}
           </ul>
         </Card>
+      )}
+
+      {typeof filters.status === "string" && total > 0 && (
+        <Pager page={page} pageSize={PAGE_SIZE} total={total} onPage={setPage} />
       )}
     </>
   );

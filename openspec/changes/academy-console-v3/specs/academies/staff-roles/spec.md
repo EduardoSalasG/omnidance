@@ -2,10 +2,10 @@
 
 ### Requirement: Detalle de miembro de equipo y profesor
 
-Las cards de equipo navegan a páginas de detalle en vez de exponer
+Las cards de equipo SHALL navegar a páginas de detalle en vez de exponer
 acciones inline:
 
-- Colaborador → `/academia/equipo/miembro/[personId]`: datos de contacto,
+- Colaborador → `/academia/equipo/[personId]`: datos de contacto,
   rol, permisos vigentes y enlace a edición de permisos (nivel 3).
 - Profesor → `/academia/equipo/profesor/[personId]`: datos de contacto,
   acuerdo económico, estadísticas (clases impartidas total/mes,

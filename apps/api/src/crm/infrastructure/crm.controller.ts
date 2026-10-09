@@ -39,6 +39,8 @@ import {
   type CrmTriggerKey,
 } from "../domain/crm.service";
 import { assertProducerPro } from "../../common/producer-pro";
+import { SEGMENTS } from "@omnidance/shared";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 
 // CRM transversal - todos los endpoints exigen el permiso crm.manage
 // (PRODUCER / ACADEMY_OWNER / staff delegado) Y acceso puntual al actor
@@ -63,6 +65,28 @@ class ListPeopleQueryDto {
   @IsString()
   @IsNotEmpty()
   actorId!: string;
+
+  /** Filtros/paginación del listado (spec academy-console-v3): q = nombre
+   * de persona o texto de tag, segment = SEGMENTS|NONE|ALL, tag exacto. */
+  @IsOptional()
+  @IsString()
+  q?: string;
+
+  @IsOptional()
+  @IsIn([...SEGMENTS, "NONE", "ALL"])
+  segment?: string;
+
+  @IsOptional()
+  @IsString()
+  tag?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  pageSize?: string;
 }
 
 class CreateTagDto extends ActorRefDto {
@@ -140,7 +164,12 @@ export class CrmController {
   @Get("people")
   async listPeople(@Query() q: ListPeopleQueryDto, @Req() req: Request) {
     await this.assertActorAccess(req, q.actorType, q.actorId);
-    return this.crm.listPeople(q.actorType, q.actorId);
+    return this.crm.listPeople(
+      q.actorType,
+      q.actorId,
+      { q: q.q, segment: q.segment, tag: q.tag },
+      pageParams(q.page, q.pageSize),
+    );
   }
 
   /** Crea tag; duplicado exacto (actor+person+tag) → 200 con el existente. */
@@ -233,7 +262,11 @@ export class CrmController {
   @Get("campaigns")
   async listCampaigns(@Query() q: ListPeopleQueryDto, @Req() req: Request) {
     await this.assertActorAccess(req, q.actorType, q.actorId);
-    return this.crm.listCampaigns(q.actorType, q.actorId);
+    return this.crm.listCampaigns(
+      q.actorType,
+      q.actorId,
+      pageParams(q.page, q.pageSize),
+    );
   }
 
   // ─── Triggers ───

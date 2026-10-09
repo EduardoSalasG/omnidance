@@ -52,3 +52,21 @@ export function dayRange(
   if (lte) lte.setUTCHours(23, 59, 59, 999);
   return { ...(gte ? { gte } : {}), ...(lte ? { lte } : {}) };
 }
+
+/**
+ * Paginación de listados de consola (spec academy-console-v3): los
+ * endpoints responden `{items,total,page,pageSize}` - ninguna vista
+ * descarga la tabla completa. `page` ≥1 (default 1), `pageSize`
+ * default 25 capado a `max` (100 salvo que el endpoint pida otro tope).
+ * Valores no numéricos caen al default; no son error (son UI-state).
+ */
+export function pageParams(
+  page: string | undefined,
+  pageSize: string | undefined,
+  max = 100,
+): { page: number; pageSize: number; skip: number; take: number } {
+  const p = Math.max(1, Math.floor(Number(page)) || 1);
+  const s = Math.floor(Number(pageSize));
+  const size = Math.min(max, s >= 1 ? s : 25);
+  return { page: p, pageSize: size, skip: (p - 1) * size, take: size };
+}

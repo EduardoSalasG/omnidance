@@ -254,40 +254,52 @@ export class ProducerClaimsService {
    * (spec analytics/query-console): `status` ya whitelisteado en el
    * controller, `from`/`to` sobre createdAt.
    */
-  listClaims(
+  async listClaims(
     producerId: string,
     filter: { status?: ClaimStatus; from?: Date; to?: Date } = {},
+    pg?: { page: number; pageSize: number; skip: number; take: number },
   ) {
-    return this.prisma.ticketClaim.findMany({
-      where: {
-        producerId,
-        ...(filter.status ? { status: filter.status } : {}),
-        ...(filter.from || filter.to
-          ? {
-              createdAt: {
-                ...(filter.from ? { gte: filter.from } : {}),
-                ...(filter.to ? { lte: filter.to } : {}),
-              },
-            }
-          : {}),
-      },
-      orderBy: [{ status: "asc" }, { createdAt: "asc" }],
-      select: {
-        id: true,
-        methodType: true,
-        methodLabel: true,
-        status: true,
-        note: true,
-        reviewNote: true,
-        createdAt: true,
-        reviewedAt: true,
-        reviewedBy: { select: { id: true, name: true } },
-        person: { select: { id: true, name: true } },
-        payment: {
-          select: { id: true, amount: true, orderType: true, refId: true },
+    const where = {
+      producerId,
+      ...(filter.status ? { status: filter.status } : {}),
+      ...(filter.from || filter.to
+        ? {
+            createdAt: {
+              ...(filter.from ? { gte: filter.from } : {}),
+              ...(filter.to ? { lte: filter.to } : {}),
+            },
+          }
+        : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.ticketClaim.findMany({
+        where,
+        orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+        ...(pg ? { skip: pg.skip, take: pg.take } : {}),
+        select: {
+          id: true,
+          methodType: true,
+          methodLabel: true,
+          status: true,
+          note: true,
+          reviewNote: true,
+          createdAt: true,
+          reviewedAt: true,
+          reviewedBy: { select: { id: true, name: true } },
+          person: { select: { id: true, name: true } },
+          payment: {
+            select: { id: true, amount: true, orderType: true, refId: true },
+          },
         },
-      },
-    });
+      }),
+      this.prisma.ticketClaim.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      page: pg?.page ?? 1,
+      pageSize: pg?.pageSize ?? total,
+    };
   }
 
   /**

@@ -302,7 +302,7 @@ describe("academies gap: private lessons + videos e2e", () => {
         ownerSession,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const list = (await res.json()).items;
       const lesson = list.find((l: { id: string }) => l.id === ids.lessonId);
       expect(lesson).toBeTruthy();
       expect(lesson.person).toMatchObject({

@@ -110,9 +110,18 @@ export class CrmService {
 
   /**
    * Universo visible del actor: personas con RelationshipScore y/o ActorTag,
-   * join person{id,name,photoUrl}, ordenado por score desc (tag-only al final).
+   * ordenado por score desc (tag-only al final). El merge scores+tags es en
+   * memoria (universo acotado al actor); los filtros q/segment/tag se aplican
+   * sobre ese merge y el join person{id,name,photoUrl} se hace solo para la
+   * página pedida. Devuelve el envelope {items,total,page,pageSize} +
+   * segmentCounts/allTags del universo completo (stats y opciones del UI).
    */
-  async listPeople(actorType: string, actorId: string) {
+  async listPeople(
+    actorType: string,
+    actorId: string,
+    filter: { q?: string; segment?: string; tag?: string } = {},
+    pg?: { page: number; pageSize: number; skip: number; take: number },
+  ) {
     const [scores, tags] = await Promise.all([
       this.prisma.relationshipScore.findMany({
         where: { actorType, actorId },
@@ -124,18 +133,6 @@ export class CrmService {
       }),
     ]);
 
-    const personIds = [
-      ...new Set([
-        ...scores.map((s) => s.personId),
-        ...tags.map((t) => t.personId),
-      ]),
-    ];
-    const people = await this.prisma.person.findMany({
-      where: { id: { in: personIds } },
-      select: { id: true, name: true, photoUrl: true },
-    });
-    const personById = new Map(people.map((p) => [p.id, p]));
-
     const tagsByPerson = new Map<string, typeof tags>();
     for (const t of tags) {
       const list = tagsByPerson.get(t.personId) ?? [];
@@ -143,28 +140,92 @@ export class CrmService {
       tagsByPerson.set(t.personId, list);
     }
 
-    const rows: CrmPersonRow[] = scores.map((s) => ({
+    type RowBase = Omit<CrmPersonRow, "person">;
+    const allRows: RowBase[] = scores.map((s) => ({
       personId: s.personId,
       score: s.score,
       segment: s.segment,
       computedAt: s.computedAt,
-      person: personById.get(s.personId) ?? null,
       tags: tagsByPerson.get(s.personId) ?? [],
     }));
     const withScore = new Set(scores.map((s) => s.personId));
     for (const t of tags) {
       if (withScore.has(t.personId)) continue;
       withScore.add(t.personId);
-      rows.push({
+      allRows.push({
         personId: t.personId,
         score: null,
         segment: null,
         computedAt: null,
-        person: personById.get(t.personId) ?? null,
         tags: tagsByPerson.get(t.personId) ?? [],
       });
     }
-    return rows;
+
+    // Stats del universo completo (sin filtros): badges por segmento y
+    // opciones del select de tags de la tabla.
+    const segmentCounts: Record<string, number> = {};
+    const tagSet = new Set<string>();
+    for (const r of allRows) {
+      const k = r.segment ?? "NONE";
+      segmentCounts[k] = (segmentCounts[k] ?? 0) + 1;
+      for (const tg of r.tags) tagSet.add(tg.tag);
+    }
+
+    let filtered = allRows;
+    const seg = filter.segment;
+    if (seg && seg !== "ALL") {
+      filtered = filtered.filter((r) =>
+        seg === "NONE" ? r.segment === null : r.segment === seg,
+      );
+    }
+    const tagF = filter.tag;
+    if (tagF && tagF !== "ALL") {
+      filtered = filtered.filter((r) => r.tags.some((tg) => tg.tag === tagF));
+    }
+    const term = filter.q?.trim();
+    if (term) {
+      // q matchea nombre de person (join previo, universo ya acotado) o texto
+      // del tag - igual que el filtro client-side original.
+      const named = await this.prisma.person.findMany({
+        where: {
+          id: { in: filtered.map((r) => r.personId) },
+          name: { contains: term, mode: "insensitive" },
+        },
+        select: { id: true },
+      });
+      const nameMatch = new Set(named.map((p) => p.id));
+      const needle = term.toLowerCase();
+      filtered = filtered.filter(
+        (r) =>
+          nameMatch.has(r.personId) ||
+          r.tags.some((tg) => tg.tag.toLowerCase().includes(needle)),
+      );
+    }
+
+    const total = filtered.length;
+    const pageRows = pg
+      ? filtered.slice(pg.skip, pg.skip + pg.take)
+      : filtered;
+
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: pageRows.map((r) => r.personId) } },
+      select: { id: true, name: true, photoUrl: true },
+    });
+    const personById = new Map(people.map((p) => [p.id, p]));
+
+    return {
+      items: pageRows.map(
+        (r): CrmPersonRow => ({
+          ...r,
+          person: personById.get(r.personId) ?? null,
+        }),
+      ),
+      total,
+      page: pg?.page ?? 1,
+      pageSize: pg?.pageSize ?? total,
+      segmentCounts,
+      allTags: [...tagSet].sort((a, b) => a.localeCompare(b, "es")),
+    };
   }
 
   /**
@@ -378,11 +439,26 @@ export class CrmService {
     return this.prisma.campaign.findUnique({ where: { id } });
   }
 
-  listCampaigns(actorType: string, actorId: string) {
-    return this.prisma.campaign.findMany({
-      where: { actorType, actorId },
-      orderBy: { createdAt: "desc" },
-    });
+  async listCampaigns(
+    actorType: string,
+    actorId: string,
+    pg?: { page: number; pageSize: number; skip: number; take: number },
+  ) {
+    const where = { actorType, actorId };
+    const [items, total] = await Promise.all([
+      this.prisma.campaign.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        ...(pg ? { skip: pg.skip, take: pg.take } : {}),
+      }),
+      this.prisma.campaign.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      page: pg?.page ?? 1,
+      pageSize: pg?.pageSize ?? total,
+    };
   }
 
   /**

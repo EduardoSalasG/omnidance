@@ -27,7 +27,7 @@ import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
-import { dayRange, whitelist } from "./list-filters";
+import { dayRange, pageParams, whitelist } from "./list-filters";
 
 const LESSON_ACTIONS = [
   "confirm",
@@ -161,26 +161,35 @@ export class PrivateLessonsController {
     @Query("commission") commission?: string,
     @Query("from") from?: string,
     @Query("to") to?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
   ) {
     const me = req.person!;
     const { academy } = await this.access.requireManage(id, me);
     const statusF = whitelist(status, PRIVATE_LESSON_STATUS, "status");
     const commissionF = whitelist(commission, COMMISSION_OPTS, "commission");
     const range = dayRange(from, to);
-    const lessons = await this.prisma.privateLesson.findMany({
-      where: {
-        academyId: id,
-        ...(statusF ? { status: statusF } : {}),
-        ...(instructorId ? { instructorId } : {}),
-        ...(commissionF === "paid"
-          ? { commissionPaidAt: { not: null } }
-          : commissionF === "pending"
-            ? { commissionPaidAt: null }
-            : {}),
-        ...(range ? { createdAt: range } : {}),
-      },
-      orderBy: { scheduledAt: "asc" },
-    });
+    const pg = pageParams(page, pageSize);
+    const where = {
+      academyId: id,
+      ...(statusF ? { status: statusF } : {}),
+      ...(instructorId ? { instructorId } : {}),
+      ...(commissionF === "paid"
+        ? { commissionPaidAt: { not: null } }
+        : commissionF === "pending"
+          ? { commissionPaidAt: null }
+          : {}),
+      ...(range ? { createdAt: range } : {}),
+    };
+    const [lessons, total] = await Promise.all([
+      this.prisma.privateLesson.findMany({
+        where,
+        orderBy: { scheduledAt: "asc" },
+        skip: pg.skip,
+        take: pg.take,
+      }),
+      this.prisma.privateLesson.count({ where }),
+    ]);
     const people = await this.prisma.person.findMany({
       where: {
         id: {
@@ -205,20 +214,25 @@ export class PrivateLessonsController {
     const seesCommission = (l: (typeof lessons)[number]) =>
       isAdmin || academy.ownerId === me.id || l.instructorId === me.id;
 
-    return lessons.map((l) => {
-      const base = {
-        ...l,
-        person: byId.get(l.personId) ?? { id: l.personId, name: null },
-        // null = comprada pero aún sin instructor asignado
-        // (private-lesson-product) - la UI muestra "por asignar".
-        instructor: l.instructorId
-          ? (byId.get(l.instructorId) ?? { id: l.instructorId, name: null })
-          : null,
-      };
-      if (seesCommission(l)) return base;
-      const { commissionPct: _c, commissionPaidAt: _p, ...rest } = base;
-      return rest;
-    });
+    return {
+      items: lessons.map((l) => {
+        const base = {
+          ...l,
+          person: byId.get(l.personId) ?? { id: l.personId, name: null },
+          // null = comprada pero aún sin instructor asignado
+          // (private-lesson-product) - la UI muestra "por asignar".
+          instructor: l.instructorId
+            ? (byId.get(l.instructorId) ?? { id: l.instructorId, name: null })
+            : null,
+        };
+        if (seesCommission(l)) return base;
+        const { commissionPct: _c, commissionPaidAt: _p, ...rest } = base;
+        return rest;
+      }),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**

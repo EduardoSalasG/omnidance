@@ -143,6 +143,9 @@ function mkPrisma() {
         findMany: vi.fn(async ({ where }: Row = {}) =>
           claims.filter((c) => matchOr(c, where)),
         ),
+        count: vi.fn(async ({ where }: Row = {}) =>
+          claims.filter((c) => matchOr(c, where)).length,
+        ),
         create: vi.fn(async ({ data }: Row) => {
           const row = {
             id: `claim-${claims.length + 1}`,
@@ -408,9 +411,9 @@ describe("AcademyClaimsService.listClaims", () => {
         createdAt: new Date("2026-02-10T10:00:00Z"),
       },
     );
-    expect(await service.listClaims(ACADEMY)).toHaveLength(2);
+    expect((await service.listClaims(ACADEMY)).items).toHaveLength(2);
     expect(
-      (await service.listClaims(ACADEMY, "PENDING")).map((c) => c.id),
+      (await service.listClaims(ACADEMY, "PENDING")).items.map((c) => c.id),
     ).toEqual(["c-pen"]);
     expect(
       (
@@ -418,7 +421,7 @@ describe("AcademyClaimsService.listClaims", () => {
           gte: new Date("2026-02-01T00:00:00Z"),
           lte: new Date("2026-02-28T23:59:59.999Z"),
         })
-      ).map((c) => c.id),
+      ).items.map((c) => c.id),
     ).toEqual(["c-apr"]);
   });
 });

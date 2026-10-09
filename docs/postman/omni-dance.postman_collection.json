@@ -280,6 +280,56 @@
           }
         },
         {
+          "name": "GET /api/me/pending-course-surveys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/pending-course-surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "pending-course-surveys"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/me/course-surveys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/me/course-surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "me",
+                "course-surveys"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "PUT /api/me/style-roles",
           "request": {
             "method": "PUT",
@@ -4841,7 +4891,18 @@
                   "value": ":academyId"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -6079,6 +6140,37 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/instructors/{personId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/instructors/{personId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "instructors",
+                "{personId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "DELETE /api/academies/{id}/instructors/{personId}",
           "request": {
             "method": "DELETE",
@@ -6181,8 +6273,81 @@
                   "key": "status",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
                 }
               ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/plans/kpis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/plans/kpis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "plans",
+                "kpis"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/plans/{planId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/plans/{planId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "plans",
+                "{planId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "planId",
+                  "value": ":planId"
+                }
+              ],
+              "query": []
             }
           }
         },
@@ -6228,6 +6393,133 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/surveys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "surveys"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "month",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/instructors/{personId}/surveys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/instructors/{personId}/surveys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "instructors",
+                "{personId}",
+                "surveys"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/cobros/kpis",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/cobros/kpis",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "cobros",
+                "kpis"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/payments/{paymentId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/payments/{paymentId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "payments",
+                "{paymentId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "paymentId",
+                  "value": ":paymentId"
+                }
+              ],
+              "query": []
             }
           }
         },
@@ -6316,6 +6608,16 @@
                 },
                 {
                   "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
                   "value": "",
                   "disabled": true
                 }
@@ -6931,6 +7233,37 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/claims/{claimId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/claims/{claimId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "claims",
+                "{claimId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "claimId",
+                  "value": ":claimId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "POST /api/academies/{id}/claims/{claimId}/approve",
           "request": {
             "method": "POST",
@@ -7171,6 +7504,16 @@
                   "key": "q",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }
@@ -7217,12 +7560,12 @@
           }
         },
         {
-          "name": "GET /api/academies/{id}/instructors",
+          "name": "GET /api/academies/{id}/staff/{personId}",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/academies/{id}/instructors",
+              "raw": "{{baseUrl}}/api/academies/{id}/staff/{personId}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -7230,55 +7573,20 @@
                 "api",
                 "academies",
                 "{id}",
-                "instructors"
+                "staff",
+                "{personId}"
               ],
               "variable": [
                 {
                   "key": "id",
                   "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "POST /api/academies/{id}/instructors",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/academies/{id}/instructors",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "academies",
-                "{id}",
-                "instructors"
-              ],
-              "variable": [
+                },
                 {
-                  "key": "id",
-                  "value": ":id"
+                  "key": "personId",
+                  "value": ":personId"
                 }
               ],
               "query": []
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
             }
           }
         },
@@ -7355,6 +7663,83 @@
                 }
               ],
               "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/instructors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/instructors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "instructors"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/academies/{id}/instructors",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/instructors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "instructors"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -7482,6 +7867,26 @@
                   "key": "styleId",
                   "value": "",
                   "disabled": true
+                },
+                {
+                  "key": "levelId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "typeId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
                 }
               ]
             }
@@ -7524,6 +7929,37 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/series/{seriesId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/series/{seriesId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "series",
+                "{seriesId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "seriesId",
+                  "value": ":seriesId"
+                }
+              ],
+              "query": []
             }
           }
         },
@@ -7600,6 +8036,44 @@
                 }
               ],
               "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/series/{seriesId}/classes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/series/{seriesId}/classes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "series",
+                "{seriesId}",
+                "classes"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "seriesId",
+                  "value": ":seriesId"
+                }
+              ],
+              "query": [
+                {
+                  "key": "take",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -7719,6 +8193,16 @@
                 },
                 {
                   "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
                   "value": "",
                   "disabled": true
                 }
@@ -8054,6 +8538,32 @@
                 "classes",
                 "{id}",
                 "roster"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/classes/{id}/attendance",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/classes/{id}/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "classes",
+                "{id}",
+                "attendance"
               ],
               "variable": [
                 {
