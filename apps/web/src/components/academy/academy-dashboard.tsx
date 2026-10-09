@@ -50,7 +50,16 @@ const sectionTitleCls =
  * revisar) e insights de retención. GET /academies/:id/dashboard →
  * AcademyDashboard.
  */
-export function AcademyDashboard({ academy }: { academy: Academy }) {
+export function AcademyDashboard({
+  academy,
+  // En /inicio las filas de vencimientos llevan a cobros (la acción
+  // natural es cobrar/renovar); en /academia siguen a la ficha del
+  // alumno, que es donde staff/instructor gestionan la inscripción.
+  expiringHref,
+}: {
+  academy: Academy;
+  expiringHref?: string;
+}) {
   const t = useTranslations("academy");
 
   const [dashboard, setDashboard] = useState<AcademyDashboardData | null>(
@@ -364,6 +373,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
             <ExpiringList
               title={t("insights.expiringTodayTitle")}
               items={expiringToday}
+              rowHref={expiringHref}
               t={t}
             />
           )}
@@ -372,6 +382,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
               title={t("insights.expiringWeekTitle")}
               items={expiringWeek}
               extraCount={expiringLater}
+              rowHref={expiringHref}
               t={t}
             />
           )}
@@ -423,15 +434,19 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
  * agrega al footer los ítems de la ventana que caen más allá del
  * alcance de la sección (p.ej. 8-14 días dentro de la semana).
  */
-function ExpiringList({
+export function ExpiringList({
   title,
   items,
   extraCount = 0,
+  rowHref,
   t,
 }: {
   title: string;
   items: AcademyDashboardData["expiringEnrollments"];
   extraCount?: number;
+  /** Destino de la fila y del "Ver todos"; sin él van a la ficha del
+      alumno. */
+  rowHref?: string;
   t: ReturnType<typeof useTranslations>;
 }) {
   const hidden = Math.max(0, items.length - LIST_CAP) + extraCount;
@@ -448,7 +463,7 @@ function ExpiringList({
                   no reclama espacio - el nombre quedaba truncado a
                   casi nada). items-center centra las celdas. */}
               <Link
-                href={`/academia/alumnos/${e.personId}`}
+                href={rowHref ?? `/academia/alumnos/${e.personId}`}
                 className={`${rowLinkCls} sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center`}
               >
                 <span className="min-w-0 flex-1">
@@ -475,7 +490,7 @@ function ExpiringList({
           {hidden > 0 && (
             <li>
               <Link
-                href="/academia/alumnos"
+                href={rowHref ?? "/academia/alumnos"}
                 className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
               >
                 {t("insights.seeAll", { count: items.length + extraCount })}

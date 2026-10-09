@@ -249,7 +249,7 @@ function MethodDetail({
                 {err}
               </p>
             )}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <Button type="submit" size="sm" disabled={!label.trim() || busy}>
                 {busy ? <Spinner size="sm" /> : null}
                 {t("save")}

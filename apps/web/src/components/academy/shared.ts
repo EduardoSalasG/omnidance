@@ -237,6 +237,12 @@ export type PlansKpis = {
     students: number;
     studentsPrev: number;
   }[];
+  // Top 5 planes por altas del mes en curso (compras/renovaciones).
+  topPurchasedMonth: {
+    planId: string;
+    name: string | null;
+    count: number;
+  }[];
 };
 
 // GET /academies/:id/plans/:planId - detalle + alumnos vigentes.

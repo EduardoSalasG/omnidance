@@ -694,7 +694,13 @@ export function HomeHub() {
         // página aparte no tenía sentido.
         <AcademyGate>
           {({ academy }) => (
-            <AcademyDashboard key={academy.id} academy={academy} />
+            <AcademyDashboard
+              key={academy.id}
+              academy={academy}
+              // En el inicio las filas "por vencer" llevan a cobros
+              // (renovar/cobrar), no a la ficha del alumno.
+              expiringHref="/academia/cobros"
+            />
           )}
         </AcademyGate>
       ) : dancerSocial ? (

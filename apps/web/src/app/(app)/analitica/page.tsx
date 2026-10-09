@@ -192,7 +192,10 @@ export default function AnaliticaPage() {
         `/query/options?role=${role}&source=${source}&scopeId=${encodeURIComponent(scopeId)}`,
       );
       if (!res.ok) return [];
-      return (await res.json()) as QueryOption[];
+      const body = (await res.json()) as
+        | QueryOption[]
+        | { options?: QueryOption[] };
+      return Array.isArray(body) ? body : (body.options ?? []);
     },
     [role],
   );
