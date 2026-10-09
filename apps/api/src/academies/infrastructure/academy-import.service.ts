@@ -4,6 +4,10 @@ import { PrismaService } from "../../prisma.service";
 import { AuthService } from "../../auth/domain/auth.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { studentInviteEmailHtml } from "./invite-emails";
+import {
+  AcademyMaterializeService,
+  monthDates,
+} from "./class-series-materialize.service";
 
 /** Magic link largo - el alumno abre el correo días después. */
 const INVITE_TOKEN_TTL = "7d";
@@ -49,8 +53,8 @@ export interface ScheduleRowResult {
 /**
  * Carga masiva CSV para migración de academias (spec academy-bulk-import):
  * alumnos (nómina con vigencias pagadas afuera) y horario semanal
- * (series + slots + materialización de clases del mes). Reporte por
- * fila - un error no aborta el archivo.
+ * (series + slots + materialización sobre la ventana rodante). Reporte
+ * por fila - un error no aborta el archivo.
  */
 @Injectable()
 export class AcademyImportService {
@@ -60,6 +64,7 @@ export class AcademyImportService {
     private readonly prisma: PrismaService,
     private readonly auth: AuthService,
     @Inject(MAILER) private readonly mailer: Mailer,
+    private readonly materialize: AcademyMaterializeService,
   ) {}
 
   /**
@@ -182,9 +187,12 @@ export class AcademyImportService {
 
   /**
    * Horario: `serie,estilo?,nivel?,dia_semana,hora_inicio,hora_fin,
-   * capacidad?,instructor_email?,mes?`. Agrupa por serie+mes → upsert
+   * capacidad?,instructor_email?,mes?`. Agrupa por serie → upsert
    * ClassSeries + slots dedup (weekday+start+end) + materializa los
-   * Class del mes igual que POST /series.
+   * Class de la ventana rodante (hoy → fin del mes siguiente; la serie
+   * es ilimitada - spec academies/class-series). `mes` es legacy: se
+   * valida y queda como etiqueta de origen; `capacidad` alimenta el
+   * quórum de la serie (los cupos ya no son por slot).
    */
   async importSchedule(
     academy: Academy,
@@ -205,8 +213,9 @@ export class AcademyImportService {
     const defaultMonth = new Date().toISOString().slice(0, 7);
     const results: ScheduleRowResult[] = [];
 
-    // Primera pasada: validar y agrupar por serie+mes (una serie por
-    // grupo - el orden de filas define el orden de los slots).
+    // Primera pasada: validar y agrupar por serie (una serie por grupo
+    // - el orden de filas define el orden de los slots). `mes` solo
+    // fija la etiqueta de origen y la ventana extra a materializar.
     interface ParsedRow {
       row: number;
       serie: string;
@@ -282,7 +291,7 @@ export class AcademyImportService {
             warn = `instructor ${instEmail} no encontrado - slot sin instructor`;
           }
         }
-        const key = `${normLabel(serie)}|${month}`;
+        const key = normLabel(serie);
         const parsed: ParsedRow = {
           row,
           serie,
@@ -311,9 +320,16 @@ export class AcademyImportService {
     }
 
     // Segunda pasada: por grupo upsert serie + slots + clases.
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const rolling = this.materialize.rollingDates();
     for (const parsedRows of groups.values()) {
       const first = parsedRows[0];
-      const series = await this.upsertSeries(academy.id, first);
+      // `capacidad` del CSV alimenta el quórum de la serie (los cupos
+      // ya no son por slot) - toma la primera fila que lo declare.
+      const quorum =
+        parsedRows.find((r) => r.capacity !== null)?.capacity ?? null;
+      const series = await this.upsertSeries(academy.id, first, quorum);
       const existingSlots = await this.prisma.classSlot.findMany({
         where: { seriesId: series.id },
         select: {
@@ -327,7 +343,16 @@ export class AcademyImportService {
       const slotKey = (x: { weekday: number; startTime: string; endTime: string }) =>
         `${x.weekday}|${x.startTime}|${x.endTime}`;
       const byKey = new Map(existingSlots.map((s) => [slotKey(s), s]));
-      const dates = monthDates(series.month);
+      // Ventana rodante + el resto del mes declarado en el CSV (dedup
+      // por timestamp) - igual que POST /series con month legacy.
+      const dates = [
+        ...new Map(
+          [
+            ...rolling,
+            ...monthDates(first.month).filter((d) => d >= today),
+          ].map((d) => [d.getTime(), d]),
+        ).values(),
+      ];
 
       for (const p of parsedRows) {
         try {
@@ -340,7 +365,6 @@ export class AcademyImportService {
                 weekday: p.weekday,
                 startTime: p.startTime,
                 endTime: p.endTime,
-                capacity: p.capacity,
                 instructorId: p.instructorId,
               },
               select: {
@@ -353,19 +377,12 @@ export class AcademyImportService {
             });
             slot = { ...created, classes: [] };
             byKey.set(slotKey(p), slot);
-            // Materializa los Class del mes para el slot nuevo.
-            const classDates = dates.filter(
-              (d) => d.getUTCDay() === p.weekday,
+            // Materializa los Class de la ventana para el slot nuevo.
+            await this.materialize.materializeSlot(
+              this.prisma,
+              created,
+              dates,
             );
-            if (classDates.length) {
-              await this.prisma.class.createMany({
-                data: classDates.map((date) => ({
-                  classSlotId: slot!.id,
-                  date,
-                  instructorId: created.instructorId,
-                })),
-              });
-            }
           }
           results.push({
             row: p.row,
@@ -373,7 +390,7 @@ export class AcademyImportService {
             status: p.warn ? "warn" : "ok",
             detail:
               p.warn ??
-              `slot ${dayName(p.weekday)} ${p.startTime}-${p.endTime} en "${series.name}" (${series.month})`,
+              `slot ${dayName(p.weekday)} ${p.startTime}-${p.endTime} en "${series.name}"`,
           });
         } catch (e) {
           results.push({
@@ -390,15 +407,19 @@ export class AcademyImportService {
     return results.sort((a, b) => a.row - b.row);
   }
 
-  private async upsertSeries(academyId: string, p: {
-    serie: string;
-    month: string;
-    styleId: string | null;
-    levelId: string | null;
-    instructorId: string | null;
-  }) {
+  private async upsertSeries(
+    academyId: string,
+    p: {
+      serie: string;
+      month: string;
+      styleId: string | null;
+      levelId: string | null;
+      instructorId: string | null;
+    },
+    quorum: number | null,
+  ) {
     const existing = await this.prisma.classSeries.findFirst({
-      where: { academyId, name: p.serie, month: p.month },
+      where: { academyId, name: p.serie },
       select: { id: true, name: true, month: true },
     });
     if (existing) return existing;
@@ -410,6 +431,7 @@ export class AcademyImportService {
         styleId: p.styleId,
         levelId: p.levelId,
         instructorId: p.instructorId,
+        quorum,
       },
       select: { id: true, name: true, month: true },
     });
@@ -490,13 +512,3 @@ function dayName(w: number): string {
   );
 }
 
-/** Días calendario del mes "YYYY-MM" (UTC) - igual que class-series. */
-function monthDates(month: string): Date[] {
-  const [y, m] = month.split("-").map(Number);
-  if (!y || !m || m < 1 || m > 12) return [];
-  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return Array.from(
-    { length: days },
-    (_, i) => new Date(Date.UTC(y, m - 1, i + 1)),
-  );
-}

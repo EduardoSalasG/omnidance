@@ -57,8 +57,12 @@ function StudentsModule({
   }
   return (
     <div className="flex flex-col gap-6">
-      {/* KPIs del mes de la academia - primera sección del módulo. */}
-      <AcademyKpiStrip academyId={academyId} />
+      {/* KPIs del módulo: solo alumnos activos + split de género con
+          comparativa mensual (spec academies/owner-insights). */}
+      <AcademyKpiStrip
+        academyId={academyId}
+        keys={["activeStudents", "pctMen", "pctWomen"]}
+      />
       <StudentsSection
         academyId={academyId}
         readOnly={canAdminister !== true}

@@ -27,10 +27,14 @@ export function AcademyKpiCards({
   data,
   error,
   onRetry,
+  keys,
 }: {
   data: AcademyDashboard | null;
   error?: boolean;
   onRetry?: () => void;
+  /** Subset de cards por página (módulo alumnos solo muestra 3); sin
+   *  `keys` se muestran todas en el orden del dashboard. */
+  keys?: string[];
 }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
@@ -53,9 +57,12 @@ export function AcademyKpiCards({
     href: string;
     value: string | null;
     // valor numérico + base del mes anterior (mismo tramo MTD) para el
-    // delta; `prev` undefined = el KPI no lleva comparativa.
+    // delta absoluto; `prev` undefined = el KPI no lleva comparativa.
     valueNum: number | null;
     prev?: number | null;
+    // deltaKind: formato del delta absoluto (count +3 / money +$300.000 /
+    // avg +0.8 con un decimal / pts +4 pts para cards de porcentaje).
+    deltaKind: "count" | "money" | "avg" | "pts";
     hint: string;
   }[] = data
     ? [
@@ -64,13 +71,40 @@ export function AcademyKpiCards({
           href: "/academia/alumnos",
           value: String(data.kpis.activeStudentsMonth),
           valueNum: data.kpis.activeStudentsMonth,
+          prev: data.kpis.activeStudentsMonthPrev,
+          deltaKind: "count",
           hint: t("kpis.activeStudentsHint"),
+        },
+        {
+          key: "pctMen",
+          href: "/academia/alumnos",
+          value:
+            data.kpis.pctMenMonth === null
+              ? null
+              : `${data.kpis.pctMenMonth}%`,
+          valueNum: data.kpis.pctMenMonth,
+          prev: data.kpis.pctMenMonthPrev,
+          deltaKind: "pts",
+          hint: t("kpis.pctMenHint"),
+        },
+        {
+          key: "pctWomen",
+          href: "/academia/alumnos",
+          value:
+            data.kpis.pctWomenMonth === null
+              ? null
+              : `${data.kpis.pctWomenMonth}%`,
+          valueNum: data.kpis.pctWomenMonth,
+          prev: data.kpis.pctWomenMonthPrev,
+          deltaKind: "pts",
+          hint: t("kpis.pctWomenHint"),
         },
         {
           key: "purchasablePlans",
           href: "/academia/planes",
           value: String(data.kpis.purchasablePlans),
           valueNum: data.kpis.purchasablePlans,
+          deltaKind: "count",
           hint: t("kpis.purchasablePlansHint"),
         },
         {
@@ -78,6 +112,7 @@ export function AcademyKpiCards({
           href: "/academia/horarios",
           value: String(data.kpis.weeklyClasses),
           valueNum: data.kpis.weeklyClasses,
+          deltaKind: "count",
           hint: t("kpis.weeklyClassesHint"),
         },
         {
@@ -89,6 +124,7 @@ export function AcademyKpiCards({
               : String(data.kpis.avgAttendancePerClassMonth),
           valueNum: data.kpis.avgAttendancePerClassMonth,
           prev: data.kpis.avgAttendancePerClassMonthPrev,
+          deltaKind: "avg",
           hint: t("kpis.avgAttendanceHint"),
         },
         {
@@ -97,6 +133,7 @@ export function AcademyKpiCards({
           value: clpFmt.format(data.kpis.billedMonth),
           valueNum: data.kpis.billedMonth,
           prev: data.kpis.billedMonthPrev,
+          deltaKind: "money",
           hint: t("kpis.billedMonthHint"),
         },
         {
@@ -108,10 +145,13 @@ export function AcademyKpiCards({
               : clpFmt.format(data.kpis.avgTicketMonth),
           valueNum: data.kpis.avgTicketMonth,
           prev: data.kpis.avgTicketMonthPrev,
+          deltaKind: "money",
           hint: t("kpis.avgTicketHint"),
         },
       ]
     : [];
+
+  const visible = keys ? items.filter((k) => keys.includes(k.key)) : items;
 
   return (
     <section aria-label={t("kpis.title")}>
@@ -131,15 +171,24 @@ export function AcademyKpiCards({
         </ul>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {items.map((k) => {
+          {visible.map((k) => {
             const label = t(`kpis.${k.key}`);
-            // Delta % vs el mismo tramo MTD del mes anterior. Sin base
-            // (prev null/0 o valor null) no se muestra - "+∞%" sería
-            // ruido deshonesto.
-            const deltaPct =
-              k.prev != null && k.prev > 0 && k.valueNum != null
-                ? Math.round(((k.valueNum - k.prev) / k.prev) * 100)
+            // Delta absoluto vs el mismo tramo MTD del mes anterior:
+            // "+N"/"-N"/"=" ("+$N" monedas, "+N pts" porcentajes). Se
+            // muestra siempre que haya base (`prev` no null) - con
+            // prev=0 el absoluto sigue siendo honesto.
+            const delta =
+              k.prev != null && k.valueNum != null
+                ? k.valueNum - k.prev
                 : null;
+            const deltaText =
+              delta === null
+                ? null
+                : delta === 0
+                  ? "="
+                  : delta > 0
+                    ? `+${formatDelta(delta, k.deltaKind, t)}`
+                    : `-${formatDelta(-delta, k.deltaKind, t)}`;
             return (
               <li key={k.key}>
                 <Link
@@ -158,19 +207,18 @@ export function AcademyKpiCards({
                     <span className="text-3xl font-bold leading-none text-neon">
                       {k.value ?? "—"}
                     </span>
-                    {deltaPct !== null && (
+                    {deltaText !== null && (
                       <span
                         aria-hidden="true"
                         className={`mt-0.5 text-xs font-medium tabular-nums ${
-                          deltaPct > 0
+                          delta! > 0
                             ? "text-neon/80"
-                            : deltaPct < 0
+                            : delta! < 0
                               ? "text-amber-300"
                               : "text-ink/40"
                         }`}
                       >
-                        {deltaPct > 0 ? "+" : ""}
-                        {deltaPct}% {t("kpis.vsPrevMonth")}
+                        {deltaText} {t("kpis.vsPrevMonth")}
                       </span>
                     )}
                   </Card>
@@ -184,6 +232,24 @@ export function AcademyKpiCards({
   );
 }
 
+/** Formatea la magnitud del delta absoluto según el tipo de KPI. */
+function formatDelta(
+  n: number,
+  kind: "count" | "money" | "avg" | "pts",
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (kind) {
+    case "money":
+      return clpFmt.format(Math.round(n));
+    case "avg":
+      return String(Math.round(n * 10) / 10);
+    case "pts":
+      return `${Math.round(n)} ${t("kpis.pts")}`;
+    default:
+      return String(Math.round(n));
+  }
+}
+
 /**
  * Versión autocontenida para las páginas de módulo: si recibe
  * `academyId` lo usa directo; si no, resuelve `/academies/mine`
@@ -191,7 +257,14 @@ export function AcademyKpiCards({
  * /academia/clases). Sin academia o sin acceso → no renderiza nada
  * (el dashboard responde 403 para quien no es del equipo).
  */
-export function AcademyKpiStrip({ academyId }: { academyId?: string }) {
+export function AcademyKpiStrip({
+  academyId,
+  keys,
+}: {
+  academyId?: string;
+  /** Subset de cards por página (p.ej. alumnos muestra solo 3). */
+  keys?: string[];
+}) {
   const [resolvedId, setResolvedId] = useState<string | null>(
     academyId ?? null,
   );
@@ -252,5 +325,5 @@ export function AcademyKpiStrip({ academyId }: { academyId?: string }) {
 
   if (hidden) return null;
   if (!resolvedId) return null;
-  return <AcademyKpiCards data={data} />;
+  return <AcademyKpiCards data={data} keys={keys} />;
 }

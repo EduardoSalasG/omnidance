@@ -178,7 +178,12 @@
       "billedMonthHint": "Cobrado este mes a la fecha",
       "avgTicket": "Ticket/alumno",
       "avgTicketHint": "Cobrado este mes ÷ alumnos que pagaron",
+      "pctMen": "Hombres",
+      "pctMenHint": "% de alumnos activos con sexo masculino",
+      "pctWomen": "Mujeres",
+      "pctWomenHint": "% de alumnos activos con sexo femenino",
       "vsPrevMonth": "vs mes anterior",
+      "pts": "pts",
       "noData": "sin datos"
     },
     "onboarding": {
@@ -190,8 +195,7 @@
     }
   },
   "academySeries": {
-    "capacityOptional": "default",
-    "addSlotHint": "Se crean las clases que quedan del mes en ese día.",
+    "addSlotHint": "Se crean las clases futuras en ese día dentro de la ventana de programación.",
     "slotAdded": "Horario agregado",
     "quorum": "Quórum",
     "quorumHint": "Opcional. Vacío hereda el quórum por defecto de la academia.",
@@ -199,8 +203,6 @@
     "dropIn": "Clase suelta (CLP)",
     "dropInHint": "Vacío = la clase no se vende suelta.",
     "dropInValue": "Suelta {value}",
-    "slotTypes": "Modalidad",
-    "slotTypesHint": "vacío = hereda la serie",
     "notFound": "Serie no encontrada."
   },
   "instructor": {

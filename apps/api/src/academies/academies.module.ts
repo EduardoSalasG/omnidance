@@ -15,6 +15,7 @@ import { AcademyImportService } from "./infrastructure/academy-import.service";
 import { AcademyRemindersService } from "./infrastructure/academy-reminders.service";
 import { AcademyStaffController } from "./infrastructure/academy-staff.controller";
 import { AcademiesScheduler } from "./infrastructure/academies.scheduler";
+import { AcademyMaterializeService } from "./infrastructure/class-series-materialize.service";
 import {
   AcademiesController,
   EnrollmentsController,
@@ -52,6 +53,7 @@ import { VideosController } from "./infrastructure/videos.controller";
   providers: [
     AcademyClaimsService,
     AcademyImportService,
+    AcademyMaterializeService,
     AcademyRemindersService,
     AcademiesScheduler,
   ],
