@@ -69,16 +69,13 @@ export function AppSidebar({
     >
       <div
         className={`flex h-14 items-center border-b border-line ${
-          collapsed ? "justify-center" : "px-4"
+          collapsed ? "justify-center" : "justify-between pl-4 pr-2"
         }`}
       >
-        {collapsed ? (
-          // Marca reducida: la "O" actúa como logo; el nombre completo
-          // vuelve al expandir (aria-label mantiene el nombre accesible).
-          <span aria-label="Omnidance" className="text-base font-bold">
-            O
-          </span>
-        ) : (
+        {/* El toggle vive arriba, solo la flecha (label por aria/title).
+            En riel colapsado ocupa el lugar de la marca - no hay ancho
+            para ambos. */}
+        {!collapsed && (
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-base font-bold">Omnidance</span>
             {roleLabel && (
@@ -86,6 +83,18 @@ export function AppSidebar({
             )}
           </div>
         )}
+        <button
+          type="button"
+          data-tour="appbar-menu"
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+          aria-controls={NAV_ID}
+          aria-label={toggleLabel}
+          title={toggleLabel}
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-ink/60 transition-colors hover:bg-elevated hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
+        >
+          <ToggleIcon collapsed={collapsed} />
+        </button>
       </div>
 
       <nav
@@ -104,24 +113,6 @@ export function AppSidebar({
           ))}
         </ul>
       </nav>
-
-      <div className="border-t border-line p-2">
-        <button
-          type="button"
-          data-tour="appbar-menu"
-          onClick={onToggle}
-          aria-expanded={!collapsed}
-          aria-controls={NAV_ID}
-          aria-label={toggleLabel}
-          title={toggleLabel}
-          className={`flex min-h-11 w-full items-center rounded-xl py-2 text-sm font-medium text-ink/80 transition-colors hover:bg-elevated hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98] ${
-            collapsed ? "justify-center" : "gap-3 px-3"
-          }`}
-        >
-          <ToggleIcon collapsed={collapsed} />
-          {!collapsed && t("collapseMenu")}
-        </button>
-      </div>
     </aside>
   );
 }
