@@ -123,6 +123,16 @@ export async function seedDev(prisma: PrismaClient) {
   // Felipe sin género declarado - alimenta el bucket "unknown" de la analítica.
   const felipe = await alumno("felipe", "Felipe Contreras");
   const daniela = await alumno("daniela", "Daniela Fuentes", Gender.F);
+  // Nómina ampliada de Muévete - el home del owner necesita masa crítica:
+  // vencimientos repartidos, cobros por revisar y asistencias del mes.
+  const isidora = await alumno("isidora", "Isidora Campos", Gender.F);
+  const benjamin = await alumno("benjamin", "Benjamín Soto", Gender.M);
+  const cata = await alumno("cata", "Catalina Paredes", Gender.F);
+  const tomas = await alumno("tomas", "Tomás Riquelme", Gender.M);
+  const javiera = await alumno("javiera", "Javiera Muñoz", Gender.F);
+  const matiasb = await alumno("matiasb", "Matías Bravo", Gender.M);
+  const fernanda = await alumno("fernanda", "Fernanda Araya", Gender.F);
+  const vicente = await alumno("vicente", "Vicente Lagos", Gender.M);
 
   // Cumpleaños demo relativos a hoy - la lista "Cumpleaños próximos"
   // del dashboard de academia siempre tiene data (spec
@@ -139,6 +149,8 @@ export async function seedDev(prisma: PrismaClient) {
   await birthdayIn(antonia.id, 14, 1998);
   await birthdayIn(daniela.id, 27, 1992);
   await birthdayIn(diego.id, 45, 1990);
+  await birthdayIn(isidora.id, 3, 1997);
+  await birthdayIn(vicente.id, 19, 1994);
 
   // ─── Venues ───
   const venue = (
@@ -498,6 +510,15 @@ export async function seedDev(prisma: PrismaClient) {
     ["Pack 8 clases"],
   );
   const muvetTrial = await plan(muvet.id, "Clase de prueba", "TRIAL", 0);
+  // Plan con cuota semanal - la ficha muestra "hasta N clases/semana" y
+  // las reservas del alumno quedan limitadas por plan.
+  const muvetBasico = await plan(muvet.id, "Básico", "MONTHLY", 30000, {
+    weeklyClasses: 2,
+    description: [
+      "Hasta 2 clases por semana",
+      "Válido hasta fin del mes calendario",
+    ],
+  });
   const tumbaoMensual = await plan(
     tumbao.id,
     "Normal",
@@ -569,6 +590,17 @@ export async function seedDev(prisma: PrismaClient) {
   await enroll(muvet.id, felipe.id, muvetPack.id, "FROZEN", 150);
   await enroll(muvet.id, daniela.id, muvetPack.id, "ACTIVE", 12);
   await enroll(muvet.id, dancer.id, muvetMensual.id, "ACTIVE", 60, 25);
+  // Vencimientos repartidos para "Planes por vencer": hoy, esta semana
+  // y más allá dentro de la ventana (los de 8-14d alimentan "Ver todos").
+  await enroll(muvet.id, isidora.id, muvetMensual.id, "ACTIVE", 27, 0);
+  await enroll(muvet.id, benjamin.id, muvetMensual.id, "ACTIVE", 45, 2);
+  await enroll(muvet.id, cata.id, muvetBasico.id, "ACTIVE", 35, 4);
+  await enroll(muvet.id, tomas.id, muvetMensual.id, "ACTIVE", 55, 6);
+  await enroll(muvet.id, matiasb.id, muvetMensual.id, "ONLINE", 22, 9);
+  await enroll(muvet.id, fernanda.id, muvetMensual.id, "ONLINE", 30, 12);
+  // Packs sin vencimiento natural - "activos" sin fecha de término.
+  await enroll(muvet.id, javiera.id, muvetPack.id, "ACTIVE", 60);
+  await enroll(muvet.id, vicente.id, muvetPack.id, "TRIAL", 6);
   await enroll(tumbao.id, camila.id, tumbaoMensual.id, "ACTIVE", 40, 21);
   await enroll(tumbao.id, antonia.id, tumbaoMensual.id, "TRIAL", 8, 2);
 
@@ -1165,6 +1197,14 @@ export async function seedDev(prisma: PrismaClient) {
     felipe,
     daniela,
     dancer,
+    isidora,
+    benjamin,
+    cata,
+    tomas,
+    javiera,
+    matiasb,
+    fernanda,
+    vicente,
   ];
 
   // Historial: asistencias en clases pasadas de bachata (las primeras N
@@ -1172,22 +1212,45 @@ export async function seedDev(prisma: PrismaClient) {
   // "attended" ganando sobre "booked".
   for (const { classes } of bachataBasico.slots) {
     for (const cls of classes.filter((c) => c.date < todayUTC)) {
-      for (const p of alumnosMuvet.slice(0, 6)) {
+      for (const p of alumnosMuvet.slice(0, 10)) {
         await book(cls.id, p.id);
         await attend(cls.id, p.id, cls.date);
       }
       // Algunos reservaron pero no asistieron → quedan "booked" en historial.
-      for (const p of alumnosMuvet.slice(6, 8)) {
+      for (const p of alumnosMuvet.slice(10, 14)) {
         await book(cls.id, p.id);
       }
     }
   }
   for (const { classes } of salsaInter.slots) {
     for (const cls of classes.filter((c) => c.date < todayUTC)) {
-      for (const p of [camila, diego, antonia, dancer]) {
+      for (const p of [camila, diego, antonia, dancer, benjamin, cata, matiasb]) {
         await book(cls.id, p.id);
         await attend(cls.id, p.id, cls.date);
       }
+    }
+  }
+  for (const { classes } of rueda.slots) {
+    for (const cls of classes.filter((c) => c.date < todayUTC)) {
+      for (const p of alumnosMuvet.slice(0, 8)) {
+        await book(cls.id, p.id);
+        await attend(cls.id, p.id, cls.date);
+      }
+    }
+  }
+
+  // Las clases de hoy ya tienen lista pasada parcialmente - el home
+  // muestra progreso real y la pantalla de asistencia abre marcada.
+  const hoyMuvet = [bachataBasico, salsaInter, rueda]
+    .flatMap((s) => s.slots.flatMap((sl) => sl.classes))
+    .filter((c) => c.date.getTime() === todayUTC.getTime());
+  for (const cls of hoyMuvet) {
+    for (const p of alumnosMuvet.slice(0, 7)) {
+      await book(cls.id, p.id);
+      await attend(cls.id, p.id, cls.date);
+    }
+    for (const p of alumnosMuvet.slice(7, 11)) {
+      await book(cls.id, p.id);
     }
   }
 
@@ -1205,7 +1268,7 @@ export async function seedDev(prisma: PrismaClient) {
     await book(bachataFuturas[0].id, antonia.id, "WAITLIST");
   }
   if (bachataFuturas[1]) {
-    for (const p of [camila, josefa, diego, antonia, dancer]) {
+    for (const p of [camila, josefa, diego, antonia, dancer, isidora, cata]) {
       await book(bachataFuturas[1].id, p.id);
     }
   }
@@ -1219,7 +1282,7 @@ export async function seedDev(prisma: PrismaClient) {
     .filter((c) => c.date >= todayUTC)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
   for (const cls of salsaFuturas) {
-    for (const p of [camila, diego, antonia, josefa]) {
+    for (const p of [camila, diego, antonia, josefa, tomas, matiasb]) {
       await book(cls.id, p.id);
     }
   }
@@ -1227,10 +1290,117 @@ export async function seedDev(prisma: PrismaClient) {
     .flatMap((s) => s.classes)
     .filter((c) => c.date >= todayUTC);
   for (const cls of ruedaFuturas) {
-    for (const p of alumnosMuvet.slice(0, 6)) {
+    for (const p of alumnosMuvet.slice(0, 9)) {
       await book(cls.id, p.id);
     }
   }
+
+  // ─── Cobros declarados (PaymentClaim) ───
+  // Pendientes alimentan "Cobros por revisar" del home; los aprobados
+  // del mes vigente y del tramo equivalente del anterior hacen que
+  // Facturado, Ticket/alumno y sus comparativas tengan datos reales.
+  // Al aprobar, el endpoint materializa un Payment MANUAL con refId
+  // claim-<id> - el seed replica esa forma para que el libro cuadre
+  // (los claim-* no cuentan en la suma de pasarela, sin doble cargo).
+  const claim = async (opts: {
+    personId: string;
+    planId?: string;
+    amount: number;
+    status: "PENDING" | "APPROVED";
+    /** día del mes de la declaración - se clampea al día de hoy. */
+    monthDay: number;
+    /** true = cae en el tramo MTD equivalente del mes anterior. */
+    prevMonth?: boolean;
+    methodType?: "TRANSFER" | "CASH";
+    methodLabel?: string;
+    note?: string;
+  }) => {
+    const day = Math.max(1, Math.min(opts.monthDay, now.getUTCDate()));
+    const base = opts.prevMonth ? prevMonthDate : now;
+    const createdAt = new Date(
+      Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), day, 12),
+    );
+    // Idempotente por persona+plan+estado+mes - un alumno puede tener
+    // claims distintos en meses distintos o en estados distintos.
+    const mStart = new Date(
+      Date.UTC(createdAt.getUTCFullYear(), createdAt.getUTCMonth(), 1),
+    );
+    const mEnd = new Date(
+      Date.UTC(createdAt.getUTCFullYear(), createdAt.getUTCMonth() + 1, 1),
+    );
+    const found = await prisma.paymentClaim.findFirst({
+      where: {
+        academyId: muvet.id,
+        personId: opts.personId,
+        planId: opts.planId ?? null,
+        status: opts.status,
+        createdAt: { gte: mStart, lt: mEnd },
+      },
+    });
+    if (found) {
+      return prisma.paymentClaim.update({
+        where: { id: found.id },
+        data: { amount: opts.amount, createdAt },
+      });
+    }
+    const created = await prisma.paymentClaim.create({
+      data: {
+        academyId: muvet.id,
+        personId: opts.personId,
+        planId: opts.planId ?? null,
+        amount: opts.amount,
+        methodType: opts.methodType ?? "TRANSFER",
+        methodLabel: opts.methodLabel ?? "Transferencia",
+        status: opts.status,
+        note: opts.note ?? null,
+        reviewedById: opts.status === "APPROVED" ? muvetOwner.id : null,
+        reviewedAt: opts.status === "APPROVED" ? createdAt : null,
+        createdAt,
+      },
+    });
+    if (opts.status === "APPROVED") {
+      // Mismo Payment que crea claims.approve() - el ledger de cobros
+      // los muestra como pagados por método propio de la academia.
+      const payment = await prisma.payment.create({
+        data: {
+          orderType: "MEMBERSHIP",
+          refId: `claim-${created.id}`,
+          personId: created.personId,
+          amount: created.amount,
+          fee: 0,
+          net: created.amount,
+          gateway: "MANUAL",
+          status: "PAID",
+          feeMode: "ACADEMY",
+          platformFeeNetClp: 0,
+          platformFeeVatClp: 0,
+          gatewayFeeExpected: 0,
+          producerNetClp: created.amount,
+          createdAt,
+        },
+      });
+      await prisma.paymentClaim.update({
+        where: { id: created.id },
+        data: { paymentId: payment.id },
+      });
+    }
+    return created;
+  };
+
+  // Aprobados del mes vigente → Facturado + Ticket/alumno del KPI strip.
+  await claim({ personId: camila.id, planId: muvetMensual.id, amount: 45000, status: "APPROVED", monthDay: 2 });
+  await claim({ personId: josefa.id, planId: muvetPack.id, amount: 38000, status: "APPROVED", monthDay: 3 });
+  await claim({ personId: antonia.id, planId: muvetMensual.id, amount: 45000, status: "APPROVED", monthDay: 5, methodType: "CASH", methodLabel: "Efectivo en clase" });
+  await claim({ personId: tomas.id, planId: muvetMensual.id, amount: 45000, status: "APPROVED", monthDay: 7 });
+  await claim({ personId: daniela.id, planId: muvetPack.id, amount: 38000, status: "APPROVED", monthDay: 9 });
+  // Tramo equivalente del mes anterior → las comparativas muestran delta.
+  await claim({ personId: camila.id, planId: muvetMensual.id, amount: 45000, status: "APPROVED", monthDay: 2, prevMonth: true });
+  await claim({ personId: sebastian.id, planId: muvetMensual.id, amount: 45000, status: "APPROVED", monthDay: 4, prevMonth: true });
+  await claim({ personId: felipe.id, planId: muvetPack.id, amount: 38000, status: "APPROVED", monthDay: 6, prevMonth: true });
+  // Pendientes de revisión → "Cobros por revisar" (los más viejos primero).
+  await claim({ personId: josefa.id, planId: muvetPack.id, amount: 38000, status: "PENDING", monthDay: now.getUTCDate() - 2, note: "Renovación pack" });
+  await claim({ personId: benjamin.id, planId: muvetMensual.id, amount: 45000, status: "PENDING", monthDay: now.getUTCDate() - 1 });
+  await claim({ personId: fernanda.id, planId: muvetMensual.id, amount: 45000, status: "PENDING", monthDay: now.getUTCDate(), methodType: "CASH", methodLabel: "Efectivo en clase", note: "Paga al llegar el sábado" });
 
   // Clases particulares - bandeja del instructor y del alumno.
   const lesson = (
