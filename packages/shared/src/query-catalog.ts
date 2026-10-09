@@ -39,6 +39,9 @@ export interface FilterDef {
   source?: FkSource;
   /** true = filtro de scope obligatorio (evento/serie o academia). */
   scope?: boolean;
+  /** true = selección múltiple: la UI muestra chips toggle y el valor
+      viaja CSV ("a,b") en el query param. Solo enum/fk. */
+  multi?: boolean;
 }
 
 export interface EntityDef {
