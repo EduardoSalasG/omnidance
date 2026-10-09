@@ -2,7 +2,12 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 
-type SlotLike = { id: string; weekday: number; instructorId: string | null };
+type SlotLike = {
+  id: string;
+  weekday: number;
+  instructorId: string | null;
+  instructors?: { personId: string }[];
+};
 
 /**
  * Materialización de instancias Class a partir de los horarios
@@ -73,6 +78,30 @@ export class AcademyMaterializeService {
           instructorId: slot.instructorId,
         })),
       });
+      // Plantel materializado: instructorId (primario) + co-instructores
+      // del slot. El join es el conjunto completo - el primario también
+      // entra (spec academies/class-series: multi-instructor).
+      const instructorIds = [
+        ...new Set([
+          ...(slot.instructorId ? [slot.instructorId] : []),
+          ...(slot.instructors ?? []).map((i) => i.personId),
+        ]),
+      ];
+      if (instructorIds.length) {
+        const created = await tx.class.findMany({
+          where: { classSlotId: slot.id, date: { in: missing } },
+          select: { id: true },
+        });
+        await tx.classInstructor.createMany({
+          data: created.flatMap((c) =>
+            instructorIds.map((personId) => ({
+              classId: c.id,
+              personId,
+            })),
+          ),
+          skipDuplicates: true,
+        });
+      }
     }
     return { created: missing.length, revived: toRevive.length };
   }
@@ -85,7 +114,12 @@ export class AcademyMaterializeService {
   async runDaily(): Promise<Record<string, unknown>> {
     const slots = await this.prisma.classSlot.findMany({
       where: { series: { active: true } },
-      select: { id: true, weekday: true, instructorId: true },
+      select: {
+        id: true,
+        weekday: true,
+        instructorId: true,
+        instructors: { select: { personId: true } },
+      },
     });
     const dates = this.rollingDates();
     let created = 0;

@@ -31,6 +31,9 @@ export type ClassCardData = {
   } | null;
   academy: { id: string; name: string };
   instructor: { id: string; name: string | null } | null;
+  // Plantel completo (multi-instructor): primario primero, luego
+  // co-profes. Vacío/ausente = la clase no declara profesores.
+  instructors?: { id: string; name: string | null }[];
   // Todo slot pertenece a una serie - series nunca es null en clases.
   series: {
     id: string;
@@ -127,12 +130,23 @@ export function ClassCard({
               {cls.academy.name}
             </Badge>
           </div>
-          {/* Meta: profesor */}
-          {cls.instructor?.name && (
-            <p className="mt-1.5 truncate text-xs text-ink/50">
-              {cls.instructor.name}
-            </p>
-          )}
+          {/* Meta: profesor(es) - el plantel completo cuando hay
+              co-profes ("María · Eduardo"), si no el primario solo. */}
+          {(() => {
+            const names = (
+              cls.instructors?.length
+                ? cls.instructors
+                : cls.instructor
+                  ? [cls.instructor]
+                  : []
+            )
+              .map((i) => i.name)
+              .filter(Boolean)
+              .join(" · ");
+            return names ? (
+              <p className="mt-1.5 truncate text-xs text-ink/50">{names}</p>
+            ) : null;
+          })()}
           {/* Créditos del plan - solo en "Mis clases" (mine adjunta la
               cuota de la semana de la clase). */}
           {cls.credits?.limit != null && (

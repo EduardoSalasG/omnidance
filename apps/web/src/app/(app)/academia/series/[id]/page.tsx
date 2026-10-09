@@ -30,9 +30,27 @@ type SeriesClass = {
   endTime: string;
   cancelled: boolean;
   instructorName: string | null;
+  // Plantel completo (multi-instructor): primario + co-profes.
+  instructors?: { id: string; name: string | null }[];
   bookedCount: number;
   attendanceCount: number;
 };
+
+// "María · Eduardo" - primario + co-profes; cae al nombre plano si el
+// backend aún no expone el plantel.
+function rosterNames(c: {
+  instructorName: string | null;
+  instructors?: { name: string | null }[];
+}): string | null {
+  if (c.instructors?.length) {
+    const joined = c.instructors
+      .map((i) => i.name)
+      .filter(Boolean)
+      .join(" · ");
+    if (joined) return joined;
+  }
+  return c.instructorName;
+}
 
 /**
  * /academia/series/[id] - detalle de la clase (serie): datos + acciones
@@ -368,6 +386,16 @@ function SeriesDetail({
                   {ta(`weekday.${slot.weekday}`)} {slot.startTime}–
                   {slot.endTime}
                 </span>
+                {/* Plantel del horario (multi-instructor): co-profes
+                    separados por " · " junto al horario. */}
+                {!!slot.instructors?.length && (
+                  <span className="truncate text-xs text-ink/50">
+                    {slot.instructors
+                      .map((i) => i.person.name)
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                )}
                 {series.active && (
                   <Button
                     type="button"
@@ -507,7 +535,10 @@ function SeriesDetail({
                       </span>
                       <span className="block text-xs tabular-nums text-ink/50">
                         {c.startTime}–{c.endTime}
-                        {c.instructorName ? ` · ${c.instructorName}` : ""}
+                        {(() => {
+                          const n = rosterNames(c);
+                          return n ? ` · ${n}` : "";
+                        })()}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-ink/50">
@@ -548,7 +579,10 @@ function SeriesDetail({
                       </span>
                       <span className="block text-xs tabular-nums text-ink/50">
                         {c.startTime}–{c.endTime}
-                        {c.instructorName ? ` · ${c.instructorName}` : ""}
+                        {(() => {
+                          const n = rosterNames(c);
+                          return n ? ` · ${n}` : "";
+                        })()}
                       </span>
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-ink/50">

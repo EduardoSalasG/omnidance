@@ -166,6 +166,22 @@ export async function seedDev(prisma: PrismaClient) {
     [{ role: "DANCER" }, { role: "INSTRUCTOR" }],
     Gender.F,
   );
+  // Eduardo - cuenta real del piloto (email .cl, magic link): bailarín e
+  // instructor. Co-profe de los sábados en Mambo Madness junto a María
+  // (spec multi-instructor: el plantel vive en los joins).
+  const eduardo = await ensurePerson(
+    prisma,
+    "salas.eduardo.cl@gmail.com",
+    "Eduardo Salas",
+    [{ role: "DANCER" }, { role: "INSTRUCTOR" }],
+    Gender.M,
+  );
+  if (!eduardo.phone) {
+    await prisma.person.update({
+      where: { id: eduardo.id },
+      data: { phone: "+56982439041" },
+    });
+  }
   // Dueños de "Adrian y Leo" - academia de solo mambo (abajo).
   const adrian = await person("adrian", "Adrián Paredes", [
     { role: "ACADEMY_OWNER" },
@@ -1501,20 +1517,42 @@ export async function seedDev(prisma: PrismaClient) {
   // María José: alumna del nivel más alto publicado (Intermedio,
   // miércoles) con plan Ilimitado + profesora de la casa en los slots de
   // iniciación (lunes 19:30/20:30 y sábado 17:00/18:00 - Gabriel dicta
-  // el resto de la parrilla).
+  // el resto de la parrilla). Eduardo es co-profe de los sábados: misma
+  // alumna/plan, mismo plantel - el join permite ambos (spec
+  // multi-instructor).
   const mmIlimitadoPlan = await prisma.membershipPlan.findFirst({
     where: { academyId: mambo.id, name: "Ilimitado" },
   });
   if (mmIlimitadoPlan) {
     await enroll(mambo.id, maria.id, mmIlimitadoPlan.id, "ACTIVE", 60, 24);
+    await enroll(mambo.id, eduardo.id, mmIlimitadoPlan.id, "ACTIVE", 30, 30);
   }
-  await prisma.academyInstructor.upsert({
-    where: {
-      academyId_personId: { academyId: mambo.id, personId: maria.id },
-    },
-    update: {},
-    create: { academyId: mambo.id, personId: maria.id },
-  });
+  for (const profe of [maria, eduardo]) {
+    await prisma.academyInstructor.upsert({
+      where: {
+        academyId_personId: { academyId: mambo.id, personId: profe.id },
+      },
+      update: {},
+      create: { academyId: mambo.id, personId: profe.id },
+    });
+  }
+  // Plantel multi-instructor: agrega `personId` al join del slot y al
+  // de todas sus clases ya materializadas - sin tocar instructorId
+  // (primario). Idempotente vía createMany+skipDuplicates.
+  const attachInstructor = async (slotId: string, personId: string) => {
+    await prisma.classSlotInstructor.createMany({
+      data: [{ slotId, personId }],
+      skipDuplicates: true,
+    });
+    const slotClasses = await prisma.class.findMany({
+      where: { classSlotId: slotId },
+      select: { id: true },
+    });
+    await prisma.classInstructor.createMany({
+      data: slotClasses.map((c) => ({ classId: c.id, personId })),
+      skipDuplicates: true,
+    });
+  };
   // Slots de María: la iniciación de lunes y sábado (salsa + bachata).
   // Se marca en el slot y en las clases ya materializadas - la consola
   // del instructor lista por ambos según la vista.
@@ -1542,6 +1580,24 @@ export async function seedDev(prisma: PrismaClient) {
       where: { classSlotId: slot.id },
       data: { instructorId: maria.id },
     });
+    await attachInstructor(slot.id, maria.id);
+  }
+  // Sábado multi-profe: María queda como primaria y Eduardo entra al
+  // plantel de ambos slots (salsa 17:00 y bachata 18:00) - las clases
+  // materializadas también lo registran como co-profe.
+  for (const k of [
+    { series: "Salsa", weekday: 6, startTime: "17:00" },
+    { series: "Bachata", weekday: 6, startTime: "18:00" },
+  ]) {
+    const slot = await prisma.classSlot.findFirst({
+      where: {
+        academyId: mambo.id,
+        weekday: k.weekday,
+        startTime: k.startTime,
+        series: { name: k.series, deletedAt: null },
+      },
+    });
+    if (slot) await attachInstructor(slot.id, eduardo.id);
   }
 
   // ─── Adrian y Leo - academia de solo mambo ───
@@ -2864,6 +2920,7 @@ export async function seedDev(prisma: PrismaClient) {
     gabriel,
     monica,
     maria,
+    eduardo,
   ];
   for (let i = 0; i < clique.length; i++) {
     for (let j = i + 1; j < clique.length; j++) {
@@ -2921,7 +2978,7 @@ export async function seedDev(prisma: PrismaClient) {
   );
   const goingPlan: [number, { id: string }[]][] = [
     [0, [camila, josefa, diego, antonia, gabriel, monica]],
-    [1, [camila, daniela, maria]],
+    [1, [camila, daniela, maria, eduardo]],
     [2, [josefa, diego, gabriel]],
   ];
   for (const [evIdx, people] of goingPlan) {
@@ -3026,6 +3083,8 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(maria, "Mambo on2", "SWITCH", "avanzado"),
     styleRole(maria, "Bachata sensual", "FOLLOWER", "avanzado"),
     styleRole(maria, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
+    styleRole(eduardo, "Mambo on2", "LEADER", "intermedio"),
+    styleRole(eduardo, "Bachata sensual", "LEADER", "intermedio"),
     // Adrián y Leo - su perfil público muestra el estilo de la casa.
     styleRole(adrian, "Mambo on2", "LEADER", "avanzado"),
     styleRole(leo, "Mambo on2", "LEADER", "avanzado"),
@@ -3057,6 +3116,7 @@ export async function seedDev(prisma: PrismaClient) {
     ig(gabriel, "gabomadness"),
     ig(monica, "moni.soto"),
     ig(maria, "majose.herrera"),
+    ig(eduardo, "eduardosalasg"),
     ig(adrian, "adrian.mambo"),
     ig(leo, "leo.campos"),
   ]);
@@ -3291,6 +3351,12 @@ export async function seedDev(prisma: PrismaClient) {
     [sebastian, 5],
   ]);
   await session(prevEdition.id, gabriel, maria, "CONFIRMED", at(190), "Mambo on2");
+  // Eduardo bailó la edición pasada - su /bailes arranca con historial.
+  await session(prevEdition.id, eduardo, camila, "RATED", at(75), "Bachata sensual", [
+    [eduardo, 4],
+    [camila, 5],
+  ]);
+  await session(prevEdition.id, daniela, eduardo, "CONFIRMED", at(155), "Mambo on2");
 
   // Invitaciones vivas - solo existen dentro de una noche en curso:
   // nacen del escaneo en pista y expiran ~24h después (spec §4). El seed
@@ -3444,6 +3510,7 @@ export async function seedDev(prisma: PrismaClient) {
         gabriel,
         monica,
         maria,
+        eduardo,
       ],
     ],
     [edition3, [dancer, camila, josefa, diego, antonia, daniela, monica, maria]],
@@ -3814,6 +3881,7 @@ export async function seedDev(prisma: PrismaClient) {
     gabriel,
     monica,
     maria,
+    eduardo,
   ];
   for (const p of gamified) {
     const mySessions = await prisma.danceSession.findMany({
@@ -4077,6 +4145,35 @@ export async function seedDev(prisma: PrismaClient) {
     "Nueva solicitud de amistad",
     "Antonia Reyes quiere agregarte",
   );
+
+  // ─── Plantel multi-instructor (spec multi-instructor) ───
+  // Todo primario queda también en su join - misma regla que el backfill
+  // de la migración 20261101000000. Cubre los slots/clases que el seed
+  // crea por prisma directo (sin pasar por el controller).
+  {
+    const slotsW = await prisma.classSlot.findMany({
+      where: { instructorId: { not: null } },
+      select: { id: true, instructorId: true },
+    });
+    await prisma.classSlotInstructor.createMany({
+      data: slotsW.map((s) => ({
+        slotId: s.id,
+        personId: s.instructorId!,
+      })),
+      skipDuplicates: true,
+    });
+    const classesW = await prisma.class.findMany({
+      where: { instructorId: { not: null } },
+      select: { id: true, instructorId: true },
+    });
+    await prisma.classInstructor.createMany({
+      data: classesW.map((c) => ({
+        classId: c.id,
+        personId: c.instructorId!,
+      })),
+      skipDuplicates: true,
+    });
+  }
 
   // ─── Limpieza de residuos E2E ───
   // Las corridas Playwright dejan academias, series, venues y eventos

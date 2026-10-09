@@ -61,6 +61,13 @@ type ClassDetail = {
     photoUrl: string | null;
     instagram: string | null;
   } | null;
+  // Plantel completo (multi-instructor): primario primero + co-profes.
+  instructors?: {
+    id: string;
+    name: string | null;
+    photoUrl: string | null;
+    instagram: string | null;
+  }[];
   series: {
     id: string;
     name: string;
@@ -334,34 +341,47 @@ export default async function ClaseDetailPage({
         <p className="text-ink/70">{dateLabel}</p>
       </header>
 
-      {/* Profesor - quién la imparte es dato clave de la ficha */}
-      {cls.instructor?.name && (
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
-            {t.instructor}
-          </h2>
-          <div className="flex items-center gap-3">
-            <PartnerAvatar
-              name={cls.instructor.name}
-              photoUrl={cls.instructor.photoUrl}
-              size="md"
-            />
-            <div className="min-w-0">
-              <p className="font-medium">{cls.instructor.name}</p>
-              {cls.instructor.instagram && (
-                <a
-                  href={`https://instagram.com/${cls.instructor.instagram}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center text-sm font-medium text-neon underline-offset-4 hover:underline"
-                >
-                  @{cls.instructor.instagram}
-                </a>
-              )}
+      {/* Profesor(es) - quién la imparte es dato clave de la ficha.
+          El plantel completo sale en filas cuando hay co-profes. */}
+      {(() => {
+        const roster =
+          cls.instructors?.length
+            ? cls.instructors
+            : cls.instructor
+              ? [cls.instructor]
+              : [];
+        return roster.length ? (
+          <Card>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
+              {t.instructor}
+            </h2>
+            <div className="flex flex-col gap-3">
+              {roster.map((p) => (
+                <div key={p.id} className="flex items-center gap-3">
+                  <PartnerAvatar
+                    name={p.name ?? ""}
+                    photoUrl={p.photoUrl}
+                    size="md"
+                  />
+                  <div className="min-w-0">
+                    <p className="font-medium">{p.name}</p>
+                    {p.instagram && (
+                      <a
+                        href={`https://instagram.com/${p.instagram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex min-h-11 items-center text-sm font-medium text-neon underline-offset-4 hover:underline"
+                      >
+                        @{p.instagram}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        </Card>
-      )}
+          </Card>
+        ) : null;
+      })()}
 
       {cls.series.description && (
         <Card>

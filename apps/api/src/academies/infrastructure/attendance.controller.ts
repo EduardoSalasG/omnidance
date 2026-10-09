@@ -61,17 +61,24 @@ export class AttendanceController {
       select: {
         id: true,
         instructorId: true,
+        instructors: { select: { personId: true } },
         series: { select: { instructorId: true } },
       },
     });
     if (!slot) throw new NotFoundException("slot no encontrado en la academia");
 
-    // Solo quien imparte la clase (instructor del slot > serie) o un
-    // admin de plataforma marca presente - el owner no (spec
-    // academies/class-series).
-    const instructorId = slot.instructorId ?? slot.series.instructorId;
+    // Cualquier instructor del plantel (primario o co-profe, slot >
+    // serie) o un admin de plataforma marca presente - el owner no
+    // (spec academies/class-series: multi-instructor).
+    const roster = new Set(
+      [
+        slot.instructorId,
+        slot.series.instructorId,
+        ...(slot.instructors ?? []).map((i) => i.personId),
+      ].filter(Boolean),
+    );
     const isAdmin = await this.access.isPlatformAdmin(req.person!);
-    if (!isAdmin && req.person!.id !== instructorId) {
+    if (!isAdmin && !roster.has(req.person!.id)) {
       throw new ForbiddenException(
         "solo el profesor de la clase puede marcar asistencia",
       );
@@ -143,11 +150,20 @@ export class AttendanceController {
           // del slot cuando la clase no tiene override.
           ...(instructorId
             ? {
+                // instructorId matchea el plantel de la clase o del
+                // slot (primario o co-profe).
                 OR: [
                   { instructorId },
+                  { instructors: { some: { personId: instructorId } } },
                   {
                     instructorId: null,
                     slot: { instructorId },
+                  },
+                  {
+                    instructorId: null,
+                    slot: {
+                      instructors: { some: { personId: instructorId } },
+                    },
                   },
                 ],
               }

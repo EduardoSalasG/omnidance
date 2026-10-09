@@ -83,6 +83,8 @@ model Person {
   ticketClaimsReviewed   TicketClaim[] @relation("TicketClaimReviewer")
   billingDocs   BillingDocument[] @relation("BillingReceiver")
   mailCampaigns MailCampaign[]
+  classSlotInstructors ClassSlotInstructor[]
+  classInstructors     ClassInstructor[]
 }
 
 // Catálogo de roles vivo en DB - se administran desde /admin, no desde código.
@@ -1031,6 +1033,21 @@ model ClassSlot {
   capacity     Int? // null = hereda el quórum de la serie/academia
   classes      Class[]
   types        ClassSlotType[]
+  // Plantel completo del horario (co-teaching): el primario
+  // (instructorId) también figura aquí - el join ES el conjunto.
+  instructors  ClassSlotInstructor[]
+}
+
+// Co-instructores del horario: una clase puede ser dictada por N
+// profesores. instructorId sigue siendo el principal (comisión,
+// encuesta, liquidación leen el singular).
+model ClassSlotInstructor {
+  slot      ClassSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  slotId    String
+  person    Person    @relation(fields: [personId], references: [id])
+  personId  String
+
+  @@id([slotId, personId])
 }
 
 // Modalidad del horario (En Pareja | Shines | Corporalidad). Vacío =
@@ -1056,6 +1073,20 @@ model Class {
 
   attendances Attendance[]
   bookings    ClassBooking[]
+  // Plantel materializado (copia del slot al crear la instancia):
+  // instructorId = principal; instructors = todos los profes que la dan.
+  instructors ClassInstructor[]
+}
+
+// Co-instructores de la clase materializada - snapshot del plantel del
+// slot en el momento de crearse la instancia.
+model ClassInstructor {
+  class     Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String
+  person    Person @relation(fields: [personId], references: [id])
+  personId  String
+
+  @@id([classId, personId])
 }
 
 // Reserva de cupo con lista de espera: BOOKED ocupa cupo; si la clase se
