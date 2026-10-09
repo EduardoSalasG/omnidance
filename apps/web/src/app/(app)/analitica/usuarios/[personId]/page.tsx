@@ -253,7 +253,10 @@ function UserPanel({ personId }: { personId: string }) {
   const loadSections = useCallback(
     async (r: string) => {
       setSectionPhase("loading");
-      setSections(null);
+      // No nullear `sections`: en el primer load sections===null marca
+      // "arranque inicial" (skeleton de página completa); al cambiar de
+      // lente el header/pills quedan y solo la zona de secciones muestra
+      // skeleton - la fase "loading" ya bloquea el render de data vieja.
       try {
         const res = await apiFetch(
           `/admin/users/${personId}/analytics?role=${encodeURIComponent(r)}`,
@@ -277,7 +280,16 @@ function UserPanel({ personId }: { personId: string }) {
     if (role) void loadSections(role);
   }, [role, loadSections]);
 
-  if (phase === "loading") return <SkeletonList />;
+  // Un solo skeleton para todo el arranque (detail + secciones del
+  // lente inicial): dos skeletons encadenados desmontan/remontan el
+  // placeholder y el delay anti-flash de .page-loading parpadea.
+  // Mejor esperar a que cargue todo. (role null = sin roles aprobados →
+  // no hay fetch de secciones pendiente, mostrar el empty state.)
+  if (
+    phase === "loading" ||
+    (phase === "ready" && role && sectionPhase === "loading" && !sections)
+  )
+    return <SkeletonList />;
 
   if (phase === "notfound") {
     return (

@@ -156,15 +156,6 @@ export default function AnaliticaPage() {
     [],
   );
 
-  useEffect(() => {
-    if (!role) return;
-    if (proLocked) {
-      setCatalogPhase("pro");
-      return;
-    }
-    void loadCatalog(role);
-  }, [role, proLocked, loadCatalog]);
-
   // ── Consultas guardadas del lente ────────────────────────────────────
   const loadSaved = useCallback(async (r: Role) => {
     try {
@@ -180,9 +171,18 @@ export default function AnaliticaPage() {
     }
   }, []);
 
+  // Catálogo y guardadas en paralelo: una sola espera, la página aparece
+  // completa - nada de skeletons encadenados ni secciones que llegan
+  // tarde.
   useEffect(() => {
-    if (catalogPhase === "ready" && role) void loadSaved(role);
-  }, [catalogPhase, role, loadSaved]);
+    if (!role) return;
+    if (proLocked) {
+      setCatalogPhase("pro");
+      return;
+    }
+    void loadCatalog(role);
+    if (isQueryRole(role)) void loadSaved(role);
+  }, [role, proLocked, loadCatalog, loadSaved]);
 
   // Opciones de fuentes scope-dependientes (planId/seriesId/listId…).
   const loadScopeOptions = useCallback(
@@ -305,9 +305,16 @@ export default function AnaliticaPage() {
   const entityDef =
     entity != null ? entities.find((e) => e.entity === entity) : undefined;
 
+  // Un solo skeleton para TODO el arranque (roles + catálogo): los dos
+  // cargan en cadena, así que montar un skeleton por fase desmonta y
+  // remonta el placeholder - el delay anti-flash de .page-loading se
+  // reinicia y la pantalla parpadea. Mejor esperar a que cargue todo.
+  const bootLoading =
+    phase === "loading" || (phase === "ready" && catalogPhase === "loading");
+
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
-      {phase === "loading" && <SkeletonList />}
+      {bootLoading && <SkeletonList />}
 
       {phase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
@@ -324,10 +331,8 @@ export default function AnaliticaPage() {
         </Card>
       )}
 
-      {phase === "ready" && (
+      {phase === "ready" && !bootLoading && (
         <>
-          {catalogPhase === "loading" && <SkeletonList />}
-
           {catalogPhase === "empty" && (
             <Card className="py-6 text-center">
               <p className="text-sm text-ink/70">{t("noQueries")}</p>
