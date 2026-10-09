@@ -113,6 +113,13 @@ class FakePrisma {
         (e) => where.seriesId === undefined || e.seriesId === where.seriesId,
       );
     },
+    count: async ({ where }: { where?: { seriesId?: string } }) =>
+      this.events.filter(
+        (e) =>
+          !where ||
+          where.seriesId === undefined ||
+          e.seriesId === where.seriesId,
+      ).length,
   };
 
   eventSeries = {
@@ -961,7 +968,8 @@ describe("EventsController.mine - filtros", () => {
   it("sin filtros → where solo producerId", async () => {
     const res = await ctrl.mine(reqAs("prod-1"), {});
     expect(prisma.eventLastWhere).toEqual({ producerId: "prod-1" });
-    expect(res).toHaveLength(2);
+    expect(res.items).toHaveLength(2);
+    expect(res.total).toBe(2);
   });
 
   it("q/status/type/from+to bajan al where", async () => {

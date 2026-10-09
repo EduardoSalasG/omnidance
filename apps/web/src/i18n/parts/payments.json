@@ -16,6 +16,12 @@
       "FAILED": "Fallido",
       "REFUNDED": "Reembolsado"
     },
+    "channels": {
+      "PRESALE": "Preventa",
+      "DOOR": "Puerta",
+      "MANUAL": "Manual",
+      "FREE": "Gratuito"
+    },
     "cols": {
       "paidAt": "Cobrado",
       "amount": "Monto",

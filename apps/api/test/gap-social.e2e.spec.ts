@@ -9,6 +9,7 @@ import { PrismaService } from "../src/prisma.service";
 // Controllers montados directo en el test module para cubrir el contrato.
 import { FriendsController } from "../src/social/infrastructure/friends.controller";
 import { PeopleController } from "../src/social/infrastructure/people.controller";
+import { deletePeople } from "./helpers";
 
 describe("spec-gap-closure: declare + friendships e2e", () => {
   let app: INestApplication;
@@ -124,7 +125,7 @@ describe("spec-gap-closure: declare + friendships e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: people } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: people } } });
+    await deletePeople(prisma, people);
     await app.close();
   });
 

@@ -8,6 +8,7 @@ import { PrismaService } from "../src/prisma.service";
 import { PeopleController } from "../src/people/people.controller";
 import { EventRatingsController } from "../src/events/infrastructure/event-ratings.controller";
 import { EventAnalyticsController } from "../src/events/infrastructure/event-analytics.controller";
+import { deletePeople } from "./helpers";
 
 // dancer-profile-survey-analytics (slice API): gender en PATCH/GET /me,
 // overall en POST ratings, GET /me/pending-surveys con fan-out lazy
@@ -203,7 +204,7 @@ describe("dancer-profile-survey-analytics e2e", () => {
     });
     await prisma.venue.deleteMany({ where: { name: `SA Venue ${suffix}` } });
     await prisma.personRole.deleteMany({ where: { personId: { in: personIds } } });
-    await prisma.person.deleteMany({ where: { id: { in: personIds } } });
+    await deletePeople(prisma, personIds);
     await app.close();
   });
 

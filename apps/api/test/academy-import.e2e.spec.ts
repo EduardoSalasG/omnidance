@@ -5,6 +5,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { AcademiesModule } from "../src/academies/academies.module";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("academy bulk import e2e (spec academy-bulk-import)", () => {
   let app: INestApplication;
@@ -157,7 +158,7 @@ describe("academy bulk import e2e (spec academy-bulk-import)", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: personIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: personIds } } });
+    await deletePeople(prisma, personIds);
     await app.close();
   });
 

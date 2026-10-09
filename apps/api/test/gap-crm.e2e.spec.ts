@@ -6,6 +6,7 @@ import { PaymentsModule } from "../src/payments/payments.module";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 const DAY_MS = 86_400_000;
 
@@ -299,18 +300,8 @@ describe("gap-closure: CRM transversal e2e", () => {
     });
     // Las suites e2e comparten la DB: una notificación async (campaign
     // send, notifySafe) puede aterrizar entre el cleanup y el delete de
-    // persons - retry re-limpiando notifications ante FK.
-    for (let i = 0; i < 4; i++) {
-      try {
-        await prisma.person.deleteMany({ where: { id: { in: people } } });
-        break;
-      } catch (e) {
-        if (i === 3) throw e;
-        await prisma.notification.deleteMany({
-          where: { personId: { in: people } },
-        });
-      }
-    }
+    // persons - deletePeople re-limpia notifications y reintenta ante FK.
+    await deletePeople(prisma, people);
     await app.close();
   });
 

@@ -50,13 +50,17 @@ function EventFormPage() {
     Promise.all([
       apiFetch("/venues"),
       apiFetch("/styles"),
-      apiFetch("/events/mine"),
+      apiFetch("/events/mine?pageSize=100"),
     ])
       .then(async ([vRes, sRes, mRes]) => {
         if (cancelled) return;
         if (vRes.ok) setVenues((await vRes.json()) as Venue[]);
         if (sRes.ok) setStyles((await sRes.json()) as Style[]);
-        if (mRes.ok) setMyEvents((await mRes.json()) as EventListItem[]);
+        if (mRes.ok) {
+          setMyEvents(
+            ((await mRes.json()) as { items: EventListItem[] }).items,
+          );
+        }
       })
       .catch(() => {});
     return () => {

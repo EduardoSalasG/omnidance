@@ -4,6 +4,7 @@ import type {
   DiscountsRepo,
   ListedDiscountCode,
   ListedRedemption,
+  PagedList,
 } from "./ports";
 
 /** Tipos cerrados de discount_code (spec omni-dance.md - no libre). */
@@ -181,7 +182,9 @@ export class DiscountsService {
     return this.repo.create({ ...validated, createdById });
   }
 
-  list(filter: DiscountCodeFilter): Promise<ListedDiscountCode[]> {
+  list(
+    filter: DiscountCodeFilter,
+  ): Promise<PagedList<ListedDiscountCode>> {
     return this.repo.list(filter);
   }
 

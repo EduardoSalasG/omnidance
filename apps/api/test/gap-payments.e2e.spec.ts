@@ -18,6 +18,7 @@ import {
   AdminPayoutsController,
   MePayoutsController,
 } from "../src/payments/infrastructure/payouts.controller";
+import { deletePeople } from "./helpers";
 
 /** Mes calendario local "YYYY-MM" - misma regla que checkins.service. */
 const currentMonth = () => {
@@ -387,7 +388,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: personIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: personIds } } });
+    await deletePeople(prisma, personIds);
     await prisma.venue.delete({ where: { id: ids.venueId } });
     await app.close();
   });

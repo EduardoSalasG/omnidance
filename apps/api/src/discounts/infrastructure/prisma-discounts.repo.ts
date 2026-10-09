@@ -36,32 +36,39 @@ export class PrismaDiscountsRepo implements DiscountsRepo {
     return this.prisma.discountCode.create({ data });
   }
 
-  list(filter: DiscountCodeFilter) {
+  async list(filter: DiscountCodeFilter) {
     const q = filter.q?.trim();
     const now = new Date();
-    return this.prisma.discountCode.findMany({
-      where: {
-        ...(filter.eventId !== undefined ? { eventId: filter.eventId } : {}),
-        ...(filter.seriesId !== undefined ? { seriesId: filter.seriesId } : {}),
-        ...(q ? { code: { contains: q, mode: "insensitive" as const } } : {}),
-        // EXPIRED: expiresAt <= ahora; ACTIVE: vigente o sin expiración.
-        ...(filter.status === "EXPIRED"
-          ? { expiresAt: { lte: now } }
-          : filter.status === "ACTIVE"
-            ? { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }
-            : {}),
-        ...(filter.from || filter.to
-          ? {
-              createdAt: {
-                ...(filter.from ? { gte: filter.from } : {}),
-                ...(filter.to ? { lte: filter.to } : {}),
-              },
-            }
+    const where = {
+      ...(filter.eventId !== undefined ? { eventId: filter.eventId } : {}),
+      ...(filter.seriesId !== undefined ? { seriesId: filter.seriesId } : {}),
+      ...(q ? { code: { contains: q, mode: "insensitive" as const } } : {}),
+      // EXPIRED: expiresAt <= ahora; ACTIVE: vigente o sin expiración.
+      ...(filter.status === "EXPIRED"
+        ? { expiresAt: { lte: now } }
+        : filter.status === "ACTIVE"
+          ? { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }
           : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      select: LIST_SELECT,
-    });
+      ...(filter.from || filter.to
+        ? {
+            createdAt: {
+              ...(filter.from ? { gte: filter.from } : {}),
+              ...(filter.to ? { lte: filter.to } : {}),
+            },
+          }
+        : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.discountCode.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        select: LIST_SELECT,
+        ...(filter.skip !== undefined ? { skip: filter.skip } : {}),
+        ...(filter.take !== undefined ? { take: filter.take } : {}),
+      }),
+      this.prisma.discountCode.count({ where }),
+    ]);
+    return { items, total };
   }
 
   listRedemptions(codeId: string) {

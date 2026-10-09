@@ -5,6 +5,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { AdminModule } from "../src/admin/admin.module";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("admin role assignment e2e", () => {
   let app: INestApplication;
@@ -69,7 +70,7 @@ describe("admin role assignment e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: createdPersonIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: createdPersonIds } } });
+    await deletePeople(prisma, createdPersonIds);
     await app.close();
   });
 

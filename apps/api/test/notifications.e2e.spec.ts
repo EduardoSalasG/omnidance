@@ -6,6 +6,7 @@ import { AuthService } from "../src/auth/domain/auth.service";
 import { NotificationsModule } from "../src/notifications/notifications.module";
 import { NotificationsService } from "../src/notifications/domain/notifications.service";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("notifications e2e", () => {
   let app: INestApplication;
@@ -77,7 +78,7 @@ describe("notifications e2e", () => {
     await prisma.pushToken.deleteMany({
       where: { personId: { in: [myId, otherId] } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: [myId, otherId] } } });
+    await deletePeople(prisma, [myId, otherId]);
     await app.close();
   });
 

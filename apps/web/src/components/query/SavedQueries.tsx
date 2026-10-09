@@ -7,7 +7,7 @@ import {
   type QueryRole,
   type SavedReportParams,
 } from "@omnidance/shared";
-import { Card, CheckIcon, XIcon } from "@/components/ui";
+import { Card, CheckIcon, ChevronDownIcon, XIcon } from "@/components/ui";
 import { inputCls } from "@/components/academy/shared";
 
 // Consultas guardadas + plantillas de sistema (spec analytics/query-console):
@@ -32,6 +32,9 @@ export type SavedQueriesProps = {
   onSelect: (params: SavedReportParams) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
+  /** Expandible: por defecto CERRADO (el bloque va arriba de los filtros
+      en /analitica y no debe robar foco del flujo principal). */
+  defaultOpen?: boolean;
 };
 
 const dateFmt = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
@@ -43,9 +46,11 @@ export function SavedQueries({
   onSelect,
   onRename,
   onDelete,
+  defaultOpen = false,
 }: SavedQueriesProps) {
   const t = useTranslations("query");
   const tc = useTranslations("common");
+  const [open, setOpen] = useState(defaultOpen);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
 
@@ -67,28 +72,46 @@ export function SavedQueries({
 
   return (
     <Card className="flex flex-col gap-4">
-      <section aria-label={t("saved.system")} className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+      {/* Toggle expandible - cerrado por defecto; el bloque va encima de
+          las entidades/filtros en /analitica. */}
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex min-h-11 w-full items-center gap-2 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+      >
+        <span className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("saved.system")}
-        </h2>
-        <ul className="flex flex-wrap gap-2">
-          {system.map((s) => (
-            <li key={s.nameKey}>
-              <button
-                type="button"
-                onClick={() =>
-                  onSelect({ entity: s.entity, filters: { ...s.filters } })
-                }
-                className="inline-flex min-h-11 items-center rounded-full bg-ink/10 px-4 text-sm font-semibold text-ink/70 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-              >
-                {t.has(`system.${s.nameKey}`)
-                  ? t(`system.${s.nameKey}`)
-                  : s.nameKey}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+        </span>
+        <span
+          aria-hidden="true"
+          className={`ml-auto text-ink/40 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+        >
+          <ChevronDownIcon />
+        </span>
+      </button>
+      {open && (
+        <>
+          <ul className="flex flex-wrap gap-2">
+            {system.map((s) => (
+              <li key={s.nameKey}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onSelect({
+                      entity: s.entity,
+                      filters: { ...s.filters },
+                    })
+                  }
+                  className="inline-flex min-h-11 items-center rounded-full bg-ink/10 px-4 text-sm font-semibold text-ink/70 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  {t.has(`system.${s.nameKey}`)
+                    ? t(`system.${s.nameKey}`)
+                    : s.nameKey}
+                </button>
+              </li>
+            ))}
+          </ul>
 
       <section aria-label={t("saved.mine")} className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
@@ -172,6 +195,8 @@ export function SavedQueries({
           </ul>
         )}
       </section>
+        </>
+      )}
     </Card>
   );
 }

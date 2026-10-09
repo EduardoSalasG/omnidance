@@ -6,6 +6,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { QrService } from "../src/qr/domain/qr.service";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("sessions e2e", () => {
   let app: INestApplication;
@@ -139,7 +140,7 @@ describe("sessions e2e", () => {
     await prisma.notification.deleteMany({
       where: { personId: { in: [aId, bId, cId] } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: [aId, bId, cId] } } });
+    await deletePeople(prisma, [aId, bId, cId]);
     await prisma.$disconnect();
     await app.close();
   });

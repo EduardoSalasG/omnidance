@@ -44,15 +44,12 @@
       "emptyCta": "Ver horarios"
     },
     "settings": {
-      "title": "Configuración",
+      "title": "Valores por defecto",
       "defaultQuorum": "Quórum por defecto",
       "defaultQuorumHint": "Vacío = 20 por defecto. Las series sin quórum propio heredan este valor.",
       "defaultQuorumCurrent": "Actual: {value}",
       "saved": "Configuración guardada.",
       "saveError": "No se pudo guardar la configuración",
-      "instructors": "Comisión de instructores",
-      "instructorsHint": "% que la academia retiene del precio de cada clase particular del instructor. Se aplica a las solicitudes nuevas.",
-      "commissionSaved": "Comisión actualizada.",
       "privateLessonPrice": "Precio de clase particular (CLP)",
       "privateLessonPriceHint": "Vacío = la academia no vende clases particulares. El alumno paga por adelantado y tú asignas fecha e instructor después."
     },
@@ -93,7 +90,12 @@
       },
       "viewProfile": "Ver perfil de {name}",
       "score": "Score",
-      "scoreNone": "Sin score"
+      "scoreNone": "Sin score",
+      "payments": "Pagos",
+      "emptyPayments": "Sin pagos registrados.",
+      "paymentSaved": "Inscripción actualizada.",
+      "paymentSaveError": "No se pudo actualizar la inscripción",
+      "planFree": "Plan libre"
     },
     "learner": {
       "myAcademies": "Mis academias",
@@ -157,6 +159,9 @@
     "editPlan": "Editar plan",
     "planActive": "Plan activo (visible para comprar)",
     "planInactive": "Inactivo",
+    "planStateActive": "Activo",
+    "planSectionRecurring": "Recurrentes",
+    "planSectionOneTime": "Pago único",
     "planTypeLocked": "El tipo no se puede cambiar: el plan tiene cobro recurrente en Flow",
     "planWeeklyClasses": "Clases por semana (vacío = ilimitado)",
     "planWeeklyCount": "{count, plural, one {# clase/semana} other {# clases/semana}}",
@@ -168,7 +173,7 @@
       "config": "Configuración"
     },
     "configPages": {
-      "general": "General",
+      "general": "Clases",
       "payments": "Métodos de pago",
       "profile": "Perfil público",
       "appearance": "Apariencia"

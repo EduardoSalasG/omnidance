@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -23,6 +24,13 @@ type ClaimDetail = {
   reviewedBy: { id: string; name: string } | null;
   person: { id: string; name: string };
   plan: { id: string; name: string; type: string; price: number } | null;
+  payment: {
+    id: string;
+    refId: string;
+    status: string;
+    channel: string | null;
+    createdAt: string;
+  } | null;
 };
 
 const clp = new Intl.NumberFormat("es-CL", {
@@ -208,6 +216,19 @@ function ClaimDetail({
                 <dd className="tabular-nums text-ink/70">
                   {claimDateFmt.format(new Date(claim.reviewedAt))}
                   {claim.reviewedBy ? ` · ${claim.reviewedBy.name}` : ""}
+                </dd>
+              </div>
+            )}
+            {claim.payment && (
+              <div>
+                <dt className="text-xs text-ink/50">{t("fieldTxn")}</dt>
+                <dd>
+                  <Link
+                    href={`/academia/cobros/pago/${claim.payment.id}`}
+                    className="font-mono text-xs text-neon underline-offset-4 hover:underline"
+                  >
+                    {claim.payment.refId}
+                  </Link>
                 </dd>
               </div>
             )}

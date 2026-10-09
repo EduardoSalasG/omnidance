@@ -4,10 +4,10 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademySettings } from "@/components/academy/academy-settings";
 
 /**
- * /academia/configuracion/general - params operativos de la academia
- * (quórum por defecto, precio de clase particular, comisión de
- * instructores). Página raíz de la sección Configuración del drawer -
- * sin back (nivel 1).
+ * /academia/configuracion/general - "Valores por defecto" de las clases
+ * de la academia (quórum por defecto, precio de clase particular).
+ * Página raíz de la sección Configuración del drawer - sin back
+ * (nivel 1).
  */
 export default function ConfigGeneralPage() {
   return (

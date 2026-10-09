@@ -5,6 +5,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { DiscountsModule } from "../src/discounts/discounts.module";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("discounts e2e", () => {
   let app: INestApplication;
@@ -116,11 +117,7 @@ describe("discounts e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: [ids.producerId, ids.dancerId] } },
     });
-    await prisma.person.deleteMany({
-      where: {
-        id: { in: [ids.producerId, ids.dancerId, ids.redeemerId] },
-      },
-    });
+    await deletePeople(prisma, [ids.producerId, ids.dancerId, ids.redeemerId]);
     await app.close();
   });
 
@@ -235,8 +232,9 @@ describe("discounts e2e", () => {
     it("lista códigos con campos de tracking, createdAt desc", async () => {
       const res = await get("/api/discount-codes", adminSession);
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const { items: list, total } = await res.json();
       expect(Array.isArray(list)).toBe(true);
+      expect(total).toBeGreaterThanOrEqual(2);
       const ours = list.filter((c: { id: string }) =>
         ids.codeIds.includes(c.id),
       );
@@ -263,7 +261,7 @@ describe("discounts e2e", () => {
         adminSession,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const list = (await res.json()).items;
       const ours = list.filter((c: { id: string }) =>
         ids.codeIds.includes(c.id),
       );
@@ -277,7 +275,7 @@ describe("discounts e2e", () => {
         adminSession,
       );
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([]);
+      expect((await res.json()).items).toEqual([]);
     });
 
     it("sin sesión → 401", async () => {

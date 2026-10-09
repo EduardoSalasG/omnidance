@@ -8,7 +8,6 @@ import { Card, Pager, SkeletonList } from "@/components/ui";
 
 export type InstructorRow = {
   person: { id: string; name: string | null; email: string | null };
-  commissionPct: number | null;
   payType: "PER_CLASS" | "MONTHLY" | null;
   payAmount: number | null;
   payClasses: number | null;

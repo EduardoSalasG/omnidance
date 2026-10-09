@@ -13,7 +13,6 @@ import { readError } from "@/components/academy/shared";
 
 type InstructorDetail = {
   person: { id: string; name: string | null; email: string | null; phone: string | null };
-  commissionPct: number | null;
   payType: "PER_CLASS" | "MONTHLY" | null;
   payAmount: number | null;
   payClasses: number | null;
@@ -255,16 +254,18 @@ function Detail({
           {err}
         </p>
       )}
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void remove()}
+      {/* Zona destructiva al pie, centrada y en rojo - mismo patrón que
+          "Eliminar amigo" (/amigos/[id]). */}
+      <div className="flex justify-center pt-2">
+        <button
+          type="button"
           disabled={busy}
+          onClick={() => void remove()}
+          className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
         >
           {busy ? <Spinner size="sm" /> : null}
-          {t("remove")}
-        </Button>
+          {t("removeInstructor")}
+        </button>
       </div>
     </div>
   );

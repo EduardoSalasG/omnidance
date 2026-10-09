@@ -32,6 +32,15 @@ export interface DiscountCodeFilter {
   status?: "ACTIVE" | "EXPIRED";
   from?: Date;
   to?: Date;
+  /** Corte de página - siempre después de los filtros. */
+  skip?: number;
+  take?: number;
+}
+
+/** Envelope del contrato compartido de listados. */
+export interface PagedList<T> {
+  items: T[];
+  total: number;
 }
 
 export type ListedDiscountCode = Pick<
@@ -58,8 +67,8 @@ export interface DiscountsRepo {
   findByCode(code: string): Promise<DiscountCode | null>;
   findById(id: string): Promise<DiscountCode | null>;
   create(data: CreateDiscountCodeData): Promise<DiscountCode>;
-  /** Ordenado por createdAt desc. */
-  list(filter: DiscountCodeFilter): Promise<ListedDiscountCode[]>;
+  /** Ordenado por createdAt desc, con total del universo filtrado. */
+  list(filter: DiscountCodeFilter): Promise<PagedList<ListedDiscountCode>>;
   /** Ordenado por redeemedAt desc. */
   listRedemptions(codeId: string): Promise<ListedRedemption[]>;
 }

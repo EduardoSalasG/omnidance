@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import Link from "next/link";
 import { Badge, Button, Card, Spinner } from "@/components/ui";
 
-type Method = {
+export type Method = {
   id: string;
   type: "TRANSFER" | "PAYMENT_LINK" | "CASH";
   label: string;
@@ -14,13 +15,13 @@ type Method = {
   active: boolean;
 };
 
-const TYPE_KEYS = {
+export const TYPE_KEYS = {
   TRANSFER: "typeTransfer",
   PAYMENT_LINK: "typeLink",
   CASH: "typeCash",
 } as const;
 
-const TRANSFER_DETAIL_KEYS = [
+export const TRANSFER_DETAIL_KEYS = [
   ["bank", "fBank"],
   ["accountType", "fAccountType"],
   ["accountNumber", "fAccountNumber"],
@@ -93,23 +94,6 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
     } finally {
       setBusy(false);
     }
-  }
-
-  async function patch(id: string, data: Record<string, unknown>) {
-    await apiFetch(`/academies/${academyId}/payment-methods/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    await load();
-  }
-
-  async function remove(id: string) {
-    if (!window.confirm(t("deleteConfirm"))) return;
-    await apiFetch(`/academies/${academyId}/payment-methods/${id}`, {
-      method: "DELETE",
-    });
-    await load();
   }
 
   const inputCls =
@@ -239,29 +223,17 @@ export function PaymentMethodsAdmin({ academyId }: Props) {
       ) : (
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {methods.map((m) => (
-            <li
-              key={m.id}
-              className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm"
-            >
-              <span className="font-medium">{m.label}</span>
-              <Badge variant="outline">{t(TYPE_KEYS[m.type])}</Badge>
-              {!m.active && <Badge variant="muted">{t("inactive")}</Badge>}
-              <span className="ml-auto flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void patch(m.id, { active: !m.active })}
-                >
-                  {m.active ? t("deactivate") : t("activate")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void remove(m.id)}
-                >
-                  {t("remove")}
-                </Button>
-              </span>
+            <li key={m.id}>
+              <Link
+                href={`/academia/configuracion/pagos/${m.id}`}
+                className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm transition-colors hover:border-neon/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                {/* Card completo clickeable → detalle/edición del medio
+                    (activar/desactivar y eliminar viven en la ficha). */}
+                <span className="font-medium">{m.label}</span>
+                <Badge variant="outline">{t(TYPE_KEYS[m.type])}</Badge>
+                {!m.active && <Badge variant="muted">{t("inactive")}</Badge>}
+              </Link>
             </li>
           ))}
         </ul>

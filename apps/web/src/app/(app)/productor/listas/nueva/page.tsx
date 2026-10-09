@@ -41,12 +41,12 @@ function NewGuestList() {
   const loadEvents = useCallback(async () => {
     setEventsError(false);
     try {
-      const res = await apiFetch("/events/mine");
+      const res = await apiFetch("/events/mine?pageSize=100");
       if (!res.ok) {
         setEventsError(true);
         return;
       }
-      const evs = (await res.json()) as EventListItem[];
+      const evs = ((await res.json()) as { items: EventListItem[] }).items;
       setEvents(evs);
       if (evs.length > 0) setEventId((cur) => cur || evs[0].id);
     } catch {

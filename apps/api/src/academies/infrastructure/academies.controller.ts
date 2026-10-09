@@ -243,14 +243,9 @@ class UpdateAcademySettingsDto {
 }
 
 class UpdateInstructorDto {
-  /** % de comisión de la academia sobre sus clases particulares (0-100). */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(100)
-  commissionPct?: number;
-
-  /** Acuerdo económico (spec academy-console-v3): PER_CLASS | MONTHLY. */
+  /** Acuerdo económico (spec academy-console-v3): PER_CLASS | MONTHLY.
+      La comisión % legacy salió del producto - la columna queda como
+      snapshot histórico, sin escritura por API. */
   @IsOptional()
   @IsIn(["PER_CLASS", "MONTHLY"])
   payType?: string | null;
@@ -763,10 +758,8 @@ export class AcademiesController {
   }
 
   /**
-   * Comisión del instructor (solo owner/ADMIN): % que la academia retiene
-   * del precio de cada clase particular suya. Se snapshottea a
-   * PrivateLesson.commissionPct al crear la solicitud - cambiarlo no
-   * retroactúa sobre lecciones ya pedidas.
+   * Acuerdo económico del instructor (cap "team": owner/ADMIN/staff):
+   * PER_CLASS | MONTHLY sobre payAmount/payClasses. null limpia el campo.
    */
   @Patch(":id/instructors/:personId")
   @UseGuards(SessionGuard)
@@ -784,16 +777,6 @@ export class AcademiesController {
       throw new NotFoundException("instructor no encontrado en la academia");
     }
     const data: Record<string, unknown> = {};
-    if (dto.commissionPct !== undefined) {
-      if (
-        !Number.isInteger(dto.commissionPct) ||
-        dto.commissionPct < 0 ||
-        dto.commissionPct > 100
-      ) {
-        throw new BadRequestException("commissionPct fuera de rango (0-100)");
-      }
-      data.commissionPct = dto.commissionPct;
-    }
     // Acuerdo económico: null explícito limpia el campo.
     if (dto.payType !== undefined) data.payType = dto.payType;
     if (dto.payAmount !== undefined) data.payAmount = dto.payAmount;
@@ -1550,16 +1533,29 @@ export class AcademiesController {
     });
     if (!person) throw new NotFoundException("persona no encontrada");
 
-    const enrollment = await this.prisma.enrollment.findFirst({
+    // La capacidad "students" habilita la edición (status/endsAt) en la
+    // ficha - owner, ADMIN o staff con el flag; el instructor lee pero
+    // no edita (PATCH /enrollments/:id exige la misma capacidad).
+    const canEdit = await this.access
+      .requireCapability(id, req.person!, "students")
+      .then(() => true)
+      .catch(() => false);
+
+    // Todos los enrollments de la persona en la academia - el header
+    // usa el más reciente y la lista completa es su historial de
+    // membresías pagadas (plan, inicio, fin).
+    const enrollments = await this.prisma.enrollment.findMany({
       where: { academyId: id, personId },
       orderBy: { createdAt: "desc" },
       select: {
+        id: true,
         status: true,
         startedAt: true,
         endsAt: true,
         plan: { select: { id: true, name: true, type: true, price: true } },
       },
     });
+    const enrollment = enrollments[0] ?? null;
 
     const classSelect = {
       date: true,
@@ -1656,9 +1652,18 @@ export class AcademiesController {
     return {
       person,
       plan: enrollment?.plan ?? null,
+      enrollmentId: enrollment?.id ?? null,
       enrollmentStatus: enrollment?.status ?? null,
       enrollmentStartedAt: enrollment?.startedAt ?? null,
       enrollmentEndsAt: enrollment?.endsAt ?? null,
+      canEdit,
+      enrollments: enrollments.map((e) => ({
+        id: e.id,
+        status: e.status,
+        startedAt: e.startedAt,
+        endsAt: e.endsAt,
+        plan: e.plan,
+      })),
       score: relScore?.score ?? null,
       segment: relScore?.segment ?? null,
       history,

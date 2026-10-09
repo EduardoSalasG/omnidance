@@ -7,6 +7,7 @@ import { CheckinsModule } from "../src/checkins/checkins.module";
 import { PrismaService } from "../src/prisma.service";
 import { QrModule } from "../src/qr/qr.module";
 import { QrService } from "../src/qr/domain/qr.service";
+import { deletePeople } from "./helpers";
 
 describe("checkins e2e", () => {
   let app: INestApplication;
@@ -135,18 +136,12 @@ describe("checkins e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: ids.dancerId },
     });
-    await prisma.person.deleteMany({
-      where: {
-        id: {
-          in: [
+    await deletePeople(prisma, [
             ids.attendeeId,
             ids.attendeeNoTicketId,
             ids.attendeePassId,
             ids.dancerId,
-          ],
-        },
-      },
-    });
+          ],);
     await app.close();
   });
 

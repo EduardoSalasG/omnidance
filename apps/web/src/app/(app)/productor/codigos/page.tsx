@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Pager,
+  PriceTag,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
@@ -58,18 +65,28 @@ function DiscountCodes() {
   const [events, setEvents] = useState<EventOption[] | null>(null);
 
   const [codes, setCodes] = useState<DiscountCode[] | null>(null);
+  const [codesTotal, setCodesTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [codesError, setCodesError] = useState(false);
   const [filters, setFilters] = useState<QueryFilters>({});
 
-  const loadCodes = useCallback(async (f: QueryFilters) => {
+  const loadCodes = useCallback(async (f: QueryFilters, pageNo: number) => {
     setCodesError(false);
     try {
-      const res = await apiFetch(`/discount-codes${filtersParams(f)}`);
+      const qs = filtersParams(f);
+      const res = await apiFetch(
+        `/discount-codes${qs}${qs ? "&" : "?"}page=${pageNo}&pageSize=25`,
+      );
       if (!res.ok) {
         setCodesError(true);
         return;
       }
-      setCodes((await res.json()) as DiscountCode[]);
+      const data = (await res.json()) as {
+        items: DiscountCode[];
+        total: number;
+      };
+      setCodes(data.items);
+      setCodesTotal(data.total);
     } catch {
       setCodesError(true);
     }
@@ -91,10 +108,16 @@ function DiscountCodes() {
   }, [boot]);
 
   // El FilterBar es controlled: cada cambio recarga la lista (q va
-  // debounced desde la barra).
+  // debounced desde la barra) y vuelve a pág. 1.
   useEffect(() => {
-    void loadCodes(filters);
+    setPage(1);
+    void loadCodes(filters, 1);
   }, [loadCodes, filters]);
+
+  useEffect(() => {
+    if (page !== 1) void loadCodes(filters, page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const eventName = (id: string | null) =>
     id ? ((events ?? []).find((e) => e.id === id)?.name ?? null) : null;
@@ -125,7 +148,7 @@ function DiscountCodes() {
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => void loadCodes(filters)}
+              onClick={() => void loadCodes(filters, page)}
             >
               <RefreshIcon /> {tc("retry")}
             </Button>
@@ -194,6 +217,14 @@ function DiscountCodes() {
               </li>
             ))}
           </ul>
+        )}
+        {codes !== null && codes.length > 0 && (
+          <Pager
+            page={page}
+            pageSize={25}
+            total={codesTotal}
+            onPage={setPage}
+          />
         )}
       </section>
     </>

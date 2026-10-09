@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Pager,
+  PriceTag,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { ProducerGate } from "@/components/producer/producer-gate";
@@ -64,13 +71,15 @@ function GuestLists() {
   const [filters, setFilters] = useState<QueryFilters>({});
   const listEventId = filters.eventId ?? "";
   const [lists, setLists] = useState<GuestList[] | null>(null);
+  const [listsTotal, setListsTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [listsLoading, setListsLoading] = useState(false);
   const [listsError, setListsError] = useState(false);
   const [entryDrafts, setEntryDrafts] = useState<Record<string, string>>({});
   const [entrySaving, setEntrySaving] = useState<string | null>(null);
   const [entryError, setEntryError] = useState<string | null>(null);
 
-  const loadLists = useCallback(async (f: QueryFilters) => {
+  const loadLists = useCallback(async (f: QueryFilters, pageNo: number) => {
     const eventId = f.eventId;
     if (!eventId) {
       setLists(null);
@@ -79,18 +88,24 @@ function GuestLists() {
     setListsLoading(true);
     setListsError(false);
     try {
+      const qs = filtersParams({
+        status: f.status ?? "",
+        q: f.q ?? "",
+      });
       const res = await apiFetch(
-        `/events/${eventId}/guest-lists${filtersParams({
-          status: f.status ?? "",
-          q: f.q ?? "",
-        })}`,
+        `/events/${eventId}/guest-lists${qs}${qs ? "&" : "?"}page=${pageNo}&pageSize=25`,
       );
       if (!res.ok) {
         setListsError(true);
         setLists([]);
         return;
       }
-      setLists((await res.json()) as GuestList[]);
+      const data = (await res.json()) as {
+        items: GuestList[];
+        total: number;
+      };
+      setLists(data.items);
+      setListsTotal(data.total);
     } catch {
       setListsError(true);
       setLists([]);
@@ -101,10 +116,11 @@ function GuestLists() {
 
   const boot = useCallback(async () => {
     // Eventos propios para el selector (/events/mine cubre todos los
-    // estados - las listas también se crean sobre borradores).
-    const evRes = await apiFetch("/events/mine");
+    // estados - las listas también se crean sobre borradores). Picker:
+    // pageSize alto, igual que el resto de selectores paginados.
+    const evRes = await apiFetch("/events/mine?pageSize=100");
     if (evRes.ok) {
-      const evs = (await evRes.json()) as EventListItem[];
+      const evs = ((await evRes.json()) as { items: EventListItem[] }).items;
       setEvents(evs);
       if (evs.length > 0) {
         setFilters({ eventId: evs[0].id });
@@ -119,10 +135,16 @@ function GuestLists() {
   }, [boot]);
 
   // El FilterBar es controlled: cualquier cambio (evento, status, q
-  // debounced) recarga las listas del evento elegido.
+  // debounced) recarga las listas del evento elegido y vuelve a pág. 1.
   useEffect(() => {
-    void loadLists(filters);
+    setPage(1);
+    void loadLists(filters, 1);
   }, [filters, loadLists]);
+
+  useEffect(() => {
+    if (page !== 1) void loadLists(filters, page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   async function addEntry(listId: string) {
     const personId = (entryDrafts[listId] ?? "").trim();
@@ -141,7 +163,7 @@ function GuestLists() {
         return;
       }
       setEntryDrafts((d) => ({ ...d, [listId]: "" }));
-      await loadLists(filters);
+      await loadLists(filters, page);
     } catch {
       setEntryError(listId);
     } finally {
@@ -203,7 +225,7 @@ function GuestLists() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => void loadLists(filters)}
+                  onClick={() => void loadLists(filters, page)}
                 >
                   <RefreshIcon /> {tc("retry")}
                 </Button>
@@ -305,6 +327,14 @@ function GuestLists() {
                       </li>
                     ))}
                   </ul>
+                )}
+                {lists.length > 0 && (
+                  <Pager
+                    page={page}
+                    pageSize={25}
+                    total={listsTotal}
+                    onPage={setPage}
+                  />
                 )}
               </>
             )}

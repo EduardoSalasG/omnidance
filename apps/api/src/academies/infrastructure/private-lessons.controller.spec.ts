@@ -8,10 +8,12 @@ import { AcademyAccess } from "./academy-access.service";
 import { PrivateLessonsController } from "./private-lessons.controller";
 import { AcademiesController } from "./academies.controller";
 
-// Comisión del instructor (role-console-polish): PATCH
-// /academies/:id/instructors/:personId (owner/admin), snapshot del
-// commissionPct al crear la PrivateLesson, y netClp/commissionClp en
-// GET /private-lessons/mine?as=instructor (el alumno no ve la comisión).
+// Acuerdo económico del instructor (academy-console-v4): PATCH
+// /academies/:id/instructors/:personId (owner/admin) sobre payType/
+// payAmount/payClasses. commissionPct quedó solo como snapshot
+// histórico: las lecciones nuevas nacen en 0, pay-commission sigue
+// liquidando las antiguas y mine?as=instructor deriva netClp solo
+// en lecciones con comisión.
 // private-lesson-product: particular comprable (assign por el owner,
 // POST solo-staff, joins toleran instructorId/scheduledAt null).
 
@@ -27,7 +29,12 @@ interface FakeAcademy {
 interface FakeInstructor {
   academyId: string;
   personId: string;
+  // Snapshot legacy - la lección lo copia al crearse; ya no se edita
+  // por API (el acuerdo vigente es payType/payAmount/payClasses).
   commissionPct: number | null;
+  payType?: string | null;
+  payAmount?: number | null;
+  payClasses?: number | null;
 }
 
 interface FakeLesson {
@@ -125,7 +132,12 @@ class FakePrisma {
       data,
     }: {
       where: { academyId_personId: { academyId: string; personId: string } };
-      data: { commissionPct?: number };
+      data: {
+        commissionPct?: number;
+        payType?: string | null;
+        payAmount?: number | null;
+        payClasses?: number | null;
+      };
     }) => {
       const i = this.instructors.find(
         (x) =>
@@ -142,9 +154,13 @@ class FakePrisma {
     create: async ({
       data,
     }: {
-      data: Omit<FakeLesson, "id" | "createdAt">;
+      data: Omit<FakeLesson, "id" | "createdAt" | "commissionPct"> & {
+        commissionPct?: number;
+      };
     }) => {
       const l: FakeLesson = {
+        // @default(0) del schema real - el controller ya no lo escribe.
+        commissionPct: 0,
         ...data,
         id: `les-${++this.seq}`,
         createdAt: new Date(),
@@ -174,6 +190,7 @@ class FakePrisma {
         personId?: string;
         instructorId?: string;
         status?: string;
+        commissionPct?: { gt: number };
         commissionPaidAt?: { not: null } | null;
         createdAt?: { gte?: Date; lte?: Date };
       };
@@ -187,6 +204,8 @@ class FakePrisma {
           (where.instructorId === undefined ||
             l.instructorId === where.instructorId) &&
           (where.status === undefined || l.status === where.status) &&
+          (where.commissionPct === undefined ||
+            l.commissionPct > where.commissionPct.gt) &&
           (where.commissionPaidAt === undefined ||
             (where.commissionPaidAt === null
               ? l.commissionPaidAt == null
@@ -208,6 +227,7 @@ class FakePrisma {
         personId?: string;
         instructorId?: string;
         status?: string;
+        commissionPct?: { gt: number };
         commissionPaidAt?: { not: null } | null;
         createdAt?: { gte?: Date; lte?: Date };
       };
@@ -219,6 +239,8 @@ class FakePrisma {
           (where.instructorId === undefined ||
             l.instructorId === where.instructorId) &&
           (where.status === undefined || l.status === where.status) &&
+          (where.commissionPct === undefined ||
+            l.commissionPct > where.commissionPct.gt) &&
           (where.commissionPaidAt === undefined ||
             (where.commissionPaidAt === null
               ? l.commissionPaidAt == null
@@ -301,23 +323,23 @@ describe("comisión del instructor en clases particulares", () => {
     });
   });
 
-  it("owner fija commissionPct via PATCH", async () => {
+  it("owner fija el acuerdo económico via PATCH", async () => {
     const res = await academies.updateInstructor(
       "ac-1",
       "inst",
-      { commissionPct: 40 },
+      { payType: "PER_CLASS", payAmount: 15000 },
       reqAs("owner"),
     );
-    expect(res.commissionPct).toBe(40);
-    expect(prisma.instructors[0].commissionPct).toBe(40);
+    expect(res.payType).toBe("PER_CLASS");
+    expect(res.payAmount).toBe(15000);
   });
 
-  it("instructor no-owner no puede fijar comisión → 403; inexistente → 404; rango → 400", async () => {
+  it("instructor no-owner no puede fijar el acuerdo → 403; inexistente → 404", async () => {
     await expect(
       academies.updateInstructor(
         "ac-1",
         "inst",
-        { commissionPct: 40 },
+        { payType: "PER_CLASS", payAmount: 15000 },
         reqAs("inst"), // instructor pero no owner
       ),
     ).rejects.toMatchObject({ status: 403 });
@@ -325,33 +347,26 @@ describe("comisión del instructor en clases particulares", () => {
       academies.updateInstructor(
         "ac-1",
         "otro",
-        { commissionPct: 40 },
+        { payType: "PER_CLASS", payAmount: 15000 },
         reqAs("owner"),
       ),
     ).rejects.toMatchObject({ status: 404 });
-    await expect(
-      academies.updateInstructor(
-        "ac-1",
-        "inst",
-        { commissionPct: 101 },
-        reqAs("owner"),
-      ),
-    ).rejects.toMatchObject({ status: 400 });
   });
 
-  it("admin.access puede fijar la comisión", async () => {
+  it("admin.access puede fijar el acuerdo", async () => {
     const res = await academies.updateInstructor(
       "ac-1",
       "inst",
-      { commissionPct: 10 },
+      { payType: "MONTHLY", payAmount: 300000, payClasses: 8 },
       reqAs("root", ["ADMIN"]),
     );
-    expect(res.commissionPct).toBe(10);
+    expect(res.payType).toBe("MONTHLY");
   });
 
-  it("request() snapshot: la lección copia el commissionPct vigente", async () => {
+  it("request() ya no snapshottea comisión: la lección nace con commissionPct=0", async () => {
     // POST es staff-only desde private-lesson-product - el owner crea la
-    // lección manual; el snapshot de comisión es el mismo.
+    // lección manual. El acuerdo económico vive en payType/payAmount/
+    // payClasses; commissionPct solo describe lecciones históricas.
     const lesson = await lessons.request(
       "ac-1",
       {
@@ -361,11 +376,7 @@ describe("comisión del instructor en clases particulares", () => {
       },
       reqAs("owner"),
     );
-    expect(lesson.commissionPct).toBe(25);
-
-    // snapshot: subir la comisión después no toca la lección creada
-    prisma.instructors[0].commissionPct = 40;
-    expect(prisma.lessons[0].commissionPct).toBe(25);
+    expect(lesson.commissionPct).toBe(0);
   });
 
   it("mine?as=instructor devuelve commissionClp/netClp", async () => {
@@ -397,14 +408,14 @@ describe("comisión del instructor en clases particulares", () => {
     );
   });
 
-  it("GET /academies/:id (manage) expone commissionPct; /profile no lo filtra aquí", async () => {
+  it("GET /academies/:id expone solo personId del instructor (la comisión legacy salió del contrato)", async () => {
     const detail = await academies.detail("ac-1", reqAs("owner"));
     const inst = (
       detail as unknown as {
-        instructors: { personId: string; commissionPct: number | null }[];
+        instructors: { personId: string; commissionPct?: number | null }[];
       }
     ).instructors.find((i) => i.personId === "inst");
-    expect(inst?.commissionPct).toBe(25);
+    expect(inst?.commissionPct).toBeUndefined();
   });
 });
 
@@ -456,7 +467,7 @@ describe("private-lesson-product", () => {
     prisma.lessons.push(pendingLesson());
   });
 
-  it("owner asigna instructor+fecha → CONFIRMED + snapshot comisión + notifica", async () => {
+  it("owner asigna instructor+fecha → CONFIRMED, sin snapshot de comisión + notifica", async () => {
     const when = new Date("2026-10-05T21:00:00Z").toISOString();
     const res = await lessons.act(
       "les-p",
@@ -465,7 +476,7 @@ describe("private-lesson-product", () => {
     );
     expect(res.status).toBe("CONFIRMED");
     expect(res.instructorId).toBe("inst");
-    expect(res.commissionPct).toBe(25);
+    expect(res.commissionPct).toBe(0);
     expect(res.scheduledAt).toEqual(new Date(when));
     expect(notified.map((n) => n.personId).sort()).toEqual([
       "alumno",
@@ -516,7 +527,7 @@ describe("private-lesson-product", () => {
     ).rejects.toMatchObject({ status: 409 });
   });
 
-  it("POST request: alumno externo → 403; owner crea manual con snapshot", async () => {
+  it("POST request: alumno externo → 403; owner crea manual sin comisión", async () => {
     await expect(
       lessons.request(
         "ac-1",
@@ -537,7 +548,7 @@ describe("private-lesson-product", () => {
       },
       reqAs("owner"),
     );
-    expect(res.commissionPct).toBe(25);
+    expect(res.commissionPct).toBe(0);
   });
 
   it("list tolera instructorId/scheduledAt null (lección por asignar)", async () => {
@@ -851,7 +862,7 @@ describe("list staff - filtros del contrato compartido", () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it("commission=paid/pending mapea a commissionPaidAt", async () => {
+  it("commission=paid/pending mapea a commissionPaidAt sobre comisiones >0", async () => {
     const paid = (await lessons.list(
       "ac-1",
       reqAs("owner"),
@@ -860,6 +871,8 @@ describe("list staff - filtros del contrato compartido", () => {
       "paid",
     )).items;
     expect(paid.map((l) => l.id)).toEqual(["les-done"]);
+    // "pending" = comisión histórica >0 sin liquidar - les-req
+    // (commissionPct=0, era acuerdo) no cuenta como pendiente.
     const pending = (await lessons.list(
       "ac-1",
       reqAs("owner"),
@@ -867,7 +880,7 @@ describe("list staff - filtros del contrato compartido", () => {
       undefined,
       "pending",
     )).items;
-    expect(pending.map((l) => l.id)).toEqual(["les-conf", "les-req"]);
+    expect(pending.map((l) => l.id)).toEqual(["les-conf"]);
     const todo = (await lessons.list(
       "ac-1",
       reqAs("owner"),

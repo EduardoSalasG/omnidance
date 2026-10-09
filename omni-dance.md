@@ -614,7 +614,7 @@ Omni-dance (empresa de software propia) recauda y liquida por **transferencia se
 |---|---|---|
 | **Productor** | Precio de lista de tickets (preventa + puerta app), pases mensuales, inscripciones | `payout` por evento o semanal: **bruto − % todo incluido** (`platformFeePct`, default 10 / promo 8; líneas `PLATFORM_FEE_NET` + `PLATFORM_FEE_IVA` + `GATEWAY_FEE_PASSTHROUGH` al costo) − fee devengado por métodos propios neteado → transferencia + comprobante |
 | **Academia** | Mensualidades, packs, talleres, clases privadas, trial pagos | `payout` mensual/semanal consolidado: **bruto − tarifa Flow** (`GATEWAY_FEE_PASSTHROUGH`, ~3,19%); **sin comisión ni cargo al comprador** - la academia monetiza vía suscripción SaaS (ver abajo) |
-| **Instructor** | Clases privadas (vía academia - liquida a través de la academia, que cobra su comisión) | Dentro del payout de la academia, desglosado |
+| **Instructor** | Clases privadas (vía academia - liquida a través de la academia según el acuerdo económico `payType`/`payAmount`/`payClasses`) | Dentro del payout de la academia, desglosado |
 | **Venue** | Futuro: arriendos (`venue_rental`), cortesías cobradas | `payout` cuando aplique |
 | **omni-dance** | Comisiones todo incluido (neto+IVA de productor, fee propio de métodos), suscripciones SaaS, futuro premium bailarín | Es nuestra plata - no se liquida, se factura |
 
@@ -719,19 +719,20 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 - Cobro recurrente: Khipu / Webpay Oneclick
 - **Clase de prueba con link compartible** - herramienta de adquisición para redes sociales de la academia
 
-### Horarios y asistencia
+### Clases y asistencia
 
-- `class_slot`: horario con cupos + reserva + lista de espera de clase
+- `class_series`: serie recurrente (nivel/modalidad, slots semanales con cupos) con **borrado lógico** (`deletedAt`); cada instancia materializada es una `class` con su fecha.
 - **Cuota del plan**: los planes por tiempo llevan `weeklyClasses` (clases por semana ISO; `null` = ilimitado); los packs llevan `classCount` total. Reservar exige inscripción vigente + cuota disponible; la lista de espera no consume crédito hasta promover, y al promover se salta a quien no tenga saldo.
 - **Cancelación de reserva**: siempre libera el cupo físico; el crédito vuelve solo si se cancela antes del corte `classes.cancel_refund_minutes` (default 60, param operativo). Después del corte el alumno puede cancelar pero la clase se consume igual. Cancelaciones originadas por la academia siempre devuelven el crédito.
-- Check-in de asistencia con el **mismo QR personal** → `attendance` alimenta score de fidelidad
-- Horarios por instructor (`academy_instructor`)
+- La asistencia la marca **el instructor** desde el roster de su clase (`attendance` alimenta score de fidelidad); el owner consulta pero no marca - el endpoint de consola rechaza 403 si no es el instructor del slot (admin queda como escape operativo).
+- Acuerdo económico del instructor en `academy_instructor` (`payType`/`payAmount`/`payClasses`): por clase, mensual o mixto.
 
 ### Instructores y clases privadas
 
 - `instructor` = rol de `person`: puede ser dueño de academia, profe en una o más academias, o **independiente** (= academia de uno)
-- **Clases privadas como producto vendible de la academia**: `private_lesson` (instructor, alumno, slot, precio, estado) - la academia lo administra y cobra comisión
-- Compra online (private-lesson-product): la academia fija un precio único (`Academy.privateLessonPrice`) y el alumno lo compra desde el perfil (`POST /checkout/private-class`, orden `PRIVATE`); el pago crea la `private_lesson` en REQUESTED sin instructor ni fecha - el owner los asigna después (`action=assign` → CONFIRMED + snapshot de comisión). El alumno no elige fecha ni instructor al comprar.
+- **Clases privadas como producto vendible de la academia**: `private_lesson` (instructor, alumno, slot, precio, estado) - la academia lo administra; el pago al instructor se rige por el acuerdo económico (`payType`/`payAmount`/`payClasses`, no comisión)
+- Compra online (private-lesson-product): la academia fija un precio único (`Academy.privateLessonPrice`) y el alumno lo compra desde el perfil (`POST /checkout/private-class`, orden `PRIVATE`); el pago crea la `private_lesson` en REQUESTED sin instructor ni fecha - el owner los asigna después (`action=assign` → CONFIRMED). El alumno no elige fecha ni instructor al comprar.
+- **Realizada la marca el instructor** (`action=done`, solo el asignado - el owner recibe 403; admin es escape operativo). La comisión histórica queda solo como snapshot en lecciones antiguas.
 
 ### Talleres pagos
 
@@ -782,7 +783,7 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 `point_ledger` (puntos de temporada, no gastables, resetean), `friend_challenge`, `prize_draw` (ruleta/sorteos/escaneo dorado), `community_level`,
 `song_suggestion` (event, person, canción - del checkout; top-N para DJ/productor, habilita "la más pedida suena a las X"),
 `season` (leaderboard por estilo+rol), `night_summary`, `happy_hour_window` (sesiones cuentan doble para contador),
-`academy`, `academy_instructor` (profe en N academias / dueño / independiente=academia de uno), `enrollment` (activo/pausado/trial/congelado/online), `membership_plan` (mensual/pack clases/periodo/trial), `class_slot` (horario+cupos+reserva+lista espera), `class`, `attendance`, `private_lesson`, `academy_score`, `video`, `subscription`,
+`academy`, `academy_instructor` (profe en N academias / dueño / independiente=academia de uno, con acuerdo económico), `enrollment` (activo/pausado/trial/congelado/online), `membership_plan` (mensual/pack clases/periodo/trial), `class_series` + `class_series_slot` (serie recurrente con slots semanales, borrado lógico), `class` (instancia con fecha: reserva+lista espera), `class_booking`, `attendance`, `private_lesson`, `academy_score`, `video`, `subscription`,
 `practice` (event tipo práctica, creador=host bailarín, aforo chico, gratis, `chat_thread` o comentarios), ~~`availability_toggle`~~ (retirado), `user_verification`, `report`,
 `event_day` (congresos multi-día), ~~`practice_partner_request`~~ (retirado), `venue_rental` (local↔academia para galas/prácticas),
 **CRM transversal**: `relationship_score` (actor→person, privado por actor: academy/producer/venue/dj/instructor_score), `campaign` (actor, segmento, acción, resultado), `discount_code` (descuento/cortesía/comp), `actor_tag` (nota manual actor→person), `referral` (quién trajo a quién), `crm_trigger` (regla automática: win-back, trial expira, regular no compró),
@@ -921,15 +922,17 @@ Wireframe - Mi QR:
 | Pantalla | Contenido clave |
 |---|---|
 | Dashboard | Alumnos activos/trial/en riesgo, asistencia de hoy, ingresos del mes, clases del día |
-| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`, historial de pagos y asistencia |
-| Planes | CRUD de `membership_plan`, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático; pagos directos validados por cola de comprobantes (incluye intentos `AWAITING` sin comprobante aún) |
-| Horarios | `class_slot` semanal: cupos, reservas, lista de espera, instructor asignado |
-| Asistencia | Check-in QR del alumno, registro manual |
-| Clases privadas | `private_lesson`: instructor, alumno, slot, precio, comisión - compra online como producto (`Academy.privateLessonPrice`, orden PRIVATE), el owner asigna instructor+fecha post-pago |
+| Alumnos | Lista con `academy_score` + segmento (núcleo/riesgo/nuevo), `actor_tag`; card completo clickeable → detalle con edición de estado/pagado-hasta (owner/staff con capacidad) e historial de membresías/pagos |
+| Planes | CRUD de `membership_plan` seccionado recurrentes vs. pago único con chip activo/inactivo, estados de `enrollment`, prorrateo/pausas, morosos con recordatorio automático |
+| Cobros | KPIs (facturado mes, por cobrar, validaciones), cola "pagos por validar" (incluye intentos `AWAITING` sin comprobante), historial unificado en lista: comprobantes manuales resueltos + pagos de pasarela; detalle con n° de transacción, canal y fecha de orden |
+| Clases | `class_series` (borrado lógico) con filtros nivel/modalidad/estado/q; detalle de serie → instancias del día → roster donde **el instructor marca presente** |
+| Particulares | `private_lesson`: instructor, alumno, slot, precio - compra online como producto (`Academy.privateLessonPrice`, orden PRIVATE), el owner asigna instructor+fecha post-pago; **el instructor marca la clase como realizada** (owner 403) |
+| Equipo | Colaboradores (permisos por capacidad) e instructores con acuerdo económico editable; card clickeable → detalle/edición dedicada |
 | Talleres | Crear taller pago, ventas, asistencia |
 | Contenido | Links de videos por clase (YouTube/Vimeo privado), quién puede ver qué |
 | CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (trial expira, asistencia cayó) |
-| Reportes | Ingresos, nuevos alumnos, retención por cohorte, performance por plan e instructor |
+| Analítica | Misma superficie `/analitica` del contrato compartido (consultas rápidas expandibles, filtros por entidad, exportes) |
+| Configuración | Multi-página: Clases (valores por defecto), Equipo, Métodos de pago (card clickeable → edición de datos, p. ej. cuenta de transferencia), Facturación, Encuestas |
 
 **Pago del plan con medios propios** (spec academy-checkout-manual-pay): si la academia publica `AcademyPaymentMethod`, el checkout de membresía ofrece elegir entre la pasarela y sus medios (transferencia/link/efectivo). Al confirmar un método propio se registra el `payment_claim` en `AWAITING` (intento persistido - el alumno puede salir a transferir y volver); transferencia muestra los datos bancarios copiables (nombre, RUT, banco, tipo y número de cuenta, email) con copia en bloque para pegar en la app del banco. Subir el comprobante pasa el claim a `PENDING` en la cola del owner; aprobar extiende la vigencia como un pago de pasarela. La suscripción recurrente sigue solo por pasarela (el método manual no puede cobrar sola).
 

@@ -61,7 +61,7 @@ function mkPrisma() {
     },
     academyInstructor: {
       findMany: vi.fn(async () => [
-        { personId: "i1", commissionPct: 20, createdAt: new Date() },
+        { personId: "i1", payType: "PER_CLASS", payAmount: 15000, createdAt: new Date() },
       ]),
       count: vi.fn(async () => 1),
       upsert: vi.fn(async () => ({})),
@@ -98,7 +98,7 @@ describe("AcademyStaffController - instructores", () => {
     );
   });
 
-  it("GET /instructors - lista con person + comisión, gate team", async () => {
+  it("GET /instructors - lista con person + acuerdo, gate team", async () => {
     const r = await ctrl.listInstructors("ac1", req("p1"));
     expect(access.requireCapability).toHaveBeenCalledWith(
       "ac1",
@@ -108,8 +108,12 @@ describe("AcademyStaffController - instructores", () => {
     expect(r.items).toHaveLength(1);
     expect(r.items[0]).toMatchObject({
       person: { id: "i1", name: "Profe Uno" },
-      commissionPct: 20,
+      payType: "PER_CLASS",
+      payAmount: 15000,
     });
+    // La comisión % legacy ya no viaja en la respuesta (snapshot
+    // histórico en schema; el acuerdo económico la reemplazó).
+    expect(r.items[0]).not.toHaveProperty("commissionPct");
   });
 
   it("GET /instructors - sin cap team → 403", async () => {
@@ -129,7 +133,12 @@ describe("AcademyStaffController - instructores", () => {
   it("POST /instructors - email nuevo → stub + membresía + invitación", async () => {
     const r = await ctrl.addInstructor(
       "ac1",
-      { email: " NUEVO@x.cl ", name: "Profe Nuevo", commissionPct: 25 },
+      {
+        email: " NUEVO@x.cl ",
+        name: "Profe Nuevo",
+        payType: "PER_CLASS",
+        payAmount: 15000,
+      },
       req("p1"),
     );
     expect(prisma.person.create).toHaveBeenCalledWith({
@@ -140,19 +149,18 @@ describe("AcademyStaffController - instructores", () => {
       create: {
         academyId: "ac1",
         personId: "new1",
-        commissionPct: 25,
-        payType: null,
-        payAmount: null,
+        payType: "PER_CLASS",
+        payAmount: 15000,
         payClasses: null,
       },
-      update: { commissionPct: 25 },
+      update: { payType: "PER_CLASS", payAmount: 15000 },
     });
     expect(mailer.send).toHaveBeenCalledWith(
       "nuevo@x.cl",
       expect.stringContaining("Academia X"),
       expect.any(String),
     );
-    expect(r).toEqual({ personId: "new1", invited: true, commissionPct: 25 });
+    expect(r).toEqual({ personId: "new1", invited: true });
   });
 
   it("POST /instructors - email existente → upsert sin invitación", async () => {
@@ -170,11 +178,11 @@ describe("AcademyStaffController - instructores", () => {
     expect(prisma.academyInstructor.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: {},
-        create: expect.objectContaining({ commissionPct: null }),
+        create: expect.objectContaining({ payType: null }),
       }),
     );
     expect(mailer.send).not.toHaveBeenCalled();
-    expect(r).toEqual({ personId: "i9", invited: false, commissionPct: null });
+    expect(r).toEqual({ personId: "i9", invited: false });
   });
 
   it("POST /instructors - target = owner → 400", async () => {

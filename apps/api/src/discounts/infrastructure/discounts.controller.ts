@@ -33,12 +33,10 @@ import {
   DuplicateDiscountCodeError,
   InvalidDiscountCodeError,
 } from "../domain/discounts.service";
-import type {
-  ListedDiscountCode,
-  ListedRedemption,
-} from "../domain/ports";
+import type { ListedRedemption } from "../domain/ports";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 
 class CreateDiscountCodeDto {
   @IsString()
@@ -108,6 +106,14 @@ class ListDiscountCodesQueryDto {
   @IsOptional()
   @IsISO8601()
   to?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  pageSize?: string;
 }
 
 function mapDomainError(e: unknown): never {
@@ -157,15 +163,19 @@ export class DiscountsController {
   }
 
   @Get()
-  list(@Query() dto: ListDiscountCodesQueryDto): Promise<ListedDiscountCode[]> {
-    return this.discounts.list({
+  async list(@Query() dto: ListDiscountCodesQueryDto) {
+    const pg = pageParams(dto.page, dto.pageSize);
+    const { items, total } = await this.discounts.list({
       eventId: dto.eventId,
       seriesId: dto.seriesId,
       q: dto.q,
       status: dto.status,
       from: dto.from ? new Date(dto.from) : undefined,
       to: dto.to ? new Date(dto.to) : undefined,
+      skip: pg.skip,
+      take: pg.take,
     });
+    return { items, total, page: pg.page, pageSize: pg.pageSize };
   }
 
   @Get(":id/redemptions")

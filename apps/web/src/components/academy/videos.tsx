@@ -10,6 +10,7 @@ import {
   Badge,
   Button,
   Card,
+  Pager,
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
@@ -29,6 +30,8 @@ const VIDEOS_ENTITY: EntityDef = {
 };
 
 type LoadState = "loading" | "ready" | "error";
+
+const PAGE_SIZE = 24;
 
 /**
  * Video - espejo del schema (url externa, nunca self-host; sin `level`).
@@ -67,6 +70,8 @@ export function Videos({ academy }: { academy: Academy }) {
 
   const { me } = useMe();
   const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [state, setState] = useState<LoadState>("loading");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -78,19 +83,25 @@ export function Videos({ academy }: { academy: Academy }) {
   const load = useCallback(async () => {
     setState("loading");
     try {
+      const qs = filterQuery(filters);
       const res = await apiFetch(
-        `/academies/${academy.id}/videos${filterQuery(filters)}`,
+        `/academies/${academy.id}/videos${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
       );
       if (!res.ok) {
         setState("error");
         return;
       }
-      setVideos((await res.json()) as VideoItem[]);
+      const data = (await res.json()) as {
+        items: VideoItem[];
+        total: number;
+      };
+      setVideos(data.items);
+      setTotal(data.total);
       setState("ready");
     } catch {
       setState("error");
     }
-  }, [academy.id, filters]);
+  }, [academy.id, filters, page]);
 
   useEffect(() => {
     void load();
@@ -132,7 +143,10 @@ export function Videos({ academy }: { academy: Academy }) {
       <FilterBar
         entity={VIDEOS_ENTITY}
         filters={filters}
-        onChange={setFilters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
         options={{}}
       />
 
@@ -210,6 +224,14 @@ export function Videos({ academy }: { academy: Academy }) {
             })}
           </ul>
         ))}
+      {state === "ready" && videos.length > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+        />
+      )}
 
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}

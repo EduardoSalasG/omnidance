@@ -7,6 +7,7 @@ import { CheckinsModule } from "../src/checkins/checkins.module";
 import { PrismaService } from "../src/prisma.service";
 import { QrModule } from "../src/qr/qr.module";
 import { QrService } from "../src/qr/domain/qr.service";
+import { deletePeople } from "./helpers";
 
 const phone = () => `010${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
 
@@ -185,19 +186,13 @@ describe("gap-checkins e2e (out / void / door-sale)", () => {
         },
       },
     });
-    await prisma.person.deleteMany({
-      where: {
-        id: {
-          in: [
+    await deletePeople(prisma, [
             ids.attendeeId,
             ids.staffPersonId,
             ids.assignedPersonId,
             ids.dancerId,
             ...ids.lightPersonIds,
-          ],
-        },
-      },
-    });
+          ],);
     await app.close();
   });
 

@@ -39,14 +39,17 @@ export function ProducerPulse() {
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch("/events/mine")
+    // El pulso agrega los stats del universo visible - pageSize al tope
+    // (los más recientes primero por startsAt desc).
+    apiFetch("/events/mine?pageSize=100")
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
           setFailed(true);
           return;
         }
-        const events = (await res.json()) as EventListItem[];
+        const events = ((await res.json()) as { items: EventListItem[] })
+          .items;
         const now = Date.now();
         const upcoming = events.filter(
           (e) =>
