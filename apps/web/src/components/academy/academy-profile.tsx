@@ -36,7 +36,15 @@ export function AcademyProfile({ academy }: { academy: Academy }) {
     !meLoading &&
     !!me &&
     (me.roles.includes("ADMIN") || me.id === academy.ownerId);
-  if (!canAdminister) return null;
+  // Deep link sin permiso: mensaje explícito en vez de página en blanco.
+  if (meLoading) return null;
+  if (!canAdminister) {
+    return (
+      <p role="alert" className="text-sm text-ink/60">
+        {t("forbidden")}
+      </p>
+    );
+  }
 
   const parseCoord = (raw: string): number | null | undefined => {
     const t = raw.trim().replace(",", ".");

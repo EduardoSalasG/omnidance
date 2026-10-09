@@ -211,6 +211,7 @@ export function Videos({ academy }: { academy: Academy }) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="text-red-400/80 hover:text-red-400"
                           disabled={busyId === v.id}
                           onClick={() => void remove(v)}
                         >
