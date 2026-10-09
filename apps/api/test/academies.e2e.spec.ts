@@ -167,6 +167,9 @@ describe("academies e2e", () => {
     await prisma.paymentClaim.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
+    await prisma.privateLesson.deleteMany({
+      where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
+    });
     await prisma.academyPaymentMethod.deleteMany({
       where: { academyId: { in: [ids.academyId, ids.createdAcademyId].filter(Boolean) } },
     });
@@ -628,6 +631,40 @@ describe("academies e2e", () => {
         outsiderSession,
       );
       expect(res.status).toBe(403);
+    });
+
+    it("pendingLessons lista las particulares REQUESTED (no las CONFIRMED)", async () => {
+      await prisma.privateLesson.createMany({
+        data: [
+          {
+            academyId: ids.academyId,
+            personId: ids.studentId,
+            price: 40000,
+            status: "REQUESTED",
+            // sin instructor ni fecha - la lección comprada nace "por asignar"
+          },
+          {
+            academyId: ids.academyId,
+            personId: ids.studentId,
+            instructorId: ids.instructorId,
+            scheduledAt: new Date(Date.now() + 86_400_000),
+            price: 40000,
+            status: "CONFIRMED",
+          },
+        ],
+      });
+      const res = await get(
+        `/api/academies/${ids.academyId}/dashboard`,
+        ownerSession,
+      );
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.pendingLessons.count).toBe(1);
+      const row = body.pendingLessons.items[0];
+      expect(row.personId).toBe(ids.studentId);
+      expect(row.personName).toBe("Alumno Academia Test");
+      expect(row.instructorName).toBeNull();
+      expect(row.scheduledAt).toBeNull();
     });
   });
 

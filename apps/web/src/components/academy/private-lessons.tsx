@@ -115,6 +115,12 @@ export function PrivateLessons({ academy }: Props) {
 
   const [lessons, setLessons] = useState<PrivateLesson[]>([]);
   const [total, setTotal] = useState(0);
+  // Conteos de la cola REQUESTED de toda la academia (el API los manda
+  // en el envelope, independientes del filtro activo).
+  const [pending, setPending] = useState<{
+    toAssign: number;
+    toConfirm: number;
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [staffState, setStaffState] = useState<LoadState>("loading");
   const [staffFilters, setStaffFilters] = useState<QueryFilters>({});
@@ -178,9 +184,11 @@ export function PrivateLessons({ academy }: Props) {
       const data = (await res.json()) as {
         items: PrivateLesson[];
         total: number;
+        pending?: { toAssign: number; toConfirm: number };
       };
       setLessons(data.items);
       setTotal(data.total);
+      setPending(data.pending ?? { toAssign: 0, toConfirm: 0 });
       setStaffState("ready");
     } catch {
       setStaffState("error");
@@ -319,6 +327,38 @@ export function PrivateLessons({ academy }: Props) {
     <div className="flex flex-col gap-6">
       <section aria-label={t.title} className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold">{t.title}</h2>
+          {/* KPIs de la cola pendiente: REQUESTED sin instructor/fecha
+              (por asignar) y asignadas esperando confirm. Mismo lenguaje
+              visual que AcademyKpiCards (label uppercase + número
+              grande); warn = la cola requiere acción. */}
+          {staffState === "ready" && pending !== null && (
+            <ul
+              aria-label={t.pendingTitle}
+              className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+            >
+              {(
+                [
+                  [t.toAssign, pending.toAssign],
+                  [t.pendingConfirm, pending.toConfirm],
+                ] as const
+              ).map(([label, value]) => (
+                <li key={label}>
+                  <Card className="flex h-full flex-col gap-1 p-4">
+                    <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+                      {label}
+                    </span>
+                    <span
+                      className={`text-3xl font-bold leading-none tabular-nums ${
+                        value > 0 ? "text-warn" : "text-ink/60"
+                      }`}
+                    >
+                      {value}
+                    </span>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
           <FilterBar
             entity={LESSONS_ENTITY}
             filters={staffFilters}
@@ -423,14 +463,20 @@ export function PrivateLessons({ academy }: Props) {
                               </Button>
                             )}
                             {a.cancel && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
+                              /* Destructivo sutil en el action row:
+                                 borde + texto rojo tenue (misma regla
+                                 de las zonas destructivas: red-400/80
+                                 → red-400 en hover). Button.ghost no
+                                 aplica porque sus colores ganarían por
+                                 especificidad de la variante. */
+                              <button
+                                type="button"
                                 disabled={busyId === l.id}
                                 onClick={() => cancel(l.id)}
+                                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/30 px-4 text-sm font-semibold text-red-400/80 transition-colors transition-transform hover:border-red-400/60 hover:text-red-400 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon disabled:pointer-events-none disabled:opacity-50"
                               >
                                 {t.cancel}
-                              </Button>
+                              </button>
                             )}
                           </div>
                         )}

@@ -133,6 +133,12 @@ export type AcademyDashboard = {
     amount: number;
     items: PendingClaimItem[];
   };
+  // Particulares REQUESTED pendientes de confirmar (cola operativa
+  // del home, top 5 por antigüedad).
+  pendingLessons: {
+    count: number;
+    items: PendingLessonItem[];
+  };
   // AcademyStaff + AcademyInstructor - insumo del checklist de activación.
   teamCount: number;
   studentsByStatus: {
@@ -179,6 +185,17 @@ export type PendingClaimItem = {
   personName: string | null;
   amount: number;
   createdAt: string;
+};
+
+// Particular REQUESTED en el dashboard (top 5 por antigüedad) -
+// scheduledAt/instructorName null = la clase aún está "por agendar" /
+// "por asignar" (private-lesson-product).
+export type PendingLessonItem = {
+  id: string;
+  personId: string;
+  personName: string | null;
+  scheduledAt: string | null;
+  instructorName: string | null;
 };
 
 // Clase del día en el dashboard de la academia (GET /academies/:id/dashboard).
