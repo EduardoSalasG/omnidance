@@ -164,8 +164,12 @@
       "activeStudentsHint": "Con plan vigente este mes",
       "purchasablePlans": "Planes activos",
       "purchasablePlansHint": "Comprables ahora",
+      "weeklyClasses": "Clases/sem",
+      "weeklyClassesHint": "Slots semanales de series activas",
       "avgAttendance": "Asistencia/clase",
       "avgAttendanceHint": "Promedio por clase este mes",
+      "billedMonth": "Facturado",
+      "billedMonthHint": "Cobrado este mes a la fecha",
       "avgTicket": "Ticket/alumno",
       "avgTicketHint": "Cobrado este mes ÷ alumnos que pagaron"
     }

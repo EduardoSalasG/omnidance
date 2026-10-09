@@ -1193,6 +1193,7 @@ export class AcademiesController {
       purchasablePlans,
       classesMonth,
       attendanceMonth,
+      weeklyClasses,
     ] =
       await Promise.all([
         this.prisma.enrollment.findMany({
@@ -1260,6 +1261,11 @@ export class AcademiesController {
             },
           },
         }),
+        // Clases semanales ofrecidas: slots de recurrencia de series
+        // activas (un slot = una clase por semana).
+        this.prisma.classSlot.count({
+          where: { academyId: id, series: { active: true } },
+        }),
       ]);
 
     const classIds = today.map((c) => c.id);
@@ -1320,11 +1326,10 @@ export class AcademiesController {
       }),
     ]);
     const paidRows = [...claimsMonth, ...gatewayMonth];
+    const billedMonth = paidRows.reduce((acc, p) => acc + p.amount, 0);
     const payers = new Set(paidRows.map((p) => p.personId));
     const avgTicketMonth = payers.size
-      ? Math.round(
-          paidRows.reduce((acc, p) => acc + p.amount, 0) / payers.size,
-        )
+      ? Math.round(billedMonth / payers.size)
       : null;
     const avgAttendanceMonth = classesMonth
       ? Math.round((attendanceMonth / classesMonth) * 10) / 10
@@ -1379,6 +1384,8 @@ export class AcademiesController {
         purchasablePlans,
         avgAttendancePerClassMonth: avgAttendanceMonth,
         avgTicketMonth,
+        billedMonth,
+        weeklyClasses,
       },
       expiringEnrollments: expiringRows.map((e) => ({
         personId: e.personId,

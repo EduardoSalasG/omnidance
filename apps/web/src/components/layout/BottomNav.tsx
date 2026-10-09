@@ -303,18 +303,13 @@ type DrawerGroupSpec = {
   labelNs: "nav" | "producer" | "academy" | "admin" | "analytics";
   labelKey: string;
   items: DrawerSpec[];
-  // true = el grupo se renderiza como acordeón plegable en drawer y
-  // sidebar (ver DrawerGroup.collapsible en SideDrawer).
-  collapsible?: boolean;
 };
 
 // Grupo "Analítica" del drawer - módulo transversal a los roles con
-// analítica (no vive bajo el dominio de ninguna consola). Acordeón:
-// el header "Analítica" pliega sus páginas (Dashboard + Consultas).
+// analítica (no vive bajo el dominio de ninguna consola).
 const ANALYTICS_DRAWER_GROUP = (items: DrawerSpec[]): DrawerGroupSpec => ({
   labelNs: "analytics",
   labelKey: "title",
-  collapsible: true,
   items,
 });
 const ANALYTICS_DASHBOARD_ITEM: DrawerSpec = {
@@ -407,13 +402,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       ],
     },
   ],
-  // Los módulos del owner viven acá en acordeones por dominio (la grilla
+  // Los módulos del owner viven acá agrupados por dominio (la grilla
   // de /academia queda solo para staff/admin que no tienen este drawer).
   ACADEMY_OWNER: [
     {
       labelNs: "academy",
       labelKey: "navGroups.teaching",
-      collapsible: true,
       items: [
         {
           href: "/academia/clases",
@@ -450,7 +444,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     {
       labelNs: "academy",
       labelKey: "navGroups.students",
-      collapsible: true,
       items: [
         {
           href: "/academia/alumnos",
@@ -475,7 +468,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     {
       labelNs: "academy",
       labelKey: "navGroups.admin",
-      collapsible: true,
       items: [
         {
           href: "/academia/cobros",
@@ -488,18 +480,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "modules.team",
           icon: ICONS.users,
-        },
-        {
-          href: "/academia/suscripcion",
-          ns: "academy",
-          key: "modules.subscription",
-          icon: ICONS.tag,
-        },
-        {
-          href: "/academia/configuracion",
-          ns: "academy",
-          key: "settings.title",
-          icon: ICONS.slider,
         },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
@@ -893,39 +873,75 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     [...roleTabs, PROFILE_TAB].map((tab) => tab.href),
   );
 
-  // Sin sesión el drawer muestra solo Perfil; con sesión, los grupos del
-  // rol activo. Los hrefs que ya son tab no se marcan activos en el drawer.
-  const drawerGroups: DrawerGroup[] = !me
-    ? [
-        {
-          label: t("personal"),
-          items: [
+  // dataTour replica los anchors del tab bar móvil (nav-home,
+  // nav-events, nav-profile) para que los tours de onboarding sigan
+  // resolviendo targets en ≥lg.
+  const SIDEBAR_TOUR: Record<string, string> = {
+    "/inicio": "nav-home",
+    "/eventos": "nav-events",
+    "/perfil": "nav-profile",
+  };
+
+  // Sección "Cuenta": siempre al final del drawer/sidebar. Perfil para
+  // todos; el owner además ve la configuración y suscripción de su
+  // academia (salieron del grupo Administración).
+  const accountGroup: DrawerGroup = {
+    label: t("account"),
+    items: [
+      {
+        href: "/perfil",
+        label: t("profile"),
+        icon: icon(ICONS.profile)(pathname.startsWith("/perfil")),
+        active: pathname.startsWith("/perfil"),
+        dataTour: SIDEBAR_TOUR["/perfil"],
+      },
+      ...(activeRole === "ACADEMY_OWNER"
+        ? [
             {
-              href: "/perfil",
-              label: t("profile"),
-              icon: icon(ICONS.profile)(false),
-              active: false,
+              href: "/academia/configuracion",
+              label: tac("settings.title"),
+              icon: icon(ICONS.slider)(
+                pathname.startsWith("/academia/configuracion"),
+              ),
+              active: pathname.startsWith("/academia/configuracion"),
             },
-          ],
-        },
-      ]
-    : roleDrawer.map((g) => ({
-        label: labelFor(g.labelNs, g.labelKey),
-        collapsible: g.collapsible,
-        items: g.items.map((spec) => {
-          const active =
-            !tabHrefs.has(spec.href) &&
-            (spec.exact
-              ? pathname === spec.href
-              : pathname.startsWith(spec.href));
-          return {
-            href: spec.href,
-            label: labelFor(spec.ns, spec.key),
-            icon: icon(spec.icon)(active),
-            active,
-          };
-        }),
-      }));
+            {
+              href: "/academia/suscripcion",
+              label: tac("modules.subscription"),
+              icon: icon(ICONS.tag)(
+                pathname.startsWith("/academia/suscripcion"),
+              ),
+              active: pathname.startsWith("/academia/suscripcion"),
+            },
+          ]
+        : []),
+    ],
+  };
+
+  // Sin sesión el drawer muestra solo la sección de cuenta; con sesión,
+  // los grupos del rol activo + cuenta al final. Los hrefs que ya son
+  // tab no se marcan activos en el drawer.
+  const drawerGroups: DrawerGroup[] = !me
+    ? [accountGroup]
+    : [
+        ...roleDrawer.map((g) => ({
+          label: labelFor(g.labelNs, g.labelKey),
+          items: g.items.map((spec) => {
+            const active =
+              !tabHrefs.has(spec.href) &&
+              (spec.exact
+                ? pathname === spec.href
+                : pathname.startsWith(spec.href));
+            return {
+              href: spec.href,
+              label: labelFor(spec.ns, spec.key),
+              icon: icon(spec.icon)(active),
+              active,
+            };
+          }),
+        })),
+        accountGroup,
+      ];
 
   const hasDrawerItems = drawerGroups.some((g) => g.items.length > 0);
   const roleLabel = tpr(`roleLabels.${activeRole}`);
@@ -946,29 +962,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Grupos de la sidebar desktop (≥lg): todos los destinos del rol,
   // no solo los del drawer - en desktop no hay tab bar, así que la
   // sidebar lista los tabs como primer grupo y los módulos del drawer
-  // debajo. El DANCER usa sus propios grupos por lente.
-  // dataTour replica los anchors del tab bar móvil (nav-home,
-  // nav-events, nav-profile) para que los tours de onboarding sigan
-  // resolviendo targets en ≥lg.
-  const SIDEBAR_TOUR: Record<string, string> = {
-    "/inicio": "nav-home",
-    "/eventos": "nav-events",
-    "/perfil": "nav-profile",
-  };
-  const personalGroup: DrawerGroup = {
-    label: t("personal"),
-    items: [
-      {
-        href: "/perfil",
-        label: t("profile"),
-        icon: icon(ICONS.profile)(pathname.startsWith("/perfil")),
-        active: pathname.startsWith("/perfil"),
-        dataTour: SIDEBAR_TOUR["/perfil"],
-      },
-    ],
-  };
+  // debajo. El DANCER usa sus propios grupos por lente. Perfil no va
+  // en el grupo de tabs: vive en la sección Cuenta al final.
   const sidebarGroups: DrawerGroup[] = !me
-    ? [personalGroup]
+    ? [accountGroup]
     : activeRole === "DANCER"
       ? [
           ...DANCER_SIDEBAR[dancerAcademy ? "academy" : "social"].map(
@@ -990,13 +987,13 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
               }),
             }),
           ),
-          personalGroup,
+          accountGroup,
         ]
       : [
           {
             label: roleLabel,
             items: allTabs
-              .filter((tab) => !tab.sheet)
+              .filter((tab) => !tab.sheet && tab.href !== "/perfil")
               .map((tab) => ({
                 href: tab.href,
                 label: tabLabel(tab),

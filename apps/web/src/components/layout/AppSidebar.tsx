@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { DrawerGroup, DrawerItem } from "./SideDrawer";
 
@@ -118,10 +117,9 @@ export function AppSidebar({
 }
 
 /**
- * Grupo de la sidebar desktop. Con `collapsible` (solo en modo expandido)
- * el header es un toggle acordeón que pliega los ítems - arranca abierto
- * si la ruta activa está dentro y reabre al aterrizar en un ítem suyo.
- * En riel colapsado los ítems van planos con separador entre grupos.
+ * Grupo de la sidebar desktop: header estático + ítems siempre visibles
+ * (las secciones no se pliegan). En riel colapsado los ítems van planos
+ * con separador entre grupos.
  */
 function SidebarGroup({
   group,
@@ -132,55 +130,18 @@ function SidebarGroup({
   collapsed: boolean;
   separated: boolean;
 }) {
-  const anyActive = group.items.some((item) => item.active);
-  const [open, setOpen] = useState(anyActive);
-  const listId = useId();
-  const collapsible = !!group.collapsible && !collapsed;
-
-  useEffect(() => {
-    if (anyActive) setOpen(true);
-  }, [anyActive]);
-
-  const headerCls =
-    "text-xs font-semibold uppercase tracking-wide text-ink/40";
-
   return (
     <li className={separated ? "mt-3 border-t border-line pt-3" : undefined}>
-      {!collapsed &&
-        (collapsible ? (
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={listId}
-            onClick={() => setOpen((o) => !o)}
-            className={`mb-1 flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-left transition-colors hover:text-ink/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${headerCls}`}
-          >
-            {group.label}
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`h-4 w-4 transition-transform motion-reduce:transition-none ${
-                open ? "rotate-90" : ""
-              }`}
-            >
-              <path d="m9 6 6 6-6 6" />
-            </svg>
-          </button>
-        ) : (
-          <h3 className={`mb-1 px-3 ${headerCls}`}>{group.label}</h3>
-        ))}
-      {(!collapsible || open) && (
-        <ul id={listId} className="flex flex-col">
-          {group.items.map((item) => (
-            <SidebarItem key={item.href} item={item} collapsed={collapsed} />
-          ))}
-        </ul>
+      {!collapsed && (
+        <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
+          {group.label}
+        </h3>
       )}
+      <ul className="flex flex-col">
+        {group.items.map((item) => (
+          <SidebarItem key={item.href} item={item} collapsed={collapsed} />
+        ))}
+      </ul>
     </li>
   );
 }
