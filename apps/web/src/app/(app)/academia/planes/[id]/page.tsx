@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
+import Link from "next/link";
+import { Badge, Button, Card, PriceTag, RefreshIcon, Spinner } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -46,6 +47,8 @@ function PlanDetail({
   const tc = useTranslations("common");
   const [plan, setPlan] = useState<PlanDetail | null>(null);
   const [loadError, setLoadError] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const dateFmt = useMemo(
     () =>
@@ -74,6 +77,33 @@ function PlanDetail({
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // PATCH /plans/:id {active} - activar/desactivar el plan desde la
+  // ficha (la edición de datos vive en /planes/nueva?edit=<id>).
+  async function toggleActive(): Promise<void> {
+    if (!plan) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      const res = await apiFetch(
+        `/academies/${academyId}/plans/${plan.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active: !plan.active }),
+        },
+      );
+      if (!res.ok) {
+        setActionError(tc("error"));
+        return;
+      }
+      await reload();
+    } catch {
+      setActionError(tc("error"));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (loadError !== null) {
     return (
@@ -121,13 +151,27 @@ function PlanDetail({
             ))}
           </ul>
         )}
-        <div>
+        {actionError && (
+          <p role="alert" className="text-sm text-red-400">
+            {actionError}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
             variant="secondary"
             href={`/academia/planes/nueva?edit=${plan.id}`}
           >
             {t("editPlan")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={busy}
+            onClick={() => void toggleActive()}
+          >
+            {busy ? <Spinner size="sm" /> : null}
+            {plan.active ? t("planDeactivate") : t("planReactivate")}
           </Button>
         </div>
       </section>
@@ -148,19 +192,21 @@ function PlanDetail({
           ) : (
             <ul className="divide-y divide-line">
               {plan.students.map((s) => (
-                <li
-                  key={s.personId}
-                  className="flex items-center gap-3 px-4 py-3 text-sm"
-                >
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {s.name ?? shortId(s.personId)}
-                  </span>
-                  <span className="shrink-0 text-xs tabular-nums text-ink/50">
-                    {t("planFrom")}{" "}
-                    {dateFmt.format(new Date(s.startedAt))}
-                    {s.endsAt &&
-                      ` · ${t("planUntil")} ${dateFmt.format(new Date(s.endsAt))}`}
-                  </span>
+                <li key={s.personId}>
+                  <Link
+                    href={`/academia/alumnos/${s.personId}`}
+                    className="flex min-h-11 items-center gap-3 px-4 py-3 text-sm transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-neon"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {s.name ?? shortId(s.personId)}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-ink/50">
+                      {t("planFrom")}{" "}
+                      {dateFmt.format(new Date(s.startedAt))}
+                      {s.endsAt &&
+                        ` · ${t("planUntil")} ${dateFmt.format(new Date(s.endsAt))}`}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

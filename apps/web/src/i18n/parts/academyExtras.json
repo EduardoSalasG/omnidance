@@ -51,7 +51,8 @@
       "saved": "Configuración guardada.",
       "saveError": "No se pudo guardar la configuración",
       "privateLessonPrice": "Precio de clase particular (CLP)",
-      "privateLessonPriceHint": "Vacío = la academia no vende clases particulares. El alumno paga por adelantado y tú asignas fecha e instructor después."
+      "privateLessonPriceHint": "Vacío = la academia no vende clases particulares. El alumno paga por adelantado y tú asignas fecha e instructor después.",
+      "forbidden": "No tienes acceso a esta sección."
     },
     "publicProfile": {
       "title": "Perfil público",
@@ -71,7 +72,8 @@
       "websitePlaceholder": "miacademia.cl",
       "saved": "Perfil guardado.",
       "saveError": "No se pudo guardar el perfil",
-      "invalidCoords": "Coordenadas inválidas"
+      "invalidCoords": "Coordenadas inválidas",
+      "forbidden": "No tienes acceso a esta sección."
     },
     "studentProfile": {
       "plan": "Plan",
@@ -157,6 +159,8 @@
     "noPlansForEnrollment": "Aún no hay planes: crea uno antes de inscribir alumnos.",
     "forbidden": "No tienes acceso a esta acción.",
     "editPlan": "Editar plan",
+    "planDeactivate": "Desactivar plan",
+    "planReactivate": "Reactivar plan",
     "planActive": "Plan activo (visible para comprar)",
     "planInactive": "Inactivo",
     "planStateActive": "Activo",

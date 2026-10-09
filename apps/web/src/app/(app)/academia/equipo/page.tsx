@@ -31,7 +31,6 @@ export default function AcademiaEquipoPage() {
       <AcademyGate>
         {({ academy }) => (
           <>
-            <h1 className="sr-only">{t("title")}</h1>
             <InstructorSection
               key={`i-${academy.id}`}
               academyId={academy.id}

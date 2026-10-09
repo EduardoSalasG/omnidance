@@ -53,7 +53,15 @@ export function AcademySettings({ academy }: { academy: Academy }) {
     !!me &&
     (me.roles.includes("ADMIN") || me.id === academy.ownerId);
 
-  if (!canAdminister) return null;
+  // Deep link sin permiso: mensaje explícito en vez de página en blanco.
+  if (meLoading) return null;
+  if (!canAdminister) {
+    return (
+      <p role="alert" className="text-sm text-ink/60">
+        {t("forbidden")}
+      </p>
+    );
+  }
 
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
