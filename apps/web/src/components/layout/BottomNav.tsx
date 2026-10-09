@@ -451,6 +451,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.events,
         },
         {
+          href: "/academia/particulares",
+          ns: "academy",
+          key: "modules.lessons",
+          icon: ICONS.dances,
+        },
+        {
           href: "/academia/videos",
           ns: "academy",
           key: "modules.videos",
@@ -467,12 +473,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "modules.students",
           icon: ICONS.users,
-        },
-        {
-          href: "/academia/particulares",
-          ns: "academy",
-          key: "modules.lessons",
-          icon: ICONS.dances,
         },
       ],
     },
@@ -554,16 +554,16 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.list,
         },
         {
-          href: "/academia/alumnos",
-          ns: "academy",
-          key: "modules.students",
-          icon: ICONS.users,
-        },
-        {
           href: "/academia/particulares",
           ns: "academy",
           key: "modules.lessons",
           icon: ICONS.dances,
+        },
+        {
+          href: "/academia/alumnos",
+          ns: "academy",
+          key: "modules.students",
+          icon: ICONS.users,
         },
         {
           href: "/academia/videos",

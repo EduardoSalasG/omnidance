@@ -106,6 +106,16 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
         data={dashboard}
         error={dashError}
         onRetry={() => void refresh()}
+        // Sin el split de género: en inicio no es accionable (el
+        // detalle demográfico vive en alumnos/analítica).
+        keys={[
+          "activeStudents",
+          "purchasablePlans",
+          "weeklyClasses",
+          "avgAttendance",
+          "billedMonth",
+          "avgTicket",
+        ]}
       />
 
       {/* Checklist de activación: solo mientras la academia no tiene
