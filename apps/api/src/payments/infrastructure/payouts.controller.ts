@@ -28,6 +28,7 @@ import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { PayoutSettlementService } from "../application/payout-settlement.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"] as const;
 const PAYOUT_STATUSES: readonly PayoutStatus[] = [
@@ -108,6 +109,16 @@ class MePayoutsQueryDto {
   @IsISO8601()
   @ApiPropertyOptional()
   to?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional()
+  pageSize?: string;
 }
 
 class PayPayoutDto {
@@ -395,11 +406,79 @@ export class MePayoutsController {
           }
         : {}),
     };
-    const payouts = await this.prisma.payout.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: { lines: true },
+    const pg = pageParams(dto.page, dto.pageSize);
+    const [payouts, total] = await Promise.all([
+      this.prisma.payout.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: { lines: true },
+        skip: pg.skip,
+        take: pg.take,
+      }),
+      this.prisma.payout.count({ where }),
+    ]);
+    return {
+      items: payouts.map(withPayoutLines),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
+  }
+
+  /**
+   * Detalle de una liquidación propia - el desglose de deducciones
+   * lleva el refId de la orden origen de cada línea (trazabilidad).
+   * Mismo scope del listado: producer dueño + academies/venues propias.
+   */
+  @Get(":id")
+  @RequirePermissions("crm.manage")
+  async mineOne(@Param("id") id: string, @Req() req: Request) {
+    const personId = req.person!.id;
+    const [academies, venues] = await Promise.all([
+      this.prisma.academy.findMany({
+        where: { ownerId: personId },
+        select: { id: true },
+      }),
+      this.prisma.venue.findMany({
+        where: { ownerId: personId },
+        select: { id: true },
+      }),
+    ]);
+    const payout = await this.prisma.payout.findFirst({
+      where: {
+        id,
+        OR: [
+          { actorType: "PRODUCER", actorId: personId },
+          ...(academies.length
+            ? [
+                {
+                  actorType: "ACADEMY" as const,
+                  actorId: { in: academies.map((a) => a.id) },
+                },
+              ]
+            : []),
+          ...(venues.length
+            ? [
+                {
+                  actorType: "VENUE" as const,
+                  actorId: { in: venues.map((v) => v.id) },
+                },
+              ]
+            : []),
+        ],
+      },
+      include: {
+        lines: {
+          include: {
+            payment: {
+              select: { id: true, refId: true, orderType: true, channel: true, amount: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+      },
     });
-    return payouts.map(withPayoutLines);
+    if (!payout) throw new NotFoundException("liquidación no encontrada");
+    return payout;
   }
 }

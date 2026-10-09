@@ -2469,6 +2469,42 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/me/payouts/{id}": {
+      "get": {
+        "operationId": "MePayoutsController_mineOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2756,6 +2792,26 @@
         }
       }
     },
+    "/api/producer/claims/{claimId}": {
+      "get": {
+        "operationId": "ProducerClaimsController_claimDetail",
+        "parameters": [
+          {
+            "name": "claimId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/producer/claims/{claimId}/receipt": {
       "get": {
         "operationId": "ProducerClaimsController_receipt",
@@ -3002,6 +3058,26 @@
         }
       }
     },
+    "/api/discount-codes/{id}": {
+      "get": {
+        "operationId": "DiscountsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/discount-codes/{id}/redemptions": {
       "get": {
         "operationId": "DiscountsController_redemptions",
@@ -3090,6 +3166,26 @@
             "name": "pageSize",
             "required": false,
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/guest-lists/{id}": {
+      "get": {
+        "operationId": "GuestListsController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
             "schema": {
               "type": "string"
             }

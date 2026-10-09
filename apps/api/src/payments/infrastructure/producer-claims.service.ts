@@ -303,6 +303,43 @@ export class ProducerClaimsService {
   }
 
   /**
+   * Detalle de un comprobante de la cola del productor - misma forma del
+   * item de listClaims más el refId de la orden y datos completos de
+   * pago para la ficha (montos, canal, fecha de orden).
+   */
+  async claimDetail(producerId: string, claimId: string) {
+    const claim = await this.prisma.ticketClaim.findFirst({
+      where: { id: claimId, producerId },
+      select: {
+        id: true,
+        methodType: true,
+        methodLabel: true,
+        status: true,
+        note: true,
+        reviewNote: true,
+        createdAt: true,
+        reviewedAt: true,
+        reviewedBy: { select: { id: true, name: true } },
+        person: { select: { id: true, name: true } },
+        payment: {
+          select: {
+            id: true,
+            amount: true,
+            orderType: true,
+            refId: true,
+            channel: true,
+            status: true,
+            createdAt: true,
+            gatewayPaidAt: true,
+          },
+        },
+      },
+    });
+    if (!claim) throw new NotFoundException("comprobante no encontrado");
+    return claim;
+  }
+
+  /**
    * Aprueba: flip atómico PENDING→APPROVED (dos aprobaciones
    * concurrentes serializan - la perdedora ve count=0) y luego el
    * settle de la orden por el mismo camino del webhook. El settle es

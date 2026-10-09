@@ -93,6 +93,7 @@ class FakeDiscountsRepo implements DiscountsRepo {
         personId: r.personId,
         paymentId: r.paymentId,
         redeemedAt: r.redeemedAt,
+        person: { personId: r.personId, name: `P ${r.personId}` },
       }));
   }
 }

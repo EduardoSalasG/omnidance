@@ -164,9 +164,9 @@ function EventFormPage() {
       />
 
       <section className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold leading-tight">
+        <h2 className="text-2xl font-bold leading-tight">
           {editId ? t("editEvent") : t("createEvent")}
-        </h1>
+        </h2>
 
         {done && (
           <Card className="p-6 text-center">

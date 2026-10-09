@@ -111,7 +111,7 @@ function NewDiscountCode() {
       />
 
       <section className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold leading-tight">{t("newCode")}</h1>
+        <h2 className="text-2xl font-bold leading-tight">{t("newCode")}</h2>
 
         {created && (
           <Card className="p-6 text-center">

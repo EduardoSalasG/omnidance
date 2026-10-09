@@ -65,6 +65,7 @@ function mk(over: {
       page: 1,
       pageSize: 25,
     })),
+    claimDetail: vi.fn(async () => ({ id: "clm-1", status: "PENDING" })),
     approve: vi.fn(async () => ({ claim: { id: "clm-1" } })),
     reject: vi.fn(async () => ({ claim: { id: "clm-1" } })),
     loadClaimForReceipt: vi.fn(async () => over.claim),
@@ -154,6 +155,9 @@ describe("ProducerClaimsController — gate", () => {
       },
       expect.objectContaining({ page: 1 }),
     );
+    const detail = await ctrl.claimDetail("clm-1", req("me"));
+    expect(detail).toEqual({ id: "clm-1", status: "PENDING" });
+    expect(claims.claimDetail).toHaveBeenCalledWith("me", "clm-1");
     await ctrl.approve("clm-1", req("me"));
     expect(claims.approve).toHaveBeenCalledWith("me", "clm-1", "me");
     await ctrl.reject("clm-1", { note: "monto no calza" }, req("me"));

@@ -13,6 +13,7 @@ import {
   RefreshIcon,
   SkeletonCard,
 } from "@/components/ui";
+import { ConsoleHeader } from "@/components/console/console-header";
 import { EventFeesSection } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
 import { PassesSection } from "@/components/producer/passes-section";
@@ -187,6 +188,8 @@ export default function ProducerEventDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-4xl lg:px-8">
+      <ConsoleHeader backHref="/productor/eventos" backLabel={t("myEvents")} />
+
       {gate === "loading" && (
         <div className="flex flex-col gap-6" aria-hidden="true">
           <SkeletonCard lines={3} />
@@ -211,7 +214,9 @@ export default function ProducerEventDetailPage({
 
       {gate === "notFound" && (
         <div className="flex flex-col items-start gap-4">
-          <p className="text-ink/70">{tc("error")}</p>
+          <p role="alert" className="text-ink/70">
+            {tc("error")}
+          </p>
           <Button href="/productor/eventos" variant="secondary">
             {t("myEvents")}
           </Button>
@@ -233,9 +238,9 @@ export default function ProducerEventDetailPage({
         <>
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <h1 className="min-w-0 flex-1 text-2xl font-bold">
+              <h2 className="min-w-0 flex-1 text-2xl font-bold">
                 {event.name}
-              </h1>
+              </h2>
               <Badge variant={EVENT_STATUS_VARIANT[event.status] ?? "muted"}>
                 {t.has(`status.${event.status}`)
                   ? t(`status.${event.status}`)
@@ -276,17 +281,6 @@ export default function ProducerEventDetailPage({
                     href={`/productor/eventos/nuevo?edit=${event.id}`}
                   >
                     {t("editEvent")}
-                  </Button>
-                )}
-                {CANCELLABLE_STATUSES.includes(event.status) && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-400 hover:text-red-300"
-                    onClick={() => setConfirmCancel(true)}
-                    disabled={actionBusy}
-                  >
-                    {t("cancelEvent")}
                   </Button>
                 )}
               </div>
@@ -330,6 +324,22 @@ export default function ProducerEventDetailPage({
           <AnalyticsSection eventId={eventId} proLocked={proLocked} />
           {/* Los exports CSV/PDF migraron a /analitica
               (spec analytics/query-console). */}
+
+          {/* Zona destructiva - la cancelación del evento vive al pie,
+              separada de las acciones de operación (patrón consola). */}
+          {canManage && CANCELLABLE_STATUSES.includes(event.status) && (
+            <section className="flex justify-center border-t border-line pt-6">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-400 hover:text-red-300"
+                onClick={() => setConfirmCancel(true)}
+                disabled={actionBusy}
+              >
+                {t("cancelEvent")}
+              </Button>
+            </section>
+          )}
         </>
       )}
 

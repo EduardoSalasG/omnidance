@@ -114,9 +114,9 @@ function NewEventStaff({ eventId }: { eventId: string }) {
       />
 
       <section className="flex flex-col gap-4">
-        <h1 className="text-2xl font-bold leading-tight">
+        <h2 className="text-2xl font-bold leading-tight">
           {t("staffSection.add")}
-        </h1>
+        </h2>
 
         {added && (
           <Card className="p-6 text-center">

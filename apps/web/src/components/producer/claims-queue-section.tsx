@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, Pager, SkeletonList, Spinner } from "@/components/ui";
+import { Card, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { CLAIM_STATUSES, filtersParams } from "./shared";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 
-type QueueClaim = {
+export type ProducerQueueClaim = {
   id: string;
   methodType: string;
   methodLabel: string;
@@ -35,13 +36,6 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
 });
 
 /**
- * "Comprobantes por validar" del productor (spec producer-own-methods):
- * el comprador sube el comprobante de su orden MANUAL; al aprobar, la
- * orden se liquida por el mismo settle del webhook (ticket/pase +
- * ledger + notificación). El comprobante se abre en pestaña nueva por
- * el endpoint autenticado (evidencia privada).
- */
-/**
  * Filtros de /productor/comprobantes - contrato compartido (spec
  * analytics/query-console): status del claim (whitelist PENDING|
  * APPROVED|REJECTED en UI; la API además acepta AWAITING) y from/to
@@ -59,19 +53,27 @@ const CLAIMS_ENTITY: EntityDef = {
 
 const PAGE_SIZE = 20;
 
+export const orderLabel = (
+  orderType: string,
+  tp: (key: string) => string,
+) =>
+  orderType === "SERIES_PASS" ? tp("orderSeriesPass") : tp("orderTicket");
+
+/**
+ * Cola de comprobantes del productor (spec producer-own-methods): la
+ * fila navega a la ficha /productor/comprobantes/claim/[id] - ahí viven
+ * el comprobante, el detalle de la orden y aprobar/rechazar. La cola
+ * no muta inline.
+ */
 export function ProducerClaimsQueue() {
   const t = useTranslations("academyPay");
   const tp = useTranslations("producer.ownMethods");
   const tq = useTranslations("query");
 
-  const [claims, setClaims] = useState<QueueClaim[] | null>(null);
+  const [claims, setClaims] = useState<ProducerQueueClaim[] | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [rejectId, setRejectId] = useState<string | null>(null);
-  const [rejectNote, setRejectNote] = useState("");
-  const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async (f: QueryFilters, p: number) => {
     // Con filtro de estado explícito la vista es un listado paginado.
@@ -86,7 +88,7 @@ export function ProducerClaimsQueue() {
       ).catch(() => null);
       const data = res?.ok
         ? ((await res.json()) as {
-            claims: QueueClaim[];
+            claims: ProducerQueueClaim[];
             total: number;
           })
         : { claims: [], total: 0 };
@@ -95,12 +97,10 @@ export function ProducerClaimsQueue() {
       return;
     }
     const get = (status: string, size: number) =>
-      apiFetch(
-        `/producer/claims?status=${status}&pageSize=${size}`,
-      )
+      apiFetch(`/producer/claims?status=${status}&pageSize=${size}`)
         .then((r) =>
           r.ok
-            ? (r.json() as Promise<{ claims: QueueClaim[] }>)
+            ? (r.json() as Promise<{ claims: ProducerQueueClaim[] }>)
             : { claims: [] },
         )
         .catch(() => ({ claims: [] }));
@@ -109,55 +109,13 @@ export function ProducerClaimsQueue() {
       get("APPROVED", 50),
       get("REJECTED", 50),
     ]);
-    setClaims([
-      ...pending.claims,
-      ...approved.claims,
-      ...rejected.claims,
-    ]);
+    setClaims([...pending.claims, ...approved.claims, ...rejected.claims]);
     setTotal(0);
   }, []);
 
   useEffect(() => {
     void load(filters, page);
   }, [load, filters, page]);
-
-  async function approve(id: string) {
-    setBusyId(id);
-    setMsg(null);
-    try {
-      const res = await apiFetch(`/producer/claims/${id}/approve`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: "{}",
-      });
-      setMsg(res.ok ? t("approvedMsg") : t("error"));
-      await load(filters, page);
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function reject(id: string) {
-    if (!rejectNote.trim()) return;
-    setBusyId(id);
-    setMsg(null);
-    try {
-      const res = await apiFetch(`/producer/claims/${id}/reject`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ note: rejectNote.trim() }),
-      });
-      setMsg(res.ok ? t("rejectedMsg") : t("error"));
-      setRejectId(null);
-      setRejectNote("");
-      await load(filters, page);
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  const orderLabel = (orderType: string) =>
-    orderType === "SERIES_PASS" ? tp("orderSeriesPass") : tp("orderTicket");
 
   if (claims === null) return <SkeletonList items={2} />;
   // Sin claims ni filtros → la sección no renderiza nada (comportamiento
@@ -200,88 +158,27 @@ export function ProducerClaimsQueue() {
             </h2>
             <p className="mt-1 text-xs text-ink/50">{tp("queueDesc")}</p>
           </div>
-          {msg && (
-            <p role="status" className="text-sm text-neon">
-              {msg}
-            </p>
-          )}
           <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
             {pending.map((c) => (
-              <li
-                key={c.id}
-                className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-semibold">{c.person.name}</span>
-                  <span className="text-ink/60">
-                    {orderLabel(c.payment.orderType)} · {c.methodLabel} ·{" "}
-                    {clp.format(c.payment.amount)}
-                  </span>
-                  <span className="ml-auto text-xs text-ink/40">
-                    {dayFmt.format(new Date(c.createdAt))}
-                  </span>
-                </div>
-                {c.note && (
-                  <p className="text-xs italic text-ink/50">“{c.note}”</p>
-                )}
-                <div className="flex flex-wrap items-center gap-2">
-                  <a
-                    href={`/api/producer/claims/${c.id}/receipt`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-xs text-neon hover:bg-neon/10"
-                  >
-                    {t("viewReceipt")}
-                  </a>
-                  <span className="ml-auto flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => void approve(c.id)}
-                      disabled={busyId === c.id}
-                    >
-                      {busyId === c.id ? <Spinner size="sm" /> : null}
-                      {t("approve")}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() =>
-                        setRejectId(rejectId === c.id ? null : c.id)
-                      }
-                    >
-                      {t("reject")}
-                    </Button>
-                  </span>
-                </div>
-                {rejectId === c.id && (
-                  <div className="flex flex-col gap-2 border-t border-line pt-3">
-                    <label className="flex flex-col gap-1 text-xs text-ink/60">
-                      {t("rejectPrompt")}
-                      <input
-                        value={rejectNote}
-                        onChange={(e) => setRejectNote(e.target.value)}
-                        maxLength={500}
-                        className="min-h-11 rounded-xl border border-line bg-surface px-3 text-sm"
-                      />
-                    </label>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => void reject(c.id)}
-                        disabled={!rejectNote.trim() || busyId === c.id}
-                      >
-                        {t("confirm")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setRejectId(null)}
-                      >
-                        {t("cancel")}
-                      </Button>
-                    </div>
+              <li key={c.id}>
+                <Link
+                  href={`/productor/comprobantes/claim/${c.id}`}
+                  className="flex flex-col gap-1 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/60"
+                >
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-semibold">{c.person.name}</span>
+                    <span className="text-ink/60">
+                      {orderLabel(c.payment.orderType, tp)} · {c.methodLabel} ·{" "}
+                      {clp.format(c.payment.amount)}
+                    </span>
+                    <span className="ml-auto text-xs text-ink/40">
+                      {dayFmt.format(new Date(c.createdAt))}
+                    </span>
                   </div>
-                )}
+                  {c.note && (
+                    <p className="text-xs italic text-ink/50">“{c.note}”</p>
+                  )}
+                </Link>
               </li>
             ))}
           </ul>
@@ -298,35 +195,37 @@ export function ProducerClaimsQueue() {
           </div>
           <ul className="flex flex-col gap-2">
             {resolved.map((c) => (
-              <li
-                key={c.id}
-                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
-              >
-                <span className="font-semibold">{c.person.name}</span>
-                <span className="text-ink/60">
-                  {orderLabel(c.payment.orderType)} · {c.methodLabel} ·{" "}
-                  {clp.format(c.payment.amount)}
-                </span>
-                <span
-                  className={`ml-auto text-xs ${
-                    c.status === "APPROVED" ? "text-neon" : "text-red-400"
-                  }`}
+              <li key={c.id}>
+                <Link
+                  href={`/productor/comprobantes/claim/${c.id}`}
+                  className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-1 text-sm transition-colors hover:bg-neon/5"
                 >
-                  {c.reviewedBy
-                    ? t(
-                        c.status === "APPROVED"
-                          ? "reviewedByApproved"
-                          : "reviewedByRejected",
-                        { name: c.reviewedBy.name },
-                      )
-                    : t(
-                        c.status === "APPROVED"
-                          ? "statusApproved"
-                          : "statusRejected",
-                      )}
-                  {" · "}
-                  {dayFmt.format(new Date(c.reviewedAt!))}
-                </span>
+                  <span className="font-semibold">{c.person.name}</span>
+                  <span className="text-ink/60">
+                    {orderLabel(c.payment.orderType, tp)} · {c.methodLabel} ·{" "}
+                    {clp.format(c.payment.amount)}
+                  </span>
+                  <span
+                    className={`ml-auto text-xs ${
+                      c.status === "APPROVED" ? "text-neon" : "text-red-400"
+                    }`}
+                  >
+                    {c.reviewedBy
+                      ? t(
+                          c.status === "APPROVED"
+                            ? "reviewedByApproved"
+                            : "reviewedByRejected",
+                          { name: c.reviewedBy.name },
+                        )
+                      : t(
+                          c.status === "APPROVED"
+                            ? "statusApproved"
+                            : "statusRejected",
+                        )}
+                    {" · "}
+                    {dayFmt.format(new Date(c.reviewedAt!))}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

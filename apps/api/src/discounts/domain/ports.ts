@@ -61,7 +61,7 @@ export type ListedDiscountCode = Pick<
 export type ListedRedemption = Pick<
   DiscountRedemption,
   "id" | "personId" | "paymentId" | "redeemedAt"
->;
+> & { person: { personId: string; name: string } };
 
 export interface DiscountsRepo {
   findByCode(code: string): Promise<DiscountCode | null>;

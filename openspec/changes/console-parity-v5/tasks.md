@@ -25,14 +25,30 @@
 
 ## 2. Paridad productor
 
-- [ ] 2.1 Auditar páginas del productor (eventos, guest-lists,
-     discount-codes, cobros) y mapear desviaciones al patrón.
-- [ ] 2.2 Crear = botón → página dedicada en cada módulo.
-- [ ] 2.3 Cards completos clickeables → página de detalle.
-- [ ] 2.4 Detalle: datos + edición + acciones destructivas en zona
-     roja centrada.
-- [ ] 2.5 Listas con FilterBar + Pager, skeletons, vacío y error
-     con retry.
+- [x] 2.1 Auditoría de páginas del productor (eventos, códigos,
+     listas, comprobantes, pagos, parámetros) — desviaciones mapeadas:
+     `BackLink` ad-hoc en 4 páginas, `h1` duplicado en 4 páginas de
+     crear, cards no clickeables, mutación inline en la cola de
+     comprobantes, cancelar evento en el action row, `/me/payouts` sin
+     paginar.
+- [x] 2.2 `ConsoleHeader` en eventos, comprobantes, pagos y
+     parámetros (reemplaza `BackLink`); `h1`→`h2` en eventos/nuevo,
+     codigos/nuevo, listas/nueva y staff/nuevo (el appbar provee h1).
+- [x] 2.3 Cards clickeables → ficha: eventos (ya estaba), códigos,
+     listas, liquidaciones, comprobantes (pendientes e historial).
+- [x] 2.4 Fichas nuevas: `/productor/codigos/[id]` (datos +
+     redemptions), `/productor/listas/[id]` (invitados + alta + emitir
+     pase), `/productor/pagos/[id]` (desglose por orden), y
+     `/productor/comprobantes/claim/[id]` (datos + comprobante +
+     aprobar/rechazar — la cola ya no muta inline).
+- [x] 2.5 Cancelar evento movido del action row a la zona destructiva
+     del pie (centrada, roja); `notFound` con `role="alert"`.
+- [x] 2.6 API para las fichas: `GET /discount-codes/:id`,
+     `GET /guest-lists/:id`, `GET /producer/claims/:claimId`,
+     `GET /me/payouts` paginado (envelope) y `GET /me/payouts/:id`;
+     `listRedemptions` enriquecido con nombre de la persona.
+- [x] 2.7 Mutaciones de la cola de comprobantes (aprobar/rechazar)
+     movidas a la ficha — paridad con `/academia/cobros/claim/[id]`.
 
 ## 3. Verificación
 

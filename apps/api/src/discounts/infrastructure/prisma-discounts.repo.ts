@@ -71,8 +71,9 @@ export class PrismaDiscountsRepo implements DiscountsRepo {
     return { items, total };
   }
 
-  listRedemptions(codeId: string) {
-    return this.prisma.discountRedemption.findMany({
+  // personId es escalar (sin relación) → join manual para la ficha.
+  async listRedemptions(codeId: string) {
+    const rows = await this.prisma.discountRedemption.findMany({
       where: { codeId },
       orderBy: { redeemedAt: "desc" },
       select: {
@@ -82,5 +83,14 @@ export class PrismaDiscountsRepo implements DiscountsRepo {
         redeemedAt: true,
       },
     });
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: [...new Set(rows.map((r) => r.personId))] } },
+      select: { id: true, name: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return rows.map((r) => ({
+      ...r,
+      person: { personId: r.personId, name: byId.get(r.personId)?.name ?? "?" },
+    }));
   }
 }
