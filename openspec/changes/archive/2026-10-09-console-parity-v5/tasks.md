@@ -52,5 +52,5 @@
 
 ## 3. Verificación
 
-- [ ] 3.1 `openspec validate` verde.
-- [ ] 3.2 tsc web; i18n audit; `impeccable detect` sobre el diff.
+- [x] 3.1 `openspec validate` verde.
+- [x] 3.2 tsc web; i18n audit; `impeccable detect` sobre el diff.
