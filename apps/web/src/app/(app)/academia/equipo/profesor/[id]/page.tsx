@@ -8,6 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { CourseSurveyResults } from "@/components/academy/survey-results";
 import { readError } from "@/components/academy/shared";
 
 type InstructorDetail = {
@@ -245,6 +246,9 @@ function Detail({
           )}
         </Card>
       </section>
+
+      {/* Encuestas del profe - agrupadas mes × serie, solo owner/ADMIN. */}
+      <CourseSurveyResults academyId={academyId} instructorId={personId} />
 
       {err && (
         <p role="alert" className="text-sm text-red-400">

@@ -556,6 +556,28 @@ model EventRating {
   @@unique([eventId, raterId])
 }
 
+// Encuesta mensual de curso (spec academy-console-v3): una por alumno ×
+// serie × mes cursado. Los resultados son privados del owner de la
+// academia y siempre agregados/anónimos - nunca se expone la identidad
+// del evaluador (regla de plataforma: ratings privados).
+model CourseSurvey {
+  id               String   @id @default(cuid())
+  academyId        String
+  seriesId         String
+  personId         String   // alumno evaluador - nunca sale en lecturas
+  instructorId     String?  // profe evaluado (snapshot del mes)
+  month            String   // "YYYY-MM" del periodo evaluado
+  courseRating     Int      // 1-5, obligatorio
+  instructorRating Int?     // 1-5 (null si la serie no tenía profe)
+  comment          String?  // observaciones opcionales (anónimas al leer)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([personId, seriesId, month])
+  @@index([academyId, seriesId, month])
+  @@index([academyId, instructorId])
+}
+
 // ═══════════════════ GAMIFICACIÓN ═══════════════════
 
 model MissionTemplate {

@@ -17,10 +17,13 @@ import {
   ArrayMaxSize,
   IsArray,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
   MinLength,
   ValidateNested,
 } from "class-validator";
@@ -32,6 +35,10 @@ import { AuthService } from "../auth/domain/auth.service";
 import { NotificationsService } from "../notifications/domain/notifications.service";
 import { PrismaService } from "../prisma.service";
 import { isProActive } from "../payments/domain/platform-tiers";
+import {
+  monthRange,
+  prevMonthKey,
+} from "../academies/infrastructure/academy-surveys.service";
 
 class CompleteProfileDto {
   @IsString()
@@ -109,6 +116,34 @@ class UpdateStyleRolesDto {
   @ValidateNested({ each: true })
   @Type(() => StyleRoleItemDto)
   items!: StyleRoleItemDto[];
+}
+
+// Encuesta mensual de curso: rating 1-5 del curso (obligatorio) + del
+// profe (opcional - null si la serie no tenía profe asignado) +
+// observaciones. Una por alumno × serie × mes.
+class CourseSurveyDto {
+  @IsString()
+  seriesId!: string;
+
+  @IsString()
+  @Matches(/^\d{4}-\d{2}$/)
+  month!: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  courseRating!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  instructorRating?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  comment?: string | null;
 }
 
 class OnboardingDto {
@@ -358,6 +393,156 @@ export class PeopleController {
       name: e.name,
       endsAt: e.endsAt,
     }));
+  }
+
+  /**
+   * GET /me/pending-course-surveys - series que el viewer cursó el mes
+   * calendario anterior (≥1 asistencia) y aún no evaluó. El fan-out por
+   * notificación corre en el job academies.course_surveys (día 1); esta
+   * lista es pull para la card del home.
+   */
+  @Get("me/pending-course-surveys")
+  @UseGuards(SessionGuard)
+  async pendingCourseSurveys(@Req() req: Request) {
+    const personId = req.person!.id;
+    const month = prevMonthKey();
+    const { gte, lt } = monthRange(month);
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        personId,
+        class: { date: { gte, lt }, cancelled: false },
+      },
+      select: {
+        class: {
+          select: {
+            slot: {
+              select: {
+                seriesId: true,
+                academyId: true,
+                series: {
+                  select: {
+                    name: true,
+                    academy: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    const bySeries = new Map<
+      string,
+      { seriesId: string; seriesName: string; academyId: string; academyName: string }
+    >();
+    for (const a of attendances) {
+      const s = a.class.slot;
+      if (!s.seriesId || bySeries.has(s.seriesId)) continue;
+      bySeries.set(s.seriesId, {
+        seriesId: s.seriesId,
+        seriesName: s.series?.name ?? "Clase",
+        academyId: s.academyId,
+        academyName: s.series?.academy.name ?? "",
+      });
+    }
+    if (bySeries.size === 0) return [];
+    const submitted = await this.prisma.courseSurvey.findMany({
+      where: {
+        personId,
+        month,
+        seriesId: { in: [...bySeries.keys()] },
+      },
+      select: { seriesId: true },
+    });
+    const done = new Set(submitted.map((s) => s.seriesId));
+    return [...bySeries.values()]
+      .filter((s) => !done.has(s.seriesId))
+      .map((s) => ({ ...s, month }));
+  }
+
+  /**
+   * POST /me/course-surveys - responde la encuesta mensual de una serie.
+   * Elegibilidad: ≥1 asistencia a clases de esa serie en el mes
+   * declarado. instructorId queda como snapshot del profe evaluado
+   * (el más frecuente entre las clases asistidas, con fallback al
+   * instructor default de la serie). Idempotente por
+   * personId+seriesId+month (re-envío corrige la respuesta).
+   */
+  @Post("me/course-surveys")
+  @UseGuards(SessionGuard)
+  async submitCourseSurvey(@Req() req: Request, @Body() dto: CourseSurveyDto) {
+    const personId = req.person!.id;
+    const { gte, lt } = monthRange(dto.month);
+    const attendances = await this.prisma.attendance.findMany({
+      where: {
+        personId,
+        class: {
+          date: { gte, lt },
+          cancelled: false,
+          slot: { seriesId: dto.seriesId },
+        },
+      },
+      select: {
+        class: {
+          select: {
+            instructorId: true,
+            slot: {
+              select: {
+                instructorId: true,
+                academyId: true,
+                series: { select: { instructorId: true, academyId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (attendances.length === 0) {
+      throw new ForbiddenException(
+        "sin asistencias a esa serie en ese mes",
+      );
+    }
+    // Snapshot del profe evaluado: el instructor más frecuente entre las
+    // clases asistidas (class → slot → serie, en ese orden de override).
+    const counts = new Map<string, number>();
+    let academyId = "";
+    for (const a of attendances) {
+      academyId = a.class.slot.academyId || a.class.slot.series?.academyId || academyId;
+      const iid =
+        a.class.instructorId ??
+        a.class.slot.instructorId ??
+        a.class.slot.series?.instructorId ??
+        null;
+      if (iid) counts.set(iid, (counts.get(iid) ?? 0) + 1);
+    }
+    const instructorId =
+      [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    const survey = await this.prisma.courseSurvey.upsert({
+      where: {
+        personId_seriesId_month: {
+          personId,
+          seriesId: dto.seriesId,
+          month: dto.month,
+        },
+      },
+      create: {
+        academyId,
+        seriesId: dto.seriesId,
+        personId,
+        instructorId,
+        month: dto.month,
+        courseRating: dto.courseRating,
+        instructorRating: dto.instructorRating ?? null,
+        comment: dto.comment?.trim() || null,
+      },
+      update: {
+        instructorId,
+        courseRating: dto.courseRating,
+        instructorRating: dto.instructorRating ?? null,
+        comment: dto.comment?.trim() || null,
+      },
+    });
+    return { ok: true, id: survey.id };
   }
 
   /**

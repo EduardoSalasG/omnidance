@@ -36,6 +36,16 @@ type NextItem = { id: string; name: string; when: string; place: string | null }
     notificación event.survey en el API. */
 type PendingSurvey = { eventId: string; name: string; endsAt: string };
 
+/** GET /me/pending-course-surveys - serie que el alumno cursó el mes
+    anterior y aún no evaluó (spec academy-console-v3). */
+type PendingCourseSurvey = {
+  academyId: string;
+  academyName: string;
+  seriesId: string;
+  seriesName: string;
+  month: string;
+};
+
 // Evento de la escena nocturna - lo que decide "¿salgo hoy?":
 // género, precio, amigos que van, preventas restantes.
 type TonightEvent = {
@@ -331,6 +341,7 @@ export function HomeHub() {
   const tt = useTranslations("tours.home");
   const tta = useTranslations("tours.academia");
   const ts = useTranslations("survey");
+  const tcs = useTranslations("courseSurvey");
 
   // /me compartido (MeProvider del layout) - el hub ya no fetchea la
   // sesión: las encuestas y los stats se disparan en paralelo con /me
@@ -359,6 +370,9 @@ export function HomeHub() {
   // lente evalúa); null hasta que el fetch resuelve → la card no
   // reserva espacio ni flashea vacía.
   const [surveys, setSurveys] = useState<PendingSurvey[] | null>(null);
+  const [courseSurveys, setCourseSurveys] = useState<
+    PendingCourseSurvey[] | null
+  >(null);
   // Stats versionados por lente: {key: "ROLE:mode"} - al cambiar de
   // lente el slot viejo no se muestra nunca (cero flash de KPIs/hero
   // ajenos); mientras resuelve el fetch de la lente actual → spinner.
@@ -387,6 +401,14 @@ export function HomeHub() {
       .then(async (res) => {
         if (cancelled || !res.ok) return;
         setSurveys((await res.json()) as PendingSurvey[]);
+      })
+      .catch(() => {});
+    // Encuestas mensuales de curso - mismo pull one-shot; el push corre
+    // en el job academies.course_surveys (día 1 de cada mes).
+    apiFetch("/me/pending-course-surveys")
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        setCourseSurveys((await res.json()) as PendingCourseSurvey[]);
       })
       .catch(() => {});
     return () => {
@@ -623,12 +645,13 @@ export function HomeHub() {
       {/* Encuestas post-social - timely, arriba del contenido de lente.
           Cualquier rol las ve (un productor que bailó también evalúa);
           sin items no se renderiza nada (cero hueco). */}
-      {surveys !== null && surveys.length > 0 && (
+      {((surveys !== null && surveys.length > 0) ||
+        (courseSurveys !== null && courseSurveys.length > 0)) && (
         <section
           aria-label={ts("sectionLabel")}
           className="flex flex-col gap-2"
         >
-          {surveys.map((s) => (
+          {surveys?.map((s) => (
             <Link
               key={s.eventId}
               href={`/eventos/${s.eventId}/evaluar`}
@@ -639,6 +662,21 @@ export function HomeHub() {
               </span>
               <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-neon">
                 {ts("cardCta")}
+                <ChevronRightIcon />
+              </span>
+            </Link>
+          ))}
+          {courseSurveys?.map((s) => (
+            <Link
+              key={`${s.seriesId}:${s.month}`}
+              href={`/academias/${s.academyId}/encuesta?seriesId=${s.seriesId}&month=${s.month}&series=${encodeURIComponent(s.seriesName)}`}
+              className="flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-neon/40 bg-elevated/70 px-5 py-4 transition-colors transition-transform hover:border-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+            >
+              <span className="min-w-0 truncate text-base font-semibold">
+                {tcs("prompt", { name: s.seriesName })}
+              </span>
+              <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-neon">
+                {tcs("cardCta")}
                 <ChevronRightIcon />
               </span>
             </Link>
