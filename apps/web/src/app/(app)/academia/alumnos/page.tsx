@@ -5,6 +5,7 @@ import { useMe } from "@/lib/me-context";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyKpiStrip } from "@/components/academy/academy-kpi-strip";
+import { StudentsInsights } from "@/components/academy/students-insights";
 import { StudentsSection } from "@/components/academy/students-section";
 import { ImportCard } from "@/components/academy/import-section";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
@@ -63,6 +64,8 @@ function StudentsModule({
         academyId={academyId}
         keys={["activeStudents", "pctMen", "pctWomen"]}
       />
+      {/* Listas de insight tras los KPIs - mismo orden que el inicio. */}
+      <StudentsInsights academyId={academyId} />
       <StudentsSection
         academyId={academyId}
         readOnly={canAdminister !== true}

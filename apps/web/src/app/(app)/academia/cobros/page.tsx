@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ClaimsQueue } from "@/components/academy/claims-queue";
+import { CobrosExpiring } from "@/components/academy/cobros-expiring";
 import { CobrosHistory } from "@/components/academy/cobros-history";
 import { CobrosKpiStrip } from "@/components/academy/cobros-kpis";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -24,6 +25,10 @@ export default function AcademiaCobrosPage() {
         {({ academy }) => (
           <>
             <CobrosKpiStrip academyId={academy.id} />
+            <CobrosExpiring
+              key={`e-${academy.id}`}
+              academyId={academy.id}
+            />
             <ClaimsQueue key={`q-${academy.id}`} academyId={academy.id} />
             <CobrosHistory key={`h-${academy.id}`} academyId={academy.id} />
           </>

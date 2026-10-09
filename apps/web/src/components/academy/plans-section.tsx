@@ -56,9 +56,18 @@ export function PlansSection({ plans }: Props) {
                 href={`/academia/planes/${p.id}`}
                 className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
               >
-                <Card className="flex h-full flex-wrap items-center gap-x-4 gap-y-2 p-4 transition-colors hover:border-neon/40">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{p.name}</p>
+                {/* Layout vertical: en 3 columnas de desktop el card queda
+                    angosto y el row horizontal colapsaba el nombre a un
+                    par de letras. Nombre+precio arriba, meta debajo y
+                    badges al pie - legible a cualquier ancho. */}
+                <Card className="flex h-full flex-col gap-2 p-4 transition-colors hover:border-neon/40">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 font-medium leading-snug">
+                      {p.name}
+                    </p>
+                    <PriceTag amount={p.price} className="shrink-0" />
+                  </div>
+                  <div className="flex flex-col">
                     {p.classCount != null && (
                       <p className="text-xs text-ink/50">
                         {t("planClasses")}: {p.classCount}
@@ -75,7 +84,7 @@ export function PlansSection({ plans }: Props) {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="mt-auto flex flex-wrap items-center gap-2">
                     <Badge variant="outline">
                       {t.has(`planTypes.${p.type}`)
                         ? t(`planTypes.${p.type}`)
@@ -84,7 +93,6 @@ export function PlansSection({ plans }: Props) {
                     <Badge variant={p.active ? "neon" : "outline"}>
                       {p.active ? t("planStateActive") : t("planInactive")}
                     </Badge>
-                    <PriceTag amount={p.price} />
                   </div>
                 </Card>
               </Link>

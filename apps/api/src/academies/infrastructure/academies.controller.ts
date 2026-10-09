@@ -903,33 +903,57 @@ export class AcademiesController {
       prevStart.getTime() + (now.getTime() - monthStart.getTime()),
     );
 
-    const [activePlans, grouped, groupedPrev] = await Promise.all([
-      this.prisma.membershipPlan.count({
-        where: { academyId: id, active: true },
-      }),
-      this.prisma.enrollment.groupBy({
-        by: ["planId"],
-        where: { academyId: id, status: "ACTIVE" },
-        _count: { _all: true },
-      }),
-      this.prisma.enrollment.groupBy({
-        by: ["planId"],
-        where: {
-          academyId: id,
-          status: "ACTIVE",
-          startedAt: { gte: prevStart, lte: prevEnd },
-        },
-        _count: { _all: true },
-      }),
-    ]);
+    const [activePlans, grouped, groupedPrev, boughtMonth] =
+      await Promise.all([
+        this.prisma.membershipPlan.count({
+          where: { academyId: id, active: true },
+        }),
+        this.prisma.enrollment.groupBy({
+          by: ["planId"],
+          where: { academyId: id, status: "ACTIVE" },
+          _count: { _all: true },
+        }),
+        this.prisma.enrollment.groupBy({
+          by: ["planId"],
+          where: {
+            academyId: id,
+            status: "ACTIVE",
+            startedAt: { gte: prevStart, lte: prevEnd },
+          },
+          _count: { _all: true },
+        }),
+        // Compras del mes: altas de enrollment en el mes en curso (cada
+        // alta es una compra/renovación del plan - spec: top 5 más
+        // comprados con su conteo).
+        this.prisma.enrollment.groupBy({
+          by: ["planId"],
+          where: {
+            academyId: id,
+            planId: { not: null },
+            startedAt: { gte: monthStart },
+          },
+          _count: { _all: true },
+        }),
+      ]);
     const prevByPlan = new Map(groupedPrev.map((g) => [g.planId, g._count._all]));
     const top = grouped
       .filter((g) => g.planId)
       .sort((a, b) => b._count._all - a._count._all)
       .slice(0, 3);
-    const names = top.length
+    const topBought = boughtMonth
+      .filter((g) => g.planId)
+      .sort((a, b) => b._count._all - a._count._all)
+      .slice(0, 5);
+    const names = top.length || topBought.length
       ? await this.prisma.membershipPlan.findMany({
-          where: { id: { in: top.map((g) => g.planId!) } },
+          where: {
+            id: {
+              in: [
+                ...top.map((g) => g.planId!),
+                ...topBought.map((g) => g.planId!),
+              ],
+            },
+          },
           select: { id: true, name: true },
         })
       : [];
@@ -941,6 +965,11 @@ export class AcademiesController {
         name: nameById.get(g.planId!) ?? null,
         students: g._count._all,
         studentsPrev: prevByPlan.get(g.planId!) ?? 0,
+      })),
+      topPurchasedMonth: topBought.map((g) => ({
+        planId: g.planId!,
+        name: nameById.get(g.planId!) ?? null,
+        count: g._count._all,
       })),
     };
   }
@@ -1529,6 +1558,99 @@ export class AcademiesController {
       total,
       page: pg.page,
       pageSize: pg.pageSize,
+    };
+  }
+
+  /**
+   * Insights del módulo Alumnos (spec academy-console-v3): top 5 por
+   * asistencia histórica y top 5 por monto pagado en el mes en curso
+   * (claims APPROVED + pasarela PAID atribuida por refId - mismo ledger
+   * que cobros/kpis). Declarado antes de :personId - "insights" sería
+   * capturado como id.
+   */
+  @Get(":id/students/insights")
+  @UseGuards(SessionGuard)
+  async studentsInsights(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireManage(id, req.person!);
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const planIds = await this.prisma.membershipPlan.findMany({
+      where: { academyId: id },
+      select: { id: true },
+    });
+    const [attGrouped, claimsMonth, gatewayMonth] = await Promise.all([
+      this.prisma.attendance.groupBy({
+        by: ["personId"],
+        where: { class: { slot: { academyId: id } } },
+        _count: { _all: true },
+      }),
+      this.prisma.paymentClaim.findMany({
+        where: {
+          academyId: id,
+          status: "APPROVED",
+          createdAt: { gte: monthStart },
+        },
+        select: { amount: true, personId: true },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          status: "PAID",
+          createdAt: { gte: monthStart },
+          OR: [
+            ...planIds.map((p) => ({
+              orderType: "MEMBERSHIP",
+              refId: { startsWith: `mem_${p.id}_` },
+            })),
+            { orderType: "PRIVATE", refId: { startsWith: `pvt_${id}_` } },
+          ],
+        },
+        select: { amount: true, personId: true },
+      }),
+    ]);
+
+    const paidByPerson = new Map<string, number>();
+    for (const r of [...claimsMonth, ...gatewayMonth]) {
+      paidByPerson.set(
+        r.personId,
+        (paidByPerson.get(r.personId) ?? 0) + r.amount,
+      );
+    }
+    const topAttendance = attGrouped
+      .sort((a, b) => b._count._all - a._count._all)
+      .slice(0, 5);
+    const topPayers = [...paidByPerson.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // personId es escalar sin FK - nombres por join manual (patrón del
+    // dashboard).
+    const ids = [
+      ...new Set([
+        ...topAttendance.map((g) => g.personId),
+        ...topPayers.map(([pid]) => pid),
+      ]),
+    ];
+    const people = ids.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameById = new Map(people.map((p) => [p.id, p.name]));
+
+    return {
+      topAttendance: topAttendance.map((g) => ({
+        personId: g.personId,
+        name: nameById.get(g.personId) ?? null,
+        count: g._count._all,
+      })),
+      topPayersMonth: topPayers.map(([personId, amount]) => ({
+        personId,
+        name: nameById.get(personId) ?? null,
+        amount,
+      })),
     };
   }
 

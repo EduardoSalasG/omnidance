@@ -58,7 +58,7 @@
       "forbidden": "No tienes acceso a esta sección."
     },
     "publicProfile": {
-      "title": "Perfil público",
+      "title": "Perfil de la academia",
       "desc": "Lo que ven los bailarines en la ficha y el mapa de academias.",
       "description": "Descripción",
       "descriptionPlaceholder": "Qué imparte la academia, su propuesta…",
@@ -182,7 +182,7 @@
     "configPages": {
       "general": "Clases",
       "payments": "Métodos de pago",
-      "profile": "Perfil público",
+      "profile": "Perfil de la academia",
       "appearance": "Apariencia"
     },
     "kpis": {
@@ -213,7 +213,17 @@
       "plan": "Crea un plan de membresía",
       "student": "Registra a tu primer alumno",
       "team": "Invita a tu equipo"
-    }
+    },
+    "topPurchasedTitle": "Más comprados este mes",
+    "topPurchasedCount": "{count, plural, one {# compra} other {# compras}}",
+    "studentsTopAttendanceTitle": "Mayor asistencia",
+    "studentsTopAttendanceCount": "{count, plural, one {# asistencia} other {# asistencias}}",
+    "studentsTopPayersTitle": "Más pagaron este mes",
+    "seriesAvgAttendanceHint": "Promedio por clase del periodo",
+    "seriesTopAttendanceTitle": "Mayor asistencia a la fecha",
+    "seriesLowAttendanceTitle": "Menor asistencia a la fecha",
+    "seriesWeeklyAvgHint": "Clases semanales por alumno en promedio",
+    "seriesWeeklyAvgTitle": "Clases/semana por alumno"
   },
   "academySeries": {
     "addSlotHint": "Se crean las clases futuras en ese día dentro de la ventana de programación.",

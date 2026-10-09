@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
@@ -124,6 +125,9 @@ function PlansModule({ academyId }: { academyId: string }) {
   return (
     <div className="flex flex-col gap-4">
       {kpis && <PlansKpiCards kpis={kpis} />}
+      {kpis && kpis.topPurchasedMonth.length > 0 && (
+        <TopPurchasedList items={kpis.topPurchasedMonth} />
+      )}
       <FilterBar
         entity={PLANS_ENTITY}
         filters={filters}
@@ -212,6 +216,42 @@ function PlansKpiCards({ kpis }: { kpis: PlansKpis }) {
           </Card>
         );
       })}
+    </section>
+  );
+}
+
+// Top 5 por compras del mes (altas de enrollment): orden KPIs → listas,
+// como en el inicio. Filas navegables al detalle del plan.
+function TopPurchasedList({
+  items,
+}: {
+  items: PlansKpis["topPurchasedMonth"];
+}) {
+  const t = useTranslations("academy");
+  return (
+    <section aria-label={t("topPurchasedTitle")}>
+      <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
+        {t("topPurchasedTitle")}
+      </h3>
+      <Card padded={false}>
+        <ul className="flex flex-col divide-y divide-line">
+          {items.map((p) => (
+            <li key={p.planId}>
+              <Link
+                href={`/academia/planes/${p.planId}`}
+                className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {p.name ?? p.planId}
+                </span>
+                <span className="shrink-0 text-xs tabular-nums text-ink/50">
+                  {t("topPurchasedCount", { count: p.count })}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </section>
   );
 }

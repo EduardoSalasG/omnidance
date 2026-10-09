@@ -11,6 +11,7 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { FilterBar } from "@/components/query/FilterBar";
 import { ImportCard } from "@/components/academy/import-section";
+import { SeriesInsights } from "@/components/academy/series-insights";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import {
   filterQuery,
@@ -180,6 +181,10 @@ function SeriesModule({ academyId }: { academyId: string }) {
           </Button>
         )}
       </div>
+
+      {/* Insights del módulo: KPIs primero, listas después (mismo
+          orden que el inicio). */}
+      <SeriesInsights academyId={academyId} />
 
       <FilterBar
         entity={SERIES_ENTITY}

@@ -284,6 +284,100 @@ export class ClassSeriesController {
   }
 
   /**
+   * Insights del módulo Clases (spec academy-console-v3): promedio de
+   * asistencia por clase dictada, clases semanales promedio por alumno
+   * (ventana de 28 días) y top/bottom 5 series por asistencia histórica.
+   * Declarado antes de :seriesId - "insights" sería capturado como id.
+   */
+  @Get(":id/series/insights")
+  async insights(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapability(id, req.person!, "schedule");
+    const now = new Date();
+    const todayUTC = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const monthAgo = new Date(todayUTC.getTime() - 28 * 86_400_000);
+
+    const [pastClasses, attByClass, att28] = await Promise.all([
+      // Clases ya dictadas de series vivas (deletedAt las saca de la
+      // consola - su historial solo le sirve a analítica).
+      this.prisma.class.findMany({
+        where: {
+          cancelled: false,
+          date: { lte: todayUTC },
+          slot: { academyId: id, series: { deletedAt: null } },
+        },
+        select: { id: true, slot: { select: { seriesId: true } } },
+      }),
+      this.prisma.attendance.groupBy({
+        by: ["classId"],
+        where: {
+          class: {
+            slot: { academyId: id, series: { deletedAt: null } },
+            date: { lte: todayUTC },
+          },
+        },
+        _count: { _all: true },
+      }),
+      // Clases asistidas por alumno en 28 días → promedio semanal.
+      this.prisma.attendance.groupBy({
+        by: ["personId"],
+        where: {
+          class: {
+            slot: { academyId: id },
+            date: { gte: monthAgo, lte: todayUTC },
+          },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const attCount = new Map(attByClass.map((g) => [g.classId, g._count._all]));
+    const totalAttendance = attByClass.reduce((a, g) => a + g._count._all, 0);
+    const avgAttendancePerClass = pastClasses.length
+      ? Math.round((totalAttendance / pastClasses.length) * 10) / 10
+      : null;
+
+    const attendees = att28.length;
+    const avgWeeklyClassesPerStudent = attendees
+      ? Math.round(
+          (att28.reduce((a, g) => a + g._count._all, 0) / attendees / 4) * 10,
+        ) / 10
+      : null;
+
+    // Asistencia histórica por serie (solo con clases dictadas - una
+    // serie nueva sin pasadas no compite por "menor asistencia").
+    const bySeries = new Map<string, number>();
+    for (const c of pastClasses) {
+      const sid = c.slot.seriesId;
+      bySeries.set(sid, (bySeries.get(sid) ?? 0) + (attCount.get(c.id) ?? 0));
+    }
+    const ranked = [...bySeries.entries()].sort((a, b) => b[1] - a[1]);
+    const seriesIds = [
+      ...new Set([...ranked.slice(0, 5), ...ranked.slice(-5)].map(([sid]) => sid)),
+    ];
+    const names = seriesIds.length
+      ? await this.prisma.classSeries.findMany({
+          where: { id: { in: seriesIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameById = new Map(names.map((n) => [n.id, n.name]));
+    const row = ([seriesId, count]: [string, number]) => ({
+      seriesId,
+      name: nameById.get(seriesId) ?? null,
+      attendance: count,
+    });
+
+    return {
+      avgAttendancePerClass,
+      avgWeeklyClassesPerStudent,
+      topSeries: ranked.slice(0, 5).map(row),
+      bottomSeries: ranked.slice(-5).reverse().map(row),
+    };
+  }
+
+  /**
    * Detalle de una serie de la academia. Las eliminadas (deletedAt)
    * responden 404 - fuera de la consola solo existen para analítica.
    */
