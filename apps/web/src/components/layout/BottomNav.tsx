@@ -302,8 +302,36 @@ type DrawerGroupSpec = {
   // cuando el grupo es mono-módulo - p.ej. "Analítica").
   labelNs: "nav" | "producer" | "academy" | "admin" | "analytics";
   labelKey: string;
+  // bare = el grupo no muestra header de sección (ítems sueltos).
+  bare?: boolean;
+  // mobileOnly = solo en el drawer móvil: en ≥lg esos destinos ya
+  // aparecen en la sidebar vía el grupo de tabs del rol (sin duplicar).
+  mobileOnly?: boolean;
   items: DrawerSpec[];
 };
+
+// Consolas densas (owner, productor): demasiadas opciones para un tab
+// bar útil - en móvil navegan solo por el drawer lateral; en ≥lg la
+// sidebar ya lista todos sus destinos.
+const MOBILE_DRAWER_ONLY: ReadonlySet<AppRole> = new Set([
+  "ACADEMY_OWNER",
+  "PRODUCER",
+]);
+
+// Destinos que el tab bar móvil cubría y el drawer debe reemplazar en
+// las consolas drawer-only: Inicio siempre; el productor además su
+// lista de eventos (el "+" de crear es flujo, entra por el módulo -
+// misma convención que la sidebar desktop).
+const MOBILE_HOME_GROUP = (extra: DrawerSpec[] = []): DrawerGroupSpec => ({
+  labelNs: "nav",
+  labelKey: "home",
+  bare: true,
+  mobileOnly: true,
+  items: [
+    { href: "/inicio", ns: "nav", key: "home", icon: ICONS.home, exact: true },
+    ...extra,
+  ],
+});
 
 // Grupo "Analítica" del drawer - módulo transversal a los roles con
 // analítica (no vive bajo el dominio de ninguna consola).
@@ -356,6 +384,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
   ],
   PRODUCER: [
+    MOBILE_HOME_GROUP([
+      {
+        href: "/productor/eventos",
+        ns: "nav",
+        key: "events",
+        icon: ICONS.events,
+      },
+    ]),
     {
       labelNs: "producer",
       labelKey: "title",
@@ -365,6 +401,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "producer",
           key: "title",
           icon: ICONS.producer,
+          // match exacto: /productor/eventos ya tiene su propio ítem y
+          // con el tab bar oculto no hay exclusión de hrefs-tab.
+          exact: true,
         },
         {
           href: "/productor/codigos",
@@ -405,6 +444,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   // Los módulos del owner viven acá agrupados por dominio (la grilla
   // de /academia queda solo para staff/admin que no tienen este drawer).
   ACADEMY_OWNER: [
+    MOBILE_HOME_GROUP(),
     {
       labelNs: "academy",
       labelKey: "navGroups.teaching",
@@ -762,6 +802,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     (activeRole === "ACADEMY_OWNER" ||
       activeRole === "INSTRUCTOR" ||
       dancerAcademy);
+  // Consolas drawer-only: sin tab bar móvil (todas sus opciones viven
+  // en el drawer). Hasta que /me resuelve no se muestra nada - evita
+  // flashear la barra de otra lente.
+  const showTabBar = meChecked && !MOBILE_DRAWER_ONLY.has(activeRole);
 
   // Baseline de no-leídas por lente: `?lens=` acota el unreadCount al
   // dominio activo (los tipos "any" cuentan en ambas). Corre tras /me
@@ -808,6 +852,15 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     if (meChecked && !me) document.documentElement.dataset.anon = "true";
     else delete document.documentElement.dataset.anon;
   }, [meChecked, me]);
+
+  // data-notabbar en <html>: mismo mecanismo para las consolas
+  // drawer-only - su tab bar móvil no existe → el contenido no
+  // reserva el espacio de la barra (globals.css).
+  useEffect(() => {
+    if (meChecked && me && MOBILE_DRAWER_ONLY.has(activeRole))
+      document.documentElement.dataset.notabbar = "true";
+    else delete document.documentElement.dataset.notabbar;
+  }, [meChecked, me, activeRole]);
 
   // La página /notificaciones marca leídas por ítem sin emitir evento:
   // al entrar el badge se resetea (el socket lo vuelve a subir si llega
@@ -920,15 +973,18 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   // Sin sesión el drawer muestra solo la sección de cuenta; con sesión,
   // los grupos del rol activo + cuenta al final. Los hrefs que ya son
-  // tab no se marcan activos en el drawer.
+  // tab no se marcan activos en el drawer - salvo en consolas
+  // drawer-only, donde el drawer ES la única navegación.
   const drawerGroups: DrawerGroup[] = !me
     ? [accountGroup]
     : [
         ...roleDrawer.map((g) => ({
           label: labelFor(g.labelNs, g.labelKey),
+          bare: g.bare,
+          mobileOnly: g.mobileOnly,
           items: g.items.map((spec) => {
             const active =
-              !tabHrefs.has(spec.href) &&
+              (showTabBar ? !tabHrefs.has(spec.href) : true) &&
               (spec.exact
                 ? pathname === spec.href
                 : pathname.startsWith(spec.href));
@@ -1002,7 +1058,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
                 dataTour: SIDEBAR_TOUR[tab.href],
               })),
           },
-          ...drawerGroups,
+          // Los grupos mobileOnly (Inicio/Eventos del drawer) ya están
+          // en el grupo de tabs de la sidebar - no se duplican en ≥lg.
+          ...drawerGroups.filter((g) => !g.mobileOnly),
         ];
 
   // Título contextual junto a la hamburguesa: longest-prefix match sobre
@@ -1324,6 +1382,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
       {children}
 
+      {/* Tab bar móvil - las consolas drawer-only (owner, productor)
+          navegan solo por el drawer lateral; en ≥lg la sidebar la
+          reemplaza para todos. */}
+      {showTabBar && (
       <nav
         aria-label={t("main")}
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
@@ -1347,6 +1409,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           {meChecked && allTabs.map(renderTab)}
         </ul>
       </nav>
+      )}
       </div>
 
       <SideDrawer

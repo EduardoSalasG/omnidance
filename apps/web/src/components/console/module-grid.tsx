@@ -6,14 +6,17 @@ export function ModuleCard({
   href,
   title,
   desc,
+  dataTour,
 }: {
   href: string;
   title: string;
   desc?: string;
+  dataTour?: string;
 }) {
   return (
     <Link
       href={href}
+      data-tour={dataTour}
       className="group flex min-h-11 items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-neon/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
     >
       <span className="flex flex-col gap-1">

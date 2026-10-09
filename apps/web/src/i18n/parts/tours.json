@@ -167,18 +167,14 @@
     },
     "productor": {
       "s1": {
-        "title": "El +",
-        "desc": "Crea tu evento: fecha, local, precios, lineup, aforo, y mesas reservables con su tope por mesa y cupo sentable."
+        "title": "Tus eventos",
+        "desc": "Acá creas y administras cada evento: fecha, local, precios, lineup, aforo y mesas; más staff de puerta, pases y las solicitudes de reserva por confirmar."
       },
       "s2": {
-        "title": "Tus eventos",
-        "desc": "Publicados, borradores y las acciones de cada noche: staff de puerta, pases y las solicitudes de reserva de mesa: revísalas y confirma el tamaño final."
-      },
-      "s3": {
         "title": "Liquidaciones",
         "desc": "Lo recaudado menos fees: lo que te toca transferir."
       },
-      "s4": {
+      "s3": {
         "title": "Todos los módulos",
         "desc": "Códigos de descuento, listas de puerta, analítica y tus parámetros, incluidos los defaults de mesas que heredan tus eventos."
       }
@@ -190,7 +186,7 @@
       },
       "s2": {
         "title": "Asistencia",
-        "desc": "Marca presente a tus alumnos en cada clase. Es tu tab directo."
+        "desc": "El promedio del mes a la vista, y desde acá entras a marcar presente a tus alumnos en cada clase."
       },
       "s3": {
         "title": "Todos los módulos",

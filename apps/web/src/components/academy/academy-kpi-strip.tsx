@@ -145,6 +145,7 @@ export function AcademyKpiCards({
                 <Link
                   href={k.href}
                   title={k.hint}
+                  data-tour={`academy-kpi-${k.key}`}
                   // El hint también vive en title (visual); el aria-label
                   // lo expone a teclado/táctil y lectores de pantalla.
                   aria-label={`${label}: ${k.value ?? t("kpis.noData")} — ${k.hint}`}

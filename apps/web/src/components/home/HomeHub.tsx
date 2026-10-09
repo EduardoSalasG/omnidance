@@ -734,7 +734,7 @@ export function HomeHub() {
           tour="academia"
           steps={[
             {
-              element: "[data-tour='nav-attendance']",
+              element: "[data-tour='academy-kpi-avgAttendance']",
               title: tta("s2.title"),
               description: tta("s2.desc"),
               side: "top",
