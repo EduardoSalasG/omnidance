@@ -9,12 +9,12 @@ import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError } from "@/components/academy/shared";
 
-type PayType = "PER_CLASS" | "MONTHLY";
+type PayType = "PER_CLASS" | "MONTHLY" | "COMMISSION";
 
 /**
  * /academia/equipo/profesor/[id]/editar - acuerdo económico del
- * profesor (nivel 3): pago mensual por N clases o pago por clase.
- * La comisión de clases particulares se configura aparte (legacy).
+ * profesor (nivel 3): pago mensual por N clases, pago por clase o
+ * comisión (% que la academia retiene de cada particular).
  */
 export default function InstructorEditPage() {
   const t = useTranslations("academyStaff");
@@ -54,6 +54,7 @@ function EditAgreement({
   const [payType, setPayType] = useState<PayType | null>(null);
   const [payAmount, setPayAmount] = useState("");
   const [payClasses, setPayClasses] = useState("");
+  const [commissionPct, setCommissionPct] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -73,11 +74,15 @@ function EditAgreement({
       payType: PayType | null;
       payAmount: number | null;
       payClasses: number | null;
+      commissionPct: number | null;
     };
     setName(body.person.name ?? body.person.email ?? "");
     setPayType(body.payType);
     setPayAmount(body.payAmount != null ? String(body.payAmount) : "");
     setPayClasses(body.payClasses != null ? String(body.payClasses) : "");
+    setCommissionPct(
+      body.commissionPct != null ? String(body.commissionPct) : "",
+    );
     setLoaded(true);
   }, [academyId, personId]);
 
@@ -89,7 +94,19 @@ function EditAgreement({
     e.preventDefault();
     const amount = payAmount.trim() === "" ? null : Number(payAmount);
     const classes = payClasses.trim() === "" ? null : Number(payClasses);
-    if (payType && (amount === null || !Number.isInteger(amount) || amount < 0)) {
+    const pct = commissionPct.trim() === "" ? null : Number(commissionPct);
+    if (
+      payType === "COMMISSION" &&
+      (pct === null || !Number.isInteger(pct) || pct < 0 || pct > 100)
+    ) {
+      setErr(t("error"));
+      return;
+    }
+    if (
+      payType &&
+      payType !== "COMMISSION" &&
+      (amount === null || !Number.isInteger(amount) || amount < 0)
+    ) {
       setErr(t("error"));
       return;
     }
@@ -110,8 +127,12 @@ function EditAgreement({
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             payType: payType ?? null,
-            payAmount: payType ? amount : null,
+            payAmount:
+              payType === "PER_CLASS" || payType === "MONTHLY"
+                ? amount
+                : null,
             payClasses: payType === "MONTHLY" ? classes : null,
+            commissionPct: payType === "COMMISSION" ? pct : null,
           }),
         },
       );
@@ -150,8 +171,8 @@ function EditAgreement({
       <form onSubmit={save} className="flex flex-col gap-3">
         <fieldset className="flex flex-col gap-1">
           <legend className="text-xs text-ink/50">{t("agreementLegend")}</legend>
-          <div className="grid grid-cols-3 gap-2" role="radiogroup">
-            {([null, "MONTHLY", "PER_CLASS"] as const).map((k) => (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup">
+            {([null, "MONTHLY", "PER_CLASS", "COMMISSION"] as const).map((k) => (
               <label
                 key={k ?? "none"}
                 className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 text-center text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-neon ${
@@ -171,12 +192,31 @@ function EditAgreement({
                   ? t("payTypeNone")
                   : k === "MONTHLY"
                     ? t("payMonthly")
-                    : t("payPerClass")}
+                    : k === "PER_CLASS"
+                      ? t("payPerClass")
+                      : t("payCommission")}
               </label>
             ))}
           </div>
         </fieldset>
-        {payType && (
+        {payType === "COMMISSION" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-ink/50">
+              {t("fieldCommissionPct")}
+            </span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              inputMode="numeric"
+              required
+              className={inputCls}
+              value={commissionPct}
+              onChange={(e) => setCommissionPct(e.target.value)}
+            />
+          </label>
+        )}
+        {(payType === "PER_CLASS" || payType === "MONTHLY") && (
           <label className="flex flex-col gap-1">
             <span className="text-xs text-ink/50">{t("fieldPayAmount")}</span>
             <input

@@ -8,12 +8,12 @@ import { AcademyAccess } from "./academy-access.service";
 import { PrivateLessonsController } from "./private-lessons.controller";
 import { AcademiesController } from "./academies.controller";
 
-// Acuerdo económico del instructor (academy-console-v4): PATCH
-// /academies/:id/instructors/:personId (owner/admin) sobre payType/
-// payAmount/payClasses. commissionPct quedó solo como snapshot
-// histórico: las lecciones nuevas nacen en 0, pay-commission sigue
-// liquidando las antiguas y mine?as=instructor deriva netClp solo
-// en lecciones con comisión.
+// Acuerdo económico del instructor (instructor-commission-subtype):
+// PATCH /academies/:id/instructors/:personId (owner/admin) sobre
+// payType/payAmount/payClasses/commissionPct - COMMISSION es un subtipo
+// del acuerdo que se snapshottea a la lección al crear/asignar;
+// pay-commission liquida las pendientes y mine?as=instructor deriva
+// netClp solo en lecciones con comisión >0.
 // private-lesson-product: particular comprable (assign por el owner,
 // POST solo-staff, joins toleran instructorId/scheduledAt null).
 
@@ -29,8 +29,8 @@ interface FakeAcademy {
 interface FakeInstructor {
   academyId: string;
   personId: string;
-  // Snapshot legacy - la lección lo copia al crearse; ya no se edita
-  // por API (el acuerdo vigente es payType/payAmount/payClasses).
+  // Tasa del acuerdo COMMISSION (o histórica legacy si payType es
+  // null) - la lección la snapshottea solo si payType=COMMISSION.
   commissionPct: number | null;
   payType?: string | null;
   payAmount?: number | null;
@@ -363,10 +363,10 @@ describe("comisión del instructor en clases particulares", () => {
     expect(res.payType).toBe("MONTHLY");
   });
 
-  it("request() ya no snapshottea comisión: la lección nace con commissionPct=0", async () => {
+  it("request() sin acuerdo COMMISSION no snapshottea: commissionPct=0", async () => {
     // POST es staff-only desde private-lesson-product - el owner crea la
-    // lección manual. El acuerdo económico vive en payType/payAmount/
-    // payClasses; commissionPct solo describe lecciones históricas.
+    // lección manual. El instructor del fixture tiene commissionPct
+    // histórico 25 pero payType null → el snapshot es 0.
     const lesson = await lessons.request(
       "ac-1",
       {
@@ -377,6 +377,55 @@ describe("comisión del instructor en clases particulares", () => {
       reqAs("owner"),
     );
     expect(lesson.commissionPct).toBe(0);
+  });
+
+  it("request() con acuerdo COMMISSION snapshottea la tasa", async () => {
+    prisma.instructors[0].payType = "COMMISSION";
+    const lesson = await lessons.request(
+      "ac-1",
+      {
+        instructorId: "inst",
+        scheduledAt: new Date("2026-10-01T20:00:00Z").toISOString(),
+        price: 40000,
+      },
+      reqAs("owner"),
+    );
+    expect(lesson.commissionPct).toBe(25);
+  });
+
+  it("updateInstructor: COMMISSION fija la tasa y limpia montos; cambiar de subtipo limpia la tasa", async () => {
+    const res = await academies.updateInstructor(
+      "ac-1",
+      "inst",
+      { payType: "COMMISSION", commissionPct: 30 },
+      reqAs("owner"),
+    );
+    expect(res).toMatchObject({
+      payType: "COMMISSION",
+      commissionPct: 30,
+      payAmount: null,
+      payClasses: null,
+    });
+    const res2 = await academies.updateInstructor(
+      "ac-1",
+      "inst",
+      { payType: "PER_CLASS", payAmount: 15000 },
+      reqAs("owner"),
+    );
+    expect(res2.commissionPct).toBeNull();
+    expect(res2.payAmount).toBe(15000);
+  });
+
+  it("updateInstructor: pct fuera de 0-100 → 400", async () => {
+    prisma.instructors[0].payType = "COMMISSION";
+    await expect(
+      academies.updateInstructor(
+        "ac-1",
+        "inst",
+        { commissionPct: 101 },
+        reqAs("owner"),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
   });
 
   it("mine?as=instructor devuelve commissionClp/netClp", async () => {

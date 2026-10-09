@@ -13,9 +13,10 @@ import { readError } from "@/components/academy/shared";
 
 type InstructorDetail = {
   person: { id: string; name: string | null; email: string | null; phone: string | null };
-  payType: "PER_CLASS" | "MONTHLY" | null;
+  payType: "PER_CLASS" | "MONTHLY" | "COMMISSION" | null;
   payAmount: number | null;
   payClasses: number | null;
+  commissionPct: number | null;
   createdAt: string;
   stats: { taughtTotal: number; taughtMonth: number; attendanceMonth: number };
   upcoming: {
@@ -140,7 +141,9 @@ function Detail({
         })
       : detail.payType === "PER_CLASS" && detail.payAmount != null
         ? t("payPerClassOf", { amount: clp.format(detail.payAmount) })
-        : t("agreementNone");
+        : detail.payType === "COMMISSION" && detail.commissionPct != null
+          ? t("payCommissionOf", { pct: detail.commissionPct })
+          : t("agreementNone");
 
   return (
     <div className="flex flex-col gap-6">

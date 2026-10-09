@@ -27,11 +27,15 @@ export function StaffForm({ academyId }: { academyId: string }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [newCaps, setNewCaps] = useState<Caps>(EMPTY_CAPS);
-  // Acuerdo económico del profesor: PER_CLASS (monto/clase) o MONTHLY
-  // (monto mensual por N clases). null = se configura después.
-  const [payType, setPayType] = useState<"PER_CLASS" | "MONTHLY" | null>(null);
+  // Acuerdo económico del profesor: PER_CLASS (monto/clase), MONTHLY
+  // (monto mensual por N clases) o COMMISSION (% que retiene la
+  // academia por particular). null = se configura después.
+  const [payType, setPayType] = useState<
+    "PER_CLASS" | "MONTHLY" | "COMMISSION" | null
+  >(null);
   const [payAmount, setPayAmount] = useState("");
   const [payClasses, setPayClasses] = useState("");
+  const [commissionPct, setCommissionPct] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   // Éxito breve antes de volver al listado (que refetchea al montar).
@@ -47,10 +51,16 @@ export function StaffForm({ academyId }: { academyId: string }) {
           ? {
               payType,
               payAmount:
-                payAmount.trim() === "" ? undefined : Number(payAmount),
+                payType !== "COMMISSION" && payAmount.trim() !== ""
+                  ? Number(payAmount)
+                  : undefined,
               payClasses:
                 payType === "MONTHLY" && payClasses.trim() !== ""
                   ? Number(payClasses)
+                  : undefined,
+              commissionPct:
+                payType === "COMMISSION" && commissionPct.trim() !== ""
+                  ? Number(commissionPct)
                   : undefined,
             }
           : {};
@@ -163,33 +173,56 @@ export function StaffForm({ academyId }: { academyId: string }) {
                   <legend className="text-xs text-ink/50">
                     {t("agreementLegend")}
                   </legend>
-                  <div className="grid grid-cols-3 gap-2" role="radiogroup">
-                    {([null, "MONTHLY", "PER_CLASS"] as const).map((k) => (
-                      <label
-                        key={k ?? "none"}
-                        className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 text-center text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-neon ${
-                          payType === k
-                            ? "border-neon bg-neon/10 text-neon"
-                            : "border-line text-ink/70 hover:border-neon/40"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="new-pay-type"
-                          checked={payType === k}
-                          onChange={() => setPayType(k)}
-                          className="sr-only"
-                        />
-                        {k === null
-                          ? t("payTypeNone")
-                          : k === "MONTHLY"
-                            ? t("payMonthly")
-                            : t("payPerClass")}
-                      </label>
-                    ))}
+                  <div
+                    className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+                    role="radiogroup"
+                  >
+                    {([null, "MONTHLY", "PER_CLASS", "COMMISSION"] as const).map(
+                      (k) => (
+                        <label
+                          key={k ?? "none"}
+                          className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 text-center text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-neon ${
+                            payType === k
+                              ? "border-neon bg-neon/10 text-neon"
+                              : "border-line text-ink/70 hover:border-neon/40"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="new-pay-type"
+                            checked={payType === k}
+                            onChange={() => setPayType(k)}
+                            className="sr-only"
+                          />
+                          {k === null
+                            ? t("payTypeNone")
+                            : k === "MONTHLY"
+                              ? t("payMonthly")
+                              : k === "PER_CLASS"
+                                ? t("payPerClass")
+                                : t("payCommission")}
+                        </label>
+                      ),
+                    )}
                   </div>
                 </fieldset>
-                {payType && (
+                {payType === "COMMISSION" && (
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-ink/50">
+                      {t("fieldCommissionPct")}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      inputMode="numeric"
+                      className={inputCls}
+                      value={commissionPct}
+                      onChange={(e) => setCommissionPct(e.target.value)}
+                    />
+                  </label>
+                )}
+                {(payType === "PER_CLASS" || payType === "MONTHLY") && (
                   <label className="flex flex-col gap-1">
                     <span className="text-xs text-ink/50">
                       {t("fieldPayAmount")}

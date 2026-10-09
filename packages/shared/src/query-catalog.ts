@@ -256,6 +256,9 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         scopeAcademy,
         { key: "status", type: "enum", options: PRIVATE_LESSON_STATUS },
         { key: "instructorId", type: "fk", source: "academyInstructors" },
+        // Comisión = clases con snapshot >0 (acuerdo COMMISSION o
+        // histórico): paid liquidada, pending sin liquidar.
+        { key: "commission", type: "enum", options: ["all", "paid", "pending"] },
         from,
         to,
       ],
@@ -265,6 +268,8 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         "instructor",
         "agendada",
         "precio",
+        "comision_pct",
+        "comision_pagada",
         "estado",
       ],
     },

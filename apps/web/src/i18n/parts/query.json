@@ -48,6 +48,7 @@
       "eventId": "Evento",
       "styleId": "Estilo",
       "actorType": "Tipo de actor",
+      "commission": "Comisión",
       "levelId": "Nivel",
       "typeId": "Modalidad"
     },
@@ -262,6 +263,8 @@
         "instructor": "Instructor",
         "agendada": "Agendada",
         "precio": "Precio",
+        "comision_pct": "Comisión %",
+        "comision_pagada": "Comisión pagada",
         "estado": "Estado"
       },
       "events": {

@@ -793,17 +793,17 @@ model AcademyInstructor {
   academy   Academy @relation(fields: [academyId], references: [id])
   academyId String
   personId  String // instructor puede estar en N academias
-  // LEGACY: % que retiene la academia sobre el price de cada
-  // PrivateLesson del instructor. Salió del producto: ya no se escribe
-  // por API/UI ni se snapshottea a lecciones nuevas; el valor persistido
-  // es solo histórico (lecciones antiguas aún pendientes de liquidar
-  // referencian el acuerdo de la época). El acuerdo económico vigente es
-  // payType/payAmount/payClasses de abajo.
+  // % que retiene la academia sobre el price de cada PrivateLesson del
+  // instructor. Doble rol: es la TASA ACTIVA cuando payType=COMMISSION
+  // y dato histórico en instructores del modelo anterior (payType
+  // null). Las lecciones snapshottean su propio valor al crear/asignar.
   commissionPct Int?
-  // Acuerdo económico general del profesor (spec academy-console-v3):
-  // PER_CLASS = monto fijo por clase impartida; MONTHLY = monto mensual
-  // que cubre payClasses clases/mes. null = sin acuerdo registrado.
-  payType    String? // PER_CLASS | MONTHLY
+  // Acuerdo económico general del profesor (spec academy-console-v3 +
+  // instructor-commission-subtype): PER_CLASS = monto fijo por clase
+  // impartida; MONTHLY = monto mensual que cubre payClasses clases/mes;
+  // COMMISSION = la academia retiene commissionPct% por particular.
+  // null = sin acuerdo registrado.
+  payType    String? // PER_CLASS | MONTHLY | COMMISSION
   payAmount  Int?    // CLP
   payClasses Int?    // clases/mes incluidas (solo MONTHLY)
   createdAt DateTime @default(now())
@@ -1103,10 +1103,9 @@ model PrivateLesson {
   // null = pendiente de agendar (spec private-lesson-product)
   scheduledAt  DateTime?
   price        Int
-  // LEGACY: comisión de la academia (snapshot al assign/create) - el
-  // modelo vigente es el acuerdo payType/payAmount/payClasses del
-  // AcademyInstructor; se conserva para historia (pay-commission aún
-  // liquida pendientes legacy).
+  // Comisión de la academia (snapshot del acuerdo al assign/create):
+  // >0 cuando el instructor tenía acuerdo COMMISSION (o legacy) al
+  // snapshot; 0 con otro subtipo. pay-commission liquida las pendientes.
   commissionPct Int    @default(0)
   // Liquidación de la comisión academia→instructor: la plataforma no
   // transfiere - el owner marca commissionPaidAt cuando paga por fuera

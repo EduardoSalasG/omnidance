@@ -32,10 +32,12 @@ import { PrismaService } from "../../prisma.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { AcademyAccess } from "./academy-access.service";
 import { pageParams } from "./list-filters";
+import { agreementWrite, PAY_TYPES } from "./instructor-agreement";
 import {
   instructorInviteEmailHtml,
   staffInviteEmailHtml,
 } from "./invite-emails";
+import { ApiQuery } from "@nestjs/swagger";
 
 /**
  * TTL del magic link de invitación (spec academy-staff-roles): un
@@ -61,12 +63,13 @@ class AddStaffDto extends CapsDto {
 class AddInstructorDto {
   @IsEmail() email!: string;
   @IsOptional() @IsString() @MaxLength(120) name?: string;
-  // Acuerdo económico (spec academy-console-v3): PER_CLASS/MONTHLY.
-  // La comisión % legacy salió del producto - la columna queda como
-  // snapshot histórico pero ya no se edita por API ni UI.
-  @IsOptional() @IsIn(["PER_CLASS", "MONTHLY"]) payType?: string;
+  // Acuerdo económico (spec instructor-commission-subtype):
+  // PER_CLASS/MONTHLY (payAmount/payClasses) o COMMISSION (commissionPct
+  // 0-100 = % que la academia retiene por clase particular).
+  @IsOptional() @IsIn(PAY_TYPES) payType?: string;
   @IsOptional() @IsInt() @Min(0) payAmount?: number;
   @IsOptional() @IsInt() @Min(0) payClasses?: number;
+  @IsOptional() @IsInt() @Min(0) @Max(100) commissionPct?: number;
 }
 
 const CAP_TO_FIELD = {
@@ -151,6 +154,9 @@ export class AcademyStaffController {
    * (case-insensitive); personId es FK plana → post-filtro tras el join.
    */
   @Get(":id/staff")
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   async list(
     @Param("id") id: string,
     @Req() req: Request,
@@ -330,6 +336,8 @@ export class AcademyStaffController {
 
   /** Lista de profesores con su acuerdo económico (paginada). */
   @Get(":id/instructors")
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   async listInstructors(
     @Param("id") id: string,
     @Req() req: Request,
@@ -349,6 +357,7 @@ export class AcademyStaffController {
           payType: true,
           payAmount: true,
           payClasses: true,
+          commissionPct: true,
           createdAt: true,
         },
       }),
@@ -372,6 +381,8 @@ export class AcademyStaffController {
         payType: r.payType,
         payAmount: r.payAmount,
         payClasses: r.payClasses,
+        // Tasa del acuerdo COMMISSION (null en los demás subtipos).
+        commissionPct: r.payType === "COMMISSION" ? r.commissionPct : null,
         createdAt: r.createdAt,
       })),
       total,
@@ -466,6 +477,8 @@ export class AcademyStaffController {
       payType: instructor.payType,
       payAmount: instructor.payAmount,
       payClasses: instructor.payClasses,
+      commissionPct:
+        instructor.payType === "COMMISSION" ? instructor.commissionPct : null,
       createdAt: instructor.createdAt,
       stats: { taughtTotal, taughtMonth, attendanceMonth },
       upcoming: upcoming.map((c) => ({
@@ -500,19 +513,20 @@ export class AcademyStaffController {
     );
     this.assertValidTarget(person.id, academy.ownerId, req.person!.id);
 
-    const data = {
-      ...(dto.payType !== undefined ? { payType: dto.payType } : {}),
-      ...(dto.payAmount !== undefined ? { payAmount: dto.payAmount } : {}),
-      ...(dto.payClasses !== undefined ? { payClasses: dto.payClasses } : {}),
+    const data = agreementWrite(dto, null);
+    const create: Record<string, unknown> = {
+      payType: null,
+      payAmount: null,
+      payClasses: null,
+      commissionPct: null,
+      ...data,
     };
     await this.prisma.academyInstructor.upsert({
       where: { academyId_personId: { academyId: id, personId: person.id } },
       create: {
         academyId: id,
         personId: person.id,
-        payType: dto.payType ?? null,
-        payAmount: dto.payAmount ?? null,
-        payClasses: dto.payClasses ?? null,
+        ...create,
       },
       update: data,
     });
