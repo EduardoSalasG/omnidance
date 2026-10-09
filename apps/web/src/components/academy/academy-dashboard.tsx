@@ -166,36 +166,40 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
               {t("today.attendance", { count: dashboard.attendanceToday })}
             </p>
           </div>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {dashboard.todayClasses.map((c) => (
-              <li
-                key={c.id}
-                className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3"
-              >
-                <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
-                  {c.startTime}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">
-                    {c.seriesName ?? t("today.unnamed")}
+          {/* Lista dividida como planes/cumpleaños: las clases del día
+              escalan mejor en filas que en una grilla de cards. */}
+          <Card padded={false}>
+            <ul className="flex flex-col divide-y divide-line">
+              {dashboard.todayClasses.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex min-h-11 items-center gap-3 px-4 py-2.5"
+                >
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
+                    {c.startTime}
                   </span>
-                  {c.instructorName && (
-                    <span className="block truncate text-xs text-ink/50">
-                      {c.instructorName}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">
+                      {c.seriesName ?? t("today.unnamed")}
                     </span>
-                  )}
-                </span>
-                <span className="shrink-0 text-xs tabular-nums text-ink/50">
-                  {c.capacity != null
-                    ? t("today.bookedOf", {
-                        booked: c.bookedCount,
-                        capacity: c.capacity,
-                      })
-                    : t("today.booked", { count: c.bookedCount })}
-                </span>
-              </li>
-            ))}
-          </ul>
+                    {c.instructorName && (
+                      <span className="block truncate text-xs text-ink/50">
+                        {c.instructorName}
+                      </span>
+                    )}
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-ink/50">
+                    {c.capacity != null
+                      ? t("today.bookedOf", {
+                          booked: c.bookedCount,
+                          capacity: c.capacity,
+                        })
+                      : t("today.booked", { count: c.bookedCount })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </section>
       )}
 
@@ -215,15 +219,20 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
                 <li key={e.personId}>
                   <Link
                     href={`/academia/alumnos/${e.personId}`}
-                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
                   >
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0">
                       <span className="block truncate text-sm font-medium">
                         {e.personName ?? shortId(e.personId)}
                       </span>
-                      <span className="block truncate text-xs text-ink/50">
+                      {/* En móvil el plan va apilado bajo el nombre; en
+                          sm+ pasa a su propia columna (ver abajo). */}
+                      <span className="block truncate text-xs text-ink/50 sm:hidden">
                         {e.planName ?? t("insights.noPlan")}
                       </span>
+                    </span>
+                    <span className="hidden min-w-0 truncate text-sm text-ink/70 sm:block">
+                      {e.planName ?? t("insights.noPlan")}
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-amber-300">
                       {t("insights.expiringUntil", {
