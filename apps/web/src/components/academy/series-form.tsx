@@ -243,7 +243,7 @@ export function SeriesForm({
       ) : (
         <>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-            {editing ? t("edit") : t("new")}
+            {editing ? t("editTitle") : t("newTitle")}
           </h2>
           <form
             onSubmit={submit}
