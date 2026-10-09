@@ -61,9 +61,12 @@ confirmación (diálogo focus-trapped con `useDialogFocus`).
   Es el único "volver" de la página: mientras el header está montado el
   chevron ‹ del appbar se suprime solo (`console-header-state.ts`) — en
   las demás rutas empujadas sin header el chevron sigue activo.
-- El appbar provee el `h1` único de la página. Las páginas **no declaran
-  `h1` propio**: el nombre de la entidad en una ficha va en `h2`. Un
-  segundo `h1` (aunque sea `sr-only`) rompe la jerarquía.
+- **Un solo `h1` por página**. Las páginas de consola **no declaran `h1`
+  propio**: el del appbar (nombre de la sección) es el de la página — el
+  nombre de la entidad en una ficha va en `h2`. Si el contenido llegara a
+  renderizar un `h1` (páginas consumer lo hacen), el label del appbar se
+  degrada solo a texto plano — `MutationObserver` sobre `#contenido` en
+  `BottomNav`, no requiere coordinación manual.
 - `BackLink` ad-hoc quedó deprecado en consolas → `ConsoleHeader`.
 
 ### 6. Estados explícitos y accesibles

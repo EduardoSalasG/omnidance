@@ -789,6 +789,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // Query ?edit= para los overrides de título crear↔editar (páginas
   // /nueva?edit=<id>). Lo reporta QueryFlag bajo Suspense.
   const [editQuery, setEditQuery] = useState<string | null>(null);
+  // h1 único por página: si el contenido declara su propio h1 (nombre
+  // de la ficha, título del módulo, estado de checkout), ese es el
+  // encabezado de página y el label del appbar se degrada a texto;
+  // si #contenido no tiene h1 (páginas de consola), el label es el h1.
+  const [contentHasH1, setContentHasH1] = useState(false);
   // Estado expandido/colapsado de la sidebar desktop (≥lg) - persiste
   // en localStorage; no afecta el chrome móvil.
   const sidebarCollapsed = useSidebarState() === "collapsed";
@@ -909,6 +914,18 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [drawerOpen]);
+
+  // Detección del h1 propio del contenido - el observer cubre los que
+  // llegan async (fichas tras el fetch) y los swaps de navegación.
+  useEffect(() => {
+    const root = document.getElementById("contenido");
+    if (!root) return;
+    const check = () => setContentHasH1(!!root.querySelector("h1"));
+    check();
+    const mo = new MutationObserver(check);
+    mo.observe(root, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, [pathname]);
 
   // Contexto fullscreen (consola staff): solo el contenido, sin chrome.
   if (CHROME_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p)))
@@ -1337,15 +1354,22 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
           <div className="flex flex-1 items-center justify-center px-2">
             {pathname === "/inicio" && me && activeRole === "DANCER" ? (
               <>
-                {pageLabel && <h1 className="sr-only">{pageLabel}</h1>}
+                {pageLabel && !contentHasH1 && (
+                  <h1 className="sr-only">{pageLabel}</h1>
+                )}
                 <ModeToggle />
               </>
             ) : (
-              pageLabel && (
+              pageLabel &&
+              (contentHasH1 ? (
+                <span className="pointer-events-none truncate text-center text-lg font-semibold tracking-tight text-ink">
+                  {pageLabel}
+                </span>
+              ) : (
                 <h1 className="pointer-events-none truncate text-center text-lg font-semibold tracking-tight text-ink">
                   {pageLabel}
                 </h1>
-              )
+              ))
             )}
           </div>
 
