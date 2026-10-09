@@ -17,9 +17,12 @@ import {
 import {
   IsBoolean,
   IsEmail,
+  IsInt,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
@@ -27,7 +30,10 @@ import { AuthService } from "../../auth/domain/auth.service";
 import { PrismaService } from "../../prisma.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
 import { AcademyAccess } from "./academy-access.service";
-import { staffInviteEmailHtml } from "./invite-emails";
+import {
+  instructorInviteEmailHtml,
+  staffInviteEmailHtml,
+} from "./invite-emails";
 
 /**
  * TTL del magic link de invitación (spec academy-staff-roles): un
@@ -48,6 +54,12 @@ class CapsDto {
 class AddStaffDto extends CapsDto {
   @IsEmail() email!: string;
   @IsOptional() @IsString() @MaxLength(120) name?: string;
+}
+
+class AddInstructorDto {
+  @IsEmail() email!: string;
+  @IsOptional() @IsString() @MaxLength(120) name?: string;
+  @IsOptional() @IsInt() @Min(0) @Max(100) commissionPct?: number;
 }
 
 const CAP_TO_FIELD = {
@@ -206,18 +218,10 @@ export class AcademyStaffController {
       req.person!,
       "team",
     );
-    const email = dto.email.trim().toLowerCase();
-
-    let person = await this.prisma.person.findUnique({ where: { email } });
-    const invited = !person;
-    if (!person) {
-      person = await this.prisma.person.create({
-        data: {
-          email,
-          name: dto.name?.trim() || email.split("@")[0],
-        },
-      });
-    }
+    const { person, invited, email } = await this.resolvePerson(
+      dto.email,
+      dto.name,
+    );
     this.assertValidTarget(person.id, academy.ownerId, req.person!.id);
 
     const caps = capsToData(dto);
@@ -228,33 +232,122 @@ export class AcademyStaffController {
     });
 
     if (invited) {
-      try {
-        const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-        const token = await this.auth.createMagicToken(
-          email,
-          false,
-          INVITE_TOKEN_TTL,
-        );
-        const link = `${webUrl}/api/auth/verify?token=${token}`;
-        await this.mailer.send(
-          email,
-          `${academy.name} te agregó a su equipo en Omnidance`,
-          staffInviteEmailHtml({
-            personName: person.name,
-            academyName: academy.name,
-            link,
-          }),
-        );
-      } catch (e) {
-        this.logger.error(
-          `invitación staff falló (${email}): ${
-            e instanceof Error ? e.message : e
-          }`,
-        );
-      }
+      await this.sendInvite(
+        email,
+        person.name,
+        academy.name,
+        staffInviteEmailHtml,
+        `${academy.name} te agregó a su equipo en Omnidance`,
+      );
     }
 
     return { personId: person.id, invited, caps };
+  }
+
+  // ─── instructores (spec academy-team-instructors) ───
+  // Misma capacidad `team` que los colaboradores: el equipo es una sola
+  // consola. La membresía AcademyInstructor habilita los endpoints de
+  // instructor (clases, asistencia) sin PersonRole INSTRUCTOR.
+
+  /** Lista de profesores con comisión vigente. */
+  @Get(":id/instructors")
+  async listInstructors(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapability(id, req.person!, "team");
+    const rows = await this.prisma.academyInstructor.findMany({
+      where: { academyId: id },
+      orderBy: { createdAt: "asc" },
+      select: { personId: true, commissionPct: true, createdAt: true },
+    });
+    const people = new Map(
+      (
+        await this.prisma.person.findMany({
+          where: { id: { in: rows.map((r) => r.personId) } },
+          select: { id: true, name: true, email: true },
+        })
+      ).map((p) => [p.id, p]),
+    );
+    return rows.map((r) => ({
+      person: people.get(r.personId) ?? {
+        id: r.personId,
+        name: "(cuenta eliminada)",
+        email: null,
+      },
+      commissionPct: r.commissionPct,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  /**
+   * Agrega profesor por email - mismo find-or-stub + invitación que el
+   * alta de colaborador. commissionPct se snapshottea a cada
+   * PrivateLesson suya al crearla (spec instructor-commission).
+   */
+  @Post(":id/instructors")
+  async addInstructor(
+    @Param("id") id: string,
+    @Body() dto: AddInstructorDto,
+    @Req() req: Request,
+  ) {
+    const { academy } = await this.access.requireCapabilityWrite(
+      id,
+      req.person!,
+      "team",
+    );
+    const { person, invited, email } = await this.resolvePerson(
+      dto.email,
+      dto.name,
+    );
+    this.assertValidTarget(person.id, academy.ownerId, req.person!.id);
+
+    const data =
+      dto.commissionPct === undefined
+        ? {}
+        : { commissionPct: dto.commissionPct };
+    await this.prisma.academyInstructor.upsert({
+      where: { academyId_personId: { academyId: id, personId: person.id } },
+      create: {
+        academyId: id,
+        personId: person.id,
+        commissionPct: dto.commissionPct ?? null,
+      },
+      update: data,
+    });
+
+    if (invited) {
+      await this.sendInvite(
+        email,
+        person.name,
+        academy.name,
+        instructorInviteEmailHtml,
+        `${academy.name} te agregó como profesor en Omnidance`,
+      );
+    }
+
+    return {
+      personId: person.id,
+      invited,
+      commissionPct: dto.commissionPct ?? null,
+    };
+  }
+
+  /** Quita la membresía de instructor (la cuenta sobrevive). */
+  @Delete(":id/instructors/:personId")
+  async removeInstructor(
+    @Param("id") id: string,
+    @Param("personId") personId: string,
+    @Req() req: Request,
+  ) {
+    const { academy } = await this.access.requireCapabilityWrite(
+      id,
+      req.person!,
+      "team",
+    );
+    this.assertValidTarget(personId, academy.ownerId, req.person!.id);
+    const { count } = await this.prisma.academyInstructor.deleteMany({
+      where: { academyId: id, personId },
+    });
+    if (!count) throw new NotFoundException("instructor no encontrado");
+    return { removed: true };
   }
 
   @Patch(":id/staff/:personId")
@@ -296,6 +389,50 @@ export class AcademyStaffController {
     });
     if (!count) throw new NotFoundException("colaborador no encontrado");
     return { removed: true };
+  }
+
+  /**
+   * Find-or-stub por email (alta de staff e instructores): Person
+   * inexistente → stub `{email, name}` que se activa con la invitación.
+   */
+  private async resolvePerson(rawEmail: string, name?: string) {
+    const email = rawEmail.trim().toLowerCase();
+    const existing = await this.prisma.person.findUnique({
+      where: { email },
+    });
+    if (existing) return { person: existing, invited: false, email };
+    const person = await this.prisma.person.create({
+      data: { email, name: name?.trim() || email.split("@")[0] },
+    });
+    return { person, invited: true, email };
+  }
+
+  /** Magic link largo + email de invitación (staff e instructores). */
+  private async sendInvite(
+    email: string,
+    personName: string | null,
+    academyName: string,
+    template: typeof staffInviteEmailHtml,
+    subject: string,
+  ) {
+    try {
+      const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+      const token = await this.auth.createMagicToken(
+        email,
+        false,
+        INVITE_TOKEN_TTL,
+      );
+      const link = `${webUrl}/api/auth/verify?token=${token}`;
+      await this.mailer.send(
+        email,
+        subject,
+        template({ personName, academyName, link }),
+      );
+    } catch (e) {
+      this.logger.error(
+        `invitación falló (${email}): ${e instanceof Error ? e.message : e}`,
+      );
+    }
   }
 
   /** El owner no es una fila staff y nadie se gestiona a sí mismo. */
