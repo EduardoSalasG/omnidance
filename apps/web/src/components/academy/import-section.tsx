@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card } from "@/components/ui";
 import { readError } from "./shared";
-import { useAcademyAccess } from "./use-academy-access";
 
 type RowResult = {
   row: number;
@@ -27,7 +26,11 @@ const STATUS_VARIANT: Record<
   error: "live",
 };
 
-function ImportCard({
+// Card de carga masiva CSV (spec academy-bulk-import). Vive embebida en
+// su módulo: kind="students" en /academia/alumnos, kind="schedule" en
+// /academia/horarios. El host la muestra según la capacidad del viewer
+// (students/schedule); el backend gatea igual en /import/:kind.
+export function ImportCard({
   academyId,
   kind,
 }: {
@@ -151,30 +154,6 @@ function ImportCard({
 }
 
 /**
- * /academia/importar - carga masiva para migración (spec
- * academy-bulk-import). Cada card se muestra según la capacidad del
- * viewer (`students` / `schedule`); el backend gatea igual.
+ * /academia/importar ya no existe como módulo: las cargas masivas viven
+ * embebidas en su dominio (alumnos / horarios).
  */
-export function ImportSection({ academyId }: { academyId: string }) {
-  const t = useTranslations("academyImport");
-  const access = useAcademyAccess(academyId);
-
-  const canStudents = access?.caps.students === true;
-  const canSchedule = access?.caps.schedule === true;
-
-  if (access !== null && !canStudents && !canSchedule) {
-    return <p className="text-sm text-ink/60">{t("forbidden")}</p>;
-  }
-
-  return (
-    <div className="flex flex-col gap-6">
-      <p className="text-sm text-ink/50">{t("desc")}</p>
-      {(access === null || canStudents) && (
-        <ImportCard academyId={academyId} kind="students" />
-      )}
-      {(access === null || canSchedule) && (
-        <ImportCard academyId={academyId} kind="schedule" />
-      )}
-    </div>
-  );
-}

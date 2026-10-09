@@ -9,6 +9,8 @@ import { Button, ChevronRightIcon, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { SlotsSection } from "@/components/academy/slots-section";
+import { ImportCard } from "@/components/academy/import-section";
+import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import { FilterBar } from "@/components/query/FilterBar";
 import { ConsoleHeader } from "@/components/console/console-header";
 import {
@@ -52,6 +54,7 @@ export default function AcademiaHorariosPage() {
 function SlotsModule({ academyId }: { academyId: string }) {
   const tc = useTranslations("common");
   const ts = useTranslations("academySeries");
+  const access = useAcademyAccess(academyId);
   const [slots, setSlots] = useState<ClassSlot[] | null>(null);
   const [error, setError] = useState(false);
   const [filters, setFilters] = useState<QueryFilters>({});
@@ -116,6 +119,11 @@ function SlotsModule({ academyId }: { academyId: string }) {
       >
         {ts("title")} <ChevronRightIcon />
       </Link>
+      {/* Carga masiva del horario semanal embebida en el módulo (cap
+          `schedule`); la parrilla sigue read-only para el resto. */}
+      {access?.caps.schedule === true && (
+        <ImportCard academyId={academyId} kind="schedule" />
+      )}
     </div>
   );
 }

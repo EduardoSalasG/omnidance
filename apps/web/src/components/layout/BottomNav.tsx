@@ -481,12 +481,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.lessons",
           icon: ICONS.dances,
         },
-        {
-          href: "/academia/importar",
-          ns: "academy",
-          key: "modules.import",
-          icon: ICONS.plus,
-        },
       ],
     },
     {
