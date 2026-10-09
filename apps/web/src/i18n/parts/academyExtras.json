@@ -150,7 +150,12 @@
     "planTypeLocked": "El tipo no se puede cambiar: el plan tiene cobro recurrente en Flow",
     "planWeeklyClasses": "Clases por semana (vacío = ilimitado)",
     "planWeeklyCount": "{count, plural, one {# clase/semana} other {# clases/semana}}",
-    "planClassCount": "{count, plural, one {# clase} other {# clases}}"
+    "planClassCount": "{count, plural, one {# clase} other {# clases}}",
+    "navGroups": {
+      "teaching": "Enseñanza",
+      "students": "Alumnos",
+      "admin": "Administración"
+    }
   },
   "academySeries": {
     "capacityOptional": "default",

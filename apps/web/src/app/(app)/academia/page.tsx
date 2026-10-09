@@ -93,6 +93,12 @@ function AcademyHub({
     access.isInstructor ||
     access.isStaff;
 
+  // El owner navega por el sidebar (acordeones por dominio) - la grilla
+  // queda para staff/instructor/admin, que no tienen ese drawer y cuyo
+  // acceso se filtra por caps. `access === null` (cargando) no pinta la
+  // grilla: para el owner un skeleton que colapsa sería flash.
+  const showModuleGrid = access !== null && !access.isOwner;
+
   const visible = MODULES.filter((m) => {
     if ("ownerOnly" in m && m.ownerOnly) {
       return (
@@ -119,16 +125,18 @@ function AcademyHub({
           el componente decide solo si no tiene acceso. */}
       <AcademySettings academy={academy} />
       <AcademyProfile academy={academy} />
-      <ModuleGrid>
-        {visible.map((m) => (
-          <ModuleCard
-            key={m.href}
-            href={m.href}
-            title={t(`modules.${m.key}`)}
-            desc={t(`modules.${m.key}Desc`)}
-          />
-        ))}
-      </ModuleGrid>
+      {showModuleGrid && (
+        <ModuleGrid>
+          {visible.map((m) => (
+            <ModuleCard
+              key={m.href}
+              href={m.href}
+              title={t(`modules.${m.key}`)}
+              desc={t(`modules.${m.key}Desc`)}
+            />
+          ))}
+        </ModuleGrid>
+      )}
 
       {/* Tour de primera visita - targets del chrome (tabs +
           menú lateral), presentes una vez pasa el gate. */}

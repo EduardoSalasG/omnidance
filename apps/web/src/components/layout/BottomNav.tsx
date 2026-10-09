@@ -405,10 +405,26 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       ],
     },
   ],
+  // Los módulos del owner viven acá en acordeones por dominio (la grilla
+  // de /academia queda solo para staff/admin que no tienen este drawer).
   ACADEMY_OWNER: [
     {
       labelNs: "academy",
       labelKey: "title",
+      items: [
+        {
+          href: "/academia",
+          ns: "academy",
+          key: "title",
+          icon: ICONS.academy,
+          exact: true,
+        },
+      ],
+    },
+    {
+      labelNs: "academy",
+      labelKey: "navGroups.teaching",
+      collapsible: true,
       items: [
         {
           href: "/academia/clases",
@@ -417,16 +433,10 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.list,
         },
         {
-          href: "/academia/planes",
-          ns: "academy",
-          key: "modules.plans",
-          icon: ICONS.card,
-        },
-        {
-          href: "/academia/alumnos",
-          ns: "academy",
-          key: "modules.students",
-          icon: ICONS.users,
+          href: "/academia/series",
+          ns: "academySeries",
+          key: "title",
+          icon: ICONS.events,
         },
         {
           href: "/academia/horarios",
@@ -435,16 +445,35 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.clock,
         },
         {
-          href: "/academia/series",
-          ns: "academySeries",
-          key: "title",
-          icon: ICONS.events,
-        },
-        {
           href: "/academia/asistencia",
           ns: "academy",
           key: "modules.attendance",
           icon: ICONS.staff,
+        },
+        {
+          href: "/academia/videos",
+          ns: "academy",
+          key: "modules.videos",
+          icon: ICONS.play,
+        },
+      ],
+    },
+    {
+      labelNs: "academy",
+      labelKey: "navGroups.students",
+      collapsible: true,
+      items: [
+        {
+          href: "/academia/alumnos",
+          ns: "academy",
+          key: "modules.students",
+          icon: ICONS.users,
+        },
+        {
+          href: "/academia/planes",
+          ns: "academy",
+          key: "modules.plans",
+          icon: ICONS.card,
         },
         {
           href: "/academia/particulares",
@@ -453,10 +482,35 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.dances,
         },
         {
-          href: "/academia/videos",
+          href: "/academia/importar",
           ns: "academy",
-          key: "modules.videos",
-          icon: ICONS.play,
+          key: "modules.import",
+          icon: ICONS.plus,
+        },
+      ],
+    },
+    {
+      labelNs: "academy",
+      labelKey: "navGroups.admin",
+      collapsible: true,
+      items: [
+        {
+          href: "/academia/cobros",
+          ns: "academy",
+          key: "modules.payments",
+          icon: ICONS.card,
+        },
+        {
+          href: "/academia/equipo",
+          ns: "academy",
+          key: "modules.team",
+          icon: ICONS.users,
+        },
+        {
+          href: "/academia/suscripcion",
+          ns: "academy",
+          key: "modules.subscription",
+          icon: ICONS.tag,
         },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
