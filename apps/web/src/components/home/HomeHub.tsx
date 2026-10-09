@@ -604,9 +604,11 @@ export function HomeHub() {
     (k) => (k.key === "streak" || k.key === "dances7d") && k.value > 0,
   );
 
+  // pt-4 (no p-6): el saludo va pegado al appbar - 40px de aire
+  // quedaba lejano. px/pb se conservan.
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
-      <header className="flex flex-col gap-1 pt-4">
+    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 px-6 pb-6 pt-4 lg:max-w-5xl lg:px-8">
+      <header className="flex flex-col gap-1">
         {/* h1: es el título de la página - antes era h2 y el home del
             owner quedaba sin nivel 1 (academia h2 → secciones h3). */}
         <h1 className="text-lg font-medium">
