@@ -774,6 +774,12 @@ model AcademyInstructor {
   // % que retiene la academia sobre el price de cada PrivateLesson del
   // instructor; snapshot a la lección al crearla (null/0 = sin comisión).
   commissionPct Int?
+  // Acuerdo económico general del profesor (spec academy-console-v3):
+  // PER_CLASS = monto fijo por clase impartida; MONTHLY = monto mensual
+  // que cubre payClasses clases/mes. null = sin acuerdo registrado.
+  payType    String? // PER_CLASS | MONTHLY
+  payAmount  Int?    // CLP
+  payClasses Int?    // clases/mes incluidas (solo MONTHLY)
   createdAt DateTime @default(now())
 
   @@unique([academyId, personId])

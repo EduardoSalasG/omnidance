@@ -398,6 +398,30 @@ export class AcademyClaimsService {
     });
   }
 
+  /** Detalle de un claim de la cola (owner/staff con capacidad payments). */
+  async getClaim(academyId: string, claimId: string) {
+    const claim = await this.prisma.paymentClaim.findFirst({
+      where: { id: claimId, academyId },
+      select: {
+        id: true,
+        amount: true,
+        methodType: true,
+        methodLabel: true,
+        status: true,
+        note: true,
+        reviewNote: true,
+        createdAt: true,
+        reviewedAt: true,
+        receiptKey: true,
+        reviewedBy: { select: { id: true, name: true } },
+        person: { select: { id: true, name: true } },
+        plan: { select: { id: true, name: true, type: true, price: true } },
+      },
+    });
+    if (!claim) throw new NotFoundException("comprobante no encontrado");
+    return claim;
+  }
+
   listMyClaims(academyId: string, personId: string) {
     return this.prisma.paymentClaim.findMany({
       where: { academyId, personId },

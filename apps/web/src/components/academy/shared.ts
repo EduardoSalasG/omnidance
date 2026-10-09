@@ -203,9 +203,33 @@ export type MembershipPlan = {
   periodDays: number | null;
   description: string[];
   active: boolean;
+  /** Alumnos con enrollment ACTIVE en el plan (GET /:id/plans y
+      /:id/plans/:planId lo incluyen). */
+  activeStudents?: number;
   // Espejo en Flow (omni_<id>) - presente cuando algún subscribe lo
   // materializó; si existe, PATCH no permite cambiar `type`.
   flowPlanId?: string | null;
+};
+
+// GET /academies/:id/plans/kpis - KPIs propios del módulo Planes.
+export type PlansKpis = {
+  activePlans: number;
+  topPlans: {
+    planId: string;
+    name: string | null;
+    students: number;
+    studentsPrev: number;
+  }[];
+};
+
+// GET /academies/:id/plans/:planId - detalle + alumnos vigentes.
+export type PlanDetail = MembershipPlan & {
+  students: {
+    personId: string;
+    name: string | null;
+    startedAt: string;
+    endsAt: string | null;
+  }[];
 };
 
 // GET /academies/:id/students - person viene del join manual del controller;

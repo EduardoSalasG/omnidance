@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, SkeletonList, Spinner } from "@/components/ui";
+import { Badge, Card, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
-import { filterQuery, readError } from "./shared";
+import { filterQuery } from "./shared";
 import type { AcademyCap } from "./use-academy-access";
 
 // El equipo no es entidad del catálogo ACADEMY_OWNER: EntityDef local
@@ -20,7 +21,7 @@ const STAFF_ENTITY: EntityDef = {
 
 export type Caps = Record<AcademyCap, boolean>;
 
-type StaffRow = {
+export type StaffRow = {
   person: { id: string; name: string | null; email: string | null };
   caps: Caps;
   createdAt: string;
@@ -82,18 +83,15 @@ export function CapCheckbox({
 }
 
 /**
- * Mantenedor de colaboradores (spec academy-staff-roles) - lista staff
- * con flags granulares, PATCH por flag y baja (acciones por fila). El
- * alta por email vive en /academia/equipo/nuevo. Gated por capacidad
- * `team` en el backend.
+ * Listado de colaboradores (spec academy-console-v3) - cards navegables
+ * al detalle del miembro (/academia/equipo/[id]), donde viven los
+ * permisos, su edición y la baja. El alta es el CTA único del header.
+ * Gated por capacidad `team` en el backend.
  */
 export function StaffSection({ academyId }: { academyId: string }) {
   const t = useTranslations("academyStaff");
 
   const [rows, setRows] = useState<StaffRow[] | null>(null);
-  const [rowBusy, setRowBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
 
   const load = useCallback(async () => {
@@ -106,59 +104,6 @@ export function StaffSection({ academyId }: { academyId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function toggle(personId: string, cap: AcademyCap, next: boolean) {
-    setRowBusy(personId);
-    setMsg(null);
-    setErr(null);
-    try {
-      const res = await apiFetch(
-        `/academies/${academyId}/staff/${personId}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ [cap]: next }),
-        },
-      );
-      if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
-        return;
-      }
-      setRows(
-        (prev) =>
-          prev?.map((r) =>
-            r.person.id === personId
-              ? { ...r, caps: { ...r.caps, [cap]: next } }
-              : r,
-          ) ?? prev,
-      );
-      setMsg(t("capsSaved"));
-    } finally {
-      setRowBusy(null);
-    }
-  }
-
-  async function remove(row: StaffRow) {
-    const label = row.person.name ?? row.person.email ?? row.person.id;
-    if (!window.confirm(t("removeConfirm", { name: label }))) return;
-    setRowBusy(row.person.id);
-    setMsg(null);
-    setErr(null);
-    try {
-      const res = await apiFetch(
-        `/academies/${academyId}/staff/${row.person.id}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) {
-        setErr((await readError(res)) ?? t("error"));
-        return;
-      }
-      setMsg(t("removed"));
-      await load();
-    } finally {
-      setRowBusy(null);
-    }
-  }
 
   if (rows === null) return <SkeletonList />;
 
@@ -176,67 +121,52 @@ export function StaffSection({ academyId }: { academyId: string }) {
         onChange={setFilters}
         options={{}}
       />
-      {msg && (
-        <p role="status" className="text-sm text-neon">
-          {msg}
-        </p>
-      )}
-      {err && (
-        <p role="alert" className="text-sm text-red-400">
-          {err}
-        </p>
-      )}
       {rows.length === 0 ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-ink/60">{t("empty")}</p>
-          <Button href="/academia/equipo/nuevo" size="sm">
-            + {t("addTitle")}
-          </Button>
-        </div>
+        <p className="text-sm text-ink/60">{t("empty")}</p>
       ) : (
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {rows.map((r) => (
-            <li
-              key={r.person.id}
-              className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4"
-            >
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="font-semibold">
-                  {r.person.name ?? r.person.email}
-                </span>
-                {r.person.email && (
-                  <span className="text-ink/60">{r.person.email}</span>
-                )}
-                <span className="ml-auto text-xs text-ink/40">
-                  {t("since", {
-                    date: dayFmt.format(new Date(r.createdAt)),
-                  })}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void remove(r)}
-                  disabled={rowBusy === r.person.id}
+          {rows.map((r) => {
+            const active = CAPS.filter((c) => r.caps[c]);
+            return (
+              <li key={r.person.id}>
+                <Link
+                  href={`/academia/equipo/${r.person.id}`}
+                  className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
                 >
-                  {rowBusy === r.person.id ? (
-                    <Spinner size="sm" />
-                  ) : null}
-                  {t("remove")}
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-x-3 sm:grid-cols-3">
-                {CAPS.map((cap) => (
-                  <CapCheckbox
-                    key={cap}
-                    cap={cap}
-                    checked={r.caps[cap]}
-                    disabled={rowBusy === r.person.id}
-                    onToggle={(c, next) => void toggle(r.person.id, c, next)}
-                  />
-                ))}
-              </div>
-            </li>
-          ))}
+                  <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-semibold">
+                        {r.person.name ?? r.person.email}
+                      </span>
+                      <span className="ml-auto text-xs text-ink/40">
+                        {t("since", {
+                          date: dayFmt.format(new Date(r.createdAt)),
+                        })}
+                      </span>
+                    </div>
+                    {r.person.email && (
+                      <span className="truncate text-xs text-ink/50">
+                        {r.person.email}
+                      </span>
+                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {active.length === 0 ? (
+                        <span className="text-xs text-ink/40">
+                          {t("capsNone")}
+                        </span>
+                      ) : (
+                        active.map((cap) => (
+                          <Badge key={cap} variant="muted">
+                            {t(`cap.${cap}`)}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </Card>

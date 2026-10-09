@@ -27,7 +27,11 @@ export function StaffForm({ academyId }: { academyId: string }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [newCaps, setNewCaps] = useState<Caps>(EMPTY_CAPS);
-  const [commission, setCommission] = useState("");
+  // Acuerdo económico del profesor: PER_CLASS (monto/clase) o MONTHLY
+  // (monto mensual por N clases). null = se configura después.
+  const [payType, setPayType] = useState<"PER_CLASS" | "MONTHLY" | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payClasses, setPayClasses] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   // Éxito breve antes de volver al listado (que refetchea al montar).
@@ -38,10 +42,18 @@ export function StaffForm({ academyId }: { academyId: string }) {
     setBusy(true);
     setErr(null);
     try {
-      const commissionPct =
-        kind === "instructor" && commission.trim() !== ""
-          ? Number(commission)
-          : undefined;
+      const agreement =
+        kind === "instructor" && payType
+          ? {
+              payType,
+              payAmount:
+                payAmount.trim() === "" ? undefined : Number(payAmount),
+              payClasses:
+                payType === "MONTHLY" && payClasses.trim() !== ""
+                  ? Number(payClasses)
+                  : undefined,
+            }
+          : {};
       const res = await apiFetch(
         kind === "instructor"
           ? `/academies/${academyId}/instructors`
@@ -52,9 +64,7 @@ export function StaffForm({ academyId }: { academyId: string }) {
           body: JSON.stringify({
             email: email.trim(),
             name: name.trim() || undefined,
-            ...(kind === "instructor"
-              ? { commissionPct }
-              : newCaps),
+            ...(kind === "instructor" ? agreement : newCaps),
           }),
         },
       );
@@ -148,23 +158,68 @@ export function StaffForm({ academyId }: { academyId: string }) {
               />
             </label>
             {kind === "instructor" ? (
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/50">
-                  {t("fieldCommission")}
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  inputMode="numeric"
-                  className={inputCls}
-                  value={commission}
-                  onChange={(e) => setCommission(e.target.value)}
-                />
-                <span className="text-xs text-ink/40">
-                  {t("fieldCommissionHint")}
-                </span>
-              </label>
+              <>
+                <fieldset className="flex flex-col gap-1">
+                  <legend className="text-xs text-ink/50">
+                    {t("agreementLegend")}
+                  </legend>
+                  <div className="grid grid-cols-3 gap-2" role="radiogroup">
+                    {([null, "MONTHLY", "PER_CLASS"] as const).map((k) => (
+                      <label
+                        key={k ?? "none"}
+                        className={`flex min-h-11 cursor-pointer items-center justify-center rounded-xl border px-3 text-center text-sm font-medium transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-neon ${
+                          payType === k
+                            ? "border-neon bg-neon/10 text-neon"
+                            : "border-line text-ink/70 hover:border-neon/40"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="new-pay-type"
+                          checked={payType === k}
+                          onChange={() => setPayType(k)}
+                          className="sr-only"
+                        />
+                        {k === null
+                          ? t("payTypeNone")
+                          : k === "MONTHLY"
+                            ? t("payMonthly")
+                            : t("payPerClass")}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                {payType && (
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-ink/50">
+                      {t("fieldPayAmount")}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      className={inputCls}
+                      value={payAmount}
+                      onChange={(e) => setPayAmount(e.target.value)}
+                    />
+                  </label>
+                )}
+                {payType === "MONTHLY" && (
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-ink/50">
+                      {t("fieldPayClasses")}
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      inputMode="numeric"
+                      className={inputCls}
+                      value={payClasses}
+                      onChange={(e) => setPayClasses(e.target.value)}
+                    />
+                  </label>
+                )}
+              </>
             ) : (
               <fieldset className="flex flex-col gap-1">
                 <legend className="text-xs text-ink/50">
