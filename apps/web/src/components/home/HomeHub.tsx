@@ -17,6 +17,8 @@ import {
   type ClassCardData,
 } from "@/components/classes/class-card";
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
+import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyDashboard } from "@/components/academy/academy-dashboard";
 
 import { GENRE_TEXT, localDayKey } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
@@ -327,6 +329,7 @@ export function HomeHub() {
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
+  const tta = useTranslations("tours.academia");
   const ts = useTranslations("survey");
 
   // /me compartido (MeProvider del layout) - el hub ya no fetchea la
@@ -518,7 +521,8 @@ export function HomeHub() {
             label: tpr("createEvent"),
           },
         };
-      case "ACADEMY_OWNER":
+      // ACADEMY_OWNER no tiene hero: su home ES la consola (ver el
+      // branch del render abajo).
       case "INSTRUCTOR":
         return {
           href: "/academia",
@@ -643,7 +647,17 @@ export function HomeHub() {
         </section>
       )}
 
-      {dancerSocial ? (
+      {activeRole === "ACADEMY_OWNER" ? (
+        // El home del dueño de academia ES su consola: selector de
+        // academia (o alta si no tiene) + dashboard con KPIs, clases de
+        // hoy e insights. /academia redirige acá para el owner - la
+        // página aparte no tenía sentido.
+        <AcademyGate>
+          {({ academy }) => (
+            <AcademyDashboard key={academy.id} academy={academy} />
+          )}
+        </AcademyGate>
+      ) : dancerSocial ? (
         <>
           {/* Tu actividad primero - solo 2 señales rápidas (racha +
               bailes recientes, las que leen "actividad"); la grilla
@@ -722,6 +736,28 @@ export function HomeHub() {
           <span>{t("switchRoleHint")}</span>
           <ChevronRightIcon className="h-4 w-4 shrink-0 text-neon" />
         </Link>
+      )}
+
+      {/* Tour del owner: su consola ES el inicio - sin s1 (el tab
+          "Academia" ya no existe; el dashboard es esta pantalla). */}
+      {activeRole === "ACADEMY_OWNER" && (
+        <OnboardingRunner
+          tour="academia"
+          steps={[
+            {
+              element: "[data-tour='nav-attendance']",
+              title: tta("s2.title"),
+              description: tta("s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='appbar-menu']",
+              title: tta("s3.title"),
+              description: tta("s3.desc"),
+              side: "bottom",
+            },
+          ] satisfies TourStep[]}
+        />
       )}
 
       {/* Tour de primera visita - lente social del bailarín (los tabs
