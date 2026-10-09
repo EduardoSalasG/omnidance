@@ -207,30 +207,34 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("insights.expiringTitle")}
           </h3>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {dashboard.expiringEnrollments.map((e) => (
-              <li key={e.personId}>
-                <Link
-                  href={`/academia/alumnos/${e.personId}`}
-                  className="flex h-full items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:border-neon/40"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
-                      {e.personName ?? shortId(e.personId)}
+          {/* Lista dividida: con muchas filas la grilla de cards era ruidosa
+              y desigual; una lista lee mejor y escala. */}
+          <Card padded={false}>
+            <ul className="flex flex-col divide-y divide-line">
+              {dashboard.expiringEnrollments.map((e) => (
+                <li key={e.personId}>
+                  <Link
+                    href={`/academia/alumnos/${e.personId}`}
+                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {e.personName ?? shortId(e.personId)}
+                      </span>
+                      <span className="block truncate text-xs text-ink/50">
+                        {e.planName ?? t("insights.noPlan")}
+                      </span>
                     </span>
-                    <span className="block truncate text-xs text-ink/50">
-                      {e.planName ?? t("insights.noPlan")}
+                    <span className="shrink-0 text-xs tabular-nums text-amber-300">
+                      {t("insights.expiringUntil", {
+                        date: planDateFmt.format(new Date(e.endsAt)),
+                      })}
                     </span>
-                  </span>
-                  <span className="shrink-0 text-xs tabular-nums text-amber-300">
-                    {t("insights.expiringUntil", {
-                      date: planDateFmt.format(new Date(e.endsAt)),
-                    })}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </section>
       )}
 
@@ -239,23 +243,25 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("insights.birthdaysTitle")}
           </h3>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {dashboard.upcomingBirthdays.map((b) => (
-              <li key={b.personId}>
-                <Link
-                  href={`/academia/alumnos/${b.personId}`}
-                  className="flex h-full items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 transition-colors hover:border-neon/40"
-                >
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                    {b.name}
-                  </span>
-                  <span className="shrink-0 text-xs tabular-nums text-neon">
-                    {birthdayFmt.format(new Date(b.date))}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <Card padded={false}>
+            <ul className="flex flex-col divide-y divide-line">
+              {dashboard.upcomingBirthdays.map((b) => (
+                <li key={b.personId}>
+                  <Link
+                    href={`/academia/alumnos/${b.personId}`}
+                    className="flex min-h-11 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                      {b.name}
+                    </span>
+                    <span className="shrink-0 text-xs tabular-nums text-neon">
+                      {birthdayFmt.format(new Date(b.date))}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </section>
       )}
     </div>
