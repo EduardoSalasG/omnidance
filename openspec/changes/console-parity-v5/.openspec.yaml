@@ -1,0 +1,11 @@
+name: Console parity v5 - auditoría owner + paridad productor
+description: >-
+  Aplica los patrones de consola de la vista de academia a todas las
+  vistas de dueño de academia y de productor: crear = página dedicada,
+  card completo clickeable → detalle, edición y acciones destructivas
+  en la ficha, listas con FilterBar + Pager, skeletons y estados
+  vacío/error con retry, zona destructiva centrada en rojo, h1 único
+  del chrome, y consistencia de accesibilidad (focus, aria, touch).
+deltas:
+  - academies/console-lists
+  - events/producer-console
