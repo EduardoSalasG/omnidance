@@ -512,6 +512,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.subscription",
           icon: ICONS.tag,
         },
+        {
+          href: "/academia/configuracion",
+          ns: "academy",
+          key: "settings.title",
+          icon: ICONS.slider,
+        },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
