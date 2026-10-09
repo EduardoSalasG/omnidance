@@ -986,7 +986,7 @@ model ClassSeries {
   id           String      @id @default(cuid())
   academy      Academy     @relation(fields: [academyId], references: [id])
   academyId    String
-  name         String // "Bachata Sensual - Intermedio"
+  name         String // "Bachata Sensual" - el nivel va en levelId, no en el título
   description  String?
   style        Style?      @relation(fields: [styleId], references: [id])
   styleId      String?
