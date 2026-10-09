@@ -33,5 +33,29 @@
       "temperature": { "low": "Helada", "high": "Calurosa" },
       "lightingSound": { "low": "Mala", "high": "Excelente" }
     }
+  },
+  "courseSurvey": {
+    "prompt": "¿Cómo estuvo {name}?",
+    "cardCta": "Evaluar",
+    "title": "¿Cómo estuvo tu curso de {name}?",
+    "subtitle": "Tu evaluación es privada. La academia solo ve promedios y comentarios anónimos.",
+    "course": "¿Qué tanto te gustó el curso?",
+    "instructor": "¿Qué tanto te gustó el profe?",
+    "comment": "Observaciones (opcional)",
+    "commentPlaceholder": "Qué te gustó, qué mejorarías…",
+    "courseRequired": "Puntúa el curso para enviar",
+    "submit": "Enviar evaluación",
+    "thanks": "¡Gracias! Tu evaluación quedó registrada",
+    "forbidden": "Solo quienes asistieron a ese curso en ese mes pueden evaluarlo",
+    "error": "No pudimos enviar tu evaluación. Intenta de nuevo",
+    "loginRequired": "Inicia sesión para evaluar el curso",
+    "invalid": "Esta encuesta no está disponible",
+    "backToAcademy": "Ver academia",
+    "resultsTitle": "Encuestas del mes",
+    "responses": "{count, plural, one {# respuesta} other {# respuestas}}",
+    "avgCourse": "Curso",
+    "avgInstructor": "Profe",
+    "commentsTitle": "Comentarios",
+    "empty": "Aún no hay encuestas registradas."
   }
 }

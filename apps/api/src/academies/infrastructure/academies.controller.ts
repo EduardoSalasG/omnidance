@@ -976,6 +976,124 @@ export class AcademiesController {
   }
 
   /**
+   * GET /academies/:id/surveys - resultados de las encuestas mensuales de
+   * curso, agrupados por serie × mes (spec academy-console-v3). SOLO
+   * owner/ADMIN (requireAdminister): los resultados son privados del
+   * dueño y siempre anónimos - nunca sale personId ni el nombre del
+   * evaluador; los comentarios viajan como texto plano.
+   * Filtros opcionales: ?seriesId= & ?month=YYYY-MM.
+   */
+  @Get(":id/surveys")
+  @UseGuards(SessionGuard)
+  async courseSurveys(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Query("seriesId") seriesId?: string,
+    @Query("month") month?: string,
+  ) {
+    await this.access.requireAdminister(id, req.person!);
+    const surveys = await this.prisma.courseSurvey.findMany({
+      where: {
+        academyId: id,
+        ...(seriesId ? { seriesId } : {}),
+        ...(month ? { month } : {}),
+      },
+      orderBy: [{ month: "desc" }, { createdAt: "desc" }],
+    });
+    return this.groupCourseSurveys(surveys);
+  }
+
+  /**
+   * GET /academies/:id/instructors/:personId/surveys - encuestas donde el
+   * snapshot del profe evaluado es esa persona, agrupadas mes × serie.
+   * Mismo gate y anonimato que /surveys (solo owner/ADMIN).
+   */
+  @Get(":id/instructors/:personId/surveys")
+  @UseGuards(SessionGuard)
+  async instructorSurveys(
+    @Param("id") id: string,
+    @Param("personId") personId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireAdminister(id, req.person!);
+    const surveys = await this.prisma.courseSurvey.findMany({
+      where: { academyId: id, instructorId: personId },
+      orderBy: [{ month: "desc" }, { createdAt: "desc" }],
+    });
+    return this.groupCourseSurveys(surveys);
+  }
+
+  /** Agrega CourseSurvey[] por (seriesId, month) - shape anónimo. */
+  private async groupCourseSurveys(
+    surveys: {
+      seriesId: string;
+      month: string;
+      courseRating: number;
+      instructorRating: number | null;
+      comment: string | null;
+      createdAt: Date;
+    }[],
+  ) {
+    const seriesIds = [...new Set(surveys.map((s) => s.seriesId))];
+    const series = seriesIds.length
+      ? await this.prisma.classSeries.findMany({
+          where: { id: { in: seriesIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameById = new Map(series.map((s) => [s.id, s.name]));
+    const groups = new Map<
+      string,
+      {
+        seriesId: string;
+        seriesName: string;
+        month: string;
+        count: number;
+        courseSum: number;
+        instructorSum: number;
+        instructorCount: number;
+        comments: string[];
+      }
+    >();
+    for (const s of surveys) {
+      const key = `${s.seriesId}:${s.month}`;
+      let g = groups.get(key);
+      if (!g) {
+        g = {
+          seriesId: s.seriesId,
+          seriesName: nameById.get(s.seriesId) ?? "",
+          month: s.month,
+          count: 0,
+          courseSum: 0,
+          instructorSum: 0,
+          instructorCount: 0,
+          comments: [],
+        };
+        groups.set(key, g);
+      }
+      g.count++;
+      g.courseSum += s.courseRating;
+      if (s.instructorRating != null) {
+        g.instructorSum += s.instructorRating;
+        g.instructorCount++;
+      }
+      if (s.comment) g.comments.push(s.comment);
+    }
+    return [...groups.values()].map((g) => ({
+      seriesId: g.seriesId,
+      seriesName: g.seriesName,
+      month: g.month,
+      count: g.count,
+      avgCourse: Math.round((g.courseSum / g.count) * 10) / 10,
+      avgInstructor:
+        g.instructorCount > 0
+          ? Math.round((g.instructorSum / g.instructorCount) * 10) / 10
+          : null,
+      comments: g.comments,
+    }));
+  }
+
+  /**
    * GET /academies/:id/cobros/kpis - facturación del mes (MTD), ticket
    * promedio y top 3 medios de pago, cada uno con la comparativa del
    * tramo equivalente del mes anterior. Mismas fuentes del dashboard
@@ -1416,7 +1534,7 @@ export class AcademiesController {
       },
     } as const;
     const now = new Date();
-    const [attendances, bookings] = await Promise.all([
+    const [attendances, bookings, relScore] = await Promise.all([
       this.prisma.attendance.findMany({
         where: { personId, class: { slot: { academyId: id } } },
         select: { classId: true, checkedAt: true, class: { select: classSelect } },
@@ -1429,6 +1547,18 @@ export class AcademiesController {
           createdAt: true,
           class: { select: classSelect },
         },
+      }),
+      // Score de relación academia↔alumno (CRM transversal): privado
+      // por actor - solo la propia academia lo ve en su consola.
+      this.prisma.relationshipScore.findUnique({
+        where: {
+          actorType_actorId_personId: {
+            actorType: "ACADEMY",
+            actorId: id,
+            personId,
+          },
+        },
+        select: { score: true, segment: true, computedAt: true },
       }),
     ]);
 
@@ -1488,6 +1618,8 @@ export class AcademiesController {
       enrollmentStatus: enrollment?.status ?? null,
       enrollmentStartedAt: enrollment?.startedAt ?? null,
       enrollmentEndsAt: enrollment?.endsAt ?? null,
+      score: relScore?.score ?? null,
+      segment: relScore?.segment ?? null,
       history,
       upcoming,
     };

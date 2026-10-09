@@ -33,9 +33,9 @@
 - [ ] 4.4 Particulares: sin comisión — solo solicitudes + agendar.
 
 ## 5. Analítica + alumno + encuestas + paginación
-- [ ] 5.1 /analitica = consultas única; sin chips rol/vista.
-- [ ] 5.2 Detalle alumno: score.
-- [ ] 5.3 Encuestas mensuales curso/profe end-to-end.
+- [x] 5.1 /analitica = consultas única; sin chips rol/vista.
+- [x] 5.2 Detalle alumno: score.
+- [x] 5.3 Encuestas mensuales curso/profe end-to-end.
 - [ ] 5.4 Paginación en endpoints y vistas de listado.
 
 ## 6. Cierre

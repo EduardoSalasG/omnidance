@@ -2,6 +2,7 @@ import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
 import { JOB_REGISTRY, type JobRegistry } from "../../jobs/registry";
 import { AcademyMaterializeService } from "./class-series-materialize.service";
 import { AcademyRemindersService } from "./academy-reminders.service";
+import { AcademySurveysService } from "./academy-surveys.service";
 
 /**
  * Registro de los jobs diarios de academias (spec
@@ -16,6 +17,7 @@ export class AcademiesScheduler implements OnModuleInit {
   constructor(
     private readonly reminders: AcademyRemindersService,
     private readonly materialize: AcademyMaterializeService,
+    private readonly surveys: AcademySurveysService,
     @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
   ) {}
 
@@ -39,6 +41,17 @@ export class AcademiesScheduler implements OnModuleInit {
         "Ventana rodante de instancias Class (hoy → fin del mes siguiente) para los slots de series activas.",
       defaultCron: "30 3 * * *",
       handler: async () => this.materialize.runDaily(),
+    });
+    // Encuestas mensuales de curso (spec academy-console-v3): el día 1
+    // se notifica a cada alumno las series que cursó el mes anterior y
+    // aún no evaluó. Corre tras materialize (las clases ya existen).
+    this.registry.register({
+      key: "academies.course_surveys",
+      label: "Encuestas mensuales de cursos",
+      description:
+        "Fan-out del día 1: notifica a cada alumno las series que cursó el mes anterior y aún no evaluó.",
+      defaultCron: "45 4 1 * *",
+      handler: async () => this.surveys.runMonthly(),
     });
   }
 }

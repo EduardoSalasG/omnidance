@@ -15,6 +15,7 @@ import {
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { CourseSurveyResults } from "@/components/academy/survey-results";
 import {
   inputCls,
   readError,
@@ -569,6 +570,10 @@ function SeriesDetail({
           )}
         </Card>
       </section>
+
+      {/* Encuestas mensuales del curso - solo owner/ADMIN (el endpoint
+          403 se oculta solo); anónimas por contrato. */}
+      <CourseSurveyResults academyId={academyId} seriesId={series.id} />
 
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}
