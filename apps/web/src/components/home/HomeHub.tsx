@@ -561,12 +561,6 @@ export function HomeHub() {
     }
   })();
 
-  // Multi-rol: en vez de mezclar módulos, se sugiere cambiar de lente.
-  const approvedCount = (
-    me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" }))
-  ).filter((s) => s.status === "APPROVED").length;
-  const multiRole = me.roles.length > 1 || approvedCount > 1;
-
   const kpiLabel = activeRole === "DANCER" ? t("insights") : t("overview");
 
   // Mientras los stats de la lente no resuelven, el hub entero espera:
@@ -726,16 +720,6 @@ export function HomeHub() {
             </section>
           )}
         </>
-      )}
-
-      {multiRole && (
-        <Link
-          href="/perfil"
-          className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink/55 transition-colors hover:border-neon/40 hover:text-ink/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-        >
-          <span>{t("switchRoleHint")}</span>
-          <ChevronRightIcon className="h-4 w-4 shrink-0 text-neon" />
-        </Link>
       )}
 
       {/* Tour del owner: su consola ES el inicio - sin s1 (el tab
