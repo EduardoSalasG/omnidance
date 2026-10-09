@@ -29,8 +29,9 @@ particular (CLP), editable por owner/ADMIN vía `PATCH
 `PATCH /private-lessons/:id` SHALL aceptar `action="assign"` con
 `{instructorId, scheduledAt}`: solo owner/ADMIN, solo sobre lecciones en
 `REQUESTED`; valida que el instructor pertenezca a la academia (404 si no);
-setea instructor+fecha, snapshottea `AcademyInstructor.commissionPct` a la
-lección y transiciona a `CONFIRMED`. SHALL notificar al alumno y al
+setea instructor+fecha y transiciona a `CONFIRMED` **sin escribir
+`commissionPct`** (las lecciones nuevas nacen en 0 — la liquidación
+vigente es el acuerdo económico). SHALL notificar al alumno y al
 instructor asignado.
 
 #### Scenario: assign feliz
@@ -38,8 +39,7 @@ instructor asignado.
 - **WHEN** el owner asigna instructor de la academia y fecha a una lección
   REQUESTED pagada
 - **THEN** la lección queda CONFIRMED con `instructorId`, `scheduledAt` y
-  `commissionPct` del instructor vigente; alumno e instructor son
-  notificados.
+  `commissionPct=0`; alumno e instructor son notificados.
 
 #### Scenario: assign sobre lección no REQUESTED
 
@@ -68,7 +68,7 @@ asignar"/"por agendar").
 #### Scenario: staff crea lección manual
 
 - **WHEN** el owner hace POST con instructorId+scheduledAt+price
-- **THEN** se crea la lección REQUESTED con snapshot de comisión, como hoy.
+- **THEN** se crea la lección REQUESTED con `commissionPct=0`.
 
 #### Scenario: listado con lección sin asignar
 
@@ -76,3 +76,27 @@ asignar"/"por agendar").
   null
 - **THEN** `GET /academies/:id/private-lessons` la incluye con
   `instructor: null` y `scheduledAt: null` sin error.
+
+### Requirement: Realizada la marca el instructor
+
+`PATCH /private-lessons/:id` con `action="done"` SHALL aceptarse solo
+desde el instructor asignado a la lección (o un actor con `admin.access`
+como escape operativo): la asistencia la acredita quien la dictó, no la
+dirección de la academia. Sobre lecciones no `CONFIRMED` responde 409.
+
+#### Scenario: instructor marca su clase
+
+- **GIVEN** una lección CONFIRMED asignada al instructor
+- **WHEN** el instructor hace `action="done"`
+- **THEN** la lección queda DONE
+
+#### Scenario: owner no marca realizada
+
+- **WHEN** el owner de la academia intenta `action="done"` sobre una
+  lección de su academia
+- **THEN** responde 403 — el owner gestiona, no acredita asistencia
+
+#### Scenario: admin como escape operativo
+
+- **WHEN** un actor con `admin.access` hace `action="done"`
+- **THEN** la lección queda DONE (resolución de incidencias)
