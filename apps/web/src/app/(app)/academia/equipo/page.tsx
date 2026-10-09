@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { StaffSection } from "@/components/academy/staff-section";
+import { InstructorSection } from "@/components/academy/instructor-section";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
@@ -31,7 +32,11 @@ export default function AcademiaEquipoPage() {
         {({ academy }) => (
           <>
             <h1 className="sr-only">{t("title")}</h1>
-            <StaffSection key={academy.id} academyId={academy.id} />
+            <InstructorSection
+              key={`i-${academy.id}`}
+              academyId={academy.id}
+            />
+            <StaffSection key={`s-${academy.id}`} academyId={academy.id} />
           </>
         )}
       </AcademyGate>

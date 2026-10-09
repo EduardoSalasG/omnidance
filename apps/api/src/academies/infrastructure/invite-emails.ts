@@ -36,6 +36,26 @@ export function staffInviteEmailHtml(input: InviteEmailInput): string {
   );
 }
 
+export function instructorInviteEmailHtml(input: InviteEmailInput): string {
+  const first = input.personName
+    ? `, ${escapeHtml(input.personName.split(" ")[0] || input.personName)}`
+    : "";
+  return emailShell(
+    `${input.academyName} te agregó como profesor en Omnidance.`,
+    `
+    <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.02em;text-align:center;">
+      Te sumaron como profesor${first}
+    </h1>
+    <p style="margin:16px 0 24px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
+      <strong style="color:#ffffff;">${escapeHtml(input.academyName)}</strong>
+      te agregó como profesor en Omnidance. Con este link entras
+      directo a tu cuenta — no necesitas contraseña.
+    </p>
+    ${ctaButton(input.link, "Entrar a la plataforma")}
+    ${fallbackLink(input.link)}`,
+  );
+}
+
 export function studentInviteEmailHtml(input: InviteEmailInput): string {
   const first = input.personName
     ? `, ${escapeHtml(input.personName.split(" ")[0] || input.personName)}`

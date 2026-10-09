@@ -3196,6 +3196,32 @@
             "description": ""
           }
         }
+      },
+      "delete": {
+        "operationId": "AcademyStaffController_removeInstructor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
       }
     },
     "/api/academies/{id}/plans": {
@@ -4079,6 +4105,54 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AddStaffDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/instructors": {
+      "get": {
+        "operationId": "AcademyStaffController_listInstructors",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "AcademyStaffController_addInstructor",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddInstructorDto"
               }
             }
           }
@@ -6637,6 +6711,10 @@
         "properties": {}
       },
       "IntentClaimDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddInstructorDto": {
         "type": "object",
         "properties": {}
       },
