@@ -28,6 +28,7 @@ import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { PayoutSettlementService } from "../application/payout-settlement.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"] as const;
 const PAYOUT_STATUSES: readonly PayoutStatus[] = [
   "PENDING",
@@ -65,10 +66,12 @@ class GeneratePayoutDto {
 class ListPayoutsQueryDto {
   @IsOptional()
   @IsIn(ACTOR_TYPES)
+  @ApiPropertyOptional()
   actorType?: string;
 
   @IsOptional()
   @IsIn(PAYOUT_STATUSES)
+  @ApiPropertyOptional()
   status?: PayoutStatus;
 }
 
@@ -83,22 +86,27 @@ class ListPayoutsQueryDto {
 class MePayoutsQueryDto {
   @IsOptional()
   @IsIn(PAYOUT_STATUSES)
+  @ApiPropertyOptional()
   status?: PayoutStatus;
 
   @IsOptional()
   @IsIn(ORDER_TYPES)
+  @ApiPropertyOptional()
   orderType?: string;
 
   @IsOptional()
   @IsIn(CHANNELS)
+  @ApiPropertyOptional()
   channel?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   from?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   to?: string;
 }
 

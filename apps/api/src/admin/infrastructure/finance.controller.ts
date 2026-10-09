@@ -23,6 +23,7 @@ import {
   producerTierParamKey,
 } from "../../payments/domain/platform-tiers";
 import type { BillingCycle } from "@prisma/client";
+import { ApiQuery } from "@nestjs/swagger";
 
 class SummaryQueryDto {
   @IsOptional()
@@ -100,6 +101,7 @@ export class AdminFinanceController {
   ) {}
 
   @Get("summary")
+  @ApiQuery({ name: "from", required: false })
   async summary(@Query("from") from?: string, @Query("to") to?: string) {
     const periodEnd = to ? new Date(to) : new Date();
     const periodStart = from ? new Date(from) : clMonthStart(periodEnd);

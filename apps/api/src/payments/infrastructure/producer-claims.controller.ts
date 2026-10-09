@@ -39,6 +39,7 @@ import {
 } from "./producer-claims.service";
 import { mimeForKey } from "../../storage/storage.service";
 import { pageParams } from "../../academies/infrastructure/list-filters";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 class CreateMethodDto {
   @IsIn([...PRODUCER_METHOD_TYPES])
@@ -99,22 +100,27 @@ const CLAIM_STATUSES: readonly ClaimStatus[] = [
 class ListClaimsQueryDto {
   @IsOptional()
   @IsIn(CLAIM_STATUSES)
+  @ApiPropertyOptional()
   status?: ClaimStatus;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   from?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   to?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   page?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   pageSize?: string;
 }
 

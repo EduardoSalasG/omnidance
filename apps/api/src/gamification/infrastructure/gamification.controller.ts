@@ -22,6 +22,7 @@ import {
   GamificationService,
   MissionNotFoundError,
 } from "../domain/gamification.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 class RecalcProgressDto {
   @IsString()
@@ -53,6 +54,7 @@ export class GamificationController {
    * asistencia a clase; default (social) → ≥1 check-in o sesión CONFIRMED.
    */
   @Get("me/streak")
+  @ApiQuery({ name: "mode", required: false })
   streak(@Req() req: Request, @Query("mode") mode?: string) {
     return this.gamification.streakFor(req.person!.id, { mode });
   }

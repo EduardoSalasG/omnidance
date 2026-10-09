@@ -27,6 +27,7 @@ import {
 } from "../domain/sessions.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { GamificationService } from "../../gamification/domain/gamification.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 class ScanDto {
   @IsString()
@@ -221,6 +222,7 @@ export class SessionsController {
   }
 
   @Get("mine")
+  @ApiQuery({ name: "eventId", required: false })
   async mine(@Req() req: Request, @Query("eventId") eventId?: string) {
     const me = req.person!.id;
     const rows = await this.prisma.danceSession.findMany({

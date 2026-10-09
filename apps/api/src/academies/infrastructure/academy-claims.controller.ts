@@ -35,6 +35,7 @@ import {
 } from "./academy-claims.service";
 import { mimeForKey } from "../../storage/storage.service";
 import { dayRange, pageParams, whitelist } from "./list-filters";
+import { ApiQuery } from "@nestjs/swagger";
 
 // Whitelist del filtro `status` de la cola (spec analytics/query-console)
 // - ClaimStatus del schema, orden de la cola: accionable primero.
@@ -251,6 +252,11 @@ export class AcademyClaimsController {
    * (inválido → 400), from/to = rango inclusivo por día sobre createdAt.
    */
   @Get(":id/claims")
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   async listClaims(
     @Param("id") id: string,
     @Query("status") status: string | undefined,

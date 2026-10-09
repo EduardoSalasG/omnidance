@@ -35,6 +35,7 @@ import {
   type ClassCardRow,
 } from "./class-card-projection";
 import { filterDate } from "./list-filters";
+import { ApiQuery } from "@nestjs/swagger";
 
 // Inscripción vigente: la que habilita ver la academia como "mía" en
 // /clases y reservar cupo. PAUSED/FROZEN no cuentan (spec de producto:
@@ -280,6 +281,12 @@ export class ClassesController {
    * filtros de estilo/nivel resuelven siempre sobre slot.series.
    */
   @Get("browse")
+  @ApiQuery({ name: "weekday", required: false })
+  @ApiQuery({ name: "styleId", required: false })
+  @ApiQuery({ name: "levelId", required: false })
+  @ApiQuery({ name: "academyId", required: false })
+  @ApiQuery({ name: "days", required: false })
+  @ApiQuery({ name: "scope", required: false })
   async browse(
     @Req() req: Request,
     @Query("weekday") weekday?: string,
@@ -374,6 +381,7 @@ export class ClassesController {
       (aforo 1, sin recurrencia) viajan en la MISMA respuesta -
       series:null, date:null cuando aún no se agendan. */
   @Get("mine")
+  @ApiQuery({ name: "scope", required: false })
   async mine(@Req() req: Request, @Query("scope") scope?: string) {
     if (scope === "past") return this.history(req.person!.id);
     const me = req.person!.id;
@@ -562,6 +570,10 @@ export class ClassesController {
    * seriesId/academyId por slot. Fecha inválida → 400.
    */
   @Get("teaching")
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "seriesId", required: false })
+  @ApiQuery({ name: "academyId", required: false })
   async teaching(
     @Req() req: Request,
     @Query("from") from?: string,

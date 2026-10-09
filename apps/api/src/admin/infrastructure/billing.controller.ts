@@ -21,6 +21,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { AdminBillingService } from "../application/billing.service";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 class GenerateDto {
   @IsString()
@@ -37,20 +38,24 @@ class VoidDto {
 class ListQueryDto {
   @IsOptional()
   @IsIn(["ISSUED", "VOID"])
+  @ApiPropertyOptional()
   status?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   personId?: string;
 
   // Convención del query engine: rango ISO sobre issuedAt (400 si no
   // parsea - el pipe valida @IsISO8601).
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   from?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   to?: string;
 }
 

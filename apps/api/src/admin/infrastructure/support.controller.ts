@@ -11,6 +11,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequireRoles } from "../../common/rbac/roles.decorator";
 import { PrismaService } from "../../prisma.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 /**
  * Consola de soporte: búsqueda y ficha read-only de usuarios para
@@ -26,6 +27,7 @@ export class SupportController {
 
   /** GET /api/support/users?q= - búsqueda por nombre/email, top 20. */
   @Get("users")
+  @ApiQuery({ name: "q", required: false })
   search(@Query("q") q?: string) {
     const term = q?.trim() ?? "";
     if (term.length < 2) {

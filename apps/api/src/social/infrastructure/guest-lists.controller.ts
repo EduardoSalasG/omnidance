@@ -29,6 +29,7 @@ import {
   roleKeysHavePermission,
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 class CreateGuestListDto {
   @IsString()
@@ -58,19 +59,23 @@ class AddEntryDto {
 class ListGuestListsDto {
   @IsOptional()
   @IsIn(["PENDING", "ARRIVED"])
+  @ApiPropertyOptional()
   status?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(120)
+  @ApiPropertyOptional()
   q?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   page?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   pageSize?: string;
 }
 

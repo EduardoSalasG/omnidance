@@ -27,6 +27,7 @@ import {
   PUSH_PLATFORMS,
   type PushPlatform,
 } from "../domain/notifications.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 class PushKeysDto {
   @IsString()
@@ -73,6 +74,9 @@ export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
 
   @Get()
+  @ApiQuery({ name: "unread", required: false })
+  @ApiQuery({ name: "limit", required: false })
+  @ApiQuery({ name: "lens", required: false })
   async list(
     @Req() req: Request,
     @Query("unread") unread?: string,

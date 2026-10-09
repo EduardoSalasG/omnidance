@@ -32,6 +32,7 @@ import { buildTablePdf } from "../common/pdf-report";
 import { fmtCl } from "./entities/helpers";
 import { toCsv } from "./producer-export";
 import { QueryService } from "./query.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 /**
  * Motor de consultas compartido (spec analytics/query-console):
@@ -95,6 +96,7 @@ export class QueryController {
    * evento, planes/series/instructores de la academia).
    */
   @Get("options")
+  @ApiQuery({ name: "scopeId", required: false })
   options(
     @Req() req: Request,
     @Query("role") role = "",

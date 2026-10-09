@@ -41,6 +41,7 @@ import {
 import { assertProducerPro } from "../../common/producer-pro";
 import { SEGMENTS } from "@omnidance/shared";
 import { pageParams } from "../../academies/infrastructure/list-filters";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 // CRM transversal - todos los endpoints exigen el permiso crm.manage
 // (PRODUCER / ACADEMY_OWNER / staff delegado) Y acceso puntual al actor
@@ -60,32 +61,39 @@ class ActorRefDto {
 class ListPeopleQueryDto {
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   actorType!: string;
 
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   actorId!: string;
 
   /** Filtros/paginación del listado (spec academy-console-v3): q = nombre
    * de persona o texto de tag, segment = SEGMENTS|NONE|ALL, tag exacto. */
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   q?: string;
 
   @IsOptional()
   @IsIn([...SEGMENTS, "NONE", "ALL"])
+  @ApiPropertyOptional()
   segment?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   tag?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   page?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   pageSize?: string;
 }
 

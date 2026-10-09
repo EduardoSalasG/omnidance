@@ -51,6 +51,7 @@ import {
   OwnMethodUnavailableError,
 } from "../application/checkout.service";
 import { SubscriptionsService } from "../application/subscriptions.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 class CheckoutTicketDto {
   @IsString()
@@ -206,6 +207,8 @@ export class CheckoutController {
    * mostrar el total con descuento antes de pagar.
    */
   @Get("discount-quote")
+  @ApiQuery({ name: "eventId", required: false })
+  @ApiQuery({ name: "code", required: false })
   @UseGuards(SessionGuard)
   async discountQuote(
     @Query("eventId") eventId?: string,

@@ -17,6 +17,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
 import { filterDate } from "./list-filters";
+import { ApiQuery } from "@nestjs/swagger";
 
 class RecordAttendanceDto {
   @IsString()
@@ -116,6 +117,10 @@ export class AttendanceController {
    * semántica del engine). Fecha inválida → 400.
    */
   @Get(":id/attendance")
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "seriesId", required: false })
+  @ApiQuery({ name: "instructorId", required: false })
   @UseGuards(SessionGuard)
   async list(
     @Param("id") id: string,

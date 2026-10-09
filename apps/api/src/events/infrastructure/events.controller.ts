@@ -58,6 +58,7 @@ import {
   presaleCutoffDate,
   resolvePresaleCutoffMinutes,
 } from "../../common/presale-cutoff";
+import {ApiProperty, ApiPropertyOptional, ApiQuery } from "@nestjs/swagger";
 
 // Valores del enum EventType del schema (no confundir con la spec: PRACTICA,
 // no PRACTICE).
@@ -91,30 +92,37 @@ class MineEventsQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(120)
+  @ApiPropertyOptional()
   q?: string;
 
   @IsOptional()
   @IsIn(MINE_EVENT_STATUSES)
+  @ApiPropertyOptional()
   status?: EventStatus;
 
   @IsOptional()
   @IsIn(EVENT_TYPES)
+  @ApiPropertyOptional()
   type?: EventType;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   from?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   to?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   page?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   pageSize?: string;
 }
 
@@ -364,34 +372,42 @@ class AddStaffDto {
 class EventExportDto {
   @IsString()
   @IsNotEmpty()
+  @ApiProperty()
   dataset!: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   from?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   to?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   status?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   channel?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   method?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   voided?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   listId?: string;
 }
 
@@ -740,6 +756,9 @@ export class EventsController {
    * tiene, si no series.genres.
    */
   @Get()
+  @ApiQuery({ name: "genre", required: false })
+  @ApiQuery({ name: "venue", required: false })
+  @ApiQuery({ name: "week", required: false })
   async list(
     @Query("genre") genre?: string,
     @Query("venue") venue?: string,

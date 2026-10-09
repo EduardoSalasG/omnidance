@@ -37,6 +37,7 @@ import {
   monthDates,
 } from "./class-series-materialize.service";
 import { pageParams, whitelist } from "./list-filters";
+import { ApiQuery } from "@nestjs/swagger";
 
 class SeriesSlotDto {
   @IsInt()
@@ -222,6 +223,13 @@ export class ClassSeriesController {
    * solo las ve analítica.
    */
   @Get(":id/series")
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "styleId", required: false })
+  @ApiQuery({ name: "levelId", required: false })
+  @ApiQuery({ name: "typeId", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   async list(
     @Param("id") id: string,
     @Req() req: Request,
@@ -284,6 +292,7 @@ export class ClassSeriesController {
    * (clase > slot > serie).
    */
   @Get(":id/series/:seriesId/classes")
+  @ApiQuery({ name: "take", required: false })
   async seriesClasses(
     @Param("id") id: string,
     @Param("seriesId") seriesId: string,
