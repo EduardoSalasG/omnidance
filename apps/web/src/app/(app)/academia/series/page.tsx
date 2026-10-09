@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon, XIcon } from "@/components/ui";
-import { Skeleton, SkeletonList } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -15,7 +15,6 @@ import {
   readError,
   type AcademyInstructor,
   type FilterOption,
-  type NamedRef,
   type Series,
   type SeriesStyle,
 } from "@/components/academy/shared";
@@ -61,7 +60,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
   const t = useTranslations("academySeries");
   const ta = useTranslations("academy");
   const tc = useTranslations("common");
-  const tClasses = useTranslations("classes");
 
   const [series, setSeries] = useState<Series[] | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -70,32 +68,24 @@ function SeriesModule({ academyId }: { academyId: string }) {
   // form de serie).
   const [styleOptions, setStyleOptions] = useState<FilterOption[]>([]);
 
-  // ─── catálogos del mini-form "agregar horario" ───
-  // null = fetch en vuelo → el select de instructor queda disabled y
-  // las chips de types muestran skeleton.
-  const [types, setTypes] = useState<NamedRef[] | null>(null);
+  // ─── catálogo del mini-form "agregar horario" ───
+  // null = fetch en vuelo → el select de instructor queda disabled.
   const [instructors, setInstructors] = useState<AcademyInstructor[] | null>(
     null,
   );
 
   // ─── mini-form "agregar horario" por serie activa (PATCH addSlots) ───
+  // Solo día/horas/instructor: cupos y modalidad son de la serie
+  // (spec academies/class-series).
   const [slotFormFor, setSlotFormFor] = useState<string | null>(null);
   const [nsWeekday, setNsWeekday] = useState(1);
   const [nsStart, setNsStart] = useState("19:00");
   const [nsEnd, setNsEnd] = useState("20:00");
-  const [nsCapacity, setNsCapacity] = useState("");
   const [nsInstructor, setNsInstructor] = useState("");
-  const [nsTypeIds, setNsTypeIds] = useState<string[]>([]);
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-
-  const monthFmt = useMemo(
-    () =>
-      new Intl.DateTimeFormat("es-CL", { month: "long", year: "numeric" }),
-    [],
-  );
 
   const clpFmt = useMemo(
     () =>
@@ -127,9 +117,8 @@ function SeriesModule({ academyId }: { academyId: string }) {
     void reload();
   }, [reload]);
 
-  // Catálogos del mini-form de horario (types + instructores) y del
-  // filtro styleId (styles). Si fallan se resuelven a [] - la lista de
-  // series igual se muestra.
+  // Catálogos: instructores (mini-form de horario) y styles (filtro
+  // styleId). Si fallan se resuelven a [] - la lista igual se muestra.
   useEffect(() => {
     apiFetch("/styles")
       .then(async (res) =>
@@ -141,14 +130,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
         ),
       )
       .catch(() => setStyleOptions([]));
-    apiFetch("/classes/catalogs")
-      .then(async (res) =>
-        res.ok
-          ? ((await res.json()) as { types: NamedRef[] })
-          : { types: [] },
-      )
-      .then((c) => setTypes(c.types))
-      .catch(() => setTypes([]));
     void (async () => {
       try {
         const [detailRes, dirRes] = await Promise.all([
@@ -186,15 +167,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
       }
     })();
   }, [academyId]);
-
-  function monthLabel(m: string): string {
-    const [y, mo] = m.split("-").map(Number);
-    if (!y || !mo) return m;
-    return monthFmt.format(new Date(Date.UTC(y, mo - 1, 1)));
-  }
-
-  const toggleIn = (arr: string[], id: string) =>
-    arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id];
 
   // DELETE /academies/:id/series/:seriesId - desactiva y cancela las
   // clases futuras (el backend libera las reservas).
@@ -249,9 +221,9 @@ function SeriesModule({ academyId }: { academyId: string }) {
     }
   }
 
-  // PATCH {addSlots:[…]} - agrega un horario a la serie y materializa las
-  // clases que quedan del mes en ese día. Cupo/instructor opcionales: el
-  // backend hereda los defaults de la serie.
+  // PATCH {addSlots:[…]} - agrega un horario a la serie y materializa
+  // las clases futuras de la ventana rodante en ese día. El instructor
+  // es el único override del slot (cupos/modalidad son de la serie).
   async function addSlot(s: Series): Promise<void> {
     if (!nsStart || !nsEnd || nsStart >= nsEnd) {
       setActionError(t("error"));
@@ -272,11 +244,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 weekday: nsWeekday,
                 startTime: nsStart,
                 endTime: nsEnd,
-                ...(nsCapacity
-                  ? { capacity: Number.parseInt(nsCapacity, 10) || 1 }
-                  : {}),
                 ...(nsInstructor ? { instructorId: nsInstructor } : {}),
-                ...(nsTypeIds.length ? { typeIds: nsTypeIds } : {}),
               },
             ],
           }),
@@ -369,9 +337,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <p className="font-semibold">{s.name}</p>
                   {!s.active && <Badge variant="live">{t("inactive")}</Badge>}
-                  <span className="text-xs capitalize text-ink/50">
-                    {monthLabel(s.month)}
-                  </span>
                 </div>
                 {s.description && (
                   <p className="text-sm text-ink/60">{s.description}</p>
@@ -410,12 +375,11 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         key={slot.id}
                         className="flex items-center gap-2 text-sm text-ink/70"
                       >
+                        {/* Cupos/modalidad viven en la serie (badges
+                            arriba) - el slot solo muestra día y hora. */}
                         <span className="tabular-nums">
                           {ta(`weekday.${slot.weekday}`).slice(0, 3)}{" "}
-                          {slot.startTime}–{slot.endTime} ·{" "}
-                          {tClasses("spotsLeft", { count: slot.capacity })}
-                          {slot.types.length > 0 &&
-                            ` · ${slot.types.map((x) => x.type.name).join(" + ")}`}
+                          {slot.startTime}–{slot.endTime}
                         </span>
                         {s.active && (
                           <Button
@@ -445,9 +409,7 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         setNsWeekday(1);
                         setNsStart("19:00");
                         setNsEnd("20:00");
-                        setNsCapacity("");
                         setNsInstructor("");
-                        setNsTypeIds([]);
                         setActionError(null);
                       }}
                     >
@@ -501,21 +463,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         required
                       />
                     </label>
-                    <label className="flex w-24 flex-col gap-1">
-                      <span className="text-xs text-ink/50">
-                        {t("capacity")}
-                      </span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        step={1}
-                        className={inputCls}
-                        value={nsCapacity}
-                        onChange={(e) => setNsCapacity(e.target.value)}
-                        placeholder={t("capacityOptional")}
-                      />
-                    </label>
                     <label className="flex flex-col gap-1">
                       <span className="text-xs text-ink/50">
                         {t("instructor")}
@@ -535,42 +482,6 @@ function SeriesModule({ academyId }: { academyId: string }) {
                         ))}
                       </select>
                     </label>
-                    {types === null ? (
-                      <div
-                        aria-hidden="true"
-                        className="page-loading flex w-full flex-wrap items-center gap-1.5"
-                      >
-                        <Skeleton className="h-8 w-20 rounded-lg" />
-                        <Skeleton className="h-8 w-24 rounded-lg" />
-                      </div>
-                    ) : (
-                      types.length > 0 && (
-                      <div className="flex w-full flex-wrap items-center gap-1.5">
-                        <span className="text-xs text-ink/40">
-                          {t("slotTypes")}:
-                        </span>
-                        {types.map((ty) => (
-                          <label
-                            key={ty.id}
-                            className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-2 text-xs text-ink"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={nsTypeIds.includes(ty.id)}
-                              onChange={() =>
-                                setNsTypeIds((prev) => toggleIn(prev, ty.id))
-                              }
-                              className="accent-neon"
-                            />
-                            {ty.name}
-                          </label>
-                        ))}
-                        <span className="text-xs text-ink/40">
-                          {t("slotTypesHint")}
-                        </span>
-                      </div>
-                      )
-                    )}
                     <div className="flex flex-wrap gap-2">
                       <Button
                         type="submit"

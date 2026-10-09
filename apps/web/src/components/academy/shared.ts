@@ -104,17 +104,28 @@ export type AcademyDashboard = {
   // KPIs del mes calendario (consola del owner + primera sección de
   // alumnos/clases/planes). null = sin base (0 clases / 0 pagos).
   kpis: {
+    // Personas únicas con plan vigente (no enrollments - quien paga 2
+    // planes cuenta 1).
     activeStudentsMonth: number;
     purchasablePlans: number;
     avgAttendancePerClassMonth: number | null;
     avgTicketMonth: number | null;
     billedMonth: number;
     weeklyClasses: number;
+    // % entero de personas con gender M/F sobre los activos únicos;
+    // null sin base (0 activos). M+F puede no sumar 100 (OTHER/sin
+    // declarar cuentan en el denominador).
+    pctMenMonth: number | null;
+    pctWomenMonth: number | null;
     // Comparativa month-to-date del mes anterior (mismo tramo de días
-    // transcurridos). null = sin base (0 clases / 0 pagos en ese tramo).
+    // transcurridos). null = sin base en ese tramo; alumnos activos
+    // aproxima la vigencia con el estado actual (sin histórico).
+    activeStudentsMonthPrev: number;
     billedMonthPrev: number;
     avgTicketMonthPrev: number | null;
     avgAttendancePerClassMonthPrev: number | null;
+    pctMenMonthPrev: number | null;
+    pctWomenMonthPrev: number | null;
   };
   // Cobros declarados por alumnos pendientes de revisión.
   pendingClaims: {
@@ -220,9 +231,11 @@ export type SeriesSlot = {
   weekday: number; // 0-6, domingo = 0
   startTime: string; // "19:00"
   endTime: string;
-  capacity: number;
+  // Legacy: filas antiguas pueden traer capacity/types por slot - hoy
+  // cupos (series.quorum → academy.defaultQuorum) y modalidad son de
+  // la serie completa (spec academies/class-series).
+  capacity: number | null;
   instructorId: string | null;
-  // Modalidad propia del horario - vacío = hereda los types de la serie.
   types: { type: NamedRef }[];
 };
 
@@ -230,7 +243,9 @@ export type Series = {
   id: string;
   name: string;
   description: string | null;
-  month: string; // "YYYY-MM"
+  // "YYYY-MM" - etiqueta de origen persistida, no la vigencia: la serie
+  // es ilimitada hasta desactivarse (ventana rodante de materialización).
+  month: string;
   active: boolean;
   instructorId: string | null;
   // Override de quórum por serie (PATCH acepta quorum; null = hereda el

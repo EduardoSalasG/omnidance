@@ -6,6 +6,7 @@ import type { AcademyAccess } from "./academy-access.service";
 // Ciclo session.guard ⇄ auth.controller (ver classes.controller.spec.ts).
 import "../../auth/infrastructure/auth.controller";
 import { ClassSeriesController } from "./class-series.controller";
+import { AcademyMaterializeService } from "./class-series-materialize.service";
 
 // Cascade de cancelación por la academia (spec class-credit-cancellation):
 // desactivar serie / eliminar slot cancelan las clases futuras y TODAS
@@ -136,6 +137,7 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
         requireCapabilityWrite: vi.fn(async () => undefined),
       } as unknown as AcademyAccess,
       { notifySafe: vi.fn() } as unknown as NotificationsService,
+      new AcademyMaterializeService(prisma as unknown as PrismaService),
     );
     prisma.series.set("ser-1", { id: "ser-1", academyId: "acad-1" });
     prisma.slots.set("slot-1", {

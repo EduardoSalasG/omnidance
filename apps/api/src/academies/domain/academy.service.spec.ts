@@ -3,6 +3,7 @@ import {
   assertEnrollmentTransition,
   canAdministerAcademy,
   canManageAcademy,
+  computeActiveStudentsKpis,
   computeDashboard,
   computeUpcomingBirthdays,
   InvalidEnrollmentTransitionError,
@@ -150,6 +151,67 @@ describe("computeDashboard", () => {
       totalStudents: 0,
       plansCount: 0,
       attendanceLast30d: 0,
+    });
+  });
+});
+
+describe("computeActiveStudentsKpis", () => {
+  const genders = new Map<string, string | null>([
+    ["f1", "F"],
+    ["f2", "F"],
+    ["m1", "M"],
+    ["o1", "OTHER"],
+    ["n1", null],
+  ]);
+
+  it("cuenta personas únicas (2 enrollments de la misma persona → 1)", () => {
+    const r = computeActiveStudentsKpis({
+      nowIds: ["f1", "f1", "m1"],
+      prevIds: ["f1"],
+      genderById: genders,
+    });
+    expect(r.activeStudentsMonth).toBe(2);
+    expect(r.activeStudentsMonthPrev).toBe(1);
+  });
+
+  it("porcentaje de género sobre el total de activos (sin declarar cuenta en el denominador)", () => {
+    // 4 activos: 2F, 1M, 1 sin declarar → F=50%, M=25%.
+    const r = computeActiveStudentsKpis({
+      nowIds: ["f1", "f2", "m1", "n1"],
+      prevIds: [],
+      genderById: genders,
+    });
+    expect(r.pctWomenMonth).toBe(50);
+    expect(r.pctMenMonth).toBe(25);
+    // Sin base previa → null (la UI no dibuja comparativa).
+    expect(r.pctWomenMonthPrev).toBeNull();
+    expect(r.pctMenMonthPrev).toBeNull();
+  });
+
+  it("prev usa su propio set de personas; OTHER no suma a M ni F", () => {
+    const r = computeActiveStudentsKpis({
+      nowIds: ["m1"],
+      prevIds: ["f1", "o1"],
+      genderById: genders,
+    });
+    expect(r.pctMenMonth).toBe(100);
+    expect(r.pctWomenMonthPrev).toBe(50);
+    expect(r.pctMenMonthPrev).toBe(0);
+  });
+
+  it("sin alumnos → conteos 0 y porcentajes null", () => {
+    const r = computeActiveStudentsKpis({
+      nowIds: [],
+      prevIds: [],
+      genderById: genders,
+    });
+    expect(r).toEqual({
+      activeStudentsMonth: 0,
+      activeStudentsMonthPrev: 0,
+      pctMenMonth: null,
+      pctWomenMonth: null,
+      pctMenMonthPrev: null,
+      pctWomenMonthPrev: null,
     });
   });
 });

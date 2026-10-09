@@ -449,12 +449,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelNs: "academy",
       labelKey: "navGroups.teaching",
       items: [
-        {
-          href: "/academia/clases",
-          ns: "academy",
-          key: "modules.myClasses",
-          icon: ICONS.list,
-        },
+        // "Mis clases" (/academia/clases) es consola del instructor -
+        // la lente owner no la lista ni puede entrar (spec
+        // academies/staff-roles); queda para el drawer INSTRUCTOR.
         {
           href: "/academia/series",
           ns: "academySeries",
@@ -1099,10 +1096,21 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     ),
   ];
   navEntries.sort((a, b) => b[0].length - a[0].length);
+  // Overrides de título para páginas "empujadas" (sin ítem propio en el
+  // drawer): cambian el label del appbar sin convertir la ruta en raíz
+  // - conservan el ‹ back hacia su padre. Se consultan antes que
+  // navEntries.
+  const LABEL_OVERRIDES: [string, string][] = [
+    ["/academia/series/nueva", nsT.academySeries("newTitle")],
+  ];
   const pageLabel =
+    LABEL_OVERRIDES.find(
+      ([href]) => pathname === href || pathname.startsWith(`${href}/`),
+    )?.[1] ??
     navEntries.find(
       ([href]) => pathname === href || pathname.startsWith(`${href}/`),
-    )?.[1] ?? null;
+    )?.[1] ??
+    null;
 
   // Back del appbar (iOS): solo en rutas empujadas (no-raíz). Destino:
   // router.back() si la sesión ya navegó dentro de la app; si la entrada

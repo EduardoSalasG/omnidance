@@ -35,6 +35,7 @@ import { ParamsService } from "../../params/params.service";
 import { SubscriptionsService } from "../../payments/application/subscriptions.service";
 import {
   assertEnrollmentTransition,
+  computeActiveStudentsKpis,
   computeDashboard,
   computeUpcomingBirthdays,
   InvalidEnrollmentTransitionError,
@@ -1197,7 +1198,8 @@ export class AcademiesController {
       attendanceLast30d,
       today,
       todayAttendance,
-      activeStudentsMonth,
+      activeNowRows,
+      activePrevRows,
       purchasablePlans,
       classesMonth,
       attendanceMonth,
@@ -1246,12 +1248,27 @@ export class AcademiesController {
         // ─── KPIs del mes (consola del owner) ───
         // Alumnos con plan vigente: estados que habilitan asistir
         // (mismo set que los insights) y endsAt no vencido o sin fecha.
-        this.prisma.enrollment.count({
+        // findMany de personIds (no count) - el KPI cuenta personas
+        // únicas y el mismo set alimenta el split de género.
+        this.prisma.enrollment.findMany({
           where: {
             academyId: id,
             status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
             OR: [{ endsAt: null }, { endsAt: { gte: todayUTC } }],
           },
+          select: { personId: true },
+        }),
+        // Set equivalente del tramo MTD del mes anterior: vigencia que
+        // intersecta la ventana (sin histórico de estados - el actual
+        // aproxima; spec academies/owner-insights).
+        this.prisma.enrollment.findMany({
+          where: {
+            academyId: id,
+            status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+            startedAt: { lte: prevMtdEnd },
+            OR: [{ endsAt: null }, { endsAt: { gte: prevMonthStart } }],
+          },
+          select: { personId: true },
         }),
         this.prisma.membershipPlan.count({
           where: { academyId: id, active: true },
@@ -1465,12 +1482,34 @@ export class AcademiesController {
       : [];
     const studentById = new Map(students.map((p) => [p.id, p]));
 
+    // Alumnos activos (personas únicas) + split de género, este mes y
+    // el tramo MTD anterior - join manual de Person.gender (personId es
+    // escalar sin FK, mismo patrón que studentById).
+    const genderIds = [
+      ...new Set([
+        ...activeNowRows.map((e) => e.personId),
+        ...activePrevRows.map((e) => e.personId),
+      ]),
+    ];
+    const genderRows = genderIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: genderIds } },
+          select: { id: true, gender: true },
+        })
+      : [];
+    const genderById = new Map(genderRows.map((p) => [p.id, p.gender]));
+    const studentKpis = computeActiveStudentsKpis({
+      nowIds: activeNowRows.map((e) => e.personId),
+      prevIds: activePrevRows.map((e) => e.personId),
+      genderById,
+    });
+
     return {
       ...computeDashboard({ enrollments, plansCount, attendanceLast30d }),
       // KPIs del mes para la consola (inicio del owner + primera
       // sección de alumnos/clases/planes).
       kpis: {
-        activeStudentsMonth,
+        ...studentKpis,
         purchasablePlans,
         avgAttendancePerClassMonth: avgAttendanceMonth,
         avgTicketMonth,

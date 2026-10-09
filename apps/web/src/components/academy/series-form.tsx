@@ -16,33 +16,26 @@ import {
 } from "./shared";
 
 type SlotDraft = {
+  // El horario solo fija día/horas - cupos (quórum) y modalidad son
+  // atributos de la serie completa (spec academies/class-series).
   weekday: number;
   startTime: string;
   endTime: string;
-  capacity: string; // string para el input controlado; se parsea al enviar
-  // Modalidad propia del horario - vacío = hereda los types de la serie.
-  typeIds: string[];
 };
 
 const emptySlot = (): SlotDraft => ({
   weekday: 1,
   startTime: "19:00",
   endTime: "20:00",
-  capacity: "20",
-  typeIds: [],
 });
-
-/** "YYYY-MM" del mes actual en hora local - default del input month. */
-function currentMonth(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
 
 /**
  * Formulario de serie de clases - vive en la página dedicada
  * /academia/series/nueva (crear) y ?edit=<seriesId> (editar). POST crea
- * con month + slots; PATCH solo acepta metadatos (no slots ni month) -
- * en modo edición esos campos se ocultan. Los selects se alimentan de
+ * la serie con sus slots; la vigencia es ilimitada hasta desactivarla
+ * (el backend materializa una ventana rodante hoy → fin del mes
+ * siguiente). PATCH solo acepta metadatos (no slots) - en modo edición
+ * el fieldset de horarios se oculta. Los selects se alimentan de
  * GET /styles, GET /classes/catalogs y el detalle/directorio de academias.
  */
 export function SeriesForm({
@@ -86,7 +79,6 @@ export function SeriesForm({
   const [dropIn, setDropIn] = useState(
     editing?.dropInPrice != null ? String(editing.dropInPrice) : "",
   );
-  const [month, setMonth] = useState(editing?.month ?? currentMonth());
   const [slots, setSlots] = useState<SlotDraft[]>([emptySlot()]);
 
   const [busy, setBusy] = useState(false);
@@ -162,17 +154,6 @@ export function SeriesForm({
     );
   }
 
-  const toggleIn = (arr: string[], id: string) =>
-    arr.includes(id) ? arr.filter((x) => x !== id) : [...arr, id];
-
-  function toggleSlotType(i: number, id: string): void {
-    setSlots((prev) =>
-      prev.map((s, j) =>
-        j === i ? { ...s, typeIds: toggleIn(s.typeIds, id) } : s,
-      ),
-    );
-  }
-
   function updateSlot(i: number, patch: Partial<SlotDraft>): void {
     setSlots((prev) => prev.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   }
@@ -198,7 +179,7 @@ export function SeriesForm({
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
-    if (!editing && (!month || slots.length === 0)) return;
+    if (!editing && slots.length === 0) return;
     const q = parsedQuorum();
     const drop = parsedDropIn();
     setBusy(true);
@@ -233,13 +214,10 @@ export function SeriesForm({
               ...(instructorId ? { instructorId } : {}),
               ...(q !== null ? { quorum: q } : {}),
               ...(drop !== null ? { dropInPrice: drop } : {}),
-              month,
               slots: slots.map((s) => ({
                 weekday: s.weekday,
                 startTime: s.startTime,
                 endTime: s.endTime,
-                capacity: Number.parseInt(s.capacity, 10) || 1,
-                ...(s.typeIds.length ? { typeIds: s.typeIds } : {}),
               })),
             }),
           });
@@ -382,26 +360,6 @@ export function SeriesForm({
               <span className="text-xs text-ink/40">{t("dropInHint")}</span>
             </label>
 
-            {!editing && (
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-ink/50">
-                  {t("month")}
-                  <span aria-hidden="true" className="text-neon">
-                    {" "}
-                    *
-                  </span>
-                </span>
-                <input
-                  type="month"
-                  className={inputCls}
-                  value={month}
-                  onChange={(e) => setMonth(e.target.value)}
-                  required
-                />
-                <span className="text-xs text-ink/40">{t("monthHint")}</span>
-              </label>
-            )}
-
             {types === null ? (
               /* Chips de modalidad en vuelo - skeleton con la forma de
                  las chips para que el fieldset no salte al resolver. */
@@ -494,23 +452,6 @@ export function SeriesForm({
                           required
                         />
                       </label>
-                      <label className="flex w-24 flex-col gap-1">
-                        <span className="text-xs text-ink/50">
-                          {t("capacity")}
-                        </span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={1}
-                          step={1}
-                          className={inputCls}
-                          value={s.capacity}
-                          onChange={(e) =>
-                            updateSlot(i, { capacity: e.target.value })
-                          }
-                          required
-                        />
-                      </label>
                       <Button
                         type="button"
                         variant="ghost"
@@ -523,40 +464,6 @@ export function SeriesForm({
                       >
                         <XIcon className="h-4 w-4" />
                       </Button>
-                      {types === null ? (
-                        <div
-                          aria-hidden="true"
-                          className="page-loading flex basis-full flex-wrap items-center gap-1.5"
-                        >
-                          <Skeleton className="h-8 w-20 rounded-lg" />
-                          <Skeleton className="h-8 w-24 rounded-lg" />
-                        </div>
-                      ) : (
-                        types.length > 0 && (
-                        <div className="flex basis-full flex-wrap items-center gap-1.5">
-                          <span className="text-xs text-ink/40">
-                            {t("slotTypes")}:
-                          </span>
-                          {types.map((ty) => (
-                            <label
-                              key={ty.id}
-                              className="flex min-h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-2 text-xs text-ink"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={s.typeIds.includes(ty.id)}
-                                onChange={() => toggleSlotType(i, ty.id)}
-                                className="accent-neon"
-                              />
-                              {ty.name}
-                            </label>
-                          ))}
-                          <span className="text-xs text-ink/40">
-                            {t("slotTypesHint")}
-                          </span>
-                        </div>
-                        )
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -579,6 +486,8 @@ export function SeriesForm({
               </p>
             )}
 
+            {/* Sin Cancelar: el abort lo da el ‹ back del chrome
+                (appbar/ConsoleHeader) en móvil y desktop. */}
             <div className="flex flex-wrap gap-2 sm:col-span-2">
               <Button type="submit" size="sm" disabled={busy}>
                 {busy
@@ -588,14 +497,6 @@ export function SeriesForm({
                   : editing
                     ? t("save")
                     : t("create")}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/academia/series")}
-              >
-                {tc("cancel")}
               </Button>
             </div>
           </form>

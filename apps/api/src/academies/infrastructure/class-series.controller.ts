@@ -32,6 +32,10 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "./academy-access.service";
+import {
+  AcademyMaterializeService,
+  monthDates,
+} from "./class-series-materialize.service";
 import { whitelist } from "./list-filters";
 
 class SeriesSlotDto {
@@ -48,21 +52,10 @@ class SeriesSlotDto {
   @Matches(/^\d{2}:\d{2}$/, { message: "endTime formato HH:MM" })
   endTime!: string;
 
-  /** Opcional: null/omitido = el slot hereda el quórum de serie/academia. */
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  capacity?: number;
-
+  /** Override docente del horario; omitido = el instructor de la serie. */
   @IsOptional()
   @IsString()
   instructorId?: string;
-
-  /** Modalidades propias del horario - omitido/vacío = hereda las de la serie. */
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  typeIds?: string[];
 }
 
 class CreateSeriesDto {
@@ -102,9 +95,16 @@ class CreateSeriesDto {
   @Min(0)
   dropInPrice?: number;
 
+  /**
+   * Legacy/opcional: la serie es ilimitada hasta desactivarse (spec
+   * academies/class-series) - `month` ya no es la vigencia. Si se envía
+   * (import/legacy) además se materializa el resto de ese mes; si se
+   * omite se persiste el mes actual como etiqueta de origen.
+   */
+  @IsOptional()
   @IsString()
   @Matches(/^\d{4}-\d{2}$/, { message: "month formato YYYY-MM" })
-  month!: string;
+  month?: string;
 
   @IsArray()
   @ArrayMinSize(1)
@@ -114,9 +114,9 @@ class CreateSeriesDto {
 }
 
 /**
- * Slot extra para PATCH addSlots - mismo contrato que SeriesSlotDto;
- * capacity opcional: si falta queda null y el slot hereda el quórum
- * efectivo (series.quorum → academy.defaultQuorum → 20).
+ * Slot extra para PATCH addSlots - mismo contrato que SeriesSlotDto:
+ * cupos y modalidad son de la serie (series.quorum →
+ * academy.defaultQuorum), el slot solo fija día/hora e instructor.
  */
 class AddSeriesSlotDto {
   @IsInt()
@@ -133,19 +133,8 @@ class AddSeriesSlotDto {
   endTime!: string;
 
   @IsOptional()
-  @IsInt()
-  @Min(1)
-  capacity?: number;
-
-  @IsOptional()
   @IsString()
   instructorId?: string;
-
-  /** Modalidades propias del horario - omitido/vacío = hereda las de la serie. */
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  typeIds?: string[];
 }
 
 class UpdateSeriesDto {
@@ -209,11 +198,11 @@ const SERIES_INCLUDE: Prisma.ClassSeriesInclude = {
 };
 
 /**
- * Series de clases recurrentes mensuales (omni-dance §academias):
- * una serie agrupa 1+ horarios semanales; al crearla se materializan
- * las instancias Class de ese mes para que los alumnos puedan reservar.
- * Gestión por capacidad `schedule` (owner/ADMIN/staff con el flag -
- * spec academy-staff-roles).
+ * Series de clases recurrentes (spec academies/class-series): la serie
+ * es ilimitada hasta desactivarse - las instancias Class se materializan
+ * sobre una ventana rodante hoy → fin del mes siguiente, extendida por
+ * el job diario academies.class_materialization. Gestión por capacidad
+ * `schedule` (owner/ADMIN/staff con el flag - spec academy-staff-roles).
  */
 @Controller("academies")
 @UseGuards(SessionGuard)
@@ -222,6 +211,7 @@ export class ClassSeriesController {
     private readonly prisma: PrismaService,
     private readonly access: AcademyAccess,
     private readonly notifications: NotificationsService,
+    private readonly materialize: AcademyMaterializeService,
   ) {}
 
   /**
@@ -253,7 +243,10 @@ export class ClassSeriesController {
   }
 
   /**
-   * Crea serie + tipos + slots y materializa los Class del mes.
+   * Crea serie + tipos + slots y materializa los Class de la ventana
+   * rodante (hoy → fin del mes siguiente; el job diario la extiende).
+   * `month` es opcional/legacy: se persiste como etiqueta de origen y
+   * si llega explícito además se materializa el resto de ese mes.
    * Transacción única - si falla no queda nada a medias.
    */
   @Post(":id/series")
@@ -263,10 +256,24 @@ export class ClassSeriesController {
     @Req() req: Request,
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "schedule");
-    const dates = monthDates(dto.month);
-    if (dates.length === 0) {
+    const now = new Date();
+    const today = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const month =
+      dto.month ??
+      `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    if (dto.month && monthDates(dto.month).length === 0) {
       throw new BadRequestException("month inválido");
     }
+    // Ventana rodante + el resto del mes explícito si un cliente legacy
+    // lo pide (dedup por timestamp - un día puede caer en ambas).
+    const dates = uniqueDates([
+      ...this.materialize.rollingDates(now),
+      ...(dto.month
+        ? monthDates(dto.month).filter((d) => d >= today)
+        : []),
+    ]);
 
     return this.prisma.$transaction(async (tx) => {
       const series = await tx.classSeries.create({
@@ -279,7 +286,7 @@ export class ClassSeriesController {
           instructorId: dto.instructorId ?? null,
           quorum: dto.quorum ?? null,
           dropInPrice: dto.dropInPrice ?? null,
-          month: dto.month,
+          month,
           types: dto.typeIds?.length
             ? { create: dto.typeIds.map((typeId) => ({ typeId })) }
             : undefined,
@@ -287,8 +294,8 @@ export class ClassSeriesController {
       });
 
       for (const s of dto.slots) {
-        // Modalidad propia del horario vía typeIds; vacío = hereda las
-        // de la serie. El estilo/nivel viven en la serie.
+        // Cupos y modalidad son de la serie (spec academies/class-series)
+        // - el slot solo fija día/hora e instructor override.
         const slot = await tx.classSlot.create({
           data: {
             academyId: id,
@@ -296,25 +303,10 @@ export class ClassSeriesController {
             weekday: s.weekday,
             startTime: s.startTime,
             endTime: s.endTime,
-            capacity: s.capacity ?? null, // null = hereda serie/academia
             instructorId: s.instructorId ?? dto.instructorId ?? null,
-            types: s.typeIds?.length
-              ? { create: s.typeIds.map((typeId) => ({ typeId })) }
-              : undefined,
           },
         });
-        // getUTCDay - las fechas se generan a medianoche UTC; con getDay()
-        // (hora local) en Chile cada clase quedaría un día corrida.
-        const classDates = dates.filter((d) => d.getUTCDay() === s.weekday);
-        if (classDates.length) {
-          await tx.class.createMany({
-            data: classDates.map((date) => ({
-              classSlotId: slot.id,
-              date,
-              instructorId: slot.instructorId,
-            })),
-          });
-        }
+        await this.materialize.materializeSlot(tx, slot, dates);
       }
 
       return tx.classSeries.findUnique({
@@ -326,14 +318,14 @@ export class ClassSeriesController {
 
   /**
    * Edita metadatos de la serie. Si active pasa a true sobre una serie
-   * inactiva, rematerializa las clases futuras del mes (descancela las que
-   * existen y crea las que falten, sin duplicar) y avisa a los alumnos con
-   * enrollment ACTIVE vía notificación class.series.resumed.
+   * inactiva, rematerializa las clases de la ventana rodante (descancela
+   * las que existen y crea las que falten, sin duplicar) y avisa a los
+   * alumnos con enrollment ACTIVE vía notificación class.series.resumed.
    *
    * addSlots agrega horarios a la serie: por cada uno crea el ClassSlot
    * (o reutiliza uno idéntico weekday+startTime+endTime para no duplicar
-   * ante reintentos) y materializa solo las fechas restantes del mes de la
-   * serie (date >= hoy UTC) que caigan en ese weekday.
+   * ante reintentos) y materializa las fechas de la ventana rodante
+   * (hoy → fin del mes siguiente) que caigan en ese weekday.
    */
   @Patch(":id/series/:seriesId")
   async update(
@@ -370,11 +362,9 @@ export class ClassSeriesController {
         include: SERIES_INCLUDE,
       });
 
-      // Fechas restantes del mes de la serie (medianoche UTC, como create).
-      const now = new Date();
-      const futureDates = monthDates(prev.month).filter(
-        (d) => d >= new Date(now.toISOString().slice(0, 10)),
-      );
+      // Ventana rodante (hoy → fin del mes siguiente) - la serie ya no
+      // está acotada a series.month, el job diario la extiende.
+      const futureDates = this.materialize.rollingDates();
 
       if (dto.addSlots?.length) {
         // Copia mutable para dedup contra slots recién creados en este PATCH.
@@ -399,23 +389,19 @@ export class ClassSeriesController {
                 weekday: s.weekday,
                 startTime: s.startTime,
                 endTime: s.endTime,
-                capacity: s.capacity ?? null, // null = hereda serie/academia
                 instructorId:
                   s.instructorId ?? series.instructorId ?? null,
-                types: s.typeIds?.length
-                  ? { create: s.typeIds.map((typeId) => ({ typeId })) }
-                  : undefined,
               },
             });
             known.push(slot);
           }
-          await this.materializeSlot(tx, slot, futureDates);
+          await this.materialize.materializeSlot(tx, slot, futureDates);
         }
       }
 
       if (reactivated) {
         for (const slot of series.slots) {
-          await this.materializeSlot(tx, slot, futureDates);
+          await this.materialize.materializeSlot(tx, slot, futureDates);
         }
       }
 
@@ -431,42 +417,6 @@ export class ClassSeriesController {
       await this.notifySeriesResumed(id, updated);
     }
     return updated;
-  }
-
-  /**
-   * Materializa instancias Class de un slot para las fechas dadas:
-   * descancela las existentes y crea solo las faltantes (sin duplicar
-   * slot+date). getUTCDay - las fechas vienen a medianoche UTC.
-   */
-  private async materializeSlot(
-    tx: Prisma.TransactionClient,
-    slot: { id: string; weekday: number; instructorId: string | null },
-    dates: Date[],
-  ): Promise<void> {
-    const wanted = dates.filter((d) => d.getUTCDay() === slot.weekday);
-    if (!wanted.length) return;
-    const existing = await tx.class.findMany({
-      where: { classSlotId: slot.id, date: { in: wanted } },
-      select: { id: true, date: true, cancelled: true },
-    });
-    const byTime = new Map(existing.map((c) => [c.date.getTime(), c]));
-    const toRevive = existing.filter((c) => c.cancelled).map((c) => c.id);
-    if (toRevive.length) {
-      await tx.class.updateMany({
-        where: { id: { in: toRevive } },
-        data: { cancelled: false },
-      });
-    }
-    const missing = wanted.filter((d) => !byTime.has(d.getTime()));
-    if (missing.length) {
-      await tx.class.createMany({
-        data: missing.map((date) => ({
-          classSlotId: slot.id,
-          date,
-          instructorId: slot.instructorId,
-        })),
-      });
-    }
   }
 
   /**
@@ -595,13 +545,8 @@ export class ClassSeriesController {
   }
 }
 
-/** Días calendario del mes "YYYY-MM" (UTC) para materializar clases. */
-function monthDates(month: string): Date[] {
-  const [y, m] = month.split("-").map(Number);
-  if (!y || !m || m < 1 || m > 12) return [];
-  const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return Array.from(
-    { length: days },
-    (_, i) => new Date(Date.UTC(y, m - 1, i + 1)),
-  );
+/** Dedup por timestamp (medianoche UTC) - la ventana rodante y un mes
+ *  explícito legacy pueden superponerse. */
+function uniqueDates(dates: Date[]): Date[] {
+  return [...new Map(dates.map((d) => [d.getTime(), d])).values()];
 }

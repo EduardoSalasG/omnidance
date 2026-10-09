@@ -229,6 +229,53 @@ export function computeDashboard(input: DashboardInput): AcademyDashboard {
   };
 }
 
+export interface ActiveStudentsKpis {
+  // Personas únicas con plan vigente este mes (spec
+  // academies/owner-insights: alumnos activos = personas, no
+  // enrollments - quien paga 2 planes cuenta 1).
+  activeStudentsMonth: number;
+  // Mismo criterio sobre la ventana MTD del mes anterior (el estado
+  // actual del enrollment aproxima el histórico - no hay log).
+  activeStudentsMonthPrev: number;
+  // % entero sobre activos únicos; null sin base. OTHER/sin declarar
+  // cuentan en el denominador - M + F puede no sumar 100.
+  pctMenMonth: number | null;
+  pctWomenMonth: number | null;
+  pctMenMonthPrev: number | null;
+  pctWomenMonthPrev: number | null;
+}
+
+/**
+ * KPIs de alumnos activos + composición por género (spec
+ * academies/owner-insights). `nowIds`/`prevIds` traen un personId por
+ * enrollment que calza la ventana - la deduplicación por persona se
+ * hace acá. `genderById` resuelve el gender declarado de cada persona.
+ */
+export function computeActiveStudentsKpis(input: {
+  nowIds: string[];
+  prevIds: string[];
+  genderById: ReadonlyMap<string, string | null>;
+}): ActiveStudentsKpis {
+  const nowSet = [...new Set(input.nowIds)];
+  const prevSet = [...new Set(input.prevIds)];
+  const pct = (ids: string[], gender: "M" | "F"): number | null =>
+    ids.length === 0
+      ? null
+      : Math.round(
+          (ids.filter((id) => input.genderById.get(id) === gender).length /
+            ids.length) *
+            100,
+        );
+  return {
+    activeStudentsMonth: nowSet.length,
+    activeStudentsMonthPrev: prevSet.length,
+    pctMenMonth: pct(nowSet, "M"),
+    pctWomenMonth: pct(nowSet, "F"),
+    pctMenMonthPrev: pct(prevSet, "M"),
+    pctWomenMonthPrev: pct(prevSet, "F"),
+  };
+}
+
 export interface UpcomingBirthday {
   personId: string;
   name: string;
