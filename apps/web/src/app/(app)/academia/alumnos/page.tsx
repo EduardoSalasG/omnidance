@@ -5,6 +5,8 @@ import { useMe } from "@/lib/me-context";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { StudentsSection } from "@/components/academy/students-section";
+import { ImportCard } from "@/components/academy/import-section";
+import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
@@ -45,13 +47,22 @@ function StudentsModule({
     ? null
     : !!me && (me.roles.includes("ADMIN") || me.id === ownerId);
 
+  // Carga masiva de alumnos embebida en el módulo (cap `students` -
+  // owner/admin reportan todas; null mientras resuelve = no se muestra).
+  const access = useAcademyAccess(academyId);
+
   if (canAdminister === null) {
     return <SkeletonList />;
   }
   return (
-    <StudentsSection
-      academyId={academyId}
-      readOnly={canAdminister !== true}
-    />
+    <div className="flex flex-col gap-6">
+      <StudentsSection
+        academyId={academyId}
+        readOnly={canAdminister !== true}
+      />
+      {access?.caps.students === true && (
+        <ImportCard academyId={academyId} kind="students" />
+      )}
+    </div>
   );
 }
