@@ -3,6 +3,45 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.6.0] - 2026-10-09
+
+Plantel multi-profesor por horario y clase (co-teaching): una clase
+puede ser dictada por N instructores, y se suma Eduardo Salas al
+dataset del piloto.
+
+### Added
+
+- **Modelo multi-instructor** (`academies/class-series`): nuevas tablas
+  `ClassSlotInstructor` (plantel del horario) y `ClassInstructor`
+  (plantel materializado por instancia) con migración versionada +
+  backfill del primario existente. `instructorId` se conserva como
+  instructor principal: comisión, encuesta y liquidación siguen leyendo
+  el singular sin repartir montos — el join es el conjunto completo.
+- **Materialización copia el plantel**: cada clase nueva recibe todos
+  los co-profes del slot (primario incluido, dedup).
+- **`instructors[]` en las lecturas**: detalle de clase, roster,
+  `/classes/teaching`, clases por serie y dashboard del owner exponen
+  el plantel completo (primario primero, con foto/Instagram en
+  detalle); el singular `instructor` se mantiene por compatibilidad.
+- **Asistencia por cualquier profe del plantel**: `canMark`,
+  `markAttendance` y el filtro `?instructorId` aceptan primario o
+  co-instructor (slot-level y class-level).
+- **Web muestra "A · B"**: cards de clase, ficha `/clases/[id]`
+  (avatares + Instagram de cada profe), roster de academia, ficha de
+  serie y dashboard del owner renderizan todos los instructores.
+- **Eduardo Salas en el seed** (`salas.eduardo.cl@gmail.com`): cuenta
+  con DANCER + INSTRUCTOR, teléfono, género, estilos Mambo on2 y
+  Bachata sensual LEADER intermedio, enrollment Ilimitado en Mambo
+  Madness, instructor del plantel y co-profe de los sábados junto a
+  María, más actividad social (clique, entradas, check-ins, sesiones,
+  badges, IG `eduardosalasg`). Claim de cuenta al registrarse.
+
+### Fixed
+
+- Import masivo de horario: los slots importados ahora también escriben
+  su fila `ClassSlotInstructor` (el plantel no quedaba incompleto si el
+  slot no pasaba por el controller).
+
 ## [0.5.0] - 2026-10-09
 
 Onboarding del dueño de academia en ambos viewports y corrección del
