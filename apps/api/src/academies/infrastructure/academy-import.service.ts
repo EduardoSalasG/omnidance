@@ -366,6 +366,14 @@ export class AcademyImportService {
                 startTime: p.startTime,
                 endTime: p.endTime,
                 instructorId: p.instructorId,
+                // El primario también entra al plantel (join = conjunto).
+                ...(p.instructorId
+                  ? {
+                      instructors: {
+                        create: [{ personId: p.instructorId }],
+                      },
+                    }
+                  : {}),
               },
               select: {
                 id: true,

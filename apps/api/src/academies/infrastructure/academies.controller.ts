@@ -1904,12 +1904,14 @@ export class AcademiesController {
             id: true,
             capacity: true,
             instructorId: true,
+            instructors: { select: { personId: true } },
             slot: {
               select: {
                 startTime: true,
                 endTime: true,
                 capacity: true,
                 instructorId: true,
+                instructors: { select: { personId: true } },
                 series: { select: { name: true } },
               },
             },
@@ -2020,7 +2022,13 @@ export class AcademiesController {
     // nombres por join manual.
     const instructorIds = [
       ...new Set(
-        today.map((c) => c.instructorId ?? c.slot.instructorId).filter(Boolean),
+        today.flatMap((c) =>
+          [
+            c.instructorId ?? c.slot.instructorId,
+            ...c.instructors.map((i) => i.personId),
+            ...c.slot.instructors.map((i) => i.personId),
+          ].filter(Boolean),
+        ),
       ),
     ] as string[];
     const instructors = instructorIds.length
@@ -2257,17 +2265,34 @@ export class AcademiesController {
         birthdayDays,
       ),
       attendanceToday: todayAttendance,
-      todayClasses: today.map((c) => ({
-        id: c.id,
-        startTime: c.slot.startTime,
-        endTime: c.slot.endTime,
-        seriesName: c.slot.series.name,
-        instructorName:
-          instructorNameBy.get(c.instructorId ?? c.slot.instructorId ?? "") ??
-          null,
-        bookedCount: booked.get(c.id) ?? 0,
-        capacity: c.capacity ?? c.slot.capacity,
-      })),
+      todayClasses: today.map((c) => {
+        // Plantel (multi-instructor): primario primero + co-profes de
+        // clase y slot, sin duplicar.
+        const primaryId = c.instructorId ?? c.slot.instructorId;
+        const rosterIds = [
+          ...new Set(
+            [
+              primaryId,
+              ...(c.slot.instructors ?? []).map((i) => i.personId),
+              ...(c.instructors ?? []).map((i) => i.personId),
+            ].filter((x): x is string => !!x),
+          ),
+        ];
+        return {
+          id: c.id,
+          startTime: c.slot.startTime,
+          endTime: c.slot.endTime,
+          seriesName: c.slot.series.name,
+          instructorName:
+            instructorNameBy.get(primaryId ?? "") ?? null,
+          instructors: rosterIds.map((pid) => ({
+            id: pid,
+            name: instructorNameBy.get(pid) ?? null,
+          })),
+          bookedCount: booked.get(c.id) ?? 0,
+          capacity: c.capacity ?? c.slot.capacity,
+        };
+      }),
     };
   }
 }

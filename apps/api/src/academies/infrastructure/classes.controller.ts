@@ -606,7 +606,9 @@ export class ClassesController {
         date: { gte, lte },
         OR: [
           { instructorId: me.id },
+          { instructors: { some: { personId: me.id } } },
           { slot: { instructorId: me.id } },
+          { slot: { instructors: { some: { personId: me.id } } } },
           { slot: { series: { instructorId: me.id } } },
         ],
         ...(seriesId || academyId
@@ -624,6 +626,9 @@ export class ClassesController {
         id: true,
         date: true,
         instructorId: true,
+        instructors: {
+          include: { person: { select: { id: true, name: true } } },
+        },
         capacity: true,
         slot: {
           select: {
@@ -631,6 +636,9 @@ export class ClassesController {
             endTime: true,
             capacity: true,
             instructorId: true,
+            instructors: {
+              include: { person: { select: { id: true, name: true } } },
+            },
             academy: {
               select: { id: true, name: true, defaultQuorum: true },
             },
@@ -678,6 +686,21 @@ export class ClassesController {
     return classes.map((c) => {
       const instructorId =
         c.instructorId ?? c.slot.instructorId ?? c.slot.series.instructorId;
+      // Plantel: primario + co-profes (clase y slot), sin duplicar.
+      const rosterMap = new Map<string, { id: string; name: string | null }>();
+      for (const i of [
+        ...(c.slot.instructors ?? []),
+        ...(c.instructors ?? []),
+      ]) {
+        rosterMap.set(i.person.id, i.person);
+      }
+      rosterMap.delete(instructorId ?? "");
+      const instructors = [
+        ...(instructorId
+          ? [{ id: instructorId, name: personName.get(instructorId) ?? null }]
+          : []),
+        ...rosterMap.values(),
+      ];
       return {
         id: c.id,
         date: c.date,
@@ -692,6 +715,7 @@ export class ClassesController {
         instructorName: instructorId
           ? (personName.get(instructorId) ?? null)
           : null,
+        instructors,
         quorum: effectiveCapacity({
           classCapacity: c.capacity,
           slotCapacity: c.slot.capacity,
@@ -720,6 +744,18 @@ export class ClassesController {
         id: true,
         date: true,
         instructorId: true,
+        instructors: {
+          include: {
+            person: {
+              select: {
+                id: true,
+                name: true,
+                photoUrl: true,
+                instagram: true,
+              },
+            },
+          },
+        },
         capacity: true,
         cancelled: true,
         slot: {
@@ -729,6 +765,18 @@ export class ClassesController {
             endTime: true,
             capacity: true,
             instructorId: true,
+            instructors: {
+              include: {
+                person: {
+                  select: {
+                    id: true,
+                    name: true,
+                    photoUrl: true,
+                    instagram: true,
+                  },
+                },
+              },
+            },
             academyId: true,
             academy: {
               select: {
@@ -774,7 +822,9 @@ export class ClassesController {
     if (!cls) throw new NotFoundException();
 
     // Instructor efectivo: override de la clase → del slot → default de la
-    // serie (misma cadena que `teaching`).
+    // serie (misma cadena que `teaching`). El plantel completo sale de
+    // los joins (clase = snapshot materializado, slot = recurrente) -
+    // union sin duplicar, primario primero (spec multi-instructor).
     const instructorId =
       cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series.instructorId;
     const instructor = instructorId
@@ -788,6 +838,26 @@ export class ClassesController {
           },
         })
       : null;
+    const rosterMap = new Map<
+      string,
+      {
+        id: string;
+        name: string | null;
+        photoUrl: string | null;
+        instagram: string | null;
+      }
+    >();
+    for (const i of [
+      ...(cls.slot.instructors ?? []),
+      ...(cls.instructors ?? []),
+    ]) {
+      rosterMap.set(i.person.id, i.person);
+    }
+    rosterMap.delete(instructorId ?? "");
+    const instructors = [
+      ...(instructor ? [instructor] : []),
+      ...rosterMap.values(),
+    ];
 
     // Próximas sesiones de la misma serie (el alumno puede mirar otra fecha).
     const upcoming = await this.prisma.class.findMany({
@@ -861,6 +931,7 @@ export class ClassesController {
         billingBlocked: cls.slot.academy.billingBlockedAt != null,
       },
       instructor,
+      instructors,
       series: {
         id: cls.slot.series.id,
         name: cls.slot.series.name,
@@ -895,6 +966,7 @@ export class ClassesController {
         id: true,
         date: true,
         instructorId: true,
+        instructors: { select: { personId: true } },
         capacity: true,
         slot: {
           select: {
@@ -903,6 +975,7 @@ export class ClassesController {
             endTime: true,
             capacity: true,
             instructorId: true,
+            instructors: { select: { personId: true } },
             academy: { select: { defaultQuorum: true } },
             series: {
               select: {
@@ -934,11 +1007,17 @@ export class ClassesController {
     // GET /academies/:id/students).
     const instructorId =
       cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series.instructorId;
+    // Plantel completo: primario + co-profes de clase y slot (spec
+    // multi-instructor) - cualquiera de ellos marca presente.
+    const rosterIds = new Set(
+      [
+        instructorId,
+        ...(cls.instructors ?? []).map((i) => i.personId),
+        ...(cls.slot.instructors ?? []).map((i) => i.personId),
+      ].filter((x): x is string => !!x),
+    );
     const personIds = [
-      ...new Set([
-        ...bookings.map((b) => b.personId),
-        ...(instructorId ? [instructorId] : []),
-      ]),
+      ...new Set([...bookings.map((b) => b.personId), ...rosterIds]),
     ];
     const people = personIds.length
       ? await this.prisma.person.findMany({
@@ -954,12 +1033,12 @@ export class ClassesController {
       createdAt: b.createdAt,
       attended: attendedIds.has(b.personId),
     });
-    // Solo el instructor efectivo de la clase (o admin de plataforma)
-    // puede marcar presente - el owner de la academia no (spec
+    // Cualquier instructor del plantel de la clase (o admin de
+    // plataforma) puede marcar presente - el owner no (spec
     // academies/class-series: asistencia la registra el profe).
     const canMark =
       (await this.access.isPlatformAdmin(req.person!)) ||
-      req.person!.id === instructorId;
+      rosterIds.has(req.person!.id);
     return {
       class: {
         id: cls.id,
@@ -972,6 +1051,10 @@ export class ClassesController {
         instructor: instructorId
           ? { id: instructorId, name: personName.get(instructorId) ?? null }
           : null,
+        instructors: [...rosterIds].map((pid) => ({
+          id: pid,
+          name: personName.get(pid) ?? null,
+        })),
       },
       quorum: effectiveCapacity({
         classCapacity: cls.capacity,
@@ -1006,10 +1089,12 @@ export class ClassesController {
         id: true,
         cancelled: true,
         instructorId: true,
+        instructors: { select: { personId: true } },
         slot: {
           select: {
             academyId: true,
             instructorId: true,
+            instructors: { select: { personId: true } },
             series: { select: { instructorId: true } },
           },
         },
@@ -1020,12 +1105,19 @@ export class ClassesController {
       throw new BadRequestException("la clase está cancelada");
     }
     // Miembro de la academia + no bloqueada por billing; luego la regla
-    // de quién marca (instructor efectivo o admin).
+    // de quién marca (cualquiera del plantel de la clase o admin).
     await this.access.requireManageWrite(cls.slot.academyId, req.person!);
-    const instructorId =
-      cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series.instructorId;
+    const roster = new Set(
+      [
+        cls.instructorId,
+        cls.slot.instructorId,
+        cls.slot.series.instructorId,
+        ...(cls.instructors ?? []).map((i) => i.personId),
+        ...(cls.slot.instructors ?? []).map((i) => i.personId),
+      ].filter(Boolean),
+    );
     const isAdmin = await this.access.isPlatformAdmin(req.person!);
-    if (!isAdmin && req.person!.id !== instructorId) {
+    if (!isAdmin && !roster.has(req.person!.id)) {
       throw new ForbiddenException(
         "solo el profesor de la clase puede marcar asistencia",
       );

@@ -166,11 +166,23 @@ function RosterDetail({
           {c.styleName && <Badge variant="neon">{c.styleName}</Badge>}
           {c.levelName && <Badge variant="muted">{c.levelName}</Badge>}
         </div>
-        {c.instructor && (
-          <p className="text-xs text-ink/60">
-            {t("taughtBy")}: {c.instructor.name ?? shortId(c.instructor.id)}
-          </p>
-        )}
+        {(() => {
+          // Plantel completo (multi-instructor): "María · Eduardo".
+          const names = (
+            c.instructors?.length
+              ? c.instructors
+              : c.instructor
+                ? [c.instructor]
+                : []
+          )
+            .map((i) => i.name ?? shortId(i.id))
+            .join(" · ");
+          return names ? (
+            <p className="text-xs text-ink/60">
+              {t("taughtBy")}: {names}
+            </p>
+          ) : null;
+        })()}
       </Card>
 
       {/* Quórum destacado */}

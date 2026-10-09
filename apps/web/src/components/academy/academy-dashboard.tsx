@@ -253,11 +253,23 @@ export function AcademyDashboard({
                             <span className="block truncate text-sm font-medium">
                               {c.seriesName ?? t("today.unnamed")}
                             </span>
-                            {c.instructorName && (
-                              <span className="block truncate text-xs text-ink/50">
-                                {c.instructorName}
-                              </span>
-                            )}
+                            {(() => {
+                              const names = (
+                                c.instructors?.length
+                                  ? c.instructors
+                                  : c.instructorName
+                                    ? [{ name: c.instructorName }]
+                                    : []
+                              )
+                                .map((i) => i.name)
+                                .filter(Boolean)
+                                .join(" · ");
+                              return names ? (
+                                <span className="block truncate text-xs text-ink/50">
+                                  {names}
+                                </span>
+                              ) : null;
+                            })()}
                           </span>
                           <span className="shrink-0 text-xs tabular-nums text-ink/50">
                             {c.capacity != null

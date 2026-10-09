@@ -194,6 +194,11 @@ const SERIES_INCLUDE: Prisma.ClassSeriesInclude = {
     orderBy: [{ weekday: "asc" }, { startTime: "asc" }],
     include: {
       types: { include: { type: { select: { id: true, name: true } } } },
+      // Plantel multi-profesor (spec multi-instructor): el join es el
+      // conjunto completo - instructorId sigue siendo el primario.
+      instructors: {
+        include: { person: { select: { id: true, name: true } } },
+      },
     },
   },
 };
@@ -419,8 +424,18 @@ export class ClassSeriesController {
     const limit = Math.min(Math.max(Number(take) || 50, 1), 200);
     const now = new Date();
     const CLASS_INCLUDE = {
+      instructors: {
+        include: { person: { select: { id: true, name: true } } },
+      },
       slot: {
-        select: { startTime: true, endTime: true, instructorId: true },
+        select: {
+          startTime: true,
+          endTime: true,
+          instructorId: true,
+          instructors: {
+            include: { person: { select: { id: true, name: true } } },
+          },
+        },
       },
       _count: {
         select: {
@@ -471,6 +486,30 @@ export class ClassSeriesController {
     const toRow = (c: (typeof upcoming)[number]) => {
       const instructorId =
         c.instructorId ?? c.slot.instructorId ?? series.instructorId;
+      // Plantel (multi-instructor): primario primero + co-profes de
+      // clase y slot, sin duplicar.
+      const rosterMap = new Map<
+        string,
+        { id: string; name: string | null }
+      >();
+      for (const i of [
+        ...(c.slot.instructors ?? []),
+        ...(c.instructors ?? []),
+      ]) {
+        rosterMap.set(i.person.id, i.person);
+      }
+      rosterMap.delete(instructorId ?? "");
+      const instructors = [
+        ...(instructorId
+          ? [
+              {
+                id: instructorId,
+                name: personName.get(instructorId) ?? null,
+              },
+            ]
+          : []),
+        ...rosterMap.values(),
+      ];
       return {
         id: c.id,
         date: c.date,
@@ -480,6 +519,7 @@ export class ClassSeriesController {
         instructorName: instructorId
           ? (personName.get(instructorId) ?? null)
           : null,
+        instructors,
         bookedCount: c._count.bookings,
         attendanceCount: c._count.attendances,
       };
@@ -541,6 +581,7 @@ export class ClassSeriesController {
       for (const s of dto.slots) {
         // Cupos y modalidad son de la serie (spec academies/class-series)
         // - el slot solo fija día/hora e instructor override.
+        const slotInstructorId = s.instructorId ?? dto.instructorId ?? null;
         const slot = await tx.classSlot.create({
           data: {
             academyId: id,
@@ -548,7 +589,11 @@ export class ClassSeriesController {
             weekday: s.weekday,
             startTime: s.startTime,
             endTime: s.endTime,
-            instructorId: s.instructorId ?? dto.instructorId ?? null,
+            instructorId: slotInstructorId,
+            // El primario también entra al plantel (join = conjunto).
+            ...(slotInstructorId
+              ? { instructors: { create: [{ personId: slotInstructorId }] } }
+              : {}),
           },
         });
         await this.materialize.materializeSlot(tx, slot, dates);
@@ -630,6 +675,8 @@ export class ClassSeriesController {
           }) => `${x.weekday}|${x.startTime}|${x.endTime}`;
           let slot = known.find((x) => key(x) === key(s)) ?? null;
           if (!slot) {
+            const slotInstructorId =
+              s.instructorId ?? series.instructorId ?? null;
             slot = await tx.classSlot.create({
               data: {
                 academyId: id,
@@ -637,8 +684,14 @@ export class ClassSeriesController {
                 weekday: s.weekday,
                 startTime: s.startTime,
                 endTime: s.endTime,
-                instructorId:
-                  s.instructorId ?? series.instructorId ?? null,
+                instructorId: slotInstructorId,
+                ...(slotInstructorId
+                  ? {
+                      instructors: {
+                        create: [{ personId: slotInstructorId }],
+                      },
+                    }
+                  : {}),
               },
             });
             known.push(slot);

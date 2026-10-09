@@ -551,7 +551,12 @@ export class HomeService {
 
   private async instructorStats(personId: string): Promise<HomeStats> {
     const slots = await this.prisma.classSlot.findMany({
-      where: { instructorId: personId },
+      where: {
+        OR: [
+          { instructorId: personId },
+          { instructors: { some: { personId } } },
+        ],
+      },
       select: { id: true, academyId: true },
     });
     const slotIds = slots.map((s) => s.id);

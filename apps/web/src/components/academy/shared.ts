@@ -207,6 +207,8 @@ export type TodayClass = {
   endTime: string;
   seriesName: string | null;
   instructorName: string | null;
+  // Plantel completo (multi-instructor): primario + co-profes.
+  instructors?: { id: string; name: string | null }[];
   bookedCount: number;
   capacity: number | null;
 };
@@ -285,6 +287,8 @@ export type SeriesSlot = {
   // la serie completa (spec academies/class-series).
   capacity: number | null;
   instructorId: string | null;
+  // Plantel multi-instructor (join): el primario también está acá.
+  instructors?: { personId: string; person: NamedRef }[];
   types: { type: NamedRef }[];
 };
 
@@ -351,6 +355,8 @@ export type TeachingClass = {
   styleName: string | null;
   levelName: string | null;
   instructorName: string | null;
+  // Plantel completo (multi-instructor): primario + co-profes.
+  instructors?: { id: string; name: string | null }[];
   quorum: number;
   bookedCount: number;
   waitlistCount: number;
@@ -367,6 +373,8 @@ export type ClassRoster = {
     styleName: string | null;
     levelName: string | null;
     instructor: { id: string; name: string | null } | null;
+    // Plantel completo (multi-instructor): primario + co-profes.
+    instructors?: { id: string; name: string | null }[];
   };
   quorum: number;
   /** true si el caller es el instructor efectivo de la clase o admin -

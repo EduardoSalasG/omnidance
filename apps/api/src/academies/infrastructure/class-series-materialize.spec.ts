@@ -30,6 +30,7 @@ interface FakeSlot {
   endTime: string;
   capacity: number | null;
   instructorId: string | null;
+  instructors?: { personId: string }[];
 }
 
 interface FakeSeries {
@@ -42,9 +43,35 @@ interface FakeSeries {
 
 class FakePrisma {
   classes: FakeCls[] = [];
+  classInstructors: { classId: string; personId: string }[] = [];
   slots = new Map<string, FakeSlot>();
   series = new Map<string, FakeSeries>();
   private seq = 0;
+
+  classInstructor = {
+    createMany: async ({
+      data,
+      skipDuplicates,
+    }: {
+      data: { classId: string; personId: string }[];
+      skipDuplicates?: boolean;
+    }) => {
+      let count = 0;
+      for (const d of data) {
+        if (
+          skipDuplicates &&
+          this.classInstructors.some(
+            (x) => x.classId === d.classId && x.personId === d.personId,
+          )
+        ) {
+          continue;
+        }
+        this.classInstructors.push(d);
+        count++;
+      }
+      return { count };
+    },
+  };
 
   class = {
     findMany: async ({ where }: { where: Record<string, unknown> }) => {
@@ -258,6 +285,59 @@ describe("AcademyMaterializeService", () => {
     });
     await svc.runDaily();
     expect(prisma.classes).toHaveLength(0);
+  });
+
+  it("copia el plantel multi-instructor del slot a cada clase creada", async () => {
+    prisma.slots.set("slot-1", {
+      id: "slot-1",
+      academyId: "acad-1",
+      seriesId: "ser-1",
+      weekday: 3,
+      startTime: "19:00",
+      endTime: "20:00",
+      capacity: null,
+      instructorId: "per-maria",
+      instructors: [
+        { personId: "per-maria" },
+        { personId: "per-eduardo" },
+      ],
+    });
+
+    await svc.runDaily();
+
+    expect(prisma.classes.length).toBeGreaterThan(0);
+    // Cada clase materializada tiene al primario + el co-profe (spec
+    // multi-instructor: el join es el conjunto completo).
+    expect(prisma.classInstructors).toHaveLength(prisma.classes.length * 2);
+    for (const c of prisma.classes) {
+      const roster = prisma.classInstructors
+        .filter((i) => i.classId === c.id)
+        .map((i) => i.personId)
+        .sort();
+      expect(roster).toEqual(["per-eduardo", "per-maria"]);
+      expect(c.instructorId).toBe("per-maria");
+    }
+  });
+
+  it("incluye al primario en el join aunque falte en slot.instructors", async () => {
+    prisma.slots.set("slot-1", {
+      id: "slot-1",
+      academyId: "acad-1",
+      seriesId: "ser-1",
+      weekday: 3,
+      startTime: "19:00",
+      endTime: "20:00",
+      capacity: null,
+      instructorId: "per-maria",
+      instructors: [{ personId: "per-eduardo" }],
+    });
+
+    await svc.runDaily();
+
+    const ids = [
+      ...new Set(prisma.classInstructors.map((i) => i.personId)),
+    ].sort();
+    expect(ids).toEqual(["per-eduardo", "per-maria"]);
   });
 });
 

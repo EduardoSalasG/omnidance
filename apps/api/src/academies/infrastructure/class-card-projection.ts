@@ -7,6 +7,9 @@ export const CLASS_CARD_SELECT = {
   id: true,
   date: true,
   instructorId: true,
+  instructors: {
+    include: { person: { select: { id: true, name: true } } },
+  },
   capacity: true,
   slot: {
     select: {
@@ -167,6 +170,7 @@ export type ClassCardRow = {
   id: string;
   date: Date;
   instructorId: string | null;
+  instructors?: { person: { id: string; name: string | null } }[];
   capacity: number | null;
   slot: {
     weekday: number;
@@ -231,6 +235,20 @@ export function classCardItem(
           name: instructorName.get(c.instructorId) ?? null,
         }
       : null,
+    // Plantel completo (multi-instructor): primario primero, luego los
+    // co-profes en orden de alta. `instructor` singular sigue siendo el
+    // primario para clientes que solo muestran uno.
+    instructors: (() => {
+      const roster = (c.instructors ?? []).map((i) => i.person);
+      const primary = c.instructorId
+        ? {
+            id: c.instructorId,
+            name: instructorName.get(c.instructorId) ?? null,
+          }
+        : null;
+      const rest = roster.filter((p) => p.id !== c.instructorId);
+      return primary ? [primary, ...rest] : rest;
+    })(),
     series: {
       id: c.slot.series.id,
       name: c.slot.series.name,
