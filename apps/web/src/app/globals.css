@@ -28,6 +28,10 @@
      luminosidad para contraste ≥4.5:1 sobre superficie. */
   --accent: 124 58 237; /* #7c3aed */
   --accent-soft: 109 40 217; /* #6d28d9 */
+  /* Semántico de advertencia (vencimientos, pendientes, deltas a la
+     baja) - swappea por tema igual que ink/accent. En claro baja a
+     amber-700 para contraste sobre superficie blanca. */
+  --warn: 180 83 9; /* #b45309 amber-700 */
 }
 
 [data-mode="social"] {
@@ -53,6 +57,7 @@
   --glow-alpha: 0.14;
   --accent: 167 139 250; /* #a78bfa */
   --accent-soft: 196 181 253; /* #c4b5fd */
+  --warn: 252 211 77; /* #fcd34d amber-300 */
 }
 
 .dark[data-mode="social"] {
@@ -83,6 +88,7 @@ html:has(.force-dark) {
   --glow-alpha: 0.14;
   --accent: 167 139 250;
   --accent-soft: 196 181 253;
+  --warn: 252 211 77;
 }
 
 /* ─── Base táctil: el flash gris de iOS compite con nuestro feedback

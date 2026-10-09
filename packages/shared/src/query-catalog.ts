@@ -23,6 +23,8 @@ export type FkSource =
   | "venues"
   | "academies"
   | "styles"
+  | "levels" // niveles de clase (ClassLevel)
+  | "classTypes" // modalidades de clase (ClassType)
   | "events"
   | "roles";
 

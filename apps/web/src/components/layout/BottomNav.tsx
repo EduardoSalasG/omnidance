@@ -175,10 +175,13 @@ const PAYOUTS_TAB: Tab = {
   key: "payouts",
   icon: icon(ICONS.card),
 };
-const ATTENDANCE_TAB: Tab = {
-  href: "/academia/asistencia",
-  key: "attendance",
+// Consola del instructor - su acción principal es entrar a sus clases
+// (marcar asistencia vive dentro del detalle de cada clase).
+const TEACHING_TAB: Tab = {
+  href: "/academia/clases",
+  key: "classes",
   icon: icon(ICONS.staff),
+  center: true,
 };
 const ANALYTICS_TAB: Tab = {
   href: "/analitica",
@@ -239,27 +242,15 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
     },
     PAYOUTS_TAB,
   ],
-  // Owner: su consola ES el inicio (AcademyDashboard en HomeHub) - el
-  // tab central queda para la acción diaria (marcar asistencia).
-  ACADEMY_OWNER: [
-    HOME_TAB,
-    {
-      href: "/academia/asistencia",
-      key: "attendance",
-      icon: icon(ICONS.staff),
-      center: true,
-    },
-    ANALYTICS_TAB,
-  ],
+  // Owner: su consola ES el inicio (AcademyDashboard en HomeHub) -
+  // Inicio queda solo como primer destino; el resto vive en el drawer.
+  ACADEMY_OWNER: [HOME_TAB],
+  // Instructor: Inicio + Mis clases (central - ahí marca asistencia por
+  // clase) + hub de academia.
   INSTRUCTOR: [
     HOME_TAB,
-    {
-      href: "/academia",
-      key: "academy",
-      icon: icon(ICONS.academy),
-      center: true,
-    },
-    ATTENDANCE_TAB,
+    TEACHING_TAB,
+    { href: "/academia", key: "academy", icon: icon(ICONS.academy) },
   ],
   DJ: [HOME_TAB, EVENTS_TAB, DJ_TAB],
   VENUE_MANAGER: [HOME_TAB, VENUE_TAB, EVENTS_TAB, ANALYTICS_TAB],
@@ -452,23 +443,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         // "Mis clases" (/academia/clases) es consola del instructor -
         // la lente owner no la lista ni puede entrar (spec
         // academies/staff-roles); queda para el drawer INSTRUCTOR.
+        // /academia/horarios y /academia/asistencia se eliminaron: el
+        // horario vive dentro de cada clase/serie y la asistencia se
+        // consulta en su detalle (marcarla es del instructor).
         {
           href: "/academia/series",
           ns: "academySeries",
           key: "title",
           icon: ICONS.events,
-        },
-        {
-          href: "/academia/horarios",
-          ns: "academy",
-          key: "modules.slots",
-          icon: ICONS.clock,
-        },
-        {
-          href: "/academia/asistencia",
-          ns: "academy",
-          key: "modules.attendance",
-          icon: ICONS.staff,
         },
         {
           href: "/academia/videos",
@@ -489,12 +471,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.users,
         },
         {
-          href: "/academia/planes",
-          ns: "academy",
-          key: "modules.plans",
-          icon: ICONS.card,
-        },
-        {
           href: "/academia/particulares",
           ns: "academy",
           key: "modules.lessons",
@@ -506,6 +482,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelNs: "academy",
       labelKey: "navGroups.admin",
       items: [
+        {
+          href: "/academia/planes",
+          ns: "academy",
+          key: "modules.plans",
+          icon: ICONS.card,
+        },
         {
           href: "/academia/cobros",
           ns: "academy",
@@ -539,18 +521,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           ns: "academy",
           key: "modules.students",
           icon: ICONS.users,
-        },
-        {
-          href: "/academia/horarios",
-          ns: "academy",
-          key: "modules.slots",
-          icon: ICONS.clock,
-        },
-        {
-          href: "/academia/asistencia",
-          ns: "academy",
-          key: "modules.attendance",
-          icon: ICONS.staff,
         },
         {
           href: "/academia/particulares",

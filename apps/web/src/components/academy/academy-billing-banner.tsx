@@ -58,7 +58,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
         className={`inline-flex min-h-11 shrink-0 items-center rounded-full px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
           blocked
             ? "border border-red-300/40 hover:bg-red-300/10"
-            : "border border-amber-300/40 hover:bg-amber-300/10"
+            : "border border-warn/40 hover:bg-warn/10"
         }`}
       >
         {t("bannerCta")}
@@ -80,7 +80,7 @@ export function AcademyBillingBanner({ academy }: { academy: Academy }) {
   return (
     <div
       role="alert"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn"
     >
       {t("bannerGrace", { days: graceDays ?? 0 })}
       {cta}

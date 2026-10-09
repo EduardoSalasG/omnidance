@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   ConflictException,
   Controller,
   Delete,
@@ -912,6 +913,11 @@ export class ClassesController {
       orderBy: { createdAt: "asc" },
       select: { personId: true, status: true, createdAt: true },
     });
+    const attendances = await this.prisma.attendance.findMany({
+      where: { classId },
+      select: { personId: true },
+    });
+    const attendedIds = new Set(attendances.map((a) => a.personId));
     // ClassBooking.personId es FK plana - join manual (mismo patrón que
     // GET /academies/:id/students).
     const instructorId =
@@ -934,7 +940,14 @@ export class ClassesController {
       personId: b.personId,
       name: personName.get(b.personId) ?? null,
       createdAt: b.createdAt,
+      attended: attendedIds.has(b.personId),
     });
+    // Solo el instructor efectivo de la clase (o admin de plataforma)
+    // puede marcar presente - el owner de la academia no (spec
+    // academies/class-series: asistencia la registra el profe).
+    const canMark =
+      (await this.access.isPlatformAdmin(req.person!)) ||
+      req.person!.id === instructorId;
     return {
       class: {
         id: cls.id,
@@ -954,9 +967,77 @@ export class ClassesController {
         seriesQuorum: cls.slot.series.quorum,
         academyDefaultQuorum: cls.slot.academy.defaultQuorum,
       }),
+      canMark,
       booked: bookings.filter((b) => b.status === "BOOKED").map(toRow),
       waitlist: bookings.filter((b) => b.status === "WAITLIST").map(toRow),
     };
+  }
+
+  /**
+   * Marcar presente a un alumno con reserva activa (BOOKED) de la clase.
+   * Solo lo hace quien la imparte (instructor efectivo: override de la
+   * clase > slot > serie) o un admin de plataforma - el dueño de la
+   * academia no registra asistencia. 409 si ya está marcado.
+   */
+  @Post(":id/attendance")
+  async markAttendance(
+    @Param("id") classId: string,
+    @Body() dto: { personId?: string },
+    @Req() req: Request,
+  ) {
+    if (!dto.personId) {
+      throw new BadRequestException("personId requerido");
+    }
+    const cls = await this.prisma.class.findUnique({
+      where: { id: classId },
+      select: {
+        id: true,
+        cancelled: true,
+        instructorId: true,
+        slot: {
+          select: {
+            academyId: true,
+            instructorId: true,
+            series: { select: { instructorId: true } },
+          },
+        },
+      },
+    });
+    if (!cls) throw new NotFoundException("clase no encontrada");
+    if (cls.cancelled) {
+      throw new BadRequestException("la clase está cancelada");
+    }
+    // Miembro de la academia + no bloqueada por billing; luego la regla
+    // de quién marca (instructor efectivo o admin).
+    await this.access.requireManageWrite(cls.slot.academyId, req.person!);
+    const instructorId =
+      cls.instructorId ?? cls.slot.instructorId ?? cls.slot.series.instructorId;
+    const isAdmin = await this.access.isPlatformAdmin(req.person!);
+    if (!isAdmin && req.person!.id !== instructorId) {
+      throw new ForbiddenException(
+        "solo el profesor de la clase puede marcar asistencia",
+      );
+    }
+
+    const booking = await this.prisma.classBooking.findFirst({
+      where: { classId, personId: dto.personId, status: "BOOKED" },
+    });
+    if (!booking) {
+      throw new BadRequestException(
+        "el alumno no tiene una reserva activa en esta clase",
+      );
+    }
+    const existing = await this.prisma.attendance.findUnique({
+      where: {
+        classId_personId: { classId, personId: dto.personId },
+      },
+    });
+    if (existing) {
+      throw new ConflictException("asistencia ya registrada");
+    }
+    return this.prisma.attendance.create({
+      data: { classId, personId: dto.personId },
+    });
   }
 
   /**

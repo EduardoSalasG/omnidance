@@ -5,13 +5,15 @@ import { usePathname } from "next/navigation";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { isSidebarRoute } from "@/components/layout/BottomNav";
 
-// Header de módulo de consola: back link al hub + slot de acciones.
+// Header de módulo de consola: back link al padre + slot de acciones.
 // El back es un <a> real (iOS back) - no usa router.back() para que el
 // destino sea predecible aunque se entre por deep link. El título de la
 // sección lo muestra el large title del chrome (BottomNav).
-// En desktop (≥lg) el back se oculta cuando la página ya es un destino
-// directo de la sidebar - ahí es redundante; solo las subpáginas
-// (detalle, /nueva, etc.) lo conservan.
+//
+// Solo las subpáginas (nivel ≥2: detalle, /nueva, /editar…) muestran el
+// back con el nombre de la página anterior - un destino raíz del
+// sidebar/drawer (isSidebarRoute) no lo pinta en ningún breakpoint:
+// su navegación es el propio chrome.
 export function ConsoleHeader({
   backHref,
   backLabel,
@@ -22,22 +24,24 @@ export function ConsoleHeader({
   actions?: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hideBackDesktop = isSidebarRoute(pathname);
+  const isRoot = isSidebarRoute(pathname);
+
+  if (isRoot && !actions) return null;
 
   return (
     <header
       className={`flex flex-wrap items-center justify-between gap-3 ${
-        hideBackDesktop ? "lg:justify-end" : ""
+        isRoot ? "justify-end" : ""
       }`}
     >
-      <Link
-        href={backHref}
-        className={`inline-flex min-h-11 w-fit items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
-          hideBackDesktop ? "lg:hidden" : ""
-        }`}
-      >
-        <ChevronLeftIcon /> {backLabel}
-      </Link>
+      {!isRoot && (
+        <Link
+          href={backHref}
+          className="inline-flex min-h-11 w-fit items-center gap-1 text-sm text-ink/60 transition-colors hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        >
+          <ChevronLeftIcon /> {backLabel}
+        </Link>
+      )}
       {actions}
     </header>
   );

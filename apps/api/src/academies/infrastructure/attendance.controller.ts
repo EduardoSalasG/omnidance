@@ -2,6 +2,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -56,8 +57,24 @@ export class AttendanceController {
 
     const slot = await this.prisma.classSlot.findFirst({
       where: { id: dto.slotId, academyId: id },
+      select: {
+        id: true,
+        instructorId: true,
+        series: { select: { instructorId: true } },
+      },
     });
     if (!slot) throw new NotFoundException("slot no encontrado en la academia");
+
+    // Solo quien imparte la clase (instructor del slot > serie) o un
+    // admin de plataforma marca presente - el owner no (spec
+    // academies/class-series).
+    const instructorId = slot.instructorId ?? slot.series.instructorId;
+    const isAdmin = await this.access.isPlatformAdmin(req.person!);
+    if (!isAdmin && req.person!.id !== instructorId) {
+      throw new ForbiddenException(
+        "solo el profesor de la clase puede marcar asistencia",
+      );
+    }
 
     const person = await this.prisma.person.findUnique({
       where: { id: dto.personId },

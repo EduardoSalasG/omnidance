@@ -96,16 +96,54 @@ export default function AcademiaClaseRosterPage({
       )}
 
       {state === "ready" && roster && (
-        <RosterDetail roster={roster} />
+        <RosterDetail
+          roster={roster}
+          classId={classId}
+          onChanged={() => void load()}
+        />
       )}
     </main>
   );
 }
 
-function RosterDetail({ roster }: { roster: ClassRoster }) {
+function RosterDetail({
+  roster,
+  classId,
+  onChanged,
+}: {
+  roster: ClassRoster;
+  classId: string;
+  onChanged: () => void;
+}) {
   const t = useTranslations("instructor");
+  const tc = useTranslations("common");
   const c = roster.class;
   const booked = roster.booked.length;
+  // POST /classes/:id/attendance - solo si el caller es el instructor
+  // efectivo (canMark del server); el owner no marca asistencia.
+  const [markingId, setMarkingId] = useState<string | null>(null);
+  const [markError, setMarkError] = useState<string | null>(null);
+
+  async function markPresent(personId: string): Promise<void> {
+    setMarkingId(personId);
+    setMarkError(null);
+    try {
+      const res = await apiFetch(`/classes/${classId}/attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personId }),
+      });
+      if (!res.ok) {
+        setMarkError(tc("error"));
+        return;
+      }
+      onChanged();
+    } catch {
+      setMarkError(tc("error"));
+    } finally {
+      setMarkingId(null);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -160,12 +198,35 @@ function RosterDetail({ roster }: { roster: ClassRoster }) {
             {roster.booked.map((b) => (
               <li
                 key={b.personId}
-                className="rounded-xl border border-line bg-elevated/60 px-4 py-3 text-sm"
+                className="flex items-center gap-3 rounded-xl border border-line bg-elevated/60 px-4 py-3 text-sm"
               >
-                {b.name ?? t("personFallback", { id: shortId(b.personId) })}
+                <span className="min-w-0 flex-1">
+                  {b.name ?? t("personFallback", { id: shortId(b.personId) })}
+                </span>
+                {b.attended ? (
+                  <Badge variant="neon">{t("present")}</Badge>
+                ) : (
+                  roster.canMark && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={markingId === b.personId}
+                      onClick={() => void markPresent(b.personId)}
+                    >
+                      {markingId === b.personId
+                        ? tc("loading")
+                        : t("markPresent")}
+                    </Button>
+                  )
+                )}
               </li>
             ))}
           </ul>
+        )}
+        {markError && (
+          <p role="alert" className="text-sm text-red-400">
+            {markError}
+          </p>
         )}
       </section>
 

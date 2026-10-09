@@ -169,8 +169,9 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <div className="flex min-w-0 flex-col gap-6">
           {/* Hoy - clases del día + asistencia marcada (spec §13). Las
-              filas llevan a /academia/asistencia (marcar presente);
-              sin clases el día se muestra vacío en vez de ocultarse. */}
+              filas llevan al roster de la clase (marcar presente es del
+              instructor en su consola); sin clases el día se muestra
+              vacío en vez de ocultarse. */}
           {dashboard && (
             <section aria-label={t("today.title")}>
               <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -188,7 +189,10 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
                   <ul className={listCls}>
                     {dashboard.todayClasses.map((c) => (
                       <li key={c.id}>
-                        <Link href="/academia/asistencia" className={rowLinkCls}>
+                        <Link
+                          href={`/academia/clases/${c.id}`}
+                          className={rowLinkCls}
+                        >
                           <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
                             {c.startTime}
                           </span>
@@ -218,7 +222,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
                   <div className="flex items-center justify-between gap-3 px-4 py-4">
                     <p className="text-sm text-ink/60">{t("today.empty")}</p>
                     <Link
-                      href="/academia/horarios"
+                      href="/academia/series"
                       className="inline-flex min-h-11 shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-neon transition-colors hover:bg-elevated focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
                     >
                       {t("today.emptyCta")}
@@ -257,7 +261,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
                             {dayFmt.format(new Date(c.createdAt))}
                           </span>
                         </span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums text-amber-300">
+                        <span className="shrink-0 text-sm font-semibold tabular-nums text-warn">
                           {clpFmt.format(c.amount)}
                         </span>
                       </Link>
@@ -364,13 +368,15 @@ function ExpiringList({
           {items.slice(0, LIST_CAP).map((e) => (
             <li key={e.personId}>
               {/* Fila: alumno | plan (columna propia en sm+) | fecha.
-                  items-center centra las celdas - sin él la fecha se
-                  alineaba arriba cuando el nombre ocupa dos líneas. */}
+                  flex-1 en la primera celda: sin ella la columna se
+                  colapsaba en mobile (min-w-0 solo habilita el shrink,
+                  no reclama espacio - el nombre quedaba truncado a
+                  casi nada). items-center centra las celdas. */}
               <Link
                 href={`/academia/alumnos/${e.personId}`}
                 className={`${rowLinkCls} sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center`}
               >
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">
                     {e.personName ?? shortId(e.personId)}
                   </span>
@@ -383,7 +389,7 @@ function ExpiringList({
                 <span className="hidden min-w-0 truncate text-sm text-ink/70 sm:block">
                   {e.planName ?? t("insights.noPlan")}
                 </span>
-                <span className="shrink-0 text-xs tabular-nums text-amber-300">
+                <span className="shrink-0 text-xs tabular-nums text-warn">
                   {t("insights.expiringUntil", {
                     date: planDateFmt.format(new Date(e.endsAt)),
                   })}

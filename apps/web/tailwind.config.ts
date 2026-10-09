@@ -19,6 +19,9 @@ const config: Config = {
         ink: "rgb(var(--ink) / <alpha-value>)",
         line: "rgb(var(--line) / <alpha-value>)",
         "on-accent": "rgb(var(--on-accent) / <alpha-value>)",
+        // Advertencia semántica - amber-700 en claro / amber-300 en
+        // oscuro (globals.css). Reemplaza los literales amber-*.
+        warn: "rgb(var(--warn) / <alpha-value>)",
         night: {
           950: "rgb(var(--canvas) / <alpha-value>)",
           900: "rgb(var(--surface) / <alpha-value>)",

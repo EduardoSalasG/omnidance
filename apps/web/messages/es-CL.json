@@ -950,9 +950,9 @@
     "filterAcademy": "Academia"
   },
   "academySeries": {
-    "title": "Series de clases",
-    "new": "Nueva serie",
-    "newTitle": "Nueva serie de clases",
+    "title": "Clases",
+    "new": "Nueva clase",
+    "newTitle": "Nueva clase",
     "name": "Nombre de la serie",
     "namePlaceholder": "Bachata Sensual Intermedio",
     "description": "Descripción",
@@ -979,7 +979,21 @@
     "created": "Serie creada",
     "updated": "Serie actualizada",
     "error": "No se pudo guardar",
-    "reactivate": "Reactivar"
+    "reactivate": "Reactivar",
+    "importClasses": "Importar clases",
+    "detailBack": "Clases",
+    "actions": "Acciones",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Eliminar la clase? Se desactiva, se oculta del listado y se cancelan las clases futuras con sus reservas. Seguirá visible solo en analítica.",
+    "slotsTitle": "Horarios semanales",
+    "upcomingTitle": "Próximas clases",
+    "upcomingEmpty": "No hay clases próximas",
+    "pastTitle": "Clases pasadas",
+    "pastEmpty": "Sin historial",
+    "bookedCount": "{count} reservas",
+    "attendedCount": "{count} asistencias",
+    "cancelled": "Cancelada",
+    "slotAdded": "Horario agregado"
   },
   "adminCatalogs": {
     "title": "Catálogos",

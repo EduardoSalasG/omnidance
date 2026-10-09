@@ -217,7 +217,9 @@ export class ClassSeriesController {
   /**
    * Lista las series de la academia (gestión). Filtros del contrato
    * compartido (spec analytics/query-console): q = nombre contiene,
-   * status = active|inactive (whitelist → 400), styleId exacto.
+   * status = active|inactive (whitelist → 400), styleId/levelId/typeId
+   * exactos. Las series con borrado lógico (deletedAt) nunca salen acá -
+   * solo las ve analítica.
    */
   @Get(":id/series")
   async list(
@@ -226,6 +228,8 @@ export class ClassSeriesController {
     @Query("q") q?: string,
     @Query("status") status?: string,
     @Query("styleId") styleId?: string,
+    @Query("levelId") levelId?: string,
+    @Query("typeId") typeId?: string,
   ) {
     await this.access.requireCapability(id, req.person!, "schedule");
     const statusF = whitelist(status, ["active", "inactive"] as const, "status");
@@ -233,13 +237,125 @@ export class ClassSeriesController {
     return this.prisma.classSeries.findMany({
       where: {
         academyId: id,
+        deletedAt: null,
         ...(term ? { name: { contains: term, mode: "insensitive" } } : {}),
         ...(statusF ? { active: statusF === "active" } : {}),
         ...(styleId ? { styleId } : {}),
+        ...(levelId ? { levelId } : {}),
+        ...(typeId ? { types: { some: { typeId } } } : {}),
       },
-      orderBy: [{ month: "desc" }, { name: "asc" }],
+      orderBy: [{ name: "asc" }],
       include: SERIES_INCLUDE,
     });
+  }
+
+  /**
+   * Detalle de una serie de la academia. Las eliminadas (deletedAt)
+   * responden 404 - fuera de la consola solo existen para analítica.
+   */
+  @Get(":id/series/:seriesId")
+  async detail(
+    @Param("id") id: string,
+    @Param("seriesId") seriesId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "schedule");
+    const series = await this.prisma.classSeries.findFirst({
+      where: { id: seriesId, academyId: id, deletedAt: null },
+      include: SERIES_INCLUDE,
+    });
+    if (!series) throw new NotFoundException("serie no encontrada");
+    return series;
+  }
+
+  /**
+   * Instancias de la serie para el detalle de la consola: próximas con
+   * sus reservas y pasadas con su asistencia, con el profesor efectivo
+   * (clase > slot > serie).
+   */
+  @Get(":id/series/:seriesId/classes")
+  async seriesClasses(
+    @Param("id") id: string,
+    @Param("seriesId") seriesId: string,
+    @Req() req: Request,
+    @Query("take") take?: string,
+  ) {
+    await this.access.requireCapability(id, req.person!, "schedule");
+    const series = await this.prisma.classSeries.findFirst({
+      where: { id: seriesId, academyId: id, deletedAt: null },
+      select: { id: true, instructorId: true },
+    });
+    if (!series) throw new NotFoundException("serie no encontrada");
+
+    const limit = Math.min(Math.max(Number(take) || 50, 1), 200);
+    const now = new Date();
+    const CLASS_INCLUDE = {
+      slot: {
+        select: { startTime: true, endTime: true, instructorId: true },
+      },
+      _count: {
+        select: {
+          bookings: { where: { status: "BOOKED" as const } },
+          attendances: true,
+        },
+      },
+    } satisfies Prisma.ClassInclude;
+
+    const [upcoming, past] = await Promise.all([
+      this.prisma.class.findMany({
+        where: {
+          slot: { seriesId },
+          date: { gte: now },
+          cancelled: false,
+        },
+        orderBy: { date: "asc" },
+        take: limit,
+        include: CLASS_INCLUDE,
+      }),
+      this.prisma.class.findMany({
+        where: { slot: { seriesId }, date: { lt: now } },
+        orderBy: { date: "desc" },
+        take: limit,
+        include: CLASS_INCLUDE,
+      }),
+    ]);
+
+    // instructorId es FK plana en class/slot/series - join manual.
+    const instructorIds = [
+      ...new Set(
+        [...upcoming, ...past]
+          .map(
+            (c) =>
+              c.instructorId ?? c.slot.instructorId ?? series.instructorId,
+          )
+          .filter((x): x is string => !!x),
+      ),
+    ];
+    const people = instructorIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: instructorIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const personName = new Map(people.map((p) => [p.id, p.name]));
+
+    const toRow = (c: (typeof upcoming)[number]) => {
+      const instructorId =
+        c.instructorId ?? c.slot.instructorId ?? series.instructorId;
+      return {
+        id: c.id,
+        date: c.date,
+        startTime: c.slot.startTime,
+        endTime: c.slot.endTime,
+        cancelled: c.cancelled,
+        instructorName: instructorId
+          ? (personName.get(instructorId) ?? null)
+          : null,
+        bookedCount: c._count.bookings,
+        attendanceCount: c._count.attendances,
+      };
+    };
+    return { upcoming: upcoming.map(toRow), past: past.map(toRow) };
   }
 
   /**
@@ -358,6 +474,9 @@ export class ClassSeriesController {
           quorum: dto.quorum,
           dropInPrice: dto.dropInPrice,
           active: dto.active,
+          // Reactivar una serie eliminada lógicamente la restaura (PATCH
+          // active:true es el único camino de vuelta, vía analítica/API).
+          ...(dto.active === true ? { deletedAt: null } : {}),
         },
         include: SERIES_INCLUDE,
       });
@@ -461,8 +580,10 @@ export class ClassSeriesController {
   }
 
   /**
-   * Desactiva la serie y cancela las clases futuras - las reservas
+   * Borrado lógico: la serie se desactiva, se oculta de la consola
+   * (deletedAt) y sus clases futuras se cancelan - las reservas
    * BOOKED/WAITLIST pasan a CANCELLED (el alumno lo ve en "mis reservas").
+   * Sigue existiendo para analítica; PATCH {active:true} la restaura.
    */
   @Delete(":id/series/:seriesId")
   @HttpCode(200)
@@ -496,7 +617,7 @@ export class ClassSeriesController {
       });
       return tx.classSeries.update({
         where: { id: seriesId },
-        data: { active: false },
+        data: { active: false, deletedAt: new Date() },
       });
     });
   }

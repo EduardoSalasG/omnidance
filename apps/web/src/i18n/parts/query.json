@@ -53,7 +53,9 @@
       "eventId": "Evento",
       "styleId": "Estilo",
       "actorType": "Tipo de actor",
-      "commission": "Comisión"
+      "commission": "Comisión",
+      "levelId": "Nivel",
+      "typeId": "Modalidad"
     },
     "optionLabels": {
       "SCAN": "Escaneo",

@@ -24,9 +24,7 @@ const MODULES = [
   { href: "/academia/clases", key: "myClasses" },
   { href: "/academia/planes", key: "plans", cap: "plans" },
   { href: "/academia/alumnos", key: "students" },
-  { href: "/academia/horarios", key: "slots", cap: "schedule" },
   { href: "/academia/series", key: "series", cap: "schedule" },
-  { href: "/academia/asistencia", key: "attendance" },
   { href: "/academia/particulares", key: "lessons" },
   { href: "/academia/videos", key: "videos", cap: "schedule" },
   { href: "/academia/cobros", key: "payments", cap: "payments" },
@@ -156,7 +154,7 @@ function AcademyHub({
               side: "top",
             },
             {
-              element: "[data-tour='nav-attendance']",
+              element: "[data-tour='nav-classes']",
               title: tt("s2.title"),
               description: tt("s2.desc"),
               side: "top",

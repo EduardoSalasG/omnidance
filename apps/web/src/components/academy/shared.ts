@@ -320,7 +320,15 @@ export type ClassRoster = {
     instructor: { id: string; name: string | null } | null;
   };
   quorum: number;
-  booked: { personId: string; name: string | null; createdAt: string }[];
+  /** true si el caller es el instructor efectivo de la clase o admin -
+      habilita el control "Presente" sobre cada reserva. */
+  canMark: boolean;
+  booked: {
+    personId: string;
+    name: string | null;
+    createdAt: string;
+    attended: boolean;
+  }[];
   waitlist: { personId: string; name: string | null; createdAt: string }[];
 };
 
