@@ -1183,6 +1183,14 @@ export class AcademiesController {
     const monthStart = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
     );
+    // Comparativa honesta: mismo tramo month-to-date del mes anterior
+    // (p.ej. oct 1-9 vs sep 1-9), nunca MTD vs mes completo.
+    const prevMonthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+    );
+    const prevMtdEnd = new Date(
+      prevMonthStart.getTime() + (todayUTC.getTime() - monthStart.getTime()),
+    );
     const [
       enrollments,
       plansCount,
@@ -1194,6 +1202,10 @@ export class AcademiesController {
       classesMonth,
       attendanceMonth,
       weeklyClasses,
+      pendingClaimsAgg,
+      pendingClaimsRows,
+      staffCount,
+      instructorCount,
     ] =
       await Promise.all([
         this.prisma.enrollment.findMany({
@@ -1266,6 +1278,21 @@ export class AcademiesController {
         this.prisma.classSlot.count({
           where: { academyId: id, series: { active: true } },
         }),
+        // Cobros declarados por alumnos pendientes de revisión (la
+        // sección "Cobros por revisar" del home).
+        this.prisma.paymentClaim.aggregate({
+          where: { academyId: id, status: "PENDING" },
+          _count: { _all: true },
+          _sum: { amount: true },
+        }),
+        this.prisma.paymentClaim.findMany({
+          where: { academyId: id, status: "PENDING" },
+          orderBy: { createdAt: "asc" },
+          take: 5,
+          select: { personId: true, amount: true, createdAt: true },
+        }),
+        this.prisma.academyStaff.count({ where: { academyId: id } }),
+        this.prisma.academyInstructor.count({ where: { academyId: id } }),
       ]);
 
     const classIds = today.map((c) => c.id);
@@ -1301,7 +1328,19 @@ export class AcademiesController {
       where: { academyId: id },
       select: { id: true },
     });
-    const [claimsMonth, gatewayMonth] = await Promise.all([
+    // Rango del mes anterior MTD para las comparativas de KPIs.
+    const prevRange = {
+      gte: prevMonthStart,
+      lte: prevMtdEnd,
+    };
+    const [
+      claimsMonth,
+      gatewayMonth,
+      claimsPrev,
+      gatewayPrev,
+      classesPrev,
+      attendancePrev,
+    ] = await Promise.all([
       this.prisma.paymentClaim.findMany({
         where: {
           academyId: id,
@@ -1324,6 +1363,44 @@ export class AcademiesController {
         },
         select: { amount: true, personId: true },
       }),
+      // Mismas fuentes sobre el tramo equivalente del mes anterior.
+      this.prisma.paymentClaim.findMany({
+        where: {
+          academyId: id,
+          status: "APPROVED",
+          createdAt: prevRange,
+        },
+        select: { amount: true, personId: true },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          status: "PAID",
+          createdAt: prevRange,
+          OR: [
+            ...planIds.map((p) => ({
+              orderType: "MEMBERSHIP",
+              refId: { startsWith: `mem_${p.id}_` },
+            })),
+            { orderType: "PRIVATE", refId: { startsWith: `pvt_${id}_` } },
+          ],
+        },
+        select: { amount: true, personId: true },
+      }),
+      this.prisma.class.count({
+        where: {
+          cancelled: false,
+          date: prevRange,
+          slot: { academyId: id },
+        },
+      }),
+      this.prisma.attendance.count({
+        where: {
+          class: {
+            slot: { academyId: id },
+            date: prevRange,
+          },
+        },
+      }),
     ]);
     const paidRows = [...claimsMonth, ...gatewayMonth];
     const billedMonth = paidRows.reduce((acc, p) => acc + p.amount, 0);
@@ -1333,6 +1410,18 @@ export class AcademiesController {
       : null;
     const avgAttendanceMonth = classesMonth
       ? Math.round((attendanceMonth / classesMonth) * 10) / 10
+      : null;
+    const prevPaidRows = [...claimsPrev, ...gatewayPrev];
+    const billedMonthPrev = prevPaidRows.reduce(
+      (acc, p) => acc + p.amount,
+      0,
+    );
+    const prevPayers = new Set(prevPaidRows.map((p) => p.personId));
+    const avgTicketMonthPrev = prevPayers.size
+      ? Math.round(billedMonthPrev / prevPayers.size)
+      : null;
+    const avgAttendancePerClassMonthPrev = classesPrev
+      ? Math.round((attendancePrev / classesPrev) * 10) / 10
       : null;
 
     // ─── Insights de retención (spec academies/owner-insights):
@@ -1365,6 +1454,7 @@ export class AcademiesController {
       ...new Set([
         ...enrollments.map((e) => e.personId),
         ...expiringRows.map((e) => e.personId),
+        ...pendingClaimsRows.map((c) => c.personId),
       ]),
     ];
     const students = studentIds.length
@@ -1386,7 +1476,21 @@ export class AcademiesController {
         avgTicketMonth,
         billedMonth,
         weeklyClasses,
+        billedMonthPrev,
+        avgTicketMonthPrev,
+        avgAttendancePerClassMonthPrev,
       },
+      pendingClaims: {
+        count: pendingClaimsAgg._count._all,
+        amount: pendingClaimsAgg._sum.amount ?? 0,
+        items: pendingClaimsRows.map((c) => ({
+          personId: c.personId,
+          personName: studentById.get(c.personId)?.name ?? null,
+          amount: c.amount,
+          createdAt: c.createdAt,
+        })),
+      },
+      teamCount: staffCount + instructorCount,
       expiringEnrollments: expiringRows.map((e) => ({
         personId: e.personId,
         personName: studentById.get(e.personId)?.name ?? null,

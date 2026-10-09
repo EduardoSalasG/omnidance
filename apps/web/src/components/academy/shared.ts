@@ -110,7 +110,20 @@ export type AcademyDashboard = {
     avgTicketMonth: number | null;
     billedMonth: number;
     weeklyClasses: number;
+    // Comparativa month-to-date del mes anterior (mismo tramo de días
+    // transcurridos). null = sin base (0 clases / 0 pagos en ese tramo).
+    billedMonthPrev: number;
+    avgTicketMonthPrev: number | null;
+    avgAttendancePerClassMonthPrev: number | null;
   };
+  // Cobros declarados por alumnos pendientes de revisión.
+  pendingClaims: {
+    count: number;
+    amount: number;
+    items: PendingClaimItem[];
+  };
+  // AcademyStaff + AcademyInstructor - insumo del checklist de activación.
+  teamCount: number;
   studentsByStatus: {
     active: number;
     trial: number;
@@ -147,6 +160,14 @@ export type UpcomingBirthday = {
   name: string;
   date: string;
   daysUntil: number;
+};
+
+// Claim pendiente de revisión en el dashboard (top 5 por antigüedad).
+export type PendingClaimItem = {
+  personId: string;
+  personName: string | null;
+  amount: number;
+  createdAt: string;
 };
 
 // Clase del día en el dashboard de la academia (GET /academies/:id/dashboard).
