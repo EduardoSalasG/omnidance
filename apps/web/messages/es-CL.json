@@ -403,6 +403,10 @@
     "plans": "Planes",
     "slots": "Horarios",
     "dashboard": "Panel",
+    "totals": {
+      "title": "Totales",
+      "attendance30d": "Asistencia 30d"
+    },
     "newPlan": "Nuevo plan",
     "newEnrollment": "Nueva inscripción",
     "attendance": "Asistencia",
