@@ -1,31 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui";
+import { Button, PlusIcon } from "@/components/ui";
 import {
   ActorPicker,
   CrmGateScreen,
   CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
-import { CampaignForm } from "@/components/crm/campaign-form";
 import { CampaignList } from "@/components/crm/campaign-list";
 import { ProPaywall } from "@/components/producer/pro-paywall";
-import { actorKey } from "@/components/crm/types";
 
+// Listado de campañas del actor. El h1 de página lo provee el chrome
+// (appbar); crear = CTA → /crm/campanas/nueva (patrón de consola).
 export default function CrmCampanasPage() {
   const t = useTranslations("crm");
-  const tc = useTranslations("common");
   const ctx = useCrmContext();
-
-  const [showForm, setShowForm] = useState(false);
-  const [reloadSignal, setReloadSignal] = useState(0);
-  const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
-      <h1 className="text-2xl font-bold">{t("campaigns.title")}</h1>
       <CrmNav active="campaigns" />
 
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
@@ -42,33 +35,12 @@ export default function CrmCampanasPage() {
           ) : (
             <>
               <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant={showForm ? "ghost" : "secondary"}
-                  onClick={() => setShowForm((v) => !v)}
-                >
-                  {showForm ? tc("cancel") : `＋ ${t("campaigns.new")}`}
+                <Button size="sm" variant="secondary" href="/crm/campanas/nueva">
+                  <PlusIcon className="h-4 w-4" /> {t("campaigns.new")}
                 </Button>
               </div>
 
-              <div aria-live="polite">
-                {notice && <p className="text-sm text-neon">{notice}</p>}
-              </div>
-
-              {showForm && (
-                <CampaignForm
-                  key={actorKey(ctx.actor)}
-                  actor={ctx.actor}
-                  onCancel={() => setShowForm(false)}
-                  onCreated={() => {
-                    setShowForm(false);
-                    setNotice(t("campaigns.created"));
-                    setReloadSignal((n) => n + 1);
-                  }}
-                />
-              )}
-
-              <CampaignList actor={ctx.actor} reloadSignal={reloadSignal} />
+              <CampaignList actor={ctx.actor} reloadSignal={0} />
             </>
           )}
         </>

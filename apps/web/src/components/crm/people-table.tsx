@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
@@ -12,8 +13,8 @@ import {
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { TagBadges } from "./tag-badges";
-import type { CrmActor, CrmPeoplePage, CrmTag } from "./types";
-import { SEGMENTS, actorBody, actorQuery } from "./types";
+import type { CrmActor, CrmPeoplePage, PeopleSort } from "./types";
+import { PEOPLE_SORTS, SEGMENTS, actorBody, actorQuery } from "./types";
 
 const PAGE_SIZE = 20;
 const fmtDay = new Intl.DateTimeFormat("es-CL", { dateStyle: "medium" });
@@ -45,14 +46,11 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
   const [qApplied, setQApplied] = useState("");
   const [seg, setSeg] = useState("ALL");
   const [tag, setTag] = useState("ALL");
+  const [sort, setSort] = useState<PeopleSort>("score_desc");
   const [page, setPage] = useState(1);
 
   const [recomputing, setRecomputing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tagOpenFor, setTagOpenFor] = useState<string | null>(null);
-  const [tagDraft, setTagDraft] = useState("");
-  const [tagSaving, setTagSaving] = useState(false);
-  const [tagDeleting, setTagDeleting] = useState<string | null>(null);
 
   // Debounce del input de búsqueda - no golpear la API por tecla.
   useEffect(() => {
@@ -70,6 +68,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       if (qApplied) params.set("q", qApplied);
       if (seg !== "ALL") params.set("segment", seg);
       if (tag !== "ALL") params.set("tag", tag);
+      params.set("sort", sort);
       params.set("page", String(page));
       params.set("pageSize", String(PAGE_SIZE));
       const res = await apiFetch(`/crm/people?${params}`);
@@ -83,7 +82,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       setError(true);
       setData(null);
     }
-  }, [actor, qApplied, seg, tag, page]);
+  }, [actor, qApplied, seg, tag, sort, page]);
 
   useEffect(() => {
     setData(null);
@@ -91,6 +90,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
     setQApplied("");
     setSeg("ALL");
     setTag("ALL");
+    setSort("score_desc");
     setPage(1);
     setNotice(null);
   }, [actor]);
@@ -122,41 +122,6 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       setError(true);
     } finally {
       setRecomputing(false);
-    }
-  }
-
-  async function addTag(personId: string) {
-    const value = tagDraft.trim();
-    if (!value || tagSaving) return;
-    setTagSaving(true);
-    try {
-      const res = await apiFetch("/crm/people/tags", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...actorBody(actor), personId, tag: value }),
-      });
-      if (!res.ok) return setError(true);
-      setTagDraft("");
-      setTagOpenFor(null);
-      await load();
-    } catch {
-      setError(true);
-    } finally {
-      setTagSaving(false);
-    }
-  }
-
-  async function deleteTag(tag: CrmTag) {
-    if (tagDeleting) return;
-    setTagDeleting(tag.id);
-    try {
-      const res = await apiFetch(`/crm/tags/${tag.id}`, { method: "DELETE" });
-      if (!res.ok) return setError(true);
-      await load();
-    } catch {
-      setError(true);
-    } finally {
-      setTagDeleting(null);
     }
   }
 
@@ -212,8 +177,8 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
       )}
 
       {/* Filtros */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <label className="flex flex-col gap-2 sm:col-span-1">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="flex flex-col gap-2">
           <span className="text-sm text-ink/70">{t("people.search")}</span>
           <input
             type="search"
@@ -264,6 +229,23 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-ink/70">{t("people.sort")}</span>
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as PeopleSort);
+              setPage(1);
+            }}
+            className={inputCls}
+          >
+            {PEOPLE_SORTS.map((s) => (
+              <option key={s} value={s}>
+                {t(`people.sorts.${s}`)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* Lista - cards apiladas (mobile-first, estilo admin) */}
@@ -291,103 +273,59 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
             const segKey = r.segment ?? "NONE";
             return (
               <li key={r.personId}>
-                <Card className="flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    {r.person?.photoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={r.person.photoUrl}
-                        alt=""
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span
-                        aria-hidden
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-elevated text-sm font-bold text-ink/60"
-                      >
-                        {(r.person?.name ?? "?").slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold">
-                        {r.person?.name ?? r.personId.slice(0, 8)}
-                      </p>
-                      <p className="text-xs text-ink/50">
-                        {r.computedAt
-                          ? t("people.updatedAt", {
-                              date: fmtDay.format(new Date(r.computedAt)),
-                            })
-                          : t("people.noScore")}
-                      </p>
+                {/* Card completo clickeable → ficha; la edición de tags
+                    vive en /crm/personas/[id], no inline. */}
+                <Link
+                  href={`/crm/personas/${r.personId}`}
+                  className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  <Card className="flex flex-col gap-3 transition-colors hover:border-neon/60">
+                    <div className="flex items-center gap-3">
+                      {r.person?.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.person.photoUrl}
+                          alt=""
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden
+                          className="flex h-10 w-10 items-center justify-center rounded-full bg-elevated text-sm font-bold text-ink/60"
+                        >
+                          {(r.person?.name ?? "?").slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold">
+                          {r.person?.name ?? r.personId.slice(0, 8)}
+                        </p>
+                        <p className="text-xs text-ink/50">
+                          {r.computedAt
+                            ? t("people.updatedAt", {
+                                date: fmtDay.format(new Date(r.computedAt)),
+                              })
+                            : t("people.noScore")}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-mono text-xl font-bold text-neon">
+                          {r.score === null ? "-" : Math.round(r.score)}
+                        </p>
+                        <p className="text-xs text-ink/50">
+                          {t("people.score")}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-mono text-xl font-bold text-neon">
-                        {r.score === null ? "-" : Math.round(r.score)}
-                      </p>
-                      <p className="text-xs text-ink/50">
-                        {t("people.score")}
-                      </p>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={SEGMENT_VARIANT[segKey] ?? "muted"}>
+                        {t(`segments.${segKey}`)}
+                      </Badge>
+                      <TagBadges tags={r.tags} />
                     </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={SEGMENT_VARIANT[segKey] ?? "muted"}>
-                      {t(`segments.${segKey}`)}
-                    </Badge>
-                    <TagBadges
-                      tags={r.tags}
-                      onDelete={(tg) => void deleteTag(tg)}
-                      deleting={tagDeleting}
-                    />
-                    {tagOpenFor !== r.personId && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTagOpenFor(r.personId);
-                          setTagDraft("");
-                        }}
-                        className="min-h-[32px] rounded-full border border-dashed border-ink/20 px-3 text-xs text-ink/60 hover:border-neon/60 hover:text-neon"
-                      >
-                        ＋ {t("people.addTag")}
-                      </button>
-                    )}
-                  </div>
-
-                  {tagOpenFor === r.personId && (
-                    <form
-                      className="flex gap-2"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        void addTag(r.personId);
-                      }}
-                    >
-                      <input
-                        type="text"
-                        value={tagDraft}
-                        onChange={(e) => setTagDraft(e.target.value)}
-                        placeholder={t("people.tagPlaceholder")}
-                        aria-label={t("people.addTag")}
-                        autoComplete="off"
-                        className={`${inputCls} flex-1`}
-                      />
-                      <Button
-                        type="submit"
-                        size="sm"
-                        disabled={!tagDraft.trim() || tagSaving}
-                      >
-                        {tc("save")}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setTagOpenFor(null)}
-                      >
-                        {tc("cancel")}
-                      </Button>
-                    </form>
-                  )}
-                </Card>
+                  </Card>
+                </Link>
               </li>
             );
           })}

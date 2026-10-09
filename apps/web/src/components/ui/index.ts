@@ -42,6 +42,7 @@ export {
   ArrowUpRightIcon,
   CheckIcon,
   XIcon,
+  PlusIcon,
   PlayIcon,
   StarIcon,
 } from "./icons";

@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  PlayIcon,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import type {
   CrmActor,
@@ -20,14 +26,12 @@ import { actorBody, actorQuery } from "./types";
 export function TriggerList({
   actor,
   reloadSignal,
-  onEdit,
   onLoaded,
 }: {
   actor: CrmActor;
   /** Incrementar para forzar refetch (tras crear/editar). */
   reloadSignal: number;
-  onEdit: (trigger: CrmTrigger) => void;
-  /** Reporta las keys ya creadas tras cada fetch (para el form de creación). */
+  /** Reporta las keys ya creadas tras cada fetch (para la página de creación). */
   onLoaded?: (keys: string[]) => void;
 }) {
   const t = useTranslations("crm");
@@ -125,7 +129,13 @@ export function TriggerList({
           disabled={evaluating}
           onClick={() => void evaluate()}
         >
-          {evaluating ? t("triggers.evaluating") : `▶ ${t("triggers.evaluate")}`}
+          {evaluating ? (
+            t("triggers.evaluating")
+          ) : (
+            <>
+              <PlayIcon className="h-4 w-4" /> {t("triggers.evaluate")}
+            </>
+          )}
         </Button>
       </div>
 
@@ -219,7 +229,7 @@ export function TriggerList({
                       size="sm"
                       variant="secondary"
                       className="flex-1"
-                      onClick={() => onEdit(tr)}
+                      href={`/crm/triggers/${tr.id}`}
                     >
                       {t("triggers.edit")}
                     </Button>

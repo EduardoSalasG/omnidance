@@ -119,7 +119,7 @@ export class CrmService {
   async listPeople(
     actorType: string,
     actorId: string,
-    filter: { q?: string; segment?: string; tag?: string } = {},
+    filter: { q?: string; segment?: string; tag?: string; sort?: string } = {},
     pg?: { page: number; pageSize: number; skip: number; take: number },
   ) {
     const [scores, tags] = await Promise.all([
@@ -202,10 +202,31 @@ export class CrmService {
       );
     }
 
+    // Ordenación sobre el universo filtrado, antes de paginar. Default:
+    // score desc con tag-only al final (orden ya armado arriba).
+    let sorted = filtered;
+    if (filter.sort === "score_asc") {
+      sorted = [...filtered].sort(
+        (a, b) => (a.score ?? Infinity) - (b.score ?? Infinity),
+      );
+    } else if (filter.sort === "name_asc") {
+      const named = await this.prisma.person.findMany({
+        where: { id: { in: filtered.map((r) => r.personId) } },
+        select: { id: true, name: true },
+      });
+      const nameById = new Map(named.map((p) => [p.id, p.name]));
+      sorted = [...filtered].sort((a, b) => {
+        const an = nameById.get(a.personId);
+        const bn = nameById.get(b.personId);
+        if (an == null && bn == null) return 0;
+        if (an == null) return 1;
+        if (bn == null) return -1;
+        return an.localeCompare(bn, "es");
+      });
+    }
+
     const total = filtered.length;
-    const pageRows = pg
-      ? filtered.slice(pg.skip, pg.skip + pg.take)
-      : filtered;
+    const pageRows = pg ? sorted.slice(pg.skip, pg.skip + pg.take) : sorted;
 
     const people = await this.prisma.person.findMany({
       where: { id: { in: pageRows.map((r) => r.personId) } },
@@ -226,6 +247,164 @@ export class CrmService {
       segmentCounts,
       allTags: [...tagSet].sort((a, b) => a.localeCompare(b, "es")),
     };
+  }
+
+  /**
+   * Ficha del contacto dentro del universo del actor: person brief,
+   * score/segment, tags del actor, resumen de actividad (la misma
+   * computeActivity que alimenta el score) y las últimas acciones
+   * recientes con etiqueta legible. La persona sin score, tag ni
+   * actividad está fuera del universo → 404.
+   */
+  async personDetail(actorType: string, actorId: string, personId: string) {
+    const [score, tags, person] = await Promise.all([
+      this.prisma.relationshipScore.findUnique({
+        where: {
+          actorType_actorId_personId: { actorType, actorId, personId },
+        },
+      }),
+      this.prisma.actorTag.findMany({
+        where: { actorType, actorId, personId },
+        orderBy: { createdAt: "asc" },
+      }),
+      this.prisma.person.findUnique({
+        where: { id: personId },
+        select: { id: true, name: true, photoUrl: true },
+      }),
+    ]);
+
+    const activity =
+      (await this.computeActivity(actorType, actorId)).get(personId) ?? null;
+
+    if (!score && tags.length === 0 && !activity) {
+      throw new CrmDomainError("NOT_FOUND", "persona fuera del universo");
+    }
+
+    const recent = await this.recentActivity(actorType, actorId, personId);
+    return {
+      person,
+      personId,
+      score: score?.score ?? null,
+      segment: score?.segment ?? null,
+      computedAt: score?.computedAt ?? null,
+      tags,
+      activity: activity
+        ? {
+            attendance: activity.attendance,
+            spend: activity.spend,
+            referrals: activity.referrals,
+            firstAt: activity.firstAt,
+            lastAt: activity.lastAt,
+          }
+        : null,
+      recent,
+    };
+  }
+
+  /**
+   * Últimas acciones del contacto dentro del universo del actor (máx 10,
+   * merge por fecha desc). Payment/Checkin no tienen relación a Event:
+   * los nombres se resuelven por mapa de eventIds del productor.
+   */
+  private async recentActivity(
+    actorType: string,
+    actorId: string,
+    personId: string,
+  ) {
+    type Item = {
+      type: "CHECKIN" | "PAYMENT" | "ENROLLMENT" | "ATTENDANCE";
+      at: Date;
+      label: string;
+      amount?: number;
+      status?: string;
+    };
+    const items: Item[] = [];
+
+    if (actorType === "PRODUCER") {
+      const events = await this.prisma.event.findMany({
+        where: { producerId: actorId },
+        select: { id: true, name: true },
+      });
+      const nameByEvent = new Map(events.map((e) => [e.id, e.name]));
+      const eventIds = events.map((e) => e.id);
+      if (eventIds.length === 0) return items;
+
+      const [checkins, payments] = await Promise.all([
+        this.prisma.checkin.findMany({
+          where: { personId, voidedAt: null, eventId: { in: eventIds } },
+          orderBy: { inAt: "desc" },
+          take: 10,
+          select: { eventId: true, inAt: true },
+        }),
+        this.prisma.payment.findMany({
+          where: { personId, status: "PAID", eventId: { in: eventIds } },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: { eventId: true, amount: true, createdAt: true },
+        }),
+      ]);
+      for (const c of checkins) {
+        items.push({
+          type: "CHECKIN",
+          at: c.inAt,
+          label: nameByEvent.get(c.eventId) ?? "",
+        });
+      }
+      for (const p of payments) {
+        items.push({
+          type: "PAYMENT",
+          at: p.createdAt,
+          label: nameByEvent.get(p.eventId ?? "") ?? "",
+          amount: p.amount,
+        });
+      }
+    } else if (actorType === "ACADEMY") {
+      const [enrollments, attendances] = await Promise.all([
+        this.prisma.enrollment.findMany({
+          where: { personId, academyId: actorId },
+          orderBy: { startedAt: "desc" },
+          take: 10,
+          select: {
+            startedAt: true,
+            status: true,
+            plan: { select: { name: true } },
+          },
+        }),
+        this.prisma.attendance.findMany({
+          where: { personId, class: { slot: { academyId: actorId } } },
+          orderBy: { checkedAt: "desc" },
+          take: 10,
+          select: {
+            checkedAt: true,
+            class: {
+              select: {
+                date: true,
+                slot: { select: { series: { select: { name: true } } } },
+              },
+            },
+          },
+        }),
+      ]);
+      for (const e of enrollments) {
+        items.push({
+          type: "ENROLLMENT",
+          at: e.startedAt,
+          label: e.plan?.name ?? "",
+          status: e.status,
+        });
+      }
+      for (const a of attendances) {
+        items.push({
+          type: "ATTENDANCE",
+          at: a.checkedAt,
+          label: a.class.slot.series.name,
+        });
+      }
+    }
+
+    return items
+      .sort((x, y) => y.at.getTime() - x.at.getTime())
+      .slice(0, 10);
   }
 
   /**

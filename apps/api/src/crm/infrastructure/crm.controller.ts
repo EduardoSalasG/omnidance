@@ -86,6 +86,12 @@ class ListPeopleQueryDto {
   @ApiPropertyOptional()
   tag?: string;
 
+  /** Orden del listado: score_desc (default) | score_asc | name_asc. */
+  @IsOptional()
+  @IsIn(["score_desc", "score_asc", "name_asc"])
+  @ApiPropertyOptional({ enum: ["score_desc", "score_asc", "name_asc"] })
+  sort?: string;
+
   @IsOptional()
   @IsString()
   @ApiPropertyOptional()
@@ -175,9 +181,25 @@ export class CrmController {
     return this.crm.listPeople(
       q.actorType,
       q.actorId,
-      { q: q.q, segment: q.segment, tag: q.tag },
+      { q: q.q, segment: q.segment, tag: q.tag, sort: q.sort },
       pageParams(q.page, q.pageSize),
     );
+  }
+
+  /** Ficha del contacto: score/segment/tags + resumen y actividad
+   *  reciente del universo del actor. 404 si es ajena al actor. */
+  @Get("people/:personId")
+  async personDetail(
+    @Param("personId") personId: string,
+    @Query() q: ListPeopleQueryDto,
+    @Req() req: Request,
+  ) {
+    await this.assertActorAccess(req, q.actorType, q.actorId);
+    try {
+      return await this.crm.personDetail(q.actorType, q.actorId, personId);
+    } catch (e) {
+      mapCrmError(e);
+    }
   }
 
   /** Crea tag; duplicado exacto (actor+person+tag) → 200 con el existente. */
@@ -275,6 +297,15 @@ export class CrmController {
       q.actorId,
       pageParams(q.page, q.pageSize),
     );
+  }
+
+  /** Detalle de campaña - el caller debe tener acceso al actor dueño. */
+  @Get("campaigns/:id")
+  async campaignDetail(@Param("id") id: string, @Req() req: Request) {
+    const campaign = await this.crm.getCampaign(id);
+    if (!campaign) throw new NotFoundException("campaña no encontrada");
+    await this.assertActorAccess(req, campaign.actorType, campaign.actorId);
+    return campaign;
   }
 
   // ─── Triggers ───

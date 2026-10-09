@@ -94,6 +94,15 @@ export function XIcon(props: IconProps) {
   );
 }
 
+/** Agregar / crear nuevo (antes `＋` de texto). */
+export function PlusIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </Svg>
+  );
+}
+
 /** Reproducir video externo (antes `▸`). */
 export function PlayIcon(props: IconProps) {
   return (

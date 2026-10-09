@@ -911,9 +911,10 @@ Wireframe - Mi QR:
 
 **CRM** (del §14)
 - Segmentos de asistentes: núcleo / en riesgo / nuevos / trae-gente
-- `campaign` builder: elegir segmento → acción (push, código de descuento, cortesía) → resultado
+- **Ficha de contacto** (`/crm/personas/[id]`): score + segmento, tags editables, resumen de actividad (asistencias, gasto, referidos, primera/última) y línea de tiempo reciente (checkins/pagos con nombre de evento)
+- `campaign` builder en página dedicada: elegir segmento → acción (push, código de descuento, cortesía) → resultado; ficha de campaña (`/crm/campanas/[id]`) con audiencia, resultado y envío confirmado por diálogo
 - Embudo de conversión, cohort retention, LTV por asistente
-- `crm_trigger` activos (win-back, "regular no compró preventa")
+- `crm_trigger` activos (win-back, "regular no compró preventa"), crear/editar en páginas dedicadas
 
 **Exportes** - CSV/PDF por evento y por serie
 
@@ -930,7 +931,7 @@ Wireframe - Mi QR:
 | Equipo | Colaboradores (permisos por capacidad) e instructores con acuerdo económico editable; card clickeable → detalle/edición dedicada |
 | Talleres | Crear taller pago, ventas, asistencia |
 | Contenido | Links de videos por clase (YouTube/Vimeo privado), quién puede ver qué |
-| CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (trial expira, asistencia cayó) |
+| CRM | Segmentos → `campaign` (oferta de bootcamp a núcleo, win-back a riesgo), `crm_trigger` (trial expira, asistencia cayó); ficha de contacto con resumen de actividad (asistencias, enrollments) y tags editables |
 | Analítica | Misma superficie `/analitica` del contrato compartido (consultas rápidas expandibles, filtros por entidad, exportes) |
 | Configuración | Multi-página: Clases (valores por defecto), Equipo, Métodos de pago (card clickeable → edición de datos, p. ej. cuenta de transferencia), Facturación, Encuestas |
 

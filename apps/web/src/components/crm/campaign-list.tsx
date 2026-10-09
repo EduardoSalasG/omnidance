@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
+import { actionLabel, audienceLabel } from "./campaign-labels";
 import type { CrmActor, CrmCampaign } from "./types";
 import { actorQuery } from "./types";
 
@@ -23,9 +25,9 @@ const STATUS_VARIANT: Record<string, "neon" | "muted" | "outline"> = {
 };
 
 /**
- * Cards de campañas del actor (GET /crm/campaigns?actor). Acción disponible:
- * Enviar (POST /:id/send, solo DRAFT - con confirmación, es masiva).
- * El controller no expone DELETE/CANCEL - no hay acción de cancelar en v1.
+ * Cards de campañas del actor (GET /crm/campaigns?actor) - clickeables
+ * hacia la ficha /crm/campanas/[id], donde vive el envío del borrador
+ * (el listado no muta - patrón de consola).
  */
 export function CampaignList({
   actor,
@@ -42,8 +44,6 @@ export function CampaignList({
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [error, setError] = useState(false);
-  const [sending, setSending] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -73,82 +73,12 @@ export function CampaignList({
     void load();
   }, [load, reloadSignal]);
 
-  async function send(c: CrmCampaign) {
-    if (sending) return;
-    if (!window.confirm(t("campaigns.sendConfirm", { name: c.name }))) return;
-    setSending(c.id);
-    setNotice(null);
-    try {
-      const res = await apiFetch(`/crm/campaigns/${c.id}/send`, {
-        method: "POST",
-      });
-      if (!res.ok) return setError(true);
-      const updated = (await res.json()) as CrmCampaign;
-      setNotice(
-        t("campaigns.sentResult", { count: updated.result?.sent ?? 0 }),
-      );
-      await load();
-    } catch {
-      setError(true);
-    } finally {
-      setSending(null);
-    }
-  }
-
-  function audienceLabel(c: CrmCampaign): string {
-    const parts: string[] = [];
-    if (c.segment?.allStudents) parts.push(t("campaigns.allStudents"));
-    if (c.segment?.enrollmentStatus?.length) {
-      parts.push(
-        c.segment.enrollmentStatus
-          .map((s) =>
-            t.has(`campaigns.enrollmentStatus.${s}`)
-              ? t(`campaigns.enrollmentStatus.${s}`)
-              : s,
-          )
-          .join(", "),
-      );
-    }
-    if (c.segment?.planId) parts.push(t("campaigns.byPlan"));
-    if (c.segment?.seriesId) parts.push(t("campaigns.bySeries"));
-    if (c.segment?.segment) {
-      parts.push(
-        t.has(`segments.${c.segment.segment}`)
-          ? t(`segments.${c.segment.segment}`)
-          : c.segment.segment,
-      );
-    }
-    if (c.segment?.tags?.length) parts.push(c.segment.tags.join(", "));
-    if (c.segment?.personIds?.length) {
-      parts.push(
-        `${t("campaigns.pickPeople")} (${c.segment.personIds.length})`,
-      );
-    }
-    return parts.join(" + ") || t("campaigns.audienceAll");
-  }
-
-  function actionLabel(c: CrmCampaign): string {
-    if (c.action?.type === "DISCOUNT_CODE") {
-      const off =
-        c.action.percentOff != null
-          ? `−${c.action.percentOff}%`
-          : c.action.amountOff != null
-            ? `−$${c.action.amountOff.toLocaleString("es-CL")}`
-            : "";
-      return `${t("campaigns.types.DISCOUNT_CODE")} ${off}`.trim();
-    }
-    return t("campaigns.types.NOTIFY");
-  }
-
   if (items === null && !error) {
     return <SkeletonList />;
   }
 
   return (
     <section className="flex flex-col gap-4" aria-label={t("campaigns.title")}>
-      <div aria-live="polite">
-        {notice && <p className="text-sm text-neon">{notice}</p>}
-      </div>
       {error && (
         <div className="flex items-center gap-3">
           <p role="alert" className="text-sm text-red-400">
@@ -168,45 +98,40 @@ export function CampaignList({
         <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
           {items.map((c) => (
             <li key={c.id}>
-              <Card className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold">{c.name}</span>
-                  <Badge variant={STATUS_VARIANT[c.status] ?? "muted"}>
-                    {t.has(`campaigns.status.${c.status}`)
-                      ? t(`campaigns.status.${c.status}`)
-                      : c.status}
-                  </Badge>
-                  <Badge variant="outline">{actionLabel(c)}</Badge>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/60">
-                  <span>
-                    {t("campaigns.audience")}: {audienceLabel(c)}
-                  </span>
-                  <span className="text-ink/50">
-                    {fmtDay.format(new Date(c.createdAt))}
-                  </span>
-                </div>
-                {c.status === "SENT" && c.result && (
-                  <p className="text-sm text-neon">
-                    {t("campaigns.sentResult", { count: c.result.sent ?? 0 })}
-                    {c.result.code
-                      ? ` · ${t("campaigns.withCode", { code: c.result.code })}`
-                      : ""}
-                  </p>
-                )}
-                {c.status === "DRAFT" && (
-                  <Button
-                    size="sm"
-                    className="self-start"
-                    disabled={sending !== null}
-                    onClick={() => void send(c)}
-                  >
-                    {sending === c.id
-                      ? t("campaigns.sending")
-                      : t("campaigns.send")}
-                  </Button>
-                )}
-              </Card>
+              <Link
+                href={`/crm/campanas/${c.id}`}
+                className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+              >
+                <Card className="flex flex-col gap-3 transition-colors hover:border-neon/60">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold">{c.name}</span>
+                    <Badge variant={STATUS_VARIANT[c.status] ?? "muted"}>
+                      {t.has(`campaigns.status.${c.status}`)
+                        ? t(`campaigns.status.${c.status}`)
+                        : c.status}
+                    </Badge>
+                    <Badge variant="outline">{actionLabel(t, c)}</Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/60">
+                    <span>
+                      {t("campaigns.audience")}: {audienceLabel(t, c)}
+                    </span>
+                    <span className="text-ink/50">
+                      {fmtDay.format(new Date(c.createdAt))}
+                    </span>
+                  </div>
+                  {c.status === "SENT" && c.result && (
+                    <p className="text-sm text-neon">
+                      {t("campaigns.sentResult", {
+                        count: c.result.sent ?? 0,
+                      })}
+                      {c.result.code
+                        ? ` · ${t("campaigns.withCode", { code: c.result.code })}`
+                        : ""}
+                    </p>
+                  )}
+                </Card>
+              </Link>
             </li>
           ))}
         </ul>
