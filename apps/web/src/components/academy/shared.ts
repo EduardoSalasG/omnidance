@@ -365,6 +365,9 @@ export type StudentProfile = {
   enrollmentStatus: string;
   enrollmentStartedAt: string | null;
   enrollmentEndsAt: string | null;
+  // Score de relación academia↔alumno (CRM): privado por actor.
+  score: number | null;
+  segment: string | null;
   history: {
     classId: string;
     date: string;

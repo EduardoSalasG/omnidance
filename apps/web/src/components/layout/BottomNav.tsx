@@ -331,18 +331,16 @@ const ANALYTICS_DRAWER_GROUP = (items: DrawerSpec[]): DrawerGroupSpec => ({
   labelKey: "title",
   items,
 });
-const ANALYTICS_DASHBOARD_ITEM: DrawerSpec = {
+// /analitica es la única superficie de analítica: consola de consultas
+// por lente activa (el dashboard por lente se eliminó - los KPIs clave
+// viven en cada módulo).
+const ANALYTICS_ITEM: DrawerSpec = {
   href: "/analitica",
-  ns: "query",
-  key: "tabs.dashboard",
+  ns: "analytics",
+  key: "title",
   icon: ICONS.slider,
+  // exact: el admin también lista /analitica/usuarios en el mismo grupo.
   exact: true,
-};
-const ANALYTICS_QUERIES_ITEM: DrawerSpec = {
-  href: "/analitica/consultas",
-  ns: "query",
-  key: "tabs.queries",
-  icon: ICONS.list,
 };
 
 // Sheet del bailarín - módulos secundarios por lente (social/academia).
@@ -423,7 +421,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
-    ANALYTICS_DRAWER_GROUP([ANALYTICS_DASHBOARD_ITEM, ANALYTICS_QUERIES_ITEM]),
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
     {
       labelNs: "nav",
       labelKey: "socialSection",
@@ -503,7 +501,46 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },
-    ANALYTICS_DRAWER_GROUP([ANALYTICS_DASHBOARD_ITEM, ANALYTICS_QUERIES_ITEM]),
+    // Configuración: una página por sección (general, cobro, perfil
+    // público, apariencia). La raíz /academia/configuracion redirige a
+    // general - los items apuntan directo a cada página.
+    {
+      labelNs: "academy",
+      labelKey: "navGroups.config",
+      items: [
+        {
+          href: "/academia/configuracion/general",
+          ns: "academy",
+          key: "configPages.general",
+          icon: ICONS.slider,
+        },
+        {
+          href: "/academia/configuracion/pagos",
+          ns: "academy",
+          key: "configPages.payments",
+          icon: ICONS.card,
+        },
+        {
+          href: "/academia/configuracion/perfil",
+          ns: "academy",
+          key: "configPages.profile",
+          icon: ICONS.pin,
+        },
+        {
+          href: "/academia/configuracion/apariencia",
+          ns: "academy",
+          key: "configPages.appearance",
+          icon: ICONS.slider,
+        },
+        {
+          href: "/academia/suscripcion",
+          ns: "academy",
+          key: "modules.subscription",
+          icon: ICONS.tag,
+        },
+      ],
+    },
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
   ],
   INSTRUCTOR: [
     {
@@ -556,8 +593,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
   ],
   SUPPORT: [],
-  // Venue: solo dashboard - no tiene datasets en Consultas este slice.
-  VENUE_MANAGER: [ANALYTICS_DRAWER_GROUP([ANALYTICS_DASHBOARD_ITEM])],
+  // Venue: sin datasets de consulta aún - /analitica muestra el estado
+  // vacío (noQueries) para su lente.
+  VENUE_MANAGER: [ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM])],
   ADMIN: [
     {
       labelNs: "admin",
@@ -602,8 +640,7 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       ],
     },
     ANALYTICS_DRAWER_GROUP([
-      ANALYTICS_DASHBOARD_ITEM,
-      ANALYTICS_QUERIES_ITEM,
+      ANALYTICS_ITEM,
       {
         href: "/analitica/usuarios",
         ns: "admin",
@@ -915,26 +952,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         active: pathname.startsWith("/perfil"),
         dataTour: SIDEBAR_TOUR["/perfil"],
       },
-      ...(activeRole === "ACADEMY_OWNER"
-        ? [
-            {
-              href: "/academia/configuracion",
-              label: tac("settings.title"),
-              icon: icon(ICONS.slider)(
-                pathname.startsWith("/academia/configuracion"),
-              ),
-              active: pathname.startsWith("/academia/configuracion"),
-            },
-            {
-              href: "/academia/suscripcion",
-              label: tac("modules.subscription"),
-              icon: icon(ICONS.tag)(
-                pathname.startsWith("/academia/suscripcion"),
-              ),
-              active: pathname.startsWith("/academia/suscripcion"),
-            },
-          ]
-        : []),
+      // La configuración del owner es su propia sección del drawer
+      // (general/pagos/perfil/apariencia + suscripción) - no se
+      // duplica acá.
     ],
   };
 

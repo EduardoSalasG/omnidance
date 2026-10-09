@@ -2,113 +2,90 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, SkeletonList, SkeletonText } from "@/components/ui";
-import { EVENT_STATUS_VARIANT } from "@/components/producer/shared";
-import { AnaliticaTabs } from "./tabs";
+import { apiFetch, isProRequired } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
+import { useActiveRole } from "@/lib/active-role";
+import {
+  Button,
+  Card,
+  PillTabs,
+  SkeletonList,
+  SkeletonText,
+  Spinner,
+} from "@/components/ui";
+import { ProPaywall } from "@/components/producer/pro-paywall";
+import { FilterBar, type QueryOption } from "@/components/query/FilterBar";
+import { QueryTable } from "@/components/query/QueryTable";
+import {
+  SavedQueries,
+  type SavedQuery,
+} from "@/components/query/SavedQueries";
+import { inputCls } from "@/components/academy/shared";
+import type {
+  EntityDef,
+  FkSource,
+  QueryFilters,
+  QueryRole,
+  QueryRunResult,
+  SavedReportParams,
+} from "@omnidance/shared";
+import { QUERY_CATALOG, QUERY_ROLES } from "@omnidance/shared";
 
 /**
- * /analitica - métricas por lente de rol. GET /analytics/roles devuelve los
- * roles aprobados con analítica; el segmented control (radiogroup nativo,
- * mismo patrón de pills de /perfil) cambia de lente y refetchea el summary.
- * Sin h1 visible: el chrome ya muestra "Analítica" via pageLabel.
+ * /analitica - consola de consultas del query engine (spec
+ * analytics/query-console): catálogo por lente → FilterBar data-driven →
+ * preview POST /query/run (rows capadas + total) → export CSV/PDF vía
+ * <a download> (preserva cookie por el proxy same-origin; `download` no
+ * dispara NavPendingOverlay) → guardar/reusar consultas. Solo lectura.
+ * La lente es SIEMPRE el rol activo (se cambia desde Perfil/el drawer -
+ * no hay selector acá). Lente PRODUCER: gate Pro - effectivePro===false
+ * o 403 pro.required → paywall. Lentes sin entidades (VENUE_MANAGER) →
+ * estado muted.
  */
 
-type Role = "ADMIN" | "PRODUCER" | "ACADEMY_OWNER" | "VENUE_MANAGER";
+type Role = QueryRole | "VENUE_MANAGER";
+type BootPhase = "loading" | "error" | "forbidden" | "ready";
+type CatalogPhase = "loading" | "error" | "forbidden" | "pro" | "empty" | "ready";
+type RunPhase = "idle" | "loading" | "error" | "ready";
 
-type Kpi = { key: string; value: number; format?: "clp" | "pct" };
-
-type AdminSections = {
-  eventsByStatus?: Record<string, number>;
-  payouts?: { gross: number; platformFee: number; net: number };
-  topProducers?: { id: string; name: string; gross: number }[];
-};
-type ProducerEvent = {
-  id: string;
-  name: string;
-  startsAt: string;
-  status: string;
-  sold: number;
-  gross30d: number;
-  checkins30d: number;
-  capacity: number;
-  occupancyPct: number | null;
-};
-type AcademyRow = {
-  id: string;
-  name: string;
-  students: number;
-  attendance30d: number;
-  classes30d: number;
-  seriesActive: number;
-  occupancyPct: number | null;
-};
-type VenueRow = {
-  id: string;
-  name: string;
-  upcoming: number;
-  events30d: number;
-  checkins30d: number;
+type CatalogResponse = {
+  entities: EntityDef[];
+  options: Record<string, QueryOption[]>;
 };
 
-type Summary = {
-  role: string;
-  periodDays: number;
-  kpis: Kpi[];
-  sections: Record<string, unknown>;
-};
-
-const clp = new Intl.NumberFormat("es-CL", {
-  style: "currency",
-  currency: "CLP",
-  maximumFractionDigits: 0,
-});
-const num = new Intl.NumberFormat("es-CL");
-const dayFmt = new Intl.DateTimeFormat("es-CL", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-});
-
-function formatKpi(k: Kpi): string {
-  if (k.format === "clp") return clp.format(k.value);
-  if (k.format === "pct") return `${num.format(k.value)}%`;
-  return num.format(k.value);
-}
-
-// Mini-stat de las listas por ítem (evento/academia/venue).
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex flex-col">
-      <span className="text-base font-semibold tabular-nums">{value}</span>
-      <span className="text-xs text-ink/50">{label}</span>
-    </div>
-  );
-}
+const isQueryRole = (r: Role): r is QueryRole =>
+  (QUERY_ROLES as readonly string[]).includes(r);
 
 export default function AnaliticaPage() {
-  const t = useTranslations("analytics");
+  const t = useTranslations("query");
+  const ta = useTranslations("analytics");
   const tc = useTranslations("common");
-  const tp = useTranslations("profile");
-  const tpr = useTranslations("producer");
 
-  const [phase, setPhase] = useState<
-    "loading" | "error" | "forbidden" | "ready"
-  >("loading");
-  const [roles, setRoles] = useState<Role[]>([]);
+  const { me } = useMe();
+  const effectivePro = me?.effectivePro ?? null;
+  const activeRole = useActiveRole(me?.roles);
+
+  const [phase, setPhase] = useState<BootPhase>("loading");
   const [role, setRole] = useState<Role | null>(null);
-  const [summaryPhase, setSummaryPhase] = useState<
-    "loading" | "error" | "forbidden" | "ready"
-  >("loading");
-  const [summary, setSummary] = useState<Summary | null>(null);
 
-  const roleLabel = (r: string) =>
-    tp.has(`roleLabels.${r}`) ? tp(`roleLabels.${r}`) : r;
-  const statusLabel = (s: string) =>
-    tpr.has(`status.${s}`) ? tpr(`status.${s}`) : s;
+  const [catalogPhase, setCatalogPhase] = useState<CatalogPhase>("loading");
+  const [entities, setEntities] = useState<EntityDef[]>([]);
+  const [options, setOptions] = useState<Record<string, QueryOption[]>>({});
 
-  // Boot: qué lentes tiene disponibles el usuario. 403/401 o array vacío
-  // → forbidden (sin analítica); cualquier otro fallo → error + retry.
+  const [entity, setEntity] = useState<string | null>(null);
+  const [filters, setFilters] = useState<QueryFilters>({});
+
+  const [runPhase, setRunPhase] = useState<RunPhase>("idle");
+  const [result, setResult] = useState<QueryRunResult | null>(null);
+
+  const [saved, setSaved] = useState<SavedQuery[]>([]);
+  const [savedBusy, setSavedBusy] = useState<string | null>(null);
+  const [saveName, setSaveName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // ── Boot: la lente es el rol activo; /analytics/roles confirma que
+  // tiene acceso a analítica (403/401 o lente ausente → forbidden). ────
   const boot = useCallback(async () => {
     setPhase("loading");
     try {
@@ -122,431 +99,406 @@ export default function AnaliticaPage() {
         return;
       }
       const list = (await res.json()) as Role[];
-      if (list.length === 0) {
+      if (!list.includes(activeRole as Role)) {
         setPhase("forbidden");
         return;
       }
-      setRoles(list);
-      setRole((prev) => (prev && list.includes(prev) ? prev : list[0]));
+      setRole(activeRole as Role);
       setPhase("ready");
     } catch {
       setPhase("error");
     }
-  }, []);
+  }, [activeRole]);
 
   useEffect(() => {
     void boot();
   }, [boot]);
 
-  // Summary del lente activo - refetch al cambiar de rol. 403 (rol que
-  // perdió aprobación entre requests) muestra forbidden pero deja el
-  // selector vivo para cambiar a un lente válido.
-  const loadSummary = useCallback(async (r: Role) => {
-    setSummaryPhase("loading");
-    setSummary(null);
+  // ── Catálogo del lente activo ────────────────────────────────────────
+  // Gate Pro proactivo: effectivePro===false en lente PRODUCER salta
+  // directo al paywall sin fetch; el 403 pro.required queda de fallback.
+  const proLocked = role === "PRODUCER" && effectivePro === false;
+
+  const loadCatalog = useCallback(
+    async (r: Role) => {
+      if (!isQueryRole(r) || QUERY_CATALOG[r].length === 0) {
+        setCatalogPhase("empty");
+        return;
+      }
+      setCatalogPhase("loading");
+      try {
+        const res = await apiFetch(`/query/catalog?role=${r}`);
+        if (res.status === 403 && (await isProRequired(res))) {
+          setCatalogPhase("pro");
+          return;
+        }
+        if (res.status === 401 || res.status === 403) {
+          setCatalogPhase("forbidden");
+          return;
+        }
+        if (!res.ok) {
+          setCatalogPhase("error");
+          return;
+        }
+        const data = (await res.json()) as CatalogResponse;
+        setEntities(data.entities ?? []);
+        setOptions(data.options ?? {});
+        setEntity(data.entities?.[0]?.entity ?? null);
+        setFilters({});
+        setResult(null);
+        setRunPhase("idle");
+        setSaved([]);
+        setCatalogPhase("ready");
+      } catch {
+        setCatalogPhase("error");
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!role) return;
+    if (proLocked) {
+      setCatalogPhase("pro");
+      return;
+    }
+    void loadCatalog(role);
+  }, [role, proLocked, loadCatalog]);
+
+  // ── Consultas guardadas del lente ────────────────────────────────────
+  const loadSaved = useCallback(async (r: Role) => {
     try {
-      const res = await apiFetch(`/analytics/summary?role=${r}`);
-      if (res.status === 403 || res.status === 401) {
-        setSummaryPhase("forbidden");
-        return;
-      }
-      if (!res.ok) {
-        setSummaryPhase("error");
-        return;
-      }
-      setSummary((await res.json()) as Summary);
-      setSummaryPhase("ready");
+      const res = await apiFetch(`/query/saved?role=${r}`);
+      if (!res.ok) return;
+      const body = (await res.json()) as
+        | SavedQuery[]
+        | { saved?: SavedQuery[] };
+      setSaved(Array.isArray(body) ? body : (body.saved ?? []));
     } catch {
-      setSummaryPhase("error");
+      // Lista auxiliar - si falla queda la del estado previo; la acción
+      // de guardar reintentará el load.
     }
   }, []);
 
   useEffect(() => {
-    if (role) void loadSummary(role);
-  }, [role, loadSummary]);
+    if (catalogPhase === "ready" && role) void loadSaved(role);
+  }, [catalogPhase, role, loadSaved]);
 
-  if (phase === "loading") {
-    return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
-        <header className="flex flex-col gap-3 pt-4">
-          <AnaliticaTabs />
-        </header>
-        <SkeletonList />
-      </main>
-    );
+  // Opciones de fuentes scope-dependientes (planId/seriesId/listId…).
+  const loadScopeOptions = useCallback(
+    async (source: FkSource, scopeId: string): Promise<QueryOption[]> => {
+      if (!role || !isQueryRole(role)) return [];
+      const res = await apiFetch(
+        `/query/options?role=${role}&source=${source}&scopeId=${encodeURIComponent(scopeId)}`,
+      );
+      if (!res.ok) return [];
+      return (await res.json()) as QueryOption[];
+    },
+    [role],
+  );
+
+  // ── Ejecutar preview ─────────────────────────────────────────────────
+  const run = useCallback(async () => {
+    if (!role || !entity || runPhase === "loading") return;
+    setRunPhase("loading");
+    setNotice(null);
+    try {
+      const res = await apiFetch("/query/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, entity, filters }),
+      });
+      if (res.status === 403 && (await isProRequired(res))) {
+        setRunPhase("idle");
+        setCatalogPhase("pro");
+        return;
+      }
+      if (!res.ok) {
+        setRunPhase("error");
+        return;
+      }
+      setResult((await res.json()) as QueryRunResult);
+      setRunPhase("ready");
+    } catch {
+      setRunPhase("error");
+    }
+  }, [role, entity, filters, runPhase]);
+
+  function exportHref(format: "csv" | "pdf"): string {
+    const params = new URLSearchParams();
+    if (role) params.set("role", role);
+    if (entity) params.set("entity", entity);
+    for (const [k, v] of Object.entries(filters)) {
+      if (v) params.set(k, v);
+    }
+    return `/api/query/export.${format}?${params.toString()}`;
   }
 
-  if (phase === "error") {
-    return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
-        <header className="flex flex-col gap-3 pt-4">
-          <AnaliticaTabs />
-        </header>
+  // ── Guardar / reutilizar ─────────────────────────────────────────────
+  async function saveCurrent() {
+    const name = saveName.trim();
+    if (!name || !role || !entity || saving) return;
+    setSaving(true);
+    setNotice(null);
+    try {
+      const res = await apiFetch("/query/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role,
+          name,
+          params: { entity, filters } satisfies SavedReportParams,
+        }),
+      });
+      if (res.ok) {
+        setSaveName("");
+        setNotice(t("saved.created"));
+        if (role) void loadSaved(role);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function renameSaved(id: string, name: string) {
+    setSavedBusy(id);
+    try {
+      const res = await apiFetch(`/query/saved/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok && role) await loadSaved(role);
+    } finally {
+      setSavedBusy(null);
+    }
+  }
+
+  async function deleteSaved(id: string) {
+    setSavedBusy(id);
+    try {
+      const res = await apiFetch(`/query/saved/${id}`, { method: "DELETE" });
+      if (res.ok && role) await loadSaved(role);
+    } finally {
+      setSavedBusy(null);
+    }
+  }
+
+  // Plantilla/guardada seleccionada: precarga entidad + filtros (el scope
+  // puede quedar sin elegir - el usuario lo define al aplicar).
+  function applyParams(params: SavedReportParams) {
+    if (!entities.some((e) => e.entity === params.entity)) return;
+    setEntity(params.entity);
+    setFilters({ ...params.filters });
+    setResult(null);
+    setRunPhase("idle");
+  }
+
+  function selectEntity(e: string) {
+    setEntity(e);
+    setFilters({});
+    setResult(null);
+    setRunPhase("idle");
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────
+  const entityDef =
+    entity != null ? entities.find((e) => e.entity === entity) : undefined;
+
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
+      {phase === "loading" && <SkeletonList />}
+
+      {phase === "error" && (
         <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-ink/70">{t("error")}</p>
+          <p className="text-sm text-ink/70">{ta("error")}</p>
           <Button variant="secondary" size="sm" onClick={() => void boot()}>
             {tc("retry")}
           </Button>
         </Card>
-      </main>
-    );
-  }
+      )}
 
-  if (phase === "forbidden") {
-    return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
-        <header className="flex flex-col gap-3 pt-4">
-          <AnaliticaTabs />
-        </header>
+      {phase === "forbidden" && (
         <Card className="py-6 text-center">
-          <p className="text-sm text-ink/70">{t("forbidden")}</p>
-        </Card>
-      </main>
-    );
-  }
-
-  const sections = (summary?.sections ?? {}) as AdminSections & {
-    events?: ProducerEvent[];
-    academies?: AcademyRow[];
-    venues?: VenueRow[];
-  };
-
-  // Empty: las colecciones del lente vinieron vacías (KPIs pueden seguir
-  // mostrándose - el estado vacío apunta a las secciones).
-  const sectionsEmpty = (() => {
-    if (!summary) return false;
-    switch (role) {
-      case "ADMIN":
-        return (
-          Object.keys(sections.eventsByStatus ?? {}).length === 0 &&
-          !sections.payouts &&
-          (sections.topProducers ?? []).length === 0
-        );
-      case "PRODUCER":
-        return (sections.events ?? []).length === 0;
-      case "ACADEMY_OWNER":
-        return (sections.academies ?? []).length === 0;
-      case "VENUE_MANAGER":
-        return (sections.venues ?? []).length === 0;
-      default:
-        return false;
-    }
-  })();
-
-  return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-6xl lg:px-8">
-      <header className="flex flex-col gap-3 pt-4">
-        <AnaliticaTabs />
-        <p className="text-sm text-ink/50">{t("period")}</p>
-
-        {/* Selector de lente - radiogroup nativo de pills (mismo patrón
-            que "Interactuar como" de /perfil): un tab stop, flechas
-            cambian de opción. Solo si hay más de un rol con analítica. */}
-        {roles.length > 1 && (
-          <div
-            role="radiogroup"
-            aria-label={t("lens")}
-            className="flex flex-wrap gap-2"
-          >
-            {roles.map((r) => (
-              <label key={r} className="cursor-pointer">
-                <input
-                  type="radio"
-                  name="analytics-lens"
-                  value={r}
-                  checked={role === r}
-                  onChange={() => setRole(r)}
-                  className="peer sr-only"
-                />
-                <span className="flex min-h-11 select-none items-center rounded-full border border-line bg-elevated px-4 text-sm font-semibold text-ink/70 transition-colors peer-checked:border-neon peer-checked:bg-neon peer-checked:text-on-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink active:scale-[0.98] motion-reduce:active:scale-100">
-                  {roleLabel(r)}
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </header>
-
-      {summaryPhase === "loading" && <SkeletonText lines={3} />}
-
-      {summaryPhase === "error" && (
-        <Card className="flex flex-col items-center gap-3 py-6 text-center">
-          <p className="text-sm text-ink/70">{t("error")}</p>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => role && void loadSummary(role)}
-          >
-            {tc("retry")}
-          </Button>
+          <p className="text-sm text-ink/70">{ta("forbidden")}</p>
         </Card>
       )}
 
-      {summaryPhase === "forbidden" && (
-        <Card className="py-6 text-center">
-          <p className="text-sm text-ink/70">{t("forbidden")}</p>
-        </Card>
-      )}
-
-      {summaryPhase === "ready" && summary && (
+      {phase === "ready" && (
         <>
-          {/* KPIs - mismo patrón de tiles del HomeHub; números en neon
-              como datos destacados. */}
-          {summary.kpis.length > 0 && (
-            <section aria-label={t("title")}>
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {summary.kpis.map((k) => (
-                  <li
-                    key={k.key}
-                    className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
-                  >
-                    <span className="block text-2xl font-bold tabular-nums text-neon">
-                      {formatKpi(k)}
-                    </span>
-                    <span className="text-xs text-ink/50">
-                      {t.has(`kpi.${k.key}`) ? t(`kpi.${k.key}`) : k.key}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          {catalogPhase === "loading" && <SkeletonList />}
 
-          {sectionsEmpty && (
+          {catalogPhase === "empty" && (
             <Card className="py-6 text-center">
-              <p className="text-sm text-ink/70">{t("empty")}</p>
+              <p className="text-sm text-ink/70">{t("noQueries")}</p>
             </Card>
           )}
 
-          {/* ── ADMIN ─────────────────────────────────────────────── */}
-          {role === "ADMIN" &&
-            sections.eventsByStatus &&
-            Object.keys(sections.eventsByStatus).length > 0 && (
-              <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-                  {t("sections.eventsByStatus")}
-                </h2>
-                <ul className="mt-3 flex flex-col divide-y divide-line">
-                  {Object.entries(sections.eventsByStatus).map(
-                    ([status, count]) => (
-                      <li
-                        key={status}
-                        className="flex items-center justify-between gap-3 py-2.5"
-                      >
-                        <Badge
-                          variant={EVENT_STATUS_VARIANT[status] ?? "muted"}
-                        >
-                          {statusLabel(status)}
-                        </Badge>
-                        <span className="text-base font-semibold tabular-nums">
-                          {num.format(count)}
-                        </span>
-                      </li>
-                    ),
-                  )}
-                </ul>
-              </Card>
-            )}
+          {catalogPhase === "pro" && <ProPaywall />}
 
-          {role === "ADMIN" && sections.payouts && (
-            <section aria-label={t("sections.payouts")}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
-                {t("sections.payouts")}
-              </h2>
-              <ul className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-3">
-                {(
-                  [
-                    [
-                      t("cols.gross"),
-                      sections.payouts.gross,
-                    ],
-                    [
-                      t("kpi.platformFeeAccrued"),
-                      sections.payouts.platformFee,
-                    ],
-                    [tpr("payoutsPage.net"), sections.payouts.net],
-                  ] as const
-                ).map(([label, value]) => (
-                  <li
-                    key={label}
-                    className="rounded-xl border border-line bg-elevated/60 px-4 py-3"
-                  >
-                    <span className="block text-lg font-bold tabular-nums text-neon">
-                      {clp.format(value)}
-                    </span>
-                    <span className="text-xs text-ink/50">{label}</span>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {catalogPhase === "forbidden" && (
+            <Card className="py-6 text-center">
+              <p className="text-sm text-ink/70">{ta("forbidden")}</p>
+            </Card>
           )}
 
-          {role === "ADMIN" &&
-            (sections.topProducers ?? []).length > 0 && (
-              <Card>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-                  {t("sections.topProducers")}
-                </h2>
-                <ol className="mt-3 flex flex-col divide-y divide-line">
-                  {sections.topProducers!.map((p, i) => (
-                    <li
-                      key={p.id}
-                      className="flex items-center gap-3 py-2.5"
-                    >
-                      <span
-                        aria-hidden
-                        className="w-5 text-sm font-semibold tabular-nums text-ink/40"
-                      >
-                        {i + 1}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                        {p.name}
-                      </span>
-                      <span className="text-sm font-semibold tabular-nums text-neon">
-                        {clp.format(p.gross)}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </Card>
-            )}
+          {catalogPhase === "error" && (
+            <Card className="flex flex-col items-center gap-3 py-6 text-center">
+              <p className="text-sm text-ink/70">{ta("error")}</p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => role && void loadCatalog(role)}
+              >
+                {tc("retry")}
+              </Button>
+            </Card>
+          )}
 
-          {/* ── PRODUCER ──────────────────────────────────────────── */}
-          {role === "PRODUCER" &&
-            (sections.events ?? []).length > 0 && (
-              <section aria-label={t("sections.events")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
-                  {t("sections.events")}
-                </h2>
-                <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-                  {sections.events!.map((e) => (
-                    <li
-                      key={e.id}
-                      className="rounded-2xl border border-line bg-surface p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">
-                            {e.name}
-                          </p>
-                          <p className="mt-0.5 text-xs text-ink/50">
-                            {dayFmt.format(new Date(e.startsAt))}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={EVENT_STATUS_VARIANT[e.status] ?? "muted"}
-                        >
-                          {statusLabel(e.status)}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-3 min-[420px]:grid-cols-4">
-                        <Stat label={t("cols.sold")} value={num.format(e.sold)} />
-                        <Stat
-                          label={t("cols.gross")}
-                          value={clp.format(e.gross30d)}
-                        />
-                        <Stat
-                          label={t("cols.checkins")}
-                          value={num.format(e.checkins30d)}
-                        />
-                        <Stat
-                          label={t("cols.occupancy")}
-                          value={
-                            e.occupancyPct == null
-                              ? "·"
-                              : `${num.format(e.occupancyPct)}%`
-                          }
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+          {catalogPhase === "ready" && entities.length === 0 && (
+            <Card className="py-6 text-center">
+              <p className="text-sm text-ink/70">{t("noQueries")}</p>
+            </Card>
+          )}
 
-          {/* ── ACADEMY_OWNER ─────────────────────────────────────── */}
-          {role === "ACADEMY_OWNER" &&
-            (sections.academies ?? []).length > 0 && (
-              <section aria-label={t("sections.academies")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
-                  {t("sections.academies")}
-                </h2>
-                <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-                  {sections.academies!.map((a) => (
-                    <li
-                      key={a.id}
-                      className="rounded-2xl border border-line bg-surface p-4"
-                    >
-                      <p className="truncate text-sm font-semibold">
-                        {a.name}
-                      </p>
-                      <div className="mt-3 grid grid-cols-2 gap-3 min-[420px]:grid-cols-5">
-                        <Stat
-                          label={t("cols.students")}
-                          value={num.format(a.students)}
-                        />
-                        <Stat
-                          label={t("cols.attendance")}
-                          value={num.format(a.attendance30d)}
-                        />
-                        <Stat
-                          label={t("cols.classes")}
-                          value={num.format(a.classes30d)}
-                        />
-                        <Stat
-                          label={t("cols.series")}
-                          value={num.format(a.seriesActive)}
-                        />
-                        <Stat
-                          label={t("cols.occupancy")}
-                          value={
-                            a.occupancyPct == null
-                              ? "·"
-                              : `${num.format(a.occupancyPct)}%`
-                          }
-                        />
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
+          {catalogPhase === "ready" && entities.length > 0 && (
+            <>
+              <PillTabs
+                ariaLabel={t("entitiesLabel")}
+                active={entity ?? ""}
+                onSelect={selectEntity}
+                items={entities.map((e) => ({
+                  key: e.entity,
+                  label: t.has(`entities.${e.entity}`)
+                    ? t(`entities.${e.entity}`)
+                    : e.entity,
+                }))}
+              />
 
-          {/* ── VENUE_MANAGER ─────────────────────────────────────── */}
-          {role === "VENUE_MANAGER" &&
-            (sections.venues ?? []).length > 0 && (
-              <section aria-label={t("sections.venues")}>
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
-                  {t("sections.venues")}
-                </h2>
-                <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-                  {sections.venues!.map((v) => (
-                    <li
-                      key={v.id}
-                      className="rounded-2xl border border-line bg-surface p-4"
+              {entityDef && (
+                <FilterBar
+                  entity={entityDef}
+                  filters={filters}
+                  onChange={setFilters}
+                  options={options}
+                  loadScopeOptions={loadScopeOptions}
+                />
+              )}
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => void run()}
+                  disabled={!entity || runPhase === "loading"}
+                >
+                  {runPhase === "loading" ? <Spinner size="sm" /> : null}
+                  {t("apply")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setFilters({});
+                    setResult(null);
+                    setRunPhase("idle");
+                  }}
+                  disabled={Object.keys(filters).length === 0 && !result}
+                >
+                  {t("reset")}
+                </Button>
+                <span className="ms-auto flex gap-2">
+                  {(["csv", "pdf"] as const).map((f) => (
+                    <a
+                      key={f}
+                      href={exportHref(f)}
+                      download
+                      className={`inline-flex min-h-11 min-w-16 items-center justify-center rounded-xl border px-4 text-xs font-bold uppercase tracking-wide transition-colors ${
+                        f === "csv"
+                          ? "border-line bg-surface text-ink hover:border-neon/60"
+                          : "border-neon/40 bg-neon/10 text-neon hover:border-neon/70"
+                      }`}
                     >
-                      <p className="truncate text-sm font-semibold">
-                        {v.name}
-                      </p>
-                      <div className="mt-3 grid grid-cols-3 gap-3">
-                        <Stat
-                          label={t("cols.upcoming")}
-                          value={num.format(v.upcoming)}
-                        />
-                        <Stat
-                          label={t("cols.events")}
-                          value={num.format(v.events30d)}
-                        />
-                        <Stat
-                          label={t("cols.checkins")}
-                          value={num.format(v.checkins30d)}
-                        />
-                      </div>
-                    </li>
+                      {f}
+                    </a>
                   ))}
-                </ul>
-              </section>
-            )}
+                </span>
+              </div>
+
+              <div aria-live="polite">
+                {notice && (
+                  <p role="status" className="text-sm font-medium text-neon">
+                    {notice}
+                  </p>
+                )}
+              </div>
+
+              {runPhase === "loading" && <SkeletonText lines={3} />}
+
+              {runPhase === "error" && (
+                <Card className="flex flex-col items-center gap-3 py-6 text-center">
+                  <p className="text-sm text-ink/70">{ta("error")}</p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => void run()}
+                  >
+                    {tc("retry")}
+                  </Button>
+                </Card>
+              )}
+
+              {runPhase === "ready" && result && entity && (
+                <>
+                  {result.summary.length > 0 && (
+                    <ul className="flex flex-col gap-1 text-sm text-ink/70">
+                      {result.summary.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <QueryTable
+                    entity={entity}
+                    headers={result.headers}
+                    rows={result.rows}
+                    total={result.total}
+                  />
+                </>
+              )}
+
+              {/* Guardar la consulta actual + lista sistema/propias. */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  placeholder={t("savePlaceholder")}
+                  aria-label={t("savePlaceholder")}
+                  className={inputCls}
+                />
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="shrink-0"
+                  onClick={() => void saveCurrent()}
+                  disabled={!saveName.trim() || saving || !entity}
+                >
+                  {saving ? <Spinner size="sm" /> : null}
+                  {t("save")}
+                </Button>
+              </div>
+
+              {role && isQueryRole(role) && (
+                <SavedQueries
+                  role={role}
+                  saved={saved}
+                  busyId={savedBusy}
+                  onSelect={applyParams}
+                  onRename={(id, name) => void renameSaved(id, name)}
+                  onDelete={(id) => void deleteSaved(id)}
+                />
+              )}
+            </>
+          )}
         </>
       )}
     </main>

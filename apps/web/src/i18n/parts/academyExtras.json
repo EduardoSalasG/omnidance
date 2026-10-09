@@ -91,7 +91,9 @@
         "booked": "Reservada",
         "cancelled": "Cancelada"
       },
-      "viewProfile": "Ver perfil de {name}"
+      "viewProfile": "Ver perfil de {name}",
+      "score": "Score",
+      "scoreNone": "Sin score"
     },
     "learner": {
       "myAcademies": "Mis academias",
@@ -162,7 +164,14 @@
     "navGroups": {
       "teaching": "Enseñanza",
       "students": "Alumnos",
-      "admin": "Administración"
+      "admin": "Administración",
+      "config": "Configuración"
+    },
+    "configPages": {
+      "general": "General",
+      "payments": "Métodos de pago",
+      "profile": "Perfil público",
+      "appearance": "Apariencia"
     },
     "kpis": {
       "title": "Resumen del mes",

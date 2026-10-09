@@ -1,10 +1,5 @@
 {
   "query": {
-    "tabs": {
-      "label": "Secciones de analítica",
-      "dashboard": "Dashboard",
-      "queries": "Consultas"
-    },
     "noQueries": "Sin consultas para este lente",
     "entitiesLabel": "Entidad",
     "filtersLabel": "Filtros",
