@@ -10,7 +10,7 @@ desviaciones residuales, y la consola del productor nunca adoptó ese
 patrón: crea inline, cards no navegables y acciones mezcladas en el
 listado.
 
-## What changes
+## What Changes
 
 - Auditoría owner (fixes): back link en ficha de alumno, baja de
   colaborador y de serie en zona destructiva roja centrada, alta de
