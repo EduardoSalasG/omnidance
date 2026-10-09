@@ -3,6 +3,67 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.4.0] - 2026-10-09
+
+Release de consolas y piloto: consola de dueño de academia completa
+(v3+v4), paridad de consola productor (v5), consola CRM, motor de
+consultas de analítica por lente, insights operativos por módulo y la
+preparación del piloto productivo con usuarios reales y dataset demo.
+
+### Added
+
+- **Consola owner de academia**: navegación reestructurada, Clases
+  como entidad navegable (listado + detalle con acciones + borrado
+  lógico), Planes con KPIs y detalle, Cobros con detalle e historial
+  unificado, Equipo con acuerdo económico (`payType`: PER_CLASS /
+  MONTHLY / COMMISSION), Particulares, encuestas mensuales curso/profe
+  (anónimas, con job), paginación `{items,total,page,pageSize}` en
+  todos los listados.
+- **Paridad consola productor**: fichas navegables (código, lista,
+  liquidación, comprobante), cards clickeables, ConsoleHeader, zona
+  destructiva, `me/payouts` paginado y endpoints de detalle.
+- **Consola CRM**: ficha de contacto (score/actividad/recientes),
+  ficha de campaña con envío por diálogo, crear campaña/trigger como
+  páginas, sort en listados, iconos reales.
+- **Analítica por lente**: un solo `/analitica` por rol activo con el
+  motor de consultas compartido (`GET /query/catalog`,
+  `POST /query/run`, `/query/options`, exports y consultas guardadas);
+  fuentes lazy desenvueltas correctamente en la lente owner.
+- **Insights por módulo**: `/academia/alumnos` (top 5 asistencia y
+  monto pagado del mes), `/academia/series` (KPIs asistencia/clase y
+  clases-semana/alumno + top/bottom 5), `/academia/planes` (top 5
+  comprados del mes), `/academia/cobros` (planes por vencer hoy/esta
+  semana); endpoints `students/insights`, `series/insights` y
+  `topPurchasedMonth` en `plans/kpis`.
+- **Filtros operativos**: modalidad multiselect en `/academia/series`
+  (chips en FilterBar + `typeId` CSV en el endpoint).
+- **Claim de cuenta pre-sembrada**: `POST /auth/register` sobre email
+  existente reclama la Person — password correcto → sesión; sin match
+  o sin password → magic link + 409. Permite registrar usuarios reales
+  sobre data sembrada.
+- **Checkout transparente**: el método de pago siempre visible en
+  eventos y membresía — sin métodos propios, la pasarela queda como
+  única opción marcada.
+
+### Changed
+
+- **Seed demo enriquecido**: usuarios reales del piloto (Gabriel
+  owner/dancer/instructor, Mónica, María), academia "Adrian y Leo"
+  (mambo), Mambo Madness con parrilla/planes reales y ~94 alumnos,
+  20-70 alumnos con asistencias del mes pasado/vigente en todas las
+  academias, evento Trilogía 5ta edición completo, MercadoPago como
+  PAYMENT_LINK, cleanup automático de residuos E2E y poda de estilos
+  removidos.
+- **Piloto productivo**: `SEED_ENV=prod` corre temporalmente el
+  dataset demo; el seed real quedó en `seed-prod-baseline.ts`
+  (`SEED_ENV=baseline`).
+- **Chrome/UI**: h1 único por página, un solo "volver" por página,
+  toggle Social/Academia solo en `/inicio`, skeleton único de arranque
+  en analítica, cards de planes con layout vertical en desktop,
+  vencimientos de inicio redirigen a `/academia/cobros`, botón guardar
+  centrado en edición de método, "Perfil público" → "Perfil de la
+  academia".
+
 ## [0.3.0] - 2026-10-06
 
 Release mayor de plataforma: consola admin operativa (jobs + campañas
