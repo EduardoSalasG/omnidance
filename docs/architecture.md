@@ -402,7 +402,7 @@ Quedan FREE siempre: publicar/editar eventos, vender, check-in, `GET /events/min
 ## Persistencia y seeds
 
 - **Prisma + Postgres** (`localhost:5433` en docker-compose dev).
-- Seeds idempotentes (`SEED_ENV=dev|prod`): `seed-common` (catálogos RBAC, permisos, estilos, badges, params por upsert) + `seed-dev` (demo Santiago, `*@omnidance.dev` logueables) / `seed-prod` (baseline + admin desde `SEED_ADMIN_EMAIL`).
+- Seeds idempotentes (`SEED_ENV=dev|prod|baseline`): `seed-common` (catálogos RBAC, permisos, estilos, badges, params por upsert) + `seed-dev` (demo Santiago, `*@omnidance.dev` logueables). **Piloto temporal**: `SEED_ENV=prod` corre el dataset demo (usuarios reales de prueba); el seed real de prod quedó preservado en `seed-prod-baseline.ts` (`SEED_ENV=baseline` → baseline + admin desde `SEED_ADMIN_EMAIL`) para restaurar el dispatch al cerrar el piloto.
 - `prisma db push` en dev; el watch del API debe detenerse antes (lock del query engine).
 
 ## Docs operativas

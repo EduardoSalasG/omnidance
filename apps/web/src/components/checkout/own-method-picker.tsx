@@ -84,8 +84,8 @@ export function OwnMethodDetails({ method }: { method: OwnMethod }) {
 /**
  * Selector "cómo pagar" del checkout (spec producer-own-methods):
  * pasarela (tarjeta/webpay) vs métodos propios del productor
- * (transferencia/link/efectivo). Solo se renderiza si hay métodos
- * activos - sin métodos el checkout queda igual que antes.
+ * (transferencia/link/efectivo). Siempre visible - aunque el productor
+ * no tenga métodos propios, el comprador ve que pagará por pasarela.
  */
 export function OwnMethodPicker({
   methods,
@@ -100,8 +100,6 @@ export function OwnMethodPicker({
 }) {
   const t = useTranslations("checkout");
   const selected = methods.find((m) => m.id === value) ?? null;
-
-  if (methods.length === 0) return null;
 
   return (
     <fieldset disabled={disabled} className="flex flex-col gap-2">

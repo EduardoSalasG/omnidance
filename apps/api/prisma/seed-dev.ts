@@ -18,7 +18,7 @@ import { ensurePerson, seedCommon } from "./seed-common";
 const DEV_DOMAIN = "omnidance.dev";
 
 // Password dev para todas las cuentas @omnidance.dev - permite probar el
-// login por contraseña además del magic link. Nunca en seed-prod.
+// login por contraseña además del magic link. Nunca en seed-prod-baseline.
 export const DEV_PASSWORD = "omnidance123";
 
 const nextDay = (weekday: number, hour = 22, weeksAhead = 0) => {
@@ -30,6 +30,33 @@ const nextDay = (weekday: number, hour = 22, weeksAhead = 0) => {
   d.setHours(hour, 0, 0, 0);
   return d;
 };
+
+// Marcas de artefactos E2E/fixtures de Playwright que ensucian la DB dev
+// (prefijos de specs + palabras clave + duplicados legados con em-dash).
+// Se usan en dos puntos: para excluir residuos de las listas curadas
+// (pubEvents) y para el cleanup del final. Ninguna entidad curada calza.
+const TEST_MARKS = ["test", "prueba", "e2e", "payout"];
+const TEST_EVENT_ROOTS = [
+  "Capped", "Con Mesas", "Draft Checkout", "Evento Ajeno",
+  "Evento de Serie", "Fee Cero", "Fee Override", "GE ",
+  "Gala Academia", "Otro Evento", "Sin Preventa", "Social Checkout",
+  "Social Sessions", "Social Venue", "Social del Venue",
+];
+const TEST_SERIES_ROOTS = [
+  "Serie Gap", "Serie Inactiva", "Serie Ajena", "Serie Checkout",
+];
+const TEST_VENUE_ROOTS = [
+  "Venue Gap", "GE Venue", "Venue Checkout", "Venue Sessions",
+];
+const markConds = (field = "name") =>
+  TEST_MARKS.map((w) => ({
+    [field]: { contains: w, mode: "insensitive" as const },
+  }));
+// Nombre calza alguna marca E2E (para filtrar listas ya en memoria).
+const isTestName = (name: string) =>
+  name.includes("—") ||
+  TEST_MARKS.some((w) => name.toLowerCase().includes(w)) ||
+  TEST_EVENT_ROOTS.some((r) => name.startsWith(r));
 
 /** find-or-create por `where`; si existe, aplica `update` si se entrega. */
 async function ensure<T extends { id: string }>(
@@ -83,9 +110,14 @@ export async function seedDev(prisma: PrismaClient) {
     { role: "DJ" },
     { role: "PRODUCER" },
   ]);
+  // DJ Criss (@djcrissbsoul) - tercer DJ de Trilogía en Orixas.
+  const criss = await person("criss", "DJ Criss", [{ role: "DJ" }]);
   const muvetOwner = await person("muvet", "Dueño MuéveteOnTour", [
     { role: "ACADEMY_OWNER" },
     { role: "PRODUCER" },
+    // También dicta clases - la consola de instructor se refina con su
+    // cuenta (su serie propia se asigna más abajo).
+    { role: "INSTRUCTOR" },
   ]);
   // Cuenta consumidora - flujo completo: RSVP, compra, QR, sesiones, ratings.
   const dancer = await person("dancer", "Bailarín Demo", [{ role: "DANCER" }], Gender.M);
@@ -117,6 +149,32 @@ export async function seedDev(prisma: PrismaClient) {
     ],
     Gender.M,
   );
+  // Mónica y María - cuentas reales de prueba (emails .cl). Se reclaman
+  // al registrarse: el magic link hace upsertByEmail sobre esta misma
+  // Person, así toda la data pre-sembrada queda adjunta a su cuenta.
+  const monica = await ensurePerson(
+    prisma,
+    "monica@omnidance.cl",
+    "Mónica Soto",
+    [{ role: "DANCER" }],
+    Gender.F,
+  );
+  const maria = await ensurePerson(
+    prisma,
+    "maria@omnidance.cl",
+    "María José Herrera",
+    [{ role: "DANCER" }, { role: "INSTRUCTOR" }],
+    Gender.F,
+  );
+  // Dueños de "Adrian y Leo" - academia de solo mambo (abajo).
+  const adrian = await person("adrian", "Adrián Paredes", [
+    { role: "ACADEMY_OWNER" },
+    { role: "INSTRUCTOR" },
+  ]);
+  const leo = await person("leo", "Leo Campos", [
+    { role: "INSTRUCTOR" },
+    { role: "DANCER" },
+  ]);
   // Consola /venue - queda como ownerId de Orixas.
   const venueMgr = await person("venue", "Manager Orixas", [
     { role: "VENUE_MANAGER" },
@@ -315,6 +373,9 @@ export async function seedDev(prisma: PrismaClient) {
   for (const [academyId, personId, commissionPct] of [
     [muvet.id, vale.id, 25],
     [muvet.id, rodrigo.id, 30],
+    // El dueño también dicta (la serie "Cubano" de abajo es suya) - su
+    // cuenta sirve para refinar la consola del instructor.
+    [muvet.id, muvetOwner.id, null],
     [tumbao.id, vale.id, null],
   ] as const) {
     await prisma.academyInstructor.upsert({
@@ -1362,6 +1423,28 @@ export async function seedDev(prisma: PrismaClient) {
   } else {
     await prisma.academyPaymentMethod.create({ data: mmMethodData });
   }
+  // MercadoPago - mismo flujo manual que la transferencia: el alumno se
+  // redirige al link de pago y vuelve a subir el comprobante en la app;
+  // Gabriel lo valida en /academia/cobros.
+  const mmMpData = {
+    academyId: mambo.id,
+    type: "PAYMENT_LINK" as const,
+    label: "MercadoPago",
+    details: { url: "https://link.mercadopago.cl/mambomadness" },
+    order: 1,
+    active: true,
+  };
+  const mmMp = await prisma.academyPaymentMethod.findFirst({
+    where: { academyId: mambo.id, label: "MercadoPago" },
+  });
+  if (mmMp) {
+    await prisma.academyPaymentMethod.update({
+      where: { id: mmMp.id },
+      data: mmMpData,
+    });
+  } else {
+    await prisma.academyPaymentMethod.create({ data: mmMpData });
+  }
 
   // ─── Alumnos de Mambo Madness ───
   // 92 alumnos con plan vigente - mix de la parrilla (oferta de entrada,
@@ -1415,6 +1498,133 @@ export async function seedDev(prisma: PrismaClient) {
     );
   }
 
+  // María José: alumna del nivel más alto publicado (Intermedio,
+  // miércoles) con plan Ilimitado + profesora de la casa en los slots de
+  // iniciación (lunes 19:30/20:30 y sábado 17:00/18:00 - Gabriel dicta
+  // el resto de la parrilla).
+  const mmIlimitadoPlan = await prisma.membershipPlan.findFirst({
+    where: { academyId: mambo.id, name: "Ilimitado" },
+  });
+  if (mmIlimitadoPlan) {
+    await enroll(mambo.id, maria.id, mmIlimitadoPlan.id, "ACTIVE", 60, 24);
+  }
+  await prisma.academyInstructor.upsert({
+    where: {
+      academyId_personId: { academyId: mambo.id, personId: maria.id },
+    },
+    update: {},
+    create: { academyId: mambo.id, personId: maria.id },
+  });
+  // Slots de María: la iniciación de lunes y sábado (salsa + bachata).
+  // Se marca en el slot y en las clases ya materializadas - la consola
+  // del instructor lista por ambos según la vista.
+  const mariaSlotKeys = [
+    { series: "Salsa", weekday: 1, startTime: "19:30" },
+    { series: "Bachata", weekday: 1, startTime: "20:30" },
+    { series: "Salsa", weekday: 6, startTime: "17:00" },
+    { series: "Bachata", weekday: 6, startTime: "18:00" },
+  ];
+  for (const k of mariaSlotKeys) {
+    const slot = await prisma.classSlot.findFirst({
+      where: {
+        academyId: mambo.id,
+        weekday: k.weekday,
+        startTime: k.startTime,
+        series: { name: k.series, deletedAt: null },
+      },
+    });
+    if (!slot) continue;
+    await prisma.classSlot.update({
+      where: { id: slot.id },
+      data: { instructorId: maria.id },
+    });
+    await prisma.class.updateMany({
+      where: { classSlotId: slot.id },
+      data: { instructorId: maria.id },
+    });
+  }
+
+  // ─── Adrian y Leo - academia de solo mambo ───
+  // Mónica es su alumna: plan más caro + asistencias del mes pasado y
+  // vigente. Academia chica boutique - parrilla mínima pero real.
+  const alData = {
+    name: "Adrian y Leo",
+    ownerId: adrian.id,
+    defaultQuorum: 14,
+    description:
+      "Academia boutique de mambo on2 - grupos chicos, técnica de línea y musicalidad.",
+    address: "Seminario 380, Providencia",
+    lat: -33.4483,
+    lng: -70.6227,
+    instagram: "adrianyleo.mambo",
+    whatsapp: "56987654321",
+    website: "https://adrianyleo.cl",
+  };
+  const adrianLeo = await ensure(
+    () => prisma.academy.findFirst({ where: { name: "Adrian y Leo" } }),
+    () => prisma.academy.create({ data: alData }),
+    (a) => prisma.academy.update({ where: { id: a.id }, data: alData }),
+  );
+  for (const profe of [adrian, leo]) {
+    await prisma.academyInstructor.upsert({
+      where: {
+        academyId_personId: { academyId: adrianLeo.id, personId: profe.id },
+      },
+      update: {},
+      create: { academyId: adrianLeo.id, personId: profe.id },
+    });
+  }
+  // Parrilla mambo-only: dos series (línea y partnerwork).
+  const alMambo = await mkClassSeries({
+    academyId: adrianLeo.id,
+    name: "Mambo",
+    styleName: "Mambo on2",
+    levelName: "Intermedio",
+    typeNames: ["Pareja"],
+    instructorId: adrian.id,
+    dropInPrice: 10000,
+    slots: [
+      { weekday: 1, startTime: "20:00", endTime: "21:00" },
+      { weekday: 3, startTime: "20:00", endTime: "21:00" },
+    ],
+    withHistory: true,
+    withNext: true,
+  });
+  const alShines = await mkClassSeries({
+    academyId: adrianLeo.id,
+    name: "Shines Mambo",
+    styleName: "Mambo on2",
+    levelName: "Básico",
+    typeNames: ["Shines"],
+    instructorId: leo.id,
+    dropInPrice: 8000,
+    slots: [{ weekday: 4, startTime: "19:00", endTime: "20:00" }],
+    withHistory: true,
+    withNext: true,
+  });
+  await plan(adrianLeo.id, "Mambo Mensual", "MONTHLY", 40000, {
+    weeklyClasses: 1,
+    description: [
+      "1 clase de mambo por semana",
+      "Válido hasta fin del mes calendario",
+    ],
+  });
+  // El plan más caro de la casa - es el de Mónica.
+  const alIntensivo = await plan(adrianLeo.id, "Mambo Intensivo", "MONTHLY", 55000, {
+    description: [
+      "Todas las clases de la academia",
+      "Feedback individual en cada clase",
+      "Válido hasta fin del mes calendario",
+    ],
+  });
+  await plan(adrianLeo.id, "Clase suelta", "SINGLE", 10000, {
+    description: ["Una clase del día"],
+  });
+  await plan(adrianLeo.id, "Clase de prueba", "TRIAL", 0);
+  // Mónica: plan más caro vigente; sus asistencias/reservas van en la
+  // sección de reservas (los helpers book/attend se definen ahí).
+  await enroll(adrianLeo.id, monica.id, alIntensivo.id, "ACTIVE", 40, 18);
+
   // "Muevete On Tour" del spec lleva estilos 2·5·6·7 - muvet ya tiene
   // Bachata Sensual (2), Rueda (6) y Casino (7); le falta Cubano (5).
   await mkClassSeries({
@@ -1423,7 +1633,7 @@ export async function seedDev(prisma: PrismaClient) {
     styleName: "Cubano",
     levelName: "Básico",
     typeNames: ["Pareja", "Shines"],
-    instructorId: rodrigo.id,
+    instructorId: muvetOwner.id,
     dropInPrice: 9000,
     slots: [
       {
@@ -1580,6 +1790,32 @@ export async function seedDev(prisma: PrismaClient) {
       await book(cls.id, mmStudents[(offset + k) % mmStudents.length].id);
     }
     mmIdx++;
+  }
+
+  // María: asistencia fija a las clases Intermedio del miércoles
+  // (Shines, Movimiento Corporal, Partnerwork) - mes pasado + vigente.
+  const mariaMmClasses = await prisma.class.findMany({
+    where: {
+      slot: { academyId: mambo.id, weekday: 3, series: { deletedAt: null } },
+    },
+    select: { id: true, date: true },
+  });
+  for (const cls of mariaMmClasses) {
+    await book(cls.id, maria.id);
+    if (cls.date <= todayUTC) await attend(cls.id, maria.id, cls.date);
+  }
+
+  // Mónica: asistencia completa en Adrian y Leo - ambas series, mes
+  // pasado + vigente a la fecha, y reserva en las próximas.
+  const alClasses = await prisma.class.findMany({
+    where: {
+      slot: { academyId: adrianLeo.id, series: { deletedAt: null } },
+    },
+    select: { id: true, date: true },
+  });
+  for (const cls of alClasses) {
+    await book(cls.id, monica.id);
+    if (cls.date <= todayUTC) await attend(cls.id, monica.id, cls.date);
   }
 
   // ─── Relleno de alumnos + asistencias: todas las academias ───
@@ -2019,9 +2255,81 @@ export async function seedDev(prisma: PrismaClient) {
     mix([Genre.CUBANO, 4], [Genre.BACHATA, 2]));
   await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3, [], 0, MIX_2X2);
   await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1, MIX_2X2);
-  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3, [], 0,
+  // SCE cede el sábado próximo a Trilogía (colaboración con
+  // Bachatamanía) - su edición queda para el sábado siguiente.
+  await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3, [], 1,
     // 4 salsas, 2 bachatas, 2 salsas, 2 timbas, 2 bachatas → 50/33/17
     mix([Genre.SALSA, 4], [Genre.BACHATA, 2], [Genre.SALSA, 2], [Genre.CUBANO, 2], [Genre.BACHATA, 2]));
+  // Trilogía - 5ta edición este sábado en Orixas: la noche compartida de
+  // @bachatamaniacl y @socialconestilo que produce Carlos. Mezcla de
+  // pista 50% bachata / 40% salsa / 10% timba (el flyer la anuncia como
+  // "50% salsa · 50% bachata" - la data del producto es la del flyer
+  // operativo). Aforo 350 en tres tramos: 100 socios/convenios/
+  // cumpleaños a $5.000 (lista del productor), 200 preventa a $6.000,
+  // 50 en puerta a $8.000.
+  const PROG_TRILOGIA: ProgramItem[] = [
+    { t: "20:30", label: "Apertura de puertas" },
+    {
+      t: "21:00",
+      end: "22:00",
+      label: "Clase de salsa y bachata gratis con tu entrada",
+    },
+    { t: "22:00", label: "Inicio del social" },
+    { t: "00:00", label: "Shows" },
+    { t: "00:30", label: "Cumpleaños" },
+    { t: "03:45", label: "Cierre del social" },
+  ];
+  const trilogia = await mkSeries("Trilogía", carlos.id, orixas.id, "1x/month:sat", 6000, 8000, 6, [fabian.id, cesar.id, criss.id], ALL3, [], 0,
+    // 5 bachatas, 4 salsas, 1 timba por ciclo → 50/40/10
+    mix([Genre.BACHATA, 5], [Genre.SALSA, 4], [Genre.CUBANO, 1]),
+    PROG_TRILOGIA);
+  await prisma.event.update({
+    where: { id: trilogia.id },
+    data: {
+      capacity: 350,
+      presaleCap: 200,
+      doorCap: 50,
+      description:
+        "TRILOGÍA / 5TA EDICIÓN – CLUB ORIXAS\n\n" +
+        "¡Llegamos a nuestra 5TA EDICIÓN! Una noche creada para quienes realmente viven la pista, donde la salsa y la bachata encuentran su equilibrio perfecto. Dos marcas hermanas vuelven a unirse: @bachatamaniacl y @socialconestilo.\n\n" +
+        "3 DJs en escena: DJ Fabián Valladares (@fabian__valladares), DJ Moreno (@cesar_moreno06) y DJ Criss (@djcrissbsoul). Shows: coreográfico Salsa Ladies by @michellekarime, pareja de bachata @piter.zs & @sofi.jashram y DF Mens Company by @diegoreyes_official.\n\n" +
+        "Solo 350 entradas: 100 soci@s/convenios/cumpleaños a $5.000, 200 preventa general a $6.000 y 50 en puerta a $8.000 - una vez agotado cada stock se cierra ese valor. Agenda abierta para celebración de cumpleaños. Clase de salsa y bachata gratis con tu entrada. Auspiciador oficial: @bonett.garments.",
+    },
+  });
+  // Tramo especial del flyer ($5.000 - socios, convenios y cumpleaños):
+  // va como lista de invitados del productor con precio especial.
+  const trilogiaList = await ensure(
+    () =>
+      prisma.guestList.findFirst({
+        where: { eventId: trilogia.id, ownerId: carlos.id },
+      }),
+    () =>
+      prisma.guestList.create({
+        data: {
+          eventId: trilogia.id,
+          ownerId: carlos.id,
+          label: "Socios, convenios y cumpleaños",
+          specialPrice: 5000,
+        },
+      }),
+  );
+  // Entradas de la lista - la agenda de cumpleaños/convenios ya va
+  // llenándose (Mónica celebra el suyo; el resto son socios de las dos
+  // marcas organizadoras).
+  for (const p of [monica, maria, camila, josefa, felipe]) {
+    await prisma.guestListEntry.upsert({
+      where: {
+        guestListId_personId: {
+          guestListId: trilogiaList.id,
+          personId: p.id,
+        },
+      },
+      update: {},
+      create: { guestListId: trilogiaList.id, personId: p.id },
+    });
+  }
+  // Los shows del flyer van en showRosters["Trilogía"] (abajo) - el
+  // generador genérico recrea la cartelera de cada evento publicado.
   await mkSeries("Ashe", cesar.id, orixas.id, "1x/month:sat", 6000, 8000, 6, [cesar.id], [Genre.CUBANO], [], 1,
     // Pura timba
     mix([Genre.CUBANO, 1]));
@@ -2288,6 +2596,21 @@ export async function seedDev(prisma: PrismaClient) {
       { academy: "Mambo Madness", teamType: "PRO", name: "Mambo Clásico" },
       { academy: "Academia Tumbao", teamType: "BOOTCAMP", name: "Shine On2" },
     ],
+    // Trilogía 5ta edición - los 3 shows del flyer (teams sin academia
+    // registrada → `academy` es texto libre, academyId queda null).
+    "Trilogía": [
+      {
+        academy: "Salsa Ladies by @michellekarime",
+        teamType: "ALUMNOS",
+        name: "Coreográfico Salsa Ladies",
+      },
+      { academy: "@piter.zs & @sofi.jashram", teamType: "PRO", name: "Pareja de bachata" },
+      {
+        academy: "DF Mens Company by @diegoreyes_official",
+        teamType: "PRO",
+        name: "DF Mens Company",
+      },
+    ],
   };
   // Pool genérico: eventos sin roster nombrado rotan de acá (offset
   // determinista por evento); los rosters cortos también se rellenan
@@ -2528,7 +2851,20 @@ export async function seedDev(prisma: PrismaClient) {
   // cuenta demo ve amigos en /amigos y "amigos que van" en los eventos.
   // Respeta la dirección de filas existentes (una PENDING previa entre
   // dos del clique se promueve a ACCEPTED sin duplicar el par).
-  const clique = [dancer, camila, josefa, diego, antonia, daniela];
+  // Gabriel, Mónica y María van en el clique - son las cuentas reales
+  // de prueba y necesitan la red social completa (amigos, "amigos que
+  // van", solicitudes) desde el primer login.
+  const clique = [
+    dancer,
+    camila,
+    josefa,
+    diego,
+    antonia,
+    daniela,
+    gabriel,
+    monica,
+    maria,
+  ];
   for (let i = 0; i < clique.length; i++) {
     for (let j = i + 1; j < clique.length; j++) {
       const a = clique[i];
@@ -2565,17 +2901,31 @@ export async function seedDev(prisma: PrismaClient) {
     update: {},
     create: { aId: dancer.id, bId: sebastian.id, status: "PENDING" },
   });
+  // Solicitud entrante para Mónica - su bandeja de /amigos muestra la
+  // cola desde el primer login.
+  await prisma.friendship.upsert({
+    where: { aId_bId: { aId: sebastian.id, bId: monica.id } },
+    update: {},
+    create: { aId: sebastian.id, bId: monica.id, status: "PENDING" },
+  });
 
   // Entradas ACTIVE del clique en los próximos eventos - alimentan la
   // sección "amigos que van" del detalle y el feed "Tus amigos van a" de
   // /amigos. Distribución fija sobre los 3 próximos publicados.
+  // Se filtra a futuros y sin residuos E2E: pubEvents incluye eventos
+  // pasados y, en la primera corrida, fixtures que el cleanup del final
+  // aún no borró (un ticket sobre esos eventos moriría en la cascada).
+  const nowTs = Date.now();
+  const nextPubEvents = pubEvents.filter(
+    (e) => e.startsAt.getTime() >= nowTs && !isTestName(e.name),
+  );
   const goingPlan: [number, { id: string }[]][] = [
-    [0, [camila, josefa, diego, antonia]],
-    [1, [camila, daniela]],
-    [2, [josefa, diego]],
+    [0, [camila, josefa, diego, antonia, gabriel, monica]],
+    [1, [camila, daniela, maria]],
+    [2, [josefa, diego, gabriel]],
   ];
   for (const [evIdx, people] of goingPlan) {
-    const ev = pubEvents[evIdx];
+    const ev = nextPubEvents[evIdx];
     if (!ev) continue;
     for (const p of people) {
       await ensure(
@@ -2596,6 +2946,26 @@ export async function seedDev(prisma: PrismaClient) {
       );
     }
   }
+  // Gabriel ya compró su preventa de Trilogía - su perfil de bailarín
+  // muestra la entrada del sábado igual que la de cualquier dancer.
+  // (Mónica y María van por la lista $5.000 - entrada arriba en la
+  // sección del evento.)
+  await ensure(
+    () =>
+      prisma.ticket.findFirst({
+        where: { eventId: trilogia.id, ownerId: gabriel.id, status: "ACTIVE" },
+      }),
+    () =>
+      prisma.ticket.create({
+        data: {
+          eventId: trilogia.id,
+          ownerId: gabriel.id,
+          buyerId: gabriel.id,
+          listPrice: 6000,
+          serviceFee: 600,
+        },
+      }),
+  );
 
   // Roles de baile autodeclarados (PersonStyleRole) - alimentan la sección
   // "Estilos" del perfil del amigo (estilo · leader/follower · nivel).
@@ -2648,6 +3018,17 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(gabriel, "Mambo on2", "LEADER", "avanzado"),
     styleRole(gabriel, "Bachata sensual", "LEADER", "avanzado"),
     styleRole(gabriel, "Cubano", "LEADER", "avanzado"),
+    // Mónica - alumna de Adrian y Leo: mambo follower en progreso.
+    styleRole(monica, "Mambo on2", "FOLLOWER", "básico"),
+    styleRole(monica, "Bachata sensual", "FOLLOWER", "intermedio"),
+    // María - profe de iniciación y alumna Intermedio: baila ambos
+    // roles (SWITCH) en mambo, follower avanzada en bachata.
+    styleRole(maria, "Mambo on2", "SWITCH", "avanzado"),
+    styleRole(maria, "Bachata sensual", "FOLLOWER", "avanzado"),
+    styleRole(maria, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
+    // Adrián y Leo - su perfil público muestra el estilo de la casa.
+    styleRole(adrian, "Mambo on2", "LEADER", "avanzado"),
+    styleRole(leo, "Mambo on2", "LEADER", "avanzado"),
   ]);
 
   // Handles de Instagram - alimentan la fila "@handle" del perfil del
@@ -2674,6 +3055,10 @@ export async function seedDev(prisma: PrismaClient) {
     ig(krrera, "bachataclub"),
     ig(ardilla, "ardilla.dance"),
     ig(gabriel, "gabomadness"),
+    ig(monica, "moni.soto"),
+    ig(maria, "majose.herrera"),
+    ig(adrian, "adrian.mambo"),
+    ig(leo, "leo.campos"),
   ]);
   // Teléfono real de Gabriel (contacto del owner de Mambo Madness).
   await prisma.person.update({
@@ -2887,6 +3272,25 @@ export async function seedDev(prisma: PrismaClient) {
     [antonia, 5],
   ]);
   await session(prevEdition.id, josefa, diego, "CONFIRMED", at(145), "Timba");
+  // Gabriel/Mónica/María también bailaron la edición pasada - sus
+  // /bailes arrancan con historial, no con una lista vacía.
+  await session(prevEdition.id, gabriel, antonia, "RATED", at(80), "Bachata sensual", [
+    [gabriel, 5],
+    [antonia, 5],
+  ]);
+  await session(prevEdition.id, vale, gabriel, "RATED", at(140), "Mambo on2", [
+    [vale, 5],
+    [gabriel, 5],
+  ]);
+  await session(prevEdition.id, monica, diego, "CONFIRMED", at(100), "Bachata sensual", [
+    [diego, 4],
+  ]);
+  await session(prevEdition.id, felipe, monica, "CONFIRMED", at(170), "Mambo on2");
+  await session(prevEdition.id, maria, sebastian, "RATED", at(120), "Mambo on2", [
+    [maria, 5],
+    [sebastian, 5],
+  ]);
+  await session(prevEdition.id, gabriel, maria, "CONFIRMED", at(190), "Mambo on2");
 
   // Invitaciones vivas - solo existen dentro de una noche en curso:
   // nacen del escaneo en pista y expiran ~24h después (spec §4). El seed
@@ -2970,6 +3374,14 @@ export async function seedDev(prisma: PrismaClient) {
   // Ambiente: pares ajenos bailando la misma noche.
   await session(liveEvent.id, antonia, felipe, "CONFIRMED", liveAt(35), "Bachata sensual");
   await session(liveEvent.id, diego, vale, "CONFIRMED", liveAt(75), "Salsa cubana (casino)");
+  // Los perfiles reales también están en la pista esta noche.
+  await session(liveEvent.id, gabriel, camila, "RATED", liveAt(15), "Bachata sensual", [
+    [gabriel, 5],
+    [camila, 4],
+  ]);
+  await session(liveEvent.id, monica, diego, "CONFIRMED", liveAt(25), "Mambo on2");
+  await session(liveEvent.id, maria, gabriel, "CONFIRMED", liveAt(55), "Mambo on2");
+  await session(liveEvent.id, daniela, monica, "CONFIRMED", liveAt(65), "Bachata sensual");
 
   // ─── Gamificación - actividad real que produce badges/puntos/rachas ───
   // Dos ediciones más de Bachatamanía (hace 2 y 3 semanas) con sesiones
@@ -3029,9 +3441,12 @@ export async function seedDev(prisma: PrismaClient) {
         sebastian,
         felipe,
         vale,
+        gabriel,
+        monica,
+        maria,
       ],
     ],
-    [edition3, [dancer, camila, josefa, diego, antonia, daniela]],
+    [edition3, [dancer, camila, josefa, diego, antonia, daniela, monica, maria]],
   ] as const) {
     for (const p of people) {
       await ensure(
@@ -3076,6 +3491,14 @@ export async function seedDev(prisma: PrismaClient) {
   ]);
   await session(edition2.id, diego, antonia, "CONFIRMED", atEdition(edition2, 75), "Bachata sensual");
   await session(edition2.id, camila, felipe, "CONFIRMED", atEdition(edition2, 195), "Salsa cubana (casino)");
+  // Los perfiles reales en la edición -2.
+  await session(edition2.id, gabriel, josefa, "CONFIRMED", atEdition(edition2, 105), "Bachata sensual");
+  await session(edition2.id, monica, felipe, "CONFIRMED", atEdition(edition2, 135), "Mambo on2");
+  await session(edition2.id, sebastian, maria, "RATED", atEdition(edition2, 165), "Mambo on2", [
+    [sebastian, 5],
+    [maria, 5],
+  ]);
+  await session(edition2.id, maria, diego, "CONFIRMED", atEdition(edition2, 225), "Salsa cubana (casino)");
 
   // Edición -3 - sostiene la tercera semana de las rachas del clique.
   await session(edition3.id, dancer, antonia, "CONFIRMED", atEdition(edition3, 70), "Bachata sensual", [
@@ -3087,6 +3510,8 @@ export async function seedDev(prisma: PrismaClient) {
   ]);
   await session(edition3.id, camila, daniela, "CONFIRMED", atEdition(edition3, 130), "Salsa cubana (casino)");
   await session(edition3.id, sebastian, josefa, "CONFIRMED", atEdition(edition3, 160), "Bachata sensual");
+  await session(edition3.id, monica, gabriel, "CONFIRMED", atEdition(edition3, 90), "Mambo on2");
+  await session(edition3.id, maria, antonia, "CONFIRMED", atEdition(edition3, 140), "Bachata sensual");
 
   // Temporada activa del año - los puntos del ledger se posicionan por
   // temporada (spec §7: no gastables, resetean por Season).
@@ -3225,7 +3650,17 @@ export async function seedDev(prisma: PrismaClient) {
   // Operación en curso del evento LIVE: check-ins de pista (SCAN) y un
   // par de ventas manuales de puerta (MANUAL, sin Payment) + una venta
   // de puerta por la app - alimentan el tablero /events/:id/live.
-  const liveAttendees = [camila, josefa, antonia, daniela, felipe, vale];
+  const liveAttendees = [
+    camila,
+    josefa,
+    antonia,
+    daniela,
+    felipe,
+    vale,
+    gabriel,
+    monica,
+    maria,
+  ];
   for (const [i, p] of liveAttendees.entries()) {
     await ensure(
       () =>
@@ -3376,6 +3811,9 @@ export async function seedDev(prisma: PrismaClient) {
     sebastian,
     felipe,
     vale,
+    gabriel,
+    monica,
+    maria,
   ];
   for (const p of gamified) {
     const mySessions = await prisma.danceSession.findMany({
@@ -3489,6 +3927,40 @@ export async function seedDev(prisma: PrismaClient) {
         },
       }),
   );
+  // Mesa de Gabriel en Bachatamanía y la de cumpleaños de Mónica en
+  // Trilogía - el flyer abre agenda para celebraciones y su lista
+  // especial $5.000 cubre "cumpleaños".
+  await ensure(
+    () =>
+      prisma.tableReservation.findFirst({
+        where: { eventId: bachatamania.id, personId: gabriel.id },
+      }),
+    () =>
+      prisma.tableReservation.create({
+        data: {
+          eventId: bachatamania.id,
+          personId: gabriel.id,
+          partySize: 8,
+          tableNo: "M5",
+          status: "CONFIRMED",
+        },
+      }),
+  );
+  await ensure(
+    () =>
+      prisma.tableReservation.findFirst({
+        where: { eventId: trilogia.id, personId: monica.id },
+      }),
+    () =>
+      prisma.tableReservation.create({
+        data: {
+          eventId: trilogia.id,
+          personId: monica.id,
+          partySize: 8,
+          status: "REQUESTED",
+        },
+      }),
+  );
 
   // Sugerencias de canciones - ranking en la consola /dj de Steban.
   const songs: [string, string, string][] = [
@@ -3498,8 +3970,19 @@ export async function seedDev(prisma: PrismaClient) {
     [juevesCubano.id, "Llorarás", "Oscar D'León"],
     [juevesCubano.id, "Llorarás", "Oscar D'León"],
     [juevesCubano.id, "Llorarás", "Oscar D'León"],
+    [trilogia.id, "La Gozadera", "Gente de Zona"],
+    [trilogia.id, "Propuesta Indecente", "Romeo Santos"],
   ];
-  const suggesters = [camila, josefa, diego, antonia, daniela, dancer];
+  const suggesters = [
+    camila,
+    josefa,
+    diego,
+    antonia,
+    daniela,
+    dancer,
+    monica,
+    maria,
+  ];
   for (const [i, [eventId, title, artist]] of songs.entries()) {
     await ensure(
       () =>
@@ -3595,6 +4078,348 @@ export async function seedDev(prisma: PrismaClient) {
     "Antonia Reyes quiere agregarte",
   );
 
+  // ─── Limpieza de residuos E2E ───
+  // Las corridas Playwright dejan academias, series, venues y eventos
+  // marcador ("... Test", "E2E", raíces de spec tipo "Con Mesas xxxx"
+  // o sufijo aleatorio). El schema casi no usa onDelete → cascada
+  // explícita. Criterio por nombre + raíces observadas en los specs
+  // (TEST_*_ROOTS / markConds del tope del archivo): ninguna entidad
+  // curada del seed calza estos patrones.
+  const testVenues = await prisma.venue.findMany({
+    where: {
+      OR: [
+        ...markConds(),
+        ...TEST_VENUE_ROOTS.map((r) => ({ name: { startsWith: r } })),
+      ],
+    },
+    select: { id: true },
+  });
+  const testVenueIds = testVenues.map((v) => v.id);
+
+  const testSeries = await prisma.eventSeries.findMany({
+    where: {
+      OR: [
+        ...markConds(),
+        ...TEST_SERIES_ROOTS.map((r) => ({ name: { startsWith: r } })),
+        ...(testVenueIds.length ? [{ venueId: { in: testVenueIds } }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  const testSeriesIds = testSeries.map((s) => s.id);
+
+  // Academias de test - se resuelven antes porque sus eventos propios
+  // (galas) también caen.
+  const testAcademies = await prisma.academy.findMany({
+    where: { OR: markConds() },
+    select: { id: true },
+  });
+  const testAcademyIds = testAcademies.map((a) => a.id);
+
+  const testEvents = await prisma.event.findMany({
+    where: {
+      OR: [
+        ...markConds(),
+        ...TEST_EVENT_ROOTS.map((r) => ({ name: { startsWith: r } })),
+        // Duplicados legados con em-dash (versión vieja del seed) - las
+        // entidades actuales usan "-" o ningún guion.
+        { name: { contains: "—" } },
+        ...(testSeriesIds.length
+          ? [{ seriesId: { in: testSeriesIds } }]
+          : []),
+        ...(testVenueIds.length ? [{ venueId: { in: testVenueIds } }] : []),
+        ...(testAcademyIds.length
+          ? [{ academyId: { in: testAcademyIds } }]
+          : []),
+      ],
+    },
+    select: { id: true },
+  });
+  const testEventIds = testEvents.map((e) => e.id);
+
+  if (testEventIds.length) {
+    const sessions = await prisma.danceSession.findMany({
+      where: { eventId: { in: testEventIds } },
+      select: { id: true },
+    });
+    const lists = await prisma.guestList.findMany({
+      where: { eventId: { in: testEventIds } },
+      select: { id: true },
+    });
+    const missions = await prisma.mission.findMany({
+      where: { eventId: { in: testEventIds } },
+      select: { id: true },
+    });
+    const payments = await prisma.payment.findMany({
+      where: { eventId: { in: testEventIds } },
+      select: { id: true },
+    });
+    const sids = sessions.map((s) => s.id);
+    const lids = lists.map((l) => l.id);
+    const mids = missions.map((m) => m.id);
+    const pids = payments.map((p) => p.id);
+
+    if (sids.length)
+      await prisma.sessionRating.deleteMany({
+        where: { sessionId: { in: sids } },
+      });
+    if (lids.length)
+      await prisma.guestListEntry.deleteMany({
+        where: { guestListId: { in: lids } },
+      });
+    if (mids.length)
+      await prisma.missionProgress.deleteMany({
+        where: { missionId: { in: mids } },
+      });
+    if (pids.length) {
+      await prisma.ticketClaim.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+      await prisma.gatewayTransaction.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+      await prisma.paymentEvent.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+      await prisma.discountRedemption.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+      await prisma.payoutLine.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+      await prisma.ticket.deleteMany({ where: { paymentId: { in: pids } } });
+      await prisma.classBooking.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+      await prisma.privateLesson.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+      await prisma.paymentClaim.deleteMany({
+        where: { paymentId: { in: pids } },
+      });
+    }
+    await prisma.ticket.deleteMany({ where: { eventId: { in: testEventIds } } });
+    await prisma.checkin.deleteMany({ where: { eventId: { in: testEventIds } } });
+    await prisma.rsvp.deleteMany({ where: { eventId: { in: testEventIds } } });
+    await prisma.scheduleBlock.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.eventDj.deleteMany({ where: { eventId: { in: testEventIds } } });
+    await prisma.entryPass.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.staffAssignment.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.guestList.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.waitlist.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.tableReservation.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.songSuggestion.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.eventRating.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.mission.deleteMany({ where: { eventId: { in: testEventIds } } });
+    await prisma.prizeDraw.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.nightSummary.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.happyHourWindow.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.venueRental.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.show.deleteMany({ where: { eventId: { in: testEventIds } } });
+    await prisma.discountCode.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    await prisma.danceSession.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    // eventDay después de ticket (Ticket.eventDayId).
+    await prisma.eventDay.deleteMany({
+      where: { eventId: { in: testEventIds } },
+    });
+    if (pids.length)
+      await prisma.payment.deleteMany({ where: { id: { in: pids } } });
+    await prisma.event.deleteMany({ where: { id: { in: testEventIds } } });
+  }
+
+  // Series de test (o huérfanas de toda edición) y sus pases/códigos.
+  const orphanSeries = await prisma.eventSeries.findMany({
+    where: {
+      OR: [
+        { id: { in: testSeriesIds } },
+        // Serie sin ningún evento no muestra nada - residuo seguro.
+        { events: { none: {} } },
+      ],
+    },
+    select: { id: true },
+  });
+  const deadSeriesIds = orphanSeries.map((s) => s.id);
+  if (deadSeriesIds.length) {
+    await prisma.seriesPass.deleteMany({
+      where: { seriesId: { in: deadSeriesIds } },
+    });
+    await prisma.discountCode.deleteMany({
+      where: { seriesId: { in: deadSeriesIds } },
+    });
+    await prisma.eventSeries.deleteMany({
+      where: { id: { in: deadSeriesIds } },
+    });
+  }
+
+  // Academias de test - cascada por la ruta clases→slots→series y por
+  // sus filas propias (planes, claims, métodos de pago, staff, subs).
+  if (testAcademyIds.length) {
+    const slots = await prisma.classSlot.findMany({
+      where: { academyId: { in: testAcademyIds } },
+      select: { id: true },
+    });
+    const classes = await prisma.class.findMany({
+      where: { classSlotId: { in: slots.map((s) => s.id) } },
+      select: { id: true },
+    });
+    const classIds = classes.map((c) => c.id);
+    // Pagos ligados a la academia (claims, clase suelta, private lessons).
+    const acPayIds = [
+      ...(
+        await prisma.paymentClaim.findMany({
+          where: { academyId: { in: testAcademyIds }, paymentId: { not: null } },
+          select: { paymentId: true },
+        })
+      ).map((c) => c.paymentId!),
+      ...(
+        await prisma.classBooking.findMany({
+          where: { classId: { in: classIds }, paymentId: { not: null } },
+          select: { paymentId: true },
+        })
+      ).map((b) => b.paymentId!),
+      ...(
+        await prisma.privateLesson.findMany({
+          where: { academyId: { in: testAcademyIds }, paymentId: { not: null } },
+          select: { paymentId: true },
+        })
+      ).map((l) => l.paymentId!),
+    ];
+    await prisma.attendance.deleteMany({
+      where: { classId: { in: classIds } },
+    });
+    await prisma.classBooking.deleteMany({
+      where: { classId: { in: classIds } },
+    });
+    await prisma.video.deleteMany({
+      where: {
+        OR: [
+          { classId: { in: classIds } },
+          { academyId: { in: testAcademyIds } },
+        ],
+      },
+    });
+    await prisma.class.deleteMany({ where: { id: { in: classIds } } });
+    // ClassSlotType/ClassSeriesType caen por onDelete: Cascade.
+    await prisma.classSlot.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.classSeries.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.enrollment.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.paymentClaim.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.membershipPlan.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.academyPaymentMethod.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.academyInstructor.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.academyStaff.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.privateLesson.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.academySubscription.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.membershipSubscription.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.platformSubscription.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.courseSurvey.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    await prisma.venueRental.deleteMany({
+      where: { academyId: { in: testAcademyIds } },
+    });
+    if (acPayIds.length) {
+      await prisma.ticketClaim.deleteMany({
+        where: { paymentId: { in: acPayIds } },
+      });
+      await prisma.gatewayTransaction.deleteMany({
+        where: { paymentId: { in: acPayIds } },
+      });
+      await prisma.paymentEvent.deleteMany({
+        where: { paymentId: { in: acPayIds } },
+      });
+      await prisma.payoutLine.deleteMany({
+        where: { paymentId: { in: acPayIds } },
+      });
+      await prisma.payment.deleteMany({ where: { id: { in: acPayIds } } });
+    }
+    // Referencias blandas (sin cascada): desvincular antes de borrar.
+    await prisma.show.updateMany({
+      where: { academyId: { in: testAcademyIds } },
+      data: { academyId: null },
+    });
+    await prisma.event.updateMany({
+      where: { academyId: { in: testAcademyIds } },
+      data: { academyId: null },
+    });
+    await prisma.academy.deleteMany({ where: { id: { in: testAcademyIds } } });
+  }
+
+  // Venues de test - sus series/eventos ya cayeron arriba.
+  if (testVenueIds.length) {
+    await prisma.venueMenu.deleteMany({
+      where: { venueId: { in: testVenueIds } },
+    });
+    await prisma.venueRental.deleteMany({
+      where: { venueId: { in: testVenueIds } },
+    });
+    await prisma.event.updateMany({
+      where: { venueId: { in: testVenueIds } },
+      data: { venueId: null },
+    });
+    await prisma.venue.deleteMany({ where: { id: { in: testVenueIds } } });
+  }
+  if (testEventIds.length || testAcademyIds.length || testVenueIds.length) {
+    console.log("Residuos E2E eliminados:", {
+      eventos: testEventIds.length,
+      series: deadSeriesIds.length,
+      academias: testAcademyIds.length,
+      venues: testVenueIds.length,
+    });
+  }
+
   // Password dev: mismo formato scrypt$N$r$p$salt$hash que AuthService.
   const salt = randomBytes(16);
   const key = scryptSync(DEV_PASSWORD, salt, 64, { N: 16384, r: 8, p: 1 });
@@ -3603,6 +4428,22 @@ export async function seedDev(prisma: PrismaClient) {
     where: { email: { endsWith: `@${DEV_DOMAIN}` } },
     data: { passwordHash },
   });
+  // Mónica entra con password propio (cuenta real de prueba - el seed
+  // la puebla y su primer login/password ya funciona sin magic link).
+  {
+    const mSalt = randomBytes(16);
+    const mKey = scryptSync("gatoperro123", mSalt, 64, {
+      N: 16384,
+      r: 8,
+      p: 1,
+    });
+    await prisma.person.update({
+      where: { id: monica.id },
+      data: {
+        passwordHash: `scrypt$16384$8$1$${mSalt.toString("hex")}$${mKey.toString("hex")}`,
+      },
+    });
+  }
 
   console.log("Seed dev listo:", {
     admin: admin.email,

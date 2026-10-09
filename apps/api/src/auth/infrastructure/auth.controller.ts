@@ -139,28 +139,29 @@ export class AuthController {
     }
   }
 
+  // El link apunta al ORIGEN WEB (no al API): verify corre a través del
+  // proxy /api/* del front, así el Set-Cookie de la sesión cae en el
+  // dominio del web - donde la SPA hace todas sus llamadas. Si el link
+  // fuera al dominio del API, la cookie quedaría en ese origen y el
+  // usuario aterrizaría en el web sin sesión.
+  private async sendMagicLink(email: string, consent: boolean) {
+    // El consentimiento viaja como claim del token: al abrir el link
+    // (verify) se estampa en la Person junto a la sesión.
+    const token = await this.auth.createMagicToken(email, consent);
+    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+    const link = `${webUrl}/api/auth/verify?token=${token}`;
+    await this.mailer.send(
+      email,
+      "Tu acceso a Omnidance",
+      magicLinkEmailHtml(link),
+    );
+  }
+
   @Post("magic-link")
   @HttpCode(202)
   @Throttle(AUTH_THROTTLE)
   async magicLink(@Body() dto: MagicLinkDto) {
-    // El consentimiento viaja como claim del token: al abrir el link
-    // (verify) se estampa en la Person junto a la sesión.
-    const token = await this.auth.createMagicToken(
-      dto.email.toLowerCase(),
-      dto.consent === true,
-    );
-    // El link apunta al ORIGEN WEB (no al API): verify corre a través
-    // del proxy /api/* del front, así el Set-Cookie de la sesión cae
-    // en el dominio del web - donde la SPA hace todas sus llamadas.
-    // Si el link fuera al dominio del API, la cookie quedaría en ese
-    // origen y el usuario aterrizaría en el web sin sesión.
-    const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-    const link = `${webUrl}/api/auth/verify?token=${token}`;
-    await this.mailer.send(
-      dto.email,
-      "Tu acceso a Omnidance",
-      magicLinkEmailHtml(link),
-    );
+    await this.sendMagicLink(dto.email.toLowerCase(), dto.consent === true);
     return { sent: true };
   }
 
@@ -209,7 +210,33 @@ export class AuthController {
     const email = dto.email.toLowerCase();
     const existing = await this.repo.findByEmail(email);
     if (existing) {
-      throw new ConflictException("Ya existe una cuenta con ese email");
+      // Cuenta pre-sembrada (piloto: personas reales con data ya
+      // cargada - seed por email). Reclamarla exige probar el correo:
+      // si el password coincide equivale a login y la sesión se emite
+      // al tiro; si no (o la cuenta nunca tuvo password), se envía un
+      // magic link - al verificarlo, upsertByEmail adjunta toda la
+      // data sembrada a su sesión.
+      if (
+        existing.passwordHash &&
+        (await this.auth.verifyPassword(dto.password, existing.passwordHash))
+      ) {
+        if (dto.consent === true) await this.repo.recordConsent(existing.id);
+        const session = await this.auth.issueSession(existing.id);
+        this.setSessionCookie(res, session);
+        return { ok: true };
+      }
+      // Best-effort: el 409 no cambia si el correo falla - la persona
+      // puede reintentar con "acceder por email" desde login.
+      try {
+        await this.sendMagicLink(email, dto.consent === true);
+      } catch (err) {
+        this.logger.warn(
+          `claim link a ${email} falló: ${(err as Error).message}`,
+        );
+      }
+      throw new ConflictException(
+        "Ya existe una cuenta con ese email - te enviamos un link de acceso a tu correo",
+      );
     }
     const passwordHash = await this.auth.hashPassword(dto.password);
     const person = await this.repo.createWithPassword(

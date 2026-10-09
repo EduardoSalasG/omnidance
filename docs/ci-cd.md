@@ -54,7 +54,7 @@ Dominios:
 
 Push a `main` → test + build → imagen `ghcr.io/EduardoSalasG/omnidance-api:<sha>`
 + `:latest` → SSH al host → `prisma migrate deploy` → `seed.ts` con
-`SEED_ENV=prod` → `docker compose up -d api` → health gate
+`SEED_ENV=prod` (piloto: dataset demo; el baseline real es `SEED_ENV=baseline`) → `docker compose up -d api` → health gate
 (`/api/health` 200 + `/api/me` 401 anónimo) → reload nginx + sonda HTTPS
 a `api.omnidance.eduardosalasg.dev`.
 
@@ -196,7 +196,7 @@ contenedor - el host expone **3002**), `LOG_LEVEL`, `SERVICE_FEE_CLP`,
   devuelve el valor crudo - si la línea traía `"mail"` quedaba con
   comillas en `Person.email` y el magic link nunca lo encontraba (el
   auth compara `email.toLowerCase()`). El extractor ya normaliza
-  (comillas + whitespace fuera) y `seed-prod` hace lo propio como
+  (comillas + whitespace fuera) y el seed (`seed-prod-baseline` / dispatch `prod` durante el piloto) hace lo propio como
   defensa. Para reparar una fila ya contaminada, en Neon SQL Editor:
   `UPDATE "Person" SET email = btrim(email, '" ') WHERE email <> btrim(email, '" ');`
   - si un intento de login ya creó otra `Person` con el email limpio,

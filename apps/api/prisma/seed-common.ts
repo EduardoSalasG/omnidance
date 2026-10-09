@@ -1,4 +1,4 @@
-// Baseline compartida por seed-dev y seed-prod: catálogo RBAC, permisos,
+// Baseline compartida por seed-dev y seed-prod-baseline: catálogo RBAC, permisos,
 // grants, estilos y parámetros de plataforma. Todo idempotente - upserts
 // por clave natural; find-or-create donde el schema no tiene unique.
 import { PrismaClient, Genre, Gender } from "@prisma/client";
@@ -231,6 +231,35 @@ export async function seedCommon(prisma: PrismaClient) {
     } else {
       await prisma.style.create({ data: s });
     }
+  }
+
+  // Depuración del catálogo (la limpieza que se hizo a mano en prod):
+  // "Salsa on2" y "Bachata dominicana" salieron de STYLE_CATALOG pero
+  // DBs ya pobladas conservan las filas. Acá se eliminan con sus
+  // referencias personales; las referencias estructurales (series,
+  // bloques de horario, sesiones) quedan desvinculadas (null).
+  const REMOVED_STYLES = ["Salsa on2", "Bachata dominicana"];
+  for (const stale of await prisma.style.findMany({
+    where: { name: { in: REMOVED_STYLES } },
+  })) {
+    await prisma.personStyleRole.deleteMany({ where: { styleId: stale.id } });
+    await prisma.danceSession.updateMany({
+      where: { styleId: stale.id },
+      data: { styleId: null },
+    });
+    await prisma.scheduleBlock.updateMany({
+      where: { styleId: stale.id },
+      data: { styleId: null },
+    });
+    await prisma.classSeries.updateMany({
+      where: { styleId: stale.id },
+      data: { styleId: null },
+    });
+    await prisma.style.updateMany({
+      where: { parentId: stale.id },
+      data: { parentId: null },
+    });
+    await prisma.style.delete({ where: { id: stale.id } });
   }
 
   // ─── Catálogos de clases (nivel/tipo) - upsert por nombre unique ───

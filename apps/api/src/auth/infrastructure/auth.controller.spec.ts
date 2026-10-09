@@ -160,6 +160,78 @@ describe("AuthController - consentimiento legal", () => {
     expect(repo.consentStamps).toEqual([person.id]);
   });
 
+  it("register sobre cuenta pre-sembrada con password correcto → reclama sesión", async () => {
+    // Persona sembrada por email (piloto) - ya tiene passwordHash y
+    // data asociada; el register con el password correcto equivale a
+    // login: misma Person, sesión emitida.
+    const seeded = await repo.createWithPassword(
+      "monica@omnidance.cl",
+      "Mónica Soto",
+      await auth.hashPassword("gatoperro123"),
+    );
+    const res = mkRes();
+    const out = await ctrl.register(
+      {
+        email: "monica@omnidance.cl",
+        name: "Otro Nombre",
+        password: "gatoperro123",
+      },
+      res,
+    );
+    expect(out).toEqual({ ok: true });
+    expect(res.cookie).toHaveBeenCalled();
+    // No se creó una Person nueva ni se pisó el nombre.
+    expect(repo.people.size).toBe(1);
+    expect(repo.people.get("monica@omnidance.cl")!.name).toBe("Mónica Soto");
+    expect(repo.people.get("monica@omnidance.cl")!.id).toBe(seeded.id);
+    expect(mailer.send).not.toHaveBeenCalled();
+  });
+
+  it("register sobre cuenta sin password → magic link de reclamo + 409", async () => {
+    // Cuenta sembrada sin password (magic-link only): no se puede
+    // fijar contraseña sin verificar el correo - se envía link y 409.
+    await repo.upsertByEmail("gabriel@omnidance.cl");
+    await expect(
+      ctrl.register(
+        {
+          email: "gabriel@omnidance.cl",
+          name: "Gabriel",
+          password: "lo-que-sea-123",
+        },
+        mkRes(),
+      ),
+    ).rejects.toThrow("Ya existe una cuenta con ese email");
+    expect(mailer.send).toHaveBeenCalledTimes(1);
+    // El link enviado reclama la misma Person al verificar.
+    const html: string = mailer.send.mock.calls[0][2];
+    const token = /token=([^"'\s]+)/.exec(html)![1];
+    const res = mkRes();
+    await ctrl.verify(token, res);
+    expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining("/inicio"));
+    expect(repo.people.size).toBe(1);
+  });
+
+  it("register con password incorrecto sobre cuenta existente → link + 409", async () => {
+    await repo.createWithPassword(
+      "maria@omnidance.cl",
+      "María",
+      await auth.hashPassword("la-correcta-123"),
+    );
+    const res = mkRes();
+    await expect(
+      ctrl.register(
+        {
+          email: "maria@omnidance.cl",
+          name: "María",
+          password: "la-incorrecta-123",
+        },
+        res,
+      ),
+    ).rejects.toThrow("Ya existe una cuenta con ese email");
+    expect(res.cookie).not.toHaveBeenCalled();
+    expect(mailer.send).toHaveBeenCalledTimes(1);
+  });
+
   it("magic-link con consent:true → el token lo lleva y verify lo estampa", async () => {
     await ctrl.magicLink({ email: "link@omnidance.dev", consent: true });
     const html: string = mailer.send.mock.calls[0][2];
