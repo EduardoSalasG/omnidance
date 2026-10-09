@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyKpiStrip } from "@/components/academy/academy-kpi-strip";
 import { StudentsSection } from "@/components/academy/students-section";
 import { ImportCard } from "@/components/academy/import-section";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
@@ -56,6 +57,8 @@ function StudentsModule({
   }
   return (
     <div className="flex flex-col gap-6">
+      {/* KPIs del mes de la academia - primera sección del módulo. */}
+      <AcademyKpiStrip academyId={academyId} />
       <StudentsSection
         academyId={academyId}
         readOnly={canAdminister !== true}

@@ -101,6 +101,14 @@ export type Academy = {
 };
 
 export type AcademyDashboard = {
+  // KPIs del mes calendario (consola del owner + primera sección de
+  // alumnos/clases/planes). null = sin base (0 clases / 0 pagos).
+  kpis: {
+    activeStudentsMonth: number;
+    purchasablePlans: number;
+    avgAttendancePerClassMonth: number | null;
+    avgTicketMonth: number | null;
+  };
   studentsByStatus: {
     active: number;
     trial: number;

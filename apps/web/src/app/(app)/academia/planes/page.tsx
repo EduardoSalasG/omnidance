@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { Button, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
+import { AcademyKpiStrip } from "@/components/academy/academy-kpi-strip";
 import { PlansSection } from "@/components/academy/plans-section";
 import { FilterBar } from "@/components/query/FilterBar";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -92,6 +93,8 @@ function PlansModule({ academyId }: { academyId: string }) {
   }
   return (
     <div className="flex flex-col gap-4">
+      {/* KPIs del mes de la academia - primera sección del módulo. */}
+      <AcademyKpiStrip academyId={academyId} />
       <FilterBar
         entity={PLANS_ENTITY}
         filters={filters}
