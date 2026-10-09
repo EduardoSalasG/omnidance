@@ -1067,7 +1067,7 @@ export async function seedDev(prisma: PrismaClient) {
             endTime,
             typeNames: mixed ? [modality[i % modality.length]] : undefined,
           })),
-          withHistory: false,
+          withHistory: true, // mes pasado → el relleno de asistencias lo necesita
           withNext: true,
         });
       }
@@ -1580,6 +1580,103 @@ export async function seedDev(prisma: PrismaClient) {
       await book(cls.id, mmStudents[(offset + k) % mmStudents.length].id);
     }
     mmIdx++;
+  }
+
+  // ─── Relleno de alumnos + asistencias: todas las academias ───
+  // Cada academia queda con 20-70 alumnos vigentes (determinístico por
+  // índice) repartidos en sus planes mensuales/pack, y asistencias en
+  // sus clases del mes pasado + el vigente a la fecha - el mismo
+  // criterio de ocupación 50-70% + no-shows de Mambo Madness. Muévete
+  // conserva sus alumnos con nombre dentro del roster. Mambo Madness
+  // queda fuera: su bloque curado ya lo hace.
+  const catalogAcademies = await prisma.academy.findMany({
+    where: {
+      name: { in: ACADEMY_SEED.map((a) => a.name), not: "Mambo Madness" },
+    },
+  });
+  const enrichList = [
+    { academy: muvet, prefix: "mv", target: 45 },
+    { academy: tumbao, prefix: "tb", target: 30 },
+    ...ACADEMY_SEED.map((a, i) => ({
+      academy: catalogAcademies.find((c) => c.name === a.name),
+      prefix: `ac${i}`,
+      target: 20 + ((i * 11) % 51), // 20-70 determinístico
+    })).filter(
+      (e): e is { academy: (typeof catalogAcademies)[number]; prefix: string; target: number } =>
+        e.academy !== undefined,
+    ),
+  ];
+  for (const [ai, { academy, prefix, target }] of enrichList.entries()) {
+    const plans = await prisma.membershipPlan.findMany({
+      where: {
+        academyId: academy.id,
+        active: true,
+        type: { in: ["MONTHLY", "CLASS_PACK"] },
+      },
+    });
+    if (plans.length === 0) continue;
+    // El roster = todos los vigentes (incluye a los alumnos con nombre
+    // de Muévete); se completa hasta el target con alumnos de relleno.
+    const roster: { id: string }[] = (
+      await prisma.enrollment.findMany({
+        where: { academyId: academy.id, status: "ACTIVE" },
+        select: { personId: true },
+      })
+    ).map((e) => ({ id: e.personId }));
+    for (let i = roster.length; i < target; i++) {
+      const fem = i % 2 === 0;
+      const pool = fem ? MM_F : MM_M;
+      const st = await ensurePerson(
+        prisma,
+        `${prefix}al${String(i).padStart(2, "0")}@${DEV_DOMAIN}`,
+        `${pool[Math.floor(i / 2) % pool.length]} ${MM_LAST[(i * 7 + ai * 3) % MM_LAST.length]}`,
+        [{ role: "DANCER" }],
+        i % 23 === 22 ? Gender.OTHER : fem ? Gender.F : Gender.M,
+      );
+      const pl = plans[i % plans.length];
+      await enroll(
+        academy.id,
+        st.id,
+        pl.id,
+        "ACTIVE",
+        10 + ((i * 7) % 60),
+        pl.type === "MONTHLY" ? 5 + ((i * 11) % 50) : null,
+      );
+      roster.push(st);
+    }
+    if (roster.length === 0) continue;
+    const classes = await prisma.class.findMany({
+      where: {
+        slot: { academyId: academy.id, series: { deletedAt: null } },
+      },
+      select: { id: true, date: true },
+      orderBy: { date: "asc" },
+    });
+    let idx = 0;
+    for (const cls of classes.filter((c) => c.date < todayUTC)) {
+      const offset = (idx * 13) % roster.length;
+      const n = Math.min(roster.length - 3, 8 + ((idx * 7) % 6));
+      const ops: Promise<unknown>[] = [];
+      for (let k = 0; k < n; k++) {
+        const p = roster[(offset + k) % roster.length];
+        ops.push(book(cls.id, p.id).then(() => attend(cls.id, p.id, cls.date)));
+      }
+      for (let k = 0; k < Math.min(3, roster.length - n); k++) {
+        ops.push(book(cls.id, roster[(offset + n + k) % roster.length].id));
+      }
+      await Promise.all(ops);
+      idx++;
+    }
+    // Reservas abiertas en las próximas.
+    for (const cls of classes.filter((c) => c.date > todayUTC)) {
+      const offset = (idx * 13) % roster.length;
+      await Promise.all(
+        Array.from({ length: Math.min(6, roster.length) }, (_, k) =>
+          book(cls.id, roster[(offset + k) % roster.length].id),
+        ),
+      );
+      idx++;
+    }
   }
 
   // Futuras: la próxima de bachata llena (8/8) + waitlist; la siguiente
