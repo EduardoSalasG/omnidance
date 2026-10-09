@@ -58,6 +58,9 @@ confirmación (diálogo focus-trapped con `useDialogFocus`).
 
 - `ConsoleHeader backHref backLabel` al tope de TODA página de consola
   (listado, ficha, crear, editar) — deep-link safe, nunca `router.back()`.
+  Es el único "volver" de la página: mientras el header está montado el
+  chevron ‹ del appbar se suprime solo (`console-header-state.ts`) — en
+  las demás rutas empujadas sin header el chevron sigue activo.
 - El appbar provee el `h1` único de la página. Las páginas **no declaran
   `h1` propio**: el nombre de la entidad en una ficha va en `h2`. Un
   segundo `h1` (aunque sea `sr-only`) rompe la jerarquía.

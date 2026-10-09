@@ -12,6 +12,7 @@ import { useViewMode } from "@/lib/view-mode";
 import { SideDrawer, type DrawerGroup } from "./SideDrawer";
 import { AppSidebar } from "./AppSidebar";
 import { useSidebarState, setSidebarState } from "@/lib/sidebar-state";
+import { useConsoleHeaderPresent } from "@/lib/console-header-state";
 import {
   DancerActionsSheet,
   type SheetItem,
@@ -1125,8 +1126,12 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // /inicio. El label queda solo en aria-label: el centro del appbar ya
   // nombra la sección y un texto junto al ‹ rompería la simetría.
   const rootHrefs = new Set(navEntries.map(([href]) => href));
+  // Páginas con ConsoleHeader ya muestran su back al padre in-content
+  // (link real, nombrado) - el chevron ‹ del appbar se omite ahí para
+  // no duplicar el "volver"; en el resto de rutas empujadas sigue.
+  const consoleHeader = useConsoleHeaderPresent();
   const backFallback = (() => {
-    if (rootHrefs.has(pathname)) return null;
+    if (consoleHeader || rootHrefs.has(pathname)) return null;
     const parent = pathname.replace(/\/[^/]*$/, "");
     if (rootHrefs.has(parent) || parent.split("/").filter(Boolean).length >= 2)
       return parent;
