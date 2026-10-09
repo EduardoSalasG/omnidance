@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe, type MeContextData } from "@/lib/me-context";
@@ -785,6 +785,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   // Hide-on-scroll del appbar (patrón iOS).
   const [barHidden, setBarHidden] = useState(false);
+  // Query ?edit= para los overrides de título crear↔editar (páginas
+  // /nueva?edit=<id>). Lo reporta QueryFlag bajo Suspense.
+  const [editQuery, setEditQuery] = useState<string | null>(null);
   // Estado expandido/colapsado de la sidebar desktop (≥lg) - persiste
   // en localStorage; no afecta el chrome móvil.
   const sidebarCollapsed = useSidebarState() === "collapsed";
@@ -1092,7 +1095,15 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // - conservan el ‹ back hacia su padre. Se consultan antes que
   // navEntries.
   const LABEL_OVERRIDES: [string, string][] = [
-    ["/academia/series/nueva", nsT.academySeries("newTitle")],
+    // ?edit=<id> cambia el modo de la misma ruta (crear ↔ editar) - el
+    // query lo reporta QueryFlag montado bajo Suspense (el appbar no
+    // puede usar useSearchParams directo desde el layout).
+    [
+      "/academia/series/nueva",
+      editQuery
+        ? nsT.academySeries("editTitle")
+        : nsT.academySeries("newTitle"),
+    ],
     // Subsecciones del CRM: el appbar nombra la sección activa en vez
     // del "CRM" genérico del nav entry raíz.
     ["/crm/campanas", nsT.crm("campaigns.title")],
@@ -1229,6 +1240,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
   return (
     <>
+      {/* Lee el query ?edit sin Suspense obligatorio en el layout: el
+          hook vive en QueryFlag (mismo patrón que NavWatcher). */}
+      <Suspense fallback={null}>
+        <QueryFlag name="edit" onChange={setEditQuery} />
+      </Suspense>
       {/* Sidebar desktop (≥lg) - drawer colapsable persistente; toma
           el rol de navegación principal donde el tab bar se oculta. */}
       <AppSidebar
@@ -1434,4 +1450,24 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       )}
     </>
   );
+}
+
+/**
+ * Reporta el valor de un search param al padre via efecto. Vive dentro
+ * de <Suspense>: el chrome de layout no puede llamar useSearchParams
+ * directo (Next exige boundary en prerender - mismo patrón que
+ * NavWatcher en nav-pending).
+ */
+function QueryFlag({
+  name,
+  onChange,
+}: {
+  name: string;
+  onChange: (value: string | null) => void;
+}) {
+  const value = useSearchParams().get(name);
+  useEffect(() => {
+    onChange(value);
+  }, [value, onChange]);
+  return null;
 }
