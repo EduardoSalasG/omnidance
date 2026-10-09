@@ -104,6 +104,19 @@ export async function seedDev(prisma: PrismaClient) {
   const tumbaoOwner = await person("tumbao", "Dueño Academia Tumbao", [
     { role: "ACADEMY_OWNER" },
   ]);
+  // Dueño real de Mambo Madness - cuenta con email real (magic link),
+  // no @omnidance.dev. Enseña él mismo: instructor de la casa.
+  const gabriel = await ensurePerson(
+    prisma,
+    "gazner3203@gmail.com",
+    "Gabriel Arias",
+    [
+      { role: "ACADEMY_OWNER" },
+      { role: "INSTRUCTOR" },
+      { role: "DANCER" },
+    ],
+    Gender.M,
+  );
   // Consola /venue - queda como ownerId de Orixas.
   const venueMgr = await person("venue", "Manager Orixas", [
     { role: "VENUE_MANAGER" },
@@ -661,10 +674,13 @@ export async function seedDev(prisma: PrismaClient) {
   }) => {
     const sId = opts.styleName ? await styleId(opts.styleName) : null;
     const lId = opts.levelName ? await levelId(opts.levelName) : null;
+    // Identidad = academia+nombre+nivel: el mismo estilo puede existir
+    // en dos niveles (p. ej. "Salsa" Iniciación y Básico son series
+    // distintas) - la llave de la normalización ya incluye levelId.
     const series = await ensure(
       () =>
         prisma.classSeries.findFirst({
-          where: { academyId: opts.academyId, name: opts.name },
+          where: { academyId: opts.academyId, name: opts.name, levelId: lId },
         }),
       () =>
         prisma.classSeries.create({
@@ -1010,147 +1026,58 @@ export async function seedDev(prisma: PrismaClient) {
           },
         }),
     );
+    // Mambo Madness es academia real curada (owner real, parrilla y
+    // planes de verdad) - su bloque dedicado va tras este loop; acá se
+    // omite toda la asignación genérica. La fila queda en ACADEMY_SEED
+    // porque aIdx rota ubicaciones/horarios del resto del catálogo.
+    const curated = a.name === "Mambo Madness";
     // Vale y Rodrigo se reparten las academias como profesores de la casa.
     const profe = aIdx % 2 === 0 ? vale : rodrigo;
-    await prisma.academyInstructor.upsert({
-      where: {
-        academyId_personId: { academyId: academy.id, personId: profe.id },
-      },
-      update: {},
-      create: { academyId: academy.id, personId: profe.id },
-    });
-    for (const [sIdx, styleNum] of a.styles.entries()) {
-      const style = ACADEMY_STYLE_MAP[styleNum - 1];
-      const weekdays = DAY_PAIRS[(aIdx + sIdx) % DAY_PAIRS.length];
-      const startTime = CLASS_HOURS[(aIdx * 2 + sIdx) % CLASS_HOURS.length];
-      const endTime = `${String(Number(startTime.slice(0, 2)) + 1).padStart(2, "0")}:00`;
-      const levelName = LEVEL_ROT[(aIdx + sIdx) % LEVEL_ROT.length];
-      const modality = MODALITIES[(aIdx + sIdx) % MODALITIES.length];
-      // "Ambos" se resuelve por slot: cada día del par lleva una modalidad
-      // (lunes Pareja / miércoles Shines) en una misma serie.
-      const mixed = modality.length > 1;
-      await mkClassSeries({
-        academyId: academy.id,
-        name: style.label,
-        styleName: style.styleName,
-        levelName,
-        typeNames: modality,
-        instructorId: profe.id,
-        dropInPrice: 8000,
-        slots: weekdays.map((weekday, i) => ({
-          weekday,
-          startTime,
-          endTime,
-          typeNames: mixed ? [modality[i % modality.length]] : undefined,
-        })),
-        withHistory: false,
-        withNext: true,
+    if (!curated) {
+      await prisma.academyInstructor.upsert({
+        where: {
+          academyId_personId: { academyId: academy.id, personId: profe.id },
+        },
+        update: {},
+        create: { academyId: academy.id, personId: profe.id },
       });
     }
+    if (!curated)
+      for (const [sIdx, styleNum] of a.styles.entries()) {
+        const style = ACADEMY_STYLE_MAP[styleNum - 1];
+        const weekdays = DAY_PAIRS[(aIdx + sIdx) % DAY_PAIRS.length];
+        const startTime = CLASS_HOURS[(aIdx * 2 + sIdx) % CLASS_HOURS.length];
+        const endTime = `${String(Number(startTime.slice(0, 2)) + 1).padStart(2, "0")}:00`;
+        const levelName = LEVEL_ROT[(aIdx + sIdx) % LEVEL_ROT.length];
+        const modality = MODALITIES[(aIdx + sIdx) % MODALITIES.length];
+        // "Ambos" se resuelve por slot: cada día del par lleva una modalidad
+        // (lunes Pareja / miércoles Shines) en una misma serie.
+        const mixed = modality.length > 1;
+        await mkClassSeries({
+          academyId: academy.id,
+          name: style.label,
+          styleName: style.styleName,
+          levelName,
+          typeNames: modality,
+          instructorId: profe.id,
+          dropInPrice: 8000,
+          slots: weekdays.map((weekday, i) => ({
+            weekday,
+            startTime,
+            endTime,
+            typeNames: mixed ? [modality[i % modality.length]] : undefined,
+          })),
+          withHistory: false,
+          withNext: true,
+        });
+      }
 
     // Planes de membresía - el nombre es categoría propia de la academia
     // (el periodo lo muestra el tag; la cuota semanal, la metadata del
     // card). Regla general de precios: 1 clase/semana $25.000, 2
-    // clases/semana $40.000. Mambo Madness es premium: 1 clase $40.000,
-    // ilimitado $60.000, VIP $99.000 (ilimitado + 1 particular), y es la
-    // única con trimestral/semestral ilimitados (~10% off vs. mensual
-    // ilimitado: 3×60k−10% y 6×60k−10% - incentivo por compromiso).
-    // Todas ofrecen clase de prueba y clase suelta.
-    if (a.name === "Mambo Madness") {
-      await plan(
-        academy.id,
-        "Básico",
-        "MONTHLY",
-        40000,
-        {
-          weeklyClasses: 1,
-          description: ["Válido hasta fin del mes calendario"],
-        },
-        ["Mensual - 1 clase semanal"],
-      );
-      await plan(
-        academy.id,
-        "Premium",
-        "MONTHLY",
-        60000,
-        {
-          description: [
-            "Todas las clases, sin límite",
-            "Válido hasta fin del mes calendario",
-          ],
-        },
-        ["Mensual ilimitado"],
-      );
-      await plan(
-        academy.id,
-        "VIP",
-        "MONTHLY",
-        99000,
-        {
-          description: [
-            "Todo lo del plan ilimitado",
-            "1 clase particular al mes con un instructor de la casa",
-            "Válido hasta fin del mes calendario",
-          ],
-        },
-        ["Mensual VIP"],
-      );
-      await plan(
-        academy.id,
-        "Oro",
-        "QUARTERLY",
-        162000,
-        {
-          description: [
-            "Todas las clases, sin límite",
-            "Válido hasta fin del 3er mes calendario",
-            "Ahorras $18.000 vs. el mensual ilimitado",
-          ],
-        },
-        ["Trimestral ilimitado"],
-      );
-      await plan(
-        academy.id,
-        "Diamante",
-        "SEMIANNUAL",
-        324000,
-        {
-          description: [
-            "Todas las clases, sin límite",
-            "Válido hasta fin del 6º mes calendario",
-            "Ahorras $36.000 vs. el mensual ilimitado - el mejor valor por mes",
-          ],
-        },
-        ["Semestral ilimitado"],
-      );
-      await plan(academy.id, "Clase suelta", "SINGLE", 10000, {
-        description: ["Una clase del día", "Ideal para probar antes del plan"],
-      });
-      await plan(academy.id, "Clase de prueba", "TRIAL", 0);
-      // Método propio demo: el checkout manual ofrece transferencia
-      // con los datos copiables (spec academy-checkout-manual-pay).
-      const mmMethod = await prisma.academyPaymentMethod.findFirst({
-        where: { academyId: academy.id, label: "Transferencia" },
-      });
-      if (!mmMethod) {
-        await prisma.academyPaymentMethod.create({
-          data: {
-            academyId: academy.id,
-            type: "TRANSFER",
-            label: "Transferencia",
-            details: {
-              bank: "Banco Santander",
-              accountType: "Cuenta Corriente",
-              accountNumber: "98765432",
-              holder: "Mambo Madness SpA",
-              rut: "77.888.999-0",
-              email: "pagos@mambomadness.cl",
-            },
-            order: 0,
-          },
-        });
-      }
-    } else {
+    // clases/semana $40.000. Todas ofrecen clase de prueba y clase suelta.
+    // (La parrilla real de Mambo Madness va en su bloque curado.)
+    if (!curated) {
       // Pares de categorías rotados por índice - el naming varía de
       // academia en academia como en la vida real.
       const TIERS = [
@@ -1189,6 +1116,218 @@ export async function seedDev(prisma: PrismaClient) {
       });
       await plan(academy.id, "Clase de prueba", "TRIAL", 0);
     }
+  }
+
+  // ─── Mambo Madness - academia real, no catálogo genérico ───
+  // Dueño real (Gabriel Arias, gazner3203@gmail.com), datos de contacto
+  // y parrilla reales de mambomadnesscl.com. El loop de catálogo crea la
+  // fila con placeholders (para no re-indexar al resto); acá se pisan
+  // con los datos reales sin el backfill conservador - el seed es dueño
+  // de esta academia.
+  const mamboData = {
+    name: "Mambo Madness",
+    ownerId: gabriel.id,
+    // Aforo de todas las clases: 20 - los slots heredan sin override.
+    defaultQuorum: 20,
+    description:
+      "Academia de mambo on2 y bachata moderna en Providencia - formación por niveles, partnerwork y lady style.",
+    address: "Almirante Riveros 0186, Providencia",
+    lat: -33.4354,
+    lng: -70.6134,
+    instagram: "mambo.madness",
+    whatsapp: "56959372339",
+    website: "https://mambomadnesscl.com",
+  };
+  const mambo = await ensure(
+    () => prisma.academy.findFirst({ where: { name: "Mambo Madness" } }),
+    () => prisma.academy.create({ data: mamboData }),
+    (a) =>
+      prisma.academy.update({
+        where: { id: a.id },
+        data: mamboData,
+      }),
+  );
+
+  // Cuerpo docente: Gabriel es el instructor de la casa; los genéricos
+  // del catálogo (vale/rodrigo) salen de la nómina de esta academia.
+  await prisma.academyInstructor.deleteMany({
+    where: { academyId: mambo.id, personId: { in: [vale.id, rodrigo.id] } },
+  });
+  await prisma.academyInstructor.upsert({
+    where: {
+      academyId_personId: { academyId: mambo.id, personId: gabriel.id },
+    },
+    update: {},
+    create: { academyId: mambo.id, personId: gabriel.id },
+  });
+
+  // Series genéricas que el loop de catálogo sembró en corridas viejas
+  // ("Mambo", "Bachata Moderna") - soft delete conserva clases/historial.
+  await prisma.classSeries.updateMany({
+    where: {
+      academyId: mambo.id,
+      deletedAt: null,
+      name: { in: ["Mambo", "Bachata Moderna"] },
+    },
+    data: { deletedAt: new Date() },
+  });
+
+  // Parrilla real (mambomadnesscl.com). Los niveles del flyer mapean al
+  // catálogo por posición: N1·Desde Cero→Iniciación, N2·Iniciación 2→
+  // Básico, N3·Básico→Intermedio, N4·Intermedio→Avanzado. "Salsa" aquí
+  // es salsa estilo mambo (on2); la bachata es moderna; partnerwork,
+  // lady style, shines, pasos libres y movimiento corporal son técnica
+  // de mambo. Las clases de pareja llevan modalidad Pareja; el trabajo
+  // sola/de pies va como Shines; movimiento corporal como Corporalidad.
+  const mmClass = (
+    name: string,
+    styleName: string,
+    levelName: string,
+    typeNames: string[],
+    slots: SlotSeed[],
+  ) =>
+    mkClassSeries({
+      academyId: mambo.id,
+      name,
+      styleName,
+      levelName,
+      typeNames,
+      instructorId: gabriel.id,
+      slots,
+      withHistory: false,
+      withNext: true,
+    });
+
+  // Lunes + sábado - Nivel 2 (Básico).
+  await mmClass("Salsa", "Mambo on2", "Básico", ["Pareja"], [
+    { weekday: 1, startTime: "19:30", endTime: "20:30" },
+    { weekday: 6, startTime: "17:00", endTime: "18:00" },
+  ]);
+  await mmClass("Bachata", "Bachata moderna", "Básico", ["Pareja"], [
+    { weekday: 1, startTime: "20:30", endTime: "21:30" },
+    { weekday: 6, startTime: "18:00", endTime: "19:00" },
+  ]);
+  // Martes - Nivel 3 (Intermedio).
+  await mmClass("Bachata Pareja", "Bachata moderna", "Intermedio", ["Pareja"], [
+    { weekday: 2, startTime: "19:30", endTime: "20:30" },
+  ]);
+  await mmClass("Salsa Pareja", "Mambo on2", "Intermedio", ["Pareja"], [
+    { weekday: 2, startTime: "20:30", endTime: "21:30" },
+  ]);
+  await mmClass("Movimiento Corporal", "Mambo on2", "Intermedio", ["Corporalidad"], [
+    { weekday: 2, startTime: "21:30", endTime: "22:30" },
+  ]);
+  // Miércoles - Nivel 4 (Avanzado).
+  await mmClass("Shines", "Mambo on2", "Avanzado", ["Shines"], [
+    { weekday: 3, startTime: "19:30", endTime: "20:30" },
+  ]);
+  await mmClass("Movimiento Corporal", "Mambo on2", "Avanzado", ["Corporalidad"], [
+    { weekday: 3, startTime: "20:30", endTime: "21:30" },
+  ]);
+  await mmClass("Partnerwork", "Mambo on2", "Avanzado", ["Pareja"], [
+    { weekday: 3, startTime: "21:30", endTime: "22:30" },
+  ]);
+  // Jueves - Nivel 3 (Intermedio).
+  await mmClass("Pasos Libres", "Mambo on2", "Intermedio", ["Shines"], [
+    { weekday: 4, startTime: "19:30", endTime: "20:30" },
+  ]);
+  await mmClass("Partnerwork", "Mambo on2", "Intermedio", ["Pareja"], [
+    { weekday: 4, startTime: "20:30", endTime: "21:30" },
+  ]);
+  await mmClass("Lady Style", "Mambo on2", "Intermedio", ["Shines"], [
+    { weekday: 4, startTime: "21:30", endTime: "22:30" },
+  ]);
+  // Viernes - Nivel 1 (Iniciación).
+  await mmClass("Salsa", "Mambo on2", "Iniciación", ["Pareja"], [
+    { weekday: 5, startTime: "19:00", endTime: "20:00" },
+  ]);
+  await mmClass("Bachata", "Bachata moderna", "Iniciación", ["Pareja"], [
+    { weekday: 5, startTime: "20:00", endTime: "21:00" },
+  ]);
+
+  // Planes reales de mambomadnesscl.com. Renombres in-place por alias:
+  // Básico→"1 Vez por Semana" ($45k) y Premium→"Ilimitado" ($60k); Oro/
+  // Diamante salen de la parrilla (desactivados - pueden tener
+  // enrollments). Todas conservan clase suelta y de prueba.
+  await plan(mambo.id, "Oferta Especial", "CLASS_PACK", 40000, {
+    classCount: 8,
+    description: [
+      "8 clases en 4 semanas - salsa y bachata",
+      "Práctica social del mes incluida",
+      "Completa el reto y gana tu mes 2 como crédito",
+      "14 días de garantía",
+    ],
+  });
+  await plan(
+    mambo.id,
+    "1 Vez por Semana",
+    "MONTHLY",
+    45000,
+    {
+      weeklyClasses: 1,
+      description: [
+        "Salsa o bachata - un ritmo, una clase por semana",
+        "Válido hasta fin del mes calendario",
+      ],
+    },
+    ["Básico"],
+  );
+  await plan(
+    mambo.id,
+    "Ilimitado",
+    "MONTHLY",
+    60000,
+    {
+      description: [
+        "Todas las clases de todos los ritmos y niveles",
+        "Práctica social del mes",
+        "Válido hasta fin del mes calendario",
+      ],
+    },
+    ["Premium"],
+  );
+  await plan(mambo.id, "VIP", "MONTHLY", 99000, {
+    description: [
+      "Todo lo del plan Ilimitado",
+      "1 clase privada 1 a 1 al mes",
+      "Válido hasta fin del mes calendario",
+    ],
+  });
+  await prisma.membershipPlan.updateMany({
+    where: { academyId: mambo.id, name: { in: ["Oro", "Diamante"] } },
+    data: { active: false },
+  });
+  await plan(mambo.id, "Clase suelta", "SINGLE", 10000, {
+    description: ["Una clase del día", "Ideal para probar antes del plan"],
+  });
+  await plan(mambo.id, "Clase de prueba", "TRIAL", 0);
+
+  // Transferencia con datos reales de contacto (el rut/cuenta quedan
+  // placeholder - el seed no tiene datos bancarios reales).
+  const mmMethodData = {
+    academyId: mambo.id,
+    type: "TRANSFER" as const,
+    label: "Transferencia",
+    details: {
+      bank: "Banco Santander",
+      accountType: "Cuenta Corriente",
+      accountNumber: "98765432",
+      holder: "Mambo Madness SpA",
+      rut: "77.888.999-0",
+      email: "info@mambomadnesscl.com",
+    },
+    order: 0,
+  };
+  const mmMethod = await prisma.academyPaymentMethod.findFirst({
+    where: { academyId: mambo.id, label: "Transferencia" },
+  });
+  if (mmMethod) {
+    await prisma.academyPaymentMethod.update({
+      where: { id: mmMethod.id },
+      data: mmMethodData,
+    });
+  } else {
+    await prisma.academyPaymentMethod.create({ data: mmMethodData });
   }
 
   // "Muevete On Tour" del spec lleva estilos 2·5·6·7 - muvet ya tiene
@@ -2282,6 +2421,11 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(fabian, "Bachata sensual", "SWITCH", "intermedio"),
     styleRole(cesar, "Salsa cubana (casino)", "LEADER", "avanzado"),
     styleRole(ardilla, "Bachata tradicional", "LEADER", "intermedio"),
+    // Gabriel (Mambo Madness): mambo on2 / bachata sensual / cubano,
+    // los tres leader avanzado.
+    styleRole(gabriel, "Mambo on2", "LEADER", "avanzado"),
+    styleRole(gabriel, "Bachata sensual", "LEADER", "avanzado"),
+    styleRole(gabriel, "Cubano", "LEADER", "avanzado"),
   ]);
 
   // Handles de Instagram - alimentan la fila "@handle" del perfil del
@@ -2307,7 +2451,13 @@ export async function seedDev(prisma: PrismaClient) {
     ig(cesar, "cesar.casino"),
     ig(krrera, "bachataclub"),
     ig(ardilla, "ardilla.dance"),
+    ig(gabriel, "gabomadness"),
   ]);
+  // Teléfono real de Gabriel (contacto del owner de Mambo Madness).
+  await prisma.person.update({
+    where: { id: gabriel.id },
+    data: { phone: "+56959372339" },
+  });
 
   // ─── Prácticas - Event type=PRACTICA, hostId=creador bailarín ───
   // Alimentan /practicas: una por cada escenario de card (propia, de
