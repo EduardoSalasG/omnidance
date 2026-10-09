@@ -53,6 +53,7 @@ const PRIVATE_LESSON_STATUS = [
   "DONE",
   "CANCELLED",
 ] as const;
+const COMMISSION_OPTS = ["all", "paid", "pending"] as const;
 
 // ─── students: Enrollment + plan + persona ────────────────────────────
 
@@ -421,11 +422,18 @@ const payments: EntityHandler = {
 const privateLessons: EntityHandler = {
   async execute(prisma, scope, f, opts) {
     const status = whitelist(f.status, PRIVATE_LESSON_STATUS, "status");
+    const commission = whitelist(f.commission, COMMISSION_OPTS, "commission");
     const range = dateRange(f.from, f.to);
     const where: Prisma.PrivateLessonWhereInput = {
       academyId: acad(scope),
       ...(status ? { status } : {}),
       ...(f.instructorId ? { instructorId: f.instructorId } : {}),
+      // Comisión = snapshot >0 (acuerdo COMMISSION vigente o histórico).
+      ...(commission === "paid"
+        ? { commissionPct: { gt: 0 }, commissionPaidAt: { not: null } }
+        : commission === "pending"
+          ? { commissionPct: { gt: 0 }, commissionPaidAt: null }
+          : {}),
       ...(range ? { createdAt: range } : {}),
     };
     const rows = await prisma.privateLesson.findMany({
@@ -448,6 +456,8 @@ const privateLessons: EntityHandler = {
         names.get(r.instructorId ?? "") ?? "",
         iso(r.scheduledAt),
         r.price,
+        r.commissionPct,
+        r.commissionPaidAt ? "si" : "",
         r.status,
       ]),
       objects: rows,

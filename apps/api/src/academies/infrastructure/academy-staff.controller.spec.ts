@@ -111,9 +111,9 @@ describe("AcademyStaffController - instructores", () => {
       payType: "PER_CLASS",
       payAmount: 15000,
     });
-    // La comisión % legacy ya no viaja en la respuesta (snapshot
-    // histórico en schema; el acuerdo económico la reemplazó).
-    expect(r.items[0]).not.toHaveProperty("commissionPct");
+    // commissionPct solo viaja con valor cuando el acuerdo es
+    // COMMISSION - con PER_CLASS/MONTHLY va null (subtipo activo).
+    expect(r.items[0]).toMatchObject({ commissionPct: null });
   });
 
   it("GET /instructors - sin cap team → 403", async () => {
@@ -152,8 +152,9 @@ describe("AcademyStaffController - instructores", () => {
         payType: "PER_CLASS",
         payAmount: 15000,
         payClasses: null,
+        commissionPct: null,
       },
-      update: { payType: "PER_CLASS", payAmount: 15000 },
+      update: { payType: "PER_CLASS", commissionPct: null, payAmount: 15000 },
     });
     expect(mailer.send).toHaveBeenCalledWith(
       "nuevo@x.cl",

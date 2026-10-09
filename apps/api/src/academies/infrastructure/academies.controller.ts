@@ -52,6 +52,8 @@ import {
   RequirePermissions,
 } from "../../common/rbac/roles.decorator";
 import { dayRange, pageParams, whitelist } from "./list-filters";
+import { agreementWrite, PAY_TYPES } from "./instructor-agreement";
+import { ApiQuery } from "@nestjs/swagger";
 
 const PLAN_TYPES: PlanType[] = [
   "MONTHLY",
@@ -243,11 +245,12 @@ class UpdateAcademySettingsDto {
 }
 
 class UpdateInstructorDto {
-  /** Acuerdo económico (spec academy-console-v3): PER_CLASS | MONTHLY.
-      La comisión % legacy salió del producto - la columna queda como
-      snapshot histórico, sin escritura por API. */
+  /** Acuerdo económico (spec instructor-commission-subtype):
+      PER_CLASS | MONTHLY (payAmount/payClasses) | COMMISSION
+      (commissionPct 0-100 = % que retiene la academia por particular).
+      Un solo subtipo activo; los campos que no aplican quedan en null. */
   @IsOptional()
-  @IsIn(["PER_CLASS", "MONTHLY"])
+  @IsIn(PAY_TYPES)
   payType?: string | null;
 
   @IsOptional()
@@ -259,6 +262,12 @@ class UpdateInstructorDto {
   @IsInt()
   @Min(0)
   payClasses?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  commissionPct?: number | null;
 }
 
 /** "" → null; trim. Campos de texto libre del perfil público. */
@@ -776,11 +785,7 @@ export class AcademiesController {
     if (!instructor) {
       throw new NotFoundException("instructor no encontrado en la academia");
     }
-    const data: Record<string, unknown> = {};
-    // Acuerdo económico: null explícito limpia el campo.
-    if (dto.payType !== undefined) data.payType = dto.payType;
-    if (dto.payAmount !== undefined) data.payAmount = dto.payAmount;
-    if (dto.payClasses !== undefined) data.payClasses = dto.payClasses;
+    const data = agreementWrite(dto, instructor);
     return this.prisma.academyInstructor.update({
       where: { academyId_personId: { academyId: id, personId } },
       data,
@@ -813,6 +818,11 @@ export class AcademiesController {
   }
 
   @Get(":id/plans")
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "sort", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   @UseGuards(SessionGuard)
   async listPlans(
     @Param("id") id: string,
@@ -990,6 +1000,8 @@ export class AcademiesController {
    * Filtros opcionales: ?seriesId= & ?month=YYYY-MM.
    */
   @Get(":id/surveys")
+  @ApiQuery({ name: "seriesId", required: false })
+  @ApiQuery({ name: "month", required: false })
   @UseGuards(SessionGuard)
   async courseSurveys(
     @Param("id") id: string,
@@ -1434,6 +1446,13 @@ export class AcademiesController {
   // engine: ≥2 chars, contains insensitive), status por whitelist,
   // planId exacto y from/to = rango inclusivo por día sobre startedAt.
   @Get(":id/students")
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "planId", required: false })
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   @UseGuards(SessionGuard)
   async listStudents(
     @Param("id") id: string,
@@ -1677,6 +1696,7 @@ export class AcademiesController {
   // de schema. Este GET es la parrilla semanal completa de la academia.
 
   @Get(":id/slots")
+  @ApiQuery({ name: "seriesId", required: false })
   @UseGuards(SessionGuard)
   async listSlots(
     @Param("id") id: string,

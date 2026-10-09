@@ -8,8 +8,8 @@ import { ConsoleHeader } from "@/components/console/console-header";
 /**
  * /academia/particulares - clases particulares 1:1, vista staff:
  * solicitudes + agendamiento sobre la academia seleccionada (spec
- * academy-console-v3 - la comisión salió del producto; el acuerdo
- * económico del profesor se gestiona en equipo). La vista alumno vive
+ * academy-console-v3 - el acuerdo económico del profesor (por clase,
+ * mensual o comisión) se gestiona en equipo). La vista alumno vive
  * en reservadas de /clases (particulares-en-reservadas).
  */
 export default function AcademiaParticularesPage() {

@@ -23,8 +23,8 @@ const t = academyExtras.academyExtras.lessons;
 
 // Entidad `private_lessons` del catálogo sin el scope (la página fija la
 // academia) - status, instructorId y from/to con la misma semántica del
-// query engine (spec analytics/query-console). La comisión salió del
-// producto: la relación económica del profesor se gestiona en equipo.
+// query engine (spec analytics/query-console). La relación económica del
+// profesor (acuerdo: por clase, mensual o comisión) se gestiona en equipo.
 const LESSONS_ENTITY = academyEntity("private_lessons");
 
 function statusLabel(status: string): string {

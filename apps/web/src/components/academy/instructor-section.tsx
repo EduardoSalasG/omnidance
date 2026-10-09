@@ -8,9 +8,10 @@ import { Card, Pager, SkeletonList } from "@/components/ui";
 
 export type InstructorRow = {
   person: { id: string; name: string | null; email: string | null };
-  payType: "PER_CLASS" | "MONTHLY" | null;
+  payType: "PER_CLASS" | "MONTHLY" | "COMMISSION" | null;
   payAmount: number | null;
   payClasses: number | null;
+  commissionPct: number | null;
   createdAt: string;
 };
 
@@ -89,7 +90,9 @@ export function InstructorSection({ academyId }: { academyId: string }) {
                         ? t("payPerClassOf", {
                             amount: clp.format(r.payAmount),
                           })
-                        : t("agreementNone")}
+                        : r.payType === "COMMISSION" && r.commissionPct != null
+                          ? t("payCommissionOf", { pct: r.commissionPct })
+                          : t("agreementNone")}
                   </span>
                 </div>
               </Link>

@@ -28,6 +28,8 @@ import { AcademyAccess } from "./academy-access.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { dayRange, pageParams, whitelist } from "./list-filters";
+import { commissionSnapshot } from "./instructor-agreement";
+import { ApiQuery } from "@nestjs/swagger";
 
 const LESSON_ACTIONS = [
   "confirm",
@@ -136,10 +138,9 @@ export class PrivateLessonsController {
         personId: dto.personId ?? req.person!.id,
         scheduledAt: new Date(dto.scheduledAt),
         price: dto.price ?? 0,
-        // Las clases nuevas no llevan snapshot de comisión (default 0):
-        // el acuerdo económico del instructor vive en payType/payAmount/
-        // payClasses. commissionPct queda solo como dato histórico de
-        // lecciones antiguas (pay-commission las sigue liquidando).
+        // Snapshot del acuerdo: solo COMMISSION escribe tasa (el resto
+        // nace con 0 - spec instructor-commission-subtype).
+        commissionPct: commissionSnapshot(instructor),
         status: "REQUESTED",
       },
     });
@@ -153,6 +154,13 @@ export class PrivateLessonsController {
    * rango inclusivo por día sobre createdAt.
    */
   @Get("academies/:id/private-lessons")
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "instructorId", required: false })
+  @ApiQuery({ name: "commission", required: false })
+  @ApiQuery({ name: "from", required: false })
+  @ApiQuery({ name: "to", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   @UseGuards(SessionGuard)
   async list(
     @Param("id") id: string,
@@ -175,8 +183,8 @@ export class PrivateLessonsController {
       academyId: id,
       ...(statusF ? { status: statusF } : {}),
       ...(instructorId ? { instructorId } : {}),
-      // "pending" = comisión histórica >0 aún no liquidada; las clases
-      // nuevas (commissionPct=0, acuerdo económico) no son pendientes.
+      // "pending"/"paid" operan sobre el snapshot >0 (acuerdo COMMISSION
+      // vigente o histórico); las clases con otro acuerdo quedan fuera.
       ...(commissionF === "paid"
         ? { commissionPct: { gt: 0 }, commissionPaidAt: { not: null } }
         : commissionF === "pending"
@@ -209,9 +217,9 @@ export class PrivateLessonsController {
     });
     const byId = new Map(people.map((p) => [p.id, p]));
 
-    // La comisión es histórica: solo viaja en filas con commissionPct>0
-    // (lecciones del modelo legacy) y la ven owner/ADMIN o el instructor
-    // de la clase.
+    // La comisión solo viaja en filas con snapshot >0 (acuerdo
+    // COMMISSION vigente o histórico) y la ven owner/ADMIN o el
+    // instructor de la clase.
     const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
       "admin.access",
     ]);
@@ -242,12 +250,13 @@ export class PrivateLessonsController {
 
   /**
    * Mis clases privadas como instructor - agrega commissionClp/netClp
-   * solo en lecciones históricas con comisión (la UI no hace aritmética
-   * de negocio). La vista del
+   * solo en lecciones con snapshot de comisión >0 (acuerdo COMMISSION
+   * vigente o histórico; la UI no hace aritmética de negocio). La vista del
    * alumno vive en /classes/mine (las particulares son una reserva
    * más) - este endpoint ya no expone la rama alumno: una sola fuente.
    */
   @Get("private-lessons/mine")
+  @ApiQuery({ name: "as", required: false })
   @UseGuards(SessionGuard)
   async mine(@Query("as") asRole: string | undefined, @Req() req: Request) {
     if (asRole !== "instructor") {
@@ -273,10 +282,10 @@ export class PrivateLessonsController {
         ...l,
         person: byId.get(l.personId) ?? { id: l.personId, name: null },
       };
-      // Solo el histórico lleva comisión: en clases nuevas (acuerdo
-      // económico) no existe neto calculable por este mecanismo y
-      // mostrar netClp=price sugeriría que el instructor cobra el
-      // precio completo.
+      // Solo las clases con acuerdo COMMISSION (o históricas) llevan
+      // neto por comisión: con otro subtipo no existe neto calculable
+      // por este mecanismo y mostrar netClp=price sugeriría que el
+      // instructor cobra el precio completo.
       if (l.commissionPct <= 0) return base;
       const commissionClp = Math.round((l.price * l.commissionPct) / 100);
       return {
@@ -484,7 +493,8 @@ export class PrivateLessonsController {
       case "assign": {
         // private-lesson-product: el owner asigna instructor+fecha a una
         // lección comprada "por asignar" → CONFIRMED + snapshot de la
-        // comisión vigente del instructor + notifica a ambas partes.
+        // comisión del acuerdo (solo si es COMMISSION) + notifica a
+        // ambas partes.
         if (!isOwner) {
           throw new ForbiddenException("solo el owner asigna la clase");
         }
@@ -514,6 +524,9 @@ export class PrivateLessonsController {
           data: {
             instructorId: instructor.personId,
             scheduledAt: new Date(dto.scheduledAt),
+            // Snapshot del acuerdo vigente al asignar: solo COMMISSION
+            // escribe tasa (spec instructor-commission-subtype).
+            commissionPct: commissionSnapshot(instructor),
             status: "CONFIRMED",
           },
         });
