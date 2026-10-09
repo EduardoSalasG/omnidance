@@ -778,10 +778,74 @@ export async function seedDev(prisma: PrismaClient) {
     return { series, slots };
   };
 
+  // ─── Normalización de títulos de series ───
+  // El nombre lleva solo el estilo: nivel y mes son campos propios
+  // (levelId / month). Seeds anteriores sembraron "X - Nivel",
+  // "X — Nivel" y "X Nivel Mes"; esta pasada renombra esos títulos y
+  // desactiva (soft delete - conserva clases/historial para analítica)
+  // los duplicados huérfanos que dejaron, conservando la fila viva: la
+  // ya limpia, o la más reciente (la lineage del seed actual).
+  const LEVEL_WORDS =
+    "(Iniciación|Principiante|Básico|Intermedio|Avanzado|Open|Intensivo)";
+  const MONTH_WORDS =
+    "(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)";
+  const baseSeriesName = (name: string) =>
+    name
+      .replace(
+        new RegExp(`\\s*[-—]\\s*${LEVEL_WORDS}(\\s+${MONTH_WORDS})?\\s*$`),
+        "",
+      )
+      .replace(
+        new RegExp(`\\s+${LEVEL_WORDS}\\s+${MONTH_WORDS}\\s*$`),
+        "",
+      )
+      .replace(new RegExp(`\\s*[-—]\\s*${MONTH_WORDS}\\s*$`), "")
+      .trim();
+  const existingSeries = await prisma.classSeries.findMany({
+    where: { deletedAt: null },
+    select: {
+      id: true,
+      academyId: true,
+      name: true,
+      levelId: true,
+      createdAt: true,
+    },
+  });
+  const seriesGroups = new Map<string, typeof existingSeries>();
+  for (const s of existingSeries) {
+    const key = `${s.academyId}|${baseSeriesName(s.name)}|${s.levelId ?? ""}`;
+    const list = seriesGroups.get(key);
+    if (list) list.push(s);
+    else seriesGroups.set(key, [s]);
+  }
+  for (const rows of seriesGroups.values()) {
+    const base = baseSeriesName(rows[0].name);
+    const keep =
+      rows.find((r) => r.name === base) ??
+      [...rows].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      )[0];
+    for (const r of rows) {
+      if (r.id === keep.id) {
+        if (r.name !== base) {
+          await prisma.classSeries.update({
+            where: { id: r.id },
+            data: { name: base },
+          });
+        }
+      } else {
+        await prisma.classSeries.update({
+          where: { id: r.id },
+          data: { deletedAt: new Date() },
+        });
+      }
+    }
+  }
+
   // Serie 1: quórum override 8 (la academia tiene 15) - llena + waitlist.
   const bachataBasico = await mkClassSeries({
     academyId: muvet.id,
-    name: "Bachata Sensual - Básico",
+    name: "Bachata Sensual",
     styleName: "Bachata sensual",
     levelName: "Básico",
     typeNames: ["Pareja"],
@@ -798,7 +862,7 @@ export async function seedDev(prisma: PrismaClient) {
   // capacity explícito (10) gana sobre la herencia.
   const salsaInter = await mkClassSeries({
     academyId: muvet.id,
-    name: "Salsa Cubana - Intermedio",
+    name: "Salsa Cubana",
     styleName: "Salsa cubana (casino)",
     levelName: "Intermedio",
     typeNames: ["Pareja", "Shines"],
@@ -812,7 +876,7 @@ export async function seedDev(prisma: PrismaClient) {
   // Serie 3: ni serie ni slots declaran cupo → todo hereda academy (15).
   const rueda = await mkClassSeries({
     academyId: muvet.id,
-    name: "Rueda de Casino - Open",
+    name: "Rueda de Casino",
     styleName: "Rueda de casino",
     levelName: "Iniciación",
     typeNames: ["Pareja"],
@@ -824,7 +888,7 @@ export async function seedDev(prisma: PrismaClient) {
   // de Tumbao; si Tumbao no declarara, caería al fallback 20).
   await mkClassSeries({
     academyId: tumbao.id,
-    name: "Timba - Open",
+    name: "Timba",
     styleName: "Timba",
     levelName: "Intermedio",
     typeNames: ["Shines"],
@@ -967,7 +1031,7 @@ export async function seedDev(prisma: PrismaClient) {
       const mixed = modality.length > 1;
       await mkClassSeries({
         academyId: academy.id,
-        name: `${style.label} - ${levelName}`,
+        name: style.label,
         styleName: style.styleName,
         levelName,
         typeNames: modality,
@@ -1131,7 +1195,7 @@ export async function seedDev(prisma: PrismaClient) {
   // Bachata Sensual (2), Rueda (6) y Casino (7); le falta Cubano (5).
   await mkClassSeries({
     academyId: muvet.id,
-    name: "Cubano - Básico",
+    name: "Cubano",
     styleName: "Cubano",
     levelName: "Básico",
     typeNames: ["Pareja", "Shines"],
