@@ -725,18 +725,16 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
         </Card>
 
         {/* Forma de pago: pasarela vs métodos propios del productor
-            (spec producer-own-methods) - solo si el productor publicó
-            métodos activos. */}
-        {ownMethods.length > 0 && (
-          <Card>
-            <OwnMethodPicker
-              methods={ownMethods}
-              value={methodId}
-              onChange={setMethodId}
-              disabled={busy}
-            />
-          </Card>
-        )}
+            (spec producer-own-methods). Siempre visible - aunque solo
+            exista la pasarela, el comprador ve con qué va a pagar. */}
+        <Card>
+          <OwnMethodPicker
+            methods={ownMethods}
+            value={methodId}
+            onChange={setMethodId}
+            disabled={busy}
+          />
+        </Card>
 
         {/* Código de descuento - "Aplicar" valida sin generar la orden
             (GET /checkout/discount-quote) y el estimado del breakdown

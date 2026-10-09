@@ -185,7 +185,8 @@ export function ManualPayPanel({
   }
 
   if (methods === null) return null;
-  if (methods.length === 0 && !claim) return null;
+  // Sin métodos propios tampoco se oculta el panel: el alumno siempre
+  // ve con qué va a pagar (la pasarela queda como única opción marcada).
 
   const activeMethod = claim?.methodId
     ? (methods.find((m) => m.id === claim.methodId) ?? null)
