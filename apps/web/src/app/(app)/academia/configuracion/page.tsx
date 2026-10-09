@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademySettings } from "@/components/academy/academy-settings";
 import { AcademyProfile } from "@/components/academy/academy-profile";
+import { PaymentMethodsAdmin } from "@/components/academy/payment-methods-admin";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
@@ -23,6 +24,7 @@ export default function AcademiaConfiguracionPage() {
         {({ academy }) => (
           <div key={academy.id} className="flex flex-col gap-6">
             <AcademySettings academy={academy} />
+            <PaymentMethodsAdmin academyId={academy.id} />
             <AcademyProfile academy={academy} />
           </div>
         )}

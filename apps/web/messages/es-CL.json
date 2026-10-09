@@ -472,7 +472,21 @@
     "studentStatus": "Estado de {name}",
     "planPeriodDays": "Días de vigencia",
     "planDesc": "Descripción (una línea = un punto de la lista)",
-    "planDescPlaceholder": "Clases ilimitadas de todas las series\nAcceso a evaluación de nivel\nDescuento en privadas"
+    "planDescPlaceholder": "Clases ilimitadas de todas las series\nAcceso a evaluación de nivel\nDescuento en privadas",
+    "planStudents": "{count, plural, one {# alumno} other {# alumnos}}",
+    "planKpiActive": "Planes activos",
+    "planKpiActiveHint": "Planes de membresía con active=true",
+    "planKpiTop": "Top planes",
+    "planKpiTopHint": "Planes con más alumnos activos este mes",
+    "sortLabel": "Ordenar",
+    "sortNameAsc": "Nombre A→Z",
+    "sortNameDesc": "Nombre Z→A",
+    "sortPriceAsc": "Precio menor→mayor",
+    "sortPriceDesc": "Precio mayor→menor",
+    "planStudentsTitle": "Alumnos con este plan",
+    "planStudentsEmpty": "Nadie tiene este plan vigente",
+    "planFrom": "Desde",
+    "planUntil": "Hasta"
   },
   "practices": {
     "title": "Prácticas",

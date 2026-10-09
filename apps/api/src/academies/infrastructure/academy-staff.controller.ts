@@ -17,6 +17,7 @@ import {
 import {
   IsBoolean,
   IsEmail,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -60,6 +61,10 @@ class AddInstructorDto {
   @IsEmail() email!: string;
   @IsOptional() @IsString() @MaxLength(120) name?: string;
   @IsOptional() @IsInt() @Min(0) @Max(100) commissionPct?: number;
+  // Acuerdo económico (spec academy-console-v3): PER_CLASS/MONTHLY.
+  @IsOptional() @IsIn(["PER_CLASS", "MONTHLY"]) payType?: string;
+  @IsOptional() @IsInt() @Min(0) payAmount?: number;
+  @IsOptional() @IsInt() @Min(0) payClasses?: number;
 }
 
 const CAP_TO_FIELD = {
@@ -203,6 +208,51 @@ export class AcademyStaffController {
   }
 
   /**
+   * Detalle de un colaborador (página de detalle del equipo): datos de
+   * la persona + flags vigentes. Misma capacidad `team` que el listado.
+   */
+  @Get(":id/staff/:personId")
+  async staffDetail(
+    @Param("id") id: string,
+    @Param("personId") personId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "team");
+    const row = await this.prisma.academyStaff.findUnique({
+      where: { academyId_personId: { academyId: id, personId } },
+      select: {
+        personId: true,
+        canStudents: true,
+        canPayments: true,
+        canPlans: true,
+        canSchedule: true,
+        canProfile: true,
+        canTeam: true,
+        canBilling: true,
+        createdAt: true,
+      },
+    });
+    if (!row) throw new NotFoundException("colaborador no encontrado");
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true, name: true, email: true, phone: true },
+    });
+    return {
+      person: person ?? { id: personId, name: "(cuenta eliminada)", email: null },
+      caps: {
+        students: row.canStudents,
+        payments: row.canPayments,
+        plans: row.canPlans,
+        schedule: row.canSchedule,
+        profile: row.canProfile,
+        team: row.canTeam,
+        billing: row.canBilling,
+      },
+      createdAt: row.createdAt,
+    };
+  }
+
+  /**
    * Agrega colaborador por email. Person inexistente → stub
    * `{email, name}` + email de invitación con magic link largo; el
    * upsert por (academyId, personId) permite re-enviar/editar flags.
@@ -256,7 +306,14 @@ export class AcademyStaffController {
     const rows = await this.prisma.academyInstructor.findMany({
       where: { academyId: id },
       orderBy: { createdAt: "asc" },
-      select: { personId: true, commissionPct: true, createdAt: true },
+      select: {
+        personId: true,
+        commissionPct: true,
+        payType: true,
+        payAmount: true,
+        payClasses: true,
+        createdAt: true,
+      },
     });
     const people = new Map(
       (
@@ -273,8 +330,110 @@ export class AcademyStaffController {
         email: null,
       },
       commissionPct: r.commissionPct,
+      payType: r.payType,
+      payAmount: r.payAmount,
+      payClasses: r.payClasses,
       createdAt: r.createdAt,
     }));
+  }
+
+  /**
+   * Detalle del profesor (página del equipo): datos, acuerdo económico
+   * y métricas de clases impartidas. "Clase impartida" = instancia no
+   * cancelada ya pasada cuyo instructor efectivo (override de la clase
+   * o default del slot) es la persona. Capacidad `team`.
+   */
+  @Get(":id/instructors/:personId")
+  async instructorDetail(
+    @Param("id") id: string,
+    @Param("personId") personId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "team");
+    const instructor = await this.prisma.academyInstructor.findUnique({
+      where: { academyId_personId: { academyId: id, personId } },
+    });
+    if (!instructor) {
+      throw new NotFoundException("profesor no encontrado en la academia");
+    }
+    const person = await this.prisma.person.findUnique({
+      where: { id: personId },
+      select: { id: true, name: true, email: true, phone: true },
+    });
+
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    // Instructor efectivo: override de la clase, si no el del slot.
+    const taughtWhere = {
+      cancelled: false,
+      slot: { academyId: id },
+      OR: [
+        { instructorId: personId },
+        { instructorId: null, slot: { academyId: id, instructorId: personId } },
+        {
+          instructorId: null,
+          slot: { academyId: id, instructorId: null, series: { instructorId: personId } },
+        },
+      ],
+    };
+    const [taughtTotal, taughtMonth, upcoming] = await Promise.all([
+      this.prisma.class.count({
+        where: { ...taughtWhere, date: { lt: now } },
+      }),
+      this.prisma.class.count({
+        where: { ...taughtWhere, date: { gte: monthStart, lt: now } },
+      }),
+      this.prisma.class.findMany({
+        where: { ...taughtWhere, date: { gte: now } },
+        orderBy: { date: "asc" },
+        take: 10,
+        select: {
+          id: true,
+          date: true,
+          slot: {
+            select: {
+              startTime: true,
+              series: { select: { name: true } },
+            },
+          },
+          _count: { select: { bookings: { where: { status: "BOOKED" } } } },
+        },
+      }),
+    ]);
+    // Asistencias del mes en clases impartidas por este instructor.
+    const taughtIds = await this.prisma.class.findMany({
+      where: { ...taughtWhere, date: { gte: monthStart, lt: now } },
+      select: { id: true },
+    });
+    const attendanceMonth = taughtIds.length
+      ? await this.prisma.attendance.count({
+          where: { classId: { in: taughtIds.map((c) => c.id) } },
+        })
+      : 0;
+
+    return {
+      person: person ?? {
+        id: personId,
+        name: "(cuenta eliminada)",
+        email: null,
+        phone: null,
+      },
+      commissionPct: instructor.commissionPct,
+      payType: instructor.payType,
+      payAmount: instructor.payAmount,
+      payClasses: instructor.payClasses,
+      createdAt: instructor.createdAt,
+      stats: { taughtTotal, taughtMonth, attendanceMonth },
+      upcoming: upcoming.map((c) => ({
+        id: c.id,
+        date: c.date,
+        startTime: c.slot.startTime,
+        seriesName: c.slot.series?.name ?? null,
+        bookings: c._count.bookings,
+      })),
+    };
   }
 
   /**
@@ -299,16 +458,23 @@ export class AcademyStaffController {
     );
     this.assertValidTarget(person.id, academy.ownerId, req.person!.id);
 
-    const data =
-      dto.commissionPct === undefined
-        ? {}
-        : { commissionPct: dto.commissionPct };
+    const data = {
+      ...(dto.commissionPct !== undefined
+        ? { commissionPct: dto.commissionPct }
+        : {}),
+      ...(dto.payType !== undefined ? { payType: dto.payType } : {}),
+      ...(dto.payAmount !== undefined ? { payAmount: dto.payAmount } : {}),
+      ...(dto.payClasses !== undefined ? { payClasses: dto.payClasses } : {}),
+    };
     await this.prisma.academyInstructor.upsert({
       where: { academyId_personId: { academyId: id, personId: person.id } },
       create: {
         academyId: id,
         personId: person.id,
         commissionPct: dto.commissionPct ?? null,
+        payType: dto.payType ?? null,
+        payAmount: dto.payAmount ?? null,
+        payClasses: dto.payClasses ?? null,
       },
       update: data,
     });

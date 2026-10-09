@@ -2,28 +2,30 @@
 
 import { useTranslations } from "next-intl";
 import { AcademyGate } from "@/components/academy/academy-gate";
-import { AcademyPayments } from "@/components/academy/academy-payments";
 import { ClaimsQueue } from "@/components/academy/claims-queue";
-import { PaymentMethodsAdmin } from "@/components/academy/payment-methods-admin";
+import { CobrosHistory } from "@/components/academy/cobros-history";
+import { CobrosKpiStrip } from "@/components/academy/cobros-kpis";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
- * /academia/cobros - cobros de membresías de la academia seleccionada
- * (GET /payments/by-academy/:id). El gate resuelve auth + academia; el
- * endpoint limita a owner/admin (403 → mensaje "sin acceso" adentro).
+ * /academia/cobros - cobros de la academia: KPIs del mes (facturado,
+ * ticket, top medios), cola de comprobantes por validar (cada card abre
+ * su página de detalle con aprobar/rechazar) e historial unificado de
+ * validaciones + pagos por pasarela. Los medios de pago viven en
+ * configuración.
  */
 export default function AcademiaCobrosPage() {
-  const t = useTranslations("academy");
+  const t = useTranslations("academyPay");
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
-      <ConsoleHeader backHref="/academia" backLabel={t("title")} />
+      <ConsoleHeader backHref="/academia" backLabel={t("detailBack")} />
       <AcademyGate>
         {({ academy }) => (
           <>
-            <ClaimsQueue academyId={academy.id} />
-            <AcademyPayments key={academy.id} academyId={academy.id} />
-            <PaymentMethodsAdmin academyId={academy.id} />
+            <CobrosKpiStrip academyId={academy.id} />
+            <ClaimsQueue key={`q-${academy.id}`} academyId={academy.id} />
+            <CobrosHistory key={`h-${academy.id}`} academyId={academy.id} />
           </>
         )}
       </AcademyGate>

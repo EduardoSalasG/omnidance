@@ -271,6 +271,22 @@ export class AcademyClaimsController {
   }
 
   /**
+   * GET /academies/:id/claims/:claimId - detalle del comprobante para la
+   * página de revisión (datos, comprobante, auditoría). Declarado
+   * DESPUÉS de claims/mine: NestJS resuelve por orden y el literal
+   * "mine" debe ganarle al param :claimId.
+   */
+  @Get(":id/claims/:claimId")
+  async getClaim(
+    @Param("id") id: string,
+    @Param("claimId") claimId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "payments");
+    return this.claims.getClaim(id, claimId);
+  }
+
+  /**
    * Stream autenticado del comprobante: owner/admin de la academia o el
    * dueño del claim. 403 para cualquier otro usuario con sesión.
    */

@@ -244,10 +244,26 @@ class UpdateAcademySettingsDto {
 
 class UpdateInstructorDto {
   /** % de comisión de la academia sobre sus clases particulares (0-100). */
+  @IsOptional()
   @IsInt()
   @Min(0)
   @Max(100)
-  commissionPct!: number;
+  commissionPct?: number;
+
+  /** Acuerdo económico (spec academy-console-v3): PER_CLASS | MONTHLY. */
+  @IsOptional()
+  @IsIn(["PER_CLASS", "MONTHLY"])
+  payType?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  payAmount?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  payClasses?: number | null;
 }
 
 /** "" → null; trim. Campos de texto libre del perfil público. */
@@ -761,19 +777,21 @@ export class AcademiesController {
     @Req() req: Request,
   ) {
     await this.access.requireCapabilityWrite(id, req.person!, "team");
-    const pct = dto.commissionPct;
-    if (!Number.isInteger(pct) || pct < 0 || pct > 100) {
-      throw new BadRequestException("commissionPct debe ser entero 0-100");
-    }
     const instructor = await this.prisma.academyInstructor.findUnique({
       where: { academyId_personId: { academyId: id, personId } },
     });
     if (!instructor) {
       throw new NotFoundException("instructor no encontrado en la academia");
     }
+    const data: Record<string, unknown> = {};
+    if (dto.commissionPct !== undefined) data.commissionPct = dto.commissionPct;
+    // Acuerdo económico: null explícito limpia el campo.
+    if (dto.payType !== undefined) data.payType = dto.payType;
+    if (dto.payAmount !== undefined) data.payAmount = dto.payAmount;
+    if (dto.payClasses !== undefined) data.payClasses = dto.payClasses;
     return this.prisma.academyInstructor.update({
       where: { academyId_personId: { academyId: id, personId } },
-      data: { commissionPct: pct },
+      data,
     });
   }
 
@@ -809,21 +827,353 @@ export class AcademiesController {
     @Req() req: Request,
     @Query("q") q?: string,
     @Query("status") status?: string,
+    @Query("sort") sort?: string,
   ) {
     await this.access.requireCapability(id, req.person!, "plans");
     // Filtros del contrato compartido (spec analytics/query-console):
     // q = nombre contiene (case-insensitive), status = active|inactive
-    // (whitelist → 400).
+    // (whitelist → 400). sort = name|price con sufijo -desc.
     const term = q?.trim();
     const statusF = whitelist(status, ["active", "inactive"] as const, "status");
-    return this.prisma.membershipPlan.findMany({
+    const sortF = whitelist(
+      sort,
+      ["name", "name-desc", "price", "price-desc"] as const,
+      "sort",
+    );
+    const orderBy =
+      sortF === "price"
+        ? [{ price: "asc" as const }, { name: "asc" as const }]
+        : sortF === "price-desc"
+          ? [{ price: "desc" as const }, { name: "asc" as const }]
+          : sortF === "name-desc"
+            ? [{ name: "desc" as const }]
+            : [{ name: "asc" as const }];
+    const plans = await this.prisma.membershipPlan.findMany({
       where: {
         academyId: id,
         ...(term ? { name: { contains: term, mode: "insensitive" } } : {}),
         ...(statusF ? { active: statusF === "active" } : {}),
       },
-      orderBy: { name: "asc" },
+      orderBy,
+      include: {
+        _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+      },
     });
+    return plans.map(({ _count, ...p }) => ({
+      ...p,
+      activeStudents: _count.enrollments,
+    }));
+  }
+
+  /**
+   * KPIs del módulo de planes: total activos y top 3 por alumnos con
+   * enrollment ACTIVE, con comparativa MTD del mes anterior
+   * (alumnos con plan activo cuyo startedAt cae dentro del tramo previo
+   * equivalente).
+   */
+  @Get(":id/plans/kpis")
+  @UseGuards(SessionGuard)
+  async plansKpis(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapability(id, req.person!, "plans");
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const prevStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+    );
+    // Mismo tramo del mes anterior (MTD): día 1 → día N del mes previo.
+    const prevEnd = new Date(
+      prevStart.getTime() + (now.getTime() - monthStart.getTime()),
+    );
+
+    const [activePlans, grouped, groupedPrev] = await Promise.all([
+      this.prisma.membershipPlan.count({
+        where: { academyId: id, active: true },
+      }),
+      this.prisma.enrollment.groupBy({
+        by: ["planId"],
+        where: { academyId: id, status: "ACTIVE" },
+        _count: { _all: true },
+      }),
+      this.prisma.enrollment.groupBy({
+        by: ["planId"],
+        where: {
+          academyId: id,
+          status: "ACTIVE",
+          startedAt: { gte: prevStart, lte: prevEnd },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+    const prevByPlan = new Map(groupedPrev.map((g) => [g.planId, g._count._all]));
+    const top = grouped
+      .filter((g) => g.planId)
+      .sort((a, b) => b._count._all - a._count._all)
+      .slice(0, 3);
+    const names = top.length
+      ? await this.prisma.membershipPlan.findMany({
+          where: { id: { in: top.map((g) => g.planId!) } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameById = new Map(names.map((n) => [n.id, n.name]));
+    return {
+      activePlans,
+      topPlans: top.map((g) => ({
+        planId: g.planId!,
+        name: nameById.get(g.planId!) ?? null,
+        students: g._count._all,
+        studentsPrev: prevByPlan.get(g.planId!) ?? 0,
+      })),
+    };
+  }
+
+  /**
+   * Detalle del plan + alumnos con enrollment ACTIVE (inicio/fin) -
+   * la página del plan los muestra para gestión y contexto.
+   */
+  @Get(":id/plans/:planId")
+  @UseGuards(SessionGuard)
+  async planDetail(
+    @Param("id") id: string,
+    @Param("planId") planId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "plans");
+    const plan = await this.prisma.membershipPlan.findFirst({
+      where: { id: planId, academyId: id },
+      include: {
+        _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+      },
+    });
+    if (!plan) throw new NotFoundException("plan no encontrado");
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { planId: plan.id, status: "ACTIVE" },
+      orderBy: { startedAt: "desc" },
+      select: { personId: true, startedAt: true, endsAt: true },
+    });
+    // Enrollment.personId es FK plana - join manual (mismo patrón que
+    // GET /:id/students).
+    const people = enrollments.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: enrollments.map((e) => e.personId) } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameById = new Map(people.map((p) => [p.id, p.name]));
+    const { _count, ...rest } = plan;
+    return {
+      ...rest,
+      activeStudents: _count.enrollments,
+      students: enrollments.map((e) => ({
+        personId: e.personId,
+        name: nameById.get(e.personId) ?? null,
+        startedAt: e.startedAt,
+        endsAt: e.endsAt,
+      })),
+    };
+  }
+
+  /**
+   * GET /academies/:id/cobros/kpis - facturación del mes (MTD), ticket
+   * promedio y top 3 medios de pago, cada uno con la comparativa del
+   * tramo equivalente del mes anterior. Mismas fuentes del dashboard
+   * (claims APPROVED + pagos PAID por pasarela atribuidos por refId).
+   */
+  @Get(":id/cobros/kpis")
+  @UseGuards(SessionGuard)
+  async cobrosKpis(@Param("id") id: string, @Req() req: Request) {
+    await this.access.requireCapability(id, req.person!, "payments");
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const prevStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+    );
+    const prevEnd = new Date(
+      prevStart.getTime() + (now.getTime() - monthStart.getTime()),
+    );
+    const planIds = await this.prisma.membershipPlan.findMany({
+      where: { academyId: id },
+      select: { id: true },
+    });
+    const gatewayWhere = (createdAt: { gte: Date; lte?: Date }) => ({
+      status: "PAID" as const,
+      createdAt,
+      OR: [
+        ...planIds.map((p) => ({
+          orderType: "MEMBERSHIP",
+          refId: { startsWith: `mem_${p.id}_` },
+        })),
+        { orderType: "PRIVATE", refId: { startsWith: `pvt_${id}_` } },
+      ],
+    });
+    const [claimsMonth, gatewayMonth, claimsPrev, gatewayPrev] =
+      await Promise.all([
+        this.prisma.paymentClaim.findMany({
+          where: {
+            academyId: id,
+            status: "APPROVED",
+            createdAt: { gte: monthStart },
+          },
+          select: { amount: true, personId: true, methodLabel: true },
+        }),
+        this.prisma.payment.findMany({
+          where: gatewayWhere({ gte: monthStart }),
+          select: {
+            amount: true,
+            personId: true,
+            gateway: true,
+            gatewayMedia: true,
+          },
+        }),
+        this.prisma.paymentClaim.findMany({
+          where: {
+            academyId: id,
+            status: "APPROVED",
+            createdAt: { gte: prevStart, lte: prevEnd },
+          },
+          select: { amount: true, personId: true, methodLabel: true },
+        }),
+        this.prisma.payment.findMany({
+          where: gatewayWhere({ gte: prevStart, lte: prevEnd }),
+          select: {
+            amount: true,
+            personId: true,
+            gateway: true,
+            gatewayMedia: true,
+          },
+        }),
+      ]);
+
+    const rows = [
+      ...claimsMonth.map((c) => ({
+        amount: c.amount,
+        personId: c.personId,
+        label: c.methodLabel,
+      })),
+      ...gatewayMonth.map((p) => ({
+        amount: p.amount,
+        personId: p.personId,
+        label: p.gatewayMedia ?? p.gateway,
+      })),
+    ];
+    const prevRows = [
+      ...claimsPrev.map((c) => ({
+        amount: c.amount,
+        personId: c.personId,
+        label: c.methodLabel,
+      })),
+      ...gatewayPrev.map((p) => ({
+        amount: p.amount,
+        personId: p.personId,
+        label: p.gatewayMedia ?? p.gateway,
+      })),
+    ];
+
+    const billedMonth = rows.reduce((a, r) => a + r.amount, 0);
+    const billedMonthPrev = prevRows.reduce((a, r) => a + r.amount, 0);
+    const payers = new Set(rows.map((r) => r.personId));
+    const prevPayers = new Set(prevRows.map((r) => r.personId));
+    const avgTicketMonth = payers.size
+      ? Math.round(billedMonth / payers.size)
+      : null;
+    const avgTicketMonthPrev = prevPayers.size
+      ? Math.round(billedMonthPrev / prevPayers.size)
+      : null;
+
+    const prevByLabel = new Map<string, number>();
+    for (const r of prevRows) {
+      prevByLabel.set(r.label, (prevByLabel.get(r.label) ?? 0) + r.amount);
+    }
+    const byLabel = new Map<string, number>();
+    for (const r of rows) {
+      byLabel.set(r.label, (byLabel.get(r.label) ?? 0) + r.amount);
+    }
+    const topMethods = [...byLabel.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([label, amount]) => ({
+        label,
+        amount,
+        amountPrev: prevByLabel.get(label) ?? 0,
+      }));
+
+    return {
+      billedMonth,
+      billedMonthPrev,
+      avgTicketMonth,
+      avgTicketMonthPrev,
+      topMethods,
+    };
+  }
+
+  /**
+   * GET /academies/:id/payments/:paymentId - detalle de un cobro de la
+   * academia para la página de detalle. El pago se adjudica por refId
+   * (mem_<planId>_* / wks_<classId>_* / pvt_<academyId>_* /
+   * claim-<claimId>); fuera de la academia → 404 (anti-enumeración,
+   * misma política de GET /payments/:id).
+   */
+  @Get(":id/payments/:paymentId")
+  @UseGuards(SessionGuard)
+  async academyPaymentDetail(
+    @Param("id") id: string,
+    @Param("paymentId") paymentId: string,
+    @Req() req: Request,
+  ) {
+    await this.access.requireCapability(id, req.person!, "payments");
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+    });
+    if (!payment) throw new NotFoundException("pago no encontrado");
+
+    // Adjudicación por refId - mismo decode que by-academy.
+    const ref = payment.refId;
+    let contextName: string | null = null;
+    if (ref.startsWith("mem_")) {
+      const plan = await this.prisma.membershipPlan.findFirst({
+        where: { id: ref.split("_")[1], academyId: id },
+        select: { name: true },
+      });
+      if (!plan) throw new NotFoundException("pago no encontrado");
+      contextName = plan.name;
+    } else if (ref.startsWith("wks_")) {
+      const cls = await this.prisma.class.findFirst({
+        where: { id: ref.split("_")[1], slot: { academyId: id } },
+        select: { slot: { select: { series: { select: { name: true } } } } },
+      });
+      if (!cls) throw new NotFoundException("pago no encontrado");
+      contextName = cls.slot.series?.name ?? null;
+    } else if (ref.startsWith(`pvt_${id}_`)) {
+      contextName = null;
+    } else if (ref.startsWith("claim-")) {
+      const claim = await this.prisma.paymentClaim.findFirst({
+        where: { id: ref.slice("claim-".length), academyId: id },
+        select: { plan: { select: { name: true } } },
+      });
+      if (!claim) throw new NotFoundException("pago no encontrado");
+      contextName = claim.plan?.name ?? null;
+    } else {
+      throw new NotFoundException("pago no encontrado");
+    }
+
+    const person = await this.prisma.person.findUnique({
+      where: { id: payment.personId },
+      select: { id: true, name: true },
+    });
+    const eventCount = await this.prisma.paymentEvent.count({
+      where: { paymentId: payment.id },
+    });
+    const { gatewayRaw, ...rest } = payment;
+    return {
+      ...rest,
+      eventCount,
+      personName: person?.name ?? null,
+      contextName,
+    };
   }
 
   /**
