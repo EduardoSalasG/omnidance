@@ -84,7 +84,7 @@ export function AppSidebar({
         )}
         <button
           type="button"
-          data-tour="appbar-menu"
+          data-tour="sidebar-toggle"
           onClick={onToggle}
           aria-expanded={!collapsed}
           aria-controls={NAV_ID}
@@ -98,6 +98,7 @@ export function AppSidebar({
 
       <nav
         id={NAV_ID}
+        data-tour="app-sidebar"
         aria-label={t("main")}
         className="flex-1 overflow-y-auto px-2 py-4"
       >

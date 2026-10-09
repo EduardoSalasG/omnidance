@@ -141,6 +141,8 @@ export type AcademyDashboard = {
   };
   // AcademyStaff + AcademyInstructor - insumo del checklist de activación.
   teamCount: number;
+  // AcademyPaymentMethod activos - paso "método de pago" del checklist.
+  methodsCount: number;
   studentsByStatus: {
     active: number;
     trial: number;

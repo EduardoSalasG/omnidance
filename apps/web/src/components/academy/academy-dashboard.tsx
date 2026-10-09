@@ -56,9 +56,13 @@ export function AcademyDashboard({
   // natural es cobrar/renovar); en /academia siguen a la ficha del
   // alumno, que es donde staff/instructor gestionan la inscripción.
   expiringHref,
+  // Checklist de activación del owner (spec academies/owner-insights) -
+  // solo en su inicio; la consola de staff en /academia no la muestra.
+  setupChecklist = false,
 }: {
   academy: Academy;
   expiringHref?: string;
+  setupChecklist?: boolean;
 }) {
   const t = useTranslations("academy");
 
@@ -105,6 +109,43 @@ export function AcademyDashboard({
   const pendingLessons = dashboard?.pendingLessons;
   const birthdays = dashboard?.upcomingBirthdays ?? [];
 
+  // Checklist de activación: 5 pasos de puesta en marcha, persistente
+  // hasta completarlos todos (no hasta el primer alumno). El orden es
+  // el flujo natural: horario → qué cobrar → cómo cobrar → quién ayuda
+  // → a quién cobrar.
+  const checklistSteps = dashboard
+    ? ([
+        {
+          key: "series",
+          done: dashboard.kpis.weeklyClasses > 0,
+          href: "/academia/series",
+        },
+        {
+          key: "plan",
+          done: dashboard.plansCount > 0,
+          href: "/academia/planes",
+        },
+        {
+          key: "method",
+          done: dashboard.methodsCount > 0,
+          href: "/academia/configuracion/pagos",
+        },
+        {
+          key: "team",
+          done: dashboard.teamCount > 0,
+          href: "/academia/equipo",
+        },
+        {
+          key: "student",
+          done: dashboard.totalStudents > 0,
+          href: "/academia/alumnos",
+        },
+      ] as const)
+    : [];
+  const checklistDone = checklistSteps.filter((s) => s.done).length;
+  const showChecklist =
+    setupChecklist && dashboard != null && checklistDone < checklistSteps.length;
+
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -134,37 +175,23 @@ export function AcademyDashboard({
         ]}
       />
 
-      {/* Checklist de activación: solo mientras la academia no tiene
-          alumnos (fase de puesta en marcha). Con el primer alumno la
-          consola ya tiene contenido propio y la checklist sale. */}
-      {dashboard && dashboard.totalStudents === 0 && (
-        <Card padded={false} className="p-5">
-          <h3 className={sectionTitleCls}>{t("onboarding.title")}</h3>
+      {/* Checklist de activación: persiste hasta completar los 5 pasos
+          de puesta en marcha (spec academies/owner-insights) - antes se
+          escondía con el primer alumno aunque faltara configuración
+          (p.ej. sin medio de pago la academia no puede cobrar). */}
+      {showChecklist && (
+        <Card padded={false} data-tour="academy-checklist" className="p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className={sectionTitleCls}>{t("onboarding.title")}</h3>
+            <p className="text-xs tabular-nums text-ink/50">
+              {t("onboarding.progress", {
+                done: checklistDone,
+                total: checklistSteps.length,
+              })}
+            </p>
+          </div>
           <ul className="mt-3 flex flex-col gap-1">
-            {(
-              [
-                {
-                  key: "series",
-                  done: dashboard.kpis.weeklyClasses > 0,
-                  href: "/academia/series",
-                },
-                {
-                  key: "plan",
-                  done: dashboard.plansCount > 0,
-                  href: "/academia/planes",
-                },
-                {
-                  key: "student",
-                  done: dashboard.totalStudents > 0,
-                  href: "/academia/alumnos",
-                },
-                {
-                  key: "team",
-                  done: dashboard.teamCount > 0,
-                  href: "/academia/equipo",
-                },
-              ] as const
-            ).map((s) => (
+            {checklistSteps.map((s) => (
               <li key={s.key}>
                 <Link
                   href={s.href}
@@ -199,7 +226,7 @@ export function AcademyDashboard({
               instructor en su consola); sin clases el día se muestra
               vacío en vez de ocultarse. */}
           {dashboard && (
-            <section aria-label={t("today.title")}>
+            <section aria-label={t("today.title")} data-tour="academy-today">
               <div className="mb-3 flex items-baseline justify-between gap-3">
                 <h3 className={sectionTitleCls}>{t("today.title")}</h3>
                 {dashboard.todayClasses.length > 0 && (
@@ -262,7 +289,10 @@ export function AcademyDashboard({
           {/* Cobros declarados por alumnos pendientes de aprobar -
               la tarea de revisión más urgente del día. */}
           {pendingClaims && pendingClaims.count > 0 && (
-            <section aria-label={t("insights.pendingClaimsTitle")}>
+            <section
+              aria-label={t("insights.pendingClaimsTitle")}
+              data-tour="academy-pending"
+            >
               <div className="mb-3 flex items-baseline justify-between gap-3">
                 <h3 className={sectionTitleCls}>
                   {t("insights.pendingClaimsTitle")}
@@ -312,7 +342,10 @@ export function AcademyDashboard({
               segunda cola operativa del home; cada fila navega al módulo
               (no hay ficha por lección - la acción vive en el card). */}
           {pendingLessons && pendingLessons.count > 0 && (
-            <section aria-label={t("insights.pendingLessonsTitle")}>
+            <section
+              aria-label={t("insights.pendingLessonsTitle")}
+              data-tour="academy-pending"
+            >
               <div className="mb-3 flex items-baseline justify-between gap-3">
                 <h3 className={sectionTitleCls}>
                   {t("insights.pendingLessonsTitle")}
@@ -374,6 +407,7 @@ export function AcademyDashboard({
               title={t("insights.expiringTodayTitle")}
               items={expiringToday}
               rowHref={expiringHref}
+              dataTour="academy-alerts"
               t={t}
             />
           )}
@@ -383,12 +417,16 @@ export function AcademyDashboard({
               items={expiringWeek}
               extraCount={expiringLater}
               rowHref={expiringHref}
+              dataTour="academy-alerts"
               t={t}
             />
           )}
 
           {dashboard && birthdays.length > 0 && (
-            <section aria-label={t("insights.birthdaysTitle")}>
+            <section
+              aria-label={t("insights.birthdaysTitle")}
+              data-tour="academy-alerts"
+            >
               <h3 className={`mb-3 ${sectionTitleCls}`}>
                 {t("insights.birthdaysTitle")}
               </h3>
@@ -439,6 +477,7 @@ export function ExpiringList({
   items,
   extraCount = 0,
   rowHref,
+  dataTour,
   t,
 }: {
   title: string;
@@ -447,11 +486,14 @@ export function ExpiringList({
   /** Destino de la fila y del "Ver todos"; sin él van a la ficha del
       alumno. */
   rowHref?: string;
+  /** Anchor del tour de onboarding (varias secciones comparten el mismo
+      anchor - el runner toma la primera visible). */
+  dataTour?: string;
   t: ReturnType<typeof useTranslations>;
 }) {
   const hidden = Math.max(0, items.length - LIST_CAP) + extraCount;
   return (
-    <section aria-label={title}>
+    <section aria-label={title} data-tour={dataTour}>
       <h3 className={`mb-3 ${sectionTitleCls}`}>{title}</h3>
       <Card padded={false}>
         <ul className={listCls}>

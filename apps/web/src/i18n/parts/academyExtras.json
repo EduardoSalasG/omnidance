@@ -209,8 +209,10 @@
     },
     "onboarding": {
       "title": "Primeros pasos",
+      "progress": "{done} de {total}",
       "series": "Crea tu primera serie y horario",
       "plan": "Crea un plan de membresía",
+      "method": "Publica un medio de pago",
       "student": "Registra a tu primer alumno",
       "team": "Invita a tu equipo"
     },
