@@ -227,7 +227,11 @@ export class ClassSeriesController {
   @ApiQuery({ name: "status", required: false })
   @ApiQuery({ name: "styleId", required: false })
   @ApiQuery({ name: "levelId", required: false })
-  @ApiQuery({ name: "typeId", required: false })
+  @ApiQuery({
+    name: "typeId",
+    required: false,
+    description: "Multiselect - CSV de ClassType ids (OR).",
+  })
   @ApiQuery({ name: "page", required: false })
   @ApiQuery({ name: "pageSize", required: false })
   async list(
@@ -252,7 +256,19 @@ export class ClassSeriesController {
       ...(statusF ? { active: statusF === "active" } : {}),
       ...(styleId ? { styleId } : {}),
       ...(levelId ? { levelId } : {}),
-      ...(typeId ? { types: { some: { typeId } } } : {}),
+      // typeId es multiselect (CSV): la serie calza si tiene CUALQUIERA
+      // de las modalidades elegidas.
+      ...(typeId?.trim()
+        ? {
+            types: {
+              some: {
+                typeId: {
+                  in: typeId.split(",").map((v) => v.trim()).filter(Boolean),
+                },
+              },
+            },
+          }
+        : {}),
     };
     const [items, total] = await Promise.all([
       this.prisma.classSeries.findMany({

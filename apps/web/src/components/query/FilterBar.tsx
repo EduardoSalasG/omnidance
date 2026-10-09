@@ -192,7 +192,52 @@ export function FilterBar({
       )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {gridFilters.map((f) => (
+        {gridFilters.map((f) =>
+          f.multi ? (
+            /* Selección múltiple: chips toggle (aria-pressed) en vez de
+               select; el valor emite CSV en el mismo query param. */
+            <fieldset
+              key={f.key}
+              className="flex flex-col gap-1 col-span-2 sm:col-span-3"
+            >
+              <legend className="text-xs text-ink/50">
+                {labelFor(f.key)}
+                {f.scope ? " *" : ""}
+              </legend>
+              <div className="flex flex-wrap gap-1.5">
+                {optionsFor(f).map((o) => {
+                  const selected = (filters[f.key] ?? "")
+                    .split(",")
+                    .filter(Boolean);
+                  const active = selected.includes(o.value);
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setFilter(
+                          f.key,
+                          active
+                            ? selected
+                                .filter((v) => v !== o.value)
+                                .join(",")
+                            : [...selected, o.value].join(","),
+                        )
+                      }
+                      className={`min-h-11 rounded-xl border px-3 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon ${
+                        active
+                          ? "border-neon bg-neon/10 font-medium text-neon"
+                          : "border-line bg-elevated text-ink/70 hover:border-ink/30 hover:text-ink"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          ) : (
           <label key={f.key} className="flex flex-col gap-1">
             <span className="text-xs text-ink/50">
               {labelFor(f.key)}
@@ -226,7 +271,8 @@ export function FilterBar({
               />
             )}
           </label>
-        ))}
+          ),
+        )}
       </div>
 
       {hasFrom && hasTo && (

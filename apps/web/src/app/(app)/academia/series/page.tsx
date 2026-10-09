@@ -30,7 +30,7 @@ const SERIES_ENTITY: EntityDef = {
     { key: "status", type: "enum", options: ["active", "inactive"] },
     { key: "styleId", type: "fk", source: "styles" },
     { key: "levelId", type: "fk", source: "levels" },
-    { key: "typeId", type: "fk", source: "classTypes" },
+    { key: "typeId", type: "fk", source: "classTypes", multi: true },
   ],
   columns: [],
 };

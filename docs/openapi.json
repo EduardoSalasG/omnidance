@@ -5618,6 +5618,7 @@
             "name": "typeId",
             "required": false,
             "in": "query",
+            "description": "Multiselect - CSV de ClassType ids (OR).",
             "schema": {
               "type": "string"
             }
