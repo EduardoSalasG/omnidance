@@ -770,6 +770,7 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     producerParams: useTranslations("producerParams"),
     analytics: useTranslations("analytics"),
     query: useTranslations("query"),
+    crm: useTranslations("crm"),
   } as const;
   // null = sin sesión (o fetch aún no responde con certeza) → sin badge.
   const [unread, setUnread] = useState<number | null>(null);
@@ -1092,6 +1093,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // navEntries.
   const LABEL_OVERRIDES: [string, string][] = [
     ["/academia/series/nueva", nsT.academySeries("newTitle")],
+    // Subsecciones del CRM: el appbar nombra la sección activa en vez
+    // del "CRM" genérico del nav entry raíz.
+    ["/crm/campanas", nsT.crm("campaigns.title")],
+    ["/crm/triggers", nsT.crm("triggers.title")],
   ];
   const pageLabel =
     LABEL_OVERRIDES.find(

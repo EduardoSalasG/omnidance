@@ -9526,6 +9526,78 @@
                   "disabled": true
                 },
                 {
+                  "key": "sort",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/crm/people/{personId}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/people/{personId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "people",
+                "{personId}"
+              ],
+              "variable": [
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": [
+                {
+                  "key": "actorType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "actorId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "segment",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tag",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
+                  "value": "",
+                  "disabled": true
+                },
+                {
                   "key": "page",
                   "value": "",
                   "disabled": true
@@ -9706,6 +9778,11 @@
                   "disabled": true
                 },
                 {
+                  "key": "sort",
+                  "value": "",
+                  "disabled": true
+                },
+                {
                   "key": "page",
                   "value": "",
                   "disabled": true
@@ -9780,6 +9857,32 @@
           }
         },
         {
+          "name": "GET /api/crm/campaigns/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crm/campaigns/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "crm",
+                "campaigns",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/crm/triggers",
           "request": {
             "method": "GET",
@@ -9818,6 +9921,11 @@
                 },
                 {
                   "key": "tag",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sort",
                   "value": "",
                   "disabled": true
                 },

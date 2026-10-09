@@ -44,7 +44,13 @@
       "deleteTag": "Quitar tag {tag}",
       "prev": "Anterior",
       "next": "Siguiente",
-      "page": "Página {page} de {pages}"
+      "page": "Página {page} de {pages}",
+      "sort": "Ordenar",
+      "sorts": {
+        "score_desc": "Mayor score",
+        "score_asc": "Menor score",
+        "name_asc": "Nombre A-Z"
+      }
     },
     "campaigns": {
       "title": "Campañas",
@@ -81,7 +87,6 @@
       },
       "send": "Enviar",
       "sending": "Enviando…",
-      "sendConfirm": "¿Enviar \"{name}\" a su audiencia? Es una acción masiva y no se puede deshacer.",
       "sentResult": "Enviada a {count} personas",
       "withCode": "Código creado: {code}",
       "created": "Campaña creada como borrador.",
@@ -95,7 +100,11 @@
         "SENT": "Enviada",
         "DONE": "Terminada",
         "CANCELLED": "Cancelada"
-      }
+      },
+      "notFound": "Campaña no encontrada o sin acceso.",
+      "createdAt": "Creada",
+      "sendTitle": "¿Enviar campaña?",
+      "sendDesc": "Es una acción masiva y no se puede deshacer."
     },
     "triggers": {
       "title": "Triggers automáticos",
@@ -124,7 +133,26 @@
         "REGULAR_NO_PRESALE": "Avisa a asistentes frecuentes sin preventa para el próximo evento (solo productores).",
         "ATTENDANCE_DROP": "Avisa a personas que recién empiezan a caer en inactividad."
       },
-      "cooldownShort": "Cooldown {days} d"
+      "cooldownShort": "Cooldown {days} d",
+      "notFound": "Trigger no encontrado."
+    },
+    "personDetail": {
+      "notFound": "Esta persona no está en el universo de este actor.",
+      "attendance": "Asistencias",
+      "spend": "Gasto total",
+      "referrals": "Referidos",
+      "firstAt": "Primera actividad",
+      "lastAt": "Última actividad",
+      "tags": "Tags",
+      "tagsEmpty": "Sin tags. Agrega el primero para organizar tu audiencia.",
+      "recent": "Actividad reciente",
+      "recentEmpty": "Sin actividad reciente en este universo.",
+      "types": {
+        "CHECKIN": "Check-in",
+        "PAYMENT": "Pago",
+        "ENROLLMENT": "Inscripción",
+        "ATTENDANCE": "Asistencia"
+      }
     }
   }
 }

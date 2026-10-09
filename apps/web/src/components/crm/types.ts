@@ -44,6 +44,39 @@ export type CrmPeoplePage = {
   allTags: string[];
 };
 
+/** Orden aceptado por GET /crm/people (default score_desc). */
+export const PEOPLE_SORTS = ["score_desc", "score_asc", "name_asc"] as const;
+export type PeopleSort = (typeof PEOPLE_SORTS)[number];
+
+// ─── Contacto (ficha) ───
+
+/** Item de actividad reciente de GET /crm/people/:personId. */
+export type CrmRecentItem = {
+  type: "CHECKIN" | "PAYMENT" | "ENROLLMENT" | "ATTENDANCE";
+  at: string;
+  label: string;
+  amount?: number;
+  status?: string;
+};
+
+/** Respuesta de GET /crm/people/:personId (spec crm-console-v1). */
+export type CrmPersonDetail = {
+  personId: string;
+  person: { id: string; name: string; photoUrl: string | null } | null;
+  score: number | null;
+  segment: string | null;
+  computedAt: string | null;
+  tags: CrmTag[];
+  activity: {
+    attendance: number;
+    spend: number;
+    referrals: number;
+    firstAt: string | null;
+    lastAt: string | null;
+  } | null;
+  recent: CrmRecentItem[];
+};
+
 // ─── Campaigns ───
 
 /** CampaignSegment del service - los criterios presentes se unen (OR).

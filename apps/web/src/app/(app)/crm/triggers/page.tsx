@@ -2,27 +2,24 @@
 
 import { useCallback, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui";
+import { Button, PlusIcon } from "@/components/ui";
 import {
   ActorPicker,
   CrmGateScreen,
   CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
-import { TriggerForm } from "@/components/crm/trigger-form";
 import { TriggerList } from "@/components/crm/trigger-list";
 import { ProPaywall } from "@/components/producer/pro-paywall";
-import type { CrmTrigger } from "@/components/crm/types";
-import { CRM_TRIGGER_KEYS, actorKey } from "@/components/crm/types";
+import { CRM_TRIGGER_KEYS } from "@/components/crm/types";
 
+// Listado de triggers del actor. El h1 lo provee el chrome; crear =
+// CTA → /crm/triggers/nuevo y editar → /crm/triggers/[id] (patrón de
+// consola - el form ya no vive inline).
 export default function CrmTriggersPage() {
   const t = useTranslations("crm");
-  const tc = useTranslations("common");
   const ctx = useCrmContext();
 
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<CrmTrigger | null>(null);
-  const [reloadSignal, setReloadSignal] = useState(0);
   const [existingKeys, setExistingKeys] = useState<string[]>([]);
 
   // Estable para no re-disparar el fetch de TriggerList en cada render.
@@ -34,7 +31,6 @@ export default function CrmTriggersPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
-      <h1 className="text-2xl font-bold">{t("triggers.title")}</h1>
       <CrmNav active="triggers" />
 
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
@@ -51,7 +47,7 @@ export default function CrmTriggersPage() {
           ) : (
             <>
               <div className="flex items-center justify-end gap-3">
-                {remaining <= 0 && !showForm && (
+                {remaining <= 0 && (
                   <p className="text-xs text-ink/50">
                     {t("triggers.allCreated")}
                   </p>
@@ -59,46 +55,18 @@ export default function CrmTriggersPage() {
                 {remaining > 0 && (
                   <Button
                     size="sm"
-                    variant={showForm && editing === null ? "ghost" : "secondary"}
-                    onClick={() => {
-                      setEditing(null);
-                      setShowForm((v) => !v);
-                    }}
+                    variant="secondary"
+                    href="/crm/triggers/nuevo"
                   >
-                    {showForm && editing === null
-                      ? tc("cancel")
-                      : `＋ ${t("triggers.new")}`}
+                    <PlusIcon className="h-4 w-4" /> {t("triggers.new")}
                   </Button>
                 )}
               </div>
 
-              {showForm && (
-                <TriggerForm
-                  // Remontar al cambiar de trigger para reiniciar el form.
-                  key={`${actorKey(ctx.actor)}:${editing?.id ?? "new"}`}
-                  actor={ctx.actor}
-                  existingKeys={existingKeys}
-                  editing={editing}
-                  onCancel={() => {
-                    setShowForm(false);
-                    setEditing(null);
-                  }}
-                  onSaved={() => {
-                    setShowForm(false);
-                    setEditing(null);
-                    setReloadSignal((n) => n + 1);
-                  }}
-                />
-              )}
-
               <TriggerList
                 actor={ctx.actor}
-                reloadSignal={reloadSignal}
+                reloadSignal={0}
                 onLoaded={handleLoaded}
-                onEdit={(tr) => {
-                  setEditing(tr);
-                  setShowForm(true);
-                }}
               />
             </>
           )}

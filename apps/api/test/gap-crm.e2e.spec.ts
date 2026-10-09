@@ -486,6 +486,74 @@ describe("gap-closure: CRM transversal e2e", () => {
       expect(list[1].person).toHaveProperty("photoUrl");
       expect(list[1]).toHaveProperty("tags");
     });
+
+    it("sort=name_asc ordena por nombre de persona", async () => {
+      const res = await req(
+        "GET",
+        `/api/crm/people?${crmQuery()}&sort=name_asc`,
+        undefined,
+        sessionProducer,
+      );
+      expect(res.status).toBe(200);
+      const page = await res.json();
+      expect(page.items.map((r: { personId: string }) => r.personId)).toEqual([
+        ids.bringerId, // CRM Bringer
+        ids.coreId, // CRM Core
+        ids.inactiveId, // CRM Inactive
+        ids.newId, // CRM New
+      ]);
+    });
+  });
+
+  // ═══ FICHA DE CONTACTO (crm-console-v1) ═══
+  describe("GET /api/crm/people/:personId", () => {
+    it("ficha del actor: score, actividad y recientes con nombre de evento", async () => {
+      const res = await req(
+        "GET",
+        `/api/crm/people/${ids.coreId}?${crmQuery()}`,
+        undefined,
+        sessionProducer,
+      );
+      expect(res.status).toBe(200);
+      const d = await res.json();
+      expect(d.person).toMatchObject({ id: ids.coreId, name: "CRM Core" });
+      expect(d.score).toBeCloseTo(35);
+      expect(d.segment).toBe("CORE");
+      expect(d.activity).toMatchObject({
+        attendance: 3,
+        spend: 5000,
+        referrals: 0,
+      });
+      const types = d.recent.map((r: { type: string }) => r.type);
+      expect(types).toContain("CHECKIN");
+      expect(types).toContain("PAYMENT");
+      // La etiqueta es el nombre del evento del productor.
+      expect(
+        d.recent.some((r: { label: string }) =>
+          r.label.includes("CRM Evento"),
+        ),
+      ).toBe(true);
+    });
+
+    it("persona fuera del universo del actor → 404", async () => {
+      const res = await req(
+        "GET",
+        `/api/crm/people/${ids.dancerId}?${crmQuery()}`,
+        undefined,
+        sessionProducer,
+      );
+      expect(res.status).toBe(404);
+    });
+
+    it("actor ajeno al universo → 403", async () => {
+      const res = await req(
+        "GET",
+        `/api/crm/people/${ids.coreId}?${crmQuery()}`,
+        undefined,
+        sessionProducer2,
+      );
+      expect(res.status).toBe(403);
+    });
   });
 
   // ═══════════════════ CAMPAIGNS ═══════════════════
@@ -536,6 +604,47 @@ describe("gap-closure: CRM transversal e2e", () => {
         sessionProducer,
       );
       expect(resend.status).toBe(409);
+    });
+
+    it("GET /api/crm/campaigns/:id - dueño 200, actor ajeno 403, inexistente 404", async () => {
+      const create = await req(
+        "POST",
+        "/api/crm/campaigns",
+        {
+          actorType: "PRODUCER",
+          actorId: ids.producerId,
+          name: "Detalle campaña",
+          segment: { personIds: [ids.coreId] },
+          action: { type: "NOTIFY", title: "Hola" },
+        },
+        sessionProducer,
+      );
+      const campaign = await create.json();
+
+      const own = await req(
+        "GET",
+        `/api/crm/campaigns/${campaign.id}`,
+        undefined,
+        sessionProducer,
+      );
+      expect(own.status).toBe(200);
+      expect((await own.json()).name).toBe("Detalle campaña");
+
+      const alien = await req(
+        "GET",
+        `/api/crm/campaigns/${campaign.id}`,
+        undefined,
+        sessionProducer2,
+      );
+      expect(alien.status).toBe(403);
+
+      const missing = await req(
+        "GET",
+        "/api/crm/campaigns/campa-no-existe",
+        undefined,
+        sessionProducer,
+      );
+      expect(missing.status).toBe(404);
     });
 
     it("DISCOUNT_CODE: crea DiscountCode CAMPAIGN + notify con el código", async () => {
@@ -629,9 +738,9 @@ describe("gap-closure: CRM transversal e2e", () => {
       );
       expect(res.status).toBe(200);
       const page = await res.json();
-      expect(page.total).toBe(3);
+      expect(page.total).toBe(4);
       const list = page.items;
-      expect(list).toHaveLength(3);
+      expect(list).toHaveLength(4);
       expect(list[0].actorId).toBe(ids.producerId);
     });
 
