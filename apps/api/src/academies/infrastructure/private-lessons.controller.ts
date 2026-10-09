@@ -192,7 +192,7 @@ export class PrivateLessonsController {
           : {}),
       ...(range ? { createdAt: range } : {}),
     };
-    const [lessons, total] = await Promise.all([
+    const [lessons, total, toAssign, toConfirm] = await Promise.all([
       this.prisma.privateLesson.findMany({
         where,
         orderBy: { scheduledAt: "asc" },
@@ -200,6 +200,26 @@ export class PrivateLessonsController {
         take: pg.take,
       }),
       this.prisma.privateLesson.count({ where }),
+      // Conteos de la cola pendiente (REQUESTED) de TODA la academia -
+      // ignoran los filtros de la consulta: son los KPIs fijos del
+      // módulo, no del subconjunto filtrado. toAssign = comprada sin
+      // instructor o sin fecha; toConfirm = asignada y agendada,
+      // esperando el confirm del instructor/owner.
+      this.prisma.privateLesson.count({
+        where: {
+          academyId: id,
+          status: "REQUESTED",
+          OR: [{ instructorId: null }, { scheduledAt: null }],
+        },
+      }),
+      this.prisma.privateLesson.count({
+        where: {
+          academyId: id,
+          status: "REQUESTED",
+          instructorId: { not: null },
+          scheduledAt: { not: null },
+        },
+      }),
     ]);
     const people = await this.prisma.person.findMany({
       where: {
@@ -245,6 +265,7 @@ export class PrivateLessonsController {
       total,
       page: pg.page,
       pageSize: pg.pageSize,
+      pending: { toAssign, toConfirm },
     };
   }
 

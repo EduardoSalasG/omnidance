@@ -51,6 +51,29 @@ interface FakeLesson {
   createdAt: Date;
 }
 
+// Where del fake - cubre las formas que el controller usa: escalares,
+// `{not: null}`, `null` literal y OR anidado (conteos de la cola
+// pendiente: `OR: [{instructorId: null}, {scheduledAt: null}]`).
+interface FakeLessonWhere {
+  academyId?: string;
+  personId?: string;
+  instructorId?: string | { not: null } | null;
+  scheduledAt?: { not: null } | null;
+  status?: string;
+  commissionPct?: { gt: number };
+  commissionPaidAt?: { not: null } | null;
+  createdAt?: { gte?: Date; lte?: Date };
+  OR?: FakeLessonWhere[];
+}
+
+// escalar = igualdad; {not: null} = no nulo; null literal = es nulo.
+function matchesNullable<T>(value: T | null, f: T | { not: null } | null | undefined): boolean {
+  if (f === undefined) return true;
+  if (f === null) return value == null;
+  if (typeof f === "object" && "not" in f) return value != null;
+  return value === f;
+}
+
 class FakePrisma {
   academies: FakeAcademy[] = [];
   instructors: FakeInstructor[] = [];
@@ -182,75 +205,12 @@ class FakePrisma {
       Object.assign(l, data);
       return l;
     },
-    findMany: async ({
-      where,
-    }: {
-      where: {
-        academyId?: string;
-        personId?: string;
-        instructorId?: string;
-        status?: string;
-        commissionPct?: { gt: number };
-        commissionPaidAt?: { not: null } | null;
-        createdAt?: { gte?: Date; lte?: Date };
-      };
-      skip?: number;
-      take?: number;
-    }) => {
-      const rows = this.lessons.filter(
-        (l) =>
-          (where.academyId === undefined || l.academyId === where.academyId) &&
-          (where.personId === undefined || l.personId === where.personId) &&
-          (where.instructorId === undefined ||
-            l.instructorId === where.instructorId) &&
-          (where.status === undefined || l.status === where.status) &&
-          (where.commissionPct === undefined ||
-            l.commissionPct > where.commissionPct.gt) &&
-          (where.commissionPaidAt === undefined ||
-            (where.commissionPaidAt === null
-              ? l.commissionPaidAt == null
-              : l.commissionPaidAt != null)) &&
-          (where.createdAt === undefined ||
-            ((where.createdAt.gte === undefined ||
-              l.createdAt >= where.createdAt.gte) &&
-              (where.createdAt.lte === undefined ||
-                l.createdAt <= where.createdAt.lte))),
-      );
+    findMany: async ({ where }: { where: FakeLessonWhere }) => {
       // skip/take se ignoran: los fixtures son más chicos que una página.
-      return rows;
+      return this.lessons.filter((l) => this.matchLesson(l, where));
     },
-    count: async ({
-      where,
-    }: {
-      where: {
-        academyId?: string;
-        personId?: string;
-        instructorId?: string;
-        status?: string;
-        commissionPct?: { gt: number };
-        commissionPaidAt?: { not: null } | null;
-        createdAt?: { gte?: Date; lte?: Date };
-      };
-    }) =>
-      this.lessons.filter(
-        (l) =>
-          (where.academyId === undefined || l.academyId === where.academyId) &&
-          (where.personId === undefined || l.personId === where.personId) &&
-          (where.instructorId === undefined ||
-            l.instructorId === where.instructorId) &&
-          (where.status === undefined || l.status === where.status) &&
-          (where.commissionPct === undefined ||
-            l.commissionPct > where.commissionPct.gt) &&
-          (where.commissionPaidAt === undefined ||
-            (where.commissionPaidAt === null
-              ? l.commissionPaidAt == null
-              : l.commissionPaidAt != null)) &&
-          (where.createdAt === undefined ||
-            ((where.createdAt.gte === undefined ||
-              l.createdAt >= where.createdAt.gte) &&
-              (where.createdAt.lte === undefined ||
-                l.createdAt <= where.createdAt.lte))),
-      ).length,
+    count: async ({ where }: { where: FakeLessonWhere }) =>
+      this.lessons.filter((l) => this.matchLesson(l, where)).length,
   };
 
   person = {
@@ -279,6 +239,31 @@ class FakePrisma {
   enrollment = { count: async () => 0 };
   membershipPlan = { count: async () => 0 };
   classSlot = { count: async () => 0 };
+
+  private matchLesson(l: FakeLesson, where: FakeLessonWhere): boolean {
+    const base =
+      (where.academyId === undefined || l.academyId === where.academyId) &&
+      (where.personId === undefined || l.personId === where.personId) &&
+      matchesNullable(l.instructorId, where.instructorId) &&
+      matchesNullable(l.scheduledAt, where.scheduledAt) &&
+      (where.status === undefined || l.status === where.status) &&
+      (where.commissionPct === undefined ||
+        l.commissionPct > where.commissionPct.gt) &&
+      (where.commissionPaidAt === undefined ||
+        (where.commissionPaidAt === null
+          ? l.commissionPaidAt == null
+          : l.commissionPaidAt != null)) &&
+      (where.createdAt === undefined ||
+        ((where.createdAt.gte === undefined ||
+          l.createdAt >= where.createdAt.gte) &&
+          (where.createdAt.lte === undefined ||
+            l.createdAt <= where.createdAt.lte)));
+    return (
+      base &&
+      (where.OR === undefined ||
+        where.OR.some((w) => this.matchLesson(l, w)))
+    );
+  }
 }
 
 const reqAs = (personId: string, roles: string[] = []) =>
@@ -972,5 +957,27 @@ describe("list staff - filtros del contrato compartido", () => {
         "no-es-fecha",
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("pending cuenta la cola REQUESTED (por asignar / por confirmar) sin importar el filtro", async () => {
+    // REQUESTED asignada+agendada: espera confirm (les-req queda como
+    // por asignar: sin instructor ni fecha).
+    prisma.lessons.push({
+      id: "les-req-ok",
+      academyId: "ac-1",
+      instructorId: "inst",
+      personId: "alumno",
+      scheduledAt: new Date(),
+      price: 40000,
+      commissionPct: 0,
+      status: "REQUESTED",
+      createdAt: new Date("2026-03-20T12:00:00Z"),
+    });
+    const res = await lessons.list("ac-1", reqAs("owner"));
+    expect(res.pending).toEqual({ toAssign: 1, toConfirm: 1 });
+    // Los KPIs de la cola son de la academia entera: un filtro activo
+    // (status=DONE) no los altera.
+    const done = await lessons.list("ac-1", reqAs("owner"), "DONE");
+    expect(done.pending).toEqual({ toAssign: 1, toConfirm: 1 });
   });
 });

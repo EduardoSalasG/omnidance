@@ -31,6 +31,12 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   day: "numeric",
   month: "short",
 });
+const lessonWhenFmt = new Intl.DateTimeFormat("es-CL", {
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 const listCls = "flex flex-col divide-y divide-line";
 const rowLinkCls =
@@ -87,6 +93,7 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
   const expiringLater = expiring.length - expiringToday.length - expiringWeek.length;
 
   const pendingClaims = dashboard?.pendingClaims;
+  const pendingLessons = dashboard?.pendingLessons;
   const birthdays = dashboard?.upcomingBirthdays ?? [];
 
   return (
@@ -284,6 +291,64 @@ export function AcademyDashboard({ academy }: { academy: Academy }) {
                         className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
                       >
                         {t("insights.seeAll", { count: pendingClaims.count })}
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              </Card>
+            </section>
+          )}
+
+          {/* Particulares REQUESTED esperando asignación o confirmación -
+              segunda cola operativa del home; cada fila navega al módulo
+              (no hay ficha por lección - la acción vive en el card). */}
+          {pendingLessons && pendingLessons.count > 0 && (
+            <section aria-label={t("insights.pendingLessonsTitle")}>
+              <div className="mb-3 flex items-baseline justify-between gap-3">
+                <h3 className={sectionTitleCls}>
+                  {t("insights.pendingLessonsTitle")}
+                </h3>
+              </div>
+              <Card padded={false}>
+                <ul className={listCls}>
+                  {pendingLessons.items.map((l) => (
+                    <li key={l.id}>
+                      <Link
+                        href="/academia/particulares"
+                        className={rowLinkCls}
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium">
+                            {l.personName ?? shortId(l.personId)}
+                          </span>
+                          <span className="block truncate text-xs text-ink/50">
+                            {l.instructorName ??
+                              t("insights.lessonToAssign")}
+                          </span>
+                        </span>
+                        <span
+                          className={`shrink-0 text-xs tabular-nums ${
+                            l.scheduledAt ? "text-ink/70" : "text-warn"
+                          }`}
+                        >
+                          {l.scheduledAt
+                            ? lessonWhenFmt.format(
+                                new Date(l.scheduledAt),
+                              )
+                            : t("insights.lessonToSchedule")}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                  {pendingLessons.count > pendingLessons.items.length && (
+                    <li>
+                      <Link
+                        href="/academia/particulares"
+                        className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
+                      >
+                        {t("insights.seeAll", {
+                          count: pendingLessons.count,
+                        })}
                       </Link>
                     </li>
                   )}

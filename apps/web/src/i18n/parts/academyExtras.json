@@ -8,6 +8,9 @@
       "birthdaysTitle": "Próximos cumpleaños",
       "pendingClaimsTitle": "Cobros por revisar",
       "pendingClaimsSummary": "{count, plural, one {# cobro} other {# cobros}} · {amount}",
+      "pendingLessonsTitle": "Particulares por confirmar",
+      "lessonToAssign": "por asignar",
+      "lessonToSchedule": "por agendar",
       "seeAll": "Ver todos ({count})"
     },
     "planTypes": {
@@ -258,6 +261,8 @@
       "assigned": "Clase asignada.",
       "student": "Alumno/a",
       "empty": "Sin clases particulares en esta academia.",
+      "pendingTitle": "Pendientes por confirmar",
+      "pendingConfirm": "Por confirmar",
       "status": {
         "REQUESTED": "Solicitada",
         "CONFIRMED": "Confirmada",

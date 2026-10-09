@@ -1754,6 +1754,8 @@ export class AcademiesController {
       weeklyClasses,
       pendingClaimsAgg,
       pendingClaimsRows,
+      pendingLessonsCount,
+      pendingLessonsRows,
       staffCount,
       instructorCount,
     ] =
@@ -1855,6 +1857,22 @@ export class AcademiesController {
           orderBy: { createdAt: "asc" },
           take: 5,
           select: { personId: true, amount: true, createdAt: true },
+        }),
+        // Particulares REQUESTED pendientes de confirmar (asignadas o
+        // no) - cola operativa del home junto a los cobros por revisar.
+        this.prisma.privateLesson.count({
+          where: { academyId: id, status: "REQUESTED" },
+        }),
+        this.prisma.privateLesson.findMany({
+          where: { academyId: id, status: "REQUESTED" },
+          orderBy: { createdAt: "asc" },
+          take: 5,
+          select: {
+            id: true,
+            personId: true,
+            instructorId: true,
+            scheduledAt: true,
+          },
         }),
         this.prisma.academyStaff.count({ where: { academyId: id } }),
         this.prisma.academyInstructor.count({ where: { academyId: id } }),
@@ -2020,6 +2038,9 @@ export class AcademiesController {
         ...enrollments.map((e) => e.personId),
         ...expiringRows.map((e) => e.personId),
         ...pendingClaimsRows.map((c) => c.personId),
+        ...pendingLessonsRows.flatMap((l) =>
+          l.instructorId ? [l.personId, l.instructorId] : [l.personId],
+        ),
       ]),
     ];
     const students = studentIds.length
@@ -2075,6 +2096,18 @@ export class AcademiesController {
           personName: studentById.get(c.personId)?.name ?? null,
           amount: c.amount,
           createdAt: c.createdAt,
+        })),
+      },
+      pendingLessons: {
+        count: pendingLessonsCount,
+        items: pendingLessonsRows.map((l) => ({
+          id: l.id,
+          personId: l.personId,
+          personName: studentById.get(l.personId)?.name ?? null,
+          scheduledAt: l.scheduledAt,
+          instructorName: l.instructorId
+            ? (studentById.get(l.instructorId)?.name ?? null)
+            : null,
         })),
       },
       teamCount: staffCount + instructorCount,
