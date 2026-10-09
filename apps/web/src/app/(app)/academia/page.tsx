@@ -4,8 +4,6 @@ import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
-import { AcademySettings } from "@/components/academy/academy-settings";
-import { AcademyProfile } from "@/components/academy/academy-profile";
 import { useAcademyAccess } from "@/components/academy/use-academy-access";
 import { ModuleCard, ModuleGrid } from "@/components/console/module-grid";
 
@@ -32,6 +30,7 @@ const MODULES = [
   { href: "/academia/cobros", key: "payments", cap: "payments" },
   { href: "/academia/equipo", key: "team", cap: "team" },
   { href: "/academia/importar", key: "import", capAny: ["students", "schedule"] },
+  { href: "/academia/configuracion", key: "config", cap: "profile" },
   // CRM con actorType=ACADEMY: sigue owner/ADMIN-only (requireAdminister
   // del backend - no es delegable por flags).
   { href: "/crm", key: "crm", ownerOnly: true },
@@ -121,10 +120,6 @@ function AcademyHub({
     <>
       {/* key por id: cambiar de academia remonta el resumen. */}
       <AcademyDashboard key={academy.id} academy={academy} />
-      {/* Settings (quórum default) y perfil público - capacidad profile;
-          el componente decide solo si no tiene acceso. */}
-      <AcademySettings academy={academy} />
-      <AcademyProfile academy={academy} />
       {showModuleGrid && (
         <ModuleGrid>
           {visible.map((m) => (
