@@ -38,6 +38,7 @@ export default function ProducerPage() {
             href="/productor/eventos"
             title={t("myEvents")}
             desc={t("navEventsDesc")}
+            dataTour="producer-events"
           />
           <ModuleCard
             href="/productor/codigos"
@@ -53,6 +54,7 @@ export default function ProducerPage() {
             href="/productor/pagos"
             title={t("payouts")}
             desc={t("navPayoutsDesc")}
+            dataTour="producer-payouts"
           />
           <ModuleCard
             href="/productor/comprobantes"
@@ -71,34 +73,29 @@ export default function ProducerPage() {
           />
         </ModuleGrid>
 
-        {/* Tour de primera visita - los targets viven en el chrome
-            (nav + menú), siempre presentes una vez pasa el gate. */}
+        {/* Tour de primera visita - los targets son las cards del hub
+            + el menú: presentes en mobile y desktop (el productor no
+            tiene tab bar; el chrome móvil quedó solo con el drawer). */}
         <OnboardingRunner
           tour="productor"
           steps={
             [
               {
-                element: "[data-tour='nav-create']",
+                element: "[data-tour='producer-events']",
                 title: tt("s1.title"),
                 description: tt("s1.desc"),
                 side: "top",
               },
               {
-                element: "[data-tour='nav-events']",
+                element: "[data-tour='producer-payouts']",
                 title: tt("s2.title"),
                 description: tt("s2.desc"),
                 side: "top",
               },
               {
-                element: "[data-tour='nav-payouts']",
+                element: "[data-tour='appbar-menu']",
                 title: tt("s3.title"),
                 description: tt("s3.desc"),
-                side: "top",
-              },
-              {
-                element: "[data-tour='appbar-menu']",
-                title: tt("s4.title"),
-                description: tt("s4.desc"),
                 side: "bottom",
               },
             ] satisfies TourStep[]

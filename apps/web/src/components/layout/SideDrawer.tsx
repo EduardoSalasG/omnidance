@@ -18,6 +18,11 @@ export type DrawerItem = {
 
 export type DrawerGroup = {
   label: string;
+  // bare = ítems sin header de sección (p.ej. "Inicio" suelto arriba).
+  bare?: boolean;
+  // mobileOnly = el padre lo filtra de la sidebar desktop (esos
+  // destinos ya viven en su grupo de tabs); aquí siempre se renderiza.
+  mobileOnly?: boolean;
   items: DrawerItem[];
 };
 
@@ -146,9 +151,11 @@ function DrawerGroupSection({
 }) {
   return (
     <li>
-      <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
-        {group.label}
-      </h3>
+      {!group.bare && (
+        <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
+          {group.label}
+        </h3>
+      )}
       <ul className="flex flex-col">
         {group.items.map((item) => (
           <li key={item.href}>
