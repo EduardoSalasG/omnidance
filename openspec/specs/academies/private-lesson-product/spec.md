@@ -29,17 +29,18 @@ particular (CLP), editable por owner/ADMIN vía `PATCH
 `PATCH /private-lessons/:id` SHALL aceptar `action="assign"` con
 `{instructorId, scheduledAt}`: solo owner/ADMIN, solo sobre lecciones en
 `REQUESTED`; valida que el instructor pertenezca a la academia (404 si no);
-setea instructor+fecha y transiciona a `CONFIRMED` **sin escribir
-`commissionPct`** (las lecciones nuevas nacen en 0 — la liquidación
-vigente es el acuerdo económico). SHALL notificar al alumno y al
-instructor asignado.
+setea instructor+fecha y transiciona a `CONFIRMED`, snapshotteando
+`commissionPct` cuando el acuerdo del instructor es `COMMISSION`
+(`commissionPct=0` en cualquier otro caso). SHALL notificar al alumno y
+al instructor asignado.
 
 #### Scenario: assign feliz
 
 - **WHEN** el owner asigna instructor de la academia y fecha a una lección
   REQUESTED pagada
 - **THEN** la lección queda CONFIRMED con `instructorId`, `scheduledAt` y
-  `commissionPct=0`; alumno e instructor son notificados.
+  el `commissionPct` del acuerdo (0 salvo COMMISSION); alumno e
+  instructor son notificados.
 
 #### Scenario: assign sobre lección no REQUESTED
 
