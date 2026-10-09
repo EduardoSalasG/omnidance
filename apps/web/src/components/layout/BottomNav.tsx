@@ -959,6 +959,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     "/inicio": "nav-home",
     "/eventos": "nav-events",
     "/perfil": "nav-profile",
+    // Anchors del tour del hub /academia (staff): sus tabs móviles no
+    // existen en ≥lg - la sidebar los replica para que el tour resuelva
+    // en desktop.
+    "/academia": "nav-academy",
+    "/academia/clases": "nav-classes",
   };
 
   // Sección "Cuenta": siempre al final del drawer/sidebar. Perfil para
@@ -984,9 +989,14 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // los grupos del rol activo + cuenta al final. Los hrefs que ya son
   // tab no se marcan activos en el drawer - salvo en consolas
   // drawer-only, donde el drawer ES la única navegación.
+  // El bailarín no usa drawer en <lg (spec dancer-navigation): su
+  // navegación móvil es tab bar + sheet del "+" - sin hamburguesa ni
+  // drawer, ni siquiera la sección Cuenta (Perfil ya es tab).
   const drawerGroups: DrawerGroup[] = !me
     ? [accountGroup]
-    : [
+    : activeRole === "DANCER"
+      ? []
+      : [
         ...roleDrawer.map((g) => ({
           label: labelFor(g.labelNs, g.labelKey),
           bare: g.bare,
@@ -1008,7 +1018,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
         accountGroup,
       ];
 
-  const hasDrawerItems = drawerGroups.some((g) => g.items.length > 0);
+  // `me` resuelto: sin sesión confirmada la hamburguesa no flashea
+  // mientras /me carga (mismo criterio que el tab bar con meChecked).
+  const hasDrawerItems =
+    me != null && drawerGroups.some((g) => g.items.length > 0);
   const roleLabel = tpr(`roleLabels.${activeRole}`);
 
   const allTabs = [...roleTabs, PROFILE_TAB];

@@ -1880,6 +1880,7 @@ export class AcademiesController {
       pendingLessonsRows,
       staffCount,
       instructorCount,
+      methodsCount,
     ] =
       await Promise.all([
         this.prisma.enrollment.findMany({
@@ -1998,6 +1999,11 @@ export class AcademiesController {
         }),
         this.prisma.academyStaff.count({ where: { academyId: id } }),
         this.prisma.academyInstructor.count({ where: { academyId: id } }),
+        // Medios de pago activos - insumo del paso "método de pago" del
+        // checklist de activación (owner-onboarding).
+        this.prisma.academyPaymentMethod.count({
+          where: { academyId: id, active: true },
+        }),
       ]);
 
     const classIds = today.map((c) => c.id);
@@ -2233,6 +2239,7 @@ export class AcademiesController {
         })),
       },
       teamCount: staffCount + instructorCount,
+      methodsCount,
       expiringEnrollments: expiringRows.map((e) => ({
         personId: e.personId,
         personName: studentById.get(e.personId)?.name ?? null,

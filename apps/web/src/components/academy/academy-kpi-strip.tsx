@@ -154,7 +154,7 @@ export function AcademyKpiCards({
   const visible = keys ? items.filter((k) => keys.includes(k.key)) : items;
 
   return (
-    <section aria-label={t("kpis.title")}>
+    <section aria-label={t("kpis.title")} data-tour="academy-kpis">
       {data === null ? (
         <ul
           aria-hidden="true"

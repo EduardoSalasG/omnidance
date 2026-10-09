@@ -165,6 +165,14 @@ function AcademyHub({
               description: tt("s3.desc"),
               side: "bottom",
             },
+            {
+              // En ≥lg la hamburguesa no existe - el paso de navegación
+              // apunta a la sidebar (mismo texto, anchor por viewport).
+              element: "[data-tour='app-sidebar']",
+              title: tt("s3.title"),
+              description: tt("s3.desc"),
+              side: "right",
+            },
           ] satisfies TourStep[]
         }
       />

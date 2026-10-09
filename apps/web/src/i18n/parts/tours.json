@@ -192,6 +192,36 @@
         "title": "Todos los módulos",
         "desc": "Horarios, particulares, series y videos también desde el menú lateral."
       }
+    },
+    "academiaOwner": {
+      "s1": {
+        "title": "Tu mes de un vistazo",
+        "desc": "Alumnos activos, planes vendibles, clases semanales, asistencia y facturado, con la comparativa contra el mes anterior."
+      },
+      "s2": {
+        "title": "Puesta en marcha",
+        "desc": "El checklist de activación: horario, plan, medio de pago, equipo y primer alumno. Desaparece solo cuando la academia queda lista."
+      },
+      "s3": {
+        "title": "La operación del día",
+        "desc": "Las clases de hoy con sus reservas y la asistencia marcada. Toca una clase para ver su roster."
+      },
+      "s4": {
+        "title": "Lo urgente",
+        "desc": "Comprobantes por validar y clases particulares por confirmar: la cola que conviene dejar en cero cada día."
+      },
+      "s5": {
+        "title": "Lo que viene",
+        "desc": "Planes por vencer y cumpleaños de tus alumnos: retener y celebrar también es operación."
+      },
+      "s6": {
+        "title": "Todos los módulos",
+        "desc": "Cobros, planes, equipo, configuración y analítica viven en el menú lateral: desde acá llegas a toda la consola."
+      },
+      "s7": {
+        "title": "La campana",
+        "desc": "Acá llegan los avisos: comprobantes nuevos, solicitudes y novedades de tu academia."
+      }
     }
   }
 }

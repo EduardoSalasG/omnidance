@@ -339,7 +339,7 @@ export function HomeHub() {
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
-  const tta = useTranslations("tours.academia");
+  const ttao = useTranslations("tours.academiaOwner");
   const ts = useTranslations("survey");
   const tcs = useTranslations("courseSurvey");
 
@@ -694,13 +694,76 @@ export function HomeHub() {
         // página aparte no tenía sentido.
         <AcademyGate>
           {({ academy }) => (
-            <AcademyDashboard
-              key={academy.id}
-              academy={academy}
-              // En el inicio las filas "por vencer" llevan a cobros
-              // (renovar/cobrar), no a la ficha del alumno.
-              expiringHref="/academia/cobros"
-            />
+            <>
+              <AcademyDashboard
+                key={academy.id}
+                academy={academy}
+                // En el inicio las filas "por vencer" llevan a cobros
+                // (renovar/cobrar), no a la ficha del alumno.
+                expiringHref="/academia/cobros"
+                setupChecklist
+              />
+              {/* Tour del owner: su consola ES el inicio. Clave propia
+                  (academia-owner) - la clave "academia" queda para el
+                  tour del hub de staff; un owner que también es staff
+                  en otra academia ve ambos. Se monta dentro del gate
+                  para que los anchors academy-* ya existan; los pasos
+                  de navegación cubren ambos chromes (hamburguesa <lg,
+                  sidebar ≥lg) y el runner conserva la visible. */}
+              <OnboardingRunner
+                tour="academia-owner"
+                steps={[
+                  {
+                    element: "[data-tour='academy-kpis']",
+                    title: ttao("s1.title"),
+                    description: ttao("s1.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='academy-checklist']",
+                    title: ttao("s2.title"),
+                    description: ttao("s2.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='academy-today']",
+                    title: ttao("s3.title"),
+                    description: ttao("s3.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='academy-pending']",
+                    title: ttao("s4.title"),
+                    description: ttao("s4.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='academy-alerts']",
+                    title: ttao("s5.title"),
+                    description: ttao("s5.desc"),
+                    side: "top",
+                  },
+                  {
+                    element: "[data-tour='appbar-menu']",
+                    title: ttao("s6.title"),
+                    description: ttao("s6.desc"),
+                    side: "bottom",
+                  },
+                  {
+                    element: "[data-tour='app-sidebar']",
+                    title: ttao("s6.title"),
+                    description: ttao("s6.desc"),
+                    side: "right",
+                  },
+                  {
+                    element: "[data-tour='appbar-bell']",
+                    title: ttao("s7.title"),
+                    description: ttao("s7.desc"),
+                    side: "bottom",
+                  },
+                ] satisfies TourStep[]}
+              />
+            </>
           )}
         </AcademyGate>
       ) : dancerSocial ? (
@@ -774,27 +837,8 @@ export function HomeHub() {
         </>
       )}
 
-      {/* Tour del owner: su consola ES el inicio - sin s1 (el tab
-          "Academia" ya no existe; el dashboard es esta pantalla). */}
-      {activeRole === "ACADEMY_OWNER" && (
-        <OnboardingRunner
-          tour="academia"
-          steps={[
-            {
-              element: "[data-tour='academy-kpi-avgAttendance']",
-              title: tta("s2.title"),
-              description: tta("s2.desc"),
-              side: "top",
-            },
-            {
-              element: "[data-tour='appbar-menu']",
-              title: tta("s3.title"),
-              description: tta("s3.desc"),
-              side: "bottom",
-            },
-          ] satisfies TourStep[]}
-        />
-      )}
+      {/* Tour del owner: montado dentro de AcademyGate (arriba) - los
+          anchors del dashboard solo existen tras resolver la academia. */}
 
       {/* Tour de primera visita - lente social del bailarín (los tabs
           referenciados son los de esa lente). */}
