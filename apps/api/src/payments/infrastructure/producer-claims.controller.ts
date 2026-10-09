@@ -38,6 +38,7 @@ import {
   PRODUCER_METHOD_TYPES,
 } from "./producer-claims.service";
 import { mimeForKey } from "../../storage/storage.service";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 
 class CreateMethodDto {
   @IsIn([...PRODUCER_METHOD_TYPES])
@@ -107,6 +108,14 @@ class ListClaimsQueryDto {
   @IsOptional()
   @IsISO8601()
   to?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  pageSize?: string;
 }
 
 /**
@@ -233,13 +242,17 @@ export class ProducerClaimsController {
   async listClaims(@Query() dto: ListClaimsQueryDto, @Req() req: Request) {
     const me = req.person!;
     await this.assertProducerOrAdmin(me.id, me.roles);
-    return {
-      claims: await this.claims.listClaims(me.id, {
+    const pg = pageParams(dto.page, dto.pageSize);
+    const res = await this.claims.listClaims(
+      me.id,
+      {
         status: dto.status,
         from: dto.from ? new Date(dto.from) : undefined,
         to: dto.to ? new Date(dto.to) : undefined,
-      }),
-    };
+      },
+      pg,
+    );
+    return { claims: res.items, total: res.total, page: pg.page, pageSize: pg.pageSize };
   }
 
   /** Stream autenticado del comprobante: comprador dueño, productor o admin. */

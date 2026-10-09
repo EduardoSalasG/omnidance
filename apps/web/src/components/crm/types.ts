@@ -22,8 +22,7 @@ export type CrmTag = {
   createdAt: string;
 };
 
-/** Fila de GET /crm/people (CrmPersonRow del service). Array plano, sin
- * paginación ni filtros server-side - se filtra/pagina en cliente. */
+/** Fila de GET /crm/people (CrmPersonRow del service). */
 export type CrmPersonRow = {
   personId: string;
   score: number | null;
@@ -31,6 +30,18 @@ export type CrmPersonRow = {
   computedAt: string | null;
   person: { id: string; name: string; photoUrl: string | null } | null;
   tags: CrmTag[];
+};
+
+/** Envelope paginado de GET /crm/people (spec academy-console-v3):
+ * segmentCounts/allTags describen el universo completo (stats + opciones),
+ * items es solo la página pedida. */
+export type CrmPeoplePage = {
+  items: CrmPersonRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  segmentCounts: Record<string, number>;
+  allTags: string[];
 };
 
 // ─── Campaigns ───

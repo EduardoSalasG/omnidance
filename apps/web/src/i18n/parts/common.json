@@ -2,6 +2,13 @@
   "common": {
     "newTab": "(abre en nueva pestaña)",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "pager": {
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "pageOf": "Página {page} de {pages}",
+      "results": "{count, plural, one {# resultado} other {# resultados}}",
+      "loadMore": "Cargar más"
+    }
   }
 }

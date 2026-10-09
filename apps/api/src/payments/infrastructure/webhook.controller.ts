@@ -16,9 +16,10 @@ import {
 } from "@nestjs/common";
 import { IsOptional, IsString } from "class-validator";
 import type { Request, Response } from "express";
-import type { Payment } from "@prisma/client";
+import { Prisma, type Payment } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "../../academies/infrastructure/academy-access.service";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import {
@@ -345,6 +346,8 @@ export class PaymentsController {
   async paymentsByAcademy(
     @Req() req: Request,
     @Param("academyId") academyId: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
   ) {
     // Capacidad payments (spec academy-staff-roles): owner, ADMIN o
     // staff con el flag. requireCapability ya resuelve 404/403.
@@ -369,16 +372,27 @@ export class PaymentsController {
       // PRIVATE: el refId codifica la academia misma (pvt_<academyId>_).
       { refId: { startsWith: `pvt_${academy.id}_` } },
     ];
-    const payments = await this.prisma.payment.findMany({
-      where: {
-        orderType: { in: ["MEMBERSHIP", "WORKSHOP", "PRIVATE"] },
-        OR: or,
-      },
-      orderBy: { createdAt: "desc" },
-      take: AUDIT_TAKE,
-      include: { _count: { select: { events: true } } },
-    });
-    return this.withContextNames(payments);
+    const pg = pageParams(page, pageSize, 200);
+    const where: Prisma.PaymentWhereInput = {
+      orderType: { in: ["MEMBERSHIP", "WORKSHOP", "PRIVATE"] },
+      OR: or,
+    };
+    const [payments, total] = await Promise.all([
+      this.prisma.payment.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: pg.skip,
+        take: pg.take,
+        include: { _count: { select: { events: true } } },
+      }),
+      this.prisma.payment.count({ where }),
+    ]);
+    return {
+      items: await this.withContextNames(payments),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**

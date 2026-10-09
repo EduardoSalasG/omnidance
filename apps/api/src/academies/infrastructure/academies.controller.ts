@@ -51,7 +51,7 @@ import {
   AllowSandbox,
   RequirePermissions,
 } from "../../common/rbac/roles.decorator";
-import { dayRange, whitelist } from "./list-filters";
+import { dayRange, pageParams, whitelist } from "./list-filters";
 
 const PLAN_TYPES: PlanType[] = [
   "MONTHLY",
@@ -784,7 +784,16 @@ export class AcademiesController {
       throw new NotFoundException("instructor no encontrado en la academia");
     }
     const data: Record<string, unknown> = {};
-    if (dto.commissionPct !== undefined) data.commissionPct = dto.commissionPct;
+    if (dto.commissionPct !== undefined) {
+      if (
+        !Number.isInteger(dto.commissionPct) ||
+        dto.commissionPct < 0 ||
+        dto.commissionPct > 100
+      ) {
+        throw new BadRequestException("commissionPct fuera de rango (0-100)");
+      }
+      data.commissionPct = dto.commissionPct;
+    }
     // Acuerdo económico: null explícito limpia el campo.
     if (dto.payType !== undefined) data.payType = dto.payType;
     if (dto.payAmount !== undefined) data.payAmount = dto.payAmount;
@@ -828,12 +837,15 @@ export class AcademiesController {
     @Query("q") q?: string,
     @Query("status") status?: string,
     @Query("sort") sort?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
   ) {
     await this.access.requireCapability(id, req.person!, "plans");
     // Filtros del contrato compartido (spec analytics/query-console):
     // q = nombre contiene (case-insensitive), status = active|inactive
     // (whitelist → 400). sort = name|price con sufijo -desc.
     const term = q?.trim();
+    const pg = pageParams(page, pageSize);
     const statusF = whitelist(status, ["active", "inactive"] as const, "status");
     const sortF = whitelist(
       sort,
@@ -848,21 +860,32 @@ export class AcademiesController {
           : sortF === "name-desc"
             ? [{ name: "desc" as const }]
             : [{ name: "asc" as const }];
-    const plans = await this.prisma.membershipPlan.findMany({
-      where: {
-        academyId: id,
-        ...(term ? { name: { contains: term, mode: "insensitive" } } : {}),
-        ...(statusF ? { active: statusF === "active" } : {}),
-      },
-      orderBy,
-      include: {
-        _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
-      },
-    });
-    return plans.map(({ _count, ...p }) => ({
-      ...p,
-      activeStudents: _count.enrollments,
-    }));
+    const where = {
+      academyId: id,
+      ...(term ? { name: { contains: term, mode: "insensitive" as const } } : {}),
+      ...(statusF ? { active: statusF === "active" } : {}),
+    };
+    const [plans, total] = await Promise.all([
+      this.prisma.membershipPlan.findMany({
+        where,
+        orderBy,
+        skip: pg.skip,
+        take: pg.take,
+        include: {
+          _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+        },
+      }),
+      this.prisma.membershipPlan.count({ where }),
+    ]);
+    return {
+      items: plans.map(({ _count, ...p }) => ({
+        ...p,
+        activeStudents: _count.enrollments,
+      })),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**
@@ -1437,10 +1460,13 @@ export class AcademiesController {
     @Query("planId") planId?: string,
     @Query("from") from?: string,
     @Query("to") to?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
   ) {
     await this.access.requireManage(id, req.person!);
     const statusF = whitelist(status, ENROLLMENT_STATUSES, "status");
     const range = dayRange(from, to);
+    const pg = pageParams(page, pageSize);
     const term = q?.trim() ?? "";
     // q filtra por nombre del alumno (personId es FK plana - join manual,
     // misma semántica que la entidad students del query engine).
@@ -1455,38 +1481,53 @@ export class AcademiesController {
     } else if (term) {
       personIdIn = [];
     }
-    const enrollments = await this.prisma.enrollment.findMany({
-      where: {
-        academyId: id,
-        ...(statusF ? { status: statusF } : {}),
-        ...(planId ? { planId } : {}),
-        ...(range ? { startedAt: range } : {}),
-        ...(personIdIn ? { personId: { in: personIdIn } } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        status: true,
-        startedAt: true,
-        endsAt: true,
-        personId: true,
-        plan: { select: { id: true, name: true } },
-      },
-    });
+    const where = {
+      academyId: id,
+      ...(statusF ? { status: statusF } : {}),
+      ...(planId ? { planId } : {}),
+      ...(range ? { startedAt: range } : {}),
+      ...(personIdIn ? { personId: { in: personIdIn } } : {}),
+    };
+    const [enrollments, total] = await Promise.all([
+      this.prisma.enrollment.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: pg.skip,
+        take: pg.take,
+        select: {
+          id: true,
+          status: true,
+          startedAt: true,
+          endsAt: true,
+          personId: true,
+          plan: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.enrollment.count({ where }),
+    ]);
     // Enrollment.personId es FK plana (sin relación en schema) - join manual.
     const people = await this.prisma.person.findMany({
       where: { id: { in: enrollments.map((e) => e.personId) } },
       select: { id: true, name: true, email: true },
     });
     const byId = new Map(people.map((p) => [p.id, p]));
-    return enrollments.map((e) => ({
-      id: e.id,
-      person: byId.get(e.personId) ?? { id: e.personId, name: null, email: null },
-      plan: e.plan,
-      status: e.status,
-      startsAt: e.startedAt,
-      endsAt: e.endsAt,
-    }));
+    return {
+      items: enrollments.map((e) => ({
+        id: e.id,
+        person: byId.get(e.personId) ?? {
+          id: e.personId,
+          name: null,
+          email: null,
+        },
+        plan: e.plan,
+        status: e.status,
+        startsAt: e.startedAt,
+        endsAt: e.endsAt,
+      })),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**

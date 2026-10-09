@@ -59,7 +59,12 @@ function mk(over: {
     deleteMethod: vi.fn(async () => ({ ok: true })),
     createClaim: vi.fn(async () => ({ id: "clm-1", status: "PENDING" })),
     listClaimsOfPayment: vi.fn(async () => []),
-    listClaims: vi.fn(async () => [{ id: "clm-1" }]),
+    listClaims: vi.fn(async () => ({
+      items: [{ id: "clm-1" }],
+      total: 1,
+      page: 1,
+      pageSize: 25,
+    })),
     approve: vi.fn(async () => ({ claim: { id: "clm-1" } })),
     reject: vi.fn(async () => ({ claim: { id: "clm-1" } })),
     loadClaimForReceipt: vi.fn(async () => over.claim),
@@ -119,22 +124,36 @@ describe("ProducerClaimsController — gate", () => {
       label: "Banco",
       details: { bank: "Estado" },
     });
-    await ctrl.listClaims({ status: "PENDING" }, req("me"));
-    expect(claims.listClaims).toHaveBeenCalledWith("me", {
-      status: "PENDING",
-      from: undefined,
-      to: undefined,
+    const out = await ctrl.listClaims({ status: "PENDING" }, req("me"));
+    expect(out).toEqual({
+      claims: [{ id: "clm-1" }],
+      total: 1,
+      page: 1,
+      pageSize: 25,
     });
+    expect(claims.listClaims).toHaveBeenCalledWith(
+      "me",
+      {
+        status: "PENDING",
+        from: undefined,
+        to: undefined,
+      },
+      expect.objectContaining({ page: 1, pageSize: 25 }),
+    );
     // Filtros opcionales del contrato compartido: from/to se parsean a Date.
     await ctrl.listClaims(
       { from: "2026-10-01", to: "2026-10-31" },
       req("me"),
     );
-    expect(claims.listClaims).toHaveBeenCalledWith("me", {
-      status: undefined,
-      from: new Date("2026-10-01"),
-      to: new Date("2026-10-31"),
-    });
+    expect(claims.listClaims).toHaveBeenCalledWith(
+      "me",
+      {
+        status: undefined,
+        from: new Date("2026-10-01"),
+        to: new Date("2026-10-31"),
+      },
+      expect.objectContaining({ page: 1 }),
+    );
     await ctrl.approve("clm-1", req("me"));
     expect(claims.approve).toHaveBeenCalledWith("me", "clm-1", "me");
     await ctrl.reject("clm-1", { note: "monto no calza" }, req("me"));

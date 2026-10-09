@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, Pager, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
@@ -32,6 +32,8 @@ function statusLabel(status: string): string {
 }
 
 type LoadState = "loading" | "ready" | "error";
+
+const PAGE_SIZE = 20;
 
 /**
  * PrivateLesson - espejo del schema + join manual del controller.
@@ -111,6 +113,8 @@ export function PrivateLessons({ academy }: Props) {
   const { me } = useMe();
 
   const [lessons, setLessons] = useState<PrivateLesson[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [staffState, setStaffState] = useState<LoadState>("loading");
   const [staffFilters, setStaffFilters] = useState<QueryFilters>({});
 
@@ -162,19 +166,25 @@ export function PrivateLessons({ academy }: Props) {
   const loadStaff = useCallback(async () => {
     setStaffState("loading");
     try {
+      const qs = filterQuery(staffFilters);
       const res = await apiFetch(
-        `/academies/${academy.id}/private-lessons${filterQuery(staffFilters)}`,
+        `/academies/${academy.id}/private-lessons${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
       );
       if (!res.ok) {
         setStaffState("error");
         return;
       }
-      setLessons((await res.json()) as PrivateLesson[]);
+      const data = (await res.json()) as {
+        items: PrivateLesson[];
+        total: number;
+      };
+      setLessons(data.items);
+      setTotal(data.total);
       setStaffState("ready");
     } catch {
       setStaffState("error");
     }
-  }, [academy, staffFilters]);
+  }, [academy, staffFilters, page]);
 
   useEffect(() => {
     void loadStaff();
@@ -309,7 +319,10 @@ export function PrivateLessons({ academy }: Props) {
           <FilterBar
             entity={LESSONS_ENTITY}
             filters={staffFilters}
-            onChange={setStaffFilters}
+            onChange={(f) => {
+              setStaffFilters(f);
+              setPage(1);
+            }}
             options={{ academyInstructors: instructorOptions }}
           />
           {staffState === "loading" && <SkeletonList items={2} lines={1} />}
@@ -514,6 +527,14 @@ export function PrivateLessons({ academy }: Props) {
                 })}
               </ul>
             ))}
+          {staffState === "ready" && lessons.length > 0 && (
+            <Pager
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={total}
+              onPage={setPage}
+            />
+          )}
       </section>
 
       <p role="status" aria-live="polite" className="text-sm text-neon">

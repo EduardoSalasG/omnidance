@@ -297,7 +297,20 @@ describe("gap-closure: CRM transversal e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: people } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: people } } });
+    // Las suites e2e comparten la DB: una notificación async (campaign
+    // send, notifySafe) puede aterrizar entre el cleanup y el delete de
+    // persons - retry re-limpiando notifications ante FK.
+    for (let i = 0; i < 4; i++) {
+      try {
+        await prisma.person.deleteMany({ where: { id: { in: people } } });
+        break;
+      } catch (e) {
+        if (i === 3) throw e;
+        await prisma.notification.deleteMany({
+          where: { personId: { in: people } },
+        });
+      }
+    }
     await app.close();
   });
 
@@ -468,7 +481,9 @@ describe("gap-closure: CRM transversal e2e", () => {
         sessionProducer,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const page = await res.json();
+      expect(page.total).toBe(4);
+      const list = page.items;
       expect(list).toHaveLength(4);
       expect(list.map((r: { personId: string }) => r.personId)).toEqual([
         ids.bringerId,
@@ -622,7 +637,9 @@ describe("gap-closure: CRM transversal e2e", () => {
         sessionProducer,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const page = await res.json();
+      expect(page.total).toBe(3);
+      const list = page.items;
       expect(list).toHaveLength(3);
       expect(list[0].actorId).toBe(ids.producerId);
     });
@@ -885,9 +902,16 @@ describe("gap-closure: CRM transversal e2e", () => {
       expect(res.status).toBe(200);
       expect((await res.json()).updated).toBe(1);
 
-      const list = await (
-        await req("GET", `/api/crm/people?${q}`, undefined, sessionAcademyOwner)
-      ).json();
+      const list = (
+        await (
+          await req(
+            "GET",
+            `/api/crm/people?${q}`,
+            undefined,
+            sessionAcademyOwner,
+          )
+        ).json()
+      ).items;
       expect(list).toHaveLength(1);
       expect(list[0].personId).toBe(ids.newId);
       expect(list[0].segment).toBe("NEW");

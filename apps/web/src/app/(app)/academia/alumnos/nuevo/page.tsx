@@ -59,14 +59,16 @@ function EnrollmentLoader({
     if (canAdminister !== true) return;
     let cancelled = false;
     setError(false);
-    apiFetch(`/academies/${academyId}/plans`)
+    apiFetch(`/academies/${academyId}/plans?pageSize=100`)
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
           setError(true);
           return;
         }
-        setPlans((await res.json()) as MembershipPlan[]);
+        setPlans(
+          ((await res.json()) as { items: MembershipPlan[] }).items,
+        );
       })
       .catch(() => {
         if (!cancelled) setError(true);

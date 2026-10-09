@@ -123,6 +123,8 @@ class FakePrisma {
         },
       }));
     },
+    count: async (args: { where: Row }) =>
+      this.payments.filter((p) => matchWhere(p, args.where)).length,
     findUnique: async ({ where }: { where: { id: string } }) =>
       this.payments.find((p) => p.id === where.id) ?? null,
     findFirst: async ({ where }: { where: Row }) =>
@@ -405,10 +407,9 @@ describe("PaymentsController - vistas de auditoría", () => {
 
   describe("paymentsByAcademy (GET /payments/by-academy/:academyId)", () => {
     it("owner ve MEMBERSHIP de sus planes + WORKSHOP de sus clases", async () => {
-      const rows = await ctrl.paymentsByAcademy(
-        req("u-owner", ["ACADEMY_OWNER"]),
-        "ac-1",
-      );
+      const rows = (
+        await ctrl.paymentsByAcademy(req("u-owner", ["ACADEMY_OWNER"]), "ac-1")
+      ).items;
       expect(rows.map((r) => r.id)).toEqual(["p-wks", "p-mem"]);
       const wks = rows.find((r) => r.id === "p-wks")!;
       expect(wks.seriesName).toBe("Taller Shines");
@@ -426,7 +427,7 @@ describe("PaymentsController - vistas de auditoría", () => {
     });
 
     it("admin.access ve cualquier academia", async () => {
-      const rows = await ctrl.paymentsByAcademy(req("adm", ["ADMIN"]), "ac-1");
+      const rows = (await ctrl.paymentsByAcademy(req("adm", ["ADMIN"]), "ac-1")).items;
       expect(rows.map((r) => r.id)).toEqual(["p-wks", "p-mem"]);
     });
 
@@ -439,7 +440,7 @@ describe("PaymentsController - vistas de auditoría", () => {
         req("u-owner", ["ACADEMY_OWNER"]),
         "ac-3",
       );
-      expect(rows).toEqual([]);
+      expect(rows.items).toEqual([]);
     });
   });
 

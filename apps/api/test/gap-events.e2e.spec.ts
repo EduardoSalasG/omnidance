@@ -251,7 +251,20 @@ describe("spec-gap-closure: events (ratings + reservas + sugerencias) e2e", () =
     await prisma.personRole.deleteMany({
       where: { personId: { in: peopleIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
+    // Las suites e2e comparten la DB: una notificación async puede
+    // aterrizar entre el cleanup y el delete de persons - retry
+    // re-limpiando notifications ante FK.
+    for (let i = 0; i < 4; i++) {
+      try {
+        await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
+        break;
+      } catch (e) {
+        if (i === 3) throw e;
+        await prisma.notification.deleteMany({
+          where: { personId: { in: peopleIds } },
+        });
+      }
+    }
     await app.close();
   });
 

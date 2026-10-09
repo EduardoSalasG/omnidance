@@ -34,7 +34,7 @@ import {
   CLAIM_METHOD_TYPES,
 } from "./academy-claims.service";
 import { mimeForKey } from "../../storage/storage.service";
-import { dayRange, whitelist } from "./list-filters";
+import { dayRange, pageParams, whitelist } from "./list-filters";
 
 // Whitelist del filtro `status` de la cola (spec analytics/query-console)
 // - ClaimStatus del schema, orden de la cola: accionable primero.
@@ -256,11 +256,18 @@ export class AcademyClaimsController {
     @Query("status") status: string | undefined,
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
+    @Query("page") page: string | undefined,
+    @Query("pageSize") pageSize: string | undefined,
     @Req() req: Request,
   ) {
     await this.access.requireCapability(id, req.person!, "payments");
     const statusF = whitelist(status, CLAIM_STATUSES, "status");
-    return this.claims.listClaims(id, statusF, dayRange(from, to));
+    return this.claims.listClaims(
+      id,
+      statusF,
+      dayRange(from, to),
+      pageParams(page, pageSize, 200),
+    );
   }
 
   /** Claims propios del alumno en esta academia. */

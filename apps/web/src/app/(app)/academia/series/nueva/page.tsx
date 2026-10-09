@@ -14,9 +14,8 @@ type LoadState = "loading" | "ready" | "notFound" | "error";
 
 /**
  * /academia/series/nueva - crear serie de clases; ?edit=<seriesId>
- * precarga la serie y hace PATCH (solo metadatos). No hay endpoint de
- * detalle individual: en modo edición se fetchea GET /academies/:id/series
- * y se busca por id.
+ * precarga la serie y hace PATCH (solo metadatos). En modo edición se
+ * fetchea el detalle GET /academies/:id/series/:seriesId.
  */
 function NuevaSerie() {
   const t = useTranslations("academySeries");
@@ -46,17 +45,15 @@ function SeriesFormLoader({ academyId }: { academyId: string }) {
     if (!editId) return;
     let cancelled = false;
     setState("loading");
-    apiFetch(`/academies/${academyId}/series`)
+    apiFetch(`/academies/${academyId}/series/${editId}`)
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
-          setState("error");
+          setState(res.status === 404 ? "notFound" : "error");
           return;
         }
-        const list = (await res.json()) as Series[];
-        const found = list.find((s) => s.id === editId) ?? null;
-        setSeries(found);
-        setState(found ? "ready" : "notFound");
+        setSeries((await res.json()) as Series);
+        setState("ready");
       })
       .catch(() => {
         if (!cancelled) setState("error");

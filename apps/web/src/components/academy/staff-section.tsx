@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Badge, Card, SkeletonList } from "@/components/ui";
+import { Badge, Card, Pager, SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import { filterQuery } from "./shared";
 import type { AcademyCap } from "./use-academy-access";
@@ -88,18 +88,27 @@ export function CapCheckbox({
  * permisos, su edición y la baja. El alta es el CTA único del header.
  * Gated por capacidad `team` en el backend.
  */
+const PAGE_SIZE = 20;
+
 export function StaffSection({ academyId }: { academyId: string }) {
   const t = useTranslations("academyStaff");
 
   const [rows, setRows] = useState<StaffRow[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<QueryFilters>({});
 
   const load = useCallback(async () => {
+    const qs = filterQuery(filters);
     const res = await apiFetch(
-      `/academies/${academyId}/staff${filterQuery(filters)}`,
+      `/academies/${academyId}/staff${qs}${qs ? "&" : "?"}page=${page}&pageSize=${PAGE_SIZE}`,
     ).catch(() => null);
-    setRows(res?.ok ? await res.json() : []);
-  }, [academyId, filters]);
+    const data = res?.ok
+      ? ((await res.json()) as { items: StaffRow[]; total: number })
+      : { items: [], total: 0 };
+    setRows(data.items);
+    setTotal(data.total);
+  }, [academyId, filters, page]);
 
   useEffect(() => {
     void load();
@@ -118,7 +127,10 @@ export function StaffSection({ academyId }: { academyId: string }) {
       <FilterBar
         entity={STAFF_ENTITY}
         filters={filters}
-        onChange={setFilters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
         options={{}}
       />
       {rows.length === 0 ? (
@@ -168,6 +180,14 @@ export function StaffSection({ academyId }: { academyId: string }) {
             );
           })}
         </ul>
+      )}
+      {rows.length > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+        />
       )}
     </Card>
   );

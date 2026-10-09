@@ -363,19 +363,26 @@ export class AcademyClaimsService {
     return claim;
   }
 
-  /** Cola de validación del owner, ordenada por antigüedad. */
-  listClaims(
+  /**
+   * Cola de validación del owner, ordenada por antigüedad. Paginada
+   * (spec academy-console-v3): responde {items,total,page,pageSize}.
+   */
+  async listClaims(
     academyId: string,
     status?: ClaimStatus,
     createdAt?: { gte?: Date; lte?: Date },
+    pg?: { page: number; pageSize: number; skip: number; take: number },
   ) {
-    return this.prisma.paymentClaim.findMany({
-      where: {
-        academyId,
-        ...(status ? { status } : {}),
-        ...(createdAt ? { createdAt } : {}),
-      },
-      orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+    const where = {
+      academyId,
+      ...(status ? { status } : {}),
+      ...(createdAt ? { createdAt } : {}),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.paymentClaim.findMany({
+        where,
+        orderBy: [{ status: "asc" }, { createdAt: "asc" }],
+        ...(pg ? { skip: pg.skip, take: pg.take } : {}),
       select: {
         id: true,
         amount: true,
@@ -395,7 +402,15 @@ export class AcademyClaimsService {
         person: { select: { id: true, name: true } },
         plan: { select: { id: true, name: true, type: true } },
       },
-    });
+      }),
+      this.prisma.paymentClaim.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      page: pg?.page ?? 1,
+      pageSize: pg?.pageSize ?? total,
+    };
   }
 
   /** Detalle de un claim de la cola (owner/staff con capacidad payments). */

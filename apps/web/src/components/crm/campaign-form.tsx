@@ -5,7 +5,12 @@ import { useTranslations } from "next-intl";
 import { ENROLLMENT_STATUSES } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { Button, Card, CheckIcon } from "@/components/ui";
-import type { CampaignSegment, CrmActor, CrmPersonRow } from "./types";
+import type {
+  CampaignSegment,
+  CrmActor,
+  CrmPeoplePage,
+  CrmPersonRow,
+} from "./types";
 import { SEGMENTS, actorBody, actorQuery } from "./types";
 
 const inputCls =
@@ -60,21 +65,18 @@ export function CampaignForm({
 
   const isAcademy = actor.actorType === "ACADEMY";
 
-  // Tags existentes del actor para sugerir audiencia (vienen en las rows);
-  // las mismas rows alimentan el picker de personas específicas.
+  // Tags existentes del actor para sugerir audiencia (vienen en el
+  // envelope); las rows alimentan el picker de personas específicas
+  // (acotado a 200 - criterio de audiencia, no listado).
   useEffect(() => {
     let cancelled = false;
-    void apiFetch(`/crm/people?${actorQuery(actor)}`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows) => {
+    void apiFetch(`/crm/people?${actorQuery(actor)}&pageSize=200`)
+      .then((r) => (r.ok ? r.json() : { items: [], allTags: [] }))
+      .then((data) => {
         if (cancelled) return;
-        const typed = rows as CrmPersonRow[];
-        setPeople(typed);
-        const set = new Set<string>();
-        for (const row of typed) {
-          for (const tg of row.tags) set.add(tg.tag);
-        }
-        setAvailableTags([...set].sort((a, b) => a.localeCompare(b, "es")));
+        const page = data as CrmPeoplePage;
+        setPeople(page.items);
+        setAvailableTags(page.allTags);
       })
       .catch(() => {});
     return () => {
@@ -86,18 +88,20 @@ export function CampaignForm({
   useEffect(() => {
     if (!isAcademy) return;
     let cancelled = false;
-    void apiFetch(`/academies/${actor.actorId}/plans`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows) => {
-        if (!cancelled) setPlans(rows as { id: string; name: string }[]);
+    void apiFetch(`/academies/${actor.actorId}/plans?pageSize=100`)
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((data) => {
+        if (!cancelled) {
+          setPlans(data.items as { id: string; name: string }[]);
+        }
       })
       .catch(() => {});
-    void apiFetch(`/academies/${actor.actorId}/series`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((rows) => {
+    void apiFetch(`/academies/${actor.actorId}/series?pageSize=100`)
+      .then((r) => (r.ok ? r.json() : { items: [] }))
+      .then((data) => {
         if (!cancelled) {
           setSeriesList(
-            rows as { id: string; name: string; month: string }[],
+            data.items as { id: string; name: string; month: string }[],
           );
         }
       })

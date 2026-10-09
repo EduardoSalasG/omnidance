@@ -45,17 +45,15 @@ function PlanFormLoader({ academyId }: { academyId: string }) {
     if (!editId) return;
     let cancelled = false;
     setState("loading");
-    apiFetch(`/academies/${academyId}/plans`)
+    apiFetch(`/academies/${academyId}/plans/${editId}`)
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
-          setState("error");
+          setState(res.status === 404 ? "notFound" : "error");
           return;
         }
-        const plans = (await res.json()) as MembershipPlan[];
-        const found = plans.find((p) => p.id === editId) ?? null;
-        setPlan(found);
-        setState(found ? "ready" : "notFound");
+        setPlan((await res.json()) as MembershipPlan);
+        setState("ready");
       })
       .catch(() => {
         if (!cancelled) setState("error");

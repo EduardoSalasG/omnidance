@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon } from "@/components/ui";
+import { Button, Card, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { PlansSection } from "@/components/academy/plans-section";
@@ -30,6 +30,8 @@ const PLANS_ENTITY: EntityDef = {
 };
 
 type SortKey = "name" | "name-desc" | "price" | "price-desc";
+
+const PAGE_SIZE = 12;
 
 /**
  * /academia/planes - membresías de la academia seleccionada.
@@ -65,6 +67,8 @@ function PlansModule({ academyId }: { academyId: string }) {
   const t = useTranslations("academy");
   const tc = useTranslations("common");
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [kpis, setKpis] = useState<PlansKpis | null>(null);
   const [error, setError] = useState(false);
   const [filters, setFilters] = useState<QueryFilters>({});
@@ -73,18 +77,24 @@ function PlansModule({ academyId }: { academyId: string }) {
   const reload = useCallback(async () => {
     setError(false);
     try {
+      const qs = filterQuery({ ...filters, sort });
       const res = await apiFetch(
-        `/academies/${academyId}/plans${filterQuery({ ...filters, sort })}`,
+        `/academies/${academyId}/plans${qs}&page=${page}&pageSize=${PAGE_SIZE}`,
       );
       if (!res.ok) {
         setError(true);
         return;
       }
-      setPlans((await res.json()) as MembershipPlan[]);
+      const data = (await res.json()) as {
+        items: MembershipPlan[];
+        total: number;
+      };
+      setPlans(data.items);
+      setTotal(data.total);
     } catch {
       setError(true);
     }
-  }, [academyId, filters, sort]);
+  }, [academyId, filters, sort, page]);
 
   useEffect(() => {
     void reload();
@@ -117,7 +127,10 @@ function PlansModule({ academyId }: { academyId: string }) {
       <FilterBar
         entity={PLANS_ENTITY}
         filters={filters}
-        onChange={setFilters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
         options={{}}
       />
       <label className="flex items-center gap-2 self-end text-xs text-ink/50">
@@ -125,7 +138,10 @@ function PlansModule({ academyId }: { academyId: string }) {
         <select
           className={inputCls}
           value={sort}
-          onChange={(e) => setSort(e.target.value as SortKey)}
+          onChange={(e) => {
+            setSort(e.target.value as SortKey);
+            setPage(1);
+          }}
         >
           <option value="name">{t("sortNameAsc")}</option>
           <option value="name-desc">{t("sortNameDesc")}</option>
@@ -134,6 +150,14 @@ function PlansModule({ academyId }: { academyId: string }) {
         </select>
       </label>
       {plans === null ? <SkeletonList /> : <PlansSection plans={plans} />}
+      {plans !== null && plans.length > 0 && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+        />
+      )}
     </div>
   );
 }

@@ -177,6 +177,40 @@ class FakePrisma {
         commissionPaidAt?: { not: null } | null;
         createdAt?: { gte?: Date; lte?: Date };
       };
+      skip?: number;
+      take?: number;
+    }) => {
+      const rows = this.lessons.filter(
+        (l) =>
+          (where.academyId === undefined || l.academyId === where.academyId) &&
+          (where.personId === undefined || l.personId === where.personId) &&
+          (where.instructorId === undefined ||
+            l.instructorId === where.instructorId) &&
+          (where.status === undefined || l.status === where.status) &&
+          (where.commissionPaidAt === undefined ||
+            (where.commissionPaidAt === null
+              ? l.commissionPaidAt == null
+              : l.commissionPaidAt != null)) &&
+          (where.createdAt === undefined ||
+            ((where.createdAt.gte === undefined ||
+              l.createdAt >= where.createdAt.gte) &&
+              (where.createdAt.lte === undefined ||
+                l.createdAt <= where.createdAt.lte))),
+      );
+      // skip/take se ignoran: los fixtures son más chicos que una página.
+      return rows;
+    },
+    count: async ({
+      where,
+    }: {
+      where: {
+        academyId?: string;
+        personId?: string;
+        instructorId?: string;
+        status?: string;
+        commissionPaidAt?: { not: null } | null;
+        createdAt?: { gte?: Date; lte?: Date };
+      };
     }) =>
       this.lessons.filter(
         (l) =>
@@ -194,7 +228,7 @@ class FakePrisma {
               l.createdAt >= where.createdAt.gte) &&
               (where.createdAt.lte === undefined ||
                 l.createdAt <= where.createdAt.lte))),
-      ),
+      ).length,
   };
 
   person = {
@@ -507,7 +541,7 @@ describe("private-lesson-product", () => {
   });
 
   it("list tolera instructorId/scheduledAt null (lección por asignar)", async () => {
-    const rows = await lessons.list("ac-1", reqAs("owner"));
+    const rows = (await lessons.list("ac-1", reqAs("owner"))).items;
     const pending = rows.find((l) => l.id === "les-p")!;
     expect(pending.instructor).toBeNull();
     expect(pending.scheduledAt).toBeNull();
@@ -637,7 +671,7 @@ describe("pay-commission - liquidación de la comisión", () => {
       (instRows[0] as { commissionPaidAt?: Date }).commissionPaidAt,
     ).toBeInstanceOf(Date);
 
-    const list = await lessons.list("ac-1", reqAs("owner"));
+    const list = (await lessons.list("ac-1", reqAs("owner"))).items;
     expect(
       (list[0] as { commissionPaidAt?: Date }).commissionPaidAt,
     ).toBeInstanceOf(Date);
@@ -795,16 +829,16 @@ describe("list staff - filtros del contrato compartido", () => {
   });
 
   it("sin params devuelve todo; status e instructorId filtran", async () => {
-    const all = await lessons.list("ac-1", reqAs("owner"));
+    const all = (await lessons.list("ac-1", reqAs("owner"))).items;
     expect(all).toHaveLength(3);
-    const done = await lessons.list("ac-1", reqAs("owner"), "DONE");
+    const done = (await lessons.list("ac-1", reqAs("owner"), "DONE")).items;
     expect(done.map((l) => l.id)).toEqual(["les-done"]);
-    const byInstructor = await lessons.list(
+    const byInstructor = (await lessons.list(
       "ac-1",
       reqAs("owner"),
       undefined,
       "inst",
-    );
+    )).items;
     expect(byInstructor.map((l) => l.id)).toEqual(["les-done", "les-conf"]);
   });
 
@@ -818,34 +852,34 @@ describe("list staff - filtros del contrato compartido", () => {
   });
 
   it("commission=paid/pending mapea a commissionPaidAt", async () => {
-    const paid = await lessons.list(
+    const paid = (await lessons.list(
       "ac-1",
       reqAs("owner"),
       undefined,
       undefined,
       "paid",
-    );
+    )).items;
     expect(paid.map((l) => l.id)).toEqual(["les-done"]);
-    const pending = await lessons.list(
+    const pending = (await lessons.list(
       "ac-1",
       reqAs("owner"),
       undefined,
       undefined,
       "pending",
-    );
+    )).items;
     expect(pending.map((l) => l.id)).toEqual(["les-conf", "les-req"]);
-    const todo = await lessons.list(
+    const todo = (await lessons.list(
       "ac-1",
       reqAs("owner"),
       undefined,
       undefined,
       "all",
-    );
+    )).items;
     expect(todo).toHaveLength(3);
   });
 
   it("from/to acotan createdAt por día inclusivo; fecha inválida → 400", async () => {
-    const feb = await lessons.list(
+    const feb = (await lessons.list(
       "ac-1",
       reqAs("owner"),
       undefined,
@@ -853,10 +887,10 @@ describe("list staff - filtros del contrato compartido", () => {
       undefined,
       "2026-02-01",
       "2026-02-28",
-    );
+    )).items;
     expect(feb.map((l) => l.id)).toEqual(["les-conf"]);
     // `to` del mismo día incluye createdAt a cualquier hora del día.
-    const mismoDia = await lessons.list(
+    const mismoDia = (await lessons.list(
       "ac-1",
       reqAs("owner"),
       undefined,
@@ -864,7 +898,7 @@ describe("list staff - filtros del contrato compartido", () => {
       undefined,
       "2026-02-10",
       "2026-02-10",
-    );
+    )).items;
     expect(mismoDia.map((l) => l.id)).toEqual(["les-conf"]);
     await expect(
       lessons.list(
