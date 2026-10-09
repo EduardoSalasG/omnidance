@@ -42,6 +42,7 @@ import {
   decodeSeriesPassRef,
   decodeTicketOrderRef,
 } from "../domain/order-ref";
+import { ApiQuery } from "@nestjs/swagger";
 
 const AUDIT_TAKE = 100;
 
@@ -122,6 +123,7 @@ export class PaymentsController {
    * que no calza → 404/400; un Payment de otra cuenta → 400.
    */
   @Post("webhook/:provider")
+  @ApiQuery({ name: "account", required: false })
   @HttpCode(200)
   async webhookByProvider(
     @Param("provider") provider: string,
@@ -342,6 +344,8 @@ export class PaymentsController {
    * con capacidad `payments` (spec academy-staff-roles).
    */
   @Get("by-academy/:academyId")
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   @UseGuards(SessionGuard)
   async paymentsByAcademy(
     @Req() req: Request,

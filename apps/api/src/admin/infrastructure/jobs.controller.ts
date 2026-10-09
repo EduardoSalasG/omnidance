@@ -15,6 +15,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { JobsService } from "../../jobs/jobs.service";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 class UpdateJobDto {
   @IsOptional()
@@ -35,6 +36,7 @@ class RunsQueryDto {
   @IsInt()
   @Min(1)
   @Max(200)
+  @ApiPropertyOptional()
   take?: number;
 }
 

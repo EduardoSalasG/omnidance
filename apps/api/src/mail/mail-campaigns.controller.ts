@@ -18,6 +18,7 @@ import {
   MailCampaignsService,
   type AudienceSpec,
 } from "./mail-campaigns.service";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 class AudienceDto {
   @IsIn([
@@ -29,6 +30,17 @@ class AudienceDto {
     "PLATFORM_SUB_EXPIRING",
     "CLAIMS_PENDING",
   ])
+  @ApiProperty({
+    enum: [
+      "ALL",
+      "ROLE",
+      "EVENT",
+      "ENROLLMENTS_EXPIRING",
+      "ENROLLMENTS_EXPIRED",
+      "PLATFORM_SUB_EXPIRING",
+      "CLAIMS_PENDING",
+    ],
+  })
   kind!:
     | "ALL"
     | "ROLE"
@@ -40,10 +52,12 @@ class AudienceDto {
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   roleKey?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   eventId?: string;
 
   /** Ventana en días para las audiencias de ciclo de vida (default 7). */
@@ -51,6 +65,7 @@ class AudienceDto {
   @IsInt()
   @Min(1)
   @Max(365)
+  @ApiPropertyOptional()
   days?: number;
 }
 

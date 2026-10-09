@@ -17,6 +17,7 @@ import { PrismaService } from "../../prisma.service";
 import { canManageAcademy } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
 import { pageParams } from "./list-filters";
+import { ApiQuery } from "@nestjs/swagger";
 
 class CreateVideoDto {
   /** Link externo (YouTube/Vimeo/Drive) - nunca self-host. */
@@ -82,6 +83,9 @@ export class VideosController {
   }
 
   @Get(":id/videos")
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "page", required: false })
+  @ApiQuery({ name: "pageSize", required: false })
   @UseGuards(SessionGuard)
   async list(
     @Param("id") id: string,

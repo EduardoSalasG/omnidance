@@ -471,6 +471,34 @@
                 "api",
                 "me",
                 "payouts"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "orderType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "channel",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -807,6 +835,19 @@
                 "api",
                 "admin",
                 "payouts"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "actorType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -893,6 +934,19 @@
                 "api",
                 "admin",
                 "users"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -1164,6 +1218,39 @@
                 "api",
                 "admin",
                 "audit"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "actor",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -1234,6 +1321,29 @@
                 "api",
                 "admin",
                 "billing"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "personId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -1398,7 +1508,113 @@
                   "value": ":entity"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "orderType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "intent",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "producerId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "venueId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "academyId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "styleId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "eventId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "personId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "endpoint",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "direction",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "ok",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "actor",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "correlationId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "actorType",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -1925,7 +2141,13 @@
                   "value": ":personId"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -2037,7 +2259,13 @@
                   "value": ":key"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "take",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -2106,6 +2334,29 @@
                 "admin",
                 "mail-campaigns",
                 "audience-count"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "kind",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "roleKey",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "eventId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "days",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -2510,6 +2761,44 @@
                 "api",
                 "events",
                 "mine"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -2562,7 +2851,48 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "channel",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "method",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "voided",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "listId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -2588,7 +2918,48 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "channel",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "method",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "voided",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "listId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -2615,7 +2986,48 @@
                   "value": ":seriesId"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "channel",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "method",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "voided",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "listId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -2642,7 +3054,48 @@
                   "value": ":seriesId"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "dataset",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "channel",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "method",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "voided",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "listId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -3272,7 +3725,28 @@
                   "value": ":eventId"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -3653,6 +4127,34 @@
                 "api",
                 "producer",
                 "claims"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -4723,7 +5225,13 @@
                   "value": ":provider"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "account",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -5280,6 +5788,49 @@
               "path": [
                 "api",
                 "discount-codes"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -7064,7 +7615,33 @@
                   "value": ":id"
                 }
               ],
-              "query": []
+              "query": [
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             }
           }
         },
@@ -8656,6 +9233,14 @@
                 "api",
                 "private-lessons",
                 "mine"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "as",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -8800,6 +9385,44 @@
                 "api",
                 "crm",
                 "people"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "actorType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "actorId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "segment",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tag",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -8942,6 +9565,44 @@
                 "api",
                 "crm",
                 "campaigns"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "actorType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "actorId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "segment",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tag",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }
@@ -9020,6 +9681,44 @@
                 "api",
                 "crm",
                 "triggers"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "actorType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "actorId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "segment",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tag",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             }
           }

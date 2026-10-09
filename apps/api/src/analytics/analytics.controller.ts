@@ -9,6 +9,7 @@ import {
 import type { Request } from "express";
 import { SessionGuard } from "../auth/infrastructure/session.guard";
 import { AnalyticsService } from "./analytics.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 /**
  * Métricas por lente de gestión (spec analytics): ADMIN/PRODUCER/
@@ -27,6 +28,7 @@ export class AnalyticsController {
   }
 
   @Get("summary")
+  @ApiQuery({ name: "role", required: false })
   async summary(@Req() req: Request, @Query("role") role?: string) {
     const result = await this.analytics.summaryFor(
       req.person!.id,

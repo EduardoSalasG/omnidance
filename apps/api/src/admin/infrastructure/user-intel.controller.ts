@@ -13,6 +13,7 @@ import { PrismaService } from "../../prisma.service";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { effectiveCapacity } from "../../academies/domain/academy.service";
+import { ApiProperty } from "@nestjs/swagger";
 
 const DAY_MS = 86_400_000;
 const ROLE_KEY = /^[A-Z0-9_]+$/;
@@ -25,6 +26,7 @@ class AnalyticsQueryDto {
   @IsString()
   @IsNotEmpty()
   @Matches(ROLE_KEY, { message: "rol inválido" })
+  @ApiProperty()
   role!: string;
 }
 

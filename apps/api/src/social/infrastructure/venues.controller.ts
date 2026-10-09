@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { EventStatus } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
+import { ApiQuery } from "@nestjs/swagger";
 
 /**
  * Directorio público de venues activos - el front lo usa para selects
@@ -45,6 +46,7 @@ export class VenuesController {
    * que el listado público de /events.
    */
   @Get(":id")
+  @ApiQuery({ name: "days", required: false })
   async detail(@Param("id") id: string, @Query("days") days?: string) {
     const horizonDays = Math.min(
       90,

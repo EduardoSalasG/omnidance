@@ -37,6 +37,7 @@ import type { ListedRedemption } from "../domain/ports";
 import { RolesGuard } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { pageParams } from "../../academies/infrastructure/list-filters";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 class CreateDiscountCodeDto {
   @IsString()
@@ -84,35 +85,43 @@ class CreateDiscountCodeDto {
 class ListDiscountCodesQueryDto {
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   eventId?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   seriesId?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(120)
+  @ApiPropertyOptional()
   q?: string;
 
   @IsOptional()
   @IsIn(["ACTIVE", "EXPIRED"])
+  @ApiPropertyOptional()
   status?: "ACTIVE" | "EXPIRED";
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   from?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   to?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   page?: string;
 
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   pageSize?: string;
 }
 

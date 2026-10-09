@@ -37,6 +37,7 @@ import {
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
 import { dateRange } from "../../query/entities/helpers";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 
 const ALL_STATUSES: RoleStatus[] = [
   "PENDING",
@@ -88,6 +89,7 @@ class UsersQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(120)
+  @ApiPropertyOptional()
   q?: string;
 
   // Filtro por rol (mismo param/semántica que la entidad `people` del
@@ -95,6 +97,7 @@ class UsersQueryDto {
   @IsOptional()
   @IsString()
   @Matches(ROLE_KEY, { message: "rol inválido" })
+  @ApiPropertyOptional()
   role?: string;
 }
 
@@ -107,29 +110,35 @@ class UsersQueryDto {
 class AuditQueryDto {
   @IsOptional()
   @IsString()
+  @ApiPropertyOptional()
   limit?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(120)
+  @ApiPropertyOptional()
   q?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(120)
+  @ApiPropertyOptional()
   type?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(120)
+  @ApiPropertyOptional()
   actor?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   from?: string;
 
   @IsOptional()
   @IsISO8601()
+  @ApiPropertyOptional()
   to?: string;
 }
 
