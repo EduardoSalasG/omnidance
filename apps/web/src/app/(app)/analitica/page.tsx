@@ -363,6 +363,19 @@ export default function AnaliticaPage() {
 
           {catalogPhase === "ready" && entities.length > 0 && (
             <>
+              {/* Consultas rápidas primero (expandible, cerrado por
+                  defecto) - encima de las entidades/filtros. */}
+              {role && isQueryRole(role) && (
+                <SavedQueries
+                  role={role}
+                  saved={saved}
+                  busyId={savedBusy}
+                  onSelect={applyParams}
+                  onRename={(id, name) => void renameSaved(id, name)}
+                  onDelete={(id) => void deleteSaved(id)}
+                />
+              )}
+
               <PillTabs
                 ariaLabel={t("entitiesLabel")}
                 active={entity ?? ""}
@@ -465,7 +478,8 @@ export default function AnaliticaPage() {
                 </>
               )}
 
-              {/* Guardar la consulta actual + lista sistema/propias. */}
+              {/* Guardar la consulta actual (las rápidas/propias van
+                  arriba de los filtros, en el bloque expandible). */}
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -486,17 +500,6 @@ export default function AnaliticaPage() {
                   {t("save")}
                 </Button>
               </div>
-
-              {role && isQueryRole(role) && (
-                <SavedQueries
-                  role={role}
-                  saved={saved}
-                  busyId={savedBusy}
-                  onSelect={applyParams}
-                  onRename={(id, name) => void renameSaved(id, name)}
-                  onDelete={(id) => void deleteSaved(id)}
-                />
-              )}
             </>
           )}
         </>

@@ -5,6 +5,7 @@ import { PaymentsModule } from "../src/payments/payments.module";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("checkout + payments e2e", () => {
   let app: INestApplication;
@@ -250,7 +251,7 @@ describe("checkout + payments e2e", () => {
     await prisma.notification.deleteMany({
       where: { personId: { in: [buyerId, otherId] } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: [buyerId, otherId] } } });
+    await deletePeople(prisma, [buyerId, otherId]);
     await app.close();
   });
 

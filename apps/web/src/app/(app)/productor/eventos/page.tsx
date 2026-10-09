@@ -12,6 +12,7 @@ import {
   Button,
   Card,
   EventDate,
+  Pager,
   RefreshIcon,
   SkeletonList,
 } from "@/components/ui";
@@ -87,6 +88,8 @@ function ProducerEvents() {
           ? "notProducer"
           : "ready";
   const [events, setEvents] = useState<EventListItem[] | null>(null);
+  const [eventsTotal, setEventsTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [eventsError, setEventsError] = useState(false);
   const [eventsNonce, setEventsNonce] = useState(0);
   const [filters, setFilters] = useState<QueryFilters>({});
@@ -100,15 +103,23 @@ function ProducerEvents() {
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch(`/events/mine${filtersParams(filters)}`)
+    const qs = filtersParams(filters);
+    apiFetch(
+      `/events/mine${qs}${qs ? "&" : "?"}page=${page}&pageSize=25`,
+    )
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
           setEventsError(true);
           return;
         }
+        const data = (await res.json()) as {
+          items: EventListItem[];
+          total: number;
+        };
         setEventsError(false);
-        setEvents((await res.json()) as EventListItem[]);
+        setEvents(data.items);
+        setEventsTotal(data.total);
       })
       .catch(() => {
         if (!cancelled) setEventsError(true);
@@ -116,12 +127,10 @@ function ProducerEvents() {
     return () => {
       cancelled = true;
     };
-  }, [eventsNonce, filters]);
+  }, [eventsNonce, filters, page]);
 
-  const mine = [...(events ?? [])].sort(
-    (a, b) =>
-      new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime(),
-  );
+  // El servidor ya ordena startsAt desc - solo unwrap.
+  const mine = events ?? [];
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
@@ -170,7 +179,10 @@ function ProducerEvents() {
           <FilterBar
             entity={EVENTS_ENTITY}
             filters={filters}
-            onChange={setFilters}
+            onChange={(f) => {
+              setFilters(f);
+              setPage(1);
+            }}
             options={{}}
           />
           {eventsError && (
@@ -262,6 +274,14 @@ function ProducerEvents() {
                 </li>
               ))}
             </ul>
+          )}
+          {mine.length > 0 && (
+            <Pager
+              page={page}
+              pageSize={25}
+              total={eventsTotal}
+              onPage={setPage}
+            />
           )}
         </>
       )}

@@ -121,42 +121,8 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <FilterBar
-        entity={CLAIMS_ENTITY}
-        filters={filters}
-        onChange={(f) => {
-          setFilters(f);
-          setPage(1);
-        }}
-        options={{}}
-      />
-      {filtered && claims.length > 0 && (
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {claims.map((c) => (
-            <li key={c.id}>
-              <Link
-                href={`/academia/cobros/claim/${c.id}`}
-                className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
-              >
-                <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="font-semibold">{c.person.name}</span>
-                    <span className="text-ink/60">
-                      {c.plan?.name ?? c.methodLabel} · {clp.format(c.amount)}
-                    </span>
-                    <span className="ml-auto text-xs text-ink/40">
-                      {claimDateFmt.format(new Date(c.createdAt))}
-                    </span>
-                  </div>
-                  {c.note && (
-                    <p className="text-xs italic text-ink/50">“{c.note}”</p>
-                  )}
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* La cola accionable va primero; los filtros (búsqueda en el
+          historial de claims) quedan debajo de "Pagos por validar". */}
       {pending.length > 0 && !filtered && (
         <Card className="flex flex-col gap-4">
           <div>
@@ -224,6 +190,42 @@ export function ClaimsQueue({ academyId }: { academyId: string }) {
         </Card>
       )}
 
+      <FilterBar
+        entity={CLAIMS_ENTITY}
+        filters={filters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
+        options={{}}
+      />
+      {filtered && claims.length > 0 && (
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {claims.map((c) => (
+            <li key={c.id}>
+              <Link
+                href={`/academia/cobros/claim/${c.id}`}
+                className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+              >
+                <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="font-semibold">{c.person.name}</span>
+                    <span className="text-ink/60">
+                      {c.plan?.name ?? c.methodLabel} · {clp.format(c.amount)}
+                    </span>
+                    <span className="ml-auto text-xs text-ink/40">
+                      {claimDateFmt.format(new Date(c.createdAt))}
+                    </span>
+                  </div>
+                  {c.note && (
+                    <p className="text-xs italic text-ink/50">“{c.note}”</p>
+                  )}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       {filtered && (
         <Pager
           page={page}

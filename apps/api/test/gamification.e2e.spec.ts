@@ -5,6 +5,7 @@ import { GamificationModule } from "../src/gamification/gamification.module";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("gamification e2e", () => {
   let app: INestApplication;
@@ -426,7 +427,7 @@ describe("gamification e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: personIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: personIds } } });
+    await deletePeople(prisma, personIds);
     await app.close();
   });
 

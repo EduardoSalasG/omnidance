@@ -428,13 +428,29 @@ export class AcademyClaimsService {
         createdAt: true,
         reviewedAt: true,
         receiptKey: true,
+        paymentId: true,
+        enrollmentId: true,
         reviewedBy: { select: { id: true, name: true } },
         person: { select: { id: true, name: true } },
         plan: { select: { id: true, name: true, type: true, price: true } },
       },
     });
     if (!claim) throw new NotFoundException("comprobante no encontrado");
-    return claim;
+    // El pago MANUAL creado al aprobar: su refId es la "transacción" del
+    // cobro en el detalle (claim-<claimId>).
+    const payment = claim.paymentId
+      ? await this.prisma.payment.findUnique({
+          where: { id: claim.paymentId },
+          select: {
+            id: true,
+            refId: true,
+            status: true,
+            channel: true,
+            createdAt: true,
+          },
+        })
+      : null;
+    return { ...claim, payment };
   }
 
   listMyClaims(academyId: string, personId: string) {

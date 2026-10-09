@@ -265,8 +265,6 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         "instructor",
         "agendada",
         "precio",
-        "comision_pct",
-        "comision_pagada",
         "estado",
       ],
     },

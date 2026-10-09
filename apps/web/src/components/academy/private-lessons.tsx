@@ -101,8 +101,9 @@ function shortId(id: string) {
  * Clases particulares 1:1 - vista staff de la consola (/academia/
  * particulares): solo solicitudes + agendamiento. PATCH
  * /private-lessons/:id {action} - assign (owner: instructor+fecha a las
- * compradas "por asignar"), confirm/done/reschedule para instructor de
- * la clase u owner(ADMIN); cancel para alumno u owner.
+ * compradas "por asignar"), confirm/reschedule para instructor de
+ * la clase u owner(ADMIN); done solo el instructor (la asistencia la
+ * marca quien la dictó, no el owner); cancel para alumno u owner.
  * La vista alumno NO vive acá: sus particulares aparecen en reservadas
  * de /clases (particulares-en-reservadas).
  */
@@ -274,7 +275,9 @@ export function PrivateLessons({ academy }: Props) {
   /**
    * Matriz de acciones del controller:
    * assign → solo owner(ADMIN), sobre REQUESTED sin instructor/fecha.
-   * confirm/done/reschedule → instructor de la clase u owner(ADMIN).
+   * confirm/reschedule → instructor de la clase u owner(ADMIN).
+   * done → solo el instructor de la clase: la asistencia/la realizada la
+   * marca quien la dictó - el owner no la expone (backend: 403).
    * cancel → alumno (REQUESTED/CONFIRMED) u owner (cualquier no cancelada);
    * el instructor no cancela. En UI solo se ofrece cancelar estados activos.
    */
@@ -288,7 +291,7 @@ export function PrivateLessons({ academy }: Props) {
     return {
       assign: isOwner && l.status === "REQUESTED" && unassigned,
       confirm: (isOwner || isInstructor) && l.status === "REQUESTED" && !unassigned,
-      done: (isOwner || isInstructor) && l.status === "CONFIRMED",
+      done: isInstructor && l.status === "CONFIRMED",
       reschedule: (isOwner || isInstructor) && active && !!l.scheduledAt,
       cancel: active && (isOwner || isStudent),
     };

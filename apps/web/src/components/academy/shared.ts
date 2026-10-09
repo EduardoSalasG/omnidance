@@ -362,9 +362,23 @@ export type ClassRoster = {
 export type StudentProfile = {
   person: { id: string; name: string | null };
   plan: { name: string } | null;
+  /** Enrollment vigente (el editable desde la ficha). */
+  enrollmentId: string | null;
   enrollmentStatus: string;
   enrollmentStartedAt: string | null;
   enrollmentEndsAt: string | null;
+  /** true si el caller puede mutar el enrollment (capacidad students:
+      owner/ADMIN/staff) - el instructor solo lee. */
+  canEdit: boolean;
+  /** Historial de membresías pagadas (plan, inicio, fin) - todos los
+      enrollments de la persona en la academia, más reciente primero. */
+  enrollments: {
+    id: string;
+    status: string;
+    startedAt: string | null;
+    endsAt: string | null;
+    plan: { id: string; name: string; type: string; price: number } | null;
+  }[];
   // Score de relación academia↔alumno (CRM): privado por actor.
   score: number | null;
   segment: string | null;

@@ -16,6 +16,7 @@ import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
 import { canManageAcademy } from "../domain/academy.service";
 import { AcademyAccess } from "./academy-access.service";
+import { pageParams } from "./list-filters";
 
 class CreateVideoDto {
   /** Link externo (YouTube/Vimeo/Drive) - nunca self-host. */
@@ -86,25 +87,42 @@ export class VideosController {
     @Param("id") id: string,
     @Req() req: Request,
     @Query("q") q?: string,
+    @Query("page") page?: string,
+    @Query("pageSize") pageSize?: string,
   ) {
     const { ctx } = await this.access.loadContext(id);
     const me = req.person!;
 
     // Filtro del contrato compartido (spec analytics/query-console):
     // q = título contiene (case-insensitive), antes de la máscara locked.
+    // Paginación del contrato compartido: filtra primero, corta después.
     const term = q?.trim();
-    const videos = await this.prisma.video.findMany({
-      where: {
-        academyId: id,
-        ...(term
-          ? { title: { contains: term, mode: "insensitive" } }
-          : {}),
-      },
-      orderBy: { createdAt: "desc" },
+    const pg = pageParams(page, pageSize);
+    const where = {
+      academyId: id,
+      ...(term
+        ? { title: { contains: term, mode: "insensitive" as const } }
+        : {}),
+    };
+    const [videos, total] = await Promise.all([
+      this.prisma.video.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: pg.skip,
+        take: pg.take,
+      }),
+      this.prisma.video.count({ where }),
+    ]);
+
+    const envelope = (items: unknown[]) => ({
+      items,
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
     });
 
     if (canManageAcademy({ id: me.id, roles: me.roles }, ctx)) {
-      return videos; // staff ve todo con url
+      return envelope(videos); // staff ve todo con url
     }
 
     const classIds = [
@@ -128,20 +146,22 @@ export class VideosController {
     ]);
     const attended = new Set(attendances.map((a) => a.classId));
 
-    return videos.map((v) => {
-      if (!v.restrictedToAttended) return v;
-      const unlocked =
-        (v.classId !== null && attended.has(v.classId)) ||
-        activeEnrollment !== null;
-      if (unlocked) return { ...v, locked: false };
-      return {
-        id: v.id,
-        title: v.title,
-        classId: v.classId,
-        restrictedToAttended: true,
-        locked: true,
-      };
-    });
+    return envelope(
+      videos.map((v) => {
+        if (!v.restrictedToAttended) return v;
+        const unlocked =
+          (v.classId !== null && attended.has(v.classId)) ||
+          activeEnrollment !== null;
+        if (unlocked) return { ...v, locked: false };
+        return {
+          id: v.id,
+          title: v.title,
+          classId: v.classId,
+          restrictedToAttended: true,
+          locked: true,
+        };
+      }),
+    );
   }
 
   @Delete(":id/videos/:videoId")

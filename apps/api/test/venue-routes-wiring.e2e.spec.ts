@@ -4,6 +4,7 @@ import { ValidationPipe, type INestApplication } from "@nestjs/common";
 import { SocialModule } from "../src/social/social.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 /**
  * venue-routes-wiring - regresión de orden de controllers.
@@ -65,7 +66,7 @@ describe("venue routes wiring e2e", () => {
   afterAll(async () => {
     await prisma.venue.deleteMany({ where: { id: venueId } });
     await prisma.personRole.deleteMany({ where: { personId } });
-    await prisma.person.deleteMany({ where: { id: personId } });
+    await deletePeople(prisma, [personId]);
     await app.close();
   }, 30_000);
 

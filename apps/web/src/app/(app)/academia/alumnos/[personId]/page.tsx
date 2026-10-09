@@ -3,14 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, type BadgeVariant, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, type BadgeVariant, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import {
   classDayFmt,
+  ENROLLMENT_STATUSES,
+  fromDateInput,
+  inputCls,
   planDateFmt,
+  readError,
   shortId,
+  toDateInput,
   type Academy,
+  type EnrollmentStatus,
   type StudentProfile,
 } from "@/components/academy/shared";
 
@@ -79,6 +85,15 @@ function ProfileModule({
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [state, setState] = useState<LoadState>("loading");
 
+  // Edición del enrollment vigente - solo visible si el caller tiene la
+  // capacidad "students" (canEdit del endpoint: owner/ADMIN/staff; el
+  // instructor lee pero no muta).
+  const [statusDraft, setStatusDraft] = useState<EnrollmentStatus | "">("");
+  const [endsDraft, setEndsDraft] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedOk, setSavedOk] = useState(false);
+
   const load = useCallback(async () => {
     setState("loading");
     try {
@@ -95,7 +110,13 @@ function ProfileModule({
         setState("error");
         return;
       }
-      setProfile((await res.json()) as StudentProfile);
+      const data = (await res.json()) as StudentProfile;
+      setProfile(data);
+      // Drafts inicializados con los valores reales del enrollment.
+      setStatusDraft((data.enrollmentStatus as EnrollmentStatus) ?? "");
+      setEndsDraft(data.enrollmentEndsAt ? toDateInput(data.enrollmentEndsAt) : "");
+      setSaveError(null);
+      setSavedOk(false);
       setState("ready");
     } catch {
       setState("error");
@@ -133,9 +154,61 @@ function ProfileModule({
   const statusLabel = (s: string): string =>
     KNOWN_ENROLLMENT_STATUS.includes(s) ? t(`status.${s}`) : s;
 
+  // PATCH /enrollments/:id {status, endsAt} - las transiciones válidas
+  // las valida el server (400 → se muestra su message).
+  async function saveEnrollment() {
+    if (!profile?.enrollmentId || !statusDraft) return;
+    setSaving(true);
+    setSaveError(null);
+    setSavedOk(false);
+    try {
+      const res = await apiFetch(`/enrollments/${profile.enrollmentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: statusDraft,
+          endsAt: endsDraft ? fromDateInput(endsDraft) : null,
+        }),
+      });
+      if (!res.ok) {
+        setSaveError(
+          (await readError(res)) ?? tp("paymentSaveError"),
+        );
+        return;
+      }
+      // Refresca el header y la lista de pagos con el valor real.
+      const updated = (await res.json()) as {
+        status: EnrollmentStatus;
+        endsAt: string | null;
+      };
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              enrollmentStatus: updated.status,
+              enrollmentEndsAt: updated.endsAt,
+              enrollments: prev.enrollments.map((e) =>
+                e.id === prev.enrollmentId
+                  ? { ...e, status: updated.status, endsAt: updated.endsAt }
+                  : e,
+              ),
+            }
+          : prev,
+      );
+      setSavedOk(true);
+    } catch {
+      setSaveError(tp("paymentSaveError"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const canEdit = profile.canEdit && !!profile.enrollmentId;
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Encabezado: nombre + plan + estado del enrollment */}
+      {/* Encabezado: nombre + plan + estado/pagado-hasta (editable si el
+          caller tiene capacidad students; el instructor solo lee) */}
       <Card className="flex flex-col gap-2 p-4">
         <p className="text-lg font-semibold">
           {profile.person.name ?? shortId(profile.person.id)}
@@ -144,9 +217,6 @@ function ProfileModule({
           <span>
             {tp("plan")}: {profile.plan?.name ?? "·"}
           </span>
-          <Badge variant="outline">
-            {tp("enrollmentStatus")}: {statusLabel(profile.enrollmentStatus)}
-          </Badge>
           {/* Score de relación academia↔alumno (CRM): privado de la
               academia - solo se muestra en su consola. */}
           <Badge variant="muted">
@@ -156,16 +226,118 @@ function ProfileModule({
               : tp("scoreNone")}
           </Badge>
         </div>
-        {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
-          <p className="text-xs text-ink/50">
-            {profile.enrollmentStartedAt &&
-              `${tp("startsAt")}: ${planDateFmt.format(new Date(profile.enrollmentStartedAt))}`}
-            {profile.enrollmentStartedAt && profile.enrollmentEndsAt && " · "}
-            {profile.enrollmentEndsAt &&
-              `${tp("endsAt")}: ${planDateFmt.format(new Date(profile.enrollmentEndsAt))}`}
-          </p>
+        {canEdit ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+              <label className="flex flex-col gap-1 text-xs text-ink/60">
+                {tp("enrollmentStatus")}
+                <select
+                  aria-label={tp("enrollmentStatus")}
+                  className={`${inputCls} w-auto min-h-11`}
+                  value={statusDraft}
+                  disabled={saving}
+                  onChange={(e) =>
+                    setStatusDraft(e.target.value as EnrollmentStatus)
+                  }
+                >
+                  {ENROLLMENT_STATUSES.map((st) => (
+                    <option key={st} value={st}>
+                      {statusLabel(st)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-ink/60">
+                {tp("endsAt")}
+                <input
+                  type="date"
+                  aria-label={tp("endsAt")}
+                  className={`${inputCls} w-auto`}
+                  value={endsDraft}
+                  disabled={saving}
+                  onChange={(e) => setEndsDraft(e.target.value)}
+                />
+              </label>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={saving}
+                onClick={() => void saveEnrollment()}
+              >
+                {tc("save")}
+              </Button>
+            </div>
+            {saveError && (
+              <p role="alert" className="text-sm text-red-400">
+                {saveError}
+              </p>
+            )}
+            {savedOk && !saveError && (
+              <p role="status" className="text-sm text-neon">
+                {tp("paymentSaved")}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-ink/60">
+            <Badge variant="outline">
+              {tp("enrollmentStatus")}:{" "}
+              {statusLabel(profile.enrollmentStatus)}
+            </Badge>
+            {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
+              <p className="text-xs text-ink/50">
+                {profile.enrollmentStartedAt &&
+                  `${tp("startsAt")}: ${planDateFmt.format(new Date(profile.enrollmentStartedAt))}`}
+                {profile.enrollmentStartedAt &&
+                  profile.enrollmentEndsAt &&
+                  " · "}
+                {profile.enrollmentEndsAt &&
+                  `${tp("endsAt")}: ${planDateFmt.format(new Date(profile.enrollmentEndsAt))}`}
+              </p>
+            )}
+          </div>
         )}
       </Card>
+
+      {/* Pagos: historial de membresías pagadas (plan, inicio, fin) */}
+      <section aria-label={tp("payments")} className="flex flex-col gap-2">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {tp("payments")}
+        </h3>
+        {profile.enrollments.length === 0 ? (
+          <p className="text-sm text-ink/50">{tp("emptyPayments")}</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {profile.enrollments.map((e) => (
+              <li
+                key={e.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-line bg-elevated/60 px-4 py-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">
+                    {e.plan?.name ?? "·"}
+                  </p>
+                  <p className="text-xs text-ink/50 tabular-nums">
+                    {e.startedAt
+                      ? `${tp("startsAt")}: ${planDateFmt.format(new Date(e.startedAt))}`
+                      : ""}
+                    {e.startedAt && e.endsAt ? " · " : ""}
+                    {e.endsAt
+                      ? `${tp("endsAt")}: ${planDateFmt.format(new Date(e.endsAt))}`
+                      : ""}
+                  </p>
+                </div>
+                {e.plan && e.plan.price > 0 && (
+                  <PriceTag amount={e.plan.price} />
+                )}
+                <Badge variant={e.status === "ACTIVE" ? "neon" : "muted"}>
+                  {statusLabel(e.status)}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* Historial + próximas reservas: en desktop van a dos columnas
           (display:contents en móvil preserva el stack con gap-6 del

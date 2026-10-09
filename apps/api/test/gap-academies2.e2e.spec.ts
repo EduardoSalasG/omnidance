@@ -9,6 +9,7 @@ import { AcademyAccess } from "../src/academies/infrastructure/academy-access.se
 import { PrivateLessonsController } from "../src/academies/infrastructure/private-lessons.controller";
 import { VideosController } from "../src/academies/infrastructure/videos.controller";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 /**
  * Gap: clases privadas (PrivateLesson) y videos con acceso por asistencia
@@ -205,7 +206,7 @@ describe("academies gap: private lessons + videos e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: createdPersonIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: createdPersonIds } } });
+    await deletePeople(prisma, createdPersonIds);
     await prisma.academy.deleteMany({ where: { id: { in: academyIds } } });
     await app.close();
   });
@@ -417,6 +418,15 @@ describe("academies gap: private lessons + videos e2e", () => {
       expect(body.scheduledAt).toBe("2025-07-05T21:00:00.000Z");
     });
 
+    it("owner intenta marcar done → 403 (la realizada es del instructor)", async () => {
+      const res = await patch(
+        `/api/private-lessons/${ids.lessonId}`,
+        { action: "done" },
+        ownerSession,
+      );
+      expect(res.status).toBe(403);
+    });
+
     it("instructor marca done → 200 DONE", async () => {
       const res = await patch(
         `/api/private-lessons/${ids.lessonId}`,
@@ -605,7 +615,7 @@ describe("academies gap: private lessons + videos e2e", () => {
         ownerSession,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const list = (await res.json()).items;
       const restricted = list.find(
         (v: { id: string }) => v.id === ids.restrictedVideoId,
       );
@@ -618,7 +628,7 @@ describe("academies gap: private lessons + videos e2e", () => {
         studentSession,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const list = (await res.json()).items;
       const restricted = list.find(
         (v: { id: string }) => v.id === ids.restrictedVideoId,
       );
@@ -632,7 +642,7 @@ describe("academies gap: private lessons + videos e2e", () => {
         outsiderSession,
       );
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const list = (await res.json()).items;
       const restricted = list.find(
         (v: { id: string }) => v.id === ids.restrictedVideoId,
       );
@@ -659,9 +669,11 @@ describe("academies gap: private lessons + videos e2e", () => {
         ownerSession,
       );
       expect(res.status).toBe(200);
-      const list = await (
-        await get(`/api/academies/${ids.academyId}/videos`, ownerSession)
-      ).json();
+      const list = (
+        await (
+          await get(`/api/academies/${ids.academyId}/videos`, ownerSession)
+        ).json()
+      ).items;
       expect(
         list.some((v: { id: string }) => v.id === ids.openVideoId),
       ).toBe(false);

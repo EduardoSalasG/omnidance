@@ -8,6 +8,7 @@ import { PrismaService } from "../src/prisma.service";
 // Controller nuevo aún no registrado en SocialModule (wiring del padre
 // pendiente): se monta directo en el test module para cubrir el contrato.
 import { EventEntryPassesController } from "../src/social/infrastructure/entry-passes.controller";
+import { deletePeople } from "./helpers";
 
 const phone = () =>
   `010${String(Math.floor(Math.random() * 1e8)).padStart(8, "0")}`;
@@ -207,7 +208,7 @@ describe("gap-passes e2e (list pass / event passes)", () => {
     });
     await prisma.event.delete({ where: { id: ids.eventId } });
     await prisma.venue.delete({ where: { id: ids.venueId } });
-    await prisma.person.deleteMany({ where: { id: { in: people } } });
+    await deletePeople(prisma, people);
     await app.close();
   });
 

@@ -793,8 +793,12 @@ model AcademyInstructor {
   academy   Academy @relation(fields: [academyId], references: [id])
   academyId String
   personId  String // instructor puede estar en N academias
-  // % que retiene la academia sobre el price de cada PrivateLesson del
-  // instructor; snapshot a la lección al crearla (null/0 = sin comisión).
+  // LEGACY: % que retiene la academia sobre el price de cada
+  // PrivateLesson del instructor. Salió del producto: ya no se escribe
+  // por API/UI ni se snapshottea a lecciones nuevas; el valor persistido
+  // es solo histórico (lecciones antiguas aún pendientes de liquidar
+  // referencian el acuerdo de la época). El acuerdo económico vigente es
+  // payType/payAmount/payClasses de abajo.
   commissionPct Int?
   // Acuerdo económico general del profesor (spec academy-console-v3):
   // PER_CLASS = monto fijo por clase impartida; MONTHLY = monto mensual
@@ -1099,7 +1103,11 @@ model PrivateLesson {
   // null = pendiente de agendar (spec private-lesson-product)
   scheduledAt  DateTime?
   price        Int
-  commissionPct Int    @default(0) // comisión de la academia (snapshot al assign)
+  // LEGACY: comisión de la academia (snapshot al assign/create) - el
+  // modelo vigente es el acuerdo payType/payAmount/payClasses del
+  // AcademyInstructor; se conserva para historia (pay-commission aún
+  // liquida pendientes legacy).
+  commissionPct Int    @default(0)
   // Liquidación de la comisión academia→instructor: la plataforma no
   // transfiere - el owner marca commissionPaidAt cuando paga por fuera
   // (mismo criterio que Payout.evidenceUrl). null = pendiente.

@@ -136,9 +136,10 @@ export class PrivateLessonsController {
         personId: dto.personId ?? req.person!.id,
         scheduledAt: new Date(dto.scheduledAt),
         price: dto.price ?? 0,
-        // Snapshot de la comisión vigente del instructor - el owner
-        // puede cambiarla después sin retroactuar sobre esta clase.
-        commissionPct: instructor.commissionPct ?? 0,
+        // Las clases nuevas no llevan snapshot de comisión (default 0):
+        // el acuerdo económico del instructor vive en payType/payAmount/
+        // payClasses. commissionPct queda solo como dato histórico de
+        // lecciones antiguas (pay-commission las sigue liquidando).
         status: "REQUESTED",
       },
     });
@@ -174,10 +175,12 @@ export class PrivateLessonsController {
       academyId: id,
       ...(statusF ? { status: statusF } : {}),
       ...(instructorId ? { instructorId } : {}),
+      // "pending" = comisión histórica >0 aún no liquidada; las clases
+      // nuevas (commissionPct=0, acuerdo económico) no son pendientes.
       ...(commissionF === "paid"
-        ? { commissionPaidAt: { not: null } }
+        ? { commissionPct: { gt: 0 }, commissionPaidAt: { not: null } }
         : commissionF === "pending"
-          ? { commissionPaidAt: null }
+          ? { commissionPct: { gt: 0 }, commissionPaidAt: null }
           : {}),
       ...(range ? { createdAt: range } : {}),
     };
@@ -206,13 +209,15 @@ export class PrivateLessonsController {
     });
     const byId = new Map(people.map((p) => [p.id, p]));
 
-    // La comisión es del acuerdo academia↔instructor: owner/ADMIN la ven
-    // en todas las filas; un instructor solo en las suyas.
+    // La comisión es histórica: solo viaja en filas con commissionPct>0
+    // (lecciones del modelo legacy) y la ven owner/ADMIN o el instructor
+    // de la clase.
     const isAdmin = await roleKeysHavePermission(this.prisma, me.roles, [
       "admin.access",
     ]);
     const seesCommission = (l: (typeof lessons)[number]) =>
-      isAdmin || academy.ownerId === me.id || l.instructorId === me.id;
+      l.commissionPct > 0 &&
+      (isAdmin || academy.ownerId === me.id || l.instructorId === me.id);
 
     return {
       items: lessons.map((l) => {
@@ -237,7 +242,8 @@ export class PrivateLessonsController {
 
   /**
    * Mis clases privadas como instructor - agrega commissionClp/netClp
-   * calculados (la UI no hace aritmética de negocio). La vista del
+   * solo en lecciones históricas con comisión (la UI no hace aritmética
+   * de negocio). La vista del
    * alumno vive en /classes/mine (las particulares son una reserva
    * más) - este endpoint ya no expone la rama alumno: una sola fuente.
    */
@@ -263,10 +269,18 @@ export class PrivateLessonsController {
       : [];
     const byId = new Map(people.map((p) => [p.id, p]));
     return lessons.map((l) => {
-      const commissionClp = Math.round((l.price * l.commissionPct) / 100);
-      return {
+      const base = {
         ...l,
         person: byId.get(l.personId) ?? { id: l.personId, name: null },
+      };
+      // Solo el histórico lleva comisión: en clases nuevas (acuerdo
+      // económico) no existe neto calculable por este mecanismo y
+      // mostrar netClp=price sugeriría que el instructor cobra el
+      // precio completo.
+      if (l.commissionPct <= 0) return base;
+      const commissionClp = Math.round((l.price * l.commissionPct) / 100);
+      return {
+        ...base,
         commissionClp,
         netClp: l.price - commissionClp,
       };
@@ -338,7 +352,7 @@ export class PrivateLessonsController {
           })
         : null,
     };
-    if (isOwner || isInstructor) {
+    if ((isOwner || isInstructor) && lesson.commissionPct > 0) {
       return {
         ...base,
         commissionPct: lesson.commissionPct,
@@ -410,8 +424,14 @@ export class PrivateLessonsController {
         });
       }
       case "done": {
-        if (!isOwner && !isInstructor) {
-          throw new ForbiddenException("solo instructor u owner cierran");
+        // La clase realizada la marca solo el instructor que la dictó
+        // (la asistencia es del profesor, no del owner - misma regla
+        // que POST /classes/:id/attendance del instructor). ADMIN
+        // queda como escape hatch operativo.
+        if (!isInstructor && !isAdmin) {
+          throw new ForbiddenException(
+            "solo el instructor de la clase la marca realizada",
+          );
         }
         if (lesson.status !== "CONFIRMED") {
           throw new ConflictException(
@@ -494,7 +514,6 @@ export class PrivateLessonsController {
           data: {
             instructorId: instructor.personId,
             scheduledAt: new Date(dto.scheduledAt),
-            commissionPct: instructor.commissionPct ?? 0,
             status: "CONFIRMED",
           },
         });

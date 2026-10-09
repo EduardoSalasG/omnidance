@@ -147,7 +147,9 @@ function MyAcademyCard({ enrollment }: { enrollment: Enrollment }) {
   useEffect(() => {
     apiFetch(`/academies/${enrollment.academy.id}/videos`)
       .then(async (res) =>
-        res.ok ? ((await res.json()) as AcademyVideo[]) : [],
+        res.ok
+          ? (((await res.json()) as { items: AcademyVideo[] }).items ?? [])
+          : [],
       )
       .then(setVideos)
       .catch(() => setVideos([]));

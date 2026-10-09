@@ -42,6 +42,7 @@ import {
   roleKeysHavePermission,
 } from "../../common/rbac/roles.guard";
 import { RequirePermissions } from "../../common/rbac/roles.decorator";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 import { buildTablePdf } from "../../common/pdf-report";
 import { assertProducerPro } from "../../common/producer-pro";
 import {
@@ -107,6 +108,14 @@ class MineEventsQueryDto {
   @IsOptional()
   @IsISO8601()
   to?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  pageSize?: string;
 }
 
 class ScheduleBlockDto {
@@ -404,40 +413,52 @@ export class EventsController {
   @RequirePermissions("events.manage")
   async mine(@Req() req: Request, @Query() dto: MineEventsQueryDto) {
     const q = dto.q?.trim();
-    const events = await this.prisma.event.findMany({
-      where: {
-        producerId: req.person!.id,
-        ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
-        ...(dto.status ? { status: dto.status } : {}),
-        ...(dto.type ? { type: dto.type } : {}),
-        ...(dto.from || dto.to
-          ? {
-              startsAt: {
-                ...(dto.from ? { gte: new Date(dto.from) } : {}),
-                ...(dto.to ? { lte: new Date(dto.to) } : {}),
-              },
-            }
-          : {}),
-      },
-      orderBy: { startsAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        status: true,
-        startsAt: true,
-        endsAt: true,
-        presalePrice: true,
-        doorPrice: true,
-        series: { select: { id: true, name: true } },
-        venue: { select: { name: true, address: true } },
-      },
-    });
+    const pg = pageParams(dto.page, dto.pageSize);
+    const where: Prisma.EventWhereInput = {
+      producerId: req.person!.id,
+      ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+      ...(dto.status ? { status: dto.status } : {}),
+      ...(dto.type ? { type: dto.type } : {}),
+      ...(dto.from || dto.to
+        ? {
+            startsAt: {
+              ...(dto.from ? { gte: new Date(dto.from) } : {}),
+              ...(dto.to ? { lte: new Date(dto.to) } : {}),
+            },
+          }
+        : {}),
+    };
+    // Paginación del contrato compartido: filtros primero, corte después;
+    // el total cubre el universo filtrado.
+    const [events, total] = await Promise.all([
+      this.prisma.event.findMany({
+        where,
+        orderBy: { startsAt: "desc" },
+        skip: pg.skip,
+        take: pg.take,
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          presalePrice: true,
+          doorPrice: true,
+          series: { select: { id: true, name: true } },
+          venue: { select: { name: true, address: true } },
+        },
+      }),
+      this.prisma.event.count({ where }),
+    ]);
     const ids = events.map((e) => e.id);
-    if (!ids.length) return [];
+    if (!ids.length) {
+      return { items: [], total, page: pg.page, pageSize: pg.pageSize };
+    }
 
     // Pulso comercial por evento (spec §13 Productor: ventas y
-    // ocupación en la consola) - 3 groupBy sobre los ids, no N×queries.
+    // ocupación en la consola) - 3 groupBy sobre los ids de la página,
+    // no N×queries.
     const [soldBy, grossBy, checkinsBy] = await Promise.all([
       this.prisma.ticket.groupBy({
         by: ["eventId"],
@@ -465,14 +486,19 @@ export class EventsController {
       checkinsBy.map((r) => [r.eventId, r._count._all]),
     );
 
-    return events.map((e) => ({
-      ...e,
-      stats: {
-        sold: sold.get(e.id) ?? 0,
-        grossClp: gross.get(e.id) ?? 0,
-        checkins: checkins.get(e.id) ?? 0,
-      },
-    }));
+    return {
+      items: events.map((e) => ({
+        ...e,
+        stats: {
+          sold: sold.get(e.id) ?? 0,
+          grossClp: gross.get(e.id) ?? 0,
+          checkins: checkins.get(e.id) ?? 0,
+        },
+      })),
+      total,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 
   /**

@@ -30,7 +30,7 @@ export class AcademyAccess {
     const academy = await this.prisma.academy.findUnique({
       where: { id: academyId },
       include: {
-        instructors: { select: { personId: true, commissionPct: true } },
+        instructors: { select: { personId: true } },
         staff: true,
       },
     });

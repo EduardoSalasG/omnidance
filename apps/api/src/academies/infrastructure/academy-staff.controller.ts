@@ -61,8 +61,9 @@ class AddStaffDto extends CapsDto {
 class AddInstructorDto {
   @IsEmail() email!: string;
   @IsOptional() @IsString() @MaxLength(120) name?: string;
-  @IsOptional() @IsInt() @Min(0) @Max(100) commissionPct?: number;
   // Acuerdo económico (spec academy-console-v3): PER_CLASS/MONTHLY.
+  // La comisión % legacy salió del producto - la columna queda como
+  // snapshot histórico pero ya no se edita por API ni UI.
   @IsOptional() @IsIn(["PER_CLASS", "MONTHLY"]) payType?: string;
   @IsOptional() @IsInt() @Min(0) payAmount?: number;
   @IsOptional() @IsInt() @Min(0) payClasses?: number;
@@ -345,7 +346,6 @@ export class AcademyStaffController {
         take: pg.take,
         select: {
           personId: true,
-          commissionPct: true,
           payType: true,
           payAmount: true,
           payClasses: true,
@@ -369,7 +369,6 @@ export class AcademyStaffController {
           name: "(cuenta eliminada)",
           email: null,
         },
-        commissionPct: r.commissionPct,
         payType: r.payType,
         payAmount: r.payAmount,
         payClasses: r.payClasses,
@@ -464,7 +463,6 @@ export class AcademyStaffController {
         email: null,
         phone: null,
       },
-      commissionPct: instructor.commissionPct,
       payType: instructor.payType,
       payAmount: instructor.payAmount,
       payClasses: instructor.payClasses,
@@ -482,8 +480,8 @@ export class AcademyStaffController {
 
   /**
    * Agrega profesor por email - mismo find-or-stub + invitación que el
-   * alta de colaborador. commissionPct se snapshottea a cada
-   * PrivateLesson suya al crearla (spec instructor-commission).
+   * alta de colaborador. El acuerdo económico (payType/payAmount/
+   * payClasses) se edita en el detalle del profesor.
    */
   @Post(":id/instructors")
   async addInstructor(
@@ -503,9 +501,6 @@ export class AcademyStaffController {
     this.assertValidTarget(person.id, academy.ownerId, req.person!.id);
 
     const data = {
-      ...(dto.commissionPct !== undefined
-        ? { commissionPct: dto.commissionPct }
-        : {}),
       ...(dto.payType !== undefined ? { payType: dto.payType } : {}),
       ...(dto.payAmount !== undefined ? { payAmount: dto.payAmount } : {}),
       ...(dto.payClasses !== undefined ? { payClasses: dto.payClasses } : {}),
@@ -515,7 +510,6 @@ export class AcademyStaffController {
       create: {
         academyId: id,
         personId: person.id,
-        commissionPct: dto.commissionPct ?? null,
         payType: dto.payType ?? null,
         payAmount: dto.payAmount ?? null,
         payClasses: dto.payClasses ?? null,
@@ -536,7 +530,6 @@ export class AcademyStaffController {
     return {
       personId: person.id,
       invited,
-      commissionPct: dto.commissionPct ?? null,
     };
   }
 

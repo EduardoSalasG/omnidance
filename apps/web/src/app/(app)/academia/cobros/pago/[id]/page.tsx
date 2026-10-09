@@ -32,6 +32,8 @@ type AcademyPaymentDetail = {
   gatewayMedia: string | null;
   gatewayFeeClp: number | null;
   gatewayPaidAt: string | null;
+  gatewayRef: string | null;
+  channel: string | null;
   producerNetClp: number | null;
   createdAt: string;
   eventCount: number;
@@ -173,12 +175,38 @@ function PaymentDetail({
               )}
             </dd>
           </div>
+          {payment.createdAt !== payment.gatewayPaidAt && (
+            <div>
+              <dt className="text-xs text-ink/50">{t("fieldCreated")}</dt>
+              <dd className="tabular-nums text-ink/70">
+                {paymentDateTimeFmt.format(new Date(payment.createdAt))}
+              </dd>
+            </div>
+          )}
+          {payment.channel && (
+            <div>
+              <dt className="text-xs text-ink/50">{t("fieldChannel")}</dt>
+              <dd className="font-medium">
+                {tp.has(`channels.${payment.channel}`)
+                  ? tp(`channels.${payment.channel}`)
+                  : payment.channel}
+              </dd>
+            </div>
+          )}
           <div>
             <dt className="text-xs text-ink/50">{t("fieldRef")}</dt>
             <dd className="truncate font-mono text-xs text-ink/50">
               {payment.refId}
             </dd>
           </div>
+          {payment.gatewayRef && (
+            <div>
+              <dt className="text-xs text-ink/50">{t("fieldTxn")}</dt>
+              <dd className="truncate font-mono text-xs text-ink/50">
+                {payment.gatewayRef}
+              </dd>
+            </div>
+          )}
         </dl>
       </Card>
     </section>

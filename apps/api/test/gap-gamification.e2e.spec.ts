@@ -7,6 +7,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { QrModule } from "../src/qr/qr.module";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 /**
  * e2e del change spec-gap-closure (lado gamificación):
@@ -471,7 +472,7 @@ describe("gap-gamification e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: personIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: personIds } } });
+    await deletePeople(prisma, personIds);
     await app.close();
   });
 

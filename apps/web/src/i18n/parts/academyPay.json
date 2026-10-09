@@ -106,6 +106,13 @@
     "fieldFee": "Costo pasarela",
     "fieldNet": "Neto",
     "fieldPaidAt": "Fecha de cobro",
-    "fieldRef": "Referencia"
+    "fieldRef": "Referencia",
+    "fieldTxn": "N° transacción",
+    "fieldCreated": "Orden creada",
+    "fieldChannel": "Canal",
+    "methodSaved": "Medio de pago guardado.",
+    "methodNotFound": "Medio de pago no encontrado.",
+    "activeLabel": "Medio activo (visible para los alumnos)",
+    "editMethod": "Editar medio de pago"
   }
 }

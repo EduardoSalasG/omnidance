@@ -7,6 +7,7 @@ import { AdminModule } from "../src/admin/admin.module";
 import { LeadsModule } from "../src/leads/leads.module";
 import { PeopleModule } from "../src/people/people.module";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("leads /pro e2e", () => {
   let app: INestApplication;
@@ -117,7 +118,7 @@ describe("leads /pro e2e", () => {
       where: { personId: { in: allIds } },
     });
     await prisma.lead.deleteMany({ where: { email: { in: leadEmails } } });
-    await prisma.person.deleteMany({ where: { id: { in: allIds } } });
+    await deletePeople(prisma, allIds);
     await app.close();
   });
 

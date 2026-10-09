@@ -8,6 +8,7 @@ import { PaymentsModule } from "../src/payments/payments.module";
 import { PrismaService } from "../src/prisma.service";
 // Controller montado directo en el test module para cubrir el contrato HTTP.
 import { VenuesController } from "../src/social/infrastructure/venues.controller";
+import { deletePeople } from "./helpers";
 
 describe("social endpoints e2e", () => {
   let app: INestApplication;
@@ -149,7 +150,7 @@ describe("social endpoints e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: peopleIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
+    await deletePeople(prisma, peopleIds);
     await app.close();
   });
 

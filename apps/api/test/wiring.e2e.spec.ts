@@ -27,6 +27,7 @@ import { PlatformSubscriptionsService } from "../src/payments/application/platfo
 import { GatewayTransactionsService } from "../src/payments/infrastructure/gateway-transactions.service";
 import { encodeTicketOrderRef } from "../src/payments/domain/order-ref";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 /**
  * Wiring e2e: notificaciones + gamificación enganchadas en flujos de dominio.
@@ -179,7 +180,7 @@ describe("wiring: notificaciones + gamificación en flujos de dominio", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: peopleIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
+    await deletePeople(prisma, peopleIds);
     await app.close();
   });
 

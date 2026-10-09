@@ -6,6 +6,7 @@ import { AuthService } from "../src/auth/domain/auth.service";
 import { SocialModule } from "../src/social/social.module";
 import { EventsModule } from "../src/events/events.module";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 describe("social e2e", () => {
   let app: INestApplication;
@@ -139,7 +140,7 @@ describe("social e2e", () => {
     await prisma.notification.deleteMany({
       where: { personId: { in: peopleIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
+    await deletePeople(prisma, peopleIds);
     await app.close();
   });
 
@@ -284,7 +285,8 @@ describe("social e2e", () => {
         { headers: { cookie: `omnidance_session=${producerSession}` } },
       );
       expect(res.status).toBe(200);
-      const lists = await res.json();
+      const { items: lists, total } = await res.json();
+      expect(total).toBe(1);
       expect(lists).toHaveLength(1);
       const list = lists[0];
       expect(list.id).toBe(ids.guestListId);

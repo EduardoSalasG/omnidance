@@ -13,6 +13,7 @@ import type {
   DiscountCodeFilter,
   DiscountsRepo,
   ListedDiscountCode,
+  PagedList,
   ListedRedemption,
 } from "./ports";
 
@@ -51,8 +52,10 @@ class FakeDiscountsRepo implements DiscountsRepo {
     return code;
   }
 
-  async list(filter: DiscountCodeFilter): Promise<ListedDiscountCode[]> {
-    return this.codes
+  async list(
+    filter: DiscountCodeFilter,
+  ): Promise<PagedList<ListedDiscountCode>> {
+    const items = this.codes
       .filter(
         (c) =>
           (filter.eventId === undefined || c.eventId === filter.eventId) &&
@@ -72,6 +75,13 @@ class FakeDiscountsRepo implements DiscountsRepo {
         expiresAt: c.expiresAt,
         createdAt: c.createdAt,
       }));
+    return {
+      items: items.slice(
+        filter.skip ?? 0,
+        (filter.skip ?? 0) + (filter.take ?? items.length),
+      ),
+      total: items.length,
+    };
   }
 
   async listRedemptions(codeId: string): Promise<ListedRedemption[]> {
@@ -347,7 +357,7 @@ describe("DiscountsService.list", () => {
       mkCode({ id: "a", code: "OLD", createdAt: new Date("2026-01-01") }),
       mkCode({ id: "b", code: "NEW", createdAt: new Date("2026-02-01") }),
     );
-    const list = await svc.list({});
+    const list = (await svc.list({})).items;
     expect(list.map((c) => c.code)).toEqual(["NEW", "OLD"]);
     expect(list[0]).toMatchObject({
       code: "NEW",
@@ -363,7 +373,7 @@ describe("DiscountsService.list", () => {
       mkCode({ id: "b", code: "OTRO", eventId: "evt-2" }),
       mkCode({ id: "c", code: "GLOBAL" }),
     );
-    const list = await svc.list({ eventId: "evt-1" });
+    const list = (await svc.list({ eventId: "evt-1" })).items;
     expect(list.map((c) => c.code)).toEqual(["EVT"]);
   });
 
@@ -372,7 +382,7 @@ describe("DiscountsService.list", () => {
       mkCode({ id: "a", code: "SER", seriesId: "ser-1" }),
       mkCode({ id: "b", code: "GLOBAL" }),
     );
-    const list = await svc.list({ seriesId: "ser-1" });
+    const list = (await svc.list({ seriesId: "ser-1" })).items;
     expect(list.map((c) => c.code)).toEqual(["SER"]);
   });
 });

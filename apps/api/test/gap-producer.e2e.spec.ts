@@ -5,6 +5,7 @@ import { EventsModule } from "../src/events/events.module";
 import { AuthModule } from "../src/auth/auth.module";
 import { AuthService } from "../src/auth/domain/auth.service";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 // Suite del CRUD del productor sobre /api/events: create (events.manage),
 // update/publish/cancel (owner o admin), y staff assignments.
@@ -171,7 +172,7 @@ describe("spec-gap-closure: producer events CRUD e2e", () => {
     await prisma.personRole.deleteMany({
       where: { personId: { in: peopleIds } },
     });
-    await prisma.person.deleteMany({ where: { id: { in: peopleIds } } });
+    await deletePeople(prisma, peopleIds);
     await app.close();
   });
 

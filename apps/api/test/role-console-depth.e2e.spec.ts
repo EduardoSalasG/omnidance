@@ -9,6 +9,7 @@ import { DjController } from "../src/events/infrastructure/dj.controller";
 import { EventsController } from "../src/events/infrastructure/events.controller";
 import { VenueConsoleController } from "../src/social/infrastructure/venue-console.controller";
 import { PrismaService } from "../src/prisma.service";
+import { deletePeople } from "./helpers";
 
 /**
  * role-console-depth - endpoints de las consolas B2B (spec §13):
@@ -337,7 +338,7 @@ describe("role-console-depth e2e", () => {
       await prisma.personRole.deleteMany({
         where: { personId: { in: createdPersonIds } },
       });
-      await prisma.person.deleteMany({ where: { id: { in: createdPersonIds } } });
+      await deletePeople(prisma, createdPersonIds);
     }
     await app.close();
   }, 30_000);
@@ -456,7 +457,7 @@ describe("role-console-depth e2e", () => {
   it("GET /events/mine - cada evento trae stats {sold, grossClp, checkins}", async () => {
     const res = await get("/api/events/mine", sessions.producer);
     expect(res.status).toBe(200);
-    const events = await res.json();
+    const events = (await res.json()).items;
     const future = events.find(
       (e: { id: string }) => e.id === ids.futureEventId,
     );

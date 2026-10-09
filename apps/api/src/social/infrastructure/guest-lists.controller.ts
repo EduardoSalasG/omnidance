@@ -23,6 +23,7 @@ import {
 import type { Request, Response } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
+import { pageParams } from "../../academies/infrastructure/list-filters";
 import {
   RolesGuard,
   roleKeysHavePermission,
@@ -63,6 +64,14 @@ class ListGuestListsDto {
   @IsString()
   @MaxLength(120)
   q?: string;
+
+  @IsOptional()
+  @IsString()
+  page?: string;
+
+  @IsOptional()
+  @IsString()
+  pageSize?: string;
 }
 
 /** Listas de invitados por evento - solo productor/staff/admin. */
@@ -146,17 +155,29 @@ export class EventGuestListsController {
     // entries filtradas por status) o si tiene ≥1 invitado que calza (solo
     // se muestran las entries que calzan).
     const q = dto.q?.trim().toLowerCase();
-    if (!q) return mapped;
-    return mapped.flatMap((l) => {
-      const listMatches =
-        (l.label ?? "").toLowerCase().includes(q) ||
-        l.owner.name.toLowerCase().includes(q);
-      if (listMatches) return [l];
-      const entries = l.entries.filter((e) =>
-        e.person.name.toLowerCase().includes(q),
-      );
-      return entries.length ? [{ ...l, entries }] : [];
-    });
+    const filtered = !q
+      ? mapped
+      : mapped.flatMap((l) => {
+          const listMatches =
+            (l.label ?? "").toLowerCase().includes(q) ||
+            l.owner.name.toLowerCase().includes(q);
+          if (listMatches) return [l];
+          const entries = l.entries.filter((e) =>
+            e.person.name.toLowerCase().includes(q),
+          );
+          return entries.length ? [{ ...l, entries }] : [];
+        });
+
+    // Paginación del contrato compartido: el filtro q es post-join (nombres
+    // de Person fuera de GuestList), así que el corte va sobre el resultado
+    // filtrado - total correcto sobre el universo filtrado.
+    const pg = pageParams(dto.page, dto.pageSize);
+    return {
+      items: filtered.slice(pg.skip, pg.skip + pg.take),
+      total: filtered.length,
+      page: pg.page,
+      pageSize: pg.pageSize,
+    };
   }
 }
 

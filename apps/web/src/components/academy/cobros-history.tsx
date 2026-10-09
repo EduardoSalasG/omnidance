@@ -34,7 +34,8 @@ type Row = {
 /**
  * Historial unificado de cobros (spec academy-console-v3): los claims
  * resueltos (validaciones manuales) y los pagos por pasarela del mismo
- * libro, ordenados por fecha. Cada card abre su página de detalle.
+ * libro, ordenados por fecha, como lista densa - cada fila abre su
+ * página de detalle.
  */
 const WINDOW = 20;
 
@@ -133,25 +134,21 @@ export function CobrosHistory({ academyId }: { academyId: string }) {
         </h2>
         <p className="mt-1 text-xs text-ink/50">{t("historyUnifiedDesc")}</p>
       </div>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <ul className="flex flex-col divide-y divide-line">
         {rows.map((r) => (
           <li key={r.key}>
             <Link
               href={r.href}
-              className="block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+              className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-3 transition-colors first:pt-0 hover:bg-elevated/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
             >
-              <div className="flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm font-semibold">
-                    {r.title}
-                  </span>
-                  <Badge variant={r.variant}>{r.statusLabel}</Badge>
-                </div>
-                <p className="truncate text-xs text-ink/50">{r.subtitle}</p>
-                <p className="text-xs text-ink/40">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{r.title}</p>
+                <p className="truncate text-xs text-ink/50">
+                  {r.subtitle} ·{" "}
                   {claimDateFmt.format(new Date(r.date))}
                 </p>
               </div>
+              <Badge variant={r.variant}>{r.statusLabel}</Badge>
             </Link>
           </li>
         ))}
