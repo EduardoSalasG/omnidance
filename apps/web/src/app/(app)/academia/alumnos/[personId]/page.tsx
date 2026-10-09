@@ -147,6 +147,14 @@ function ProfileModule({
           <Badge variant="outline">
             {tp("enrollmentStatus")}: {statusLabel(profile.enrollmentStatus)}
           </Badge>
+          {/* Score de relación academia↔alumno (CRM): privado de la
+              academia - solo se muestra en su consola. */}
+          <Badge variant="muted">
+            {tp("score")}:{" "}
+            {profile.score !== null
+              ? `${Math.round(profile.score)}${profile.segment ? ` · ${profile.segment}` : ""}`
+              : tp("scoreNone")}
+          </Badge>
         </div>
         {(profile.enrollmentStartedAt || profile.enrollmentEndsAt) && (
           <p className="text-xs text-ink/50">

@@ -7,7 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
-import { Skeleton, SkeletonList } from "@/components/ui";
+import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import academyExtras from "@/i18n/parts/academyExtras.json";
 import {
@@ -22,8 +22,9 @@ import {
 const t = academyExtras.academyExtras.lessons;
 
 // Entidad `private_lessons` del catálogo sin el scope (la página fija la
-// academia) - status, instructorId, commission y from/to con la misma
-// semántica del query engine (spec analytics/query-console).
+// academia) - status, instructorId y from/to con la misma semántica del
+// query engine (spec analytics/query-console). La comisión salió del
+// producto: la relación económica del profesor se gestiona en equipo.
 const LESSONS_ENTITY = academyEntity("private_lessons");
 
 function statusLabel(status: string): string {
@@ -35,7 +36,7 @@ type LoadState = "loading" | "ready" | "error";
 /**
  * PrivateLesson - espejo del schema + join manual del controller.
  * GET /academies/:id/private-lessons agrega `person`/`instructor`
- * ({id, name} | null); GET /private-lessons/mine devuelve la fila cruda.
+ * ({id, name} | null).
  * instructorId/scheduledAt son nullables desde private-lesson-product:
  * una lección comprada nace "por asignar" hasta que el owner agenda.
  * status es String libre: REQUESTED | CONFIRMED | DONE | CANCELLED.
@@ -50,20 +51,6 @@ type PrivateLesson = {
   status: string;
   person?: { id: string; name: string | null };
   instructor?: { id: string; name: string | null } | null;
-  // Solo vienen en la vista staff para owner/admin/instructor de la clase
-  // (la comisión es del acuerdo academia↔instructor - el alumno no la ve).
-  commissionPct?: number;
-  commissionPaidAt?: string | null;
-};
-
-// Rama as=instructor de GET /private-lessons/mine - el server calcula
-// comisión y neto (la comisión es del acuerdo academia↔instructor; el
-// alumno nunca la ve).
-type InstructorLesson = PrivateLesson & {
-  commissionPct: number;
-  commissionClp: number;
-  netClp: number;
-  commissionPaidAt: string | null;
 };
 
 /** GET /academies/:id (requireManage) incluye instructors:[{personId}]. */
@@ -76,13 +63,7 @@ type DirectoryAcademy = {
   instructors: { id: string; personId: string; name: string | null }[];
 };
 
-type LessonAction =
-  | "confirm"
-  | "cancel"
-  | "done"
-  | "reschedule"
-  | "assign"
-  | "pay-commission";
+type LessonAction = "confirm" | "cancel" | "done" | "reschedule" | "assign";
 
 type Props = {
   /** Academia de la consola staff (obligatoria - la vista alumno vive
@@ -116,31 +97,22 @@ function shortId(id: string) {
 
 /**
  * Clases particulares 1:1 - vista staff de la consola (/academia/
- * particulares): GET /academies/:id/private-lessons + PATCH
+ * particulares): solo solicitudes + agendamiento. PATCH
  * /private-lessons/:id {action} - assign (owner: instructor+fecha a las
  * compradas "por asignar"), confirm/done/reschedule para instructor de
- * la clase u owner(ADMIN); cancel para alumno u owner. Además la vista
- * "mis clases como instructor" (neto del mes).
+ * la clase u owner(ADMIN); cancel para alumno u owner.
  * La vista alumno NO vive acá: sus particulares aparecen en reservadas
  * de /clases (particulares-en-reservadas).
  */
-export function PrivateLessons({ academy, academies = [] }: Props) {
+export function PrivateLessons({ academy }: Props) {
   const tc = useTranslations("common");
 
   // /me compartido (MeProvider) - sin fetch propio.
   const { me } = useMe();
 
-  // ─── vista staff ───
   const [lessons, setLessons] = useState<PrivateLesson[]>([]);
   const [staffState, setStaffState] = useState<LoadState>("loading");
   const [staffFilters, setStaffFilters] = useState<QueryFilters>({});
-
-  // ─── vista instructor (mis clases como profesor, con neto) ───
-  // null = fetch en vuelo → skeleton en el slot (la sección va arriba
-  // de "Mis solicitudes"; sin slot la insertaba de golpe al resolver).
-  const [mineInstructor, setMineInstructor] = useState<
-    InstructorLesson[] | null
-  >(null);
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -187,20 +159,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       .catch(() => {});
   }, [academy, directory]);
 
-  // Mis clases como instructor - [] resuelto es el caso común (alumno
-  // puro) y la sección no se monta; errores = [] también (la vista
-  // staff sigue).
-  const loadMineInstructor = useCallback(async () => {
-    try {
-      const res = await apiFetch("/private-lessons/mine?as=instructor");
-      setMineInstructor(
-        res.ok ? ((await res.json()) as InstructorLesson[]) : [],
-      );
-    } catch {
-      setMineInstructor([]);
-    }
-  }, []);
-
   const loadStaff = useCallback(async () => {
     setStaffState("loading");
     try {
@@ -217,10 +175,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       setStaffState("error");
     }
   }, [academy, staffFilters]);
-
-  useEffect(() => {
-    void loadMineInstructor();
-  }, [loadMineInstructor]);
 
   useEffect(() => {
     void loadStaff();
@@ -256,14 +210,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
     return [...seen.entries()].map(([value, label]) => ({ value, label }));
   }, [academyInstructors, instructorNames]);
 
-  const academyNames = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const a of directory) map.set(a.id, a.name);
-    for (const a of academies) map.set(a.id, a.name);
-    if (academy) map.set(academy.id, academy.name);
-    return map;
-  }, [directory, academies, academy]);
-
   async function act(
     id: string,
     action: LessonAction,
@@ -293,7 +239,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       setAssignId(null);
       setAssignInstructorId("");
       setAssignWhen("");
-      await Promise.all([loadStaff(), loadMineInstructor()]);
+      await loadStaff();
     } catch {
       setFeedback(tc("error"));
     } finally {
@@ -335,20 +281,7 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
       done: (isOwner || isInstructor) && l.status === "CONFIRMED",
       reschedule: (isOwner || isInstructor) && active && !!l.scheduledAt,
       cancel: active && (isOwner || isStudent),
-      // Liquidación de la comisión academia→instructor: solo el owner la
-      // marca (el pago real es por fuera - transferencia/efectivo).
-      payCommission:
-        isOwner &&
-        !!l.instructorId &&
-        (l.commissionPct ?? 0) > 0 &&
-        !l.commissionPaidAt &&
-        (l.status === "CONFIRMED" || l.status === "DONE"),
     };
-  }
-
-  function payCommission(l: PrivateLesson): void {
-    if (!window.confirm(t.confirmPayCommission)) return;
-    void act(l.id, "pay-commission");
   }
 
   function rescheduleSubmit(e: React.FormEvent, id: string): void {
@@ -420,8 +353,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                           a.confirm ||
                           a.done ||
                           a.reschedule ||
-                          a.payCommission ||
-                          l.commissionPaidAt ||
                           a.cancel) && (
                           <div className="flex flex-wrap gap-2">
                             {a.assign && (
@@ -474,21 +405,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
                               >
                                 {t.reschedule}
                               </Button>
-                            )}
-                            {a.payCommission && (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                disabled={busyId === l.id}
-                                onClick={() => payCommission(l)}
-                              >
-                                {t.payCommission}
-                              </Button>
-                            )}
-                            {l.commissionPaidAt && (
-                              <Badge variant="outline" className="self-center">
-                                {t.commissionPaid}
-                              </Badge>
                             )}
                             {a.cancel && (
                               <Button
@@ -599,89 +515,6 @@ export function PrivateLessons({ academy, academies = [] }: Props) {
               </ul>
             ))}
       </section>
-
-      {/* Sección instructor - opcional: nada mientras resuelve
-          (aparece una vez si hay clases); skeleton-que-colapsa = flash. */}
-      {mineInstructor !== null && mineInstructor.length > 0 && (
-        <section
-          aria-label={t.instructorTitle}
-          className="flex flex-col gap-3"
-        >
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-lg font-semibold">{t.instructorTitle}</h2>
-            <p className="flex items-baseline gap-1 text-sm text-ink/60">
-              {t.monthNet}:
-              <PriceTag
-                amount={mineInstructor
-                  .filter((l) => {
-                    if (
-                      l.status !== "CONFIRMED" &&
-                      l.status !== "DONE"
-                    ) {
-                      return false;
-                    }
-                    if (!l.scheduledAt) return false;
-                    const d = new Date(l.scheduledAt);
-                    const now = new Date();
-                    return (
-                      d.getFullYear() === now.getFullYear() &&
-                      d.getMonth() === now.getMonth()
-                    );
-                  })
-                  .reduce((sum, l) => sum + l.netClp, 0)}
-              />
-            </p>
-          </div>
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {mineInstructor.map((l) => (
-              <li key={l.id}>
-                <Card className="flex h-full flex-wrap items-center gap-x-4 gap-y-2 p-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">
-                      {academyNames.get(l.academyId) ?? shortId(l.academyId)}
-                    </p>
-                    <p className="text-xs text-ink/60">
-                      {lessonWhen(l)} · {t.student}:{" "}
-                      {l.person?.name ?? shortId(l.personId)}
-                    </p>
-                    {l.price > 0 && (
-                      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-ink/50">
-                        <PriceTag amount={l.price} />
-                        <span>
-                          {t.commissionLine.replace(
-                            "{pct}",
-                            String(l.commissionPct),
-                          )}{" "}
-                          (−
-                          <PriceTag amount={l.commissionClp} />)
-                        </span>
-                        <span className="font-medium text-ink/70">
-                          {t.netLine}{" "}
-                          <PriceTag amount={l.netClp} />
-                        </span>
-                        {/* Liquidación de la comisión - el instructor ve
-                            si la academia ya la pagó (marca del owner). */}
-                        {l.commissionPct > 0 && (
-                          <Badge
-                            variant={l.commissionPaidAt ? "neon" : "muted"}
-                          >
-                            {l.commissionPaidAt
-                              ? t.commissionPaid
-                              : t.commissionPending}
-                          </Badge>
-                        )}
-                      </p>
-                    )}
-                  </div>
-                  <Badge variant={statusVariant(l.status)}>
-                    {statusLabel(l.status)}
-                  </Badge>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}

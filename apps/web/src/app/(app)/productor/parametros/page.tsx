@@ -16,6 +16,7 @@ import { PRODUCER_ROLES } from "@/components/producer/shared";
 import { ProducerProSection } from "@/components/producer/pro-section";
 import { GatewayAccountSection } from "@/components/producer/gateway-account-section";
 import { ProducerPaymentMethodsSection } from "@/components/producer/payment-methods-section";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
 
@@ -74,6 +75,7 @@ const timeToMinutes = (t: string): number | null => {
 export default function ProducerParamsPage() {
   const t = useTranslations("producer");
   const tp = useTranslations("producerParams");
+  const tprf = useTranslations("profile");
   const tc = useTranslations("common");
 
   // /me compartido (MeProvider) - el gate se deriva del contexto y los
@@ -238,6 +240,17 @@ export default function ProducerParamsPage() {
 
       {gate === "ready" && params && (
         <>
+          {/* Apariencia de la consola - tema claro/oscuro/sistema por
+              dispositivo. En lentes de gestión vive acá, no en /perfil. */}
+          <Card>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+              {tprf("appearance")}
+            </h2>
+            <div className="mt-3">
+              <ThemeToggle />
+            </div>
+          </Card>
+
           {/* Suscripción Producer Pro (S6) - contratación/gestión; el
               paywall de las features Pro apunta acá. Solo para quien
               tiene el rol (un ADMIN operando la consola no se suscribe

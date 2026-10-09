@@ -89,7 +89,6 @@ const PRIVATE_LESSON_STATUS = [
   "DONE",
   "CANCELLED",
 ];
-const COMMISSION_OPTS = ["all", "paid", "pending"];
 const CHANNELS = ["PRESALE", "DOOR"];
 const LEAD_STATUS = ["NEW", "CONTACTED", "CONVERTED", "DISCARDED"];
 const LEAD_INTENTS = ["CONTACT", "DEMO"];
@@ -257,7 +256,6 @@ export const QUERY_CATALOG: Record<QueryRole, readonly EntityDef[]> = {
         scopeAcademy,
         { key: "status", type: "enum", options: PRIVATE_LESSON_STATUS },
         { key: "instructorId", type: "fk", source: "academyInstructors" },
-        { key: "commission", type: "enum", options: COMMISSION_OPTS },
         from,
         to,
       ],

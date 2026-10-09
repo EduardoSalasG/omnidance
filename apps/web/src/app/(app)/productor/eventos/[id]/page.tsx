@@ -328,7 +328,7 @@ export default function ProducerEventDetailPage({
               403/404 (no-owner); pro.required → paywall (feature Pro).
               Splits k-anónimos ≥3 asistentes. */}
           <AnalyticsSection eventId={eventId} proLocked={proLocked} />
-          {/* Los exports CSV/PDF migraron a /analitica/consultas
+          {/* Los exports CSV/PDF migraron a /analitica
               (spec analytics/query-console). */}
         </>
       )}

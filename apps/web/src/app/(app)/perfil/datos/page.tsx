@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import { useViewMode } from "@/lib/view-mode";
+import { useActiveRole } from "@/lib/active-role";
 import { GenderGroup, type Gender } from "@/components/profile/GenderGroup";
 import { isProfileStyleVisible } from "@/lib/profile-styles";
 import {
@@ -141,6 +142,9 @@ export default function DatosPage() {
     error: meError,
     refresh: refreshMe,
   } = useMe();
+  // El dueño de academia opera su academia - la sección "tus academias"
+  // (inscripciones como alumno) no aplica a su lente.
+  const activeRole = useActiveRole(me?.roles);
   const state: PageState = meLoading
     ? "loading"
     : meError
@@ -567,7 +571,7 @@ export default function DatosPage() {
 
       {/* Datos por modo - social: estilos con rol/nivel declarados;
           academia: inscripciones vigentes con plan y estado. */}
-      {viewMode === "academy" ? (
+      {viewMode === "academy" && activeRole !== "ACADEMY_OWNER" ? (
         <Card>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {t("datos.academySection")}

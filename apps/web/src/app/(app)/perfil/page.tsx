@@ -51,6 +51,11 @@ const ACT_AS_ORDER: AppRole[] = [
   "ADMIN",
 ];
 
+// Lentes de gestión pura: sin racha ni "mis pagos" propios (su consumo
+// es consola, no baile). La apariencia de owner/productor vive en su
+// Configuración, no en este perfil.
+const STREAKLESS = new Set<string>(["ADMIN", "ACADEMY_OWNER"]);
+
 // Insignias del modo academy - espejo del catálogo sembrado
 // (BADGE_CATALOG en seed-common.ts). El resto son nightlife.
 const ACADEMY_BADGE_KEYS = new Set([
@@ -222,7 +227,7 @@ export default function PerfilPage() {
   // viejo se limpia primero: mostrar el streak de social con el copy
   // de academia (o viceversa) sería un flash de dato ajeno.
   useEffect(() => {
-    if (noSession || currentLens === "ADMIN") {
+    if (noSession || STREAKLESS.has(currentLens)) {
       setStreak(null);
       return;
     }
@@ -285,10 +290,9 @@ export default function PerfilPage() {
   // El latch es one-way: al cambiar de lente/mode los datos refetchean
   // con skeleton in-card - nunca se vuelve al shell de página.
   const lensSettled =
-    currentLens === "ADMIN" ||
-    ((streak !== null || streakFailed) &&
-      gamifFetched &&
-      (currentLens !== "DANCER" || kpis !== null || kpisFailed));
+    (STREAKLESS.has(currentLens) || streak !== null || streakFailed) &&
+    (currentLens === "ADMIN" || gamifFetched) &&
+    (currentLens !== "DANCER" || kpis !== null || kpisFailed);
   const [pageSettled, setPageSettled] = useState(false);
   useEffect(() => {
     if (!pageSettled && me && lensSettled) setPageSettled(true);
@@ -367,25 +371,25 @@ export default function PerfilPage() {
             </ul>
           </section>
         )}
+        {!STREAKLESS.has(shellLens) && (
+          <Card aria-hidden="true">
+            <Skeleton className="page-loading h-4 w-24" />
+            <Skeleton className="page-loading mt-2 h-[3.75rem] w-24" />
+            <Skeleton className="page-loading mt-2 h-4 w-52" />
+          </Card>
+        )}
         {shellLens !== "ADMIN" && (
-          <>
-            <Card aria-hidden="true">
-              <Skeleton className="page-loading h-4 w-24" />
-              <Skeleton className="page-loading mt-2 h-[3.75rem] w-24" />
-              <Skeleton className="page-loading mt-2 h-4 w-52" />
-            </Card>
-            <Card aria-hidden="true">
-              <Skeleton className="page-loading h-4 w-24" />
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {[0, 1, 2].map((i) => (
-                  <Skeleton
-                    key={i}
-                    className="page-loading h-[74px] w-full rounded-xl"
-                  />
-                ))}
-              </div>
-            </Card>
-          </>
+          <Card aria-hidden="true">
+            <Skeleton className="page-loading h-4 w-24" />
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {[0, 1, 2].map((i) => (
+                <Skeleton
+                  key={i}
+                  className="page-loading h-[74px] w-full rounded-xl"
+                />
+              ))}
+            </div>
+          </Card>
         )}
         <Card aria-hidden="true">
           <Skeleton className="page-loading h-4 w-24" />
@@ -551,9 +555,10 @@ export default function PerfilPage() {
         </Card>
       )}
 
-      {/* Gamificación - solo lente consumidora/operativa; la lente ADMIN
-          es gestión pura (ni Racha ni Insignias, y tampoco se fetchean). */}
-      {currentActAs !== "ADMIN" && !streakFailed && (
+      {/* Gamificación - solo lentes consumidoras/operativas; las de
+          gestión pura (ADMIN, dueño de academia) no ven la racha ni la
+          fetchean. */}
+      {!STREAKLESS.has(currentActAs) && !streakFailed && (
         /* Racha por modo - orgullo, grande. Social = salidas semanales;
            academy = asistencia a clases (mismo card, otra fuente).
            streak null = fetch en vuelo → skeleton; jamás "0" como
@@ -631,37 +636,44 @@ export default function PerfilPage() {
       )}
 
       {/* Apariencia: tema claro/oscuro/sistema - persiste por
-          dispositivo (lib/theme). */}
-      <Card>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-          {t("appearance")}
-        </h2>
-        <div className="mt-3">
-          <ThemeToggle />
-        </div>
-      </Card>
-
-      {/* Historial de compras/cobros del usuario → /perfil/pagos. */}
-      <Link
-        href="/perfil/pagos"
-        className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
-      >
-        <Card className="flex items-center justify-between gap-4 transition-colors hover:border-neon/40">
-          <span className="text-sm font-semibold">{tpay("title")}</span>
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="h-5 w-5 shrink-0 text-ink/40"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M9 6l6 6-6 6" />
-          </svg>
+          dispositivo (lib/theme). Las lentes de consola (dueño de
+          academia, productor) la tienen en su Configuración. */}
+      {currentActAs !== "ACADEMY_OWNER" && currentActAs !== "PRODUCER" && (
+        <Card>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {t("appearance")}
+          </h2>
+          <div className="mt-3">
+            <ThemeToggle />
+          </div>
         </Card>
-      </Link>
+      )}
+
+      {/* Historial de compras/cobros del usuario → /perfil/pagos.
+          El dueño de academia no compra: su cobranza vive en
+          /academia/cobros. */}
+      {currentActAs !== "ACADEMY_OWNER" && (
+        <Link
+          href="/perfil/pagos"
+          className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
+        >
+          <Card className="flex items-center justify-between gap-4 transition-colors hover:border-neon/40">
+            <span className="text-sm font-semibold">{tpay("title")}</span>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-5 w-5 shrink-0 text-ink/40"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </Card>
+        </Link>
+      )}
 
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}
