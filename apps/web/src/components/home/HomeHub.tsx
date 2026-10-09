@@ -609,11 +609,12 @@ export function HomeHub() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-6 px-6 pb-6 pt-4 lg:max-w-5xl lg:px-8">
       <header className="flex flex-col gap-1">
-        {/* h1: es el título de la página - antes era h2 y el home del
-            owner quedaba sin nivel 1 (academia h2 → secciones h3). */}
-        <h1 className="text-lg font-medium">
+        {/* El saludo es texto, no encabezado: el h1 de la página es el
+            nombre de la sección en el appbar ("Inicio" - visible en
+            gestión, sr-only para el bailarín). */}
+        <p className="text-lg font-medium">
           {t("hi", { name: me.name.split(" ")[0] })}
-        </h1>
+        </p>
         {/* La fecha da contexto al vistazo diario - para el owner la
             muestra el header de la consola junto al nombre de la
             academia (evita duplicarla). */}
