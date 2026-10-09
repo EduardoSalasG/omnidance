@@ -1161,32 +1161,48 @@ export async function seedDev(prisma: PrismaClient) {
     create: { academyId: mambo.id, personId: gabriel.id },
   });
 
-  // Series genéricas que el loop de catálogo sembró en corridas viejas
-  // ("Mambo", "Bachata Moderna") - soft delete conserva clases/historial.
-  await prisma.classSeries.updateMany({
-    where: {
-      academyId: mambo.id,
-      deletedAt: null,
-      name: { in: ["Mambo", "Bachata Moderna"] },
-    },
-    data: { deletedAt: new Date() },
-  });
+  // Series fuera de la parrilla real (genéricas viejas o de mappings
+  // previos de nivel) → soft delete: conserva sus clases e historial.
+  const mmTarget = new Set([
+    "Salsa|Iniciación",
+    "Bachata|Iniciación",
+    "Bachata Pareja|Básico",
+    "Salsa Pareja|Básico",
+    "Movimiento Corporal|Básico",
+    "Pasos Libres|Básico",
+    "Partnerwork|Básico",
+    "Lady Style|Básico",
+    "Shines|Intermedio",
+    "Movimiento Corporal|Intermedio",
+    "Partnerwork|Intermedio",
+  ]);
+  for (const s of await prisma.classSeries.findMany({
+    where: { academyId: mambo.id, deletedAt: null },
+    select: { id: true, name: true, level: { select: { name: true } } },
+  })) {
+    if (!mmTarget.has(`${s.name}|${s.level?.name ?? ""}`)) {
+      await prisma.classSeries.update({
+        where: { id: s.id },
+        data: { deletedAt: new Date() },
+      });
+    }
+  }
 
-  // Parrilla real (mambomadnesscl.com). Los niveles del flyer mapean al
-  // catálogo por posición: N1·Desde Cero→Iniciación, N2·Iniciación 2→
-  // Básico, N3·Básico→Intermedio, N4·Intermedio→Avanzado. "Salsa" aquí
-  // es salsa estilo mambo (on2); la bachata es moderna; partnerwork,
-  // lady style, shines, pasos libres y movimiento corporal son técnica
-  // de mambo. Las clases de pareja llevan modalidad Pareja; el trabajo
-  // sola/de pies va como Shines; movimiento corporal como Corporalidad.
-  const mmClass = (
+  // Parrilla real (mambomadnesscl.com). Niveles del flyer → catálogo:
+  // N1·Desde Cero y N2·Iniciación 2 son ambos Iniciación; N3 → Básico;
+  // N4 → Intermedio; N5 → Avanzado (sin clases aún en la parrilla).
+  // "Salsa" es mambo on2; la bachata es moderna; partnerwork, lady
+  // style, shines, pasos libres y movimiento corporal son técnica de
+  // mambo. Aforo 20 vía defaultQuorum (los slots heredan).
+  const mmSeries: Awaited<ReturnType<typeof mkClassSeries>>[] = [];
+  const mmClass = async (
     name: string,
     styleName: string,
     levelName: string,
     typeNames: string[],
     slots: SlotSeed[],
-  ) =>
-    mkClassSeries({
+  ) => {
+    const r = await mkClassSeries({
       academyId: mambo.id,
       name,
       styleName,
@@ -1194,62 +1210,79 @@ export async function seedDev(prisma: PrismaClient) {
       typeNames,
       instructorId: gabriel.id,
       slots,
-      withHistory: false,
+      withHistory: true, // clases del mes pasado → alimentan asistencias
       withNext: true,
     });
+    // Slots que quedaron fuera del horario publicado (mappings previos
+    // del seed) se podan con sus clases/reservas - nunca existieron en
+    // la parrilla real.
+    const keep = new Set(slots.map((s) => `${s.weekday}|${s.startTime}`));
+    for (const stale of await prisma.classSlot.findMany({
+      where: { seriesId: r.series.id },
+    })) {
+      if (keep.has(`${stale.weekday}|${stale.startTime}`)) continue;
+      const staleClasses = await prisma.class.findMany({
+        where: { classSlotId: stale.id },
+        select: { id: true },
+      });
+      const ids = staleClasses.map((c) => c.id);
+      await prisma.attendance.deleteMany({ where: { classId: { in: ids } } });
+      await prisma.classBooking.deleteMany({ where: { classId: { in: ids } } });
+      await prisma.class.deleteMany({ where: { id: { in: ids } } });
+      await prisma.classSlotType.deleteMany({ where: { slotId: stale.id } });
+      await prisma.classSlot.delete({ where: { id: stale.id } });
+    }
+    mmSeries.push(r);
+    return r;
+  };
 
-  // Lunes + sábado - Nivel 2 (Básico).
-  await mmClass("Salsa", "Mambo on2", "Básico", ["Pareja"], [
+  // Iniciación - N1 (vie) y N2 (lun/sáb) comparten nivel → una serie.
+  await mmClass("Salsa", "Mambo on2", "Iniciación", ["Pareja"], [
     { weekday: 1, startTime: "19:30", endTime: "20:30" },
+    { weekday: 5, startTime: "19:00", endTime: "20:00" },
     { weekday: 6, startTime: "17:00", endTime: "18:00" },
   ]);
-  await mmClass("Bachata", "Bachata moderna", "Básico", ["Pareja"], [
+  await mmClass("Bachata", "Bachata moderna", "Iniciación", ["Pareja"], [
     { weekday: 1, startTime: "20:30", endTime: "21:30" },
+    { weekday: 5, startTime: "20:00", endTime: "21:00" },
     { weekday: 6, startTime: "18:00", endTime: "19:00" },
   ]);
-  // Martes - Nivel 3 (Intermedio).
-  await mmClass("Bachata Pareja", "Bachata moderna", "Intermedio", ["Pareja"], [
+  // Martes - Nivel 3 (Básico).
+  await mmClass("Bachata Pareja", "Bachata moderna", "Básico", ["Pareja"], [
     { weekday: 2, startTime: "19:30", endTime: "20:30" },
   ]);
-  await mmClass("Salsa Pareja", "Mambo on2", "Intermedio", ["Pareja"], [
+  await mmClass("Salsa Pareja", "Mambo on2", "Básico", ["Pareja"], [
     { weekday: 2, startTime: "20:30", endTime: "21:30" },
   ]);
-  await mmClass("Movimiento Corporal", "Mambo on2", "Intermedio", ["Corporalidad"], [
+  await mmClass("Movimiento Corporal", "Mambo on2", "Básico", ["Corporalidad"], [
     { weekday: 2, startTime: "21:30", endTime: "22:30" },
   ]);
-  // Miércoles - Nivel 4 (Avanzado).
-  await mmClass("Shines", "Mambo on2", "Avanzado", ["Shines"], [
+  // Miércoles - Nivel 4 (Intermedio).
+  await mmClass("Shines", "Mambo on2", "Intermedio", ["Shines"], [
     { weekday: 3, startTime: "19:30", endTime: "20:30" },
   ]);
-  await mmClass("Movimiento Corporal", "Mambo on2", "Avanzado", ["Corporalidad"], [
+  await mmClass("Movimiento Corporal", "Mambo on2", "Intermedio", ["Corporalidad"], [
     { weekday: 3, startTime: "20:30", endTime: "21:30" },
   ]);
-  await mmClass("Partnerwork", "Mambo on2", "Avanzado", ["Pareja"], [
+  await mmClass("Partnerwork", "Mambo on2", "Intermedio", ["Pareja"], [
     { weekday: 3, startTime: "21:30", endTime: "22:30" },
   ]);
-  // Jueves - Nivel 3 (Intermedio).
-  await mmClass("Pasos Libres", "Mambo on2", "Intermedio", ["Shines"], [
+  // Jueves - Nivel 3 (Básico).
+  await mmClass("Pasos Libres", "Mambo on2", "Básico", ["Shines"], [
     { weekday: 4, startTime: "19:30", endTime: "20:30" },
   ]);
-  await mmClass("Partnerwork", "Mambo on2", "Intermedio", ["Pareja"], [
+  await mmClass("Partnerwork", "Mambo on2", "Básico", ["Pareja"], [
     { weekday: 4, startTime: "20:30", endTime: "21:30" },
   ]);
-  await mmClass("Lady Style", "Mambo on2", "Intermedio", ["Shines"], [
+  await mmClass("Lady Style", "Mambo on2", "Básico", ["Shines"], [
     { weekday: 4, startTime: "21:30", endTime: "22:30" },
-  ]);
-  // Viernes - Nivel 1 (Iniciación).
-  await mmClass("Salsa", "Mambo on2", "Iniciación", ["Pareja"], [
-    { weekday: 5, startTime: "19:00", endTime: "20:00" },
-  ]);
-  await mmClass("Bachata", "Bachata moderna", "Iniciación", ["Pareja"], [
-    { weekday: 5, startTime: "20:00", endTime: "21:00" },
   ]);
 
   // Planes reales de mambomadnesscl.com. Renombres in-place por alias:
   // Básico→"1 Vez por Semana" ($45k) y Premium→"Ilimitado" ($60k); Oro/
   // Diamante salen de la parrilla (desactivados - pueden tener
   // enrollments). Todas conservan clase suelta y de prueba.
-  await plan(mambo.id, "Oferta Especial", "CLASS_PACK", 40000, {
+  const mmOferta = await plan(mambo.id, "Oferta Especial", "CLASS_PACK", 40000, {
     classCount: 8,
     description: [
       "8 clases en 4 semanas - salsa y bachata",
@@ -1258,7 +1291,7 @@ export async function seedDev(prisma: PrismaClient) {
       "14 días de garantía",
     ],
   });
-  await plan(
+  const mmSemanal = await plan(
     mambo.id,
     "1 Vez por Semana",
     "MONTHLY",
@@ -1272,7 +1305,7 @@ export async function seedDev(prisma: PrismaClient) {
     },
     ["Básico"],
   );
-  await plan(
+  const mmIlimitado = await plan(
     mambo.id,
     "Ilimitado",
     "MONTHLY",
@@ -1286,7 +1319,7 @@ export async function seedDev(prisma: PrismaClient) {
     },
     ["Premium"],
   );
-  await plan(mambo.id, "VIP", "MONTHLY", 99000, {
+  const mmVip = await plan(mambo.id, "VIP", "MONTHLY", 99000, {
     description: [
       "Todo lo del plan Ilimitado",
       "1 clase privada 1 a 1 al mes",
@@ -1328,6 +1361,58 @@ export async function seedDev(prisma: PrismaClient) {
     });
   } else {
     await prisma.academyPaymentMethod.create({ data: mmMethodData });
+  }
+
+  // ─── Alumnos de Mambo Madness ───
+  // 92 alumnos con plan vigente - mix de la parrilla (oferta de entrada,
+  // semanal, ilimitado) con el VIP exclusivo (solo 3). Nombres del pool
+  // chileno determinístico; el volumen alimenta la analítica real.
+  const MM_F = [
+    "Camila", "Josefa", "Francisca", "Antonia", "Daniela", "Isidora",
+    "Catalina", "Javiera", "Fernanda", "Martina", "Valentina", "Sofía",
+    "Constanza", "Trinidad", "Florencia", "Antonieta", "Bernardita",
+    "Ignacia", "Magdalena", "Paloma", "Rosario", "Millaray", "Rayén",
+  ];
+  const MM_M = [
+    "Diego", "Sebastián", "Felipe", "Benjamín", "Tomás", "Matías",
+    "Vicente", "Joaquín", "Ignacio", "Agustín", "Cristóbal",
+    "Maximiliano", "Emilio", "Santiago", "Martín", "Gonzalo", "Rodrigo",
+    "Nicolás", "Alonso", "Gaspar", "Simón", "Baltasar", "Facundo",
+  ];
+  const MM_LAST = [
+    "González", "Muñoz", "Rojas", "Díaz", "Pérez", "Soto", "Contreras",
+    "Silva", "Martínez", "Sepúlveda", "Morales", "Rodríguez", "López",
+    "Fuentes", "Hernández", "Torres", "Araya", "Flores", "Espinoza",
+    "Valenzuela", "Castro", "Tapia", "Reyes", "Gutiérrez", "Navarro",
+    "Salinas", "Carvajal", "Vergara", "Paredes", "Figueroa", "Cárdenas",
+    "Bravo", "Henríquez", "Saavedra", "Alarcón", "Vargas", "Villarroel",
+    "Cortés", "Sanhueza", "Zamora", "Poblete", "Gallardo", "Candia",
+    "Iturra", "Ossandón", "Maldonado",
+  ];
+  const mmStudents: { id: string }[] = [];
+  for (let i = 0; i < 92; i++) {
+    const fem = i % 2 === 0;
+    const pool = fem ? MM_F : MM_M;
+    const st = await ensurePerson(
+      prisma,
+      `mm${String(i + 1).padStart(2, "0")}@${DEV_DOMAIN}`,
+      `${pool[Math.floor(i / 2) % pool.length]} ${MM_LAST[(i * 7) % MM_LAST.length]}`,
+      [{ role: "DANCER" }],
+      i % 23 === 22 ? Gender.OTHER : fem ? Gender.F : Gender.M,
+    );
+    mmStudents.push(st);
+    // Mix: VIP solo 3; oferta de entrada 23; semanal 30; ilimitado 36.
+    const pl = i < 3 ? mmVip : i < 26 ? mmOferta : i < 56 ? mmSemanal : mmIlimitado;
+    // Mensuales con "pagado hasta" repartido en futuro (puebla "planes
+    // por vencer"); el pack de clases no tiene vencimiento natural.
+    await enroll(
+      mambo.id,
+      st.id,
+      pl.id,
+      "ACTIVE",
+      10 + ((i * 7) % 60),
+      pl.type === "MONTHLY" ? 5 + ((i * 11) % 50) : null,
+    );
   }
 
   // "Muevete On Tour" del spec lleva estilos 2·5·6·7 - muvet ya tiene
@@ -1455,6 +1540,46 @@ export async function seedDev(prisma: PrismaClient) {
     for (const p of alumnosMuvet.slice(7, 11)) {
       await book(cls.id, p.id);
     }
+  }
+
+  // ─── Asistencias Mambo Madness: mes pasado + vigente a la fecha ───
+  // Ocupación realista (~50-70% del aforo 20) rotando el roster de 92
+  // de forma determinística; un resto reserva y no asiste → queda
+  // booked en el historial (misma semántica "attended gana" de muvet).
+  const mmClasses = mmSeries.flatMap((s) =>
+    s.slots.flatMap((sl) => sl.classes),
+  );
+  let mmIdx = 0;
+  for (const cls of mmClasses.filter((c) => c.date < todayUTC)) {
+    const offset = (mmIdx * 13) % mmStudents.length;
+    const n = 8 + ((mmIdx * 7) % 6); // 8-13 asistentes por clase
+    for (let k = 0; k < n; k++) {
+      const p = mmStudents[(offset + k) % mmStudents.length];
+      await book(cls.id, p.id);
+      await attend(cls.id, p.id, cls.date);
+    }
+    for (let k = 0; k < 3; k++) {
+      await book(cls.id, mmStudents[(offset + n + k) % mmStudents.length].id);
+    }
+    mmIdx++;
+  }
+  // Las de hoy con lista parcial (mismo criterio que Muévete).
+  for (const cls of mmClasses.filter(
+    (c) => c.date.getTime() === todayUTC.getTime(),
+  )) {
+    for (let k = 0; k < 7; k++) {
+      await book(cls.id, mmStudents[k].id);
+      await attend(cls.id, mmStudents[k].id, cls.date);
+    }
+    for (let k = 7; k < 11; k++) await book(cls.id, mmStudents[k].id);
+  }
+  // Reservas abiertas en las próximas - ocupación visible al explorar.
+  for (const cls of mmClasses.filter((c) => c.date > todayUTC)) {
+    const offset = (mmIdx * 13) % mmStudents.length;
+    for (let k = 0; k < 6; k++) {
+      await book(cls.id, mmStudents[(offset + k) % mmStudents.length].id);
+    }
+    mmIdx++;
   }
 
   // Futuras: la próxima de bachata llena (8/8) + waitlist; la siguiente
