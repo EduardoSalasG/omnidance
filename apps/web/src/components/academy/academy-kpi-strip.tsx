@@ -52,6 +52,10 @@ export function AcademyKpiCards({
     key: string;
     href: string;
     value: string | null;
+    // valor numérico + base del mes anterior (mismo tramo MTD) para el
+    // delta; `prev` undefined = el KPI no lleva comparativa.
+    valueNum: number | null;
+    prev?: number | null;
     hint: string;
   }[] = data
     ? [
@@ -59,18 +63,21 @@ export function AcademyKpiCards({
           key: "activeStudents",
           href: "/academia/alumnos",
           value: String(data.kpis.activeStudentsMonth),
+          valueNum: data.kpis.activeStudentsMonth,
           hint: t("kpis.activeStudentsHint"),
         },
         {
           key: "purchasablePlans",
           href: "/academia/planes",
           value: String(data.kpis.purchasablePlans),
+          valueNum: data.kpis.purchasablePlans,
           hint: t("kpis.purchasablePlansHint"),
         },
         {
           key: "weeklyClasses",
           href: "/academia/horarios",
           value: String(data.kpis.weeklyClasses),
+          valueNum: data.kpis.weeklyClasses,
           hint: t("kpis.weeklyClassesHint"),
         },
         {
@@ -80,12 +87,16 @@ export function AcademyKpiCards({
             data.kpis.avgAttendancePerClassMonth === null
               ? null
               : String(data.kpis.avgAttendancePerClassMonth),
+          valueNum: data.kpis.avgAttendancePerClassMonth,
+          prev: data.kpis.avgAttendancePerClassMonthPrev,
           hint: t("kpis.avgAttendanceHint"),
         },
         {
           key: "billedMonth",
           href: "/academia/cobros",
           value: clpFmt.format(data.kpis.billedMonth),
+          valueNum: data.kpis.billedMonth,
+          prev: data.kpis.billedMonthPrev,
           hint: t("kpis.billedMonthHint"),
         },
         {
@@ -95,6 +106,8 @@ export function AcademyKpiCards({
             data.kpis.avgTicketMonth === null
               ? null
               : clpFmt.format(data.kpis.avgTicketMonth),
+          valueNum: data.kpis.avgTicketMonth,
+          prev: data.kpis.avgTicketMonthPrev,
           hint: t("kpis.avgTicketHint"),
         },
       ]
@@ -118,24 +131,52 @@ export function AcademyKpiCards({
         </ul>
       ) : (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {items.map((k) => (
-            <li key={k.key}>
-              <Link
-                href={k.href}
-                title={k.hint}
-                className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
-              >
-                <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
-                  <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
-                    {t(`kpis.${k.key}`)}
-                  </span>
-                  <span className="text-3xl font-bold leading-none text-neon">
-                    {k.value ?? "—"}
-                  </span>
-                </Card>
-              </Link>
-            </li>
-          ))}
+          {items.map((k) => {
+            const label = t(`kpis.${k.key}`);
+            // Delta % vs el mismo tramo MTD del mes anterior. Sin base
+            // (prev null/0 o valor null) no se muestra - "+∞%" sería
+            // ruido deshonesto.
+            const deltaPct =
+              k.prev != null && k.prev > 0 && k.valueNum != null
+                ? Math.round(((k.valueNum - k.prev) / k.prev) * 100)
+                : null;
+            return (
+              <li key={k.key}>
+                <Link
+                  href={k.href}
+                  title={k.hint}
+                  // El hint también vive en title (visual); el aria-label
+                  // lo expone a teclado/táctil y lectores de pantalla.
+                  aria-label={`${label}: ${k.value ?? t("kpis.noData")} — ${k.hint}`}
+                  className="block h-full rounded-2xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.98]"
+                >
+                  <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-neon/40">
+                    <span className="truncate text-xs font-medium uppercase tracking-wide text-ink/50">
+                      {label}
+                    </span>
+                    <span className="text-3xl font-bold leading-none text-neon">
+                      {k.value ?? "—"}
+                    </span>
+                    {deltaPct !== null && (
+                      <span
+                        aria-hidden="true"
+                        className={`mt-0.5 text-xs font-medium tabular-nums ${
+                          deltaPct > 0
+                            ? "text-neon/80"
+                            : deltaPct < 0
+                              ? "text-amber-300"
+                              : "text-ink/40"
+                        }`}
+                      >
+                        {deltaPct > 0 ? "+" : ""}
+                        {deltaPct}% {t("kpis.vsPrevMonth")}
+                      </span>
+                    )}
+                  </Card>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

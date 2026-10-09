@@ -1,10 +1,14 @@
 {
   "academy": {
     "insights": {
-      "expiringTitle": "Planes por vencer",
+      "expiringTodayTitle": "Planes que vencen hoy",
+      "expiringWeekTitle": "Planes que vencen esta semana",
       "expiringUntil": "vence {date}",
       "noPlan": "Sin plan",
-      "birthdaysTitle": "Cumpleaños próximos"
+      "birthdaysTitle": "Próximos cumpleaños",
+      "pendingClaimsTitle": "Cobros por revisar",
+      "pendingClaimsSummary": "{count, plural, one {# cobro} other {# cobros}} · {amount}",
+      "seeAll": "Ver todos ({count})"
     },
     "planTypes": {
       "MONTHLY": "Mensual",
@@ -35,7 +39,9 @@
       "unnamed": "Clase",
       "attendance": "{count, plural, one {# asistencia hoy} other {# asistencias hoy}}",
       "booked": "{count} reservados",
-      "bookedOf": "{booked}/{capacity} reservados"
+      "bookedOf": "{booked}/{capacity} reservados",
+      "empty": "Hoy no hay clases",
+      "emptyCta": "Ver horarios"
     },
     "settings": {
       "title": "Configuración",
@@ -171,7 +177,16 @@
       "billedMonth": "Facturado",
       "billedMonthHint": "Cobrado este mes a la fecha",
       "avgTicket": "Ticket/alumno",
-      "avgTicketHint": "Cobrado este mes ÷ alumnos que pagaron"
+      "avgTicketHint": "Cobrado este mes ÷ alumnos que pagaron",
+      "vsPrevMonth": "vs mes anterior",
+      "noData": "sin datos"
+    },
+    "onboarding": {
+      "title": "Primeros pasos",
+      "series": "Crea tu primera serie y horario",
+      "plan": "Crea un plan de membresía",
+      "student": "Registra a tu primer alumno",
+      "team": "Invita a tu equipo"
     }
   },
   "academySeries": {
