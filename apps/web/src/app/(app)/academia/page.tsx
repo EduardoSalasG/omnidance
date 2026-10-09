@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
 import { AcademyGate } from "@/components/academy/academy-gate";
@@ -79,7 +81,15 @@ function AcademyHub({
   tt: ReturnType<typeof useTranslations>;
   me: ReturnType<typeof useMe>["me"];
 }) {
+  const router = useRouter();
   const access = useAcademyAccess(academy.id);
+
+  // El hub del owner vive en /inicio (AcademyDashboard embebido en
+  // HomeHub) - /academia queda como consola para staff/instructor/admin
+  // de plataforma, que no tienen el sidebar del owner.
+  useEffect(() => {
+    if (access?.isOwner === true) router.replace("/inicio");
+  }, [access, router]);
 
   // Mientras /access resuelve (null) se muestran los módulos operativos
   // (los del día a día que el gate ya garantiza) - mismo criterio que el
@@ -111,6 +121,10 @@ function AcademyHub({
     }
     return operational;
   });
+
+  // Owner: navegación ya redirigida a /inicio - no se pinta el hub para
+  // evitar el flash antes del replace.
+  if (access?.isOwner === true) return null;
 
   return (
     <>

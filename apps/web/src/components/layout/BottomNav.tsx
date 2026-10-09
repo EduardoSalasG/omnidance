@@ -239,15 +239,17 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
     },
     PAYOUTS_TAB,
   ],
+  // Owner: su consola ES el inicio (AcademyDashboard en HomeHub) - el
+  // tab central queda para la acción diaria (marcar asistencia).
   ACADEMY_OWNER: [
     HOME_TAB,
     {
-      href: "/academia",
-      key: "academy",
-      icon: icon(ICONS.academy),
+      href: "/academia/asistencia",
+      key: "attendance",
+      icon: icon(ICONS.staff),
       center: true,
     },
-    ATTENDANCE_TAB,
+    ANALYTICS_TAB,
   ],
   INSTRUCTOR: [
     HOME_TAB,
@@ -408,19 +410,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
   // Los módulos del owner viven acá en acordeones por dominio (la grilla
   // de /academia queda solo para staff/admin que no tienen este drawer).
   ACADEMY_OWNER: [
-    {
-      labelNs: "academy",
-      labelKey: "title",
-      items: [
-        {
-          href: "/academia",
-          ns: "academy",
-          key: "title",
-          icon: ICONS.academy,
-          exact: true,
-        },
-      ],
-    },
     {
       labelNs: "academy",
       labelKey: "navGroups.teaching",
