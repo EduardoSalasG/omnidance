@@ -312,6 +312,51 @@
       "desc": "Documentos internos por las deducciones de tus liquidaciones.",
       "folio": "Nota N° {n}",
       "openPdf": "Ver PDF"
+    },
+    "codeDetail": {
+      "redemptions": "Canjes del código",
+      "redemptionsDesc": "Cada canje queda registrado con la persona y la orden que lo usó.",
+      "emptyRedemptions": "Nadie ha usado este código todavía.",
+      "person": "Persona",
+      "orderRef": "Orden",
+      "redeemedAt": "Canjeado",
+      "expired": "Expirado",
+      "createdAt": "Creado",
+      "notFound": "No encontramos este código."
+    },
+    "listDetail": {
+      "entries": "Invitados",
+      "entriesCount": "{count, plural, one {# invitado} other {# invitados}}",
+      "emptyEntries": "Aún no hay invitados en la lista.",
+      "owner": "Dueña/o",
+      "specialPrice": "Precio especial",
+      "issuePass": "Emitir pase",
+      "passIssued": "Pase emitido.",
+      "addError": "No pudimos agregarla. Revisa el ID o si ya está en la lista.",
+      "notFound": "No encontramos esta lista."
+    },
+    "payoutDetail": {
+      "orderRef": "Orden",
+      "orderType": "Tipo",
+      "orderChannel": "Canal",
+      "orderAmount": "Monto orden",
+      "notFound": "No encontramos esta liquidación."
+    },
+    "claimDetail": {
+      "title": "Comprobante",
+      "buyer": "Comprador",
+      "order": "Orden",
+      "amount": "Monto",
+      "method": "Medio",
+      "channel": "Canal",
+      "sentAt": "Enviado",
+      "orderStatus": "Estado orden",
+      "paidAt": "Pagada",
+      "reviewedAt": "Revisado",
+      "reviewNote": "Motivo",
+      "orderRef": "N° orden",
+      "openReceipt": "Ver comprobante",
+      "notFound": "No encontramos este comprobante."
     }
   }
 }

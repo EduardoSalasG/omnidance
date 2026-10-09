@@ -188,6 +188,13 @@ export class DiscountsService {
     return this.repo.list(filter);
   }
 
+  /** Ficha del código (detalle del productor/admin). */
+  async detail(codeId: string): Promise<DiscountCode> {
+    const code = await this.repo.findById(codeId);
+    if (!code) throw new DiscountCodeNotFoundError(codeId);
+    return code;
+  }
+
   async listRedemptions(codeId: string): Promise<ListedRedemption[]> {
     const code = await this.repo.findById(codeId);
     if (!code) throw new DiscountCodeNotFoundError(codeId);

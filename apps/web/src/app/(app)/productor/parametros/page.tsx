@@ -5,13 +5,13 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import {
-  BackLink,
   Badge,
   Button,
   Card,
   RefreshIcon,
   SkeletonCard,
 } from "@/components/ui";
+import { ConsoleHeader } from "@/components/console/console-header";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
 import { ProducerProSection } from "@/components/producer/pro-section";
 import { GatewayAccountSection } from "@/components/producer/gateway-account-section";
@@ -178,7 +178,7 @@ export default function ProducerParamsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-4xl lg:px-8">
-      <BackLink href="/productor">{t("title")}</BackLink>
+      <ConsoleHeader backHref="/productor" backLabel={t("title")} />
 
       {gate === "loading" && (
         <div className="flex flex-col gap-6" aria-hidden="true">

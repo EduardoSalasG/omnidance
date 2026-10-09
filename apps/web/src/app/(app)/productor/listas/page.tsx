@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
@@ -18,7 +19,6 @@ import { FilterBar } from "@/components/query/FilterBar";
 import {
   GUESTLIST_ENTRY_STATUSES,
   filtersParams,
-  inputCls,
   type EventListItem,
 } from "@/components/producer/shared";
 import type { EntityDef, QueryFilters } from "@omnidance/shared";
@@ -61,7 +61,6 @@ const LISTS_ENTITY: EntityDef = {
 function GuestLists() {
   const t = useTranslations("producer");
   const ta = useTranslations("admin");
-  const tac = useTranslations("academy");
   const tc = useTranslations("common");
 
   const [events, setEvents] = useState<EventListItem[] | null>(null);
@@ -75,9 +74,6 @@ function GuestLists() {
   const [page, setPage] = useState(1);
   const [listsLoading, setListsLoading] = useState(false);
   const [listsError, setListsError] = useState(false);
-  const [entryDrafts, setEntryDrafts] = useState<Record<string, string>>({});
-  const [entrySaving, setEntrySaving] = useState<string | null>(null);
-  const [entryError, setEntryError] = useState<string | null>(null);
 
   const loadLists = useCallback(async (f: QueryFilters, pageNo: number) => {
     const eventId = f.eventId;
@@ -145,31 +141,6 @@ function GuestLists() {
     if (page !== 1) void loadLists(filters, page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
-
-  async function addEntry(listId: string) {
-    const personId = (entryDrafts[listId] ?? "").trim();
-    if (!personId || entrySaving) return;
-    setEntrySaving(listId);
-    setEntryError(null);
-    try {
-      const res = await apiFetch(`/guest-lists/${listId}/entries`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personId }),
-      });
-      if (!res.ok) {
-        // 404 persona no encontrada / 409 duplicado → error genérico en v1.
-        setEntryError(listId);
-        return;
-      }
-      setEntryDrafts((d) => ({ ...d, [listId]: "" }));
-      await loadLists(filters, page);
-    } catch {
-      setEntryError(listId);
-    } finally {
-      setEntrySaving(null);
-    }
-  }
 
   return (
     <>
@@ -246,84 +217,61 @@ function GuestLists() {
                   <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                     {lists.map((l) => (
                       <li key={l.id}>
-                        <Card className="flex flex-col gap-3">
-                          <div className="flex flex-wrap items-baseline justify-between gap-2">
-                            <h3 className="font-semibold">
-                              {l.label ?? l.owner.name}
-                            </h3>
+                        <Link
+                          href={`/productor/listas/${l.id}`}
+                          className="block"
+                        >
+                          <Card className="flex flex-col gap-3 transition-colors hover:border-neon/60">
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <h3 className="font-semibold">
+                                {l.label ?? l.owner.name}
+                              </h3>
+                              <Badge variant="muted">
+                                {t("listDetail.entriesCount", {
+                                  count: l.entries.length,
+                                })}
+                              </Badge>
+                            </div>
+
                             {l.specialPrice !== null && (
                               <PriceTag
                                 amount={l.specialPrice}
                                 className="text-sm"
                               />
                             )}
-                          </div>
 
-                          {l.entries.length > 0 && (
-                            <ul className="flex flex-col gap-1.5 border-t border-line pt-3">
-                              {l.entries.map((en) => (
-                                <li
-                                  key={en.id}
-                                  className="flex items-center justify-between gap-3 text-sm"
-                                >
-                                  <span className="truncate">
-                                    {en.person.name}
-                                  </span>
-                                  <Badge
-                                    variant={
-                                      en.status === "ARRIVED"
-                                        ? "neon"
-                                        : "muted"
-                                    }
+                            {l.entries.length > 0 && (
+                              <ul className="flex flex-col gap-1.5 border-t border-line pt-3">
+                                {l.entries.slice(0, 5).map((en) => (
+                                  <li
+                                    key={en.id}
+                                    className="flex items-center justify-between gap-3 text-sm"
                                   >
-                                    {ta.has(`status.${en.status}`)
-                                      ? ta(`status.${en.status}`)
-                                      : en.status}
-                                  </Badge>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-
-                          <form
-                            className="flex gap-2 border-t border-line pt-3"
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              void addEntry(l.id);
-                            }}
-                          >
-                            <input
-                              type="text"
-                              autoComplete="off"
-                              placeholder={tac("personId")}
-                              aria-label={`${t("addPerson")}: ${l.label ?? l.owner.name}`}
-                              value={entryDrafts[l.id] ?? ""}
-                              onChange={(e) =>
-                                setEntryDrafts((d) => ({
-                                  ...d,
-                                  [l.id]: e.target.value,
-                                }))
-                              }
-                              className={`${inputCls} min-h-11 flex-1 py-2 text-sm`}
-                            />
-                            <Button
-                              type="submit"
-                              size="sm"
-                              variant="secondary"
-                              disabled={
-                                !(entryDrafts[l.id] ?? "").trim() ||
-                                entrySaving === l.id
-                              }
-                            >
-                              {t("addPerson")}
-                            </Button>
-                          </form>
-                          {entryError === l.id && (
-                            <p role="alert" className="text-sm text-red-400">
-                              {tc("error")}
-                            </p>
-                          )}
-                        </Card>
+                                    <span className="truncate">
+                                      {en.person.name}
+                                    </span>
+                                    <Badge
+                                      variant={
+                                        en.status === "ARRIVED"
+                                          ? "neon"
+                                          : "muted"
+                                      }
+                                    >
+                                      {ta.has(`status.${en.status}`)
+                                        ? ta(`status.${en.status}`)
+                                        : en.status}
+                                    </Badge>
+                                  </li>
+                                ))}
+                                {l.entries.length > 5 && (
+                                  <li className="text-xs text-ink/40">
+                                    +{l.entries.length - 5}
+                                  </li>
+                                )}
+                              </ul>
+                            )}
+                          </Card>
+                        </Link>
                       </li>
                     ))}
                   </ul>

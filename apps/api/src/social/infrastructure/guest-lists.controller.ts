@@ -190,6 +190,41 @@ export class EventGuestListsController {
 export class GuestListsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Ficha de una lista (detalle del productor/staff/admin). */
+  @Get(":id")
+  @UseGuards(SessionGuard, RolesGuard)
+  @RequirePermissions("social.manage")
+  async detail(@Param("id") id: string) {
+    const list = await this.prisma.guestList.findUnique({
+      where: { id },
+      include: { entries: true },
+    });
+    if (!list) throw new NotFoundException("guest list no encontrada");
+
+    const event = await this.prisma.event.findUnique({
+      where: { id: list.eventId },
+      select: { id: true, name: true },
+    });
+    const personIds = [
+      ...new Set([list.ownerId, ...list.entries.map((e) => e.personId)]),
+    ];
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: personIds } },
+      select: { id: true, name: true, photoUrl: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+    const brief = (pid: string) => {
+      const p = byId.get(pid);
+      return { personId: pid, name: p?.name ?? "?", photoUrl: p?.photoUrl ?? null };
+    };
+    return {
+      ...list,
+      event,
+      owner: brief(list.ownerId),
+      entries: list.entries.map((e) => ({ ...e, person: brief(e.personId) })),
+    };
+  }
+
   /** Agregar persona a una lista (status PENDING). */
   @Post(":id/entries")
   @UseGuards(SessionGuard, RolesGuard)

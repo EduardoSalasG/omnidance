@@ -11,7 +11,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import type { DiscountCodeType } from "@prisma/client";
+import type { DiscountCode, DiscountCodeType } from "@prisma/client";
 import {
   IsDateString,
   IsIn,
@@ -185,6 +185,15 @@ export class DiscountsController {
       take: pg.take,
     });
     return { items, total, page: pg.page, pageSize: pg.pageSize };
+  }
+
+  @Get(":id")
+  async detail(@Param("id") id: string): Promise<DiscountCode> {
+    try {
+      return await this.discounts.detail(id);
+    } catch (e) {
+      mapDomainError(e);
+    }
   }
 
   @Get(":id/redemptions")

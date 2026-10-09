@@ -925,7 +925,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
 
       const res = await get("/api/me/payouts", payoutProducerSession);
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const { items: list } = await res.json();
       expect(list.length).toBeGreaterThan(0);
       expect(
         list.every(
@@ -1102,7 +1102,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     it("me/payouts del owner incluye los payouts ACADEMY de sus academias", async () => {
       const res = await get("/api/me/payouts", payoutProducerSession);
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const { items: list } = await res.json();
 
       const academyPayout = list.find(
         (p: { id: string }) => p.id === academyPayoutId,
@@ -1136,7 +1136,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
     it("me/payouts del owner incluye el payout VENUE de su venue", async () => {
       const res = await get("/api/me/payouts", payoutProducerSession);
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const { items: list } = await res.json();
 
       const venuePayout = list.find(
         (p: { id: string }) => p.id === venuePayoutId,
@@ -1150,7 +1150,7 @@ describe("gap-payments e2e (series-pass + payouts)", () => {
       const otherSession = await auth.issueSession(ids.producerId);
       const res = await get("/api/me/payouts", otherSession);
       expect(res.status).toBe(200);
-      const list = await res.json();
+      const { items: list } = await res.json();
       expect(
         list.some((p: { id: string }) => p.id === academyPayoutId),
       ).toBe(false);

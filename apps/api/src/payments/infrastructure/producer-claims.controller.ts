@@ -261,6 +261,15 @@ export class ProducerClaimsController {
     return { claims: res.items, total: res.total, page: pg.page, pageSize: pg.pageSize };
   }
 
+  /** Ficha del comprobante (detalle de la cola del productor). */
+  @Get("producer/claims/:claimId")
+  async claimDetail(@Param("claimId") claimId: string, @Req() req: Request) {
+    const me = req.person!;
+    await this.assertProducerOrAdmin(me.id, me.roles);
+    const claim = await this.claims.claimDetail(me.id, claimId);
+    return claim;
+  }
+
   /** Stream autenticado del comprobante: comprador dueño, productor o admin. */
   @Get("producer/claims/:claimId/receipt")
   async receipt(

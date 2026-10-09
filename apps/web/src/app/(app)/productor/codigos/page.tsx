@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import {
@@ -176,44 +177,46 @@ function DiscountCodes() {
           <ul className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-3">
             {codes.map((c) => (
               <li key={c.id}>
-                <Card className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-lg font-bold tracking-wide">
-                      {c.code}
-                    </span>
-                    <Badge variant="neon">
-                      {t.has(`types.${c.type}`)
-                        ? t(`types.${c.type}`)
-                        : c.type}
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/70">
-                    <span>
-                      {c.percentOff !== null ? (
-                        <span className="font-semibold text-neon">
-                          −{c.percentOff}%
-                        </span>
-                      ) : (
-                        <PriceTag amount={c.amountOff} />
-                      )}
-                    </span>
-                    <span>
-                      {t("usedCount")}: {c.usedCount}
-                      {c.maxUses !== null ? `/${c.maxUses}` : ""}
-                    </span>
-                    {c.expiresAt && (
+                <Link href={`/productor/codigos/${c.id}`} className="block">
+                  <Card className="flex flex-col gap-2 transition-colors hover:border-neon/60">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-lg font-bold tracking-wide">
+                        {c.code}
+                      </span>
+                      <Badge variant="neon">
+                        {t.has(`types.${c.type}`)
+                          ? t(`types.${c.type}`)
+                          : c.type}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/70">
                       <span>
-                        {t("expiresAt")}:{" "}
-                        {fmtDay.format(new Date(c.expiresAt))}
+                        {c.percentOff !== null ? (
+                          <span className="font-semibold text-neon">
+                            −{c.percentOff}%
+                          </span>
+                        ) : (
+                          <PriceTag amount={c.amountOff} />
+                        )}
                       </span>
-                    )}
-                    {eventName(c.eventId) && (
-                      <span className="text-ink/50">
-                        {eventName(c.eventId)}
+                      <span>
+                        {t("usedCount")}: {c.usedCount}
+                        {c.maxUses !== null ? `/${c.maxUses}` : ""}
                       </span>
-                    )}
-                  </div>
-                </Card>
+                      {c.expiresAt && (
+                        <span>
+                          {t("expiresAt")}:{" "}
+                          {fmtDay.format(new Date(c.expiresAt))}
+                        </span>
+                      )}
+                      {eventName(c.eventId) && (
+                        <span className="text-ink/50">
+                          {eventName(c.eventId)}
+                        </span>
+                      )}
+                    </div>
+                  </Card>
+                </Link>
               </li>
             ))}
           </ul>

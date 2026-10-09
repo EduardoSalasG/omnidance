@@ -7,7 +7,6 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import {
-  BackLink,
   Badge,
   Button,
   Card,
@@ -16,6 +15,7 @@ import {
   RefreshIcon,
   SkeletonList,
 } from "@/components/ui";
+import { ConsoleHeader } from "@/components/console/console-header";
 import {
   EVENT_STATUS_VARIANT,
   PRODUCER_ROLES,
@@ -134,19 +134,21 @@ function ProducerEvents() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
-      <BackLink href="/productor">{t("title")}</BackLink>
-
-      <div className="flex items-center justify-end gap-3">
-        {gate === "ready" && (
-          <Button
-            size="sm"
-            variant="secondary"
-            href="/productor/eventos/nuevo"
-          >
-            {`＋ ${t("createEvent")}`}
-          </Button>
-        )}
-      </div>
+      <ConsoleHeader
+        backHref="/productor"
+        backLabel={t("title")}
+        actions={
+          gate === "ready" ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              href="/productor/eventos/nuevo"
+            >
+              {`＋ ${t("createEvent")}`}
+            </Button>
+          ) : null
+        }
+      />
 
       {gate === "loading" && <SkeletonList items={3} />}
 

@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
 import {
   ArrowUpRightIcon,
-  BackLink,
   Badge,
   Button,
   Card,
   EventDate,
+  Pager,
   PriceTag,
   RefreshIcon,
   SkeletonList,
 } from "@/components/ui";
+import { ConsoleHeader } from "@/components/console/console-header";
 import {
   ORDER_TYPES,
   PAYOUT_STATUSES,
@@ -97,13 +99,18 @@ export default function ProducerPayoutsPage() {
           ? "notProducer"
           : "ready";
   const [payouts, setPayouts] = useState<Payout[] | null>(null);
+  const [payoutsTotal, setPayoutsTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [listError, setListError] = useState(false);
   const [listNonce, setListNonce] = useState(0);
   const [filters, setFilters] = useState<QueryFilters>({});
 
   useEffect(() => {
     let cancelled = false;
-    apiFetch(`/me/payouts${filtersParams(filters)}`)
+    const qs = filtersParams(filters);
+    apiFetch(
+      `/me/payouts${qs}${qs ? "&" : "?"}page=${page}&pageSize=25`,
+    )
       .then(async (res) => {
         if (cancelled) return;
         if (!res.ok) {
@@ -111,7 +118,12 @@ export default function ProducerPayoutsPage() {
           return;
         }
         setListError(false);
-        setPayouts((await res.json()) as Payout[]);
+        const data = (await res.json()) as {
+          items: Payout[];
+          total: number;
+        };
+        setPayouts(data.items);
+        setPayoutsTotal(data.total);
       })
       .catch(() => {
         if (!cancelled) setListError(true);
@@ -119,17 +131,20 @@ export default function ProducerPayoutsPage() {
     return () => {
       cancelled = true;
     };
-  }, [listNonce, filters]);
+  }, [listNonce, filters, page]);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
-      <BackLink href="/productor">{t("title")}</BackLink>
+      <ConsoleHeader backHref="/productor" backLabel={t("title")} />
 
       {gate === "ready" && (
         <FilterBar
           entity={PAYOUTS_ENTITY}
           filters={filters}
-          onChange={setFilters}
+          onChange={(f) => {
+            setFilters(f);
+            setPage(1);
+          }}
           options={{}}
         />
       )}
@@ -196,99 +211,97 @@ export default function ProducerPayoutsPage() {
       )}
 
       {gate === "ready" && !listError && payouts !== null && payouts.length > 0 && (
-        <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-          {payouts.map((p) => (
-            <li key={p.id}>
-              <Card className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs uppercase tracking-wide text-ink/50">
-                      {t("payoutsPage.period")}
-                    </p>
-                    <p className="font-medium">
-                      <EventDate start={p.periodStart} variant="compact" />
-                      {" – "}
-                      <EventDate start={p.periodEnd} variant="compact" />
-                    </p>
-                  </div>
-                  <Badge variant={PAYOUT_STATUS_VARIANT[p.status] ?? "muted"}>
-                    {t.has(`payoutsPage.status.${p.status}`)
-                      ? t(`payoutsPage.status.${p.status}`)
-                      : p.status}
-                  </Badge>
-                </div>
-
-                <dl className="grid grid-cols-2 gap-3">
-                  <div>
-                    <dt className="text-xs text-ink/50">
-                      {t("payoutsPage.gross")}
-                    </dt>
-                    <dd>
-                      <PriceTag amount={p.gross} />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs text-ink/50">
-                      {t("payoutsPage.net")}
-                    </dt>
-                    <dd>
-                      <PriceTag amount={p.net} className="font-semibold" />
-                    </dd>
-                  </div>
-                </dl>
-
-                {/* Desglose auditable: cada deducción rastrea a la orden
-                    que la originó - acá se resume por concepto. */}
-                {p.lines.length > 0 && (
-                  <dl className="flex flex-col gap-1 border-t border-line pt-3">
-                    <dt className="text-xs uppercase tracking-wide text-ink/50">
-                      {t("payoutsPage.deductions")}
-                    </dt>
-                    {groupLines(p.lines).map(([type, total, count]) => (
-                      <div
-                        key={type}
-                        className="flex items-center justify-between text-sm"
+        <>
+          <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+            {payouts.map((p) => (
+              <li key={p.id}>
+                <Link href={`/productor/pagos/${p.id}`} className="block">
+                  <Card className="flex flex-col gap-3 transition-colors hover:border-neon/60">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs uppercase tracking-wide text-ink/50">
+                          {t("payoutsPage.period")}
+                        </p>
+                        <p className="font-medium">
+                          <EventDate start={p.periodStart} variant="compact" />
+                          {" – "}
+                          <EventDate start={p.periodEnd} variant="compact" />
+                        </p>
+                      </div>
+                      <Badge
+                        variant={PAYOUT_STATUS_VARIANT[p.status] ?? "muted"}
                       >
-                        <dd className="text-ink/60">
-                          {t.has(`payoutsPage.lineTypes.${type}`)
-                            ? t(`payoutsPage.lineTypes.${type}`)
-                            : type}
-                          {count > 1 && (
-                            <span className="text-ink/40"> ×{count}</span>
-                          )}
-                        </dd>
+                        {t.has(`payoutsPage.status.${p.status}`)
+                          ? t(`payoutsPage.status.${p.status}`)
+                          : p.status}
+                      </Badge>
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-3">
+                      <div>
+                        <dt className="text-xs text-ink/50">
+                          {t("payoutsPage.gross")}
+                        </dt>
                         <dd>
-                          <PriceTag amount={-total} />
+                          <PriceTag amount={p.gross} />
                         </dd>
                       </div>
-                    ))}
-                  </dl>
-                )}
+                      <div>
+                        <dt className="text-xs text-ink/50">
+                          {t("payoutsPage.net")}
+                        </dt>
+                        <dd>
+                          <PriceTag amount={p.net} className="font-semibold" />
+                        </dd>
+                      </div>
+                    </dl>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/50">
-                  {p.paidAt && (
-                    <span>
-                      {t("payoutsPage.paidAt")}:{" "}
-                      <EventDate start={p.paidAt} />
-                    </span>
-                  )}
-                  {p.evidenceUrl && (
-                    <a
-                      href={p.evidenceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-neon underline-offset-2 hover:underline"
-                    >
-                      {t("payoutsPage.evidence")}
-                      <ArrowUpRightIcon className="h-3.5 w-3.5" />
-                      <span className="sr-only"> {tc("newTab")}</span>
-                    </a>
-                  )}
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                    {/* Desglose auditable: cada deducción rastrea a la orden
+                        que la originó - acá se resume por concepto. */}
+                    {p.lines.length > 0 && (
+                      <dl className="flex flex-col gap-1 border-t border-line pt-3">
+                        <dt className="text-xs uppercase tracking-wide text-ink/50">
+                          {t("payoutsPage.deductions")}
+                        </dt>
+                        {groupLines(p.lines).map(([type, total, count]) => (
+                          <div
+                            key={type}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <dd className="text-ink/60">
+                              {t.has(`payoutsPage.lineTypes.${type}`)
+                                ? t(`payoutsPage.lineTypes.${type}`)
+                                : type}
+                              {count > 1 && (
+                                <span className="text-ink/40"> ×{count}</span>
+                              )}
+                            </dd>
+                            <dd>
+                              <PriceTag amount={-total} />
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+
+                    {p.paidAt && (
+                      <p className="text-sm text-ink/50">
+                        {t("payoutsPage.paidAt")}:{" "}
+                        <EventDate start={p.paidAt} />
+                      </p>
+                    )}
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Pager
+            page={page}
+            pageSize={25}
+            total={payoutsTotal}
+            onPage={setPage}
+          />
+        </>
       )}
 
       {gate === "ready" && <BillingDocsSection />}
