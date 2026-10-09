@@ -1178,7 +1178,22 @@ export class AcademiesController {
     const todayUTC = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
     );
-    const [enrollments, plansCount, attendanceLast30d, today, todayAttendance] =
+    // Mes calendario UTC (misma convención que class.date a medianoche
+    // UTC) - los KPIs del dashboard son "este mes".
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const [
+      enrollments,
+      plansCount,
+      attendanceLast30d,
+      today,
+      todayAttendance,
+      activeStudentsMonth,
+      purchasablePlans,
+      classesMonth,
+      attendanceMonth,
+    ] =
       await Promise.all([
         this.prisma.enrollment.findMany({
           where: { academyId: id },
@@ -1215,6 +1230,36 @@ export class AcademiesController {
         this.prisma.attendance.count({
           where: { class: { slot: { academyId: id }, date: todayUTC } },
         }),
+        // ─── KPIs del mes (consola del owner) ───
+        // Alumnos con plan vigente: estados que habilitan asistir
+        // (mismo set que los insights) y endsAt no vencido o sin fecha.
+        this.prisma.enrollment.count({
+          where: {
+            academyId: id,
+            status: { in: ["ACTIVE", "TRIAL", "ONLINE"] },
+            OR: [{ endsAt: null }, { endsAt: { gte: todayUTC } }],
+          },
+        }),
+        this.prisma.membershipPlan.count({
+          where: { academyId: id, active: true },
+        }),
+        // Asistencia promedio por clase: solo clases ya dictadas
+        // (pasadas + hoy), las futuras no tienen asistencia posible.
+        this.prisma.class.count({
+          where: {
+            cancelled: false,
+            date: { gte: monthStart, lte: todayUTC },
+            slot: { academyId: id },
+          },
+        }),
+        this.prisma.attendance.count({
+          where: {
+            class: {
+              slot: { academyId: id },
+              date: { gte: monthStart, lte: todayUTC },
+            },
+          },
+        }),
       ]);
 
     const classIds = today.map((c) => c.id);
@@ -1241,6 +1286,49 @@ export class AcademiesController {
         })
       : [];
     const instructorNameBy = new Map(instructors.map((p) => [p.id, p.name]));
+
+    // Ticket promedio por alumno del mes: claims APPROVED (ledger propio
+    // de la academia) + pagos PAID por pasarela atribuidos por refId
+    // (mem_<planId>_* / pvt_<academyId>_*). Los claims materializan su
+    // Payment con refId claim-<id> - prefijos distintos, sin doble cargo.
+    const planIds = await this.prisma.membershipPlan.findMany({
+      where: { academyId: id },
+      select: { id: true },
+    });
+    const [claimsMonth, gatewayMonth] = await Promise.all([
+      this.prisma.paymentClaim.findMany({
+        where: {
+          academyId: id,
+          status: "APPROVED",
+          createdAt: { gte: monthStart },
+        },
+        select: { amount: true, personId: true },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          status: "PAID",
+          createdAt: { gte: monthStart },
+          OR: [
+            ...planIds.map((p) => ({
+              orderType: "MEMBERSHIP",
+              refId: { startsWith: `mem_${p.id}_` },
+            })),
+            { orderType: "PRIVATE", refId: { startsWith: `pvt_${id}_` } },
+          ],
+        },
+        select: { amount: true, personId: true },
+      }),
+    ]);
+    const paidRows = [...claimsMonth, ...gatewayMonth];
+    const payers = new Set(paidRows.map((p) => p.personId));
+    const avgTicketMonth = payers.size
+      ? Math.round(
+          paidRows.reduce((acc, p) => acc + p.amount, 0) / payers.size,
+        )
+      : null;
+    const avgAttendanceMonth = classesMonth
+      ? Math.round((attendanceMonth / classesMonth) * 10) / 10
+      : null;
 
     // ─── Insights de retención (spec academies/owner-insights):
     // planes por vencer y cumpleaños de alumnos en ventanas
@@ -1284,6 +1372,14 @@ export class AcademiesController {
 
     return {
       ...computeDashboard({ enrollments, plansCount, attendanceLast30d }),
+      // KPIs del mes para la consola (inicio del owner + primera
+      // sección de alumnos/clases/planes).
+      kpis: {
+        activeStudentsMonth,
+        purchasablePlans,
+        avgAttendancePerClassMonth: avgAttendanceMonth,
+        avgTicketMonth,
+      },
       expiringEnrollments: expiringRows.map((e) => ({
         personId: e.personId,
         personName: studentById.get(e.personId)?.name ?? null,

@@ -157,6 +157,17 @@
       "teaching": "Enseñanza",
       "students": "Alumnos",
       "admin": "Administración"
+    },
+    "kpis": {
+      "title": "Resumen del mes",
+      "activeStudents": "Alumnos activos",
+      "activeStudentsHint": "Con plan vigente este mes",
+      "purchasablePlans": "Planes activos",
+      "purchasablePlansHint": "Comprables ahora",
+      "avgAttendance": "Asistencia/clase",
+      "avgAttendanceHint": "Promedio por clase este mes",
+      "avgTicket": "Ticket/alumno",
+      "avgTicketHint": "Cobrado este mes ÷ alumnos que pagaron"
     }
   },
   "academySeries": {
