@@ -963,8 +963,11 @@ model ClassSeries {
   instructorId String? // profesor por defecto de la serie
   quorum       Int? // cupos por defecto de la serie (null → hereda academy/default)
   dropInPrice  Int? // CLP - precio de la clase suelta (null = no se vende suelta)
-  month        String // "2026-09"
+  month        String // "2026-09" - etiqueta de origen legacy, no acota vigencia
   active       Boolean     @default(true)
+  // Borrado lógico: la serie se oculta de la consola (GET /series la
+  // excluye) pero sigue existiendo para analítica y auditoría.
+  deletedAt    DateTime?
   createdAt    DateTime    @default(now())
 
   types ClassSeriesType[]

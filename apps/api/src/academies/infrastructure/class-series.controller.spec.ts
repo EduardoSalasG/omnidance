@@ -29,10 +29,17 @@ interface FakeBooking {
   refunded: boolean;
 }
 
+interface FakeSeries {
+  id: string;
+  academyId: string;
+  active: boolean;
+  deletedAt: Date | null;
+}
+
 class FakePrisma {
   classes: FakeCls[] = [];
   bookings: FakeBooking[] = [];
-  series = new Map<string, { id: string; academyId: string }>();
+  series = new Map<string, FakeSeries>();
   slots = new Map<string, { id: string; academyId: string; seriesId: string }>();
 
   class = {
@@ -96,8 +103,17 @@ class FakePrisma {
       const s = this.series.get(where.id);
       return s && s.academyId === where.academyId ? s : null;
     },
-    update: async ({ where }: { where: { id: string } }) =>
-      this.series.get(where.id) ?? null,
+    update: async ({
+      where,
+      data,
+    }: {
+      where: { id: string };
+      data?: Partial<FakeSeries>;
+    }) => {
+      const s = this.series.get(where.id);
+      if (s && data) Object.assign(s, data);
+      return s ?? null;
+    },
   };
 
   classSlot = {
@@ -139,7 +155,12 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
       { notifySafe: vi.fn() } as unknown as NotificationsService,
       new AcademyMaterializeService(prisma as unknown as PrismaService),
     );
-    prisma.series.set("ser-1", { id: "ser-1", academyId: "acad-1" });
+    prisma.series.set("ser-1", {
+      id: "ser-1",
+      academyId: "acad-1",
+      active: true,
+      deletedAt: null,
+    });
     prisma.slots.set("slot-1", {
       id: "slot-1",
       academyId: "acad-1",
@@ -196,5 +217,13 @@ describe("ClassSeriesController - cancelación por la academia devuelve crédito
     expect(b1.refunded).toBe(true);
     expect(b1.cancelledAt).toBeInstanceOf(Date);
     expect(prisma.slots.has("slot-1")).toBe(false);
+  });
+
+  it("deactivate = borrado lógico: active=false + deletedAt set", async () => {
+    await ctrl.deactivate("acad-1", "ser-1", req);
+
+    const s = prisma.series.get("ser-1")!;
+    expect(s.active).toBe(false);
+    expect(s.deletedAt).toBeInstanceOf(Date);
   });
 });

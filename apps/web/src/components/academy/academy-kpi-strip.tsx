@@ -109,7 +109,7 @@ export function AcademyKpiCards({
         },
         {
           key: "weeklyClasses",
-          href: "/academia/horarios",
+          href: "/academia/series",
           value: String(data.kpis.weeklyClasses),
           valueNum: data.kpis.weeklyClasses,
           deltaKind: "count",
@@ -117,7 +117,7 @@ export function AcademyKpiCards({
         },
         {
           key: "avgAttendance",
-          href: "/academia/asistencia",
+          href: "/academia/series",
           value:
             data.kpis.avgAttendancePerClassMonth === null
               ? null
@@ -214,7 +214,7 @@ export function AcademyKpiCards({
                           delta! > 0
                             ? "text-neon/80"
                             : delta! < 0
-                              ? "text-amber-300"
+                              ? "text-warn"
                               : "text-ink/40"
                         }`}
                       >

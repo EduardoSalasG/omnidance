@@ -376,7 +376,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     usagePct != null && usagePct >= 100
       ? "bg-red-400"
       : usagePct != null && usagePct >= 90
-        ? "bg-amber-300"
+        ? "bg-warn"
         : "bg-neon";
 
   const planSelector = (
@@ -567,7 +567,7 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           </p>
         )}
         {view.pendingTier && view.pendingCycle && (
-          <p className="text-sm text-amber-300">
+          <p className="text-sm text-warn">
             {nextDate
               ? t("pendingChange", {
                   tier: t(`tiers.${view.pendingTier}`),
@@ -589,11 +589,11 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
           </div>
         ) : (
           graceDays > 0 && (
-            <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3">
-              <p className="text-sm font-medium text-amber-300">
+            <div className="rounded-xl border border-warn/30 bg-warn/10 px-4 py-3">
+              <p className="text-sm font-medium text-warn">
                 {t("grace", { days: graceDays })}
               </p>
-              <p className="mt-1 text-sm text-amber-200/80">
+              <p className="mt-1 text-sm text-warn/80">
                 {t("graceHint")}
               </p>
             </div>

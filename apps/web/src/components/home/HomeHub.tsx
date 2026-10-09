@@ -227,7 +227,7 @@ function TonightScene({ stats }: { stats: HomeStats | null }) {
         {heroEvent.presaleLeft != null &&
           heroEvent.presaleLeft <= 15 &&
           !heroEvent.hasTicket && (
-            <p className="text-xs font-semibold text-amber-300">
+            <p className="text-xs font-semibold text-warn">
               {t("presaleLeft", { count: heroEvent.presaleLeft })}
             </p>
           )}
@@ -604,7 +604,7 @@ export function HomeHub() {
       {statsError && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+          className="flex items-center justify-between gap-3 rounded-xl border border-warn/30 bg-warn/10 px-4 py-3 text-sm text-warn"
         >
           {t("statsError")}
           <button
@@ -613,7 +613,7 @@ export function HomeHub() {
               setStatsSlot(null);
               setStatsRetry((r) => r + 1);
             }}
-            className="min-h-11 shrink-0 rounded-full border border-amber-300/40 px-4 font-semibold transition-colors hover:bg-amber-300/10"
+            className="min-h-11 shrink-0 rounded-full border border-warn/40 px-4 font-semibold transition-colors hover:bg-warn/10"
           >
             {t("retry")}
           </button>
