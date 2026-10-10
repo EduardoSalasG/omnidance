@@ -124,7 +124,7 @@ export function ProducerDashboard() {
       </p>
 
       {/* KPIs (mismo bloque visual del pulso/dashboards de consola) */}
-      <section aria-label={t("dash.title")}>
+      <section aria-label={t("dash.title")} data-tour="producer-kpis">
         <h2 className={`mb-3 ${sectionTitleCls}`}>{t("dash.title")}</h2>
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {kpis.map(([key, value]) => (
@@ -160,7 +160,10 @@ export function ProducerDashboard() {
           link, efectivo) esperando aprobación - la cola es
           /productor/comprobantes. */}
       {dash.pendingClaims.count > 0 && (
-        <section aria-label={t("dash.pendingClaimsTitle")}>
+        <section
+          aria-label={t("dash.pendingClaimsTitle")}
+          data-tour="producer-claims"
+        >
           <div className="mb-3 flex items-baseline justify-between gap-3">
             <h3 className={sectionTitleCls}>{t("dash.pendingClaimsTitle")}</h3>
             <p className="text-xs tabular-nums text-ink/50">
@@ -209,7 +212,7 @@ export function ProducerDashboard() {
 
       {/* Tops en la misma fila: facturación a la izquierda, asistencia
           a la derecha (en móvil apilan en ese orden). */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2" data-tour="producer-tops">
         {dash.topRevenue.length > 0 && (
           <section aria-label={t("dash.topRevenue")} className="min-w-0">
             <h3 className={`mb-3 ${sectionTitleCls}`}>{t("dash.topRevenue")}</h3>

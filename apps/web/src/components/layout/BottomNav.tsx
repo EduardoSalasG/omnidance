@@ -958,6 +958,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     // en desktop.
     "/academia": "nav-academy",
     "/academia/clases": "nav-classes",
+    // El tab Eventos del productor apunta a /productor/eventos - la
+    // sidebar replica el anchor para que su tour lo resuelva en ≥lg.
+    "/productor/eventos": "nav-events",
   };
 
   // Sección "Cuenta": siempre al final del drawer/sidebar. Perfil para

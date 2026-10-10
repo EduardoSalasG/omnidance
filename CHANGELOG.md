@@ -3,6 +3,33 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.8.0] - 2026-10-10
+
+Onboarding guiado completo para los cuatro roles de consola: el
+productor y el instructor ahora reciben el tour de bienvenida que el
+dancer y el dueño de academia ya tenían.
+
+### Added
+
+- **Tour del productor** (`tour="productor"`): recorre el dashboard
+  operativo — KPIs (eventos agendados, entradas vendidas, facturación
+  del mes), cobros por revisar, tops por facturación y asistencia —
+  luego la navegación a `Mis eventos`, el menú de módulos y la campana
+  de notificaciones. Copy reescrito al vocabulario de la consola v2
+  (el texto anterior referenciaba liquidaciones y listas de puerta,
+  módulos que salieron del sidebar).
+- **Tour del instructor** (`tour="instructor"`): recorre el home —
+  "Tu semana" (KPIs de clases/horas/alumnos), próximas clases —
+  y la navegación a `Mis clases`, `Alumnos`, la campana y el perfil.
+
+### Auditado (sin cambios necesarios)
+
+- **Dancer**: `profile-setup` en `/bienvenida` + `home`/`home-academy`
+  + tours por módulo (eventos, QR, clases, bailes, amigos, prácticas,
+  perfil).
+- **Dueño de academia**: `academia-owner` (dashboard) + `academia`
+  (hub staff) + los tours de lente social.
+
 ## [0.7.0] - 2026-10-10
 
 Consolas del instructor y del productor como ciudadanos de primera
