@@ -3,6 +3,68 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.7.0] - 2026-10-10
+
+Consolas del instructor y del productor como ciudadanos de primera
+clase: navegación mínima, dashboards operativos, asistencia en ventana,
+recordatorios de clase, y la config del productor dividida en páginas.
+Además el fix del bug de producción que dejaba los módulos server-side
+apuntando a localhost.
+
+### Added
+
+- **Consola del instructor**: tab `Clases` normal (sin centro verde),
+  home con "Próximas clases" (lo que dicta como primario o co-profe),
+  tab `Alumnos` sin drawer móvil, y perfil sin gamificación ni "Mis
+  pagos". Asistencia solo marcabile en la ventana **30 min antes a 30
+  después** del inicio real (`attendance.out_of_window`); fuera de hora
+  se muestra el horario habilitado y los no marcados quedan "Sin
+  confirmar" sin perder el cupo.
+- **Recordatorios de clase**: job por minuto notifica al plantel y a
+  los alumnos BOOKED a los **30 y 10 min** antes ("Faltan 30 minutos
+  para tu clase X en Academia"), con deep-link por lente y dedupe
+  (persona, clase, offset). `class.instructor_assigned` al asignar
+  instructor en serie/slot/import CSV.
+- **Consola del productor v2**: `/inicio` como dashboard operativo
+  (eventos agendados, entradas vendidas, facturación del mes, top 5 por
+  facturación y por asistencia en la misma fila, cobros por revisar) vía
+  `GET /producer/dashboard`; perfil sin pagos/racha/insignias.
+- **Configuración del productor en páginas**: Valores por defecto
+  (`/productor/parametros`: mesas, aforo sentable, corte de preventa),
+  Medios de pago (`/productor/medios-pago`: pasarela propia + medios de
+  cobro directos), Suscripción (`/productor/suscripcion`: Producer Pro +
+  comisión todo incluido, retorno `?pro=ok` de Flow) y Apariencia
+  (`/productor/apariencia`).
+- **Listas de invitados dentro de la ficha del evento**:
+  `EventListsSection` en `/productor/eventos/[id]`; `/productor/listas`
+  redirige al listado de eventos y `nueva?eventId=`/`[id]` conservan el
+  contexto del evento.
+- **Cola masiva de comprobantes**: `/productor/comprobantes` muestra la
+  cola PENDING completa primero (navega a ficha para aprobar/rechazar),
+  historial resuelto, filtros y empty state explícito.
+- **Notificación `ticket.sale` al productor** al liquidar una compra de
+  entradas (comprador · cantidad · evento · monto, deep-link a la
+  ficha); sin autoaviso cuando el comprador es el productor.
+- **Reservas de mesa editables**: las CONFIRMED admiten guardar cambios
+  de mesa asignada y tamaño desde la ficha del evento.
+- **Paginación en analítica**: `POST /query/run` acepta
+  `page`/`pageSize` (clamped, máx 100) y devuelve `total` real; la UI
+  renderiza `Pager` y resetea a página 1 al cambiar filtros.
+- **Seed enriquecido**: todos los eventos reciben 150-350 entradas
+  determinísticas (vie/sáb 250-350), pagos PAID, ~85% de check-ins en
+  pasados, reservas de mesa mezcladas y claims PENDING para probar la
+  consola del productor; log de progreso por sección.
+
+### Fixed
+
+- **Módulos server-side rotos en prod** (`SERVER_API_URL`): las páginas
+  SSR fetcheaban `API_URL ?? localhost:4000` y en Netlify la var no
+  existía → eventos, academias, clases, locales, checkouts y fichas
+  públicas fallaban. La resolución ahora cae a `API_PROXY_TARGET` o al
+  origen propio vía el rewrite `/api/*`.
+- Selects de academia/serie/plan duplicados por data parcial: dedupe
+  por label normalizado (`dedupeOptions`).
+
 ## [0.6.0] - 2026-10-09
 
 Plantel multi-profesor por horario y clase (co-teaching): una clase
