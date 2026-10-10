@@ -1258,7 +1258,11 @@ describe("PlatformSubscriptionsService", () => {
         flowSubscriptionId: "fsub-1",
       });
       fx.platSubs.push(sub);
-      const tomorrow = new Date(Date.now() + 20 * 60 * 60_000);
+      // nextInvoiceDate es date-only (se parsea como 00:00 UTC): para
+      // que caiga siempre dentro de la ventana de 24h hay que mandar la
+      // fecha de MAÑANA (now+24h), no una hora dentro del día (now+20h
+      // puede seguir siendo hoy y su medianoche UTC ya pasó - flake).
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60_000);
       const fs = mkFlowSub({
         nextInvoiceDate: tomorrow.toISOString().slice(0, 10),
       });
