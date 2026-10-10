@@ -174,15 +174,15 @@
 
 ## v0.8.4 - canonical/og:url ya no localhost (2026-10-11, `a383e7f` en main)
 
-- **Causa**: `NEXT_PUBLIC_WEB_URL` nunca se seteo en el UI de Netlify;`r
-  `metadataBase` caia a `localhost:3000` y WhatsApp/crawlers leian`r
-  `canonical`/`og:url` como localhost al compartir `/para-academias`.`r
+- **Causa**: `NEXT_PUBLIC_WEB_URL` nunca se seteo en el UI de Netlify;
+  `metadataBase` caia a `localhost:3000` y WhatsApp/crawlers leian
+  `canonical`/`og:url` como localhost al compartir `/para-academias`.
 - **Fix**: var pintada en `[build.environment]` de `netlify.toml`
-  (NEXT_PUBLIC_* se inlinea en build, a diferencia del runtime);`r
-  `apps/web/src/lib/site-url.ts` resuelve `NEXT_PUBLIC_WEB_URL ->`r
-  `process.env.URL` (la inyecta Netlify en todo build) -> localhost.`r
-  4 consumidores migrados: layout (metadataBase), sitemap, robots,`r
-  JsonLd. Verificado en prod: canonical/og:url emiten`r
-  `https://omnidance.netlify.app/para-academias`, 0 localhost.`r
-- Verificacion: tsc web limpio, build verde, bundle con dominio`r
+  (NEXT_PUBLIC_* se inlinea en build, a diferencia del runtime);
+  `apps/web/src/lib/site-url.ts` resuelve `NEXT_PUBLIC_WEB_URL ->
+  `process.env.URL` (la inyecta Netlify en todo build) -> localhost.
+  4 consumidores migrados: layout (metadataBase), sitemap, robots,
+  JsonLd. Verificado en prod: canonical/og:url emiten
+  `https://omnidance.netlify.app/para-academias`, 0 localhost.
+- Verificacion: tsc web limpio, build verde, bundle con dominio
   inlineado, sitemap/robots emiten el dominio real.
