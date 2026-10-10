@@ -56,16 +56,26 @@ function StudentsModule({
   if (canAdminister === null) {
     return <SkeletonList />;
   }
+  // KPIs, insights e importación son superficies de gestión (cap
+  // `students`): el instructor pasa `requireManage` para LEER la lista
+  // pero no administra - su vista es solo el listado navegable (spec
+  // academies/console-lists).
+  const manages = canAdminister === true || access?.caps.students === true;
   return (
     <div className="flex flex-col gap-6">
-      {/* KPIs del módulo: solo alumnos activos + split de género con
-          comparativa mensual (spec academies/owner-insights). */}
-      <AcademyKpiStrip
-        academyId={academyId}
-        keys={["activeStudents", "pctMen", "pctWomen"]}
-      />
-      {/* Listas de insight tras los KPIs - mismo orden que el inicio. */}
-      <StudentsInsights academyId={academyId} />
+      {manages && (
+        <>
+          {/* KPIs del módulo: solo alumnos activos + split de género con
+              comparativa mensual (spec academies/owner-insights). */}
+          <AcademyKpiStrip
+            academyId={academyId}
+            keys={["activeStudents", "pctMen", "pctWomen"]}
+          />
+          {/* Listas de insight tras los KPIs - mismo orden que el
+              inicio. */}
+          <StudentsInsights academyId={academyId} />
+        </>
+      )}
       <StudentsSection
         academyId={academyId}
         readOnly={canAdminister !== true}

@@ -560,7 +560,7 @@ export class HomeService {
       select: { id: true, academyId: true },
     });
     const slotIds = slots.map((s) => s.id);
-    const [classesNext7d, attendance7d] = await Promise.all([
+    const [classesNext7d, attendance7d, nextClasses] = await Promise.all([
       slotIds.length
         ? this.prisma.class.count({
             where: {
@@ -578,13 +578,38 @@ export class HomeService {
             },
           })
         : 0,
+      // "Próximas clases" del home del instructor: las que dicta, mismo
+      // OR del endpoint /classes/teaching (primario o co-instructor por
+      // clase, slot o serie), no canceladas. Máx 3 cards.
+      this.prisma.class.findMany({
+        where: {
+          cancelled: false,
+          date: { gte: new Date() },
+          OR: [
+            { instructorId: personId },
+            { instructors: { some: { personId } } },
+            { slot: { instructorId: personId } },
+            { slot: { instructors: { some: { personId } } } },
+            { slot: { series: { instructorId: personId } } },
+          ],
+        },
+        orderBy: { date: "asc" },
+        take: 3,
+        select: CLASS_CARD_SELECT,
+      }),
     ]);
+    const instructorName = await this.instructorNames(nextClasses);
+    // El instructor no reserva su propia clase: myBooking/enrolled
+    // quedan false - la card se lee como agenda (ocupación, no CTA).
     return {
       kpis: [
         { key: "mySlots", value: slots.length },
         { key: "classes7d", value: classesNext7d },
         { key: "attendance7d", value: attendance7d },
       ],
+      myClasses: nextClasses.map((c) =>
+        this.toClassCard(c, personId, new Set(), instructorName),
+      ),
     };
   }
 

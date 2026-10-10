@@ -75,6 +75,7 @@ export function ClassCard({
   busy,
   onBook,
   statusBadge,
+  href,
 }: {
   cls: MineCardData;
   when?: string;
@@ -83,6 +84,9 @@ export function ClassCard({
   /** Badge de estado externo (historial: Asististe/Cancelaste) -
       reemplaza al slot de acción; la clase pasada no tiene CTA. */
   statusBadge?: { label: string; variant?: BadgeVariant };
+  /** Destino del card (default /clases/:id) - la consola del
+      instructor enlaza a su roster /academia/clases/:id. */
+  href?: string;
 }) {
   const t = useTranslations("classes");
   const full = cls.spotsLeft <= 0;
@@ -94,7 +98,7 @@ export function ClassCard({
           existe cuando la clase no está reservada. */}
       <div className="flex items-stretch gap-3">
         <Link
-          href={`/clases/${cls.id}`}
+          href={href ?? `/clases/${cls.id}`}
           className="min-w-0 flex-1 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
         >
           {when && (

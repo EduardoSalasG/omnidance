@@ -3,6 +3,7 @@ import { JOB_REGISTRY, type JobRegistry } from "../../jobs/registry";
 import { AcademyMaterializeService } from "./class-series-materialize.service";
 import { AcademyRemindersService } from "./academy-reminders.service";
 import { AcademySurveysService } from "./academy-surveys.service";
+import { ClassRemindersService } from "./class-reminders.service";
 
 /**
  * Registro de los jobs diarios de academias (spec
@@ -18,6 +19,7 @@ export class AcademiesScheduler implements OnModuleInit {
     private readonly reminders: AcademyRemindersService,
     private readonly materialize: AcademyMaterializeService,
     private readonly surveys: AcademySurveysService,
+    private readonly classReminders: ClassRemindersService,
     @Inject(JOB_REGISTRY) private readonly registry: JobRegistry,
   ) {}
 
@@ -52,6 +54,18 @@ export class AcademiesScheduler implements OnModuleInit {
         "Fan-out del día 1: notifica a cada alumno las series que cursó el mes anterior y aún no evaluó.",
       defaultCron: "45 4 1 * *",
       handler: async () => this.surveys.runMonthly(),
+    });
+    // Recordatorios pre-clase (spec academies/class-series): a los 30 y
+    // 10 minutos del inicio real avisa al plantel y a los alumnos BOOKED.
+    // Cadencia de un minuto - el sweep decide qué clase está en ventana
+    // y deduplica por (persona, clase, offset).
+    this.registry.register({
+      key: "academies.class_reminders",
+      label: "Recordatorios previos a la clase",
+      description:
+        "A los 30 y 10 minutos del inicio de cada clase notifica a instructores y alumnos con reserva.",
+      defaultCron: "* * * * *",
+      handler: async () => this.classReminders.runSweep(),
     });
   }
 }

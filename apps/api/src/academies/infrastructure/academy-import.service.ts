@@ -3,6 +3,7 @@ import type { Academy } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { AuthService } from "../../auth/domain/auth.service";
 import { MAILER, type Mailer } from "../../auth/domain/ports";
+import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { studentInviteEmailHtml } from "./invite-emails";
 import {
   AcademyMaterializeService,
@@ -65,6 +66,7 @@ export class AcademyImportService {
     private readonly auth: AuthService,
     @Inject(MAILER) private readonly mailer: Mailer,
     private readonly materialize: AcademyMaterializeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -354,10 +356,16 @@ export class AcademyImportService {
         ).values(),
       ];
 
+      // Instructores asignados por slots NUEVOS del import (spec
+      // academies/class-series): una notificación por instructor por
+      // serie, post-import (un slot existente no re-asigna).
+      const assigned = new Set<string>();
+
       for (const p of parsedRows) {
         try {
           let slot = byKey.get(slotKey(p));
           if (!slot) {
+            if (p.instructorId) assigned.add(p.instructorId);
             const created = await this.prisma.classSlot.create({
               data: {
                 academyId: academy.id,
@@ -409,6 +417,22 @@ export class AcademyImportService {
           });
           this.logger.error(`importSchedule fila ${p.row}: ${e}`);
         }
+      }
+
+      // Aviso de asignación - una vez por instructor por serie
+      // (el instructor de serie del CSV también entra al slot vía
+      // p.instructorId; el que no declaró slot propio queda en la
+      // serie sin aviso - su asignación es la serie completa).
+      const firstRow = parsedRows[0];
+      if (firstRow.instructorId) assigned.add(firstRow.instructorId);
+      for (const personId of assigned) {
+        await this.notifications.notifySafe(personId, {
+          category: "SOCIAL",
+          type: "class.instructor_assigned",
+          title: "Te asignaron una clase",
+          body: `${series.name} · ${academy.name}`,
+          data: { seriesId: series.id, academyId: academy.id },
+        });
       }
     }
 

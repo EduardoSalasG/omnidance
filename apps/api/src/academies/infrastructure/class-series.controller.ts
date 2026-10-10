@@ -560,7 +560,7 @@ export class ClassSeriesController {
         : []),
     ]);
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const series = await tx.classSeries.create({
         data: {
           academyId: id,
@@ -599,11 +599,23 @@ export class ClassSeriesController {
         await this.materialize.materializeSlot(tx, slot, dates);
       }
 
-      return tx.classSeries.findUnique({
+      return tx.classSeries.findUniqueOrThrow({
         where: { id: series.id },
         include: SERIES_INCLUDE,
       });
     });
+
+    // Aviso de asignación (spec academies/class-series): instructor de
+    // la serie + override explícito de cada slot. Un slot sin
+    // instructorId propio hereda el de la serie - ya notificado si el
+    // de la serie también era él (Set deduplica).
+    const assigned = new Set(
+      [dto.instructorId, ...dto.slots.map((s) => s.instructorId)].filter(
+        (x): x is string => !!x,
+      ),
+    );
+    await this.notifyInstructorAssigned(id, created, assigned);
+    return created;
   }
 
   /**
@@ -627,6 +639,9 @@ export class ClassSeriesController {
     await this.access.requireCapabilityWrite(id, req.person!, "schedule");
     const prev = await this.findSeriesOr404(id, seriesId);
     const reactivated = dto.active === true && !prev.active;
+    // Asignaciones nuevas de instructor (spec academies/class-series):
+    // el de la serie si cambia + instructor explícito de slots nuevos.
+    const newAssignees = new Set<string>();
 
     const updated = await this.prisma.$transaction(async (tx) => {
       if (dto.typeIds) {
@@ -677,6 +692,10 @@ export class ClassSeriesController {
           if (!slot) {
             const slotInstructorId =
               s.instructorId ?? series.instructorId ?? null;
+            // Solo el override explícito es "asignación nueva" - el
+            // instructor heredado de la serie ya fue avisado (o no
+            // cambió con este PATCH).
+            if (s.instructorId) newAssignees.add(s.instructorId);
             slot = await tx.classSlot.create({
               data: {
                 academyId: id,
@@ -713,11 +732,46 @@ export class ClassSeriesController {
       });
     });
 
+    if (
+      dto.instructorId &&
+      dto.instructorId !== prev.instructorId
+    ) {
+      newAssignees.add(dto.instructorId);
+    }
     if (reactivated) {
       // Best-effort post-commit: un fallo del centro no revierte la serie.
       await this.notifySeriesResumed(id, updated);
     }
+    await this.notifyInstructorAssigned(id, updated, newAssignees);
     return updated;
+  }
+
+  /**
+   * Avisa a cada instructor recién asignado a la serie (best-effort
+   * post-commit). type class.instructor_assigned + data con seriesId /
+   * academyId para deeplink al módulo de clases del instructor.
+   */
+  private async notifyInstructorAssigned(
+    academyId: string,
+    series: { id: string; name: string },
+    personIds: Set<string>,
+  ): Promise<void> {
+    if (!personIds.size) return;
+    const academy = await this.prisma.academy.findUnique({
+      where: { id: academyId },
+      select: { name: true },
+    });
+    await Promise.all(
+      [...personIds].map((personId) =>
+        this.notifications.notifySafe(personId, {
+          category: "SOCIAL",
+          type: "class.instructor_assigned",
+          title: "Te asignaron una clase",
+          body: `${series.name} · ${academy?.name ?? ""}`.trim(),
+          data: { seriesId: series.id, academyId },
+        }),
+      ),
+    );
   }
 
   /**

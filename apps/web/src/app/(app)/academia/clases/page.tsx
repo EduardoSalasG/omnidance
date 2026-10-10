@@ -7,7 +7,6 @@ import { useMe } from "@/lib/me-context";
 import { useActiveRole } from "@/lib/active-role";
 import { PageLoading } from "@/components/ui";
 import { TeachingClasses } from "@/components/academy/teaching-classes";
-import { AcademyKpiStrip } from "@/components/academy/academy-kpi-strip";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 /**
@@ -46,10 +45,8 @@ export default function AcademiaClasesPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-5xl lg:px-8">
       <ConsoleHeader backHref="/academia" backLabel={t("title")} />
-      {/* KPIs del mes - el strip se auto-resuelve (esta consola no usa
-          AcademyGate: el instructor puede no ser owner); sin academia
-          propia no renderiza nada. */}
-      <AcademyKpiStrip />
+      {/* Sin KPI strip: es consola del instructor (spec staff-roles) -
+          los KPIs de gestión son del owner, no del que dicta. */}
       <section aria-label={ti("title")} className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">{ti("title")}</h2>
         <TeachingClasses />

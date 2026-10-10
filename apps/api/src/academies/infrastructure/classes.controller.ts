@@ -42,6 +42,12 @@ import { ApiQuery } from "@nestjs/swagger";
 // reservar exige inscripción vigente).
 const BOOKABLE_ENROLLMENT: EnrollmentStatus[] = ["ACTIVE", "TRIAL", "ONLINE"];
 
+// Ventana de marcación de asistencia: 30 minutos antes hasta 30
+// minutos después del inicio real de la clase (classStart) - spec
+// academies/class-series. El mismo número alimenta `attendanceWindow`
+// del roster y el gate de POST /classes/:id/attendance.
+const ATTENDANCE_WINDOW_MS = 30 * 60_000;
+
 // Semana de la cuota: ISO lun–dom sobre Class.date (medianoche UTC del día
 // de la clase - no hora local: la diferencia solo aparecería en una clase
 // que cruza el lunes ~21:00 hora Chile, caso prácticamente inexistente).
@@ -993,6 +999,16 @@ export class ClassesController {
     if (!cls) throw new NotFoundException("clase no encontrada");
     await this.access.requireManage(cls.slot.academyId, req.person!);
 
+    // Ventana de marcación [inicio-30min, inicio+30min] sobre el inicio
+    // real de la clase (spec academies/class-series). Fuera de ella la
+    // UI no muestra el control; una reserva sin asistencia queda BOOKED
+    // (sigue ocupando cupo y consumiendo el crédito del plan).
+    const start = classStart(cls.date, cls.slot.startTime);
+    const attendanceWindow = {
+      opensAt: new Date(start.getTime() - ATTENDANCE_WINDOW_MS),
+      closesAt: new Date(start.getTime() + ATTENDANCE_WINDOW_MS),
+    };
+
     const bookings = await this.prisma.classBooking.findMany({
       where: { classId, status: { in: ["BOOKED", "WAITLIST"] } },
       orderBy: { createdAt: "asc" },
@@ -1045,6 +1061,7 @@ export class ClassesController {
         date: cls.date,
         startTime: cls.slot.startTime,
         endTime: cls.slot.endTime,
+        academyId: cls.slot.academyId,
         seriesName: cls.slot.series.name,
         styleName: cls.slot.series.style?.name ?? null,
         levelName: cls.slot.series.level?.name ?? null,
@@ -1063,6 +1080,7 @@ export class ClassesController {
         academyDefaultQuorum: cls.slot.academy.defaultQuorum,
       }),
       canMark,
+      attendanceWindow,
       booked: bookings.filter((b) => b.status === "BOOKED").map(toRow),
       waitlist: bookings.filter((b) => b.status === "WAITLIST").map(toRow),
     };
@@ -1087,12 +1105,14 @@ export class ClassesController {
       where: { id: classId },
       select: {
         id: true,
+        date: true,
         cancelled: true,
         instructorId: true,
         instructors: { select: { personId: true } },
         slot: {
           select: {
             academyId: true,
+            startTime: true,
             instructorId: true,
             instructors: { select: { personId: true } },
             series: { select: { instructorId: true } },
@@ -1121,6 +1141,24 @@ export class ClassesController {
       throw new ForbiddenException(
         "solo el profesor de la clase puede marcar asistencia",
       );
+    }
+
+    // Ventana de marcación [inicio-30min, inicio+30min] - aplica a todos
+    // (admin incluido): fuera de ella la asistencia no se registra y el
+    // alumno queda no confirmado conservando su cupo (spec
+    // academies/class-series).
+    const start = classStart(cls.date, cls.slot.startTime);
+    const now = new Date();
+    const opensAt = new Date(start.getTime() - ATTENDANCE_WINDOW_MS);
+    const closesAt = new Date(start.getTime() + ATTENDANCE_WINDOW_MS);
+    if (now < opensAt || now > closesAt) {
+      throw new BadRequestException({
+        error: "attendance.out_of_window",
+        message:
+          "la asistencia solo se marca entre 30 minutos antes y 30 minutos después del inicio",
+        opensAt: opensAt.toISOString(),
+        closesAt: closesAt.toISOString(),
+      });
     }
 
     const booking = await this.prisma.classBooking.findFirst({

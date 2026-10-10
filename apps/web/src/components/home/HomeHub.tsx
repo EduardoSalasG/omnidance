@@ -335,7 +335,7 @@ export function HomeHub() {
   const tc = useTranslations("common");
   const te = useTranslations("events");
   const tst = useTranslations("staff");
-  const ta = useTranslations("academy");
+  const tins = useTranslations("instructor");
   const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
@@ -546,14 +546,10 @@ export function HomeHub() {
       // ACADEMY_OWNER no tiene hero: su home ES la consola (ver el
       // branch del render abajo).
       case "INSTRUCTOR":
-        // Su consola es "Mis clases" - el hub /academia salió de su
-        // navegación (spec staff-roles).
-        return {
-          href: "/academia/clases",
-          title: ta("title"),
-          desc: t("academyHeroDesc"),
-          cta: t("academyHeroCta"),
-        };
+        // Sin hero-card: su superficie es "Próximas clases" abajo (las
+        // que dicta) + el tab Clases - igual que el learner inscrito,
+        // el card "Mi Academia" era ruido (spec staff-roles).
+        return null;
       case "STAFF": {
         const shift = stats?.nextShift;
         return {
@@ -812,13 +808,24 @@ export function HomeHub() {
             </section>
           )}
 
-          {/* Tus próximas clases - reservas del learner (BOOKED/
-              WAITLIST), máx 3, mismo ClassCard de /clases: el badge
-              Reservado/En espera va arriba a la derecha. */}
-          {dancerAcademy && (stats?.myClasses?.length ?? 0) > 0 && (
-            <section aria-label={t("myClassesTitle")}>
+          {/* Próximas clases - reservas del learner (BOOKED/WAITLIST)
+              o agenda del instructor (las que dicta, badge de
+              ocupación), máx 3, mismo ClassCard de /clases. El destino
+              difiere por lente: alumno → ficha pública, instructor →
+              roster de su consola. */}
+          {(dancerAcademy || activeRole === "INSTRUCTOR") &&
+            (stats?.myClasses?.length ?? 0) > 0 && (
+            <section
+              aria-label={
+                activeRole === "INSTRUCTOR"
+                  ? t("teachingClassesTitle")
+                  : t("myClassesTitle")
+              }
+            >
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
-                {t("myClassesTitle")}
+                {activeRole === "INSTRUCTOR"
+                  ? t("teachingClassesTitle")
+                  : t("myClassesTitle")}
               </h2>
               <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                 {stats!.myClasses!.map((c) => (
@@ -830,6 +837,18 @@ export function HomeHub() {
                           ? te("today")
                           : classUtcDayFmt.format(new Date(c.date))
                       } · ${c.startTime}–${c.endTime}`}
+                      {...(activeRole === "INSTRUCTOR"
+                        ? {
+                            href: `/academia/clases/${c.id}`,
+                            statusBadge: {
+                              label: tins("quorumLine", {
+                                booked: c.bookedCount,
+                                quorum: c.capacity,
+                              }),
+                              variant: "outline" as const,
+                            },
+                          }
+                        : {})}
                     />
                   </li>
                 ))}
