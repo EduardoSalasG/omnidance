@@ -58,6 +58,7 @@ const CODES_ENTITY: EntityDef = {
 
 function DiscountCodes() {
   const t = useTranslations("producer");
+  const tn = useTranslations("nav");
   const tc = useTranslations("common");
   const tq = useTranslations("query");
 
@@ -126,8 +127,8 @@ function DiscountCodes() {
   return (
     <>
       <ConsoleHeader
-        backHref="/productor"
-        backLabel={t("title")}
+        backHref="/inicio"
+        backLabel={tn("home")}
         actions={
           <Button size="sm" variant="secondary" href="/productor/codigos/nuevo">
             {`＋ ${t("newCode")}`}

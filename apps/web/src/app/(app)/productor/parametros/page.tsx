@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { ProReturnNotice } from "@/components/producer/pro-return-notice";
 import {
   Badge,
   Button,
@@ -74,6 +75,7 @@ const timeToMinutes = (t: string): number | null => {
  */
 export default function ProducerParamsPage() {
   const t = useTranslations("producer");
+  const tn = useTranslations("nav");
   const tp = useTranslations("producerParams");
   const tprf = useTranslations("profile");
   const tc = useTranslations("common");
@@ -178,7 +180,14 @@ export default function ProducerParamsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-4xl lg:px-8">
-      <ConsoleHeader backHref="/productor" backLabel={t("title")} />
+      <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
+
+      {/* Retorno del disclaimer de tarjeta de Flow (platform-customer-
+          return → 303 ?pro=ok) - el aviso vive acá porque la sección
+          Producer Pro es de esta página (el hub /productor murió). */}
+      <Suspense>
+        <ProReturnNotice />
+      </Suspense>
 
       {gate === "loading" && (
         <div className="flex flex-col gap-6" aria-hidden="true">

@@ -1,4 +1,5 @@
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+import { SERVER_API_URL } from "@/lib/server-api";
+const API_URL = SERVER_API_URL;
 
 // GET /academies/public - directorio mínimo sin sesión (spec
 // academies/owner-insights): alimenta el strip de prueba social de

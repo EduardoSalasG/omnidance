@@ -30,6 +30,7 @@ import {
   parseMonth,
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
+import { SERVER_API_URL } from "@/lib/server-api";
 
 // El merge i18n devuelve Dict - las claves se declaran explícitas
 // (mismo patrón que locales/[id]).
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/eventos" },
 };
 
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = SERVER_API_URL;
 
 // Shape del card de evento - compartido con components/events/event-card.
 type EventListItem = EventCardData;

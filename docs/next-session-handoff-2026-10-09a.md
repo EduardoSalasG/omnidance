@@ -90,3 +90,75 @@
   roles+admin — un seed a medias pasa por completo. Sugerencia:
   endurecer con `eventSeries > 0` o similar.
 - Sin push ni release: todo quedó en `dev`.
+
+---
+
+# Handoff - continuación (consola productor + fix SSR prod)
+
+## Completado (mismo batch, commits en dev, sin push)
+
+### Bug prod: eventos/academias/clases no cargan vía SSR (FIX)
+
+- **Causa raíz**: 11 módulos server-side fetcheaban
+  `process.env.API_URL ?? "http://localhost:4000"`. En Netlify
+  `API_URL` no existe → el serverless pegaba a su propio localhost →
+  `/eventos`, `/eventos/:id`, academias, clases, locales, checkouts,
+  `/evaluar` y `/reclamar` devolvían error/vacío en prod (el API
+  estaba sano: 200 en list y detail directo y vía proxy `/api/*`).
+- **Fix**: `apps/web/src/lib/server-api.ts` exporta `SERVER_API_URL`
+  con orden `API_URL → API_PROXY_TARGET → NEXT_PUBLIC_WEB_URL →
+  localhost:4000`. En Netlify resuelve a `API_PROXY_TARGET`
+  (declarado en `netlify.toml [build.environment]`, disponible en el
+  runtime de funciones) o, en su defecto, pega a la propia web por el
+  rewrite `/api/*`. Dev local sigue cayendo a `localhost:4000`.
+- Los 11 archivos ahora hacen `const API_URL = SERVER_API_URL`
+  (eventos list/detail/checkout/evaluar, academias detail/checkout,
+  clases detail, locales detail, reclamar, `public-events`,
+  `public-academies`).
+
+### Consola del productor (change `2026-10-09-producer-home-console`, archivado)
+
+- **Home**: `/inicio` en lente PRODUCER renderiza `ProducerDashboard`
+  (nuevo): KPIs (eventos agendados, entradas vendidas, facturación
+  del mes, cobros por revisar) + top 5 por facturación + top 5 por
+  asistencia + cola de comprobantes PENDING. Sin hero ni "Próximos
+  eventos". API: `GET /producer/dashboard` en `ProducerController`
+  (productor APPROVED o `admin.access`).
+- **Nav**: tabs = Inicio + Eventos (fuera "Crear evento" central y
+  Payouts). Drawer/sidebar: módulos (Códigos, Listas, Comprobantes,
+  CRM) + Analítica + grupo **Configuración** (Comisión y defaults,
+  Mis pagos) encima de Cuenta. Fuera el hub `/productor` y el grupo
+  Social→cartelera. `/productor` → `redirect("/inicio")`.
+- **Retorno Flow Pro**: `platform-customer-return` ahora 303 a
+  `/productor/parametros?pro=ok`; `ProReturnNotice` vive en esa
+  página. `ProducerPulse` eliminado (sin referencias).
+- **backHref** de codigos/comprobantes/eventos/listas/pagos/
+  parametros → `/inicio`.
+- **Perfil**: PRODUCER en `STREAKLESS` y `GAMIFLESS`; "Mis pagos"
+  oculto.
+- **CTA** "Nuevo evento" en `/productor/eventos`: `primary` (morado).
+- `producer.controller.spec.ts` nuevo: 5 tests del dashboard (gate,
+  vacío, tops, null eventId, admin).
+
+### Verificación
+
+- `tsc --noEmit` api ✓ (incluye fix de tipos en
+  `class-reminders.service.spec.ts` que tsc sí chequea aunque vitest
+  corría igual) y web ✓
+- Vitest `src/events src/payments src/academies`: **687/687**
+  (incl. 5 nuevos del dashboard + 9 del reminders corregidos)
+- i18n audit: `ALL_KEYS_OK`
+- `impeccable detect --json`: `[]`
+- `openspec validate --changes` ✓ y `archive` aplicado:
+  `events/producer-console` +2 reqs, `people-profile` +1 req
+
+### Pendiente
+
+- **Re-correr el seed de prod** (`SEED_ENV=dev pnpm db:seed` contra
+  `MIGRATION_DATABASE_URL`) si aún no se completó - la data demo
+  anterior quedó parcial por el timeout viejo.
+- **El fix SSR solo llega a prod con un deploy del web** - push a
+  `main` (Netlify rebuildeo) o release. Pendiente de aprobación del
+  usuario: promover `dev → main` (release v0.6.1/v0.7.0?).
+- La UI del productor no se verificó visualmente en browser (sin
+  smoke CDP este batch) - los contratos sí por specs.

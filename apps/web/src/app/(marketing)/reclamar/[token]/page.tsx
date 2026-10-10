@@ -2,10 +2,11 @@ import { cookies } from "next/headers";
 import { messages } from "@/i18n/messages";
 import { Button } from "@/components/ui";
 import { ClaimClient } from "./claim-client";
+import { SERVER_API_URL } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = SERVER_API_URL;
 
 export type ClaimInfo = {
   buyerName: string;

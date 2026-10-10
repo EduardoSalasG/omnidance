@@ -64,6 +64,7 @@ const clp = new Intl.NumberFormat("es-CL", {
  */
 function ProducerEvents() {
   const t = useTranslations("producer");
+  const tn = useTranslations("nav");
   const te = useTranslations("events");
   const tc = useTranslations("common");
   const tq = useTranslations("query");
@@ -135,15 +136,13 @@ function ProducerEvents() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
       <ConsoleHeader
-        backHref="/productor"
-        backLabel={t("title")}
+        backHref="/inicio"
+        backLabel={tn("home")}
         actions={
           gate === "ready" ? (
-            <Button
-              size="sm"
-              variant="secondary"
-              href="/productor/eventos/nuevo"
-            >
+            // primary = morado de la lente social - es la acción
+            // principal del módulo (spec producer-console).
+            <Button size="sm" href="/productor/eventos/nuevo">
               {`＋ ${t("createEvent")}`}
             </Button>
           ) : null

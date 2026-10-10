@@ -7,6 +7,27 @@
     "navPayoutsDesc": "Liquidaciones y transferencias",
     "navCrmDesc": "Relación con tus bailarines",
     "createEvent": "Crear evento",
+    "navGroups": {
+      "config": "Configuración"
+    },
+    "dash": {
+      "title": "Resumen",
+      "error": "No pudimos cargar tu resumen.",
+      "retry": "Reintentar",
+      "empty": "Aún no tienes eventos. Crea el primero para ver tu resumen.",
+      "seeAll": "Ver todos ({count})",
+      "checkins": "{count} check-ins",
+      "pendingClaimsTitle": "Cobros por revisar",
+      "pendingClaimsSummary": "{count} · {amount}",
+      "topRevenue": "Top eventos por facturación",
+      "topAttendance": "Top por asistencia",
+      "kpi": {
+        "upcoming": "Eventos agendados",
+        "sold": "Entradas vendidas",
+        "grossMonth": "Facturación del mes",
+        "pendingClaims": "Cobros por revisar"
+      }
+    },
     "editEvent": "Editar evento",
     "event": "Evento",
     "pickEvent": "Elige un evento para ver sus listas.",

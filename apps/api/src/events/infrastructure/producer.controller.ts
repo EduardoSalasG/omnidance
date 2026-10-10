@@ -74,6 +74,162 @@ export class ProducerController {
     private readonly params: ParamsService,
   ) {}
 
+  /**
+   * GET /producer/dashboard - home del productor (mismo formato del
+   * dashboard del owner: KPIs + listas operativas). Agrega sobre TODOS
+   * sus eventos: los agendados (PUBLISHED/LIVE a futuro) y el mes
+   * calendario en curso para ventas/facturación.
+   *
+   * - kpis.upcoming: eventos agendados aún abiertos o por venir.
+   * - kpis.sold: entradas ACTIVE|USED de esos eventos agendados.
+   * - kpis.grossMonth: bruto PAID (orderType TICKET) del mes calendario.
+   * - kpis.pendingClaims: comprobantes manuales esperando revisión.
+   * - topRevenue / topAttendance: top 5 eventos del productor por bruto
+   *   PAID histórico y por check-ins (voidedAt null).
+   * - pendingClaims.items: primeros 5 de la cola PENDING (persona,
+   *   método, monto) - la acción vive en /productor/comprobantes.
+   */
+  @Get("dashboard")
+  async dashboard(@Req() req: Request) {
+    const me = req.person!;
+    await this.assertProducerOrAdmin(me.id, me.roles);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const events = await this.prisma.event.findMany({
+      where: { producerId: me.id },
+      select: { id: true, status: true, endsAt: true },
+    });
+    const allIds = events.map((e) => e.id);
+    const upcomingIds = events
+      .filter(
+        (e) =>
+          (e.status === "PUBLISHED" || e.status === "LIVE") &&
+          e.endsAt >= now,
+      )
+      .map((e) => e.id);
+    if (!allIds.length) {
+      return {
+        kpis: { upcoming: 0, sold: 0, grossMonth: 0, pendingClaims: 0 },
+        topRevenue: [],
+        topAttendance: [],
+        pendingClaims: { count: 0, amount: 0, items: [] },
+      };
+    }
+
+    const [sold, grossMonth, revenueBy, checkinsBy, claimsCount, claimsSum, claims] =
+      await Promise.all([
+        upcomingIds.length
+          ? this.prisma.ticket.count({
+              where: {
+                eventId: { in: upcomingIds },
+                status: { in: ["ACTIVE", "USED"] },
+              },
+            })
+          : 0,
+        this.prisma.payment.aggregate({
+          where: {
+            eventId: { in: allIds },
+            orderType: "TICKET",
+            status: "PAID",
+            createdAt: { gte: monthStart },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.payment.groupBy({
+          by: ["eventId"],
+          where: {
+            eventId: { in: allIds },
+            orderType: "TICKET",
+            status: "PAID",
+          },
+          _sum: { amount: true },
+          orderBy: { _sum: { amount: "desc" } },
+          take: 5,
+        }),
+        this.prisma.checkin.groupBy({
+          by: ["eventId"],
+          where: { eventId: { in: allIds }, voidedAt: null },
+          _count: { _all: true },
+          orderBy: { _count: { eventId: "desc" } },
+          take: 5,
+        }),
+        this.prisma.ticketClaim.count({
+          where: { producerId: me.id, status: "PENDING" },
+        }),
+        this.prisma.payment.aggregate({
+          where: {
+            ticketClaims: {
+              some: { producerId: me.id, status: "PENDING" },
+            },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.ticketClaim.findMany({
+          where: { producerId: me.id, status: "PENDING" },
+          orderBy: { createdAt: "asc" },
+          take: 5,
+          select: {
+            id: true,
+            methodLabel: true,
+            createdAt: true,
+            person: { select: { name: true } },
+            payment: { select: { amount: true } },
+          },
+        }),
+      ]);
+
+    const topIds = [
+      ...new Set([
+        ...revenueBy.map((r) => r.eventId),
+        ...checkinsBy.map((c) => c.eventId),
+      ]),
+    ].filter((id): id is string => id != null);
+    const topEvents = topIds.length
+      ? await this.prisma.event.findMany({
+          where: { id: { in: topIds } },
+          select: { id: true, name: true, startsAt: true },
+        })
+      : [];
+    const evById = new Map(topEvents.map((e) => [e.id, e]));
+
+    return {
+      kpis: {
+        upcoming: upcomingIds.length,
+        sold,
+        grossMonth: grossMonth._sum.amount ?? 0,
+        pendingClaims: claimsCount,
+      },
+      topRevenue: revenueBy
+        .filter((r) => r.eventId != null && evById.has(r.eventId))
+        .map((r) => ({
+          id: r.eventId as string,
+          name: evById.get(r.eventId as string)!.name,
+          startsAt: evById.get(r.eventId as string)!.startsAt,
+          grossClp: r._sum.amount ?? 0,
+        })),
+      topAttendance: checkinsBy
+        .filter((c) => c.eventId != null && evById.has(c.eventId))
+        .map((c) => ({
+          id: c.eventId as string,
+          name: evById.get(c.eventId as string)!.name,
+          startsAt: evById.get(c.eventId as string)!.startsAt,
+          checkins: c._count._all,
+        })),
+      pendingClaims: {
+        count: claimsCount,
+        amount: claimsSum._sum.amount ?? 0,
+        items: claims.map((c) => ({
+          id: c.id,
+          personName: c.person.name,
+          methodLabel: c.methodLabel,
+          amount: c.payment.amount,
+          createdAt: c.createdAt,
+        })),
+      },
+    };
+  }
+
   @Get("fee-params")
   async feeParams(@Req() req: Request) {
     const me = req.person!;

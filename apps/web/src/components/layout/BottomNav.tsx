@@ -172,11 +172,6 @@ const ACTIONS_TAB: Tab = {
   center: true,
   sheet: true,
 };
-const PAYOUTS_TAB: Tab = {
-  href: "/productor/pagos",
-  key: "payouts",
-  icon: icon(ICONS.card),
-};
 // Consola del instructor - tab normal (no central): se acentúa solo
 // cuando está activo, como el resto de la barra.
 const TEACHING_TAB: Tab = {
@@ -239,16 +234,12 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
     QR_TAB,
     EVENTS_TAB,
   ],
+  // Productor: consola operativa mínima - crear evento vive dentro del
+  // módulo (CTA en /productor/eventos), no en la navegación. Pagos y
+  // parámetros van bajo "Configuración" en el drawer/sidebar.
   PRODUCER: [
     HOME_TAB,
     { href: "/productor/eventos", key: "events", icon: icon(ICONS.events) },
-    {
-      href: "/productor/eventos/nuevo",
-      key: "create",
-      icon: icon(ICONS.plus),
-      center: true,
-    },
-    PAYOUTS_TAB,
   ],
   // Owner: su consola ES el inicio (AcademyDashboard en HomeHub) -
   // Inicio queda solo como primer destino; el resto vive en el drawer.
@@ -390,15 +381,9 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       labelNs: "producer",
       labelKey: "title",
       items: [
-        {
-          href: "/productor",
-          ns: "producer",
-          key: "title",
-          icon: ICONS.producer,
-          // match exacto: /productor/eventos ya tiene su propio ítem y
-          // con el tab bar oculto no hay exclusión de hrefs-tab.
-          exact: true,
-        },
+        // Sin ítem hub: /productor redirige a /inicio (el dashboard es
+        // el inicio, como el del owner). Comprobantes entra al nav -
+        // su única entrada era el hub eliminado.
         {
           href: "/productor/codigos",
           ns: "producer",
@@ -412,28 +397,37 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.list,
         },
         {
-          href: "/productor/pagos",
+          href: "/productor/comprobantes",
           ns: "producer",
-          key: "payouts",
+          key: "modules.claims",
           icon: ICONS.card,
         },
+        { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
+      ],
+    },
+    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
+    // Configuración: finanzas del productor (comisión/defaults) y sus
+    // liquidaciones - encima de Cuenta, mismo patrón del owner.
+    {
+      labelNs: "producer",
+      labelKey: "navGroups.config",
+      items: [
         {
           href: "/productor/parametros",
           ns: "producerParams",
           key: "title",
           icon: ICONS.slider,
         },
-        { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
+        {
+          href: "/productor/pagos",
+          ns: "producer",
+          key: "payouts",
+          icon: ICONS.card,
+        },
       ],
     },
-    ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
-    {
-      labelNs: "nav",
-      labelKey: "socialSection",
-      items: [
-        { href: "/eventos", ns: "events", key: "title", icon: ICONS.events },
-      ],
-    },
+    // Sin grupo Social: la lente productor es consola pura - la
+    // cartelera vive en la lente bailarín (spec producer-console).
   ],
   // Los módulos del owner viven acá agrupados por dominio (la grilla
   // de /academia queda solo para staff/admin que no tienen este drawer).
