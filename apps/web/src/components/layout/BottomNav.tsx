@@ -53,6 +53,7 @@ type TabKey =
   | "practices"
   | "payouts"
   | "attendance"
+  | "students"
   | "analytics"
   | "venue"
   | "dj"
@@ -184,6 +185,13 @@ const TEACHING_TAB: Tab = {
   icon: icon(ICONS.staff),
   center: true,
 };
+// Alumnos de la academia donde enseña: búsqueda + ficha con historial
+// de asistencias (read-only para el instructor - spec staff-roles).
+const STUDENTS_TAB: Tab = {
+  href: "/academia/alumnos",
+  key: "students",
+  icon: icon(ICONS.users),
+};
 const ANALYTICS_TAB: Tab = {
   href: "/analitica",
   key: "analytics",
@@ -247,12 +255,9 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
   // Inicio queda solo como primer destino; el resto vive en el drawer.
   ACADEMY_OWNER: [HOME_TAB],
   // Instructor: Inicio + Mis clases (central - ahí marca asistencia por
-  // clase) + hub de academia.
-  INSTRUCTOR: [
-    HOME_TAB,
-    TEACHING_TAB,
-    { href: "/academia", key: "academy", icon: icon(ICONS.academy) },
-  ],
+  // clase) + Alumnos de su academia. Sin hub /academia: todo cabe en el
+  // tab bar (spec staff-roles - consola de instructor).
+  INSTRUCTOR: [HOME_TAB, TEACHING_TAB, STUDENTS_TAB],
   DJ: [HOME_TAB, EVENTS_TAB, DJ_TAB],
   VENUE_MANAGER: [HOME_TAB, VENUE_TAB, EVENTS_TAB, ANALYTICS_TAB],
   SUPPORT: [HOME_TAB, SUPPORT_TAB, EVENTS_TAB],
@@ -543,38 +548,10 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
     ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
   ],
-  INSTRUCTOR: [
-    {
-      labelNs: "academy",
-      labelKey: "title",
-      items: [
-        {
-          href: "/academia/clases",
-          ns: "academy",
-          key: "modules.myClasses",
-          icon: ICONS.list,
-        },
-        {
-          href: "/academia/particulares",
-          ns: "academy",
-          key: "modules.lessons",
-          icon: ICONS.dances,
-        },
-        {
-          href: "/academia/alumnos",
-          ns: "academy",
-          key: "modules.students",
-          icon: ICONS.users,
-        },
-        {
-          href: "/academia/videos",
-          ns: "academy",
-          key: "modules.videos",
-          icon: ICONS.play,
-        },
-      ],
-    },
-  ],
+  // El instructor tampoco usa drawer: sus 3 destinos (Inicio, Mis
+  // clases, Alumnos) caben en el tab bar - Videos y Clases particulares
+  // salen de su navegación (siguen para owner/staff).
+  INSTRUCTOR: [],
   // El DJ también es parte de la escena: su consola es tab central y el
   // drawer le deja lo social (amigos, bailes, prácticas).
   DJ: [
@@ -991,10 +968,12 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // drawer-only, donde el drawer ES la única navegación.
   // El bailarín no usa drawer en <lg (spec dancer-navigation): su
   // navegación móvil es tab bar + sheet del "+" - sin hamburguesa ni
-  // drawer, ni siquiera la sección Cuenta (Perfil ya es tab).
+  // drawer, ni siquiera la sección Cuenta (Perfil ya es tab). El
+  // instructor igual: sus 3 destinos caben en el tab bar (spec
+  // staff-roles) - Perfil ya es tab.
   const drawerGroups: DrawerGroup[] = !me
     ? [accountGroup]
-    : activeRole === "DANCER"
+    : activeRole === "DANCER" || activeRole === "INSTRUCTOR"
       ? []
       : [
         ...roleDrawer.map((g) => ({
