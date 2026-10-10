@@ -74,12 +74,37 @@
   El fix SSR entra en producción cuando ese build termine - verificar
   `/productor/apariencia` renderiza tras login.
 
+## Release v0.8.0 — onboarding tours (commit `ff49f37`, tag `v0.8.0`)
+
+- **Audit**: dancer (`profile-setup` + `home`/`home-academy` + tours por
+  módulo) y owner (`academia-owner` + `academia`) ya estaban completos.
+- **Productor**: tour `productor` montado en la rama PRODUCER de HomeHub
+  — `producer-kpis` → `producer-claims` → `producer-tops` → `nav-events`
+  → menú (`appbar-menu` móvil / `app-sidebar` desktop) → `appbar-bell`.
+  Copy `tours.productor` reescrito al vocabulario v2 (el anterior
+  mencionaba liquidaciones/listas de puerta, módulos eliminados).
+- **Instructor**: tour `instructor` — `home-stats` → `home-classes`
+  (anchor nuevo en "Próximas clases") → `nav-classes` → `nav-students`
+  → `appbar-bell` → `nav-profile`.
+- Anchors nuevos en `ProducerDashboard` (kpis/claims/tops) y
+  `SIDEBAR_TOUR["/productor/eventos"]="nav-events"` en BottomNav.
+- Persistencia: mismo contrato — `POST /me/onboarding {tour}` mergea en
+  `Person.onboarding` JSON; los tours corren una sola vez por usuario.
+- OpenSpec `2026-10-10-console-onboarding-tours` archivado → specs
+  `events/producer-console` y `academies/staff-roles` actualizadas.
+- **Deploy**: API workflow success 5m45s; `/api/health` y `/api/events`
+  200 en prod. Web: rebuild de Netlify disparado por el push — verificar
+  en Deploys que sirva el build de `ff49f37` (los tours son front-only).
+
 ## Pendiente
 
 - QA manual del productor (320/768/1024) + handoff 6.3 de
   analytics-query-engine.
 - Seed de prod (`SEED_ENV=dev pnpm db:seed` contra la URL directa) sigue
   pendiente en cancha del usuario.
+- Verificar rebuild de Netlify v0.8.0 (los tours `productor`/`instructor`
+  corren en la primera visita a `/inicio` de usuarios sin la key en
+  `Person.onboarding`).
 
 ## Gaps conocidos
 
