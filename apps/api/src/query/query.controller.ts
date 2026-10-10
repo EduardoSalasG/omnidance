@@ -14,12 +14,16 @@ import {
 } from "@nestjs/common";
 import {
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
+  Min,
 } from "class-validator";
+import { Type } from "class-transformer";
 import type { Request, Response } from "express";
 import {
   QUERY_ROLES,
@@ -53,6 +57,21 @@ class QueryRunDto {
   @IsOptional()
   @IsObject()
   filters?: QueryFilters;
+
+  /** Página del preview (1-based); default 1. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number;
+
+  /** Filas por página del preview; default 50, máximo 100. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
 }
 
 class SaveQueryDto {

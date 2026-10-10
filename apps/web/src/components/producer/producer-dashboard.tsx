@@ -156,131 +156,121 @@ export function ProducerDashboard() {
           </Card>
         )}
 
-      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <div className="flex min-w-0 flex-col gap-6">
-          {/* Cobros por revisar: comprobantes manuales (transferencia,
-              link, efectivo) esperando aprobación - la cola es
-              /productor/comprobantes. */}
-          {dash.pendingClaims.count > 0 && (
-            <section aria-label={t("dash.pendingClaimsTitle")}>
-              <div className="mb-3 flex items-baseline justify-between gap-3">
-                <h3 className={sectionTitleCls}>
-                  {t("dash.pendingClaimsTitle")}
-                </h3>
-                <p className="text-xs tabular-nums text-ink/50">
-                  {t("dash.pendingClaimsSummary", {
-                    count: dash.pendingClaims.count,
-                    amount: clp.format(dash.pendingClaims.amount),
-                  })}
-                </p>
-              </div>
-              <Card padded={false}>
-                <ul className={listCls}>
-                  {dash.pendingClaims.items.map((c) => (
-                    <li key={c.id}>
-                      <Link
-                        href="/productor/comprobantes"
-                        className={rowLinkCls}
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">
-                            {c.personName}
-                          </span>
-                          <span className="block truncate text-xs text-ink/50">
-                            {c.methodLabel} ·{" "}
-                            {dayFmt.format(new Date(c.createdAt))}
-                          </span>
-                        </span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums text-warn">
-                          {clp.format(c.amount)}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                  {dash.pendingClaims.count >
-                    dash.pendingClaims.items.length && (
-                    <li>
-                      <Link
-                        href="/productor/comprobantes"
-                        className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
-                      >
-                        {t("dash.seeAll", {
-                          count: dash.pendingClaims.count,
-                        })}
-                      </Link>
-                    </li>
-                  )}
-                </ul>
-              </Card>
-            </section>
-          )}
-        </div>
+      {/* Cobros por revisar: comprobantes manuales (transferencia,
+          link, efectivo) esperando aprobación - la cola es
+          /productor/comprobantes. */}
+      {dash.pendingClaims.count > 0 && (
+        <section aria-label={t("dash.pendingClaimsTitle")}>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <h3 className={sectionTitleCls}>{t("dash.pendingClaimsTitle")}</h3>
+            <p className="text-xs tabular-nums text-ink/50">
+              {t("dash.pendingClaimsSummary", {
+                count: dash.pendingClaims.count,
+                amount: clp.format(dash.pendingClaims.amount),
+              })}
+            </p>
+          </div>
+          <Card padded={false}>
+            <ul className={listCls}>
+              {dash.pendingClaims.items.map((c) => (
+                <li key={c.id}>
+                  <Link href="/productor/comprobantes" className={rowLinkCls}>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {c.personName}
+                      </span>
+                      <span className="block truncate text-xs text-ink/50">
+                        {c.methodLabel} ·{" "}
+                        {dayFmt.format(new Date(c.createdAt))}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-sm font-semibold tabular-nums text-warn">
+                      {clp.format(c.amount)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+              {dash.pendingClaims.count > dash.pendingClaims.items.length && (
+                <li>
+                  <Link
+                    href="/productor/comprobantes"
+                    className={`${rowLinkCls} justify-center text-sm font-semibold text-neon`}
+                  >
+                    {t("dash.seeAll", {
+                      count: dash.pendingClaims.count,
+                    })}
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </Card>
+        </section>
+      )}
 
-        <div className="flex min-w-0 flex-col gap-6">
-          {dash.topRevenue.length > 0 && (
-            <section aria-label={t("dash.topRevenue")}>
-              <h3 className={`mb-3 ${sectionTitleCls}`}>
-                {t("dash.topRevenue")}
-              </h3>
-              <Card padded={false}>
-                <ul className={listCls}>
-                  {dash.topRevenue.map((e) => (
-                    <li key={e.id}>
-                      <Link
-                        href={`/productor/eventos/${e.id}`}
-                        className={rowLinkCls}
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">
-                            {e.name}
-                          </span>
-                          <span className="block text-xs text-ink/50">
-                            {dayFmt.format(new Date(e.startsAt))}
-                          </span>
+      {/* Tops en la misma fila: facturación a la izquierda, asistencia
+          a la derecha (en móvil apilan en ese orden). */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {dash.topRevenue.length > 0 && (
+          <section aria-label={t("dash.topRevenue")} className="min-w-0">
+            <h3 className={`mb-3 ${sectionTitleCls}`}>{t("dash.topRevenue")}</h3>
+            <Card padded={false}>
+              <ul className={listCls}>
+                {dash.topRevenue.map((e) => (
+                  <li key={e.id}>
+                    <Link
+                      href={`/productor/eventos/${e.id}`}
+                      className={rowLinkCls}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">
+                          {e.name}
                         </span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
-                          {clp.format(e.grossClp)}
+                        <span className="block text-xs text-ink/50">
+                          {dayFmt.format(new Date(e.startsAt))}
                         </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            </section>
-          )}
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-neon">
+                        {clp.format(e.grossClp)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </section>
+        )}
 
-          {dash.topAttendance.length > 0 && (
-            <section aria-label={t("dash.topAttendance")}>
-              <h3 className={`mb-3 ${sectionTitleCls}`}>
-                {t("dash.topAttendance")}
-              </h3>
-              <Card padded={false}>
-                <ul className={listCls}>
-                  {dash.topAttendance.map((e) => (
-                    <li key={e.id}>
-                      <Link
-                        href={`/productor/eventos/${e.id}`}
-                        className={rowLinkCls}
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">
-                            {e.name}
-                          </span>
-                          <span className="block text-xs text-ink/50">
-                            {dayFmt.format(new Date(e.startsAt))}
-                          </span>
+        {dash.topAttendance.length > 0 && (
+          <section aria-label={t("dash.topAttendance")} className="min-w-0">
+            <h3 className={`mb-3 ${sectionTitleCls}`}>
+              {t("dash.topAttendance")}
+            </h3>
+            <Card padded={false}>
+              <ul className={listCls}>
+                {dash.topAttendance.map((e) => (
+                  <li key={e.id}>
+                    <Link
+                      href={`/productor/eventos/${e.id}`}
+                      className={rowLinkCls}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium">
+                          {e.name}
                         </span>
-                        <span className="shrink-0 text-sm font-semibold tabular-nums text-ink/70">
-                          {t("dash.checkins", { count: e.checkins })}
+                        <span className="block text-xs text-ink/50">
+                          {dayFmt.format(new Date(e.startsAt))}
                         </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            </section>
-          )}
-        </div>
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-ink/70">
+                        {t("dash.checkins", { count: e.checkins })}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </section>
+        )}
       </div>
     </div>
   );

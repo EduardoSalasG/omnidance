@@ -30,8 +30,14 @@ const eventScope = (scope: QueryScope): string | { in: string[] } =>
 const evCol = (scope: QueryScope, eventId: string): unknown[] =>
   scope.labelByEvent ? [scope.labelByEvent.get(eventId) ?? ""] : [];
 
-const capped = (rows: unknown[][], take?: number): unknown[][] =>
-  take == null ? rows : rows.slice(0, take);
+const capped = (
+  rows: unknown[][],
+  take?: number,
+  skip?: number,
+): unknown[][] => {
+  const from = skip ?? 0;
+  return take == null ? rows.slice(from) : rows.slice(from, from + take);
+};
 
 function producerDataset(dataset: ExportDataset): EntityHandler {
   return {
@@ -44,7 +50,7 @@ function producerDataset(dataset: ExportDataset): EntityHandler {
         filters,
       );
       return {
-        rows: capped(table.rows, opts?.take),
+        rows: capped(table.rows, opts?.take, opts?.skip),
         total: table.rows.length,
         summary: table.summary,
       };
@@ -107,6 +113,7 @@ const attendees: EntityHandler = {
         a.visits,
       ]),
       opts?.take,
+      opts?.skip,
     );
     return {
       rows,
@@ -150,6 +157,7 @@ const reservations: EntityHandler = {
           r.status,
         ]),
         opts?.take,
+        opts?.skip,
       ),
       total,
       summary: [
@@ -194,6 +202,7 @@ const waitlist: EntityHandler = {
           r.status,
         ]),
         opts?.take,
+        opts?.skip,
       ),
       total,
       summary: [`${total} en lista de espera`],
@@ -227,6 +236,7 @@ const rsvps: EntityHandler = {
           iso(r.createdAt),
         ]),
         opts?.take,
+        opts?.skip,
       ),
       total,
       summary: [`${total} confirmaciones`],

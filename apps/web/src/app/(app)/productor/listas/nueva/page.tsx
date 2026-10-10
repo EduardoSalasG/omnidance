@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -16,23 +16,32 @@ import {
 
 /**
  * /productor/listas/nueva - crear lista de invitados (POST
- * /events/:id/guest-lists). El selector de evento se alimenta de
- * /events/mine (todos los estados del productor, no solo publicados).
- * Al crear vuelve al listado tras un aviso breve.
+ * /events/:id/guest-lists). Con ?eventId= viene preseleccionado desde la
+ * ficha del evento (volver = a esa ficha); sin param el selector de
+ * evento se alimenta de /events/mine (todos los estados del productor).
+ * Al crear vuelve a la ficha del evento tras un aviso breve.
  */
 function NewGuestList() {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // ?eventId= - la lista se crea sobre el evento del que venía el CTA.
+  const presetEventId = searchParams.get("eventId") ?? "";
 
   // ownerId del /me compartido (ProducerGate ya validó la sesión).
   const { me } = useMe();
   const meId = me?.id ?? "";
 
-  // null = GET /events/mine en vuelo → select disabled.
-  const [events, setEvents] = useState<EventListItem[] | null>(null);
+  // null = GET /events/mine en vuelo → select disabled. Con eventId
+  // preset no hace falta el listado completo - solo el nombre para
+  // mostrar el contexto.
+  const [events, setEvents] = useState<EventListItem[] | null>(
+    presetEventId ? [] : null,
+  );
   const [eventsError, setEventsError] = useState(false);
-  const [eventId, setEventId] = useState("");
+  const [presetEventName, setPresetEventName] = useState<string | null>(null);
+  const [eventId, setEventId] = useState(presetEventId);
   const [listName, setListName] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -48,15 +57,25 @@ function NewGuestList() {
       }
       const evs = ((await res.json()) as { items: EventListItem[] }).items;
       setEvents(evs);
-      if (evs.length > 0) setEventId((cur) => cur || evs[0].id);
+      if (presetEventId) {
+        setPresetEventName(
+          evs.find((e) => e.id === presetEventId)?.name ?? null,
+        );
+      } else if (evs.length > 0) {
+        setEventId((cur) => cur || evs[0].id);
+      }
     } catch {
       setEventsError(true);
     }
-  }, []);
+  }, [presetEventId]);
 
   useEffect(() => {
     void loadEvents();
   }, [loadEvents]);
+
+  const backHref = presetEventId
+    ? `/productor/eventos/${presetEventId}`
+    : "/productor/eventos";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +94,7 @@ function NewGuestList() {
         return;
       }
       setCreated(true);
-      setTimeout(() => router.push("/productor/listas"), 1200);
+      setTimeout(() => router.push(`/productor/eventos/${eventId}`), 1200);
     } catch {
       setFormError(tc("error"));
     } finally {
@@ -85,10 +104,7 @@ function NewGuestList() {
 
   return (
     <>
-      <ConsoleHeader
-        backHref="/productor/listas"
-        backLabel={t("guestLists")}
-      />
+      <ConsoleHeader backHref={backHref} backLabel={t("myEvents")} />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-2xl font-bold leading-tight">{t("newList")}</h2>
@@ -120,7 +136,7 @@ function NewGuestList() {
           </div>
         )}
 
-        {!created && events !== null && events.length === 0 && (
+        {!created && events !== null && events.length === 0 && !presetEventId && (
           <Card className="flex flex-col items-center gap-4 py-10 text-center">
             <p role="status" className="text-ink/70">
               {t("emptyEvents")}
@@ -131,27 +147,36 @@ function NewGuestList() {
           </Card>
         )}
 
-        {!created && events !== null && events.length > 0 && (
+        {!created && events !== null && (events.length > 0 || presetEventId) && (
           <Card>
             <form onSubmit={submit} className="flex flex-col gap-4">
-              <label className="flex flex-col gap-2">
-                <span className="text-sm text-ink/70">
-                  {t("event")}
-                  <span aria-hidden="true" className="text-neon"> *</span>
-                </span>
-                <select
-                  required
-                  value={eventId}
-                  onChange={(e) => setEventId(e.target.value)}
-                  className={inputCls}
-                >
-                  {events.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {presetEventId ? (
+                <p className="text-sm text-ink/70">
+                  {t("event")}:{" "}
+                  <span className="font-semibold text-ink">
+                    {presetEventName ?? presetEventId}
+                  </span>
+                </p>
+              ) : (
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm text-ink/70">
+                    {t("event")}
+                    <span aria-hidden="true" className="text-neon"> *</span>
+                  </span>
+                  <select
+                    required
+                    value={eventId}
+                    onChange={(e) => setEventId(e.target.value)}
+                    className={inputCls}
+                  >
+                    {events.map((ev) => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               <label className="flex flex-col gap-2">
                 <span className="text-sm text-ink/70">

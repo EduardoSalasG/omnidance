@@ -2332,7 +2332,13 @@ export async function seedDev(prisma: PrismaClient) {
     // 4 timbas, 2 bachatas → 67/33
     mix([Genre.CUBANO, 4], [Genre.BACHATA, 2]));
   await mkSeries("La Gozadera", ardilla.id, orixas.id, "3x/month:fri", 5000, 7000, 5, [steban.id], ALL3, [], 0, MIX_2X2);
-  await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1, MIX_2X2);
+  // Desafío de Tronos - la noche mensual de MuéveteOnTour como
+  // productora (muvetOwner también tiene lente PRODUCER; su consola
+  // se prueba con esta data).
+  const desafioTronos = await mkSeries("Desafío de Tronos", muvetOwner.id, orixas.id, "1x/month:fri", 6000, 8000, 5, [], ALL3, [], 1, MIX_2X2);
+  // Su social semanal - segundo evento próximo para probar listas,
+  // filtros y el dashboard con más de una cartelera.
+  const muvetSocial = await mkSeries("Muévete Social", muvetOwner.id, orixas.id, "weekly:sun", 4000, 5000, 0, [krrera.id], ALL3);
   // SCE cede el sábado próximo a Trilogía (colaboración con
   // Bachatamanía) - su edición queda para el sábado siguiente.
   await mkSeries("Social con Estilo", carlos.id, orixas.id, "2x/month:sat", 6000, 8000, 6, [fabian.id], ALL3, [], 1,
@@ -2893,6 +2899,366 @@ export async function seedDev(prisma: PrismaClient) {
           },
         }),
     );
+  }
+
+  // ─── MuéveteOnTour como productor (consola del productor) ───
+  step("eventos muvet productor…");
+  // Edición anterior de Desafío de Tronos (CLOSED): entradas usadas,
+  // pagos PAID y check-ins alimentan los tops del dashboard del
+  // productor (facturación histórica + asistencia).
+  const desafioPrev = await ensure(
+    () =>
+      prisma.event.findFirst({
+        where: { name: "Desafío de Tronos - edición anterior" },
+      }),
+    () =>
+      prisma.event.create({
+        data: {
+          seriesId: desafioTronos.seriesId,
+          venueId: orixas.id,
+          producerId: muvetOwner.id,
+          name: "Desafío de Tronos - edición anterior",
+          status: "CLOSED",
+          startsAt: new Date(lastWeek.getTime() - 14 * 86_400_000),
+          endsAt: new Date(
+            lastWeek.getTime() - 14 * 86_400_000 + 6 * 3_600_000,
+          ),
+          presalePrice: 6000,
+          doorPrice: 8000,
+          capacity: 300,
+        },
+      }),
+  );
+  for (const [i, p] of [
+    camila,
+    josefa,
+    diego,
+    antonia,
+    daniela,
+    felipe,
+    monica,
+    maria,
+    eduardo,
+    dancer,
+  ].entries()) {
+    await ensure(
+      () =>
+        prisma.ticket.findFirst({
+          where: { eventId: desafioPrev.id, ownerId: p.id },
+        }),
+      () =>
+        prisma.ticket.create({
+          data: {
+            eventId: desafioPrev.id,
+            ownerId: p.id,
+            buyerId: p.id,
+            listPrice: 6000,
+            serviceFee: 600,
+            status: "USED",
+          },
+        }),
+    );
+    await prisma.payment.upsert({
+      where: { refId: `seed-desafioprev-${desafioPrev.id.slice(-6)}-${i}` },
+      update: {},
+      create: {
+        orderType: "TICKET",
+        refId: `seed-desafioprev-${desafioPrev.id.slice(-6)}-${i}`,
+        personId: p.id,
+        eventId: desafioPrev.id,
+        amount: 6600,
+        fee: 240,
+        net: 6360,
+        status: "PAID",
+        createdAt: new Date(desafioPrev.startsAt.getTime() - 4 * 86_400_000),
+      },
+    });
+    // 8 de 10 entran - el evento pasado lidera el top de asistencia.
+    if (i < 8) {
+      await ensure(
+        () =>
+          prisma.checkin.findFirst({
+            where: { eventId: desafioPrev.id, personId: p.id },
+          }),
+        () =>
+          prisma.checkin.create({
+            data: {
+              eventId: desafioPrev.id,
+              personId: p.id,
+              staffId: staff.id,
+              method: "SCAN",
+              inAt: new Date(desafioPrev.startsAt.getTime() + 100 * 60_000),
+            },
+          }),
+      );
+    }
+  }
+
+  // Ventas del mes en curso sobre los eventos próximos de muvet:
+  // entradas ACTIVE + pagos PAID recientes → KPIs "Entradas vendidas"
+  // y "Facturación mensual" del dashboard.
+  const muvetSales: { ev: { id: string }; buyers: (typeof camila)[] }[] = [
+    { ev: desafioTronos, buyers: [camila, josefa, diego, antonia, monica] },
+    { ev: muvetSocial, buyers: [daniela, felipe, maria] },
+  ];
+  for (const { ev, buyers } of muvetSales) {
+    for (const [i, p] of buyers.entries()) {
+      await ensure(
+        () =>
+          prisma.ticket.findFirst({
+            where: { eventId: ev.id, ownerId: p.id, status: "ACTIVE" },
+          }),
+        () =>
+          prisma.ticket.create({
+            data: {
+              eventId: ev.id,
+              ownerId: p.id,
+              buyerId: p.id,
+              listPrice: 5000,
+              serviceFee: 500,
+            },
+          }),
+      );
+      await prisma.payment.upsert({
+        where: { refId: `seed-muvetsale-${ev.id.slice(-6)}-${i}` },
+        update: {},
+        create: {
+          orderType: "TICKET",
+          refId: `seed-muvetsale-${ev.id.slice(-6)}-${i}`,
+          personId: p.id,
+          eventId: ev.id,
+          amount: 5500,
+          fee: 200,
+          net: 5300,
+          status: "PAID",
+          createdAt: new Date(Date.now() - (i + 2) * 86_400_000),
+        },
+      });
+    }
+  }
+
+  // Lista de invitados del próximo Desafío - alimenta la sección de
+  // listas dentro de la ficha del evento.
+  const desafioList = await ensure(
+    () =>
+      prisma.guestList.findFirst({
+        where: { eventId: desafioTronos.id, ownerId: muvetOwner.id },
+      }),
+    () =>
+      prisma.guestList.create({
+        data: {
+          eventId: desafioTronos.id,
+          ownerId: muvetOwner.id,
+          label: "Cumpleaños y staff de academia",
+          specialPrice: 4000,
+        },
+      }),
+  );
+  for (const p of [sebastian, camila, daniela, rodrigo]) {
+    await prisma.guestListEntry.upsert({
+      where: {
+        guestListId_personId: {
+          guestListId: desafioList.id,
+          personId: p.id,
+        },
+      },
+      update: {},
+      create: { guestListId: desafioList.id, personId: p.id },
+    });
+  }
+
+  // Cola "Cobros por revisar": órdenes MANUAL pendientes con su
+  // comprobante declarado - transferencia y link de pago (mismo
+  // contrato que POST /payments/:id/claims: gateway MANUAL +
+  // status PENDING del payment).
+  for (const [i, { p, ev, methodType, methodLabel }] of [
+    {
+      p: josefa,
+      ev: desafioTronos,
+      methodType: "TRANSFER",
+      methodLabel: "Transferencia",
+    },
+    {
+      p: diego,
+      ev: muvetSocial,
+      methodType: "LINK",
+      methodLabel: "MercadoPago",
+    },
+    {
+      p: antonia,
+      ev: desafioTronos,
+      methodType: "TRANSFER",
+      methodLabel: "Transferencia",
+    },
+  ].entries()) {
+    const order = await prisma.payment.upsert({
+      where: { refId: `seed-muvetclaim-${i}` },
+      update: {},
+      create: {
+        orderType: "TICKET",
+        refId: `seed-muvetclaim-${i}`,
+        personId: p.id,
+        eventId: ev.id,
+        amount: 5500,
+        fee: 200,
+        net: 5300,
+        status: "PENDING",
+        gateway: "MANUAL",
+      },
+    });
+    await prisma.ticketClaim.upsert({
+      where: { id: `seed-muvetclaim-${i}` },
+      update: {},
+      create: {
+        id: `seed-muvetclaim-${i}`,
+        paymentId: order.id,
+        personId: p.id,
+        producerId: muvetOwner.id,
+        receiptKey: `claims/${muvetOwner.id}/seed-receipt-${i}.png`,
+        methodType,
+        methodLabel,
+        note: "Comprobante de prueba del seed",
+      },
+    });
+  }
+
+  // ─── Aforo de eventos (todos los productores) ───
+  step("aforo de eventos…");
+  // Cada evento del demo recibe su aforo realista: 150-350 entradas
+  // según día - viernes y sábado se llenan (250-350), el resto
+  // (150-250). Determinístico por hash del id: mismos números entre
+  // corridas y sin crecer en reseed (skip por conteo).
+  // El pool son los bailarines ya sembrados (relleno de academias +
+  // cuentas demo): una persona puede tener entrada en eventos
+  // distintos, nunca dos en el mismo.
+  const attendeePool = await prisma.person.findMany({
+    where: {
+      roles: { some: { role: "DANCER", status: "APPROVED" } },
+      email: { endsWith: `@${DEV_DOMAIN}` },
+    },
+    select: { id: true },
+  });
+  const fillableEvents = await prisma.event.findMany({
+    where: { status: { in: ["PUBLISHED", "LIVE", "CLOSED"] } },
+    select: {
+      id: true,
+      name: true,
+      startsAt: true,
+      presalePrice: true,
+      doorPrice: true,
+    },
+  });
+  for (const ev of fillableEvents) {
+    if (isTestName(ev.name)) continue;
+    let h = 0;
+    for (const ch of ev.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const wd = ev.startsAt.getDay();
+    const weekend = wd === 5 || wd === 6; // vie/sáb
+    const target = weekend ? 250 + (h % 101) : 150 + (h % 101);
+    const existing = await prisma.ticket.count({
+      where: { eventId: ev.id },
+    });
+    if (existing >= target) continue;
+    const taken = new Set(
+      (
+        await prisma.ticket.findMany({
+          where: { eventId: ev.id },
+          select: { ownerId: true },
+        })
+      ).map((tk) => tk.ownerId),
+    );
+    const buyers = attendeePool
+      .filter((p) => !taken.has(p.id))
+      .slice(0, target - existing);
+    if (buyers.length === 0) continue;
+    const past = ev.startsAt.getTime() < Date.now();
+    const unit = ev.presalePrice ?? ev.doorPrice ?? 5000;
+    const svc = Math.round(unit * 0.1);
+    await prisma.ticket.createMany({
+      data: buyers.map((b) => ({
+        eventId: ev.id,
+        ownerId: b.id,
+        buyerId: b.id,
+        listPrice: unit,
+        serviceFee: svc,
+        status: past ? "USED" : "ACTIVE",
+      })),
+    });
+    await prisma.payment.createMany({
+      data: buyers.map((b, i) => ({
+        orderType: "TICKET",
+        refId: `seed-aforo-${ev.id.slice(-6)}-${i}`,
+        personId: b.id,
+        eventId: ev.id,
+        amount: unit + svc,
+        fee: Math.round(unit * 0.04),
+        net: unit + svc - Math.round(unit * 0.04),
+        status: "PAID" as const,
+        // Compra distribuida en la semana previa al evento.
+        createdAt: new Date(
+          ev.startsAt.getTime() - (3 + (i % 7)) * 86_400_000,
+        ),
+      })),
+    });
+    // Check-ins solo en eventos pasados: ~85% de los compradores
+    // efectivamente entró (el resto son no-shows realistas).
+    if (past) {
+      await prisma.checkin.createMany({
+        data: buyers.slice(0, Math.floor(buyers.length * 0.85)).map(
+          (b, i) => ({
+            eventId: ev.id,
+            personId: b.id,
+            staffId: staff.id,
+            method: "SCAN",
+            inAt: new Date(
+              ev.startsAt.getTime() + (60 + (i % 90)) * 60_000,
+            ),
+          }),
+        ),
+      });
+    }
+  }
+
+  // ─── Reservas de mesa ───
+  step("reservas de mesa…");
+  // Los eventos con mesas habilitadas reciben solicitudes: pendientes
+  // (REQUESTED - la cola que el productor aprueba en la ficha del
+  // evento), confirmadas con número de mesa y una cancelada.
+  const tableEvents: { ev: { id: string }; tables: number }[] = [
+    { ev: desafioTronos, tables: 12 },
+    { ev: muvetSocial, tables: 8 },
+    { ev: trilogia, tables: 15 },
+  ];
+  for (const [ei, { ev, tables }] of tableEvents.entries()) {
+    await prisma.event.update({
+      where: { id: ev.id },
+      data: {
+        tablesTotal: tables,
+        tableSeatMax: 8,
+        tableSeatsTotal: tables * 8,
+      },
+    });
+    const requesters = attendeePool.slice(ei * 8, ei * 8 + 6);
+    for (const [ri, rq] of requesters.entries()) {
+      await ensure(
+        () =>
+          prisma.tableReservation.findFirst({
+            where: { eventId: ev.id, personId: rq.id },
+          }),
+        () =>
+          prisma.tableReservation.create({
+            data: {
+              eventId: ev.id,
+              personId: rq.id,
+              partySize: 4 + (ri % 5),
+              status:
+                ri < 3 ? "REQUESTED" : ri < 5 ? "CONFIRMED" : "CANCELLED",
+              tableNo:
+                ri >= 3 && ri < 5 ? `M${ri + 1}` : null,
+            },
+          }),
+      );
+    }
   }
 
   // ─── Data social / operativa sobre eventos próximos ───

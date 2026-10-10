@@ -72,6 +72,8 @@ const ACTOR_TYPES = ["PRODUCER", "ACADEMY", "VENUE"] as const;
 
 interface ExecOpts {
   take?: number;
+  /** Offset de la página (paginación del preview); default 0. */
+  skip?: number;
   /** false omite el count (browse back-compat); default true. */
   total?: boolean;
 }
@@ -124,6 +126,7 @@ const events: EntityHandler = {
       where,
       orderBy: { startsAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         name: true,
@@ -210,6 +213,7 @@ const classes: EntityHandler = {
       where,
       orderBy: { date: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         date: true,
@@ -326,6 +330,7 @@ const payments: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         amount: true,
@@ -424,6 +429,7 @@ const tickets: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         status: true,
@@ -481,6 +487,7 @@ const academies: EntityHandler = {
       where,
       orderBy: { name: "asc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: { id: true, name: true },
     });
     const ids = rows.map((a) => a.id);
@@ -536,6 +543,7 @@ const venues: EntityHandler = {
       where,
       orderBy: { name: "asc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         name: true,
@@ -582,6 +590,7 @@ const rentals: EntityHandler = {
       where,
       orderBy: { date: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         date: true,
@@ -663,6 +672,7 @@ const people: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         name: true,
@@ -729,6 +739,7 @@ const leads: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         name: true,
@@ -788,6 +799,7 @@ const paymentEvents: EntityHandler = {
       where,
       orderBy: [{ createdAt: "desc" }, { seq: "desc" }],
       take: opts?.take,
+      skip: opts?.skip,
     });
     const total =
       opts?.total === false
@@ -824,6 +836,7 @@ const gatewayTransactions: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
     });
     const total =
       opts?.total === false
@@ -869,6 +882,7 @@ const membershipSubscriptions: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         personId: true,
@@ -942,6 +956,7 @@ const payouts: EntityHandler = {
       where,
       orderBy: { periodStart: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
     });
     // actorId → nombre según actorType (PRODUCER→Person, ACADEMY→Academy,
     // VENUE→Venue - FKs escalares sin relación en schema).

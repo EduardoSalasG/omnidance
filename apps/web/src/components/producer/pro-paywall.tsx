@@ -3,8 +3,8 @@
 import { useTranslations } from "next-intl";
 import { Badge, Button, Card } from "@/components/ui";
 
-/** Destino del CTA: la sección Pro vive en /productor/parametros. */
-export const PRO_SECTION_HREF = "/productor/parametros";
+/** Destino del CTA: la sección Pro vive en /productor/suscripcion. */
+export const PRO_SECTION_HREF = "/productor/suscripcion";
 
 function LockIcon() {
   return (
@@ -28,7 +28,7 @@ function LockIcon() {
  * Paywall de Producer Pro (spec academy-saas-billing): se renderiza
  * donde una feature Pro respondió 403 `pro.required` o donde
  * `effectivePro` de /me ya dice que la cuenta no tiene Pro. El CTA
- * lleva a la sección Pro (/productor/parametros), donde se contrata.
+ * lleva a la sección Pro (/productor/suscripcion), donde se contrata.
  * `feature` nombra la herramienta bloqueada (opcional - en secciones
  * ya tituladas sobra repetirla).
  */

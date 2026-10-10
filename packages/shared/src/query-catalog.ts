@@ -431,6 +431,10 @@ export interface QueryRunResult {
   rows: unknown[][];
   /** Total real del resultado (rows está capado para preview). */
   total: number;
+  /** Página devuelta del preview (1-based). */
+  page: number;
+  /** Filas por página del preview. */
+  pageSize: number;
   summary: string[];
 }
 

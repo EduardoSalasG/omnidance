@@ -555,6 +555,46 @@ describe("PaymentSettlementService", () => {
         expect.objectContaining({ type: "payment.paid" }),
       );
     });
+
+    it("avisa al productor la nueva venta (ticket.sale) con deep-link", async () => {
+      const payment = seed(
+        mkPayment({
+          orderType: "TICKET",
+          refId: `tkt_ev1__${randomUUID()}`,
+          eventId: "ev1",
+          quantity: 2,
+          amount: 21000,
+        }),
+      );
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+
+      const sale = notifications.notifySafe.mock.calls.find(
+        ([pid, input]) => pid === "prod1" && input.type === "ticket.sale",
+      );
+      expect(sale).toBeTruthy();
+      const input = sale![1] as { body?: string; data?: { path?: string } };
+      expect(input.body).toBe("Comprador · 2 entradas · Social SBK · $21.000");
+      expect(input.data?.path).toBe("/productor/eventos/ev1");
+    });
+
+    it("compra del propio productor → sin ticket.sale (ya es el comprador)", async () => {
+      const payment = seed(
+        mkPayment({
+          orderType: "TICKET",
+          refId: `tkt_ev1__${randomUUID()}`,
+          eventId: "ev1",
+          personId: "prod1",
+          amount: 10500,
+        }),
+      );
+      await svc.settle(payment, "PAID", { actor: "webhook" });
+
+      expect(
+        notifications.notifySafe.mock.calls.some(
+          ([, input]) => input.type === "ticket.sale",
+        ),
+      ).toBe(false);
+    });
   });
 
   describe("settle WORKSHOP (clase suelta)", () => {

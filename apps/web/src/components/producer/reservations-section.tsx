@@ -250,6 +250,25 @@ export function ReservationsSection({
                           {t("reservations.confirm")}
                         </Button>
                       )}
+                      {r.status === "CONFIRMED" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={busyId === r.id}
+                          onClick={() =>
+                            void manage(
+                              r.id as string,
+                              "CONFIRMED",
+                              (tableDrafts[r.id as string] ?? "").trim() ||
+                                undefined,
+                              toOptionalInt(sizeDrafts[r.id as string] ?? ""),
+                            )
+                          }
+                        >
+                          {t("reservations.saveChanges")}
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         size="sm"

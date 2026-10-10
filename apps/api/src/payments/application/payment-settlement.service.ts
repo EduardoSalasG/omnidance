@@ -504,6 +504,24 @@ export class PaymentSettlementService {
         currency: "CLP",
         maximumFractionDigits: 0,
       }).format(payment.amount);
+      const recipientIds = Array.isArray(payment.recipients)
+        ? (payment.recipients as string[]).filter(
+            (id): id is string => typeof id === "string",
+          )
+        : [];
+      // El nombre del comprador lo usan el aviso de venta al productor,
+      // la solicitud de mesa y los regalos - un solo fetch.
+      const needBuyer =
+        reservationCreated ||
+        recipientIds.length > 0 ||
+        (event?.producerId != null && event.producerId !== payment.personId);
+      const buyerName = needBuyer
+        ? ((await this.prisma.person.findUnique({
+            where: { id: payment.personId },
+            select: { name: true },
+          }))?.name ?? null)
+        : null;
+
       await this.notifications.notifySafe(payment.personId, {
         category: "TRANSACTIONAL",
         type: "payment.paid",
@@ -522,45 +540,54 @@ export class PaymentSettlementService {
         },
       });
 
+      // Aviso al productor: nueva venta confirmada (PAID). Si el comprador
+      // es el propio productor no se avisa - ya recibió "Ticket listo".
+      if (event?.producerId && event.producerId !== payment.personId) {
+        await this.notifications.notifySafe(event.producerId, {
+          category: "TRANSACTIONAL",
+          type: "ticket.sale",
+          title: "Nueva venta",
+          body: `${buyerName ?? "Un asistente"} · ${payment.quantity} entrada${payment.quantity > 1 ? "s" : ""} · ${event.name} · ${clp}`,
+          data: {
+            paymentId: payment.id,
+            refId: payment.refId,
+            eventId: order.eventId,
+            eventName: event.name,
+            quantity: payment.quantity,
+            amount: payment.amount,
+            buyerId: payment.personId,
+            path: `/productor/eventos/${order.eventId}`,
+          },
+        });
+      }
+
       // Aviso al productor: nueva solicitud de mesa desde el checkout
       // (solo si efectivamente se creó - no en dedup de reserva activa).
       if (reservationCreated && event?.producerId) {
-        const buyer = await this.prisma.person.findUnique({
-          where: { id: payment.personId },
-          select: { name: true },
-        });
         await this.notifications.notifySafe(event.producerId, {
           category: "TRANSACTIONAL",
           type: "table.requested",
           title: "Nueva solicitud de mesa",
-          body: `${buyer?.name ?? "Un asistente"} · ${payment.tablePartySize} personas · ${event.name}`,
+          body: `${buyerName ?? "Un asistente"} · ${payment.tablePartySize} personas · ${event.name}`,
           data: {
             paymentId: payment.id,
             eventId: order.eventId,
             eventName: event.name,
             partySize: payment.tablePartySize,
             personId: payment.personId,
+            path: `/productor/eventos/${order.eventId}`,
           },
         });
       }
 
       // Aviso a cada destinatario de regalo: quién la compró + qué evento.
-      const recipientIds = Array.isArray(payment.recipients)
-        ? (payment.recipients as string[]).filter(
-            (id): id is string => typeof id === "string",
-          )
-        : [];
       if (recipientIds.length) {
-        const buyer = await this.prisma.person.findUnique({
-          where: { id: payment.personId },
-          select: { name: true },
-        });
-        const buyerName = buyer?.name ?? "Un amigo";
+        const giftBuyerName = buyerName ?? "Un amigo";
         for (const ownerId of recipientIds) {
           await this.notifications.notifySafe(ownerId, {
             category: "TRANSACTIONAL",
             type: "ticket.gifted",
-            title: `${buyerName} te regaló una entrada`,
+            title: `${giftBuyerName} te regaló una entrada`,
             body: event?.name
               ? `Para ${event.name} - ya está en Mis entradas`
               : "Ya está en Mis entradas",
@@ -571,7 +598,7 @@ export class PaymentSettlementService {
               eventName: event?.name ?? null,
               eventStartsAt: event?.startsAt?.toISOString() ?? null,
               buyerId: payment.personId,
-              buyerName,
+              buyerName: giftBuyerName,
             },
           });
         }

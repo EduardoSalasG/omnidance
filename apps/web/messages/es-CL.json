@@ -1034,7 +1034,8 @@
     }
   },
   "producerParams": {
-    "title": "Comisión y defaults",
+    "title": "Valores por defecto",
+    "feeTitle": "Comisión",
     "hint": "Valores base que heredan tus eventos. Solo el admin puede modificarlos.",
     "platformFeePct": "Comisión todo incluido (%)",
     "custom": "Personalizado",

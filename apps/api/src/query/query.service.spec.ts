@@ -543,6 +543,51 @@ describe("QueryService - lentes y scope", () => {
     expect(foreign.rows).toEqual([]);
   });
 
+  it("run pagina el preview: page/pageSize con total real", async () => {
+    for (let i = 0; i < 5; i++) {
+      prisma.tickets.push({
+        eventId: "ev-1",
+        ownerId: "asist",
+        buyerId: "asist",
+        listPrice: 5000,
+        serviceFee: 0,
+        status: "ACTIVE",
+        createdAt: new Date(`2026-09-0${i + 1}T20:00:00Z`),
+      });
+    }
+    const p1 = await svc.run("prod-1", {
+      role: "PRODUCER",
+      entity: "sales",
+      filters: {},
+      page: 1,
+      pageSize: 2,
+    });
+    expect(p1.rows).toHaveLength(2);
+    expect(p1.total).toBe(5);
+    expect(p1.page).toBe(1);
+    expect(p1.pageSize).toBe(2);
+    const p3 = await svc.run("prod-1", {
+      role: "PRODUCER",
+      entity: "sales",
+      filters: {},
+      page: 3,
+      pageSize: 2,
+    });
+    expect(p3.rows).toHaveLength(1);
+    expect(p3.total).toBe(5);
+    expect(p3.page).toBe(3);
+    // página fuera de rango → vacío, total intacto
+    const pFar = await svc.run("prod-1", {
+      role: "PRODUCER",
+      entity: "sales",
+      filters: {},
+      page: 9,
+      pageSize: 2,
+    });
+    expect(pFar.rows).toEqual([]);
+    expect(pFar.total).toBe(5);
+  });
+
   it("options scope-dependiente valida ownership (eventGuestLists ajeno → [])", async () => {
     const res = await svc.options(
       "prod-1",

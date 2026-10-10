@@ -51,3 +51,16 @@ Los literales `title`/`body` SHALL coincidir con la tabla de
 - **WHEN** Flow reporta mora en una suscripción
 - **THEN** el title es `Cobro fallido` y el body
   `${plan.name} · ${academy.name} - reintentaremos; revisa tu tarjeta`
+
+### Requirement: Copy de aviso de venta al productor
+
+La notificación `ticket.sale` SHALL usar title `Nueva venta` y body
+`${comprador} · ${cantidad} entrada(s) · ${evento} · ${monto CLP}` -
+title de outcome corto y body con los hechos separados por ` · `, en la
+misma convención del resto de notificaciones transaccionales.
+
+#### Scenario: venta confirmada
+
+- **WHEN** se liquida una orden de tickets de un evento con productor
+- **THEN** el productor recibe `ticket.sale` con title `Nueva venta` y
+  el body con comprador, cantidad, evento y monto

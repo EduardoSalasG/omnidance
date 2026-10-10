@@ -36,14 +36,16 @@ aprobado para el usuario (misma regla que `GET /analytics/summary`).
 
 ### Requirement: Ejecución de consulta con scoping
 
-El sistema SHALL exponer `POST /query/run` (`{role, entity, filters}`)
-que devuelve `{headers, rows, total, summary}` con `rows` capadas para
-preview y `total` real del resultado. El motor aplica el scoping del
-lente automáticamente: PRODUCER solo ve registros de eventos/series
-propios, ACADEMY_OWNER solo los de academias propias, ADMIN ve todo.
-Ningún filtro permite saltarse el scoping (un `eventId` ajeno devuelve
-vacío, nunca los datos). Filtros fuera del whitelist de la entidad se
-ignoran; valores inválidos para filtros enum → 400.
+El sistema SHALL exponer `POST /query/run`
+(`{role, entity, filters, page?, pageSize?}`) que devuelve
+`{headers, rows, total, page, pageSize, summary}` con `rows`
+correspondientes a la página pedida y `total` real del resultado.
+`page` se clampea a ≥1 y `pageSize` a [1,100] (default 50). El motor
+aplica el scoping del lente automáticamente: PRODUCER solo ve registros
+de eventos/series propios, ACADEMY_OWNER solo los de academias propias,
+ADMIN ve todo. Ningún filtro permite saltarse el scoping (un `eventId`
+ajeno devuelve vacío, nunca los datos). Filtros fuera del whitelist de
+la entidad se ignoran; valores inválidos para filtros enum → 400.
 
 #### Scenario: scoping del productor
 
@@ -115,6 +117,13 @@ entidades consultables la página muestra solo el Dashboard.
   estado ACTIVE → aplica
 - **THEN** ve la tabla preview con total real y puede descargar CSV/PDF o
   guardar la consulta
+
+#### Scenario: paginación del preview
+
+- **WHEN** el resultado excede el pageSize
+- **THEN** la tabla muestra el `Pager` compartido y cambiar de página
+  re-ejecuta `/query/run` con el `page` pedido manteniendo filtros;
+  cambiar entidad o filtros vuelve a página 1
 
 ### Requirement: Contrato de filtros compartido con módulos
 

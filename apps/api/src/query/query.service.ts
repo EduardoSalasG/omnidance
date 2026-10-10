@@ -260,22 +260,36 @@ export class QueryService {
 
   // ─── Ejecución ──────────────────────────────────────────────────────
 
-  /** POST /query/run — preview capado a PREVIEW_ROWS + total real. */
+  /** POST /query/run — preview paginado (page/pageSize) + total real. */
   async run(
     personId: string,
-    input: { role: string; entity: string; filters?: QueryFilters },
+    input: {
+      role: string;
+      entity: string;
+      filters?: QueryFilters;
+      page?: number;
+      pageSize?: number;
+    },
   ): Promise<QueryRunResult> {
     const role = await this.assertLensWithPro(personId, input.role);
     const { def, handler } = this.resolveEntity(role, input.entity);
     const filters = validateEntityFilters(def, input.filters);
     const scope = await this.scopeFor(personId, role, filters);
+    const page = Math.max(1, input.page ?? 1);
+    const pageSize = Math.min(
+      Math.max(1, input.pageSize ?? PREVIEW_ROWS),
+      PREVIEW_ROWS * 2,
+    );
     const res = await handler.execute(this.prisma, scope, filters, {
-      take: PREVIEW_ROWS,
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     });
     return {
       headers: this.headers(def.columns, scope),
       rows: res.rows,
       total: res.total,
+      page,
+      pageSize,
       summary: res.summary,
     };
   }
