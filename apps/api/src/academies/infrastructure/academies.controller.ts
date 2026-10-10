@@ -1572,42 +1572,55 @@ export class AcademiesController {
   @UseGuards(SessionGuard)
   async studentsInsights(@Param("id") id: string, @Req() req: Request) {
     await this.access.requireManage(id, req.person!);
+    // Montos detrás de la capacidad `payments` (spec academies/
+    // staff-roles): el instructor lee asistencia pero nunca ve quién
+    // pagó más - topPayersMonth responde [] sin la cap.
+    const canSeePayments = await this.access
+      .requireCapability(id, req.person!, "payments")
+      .then(() => true)
+      .catch(() => false);
     const now = new Date();
     const monthStart = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
     );
-    const planIds = await this.prisma.membershipPlan.findMany({
-      where: { academyId: id },
-      select: { id: true },
-    });
+    const planIds = canSeePayments
+      ? await this.prisma.membershipPlan.findMany({
+          where: { academyId: id },
+          select: { id: true },
+        })
+      : [];
     const [attGrouped, claimsMonth, gatewayMonth] = await Promise.all([
       this.prisma.attendance.groupBy({
         by: ["personId"],
         where: { class: { slot: { academyId: id } } },
         _count: { _all: true },
       }),
-      this.prisma.paymentClaim.findMany({
-        where: {
-          academyId: id,
-          status: "APPROVED",
-          createdAt: { gte: monthStart },
-        },
-        select: { amount: true, personId: true },
-      }),
-      this.prisma.payment.findMany({
-        where: {
-          status: "PAID",
-          createdAt: { gte: monthStart },
-          OR: [
-            ...planIds.map((p) => ({
-              orderType: "MEMBERSHIP",
-              refId: { startsWith: `mem_${p.id}_` },
-            })),
-            { orderType: "PRIVATE", refId: { startsWith: `pvt_${id}_` } },
-          ],
-        },
-        select: { amount: true, personId: true },
-      }),
+      canSeePayments
+        ? this.prisma.paymentClaim.findMany({
+            where: {
+              academyId: id,
+              status: "APPROVED",
+              createdAt: { gte: monthStart },
+            },
+            select: { amount: true, personId: true },
+          })
+        : Promise.resolve([]),
+      canSeePayments
+        ? this.prisma.payment.findMany({
+            where: {
+              status: "PAID",
+              createdAt: { gte: monthStart },
+              OR: [
+                ...planIds.map((p) => ({
+                  orderType: "MEMBERSHIP",
+                  refId: { startsWith: `mem_${p.id}_` },
+                })),
+                { orderType: "PRIVATE", refId: { startsWith: `pvt_${id}_` } },
+              ],
+            },
+            select: { amount: true, personId: true },
+          })
+        : Promise.resolve([]),
     ]);
 
     const paidByPerson = new Map<string, number>();

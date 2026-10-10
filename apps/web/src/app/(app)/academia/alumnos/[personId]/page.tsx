@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { useMe } from "@/lib/me-context";
+import { useActiveRole } from "@/lib/active-role";
 import { Badge, Button, Card, type BadgeVariant, PriceTag, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
@@ -86,6 +88,13 @@ function ProfileModule({
 
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [state, setState] = useState<LoadState>("loading");
+
+  // El editor de enrollment (status/endsAt) se apaga bajo la lente
+  // INSTRUCTOR aunque el caller tenga más privilegios reales (spec
+  // academies/staff-roles): el instructor solo marca asistencia.
+  const { me, loading: meLoading } = useMe();
+  const instructorLens =
+    useActiveRole(me?.roles) === "INSTRUCTOR" && !meLoading;
 
   // Edición del enrollment vigente - solo visible si el caller tiene la
   // capacidad "students" (canEdit del endpoint: owner/ADMIN/staff; el
@@ -205,7 +214,8 @@ function ProfileModule({
     }
   }
 
-  const canEdit = profile.canEdit && !!profile.enrollmentId;
+  const canEdit =
+    !instructorLens && profile.canEdit && !!profile.enrollmentId;
 
   return (
     <div className="flex flex-col gap-6">

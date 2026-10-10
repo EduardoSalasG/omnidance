@@ -238,7 +238,7 @@ export function FilterBar({
               </div>
             </fieldset>
           ) : (
-          <label key={f.key} className="flex flex-col gap-1">
+          <label key={f.key} className="flex min-w-0 flex-col gap-1">
             <span className="text-xs text-ink/50">
               {labelFor(f.key)}
               {f.scope ? " *" : ""}
@@ -247,7 +247,7 @@ export function FilterBar({
               <select
                 value={filters[f.key] ?? ""}
                 onChange={(e) => setFilter(f.key, e.target.value)}
-                className={inputCls}
+                className={`${inputCls} min-w-0`}
               >
                 <option value="">{t("filtersAll")}</option>
                 {optionsFor(f).map((o) => (
@@ -261,7 +261,7 @@ export function FilterBar({
                 type="date"
                 value={filters[f.key] ?? ""}
                 onChange={(e) => setFilter(f.key, e.target.value)}
-                className={inputCls}
+                className={`${inputCls} min-w-0`}
               />
             ) : (
               <DebouncedText
@@ -313,7 +313,10 @@ export function FilterBar({
             })}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-            <label className="flex flex-col gap-1">
+            {/* min-w-0 en label e input: el min-content de
+                input[type=date] (~160px) reventaba la celda del grid y
+                el campo desbordaba sobre su vecino en móvil. */}
+            <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs text-ink/50">
                 {labelFor("from")}
               </span>
@@ -321,16 +324,16 @@ export function FilterBar({
                 type="date"
                 value={filters.from ?? ""}
                 onChange={(e) => setFilter("from", e.target.value)}
-                className={inputCls}
+                className={`${inputCls} min-w-0`}
               />
             </label>
-            <label className="flex flex-col gap-1">
+            <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs text-ink/50">{labelFor("to")}</span>
               <input
                 type="date"
                 value={filters.to ?? ""}
                 onChange={(e) => setFilter("to", e.target.value)}
-                className={inputCls}
+                className={`${inputCls} min-w-0`}
               />
             </label>
           </div>

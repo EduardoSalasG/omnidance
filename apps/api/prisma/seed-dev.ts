@@ -4917,6 +4917,117 @@ export async function seedDev(prisma: PrismaClient) {
     });
   }
 
+  // ─── Transferencia para todas las academias y productores ───
+  step("transferencias para todos…");
+  // Medio de pago universal del dataset: toda academia cobra por
+  // transferencia y todo productor la ofrece en sus eventos (el método
+  // propio es por productor, cubre todos sus eventos - spec
+  // producer-own-methods). Idempotente: un TRANSFER existente solo se
+  // reactiva si estaba apagado - nunca se pisan `details` (son editables
+  // en consola y pueden ser data real). Sin método se crea con datos de
+  // cuenta generados de forma determinística por posición.
+  {
+    const BANKS = [
+      "Banco de Chile",
+      "BancoEstado",
+      "Banco Santander",
+      "BCI",
+      "Scotiabank",
+      "Banco Falabella",
+      "Banco Itaú",
+    ];
+    const slug = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/\p{Diacritic}/gu, "")
+        .replace(/[^a-z0-9]+/g, "")
+        .slice(0, 24);
+    const rut = (n: number) =>
+      `76.${String(100 + ((n * 37) % 900))}.${String(100 + ((n * 53) % 900))}-${"0123456789K"[n % 11]}`;
+    const accountNumber = (n: number) =>
+      String(100000000 + ((n * 7919) % 800000000));
+    let i = 0;
+
+    for (const a of await prisma.academy.findMany({
+      select: { id: true, name: true },
+      orderBy: { createdAt: "asc" },
+    })) {
+      const existing = await prisma.academyPaymentMethod.findFirst({
+        where: { academyId: a.id, type: "TRANSFER" },
+      });
+      if (existing) {
+        if (!existing.active) {
+          await prisma.academyPaymentMethod.update({
+            where: { id: existing.id },
+            data: { active: true },
+          });
+        }
+        i++;
+        continue;
+      }
+      const n = i++;
+      await prisma.academyPaymentMethod.create({
+        data: {
+          academyId: a.id,
+          type: "TRANSFER",
+          label: "Transferencia",
+          details: {
+            bank: BANKS[n % BANKS.length],
+            accountType: n % 2 ? "Cuenta Vista" : "Cuenta Corriente",
+            accountNumber: accountNumber(n),
+            holder: a.name,
+            rut: rut(n),
+            email: `pagos@${slug(a.name) || "academia"}.cl`,
+          },
+          order: 0,
+          active: true,
+        },
+      });
+    }
+
+    // Productores: todo rol PRODUCER aprobado (su método propio cubre
+    // todos los eventos que publica).
+    const producers = await prisma.person.findMany({
+      where: { roles: { some: { role: "PRODUCER", status: "APPROVED" } } },
+      select: { id: true, name: true, email: true },
+      orderBy: { createdAt: "asc" },
+    });
+    for (const p of producers) {
+      const existing = await prisma.producerPaymentMethod.findFirst({
+        where: { producerId: p.id, type: "TRANSFER" },
+      });
+      if (existing) {
+        if (!existing.active) {
+          await prisma.producerPaymentMethod.update({
+            where: { id: existing.id },
+            data: { active: true },
+          });
+        }
+        i++;
+        continue;
+      }
+      const n = i++;
+      await prisma.producerPaymentMethod.create({
+        data: {
+          producerId: p.id,
+          type: "TRANSFER",
+          label: "Transferencia",
+          details: {
+            bank: BANKS[n % BANKS.length],
+            accountType: n % 2 ? "Cuenta Vista" : "Cuenta Corriente",
+            accountNumber: accountNumber(n),
+            holder: p.name ?? p.email ?? "Productor",
+            rut: rut(n),
+            email: p.email ?? undefined,
+          },
+          order: 0,
+          active: true,
+        },
+      });
+    }
+  }
+
   // Password dev: mismo formato scrypt$N$r$p$salt$hash que AuthService.
   step("passwords dev…");
   const salt = randomBytes(16);

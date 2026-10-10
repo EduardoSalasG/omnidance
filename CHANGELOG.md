@@ -3,6 +3,38 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.8.3] - 2026-10-10
+
+### Fixed
+
+- **Lente INSTRUCTOR sin privilegios heredados** (spec
+  academies/staff-roles): `/academia/alumnos` y la ficha
+  `/academia/alumnos/[personId]` resolvían permisos por roles crudos y
+  no por la lente activa, así que una persona con ADMIN/owner/staff
+  navegando como instructor veía KPIs, Insights (incl. "quienes pagaron
+  más este mes"), importación y el editor de estado/fecha del
+  enrollment. Ahora la lente INSTRUCTOR degrada a vista de instructor
+  puro — su única mutación es marcar asistencia en clases de su
+  plantel.
+- **Fuga de montos por API**: `GET /academies/:id/students/insights`
+  devolvía `topPayersMonth` a cualquier `requireManage`. Ahora exige la
+  capacidad `payments` para computarlo — el resto recibe `[]` y ni
+  siquiera se consultan los cobros.
+- **Filtros desde/hasta desbordados**: el `input[type=date]` impone un
+  min-content (~160px) que reventaba la celda del grid y el campo
+  cubría a su vecino en móvil. `min-w-0` en labels e inputs del
+  `FilterBar` compartido — aplica a todas las consolas (instructor,
+  owner, productor, admin, analítica).
+
+### Added
+
+- **Seed - transferencia universal**: toda academia sin método
+  TRANSFER recibe uno activo con datos de cuenta generados (banco,
+  tipo, número, titular, RUT, email) y todo `Person` con rol PRODUCER
+  aprobado recibe `ProducerPaymentMethod` TRANSFER — sus eventos lo
+  ofrecen en checkout. Idempotente: métodos existentes solo se
+  reactivan si estaban apagados, sin pisar `details` reales.
+
 ## [0.8.2] - 2026-10-10
 
 ### Fixed
