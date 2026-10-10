@@ -251,7 +251,10 @@ jobs:
                 fi
                 echo "--- seeding baseline data one-shot (SEED_ENV=prod) ---"
                 docker rm -f omnidance-seed 2>/dev/null || true
-                if ! timeout 300 docker run \
+                # El dataset piloto hace miles de upserts secuenciales
+                # contra Neon - a 300s moría por SIGTERM a mitad de la
+                # sección demo (v0.6.0). 1500s da margen; es idempotente.
+                if ! timeout 1500 docker run \
                   --name omnidance-seed \
                   --rm \
                   --env-file .env \
