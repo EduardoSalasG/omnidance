@@ -4,11 +4,10 @@ import messages from "../../../../../../messages/es-CL.json";
 import membershipCheckoutPart from "@/i18n/parts/membershipCheckout.json";
 import { Button } from "@/components/ui";
 import { MembershipCheckoutClient } from "./membership-checkout-client";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = SERVER_API_URL;
 
 // GET /checkout/membership-quote - revisión de orden del plan: precio,
 // total real, vigencia resultante y suscripción viva del viewer a este
@@ -40,6 +39,7 @@ export type MembershipQuote = {
 async function getQuote(
   planId: string,
 ): Promise<MembershipQuote | "notfound" | "unavailable" | "error"> {
+  const API_URL = serverApiUrl();
   const res = await fetch(
     `${API_URL}/api/checkout/membership-quote?planId=${encodeURIComponent(planId)}`,
     {

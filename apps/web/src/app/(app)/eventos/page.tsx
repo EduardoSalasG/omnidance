@@ -30,7 +30,7 @@ import {
   parseMonth,
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 // El merge i18n devuelve Dict - las claves se declaran explícitas
 // (mismo patrón que locales/[id]).
@@ -46,7 +46,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/eventos" },
 };
 
-const API_URL = SERVER_API_URL;
 
 // Shape del card de evento - compartido con components/events/event-card.
 type EventListItem = EventCardData;
@@ -110,6 +109,7 @@ function groupByDay(events: EventListItem[]) {
     null = fallo de carga (no confundir con "sin entradas": un 500/red
     no puede renderizar el empty de la wallet). */
 async function getMyTickets(): Promise<MyTicket[] | null> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/tickets/mine`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
@@ -124,6 +124,7 @@ async function getMyTickets(): Promise<MyTicket[] | null> {
     para que nadie llegue a puerta creyendo que tiene entrada. [] en
     fallo (mejor omitir la sección que bloquear la wallet). */
 async function getPendingOrders(): Promise<PendingOrder[]> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/payments/mine`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
@@ -163,6 +164,7 @@ export default async function EventosPage({
 }) {
   const t = eventsDict;
   const tc = messages.common as Record<string, string>;
+  const API_URL = serverApiUrl();
   // El middleware exige sesión para esta ruta - todo visitante está
   // autenticado (no hay ramas anónimas).
   const [res, myTickets, pendingOrders] = await Promise.all([
