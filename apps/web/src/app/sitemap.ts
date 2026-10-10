@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { fetchPublicEvents } from "@/lib/public-events";
-
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
+import { SITE_URL as WEB_URL } from "@/lib/site-url";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
