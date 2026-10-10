@@ -52,11 +52,23 @@ export function AcademyGate({
         return;
       }
       const list = (await res.json()) as Academy[];
-      if (list.length === 0) {
+      // Dedup defensivo: si la misma academia llega repetida (multi-
+      // membresía owner+instructor) o dos filas comparten el nombre, el
+      // selector no repite la opción (spec academies/console-lists).
+      const seenIds = new Set<string>();
+      const seenNames = new Set<string>();
+      const deduped = list.filter((a) => {
+        const name = a.name.trim().toLowerCase();
+        if (seenIds.has(a.id) || seenNames.has(name)) return false;
+        seenIds.add(a.id);
+        seenNames.add(name);
+        return true;
+      });
+      if (deduped.length === 0) {
         setGate("empty");
         return;
       }
-      setAcademies(list);
+      setAcademies(deduped);
       let stored: string | null = null;
       try {
         stored = window.localStorage.getItem(STORAGE_KEY);
@@ -64,9 +76,9 @@ export function AcademyGate({
         // Sin storage (modo privado) - se usa la primera academia.
       }
       setSelectedId((prev) => {
-        if (prev && list.some((a) => a.id === prev)) return prev;
-        if (stored && list.some((a) => a.id === stored)) return stored;
-        return list[0].id;
+        if (prev && deduped.some((a) => a.id === prev)) return prev;
+        if (stored && deduped.some((a) => a.id === stored)) return stored;
+        return deduped[0].id;
       });
       setGate("ready");
     } catch {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
@@ -119,6 +120,14 @@ function RosterDetail({
   const tc = useTranslations("common");
   const c = roster.class;
   const booked = roster.booked.length;
+  // Ventana de marcaje: solo dentro de [start-30min, start+30min]
+  // (spec academies/class-series). Fuera de ella el server rechaza el
+  // POST - acá el control se oculta y se muestra la pista de horario.
+  const now = Date.now();
+  const windowOpen =
+    now >= Date.parse(roster.attendanceWindow.opensAt) &&
+    now <= Date.parse(roster.attendanceWindow.closesAt);
+  const showMarking = roster.canMark && windowOpen;
   // POST /classes/:id/attendance - solo si el caller es el instructor
   // efectivo (canMark del server); el owner no marca asistencia.
   const [markingId, setMarkingId] = useState<string | null>(null);
@@ -212,28 +221,51 @@ function RosterDetail({
                 key={b.personId}
                 className="flex items-center gap-3 rounded-xl border border-line bg-elevated/60 px-4 py-3 text-sm"
               >
-                <span className="min-w-0 flex-1">
+                <Link
+                  href={`/academia/alumnos/${b.personId}`}
+                  className="min-w-0 flex-1 rounded-sm transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
                   {b.name ?? t("personFallback", { id: shortId(b.personId) })}
-                </span>
+                </Link>
                 {b.attended ? (
                   <Badge variant="neon">{t("present")}</Badge>
+                ) : showMarking ? (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={markingId === b.personId}
+                    onClick={() => void markPresent(b.personId)}
+                  >
+                    {markingId === b.personId
+                      ? tc("loading")
+                      : t("markPresent")}
+                  </Button>
                 ) : (
-                  roster.canMark && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={markingId === b.personId}
-                      onClick={() => void markPresent(b.personId)}
-                    >
-                      {markingId === b.personId
-                        ? tc("loading")
-                        : t("markPresent")}
-                    </Button>
-                  )
+                  // Sin marcar: la reserva sigue consumiendo cupo pero
+                  // el alumno queda "sin confirmar" (spec class-series).
+                  <Badge variant="muted">{t("unconfirmed")}</Badge>
                 )}
               </li>
             ))}
           </ul>
+        )}
+        {roster.canMark && !windowOpen && (
+          <p className="text-xs text-ink/50">
+            {t("attendanceWindow", {
+              opens: new Date(
+                roster.attendanceWindow.opensAt,
+              ).toLocaleTimeString("es-CL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+              closes: new Date(
+                roster.attendanceWindow.closesAt,
+              ).toLocaleTimeString("es-CL", {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            })}
+          </p>
         )}
         {markError && (
           <p role="alert" className="text-sm text-red-400">
@@ -259,7 +291,13 @@ function RosterDetail({
                 <span className="text-xs tabular-nums text-ink/40">
                   #{i + 1}
                 </span>
-                {w.name ?? t("personFallback", { id: shortId(w.personId) })}
+                <Link
+                  href={`/academia/alumnos/${w.personId}`}
+                  className="min-w-0 flex-1 rounded-sm transition-colors hover:text-neon focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                >
+                  {w.name ??
+                    t("personFallback", { id: shortId(w.personId) })}
+                </Link>
               </li>
             ))}
           </ul>

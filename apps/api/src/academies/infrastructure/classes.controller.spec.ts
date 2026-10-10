@@ -33,6 +33,8 @@ interface FakeClass {
   cancelled: boolean;
   instructorId: string | null;
   capacity: number | null;
+  // Plantel de la clase (ClassInstructor) - override del slot.
+  instructors?: { personId: string }[];
   slot: {
     capacity: number;
     academyId: string;
@@ -40,6 +42,8 @@ interface FakeClass {
     startTime: string;
     endTime: string;
     instructorId: string | null;
+    // Co-profes del slot (ClassSlotInstructor).
+    instructors?: { personId: string }[];
     types: { type: { id: string; name: string } }[];
     series: {
       id: string;
@@ -331,11 +335,14 @@ class FakePrisma {
       where,
       orderBy,
     }: {
-      where: { classId: string; status: string };
+      where: { classId: string; personId?: string; status: string };
       orderBy?: { createdAt: "asc" | "desc" };
     }) => {
       const rows = this.bookings.filter(
-        (b) => b.classId === where.classId && b.status === where.status,
+        (b) =>
+          b.classId === where.classId &&
+          b.status === where.status &&
+          (where.personId === undefined || b.personId === where.personId),
       );
       if (orderBy?.createdAt === "asc") {
         rows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -415,8 +422,31 @@ class FakePrisma {
       })),
   };
 
+  attendances: { classId: string; personId: string; checkedAt: Date }[] =
+    [];
+
   attendance = {
-    findMany: async () => [],
+    findMany: async ({ where }: { where: { classId: string } }) =>
+      this.attendances
+        .filter((a) => a.classId === where.classId)
+        .map((a) => ({ ...a })),
+
+    findUnique: async ({
+      where,
+    }: {
+      where: { classId_personId: { classId: string; personId: string } };
+    }) =>
+      this.attendances.find(
+        (a) =>
+          a.classId === where.classId_personId.classId &&
+          a.personId === where.classId_personId.personId,
+      ) ?? null,
+
+    create: async ({ data }: { data: { classId: string; personId: string } }) => {
+      const row = { ...data, checkedAt: new Date() };
+      this.attendances.push(row);
+      return { ...row };
+    },
   };
 
   // El controller transacciona; el fake ejecuta el callback consigo mismo.
@@ -427,6 +457,15 @@ class FakePrisma {
 
 const reqAs = (personId: string) =>
   ({ person: { id: personId } }) as unknown as Request;
+
+// AcademyAccess fake: los gates pasan siempre; isPlatformAdmin se fija
+// por test (el owner NO es admin → no marca asistencia).
+const fakeAccess = (admin = false) =>
+  ({
+    requireManage: vi.fn(async () => undefined),
+    requireManageWrite: vi.fn(async () => undefined),
+    isPlatformAdmin: vi.fn(async () => admin),
+  }) as unknown as AcademyAccess;
 
 // ParamsService fake: getNumber siempre devuelve el fallback (el param
 // classes.cancel_refund_minutes no existe → cutoff default de 60min).
@@ -1207,5 +1246,269 @@ describe("ClassesController.mine - particulares mergeadas", () => {
     const cx = past.find((r) => r.id === "les-cx")!;
     expect(cx.status).toBe("cancelled");
     expect(cx.date).not.toBeNull();
+  });
+});
+
+// Roster + marcaje (spec academies/class-series): el plantel efectivo
+// (clase > slot > serie + co-profes) ve canMark; la asistencia solo se
+// registra en [inicio-30min, inicio+30min] sobre reserva BOOKED.
+describe("ClassesController.roster", () => {
+  let prisma: FakePrisma;
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
+  let access: AcademyAccess;
+  let ctrl: ClassesController;
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    notifications = { notifySafe: vi.fn(async () => undefined) };
+    access = fakeAccess();
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      access,
+      fakeParams(),
+    );
+    prisma.addClass("cls-1", {
+      slot: { instructorId: "inst-1" },
+    });
+    prisma.addBooking("cls-1", "per-1", "BOOKED");
+    prisma.addBooking("cls-1", "per-2", "WAITLIST");
+  });
+
+  it("clase inexistente → NotFoundException", async () => {
+    await expect(ctrl.roster("cls-x", reqAs("inst-1"))).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it("instructor del slot → canMark true; owner ajeno al plantel → false", async () => {
+    const asInstructor = await ctrl.roster("cls-1", reqAs("inst-1"));
+    expect(asInstructor.canMark).toBe(true);
+    const asOwner = await ctrl.roster("cls-1", reqAs("owner-1"));
+    expect(asOwner.canMark).toBe(false);
+    // Admin de plataforma también marca.
+    const adminCtrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      fakeAccess(true),
+      fakeParams(),
+    );
+    const asAdmin = await adminCtrl.roster("cls-1", reqAs("adm-1"));
+    expect(asAdmin.canMark).toBe(true);
+  });
+
+  it("co-instructor del slot (ClassSlotInstructor) → canMark true", async () => {
+    prisma.addClass("cls-co", {
+      slot: {
+        instructorId: "inst-1",
+        instructors: [{ personId: "inst-2" }],
+      },
+    });
+    const res = await ctrl.roster("cls-co", reqAs("inst-2"));
+    expect(res.canMark).toBe(true);
+    // El plantel completo viaja en `instructors` del payload.
+    expect(res.class.instructors?.map((i) => i.id).sort()).toEqual([
+      "inst-1",
+      "inst-2",
+    ]);
+  });
+
+  it("attendanceWindow = [inicio-30min, inicio+30min] del inicio real", async () => {
+    const soon = classStartingIn(10); // empieza en 10 min
+    prisma.addClass("cls-now", {
+      date: soon.date,
+      slot: { startTime: soon.startTime, instructorId: "inst-1" },
+    });
+    const res = await ctrl.roster("cls-now", reqAs("inst-1"));
+    const start = new Date(
+      `${soon.date.toISOString().slice(0, 10)}T${soon.startTime}:00.000Z`,
+    );
+    expect(new Date(res.attendanceWindow.opensAt).getTime()).toBe(
+      start.getTime() - 30 * 60_000,
+    );
+    expect(new Date(res.attendanceWindow.closesAt).getTime()).toBe(
+      start.getTime() + 30 * 60_000,
+    );
+  });
+
+  it("reserva sin asistencia → attended:false (sigue BOOKED, consume cupo)", async () => {
+    const res = await ctrl.roster("cls-1", reqAs("inst-1"));
+    expect(res.booked).toHaveLength(1);
+    expect(res.booked[0]).toMatchObject({
+      personId: "per-1",
+      attended: false,
+    });
+    expect(res.waitlist).toHaveLength(1);
+    expect(res.quorum).toBe(1); // slot.capacity 1
+  });
+});
+
+describe("ClassesController.markAttendance", () => {
+  let prisma: FakePrisma;
+  let notifications: { notifySafe: ReturnType<typeof vi.fn> };
+  let access: AcademyAccess;
+  let ctrl: ClassesController;
+
+  /** Clase que empieza en `minutes` con inst-1 de instructor y per-1 reservada. */
+  function seedClassIn(minutes: number, id = "cls-1") {
+    const t = classStartingIn(minutes);
+    prisma.addClass(id, {
+      date: t.date,
+      slot: { startTime: t.startTime, instructorId: "inst-1" },
+    });
+    prisma.addBooking(id, "per-1", "BOOKED");
+  }
+
+  beforeEach(() => {
+    prisma = new FakePrisma();
+    notifications = { notifySafe: vi.fn(async () => undefined) };
+    access = fakeAccess();
+    ctrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      access,
+      fakeParams(),
+    );
+    seedClassIn(10); // dentro de la ventana [-30,+30]
+  });
+
+  it("dentro de la ventana el instructor marca → Attendance creada", async () => {
+    await ctrl.markAttendance("cls-1", { personId: "per-1" }, reqAs("inst-1"));
+    expect(prisma.attendances).toHaveLength(1);
+    expect(prisma.attendances[0]).toMatchObject({
+      classId: "cls-1",
+      personId: "per-1",
+    });
+  });
+
+  it("co-instructor del slot también marca", async () => {
+    const t = classStartingIn(5);
+    prisma.addClass("cls-co", {
+      date: t.date,
+      slot: {
+        startTime: t.startTime,
+        instructorId: "inst-1",
+        instructors: [{ personId: "inst-2" }],
+      },
+    });
+    prisma.addBooking("cls-co", "per-1", "BOOKED");
+    await ctrl.markAttendance(
+      "cls-co",
+      { personId: "per-1" },
+      reqAs("inst-2"),
+    );
+    expect(
+      prisma.attendances.some(
+        (a) => a.classId === "cls-co" && a.personId === "per-1",
+      ),
+    ).toBe(true);
+  });
+
+  it("admin de plataforma marca aunque no esté en el plantel", async () => {
+    const adminCtrl = new ClassesController(
+      prisma as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      fakeAccess(true),
+      fakeParams(),
+    );
+    await adminCtrl.markAttendance(
+      "cls-1",
+      { personId: "per-1" },
+      reqAs("adm-1"),
+    );
+    expect(prisma.attendances).toHaveLength(1);
+  });
+
+  it("owner fuera del plantel → ForbiddenException (no marca)", async () => {
+    await expect(
+      ctrl.markAttendance("cls-1", { personId: "per-1" }, reqAs("owner-1")),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.attendances).toHaveLength(0);
+  });
+
+  it("antes de la ventana (clase en 40min) → 400 attendance.out_of_window", async () => {
+    seedClassIn(40, "cls-future");
+    const err = await ctrl
+      .markAttendance("cls-future", { personId: "per-1" }, reqAs("inst-1"))
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(BadRequestException);
+    expect((err as BadRequestException).getResponse()).toMatchObject({
+      error: "attendance.out_of_window",
+    });
+    expect(prisma.attendances).toHaveLength(0);
+  });
+
+  it("después de la ventana (empezó hace 40min) → 400, cupo sigue gastado", async () => {
+    const t = classStartingIn(-40);
+    prisma.addClass("cls-late", {
+      date: t.date,
+      slot: { startTime: t.startTime, instructorId: "inst-1" },
+    });
+    prisma.addBooking("cls-late", "per-1", "BOOKED");
+    const err = await ctrl
+      .markAttendance("cls-late", { personId: "per-1" }, reqAs("inst-1"))
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(BadRequestException);
+    // La reserva queda BOOKED - el alumno no confirmado sigue gastando cupo.
+    expect(
+      prisma.bookings.find(
+        (b) => b.classId === "cls-late" && b.personId === "per-1",
+      )!.status,
+    ).toBe("BOOKED");
+  });
+
+  it("recién cerrada la ventana (+29min) aún marca", async () => {
+    // -29 y no -30: el borde exacto ya queda fuera por los ms entre el
+    // setup y el assert - el criterio probado es "dentro del cierre".
+    const t = classStartingIn(-29);
+    prisma.addClass("cls-edge", {
+      date: t.date,
+      slot: { startTime: t.startTime, instructorId: "inst-1" },
+    });
+    prisma.addBooking("cls-edge", "per-1", "BOOKED");
+    await ctrl.markAttendance(
+      "cls-edge",
+      { personId: "per-1" },
+      reqAs("inst-1"),
+    );
+    expect(prisma.attendances.some((a) => a.classId === "cls-edge")).toBe(true);
+  });
+
+  it("alumno sin reserva BOOKED → BadRequestException", async () => {
+    await expect(
+      ctrl.markAttendance("cls-1", { personId: "per-9" }, reqAs("inst-1")),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    // WAITLIST no es reserva activa.
+    prisma.addBooking("cls-1", "per-2", "WAITLIST");
+    await expect(
+      ctrl.markAttendance("cls-1", { personId: "per-2" }, reqAs("inst-1")),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("marcar dos veces al mismo alumno → ConflictException", async () => {
+    await ctrl.markAttendance("cls-1", { personId: "per-1" }, reqAs("inst-1"));
+    await expect(
+      ctrl.markAttendance("cls-1", { personId: "per-1" }, reqAs("inst-1")),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.attendances).toHaveLength(1);
+  });
+
+  it("clase cancelada → BadRequestException", async () => {
+    prisma.addClass("cls-cx", {
+      cancelled: true,
+      slot: { instructorId: "inst-1" },
+    });
+    prisma.addBooking("cls-cx", "per-1", "BOOKED");
+    // cancelada queda fuera de ventana además (clase de mañana) pero el
+    // chequeo de cancelada corre primero.
+    await expect(
+      ctrl.markAttendance("cls-cx", { personId: "per-1" }, reqAs("inst-1")),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("personId vacío → BadRequestException", async () => {
+    await expect(
+      ctrl.markAttendance("cls-1", {}, reqAs("inst-1")),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

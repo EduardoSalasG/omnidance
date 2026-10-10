@@ -49,6 +49,21 @@ export function mergeOptions(
   return added.length ? [...prev, ...added] : prev;
 }
 
+/**
+ * Dedup por label normalizado (trim + lowercase): cubre el caso de data
+ * duplicada en el origen (misma academia/serie/plan con distinto id) -
+ * el select muestra una sola opción; queda el primer value visto.
+ */
+export function dedupeOptions(options: FilterOption[]): FilterOption[] {
+  const seen = new Set<string>();
+  return options.filter((o) => {
+    const key = o.label.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export const PLAN_TYPES = [
   "MONTHLY",
   "QUARTERLY",
@@ -380,6 +395,8 @@ export type ClassRoster = {
   /** true si el caller es el instructor efectivo de la clase o admin -
       habilita el control "Presente" sobre cada reserva. */
   canMark: boolean;
+  /** Ventana para marcar asistencia: [inicio-30min, inicio+30min] ISO. */
+  attendanceWindow: { opensAt: string; closesAt: string };
   booked: {
     personId: string;
     name: string | null;

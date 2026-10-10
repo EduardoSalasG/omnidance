@@ -16,6 +16,7 @@ import { AcademyRemindersService } from "./infrastructure/academy-reminders.serv
 import { AcademyStaffController } from "./infrastructure/academy-staff.controller";
 import { AcademiesScheduler } from "./infrastructure/academies.scheduler";
 import { AcademySurveysService } from "./infrastructure/academy-surveys.service";
+import { ClassRemindersService } from "./infrastructure/class-reminders.service";
 import { AcademyMaterializeService } from "./infrastructure/class-series-materialize.service";
 import {
   AcademiesController,
@@ -58,6 +59,7 @@ import { VideosController } from "./infrastructure/videos.controller";
     AcademyRemindersService,
     AcademiesScheduler,
     AcademySurveysService,
+    ClassRemindersService,
   ],
 })
 export class AcademiesModule {}

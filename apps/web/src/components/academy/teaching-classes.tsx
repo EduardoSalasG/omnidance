@@ -11,6 +11,7 @@ import { FilterBar } from "@/components/query/FilterBar";
 import { QuorumBar } from "./quorum-bar";
 import {
   classDayFmt,
+  dedupeOptions,
   filterQuery,
   mergeOptions,
   type FilterOption,
@@ -118,8 +119,10 @@ export function TeachingClasses() {
         filters={filters}
         onChange={setFilters}
         options={{
-          myAcademies: academyOptions,
-          academyClassSeries: seriesOptions,
+          // Dedup por label: data duplicada en el origen (misma
+          // academia/serie con otro id) no debe repetir la opción.
+          myAcademies: dedupeOptions(academyOptions),
+          academyClassSeries: dedupeOptions(seriesOptions),
         }}
       />
       {state === "loading" ? (

@@ -255,7 +255,9 @@
     "personFallback": "Alumno {id}",
     "classFallback": "Clase sin serie",
     "present": "Presente",
-    "markPresent": "Marcar presente"
+    "markPresent": "Marcar presente",
+    "unconfirmed": "Sin confirmar",
+    "attendanceWindow": "La asistencia se marca desde 30 minutos antes hasta 30 minutos después del inicio ({opens}–{closes})."
   },
   "academyExtras": {
     "lessons": {

@@ -177,13 +177,12 @@ const PAYOUTS_TAB: Tab = {
   key: "payouts",
   icon: icon(ICONS.card),
 };
-// Consola del instructor - su acción principal es entrar a sus clases
-// (marcar asistencia vive dentro del detalle de cada clase).
+// Consola del instructor - tab normal (no central): se acentúa solo
+// cuando está activo, como el resto de la barra.
 const TEACHING_TAB: Tab = {
   href: "/academia/clases",
   key: "classes",
   icon: icon(ICONS.staff),
-  center: true,
 };
 // Alumnos de la academia donde enseña: búsqueda + ficha con historial
 // de asistencias (read-only para el instructor - spec staff-roles).
@@ -254,9 +253,9 @@ const TABS_BY_ROLE: Record<AppRole, Tab[]> = {
   // Owner: su consola ES el inicio (AcademyDashboard en HomeHub) -
   // Inicio queda solo como primer destino; el resto vive en el drawer.
   ACADEMY_OWNER: [HOME_TAB],
-  // Instructor: Inicio + Mis clases (central - ahí marca asistencia por
-  // clase) + Alumnos de su academia. Sin hub /academia: todo cabe en el
-  // tab bar (spec staff-roles - consola de instructor).
+  // Instructor: Inicio + Mis clases + Alumnos de su academia. Sin hub
+  // /academia: todo cabe en el tab bar (spec staff-roles - consola de
+  // instructor).
   INSTRUCTOR: [HOME_TAB, TEACHING_TAB, STUDENTS_TAB],
   DJ: [HOME_TAB, EVENTS_TAB, DJ_TAB],
   VENUE_MANAGER: [HOME_TAB, VENUE_TAB, EVENTS_TAB, ANALYTICS_TAB],
@@ -853,6 +852,15 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
     else delete document.documentElement.dataset.notabbar;
   }, [meChecked, me, activeRole]);
 
+  // data-tabbar="all" en <html>: la inversa - el instructor no tiene
+  // sidebar y su tab bar sigue visible en ≥lg → el contenido reserva
+  // el padding inferior también en desktop (globals.css).
+  const noSidebar = meChecked && me != null && activeRole === "INSTRUCTOR";
+  useEffect(() => {
+    if (noSidebar) document.documentElement.dataset.tabbar = "all";
+    else delete document.documentElement.dataset.tabbar;
+  }, [noSidebar]);
+
   // La página /notificaciones marca leídas por ítem sin emitir evento:
   // al entrar el badge se resetea (el socket lo vuelve a subir si llega
   // una nueva).
@@ -1023,7 +1031,11 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // en el grupo de tabs: vive en la sección Cuenta al final.
   const sidebarGroups: DrawerGroup[] = !me
     ? [accountGroup]
-    : activeRole === "DANCER"
+    : activeRole === "INSTRUCTOR"
+      ? // Sin sidebar: sus 4 destinos caben en el tab bar, que sigue
+        // visible en ≥lg (spec staff-roles - consola mínima).
+        []
+      : activeRole === "DANCER"
       ? [
           ...DANCER_SIDEBAR[dancerAcademy ? "academy" : "social"].map(
             (g) => ({
@@ -1261,21 +1273,23 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       </Suspense>
       {/* Sidebar desktop (≥lg) - drawer colapsable persistente; toma
           el rol de navegación principal donde el tab bar se oculta. */}
-      <AppSidebar
-        groups={sidebarGroups}
-        roleLabel={me ? roleLabel : undefined}
-        collapsed={sidebarCollapsed}
-        onToggle={() =>
-          setSidebarState(sidebarCollapsed ? "expanded" : "collapsed")
-        }
-      />
+      {sidebarGroups.length > 0 && (
+        <AppSidebar
+          groups={sidebarGroups}
+          roleLabel={me ? roleLabel : undefined}
+          collapsed={sidebarCollapsed}
+          onToggle={() =>
+            setSidebarState(sidebarCollapsed ? "expanded" : "collapsed")
+          }
+        />
+      )}
 
       {/* En ≥lg el contenido corre a la derecha de la sidebar y sigue
           su ancho (expandida w-64 / riel w-16); bajo ese breakpoint el
           padding es 0 y el chrome es el móvil (appbar + tab bar). */}
       <div
         className={`transition-[padding] duration-300 motion-reduce:transition-none ${
-          sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
+          noSidebar ? "" : sidebarCollapsed ? "lg:pl-16" : "lg:pl-64"
         }`}
       >
       {/* Appbar sticky - en el flujo del layout, con fondo sólido:
@@ -1424,11 +1438,14 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
 
       {/* Tab bar móvil - las consolas drawer-only (owner, productor)
           navegan solo por el drawer lateral; en ≥lg la sidebar la
-          reemplaza para todos. */}
+          reemplaza - salvo el instructor, que no tiene sidebar y sigue
+          navegando por la barra inferior en todos los breakpoints. */}
       {showTabBar && (
       <nav
         aria-label={t("main")}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+        className={`fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur${
+          noSidebar ? "" : " lg:hidden"
+        }`}
       >
         <ul className="relative mx-auto flex h-16 max-w-lg items-stretch justify-between">
           {/* Píldora activa - se desliza al tab con transform puro;

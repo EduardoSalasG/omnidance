@@ -10,6 +10,7 @@ import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
 import {
   academyEntity,
+  dedupeOptions,
   filterQuery,
   mergeOptions,
   planDateFmt,
@@ -26,9 +27,17 @@ type Props = {
 };
 
 // Entidad `students` del catálogo sin el scope (la página ya fija la
-// academia) - q, status, planId, from, to con semántica idéntica al
-// query engine (spec analytics/query-console).
-const STUDENTS_ENTITY = academyEntity("students");
+// academia) - q, status, planId con semántica idéntica al query engine
+// (spec analytics/query-console). Los filtros de fecha (from/to) salen:
+// la cartera de alumnos es vigente, no un reporte temporal - no aportan
+// a ninguna lente en esta vista (spec academies/console-lists).
+const STUDENTS_ENTITY_BASE = academyEntity("students");
+const STUDENTS_ENTITY = {
+  ...STUDENTS_ENTITY_BASE,
+  filters: STUDENTS_ENTITY_BASE.filters.filter(
+    (f) => f.key !== "from" && f.key !== "to",
+  ),
+};
 
 const PAGE_SIZE = 24;
 
@@ -141,7 +150,7 @@ export function StudentsSection({
           setFilters(f);
           setPage(1);
         }}
-        options={{ academyPlans: planOptions }}
+        options={{ academyPlans: dedupeOptions(planOptions) }}
       />
 
       {loading ? (

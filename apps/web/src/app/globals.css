@@ -268,6 +268,13 @@ html[data-notabbar="true"] #contenido {
   padding-bottom: 0;
 }
 
+/* Instructor: sin sidebar en ≥lg, su tab bar sigue visible en todos
+   los breakpoints → el contenido reserva su espacio también en
+   desktop (le gana a lg:pb-0 por especificidad). */
+html[data-tabbar="all"] #contenido {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
 /* Dropdown <details> de filtros: capa invisible fullscreen para cerrar
    al tocar fuera - sin JS. El <ul> va con z-20 por encima. */
 details.venue-filter[open] > summary::before {

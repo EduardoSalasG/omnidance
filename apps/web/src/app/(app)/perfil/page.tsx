@@ -54,7 +54,12 @@ const ACT_AS_ORDER: AppRole[] = [
 // Lentes de gestión pura: sin racha ni "mis pagos" propios (su consumo
 // es consola, no baile). La apariencia de owner/productor vive en su
 // Configuración, no en este perfil.
-const STREAKLESS = new Set<string>(["ADMIN", "ACADEMY_OWNER"]);
+const STREAKLESS = new Set<string>(["ADMIN", "ACADEMY_OWNER", "INSTRUCTOR"]);
+
+// Lentes sin gamificación en el perfil (racha + insignias): gestión
+// pura y el instructor - su consola no consume badges (spec
+// people-profile: perfil simplificado del instructor).
+const GAMIFLESS = new Set<string>(["ADMIN", "INSTRUCTOR"]);
 
 // Insignias del modo academy - espejo del catálogo sembrado
 // (BADGE_CATALOG en seed-common.ts). El resto son nightlife.
@@ -256,7 +261,7 @@ export default function PerfilPage() {
   // queda null mientras el fetch está en vuelo (→ skeleton, nunca el
   // empty-state prematuro).
   useEffect(() => {
-    if (noSession || gamifFetched || currentLens === "ADMIN") {
+    if (noSession || gamifFetched || GAMIFLESS.has(currentLens)) {
       return;
     }
     let stale = false;
@@ -291,7 +296,7 @@ export default function PerfilPage() {
   // con skeleton in-card - nunca se vuelve al shell de página.
   const lensSettled =
     (STREAKLESS.has(currentLens) || streak !== null || streakFailed) &&
-    (currentLens === "ADMIN" || gamifFetched) &&
+    (GAMIFLESS.has(currentLens) || gamifFetched) &&
     (currentLens !== "DANCER" || kpis !== null || kpisFailed);
   const [pageSettled, setPageSettled] = useState(false);
   useEffect(() => {
@@ -378,7 +383,7 @@ export default function PerfilPage() {
             <Skeleton className="page-loading mt-2 h-4 w-52" />
           </Card>
         )}
-        {shellLens !== "ADMIN" && (
+        {!GAMIFLESS.has(shellLens) && (
           <Card aria-hidden="true">
             <Skeleton className="page-loading h-4 w-24" />
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -587,7 +592,7 @@ export default function PerfilPage() {
       {/* Insignias del modo activo: academy muestra las de asistencia/
           constancia/exploración; social las de sesiones/check-ins. Las
           del otro modo se filtran - academy_score sigue privado (spec). */}
-      {currentActAs !== "ADMIN" && (
+      {!GAMIFLESS.has(currentActAs) && (
         <Card>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
             {tg("badges")}
@@ -647,9 +652,10 @@ export default function PerfilPage() {
       )}
 
       {/* Historial de compras/cobros del usuario → /perfil/pagos.
-          El dueño de academia no compra: su cobranza vive en
-          /academia/cobros. */}
-      {currentActAs !== "ACADEMY_OWNER" && (
+          El dueño de academia no compra (su cobranza vive en
+          /academia/cobros) y el instructor no consume por la app
+          (spec people-profile). */}
+      {currentActAs !== "ACADEMY_OWNER" && currentActAs !== "INSTRUCTOR" && (
         <Link
           href="/perfil/pagos"
           className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"
