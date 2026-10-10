@@ -7,7 +7,8 @@
 | `8ea42c5` | Consola instructor + ventana asistencia [-30,+30]min + recordatorios 30/10min |
 | `918929e` | Seed: log de progreso por sección |
 | `2b4f2da` | **Fix prod**: SERVER_API_URL (server fetch caía a localhost en Netlify) + home productor tipo dashboard |
-| pendiente | **Este batch**: consola productor v2 + paginación `/query/run` + seed eventos |
+| `125e870` | **Este batch**: consola productor v2 + paginación `/query/run` + seed eventos |
+| `07ff990` | release 0.7.0: versiona + changelog |
 
 ### Consola productor v2 (este batch)
 
@@ -63,10 +64,18 @@
 - `openspec validate --changes`: 2 passed. `producer-console-v2`
   archivado → specs canónicas actualizadas.
 
+## Release v0.7.0 — estado
+
+- Tag `v0.7.0` en `main` (`07ff990`), push main + dev sincronizados.
+- Deploy API (GH Actions → VM): **success** en 5m49s —
+  `/api/health` 200, `/api/events` 200 con data.
+- **Web (Netlify): rebuild disparado por el push pero aún sirve el
+  build anterior** (chunks de páginas nuevas 404 en CDN al cierre).
+  El fix SSR entra en producción cuando ese build termine - verificar
+  `/productor/apariencia` renderiza tras login.
+
 ## Pendiente
 
-- **Release**: version bump + changelog + `dev→main` + tag + deploy
-  supervisado (gate: pedir confirmación antes de push).
 - QA manual del productor (320/768/1024) + handoff 6.3 de
   analytics-query-engine.
 - Seed de prod (`SEED_ENV=dev pnpm db:seed` contra la URL directa) sigue
