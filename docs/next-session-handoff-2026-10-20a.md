@@ -96,6 +96,31 @@
   200 en prod. Web: rebuild de Netlify disparado por el push — verificar
   en Deploys que sirva el build de `ff49f37` (los tours son front-only).
 
+## Release v0.8.1 — hotfix SSR + socket.io (commit `e284554`, tag `v0.8.1`)
+
+- **Causa raíz del "eventos no carga en prod" que persistía tras v0.7.0**:
+  `API_PROXY_TARGET` vive en `[build.environment]` de netlify.toml —
+  disponible en build pero **no en runtime** del serverless; y
+  `NEXT_PUBLIC_WEB_URL` nunca se seteó en el UI de Netlify → el helper
+  seguía cayendo a `localhost:4000`. Prueba: `/reclamar/<token-falso>`
+  en prod renderizaba `errorTitle` ("No pudimos cargar la invitación")
+  cuando el API responde 404 → debió ser `goneTitle`.
+- **Fix**: `serverApiUrl()` (función request-scope, reemplaza la const
+  `SERVER_API_URL`) agrega fallback al **origin del request** vía
+  `headers()` (x-forwarded-host/host + x-forwarded-proto) — la propia
+  web sirve `/api/*` por el rewrite de next.config.mjs. 11 call sites
+  actualizados (9 pages + public-events/public-academies).
+- **socket.io**: Netlify edge normalizaba `/socket.io/` → 308 →
+  `/socket.io`; engine.io solo matchea `/socket.io/` → Nest 404 en loop
+  de polling. Fix: `[[redirects]]` en netlify.toml proxea `/socket.io/*`
+  al API a nivel edge con `force = true` (antes del runtime Next).
+- Errores React #418/#423 de la consola del usuario: probable efecto del
+  SSR roto o edge cache con builds mixtos — re-evaluar tras el rebuild.
+- **Verificación post-deploy**: `curl https://omnidance.netlify.app/
+  reclamar/<fake>` debe renderizar "Este link ya no es válido" (gone),
+  y `curl "https://omnidance.netlify.app/socket.io/?EIO=4&transport=
+  polling"` debe devolver el handshake `0{"sid":...}`.
+
 ## Pendiente
 
 - QA manual del productor (320/768/1024) + handoff 6.3 de
