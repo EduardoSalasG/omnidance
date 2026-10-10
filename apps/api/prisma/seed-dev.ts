@@ -22,11 +22,13 @@ const DEV_DOMAIN = "omnidance.dev";
 export const DEV_PASSWORD = "omnidance123";
 
 const nextDay = (weekday: number, hour = 22, weeksAhead = 0) => {
-  // próximo <weekday> (0=dom … 6=sáb) a las <hour>h (+N semanas)
+  // próximo <weekday> (0=dom … 6=sáb) a las <hour>h (+N semanas).
+  // Si hoy es ese día y la hora aún no pasa, es hoy mismo - el seed
+  // corrido un sábado deja el social de esta noche, no el del próximo.
   const d = new Date();
-  d.setDate(
-    d.getDate() + ((weekday - d.getDay() + 7) % 7 || 7) + weeksAhead * 7,
-  );
+  const delta = (weekday - d.getDay() + 7) % 7;
+  const sameDay = delta === 0 && d.getHours() < hour;
+  d.setDate(d.getDate() + (delta || (sameDay ? 0 : 7)) + weeksAhead * 7);
   d.setHours(hour, 0, 0, 0);
   return d;
 };

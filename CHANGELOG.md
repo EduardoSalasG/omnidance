@@ -3,6 +3,18 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.8.2] - 2026-10-10
+
+### Fixed
+
+- **Seed — eventos del mismo día**: `nextDay(weekday)` siempre saltaba
+  al *siguiente* weekday (`|| 7`), así que correr el seed un sábado
+  movía los sociales del sábado (Trilogía incluida) a la semana
+  siguiente en vez de dejarlos esa misma noche. Ahora incluye el día
+  actual cuando el weekday calza y la hora del evento aún no pasa.
+  Semántica `weeksAhead` intacta (SCE sigue cediendo su sábado a
+  Trilogía).
+
 ## [0.8.1] - 2026-10-10
 
 ### Fixed
