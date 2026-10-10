@@ -73,6 +73,13 @@ async function ensure<T extends { id: string }>(
 }
 
 export async function seedDev(prisma: PrismaClient) {
+  const t0 = Date.now();
+  // Progreso por sección: contra Neon el seed toma varios minutos y sin
+  // logs intermedios parecía colgado (el seed de prod se cortó a la
+  // mitad por timeout sin que se notara en qué tramo iba).
+  const step = (label: string) =>
+    console.log(`  [${((Date.now() - t0) / 1000).toFixed(0)}s] ${label}`);
+
   await seedCommon(prisma);
 
   // ─── Admin de plataforma (login real por magic link en dev) ───
@@ -84,6 +91,7 @@ export async function seedDev(prisma: PrismaClient) {
   );
 
   // ─── Personas multi-rol - emails dev permiten login por magic link ───
+  step("personas…");
   const person = (
     slug: string,
     name: string,
@@ -240,6 +248,7 @@ export async function seedDev(prisma: PrismaClient) {
   await birthdayIn(vicente.id, 19, 1994);
 
   // ─── Venues ───
+  step("venues…");
   const venue = (
     name: string,
     capacity: number,
@@ -308,6 +317,7 @@ export async function seedDev(prisma: PrismaClient) {
   });
 
   // ─── MuéveteOnTour - academia Y productor ───
+  step("academia muvet…");
   const muvetData = {
     name: "MuéveteOnTour",
     ownerId: muvetOwner.id,
@@ -457,6 +467,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Planes de membresía ───
+  step("planes…");
   // El nombre del plan es categoría propia de la academia (Básico, Plata,
   // Oro, Premium, VIP…) - el periodo y la cuota semanal ya los muestran
   // el tag de tipo y la metadata del card, no van en el nombre.
@@ -633,6 +644,7 @@ export async function seedDev(prisma: PrismaClient) {
   await plan(tumbao.id, "Clase de prueba", "TRIAL", 0);
 
   // ─── Enrollments - mezcla de planes y estados para el listado ───
+  step("enrollments…");
   const enroll = (
     academyId: string,
     personId: string,
@@ -695,6 +707,7 @@ export async function seedDev(prisma: PrismaClient) {
   await enroll(tumbao.id, antonia.id, tumbaoMensual.id, "TRIAL", 8, 2);
 
   // ─── Series + slots + clases materializadas ───
+  step("series/slots/clases…");
   const styleId = async (name: string) =>
     (await prisma.style.findFirst({ where: { name } }))!.id;
   const levelId = async (name: string) =>
@@ -991,6 +1004,7 @@ export async function seedDev(prisma: PrismaClient) {
   });
 
   // ─── Academias de la escena - catálogo Santiago ───
+  step("academias catálogo…");
   // Una serie por estilo que dicta cada academia. Los números del spec
   // del usuario son índices 1-based de ACADEMY_STYLE_MAP (el orden en
   // que listó los estilos).
@@ -1196,6 +1210,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Mambo Madness - academia real, no catálogo genérico ───
+  step("mambo madness…");
   // Dueño real (Gabriel Arias, gazner3203@gmail.com), datos de contacto
   // y parrilla reales de mambomadnesscl.com. El loop de catálogo crea la
   // fila con placeholders (para no re-indexar al resto); acá se pisan
@@ -1463,6 +1478,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Alumnos de Mambo Madness ───
+  step("alumnos mambo madness…");
   // 92 alumnos con plan vigente - mix de la parrilla (oferta de entrada,
   // semanal, ilimitado) con el VIP exclusivo (solo 3). Nombres del pool
   // chileno determinístico; el volumen alimenta la analítica real.
@@ -1601,6 +1617,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Adrian y Leo - academia de solo mambo ───
+  step("adrian y leo…");
   // Mónica es su alumna: plan más caro + asistencias del mes pasado y
   // vigente. Academia chica boutique - parrilla mínima pero real.
   const alData = {
@@ -1728,6 +1745,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Reservas + asistencias ───
+  step("reservas y asistencias…");
   const book = (classId: string, personId: string, status = "BOOKED") =>
     prisma.classBooking.upsert({
       where: { classId_personId: { classId, personId } },
@@ -1809,6 +1827,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Asistencias Mambo Madness: mes pasado + vigente a la fecha ───
+  step("asistencias mambo madness…");
   // Ocupación realista (~50-70% del aforo 20) rotando el roster de 92
   // de forma determinística; un resto reserva y no asiste → queda
   // booked en el historial (misma semántica "attended gana" de muvet).
@@ -1875,6 +1894,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Relleno de alumnos + asistencias: todas las academias ───
+  step("relleno de academias…");
   // Cada academia queda con 20-70 alumnos vigentes (determinístico por
   // índice) repartidos en sus planes mensuales/pack, y asistencias en
   // sus clases del mes pasado + el vigente a la fecha - el mismo
@@ -2013,6 +2033,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Cobros declarados (PaymentClaim) ───
+  step("cobros declarados…");
   // Pendientes alimentan "Cobros por revisar" del home; los aprobados
   // del mes vigente y del tramo equivalente del anterior hacen que
   // Facturado, Ticket/alumno y sus comparativas tengan datos reales.
@@ -2152,6 +2173,7 @@ export async function seedDev(prisma: PrismaClient) {
 
 
   // ─── Series + eventos ───
+  step("series y eventos nightlife…");
   const mkSeries = async (
     name: string,
     producerId: string,
@@ -2616,6 +2638,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Shows de la noche ───
+  step("shows de la noche…");
   // Formato real: academia (texto libre - puede no estar registrada),
   // tipo de team (BOOTCAMP | ALUMNOS | OPEN | PRO | AMATEUR) y nombre de
   // la coreografía. TODOS los eventos tienen shows; el volumen crece con
@@ -2736,6 +2759,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Fees por productor + override por evento ───
+  step("fees de productores…");
   // Defaults del productor: el admin los edita en /admin/parametros;
   // el productor los ve read-only en /productor/parametros.
   await prisma.producerParams.upsert({
@@ -2794,6 +2818,7 @@ export async function seedDev(prisma: PrismaClient) {
   });
 
   // ─── Edición pasada - alimenta analytics (GMV, check-ins) e historial ───
+  step("edición pasada…");
   const lastWeek = new Date(Date.now() - 7 * 86_400_000);
   const prevEdition = await ensure(
     () =>
@@ -2871,6 +2896,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Data social / operativa sobre eventos próximos ───
+  step("data social de eventos…");
   // Ticket vigente en la billetera del bailarín + pago PAID.
   await ensure(
     () =>
@@ -3127,6 +3153,7 @@ export async function seedDev(prisma: PrismaClient) {
   });
 
   // ─── Prácticas - Event type=PRACTICA, hostId=creador bailarín ───
+  step("prácticas…");
   // Alimentan /practicas: una por cada escenario de card (propia, de
   // otro, sin venue=parque, con aforo). Idempotente por nombre+tipo; las
   // fechas se refrescan en cada corrida como el resto del seed.
@@ -3233,6 +3260,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Sesiones de baile (DanceSession + SessionRating) ───
+  step("sesiones de baile…");
   // Historial sobre la edición pasada de Bachatamanía (evento CLOSED) +
   // invitaciones vivas sobre la próxima - cubre todas las ramas de
   // /bailes: entrantes, salientes, confirmadas, puntuadas y declinadas.
@@ -3450,6 +3478,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(liveEvent.id, daniela, monica, "CONFIRMED", liveAt(65), "Bachata sensual");
 
   // ─── Gamificación - actividad real que produce badges/puntos/rachas ───
+  step("gamificación…");
   // Dos ediciones más de Bachatamanía (hace 2 y 3 semanas) con sesiones
   // resueltas del clique. Las rachas semanales, los puntos de temporada y
   // los badges por conducta se derivan de esta actividad con las mismas
@@ -3645,6 +3674,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Data de consolas - productor / DJ / venue ───
+  step("data de consolas…");
 
   // Salidas de pista (outAt) en los check-ins pasados: alimentan la
   // permanencia media del dashboard del venue. Determinista por índice.
@@ -4147,6 +4177,7 @@ export async function seedDev(prisma: PrismaClient) {
   );
 
   // ─── Plantel multi-instructor (spec multi-instructor) ───
+  step("plantel multi-instructor…");
   // Todo primario queda también en su join - misma regla que el backfill
   // de la migración 20261101000000. Cubre los slots/clases que el seed
   // crea por prisma directo (sin pasar por el controller).
@@ -4176,6 +4207,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // ─── Limpieza de residuos E2E ───
+  step("limpieza E2E…");
   // Las corridas Playwright dejan academias, series, venues y eventos
   // marcador ("... Test", "E2E", raíces de spec tipo "Con Mesas xxxx"
   // o sufijo aleatorio). El schema casi no usa onDelete → cascada
@@ -4518,6 +4550,7 @@ export async function seedDev(prisma: PrismaClient) {
   }
 
   // Password dev: mismo formato scrypt$N$r$p$salt$hash que AuthService.
+  step("passwords dev…");
   const salt = randomBytes(16);
   const key = scryptSync(DEV_PASSWORD, salt, 64, { N: 16384, r: 8, p: 1 });
   const passwordHash = `scrypt$16384$8$1$${salt.toString("hex")}$${key.toString("hex")}`;
