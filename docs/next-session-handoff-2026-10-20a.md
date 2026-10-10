@@ -144,3 +144,28 @@
   pendiente.
 - `producer.modules.params`/`paramsDesc` quedaron sin referencia en el
   front (el hub murió) - candidatos a limpieza.
+
+---
+
+## v0.8.3 - lente instructor + transferencias (2026-10-10, `859c011` en main)
+
+- **Lente INSTRUCTOR degrada privilegios**: `/academia/alumnos`,
+  `/alumnos/[personId]` y `/alumnos/nuevo` ahora respetan la lente
+  activa (`useActiveRole`) — bajo INSTRUCTOR no hay KPIs/Insights/
+  ImportCard/CTA ni editor de enrollment, aunque la persona tenga
+  ADMIN/owner/staff reales (spec academies/staff-roles, ya lo exigía).
+- **API**: `GET /academies/:id/students/insights` solo computa
+  `topPayersMonth` con cap `payments` (instructor recibe `[]`). Test
+  nuevo: `academies-insights.controller.spec.ts` (2 tests).
+- **FilterBar**: `min-w-0` en labels/inputs de grid y en el par
+  desde/hasta — los `input[type=date]` ya no desbordan la celda ni se
+  montan entre sí (fix global: aplica a todas las consolas).
+- **Seed**: bloque "transferencias para todos" tras limpieza E2E — toda
+  academia sin TRANSFER recibe uno activo con datos generados; todo rol
+  PRODUCER aprobado recibe `ProducerPaymentMethod` TRANSFER. Verificado:
+  20/20 academias, 16/16 productores. **Prod**: el deploy solo corre
+  baseline — hay que lanzar `SEED_ENV=dev pnpm --filter @omnidance/api
+  prisma db seed` con la URL directa de Neon para aplicarlo.
+- Verificación: tsc web+api, i18n `ALL_KEYS_OK`, impeccable `[]`,
+  openspec validate+archive, tests academies 210/210, seed local,
+  deploy API success + health/events 200.
