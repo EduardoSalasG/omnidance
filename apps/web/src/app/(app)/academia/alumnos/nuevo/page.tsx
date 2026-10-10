@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
+import { useActiveRole } from "@/lib/active-role";
 import { Button, RefreshIcon, SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { EnrollmentForm } from "@/components/academy/enrollment-form";
@@ -45,11 +46,17 @@ function EnrollmentLoader({
   const t = useTranslations("academy");
   const tc = useTranslations("common");
 
-  // Permiso desde el /me compartido - null mientras resuelve.
+  // Permiso desde el /me compartido - null mientras resuelve. La lente
+  // INSTRUCTOR degrada a instructor puro aunque la persona tenga más
+  // privilegios (spec academies/staff-roles): el alta de enrollments
+  // queda fuera de esa lente.
   const { me, loading: meLoading } = useMe();
+  const instructorLens = useActiveRole(me?.roles) === "INSTRUCTOR";
   const canAdminister: boolean | null = meLoading
     ? null
-    : !!me && (me.roles.includes("ADMIN") || me.id === ownerId);
+    : !instructorLens &&
+      !!me &&
+      (me.roles.includes("ADMIN") || me.id === ownerId);
 
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [error, setError] = useState(false);

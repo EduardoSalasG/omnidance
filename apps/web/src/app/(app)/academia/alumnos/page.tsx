@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useMe } from "@/lib/me-context";
+import { useActiveRole } from "@/lib/active-role";
 import { SkeletonList } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyKpiStrip } from "@/components/academy/academy-kpi-strip";
@@ -45,9 +46,16 @@ function StudentsModule({
   // Permiso desde el /me compartido - null mientras resuelve (el
   // skeleton espera), false si no es admin/owner → readOnly.
   const { me, loading: meLoading } = useMe();
+  // La lente INSTRUCTOR degrada la vista a instructor puro aunque la
+  // persona tenga roles más privilegiados (spec academies/staff-roles):
+  // la única mutación del instructor es asistencia de sus clases.
+  const instructorLens =
+    useActiveRole(me?.roles) === "INSTRUCTOR" && !meLoading;
   const canAdminister: boolean | null = meLoading
     ? null
-    : !!me && (me.roles.includes("ADMIN") || me.id === ownerId);
+    : !instructorLens &&
+      !!me &&
+      (me.roles.includes("ADMIN") || me.id === ownerId);
 
   // Carga masiva de alumnos embebida en el módulo (cap `students` -
   // owner/admin reportan todas; null mientras resuelve = no se muestra).
@@ -59,8 +67,11 @@ function StudentsModule({
   // KPIs, insights e importación son superficies de gestión (cap
   // `students`): el instructor pasa `requireManage` para LEER la lista
   // pero no administra - su vista es solo el listado navegable (spec
-  // academies/console-lists).
-  const manages = canAdminister === true || access?.caps.students === true;
+  // academies/staff-roles). Bajo la lente INSTRUCTOR nunca se muestran,
+  // aunque la persona tenga más privilegios reales.
+  const manages =
+    !instructorLens &&
+    (canAdminister === true || access?.caps.students === true);
   return (
     <div className="flex flex-col gap-6">
       {manages && (
@@ -80,7 +91,7 @@ function StudentsModule({
         academyId={academyId}
         readOnly={canAdminister !== true}
       />
-      {access?.caps.students === true && (
+      {!instructorLens && access?.caps.students === true && (
         <ImportCard academyId={academyId} kind="students" />
       )}
     </div>
