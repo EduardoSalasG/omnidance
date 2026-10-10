@@ -546,8 +546,10 @@ export function HomeHub() {
       // ACADEMY_OWNER no tiene hero: su home ES la consola (ver el
       // branch del render abajo).
       case "INSTRUCTOR":
+        // Su consola es "Mis clases" - el hub /academia salió de su
+        // navegación (spec staff-roles).
         return {
-          href: "/academia",
+          href: "/academia/clases",
           title: ta("title"),
           desc: t("academyHeroDesc"),
           cta: t("academyHeroCta"),

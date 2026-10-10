@@ -400,12 +400,10 @@ export default function PerfilPage() {
 
   // "Interactuar como": roles aprobados del usuario + DANCER siempre
   // (lente consumidor - no se duplica si ya viene aprobado).
+  const roleStates =
+    me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" }));
   const approvedRoles = new Set(
-    (
-      me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" }))
-    )
-      .filter((r) => r.status === "APPROVED")
-      .map((r) => r.role),
+    roleStates.filter((r) => r.status === "APPROVED").map((r) => r.role),
   );
   const actAsOptions = ACT_AS_ORDER.filter(
     (r) => r === "DANCER" || approvedRoles.has(r),
@@ -449,12 +447,11 @@ export default function PerfilPage() {
             <p className="truncate text-sm text-ink/50">
               {me.email ?? "·"}
             </p>
-            {(me.roleStates ?? me.roles.map((r) => ({ role: r, status: "APPROVED" })))
-              .length > 0 && (
+            {/* Badges de rol: solo hasta 2 - con más ya están todos en
+                "Interactuar como" (spec people-profile). */}
+            {roleStates.length > 0 && roleStates.length <= 2 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {(me.roleStates ??
-                  me.roles.map((r) => ({ role: r, status: "APPROVED" }))
-                ).map((rs) => (
+                {roleStates.map((rs) => (
                   <Badge
                     key={rs.role}
                     variant={rs.status === "APPROVED" ? "neon" : "outline"}

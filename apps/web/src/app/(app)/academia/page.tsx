@@ -25,7 +25,9 @@ const MODULES = [
   { href: "/academia/planes", key: "plans", cap: "plans" },
   { href: "/academia/alumnos", key: "students" },
   { href: "/academia/series", key: "series", cap: "schedule" },
-  { href: "/academia/particulares", key: "lessons" },
+  // Particulares sale de la navegación del instructor puro (spec
+  // staff-roles) - queda para owner/staff/admin.
+  { href: "/academia/particulares", key: "lessons", noInstructor: true },
   { href: "/academia/videos", key: "videos", cap: "schedule" },
   { href: "/academia/cobros", key: "payments", cap: "payments" },
   { href: "/academia/equipo", key: "team", cap: "team" },
@@ -105,7 +107,18 @@ function AcademyHub({
   // grilla: para el owner un skeleton que colapsa sería flash.
   const showModuleGrid = access !== null && !access.isOwner;
 
+  // Instructor puro (sin staff/admin/owner en la academia): los módulos
+  // marcados noInstructor no van en su grilla.
+  const pureInstructor =
+    access?.isInstructor === true &&
+    !access.isStaff &&
+    !access.isAdmin &&
+    !access.isOwner;
+
   const visible = MODULES.filter((m) => {
+    if ("noInstructor" in m && m.noInstructor && pureInstructor) {
+      return false;
+    }
     if ("ownerOnly" in m && m.ownerOnly) {
       return (
         access?.isAdmin === true ||
