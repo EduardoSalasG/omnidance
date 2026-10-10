@@ -12,10 +12,11 @@ import {
 } from "@/components/academy/subscription-manage";
 import { ProfilePlansSection } from "@/components/academy/profile-plans-section";
 import { AcademyClaimsMine } from "@/components/academy/academy-claims-mine";
+import { SERVER_API_URL } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = SERVER_API_URL;
 
 // GET /academies/:id/profile - ficha pública de la academia (cualquier
 // autenticado; la consola de gestión vive en /academia): datos,

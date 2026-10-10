@@ -13,10 +13,11 @@ import { ProducerClaimsQueue } from "@/components/producer/claims-queue-section"
  */
 export default function ProducerClaimsPage() {
   const t = useTranslations("producer");
+  const tn = useTranslations("nav");
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-5xl lg:px-8">
-      <ConsoleHeader backHref="/productor" backLabel={t("title")} />
+      <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
       <ProducerGate>
         <ProducerClaimsQueue />
       </ProducerGate>

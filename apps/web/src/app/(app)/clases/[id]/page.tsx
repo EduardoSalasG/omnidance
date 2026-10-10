@@ -15,10 +15,11 @@ import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { ClassBookingCta } from "@/components/classes/class-booking-cta";
 import { PrivateLessonCancelCta } from "@/components/classes/private-lesson-cancel-cta";
 import academyPart from "@/i18n/parts/academyExtras.json";
+import { SERVER_API_URL } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = SERVER_API_URL;
 
 // GET /classes/:id - ficha alumno: serie (estilo/nivel/modalidad/precio
 // suelta), academia, instructor efectivo, cupos y mi estado.

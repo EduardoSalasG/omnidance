@@ -30,10 +30,11 @@ import {
   parseMonth,
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
+import { SERVER_API_URL } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = SERVER_API_URL;
 
 type VenueEvent = {
   id: string;

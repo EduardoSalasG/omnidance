@@ -77,6 +77,7 @@ function groupLines(lines: PayoutLine[]): [string, number, number][] {
  */
 export default function ProducerPayoutsPage() {
   const t = useTranslations("producer");
+  const tn = useTranslations("nav");
   const tc = useTranslations("common");
   const tq = useTranslations("query");
 
@@ -135,7 +136,7 @@ export default function ProducerPayoutsPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 p-6 lg:max-w-5xl lg:px-8">
-      <ConsoleHeader backHref="/productor" backLabel={t("title")} />
+      <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
 
       {gate === "ready" && (
         <FilterBar

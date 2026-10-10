@@ -54,12 +54,16 @@ const ACT_AS_ORDER: AppRole[] = [
 // Lentes de gestión pura: sin racha ni "mis pagos" propios (su consumo
 // es consola, no baile). La apariencia de owner/productor vive en su
 // Configuración, no en este perfil.
-const STREAKLESS = new Set<string>(["ADMIN", "ACADEMY_OWNER", "INSTRUCTOR"]);
+const STREAKLESS = new Set<string>([
+  "ADMIN",
+  "ACADEMY_OWNER",
+  "INSTRUCTOR",
+  "PRODUCER",
+]);
 
 // Lentes sin gamificación en el perfil (racha + insignias): gestión
-// pura y el instructor - su consola no consume badges (spec
-// people-profile: perfil simplificado del instructor).
-const GAMIFLESS = new Set<string>(["ADMIN", "INSTRUCTOR"]);
+// pura - sus consolas no consumen badges (spec people-profile).
+const GAMIFLESS = new Set<string>(["ADMIN", "INSTRUCTOR", "PRODUCER"]);
 
 // Insignias del modo academy - espejo del catálogo sembrado
 // (BADGE_CATALOG en seed-common.ts). El resto son nightlife.
@@ -652,10 +656,12 @@ export default function PerfilPage() {
       )}
 
       {/* Historial de compras/cobros del usuario → /perfil/pagos.
-          El dueño de academia no compra (su cobranza vive en
-          /academia/cobros) y el instructor no consume por la app
-          (spec people-profile). */}
-      {currentActAs !== "ACADEMY_OWNER" && currentActAs !== "INSTRUCTOR" && (
+          Las lentes de gestión no lo ven: su dinero vive en su consola
+          (owner → /academia/cobros, productor → /productor/pagos) y el
+          instructor no consume por la app (spec people-profile). */}
+      {!["ACADEMY_OWNER", "INSTRUCTOR", "PRODUCER"].includes(
+        currentActAs,
+      ) && (
         <Link
           href="/perfil/pagos"
           className="block rounded-2xl transition-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]"

@@ -228,7 +228,8 @@ export class PaymentsController {
    * propio porque el token de getRegisterStatus se consume una sola vez:
    * cada dominio resuelve sus pendientes en su callback. Mismo contrato
    * que customer-return: nunca error HTTP - el redirect es la respuesta.
-   * Academia → su ficha (?sub=ok|error); productor → /productor?pro=ok.
+   * Academia → su ficha (?sub=ok|error); productor → su Configuración
+   * (/productor/parametros?pro=ok - el hub /productor ya no existe).
    */
   @Post("flow/platform-customer-return")
   async platformCustomerReturn(
@@ -247,7 +248,7 @@ export class PaymentsController {
       const okTo =
         r.kind === "ACADEMY" && r.academyId
           ? `${webUrl}/academias/${r.academyId}?sub=ok`
-          : `${webUrl}/productor?pro=ok`;
+          : `${webUrl}/productor/parametros?pro=ok`;
       return res.redirect(303, okTo);
     } catch {
       return res.redirect(303, errorTo());

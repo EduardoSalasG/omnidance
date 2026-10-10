@@ -60,6 +60,7 @@ const LISTS_ENTITY: EntityDef = {
 
 function GuestLists() {
   const t = useTranslations("producer");
+  const tn = useTranslations("nav");
   const ta = useTranslations("admin");
   const tc = useTranslations("common");
 
@@ -145,8 +146,8 @@ function GuestLists() {
   return (
     <>
       <ConsoleHeader
-        backHref="/productor"
-        backLabel={t("title")}
+        backHref="/inicio"
+        backLabel={tn("home")}
         actions={
           events !== null && events.length > 0 ? (
             <Button

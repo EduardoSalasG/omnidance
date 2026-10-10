@@ -92,11 +92,16 @@ function makeService(
       ),
     },
   } as unknown as PrismaService;
+  // El mock queda tipado como Mock para las assertions; el cast al
+  // servicio real solo ocurre en el constructor.
   const notifications = {
-    notifySafe: vi.fn(async () => undefined),
-  } as unknown as NotificationsService;
+    notifySafe: vi.fn(async (_personId: string, _input: unknown) => {}),
+  };
   return {
-    svc: new ClassRemindersService(prisma, notifications),
+    svc: new ClassRemindersService(
+      prisma,
+      notifications as unknown as NotificationsService,
+    ),
     notifications,
   };
 }
@@ -221,6 +226,7 @@ describe("ClassRemindersService.runSweep", () => {
   it("co-instructor del slot y default de serie también avisan", async () => {
     const cls = classStartingIn(20, {
       slot: {
+        startTime: "20:20",
         instructorId: "inst-1",
         instructors: [{ personId: "inst-2" }],
         academy: { name: "Mambo Madness" },

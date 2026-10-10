@@ -21,6 +21,7 @@ import { PracticeBar } from "@/components/social/PracticeBar";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { GENRE_TEXT } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
+import { SERVER_API_URL } from "@/lib/server-api";
 
 // El merge i18n devuelve Dict - las claves se declaran explícitas
 // (mismo patrón que locales/[id]).
@@ -32,7 +33,7 @@ type EventsT = Record<string, string> & {
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = SERVER_API_URL;
 
 /** Fila del cronograma: t = "HH:MM" o "Hasta HH:MM", end cierra el rango. */
 type ProgramItem = { t: string; end?: string; label: string };

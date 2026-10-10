@@ -2,10 +2,11 @@ import { notFound } from "next/navigation";
 import { messages } from "@/i18n/messages";
 import { Button } from "@/components/ui";
 import { CheckoutClient } from "./checkout-client";
+import { SERVER_API_URL } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
+const API_URL = SERVER_API_URL;
 
 export type CheckoutEvent = {
   id: string;

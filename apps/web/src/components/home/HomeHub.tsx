@@ -19,6 +19,7 @@ import {
 import { KpiGrid, type Kpi } from "@/components/home/kpi-grid";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { AcademyDashboard } from "@/components/academy/academy-dashboard";
+import { ProducerDashboard } from "@/components/producer/producer-dashboard";
 
 import { GENRE_TEXT, localDayKey } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
@@ -336,7 +337,6 @@ export function HomeHub() {
   const te = useTranslations("events");
   const tst = useTranslations("staff");
   const tins = useTranslations("instructor");
-  const tpr = useTranslations("producer");
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
   const ttao = useTranslations("tours.academiaOwner");
@@ -532,19 +532,8 @@ export function HomeHub() {
           desc: t("adminHeroDesc"),
           cta: t("adminHeroCta"),
         };
-      case "PRODUCER":
-        return {
-          href: "/productor/eventos",
-          title: tpr("myEvents"),
-          desc: tpr("navEventsDesc"),
-          cta: t("producerHeroCta"),
-          secondary: {
-            href: "/productor/eventos/nuevo",
-            label: tpr("createEvent"),
-          },
-        };
-      // ACADEMY_OWNER no tiene hero: su home ES la consola (ver el
-      // branch del render abajo).
+      // PRODUCER y ACADEMY_OWNER no tienen hero: su home ES la consola
+      // (ver los branches del render abajo).
       case "INSTRUCTOR":
         // Sin hero-card: su superficie es "Próximas clases" abajo (las
         // que dicta) + el tab Clases - igual que el learner inscrito,
@@ -764,6 +753,12 @@ export function HomeHub() {
             </>
           )}
         </AcademyGate>
+      ) : activeRole === "PRODUCER" ? (
+        // El home del productor ES su consola (spec
+        // events/producer-console): KPIs + cobros por revisar + tops -
+        // mismo formato que el dashboard del owner. Sin hero ni
+        // "Próximos eventos".
+        <ProducerDashboard />
       ) : dancerSocial ? (
         <>
           {/* Tu actividad primero - solo 2 señales rápidas (racha +
