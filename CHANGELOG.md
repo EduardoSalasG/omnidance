@@ -3,6 +3,23 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.8.4] - 2026-10-11
+
+### Fixed
+
+- **Compartir por WhatsApp llevaba `localhost:3000`**:
+  `NEXT_PUBLIC_WEB_URL` estaba documentada como variable del UI de
+  Netlify pero nunca se seteó, así que `metadataBase` caía al fallback
+  y todos los `canonical`/`og:url` salían como `http://localhost:3000`
+  — lo que WhatsApp/crawlers leen al compartir `/para-academias` u
+  otras páginas. La var ahora va pintada en `[build.environment]` de
+  `netlify.toml` (las `NEXT_PUBLIC_*` se inlinean en build, a
+  diferencia del runtime serverless) y nuevo helper
+  `lib/site-url.ts` resuelve con fallback a `URL` (var que Netlify
+  inyecta en todo build) antes de caer a localhost. Se corrigen de
+  paso `sitemap.xml`, `robots.txt` y el JSON-LD de la landing, que
+  también emitían localhost.
+
 ## [0.8.3] - 2026-10-10
 
 ### Fixed

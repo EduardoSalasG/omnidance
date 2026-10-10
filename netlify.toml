@@ -12,6 +12,11 @@
   # Rewrite same-origin: /api/* y /socket.io/* se proxean al API
   # (cookies Lax sin cross-site; socket.io queda en polling).
   API_PROXY_TARGET = "https://api.omnidance.eduardosalasg.dev"
+  # NEXT_PUBLIC_* se inlinea en el bundle durante `next build` - sí llega
+  # desde build.environment (a diferencia del runtime serverless). Es la
+  # base de canonical/og:url/sitemap/robots/JSON-LD; sin ella salían
+  # como localhost:3000 y WhatsApp compartía esa URL.
+  NEXT_PUBLIC_WEB_URL = "https://omnidance.netlify.app"
 
 # socket.io va por proxy edge directo al API, antes del runtime Next:
 # el edge normaliza trailing slash (`/socket.io/` → 308 → `/socket.io`)
@@ -29,5 +34,6 @@
 # Env vars restantes (Netlify UI → Site settings → Environment variables):
 #   NEXT_PUBLIC_CARTO_BASEMAP_KEY- key pública del basemap (mapa academias).
 #   NEXT_PUBLIC_VAPID_PUBLIC_KEY - key pública web-push.
-#   NEXT_PUBLIC_WEB_URL          - https://omnidance.netlify.app
 #   NEXT_PUBLIC_API_URL          - dejar VACÍA (relativa = same-origin).
+#   NEXT_PUBLIC_WEB_URL          - ya va en build.environment de arriba;
+#     setearla en el UI solo si el dominio primario cambia.

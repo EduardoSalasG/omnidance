@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { messages } from "@/i18n/messages";
 import { PageLoadingHost } from "@/components/ui/page-loading-host";
+import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
-
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "http://localhost:3000";
 
 const SITE_DESCRIPTION =
   "Sociales, entradas, academias y clases de la comunidad salsera, " +
@@ -12,7 +11,7 @@ const SITE_DESCRIPTION =
 const SITE_TITLE = "Omnidance - salsa, timba y bachata en Chile";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(WEB_URL),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
     template: "%s | Omnidance",
