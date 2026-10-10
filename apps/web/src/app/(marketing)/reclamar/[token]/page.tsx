@@ -2,11 +2,10 @@ import { cookies } from "next/headers";
 import { messages } from "@/i18n/messages";
 import { Button } from "@/components/ui";
 import { ClaimClient } from "./claim-client";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = SERVER_API_URL;
 
 export type ClaimInfo = {
   buyerName: string;
@@ -18,6 +17,7 @@ export type ClaimInfo = {
 };
 
 async function getClaimInfo(token: string): Promise<ClaimInfo | "gone" | "error"> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/tickets/claim/${token}`, {
     cache: "no-store",
   }).catch(() => null);

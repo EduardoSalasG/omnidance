@@ -12,11 +12,10 @@ import {
 } from "@/components/academy/subscription-manage";
 import { ProfilePlansSection } from "@/components/academy/profile-plans-section";
 import { AcademyClaimsMine } from "@/components/academy/academy-claims-mine";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = SERVER_API_URL;
 
 // GET /academies/:id/profile - ficha pública de la academia (cualquier
 // autenticado; la consola de gestión vive en /academia): datos,
@@ -66,6 +65,7 @@ type AcademyProfile = {
 };
 
 async function getProfile(id: string): Promise<AcademyProfile | "error"> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/academies/${id}/profile`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },

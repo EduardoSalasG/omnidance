@@ -30,11 +30,10 @@ import {
   parseMonth,
 } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = SERVER_API_URL;
 
 type VenueEvent = {
   id: string;
@@ -108,6 +107,7 @@ function dayLabel(key: string, te: EventsT): string {
 // Solo un 404 real es not-found: 5xx/red es un fallo de carga y la
 // página muestra error con retry - esconderlo como "no existe" miente.
 async function getVenue(id: string): Promise<VenueProfile | "error"> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/venues/${id}?days=62`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },

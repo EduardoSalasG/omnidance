@@ -13,6 +13,16 @@
   # (cookies Lax sin cross-site; socket.io queda en polling).
   API_PROXY_TARGET = "https://api.omnidance.eduardosalasg.dev"
 
+# socket.io va por proxy edge directo al API, antes del runtime Next:
+# el edge normaliza trailing slash (`/socket.io/` → 308 → `/socket.io`)
+# y el path sin barra no matchea engine.io → Nest devolvía 404 y el
+# cliente quedaba en loop de polling. El proxy preserva el path tal cual.
+[[redirects]]
+  from = "/socket.io/*"
+  to = "https://api.omnidance.eduardosalasg.dev/socket.io/:splat"
+  status = 200
+  force = true
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

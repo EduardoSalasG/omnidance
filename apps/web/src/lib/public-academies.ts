@@ -1,5 +1,4 @@
-import { SERVER_API_URL } from "@/lib/server-api";
-const API_URL = SERVER_API_URL;
+import { serverApiUrl } from "@/lib/server-api";
 
 // GET /academies/public - directorio mínimo sin sesión (spec
 // academies/owner-insights): alimenta el strip de prueba social de
@@ -12,7 +11,7 @@ export type PublicAcademy = {
 
 export async function fetchPublicAcademies(): Promise<PublicAcademy[]> {
   try {
-    const res = await fetch(`${API_URL}/api/academies/public`, {
+    const res = await fetch(`${serverApiUrl()}/api/academies/public`, {
       cache: "no-store",
     });
     if (!res.ok) return [];

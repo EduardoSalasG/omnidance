@@ -2,11 +2,10 @@ import { notFound } from "next/navigation";
 import { messages } from "@/i18n/messages";
 import { Button } from "@/components/ui";
 import { CheckoutClient } from "./checkout-client";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = SERVER_API_URL;
 
 export type CheckoutEvent = {
   id: string;
@@ -34,6 +33,7 @@ export type CheckoutEvent = {
 };
 
 async function getEvent(id: string): Promise<CheckoutEvent | "error"> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
   }).catch(() => null);

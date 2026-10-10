@@ -21,7 +21,7 @@ import { PracticeBar } from "@/components/social/PracticeBar";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { GENRE_TEXT } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 // El merge i18n devuelve Dict - las claves se declaran explícitas
 // (mismo patrón que locales/[id]).
@@ -33,7 +33,6 @@ type EventsT = Record<string, string> & {
 
 export const dynamic = "force-dynamic";
 
-const API_URL = SERVER_API_URL;
 
 /** Fila del cronograma: t = "HH:MM" o "Hasta HH:MM", end cierra el rango. */
 type ProgramItem = { t: string; end?: string; label: string };
@@ -105,6 +104,7 @@ type MissionView = {
 };
 
 async function getEvent(id: string): Promise<EventDetail | "error"> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
   }).catch(() => null);
@@ -119,6 +119,7 @@ async function getEvent(id: string): Promise<EventDetail | "error"> {
  * Shape real (GamificationService.missionsFor → MissionView): ver type abajo.
  */
 async function getMissions(eventId: string): Promise<MissionView[] | null> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${eventId}/missions`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
@@ -133,6 +134,7 @@ async function getMissions(eventId: string): Promise<MissionView[] | null> {
  * 401/fallo → null y la sección se omite (nunca error visible).
  */
 async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${eventId}/friends-going`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },
@@ -146,6 +148,7 @@ async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
  * ACTIVE para este evento - dispara el popup de confirmación en el CTA.
  */
 async function hasActiveTicket(eventId: string): Promise<boolean> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/tickets/mine`, {
     cache: "no-store",
     headers: { cookie: cookies().toString() },

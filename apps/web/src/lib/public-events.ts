@@ -1,14 +1,14 @@
 import type { JsonLdEvent } from "@/components/landing/JsonLd";
-import { SERVER_API_URL } from "@/lib/server-api";
-
-const API_URL = SERVER_API_URL;
+import { serverApiUrl } from "@/lib/server-api";
 
 // Eventos publicados para marketing: alimentan el ItemList de DanceEvent del
 // JSON-LD y el contador "N eventos esta semana" del strip de prueba social.
 // Fallo silencioso: la página no depende de esto.
 export async function fetchPublicEvents(): Promise<JsonLdEvent[]> {
   try {
-    const res = await fetch(`${API_URL}/api/events`, { cache: "no-store" });
+    const res = await fetch(`${serverApiUrl()}/api/events`, {
+      cache: "no-store",
+    });
     if (!res.ok) return [];
     const data = (await res.json()) as JsonLdEvent[];
     return Array.isArray(data) ? data : [];

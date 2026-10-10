@@ -3,6 +3,23 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.8.1] - 2026-10-10
+
+### Fixed
+
+- **SSR en producción (Netlify)**: los módulos con fetch server-side
+  (`/eventos`, detalle de evento, academias, clases, locales, checkouts,
+  `/evaluar`, `/reclamar`) seguían cayendo a `http://localhost:4000` en
+  el runtime serverless — las vars de `[build.environment]` no llegan a
+  la función y `NEXT_PUBLIC_WEB_URL` no estaba seteada. `serverApiUrl()`
+  ahora resuelve a nivel request con fallback al **origin propio** vía
+  `headers()` (la web sirve `/api/*` por el rewrite — cero dependencia
+  de env vars). Reemplaza el `SERVER_API_URL` module-scope de v0.7.0.
+- **socket.io en producción**: el edge de Netlify normalizaba
+  `/socket.io/` → 308 → `/socket.io` y el path sin barra no matchea
+  engine.io (Nest 404 en loop). `[[redirects]]` en `netlify.toml`
+  proxea `/socket.io/*` al API a nivel edge, antes del runtime Next.
+
 ## [0.8.0] - 2026-10-10
 
 Onboarding guiado completo para los cuatro roles de consola: el

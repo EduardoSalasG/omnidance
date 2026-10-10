@@ -1,15 +1,15 @@
 import { notFound } from "next/navigation";
 import { SurveyForm } from "@/components/events/survey-form";
-import { SERVER_API_URL } from "@/lib/server-api";
+import { serverApiUrl } from "@/lib/server-api";
 
 // Encuesta post-social: el server resuelve el nombre del evento para el
 // título (GET /events/:id es público) y el form es isla client - mismo
 // split server+island que el detalle del evento.
 export const dynamic = "force-dynamic";
 
-const API_URL = SERVER_API_URL;
 
 async function getEventName(id: string): Promise<string | null> {
+  const API_URL = serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
   }).catch(() => null);
