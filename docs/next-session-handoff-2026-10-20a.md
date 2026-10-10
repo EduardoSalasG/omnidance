@@ -116,10 +116,16 @@
   al API a nivel edge con `force = true` (antes del runtime Next).
 - Errores React #418/#423 de la consola del usuario: probable efecto del
   SSR roto o edge cache con builds mixtos — re-evaluar tras el rebuild.
-- **Verificación post-deploy**: `curl https://omnidance.netlify.app/
-  reclamar/<fake>` debe renderizar "Este link ya no es válido" (gone),
-  y `curl "https://omnidance.netlify.app/socket.io/?EIO=4&transport=
-  polling"` debe devolver el handshake `0{"sid":...}`.
+- **Verificado en prod** (buildId `Typw-kN_p8BWocvQAhw1Q`):
+  `/socket.io/?EIO=4&transport=polling` → handshake `0{"sid":...}` OK;
+  `/reclamar/<fake>` → `goneTitle` ("Este link ya no es válido") → el
+  fetch SSR llega al API. Eventos y todos los módulos SSR resueltos.
+- **Seed Mambo Madness**: verificado exhaustivamente en local — todos
+  los slots/clases de Eduardo y María José ya son PM (lun 19:30/20:30,
+  sáb 17:00/18:00). Si en prod se ven AM es data vieja: re-correr
+  `SEED_ENV=dev pnpm db:seed` contra Neon (la poda de slots stale en
+  `mmClass` los limpia). Requiere la URL directa de Neon (VM `.env` o
+  secret `MIGRATION_DATABASE_URL`).
 
 ## Pendiente
 
