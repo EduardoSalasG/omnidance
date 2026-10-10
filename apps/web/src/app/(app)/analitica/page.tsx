@@ -8,6 +8,7 @@ import { useActiveRole } from "@/lib/active-role";
 import {
   Button,
   Card,
+  Pager,
   PillTabs,
   SkeletonList,
   SkeletonText,
@@ -77,6 +78,7 @@ export default function AnaliticaPage() {
 
   const [runPhase, setRunPhase] = useState<RunPhase>("idle");
   const [result, setResult] = useState<QueryRunResult | null>(null);
+  const [page, setPage] = useState(1);
 
   const [saved, setSaved] = useState<SavedQuery[]>([]);
   const [savedBusy, setSavedBusy] = useState<string | null>(null);
@@ -200,32 +202,37 @@ export default function AnaliticaPage() {
     [role],
   );
 
-  // ── Ejecutar preview ─────────────────────────────────────────────────
-  const run = useCallback(async () => {
-    if (!role || !entity || runPhase === "loading") return;
-    setRunPhase("loading");
-    setNotice(null);
-    try {
-      const res = await apiFetch("/query/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, entity, filters }),
-      });
-      if (res.status === 403 && (await isProRequired(res))) {
-        setRunPhase("idle");
-        setCatalogPhase("pro");
-        return;
-      }
-      if (!res.ok) {
+  // ── Ejecutar preview (paginado: Aplicar = página 1, el Pager pide
+  // la página correspondiente sin tocar los filtros). ──────────────────
+  const run = useCallback(
+    async (pageNum = 1) => {
+      if (!role || !entity || runPhase === "loading") return;
+      setRunPhase("loading");
+      setNotice(null);
+      try {
+        const res = await apiFetch("/query/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role, entity, filters, page: pageNum }),
+        });
+        if (res.status === 403 && (await isProRequired(res))) {
+          setRunPhase("idle");
+          setCatalogPhase("pro");
+          return;
+        }
+        if (!res.ok) {
+          setRunPhase("error");
+          return;
+        }
+        setResult((await res.json()) as QueryRunResult);
+        setPage(pageNum);
+        setRunPhase("ready");
+      } catch {
         setRunPhase("error");
-        return;
       }
-      setResult((await res.json()) as QueryRunResult);
-      setRunPhase("ready");
-    } catch {
-      setRunPhase("error");
-    }
-  }, [role, entity, filters, runPhase]);
+    },
+    [role, entity, filters, runPhase],
+  );
 
   function exportHref(format: "csv" | "pdf"): string {
     const params = new URLSearchParams();
@@ -294,6 +301,7 @@ export default function AnaliticaPage() {
     setEntity(params.entity);
     setFilters({ ...params.filters });
     setResult(null);
+    setPage(1);
     setRunPhase("idle");
   }
 
@@ -301,6 +309,7 @@ export default function AnaliticaPage() {
     setEntity(e);
     setFilters({});
     setResult(null);
+    setPage(1);
     setRunPhase("idle");
   }
 
@@ -409,7 +418,7 @@ export default function AnaliticaPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   size="sm"
-                  onClick={() => void run()}
+                  onClick={() => void run(1)}
                   disabled={!entity || runPhase === "loading"}
                 >
                   {runPhase === "loading" ? <Spinner size="sm" /> : null}
@@ -421,6 +430,7 @@ export default function AnaliticaPage() {
                   onClick={() => {
                     setFilters({});
                     setResult(null);
+                    setPage(1);
                     setRunPhase("idle");
                   }}
                   disabled={Object.keys(filters).length === 0 && !result}
@@ -461,7 +471,7 @@ export default function AnaliticaPage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => void run()}
+                    onClick={() => void run(page)}
                   >
                     {tc("retry")}
                   </Button>
@@ -482,6 +492,12 @@ export default function AnaliticaPage() {
                     headers={result.headers}
                     rows={result.rows}
                     total={result.total}
+                  />
+                  <Pager
+                    page={result.page}
+                    pageSize={result.pageSize}
+                    total={result.total}
+                    onPage={(p) => void run(p)}
                   />
                 </>
               )}

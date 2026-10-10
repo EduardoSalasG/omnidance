@@ -129,6 +129,8 @@ const ICONS = {
   // Audífonos - consola de soporte.
   headset:
     "M4 13a8 8 0 0 1 16 0M4 13v4a2 2 0 0 0 2 2h1a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4zM20 13v4a2 2 0 0 1-2 2h-1a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h3z",
+  // Luna - página de apariencia (tema) de las consolas.
+  moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
 };
 
 const HOME_TAB: Tab = { href: "/inicio", key: "home", icon: icon(ICONS.home) };
@@ -391,12 +393,6 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           icon: ICONS.tag,
         },
         {
-          href: "/productor/listas",
-          ns: "producer",
-          key: "modules.lists",
-          icon: ICONS.list,
-        },
-        {
           href: "/productor/comprobantes",
           ns: "producer",
           key: "modules.claims",
@@ -406,23 +402,42 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
       ],
     },
     ANALYTICS_DRAWER_GROUP([ANALYTICS_ITEM]),
-    // Configuración: finanzas del productor (comisión/defaults) y sus
-    // liquidaciones - encima de Cuenta, mismo patrón del owner.
+    // Configuración: una página por sección (defaults operativos,
+    // medios de pago, suscripción Pro, liquidaciones, apariencia) -
+    // encima de Cuenta, mismo patrón del owner.
     {
       labelNs: "producer",
       labelKey: "navGroups.config",
       items: [
         {
           href: "/productor/parametros",
-          ns: "producerParams",
-          key: "title",
+          ns: "producer",
+          key: "configPages.defaults",
           icon: ICONS.slider,
+        },
+        {
+          href: "/productor/medios-pago",
+          ns: "producer",
+          key: "configPages.payMethods",
+          icon: ICONS.card,
+        },
+        {
+          href: "/productor/suscripcion",
+          ns: "producer",
+          key: "configPages.subscription",
+          icon: ICONS.tag,
         },
         {
           href: "/productor/pagos",
           ns: "producer",
           key: "payouts",
-          icon: ICONS.card,
+          icon: ICONS.list,
+        },
+        {
+          href: "/productor/apariencia",
+          ns: "producer",
+          key: "configPages.appearance",
+          icon: ICONS.moon,
         },
       ],
     },

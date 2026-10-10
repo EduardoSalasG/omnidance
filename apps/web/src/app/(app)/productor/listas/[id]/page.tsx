@@ -124,8 +124,12 @@ function GuestListDetail() {
   return (
     <>
       <ConsoleHeader
-        backHref="/productor/listas"
-        backLabel={t("guestLists")}
+        backHref={
+          list?.event?.id
+            ? `/productor/eventos/${list.event.id}`
+            : "/productor/eventos"
+        }
+        backLabel={t("myEvents")}
       />
 
       {loadState === "loading" && <SkeletonList items={2} />}

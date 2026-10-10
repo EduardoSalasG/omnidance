@@ -1,39 +1,14 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { ProReturnNotice } from "@/components/producer/pro-return-notice";
-import {
-  Badge,
-  Button,
-  Card,
-  RefreshIcon,
-  SkeletonCard,
-} from "@/components/ui";
+import { Button, Card, RefreshIcon, SkeletonCard } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { PRODUCER_ROLES } from "@/components/producer/shared";
-import { ProducerProSection } from "@/components/producer/pro-section";
-import { GatewayAccountSection } from "@/components/producer/gateway-account-section";
-import { ProducerPaymentMethodsSection } from "@/components/producer/payment-methods-section";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 type Gate = "loading" | "unauth" | "notProducer" | "error" | "ready";
-
-const FEE_FIELDS = ["platformFeePct"] as const;
-type FeeField = (typeof FEE_FIELDS)[number];
-type FeeValues = Record<FeeField, number | null>;
-
-const FEE_LABEL_KEY: Record<FeeField, string> = {
-  platformFeePct: "platformFeePct",
-};
-
-/** GET /producer/fee-params - defaults propios + resolución efectiva. */
-type FeeParams = {
-  defaults: FeeValues;
-  effective: FeeValues;
-};
 
 const TABLE_FIELDS = [
   "tablesTotal",
@@ -68,28 +43,29 @@ const timeToMinutes = (t: string): number | null => {
 };
 
 /**
- * /productor/parametros - defaults del productor. Fees: read-only (los
- * setea el admin). Mesas: editables - el productor define el inventario
- * base que heredan sus eventos nuevos (cada evento puede sobreescribir).
+ * /productor/parametros - "Valores por defecto": inventario de mesas
+ * reservables (aforo sentable) y corte de preventa que heredan los
+ * eventos nuevos del productor (cada evento puede sobreescribirlos).
  * Cadena: override del evento → default del productor → global.
+ * La comisión vive en /productor/suscripcion; cobro en medios-pago;
+ * tema en apariencia - cada uno es su propia página de Configuración.
  */
 export default function ProducerParamsPage() {
   const t = useTranslations("producer");
   const tn = useTranslations("nav");
   const tp = useTranslations("producerParams");
-  const tprf = useTranslations("profile");
   const tc = useTranslations("common");
 
   // /me compartido (MeProvider) - el gate se deriva del contexto y los
-  // params se piden en paralelo desde el mount (un no-productor recibe
-  // 403 del endpoint → el gate por rol decide, la respuesta se descarta).
+  // params se piden desde el mount (un no-productor recibe 403 del
+  // endpoint → el gate por rol decide, la respuesta se descarta).
   const {
     me,
     loading: meLoading,
     error: meError,
     refresh: refreshMe,
   } = useMe();
-  const [params, setParams] = useState<FeeParams | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [dataError, setDataError] = useState(false);
   const [dataNonce, setDataNonce] = useState(0);
   const [tables, setTables] = useState<Record<TableField, string>>({
@@ -111,24 +87,19 @@ export default function ProducerParamsPage() {
         : !me.roles.some((r) => PRODUCER_ROLES.has(r))
           ? "notProducer"
           : "ready";
-  const meId = me?.id ?? "";
-  const isProducer = me?.roles.includes("PRODUCER") ?? false;
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      apiFetch("/producer/fee-params"),
-      apiFetch("/producer/table-params"),
-    ])
-      .then(async ([res, tres]) => {
+    apiFetch("/producer/table-params")
+      .then(async (res) => {
         if (cancelled) return;
-        if (!res.ok || !tres.ok) {
+        if (!res.ok) {
           setDataError(true);
+          setLoaded(true);
           return;
         }
         setDataError(false);
-        setParams((await res.json()) as FeeParams);
-        const tp_ = (await tres.json()) as TableParams;
+        const tp_ = (await res.json()) as TableParams;
         setTables({
           tablesTotal: tp_.tablesTotal != null ? String(tp_.tablesTotal) : "",
           tableSeatMax:
@@ -138,9 +109,13 @@ export default function ProducerParamsPage() {
         });
         setPresaleCutoff(minutesToTime(tp_.presaleCutoffMinutes));
         setCutoffDirty(false);
+        setLoaded(true);
       })
       .catch(() => {
-        if (!cancelled) setDataError(true);
+        if (!cancelled) {
+          setDataError(true);
+          setLoaded(true);
+        }
       });
     return () => {
       cancelled = true;
@@ -181,13 +156,6 @@ export default function ProducerParamsPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-4xl lg:px-8">
       <ConsoleHeader backHref="/inicio" backLabel={tn("home")} />
-
-      {/* Retorno del disclaimer de tarjeta de Flow (platform-customer-
-          return → 303 ?pro=ok) - el aviso vive acá porque la sección
-          Producer Pro es de esta página (el hub /productor murió). */}
-      <Suspense>
-        <ProReturnNotice />
-      </Suspense>
 
       {gate === "loading" && (
         <div className="flex flex-col gap-6" aria-hidden="true">
@@ -230,7 +198,7 @@ export default function ProducerParamsPage() {
           <Button
             variant="secondary"
             onClick={() => {
-              setParams(null);
+              setLoaded(false);
               setDataError(false);
               setDataNonce((n) => n + 1);
             }}
@@ -240,162 +208,90 @@ export default function ProducerParamsPage() {
         </div>
       )}
 
-      {gate === "ready" && !dataError && params === null && (
+      {gate === "ready" && !dataError && !loaded && (
         <div className="flex flex-col gap-6" aria-hidden="true">
           <SkeletonCard lines={4} />
           <SkeletonCard lines={3} />
         </div>
       )}
 
-      {gate === "ready" && params && (
-        <>
-          {/* Apariencia de la consola - tema claro/oscuro/sistema por
-              dispositivo. En lentes de gestión vive acá, no en /perfil. */}
-          <Card>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-              {tprf("appearance")}
-            </h2>
-            <div className="mt-3">
-              <ThemeToggle />
-            </div>
-          </Card>
-
-          {/* Suscripción Producer Pro (S6) - contratación/gestión; el
-              paywall de las features Pro apunta acá. Solo para quien
-              tiene el rol (un ADMIN operando la consola no se suscribe
-              a sí mismo). */}
-          {isProducer && <ProducerProSection producerId={meId} />}
-
-          {/* Pasarela propia (spec producer-gateway-accounts): cuenta
-              Flow/MP cifrada que cobra sus ventas; sin cuenta, la
-              plataforma cobra por el default MANAGED. */}
-          {isProducer && <GatewayAccountSection />}
-
-          {/* Medios de cobro propios (spec producer-own-methods):
-              transferencia/link/efectivo que el comprador elige en el
-              checkout; la cola de comprobantes vive en
-              /productor/comprobantes. */}
-          {isProducer && <ProducerPaymentMethodsSection />}
-
-          <p className="text-xs text-ink/50">{tp("hint")}</p>
-
+      {gate === "ready" && loaded && !dataError && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+            {tp("tablesTitle")}
+          </h2>
           <Card padded={false}>
             <ul className="flex flex-col divide-y divide-line">
-              {FEE_FIELDS.map((f) => {
-                const custom = params.defaults[f] != null;
-                const effective = params.effective[f];
-                return (
-                  <li
-                    key={f}
-                    className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
-                  >
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <span className="text-sm text-ink/70">
-                        {tp(FEE_LABEL_KEY[f])}
-                      </span>
-                      <Badge variant={custom ? "neon" : "muted"}>
-                        {custom ? tp("custom") : tp("inherits")}
-                      </Badge>
-                    </div>
-                    <span className="text-base">
-                      {effective != null ? (
-                        <span className="font-semibold text-neon">
-                          {effective}%
-                        </span>
-                      ) : (
-                        <span className="text-ink/50">·</span>
-                      )}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </Card>
-
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-ink/50">{tp("readOnly")}</p>
-            <p className="text-xs text-ink/50">{tp("perEvent")}</p>
-          </div>
-
-          {/* Defaults de mesas - editables por el productor. Los eventos
-              nuevos los heredan salvo que el productor los cambie ahí. */}
-          <section className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-              {tp("tablesTitle")}
-            </h2>
-            <Card padded={false}>
-              <ul className="flex flex-col divide-y divide-line">
-                {TABLE_FIELDS.map((f) => (
-                  <li
-                    key={f}
-                    className="flex items-center justify-between gap-3 px-5 py-4"
-                  >
-                    <label
-                      htmlFor={`tp-${f}`}
-                      className="text-sm text-ink/70"
-                    >
-                      {tp(TABLE_LABEL_KEY[f])}
-                    </label>
-                    <input
-                      id={`tp-${f}`}
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      value={tables[f]}
-                      onChange={(e) =>
-                        setTables((s) => ({ ...s, [f]: e.target.value }))
-                      }
-                      placeholder="·"
-                      className="w-24 rounded-xl border border-line bg-elevated px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
-                    />
-                  </li>
-                ))}
-              </ul>
-            </Card>
-            <Card padded={false}>
-              <ul className="flex flex-col divide-y divide-line">
-                <li className="flex items-center justify-between gap-3 px-5 py-4">
+              {TABLE_FIELDS.map((f) => (
+                <li
+                  key={f}
+                  className="flex items-center justify-between gap-3 px-5 py-4"
+                >
                   <label
-                    htmlFor="tp-presaleCutoff"
+                    htmlFor={`tp-${f}`}
                     className="text-sm text-ink/70"
                   >
-                    {tp("presaleCutoffLabel")}
+                    {tp(TABLE_LABEL_KEY[f])}
                   </label>
                   <input
-                    id="tp-presaleCutoff"
-                    type="time"
-                    value={presaleCutoff}
-                    onChange={(e) => {
-                      setCutoffDirty(true);
-                      setPresaleCutoff(e.target.value);
-                    }}
-                    className="w-28 rounded-xl border border-line bg-elevated px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
+                    id={`tp-${f}`}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={tables[f]}
+                    onChange={(e) =>
+                      setTables((s) => ({ ...s, [f]: e.target.value }))
+                    }
+                    placeholder="·"
+                    className="w-24 rounded-xl border border-line bg-elevated px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
                   />
                 </li>
-              </ul>
-            </Card>
-            <p className="text-xs text-ink/50">{tp("tablesHint")}</p>
-            <p className="text-xs text-ink/50">{tp("presaleCutoffHint")}</p>
-            <div className="flex items-center gap-3">
-              <Button
-                onClick={() => void saveTables()}
-                disabled={tableSaving}
-              >
-                {tableSaving ? "…" : tp("save")}
-              </Button>
-              {tableMsg === "saved" && (
-                <span role="status" className="text-sm text-neon">
-                  {tp("saved")}
-                </span>
-              )}
-              {tableMsg === "error" && (
-                <span role="alert" className="text-sm text-live">
-                  {tp("error")}
-                </span>
-              )}
-            </div>
-          </section>
-        </>
+              ))}
+            </ul>
+          </Card>
+          <Card padded={false}>
+            <ul className="flex flex-col divide-y divide-line">
+              <li className="flex items-center justify-between gap-3 px-5 py-4">
+                <label
+                  htmlFor="tp-presaleCutoff"
+                  className="text-sm text-ink/70"
+                >
+                  {tp("presaleCutoffLabel")}
+                </label>
+                <input
+                  id="tp-presaleCutoff"
+                  type="time"
+                  value={presaleCutoff}
+                  onChange={(e) => {
+                    setCutoffDirty(true);
+                    setPresaleCutoff(e.target.value);
+                  }}
+                  className="w-28 rounded-xl border border-line bg-elevated px-3 py-2 text-right text-base tabular-nums outline-none focus:border-neon/60"
+                />
+              </li>
+            </ul>
+          </Card>
+          <p className="text-xs text-ink/50">{tp("tablesHint")}</p>
+          <p className="text-xs text-ink/50">{tp("presaleCutoffHint")}</p>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => void saveTables()}
+              disabled={tableSaving}
+            >
+              {tableSaving ? "…" : tp("save")}
+            </Button>
+            {tableMsg === "saved" && (
+              <span role="status" className="text-sm text-neon">
+                {tp("saved")}
+              </span>
+            )}
+            {tableMsg === "error" && (
+              <span role="alert" className="text-sm text-live">
+                {tp("error")}
+              </span>
+            )}
+          </div>
+        </section>
       )}
     </main>
   );

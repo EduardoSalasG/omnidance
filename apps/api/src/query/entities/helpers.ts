@@ -35,6 +35,8 @@ export interface EntityResult {
 export interface ExecOpts {
   /** Cap de filas devueltas (preview 50 / browse 100); ausente = todo. */
   take?: number;
+  /** Offset de la página (paginación del preview); default 0. */
+  skip?: number;
   /** false omite el count separado (browse back-compat); default true. */
   total?: boolean;
 }

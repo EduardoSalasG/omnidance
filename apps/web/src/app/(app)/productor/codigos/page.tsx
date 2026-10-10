@@ -130,7 +130,7 @@ function DiscountCodes() {
         backHref="/inicio"
         backLabel={tn("home")}
         actions={
-          <Button size="sm" variant="secondary" href="/productor/codigos/nuevo">
+          <Button size="sm" href="/productor/codigos/nuevo">
             {`＋ ${t("newCode")}`}
           </Button>
         }
@@ -146,7 +146,9 @@ function DiscountCodes() {
         {codes === null && !codesError && <SkeletonList />}
         {codesError && (
           <div className="flex items-center gap-3">
-            <p className="text-sm text-red-400">{tc("error")}</p>
+            <p role="alert" className="text-sm text-red-400">
+              {tc("error")}
+            </p>
             <Button
               size="sm"
               variant="ghost"

@@ -85,6 +85,7 @@ const students: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         personId: true,
@@ -146,6 +147,7 @@ const attendance: EntityHandler = {
       where,
       orderBy: { class: { date: "desc" } },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         personId: true,
         checkedAt: true,
@@ -207,6 +209,7 @@ const bookings: EntityHandler = {
       where,
       orderBy: { class: { date: "desc" } },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         personId: true,
@@ -260,6 +263,7 @@ const memberships: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         personId: true,
@@ -380,6 +384,7 @@ const payments: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
       select: {
         id: true,
         personId: true,
@@ -440,6 +445,7 @@ const privateLessons: EntityHandler = {
       where,
       orderBy: { createdAt: "desc" },
       take: opts?.take,
+      skip: opts?.skip,
     });
     const names = await personNames(prisma, [
       ...rows.map((r) => r.personId),

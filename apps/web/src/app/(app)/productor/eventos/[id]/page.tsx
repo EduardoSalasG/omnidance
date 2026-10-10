@@ -20,6 +20,7 @@ import { PassesSection } from "@/components/producer/passes-section";
 import { PaymentsSection } from "@/components/producer/payments-section";
 import { SuggestionsSection } from "@/components/producer/suggestions-section";
 import { ReservationsSection } from "@/components/producer/reservations-section";
+import { EventListsSection } from "@/components/producer/event-lists-section";
 import { RatingsSection } from "@/components/producer/ratings-section";
 import { AnalyticsSection } from "@/components/producer/analytics-section";
 import { LiveSection } from "@/components/producer/live-section";
@@ -317,6 +318,9 @@ export default function ProducerEventDetailPage({
             tablesTotal={event.tablesTotal ?? null}
             tableSeatsTotal={event.tableSeatsTotal ?? null}
           />
+          {/* Listas de invitados - dentro de la ficha del evento (spec
+              events/producer-console): cargan directo las del evento. */}
+          {canManage && <EventListsSection eventId={eventId} />}
           <RatingsSection eventId={eventId} />
           {/* Analítica de asistencia/encuesta - se oculta sola ante
               403/404 (no-owner); pro.required → paywall (feature Pro).

@@ -59,11 +59,18 @@ export const orderLabel = (
 ) =>
   orderType === "SERIES_PASS" ? tp("orderSeriesPass") : tp("orderTicket");
 
+const claimCardCls =
+  "block rounded-xl transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon active:scale-[0.99]";
+const claimCardInnerCls =
+  "flex flex-col gap-2 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/40";
+
 /**
- * Cola de comprobantes del productor (spec producer-own-methods): la
- * fila navega a la ficha /productor/comprobantes/claim/[id] - ahí viven
- * el comprobante, el detalle de la orden y aprobar/rechazar. La cola
- * no muta inline.
+ * Cola de comprobantes del productor (spec producer-own-methods) - misma
+ * forma que "Pagos por validar" del owner: la cola PENDING completa
+ * primero (vista masiva accionable), luego historial resuelto y los
+ * filtros. Cada card abre la ficha /productor/comprobantes/claim/[id]
+ * donde viven el comprobante y aprobar/rechazar - la cola no muta
+ * inline.
  */
 export function ProducerClaimsQueue() {
   const t = useTranslations("academyPay");
@@ -118,39 +125,43 @@ export function ProducerClaimsQueue() {
   }, [load, filters, page]);
 
   if (claims === null) return <SkeletonList items={2} />;
-  // Sin claims ni filtros → la sección no renderiza nada (comportamiento
-  // previo); con filtros activos la barra queda para poder limpiarlos.
-  const hasFilters = Object.keys(filters).length > 0;
-  if (claims.length === 0 && !hasFilters) return null;
 
-  const pending = claims.filter((c) => c.status === "PENDING");
-  const resolved = claims
-    .filter((c) => c.status !== "PENDING" && c.reviewedAt)
-    .sort(
-      (a, b) =>
-        new Date(b.reviewedAt!).getTime() - new Date(a.reviewedAt!).getTime(),
-    )
-    .slice(0, 20);
+  const filtered = typeof filters.status === "string";
+  const pending = filtered
+    ? claims
+    : claims.filter((c) => c.status === "PENDING");
+  const resolved = filtered
+    ? []
+    : claims
+        .filter((c) => c.status !== "PENDING" && c.reviewedAt)
+        .sort(
+          (a, b) =>
+            new Date(b.reviewedAt!).getTime() -
+            new Date(a.reviewedAt!).getTime(),
+        )
+        .slice(0, 20);
+
+  const claimLine = (c: ProducerQueueClaim) => (
+    <>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="font-semibold">{c.person.name}</span>
+        <span className="text-ink/60">
+          {orderLabel(c.payment.orderType, tp)} · {c.methodLabel} ·{" "}
+          {clp.format(c.payment.amount)}
+        </span>
+        <span className="ml-auto text-xs text-ink/40">
+          {dayFmt.format(new Date(c.createdAt))}
+        </span>
+      </div>
+      {c.note && <p className="text-xs italic text-ink/50">“{c.note}”</p>}
+    </>
+  );
 
   return (
-    <>
-      <FilterBar
-        entity={CLAIMS_ENTITY}
-        filters={filters}
-        onChange={(f) => {
-          setFilters(f);
-          setPage(1);
-        }}
-        options={{}}
-      />
-
-      {claims.length === 0 && (
-        <p role="status" className="text-sm text-ink/50">
-          {tq("empty")}
-        </p>
-      )}
-
-      {pending.length > 0 && (
+    <div className="flex flex-col gap-4">
+      {/* Cola accionable primero (mismo orden que cobros del owner):
+          todos los pendientes, masivos. */}
+      {pending.length > 0 && !filtered && (
         <Card className="flex flex-col gap-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
@@ -158,26 +169,14 @@ export function ProducerClaimsQueue() {
             </h2>
             <p className="mt-1 text-xs text-ink/50">{tp("queueDesc")}</p>
           </div>
-          <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {pending.map((c) => (
               <li key={c.id}>
                 <Link
                   href={`/productor/comprobantes/claim/${c.id}`}
-                  className="flex flex-col gap-1 rounded-xl border border-line bg-elevated p-4 transition-colors hover:border-neon/60"
+                  className={claimCardCls}
                 >
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="font-semibold">{c.person.name}</span>
-                    <span className="text-ink/60">
-                      {orderLabel(c.payment.orderType, tp)} · {c.methodLabel} ·{" "}
-                      {clp.format(c.payment.amount)}
-                    </span>
-                    <span className="ml-auto text-xs text-ink/40">
-                      {dayFmt.format(new Date(c.createdAt))}
-                    </span>
-                  </div>
-                  {c.note && (
-                    <p className="text-xs italic text-ink/50">“{c.note}”</p>
-                  )}
+                  <div className={claimCardInnerCls}>{claimLine(c)}</div>
                 </Link>
               </li>
             ))}
@@ -185,7 +184,18 @@ export function ProducerClaimsQueue() {
         </Card>
       )}
 
-      {resolved.length > 0 && (
+      {/* La cola vacía también se comunica: sin pendientes ni filtros la
+          página sigue diciendo algo, no queda en blanco. */}
+      {claims.length === 0 && !filtered && (
+        <Card className="flex flex-col items-center gap-2 py-10 text-center">
+          <p role="status" className="text-ink/70">
+            {tp("queueEmpty")}
+          </p>
+          <p className="text-xs text-ink/50">{tp("queueEmptyDesc")}</p>
+        </Card>
+      )}
+
+      {resolved.length > 0 && !filtered && (
         <Card className="flex flex-col gap-4">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
@@ -232,9 +242,43 @@ export function ProducerClaimsQueue() {
         </Card>
       )}
 
-      {typeof filters.status === "string" && total > 0 && (
-        <Pager page={page} pageSize={PAGE_SIZE} total={total} onPage={setPage} />
+      <FilterBar
+        entity={CLAIMS_ENTITY}
+        filters={filters}
+        onChange={(f) => {
+          setFilters(f);
+          setPage(1);
+        }}
+        options={{}}
+      />
+
+      {filtered && claims.length === 0 && (
+        <p role="status" className="text-sm text-ink/50">
+          {tq("empty")}
+        </p>
       )}
-    </>
+      {filtered && claims.length > 0 && (
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {claims.map((c) => (
+            <li key={c.id}>
+              <Link
+                href={`/productor/comprobantes/claim/${c.id}`}
+                className={claimCardCls}
+              >
+                <div className={claimCardInnerCls}>{claimLine(c)}</div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      {filtered && (
+        <Pager
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+        />
+      )}
+    </div>
   );
 }

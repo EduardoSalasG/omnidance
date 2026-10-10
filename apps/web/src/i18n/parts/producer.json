@@ -10,6 +10,13 @@
     "navGroups": {
       "config": "Configuración"
     },
+    "configPages": {
+      "defaults": "Valores por defecto",
+      "payMethods": "Medios de pago",
+      "subscription": "Suscripción",
+      "appearance": "Apariencia",
+      "producerOnly": "Esta sección solo está disponible para cuentas de productor."
+    },
     "dash": {
       "title": "Resumen",
       "error": "No pudimos cargar tu resumen.",
@@ -97,6 +104,7 @@
       "passes": "Pases de entrada",
       "suggestions": "Sugerencias para el DJ",
       "reservations": "Reservas de mesa",
+      "lists": "Listas de invitados",
       "ratings": "Evaluación del evento",
       "analytics": "Analítica del evento",
       "payments": "Pagos"
@@ -170,6 +178,7 @@
       "noTables": "Este evento no ofrece reservas de mesa.",
       "assignTable": "Nº de mesa",
       "confirm": "Confirmar",
+      "saveChanges": "Guardar cambios",
       "cancel": "Cancelar",
       "statuses": {
         "REQUESTED": "Solicitada",
@@ -325,6 +334,8 @@
       "desc": "Transferencia, link de pago o efectivo: el comprador elige el medio en el checkout y sube el comprobante; tú validas y la entrada se emite sola.",
       "queueTitle": "Comprobantes por validar",
       "queueDesc": "Aprueba para emitir la entrada al instante; rechaza con un motivo que el comprador podrá ver.",
+      "queueEmpty": "Sin comprobantes pendientes.",
+      "queueEmptyDesc": "Cuando alguien pague por transferencia, link o efectivo y suba su comprobante, aparecerá aquí para validarlo.",
       "orderTicket": "Entrada",
       "orderSeriesPass": "Pase de serie"
     },
