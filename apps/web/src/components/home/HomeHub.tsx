@@ -340,6 +340,8 @@ export function HomeHub() {
   const tad = useTranslations("admin");
   const tt = useTranslations("tours.home");
   const ttao = useTranslations("tours.academiaOwner");
+  const ttp = useTranslations("tours.productor");
+  const tti = useTranslations("tours.instructor");
   const ts = useTranslations("survey");
   const tcs = useTranslations("courseSurvey");
 
@@ -758,7 +760,60 @@ export function HomeHub() {
         // events/producer-console): KPIs + cobros por revisar + tops -
         // mismo formato que el dashboard del owner. Sin hero ni
         // "Próximos eventos".
-        <ProducerDashboard />
+        <>
+          <ProducerDashboard />
+          {/* Tour del productor (spec events/producer-console): sus
+              anchors viven en el dashboard; cobros/tops se omiten si
+              están vacíos y el paso de navegación cubre ambos chromes
+              (hamburguesa <lg, sidebar ≥lg). */}
+          <OnboardingRunner
+            tour="productor"
+            steps={[
+              {
+                element: "[data-tour='producer-kpis']",
+                title: ttp("s1.title"),
+                description: ttp("s1.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='producer-claims']",
+                title: ttp("s2.title"),
+                description: ttp("s2.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='producer-tops']",
+                title: ttp("s3.title"),
+                description: ttp("s3.desc"),
+                side: "top",
+              },
+              {
+                element: "[data-tour='nav-events']",
+                title: ttp("s4.title"),
+                description: ttp("s4.desc"),
+                side: "right",
+              },
+              {
+                element: "[data-tour='appbar-menu']",
+                title: ttp("s5.title"),
+                description: ttp("s5.desc"),
+                side: "bottom",
+              },
+              {
+                element: "[data-tour='app-sidebar']",
+                title: ttp("s5.title"),
+                description: ttp("s5.desc"),
+                side: "right",
+              },
+              {
+                element: "[data-tour='appbar-bell']",
+                title: ttp("s6.title"),
+                description: ttp("s6.desc"),
+                side: "bottom",
+              },
+            ] satisfies TourStep[]}
+          />
+        </>
       ) : dancerSocial ? (
         <>
           {/* Tu actividad primero - solo 2 señales rápidas (racha +
@@ -816,6 +871,7 @@ export function HomeHub() {
                   ? t("teachingClassesTitle")
                   : t("myClassesTitle")
               }
+              data-tour="home-classes"
             >
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink/50">
                 {activeRole === "INSTRUCTOR"
@@ -952,6 +1008,53 @@ export function HomeHub() {
               element: "[data-tour='nav-profile']",
               title: tt("academy.s7.title"),
               description: tt("academy.s7.desc"),
+              side: "top",
+            },
+          ] satisfies TourStep[]}
+        />
+      )}
+
+      {/* Tour del instructor (spec academies/staff-roles): su consola
+          cabe en el tab bar en todos los breakpoints - sin drawer ni
+          sidebar, los pasos apuntan a los tabs directo. */}
+      {activeRole === "INSTRUCTOR" && (
+        <OnboardingRunner
+          tour="instructor"
+          steps={[
+            {
+              element: "[data-tour='home-stats']",
+              title: tti("s1.title"),
+              description: tti("s1.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='home-classes']",
+              title: tti("s2.title"),
+              description: tti("s2.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-classes']",
+              title: tti("s3.title"),
+              description: tti("s3.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='nav-students']",
+              title: tti("s4.title"),
+              description: tti("s4.desc"),
+              side: "top",
+            },
+            {
+              element: "[data-tour='appbar-bell']",
+              title: tti("s5.title"),
+              description: tti("s5.desc"),
+              side: "bottom",
+            },
+            {
+              element: "[data-tour='nav-profile']",
+              title: tti("s6.title"),
+              description: tti("s6.desc"),
               side: "top",
             },
           ] satisfies TourStep[]}

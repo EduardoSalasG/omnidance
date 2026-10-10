@@ -167,16 +167,54 @@
     },
     "productor": {
       "s1": {
-        "title": "Tus eventos",
-        "desc": "Acá creas y administras cada evento: fecha, local, precios, lineup, aforo y mesas; más staff de puerta, pases y las solicitudes de reserva por confirmar."
+        "title": "Tu mes de un vistazo",
+        "desc": "Eventos agendados, entradas vendidas, facturación del mes y cobros pendientes: el pulso de tu productora."
       },
       "s2": {
-        "title": "Liquidaciones",
-        "desc": "Lo recaudado menos fees: lo que te toca transferir."
+        "title": "Cobros por revisar",
+        "desc": "Transferencias y pagos manuales que esperan tu validación. Apruébalos o recházalos desde la ficha - la cola completa vive en Comprobantes."
       },
       "s3": {
+        "title": "Tus mejores noches",
+        "desc": "Top 5 por facturación y por asistencia: qué fecha funcionó y cuál conviene repetir."
+      },
+      "s4": {
+        "title": "Tus eventos",
+        "desc": "Crea y administra cada evento: precios, lineup, mesas reservables, listas de invitados, códigos de descuento y staff de puerta."
+      },
+      "s5": {
         "title": "Todos los módulos",
-        "desc": "Códigos de descuento, listas de puerta, analítica y tus parámetros, incluidos los defaults de mesas que heredan tus eventos."
+        "desc": "Comprobantes, códigos, CRM, analítica y tu configuración - defaults, medios de pago, suscripción Pro y apariencia - desde el menú."
+      },
+      "s6": {
+        "title": "La campana",
+        "desc": "Cada venta de entrada y cada comprobante nuevo llega acá. Nada se te pasa."
+      }
+    },
+    "instructor": {
+      "s1": {
+        "title": "Tu semana",
+        "desc": "Las clases que dictas, tu agenda de los próximos 7 días y la asistencia marcada - tu operación de un vistazo."
+      },
+      "s2": {
+        "title": "Próximas clases",
+        "desc": "Las clases que vienen con su ocupación. Toca una para ver el roster y marcar asistencia."
+      },
+      "s3": {
+        "title": "Mis clases",
+        "desc": "Tu consola de clases: roster completo de cada una. Puedes marcar presente desde 30 minutos antes hasta 30 después del inicio."
+      },
+      "s4": {
+        "title": "Alumnos",
+        "desc": "Búscalos por nombre y revisa su historial de asistencia - lectura rápida, sin edición."
+      },
+      "s5": {
+        "title": "La campana",
+        "desc": "Te avisamos cuando te asignan una clase y 30 y 10 minutos antes de cada una."
+      },
+      "s6": {
+        "title": "Tu perfil",
+        "desc": "Foto, datos y tus lentes: si también bailas o tienes otro rol, cambia de vista acá."
       }
     },
     "academia": {
