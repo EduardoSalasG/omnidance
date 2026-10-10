@@ -2,8 +2,11 @@
 //
 //   npx tsx prisma/seed.ts                → SEED_ENV o NODE_ENV decide
 //   SEED_ENV=dev       → baseline + demo SBK Santiago
-//   SEED_ENV=prod      → baseline + demo SBK Santiago (PILOTO temporal:
-//                        prod recibe el dataset demo con usuarios reales)
+//   SEED_ENV=prod      → idéntico a dev (PILOTO temporal: prod recibe el
+//                        dataset demo con usuarios reales). El "bypass"
+//                        ya existe: SEED_ENV=dev corre lo mismo en
+//                        cualquier DB - lo único que cambia es
+//                        DATABASE_URL.
 //   SEED_ENV=baseline  → solo baseline + admin - el seed REAL de prod,
 //                        preservado en seed-prod-baseline.ts para
 //                        restaurar el dispatch cuando termine el piloto.
