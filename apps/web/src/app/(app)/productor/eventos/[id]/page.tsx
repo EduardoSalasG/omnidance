@@ -21,6 +21,7 @@ import { PaymentsSection } from "@/components/producer/payments-section";
 import { SuggestionsSection } from "@/components/producer/suggestions-section";
 import { ReservationsSection } from "@/components/producer/reservations-section";
 import { EventListsSection } from "@/components/producer/event-lists-section";
+import { AcademySalesSection } from "@/components/producer/academy-sales-section";
 import { RatingsSection } from "@/components/producer/ratings-section";
 import { AnalyticsSection } from "@/components/producer/analytics-section";
 import { LiveSection } from "@/components/producer/live-section";
@@ -312,6 +313,10 @@ export default function ProducerEventDetailPage({
           <PassesSection eventId={eventId} />
           {/* Ventas del evento - se oculta sola ante 403/404 (no-owner). */}
           <PaymentsSection eventId={eventId} />
+          {/* Preventa atribuida a academias (spec academy-presale-commission):
+              acuerdos + deuda computada; la ficha de cada acuerdo concentra
+              edición, link y marcar-pagado. */}
+          <AcademySalesSection eventId={eventId} />
           <SuggestionsSection eventId={eventId} />
           <ReservationsSection
             eventId={eventId}

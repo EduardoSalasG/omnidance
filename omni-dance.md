@@ -692,6 +692,16 @@ El cargo por venta desaparece para la academia: pasa a **suscripción mensual po
 - **Tracking completo**: quién lo creó, usos, máximo de usos, quién lo redimió, evento/serie asociado - auditable contra abuso
 - Resuelven los casos borde de puerta y son el instrumento de precio del CRM (ofertas a segmentos)
 
+### Preventa vendida por academias (canal atribuido - implementado nov-2026)
+
+Las academias que se presentan en los sociales venden preventa del productor y se quedan con un % (típico ~50%). Modelo implementado (`academy-presale-commission`):
+
+- El productor **invita** una academia aprobada a un acuerdo por evento o serie (`commissionPct` 1-90, cupo `maxTickets` opcional). La academia acepta o rechaza; solo acuerdos ACTIVE atribuyen
+- La academia comparte su link `/eventos/[id]?a=<academyId>`; el comprador paga el precio de lista normal, sin saber ni ver la comisión
+- La comisión se **congela por orden** (`round(precioLista × %) × cantidad`) y se registra como **deuda del productor hacia la academia** — computada como Σ comisión de órdenes pagadas − Σ pagos marcados
+- **omni-dance no mueve esa plata**: ni payout a la academia ni descuento al neto del productor. El productor paga por fuera (transferencia) y marca la deuda como pagada en la app, con comprobante opcional; una venta posterior deja remanente pendiente
+- La atribución es solo `channel=PRESALE` y silenciosa: sin acuerdo vigente o cupo agotado, la compra procede igual sin error
+
 ### Reglas de sistema
 
 - **Estados del evento**: `draft → published → live → closed` (+ `cancelled`)

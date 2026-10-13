@@ -111,6 +111,15 @@ class CheckoutTicketDto {
   @IsOptional()
   @IsString()
   methodId?: string;
+
+  /**
+   * Atribución de preventa por academia (spec academy-presale-commission):
+   * el front lo pasa del link `?a=` persistido. Solo órdenes PRESALE con
+   * acuerdo ACTIVE atribuyen; sin acuerdo se ignora en silencio.
+   */
+  @IsOptional()
+  @IsString()
+  academyId?: string;
 }
 
 class CheckoutSeriesPassDto {

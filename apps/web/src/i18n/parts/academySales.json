@@ -1,0 +1,61 @@
+{
+  "academy": {
+    "modules": {
+      "presales": "Preventas",
+      "presalesDesc": "Vende preventa de productores por comisión"
+    }
+  },
+  "academySales": {
+    "sectionTitle": "Preventa por academias",
+    "backToHub": "Consola",
+    "invite": "Invitar academia",
+    "inviteTitle": "Invitar academia a vender preventa",
+    "inviteDesc": "La academia vende con su link y se lleva un porcentaje del precio de lista. Tú le pagas la comisión por fuera; acá queda el registro de cuánto le debes.",
+    "invited": "Invitación enviada",
+    "empty": "Aún no hay academias vendiendo esta preventa.",
+    "noAcademies": "No hay academias activas disponibles.",
+    "academy": "Academia",
+    "commission": "Comisión",
+    "commissionPct": "Comisión (%)",
+    "commissionPctLabel": "{pct}% de comisión",
+    "commissionPctHint": "Porcentaje del precio de lista por entrada (1 a 90).",
+    "maxTickets": "Cupo de entradas",
+    "maxTicketsHint": "Opcional - la atribución se apaga al llegar al cupo.",
+    "seriesScope": "Serie completa",
+    "linkLabel": "Link de venta de la academia",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "sold": "Entradas vendidas",
+    "accrued": "Comisión devengada",
+    "settled": "Ya pagado",
+    "pending": "Por pagar",
+    "editTerms": "Términos del acuerdo",
+    "updated": "Términos actualizados",
+    "notFound": "Acuerdo no encontrado",
+    "markPaidTitle": "Regularizar comisión",
+    "markPaidDesc": "Pagaste {amount} a {academy} por fuera de la app. Marca el pago para llevar el registro.",
+    "evidenceUrl": "Comprobante (URL, opcional)",
+    "markPaid": "Marcar pagado",
+    "paidMarked": "Pago registrado",
+    "disable": "Desactivar acuerdo",
+    "disabled": "Acuerdo desactivado",
+    "disableConfirmTitle": "Desactivar acuerdo",
+    "disableConfirmDesc": "El link de {academy} dejará de atribuir ventas nuevas. Las ventas ya pagadas y la deuda pendiente no se tocan.",
+    "academyEmpty": "Ningún productor te ha invitado a vender preventa todavía.",
+    "academyEmptyHint": "Cuando un productor te invite, el acuerdo aparece aquí para aceptarlo y obtener tu link de venta.",
+    "academyPageDesc": "Acuerdos de preventa por comisión con productores.",
+    "paymentState": "Estado de pago",
+    "paymentPending": "Pendiente del productor",
+    "paymentSettled": "Pagado",
+    "seriesLinkHint": "Vale para todos los eventos de la serie: usa el link de cualquier evento y agrega tu parámetro ?a=.",
+    "invitedDesc": "El productor te invitó a vender la preventa de este evento. Si aceptas, obtienes tu link con atribución.",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "status": {
+      "INVITED": "Invitada",
+      "ACTIVE": "Activo",
+      "DECLINED": "Rechazado",
+      "DISABLED": "Desactivado"
+    }
+  }
+}

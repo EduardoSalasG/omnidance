@@ -2984,6 +2984,134 @@
         }
       }
     },
+    "/api/events/{id}/academy-deals": {
+      "post": {
+        "operationId": "AcademySalesController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "AcademySalesController_listForEvent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academy-deals/{id}": {
+      "patch": {
+        "operationId": "AcademySalesController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchDealDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/sale-deals": {
+      "get": {
+        "operationId": "AcademySalesController_listForAcademy",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academy-deals/{id}/mark-paid": {
+      "post": {
+        "operationId": "AcademySalesController_markPaid",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkPaidDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/wallet/google": {
       "get": {
         "operationId": "WalletController_google",
@@ -8528,6 +8656,18 @@
         "properties": {}
       },
       "SubscribeProducerProDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateDealDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "PatchDealDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "MarkPaidDto": {
         "type": "object",
         "properties": {}
       },

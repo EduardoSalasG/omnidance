@@ -506,6 +506,14 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.payments",
           icon: ICONS.card,
         },
+        // Preventa por comisión (spec academy-presale-commission):
+        // acuerdos con productores, link de venta y comisión devengada.
+        {
+          href: "/academia/preventas",
+          ns: "academy",
+          key: "modules.presales",
+          icon: ICONS.tag,
+        },
         {
           href: "/academia/equipo",
           ns: "academy",
