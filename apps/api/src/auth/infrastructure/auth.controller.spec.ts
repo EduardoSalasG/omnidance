@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Request, Response } from "express";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "../domain/auth.service";
-import type { AuthRepo, Mailer } from "../domain/ports";
+import type { AuthOtpRecord, AuthRepo, Mailer } from "../domain/ports";
 
 // AuthController - consentimiento legal (spec legal-consent): el flag
 // `consent:true` de magic-link/login/register se estampa en la Person al
@@ -26,6 +26,7 @@ interface FakePerson {
 class FakeRepo {
   people = new Map<string, FakePerson>();
   consentStamps: string[] = [];
+  otps: AuthOtpRecord[] = [];
   private seq = 0;
 
   async upsertByEmail(email: string): Promise<FakePerson> {
@@ -78,6 +79,46 @@ class FakeRepo {
     const p = [...this.people.values()].find((x) => x.id === id);
     return p ? { ...p, roles: [] } : null;
   }
+
+  // OTP (spec auth-email-otp): misma semántica que PrismaAuthRepo.
+  async createOtp(data: {
+    email: string;
+    codeHash: string;
+    consent: boolean;
+    expiresAt: Date;
+  }) {
+    this.otps.push({
+      id: `otp-${this.otps.length + 1}`,
+      ...data,
+      attempts: 0,
+      consumedAt: null,
+      createdAt: new Date(),
+    });
+  }
+
+  async consumeActives(email: string) {
+    for (const o of this.otps) {
+      if (o.email === email && !o.consumedAt) o.consumedAt = new Date();
+    }
+  }
+
+  async findActiveOtp(email: string) {
+    return (
+      [...this.otps]
+        .reverse()
+        .find((o) => o.email === email && !o.consumedAt) ?? null
+    );
+  }
+
+  async bumpAttempts(id: string) {
+    const o = this.otps.find((x) => x.id === id);
+    if (o) o.attempts++;
+  }
+
+  async consumeOtp(id: string) {
+    const o = this.otps.find((x) => x.id === id);
+    if (o) o.consumedAt = new Date();
+  }
 }
 
 const mkRes = () =>
@@ -96,8 +137,9 @@ describe("AuthController - consentimiento legal", () => {
   let ctrl: AuthController;
 
   beforeEach(async () => {
-    auth = new AuthService(SECRET);
     repo = new FakeRepo();
+    // El repo se inyecta para los métodos OTP - JWT/password no lo usan.
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
     mailer = { send: vi.fn(async () => {}) };
     ctrl = new AuthController(
       auth,
@@ -248,5 +290,69 @@ describe("AuthController - consentimiento legal", () => {
     const token = /token=([^"'\s]+)/.exec(html)![1];
     await ctrl.verify(token, mkRes());
     expect(repo.consentStamps).toEqual([]);
+  });
+});
+
+describe("AuthController - OTP (spec auth-email-otp)", () => {
+  let auth: AuthService;
+  let repo: FakeRepo;
+  let mailer: { send: ReturnType<typeof vi.fn> };
+  let ctrl: AuthController;
+
+  beforeEach(() => {
+    repo = new FakeRepo();
+    auth = new AuthService(SECRET, repo as unknown as AuthRepo);
+    mailer = { send: vi.fn(async () => {}) };
+    ctrl = new AuthController(
+      auth,
+      mailer as unknown as Mailer,
+      repo as unknown as AuthRepo,
+    );
+  });
+
+  // El correo lleva link + código; el código viaja dentro del span mono.
+  const extractCode = (html: string) =>
+    /letter-spacing:0\.4em;[^<]*>(\d{6})</.exec(html)![1];
+
+  it("magic-link emite código en el correo y otp/verify crea sesión", async () => {
+    await ctrl.magicLink({ email: "otp@omnidance.dev", consent: true });
+    const html: string = mailer.send.mock.calls[0][2];
+    const code = extractCode(html);
+    const res = mkRes();
+    const out = await ctrl.otpVerify(
+      { email: "otp@omnidance.dev", code },
+      res,
+    );
+    expect(out).toEqual({ ok: true, isNew: true });
+    expect(res.cookie).toHaveBeenCalled();
+    const person = repo.people.get("otp@omnidance.dev")!;
+    expect(repo.consentStamps).toEqual([person.id]);
+    // OTP consumido: reuso → 401.
+    await expect(
+      ctrl.otpVerify({ email: "otp@omnidance.dev", code }, mkRes()),
+    ).rejects.toThrow("Código inválido o expirado");
+  });
+
+  it("otp/verify sobre cuenta existente → isNew:false, sin bienvenida", async () => {
+    await repo.upsertByEmail("vieja@omnidance.dev");
+    await ctrl.magicLink({ email: "vieja@omnidance.dev" });
+    const code = extractCode(mailer.send.mock.calls[0][2]);
+    const out = await ctrl.otpVerify(
+      { email: "VIEJA@omnidance.dev", code },
+      mkRes(),
+    );
+    expect(out.isNew).toBe(false);
+    // Solo el mail del magic link; no welcome de alta.
+    expect(mailer.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("código incorrecto → 401 uniforme y suma intento", async () => {
+    await ctrl.magicLink({ email: "x@omnidance.dev" });
+    const real = extractCode(mailer.send.mock.calls[0][2]);
+    const wrong = real === "000000" ? "111111" : "000000";
+    await expect(
+      ctrl.otpVerify({ email: "x@omnidance.dev", code: wrong }, mkRes()),
+    ).rejects.toThrow("Código inválido o expirado");
+    expect(repo.otps[0].attempts).toBe(1);
   });
 });

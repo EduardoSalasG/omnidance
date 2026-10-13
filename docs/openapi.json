@@ -116,6 +116,27 @@
         }
       }
     },
+    "/api/auth/otp/verify": {
+      "post": {
+        "operationId": "AuthController_otpVerify",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OtpVerifyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
@@ -1286,6 +1307,17 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/dashboard": {
+      "get": {
+        "operationId": "ProducerController_dashboard",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -4299,6 +4331,26 @@
         }
       }
     },
+    "/api/academies/{id}/students/insights": {
+      "get": {
+        "operationId": "AcademiesController_studentsInsights",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/academies/{id}/students/{personId}": {
       "get": {
         "operationId": "AcademiesController_studentDetail",
@@ -5670,6 +5722,26 @@
         },
         "responses": {
           "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/academies/{id}/series/insights": {
+      "get": {
+        "operationId": "ClassSeriesController_insights",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         }
@@ -8300,6 +8372,10 @@
         "properties": {}
       },
       "SetPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "OtpVerifyDto": {
         "type": "object",
         "properties": {}
       },

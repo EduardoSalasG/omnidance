@@ -72,4 +72,43 @@ export class PrismaAuthRepo implements AuthRepo {
       include: { roles: { select: { role: true, status: true } } },
     });
   }
+
+  // ─── OTP de acceso (spec auth-email-otp) ───
+
+  createOtp(data: {
+    email: string;
+    codeHash: string;
+    consent: boolean;
+    expiresAt: Date;
+  }) {
+    return this.prisma.authOtp.create({ data }).then(() => {});
+  }
+
+  consumeActives(email: string) {
+    return this.prisma.authOtp
+      .updateMany({
+        where: { email, consumedAt: null },
+        data: { consumedAt: new Date() },
+      })
+      .then(() => {});
+  }
+
+  findActiveOtp(email: string) {
+    return this.prisma.authOtp.findFirst({
+      where: { email, consumedAt: null },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  bumpAttempts(id: string) {
+    return this.prisma.authOtp
+      .update({ where: { id }, data: { attempts: { increment: 1 } } })
+      .then(() => {});
+  }
+
+  consumeOtp(id: string) {
+    return this.prisma.authOtp
+      .update({ where: { id }, data: { consumedAt: new Date() } })
+      .then(() => {});
+  }
 }

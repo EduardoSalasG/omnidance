@@ -15,7 +15,7 @@ graph TB
     end
 
     subgraph API["apps/api - NestJS (hexagonal por dominio)"]
-        Auth["auth: magic-link + JWT cookie"]
+        Auth["auth: magic-link + OTP + JWT cookie"]
         RBAC["common/rbac: SessionGuard + RolesGuard"]
         Domains["Dominios: events, qr, sessions, checkins,<br/>payments, discounts, notifications,<br/>social, academies, gamification,<br/>admin, params, people, storage"]
     end
@@ -55,7 +55,7 @@ src/<dominio>/
 
 | Módulo | Rutas | Guard |
 |---|---|---|
-| auth | `/api/auth/*` magic-link, session, logout | - |
+| auth | `/api/auth/*` magic-link + código OTP (`POST /otp/verify` JSON, mismo desenlace que `GET /verify` - lo llama la PWA instalada para que la cookie caiga en su propio origen), session, logout | - |
 | people | `/api/me` perfil + roleStates + gender + `consentVersion`/`consentAcceptedAt` (consentimiento legal - ver abajo); `POST /me/consent` (estampa `CONSENT_VERSION` vigente); `GET /me/pending-surveys` (eventos evaluables en ventana 24h; el primer request reclama `surveyNotifiedAt` y hace fan-out `event.survey` a todos los asistentes con check-in válido) | SessionGuard |
 | events | `/api/events*` catálogo público con `?genre=&venue=&week=this`; `genres` resueltos (evento o heredados de serie); consola productor: `/events/mine` (+stats vendidas/bruto/check-ins), `/events/:id/live` (ventas por canal, check-ins, ocupación - owner/admin), `/events/:id/export.csv|export.pdf?dataset=sales|checkins|guestlist` (CSV operativo / PDF imprimible con resumen - owner/admin; BOM UTF-8, sin claimToken) y `/events/series/:seriesId/export.csv|export.pdf` (mismos datasets agregados por serie con columna `evento`), `/events/:id/ratings/summary` (agregado k≥3), `/events/:id/analytics` (attendees + genderSplit/roleSplit + ratings por dim - null bajo k≥3, owner/admin), `/dj/gigs*` (gigs + sugerencias + rating de música del DJ asignado) | público / SessionGuard / `events.manage` |
 | qr | `/api/qr/mine` QR rotativo (credencial canónica única - no hay QR por entrada); `GET /api/wallet/google` saveUrl del pase lanzador de Google Wallet (GenericPass JWT RS256, sin barcode - abre `/qr`; 503 `wallet.not_configured` sin credenciales) | SessionGuard |
@@ -77,7 +77,7 @@ src/<dominio>/
 
 - `Person.isDemoAccount` marca cuentas creadas por `POST /leads/:id/demo`.
 - **Barrera de escritura en `SessionGuard`**: demo + método mutador → `403 demo_mode`, salvo whitelist self-scoped (`/auth/logout`, `/auth/password`, `/notifications/*`, `/push-tokens`, `/me/complete-profile`, `/me/consent`). Los GETs pasan con sus roles APPROVED - el demo navega su consola sin ensuciar data productiva.
-- **Promoción demo→real**: `POST /auth/magic-link` → `GET /auth/verify` hace `upsertByEmail`, que marca `verifiedAt` y apaga `isDemoAccount` (el magic link prueba posesión del correo) - **excepto** si `pendingProfileAt` está set (conversión admin): ahí solo se verifica el correo y la barrera sigue activa hasta `/me/complete-profile`.
+- **Promoción demo→real**: `POST /auth/magic-link` → `GET /auth/verify` (o `POST /auth/otp/verify` con el código del mismo correo) hace `upsertByEmail`, que marca `verifiedAt` y apaga `isDemoAccount` (link y código prueban posesión del correo) - **excepto** si `pendingProfileAt` está set (conversión admin): ahí solo se verifica el correo y la barrera sigue activa hasta `/me/complete-profile`.
 - **Conversión admin**: `POST /api/admin/leads/:id/convert` (`admin.access`, audita `LEAD_CONVERT`) - crea la `Person` si no existe (o usa la demo ligada), setea `pendingProfileAt` + `isDemoAccount`, envía magic link por email + notificación in-app `account.complete_profile`; lead → `CONTACTED`. Si el email ya es cuenta real → enlaza y `CONVERTED` directo (`alreadyReal`). Teléfono ya registrado en otra cuenta → `409 phone_exists` (`Person.phone` es unique - en `demo` y `complete-profile` también se pre-chequea).
 - **Cierre del ciclo**: `POST /api/me/complete-profile` (SessionGuard, whitelisted en la barrera) - name/phone (+password opcional) → limpia `pendingProfileAt`, apaga `isDemoAccount`, lead ligado → `CONVERTED`. `/api/me` expone `isDemo` + `pendingProfile`.
 - Web: banner persistente bajo el appbar cuando `pendingProfile` → `/perfil/completar` (form name/phone/password); botón "Convertir a usuario real" en filas de leads de `/admin/datos` (visible solo si `demoPending` o sin cuenta).
@@ -86,7 +86,7 @@ src/<dominio>/
 ## Consentimiento legal (spec legal-consent)
 
 - `Person.consentVersion` + `Person.consentAcceptedAt` registran la aceptación de Términos+Privacidad; la versión vigente es `CONSENT_VERSION` en `@omnidance/shared` - al publicar una versión nueva, las Person con versión distinta vuelven a ver el aviso.
-- El flag `consent:true` viaja en el body de `POST /auth/register`, `/auth/login` y `/auth/magic-link` (en magic link como claim del JWT → se estampa en `GET /auth/verify`); si llega, se estampa al crear la sesión. El checkbox del form es obligatorio solo para alta/pedido de link - el login con contraseña no lo muestra.
+- El flag `consent:true` viaja en el body de `POST /auth/register`, `/auth/login` y `/auth/magic-link` (en magic link como claim del JWT → se estampa en `GET /auth/verify`; y como columna de la fila `AuthOtp` → se estampa en `POST /auth/otp/verify`); si llega, se estampa al crear la sesión. El checkbox del form es obligatorio solo para alta/pedido de link - el login con contraseña no lo muestra.
 - Cuentas legadas: `GET /me` expone ambos campos y el front muestra un banner no bloqueante (`ConsentBanner` en el layout (app)) → `POST /me/consent` estampa la versión vigente.
 - Páginas públicas `/terminos` y `/privacidad` (grupo (marketing), texto en `i18n/parts/legal.json`), enlazadas desde el checkbox del login, el banner y el footer de las landings.
 - El explorador admin muestra badge "demo" en filas de `people` y `demoPending` en `leads`; `demoToken` nunca sale en respuestas.
@@ -395,7 +395,7 @@ Quedan FREE siempre: publicar/editar eventos, vender, check-in, `GET /events/min
 
 - **helmet** (`app.use(helmet())` en `main.ts`, antes del request-logger): headers estándar (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, HSTS…). `contentSecurityPolicy: false` - la única superficie HTML es Swagger UI y usa scripts inline; el resto queda activo.
 - **Rate limiting global** (`@nestjs/throttler` + `APP_GUARD` en `app.module.ts`): por IP, 300 req/60s default - holgado para la app y el polling del checkout. Al exceder: `429` + `Retry-After` y headers `X-RateLimit-*`. Storage in-memory (1 proceso; multi-instancia → Redis).
-- **Límite estricto auth**: `@Throttle` en `POST /api/auth/magic-link`, `/api/auth/login`, `/api/auth/register` → 8 req/60s por IP (anti spam de correos / fuerza bruta). El limiter in-memory de logins fallidos por email+IP sigue como segunda capa.
+- **Límite estricto auth**: `@Throttle` en `POST /api/auth/magic-link`, `/api/auth/login`, `/api/auth/register`, `/api/auth/otp/verify` → 8 req/60s por IP (anti spam de correos / fuerza bruta). El limiter in-memory de logins fallidos por email+IP sigue como segunda capa.
 - **Config por env** (`src/common/throttle.config.ts`, resuelto por request): `THROTTLE_GLOBAL_LIMIT` (300), `THROTTLE_AUTH_LIMIT` (8), `THROTTLE_TTL_MS` (60000). `skipIf` excluye contextos no-HTTP (socket.io) y `NODE_ENV=test` completo - los e2e levantan AppModule y disparan cientos de requests.
 - **Exentos**: `GET /api/health` (`@SkipThrottle`); `/api/docs*` pasa por middleware Express fuera del pipeline de guards.
 

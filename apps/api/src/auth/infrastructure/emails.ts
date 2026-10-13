@@ -144,18 +144,30 @@ export function welcomeEmailHtml(name: string, webUrl: string): string {
   );
 }
 
-// ─── Magic link (login sin contraseña) ───
+// ─── Magic link + OTP (login sin contraseña, spec auth-email-otp) ───
+// El correo lleva ambos caminos al mismo desenlace: el código se escribe
+// dentro de la app instalada (PWA) u otro dispositivo; el link es un toque
+// en el navegador. El código va primero y destacado - mono con tracking
+// amplio, legible de un vistazo (regla de los ~5 segundos en pista).
 
-export function magicLinkEmailHtml(link: string): string {
+export function magicLinkEmailHtml(link: string, code: string): string {
   return emailShell(
-    "Tu link de acceso a Omnidance (válido 15 minutos).",
+    `Tu acceso a Omnidance - código ${code} o link (válido 15 minutos).`,
     `
     <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:-0.02em;text-align:center;">
       Tu acceso a Omnidance
     </h1>
-    <p style="margin:16px 0 24px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
-      Entra con este link - es válido por <strong style="color:#ffffff;">15 minutos</strong>.
+    <p style="margin:16px 0 0 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
+      Escribe este código en la app - es válido por
+      <strong style="color:#ffffff;">10 minutos</strong>.
       Si no lo pediste tú, ignora este correo.
+    </p>
+    <div style="margin:24px 0 0 0;padding:20px 0;background-color:#0a0a0f;border:1px solid #2a2a3a;border-radius:16px;text-align:center;">
+      <span style="font-family:'Courier New',Courier,monospace;color:#a78bfa;font-size:36px;font-weight:800;letter-spacing:0.4em;padding-left:0.4em;">${code}</span>
+    </div>
+    <p style="margin:24px 0 8px 0;color:rgba(255,255,255,0.6);font-size:15px;line-height:1.6;text-align:center;">
+      ¿Estás en el navegador? Entra con este link - es válido por
+      <strong style="color:#ffffff;">15 minutos</strong>.
     </p>
     ${ctaButton(link, "Entrar a Omnidance")}
     ${fallbackLink(link)}`,
