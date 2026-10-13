@@ -30,6 +30,9 @@ const MODULES = [
   { href: "/academia/particulares", key: "lessons", noInstructor: true },
   { href: "/academia/videos", key: "videos", cap: "schedule" },
   { href: "/academia/cobros", key: "payments", cap: "payments" },
+  // Preventa por comisión (spec academy-presale-commission) - misma cap
+  // que cobros: la respuesta al acuerdo es una decisión de payments.
+  { href: "/academia/preventas", key: "presales", cap: "payments" },
   { href: "/academia/equipo", key: "team", cap: "team" },
   { href: "/academia/configuracion", key: "config", cap: "profile" },
   // CRM con actorType=ACADEMY: sigue owner/ADMIN-only (requireAdminister

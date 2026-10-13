@@ -37,6 +37,7 @@ import {
   type FeeBreakdown,
 } from "../../common/fee-breakdown";
 import { GatewayAccountsService } from "./gateway-accounts.service";
+import { AcademySalesService } from "./academy-sales.service";
 import { emitPaymentEvent } from "../domain/payment-ledger";
 import type { Prisma } from "@prisma/client";
 
@@ -251,6 +252,12 @@ export interface PurchaseTicketInput {
    * la pasarela ni cuenta propia.
    */
   methodId?: string;
+  /**
+   * Atribución de preventa por academia (spec academy-presale-commission):
+   * llega del link `?a=` persistido por el front. Solo aplica con acuerdo
+   * ACTIVE y channel=PRESALE; sin acuerdo se ignora en silencio.
+   */
+  academyId?: string;
 }
 
 export interface PurchaseSeriesPassInput {
@@ -318,6 +325,7 @@ export class CheckoutService {
     @Inject(PAYMENT_GATEWAYS)
     private readonly gateways: GatewayRegistry,
     private readonly accounts: GatewayAccountsService,
+    private readonly academySales: AcademySalesService,
   ) {}
 
   /**
@@ -380,6 +388,7 @@ export class CheckoutService {
   private async createAssessedPayment(
     data: Prisma.PaymentUncheckedCreateInput,
     breakdown: FeeBreakdown,
+    extraMeta?: Record<string, unknown>,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const payment = await tx.payment.create({
@@ -400,6 +409,7 @@ export class CheckoutService {
         platformFeeVatClp: breakdown.platformFeeVatClp,
         gatewayFeeExpected: breakdown.gatewayFeeExpected,
         producerNetClp: breakdown.producerNetClp,
+        ...extraMeta,
       });
       return payment;
     });
@@ -710,6 +720,19 @@ export class CheckoutService {
           )
         : managedFeeBreakdown(orderTotal, allInPct, cardPct, ivaPct);
 
+    // Atribución de preventa por academia (spec academy-presale-commission):
+    // academyId del link ?a= + acuerdo ACTIVE (evento o su serie) → la
+    // orden queda marcada y la comisión se congela sobre precio de lista.
+    // Sin acuerdo o cupo agotado → null: la compra procede idéntica.
+    const attribution = await this.academySales.resolveAttribution({
+      eventId: event.id,
+      seriesId: event.seriesId,
+      academyId: input.academyId,
+      unitListPrice: unit.listPrice,
+      quantity,
+      channel,
+    });
+
     // refId correlaciona con la pasarela y el webhook; eventId/discountCodeId
     // también quedan desnormalizados en Payment para reporting. quantity +
     // recipients le dicen al webhook cuántos tickets emitir y a quién.
@@ -746,8 +769,15 @@ export class CheckoutService {
           orderTotal === 0 ? "FREE" : ownMethod ? "MANUAL" : gateway!.name,
         gatewayAccountId:
           orderTotal === 0 || ownMethod ? null : gatewayAccountId,
+        soldByAcademyId: attribution?.soldByAcademyId ?? null,
+        academyCommissionClp: attribution?.academyCommissionClp ?? null,
       },
       breakdown,
+      // La comisión atribuida queda evidenciada en el ledger cuando existe.
+      attribution
+        ? { soldByAcademyId: attribution.soldByAcademyId,
+            academyCommissionClp: attribution.academyCommissionClp }
+        : undefined,
     );
 
     // SongSuggestion: se crea ya (ligada a personId+eventId) porque el

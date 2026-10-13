@@ -17,6 +17,7 @@ import type { GenreMixBlock } from "@/components/ui";
 import { PrimeTimeWidget } from "@/components/gamification/PrimeTimeWidget";
 import { SeriesPassCta } from "@/components/checkout/series-pass-cta";
 import { BuyTicketCta } from "@/components/checkout/buy-ticket-cta";
+import { AcademyAttribution } from "@/components/checkout/academy-attribution";
 import { PracticeBar } from "@/components/social/PracticeBar";
 import { PartnerAvatar } from "@/components/sessions/PartnerAvatar";
 import { GENRE_TEXT } from "@/lib/calendar";
@@ -165,8 +166,12 @@ async function hasActiveTicket(eventId: string): Promise<boolean> {
 
 export default async function EventoDetailPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  // ?a=<academyId> - link de preventa de una academia (spec
+  // academy-presale-commission): lo persiste AcademyAttribution.
+  searchParams?: { a?: string };
 }) {
   const t = messages.events as EventsT;
   const tc = messages.common as Record<string, string>;
@@ -258,6 +263,12 @@ export default async function EventoDetailPage({
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6 lg:max-w-4xl lg:px-8">
+      {/* Atribución de academia (?a=) - invisible, solo persiste para el
+          checkout de este evento. */}
+      <AcademyAttribution
+        eventId={event.id}
+        academyId={typeof searchParams?.a === "string" ? searchParams.a : null}
+      />
       {/* Hero */}
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">

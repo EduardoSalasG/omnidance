@@ -60,7 +60,7 @@ serie con ventas atribuidas. Alternativa evaluada: settlement mensual
   acepta/declina (solo sobre acuerdos dirigidos a ella).
 - `GET /academies/:id/sale-deals` — vista academia: acuerdos, link,
   ventas, comisión devengada, estado deuda.
-- `POST /academy-sale-settlements/:id/mark-paid` (+ `evidenceUrl?`) —
+- `POST /academy-deals/:id/mark-paid` (+ `evidenceUrl?`) —
   productor marca PAID con `paidAt`.
 - Checkout: `POST /checkout/ticket` acepta `academyId?`; el front pasa el
   `?a=` persistido en sessionStorage al abrir la landing del evento.

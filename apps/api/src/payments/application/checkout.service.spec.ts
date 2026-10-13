@@ -218,6 +218,18 @@ const accountsStub = {
   adapterFor: vi.fn(),
 };
 
+// Stub de AcademySalesService (spec academy-presale-commission): sin
+// atribución por defecto - la orden sale igual que siempre. Los tests de
+// comisión sobreescriben resolveAttribution.
+const academySalesStub = {
+  resolveAttribution: vi.fn(
+    async (): Promise<{
+      soldByAcademyId: string;
+      academyCommissionClp: number;
+    } | null> => null,
+  ),
+};
+
 // Settlement real se cubre en su propio spec - acá solo interesa que el
 // camino $0 lo invoque; los checkouts con monto ni siquiera lo tocan.
 const mkSettlement = () => ({
@@ -270,6 +282,7 @@ describe("CheckoutService.purchaseTicket", () => {
       settle: vi.fn(async () => ({ ok: true, status: "PAID" as const })),
     };
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent());
+    academySalesStub.resolveAttribution.mockClear();
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,
       gw.gateway,
@@ -278,6 +291,7 @@ describe("CheckoutService.purchaseTicket", () => {
       stl as never,
       gw.registry,
       accountsStub as never,
+      academySalesStub as never,
     );
   });
 
@@ -789,6 +803,74 @@ describe("CheckoutService.purchaseTicket", () => {
     expect((ev!.payload as Record<string, unknown>).feeMode).toBe("FREE");
   });
 
+  // ─── Atribución de preventa por academia (academy-presale-commission) ───
+
+  it("academyId llega a la resolución de atribución con canal y monto", async () => {
+    await buy({ academyId: "ac-9", quantity: 2 });
+    expect(academySalesStub.resolveAttribution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventId: "evt-1",
+        academyId: "ac-9",
+        channel: "PRESALE",
+        unitListPrice: 10000,
+        quantity: 2,
+      }),
+    );
+  });
+
+  it("orden sin academyId: la atribución resuelve igual (el servicio decide)", async () => {
+    await buy();
+    expect(academySalesStub.resolveAttribution).toHaveBeenCalledWith(
+      expect.objectContaining({ academyId: undefined }),
+    );
+    expect(fx.payments[0]!.soldByAcademyId).toBeNull();
+    expect(fx.payments[0]!.academyCommissionClp).toBeNull();
+  });
+
+  it("acuerdo ACTIVE: soldByAcademyId + comisión congelada en orden y FEE_ASSESSED", async () => {
+    academySalesStub.resolveAttribution.mockResolvedValueOnce({
+      soldByAcademyId: "ac-1",
+      academyCommissionClp: 6000, // 2 × round(10000 × 50%)
+    });
+    await buy({ academyId: "ac-1", quantity: 2 });
+    const p = fx.payments[0]!;
+    expect(p.soldByAcademyId).toBe("ac-1");
+    expect(p.academyCommissionClp).toBe(6000);
+    // El neto del productor NO se descuenta: la comisión es pasivo aparte.
+    expect(p.producerNetClp).toBe(18000); // 20000 - 10% all-in
+    const ev = fx.paymentEvents.find((e) => e.type === "FEE_ASSESSED");
+    const payload = ev!.payload as Record<string, unknown>;
+    expect(payload.soldByAcademyId).toBe("ac-1");
+    expect(payload.academyCommissionClp).toBe(6000);
+  });
+
+  it("sin acuerdo ACTIVE (resolveAttribution → null): orden normal sin comisión", async () => {
+    await buy({ academyId: "ac-x" });
+    const p = fx.payments[0]!;
+    expect(p.soldByAcademyId).toBeNull();
+    expect(p.academyCommissionClp).toBeNull();
+    const ev = fx.paymentEvents.find((e) => e.type === "FEE_ASSESSED");
+    const payload = ev!.payload as Record<string, unknown>;
+    expect(payload.academyCommissionClp).toBeUndefined();
+  });
+
+  it("canal DOOR no atribuye aunque venga academyId", async () => {
+    // Evento LIVE sin preventa abierta → channel resuelve DOOR y la
+    // resolución devuelve null por canal.
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({
+        status: "LIVE",
+        presalePrice: null,
+        doorPrice: 12000,
+      }),
+    );
+    await buy({ academyId: "ac-1" });
+    expect(academySalesStub.resolveAttribution).toHaveBeenCalledWith(
+      expect.objectContaining({ channel: "DOOR" }),
+    );
+    expect(fx.payments[0]!.soldByAcademyId).toBeNull();
+  });
+
   // ─── Descuentos ───
 
   it("código percentOff válido descuenta la lista y queda en Payment.discountCodeId", async () => {
@@ -1037,6 +1119,7 @@ describe("CheckoutService.discountQuote", () => {
       mkSettlement() as never,
       gw.registry,
       accountsStub as never,
+      academySalesStub as never,
     );
   });
 
@@ -1147,6 +1230,7 @@ describe("CheckoutService.purchaseSeriesPass", () => {
       mkSettlement() as never,
       gw.registry,
       accountsStub as never,
+      academySalesStub as never,
     );
   });
 
@@ -1280,6 +1364,7 @@ describe("CheckoutService.membershipQuote", () => {
       mkSettlement() as never,
       gw.registry,
       accountsStub as never,
+      academySalesStub as never,
     );
   });
 
@@ -1411,6 +1496,7 @@ describe("CheckoutService.purchaseMembership", () => {
       mkSettlement() as never,
       gw.registry,
       accountsStub as never,
+      academySalesStub as never,
     );
   });
 
@@ -1545,6 +1631,7 @@ describe("CheckoutService.purchaseClass / classQuote", () => {
       mkSettlement() as never,
       gw.registry,
       accountsStub as never,
+      academySalesStub as never,
     );
   });
 
@@ -1666,6 +1753,7 @@ describe("CheckoutService private-class (clase particular comprable)", () => {
       mkSettlement() as never,
       gw.registry,
       accountsStub as never,
+      academySalesStub as never,
     );
   });
 

@@ -19,6 +19,7 @@ import {
   type OwnMethod,
 } from "@/components/checkout/own-method-picker";
 import { OwnMethodClaim } from "@/components/checkout/own-method-claim";
+import { academyAttrKey } from "@/components/checkout/academy-attribution";
 
 type Quote = {
   listPrice: number;
@@ -278,12 +279,23 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
     setPhase({ kind: "processing" });
 
     try {
+      // Atribución de preventa por academia (spec academy-presale-commission):
+      // la persistió AcademyAttribution al abrir la ficha con ?a=. Si no
+      // hay acuerdo ACTIVE el API la ignora y la orden sale normal.
+      const academyId = (() => {
+        try {
+          return sessionStorage.getItem(academyAttrKey(event.id)) ?? undefined;
+        } catch {
+          return undefined;
+        }
+      })();
       const res = await apiFetch("/checkout/ticket", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId: event.id,
           quantity,
+          ...(academyId ? { academyId } : {}),
           ...(discountCode.trim() ? { discountCode: discountCode.trim() } : {}),
           ...(songSuggestion.trim()
             ? { songSuggestion: songSuggestion.trim() }

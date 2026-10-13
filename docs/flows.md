@@ -862,3 +862,29 @@ flowchart TD
 ```
 
 Modos derivados del mismo parámetro: **OWN_METHOD/OWN_GATEWAY** (plata cobrada por el actor: tasa = all-in − card_pct, devengada como líneas `OWN_METHOD_*` neteadas contra el payout), **ACADEMY** (0% comisión - solo pasarela al costo, modelo SaaS), **FREE** (orden $0) y efectivo en puerta staff (0% - solo validación+QR). Pagos legacy sin desglose (`feeMode=null`) siguen la regla vieja (Σ fee real + platformFeePct).
+
+## Preventa atribuida a academia (academy-presale-commission)
+
+El productor invita una academia aprobada a vender su preventa por un % del precio de lista. La plataforma **no mueve la comisión**: la registra como pasivo computado productor→academia y el productor la regulariza por fuera marcándola pagada.
+
+```mermaid
+sequenceDiagram
+    participant P as Productor
+    participant A as Academia
+    participant C as Comprador
+    participant API
+
+    P->>API: POST /events/:id/academy-deals {academyId, commissionPct, maxTickets?}
+    API-->>A: notificación academy.sale_deal.invited
+    A->>API: PATCH /academy-deals/:id {action: accept}
+    Note over API: AcademySaleAgreement INVITED → ACTIVE
+    API-->>P: notificación academy.sale_deal.responded
+    A->>C: comparte /eventos/:id?a=<academyId>
+    C->>API: landing persiste ?a= en sessionStorage → POST /checkout/ticket {academyId}
+    Note over API: solo channel=PRESALE + acuerdo ACTIVE<br/>(evento o serie) + cupo no agotado atribuyen;<br/>si no, la orden sale normal
+    API-->>C: orden PAID con soldByAcademyId + academyCommissionClp<br/>(round(unitListPrice × pct) × quantity - congelado por orden)
+    Note over API: deuda = Σ comisión PAID del alcance − Σ settlements;<br/>producerNetClp y payout NO se tocan
+    P->>A: paga la comisión por fuera (transferencia)
+    P->>API: POST /academy-deals/:id/mark-paid {evidenceUrl?}
+    Note over API: AcademySaleSettlement materializa el monto del momento;<br/>ventas posteriores dejan remanente pendiente
+```

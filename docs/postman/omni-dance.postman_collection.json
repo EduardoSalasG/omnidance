@@ -3733,6 +3733,72 @@
           }
         },
         {
+          "name": "POST /api/events/{id}/academy-deals",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/academy-deals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "academy-deals"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/events/{id}/academy-deals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/academy-deals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "academy-deals"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "POST /api/events/{eventId}/guest-lists",
           "request": {
             "method": "POST",
@@ -5832,497 +5898,10 @@
       ]
     },
     {
-      "name": "wallet",
+      "name": "academy-deals",
       "item": [
         {
-          "name": "GET /api/wallet/google",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/wallet/google",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "wallet",
-                "google"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "discount-codes",
-      "item": [
-        {
-          "name": "POST /api/discount-codes",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/discount-codes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "discount-codes"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/discount-codes",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/discount-codes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "discount-codes"
-              ],
-              "variable": [],
-              "query": [
-                {
-                  "key": "eventId",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "seriesId",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "q",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "status",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "from",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "to",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "page",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "pageSize",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/discount-codes/{id}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/discount-codes/{id}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "discount-codes",
-                "{id}"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "GET /api/discount-codes/{id}/redemptions",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/discount-codes/{id}/redemptions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "discount-codes",
-                "{id}",
-                "redemptions"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "guest-lists",
-      "item": [
-        {
-          "name": "GET /api/guest-lists/{id}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/guest-lists/{id}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "guest-lists",
-                "{id}"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "POST /api/guest-lists/{id}/entries",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/guest-lists/{id}/entries",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "guest-lists",
-                "{id}",
-                "entries"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "POST /api/guest-lists/{listId}/entries/{entryId}/pass",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/guest-lists/{listId}/entries/{entryId}/pass",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "guest-lists",
-                "{listId}",
-                "entries",
-                "{entryId}",
-                "pass"
-              ],
-              "variable": [
-                {
-                  "key": "listId",
-                  "value": ":listId"
-                },
-                {
-                  "key": "entryId",
-                  "value": ":entryId"
-                }
-              ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "practices",
-      "item": [
-        {
-          "name": "POST /api/practices",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/practices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "practices"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "GET /api/practices",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/practices",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "practices"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/practices/mine",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/practices/mine",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "practices",
-                "mine"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/practices/{id}/rsvp",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "practices",
-                "{id}",
-                "rsvp"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "POST /api/practices/{id}/rsvp",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "practices",
-                "{id}",
-                "rsvp"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "styles",
-      "item": [
-        {
-          "name": "GET /api/styles",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/styles",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "styles"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/styles/{id}/landing",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/styles/{id}/landing",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "styles",
-                "{id}",
-                "landing"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "venues",
-      "item": [
-        {
-          "name": "GET /api/venues/mine",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/venues/mine",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "venues",
-                "mine"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/venues/{id}/dashboard",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/venues/{id}/dashboard",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "venues",
-                "{id}",
-                "dashboard"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "PATCH /api/venues/{id}/rentals/{rentalId}",
+          "name": "PATCH /api/academy-deals/{id}",
           "request": {
             "method": "PATCH",
             "header": [
@@ -6332,25 +5911,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/venues/{id}/rentals/{rentalId}",
+              "raw": "{{baseUrl}}/api/academy-deals/{id}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "venues",
-                "{id}",
-                "rentals",
-                "{rentalId}"
+                "academy-deals",
+                "{id}"
               ],
               "variable": [
                 {
                   "key": "id",
                   "value": ":id"
-                },
-                {
-                  "key": "rentalId",
-                  "value": ":rentalId"
                 }
               ],
               "query": []
@@ -6367,60 +5940,7 @@
           }
         },
         {
-          "name": "GET /api/venues",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/venues",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "venues"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/venues/{id}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/venues/{id}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "venues",
-                "{id}"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": [
-                {
-                  "key": "days",
-                  "value": "",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "friends",
-      "item": [
-        {
-          "name": "POST /api/friends",
+          "name": "POST /api/academy-deals/{id}/mark-paid",
           "request": {
             "method": "POST",
             "header": [
@@ -6430,14 +5950,23 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/friends",
+              "raw": "{{baseUrl}}/api/academy-deals/{id}/mark-paid",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "friends"
-              ]
+                "academy-deals",
+                "{id}",
+                "mark-paid"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             },
             "body": {
               "mode": "raw",
@@ -6449,172 +5978,38 @@
               }
             }
           }
-        },
-        {
-          "name": "GET /api/friends",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/friends",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "friends"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST /api/friends/{id}/accept",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/friends/{id}/accept",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "friends",
-                "{id}",
-                "accept"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "POST /api/friends/{id}/decline",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/friends/{id}/decline",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "friends",
-                "{id}",
-                "decline"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "DELETE /api/friends/{id}",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/friends/{id}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "friends",
-                "{id}"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
-        },
-        {
-          "name": "GET /api/friends/upcoming-events",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/friends/upcoming-events",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "friends",
-                "upcoming-events"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "people",
-      "item": [
-        {
-          "name": "GET /api/people/search",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/people/search",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "people",
-                "search"
-              ]
-            }
-          }
-        },
-        {
-          "name": "GET /api/people/{id}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/people/{id}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "people",
-                "{id}"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": ":id"
-                }
-              ],
-              "query": []
-            }
-          }
         }
       ]
     },
     {
       "name": "academies",
       "item": [
+        {
+          "name": "GET /api/academies/{id}/sale-deals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/sale-deals",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "sale-deals"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
         {
           "name": "GET /api/academies",
           "request": {
@@ -9111,6 +8506,787 @@
                 {
                   "key": "videoId",
                   "value": ":videoId"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "wallet",
+      "item": [
+        {
+          "name": "GET /api/wallet/google",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "wallet",
+                "google"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "discount-codes",
+      "item": [
+        {
+          "name": "POST /api/discount-codes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/discount-codes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "discount-codes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/discount-codes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/discount-codes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "discount-codes"
+              ],
+              "variable": [],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "seriesId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/discount-codes/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/discount-codes/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "discount-codes",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/discount-codes/{id}/redemptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/discount-codes/{id}/redemptions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "discount-codes",
+                "{id}",
+                "redemptions"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "guest-lists",
+      "item": [
+        {
+          "name": "GET /api/guest-lists/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/guest-lists/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guest-lists",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/guest-lists/{id}/entries",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/guest-lists/{id}/entries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guest-lists",
+                "{id}",
+                "entries"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/guest-lists/{listId}/entries/{entryId}/pass",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/guest-lists/{listId}/entries/{entryId}/pass",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "guest-lists",
+                "{listId}",
+                "entries",
+                "{entryId}",
+                "pass"
+              ],
+              "variable": [
+                {
+                  "key": "listId",
+                  "value": ":listId"
+                },
+                {
+                  "key": "entryId",
+                  "value": ":entryId"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "practices",
+      "item": [
+        {
+          "name": "POST /api/practices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/practices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/practices/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/practices/{id}/rsvp",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "{id}",
+                "rsvp"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/practices/{id}/rsvp",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/practices/{id}/rsvp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "practices",
+                "{id}",
+                "rsvp"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "styles",
+      "item": [
+        {
+          "name": "GET /api/styles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/styles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "styles"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/styles/{id}/landing",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/styles/{id}/landing",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "styles",
+                "{id}",
+                "landing"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "venues",
+      "item": [
+        {
+          "name": "GET /api/venues/mine",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/mine",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "mine"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/venues/{id}/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/{id}/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "{id}",
+                "dashboard"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "PATCH /api/venues/{id}/rentals/{rentalId}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/{id}/rentals/{rentalId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "{id}",
+                "rentals",
+                "{rentalId}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                },
+                {
+                  "key": "rentalId",
+                  "value": ":rentalId"
+                }
+              ],
+              "query": []
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/venues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/venues/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/venues/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "venues",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": [
+                {
+                  "key": "days",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "friends",
+      "item": [
+        {
+          "name": "POST /api/friends",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "GET /api/friends",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/friends/{id}/accept",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/{id}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "{id}",
+                "accept"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "POST /api/friends/{id}/decline",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/{id}/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "{id}",
+                "decline"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/friends/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
+          "name": "GET /api/friends/upcoming-events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/friends/upcoming-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "friends",
+                "upcoming-events"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "people",
+      "item": [
+        {
+          "name": "GET /api/people/search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/people/search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "people",
+                "search"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /api/people/{id}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/people/{id}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "people",
+                "{id}"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
                 }
               ],
               "query": []

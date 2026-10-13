@@ -266,6 +266,7 @@ model EventSeries {
 
   events     Event[]
   seriesPass SeriesPass[]
+  academySaleAgreements AcademySaleAgreement[]
 }
 
 model Event {
@@ -322,6 +323,7 @@ model Event {
   djs            EventDj[]
   shows          Show[]
   rsvps          Rsvp[]
+  academySaleAgreements AcademySaleAgreement[]
 }
 
 // RSVP "voy" (spec §8) - intención de asistencia sin ticket. Hoy lo usa
@@ -807,6 +809,7 @@ model Academy {
   platformSubscriptions PlatformSubscription[]
   paymentMethods AcademyPaymentMethod[]
   paymentClaims  PaymentClaim[]
+  saleAgreements AcademySaleAgreement[]
 }
 
 model AcademyInstructor {
@@ -1306,12 +1309,68 @@ model Payment {
   gatewayMedia          String?
   gatewayPaidAt         DateTime?
   gatewayRaw            Json?   // getStatus completo (evidencia)
+  // Atribución de preventa por academia (spec academy-presale-commission):
+  // la orden llega por el link de una academia con AcademySaleAgreement
+  // ACTIVE → se congela la comisión pactada (round(unitListPrice × pct) ×
+  // quantity). Es pasivo productor→academia registrado - NO descuenta el
+  // payout ni toca producerNetClp; solo channel=PRESALE atribuye.
+  soldByAcademyId      String?
+  academyCommissionClp Int?
   status    PaymentStatus @default(PENDING)
   createdAt DateTime      @default(now())
 
   events PaymentEvent[]
   payoutLines PayoutLine[]
   ticketClaims TicketClaim[]
+
+  @@index([soldByAcademyId])
+}
+
+// Canal de preventa atribuido a academias (spec academy-presale-commission):
+// el productor invita academias a vender la preventa de un evento o serie
+// por un % del precio de lista. INVITED → la academia acepta (ACTIVE) o
+// rechaza (DECLINED); el productor puede desactivar (DISABLED) - solo
+// ACTIVE atribuye ventas nuevas. XOR eventId/seriesId: exactamente uno
+// viene set (el unique del par no-nulo cubre ambos casos en Postgres).
+model AcademySaleAgreement {
+  id            String       @id @default(cuid())
+  event         Event?       @relation(fields: [eventId], references: [id])
+  eventId       String?
+  series        EventSeries? @relation(fields: [seriesId], references: [id])
+  seriesId      String?
+  academy       Academy      @relation(fields: [academyId], references: [id])
+  academyId     String
+  commissionPct Int          // 1-90 (% del precio de lista por ticket)
+  maxTickets    Int?
+  status        String       @default("INVITED") // INVITED|ACTIVE|DECLINED|DISABLED
+  createdById   String       // productor que invita
+  respondedAt   DateTime?
+  createdAt     DateTime     @default(now())
+
+  settlements AcademySaleSettlement[]
+
+  @@unique([eventId, academyId])
+  @@unique([seriesId, academyId])
+}
+
+// Regularización de la deuda productor→academia: la plataforma NO mueve
+// la comisión - la acumula como pasivo computado (suma de
+// academyCommissionClp PAID del acuerdo) y el productor la salda por
+// fuera. Cada fila es una marca de pago con el monto cubierto al momento
+// de marcar; ventas posteriores dejan un remanente pendiente. La deuda
+// pendiente no se materializa: es la suma PAID menos lo ya cubierto.
+model AcademySaleSettlement {
+  id          String   @id @default(cuid())
+  agreement   AcademySaleAgreement @relation(fields: [agreementId], references: [id])
+  agreementId String
+  eventId     String?  // null en acuerdos de serie = liquidación agregada
+  producerId  String
+  amountDue   Int      // comisión cubierta por esta marca
+  evidenceUrl String?  // comprobante opcional (patrón claims)
+  paidAt      DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([agreementId])
 }
 
 enum PayoutStatus {
