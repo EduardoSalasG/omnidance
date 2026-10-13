@@ -6,6 +6,7 @@ import { PrismaAuthRepo } from "./infrastructure/prisma-auth.repo";
 import { ResendMailer } from "./infrastructure/resend-mailer";
 
 import { MAILER, AUTH_REPO } from "./domain/ports";
+import type { AuthRepo } from "./domain/ports";
 import { secretOrDevFallback } from "../common/env";
 
 export { MAILER, AUTH_REPO };
@@ -16,8 +17,14 @@ export { MAILER, AUTH_REPO };
   providers: [
     {
       provide: AuthService,
-      useFactory: () =>
-        new AuthService(secretOrDevFallback("JWT_SECRET", "dev-secret-change-me")),
+      // El repo se inyecta para los métodos OTP (spec auth-email-otp);
+      // JWT/password no lo necesitan.
+      useFactory: (repo: AuthRepo) =>
+        new AuthService(
+          secretOrDevFallback("JWT_SECRET", "dev-secret-change-me"),
+          repo,
+        ),
+      inject: [AUTH_REPO],
     },
     { provide: MAILER, useClass: ResendMailer },
     { provide: AUTH_REPO, useClass: PrismaAuthRepo },

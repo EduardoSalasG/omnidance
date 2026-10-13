@@ -143,6 +143,25 @@ model FiscalProfile {
   createdAt  DateTime   @default(now())
 }
 
+// OTP de acceso por email (spec auth-email-otp): el correo lleva el magic
+// link + un código de 6 dígitos para entrar desde la app instalada u otro
+// dispositivo. Persistido (no JWT) porque necesita single-use real y
+// contador de intentos. codeHash = sha256(code + pepper) - nunca el código
+// en claro. Un solo OTP activo por email: una nueva solicitud marca
+// consumedAt en las anteriores.
+model AuthOtp {
+  id         String    @id @default(cuid())
+  email      String
+  codeHash   String
+  consent    Boolean   @default(false) // checkbox del form, viaja con el OTP como en el magic token
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+}
+
 // ═══════════════════ ESTILOS / BAILE ═══════════════════
 
 enum Genre {

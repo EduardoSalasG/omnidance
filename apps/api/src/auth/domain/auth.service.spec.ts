@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { jwtVerify } from "jose";
 import { AuthService } from "./auth.service";
+import type { AuthOtpRecord, AuthRepo } from "./ports";
 
 const SECRET = "test-secret-at-least-32-chars-long!!";
 
@@ -65,5 +66,131 @@ describe("AuthService", () => {
       svc.hashPassword("misma"),
     ]);
     expect(a).not.toBe(b);
+  });
+});
+
+// OTP de acceso por email (spec auth-email-otp): el service orquesta el
+// repo - genera el código, persiste solo su hash y verifica con
+// single-use real + contador de intentos.
+class FakeOtpRepo {
+  otps: AuthOtpRecord[] = [];
+  private seq = 0;
+
+  async createOtp(data: {
+    email: string;
+    codeHash: string;
+    consent: boolean;
+    expiresAt: Date;
+  }) {
+    this.otps.push({
+      id: `otp-${++this.seq}`,
+      ...data,
+      attempts: 0,
+      consumedAt: null,
+      createdAt: new Date(),
+    });
+  }
+
+  async consumeActives(email: string) {
+    for (const o of this.otps) {
+      if (o.email === email && !o.consumedAt) o.consumedAt = new Date();
+    }
+  }
+
+  async findActiveOtp(email: string) {
+    return (
+      [...this.otps]
+        .reverse()
+        .find((o) => o.email === email && !o.consumedAt) ?? null
+    );
+  }
+
+  async bumpAttempts(id: string) {
+    const o = this.otps.find((x) => x.id === id);
+    if (o) o.attempts++;
+  }
+
+  async consumeOtp(id: string) {
+    const o = this.otps.find((x) => x.id === id);
+    if (o) o.consumedAt = new Date();
+  }
+}
+
+describe("AuthService OTP (auth-email-otp)", () => {
+  const setup = () => {
+    const repo = new FakeOtpRepo();
+    const svc = new AuthService(SECRET, repo as unknown as AuthRepo);
+    return { repo, svc };
+  };
+
+  it("createOtp devuelve 6 dígitos y persiste solo el hash (nunca en claro)", async () => {
+    const { repo, svc } = setup();
+    const code = await svc.createOtp("a@b.cl", false);
+    expect(code).toMatch(/^\d{6}$/);
+    const row = repo.otps.at(-1)!;
+    expect(row.email).toBe("a@b.cl");
+    expect(row.codeHash).toMatch(/^[0-9a-f]{64}$/); // sha256 hex
+    expect(row.codeHash).not.toContain(code);
+    expect(row.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    expect(row.expiresAt.getTime()).toBeLessThanOrEqual(
+      Date.now() + 11 * 60 * 1000,
+    );
+  });
+
+  it("createOtp invalida los códigos activos previos del mismo email", async () => {
+    const { repo, svc } = setup();
+    const first = await svc.createOtp("a@b.cl", false);
+    const second = await svc.createOtp("a@b.cl", false);
+    expect(repo.otps[0].consumedAt).toBeInstanceOf(Date);
+    await expect(svc.verifyOtp("a@b.cl", first)).rejects.toThrow();
+    await expect(svc.verifyOtp("a@b.cl", second)).resolves.toEqual({
+      email: "a@b.cl",
+      consent: false,
+    });
+    // Otros emails no se ven afectados.
+  });
+
+  it("verifyOtp éxito devuelve {email, consent} y consume el código (single-use)", async () => {
+    const { repo, svc } = setup();
+    const code = await svc.createOtp("a@b.cl", true);
+    await expect(svc.verifyOtp("a@b.cl", code)).resolves.toEqual({
+      email: "a@b.cl",
+      consent: true,
+    });
+    expect(repo.otps[0].consumedAt).toBeInstanceOf(Date);
+    // Reuso rechazado.
+    await expect(svc.verifyOtp("a@b.cl", code)).rejects.toThrow();
+  });
+
+  it("verifyOtp código incorrecto suma intento y lanza", async () => {
+    const { repo, svc } = setup();
+    const code = await svc.createOtp("a@b.cl", false);
+    // Código distinto del emitido, garantizado.
+    const wrong = code === "000000" ? "000001" : "000000";
+    await expect(svc.verifyOtp("a@b.cl", wrong)).rejects.toThrow();
+    expect(repo.otps[0].attempts).toBe(1);
+  });
+
+  it("verifyOtp tras 5 intentos fallidos rechaza incluso el código correcto", async () => {
+    const { repo, svc } = setup();
+    const code = await svc.createOtp("a@b.cl", false);
+    const wrong = code === "000000" ? "000001" : "000000";
+    for (let i = 0; i < 5; i++) {
+      await expect(svc.verifyOtp("a@b.cl", wrong)).rejects.toThrow();
+    }
+    expect(repo.otps[0].attempts).toBe(5);
+    await expect(svc.verifyOtp("a@b.cl", code)).rejects.toThrow();
+  });
+
+  it("verifyOtp código expirado lanza", async () => {
+    const { repo, svc } = setup();
+    const code = await svc.createOtp("a@b.cl", false);
+    repo.otps[0].expiresAt = new Date(Date.now() - 1000);
+    await expect(svc.verifyOtp("a@b.cl", code)).rejects.toThrow();
+  });
+
+  it("verifyOtp sin solicitud vigente lanza", async () => {
+    const { svc } = setup();
+    await expect(svc.verifyOtp("nadie@b.cl", "123456")).rejects.toThrow();
   });
 });

@@ -15,8 +15,10 @@ export class ResendMailer implements Mailer {
 
   async send(to: string, subject: string, html: string): Promise<void> {
     if (!this.apiKey) {
-      this.logger.warn(`RESEND_API_KEY no configurada - email a ${to} solo logueado`);
-      this.logger.log(html);
+      this.logger.warn(`RESEND_API_KEY no configurada - email a ${to} no enviado`);
+      // El HTML contiene credenciales (magic link, OTP): solo se loguea
+      // fuera de producción para poder probar el flujo en dev local.
+      if (process.env.NODE_ENV !== "production") this.logger.log(html);
       return;
     }
     const res = await fetch("https://api.resend.com/emails", {

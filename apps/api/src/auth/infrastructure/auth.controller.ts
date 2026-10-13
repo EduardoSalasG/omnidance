@@ -13,7 +13,7 @@ import {
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
-import { IsBoolean, IsEmail, IsOptional, IsString, MinLength } from "class-validator";
+import { IsBoolean, IsEmail, IsOptional, IsString, Matches, MinLength } from "class-validator";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import {
@@ -83,6 +83,15 @@ class SetPasswordDto {
   password!: string;
 }
 
+class OtpVerifyDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @Matches(/^\d{6}$/)
+  code!: string;
+}
+
 // Rate limit in-memory para /auth/login: max 10 intentos fallidos por
 // email+IP en ventana de 10 min. Suficiente a escala dev/monolito; en
 // multi-instancia se reemplaza por Redis o ThrottlerModule.
@@ -145,15 +154,17 @@ export class AuthController {
   // fuera al dominio del API, la cookie quedaría en ese origen y el
   // usuario aterrizaría en el web sin sesión.
   private async sendMagicLink(email: string, consent: boolean) {
-    // El consentimiento viaja como claim del token: al abrir el link
-    // (verify) se estampa en la Person junto a la sesión.
+    // El consentimiento viaja como claim del token y en la fila del OTP:
+    // ambos caminos lo estampan en la Person al crear la sesión (spec
+    // auth-email-otp - el correo lleva link + código).
     const token = await this.auth.createMagicToken(email, consent);
+    const code = await this.auth.createOtp(email, consent);
     const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
     const link = `${webUrl}/api/auth/verify?token=${token}`;
     await this.mailer.send(
       email,
       "Tu acceso a Omnidance",
-      magicLinkEmailHtml(link),
+      magicLinkEmailHtml(link, code),
     );
   }
 
@@ -281,6 +292,32 @@ export class AuthController {
       res.redirect(existed ? `${webUrl}/inicio` : `${webUrl}/bienvenida`);
     } catch {
       throw new UnauthorizedException("Link inválido o expirado");
+    }
+  }
+
+  // Verificación del código OTP que viaja en el mismo correo que el magic
+  // link (spec auth/email-otp): mismo desenlace que GET /auth/verify pero
+  // responde JSON - lo llama la app instalada sin salir de su contexto.
+  @Post("otp/verify")
+  @HttpCode(200)
+  @Throttle(AUTH_THROTTLE)
+  async otpVerify(
+    @Body() dto: OtpVerifyDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    try {
+      const email = dto.email.toLowerCase();
+      const { consent } = await this.auth.verifyOtp(email, dto.code);
+      const existed = await this.repo.findByEmail(email);
+      const person = await this.repo.upsertByEmail(email);
+      if (consent) await this.repo.recordConsent(person.id);
+      if (!existed) await this.sendWelcome(email, person.name);
+      const session = await this.auth.issueSession(person.id);
+      this.setSessionCookie(res, session);
+      return { ok: true, isNew: !existed };
+    } catch {
+      // Uniforme: no revela si el email existe ni por qué falló el código.
+      throw new UnauthorizedException("Código inválido o expirado");
     }
   }
 

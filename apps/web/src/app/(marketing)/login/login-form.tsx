@@ -60,6 +60,7 @@ export default function LoginForm({
   const [password2, setPassword2] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -150,6 +151,42 @@ export default function LoginForm({
     }
   }
 
+  // OTP (spec auth-email-otp): el correo lleva link + código de 6
+  // dígitos. Verificar acá deja la sesión dentro de la app instalada -
+  // el link abriría el navegador del sistema.
+  async function submitOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await apiFetch("/auth/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code }),
+      });
+      setLoading(false);
+      if (res.ok) {
+        const data = (await res.json()) as { ok: boolean; isNew?: boolean };
+        const safeNext =
+          next?.startsWith("/") && !next.startsWith("//") ? next : null;
+        if (data.isNew) {
+          go(
+            safeNext
+              ? `/bienvenida?next=${encodeURIComponent(safeNext)}`
+              : "/bienvenida",
+          );
+        } else {
+          go(safeNext ?? "/inicio");
+        }
+        return;
+      }
+      setError(res.status === 401 ? t("otpInvalid") : t("genericError"));
+    } catch {
+      setLoading(false);
+      setError(t("genericError"));
+    }
+  }
+
   const isRegister = mode === "register";
 
   return (
@@ -164,9 +201,64 @@ export default function LoginForm({
       </h1>
 
       {sent ? (
-        <p aria-live="polite" className="max-w-sm text-center text-ink/70">
-          {t("sent")}
-        </p>
+        <form
+          onSubmit={submitOtp}
+          className="flex w-full flex-col gap-4"
+        >
+          <p aria-live="polite" className="text-center text-ink/70">
+            {t("sent")}
+          </p>
+          <Field label={t("otpLabel")}>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              required
+              minLength={6}
+              maxLength={6}
+              pattern="\d{6}"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              placeholder={t("otpPlaceholder")}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "login-error" : undefined}
+              className={`${inputClass} text-center text-2xl tracking-[0.4em]`}
+            />
+          </Field>
+          {error && (
+            <p id="login-error" role="alert" className="text-sm text-red-400">
+              {error}
+            </p>
+          )}
+          <Button
+            type="submit"
+            size="lg"
+            disabled={loading || code.length !== 6}
+            aria-busy={loading}
+            className="w-full"
+          >
+            {loading ? (
+              <>
+                <span aria-hidden="true">…</span>
+                <span className="sr-only">{t("sending")}</span>
+              </>
+            ) : (
+              t("otpSubmit")
+            )}
+          </Button>
+          <p className="text-center text-xs text-ink/50">{t("otpAlt")}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSent(false);
+              setCode("");
+              setError(null);
+            }}
+            className="min-h-11 text-sm text-ink/60 underline-offset-4 hover:text-ink hover:underline"
+          >
+            {t("otpBack")}
+          </button>
+        </form>
       ) : (
         <>
           {!isRegister && (

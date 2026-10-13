@@ -1,5 +1,7 @@
 import {
+  createHash,
   randomBytes,
+  randomInt,
   scrypt,
   timingSafeEqual,
   type BinaryLike,
@@ -7,6 +9,7 @@ import {
 } from "node:crypto";
 import { promisify } from "node:util";
 import { SignJWT, jwtVerify } from "jose";
+import type { AuthRepo } from "./ports";
 
 // El overload con `options` existe en runtime pero @types/node no lo
 // expone en la firma promisificada - se declara aquí explícitamente.
@@ -24,7 +27,13 @@ const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, keylen: 64 };
 export class AuthService {
   private readonly key: Uint8Array;
 
-  constructor(secret: string) {
+  // `repo` es opcional: solo lo usan los métodos OTP (spec
+  // auth-email-otp) - JWT y passwords son puros. El módulo lo inyecta;
+  // en specs de JWT/password no hace falta.
+  constructor(
+    secret: string,
+    private readonly repo?: AuthRepo,
+  ) {
     this.key = new TextEncoder().encode(secret);
   }
 
@@ -96,4 +105,68 @@ export class AuthService {
     })) as Buffer;
     return timingSafeEqual(actual, expected);
   }
+
+  // ─── OTP de acceso por email (spec auth-email-otp) ───
+  // 6 dígitos, TTL ~10min, máx 5 intentos, single-use real (fila en DB:
+  // un JWT no es revocable ni consumible). El código viaja en el mismo
+  // correo que el magic link - solo sale del service para ir al email,
+  // nunca a logs ni respuestas.
+
+  private otpRepo(): AuthRepo {
+    if (!this.repo) throw new Error("AuthService sin repo: OTP no disponible");
+    return this.repo;
+  }
+
+  // sha256(code + secreto JWT como pepper) - mismo patrón de secreto que
+  // inyecta auth.module.
+  private hashOtpCode(code: string): Buffer {
+    return createHash("sha256").update(code).update(this.key).digest();
+  }
+
+  /** Genera el código, consume los activos previos del email y persiste el hash. Devuelve el código en claro solo para el email. */
+  async createOtp(email: string, consent = false): Promise<string> {
+    const repo = this.otpRepo();
+    await repo.consumeActives(email);
+    const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
+    await repo.createOtp({
+      email,
+      codeHash: this.hashOtpCode(code).toString("hex"),
+      consent,
+      expiresAt: new Date(Date.now() + OTP_TTL_MS),
+    });
+    return code;
+  }
+
+  /**
+   * Verifica y consume el código del email. Lanza ante cualquier fallo
+   * (sin OTP, expirado, consumido, intentos agotados, código incorrecto) -
+   * el controller lo traduce a un 401 uniforme.
+   */
+  async verifyOtp(
+    email: string,
+    code: string,
+  ): Promise<{ email: string; consent: boolean }> {
+    const repo = this.otpRepo();
+    const otp = await repo.findActiveOtp(email);
+    const invalid = () => new Error("invalid otp");
+    if (
+      !otp ||
+      otp.consumedAt ||
+      otp.expiresAt.getTime() <= Date.now() ||
+      otp.attempts >= OTP_MAX_ATTEMPTS
+    ) {
+      throw invalid();
+    }
+    const expected = Buffer.from(otp.codeHash, "hex");
+    const actual = this.hashOtpCode(code);
+    if (expected.length !== actual.length || !timingSafeEqual(actual, expected)) {
+      await repo.bumpAttempts(otp.id);
+      throw invalid();
+    }
+    await repo.consumeOtp(otp.id);
+    return { email: otp.email, consent: otp.consent };
+  }
 }
+
+const OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;

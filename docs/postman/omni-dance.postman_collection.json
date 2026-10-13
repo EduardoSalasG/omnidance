@@ -191,6 +191,39 @@
           }
         },
         {
+          "name": "POST /api/auth/otp/verify",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/otp/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "otp",
+                "verify"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "POST /api/auth/logout",
           "request": {
             "method": "POST",
@@ -3898,6 +3931,24 @@
       "name": "producer",
       "item": [
         {
+          "name": "GET /api/producer/dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/producer/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producer",
+                "dashboard"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/producer/fee-params",
           "request": {
             "method": "GET",
@@ -7289,6 +7340,33 @@
           }
         },
         {
+          "name": "GET /api/academies/{id}/students/insights",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/students/insights",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "students",
+                "insights"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/academies/{id}/students/{personId}",
           "request": {
             "method": "GET",
@@ -8618,6 +8696,33 @@
                   "language": "json"
                 }
               }
+            }
+          }
+        },
+        {
+          "name": "GET /api/academies/{id}/series/insights",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/academies/{id}/series/insights",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "academies",
+                "{id}",
+                "series",
+                "insights"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
             }
           }
         },
