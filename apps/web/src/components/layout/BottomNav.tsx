@@ -308,17 +308,15 @@ const MOBILE_DRAWER_ONLY: ReadonlySet<AppRole> = new Set([
 ]);
 
 // Destinos que el tab bar móvil cubría y el drawer debe reemplazar en
-// las consolas drawer-only: Inicio siempre; el productor además su
-// lista de eventos (el "+" de crear es flujo, entra por el módulo -
-// misma convención que la sidebar desktop).
-const MOBILE_HOME_GROUP = (extra: DrawerSpec[] = []): DrawerGroupSpec => ({
+// las consolas drawer-only: solo Inicio - el resto del productor vive
+// en su grupo de módulos (Eventos incluido, ver PRODUCER abajo).
+const MOBILE_HOME_GROUP = (): DrawerGroupSpec => ({
   labelNs: "nav",
   labelKey: "home",
   bare: true,
   mobileOnly: true,
   items: [
     { href: "/inicio", ns: "nav", key: "home", icon: ICONS.home, exact: true },
-    ...extra,
   ],
 });
 
@@ -371,21 +369,21 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
     },
   ],
   PRODUCER: [
-    MOBILE_HOME_GROUP([
-      {
-        href: "/productor/eventos",
-        ns: "nav",
-        key: "events",
-        icon: ICONS.events,
-      },
-    ]),
+    MOBILE_HOME_GROUP(),
     {
       labelNs: "producer",
       labelKey: "title",
       items: [
-        // Sin ítem hub: /productor redirige a /inicio (el dashboard es
-        // el inicio, como el del owner). Comprobantes entra al nav -
-        // su única entrada era el hub eliminado.
+        // Eventos vive dentro del módulo, no en el grupo de tabs de la
+        // sidebar (la consola es consola pura: arriba queda solo Inicio).
+        // Sin ítem hub: /productor redirige a /inicio. Comprobantes entra
+        // al nav - su única entrada era el hub eliminado.
+        {
+          href: "/productor/eventos",
+          ns: "nav",
+          key: "events",
+          icon: ICONS.events,
+        },
         {
           href: "/productor/codigos",
           ns: "producer",
@@ -1025,6 +1023,9 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
               label: labelFor(spec.ns, spec.key),
               icon: icon(spec.icon)(active),
               active,
+              // Los ítems que fueron tab (Eventos del productor) llevan
+              // su anchor de tour para que ≥lg siga resolviéndolo.
+              dataTour: SIDEBAR_TOUR[spec.href],
             };
           }),
         })),
@@ -1055,6 +1056,13 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
   // sidebar lista los tabs como primer grupo y los módulos del drawer
   // debajo. El DANCER usa sus propios grupos por lente. Perfil no va
   // en el grupo de tabs: vive en la sección Cuenta al final.
+  // Un tab cuyo href ya renderiza un grupo del drawer (Eventos del
+  // productor) no se duplica en el grupo de tabs.
+  const drawerHrefs = new Set(
+    drawerGroups
+      .filter((g) => !g.mobileOnly)
+      .flatMap((g) => g.items.map((i) => i.href)),
+  );
   const sidebarGroups: DrawerGroup[] = !me
     ? [accountGroup]
     : activeRole === "INSTRUCTOR"
@@ -1092,7 +1100,12 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
             // sección era ruido.
             bare: true,
             items: allTabs
-              .filter((tab) => !tab.sheet && tab.href !== "/perfil")
+              .filter(
+                (tab) =>
+                  !tab.sheet &&
+                  tab.href !== "/perfil" &&
+                  !drawerHrefs.has(tab.href),
+              )
               .map((tab) => ({
                 href: tab.href,
                 label: tabLabel(tab),
