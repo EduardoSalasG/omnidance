@@ -1323,11 +1323,17 @@ model Payment {
   gatewayMedia          String?
   gatewayPaidAt         DateTime?
   gatewayRaw            Json?   // getStatus completo (evidencia)
-  // Atribución de preventa por academia (spec academy-presale-commission):
-  // la orden llega por el link de una academia con AcademySaleAgreement
-  // ACTIVE → se congela la comisión pactada (round(unitListPrice × pct) ×
-  // quantity). Es pasivo productor→academia registrado - NO descuenta el
-  // payout ni toca producerNetClp; solo channel=PRESALE atribuye.
+  // Medio declarado de la orden (snapshot al crearla): label del método
+  // propio del productor en órdenes MANUAL; null = pasarela/otros
+  // (la UI cae a gatewayMedia o "App").
+  methodLabel           String?
+  // Atribución de preventa por academia (spec academy-presale-commission
+  // + academy-presale-codes): la orden llega por el link ?a= o por un
+  // código ACADEMY_PRESALE de un AcademySaleAgreement ACTIVE → se
+  // congela la comisión pactada (round(unitListPrice × pct) × quantity).
+  // Link: pasivo productor→academia (él cobró por app). Código: la
+  // academia cobró el efectivo → cuenta por cobrar academia→productor
+  // (unitListPrice − academyCommissionClp). NO toca producerNetClp.
   soldByAcademyId      String?
   academyCommissionClp Int?
   status    PaymentStatus @default(PENDING)
@@ -1487,6 +1493,7 @@ enum DiscountCodeType {
   CAMPAIGN
   WINBACK
   STAFF_COMP
+  ACADEMY_PRESALE
 }
 
 model DiscountCode {
@@ -1501,9 +1508,15 @@ model DiscountCode {
   usedCount  Int              @default(0)
   createdById String
   expiresAt  DateTime?
+  // Preventa por academia (spec academy-presale-codes): el código 100%
+  // lo emite la academia por cada venta que cobró en efectivo; este
+  // vínculo da la atribución en checkout y el cupo por acuerdo.
+  academySaleAgreementId String?
   createdAt  DateTime         @default(now())
 
   redemptions DiscountRedemption[]
+
+  @@index([academySaleAgreementId])
 }
 
 model DiscountRedemption {

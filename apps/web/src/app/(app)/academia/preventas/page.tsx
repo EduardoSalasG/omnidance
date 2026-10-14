@@ -100,17 +100,40 @@ function PresaleDeals({ academyId }: { academyId: string }) {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {d.stats.commissionAccruedClp > 0 && (
+                    {d.stats.pendingClp > 0 && (
                       <span className="text-sm">
                         <span className="text-xs text-ink/50">
-                          {t("accrued")}{" "}
+                          {t("paymentPending")}{" "}
                         </span>
                         <PriceTag
-                          amount={d.stats.commissionAccruedClp}
+                          amount={d.stats.pendingClp}
                           className="text-sm font-semibold"
                         />
                       </span>
                     )}
+                    {d.stats.pendingClp < 0 && (
+                      <span className="text-sm">
+                        <span className="text-xs text-ink/50">
+                          {t("paymentOwed")}{" "}
+                        </span>
+                        <PriceTag
+                          amount={Math.abs(d.stats.pendingClp)}
+                          className="text-sm font-semibold"
+                        />
+                      </span>
+                    )}
+                    {d.stats.pendingClp === 0 &&
+                      d.stats.commissionAccruedClp > 0 && (
+                        <span className="text-sm">
+                          <span className="text-xs text-ink/50">
+                            {t("accrued")}{" "}
+                          </span>
+                          <PriceTag
+                            amount={d.stats.commissionAccruedClp}
+                            className="text-sm font-semibold"
+                          />
+                        </span>
+                      )}
                     <Badge variant={STATUS_VARIANT[d.status] ?? "muted"}>
                       {t.has(`status.${d.status}`)
                         ? t(`status.${d.status}`)

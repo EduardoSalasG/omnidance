@@ -888,3 +888,28 @@ sequenceDiagram
     P->>API: POST /academy-deals/:id/mark-paid {evidenceUrl?}
     Note over API: AcademySaleSettlement materializa el monto del momento;<br/>ventas posteriores dejan remanente pendiente
 ```
+
+### Canal código (academy-presale-codes) - la academia cobra fuera
+
+Segundo canal sobre el mismo acuerdo: la academia cobra la preventa en efectivo/transferencia y emite un código 100% off por venta; el comprador lo redime en el checkout. La deuda se invierte: la academia le debe `precioLista − comisión` al productor. El saldo del acuerdo es el **neto signed** de ambos canales menos lo saldado.
+
+```mermaid
+sequenceDiagram
+    participant A as Academia
+    participant C as Comprador
+    participant API
+
+    A->>API: POST /academy-deals/:id/codes
+    Note over API: staff con capability payments; acuerdo ACTIVE;<br/>cupo = códigos emitidos + tickets PAID por link < maxTickets
+    API-->>A: DiscountCode ACADEMY_PRESALE SLUG-DDMMM-XXXX<br/>(100% off, maxUses 1, scope del acuerdo)
+    A->>C: cobra la preventa fuera + entrega el código
+    C->>API: POST /checkout/ticket {discountCode}
+    Note over API: isRedeemable (scope evento/serie) + channel PRESALE<br/>+ quantity=1 + acuerdo ACTIVE - si no, InvalidDiscount
+    API-->>C: orden $0 FREE atribuida (soldByAcademyId +<br/>academyCommissionClp congelado) - settle inmediato
+    Note over API: en la tx de settle el consumo es atómico<br/>(usedCount < maxUses) - doble redención revierte
+    Note over API: saldo = Σ comisión link − Σ (lista − comisión) códigos<br/>− Σ settlements; pending<0 = academia debe al productor
+    A->>P: paga por fuera (transferencia)
+    P->>API: POST /academy-deals/:id/mark-paid (amountDue signed)
+```
+
+`GET /academy-deals/:id/codes` audita ambos lados: códigos emitidos con su redención (comprador, cuándo, pago). En la vista de ventas la columna Medio distingue "Preventa academia" (código), el método propio congelado (`Payment.methodLabel`, órdenes MANUAL) o el medio de pasarela/"App".

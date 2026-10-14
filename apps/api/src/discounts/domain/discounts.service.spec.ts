@@ -46,6 +46,7 @@ class FakeDiscountsRepo implements DiscountsRepo {
       usedCount: 0,
       createdById: data.createdById,
       expiresAt: data.expiresAt,
+      academySaleAgreementId: null,
       createdAt: new Date(),
     };
     this.codes.push(code);
@@ -110,6 +111,7 @@ const mkCode = (over: Partial<DiscountCode>): DiscountCode => ({
   usedCount: 0,
   createdById: "admin-1",
   expiresAt: null,
+  academySaleAgreementId: null,
   createdAt: new Date(),
   ...over,
 });

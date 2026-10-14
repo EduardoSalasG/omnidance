@@ -692,15 +692,17 @@ El cargo por venta desaparece para la academia: pasa a **suscripción mensual po
 - **Tracking completo**: quién lo creó, usos, máximo de usos, quién lo redimió, evento/serie asociado - auditable contra abuso
 - Resuelven los casos borde de puerta y son el instrumento de precio del CRM (ofertas a segmentos)
 
-### Preventa vendida por academias (canal atribuido - implementado nov-2026)
+### Preventa vendida por academias (canales atribuidos - implementado nov-2026)
 
-Las academias que se presentan en los sociales venden preventa del productor y se quedan con un % (típico ~50%). Modelo implementado (`academy-presale-commission`):
+Las academias que se presentan en los sociales venden preventa del productor y se quedan con un % (típico ~50%). Coexisten **dos canales** sobre el mismo acuerdo (`academy-presale-commission` + `academy-presale-codes`):
 
 - El productor **invita** una academia aprobada a un acuerdo por evento o serie (`commissionPct` 1-90, cupo `maxTickets` opcional). La academia acepta o rechaza; solo acuerdos ACTIVE atribuyen
-- La academia comparte su link `/eventos/[id]?a=<academyId>`; el comprador paga el precio de lista normal, sin saber ni ver la comisión
-- La comisión se **congela por orden** (`round(precioLista × %) × cantidad`) y se registra como **deuda del productor hacia la academia** — computada como Σ comisión de órdenes pagadas − Σ pagos marcados
-- **omni-dance no mueve esa plata**: ni payout a la academia ni descuento al neto del productor. El productor paga por fuera (transferencia) y marca la deuda como pagada en la app, con comprobante opcional; una venta posterior deja remanente pendiente
-- La atribución es solo `channel=PRESALE` y silenciosa: sin acuerdo vigente o cupo agotado, la compra procede igual sin error
+- **Canal link**: la academia comparte `/eventos/[id]?a=<academyId>`; el comprador paga el precio de lista normal **por la app**, sin saber ni ver la comisión. La comisión se **congela por orden** (`round(precioLista × %) × cantidad`) como **deuda del productor hacia la academia**
+- **Canal código**: la academia cobra la preventa **en efectivo/transferencia por fuera** y emite un código `ACADEMY_PRESALE` 100% off de un solo uso (`SLUG-15NOV-XXXX`, legible a mano). El comprador lo redime en el checkout → orden $0 FREE, ticket emitido, pago queda atribuido a la academia con la comisión congelada sobre el precio de lista. Restricciones: solo `channel=PRESALE`, una entrada por código, acuerdo ACTIVE al redimir; el consumo del uso es atómico en la tx de liquidación
+- **Cupo compartido**: `maxTickets` cubre ambos canales — códigos emitidos + tickets PAID por link
+- **Saldo bidireccional, liquidación externa**: **omni-dance no mueve esa plata**. El saldo del acuerdo es neto signed: Σ comisión de ventas por link (productor debe) − Σ `precioLista − comisión` de códigos redimidos (la academia debe, porque cobró el efectivo) − marcas de pago. Saldo positivo = el productor paga a la academia; negativo = la academia paga al productor. Quien marca pago registra el monto firmado con comprobante opcional
+- **Auditoría**: cada código emitido queda ligado al acuerdo; productor y academia ven códigos emitidos, quién los redimió y el pago asociado (`Payment.discountCodeId` + `DiscountRedemption`)
+- La atribución por link es solo `channel=PRESALE` y silenciosa: sin acuerdo vigente o cupo agotado, la compra procede igual sin error. En Pagos, la columna **Medio** distingue la orden: método propio congelado, "Preventa academia" (código), medio de la pasarela o "App"
 
 ### Reglas de sistema
 

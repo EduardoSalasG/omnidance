@@ -18,7 +18,10 @@ import {
   inputCls,
   readError,
 } from "@/components/producer/shared";
-import type { AcademyDealView } from "@/components/producer/academy-sales-section";
+import type {
+  AcademyDealView,
+  AcademyPresaleCode,
+} from "@/components/producer/academy-sales-section";
 
 const STATUS_VARIANT = {
   INVITED: "outline",
@@ -47,6 +50,7 @@ function DealDetail({
   const tc = useTranslations("common");
 
   const [deal, setDeal] = useState<AcademyDealView | null>(null);
+  const [codes, setCodes] = useState<AcademyPresaleCode[]>([]);
   const [state, setState] = useState<"loading" | "ok" | "notFound" | "error">(
     "loading",
   );
@@ -84,6 +88,12 @@ function DealDetail({
       setCommissionPct(String(found.commissionPct));
       setMaxTickets(found.maxTickets != null ? String(found.maxTickets) : "");
       setState("ok");
+      // Códigos emitidos por la academia (canal código) - auditables
+      // también por el productor dueño del evento.
+      const codesRes = await apiFetch(`/academy-deals/${agreementId}/codes`);
+      if (codesRes.ok) {
+        setCodes((await codesRes.json()) as AcademyPresaleCode[]);
+      }
     } catch {
       setState("error");
     }
@@ -169,7 +179,13 @@ function DealDetail({
         return;
       }
       setEvidenceUrl("");
-      setNotice(t("paidMarked"));
+      // El saldo es bidireccional: > 0 se pagó comisión a la academia,
+      // < 0 se cobró la cuenta por cobrar del canal código.
+      setNotice(
+        (deal?.stats.pendingClp ?? 0) > 0
+          ? t("paidMarked")
+          : t("collectedMarked"),
+      );
       await load();
     } catch {
       setFormError(tc("error"));
@@ -228,10 +244,23 @@ function DealDetail({
                 <dd className="tabular-nums">{deal.stats.soldTickets}</dd>
               </div>
               <div>
+                <dt className="text-xs text-ink/50">{t("codesEmitted")}</dt>
+                <dd className="tabular-nums">{deal.stats.codesEmitted}</dd>
+              </div>
+              <div>
                 <dt className="text-xs text-ink/50">{t("accrued")}</dt>
                 <dd>
                   <PriceTag
                     amount={deal.stats.commissionAccruedClp}
+                    className="tabular-nums"
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-ink/50">{t("receivable")}</dt>
+                <dd>
+                  <PriceTag
+                    amount={deal.stats.codeReceivableClp}
                     className="tabular-nums"
                   />
                 </dd>
@@ -246,10 +275,14 @@ function DealDetail({
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-ink/50">{t("pending")}</dt>
+                <dt className="text-xs text-ink/50">
+                  {deal.stats.pendingClp >= 0
+                    ? t("pending")
+                    : t("pendingCollect")}
+                </dt>
                 <dd>
                   <PriceTag
-                    amount={deal.stats.pendingClp}
+                    amount={Math.abs(deal.stats.pendingClp)}
                     className="tabular-nums font-semibold"
                   />
                 </dd>
@@ -324,19 +357,69 @@ function DealDetail({
             </form>
           </Card>
 
-          {/* Regularización offline: el productor le paga a la academia
-              por fuera y marca acá - queda registro con comprobante
-              opcional. Ventas posteriores dejan remanente pendiente. */}
-          {deal.stats.pendingClp > 0 && deal.status !== "DISABLED" && (
+          {/* Códigos emitidos por la academia (canal código): cada
+              venta cobrada en efectivo por la academia deja un código
+              100% redimido en el checkout - el productor audita aquí
+              quién lo usó y bajo qué pago. */}
+          {(codes.length > 0 || deal.stats.codesEmitted > 0) && (
             <Card className="flex flex-col gap-3">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-                {t("markPaidTitle")}
+                {t("codesTitle")}
+              </h3>
+              {codes.length === 0 ? (
+                <p className="text-sm text-ink/50">{t("codesEmpty")}</p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-line">
+                  {codes.map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2"
+                    >
+                      <code className="text-sm font-medium tracking-wide">
+                        {c.code}
+                      </code>
+                      <span className="text-xs text-ink/60">
+                        {c.redemption ? (
+                          <>
+                            {t("codeUsedBy", {
+                              name: c.redemption.buyerName ?? "—",
+                            })}
+                            {c.redemption.paymentRefId &&
+                              ` · Nº ${c.redemption.paymentRefId.slice(0, 12)}`}
+                          </>
+                        ) : (
+                          t("codeUnused")
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
+
+          {/* Regularización offline del saldo signed: > 0 el productor
+              le pagó comisión a la academia; < 0 la academia le pagó al
+              productor por las preventas cobradas con códigos. La marca
+              queda con comprobante opcional; remanentes nuevos vuelven a
+              aparecer. */}
+          {deal.stats.pendingClp !== 0 && deal.status !== "DISABLED" && (
+            <Card className="flex flex-col gap-3">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+                {deal.stats.pendingClp > 0
+                  ? t("markPaidTitle")
+                  : t("markCollectTitle")}
               </h3>
               <p className="text-sm text-ink/60">
-                {t("markPaidDesc", {
-                  amount: `$${deal.stats.pendingClp.toLocaleString("es-CL")}`,
-                  academy: deal.academyName,
-                })}
+                {deal.stats.pendingClp > 0
+                  ? t("markPaidDesc", {
+                      amount: `$${deal.stats.pendingClp.toLocaleString("es-CL")}`,
+                      academy: deal.academyName,
+                    })
+                  : t("markCollectDesc", {
+                      amount: `$${Math.abs(deal.stats.pendingClp).toLocaleString("es-CL")}`,
+                      academy: deal.academyName,
+                    })}
               </p>
               <label className="flex flex-col gap-2">
                 <span className="text-sm text-ink/70">{t("evidenceUrl")}</span>
@@ -354,7 +437,11 @@ function DealDetail({
                 disabled={busy}
                 className="self-start"
               >
-                {busy ? tc("loading") : t("markPaid")}
+                {busy
+                  ? tc("loading")
+                  : deal.stats.pendingClp > 0
+                    ? t("markPaid")
+                    : t("markCollected")}
               </Button>
             </Card>
           )}

@@ -20,6 +20,13 @@ export type PaymentAuditRow = {
   gatewayReportedAmount: number | null;
   gatewayMedia: string | null;
   gatewayPaidAt: string | null;
+  // Medio declarado: label del método propio del productor (órdenes
+  // MANUAL). Para código de academia la UI deriva "Preventa academia"
+  // desde discountCodeType; resto = gatewayMedia o "App".
+  methodLabel: string | null;
+  discountCodeType: string | null;
+  /** Academia que vendió la preventa (link ?a= o código) - null si venta directa. */
+  soldByAcademyName: string | null;
   // Descomposición de comisión congelada al crear la orden
   // (spec producer-fee-model) - null en pagos legacy.
   feeMode: string | null;
@@ -77,6 +84,20 @@ export function paymentHref(p: PaymentAuditRow): string | null {
 /** Fecha real de cobro: la reportada por la pasarela si existe. */
 export function paymentPaidAt(p: PaymentAuditRow): string {
   return p.gatewayPaidAt ?? p.createdAt;
+}
+
+/**
+ * Medio de la orden para vistas de gestión (spec academy-presale-codes):
+ * método propio congelado > preventa academia (código 100%) > medio
+ * reportado por la pasarela > "App" (pasarela sin detalle).
+ */
+export function paymentMedium(
+  p: PaymentAuditRow,
+  labels: { academyPresale: string; app: string },
+): string {
+  if (p.methodLabel) return p.methodLabel;
+  if (p.discountCodeType === "ACADEMY_PRESALE") return labels.academyPresale;
+  return p.gatewayMedia ?? labels.app;
 }
 
 /**

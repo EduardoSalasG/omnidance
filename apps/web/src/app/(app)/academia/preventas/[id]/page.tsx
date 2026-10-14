@@ -13,7 +13,10 @@ import {
   RefreshIcon,
   SkeletonCard,
 } from "@/components/ui";
-import type { AcademyDealView } from "@/components/producer/academy-sales-section";
+import type {
+  AcademyDealView,
+  AcademyPresaleCode,
+} from "@/components/producer/academy-sales-section";
 
 type AcademyDealRow = AcademyDealView & {
   eventName: string | null;
@@ -45,12 +48,15 @@ function DealDetail({
   const tc = useTranslations("common");
 
   const [deal, setDeal] = useState<AcademyDealRow | null>(null);
+  const [codes, setCodes] = useState<AcademyPresaleCode[]>([]);
   const [state, setState] = useState<"loading" | "ok" | "notFound" | "error">(
     "loading",
   );
   const [busy, setBusy] = useState(false);
+  const [codeBusy, setCodeBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setState("loading");
@@ -72,6 +78,11 @@ function DealDetail({
       }
       setDeal(found);
       setState("ok");
+      // Códigos 100% emitidos por la academia (canal código).
+      const codesRes = await apiFetch(`/academy-deals/${agreementId}/codes`);
+      if (codesRes.ok) {
+        setCodes((await codesRes.json()) as AcademyPresaleCode[]);
+      }
     } catch {
       setState("error");
     }
@@ -93,6 +104,38 @@ function DealDetail({
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setFormError(tc("error"));
+    }
+  }
+
+  async function copyCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    } catch {
+      setFormError(tc("error"));
+    }
+  }
+
+  /** Un código por venta cobrada en efectivo (spec academy-presale-codes). */
+  async function emitCode() {
+    setCodeBusy(true);
+    setFormError(null);
+    try {
+      const res = await apiFetch(`/academy-deals/${agreementId}/codes`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        setFormError(
+          res.status === 409 ? t("codeCapFull") : tc("error"),
+        );
+        return;
+      }
+      await load();
+    } catch {
+      setFormError(tc("error"));
+    } finally {
+      setCodeBusy(false);
     }
   }
 
@@ -168,13 +211,25 @@ function DealDetail({
               </dd>
             </div>
             <div>
+              <dt className="text-xs text-ink/50">{t("owedToProducer")}</dt>
+              <dd>
+                <PriceTag
+                  amount={deal.stats.codeReceivableClp}
+                  className="tabular-nums"
+                />
+              </dd>
+            </div>
+            <div>
               <dt className="text-xs text-ink/50">{t("paymentState")}</dt>
               <dd className="text-sm">
                 {deal.stats.pendingClp > 0
                   ? t("paymentPending")
-                  : deal.stats.commissionAccruedClp > 0
-                    ? t("paymentSettled")
-                    : "—"}
+                  : deal.stats.pendingClp < 0
+                    ? t("paymentOwed")
+                    : deal.stats.commissionAccruedClp > 0 ||
+                        deal.stats.codeReceivableClp > 0
+                      ? t("paymentSettled")
+                      : "—"}
               </dd>
             </div>
           </dl>
@@ -198,6 +253,61 @@ function DealDetail({
                 </div>
               ) : (
                 <p className="text-sm text-ink/60">{t("seriesLinkHint")}</p>
+              )}
+            </div>
+          )}
+
+          {/* Canal código: la academia cobra la preventa en efectivo y
+              emite un código 100% por venta; el comprador lo redime en
+              el checkout y la entrada queda liberada (orden $0). */}
+          {deal.status === "ACTIVE" && (
+            <div className="flex flex-col gap-3 border-t border-line pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-ink/50">{t("codesTitle")}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void emitCode()}
+                  disabled={codeBusy}
+                >
+                  {codeBusy ? tc("loading") : t("generateCode")}
+                </Button>
+              </div>
+              <p className="text-xs text-ink/50">{t("codesDesc")}</p>
+              {codes.length === 0 ? (
+                <p className="text-sm text-ink/50">{t("codesEmpty")}</p>
+              ) : (
+                <ul className="flex flex-col divide-y divide-line">
+                  {codes.map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex flex-wrap items-center justify-between gap-2 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm font-medium tracking-wide">
+                          {c.code}
+                        </code>
+                        {!c.redemption && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => void copyCode(c.code)}
+                          >
+                            {copiedCode === c.code ? t("copied") : t("copy")}
+                          </Button>
+                        )}
+                      </div>
+                      <span className="text-xs text-ink/60">
+                        {c.redemption
+                          ? t("codeUsedBy", {
+                              name: c.redemption.buyerName ?? "—",
+                            })
+                          : t("codeUnused")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           )}

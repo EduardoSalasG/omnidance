@@ -31,6 +31,8 @@ describe("AcademySalesController", () => {
     patchAgreement: ReturnType<typeof vi.fn>;
     listForAcademy: ReturnType<typeof vi.fn>;
     markPaid: ReturnType<typeof vi.fn>;
+    createPresaleCode: ReturnType<typeof vi.fn>;
+    listPresaleCodes: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -40,6 +42,8 @@ describe("AcademySalesController", () => {
       patchAgreement: vi.fn(async () => ({ id: "agr-1" })),
       listForAcademy: vi.fn(async () => []),
       markPaid: vi.fn(async () => ({ id: "set-1", amountDue: 12000 })),
+      createPresaleCode: vi.fn(async () => ({ code: "AC-15NOV-AAAA" })),
+      listPresaleCodes: vi.fn(async () => []),
     };
     ctrl = new AcademySalesController(sales as never);
   });
@@ -135,6 +139,23 @@ describe("AcademySalesController", () => {
     await expect(
       ctrl.patch("agr-1", req(), { action: "disable" }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("POST /academy-deals/:id/codes → createPresaleCode", async () => {
+    const res = await ctrl.createCode("agr-1", req("ac-9"));
+    expect(sales.createPresaleCode).toHaveBeenCalledWith(
+      "agr-1",
+      expect.objectContaining({ id: "ac-9" }),
+    );
+    expect(res).toEqual({ code: "AC-15NOV-AAAA" });
+  });
+
+  it("GET /academy-deals/:id/codes → listPresaleCodes", async () => {
+    await ctrl.listCodes("agr-1", req("ac-9"));
+    expect(sales.listPresaleCodes).toHaveBeenCalledWith(
+      "agr-1",
+      expect.objectContaining({ id: "ac-9" }),
+    );
   });
 
   it("rechazos async del listado se capturan (métodos async + await)", async () => {

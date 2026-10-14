@@ -535,7 +535,12 @@ export class PaymentsController {
     const planIds = new Set<string>();
     const classIds = new Set<string>();
     const academyIdsFromPayments = new Set<string>();
+    const discountCodeIds = new Set<string>();
     for (const p of payments) {
+      if (p.discountCodeId) discountCodeIds.add(p.discountCodeId);
+      // Canal academia (link ?a= o código ACADEMY_PRESALE): el nombre
+      // de la academia vendedora también se proyecta en la fila.
+      if (p.soldByAcademyId) academyIdsFromPayments.add(p.soldByAcademyId);
       const eventId =
         p.eventId ??
         (p.orderType === "TICKET"
@@ -560,7 +565,8 @@ export class PaymentsController {
         if (academyId) academyIdsFromPayments.add(academyId);
       }
     }
-    const [events, series, plans, classes] = await Promise.all([
+    const [events, series, plans, classes, discountCodes] =
+      await Promise.all([
       eventIds.size
         ? this.prisma.event.findMany({
             where: { id: { in: [...eventIds] } },
@@ -595,11 +601,18 @@ export class PaymentsController {
             },
           })
         : [],
+      discountCodeIds.size
+        ? this.prisma.discountCode.findMany({
+            where: { id: { in: [...discountCodeIds] } },
+            select: { id: true, type: true, code: true },
+          })
+        : [],
     ]);
     const eventNameOf = new Map(events.map((e) => [e.id, e.name]));
     const seriesNameOf = new Map(series.map((s) => [s.id, s.name]));
     const planOf = new Map(plans.map((p) => [p.id, p]));
     const classOf = new Map(classes.map((c) => [c.id, c]));
+    const discountCodeOf = new Map(discountCodes.map((c) => [c.id, c]));
 
     const academyIds = [
       ...new Set([
@@ -662,6 +675,16 @@ export class PaymentsController {
         gatewayReportedAmount: p.gatewayReportedAmount,
         gatewayMedia: p.gatewayMedia,
         gatewayPaidAt: p.gatewayPaidAt,
+        // Medio de la orden: label del método propio congelado (MANUAL)
+        // o derivado por la UI (código de academia → "Preventa
+        // academia"; pasarela → gatewayMedia/"App").
+        methodLabel: p.methodLabel,
+        discountCodeType: p.discountCodeId
+          ? (discountCodeOf.get(p.discountCodeId)?.type ?? null)
+          : null,
+        soldByAcademyName: p.soldByAcademyId
+          ? (academyNameOf.get(p.soldByAcademyId) ?? null)
+          : null,
         // Desglose congelado de la comisión (spec producer-fee-model):
         // null en pagos legacy pre-modelo - la liquidación los trata por
         // la regla vieja.

@@ -3182,6 +3182,44 @@
         }
       }
     },
+    "/api/academy-deals/{id}/codes": {
+      "post": {
+        "operationId": "AcademySalesController_createCode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      },
+      "get": {
+        "operationId": "AcademySalesController_listCodes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/wallet/google": {
       "get": {
         "operationId": "WalletController_google",
