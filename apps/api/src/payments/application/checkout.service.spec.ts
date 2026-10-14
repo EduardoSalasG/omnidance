@@ -516,7 +516,7 @@ describe("CheckoutService.purchaseTicket", () => {
 
   // ─── Orden con total $0: sin pasarela, liquida al instante ───
 
-  it("preventa $0: no llama al gateway, pago PAID gateway FREE y paymentUrl = retorno", async () => {
+  it("preventa $0: no llama al gateway, pago PAID gateway FREE y paid=true sin redirect", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 14, 23, 30));
     fx.prisma.event.findUnique.mockResolvedValue(
@@ -536,7 +536,9 @@ describe("CheckoutService.purchaseTicket", () => {
     expect(stl.settle).toHaveBeenCalledTimes(1);
     expect(stl.settle.mock.calls[0]![0]!.id).toBe(p.id);
     expect(stl.settle.mock.calls[0]![1]).toBe("PAID");
-    expect(res.paymentUrl).toContain(`/checkout/return?paymentId=${p.id}`);
+    // Sin pasarela ni pantalla de retorno: el cliente va directo a éxito.
+    expect(res.paid).toBe(true);
+    expect(res.paymentUrl).toBeNull();
   });
 
   it("descuento 100% deja la orden en $0 → mismo camino sin pasarela", async () => {
@@ -1192,7 +1194,8 @@ describe("CheckoutService.purchaseTicket", () => {
     const res = await buy({ methodId: "met-1", discountCode: "FREE100" });
     expect(fx.payments[0].gateway).toBe("FREE");
     expect(fx.payments[0].feeMode).toBe("FREE");
-    expect(res.paymentUrl).not.toBeNull();
+    expect(res.paid).toBe(true);
+    expect(res.paymentUrl).toBeNull();
   });
 
   // ─── Sugerencia de canción ───

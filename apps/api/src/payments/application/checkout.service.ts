@@ -296,10 +296,19 @@ export interface PurchasePrivateClassInput {
 }
 
 export interface PurchaseTicketResult {
-  /** null cuando la orden es por método propio (espera comprobante). */
+  /**
+   * null cuando la orden no va a la pasarela: método propio (espera
+   * comprobante) u orden $0 ya liquidada (paid=true).
+   */
   paymentUrl: string | null;
   paymentId: string;
   quote: Quote;
+  /**
+   * true cuando la orden $0 ya quedó PAID en el server (preventa
+   * liberada o descuento 100%) - el cliente cae directo a la
+   * pantalla de éxito, sin redirect ni polling.
+   */
+  paid?: boolean;
   /** Tickets de la orden (1 comprador + N regalos); 1 en series pass. */
   quantity: number;
   /** Snapshot del método propio elegido - instrucciones al comprador. */
@@ -847,11 +856,17 @@ export class CheckoutService {
     // Orden con total $0 (preventa liberada o descuento que la dejó en
     // cero): no hay cobro que derivar a la pasarela - se liquida al
     // instante por el mismo settle del webhook (tickets, mesa, redención
-    // del código, ledger, notificación) y el cliente cae en la pantalla
-    // de retorno, que ya lee el pago PAID.
+    // del código, ledger, notificación) y el cliente cae directo en la
+    // pantalla de éxito (paid=true - no se navega a ninguna URL).
     if (orderTotal === 0) {
       await this.settlement.settle(payment, "PAID", { actor: "checkout" });
-      return { paymentUrl: returnUrl, paymentId: payment.id, quote, quantity };
+      return {
+        paymentUrl: null,
+        paymentId: payment.id,
+        quote,
+        quantity,
+        paid: true,
+      };
     }
 
     // Método propio: sin cobro en pasarela - la orden espera el
