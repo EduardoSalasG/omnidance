@@ -41,6 +41,8 @@ export function PaymentsSection({ eventId }: Props) {
   // interno del Card - la página no crece con el historial de ventas.
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<5 | 10 | "all">(5);
+  // Filtro por estado del pago - se aplica antes de paginar.
+  const [status, setStatus] = useState<string>("all");
 
   const load = useCallback(async () => {
     setError(false);
@@ -67,12 +69,16 @@ export function PaymentsSection({ eventId }: Props) {
   // Sin acceso (no-owner / no-admin): la sección no existe para el viewer.
   if (denied) return null;
 
-  const total = payments?.length ?? 0;
+  const filtered =
+    status === "all"
+      ? payments
+      : payments?.filter((p) => p.status === status);
+  const total = filtered?.length ?? 0;
   // "all" equivale a size=total: un solo slice sin páginas.
   const size = pageSize === "all" ? Math.max(total, 1) : pageSize;
   const pages = Math.max(1, Math.ceil(total / size));
   const safePage = Math.min(page, pages);
-  const visible = payments?.slice((safePage - 1) * size, safePage * size);
+  const visible = filtered?.slice((safePage - 1) * size, safePage * size);
 
   return (
     <section className="flex flex-col gap-3">
@@ -80,22 +86,42 @@ export function PaymentsSection({ eventId }: Props) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("sections.payments")}
         </h2>
-        <label className="flex items-center gap-2 text-xs text-ink/50">
-          {tc("pager.perPage")}
-          <select
-            value={String(pageSize)}
-            onChange={(e) => {
-              const v = e.target.value;
-              setPageSize(v === "all" ? "all" : (Number(v) as 5 | 10));
-              setPage(1);
-            }}
-            className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-          >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="all">{tc("pager.all")}</option>
-          </select>
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-ink/50">
+            {tc("filter.status")}
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <option value="all">{tc("filter.all")}</option>
+              {Object.keys(PAYMENT_STATUS_VARIANT).map((s) => (
+                <option key={s} value={s}>
+                  {tp.has(`status.${s}`) ? tp(`status.${s}`) : s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-xs text-ink/50">
+            {tc("pager.perPage")}
+            <select
+              value={String(pageSize)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setPageSize(v === "all" ? "all" : (Number(v) as 5 | 10));
+                setPage(1);
+              }}
+              className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="all">{tc("pager.all")}</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {payments === null && !error && (
@@ -116,6 +142,14 @@ export function PaymentsSection({ eventId }: Props) {
           {tp("byEvent.empty")}
         </p>
       )}
+      {visible !== undefined &&
+        visible.length === 0 &&
+        payments !== null &&
+        payments.length > 0 && (
+          <p role="status" className="text-sm text-ink/50">
+            {tc("filter.noResults")}
+          </p>
+        )}
       {visible !== undefined && visible.length > 0 && (
         <>
           <Card
