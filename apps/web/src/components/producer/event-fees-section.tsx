@@ -22,6 +22,12 @@ type Props = {
   event: EventDetail;
   /** roles de GET /me incluyen "ADMIN" - solo admin puede PATCHear fees. */
   isAdmin: boolean;
+  /**
+   * event.producerId === me.id. /producer/fee-params resuelve los
+   * defaults DEL CALLER - sin owner no podemos saber la tasa efectiva
+   * heredada de otro productor y se muestra "-".
+   */
+  isOwner: boolean;
   /** Refrescar el evento tras un guardado exitoso. */
   onSaved: () => void;
 };
@@ -29,15 +35,39 @@ type Props = {
 /**
  * Comisión del evento (PATCH /events/:id, spec producer-fee-model): se
  * muestra como un dato más del header del evento (junto a fecha/lugar),
- * no como sección - vacío hereda el default del productor (o el global).
- * Admin con evento editable abre la edición inline; el backend rechaza
- * el PATCH con 403 si un no-admin la envía.
+ * no como sección. Si el evento no tiene override se muestra la tasa
+ * efectiva resuelta (GET /producer/fee-params: default del productor o
+ * global). Admin con evento editable abre la edición inline; el backend
+ * rechaza el PATCH con 403 si un no-admin la envía.
  */
-export function EventFeeInline({ event, isAdmin, onSaved }: Props) {
+export function EventFeeInline({ event, isAdmin, isOwner, onSaved }: Props) {
   const t = useTranslations("producer");
   const tc = useTranslations("common");
 
   const canEdit = isAdmin && EDITABLE_STATUSES.includes(event.status);
+
+  // Sin override del evento: la tasa efectiva del productor (o global).
+  const [effectivePct, setEffectivePct] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (event.platformFeePct != null || !isOwner) {
+      setEffectivePct(null);
+      return;
+    }
+    let cancelled = false;
+    apiFetch("/producer/fee-params")
+      .then(async (res) => {
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as {
+          effective?: { platformFeePct?: number | null };
+        };
+        setEffectivePct(body.effective?.platformFeePct ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [event.id, event.platformFeePct, isOwner]);
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(
@@ -52,6 +82,8 @@ export function EventFeeInline({ event, isAdmin, onSaved }: Props) {
   }, [event, editing]);
 
   const value = event.platformFeePct ?? null;
+  // Lo que se muestra: override del evento o la tasa efectiva heredada.
+  const shown = value ?? effectivePct;
 
   async function save() {
     if (saving) return;
@@ -128,10 +160,10 @@ export function EventFeeInline({ event, isAdmin, onSaved }: Props) {
     <span className="inline-flex items-center gap-1.5">
       <span>
         {t("fees.shortLabel")}:{" "}
-        {value != null ? (
-          <strong className="font-semibold text-ink/80">{value}%</strong>
+        {shown != null ? (
+          <strong className="font-semibold text-ink/80">{shown}%</strong>
         ) : (
-          t("fees.inherit")
+          "-"
         )}
       </span>
       {saved && <CheckIcon className="size-3.5 text-neon" />}

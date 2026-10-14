@@ -269,6 +269,7 @@ export default function ProducerEventDetailPage({
               <EventFeeInline
                 event={event}
                 isAdmin={isAdmin}
+                isOwner={event.producerId === meId}
                 onSaved={() => void loadEvent()}
               />
             </div>
