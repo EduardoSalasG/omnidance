@@ -24,6 +24,7 @@ import {
 } from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { version as appVersion } from "../../../../package.json";
 
 type Streak = {
   currentWeeks: number;
@@ -687,6 +688,13 @@ export default function PerfilPage() {
       <Button variant="secondary" onClick={logout} className="w-full">
         {t("logout")}
       </Button>
+
+      {/* Versión del build para trazabilidad - al reportar un bug el
+          usuario dice qué versión ve; viene de apps/web/package.json
+          inlineado en build time. */}
+      <p className="pt-2 text-center text-xs text-ink/30">
+        v{appVersion}
+      </p>
 
       {/* Tour de primera visita - monta con `me` resuelto; los targets
           condicionales (act-as, gamificación) se omiten si no aplican. */}
