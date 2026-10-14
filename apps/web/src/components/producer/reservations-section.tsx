@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
   inputCls,
@@ -44,6 +44,10 @@ export function ReservationsSection({
   const [sizeDrafts, setSizeDrafts] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  // Vista paginada dentro de la sección: 5 / 10 / "all" con scroll
+  // interno (mismo patrón que PaymentsSection).
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<5 | 10 | "all">(5);
 
   const load = useCallback(async () => {
     setError(false);
@@ -127,11 +131,36 @@ export function ReservationsSection({
   const activeCount = actives.length;
   const seatsUsed = actives.reduce((sum, r) => sum + (r.partySize ?? 0), 0);
 
+  const total = items?.length ?? 0;
+  // "all" equivale a size=total: un solo slice sin páginas.
+  const size = pageSize === "all" ? Math.max(total, 1) : pageSize;
+  const pages = Math.max(1, Math.ceil(total / size));
+  const safePage = Math.min(page, pages);
+  const visible = items?.slice((safePage - 1) * size, safePage * size);
+
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-        {t("sections.reservations")}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {t("sections.reservations")}
+        </h2>
+        <label className="flex items-center gap-2 text-xs text-ink/50">
+          {tc("pager.perPage")}
+          <select
+            value={String(pageSize)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPageSize(v === "all" ? "all" : (Number(v) as 5 | 10));
+              setPage(1);
+            }}
+            className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="all">{tc("pager.all")}</option>
+          </select>
+        </label>
+      </div>
 
       {tablesTotal != null && (
         <p className="text-xs text-ink/50">
@@ -160,9 +189,11 @@ export function ReservationsSection({
           {t("reservations.empty")}
         </p>
       )}
-      {items !== null && items.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {items.map((r, i) => {
+      {visible !== undefined && visible.length > 0 && (
+        <>
+          <div className="max-h-[26rem] overflow-y-auto pr-1">
+            <ul className="flex flex-col gap-2">
+              {visible.map((r, i) => {
             const manageable = Boolean(r.id);
             return (
               <li key={r.id ?? i}>
@@ -291,7 +322,21 @@ export function ReservationsSection({
               </li>
             );
           })}
-        </ul>
+            </ul>
+          </div>
+          {pageSize !== "all" ? (
+            <Pager
+              page={safePage}
+              pageSize={pageSize}
+              total={total}
+              onPage={setPage}
+            />
+          ) : (
+            <span className="text-xs tabular-nums text-ink/50">
+              {tc("pager.results", { count: total })}
+            </span>
+          )}
+        </>
       )}
     </section>
   );
