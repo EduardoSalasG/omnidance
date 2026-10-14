@@ -173,9 +173,10 @@ export class AcademySalesController {
   }
 
   /**
-   * El productor marca la deuda pendiente del acuerdo como pagada. El
-   * settlement se materializa al marcar con el monto computado ahora -
-   * ventas posteriores dejan remanente pendiente (design.md).
+   * El productor marca el saldo pendiente del acuerdo como saldado. El
+   * settlement se materializa al marcar con el monto signed computado
+   * ahora (+ él pagó a la academia / − la academia le pagó a él) -
+   * movimientos posteriores dejan remanente pendiente (design.md).
    */
   @Post("academy-deals/:id/mark-paid")
   async markPaid(
@@ -185,6 +186,34 @@ export class AcademySalesController {
   ) {
     try {
       return await this.sales.markPaid(id, req.person!, dto?.evidenceUrl);
+    } catch (e) {
+      this.mapError(e);
+    }
+  }
+
+  /**
+   * Canal código (spec academy-presale-codes): la academia cobra la
+   * preventa en efectivo y emite un código 100% off de un solo uso por
+   * venta - el comprador lo redime en el checkout (orden $0 FREE).
+   * Solo acuerdos ACTIVE y staff de la academia con capacidad payments.
+   */
+  @Post("academy-deals/:id/codes")
+  async createCode(@Param("id") id: string, @Req() req: Request) {
+    try {
+      return await this.sales.createPresaleCode(id, req.person!);
+    } catch (e) {
+      this.mapError(e);
+    }
+  }
+
+  /**
+   * Códigos emitidos del acuerdo con su redención (comprador + pago) -
+   * auditable por la academia y por el productor dueño del alcance.
+   */
+  @Get("academy-deals/:id/codes")
+  async listCodes(@Param("id") id: string, @Req() req: Request) {
+    try {
+      return await this.sales.listPresaleCodes(id, req.person!);
     } catch (e) {
       this.mapError(e);
     }

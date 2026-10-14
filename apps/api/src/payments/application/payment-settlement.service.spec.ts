@@ -127,8 +127,11 @@ function mkPrisma() {
       create: vi.fn(async ({ data }: { data: Row }) => data),
     },
     discountCode: {
-      findUnique: vi.fn(async () => null),
+      findUnique: vi.fn(
+        async (): Promise<Record<string, unknown> | null> => null,
+      ),
       update: vi.fn(async () => ({})),
+      updateMany: vi.fn(async () => ({ count: 1 })),
     },
     discountRedemption: {
       create: vi.fn(async ({ data }: { data: Row }) => data),
@@ -594,6 +597,64 @@ describe("PaymentSettlementService", () => {
           ([, input]) => input.type === "ticket.sale",
         ),
       ).toBe(false);
+    });
+
+    // spec academy-presale-codes: código de academia de un solo uso - el
+    // consumo condicional en la tx cierra la carrera check→settle.
+    it("código ACADEMY_PRESALE consumido → el settle revierte (sin ticket)", async () => {
+      const payment = seed(
+        mkPayment({
+          orderType: "TICKET",
+          refId: `tkt_ev1__${randomUUID()}`,
+          eventId: "ev1",
+          discountCodeId: "dc-1",
+          amount: 0,
+        }),
+      );
+      fx.prisma.discountCode.findUnique.mockResolvedValueOnce({
+        id: "dc-1",
+        type: "ACADEMY_PRESALE",
+        maxUses: 1,
+      });
+      // Otro checkout ganó la carrera: el consumo condicional da 0.
+      // (el fake no hace rollback real - en Postgres la tx entera cae:
+      // sin ticket, sin PAID claim, sin redemption).
+      fx.prisma.discountCode.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(
+        svc.settle(payment, "PAID", { actor: "system" }),
+      ).rejects.toThrow("código de preventa ya redimido");
+      expect(fx.prisma.discountRedemption.create).not.toHaveBeenCalled();
+    });
+
+    it("código ACADEMY_PRESALE libre → consume el uso y audita la redención", async () => {
+      const payment = seed(
+        mkPayment({
+          orderType: "TICKET",
+          refId: `tkt_ev1__${randomUUID()}`,
+          eventId: "ev1",
+          discountCodeId: "dc-1",
+          amount: 0,
+        }),
+      );
+      fx.prisma.discountCode.findUnique.mockResolvedValueOnce({
+        id: "dc-1",
+        type: "ACADEMY_PRESALE",
+        maxUses: 1,
+      });
+      const out = await svc.settle(payment, "PAID", { actor: "system" });
+      expect(out).toEqual({ ok: true, status: "PAID" });
+      expect(fx.prisma.discountCode.updateMany).toHaveBeenCalledWith({
+        where: { id: "dc-1", usedCount: { lt: 1 } },
+        data: { usedCount: { increment: 1 } },
+      });
+      expect(fx.prisma.discountRedemption.create).toHaveBeenCalledWith({
+        data: {
+          codeId: "dc-1",
+          personId: payment.personId,
+          paymentId: payment.id,
+        },
+      });
+      expect(fx.tickets).toHaveLength(1);
     });
   });
 

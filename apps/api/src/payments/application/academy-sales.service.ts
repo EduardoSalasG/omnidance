@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../prisma.service";
 import { AcademyAccess } from "../../academies/infrastructure/academy-access.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
@@ -34,9 +35,24 @@ export interface AgreementView {
   createdAt: Date;
   /** Link compartible: el front lo arma con el origen web + ?a=. */
   stats: {
+    /** Tickets PAID atribuidos por ambos canales (link ?a= + códigos). */
     soldTickets: number;
+    /** Códigos 100% emitidos por la academia (spec academy-presale-codes). */
+    codesEmitted: number;
+    /** Comisión devengada del canal link - pasivo productor→academia. */
     commissionAccruedClp: number;
+    /**
+     * Cuenta por cobrar del canal código: la academia cobró el efectivo
+     * y debe al productor (precioLista − comisión) por cada código
+     * redimido PAID.
+     */
+    codeReceivableClp: number;
+    /** Neto ya saldado (signed: + productor→academia, − academia→producer). */
     settledClp: number;
+    /**
+     * Saldo pendiente signed: > 0 el productor debe a la academia;
+     * < 0 la academia debe al productor.
+     */
     pendingClp: number;
   };
 }
@@ -158,6 +174,77 @@ export class AcademySalesService {
     return agg._sum.quantity ?? 0;
   }
 
+  /** Ids de los códigos 100% emitidos bajo el acuerdo (canal código). */
+  private async agreementCodeIds(agreementId: string): Promise<string[]> {
+    const codes = await this.prisma.discountCode.findMany({
+      where: { academySaleAgreementId: agreementId },
+      select: { id: true },
+    });
+    return codes.map((c) => c.id);
+  }
+
+  /**
+   * Tickets PAID del canal LINK (soldByAcademyId sin código del acuerdo).
+   * Una orden por link puede además usar un código normal (CAMPAIGN etc.)
+   * - solo se excluyen los códigos emitidos por ESTE acuerdo.
+   */
+  private async linkTickets(
+    agreement: {
+      id: string;
+      eventId: string | null;
+      seriesId: string | null;
+      academyId: string;
+    },
+    codeIds: string[],
+  ): Promise<number> {
+    const scope = await this.paymentScope(agreement);
+    const agg = await this.prisma.payment.aggregate({
+      _sum: { quantity: true },
+      where: {
+        orderType: "TICKET",
+        status: "PAID",
+        soldByAcademyId: agreement.academyId,
+        ...scope,
+        OR: [
+          { discountCodeId: null },
+          ...(codeIds.length
+            ? [{ discountCodeId: { notIn: codeIds } }]
+            : []),
+        ],
+      },
+    });
+    return agg._sum.quantity ?? 0;
+  }
+
+  /**
+   * Cuenta por cobrar del canal código (academy-presale-codes): cada
+   * código redimido PAID vale (precioLista × quantity − comisión
+   * congelada) - la academia cobró ese efectivo y se lo debe al
+   * productor, quedándose con su comisión.
+   */
+  private async codeReceivable(codeIds: string[]): Promise<number> {
+    if (!codeIds.length) return 0;
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        orderType: "TICKET",
+        status: "PAID",
+        discountCodeId: { in: codeIds },
+      },
+      select: {
+        unitListPrice: true,
+        quantity: true,
+        academyCommissionClp: true,
+      },
+    });
+    return payments.reduce(
+      (sum, p) =>
+        sum +
+        (p.unitListPrice ?? 0) * p.quantity -
+        (p.academyCommissionClp ?? 0),
+      0,
+    );
+  }
+
   /**
    * Resolución de atribución para el checkout (spec ticket-purchase):
    * academyId + acuerdo ACTIVE (evento o serie) → {soldByAcademyId,
@@ -181,8 +268,12 @@ export class AcademySalesService {
     );
     if (!agreement) return null;
     if (agreement.maxTickets != null) {
-      const sold = await this.attributedTickets(agreement);
-      if (sold >= agreement.maxTickets) return null;
+      // El cupo cubre ambos canales: tickets vendidos por link + códigos
+      // emitidos (cada código emitido reserva un cupo aunque aún no se
+      // redima - ya está en manos de la academia).
+      const codeIds = await this.agreementCodeIds(agreement.id);
+      const sold = await this.linkTickets(agreement, codeIds);
+      if (sold + codeIds.length >= agreement.maxTickets) return null;
     }
     return {
       soldByAcademyId: agreement.academyId,
@@ -192,15 +283,41 @@ export class AcademySalesService {
     };
   }
 
-  /** Deuda computada: comisión devengada PAID menos lo ya marcado pagado. */
+  /**
+   * Acuerdo de un código ACADEMY_PRESALE: el vínculo
+   * DiscountCode.academySaleAgreementId resuelve la atribución sin
+   * necesitar el link ?a=. El checkout valida status/scope por su lado.
+   */
+  async codeAgreement(code: { academySaleAgreementId: string | null }) {
+    if (!code.academySaleAgreementId) return null;
+    return this.prisma.academySaleAgreement.findUnique({
+      where: { id: code.academySaleAgreementId },
+    });
+  }
+
+  /**
+   * Saldo bidireccional del acuerdo (spec academy-presale-codes):
+   * - Canal link (?a=): el productor cobró por app → le debe la comisión
+   *   a la academia (linkAccrued).
+   * - Canal código: la academia cobró el efectivo → le debe al productor
+   *   precioLista − comisión por cada código redimido (codeReceivable).
+   * - settled = marcas de pago signed (+ productor pagó, − academia pagó).
+   * pending signed: > 0 a favor de la academia, < 0 a favor del productor.
+   */
   private async debtFor(agreement: {
     id: string;
     eventId: string | null;
     seriesId: string | null;
     academyId: string;
-  }): Promise<{ accrued: number; settled: number; pending: number }> {
+  }): Promise<{
+    linkAccrued: number;
+    codeReceivable: number;
+    settled: number;
+    pending: number;
+  }> {
     const scope = await this.paymentScope(agreement);
-    const [accruedAgg, settledAgg] = await Promise.all([
+    const codeIds = await this.agreementCodeIds(agreement.id);
+    const [accruedAgg, receivable, settledAgg] = await Promise.all([
       this.prisma.payment.aggregate({
         _sum: { academyCommissionClp: true },
         where: {
@@ -208,16 +325,28 @@ export class AcademySalesService {
           status: "PAID",
           soldByAcademyId: agreement.academyId,
           ...scope,
+          OR: [
+            { discountCodeId: null },
+            ...(codeIds.length
+              ? [{ discountCodeId: { notIn: codeIds } }]
+              : []),
+          ],
         },
       }),
+      this.codeReceivable(codeIds),
       this.prisma.academySaleSettlement.aggregate({
         _sum: { amountDue: true },
         where: { agreementId: agreement.id },
       }),
     ]);
-    const accrued = accruedAgg._sum.academyCommissionClp ?? 0;
+    const linkAccrued = accruedAgg._sum.academyCommissionClp ?? 0;
     const settled = settledAgg._sum.amountDue ?? 0;
-    return { accrued, settled, pending: Math.max(0, accrued - settled) };
+    return {
+      linkAccrued,
+      codeReceivable: receivable,
+      settled,
+      pending: linkAccrued - receivable - settled,
+    };
   }
 
   private async toView(a: {
@@ -232,9 +361,12 @@ export class AcademySalesService {
     respondedAt: Date | null;
     createdAt: Date;
   }): Promise<AgreementView> {
-    const [debt, soldTickets] = await Promise.all([
+    const [debt, soldTickets, codesEmitted] = await Promise.all([
       this.debtFor(a),
       this.attributedTickets(a),
+      this.prisma.discountCode.count({
+        where: { academySaleAgreementId: a.id },
+      }),
     ]);
     return {
       id: a.id,
@@ -249,7 +381,9 @@ export class AcademySalesService {
       createdAt: a.createdAt,
       stats: {
         soldTickets,
-        commissionAccruedClp: debt.accrued,
+        codesEmitted,
+        commissionAccruedClp: debt.linkAccrued,
+        codeReceivableClp: debt.codeReceivable,
         settledClp: debt.settled,
         pendingClp: debt.pending,
       },
@@ -479,10 +613,12 @@ export class AcademySalesService {
   }
 
   /**
-   * El productor marca la deuda pendiente del acuerdo como pagada
+   * El productor marca el saldo pendiente del acuerdo como saldado
    * (regularización por fuera de la plataforma - transferencia directa).
-   * Persiste una marca con el monto pendiente computado ahora; ventas
-   * posteriores generan un remanente nuevo. Sin deuda pendiente → 409.
+   * El saldo es signed: > 0 el productor le pagó a la academia (marca
+   * positiva); < 0 la academia le pagó al productor (marca negativa).
+   * Persiste la marca con el monto computado ahora; movimientos
+   * posteriores generan remanente nuevo. Saldo cero → 409.
    */
   async markPaid(
     agreementId: string,
@@ -501,8 +637,8 @@ export class AcademySalesService {
       agreement.event?.producerId ?? agreement.series?.producerId ?? null;
     await this.requireOwnerOrAdmin(producerId, person);
     const debt = await this.debtFor(agreement);
-    if (debt.pending <= 0) {
-      throw new ConflictException("no hay deuda pendiente con esta academia");
+    if (debt.pending === 0) {
+      throw new ConflictException("no hay saldo pendiente con esta academia");
     }
     return this.prisma.academySaleSettlement.create({
       data: {
@@ -513,6 +649,193 @@ export class AcademySalesService {
         evidenceUrl: evidenceUrl ?? null,
         paidAt: new Date(),
       },
+    });
+  }
+
+  // ── Canal código (spec academy-presale-codes) ─────────────────────
+  // La academia cobra la preventa en efectivo por fuera y emite un
+  // código 100% off por venta; el comprador lo redime en el checkout y
+  // la orden $0 se liquida al instante. El vínculo
+  // DiscountCode.academySaleAgreementId da la atribución y la cuenta
+  // por cobrar academia→productor.
+
+  /** Alfabeto sin ambiguos (0/O, 1/I/L) - el código se dicta a mano. */
+  private static readonly CODE_ALPHABET =
+    "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  private static readonly CODE_MONTHS = [
+    "ENE", "FEB", "MAR", "ABR", "MAY", "JUN",
+    "JUL", "AGO", "SEP", "OCT", "NOV", "DIC",
+  ];
+
+  private static codeSlug(name: string): string {
+    const s = name
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      // (rango \u0300-\u036f: marcas diacríticas combinantes)
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 8);
+    return s || "ACADEMIA";
+  }
+
+  private static codeSuffix(): string {
+    let out = "";
+    for (let i = 0; i < 4; i += 1) {
+      out += AcademySalesService.CODE_ALPHABET[
+        Math.floor(Math.random() * AcademySalesService.CODE_ALPHABET.length)
+      ];
+    }
+    return out;
+  }
+
+  /**
+   * La academia emite un código 100% off de un solo uso por cada venta
+   * que cobró en efectivo (staff con capacidad `payments`). Scope del
+   * acuerdo (evento o serie); el cupo del acuerdo cubre códigos
+   * emitidos + tickets vendidos por link. Reintenta el sufijo ante
+   * colisión del código único.
+   */
+  async createPresaleCode(
+    agreementId: string,
+    person: { id: string; roles: string[] },
+  ) {
+    const agreement = await this.prisma.academySaleAgreement.findUnique({
+      where: { id: agreementId },
+      include: {
+        academy: { select: { name: true } },
+        event: { select: { startsAt: true } },
+      },
+    });
+    if (!agreement) throw new NotFoundException("acuerdo no encontrado");
+    await this.access.requireCapabilityWrite(
+      agreement.academyId,
+      person,
+      "payments",
+    );
+    if (agreement.status !== "ACTIVE") {
+      throw new ConflictException("el acuerdo no está activo");
+    }
+    if (agreement.maxTickets != null) {
+      const codeIds = await this.agreementCodeIds(agreement.id);
+      const linkSold = await this.linkTickets(agreement, codeIds);
+      if (codeIds.length + linkSold >= agreement.maxTickets) {
+        throw new ConflictException(
+          "cupo de preventa agotado para esta academia",
+        );
+      }
+    }
+
+    const slug = AcademySalesService.codeSlug(agreement.academy.name);
+    const refDate = agreement.event?.startsAt ?? new Date();
+    const dd = String(refDate.getDate()).padStart(2, "0");
+    const mmm = AcademySalesService.CODE_MONTHS[refDate.getMonth()];
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const code = `${slug}-${dd}${mmm}-${AcademySalesService.codeSuffix()}`;
+      try {
+        return await this.prisma.discountCode.create({
+          data: {
+            code,
+            type: "ACADEMY_PRESALE",
+            percentOff: 100,
+            maxUses: 1,
+            eventId: agreement.eventId,
+            seriesId: agreement.seriesId,
+            academySaleAgreementId: agreement.id,
+            createdById: person.id,
+          },
+        });
+      } catch (e) {
+        // Colisión de código único → reintenta con otro sufijo.
+        if (
+          e instanceof Prisma.PrismaClientKnownRequestError &&
+          e.code === "P2002" &&
+          attempt < 5
+        ) {
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new ConflictException("no se pudo emitir el código - reintenta");
+  }
+
+  /**
+   * Códigos emitidos del acuerdo con su redención (comprador + pago).
+   * Visible para staff de la academia y para el productor dueño del
+   * alcance (o admin) - ambos auditan el canal.
+   */
+  async listPresaleCodes(
+    agreementId: string,
+    person: { id: string; roles: string[] },
+  ) {
+    const agreement = await this.prisma.academySaleAgreement.findUnique({
+      where: { id: agreementId },
+      include: {
+        event: { select: { producerId: true } },
+        series: { select: { producerId: true } },
+      },
+    });
+    if (!agreement) throw new NotFoundException("acuerdo no encontrado");
+    const producerId =
+      agreement.event?.producerId ?? agreement.series?.producerId ?? null;
+    try {
+      await this.access.requireStaff(agreement.academyId, person);
+    } catch {
+      await this.requireOwnerOrAdmin(producerId, person);
+    }
+
+    const codes = await this.prisma.discountCode.findMany({
+      where: { academySaleAgreementId: agreementId },
+      include: { redemptions: true },
+      orderBy: { createdAt: "desc" },
+    });
+    const personIds = [
+      ...new Set(codes.flatMap((c) => c.redemptions.map((r) => r.personId))),
+    ];
+    const paymentIds = [
+      ...new Set(
+        codes.flatMap((c) =>
+          c.redemptions
+            .map((r) => r.paymentId)
+            .filter((id): id is string => id != null),
+        ),
+      ),
+    ];
+    const [buyers, payments] = await Promise.all([
+      personIds.length
+        ? this.prisma.person.findMany({
+            where: { id: { in: personIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+      paymentIds.length
+        ? this.prisma.payment.findMany({
+            where: { id: { in: paymentIds } },
+            select: { id: true, refId: true, status: true },
+          })
+        : [],
+    ]);
+    const buyerNameOf = new Map(buyers.map((p) => [p.id, p.name]));
+    const paymentOf = new Map(payments.map((p) => [p.id, p]));
+
+    return codes.map((c) => {
+      const r = c.redemptions[0] ?? null;
+      const payment = r?.paymentId ? paymentOf.get(r.paymentId) : null;
+      return {
+        id: c.id,
+        code: c.code,
+        usedCount: c.usedCount,
+        maxUses: c.maxUses,
+        createdAt: c.createdAt,
+        redemption: r
+          ? {
+              redeemedAt: r.redeemedAt,
+              buyerName: buyerNameOf.get(r.personId) ?? null,
+              paymentId: r.paymentId,
+              paymentRefId: payment?.refId ?? null,
+            }
+          : null,
+      };
     });
   }
 }

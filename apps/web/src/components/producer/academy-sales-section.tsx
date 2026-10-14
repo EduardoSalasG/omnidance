@@ -26,10 +26,29 @@ export type AcademyDealView = {
   status: "INVITED" | "ACTIVE" | "DECLINED" | "DISABLED";
   stats: {
     soldTickets: number;
+    codesEmitted: number;
     commissionAccruedClp: number;
+    /** Canal código: la academia cobró en efectivo → le debe al productor. */
+    codeReceivableClp: number;
     settledClp: number;
+    /** Signed: > 0 productor debe a la academia; < 0 academia debe al productor. */
     pendingClp: number;
   };
+};
+
+/** Fila de GET /academy-deals/:id/codes (spec academy-presale-codes). */
+export type AcademyPresaleCode = {
+  id: string;
+  code: string;
+  usedCount: number;
+  maxUses: number | null;
+  createdAt: string;
+  redemption: {
+    redeemedAt: string;
+    buyerName: string | null;
+    paymentId: string | null;
+    paymentRefId: string | null;
+  } | null;
 };
 
 const STATUS_VARIANT = {
@@ -128,13 +147,15 @@ export function AcademySalesSection({ eventId }: { eventId: string }) {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {d.stats.pendingClp > 0 && (
+                    {d.stats.pendingClp !== 0 && (
                       <span className="text-sm">
                         <span className="text-xs text-ink/50">
-                          {t("pending")}{" "}
+                          {d.stats.pendingClp > 0
+                            ? t("pending")
+                            : t("pendingCollect")}{" "}
                         </span>
                         <PriceTag
-                          amount={d.stats.pendingClp}
+                          amount={Math.abs(d.stats.pendingClp)}
                           className="text-sm font-semibold"
                         />
                       </span>

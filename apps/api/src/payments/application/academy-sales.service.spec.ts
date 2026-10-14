@@ -25,6 +25,9 @@ function mkPrisma() {
   const agreements: Row[] = [];
   const settlements: Row[] = [];
   const payments: Row[] = [];
+  const codes: Row[] = [];
+  const redemptions: Row[] = [];
+  const persons: Row[] = [{ id: "buyer-1", name: "Comprador Uno" }];
   const prisma = {
     event: {
       findUnique: vi.fn(),
@@ -38,6 +41,60 @@ function mkPrisma() {
         async (): Promise<{ id: string } | null> => ({ id: "pr-1" }),
       ),
     },
+    person: {
+      findMany: vi.fn(
+        async ({ where }: { where: { id: { in: string[] } } }) =>
+          persons.filter((p) => where.id.in.includes(p.id as string)),
+      ),
+    },
+    // Canal código (spec academy-presale-codes): códigos 100% ligados
+    // al acuerdo + su redención (comprador + pago).
+    discountCode: {
+      findMany: vi.fn(
+        async ({
+          where,
+          include,
+        }: {
+          where: { academySaleAgreementId?: string };
+          include?: { redemptions?: boolean };
+        }) =>
+          codes
+            .filter(
+              (c) =>
+                c.academySaleAgreementId === where.academySaleAgreementId,
+            )
+            .map((c) =>
+              include?.redemptions
+                ? {
+                    ...c,
+                    redemptions: redemptions.filter(
+                      (r) => r.codeId === c.id,
+                    ),
+                  }
+                : c,
+            ),
+      ),
+      count: vi.fn(
+        async ({
+          where,
+        }: {
+          where: { academySaleAgreementId?: string };
+        }) =>
+          codes.filter(
+            (c) => c.academySaleAgreementId === where.academySaleAgreementId,
+          ).length,
+      ),
+      create: vi.fn(async ({ data }: { data: Row }) => {
+        const row = {
+          id: `dc-${codes.length + 1}`,
+          usedCount: 0,
+          createdAt: new Date(),
+          ...data,
+        };
+        codes.push(row);
+        return row;
+      }),
+    },
     payment: {
       aggregate: vi.fn(
         async ({ where }: { where: Record<string, unknown> }) => {
@@ -45,6 +102,24 @@ function mkPrisma() {
             | string
             | { in: string[] }
             | undefined;
+          // OR de exclusión del canal código: {discountCodeId:null} o
+          // {discountCodeId:{notIn:[ids del acuerdo]}}.
+          const orOk = (p: Row) =>
+            !where.OR ||
+            (where.OR as Row[]).some((cond) => {
+              if (cond.discountCodeId === null) {
+                return p.discountCodeId == null;
+              }
+              const notIn = (cond.discountCodeId as { notIn?: string[] })
+                ?.notIn;
+              if (notIn) {
+                return (
+                  p.discountCodeId != null &&
+                  !notIn.includes(p.discountCodeId as string)
+                );
+              }
+              return true;
+            });
           const rows = payments.filter(
             (p) =>
               p.status === "PAID" &&
@@ -53,7 +128,8 @@ function mkPrisma() {
                 ? p.eventId === eventFilter
                 : eventFilter
                   ? eventFilter.in.includes(p.eventId as string)
-                  : true),
+                  : true) &&
+              orOk(p),
           );
           return {
             _sum: {
@@ -65,6 +141,26 @@ function mkPrisma() {
             },
           };
         },
+      ),
+      findMany: vi.fn(
+        async ({
+          where,
+        }: {
+          where: {
+            status?: string;
+            discountCodeId?: { in: string[] };
+            id?: { in: string[] };
+          };
+        }) =>
+          payments.filter(
+            (p) =>
+              (!where.status || p.status === where.status) &&
+              (!where.discountCodeId ||
+                where.discountCodeId.in.includes(
+                  p.discountCodeId as string,
+                )) &&
+              (!where.id || where.id.in.includes(p.id as string)),
+          ),
       ),
     },
     academySaleAgreement: {
@@ -135,7 +231,7 @@ function mkPrisma() {
       }),
     },
   };
-  return { prisma, agreements, settlements, payments };
+  return { prisma, agreements, settlements, payments, codes, redemptions, persons };
 }
 
 const producer = { id: "prod-1", roles: [] as string[] };
@@ -465,5 +561,195 @@ describe("AcademySalesService", () => {
     await expect(
       svc.markPaid("agr-1", { id: "otro", roles: [] }),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  // ─── Canal código (spec academy-presale-codes) ───
+  // La academia cobra la preventa en efectivo y emite un código 100%
+  // por venta; el redeem deja cuenta por cobrar academia→productor.
+
+  it("createPresaleCode: emite código 100% un solo uso con scope del acuerdo", async () => {
+    fx.agreements.push(
+      mkAgreement({
+        status: "ACTIVE",
+        event: {
+          producerId: "prod-1",
+          name: "Noche de Salsa",
+          startsAt: new Date("2026-11-15T21:00:00Z"),
+        },
+      }),
+    );
+    const code = await svc.createPresaleCode("agr-1", academyOwner);
+    expect(access.requireCapabilityWrite).toHaveBeenCalledWith(
+      "ac-1",
+      academyOwner,
+      "payments",
+    );
+    expect(code.type).toBe("ACADEMY_PRESALE");
+    expect(code.percentOff).toBe(100);
+    expect(code.maxUses).toBe(1);
+    expect(code.eventId).toBe("evt-1");
+    expect(code.academySaleAgreementId).toBe("agr-1");
+    // Formato legible: SLUGACADEMIA-DDMMM-XXXX
+    expect(code.code).toMatch(/^ACADEMIA-15NOV-[A-Z0-9]{4}$/);
+  });
+
+  it("createPresaleCode: acuerdo no ACTIVE → 409", async () => {
+    fx.agreements.push(mkAgreement({ status: "INVITED" }));
+    await expect(
+      svc.createPresaleCode("agr-1", academyOwner),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("createPresaleCode: cupo = códigos emitidos + tickets por link → 409", async () => {
+    fx.agreements.push(
+      mkAgreement({ status: "ACTIVE", maxTickets: 3 }),
+    );
+    // 2 códigos ya emitidos + 1 ticket PAID por link = cupo lleno.
+    fx.codes.push(
+      { id: "dc-1", academySaleAgreementId: "agr-1", code: "A" },
+      { id: "dc-2", academySaleAgreementId: "agr-1", code: "B" },
+    );
+    fx.payments.push({
+      status: "PAID",
+      soldByAcademyId: "ac-1",
+      eventId: "evt-1",
+      quantity: 1,
+      discountCodeId: null,
+      academyCommissionClp: 5000,
+    });
+    await expect(
+      svc.createPresaleCode("agr-1", academyOwner),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("resolveAttribution (link): los códigos emitidos también consumen cupo", async () => {
+    fx.agreements.push(
+      mkAgreement({ status: "ACTIVE", maxTickets: 2 }),
+    );
+    fx.codes.push(
+      { id: "dc-1", academySaleAgreementId: "agr-1", code: "A" },
+      { id: "dc-2", academySaleAgreementId: "agr-1", code: "B" },
+    );
+    const att = await svc.resolveAttribution({
+      eventId: "evt-1",
+      seriesId: null,
+      academyId: "ac-1",
+      unitListPrice: 6000,
+      quantity: 1,
+      channel: "PRESALE",
+    });
+    expect(att).toBeNull();
+  });
+
+  it("deuda bidireccional: redeem de código = cuenta por cobrar lista − comisión", async () => {
+    fx.agreements.push(mkAgreement({ status: "ACTIVE" }));
+    fx.codes.push({
+      id: "dc-1",
+      academySaleAgreementId: "agr-1",
+      code: "ACADEMIAX-15NOV-AAAA",
+    });
+    // Orden $0 FREE del código: atribuida (soldByAcademyId) con comisión
+    // congelada 50% de 10.000.
+    fx.payments.push({
+      id: "pay-1",
+      status: "PAID",
+      soldByAcademyId: "ac-1",
+      eventId: "evt-1",
+      quantity: 1,
+      discountCodeId: "dc-1",
+      unitListPrice: 10000,
+      academyCommissionClp: 5000,
+      amount: 0,
+    });
+    const view = await svc.patchAgreement("agr-1", producer, {
+      commissionPct: 50,
+    });
+    expect(view.stats.codeReceivableClp).toBe(5000); // 10.000 − 5.000
+    expect(view.stats.commissionAccruedClp).toBe(0); // no es canal link
+    expect(view.stats.pendingClp).toBe(-5000); // la academia le debe al productor
+    expect(view.stats.codesEmitted).toBe(1);
+    expect(view.stats.soldTickets).toBe(1);
+  });
+
+  it("saldo neto: comisión por link menos por cobrar por códigos", async () => {
+    fx.agreements.push(mkAgreement({ status: "ACTIVE" }));
+    fx.codes.push({ id: "dc-1", academySaleAgreementId: "agr-1", code: "A" });
+    fx.payments.push(
+      // Link: 2 tickets, comisión devengada 10.000.
+      {
+        status: "PAID",
+        soldByAcademyId: "ac-1",
+        eventId: "evt-1",
+        quantity: 2,
+        discountCodeId: null,
+        academyCommissionClp: 10000,
+      },
+      // Código redimido: academia cobró 10.000, debe 5.000.
+      {
+        status: "PAID",
+        soldByAcademyId: "ac-1",
+        eventId: "evt-1",
+        quantity: 1,
+        discountCodeId: "dc-1",
+        unitListPrice: 10000,
+        academyCommissionClp: 5000,
+      },
+    );
+    const view = await svc.patchAgreement("agr-1", producer, {
+      commissionPct: 50,
+    });
+    expect(view.stats.commissionAccruedClp).toBe(10000);
+    expect(view.stats.codeReceivableClp).toBe(5000);
+    expect(view.stats.pendingClp).toBe(5000); // 10.000 − 5.000
+  });
+
+  it("markPaid con saldo a favor del productor → settlement negativo", async () => {
+    fx.agreements.push(mkAgreement({ status: "ACTIVE" }));
+    fx.codes.push({ id: "dc-1", academySaleAgreementId: "agr-1", code: "A" });
+    fx.payments.push({
+      status: "PAID",
+      soldByAcademyId: "ac-1",
+      eventId: "evt-1",
+      quantity: 1,
+      discountCodeId: "dc-1",
+      unitListPrice: 10000,
+      academyCommissionClp: 5000,
+    });
+    const settlement = await svc.markPaid("agr-1", producer);
+    expect(settlement.amountDue).toBe(-5000); // la academia pagó al productor
+    const view = await svc.patchAgreement("agr-1", producer, {
+      commissionPct: 50,
+    });
+    expect(view.stats.pendingClp).toBe(0);
+    expect(view.stats.settledClp).toBe(-5000);
+  });
+
+  it("listPresaleCodes: códigos con comprador y ref de pago", async () => {
+    fx.agreements.push(mkAgreement({ status: "ACTIVE" }));
+    fx.codes.push(
+      { id: "dc-1", academySaleAgreementId: "agr-1", code: "A", usedCount: 1, maxUses: 1, createdAt: new Date() },
+      { id: "dc-2", academySaleAgreementId: "agr-1", code: "B", usedCount: 0, maxUses: 1, createdAt: new Date() },
+    );
+    fx.redemptions.push({
+      id: "red-1",
+      codeId: "dc-1",
+      personId: "buyer-1",
+      paymentId: "pay-1",
+      redeemedAt: new Date(),
+    });
+    fx.payments.push({ id: "pay-1", refId: "tkt_evt-1_x", status: "PAID" });
+    const rows = await svc.listPresaleCodes("agr-1", academyOwner);
+    expect(rows).toHaveLength(2);
+    const used = rows.find((r) => r.code === "A")!;
+    expect(used.redemption?.buyerName).toBe("Comprador Uno");
+    expect(used.redemption?.paymentRefId).toBe("tkt_evt-1_x");
+    expect(rows.find((r) => r.code === "B")!.redemption).toBeNull();
+  });
+
+  it("listPresaleCodes: el productor dueño también audita", async () => {
+    fx.agreements.push(mkAgreement({ status: "ACTIVE" }));
+    access.requireStaff.mockRejectedValueOnce(new ForbiddenException());
+    const rows = await svc.listPresaleCodes("agr-1", producer);
+    expect(rows).toEqual([]);
   });
 });

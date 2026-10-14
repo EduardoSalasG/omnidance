@@ -483,17 +483,32 @@ export class PaymentSettlementService {
       }
 
       if (code) {
-        // auditoría de la redemption + consumo del uso
+        // Código de academia (spec academy-presale-codes): un solo uso
+        // real - el consumo es condicional dentro de la tx para cerrar
+        // la ventana check→settle en que dos órdenes $0 concurrentes
+        // pasaban isRedeemable con el mismo código. El perdedor revierte
+        // toda la tx (su orden FREE queda PENDING, sin ticket).
+        if (code.type === "ACADEMY_PRESALE") {
+          const consumed = await tx.discountCode.updateMany({
+            where: { id: code.id, usedCount: { lt: code.maxUses ?? 1 } },
+            data: { usedCount: { increment: 1 } },
+          });
+          if (consumed.count === 0) {
+            throw new BadRequestException("código de preventa ya redimido");
+          }
+        } else {
+          await tx.discountCode.update({
+            where: { id: code.id },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+        // auditoría de la redemption
         await tx.discountRedemption.create({
           data: {
             codeId: code.id,
             personId: payment.personId,
             paymentId: payment.id,
           },
-        });
-        await tx.discountCode.update({
-          where: { id: code.id },
-          data: { usedCount: { increment: 1 } },
         });
       }
     });

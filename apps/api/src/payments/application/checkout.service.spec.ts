@@ -228,6 +228,11 @@ const academySalesStub = {
       academyCommissionClp: number;
     } | null> => null,
   ),
+  // Canal código (spec academy-presale-codes): el acuerdo ligado al
+  // código ACADEMY_PRESALE - null por defecto (sin vínculo).
+  codeAgreement: vi.fn(
+    async (): Promise<Record<string, unknown> | null> => null,
+  ),
 };
 
 // Settlement real se cubre en su propio spec - acá solo interesa que el
@@ -257,6 +262,7 @@ const mkEvent = (over: Record<string, unknown> = {}) => ({
 
 const mkCode = (over: Record<string, unknown> = {}) => ({
   id: "code-1",
+  type: "CAMPAIGN",
   eventId: null,
   seriesId: null,
   percentOff: null,
@@ -264,6 +270,7 @@ const mkCode = (over: Record<string, unknown> = {}) => ({
   maxUses: null,
   usedCount: 0,
   expiresAt: null,
+  academySaleAgreementId: null,
   ...over,
 });
 
@@ -283,6 +290,8 @@ describe("CheckoutService.purchaseTicket", () => {
     };
     fx.prisma.event.findUnique.mockResolvedValue(mkEvent());
     academySalesStub.resolveAttribution.mockClear();
+    academySalesStub.codeAgreement.mockClear();
+    academySalesStub.codeAgreement.mockResolvedValue(null);
     svc = new CheckoutService(
       fx.prisma as unknown as PrismaService,
       gw.gateway,
@@ -869,6 +878,115 @@ describe("CheckoutService.purchaseTicket", () => {
       expect.objectContaining({ channel: "DOOR" }),
     );
     expect(fx.payments[0]!.soldByAcademyId).toBeNull();
+  });
+
+  // ─── Canal código de academia (academy-presale-codes) ───
+  // Código 100% emitido por la academia: la orden sale $0 FREE, queda
+  // atribuida por el vínculo código→acuerdo (sin link ?a=) y la comisión
+  // se congela igual que en el canal link.
+
+  it("código ACADEMY_PRESALE de acuerdo ACTIVE: orden $0 atribuida sin pasarela", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({
+        id: "dc-1",
+        type: "ACADEMY_PRESALE",
+        percentOff: 100,
+        maxUses: 1,
+        eventId: "evt-1",
+        academySaleAgreementId: "agr-1",
+      }),
+    );
+    academySalesStub.codeAgreement.mockResolvedValueOnce({
+      id: "agr-1",
+      academyId: "ac-1",
+      status: "ACTIVE",
+      commissionPct: 50,
+    });
+    const res = await buy({ discountCode: "MUVET-15NOV-AAAA" });
+    expect(res.quote.total).toBe(0);
+    const p = fx.payments[0]!;
+    expect(p.gateway).toBe("FREE");
+    expect(p.discountCodeId).toBe("dc-1");
+    expect(p.soldByAcademyId).toBe("ac-1");
+    expect(p.academyCommissionClp).toBe(5000); // round(10000 × 50%)
+    expect(gw.createOrder).not.toHaveBeenCalled();
+    expect(stl.settle).toHaveBeenCalledTimes(1);
+    // El canal código manda: no consulta la atribución del link.
+    expect(academySalesStub.resolveAttribution).not.toHaveBeenCalled();
+  });
+
+  it("código ACADEMY_PRESALE con acuerdo DISABLED → código desactivado", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({
+        type: "ACADEMY_PRESALE",
+        percentOff: 100,
+        academySaleAgreementId: "agr-1",
+      }),
+    );
+    academySalesStub.codeAgreement.mockResolvedValueOnce({
+      id: "agr-1",
+      academyId: "ac-1",
+      status: "DISABLED",
+      commissionPct: 50,
+    });
+    await expect(buy({ discountCode: "X" })).rejects.toThrow(
+      "código desactivado",
+    );
+    expect(fx.payments).toHaveLength(0);
+  });
+
+  it("código ACADEMY_PRESALE sin acuerdo ligado → código desactivado", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({
+        type: "ACADEMY_PRESALE",
+        percentOff: 100,
+        academySaleAgreementId: null,
+      }),
+    );
+    await expect(buy({ discountCode: "X" })).rejects.toThrow(
+      "código desactivado",
+    );
+  });
+
+  it("código ACADEMY_PRESALE con quantity > 1 → una sola entrada", async () => {
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({
+        type: "ACADEMY_PRESALE",
+        percentOff: 100,
+        academySaleAgreementId: "agr-1",
+      }),
+    );
+    academySalesStub.codeAgreement.mockResolvedValueOnce({
+      id: "agr-1",
+      academyId: "ac-1",
+      status: "ACTIVE",
+      commissionPct: 50,
+    });
+    await expect(
+      buy({ discountCode: "X", quantity: 2 }),
+    ).rejects.toThrow("este código cubre una sola entrada");
+  });
+
+  it("código ACADEMY_PRESALE en canal DOOR → solo preventa", async () => {
+    fx.prisma.event.findUnique.mockResolvedValue(
+      mkEvent({ status: "LIVE", presalePrice: null, doorPrice: 12000 }),
+    );
+    fx.prisma.discountCode.findUnique.mockResolvedValue(
+      mkCode({
+        type: "ACADEMY_PRESALE",
+        percentOff: 100,
+        academySaleAgreementId: "agr-1",
+      }),
+    );
+    academySalesStub.codeAgreement.mockResolvedValueOnce({
+      id: "agr-1",
+      academyId: "ac-1",
+      status: "ACTIVE",
+      commissionPct: 50,
+    });
+    await expect(buy({ discountCode: "X" })).rejects.toThrow(
+      "este código solo es válido en preventa",
+    );
   });
 
   // ─── Descuentos ───

@@ -15,6 +15,7 @@ import { SkeletonList } from "@/components/ui";
 import {
   PAYMENT_STATUS_VARIANT,
   paymentDateTimeFmt,
+  paymentMedium,
   paymentPaidAt,
   type PaymentAuditRow,
 } from "@/components/payments/shared";
@@ -188,6 +189,12 @@ export function PaymentsSection({ eventId }: Props) {
                     scope="col"
                     className="sticky top-0 bg-surface px-4 py-3 font-medium"
                   >
+                    {tp("cols.medium")}
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 bg-surface px-4 py-3 font-medium"
+                  >
                     {tp("cols.amount")}
                   </th>
                   <th
@@ -221,13 +228,26 @@ export function PaymentsSection({ eventId }: Props) {
                         {paymentDateTimeFmt.format(new Date(paymentPaidAt(p)))}
                       </span>
                       <span className="block text-xs text-ink/40">
-                        {p.gatewayMedia ?? `Nº ${p.refId.slice(0, 12)}`}
+                        {`Nº ${p.refId.slice(0, 12)}`}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className="block max-w-40 truncate">
                         {p.personName ?? "—"}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="block max-w-36 truncate whitespace-nowrap">
+                        {paymentMedium(p, {
+                          academyPresale: tp("methods.academyPresale"),
+                          app: tp("methods.app"),
+                        })}
+                      </span>
+                      {p.soldByAcademyName && (
+                        <span className="block max-w-36 truncate text-xs text-ink/40">
+                          {p.soldByAcademyName}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <PriceTag amount={p.amount} />

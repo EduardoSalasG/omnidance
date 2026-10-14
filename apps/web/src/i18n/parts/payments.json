@@ -25,10 +25,15 @@
     "cols": {
       "paidAt": "Cobrado",
       "buyer": "Comprador",
+      "medium": "Medio",
       "amount": "Monto",
       "gatewayFee": "Costo pasarela",
       "net": "Neto",
       "status": "Estado"
+    },
+    "methods": {
+      "app": "App",
+      "academyPresale": "Preventa academia"
     },
     "ledger": {
       "toggle": "Auditoría ({count})",

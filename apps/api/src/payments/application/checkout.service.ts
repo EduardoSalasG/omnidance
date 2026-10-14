@@ -90,8 +90,17 @@ export class PresaleClosedError extends Error {
   }
 }
 
+export type InvalidDiscountReason =
+  | "EXPIRED"
+  | "EXHAUSTED"
+  | "SCOPE_MISMATCH"
+  | "UNKNOWN"
+  | "DISABLED"
+  | "PRESALE_ONLY"
+  | "SINGLE_TICKET";
+
 export class InvalidDiscountError extends Error {
-  constructor(reason: "EXPIRED" | "EXHAUSTED" | "SCOPE_MISMATCH" | "UNKNOWN") {
+  constructor(reason: InvalidDiscountReason) {
     super(
       reason === "EXPIRED"
         ? "código expirado"
@@ -99,7 +108,13 @@ export class InvalidDiscountError extends Error {
           ? "código agotado"
           : reason === "SCOPE_MISMATCH"
             ? "código no aplica a este evento"
-            : "código inválido",
+            : reason === "DISABLED"
+              ? "código desactivado"
+              : reason === "PRESALE_ONLY"
+                ? "este código solo es válido en preventa"
+                : reason === "SINGLE_TICKET"
+                  ? "este código cubre una sola entrada"
+                  : "código inválido",
     );
     this.name = "InvalidDiscountError";
   }
@@ -305,7 +320,7 @@ export interface PurchaseTicketResult {
 export interface DiscountQuoteResult {
   valid: boolean;
   discountClp: number;
-  reason?: "EXPIRED" | "EXHAUSTED" | "SCOPE_MISMATCH" | "UNKNOWN";
+  reason?: InvalidDiscountReason;
 }
 
 /**
@@ -660,6 +675,7 @@ export class CheckoutService {
 
     let code: {
       id: string;
+      type: string;
       eventId: string | null;
       seriesId: string | null;
       percentOff: number | null;
@@ -667,6 +683,11 @@ export class CheckoutService {
       maxUses: number | null;
       usedCount: number;
       expiresAt: Date | null;
+      academySaleAgreementId: string | null;
+    } | null = null;
+    let academyCodeAgreement: {
+      academyId: string;
+      commissionPct: number;
     } | null = null;
     if (input.discountCode) {
       code = await this.prisma.discountCode.findUnique({
@@ -680,6 +701,23 @@ export class CheckoutService {
         seriesId: event.seriesId ?? undefined,
       });
       if (!check.ok) throw new InvalidDiscountError(check.reason);
+      // Canal código de academia (spec academy-presale-codes): la
+      // academia cobró la entrada en efectivo y el código la deja en
+      // $0 - solo en preventa, una entrada por código, y solo mientras
+      // el acuerdo siga ACTIVE.
+      if (code.type === "ACADEMY_PRESALE") {
+        if (channel !== "PRESALE") {
+          throw new InvalidDiscountError("PRESALE_ONLY");
+        }
+        if (quantity !== 1) {
+          throw new InvalidDiscountError("SINGLE_TICKET");
+        }
+        const agreement = await this.academySales.codeAgreement(code);
+        if (!agreement || agreement.status !== "ACTIVE") {
+          throw new InvalidDiscountError("DISABLED");
+        }
+        academyCodeAgreement = agreement;
+      }
     }
 
     // Comisión "todo incluido" al productor (producer-fee-model): tasa en
@@ -720,18 +758,25 @@ export class CheckoutService {
           )
         : managedFeeBreakdown(orderTotal, allInPct, cardPct, ivaPct);
 
-    // Atribución de preventa por academia (spec academy-presale-commission):
-    // academyId del link ?a= + acuerdo ACTIVE (evento o su serie) → la
-    // orden queda marcada y la comisión se congela sobre precio de lista.
-    // Sin acuerdo o cupo agotado → null: la compra procede idéntica.
-    const attribution = await this.academySales.resolveAttribution({
-      eventId: event.id,
-      seriesId: event.seriesId,
-      academyId: input.academyId,
-      unitListPrice: unit.listPrice,
-      quantity,
-      channel,
-    });
+    // Atribución de preventa por academia: canal código (el vínculo
+    // DiscountCode→acuerdo manda y ya viene validado) o canal link
+    // (?a= + acuerdo ACTIVE - spec academy-presale-commission). Sin
+    // acuerdo o cupo agotado → null: la compra procede idéntica.
+    const attribution = academyCodeAgreement
+      ? {
+          soldByAcademyId: academyCodeAgreement.academyId,
+          academyCommissionClp: Math.round(
+            (unit.listPrice * academyCodeAgreement.commissionPct) / 100,
+          ),
+        }
+      : await this.academySales.resolveAttribution({
+          eventId: event.id,
+          seriesId: event.seriesId,
+          academyId: input.academyId,
+          unitListPrice: unit.listPrice,
+          quantity,
+          channel,
+        });
 
     // refId correlaciona con la pasarela y el webhook; eventId/discountCodeId
     // también quedan desnormalizados en Payment para reporting. quantity +
@@ -764,11 +809,13 @@ export class CheckoutService {
         unitListPrice: unit.listPrice,
         unitServiceFee: 0, // ya no existe fee al comprador
         // La orden $0 nunca toca la pasarela: "FREE" la distingue en el
-        // libro; "MANUAL" = método propio esperando comprobante.
+        // libro; "MANUAL" = método propio esperando comprobante - su
+        // label queda congelado como medio declarado (methodLabel).
         gateway:
           orderTotal === 0 ? "FREE" : ownMethod ? "MANUAL" : gateway!.name,
         gatewayAccountId:
           orderTotal === 0 || ownMethod ? null : gatewayAccountId,
+        methodLabel: ownMethod?.label ?? null,
         soldByAcademyId: attribution?.soldByAcademyId ?? null,
         academyCommissionClp: attribution?.academyCommissionClp ?? null,
       },
@@ -876,6 +923,7 @@ export class CheckoutService {
     const code = await this.prisma.discountCode.findUnique({
       where: { code: input.code.trim() },
       select: {
+        type: true,
         percentOff: true,
         amountOff: true,
         maxUses: true,
@@ -883,6 +931,7 @@ export class CheckoutService {
         expiresAt: true,
         eventId: true,
         seriesId: true,
+        academySaleAgreementId: true,
       },
     });
     if (!code) return { valid: false, discountClp: 0, reason: "UNKNOWN" };
@@ -894,12 +943,21 @@ export class CheckoutService {
     if (!check.ok) {
       return { valid: false, discountClp: 0, reason: check.reason };
     }
+    // Código de academia: el acuerdo debe seguir ACTIVE (misma regla
+    // que el POST - el preview no promete un código muerto).
+    if (code.type === "ACADEMY_PRESALE") {
+      const agreement = await this.academySales.codeAgreement(code);
+      if (!agreement || agreement.status !== "ACTIVE") {
+        return { valid: false, discountClp: 0, reason: "DISABLED" };
+      }
+    }
 
     // Misma regla de canal que purchaseTicket: preventa hasta el corte
     // resuelto en cadena (evento → productor → global), puerta app en
     // LIVE o post-corte; evento terminado no cotiza.
     const now = new Date();
     let listPrice: number | null = null;
+    let channel: "PRESALE" | "DOOR" | null = null;
     if (now < event.endsAt) {
       const producerParams = await this.params.getProducerParams(
         event.producerId,
@@ -915,15 +973,20 @@ export class CheckoutService {
         now < cutoff
       ) {
         listPrice = event.presalePrice;
+        channel = "PRESALE";
       } else if (
         event.doorPrice != null &&
         (event.status === "LIVE" ||
           (event.status === "PUBLISHED" && now >= cutoff))
       ) {
         listPrice = event.doorPrice;
+        channel = "DOOR";
       }
     }
     if (listPrice == null) return { valid: true, discountClp: 0 };
+    if (code.type === "ACADEMY_PRESALE" && channel !== "PRESALE") {
+      return { valid: false, discountClp: 0, reason: "PRESALE_ONLY" };
+    }
 
     // El descuento se aplica una vez por orden (= unit.discount del
     // pricing, no por ticket) - igual que el total de purchaseTicket.
@@ -1022,6 +1085,7 @@ export class CheckoutService {
         net: quote.total,
         gateway: ownMethod ? "MANUAL" : gateway!.name,
         gatewayAccountId: ownMethod ? null : gatewayAccountId,
+        methodLabel: ownMethod?.label ?? null,
       },
       breakdown,
     );
