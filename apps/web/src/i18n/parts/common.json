@@ -8,7 +8,9 @@
       "next": "Siguiente",
       "pageOf": "Página {page} de {pages}",
       "results": "{count, plural, one {# resultado} other {# resultados}}",
-      "loadMore": "Cargar más"
+      "loadMore": "Cargar más",
+      "perPage": "Ver",
+      "all": "Todos"
     }
   }
 }

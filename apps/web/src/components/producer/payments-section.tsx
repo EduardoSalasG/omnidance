@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, PriceTag, RefreshIcon } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  Pager,
+  PriceTag,
+  RefreshIcon,
+} from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import {
   PAYMENT_STATUS_VARIANT,
@@ -30,6 +37,10 @@ export function PaymentsSection({ eventId }: Props) {
   const [payments, setPayments] = useState<PaymentAuditRow[] | null>(null);
   const [denied, setDenied] = useState(false);
   const [error, setError] = useState(false);
+  // Vista paginada dentro de la sección: 5 / 10 / "all" con scroll
+  // interno del Card - la página no crece con el historial de ventas.
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<5 | 10 | "all">(5);
 
   const load = useCallback(async () => {
     setError(false);
@@ -56,11 +67,36 @@ export function PaymentsSection({ eventId }: Props) {
   // Sin acceso (no-owner / no-admin): la sección no existe para el viewer.
   if (denied) return null;
 
+  const total = payments?.length ?? 0;
+  // "all" equivale a size=total: un solo slice sin páginas.
+  const size = pageSize === "all" ? Math.max(total, 1) : pageSize;
+  const pages = Math.max(1, Math.ceil(total / size));
+  const safePage = Math.min(page, pages);
+  const visible = payments?.slice((safePage - 1) * size, safePage * size);
+
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-        {t("sections.payments")}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
+          {t("sections.payments")}
+        </h2>
+        <label className="flex items-center gap-2 text-xs text-ink/50">
+          {tc("pager.perPage")}
+          <select
+            value={String(pageSize)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setPageSize(v === "all" ? "all" : (Number(v) as 5 | 10));
+              setPage(1);
+            }}
+            className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="all">{tc("pager.all")}</option>
+          </select>
+        </label>
+      </div>
 
       {payments === null && !error && (
         <SkeletonList items={2} lines={1} />
@@ -80,71 +116,103 @@ export function PaymentsSection({ eventId }: Props) {
           {tp("byEvent.empty")}
         </p>
       )}
-      {payments !== null && payments.length > 0 && (
-        <Card
-          padded
-          className="overflow-x-auto p-0"
-          role="region"
-          tabIndex={0}
-          aria-label={t("sections.payments")}
-        >
-          <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead>
-              <tr className="border-b border-line text-xs uppercase tracking-wide text-ink/50">
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {tp("cols.paidAt")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {tp("cols.amount")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {tp("cols.gatewayFee")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {tp("cols.net")}
-                </th>
-                <th scope="col" className="px-4 py-3 font-medium">
-                  {tp("cols.status")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr
-                  key={p.id}
-                  className="border-b border-line last:border-0"
-                >
-                  <td className="px-4 py-3 text-ink/70">
-                    <span className="block whitespace-nowrap">
-                      {paymentDateTimeFmt.format(new Date(paymentPaidAt(p)))}
-                    </span>
-                    <span className="block text-xs text-ink/40">
-                      {p.gatewayMedia ?? p.refId.slice(0, 12)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <PriceTag amount={p.amount} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <PriceTag amount={p.gatewayFeeClp} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <PriceTag amount={p.net} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      variant={PAYMENT_STATUS_VARIANT[p.status] ?? "muted"}
-                    >
-                      {tp.has(`status.${p.status}`)
-                        ? tp(`status.${p.status}`)
-                        : p.status}
-                    </Badge>
-                  </td>
+      {visible !== undefined && visible.length > 0 && (
+        <>
+          <Card
+            padded
+            className="max-h-[22rem] overflow-auto p-0"
+            role="region"
+            tabIndex={0}
+            aria-label={t("sections.payments")}
+          >
+            <table className="w-full min-w-[36rem] text-left text-sm">
+              <thead>
+                <tr className="border-b border-line text-xs uppercase tracking-wide text-ink/50">
+                  {/* thead sticky: al scrollear dentro de la sección el
+                      encabezado queda fijo sobre las filas. */}
+                  <th
+                    scope="col"
+                    className="sticky top-0 bg-surface px-4 py-3 font-medium"
+                  >
+                    {tp("cols.paidAt")}
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 bg-surface px-4 py-3 font-medium"
+                  >
+                    {tp("cols.amount")}
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 bg-surface px-4 py-3 font-medium"
+                  >
+                    {tp("cols.gatewayFee")}
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 bg-surface px-4 py-3 font-medium"
+                  >
+                    {tp("cols.net")}
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 bg-surface px-4 py-3 font-medium"
+                  >
+                    {tp("cols.status")}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+              </thead>
+              <tbody>
+                {visible.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-b border-line last:border-0"
+                  >
+                    <td className="px-4 py-3 text-ink/70">
+                      <span className="block whitespace-nowrap">
+                        {paymentDateTimeFmt.format(new Date(paymentPaidAt(p)))}
+                      </span>
+                      <span className="block text-xs text-ink/40">
+                        {p.gatewayMedia ?? p.refId.slice(0, 12)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <PriceTag amount={p.amount} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <PriceTag amount={p.gatewayFeeClp} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <PriceTag amount={p.net} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant={PAYMENT_STATUS_VARIANT[p.status] ?? "muted"}
+                      >
+                        {tp.has(`status.${p.status}`)
+                          ? tp(`status.${p.status}`)
+                          : p.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+          {pageSize !== "all" && (
+            <Pager
+              page={safePage}
+              pageSize={pageSize}
+              total={total}
+              onPage={setPage}
+            />
+          )}
+          {pageSize === "all" && (
+            <span className="text-xs tabular-nums text-ink/50">
+              {tc("pager.results", { count: total })}
+            </span>
+          )}
+        </>
       )}
     </section>
   );
