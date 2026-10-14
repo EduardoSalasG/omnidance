@@ -357,11 +357,17 @@ export function CheckoutClient({ event }: { event: CheckoutEvent }) {
       const data = (await res.json()) as {
         paymentUrl: string | null;
         paymentId: string;
+        paid?: boolean;
         quote: Quote;
         method?: Omit<OwnMethod, "id">;
       };
 
-      if (data.paymentUrl === null) {
+      if (data.paid === true) {
+        // Orden $0 (preventa liberada o código 100% - p.ej. preventa de
+        // academia): ya quedó PAID en el server - no hay pasarela ni
+        // pantalla de retorno, cae directo a la de éxito.
+        setPhase({ kind: "success", paymentId: data.paymentId });
+      } else if (data.paymentUrl === null) {
         // Método propio: sin redirect - la orden espera el comprobante.
         setPhase({
           kind: "manual",

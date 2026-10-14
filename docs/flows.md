@@ -121,12 +121,12 @@ flowchart TD
     H -->|no| J[409 - venta cerrada]
     G --> K{total = 0?<br/>precio 0 o descuento 100%}
     K -->|no| L[Payment PENDING → gateway.createOrder<br/>→ redirect Flow]
-    K -->|sí| M[Payment gateway=FREE amount=0<br/>→ settle PAID directo actor=checkout<br/>→ tickets emitidos ya<br/>→ paymentUrl = /checkout/return]
+    K -->|sí| M[Payment gateway=FREE amount=0<br/>→ settle PAID directo actor=checkout<br/>→ tickets emitidos ya<br/>→ paid=true sin paymentUrl]
 ```
 
 La cadena de resolución del corte es la misma de las fees (evento → productor → global). El helper puro `resolvePresaleCutoffMinutes` en `src/common/presale-cutoff.ts` la centraliza - la usan `purchaseTicket`, `discountQuote` y el detalle de evento (`presaleEndsAt` que muestra la app). Post-medianoche: `presaleCutoffMinutes` es minutos desde las 00:00 del día local del evento, así 1500 = 01:00 del día siguiente.
 
-**Orden $0**: el comprador paga `lista − descuento` exacto (producer-fee-model: nunca se suma cargo). Si el total final es 0 (preventa gratis o cupón 100%) no hay nada que cobrar: el checkout marca el Payment `gateway="FREE"` + `feeMode=FREE` (desglose en cero, FEE_ASSESSED igual lo registra), salta `gateway.createOrder` y lo liquida por el mismo `settle(...,"PAID")` del webhook - tickets, claim links y notificaciones idénticos a un pago normal. El front ve un `paymentUrl` normal de retorno, nada distinto.
+**Orden $0**: el comprador paga `lista − descuento` exacto (producer-fee-model: nunca se suma cargo). Si el total final es 0 (preventa gratis o cupón 100%) no hay nada que cobrar: el checkout marca el Payment `gateway="FREE"` + `feeMode=FREE` (desglose en cero, FEE_ASSESSED igual lo registra), salta `gateway.createOrder` y lo liquida por el mismo `settle(...,"PAID")` del webhook - tickets, claim links y notificaciones idénticos a un pago normal. El front recibe `paid: true` con `paymentUrl: null` y cae directo en la pantalla de éxito — no hay redirect ni pantalla de retorno.
 
 Edición: `presaleCutoffMinutes` del evento lo define el productor en el form (`type="time"`, vacío = heredar; valores post-medianoche solo por API) o el admin; el default por productor se edita en `/productor/parametros` (PUT `/producer/table-params`) y en `/admin/parametros` (`/admin/producers/:id/fee-params`).
 
