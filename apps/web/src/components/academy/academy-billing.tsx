@@ -23,6 +23,15 @@ const CYCLE_MONTHS: Record<BillingCycle, number> = {
   SEMIANNUAL: 6,
   ANNUAL: 12,
 };
+// Meses facturados por cobro (espejo de CYCLE_BILLED_MONTHS en
+// apps/api/src/payments/domain/platform-tiers.ts): el precio se deriva
+// del mensual base - anual cobra 11 (mes gratis), semestral 5.75
+// (medio mes gratis al año).
+const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
+  MONTHLY: 1,
+  SEMIANNUAL: 5.75,
+  ANNUAL: 11,
+};
 
 // Tiers auto-contratables - ENTERPRISE es "a convenir" (espejo de
 // SELF_SERVE_ACADEMY_TIERS en apps/api/src/payments/domain/platform-tiers.ts).
@@ -163,18 +172,26 @@ export function AcademyBilling({ academy }: { academy: Academy }) {
     (tier: string) => num(`academy_tier.${tier.toLowerCase()}_max_students`),
     [num],
   );
-  // Precio mensual-equivalente del tier en el ciclo (ya trae el descuento
-  // del ciclo - el cargo Flow es × meses).
+  // Precio mensual-equivalente del tier en el ciclo: derivado del
+  // mensual base × meses facturados / meses del ciclo.
   const tierPrice = useCallback(
-    (tier: string, cycle: BillingCycle) =>
-      num(`academy_tier.${tier.toLowerCase()}_${cycle.toLowerCase()}_clp`),
+    (tier: string, cycle: BillingCycle) => {
+      const monthly = num(`academy_tier.${tier.toLowerCase()}_monthly_clp`);
+      return monthly != null
+        ? Math.round(
+            (monthly * CYCLE_BILLED_MONTHS[cycle]) / CYCLE_MONTHS[cycle],
+          )
+        : null;
+    },
     [num],
   );
 
   const chargeTotal = useMemo(() => {
-    const monthly = tierPrice(selTier, selCycle);
-    return monthly != null ? monthly * CYCLE_MONTHS[selCycle] : null;
-  }, [tierPrice, selTier, selCycle]);
+    const monthly = num(`academy_tier.${selTier.toLowerCase()}_monthly_clp`);
+    return monthly != null
+      ? Math.round(monthly * CYCLE_BILLED_MONTHS[selCycle])
+      : null;
+  }, [num, selTier, selCycle]);
 
   const hasLiveSub =
     view?.status === "ACTIVE" || view?.status === "CANCEL_PENDING";

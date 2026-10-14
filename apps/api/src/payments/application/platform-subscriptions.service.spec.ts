@@ -27,29 +27,21 @@ type Row = Record<string, unknown>;
 
 const DAY = 24 * 60 * 60_000;
 
-// Params del dominio (mismos valores que seed-common).
+// Params del dominio (mismos valores que seed-common) - solo el precio
+// mensual base; el cobro del ciclo se calcula (semestral ×5.75, anual
+// ×11 sobre el mensual).
 const PARAMS = new Map<string, number>([
   ["academy_tier.starter_max_students", 30],
   ["academy_tier.pro_max_students", 120],
   ["academy_tier.studio_max_students", 400],
   ["academy_tier.starter_monthly_clp", 19990],
-  ["academy_tier.starter_semiannual_clp", 19590],
-  ["academy_tier.starter_annual_clp", 19190],
   ["academy_tier.pro_monthly_clp", 39990],
-  ["academy_tier.pro_semiannual_clp", 39190],
-  ["academy_tier.pro_annual_clp", 38390],
   ["academy_tier.studio_monthly_clp", 79990],
-  ["academy_tier.studio_semiannual_clp", 78390],
-  ["academy_tier.studio_annual_clp", 76790],
   ["academy_billing.grace_days", 5],
   ["producer_tier.starter_max_monthly_clp", 2500000],
   ["producer_tier.growth_max_monthly_clp", 8000000],
   ["producer_tier.starter_monthly_clp", 9990],
-  ["producer_tier.starter_semiannual_clp", 9790],
-  ["producer_tier.starter_annual_clp", 9590],
   ["producer_tier.growth_monthly_clp", 19990],
-  ["producer_tier.growth_semiannual_clp", 19590],
-  ["producer_tier.growth_annual_clp", 19190],
 ]);
 
 function mkAcademy(over: Partial<Row> = {}): Row {
@@ -643,7 +635,7 @@ describe("PlatformSubscriptionsService", () => {
       expect(flow.createSubscription).not.toHaveBeenCalled();
     });
 
-    it("ciclo SEMIANNUAL → plan plat_*_semiannual, amount = mensual × 6", async () => {
+    it("ciclo SEMIANNUAL → plan plat_*_semiannual, amount = mensual × 5.75", async () => {
       await svc.subscribeAcademy("p1", ACADEMY_ROW as never, {
         ...input,
         cycle: "SEMIANNUAL",
@@ -652,7 +644,7 @@ describe("PlatformSubscriptionsService", () => {
         {
           planId: "plat_academy_starter_semiannual",
           name: expect.any(String),
-          amount: 19590 * 6,
+          amount: Math.round(19990 * 5.75), // medio mes gratis al año
           intervalCount: 6,
         },
         { correlationId: expect.any(String) },
@@ -1206,7 +1198,7 @@ describe("PlatformSubscriptionsService", () => {
       expect(flow.ensurePlan).toHaveBeenCalledWith(
         expect.objectContaining({
           planId: "plat_academy_starter_annual",
-          amount: 19190 * 12,
+          amount: 19990 * 11, // un mes gratis
           intervalCount: 12,
         }),
         { correlationId: expect.any(String) },

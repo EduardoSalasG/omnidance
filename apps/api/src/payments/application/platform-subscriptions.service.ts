@@ -29,6 +29,7 @@ import {
   ACADEMY_TIERS,
   CYCLE_LABEL,
   CYCLE_MONTHS,
+  cycleChargeClp,
   isProActive,
   platformPlanId,
   PRODUCER_PRO_TIERS,
@@ -103,8 +104,9 @@ export type PlatformCustomerReturn =
  * - El plan espejo es compartido por (kind, tier, ciclo):
  *   `plat_academy_<tier>_<cycle>` / `plat_producer_<tier>_<cycle>` -
  *   los tiers son catálogo de plataforma (params), no planes por academia.
- * - El monto del cargo = precio mensual-equivalente del param × meses del
- *   ciclo (semestral −2% / anual −4% ya vienen en `academy_tier.*_clp`).
+ * - El monto del cargo = precio mensual base del param `*_monthly_clp`
+ *   × meses facturados del ciclo (semestral ×5.75 / anual ×11 - medio
+ *   mes y un mes gratis por año respectivamente).
  * - El Payment de cada invoice usa `orderType PLATFORM_SUB` y refId
  *   `platsub_<subId>_<invoiceId>`; el settle vive en
  *   `PaymentSettlementService.settlePlatformSub` (desbloquea la academia
@@ -249,11 +251,13 @@ export class PlatformSubscriptionsService {
     cycle: BillingCycle,
   ): Promise<ChargeSpec> {
     const months = CYCLE_MONTHS[cycle];
+    // El precio se deriva del mensual base: el ciclo factura menos
+    // meses de los que cubre (anual ×11, semestral ×5.75).
     let monthly = 0;
     let label: string;
     if (kind === "ACADEMY") {
       monthly = await this.params.getNumber(
-        `academy_tier.${tierCode.toLowerCase()}_${cycle.toLowerCase()}_clp`,
+        `academy_tier.${tierCode.toLowerCase()}_monthly_clp`,
         0,
       );
       label = `OmniDance Academia ${tierCode} (${CYCLE_LABEL[cycle]})`;
@@ -261,7 +265,7 @@ export class PlatformSubscriptionsService {
       const key = producerTierParamKey(tierCode);
       if (key) {
         monthly = await this.params.getNumber(
-          `producer_tier.${key}_${cycle.toLowerCase()}_clp`,
+          `producer_tier.${key}_monthly_clp`,
           0,
         );
       }
@@ -275,7 +279,7 @@ export class PlatformSubscriptionsService {
     return {
       planId: platformPlanId(kind, tierCode, cycle),
       name: label,
-      amount: monthly * months,
+      amount: cycleChargeClp(monthly, cycle),
       intervalCount: months,
     };
   }

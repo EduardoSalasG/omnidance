@@ -14,6 +14,15 @@ const CYCLE_MONTHS: Record<BillingCycle, number> = {
   SEMIANNUAL: 6,
   ANNUAL: 12,
 };
+// Meses facturados por cobro (espejo de CYCLE_BILLED_MONTHS en
+// apps/api/src/payments/domain/platform-tiers.ts): el precio se deriva
+// del mensual base - anual cobra 11 (mes gratis), semestral 5.75
+// (medio mes gratis al año).
+const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
+  MONTHLY: 1,
+  SEMIANNUAL: 5.75,
+  ANNUAL: 11,
+};
 
 /** GET /producers/:id/pro - estado Producer Pro (S5/S6). */
 type ProView = {
@@ -122,17 +131,25 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
     return null;
   }, [view, prices]);
 
-  // Precio mensual-equivalente del ciclo para el tier autogestionado
-  // (semestral/anual ya traen el descuento en el param); el cargo real
-  // de Flow es monthly × meses del ciclo (chargeSpec).
-  const monthlyPrice = useMemo(() => {
+  // Precio mensual base del tier autogestionado; el cargo real de Flow
+  // es monthly × meses facturados del ciclo (chargeSpec: anual ×11,
+  // semestral ×5.75). El mensual-equivalente mostrado lo descuenta.
+  const monthlyBase = useMemo(() => {
     if (!selfServeTier) return null;
-    const v = prices[`producer_tier.${selfServeTier}_${cycle.toLowerCase()}_clp`];
+    const v = prices[`producer_tier.${selfServeTier}_monthly_clp`];
     return v != null && v > 0 ? v : null;
-  }, [prices, selfServeTier, cycle]);
+  }, [prices, selfServeTier]);
 
+  const monthlyPrice =
+    monthlyBase != null
+      ? Math.round(
+          (monthlyBase * CYCLE_BILLED_MONTHS[cycle]) / CYCLE_MONTHS[cycle],
+        )
+      : null;
   const chargeTotal =
-    monthlyPrice != null ? monthlyPrice * CYCLE_MONTHS[cycle] : null;
+    monthlyBase != null
+      ? Math.round(monthlyBase * CYCLE_BILLED_MONTHS[cycle])
+      : null;
 
   async function subscribe() {
     if (busy || !consent) return;
@@ -379,11 +396,13 @@ export function ProducerProSection({ producerId }: { producerId: string }) {
                 </legend>
                 <div className="grid grid-cols-3 gap-2">
                   {CYCLES.map((c) => {
-                    const price = selfServeTier
-                      ? prices[
-                          `producer_tier.${selfServeTier}_${c.toLowerCase()}_clp`
-                        ]
-                      : null;
+                    const price =
+                      monthlyBase != null
+                        ? Math.round(
+                            (monthlyBase * CYCLE_BILLED_MONTHS[c]) /
+                              CYCLE_MONTHS[c],
+                          )
+                        : null;
                     const selected = cycle === c;
                     return (
                       <button

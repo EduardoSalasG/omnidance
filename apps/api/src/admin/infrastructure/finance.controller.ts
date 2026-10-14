@@ -18,7 +18,7 @@ import {
   decodeSeriesPassRef,
 } from "../../payments/domain/order-ref";
 import {
-  CYCLE_MONTHS,
+  cycleMonthlyEquivClp,
   SELF_SERVE_ACADEMY_TIERS,
   producerTierParamKey,
 } from "../../payments/domain/platform-tiers";
@@ -371,7 +371,7 @@ export class AdminFinanceController {
 
     const active = subs.filter((s) => s.status === "ACTIVE");
     const paramKeys = active.map((s) =>
-      this.tierParamKey(s.kind, s.tierCode, s.billingCycle),
+      this.tierParamKey(s.kind, s.tierCode),
     );
     const prices = new Map(
       await Promise.all(
@@ -384,14 +384,16 @@ export class AdminFinanceController {
     const subscriptions = subs.map((s) => {
       const paramKey =
         s.status === "ACTIVE"
-          ? this.tierParamKey(s.kind, s.tierCode, s.billingCycle)
+          ? this.tierParamKey(s.kind, s.tierCode)
           : null;
+      const monthlyBase =
+        paramKey == null ? null : (prices.get(paramKey) ?? 0);
       const monthly =
-        paramKey == null
+        paramKey == null || monthlyBase == null || monthlyBase <= 0
           ? null
-          : Math.round(
-              (prices.get(paramKey) ?? 0) /
-                CYCLE_MONTHS[s.billingCycle as BillingCycle],
+          : cycleMonthlyEquivClp(
+              monthlyBase,
+              s.billingCycle as BillingCycle,
             );
       return {
         id: s.id,
@@ -459,7 +461,7 @@ export class AdminFinanceController {
       arr: mrr * 12,
       customContracts: active.filter(
         (s) =>
-          this.tierParamKey(s.kind, s.tierCode, s.billingCycle) == null,
+          this.tierParamKey(s.kind, s.tierCode) == null,
       ).length,
       byTier: [...byTier.values()],
       funnel,
@@ -468,21 +470,19 @@ export class AdminFinanceController {
   }
 
   /**
-   * Param de precio del tier+ciclo (`academy_tier.<tier>_<ciclo>_clp` /
-   * `producer_tier.<key>_<ciclo>_clp`); null si el tier es "a convenir"
+   * Param de precio mensual base del tier (`academy_tier.<tier>_monthly_clp`
+   * / `producer_tier.<key>_monthly_clp`); null si el tier es "a convenir"
    * (ENTERPRISE / PRO_BIG / FREE) - va a customContracts fuera del MRR.
    */
   private tierParamKey(
     kind: string,
     tierCode: string,
-    cycle: BillingCycle,
   ): string | null {
-    const suffix = `_${cycle.toLowerCase()}_clp` as const;
     if (kind === "ACADEMY") {
       if (!SELF_SERVE_ACADEMY_TIERS.has(tierCode)) return null;
-      return `academy_tier.${tierCode.toLowerCase()}${suffix}`;
+      return `academy_tier.${tierCode.toLowerCase()}_monthly_clp`;
     }
     const key = producerTierParamKey(tierCode);
-    return key ? `producer_tier.${key}${suffix}` : null;
+    return key ? `producer_tier.${key}_monthly_clp` : null;
   }
 }

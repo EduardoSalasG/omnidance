@@ -45,15 +45,41 @@ export const PRODUCER_TIER_RANK: Record<ProducerProTier, number> = {
 
 /**
  * BillingCycle → meses entre cobros. Los planes Flow usan interval=3
- * (mensual) con interval_count = meses del ciclo - el cobro es
- * mensual-equivalente × meses (semestral −2% / anual −4% ya vienen en el
- * param del ciclo).
+ * (mensual) con interval_count = meses del ciclo.
  */
 export const CYCLE_MONTHS: Record<BillingCycle, number> = {
   MONTHLY: 1,
   SEMIANNUAL: 6,
   ANNUAL: 12,
 };
+
+/**
+ * Meses facturados por cobro: el descuento por compromiso es meses
+ * gratis sobre el precio mensual base (param `*_monthly_clp`), ya no
+ * hay params por ciclo. Anual cobra 11 de 12 (un mes gratis); semestral
+ * cobra 5.75 de 6 (medio mes gratis al año → ×11.5/año vs ×12 mensual).
+ */
+export const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
+  MONTHLY: 1,
+  SEMIANNUAL: 5.75,
+  ANNUAL: 11,
+};
+
+/** Monto del cobro del ciclo en CLP enteros (el cargo real de Flow). */
+export function cycleChargeClp(
+  monthlyClp: number,
+  cycle: BillingCycle,
+): number {
+  return Math.round(monthlyClp * CYCLE_BILLED_MONTHS[cycle]);
+}
+
+/** Mensual-equivalente del ciclo para mostrar/MRR (charge ÷ meses). */
+export function cycleMonthlyEquivClp(
+  monthlyClp: number,
+  cycle: BillingCycle,
+): number {
+  return Math.round(cycleChargeClp(monthlyClp, cycle) / CYCLE_MONTHS[cycle]);
+}
 
 export const CYCLE_LABEL: Record<BillingCycle, string> = {
   MONTHLY: "mensual",
