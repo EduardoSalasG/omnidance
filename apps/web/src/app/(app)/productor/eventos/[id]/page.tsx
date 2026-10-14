@@ -14,7 +14,7 @@ import {
   SkeletonCard,
 } from "@/components/ui";
 import { ConsoleHeader } from "@/components/console/console-header";
-import { EventFeesSection } from "@/components/producer/event-fees-section";
+import { EventFeeInline } from "@/components/producer/event-fees-section";
 import { StaffSection } from "@/components/producer/staff-section";
 import { PassesSection } from "@/components/producer/passes-section";
 import { PaymentsSection } from "@/components/producer/payments-section";
@@ -263,6 +263,14 @@ export default function ProducerEventDetailPage({
                   : event.type}
               </span>
               {event.series?.name && <span>{event.series.name}</span>}
+              {/* Comisión del evento como un dato más del header (spec
+                  producer-fee-model); la edición inline solo aparece a
+                  admin con evento editable. */}
+              <EventFeeInline
+                event={event}
+                isAdmin={isAdmin}
+                onSaved={() => void loadEvent()}
+              />
             </div>
 
             {canManage && (
@@ -304,11 +312,6 @@ export default function ProducerEventDetailPage({
 
           {canManage && <LiveSection eventId={eventId} status={event.status} />}
 
-          <EventFeesSection
-            event={event}
-            isAdmin={isAdmin}
-            onSaved={() => void loadEvent()}
-          />
           <StaffSection eventId={eventId} proLocked={proLocked} />
           <PassesSection eventId={eventId} />
           {/* Ventas del evento - se oculta sola ante 403/404 (no-owner). */}

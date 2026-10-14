@@ -763,7 +763,9 @@
       "override": "Valor propio del evento",
       "save": "Guardar comisión",
       "saved": "Comisión guardada",
-      "error": "No se pudo guardar"
+      "error": "No se pudo guardar",
+      "shortLabel": "Comisión",
+      "edit": "Editar"
     }
   },
   "profile": {
