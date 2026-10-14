@@ -447,6 +447,20 @@ model StaffAssignment {
   @@unique([eventId, personId])
 }
 
+/// Nómina de colaboradores del productor: personas que reutiliza como
+/// staff de sus eventos (el alta por nombre en /staff/candidates sale
+/// de esta nómina + el historial de asignaciones). FKs planas (join
+/// manual) igual que StaffAssignment.
+model ProducerStaff {
+  id         String   @id @default(cuid())
+  producerId String   // Person.id con rol PRODUCER
+  personId   String
+  createdAt  DateTime @default(now())
+
+  @@unique([producerId, personId])
+  @@index([personId])
+}
+
 model GuestList {
   id           String  @id @default(cuid())
   eventId      String

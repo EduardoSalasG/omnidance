@@ -1386,6 +1386,56 @@
         }
       }
     },
+    "/api/producer/staff": {
+      "get": {
+        "operationId": "ProducerController_listStaff",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "ProducerController_addStaff",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCollaboratorDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/producer/staff/{personId}": {
+      "delete": {
+        "operationId": "ProducerController_removeStaff",
+        "parameters": [
+          {
+            "name": "personId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events/{id}/table-reservations": {
       "post": {
         "operationId": "TableReservationsController_request",
@@ -8576,6 +8626,10 @@
         "properties": {}
       },
       "ProducerTableParamsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "AddCollaboratorDto": {
         "type": "object",
         "properties": {}
       },

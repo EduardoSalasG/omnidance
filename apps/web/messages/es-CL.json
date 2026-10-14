@@ -728,7 +728,9 @@
       "claims": "Comprobantes",
       "claimsDesc": "Valida pagos por transferencia, link o efectivo",
       "params": "Comisión y defaults",
-      "paramsDesc": "Tu comisión y valores base por evento (solo lectura)"
+      "paramsDesc": "Tu comisión y valores base por evento (solo lectura)",
+      "collaborators": "Colaboradores",
+      "collaboratorsDesc": "Nómina reutilizable de staff para tus eventos"
     },
     "status": {
       "DRAFT": "Borrador",

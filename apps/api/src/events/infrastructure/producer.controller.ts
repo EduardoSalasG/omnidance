@@ -2,13 +2,24 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
+  NotFoundException,
+  Param,
+  Post,
   Put,
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { IsInt, IsOptional, Max, Min } from "class-validator";
+import {
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from "class-validator";
 import type { Request } from "express";
 import { SessionGuard } from "../../auth/infrastructure/session.guard";
 import { PrismaService } from "../../prisma.service";
@@ -45,6 +56,18 @@ class ProducerTableParamsDto {
   @Min(0)
   @Max(PRESALE_CUTOFF_MAX_MINUTES)
   presaleCutoffMinutes?: number | null;
+}
+
+class AddCollaboratorDto {
+  /** Alta por persona existente (viene de la búsqueda por nombre). */
+  @IsOptional()
+  @IsString()
+  personId?: string;
+
+  /** Alta directa por correo (persona ya registrada). */
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 }
 
 // Defaults operativos auto-editables del productor (mesas + corte de
@@ -294,6 +317,81 @@ export class ProducerController {
     });
     this.params.invalidateProducer(me.id);
     return this.getTableParams(req);
+  }
+
+  /**
+   * Nómina de colaboradores del productor: el pool del que sale el staff
+   * de sus eventos (GET /events/:id/staff/candidates). Cada productor
+   * administra solo su propia nómina (producerId = me.id); ProducerStaff
+   * es FK plana → join manual a Person.
+   */
+  @Get("staff")
+  async listStaff(@Req() req: Request) {
+    const me = req.person!;
+    await this.assertProducerOrAdmin(me.id, me.roles);
+    const rows = await this.prisma.producerStaff.findMany({
+      where: { producerId: me.id },
+      orderBy: { createdAt: "asc" },
+    });
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: rows.map((r) => r.personId) } },
+      select: { id: true, name: true, email: true, photoUrl: true },
+    });
+    const byId = new Map(people.map((p) => [p.id, p]));
+    return rows
+      .map((r) => ({
+        id: r.id,
+        person: byId.get(r.personId) ?? {
+          id: r.personId,
+          name: null,
+          email: null,
+          photoUrl: null,
+        },
+      }))
+      .sort((a, b) =>
+        (a.person.name ?? "").localeCompare(b.person.name ?? "", "es"),
+      );
+  }
+
+  /**
+   * Agrega un colaborador a la nómina: por personId (selección de la
+   * búsqueda por nombre) o por email directo. Upsert - reenviar no
+   * duplica. No puedes agregarte a ti mismo.
+   */
+  @Post("staff")
+  async addStaff(@Body() dto: AddCollaboratorDto, @Req() req: Request) {
+    const me = req.person!;
+    await this.assertProducerOrAdmin(me.id, me.roles);
+    if (!dto.personId && !dto.email) {
+      throw new BadRequestException("envía personId o email");
+    }
+    const person = await this.prisma.person.findFirst({
+      where: dto.personId ? { id: dto.personId } : { email: dto.email! },
+      select: { id: true, name: true, email: true, photoUrl: true },
+    });
+    if (!person) throw new NotFoundException("persona no encontrada");
+    if (person.id === me.id) {
+      throw new BadRequestException("no puedes agregarte como colaborador");
+    }
+    const row = await this.prisma.producerStaff.upsert({
+      where: {
+        producerId_personId: { producerId: me.id, personId: person.id },
+      },
+      create: { producerId: me.id, personId: person.id },
+      update: {},
+    });
+    return { id: row.id, person };
+  }
+
+  /** Quita un colaborador de la nómina (idempotente). */
+  @Delete("staff/:personId")
+  async removeStaff(@Param("personId") personId: string, @Req() req: Request) {
+    const me = req.person!;
+    await this.assertProducerOrAdmin(me.id, me.roles);
+    await this.prisma.producerStaff.deleteMany({
+      where: { producerId: me.id, personId },
+    });
+    return { ok: true };
   }
 
   /** productor APPROVED o admin.access - permiso desde DB, nunca rol literal. */
