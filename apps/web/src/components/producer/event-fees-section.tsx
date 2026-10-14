@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card } from "@/components/ui";
+import { CheckIcon, Spinner } from "@/components/ui";
 import {
   EDITABLE_STATUSES,
   readError,
@@ -27,20 +27,19 @@ type Props = {
 };
 
 /**
- * Comisión del evento (PATCH /events/:id, spec producer-fee-model): el
- * único override financiero es la tasa todo incluido - vacío hereda el
- * default del productor (o el global). El comprador siempre paga el
- * precio publicado exacto; la comisión se descuenta de la liquidación.
- * Productores la ven read-only; el backend rechaza el PATCH con 403 si
- * un no-admin la envía.
+ * Comisión del evento (PATCH /events/:id, spec producer-fee-model): se
+ * muestra como un dato más del header del evento (junto a fecha/lugar),
+ * no como sección - vacío hereda el default del productor (o el global).
+ * Admin con evento editable abre la edición inline; el backend rechaza
+ * el PATCH con 403 si un no-admin la envía.
  */
-export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
+export function EventFeeInline({ event, isAdmin, onSaved }: Props) {
   const t = useTranslations("producer");
+  const tc = useTranslations("common");
 
-  // El backend solo acepta PATCH en DRAFT/PUBLISHED - fuera de esos
-  // estados la sección queda read-only aunque el usuario sea admin.
   const canEdit = isAdmin && EDITABLE_STATUSES.includes(event.status);
 
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(
     () => event.platformFeePct?.toString() ?? "",
   );
@@ -49,8 +48,8 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setDraft(event.platformFeePct?.toString() ?? "");
-  }, [event]);
+    if (!editing) setDraft(event.platformFeePct?.toString() ?? "");
+  }, [event, editing]);
 
   const value = event.platformFeePct ?? null;
 
@@ -71,6 +70,7 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
         setError((await readError(res)) ?? t("fees.error"));
         return;
       }
+      setEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       onSaved();
@@ -81,69 +81,72 @@ export function EventFeesSection({ event, isAdmin, onSaved }: Props) {
     }
   }
 
-  return (
-    <Card className="flex flex-col gap-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
-        {t("fees.title")}
-      </h2>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          {canEdit ? (
-            <label
-              htmlFor="event-fee-platformFeePct"
-              className="text-sm text-ink/70"
-            >
-              {t("fees.platformPct")}
-            </label>
-          ) : (
-            <span className="text-sm text-ink/70">
-              {t("fees.platformPct")}
-            </span>
-          )}
-          <Badge variant={value != null ? "outline" : "muted"}>
-            {value != null ? t("fees.override") : t("fees.inherit")}
-          </Badge>
-        </div>
-        {canEdit ? (
-          <input
-            id="event-fee-platformFeePct"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="any"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="min-h-[44px] rounded-lg border border-ink/15 bg-canvas px-3 font-mono text-sm"
-          />
-        ) : (
-          <span className="text-base">
-            {value != null ? (
-              <span className="font-semibold text-neon">{value}%</span>
-            ) : (
-              <span className="text-ink/50">-</span>
-            )}
+  if (editing && canEdit) {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-2 text-ink/70">
+        <label htmlFor="event-fee-platformFeePct">
+          {t("fees.platformPct")}
+        </label>
+        <input
+          id="event-fee-platformFeePct"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step="any"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="h-9 w-24 rounded-lg border border-ink/15 bg-canvas px-2 font-mono text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+        />
+        <button
+          type="button"
+          className="min-h-9 rounded-lg bg-neon px-3 text-sm font-semibold text-canvas disabled:opacity-60"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          {saving ? <Spinner className="size-4" /> : tc("save")}
+        </button>
+        <button
+          type="button"
+          className="min-h-9 rounded-lg px-2 text-sm text-ink/60 hover:text-ink"
+          onClick={() => {
+            setEditing(false);
+            setError(null);
+          }}
+        >
+          {tc("cancel")}
+        </button>
+        {error && (
+          <span role="alert" className="text-sm text-red-400">
+            {error}
           </span>
         )}
-        <p className="text-xs text-ink/50">{t("fees.allinHint")}</p>
-      </div>
+      </span>
+    );
+  }
 
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>
+        {t("fees.shortLabel")}:{" "}
+        {value != null ? (
+          <strong className="font-semibold text-ink/80">{value}%</strong>
+        ) : (
+          t("fees.inherit")
+        )}
+      </span>
+      {saved && <CheckIcon className="size-3.5 text-neon" />}
       {canEdit && (
-        <div className="flex items-center gap-3">
-          <Button size="sm" disabled={saving} onClick={() => void save()}>
-            {saved ? t("fees.saved") : t("fees.save")}
-          </Button>
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
-        </div>
+        <button
+          type="button"
+          className="min-h-6 rounded px-1.5 text-xs text-neon underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+          onClick={() => {
+            setError(null);
+            setEditing(true);
+          }}
+        >
+          {t("fees.edit")}
+        </button>
       )}
-
-      {!isAdmin && (
-        <p className="text-xs text-ink/50">{t("fees.adminOnly")}</p>
-      )}
-    </Card>
+    </span>
   );
 }
