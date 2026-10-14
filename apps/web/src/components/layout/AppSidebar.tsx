@@ -134,7 +134,7 @@ function SidebarGroup({
   return (
     <li className={separated ? "mt-3 border-t border-line pt-3" : undefined}>
       {!collapsed && (
-        <h3 className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
+        <h3 className="mb-1 truncate px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
           {group.label}
         </h3>
       )}
@@ -177,7 +177,11 @@ function SidebarItem({
         >
           {item.icon}
         </span>
-        {!collapsed && item.label}
+        {/* truncate = nowrap + clip: durante la transición de ancho el
+            texto se recorta en vez de envolver y empujar las filas. */}
+        {!collapsed && (
+          <span className="truncate">{item.label}</span>
+        )}
       </Link>
     </li>
   );
