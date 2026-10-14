@@ -3443,6 +3443,33 @@
           }
         },
         {
+          "name": "GET /api/events/{id}/staff/candidates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/{id}/staff/candidates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "events",
+                "{id}",
+                "staff",
+                "candidates"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ":id"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "POST /api/events/{id}/ratings",
           "request": {
             "method": "POST",

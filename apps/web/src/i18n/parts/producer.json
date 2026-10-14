@@ -137,13 +137,17 @@
     },
     "staffSection": {
       "add": "Agregar staff",
-      "personId": "ID de persona",
       "role": "Rol",
       "empty": "Sin staff asignado.",
       "roles": {
         "DOOR": "Puerta",
         "DOOR_SALES": "Puerta + ventas"
-      }
+      },
+      "personName": "Nombre",
+      "personPlaceholder": "Escribe el nombre…",
+      "personHint": "Solo aparece staff que ya trabajó en tus eventos.",
+      "noResults": "Sin resultados en tu nómina",
+      "change": "Cambiar"
     },
     "passes": {
       "person": "Persona",

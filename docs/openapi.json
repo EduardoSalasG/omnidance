@@ -1244,6 +1244,26 @@
         }
       }
     },
+    "/api/events/{id}/staff/candidates": {
+      "get": {
+        "operationId": "EventsController_staffCandidates",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/events/{id}/ratings": {
       "post": {
         "operationId": "EventRatingsController_rate",
