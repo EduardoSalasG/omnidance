@@ -192,6 +192,16 @@ export async function seedDev(prisma: PrismaClient) {
       data: { phone: "+56982439041" },
     });
   }
+  // Jorge Camacho - cuenta real (magic link): bailarín alumno de Erick
+  // Baez. Su plan de 2 clases, reservas y actividad social se siembran
+  // en los bloques dedicados de más abajo.
+  const jorge = await ensurePerson(
+    prisma,
+    "jokcar12345@gmail.com",
+    "Jorge Camacho",
+    [{ role: "DANCER" }],
+    Gender.M,
+  );
   // Dueños de "Adrian y Leo" - academia de solo mambo (abajo).
   const adrian = await person("adrian", "Adrián Paredes", [
     { role: "ACADEMY_OWNER" },
@@ -1993,6 +2003,84 @@ export async function seedDev(prisma: PrismaClient) {
     }
   }
 
+  // ─── Jorge Camacho - alumno real de Erick Baez ───
+  // Plan de 2 clases/semana vigente y pagado (claim aprobado + Payment
+  // MANUAL, misma forma que claims.approve); todas las clases de la
+  // academia reservadas: las pasadas con asistencia, las próximas
+  // agendadas.
+  const erickBaez = await prisma.academy.findFirst({
+    where: { name: "Erick Baez" },
+  });
+  const erickPlan2 = erickBaez
+    ? await prisma.membershipPlan.findFirst({
+        where: {
+          academyId: erickBaez.id,
+          weeklyClasses: 2,
+          active: true,
+        },
+      })
+    : null;
+  if (erickBaez && erickPlan2) {
+    await enroll(erickBaez.id, jorge.id, erickPlan2.id, "ACTIVE", 30, 20);
+    const jorgeClaim = await prisma.paymentClaim.findFirst({
+      where: {
+        academyId: erickBaez.id,
+        personId: jorge.id,
+        planId: erickPlan2.id,
+        status: "APPROVED",
+      },
+    });
+    if (!jorgeClaim) {
+      const claimedAt = new Date(Date.now() - 30 * 86_400_000);
+      const created = await prisma.paymentClaim.create({
+        data: {
+          academyId: erickBaez.id,
+          personId: jorge.id,
+          planId: erickPlan2.id,
+          amount: erickPlan2.price,
+          methodType: "TRANSFER",
+          methodLabel: "Transferencia",
+          status: "APPROVED",
+          reviewedById: academiasOwner.id,
+          reviewedAt: claimedAt,
+          createdAt: claimedAt,
+        },
+      });
+      const payment = await prisma.payment.create({
+        data: {
+          orderType: "MEMBERSHIP",
+          refId: `claim-${created.id}`,
+          personId: jorge.id,
+          amount: created.amount,
+          fee: 0,
+          net: created.amount,
+          gateway: "MANUAL",
+          status: "PAID",
+          feeMode: "ACADEMY",
+          platformFeeNetClp: 0,
+          platformFeeVatClp: 0,
+          gatewayFeeExpected: 0,
+          producerNetClp: created.amount,
+          createdAt: claimedAt,
+        },
+      });
+      await prisma.paymentClaim.update({
+        where: { id: created.id },
+        data: { paymentId: payment.id },
+      });
+    }
+    const erickClasses = await prisma.class.findMany({
+      where: {
+        slot: { academyId: erickBaez.id, series: { deletedAt: null } },
+      },
+      select: { id: true, date: true },
+    });
+    for (const cls of erickClasses) {
+      await book(cls.id, jorge.id);
+      if (cls.date <= todayUTC) await attend(cls.id, jorge.id, cls.date);
+    }
+  }
+
   // Futuras: la próxima de bachata llena (8/8) + waitlist; la siguiente
   // queda 5/8 para la tarjeta de quórum.
   const bachataFuturas = bachataBasico.slots
@@ -2851,7 +2939,7 @@ export async function seedDev(prisma: PrismaClient) {
   );
 
   // Tickets + pagos + check-ins de la edición pasada.
-  const asistentes = [camila, josefa, diego, antonia, daniela, dancer];
+  const asistentes = [camila, josefa, diego, antonia, daniela, dancer, jorge];
   for (const [i, p] of asistentes.entries()) {
     await ensure(
       () =>
@@ -2942,6 +3030,7 @@ export async function seedDev(prisma: PrismaClient) {
     maria,
     eduardo,
     dancer,
+    jorge,
   ].entries()) {
     await ensure(
       () =>
@@ -2995,6 +3084,23 @@ export async function seedDev(prisma: PrismaClient) {
       );
     }
   }
+  // Jorge quedó fuera del corte i<8 pero sí entró: check-in propio.
+  await ensure(
+    () =>
+      prisma.checkin.findFirst({
+        where: { eventId: desafioPrev.id, personId: jorge.id },
+      }),
+    () =>
+      prisma.checkin.create({
+        data: {
+          eventId: desafioPrev.id,
+          personId: jorge.id,
+          staffId: staff.id,
+          method: "SCAN",
+          inAt: new Date(desafioPrev.startsAt.getTime() + 90 * 60_000),
+        },
+      }),
+  );
 
   // Ventas del mes en curso sobre los eventos próximos de muvet:
   // entradas ACTIVE + pagos PAID recientes → KPIs "Entradas vendidas"
@@ -3296,6 +3402,37 @@ export async function seedDev(prisma: PrismaClient) {
       status: "PAID",
     },
   });
+  // Jorge también tiene su entrada vigente a la próxima edición.
+  await ensure(
+    () =>
+      prisma.ticket.findFirst({
+        where: { eventId: bachatamania.id, ownerId: jorge.id, status: "ACTIVE" },
+      }),
+    () =>
+      prisma.ticket.create({
+        data: {
+          eventId: bachatamania.id,
+          ownerId: jorge.id,
+          buyerId: jorge.id,
+          listPrice: 5000,
+          serviceFee: 300,
+        },
+      }),
+  );
+  await prisma.payment.upsert({
+    where: { refId: `seed-ticket-${bachatamania.id.slice(-6)}-jorge` },
+    update: {},
+    create: {
+      orderType: "TICKET",
+      refId: `seed-ticket-${bachatamania.id.slice(-6)}-jorge`,
+      personId: jorge.id,
+      eventId: bachatamania.id,
+      amount: 5300,
+      fee: 190,
+      net: 5110,
+      status: "PAID",
+    },
+  });
 
   // Amistades: clique ACCEPTED entre los bailarines demo - cualquier
   // cuenta demo ve amigos en /amigos y "amigos que van" en los eventos.
@@ -3315,6 +3452,7 @@ export async function seedDev(prisma: PrismaClient) {
     monica,
     maria,
     eduardo,
+    jorge,
   ];
   for (let i = 0; i < clique.length; i++) {
     for (let j = i + 1; j < clique.length; j++) {
@@ -3479,6 +3617,9 @@ export async function seedDev(prisma: PrismaClient) {
     styleRole(maria, "Salsa cubana (casino)", "FOLLOWER", "intermedio"),
     styleRole(eduardo, "Mambo on2", "LEADER", "intermedio"),
     styleRole(eduardo, "Bachata sensual", "LEADER", "intermedio"),
+    // Jorge - alumno de mambo en Erick Baez: leader en formación.
+    styleRole(jorge, "Mambo on2", "LEADER", "básico"),
+    styleRole(jorge, "Bachata sensual", "LEADER", "principiante"),
     // Adrián y Leo - su perfil público muestra el estilo de la casa.
     styleRole(adrian, "Mambo on2", "LEADER", "avanzado"),
     styleRole(leo, "Mambo on2", "LEADER", "avanzado"),
@@ -3753,6 +3894,14 @@ export async function seedDev(prisma: PrismaClient) {
     [camila, 5],
   ]);
   await session(prevEdition.id, daniela, eduardo, "CONFIRMED", at(155), "Mambo on2");
+  // Jorge también bailó la edición pasada - su /bailes arranca con
+  // historial (mambo que estudia en Erick Baez + bachata de la noche).
+  await session(prevEdition.id, jorge, camila, "RATED", at(85), "Bachata sensual", [
+    [jorge, 4],
+    [camila, 5],
+  ]);
+  await session(prevEdition.id, antonia, jorge, "CONFIRMED", at(135), "Mambo on2");
+  await session(prevEdition.id, jorge, daniela, "CONFIRMED", at(175), "Bachata tradicional");
 
   // Invitaciones vivas - solo existen dentro de una noche en curso:
   // nacen del escaneo en pista y expiran ~24h después (spec §4). El seed
@@ -3822,6 +3971,8 @@ export async function seedDev(prisma: PrismaClient) {
   ]);
   await session(liveEvent.id, dancer, daniela, "CONFIRMED", liveAt(80), "Bachata sensual");
   await session(liveEvent.id, francisca, dancer, "CONFIRMED", liveAt(105), "Timba");
+  // Jorge también está en la pista esta noche.
+  await session(liveEvent.id, jorge, josefa, "CONFIRMED", liveAt(65), "Mambo on2");
   // Camila: su propia noche - el card también debe verse rico en su cuenta.
   await session(liveEvent.id, camila, diego, "RATED", liveAt(20), "Timba", [
     [camila, 5, 5, 5, 4],
@@ -3908,9 +4059,13 @@ export async function seedDev(prisma: PrismaClient) {
         monica,
         maria,
         eduardo,
+        jorge,
       ],
     ],
-    [edition3, [dancer, camila, josefa, diego, antonia, daniela, monica, maria]],
+    [
+      edition3,
+      [dancer, camila, josefa, diego, antonia, daniela, monica, maria, jorge],
+    ],
   ] as const) {
     for (const p of people) {
       await ensure(
@@ -3963,6 +4118,12 @@ export async function seedDev(prisma: PrismaClient) {
     [maria, 5],
   ]);
   await session(edition2.id, maria, diego, "CONFIRMED", atEdition(edition2, 225), "Salsa cubana (casino)");
+  // Jorge en la edición -2.
+  await session(edition2.id, josefa, jorge, "RATED", atEdition(edition2, 110), "Salsa cubana (casino)", [
+    [josefa, 5],
+    [jorge, 4],
+  ]);
+  await session(edition2.id, jorge, monica, "CONFIRMED", atEdition(edition2, 200), "Mambo on2");
 
   // Edición -3 - sostiene la tercera semana de las rachas del clique.
   await session(edition3.id, dancer, antonia, "CONFIRMED", atEdition(edition3, 70), "Bachata sensual", [
@@ -3976,6 +4137,7 @@ export async function seedDev(prisma: PrismaClient) {
   await session(edition3.id, sebastian, josefa, "CONFIRMED", atEdition(edition3, 160), "Bachata sensual");
   await session(edition3.id, monica, gabriel, "CONFIRMED", atEdition(edition3, 90), "Mambo on2");
   await session(edition3.id, maria, antonia, "CONFIRMED", atEdition(edition3, 140), "Bachata sensual");
+  await session(edition3.id, jorge, josefa, "CONFIRMED", atEdition(edition3, 115), "Bachata sensual");
 
   // Temporada activa del año - los puntos del ledger se posicionan por
   // temporada (spec §7: no gastables, resetean por Season).
@@ -4125,6 +4287,7 @@ export async function seedDev(prisma: PrismaClient) {
     gabriel,
     monica,
     maria,
+    jorge,
   ];
   for (const [i, p] of liveAttendees.entries()) {
     await ensure(
@@ -4280,6 +4443,7 @@ export async function seedDev(prisma: PrismaClient) {
     monica,
     maria,
     eduardo,
+    jorge,
   ];
   for (const p of gamified) {
     const mySessions = await prisma.danceSession.findMany({
