@@ -900,7 +900,7 @@ sequenceDiagram
     participant API
 
     A->>API: POST /academy-deals/:id/codes
-    Note over API: staff con capability payments; acuerdo ACTIVE;<br/>cupo = códigos emitidos + tickets PAID por link < maxTickets
+    Note over API: staff con capability payments; acuerdo ACTIVE;<br/>cupo = códigos emitidos + tickets PAID por link < maxTickets.<br/>Check + insert bajo advisory lock por acuerdo<br/>(pg_advisory_xact_lock dealcode:<id>) - emisiones<br/>concurrentes serializan, la segunda ve el cupo ya gastado
     API-->>A: DiscountCode ACADEMY_PRESALE SLUG-DDMMM-XXXX<br/>(100% off, maxUses 1, scope del acuerdo)
     A->>C: cobra la preventa fuera + entrega el código
     C->>API: POST /checkout/ticket {discountCode}

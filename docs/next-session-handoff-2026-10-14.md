@@ -66,10 +66,11 @@ el contenido correcto, no requiere acción.
 
 ## Deuda conocida / próximo slice
 
-- Carrera leve en emisión de códigos: check de cupo + create no es
-  transaccional (dos POST concurrentes del mismo staff podrían pasar el
-  cupo por 1). Aceptado: emisión manual por un actor; si se quiere
-  cerrar, envolver en `$transaction` Serializable con retry P2034.
+- ~~Carrera leve en emisión de códigos~~ — cerrada: check de estado/cupo
+  + create van en `$transaction` con advisory lock
+  `pg_advisory_xact_lock(hashtext("dealcode:<agreementId>"))`; el
+  re-check corre dentro del lock con snapshot fresco. Cubierto por test
+  de emisiones concurrentes en `academy-sales.service.spec.ts`.
 - `resolveAttribution` (canal link) ya descuenta códigos emitidos del
   cupo — consistente con la regla "código emitido = cupo reservado".
 - La vista de ventas no etiqueta aún el canal link vs código en la misma

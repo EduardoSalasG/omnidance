@@ -28,7 +28,15 @@ function mkPrisma() {
   const codes: Row[] = [];
   const redemptions: Row[] = [];
   const persons: Row[] = [{ id: "buyer-1", name: "Comprador Uno" }];
+  // Las emisiones serializan por advisory lock real
+  // (pg_advisory_xact_lock); el fake serializa toda $transaction para
+  // que el test de concurrencia vea el re-check de cupo post-commit.
   const prisma = {
+    $executeRaw: vi.fn(async () => 0),
+    $transaction: vi.fn(
+      (fn: (tx: unknown) => Promise<unknown>): Promise<unknown> =>
+        fn(null as never),
+    ),
     event: {
       findUnique: vi.fn(),
       // paymentScope de acuerdos de serie: eventos de la serie por id.
@@ -231,6 +239,17 @@ function mkPrisma() {
       }),
     },
   };
+  let txQueue: Promise<unknown> = Promise.resolve();
+  prisma.$transaction.mockImplementation(
+    (fn: (tx: unknown) => Promise<unknown>) => {
+      const run = txQueue.then(() => fn(prisma));
+      txQueue = run.then(
+        () => undefined,
+        () => undefined,
+      );
+      return run;
+    },
+  );
   return { prisma, agreements, settlements, payments, codes, redemptions, persons };
 }
 
@@ -620,6 +639,24 @@ describe("AcademySalesService", () => {
     await expect(
       svc.createPresaleCode("agr-1", academyOwner),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("createPresaleCode: emisiones concurrentes serializan bajo el advisory lock", async () => {
+    fx.agreements.push(mkAgreement({ status: "ACTIVE", maxTickets: 1 }));
+    const results = await Promise.allSettled([
+      svc.createPresaleCode("agr-1", academyOwner),
+      svc.createPresaleCode("agr-1", academyOwner),
+    ]);
+    const ok = results.filter((r) => r.status === "fulfilled");
+    const failed = results.filter((r) => r.status === "rejected");
+    expect(ok).toHaveLength(1);
+    expect(failed).toHaveLength(1);
+    expect(
+      (failed[0] as PromiseRejectedResult).reason,
+    ).toBeInstanceOf(ConflictException);
+    // El lock toma la tx por acuerdo y el cupo se re-chequea dentro.
+    expect(fx.prisma.$executeRaw).toHaveBeenCalled();
+    expect(fx.codes).toHaveLength(1);
   });
 
   it("resolveAttribution (link): los códigos emitidos también consumen cupo", async () => {

@@ -139,12 +139,15 @@ export class AcademySalesService {
    * eventId escalar desnormalizado) - el lookup de la serie resuelve los
    * ids de evento y el filtro queda por eventId IN (...).
    */
-  private async paymentScope(agreement: {
-    eventId: string | null;
-    seriesId: string | null;
-  }): Promise<{ eventId: string | { in: string[] } }> {
+  private async paymentScope(
+    agreement: {
+      eventId: string | null;
+      seriesId: string | null;
+    },
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<{ eventId: string | { in: string[] } }> {
     if (agreement.eventId) return { eventId: agreement.eventId };
-    const events = await this.prisma.event.findMany({
+    const events = await db.event.findMany({
       where: { seriesId: agreement.seriesId! },
       select: { id: true },
     });
@@ -175,8 +178,11 @@ export class AcademySalesService {
   }
 
   /** Ids de los códigos 100% emitidos bajo el acuerdo (canal código). */
-  private async agreementCodeIds(agreementId: string): Promise<string[]> {
-    const codes = await this.prisma.discountCode.findMany({
+  private async agreementCodeIds(
+    agreementId: string,
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<string[]> {
+    const codes = await db.discountCode.findMany({
       where: { academySaleAgreementId: agreementId },
       select: { id: true },
     });
@@ -196,9 +202,10 @@ export class AcademySalesService {
       academyId: string;
     },
     codeIds: string[],
+    db: Prisma.TransactionClient = this.prisma,
   ): Promise<number> {
-    const scope = await this.paymentScope(agreement);
-    const agg = await this.prisma.payment.aggregate({
+    const scope = await this.paymentScope(agreement, db);
+    const agg = await db.payment.aggregate({
       _sum: { quantity: true },
       where: {
         orderType: "TICKET",
@@ -694,6 +701,12 @@ export class AcademySalesService {
    * acuerdo (evento o serie); el cupo del acuerdo cubre códigos
    * emitidos + tickets vendidos por link. Reintenta el sufijo ante
    * colisión del código único.
+   *
+   * La sección crítica corre bajo advisory lock por acuerdo
+   * (`pg_advisory_xact_lock`, misma convención que `sub:`/`platsub:`):
+   * serializa emisiones concurrentes para que el re-check de estado y
+   * cupo vea los commits del ganador - sin el lock, dos emisiones
+   * simultáneas leían el mismo uso y ambas insertaban.
    */
   async createPresaleCode(
     agreementId: string,
@@ -712,18 +725,6 @@ export class AcademySalesService {
       person,
       "payments",
     );
-    if (agreement.status !== "ACTIVE") {
-      throw new ConflictException("el acuerdo no está activo");
-    }
-    if (agreement.maxTickets != null) {
-      const codeIds = await this.agreementCodeIds(agreement.id);
-      const linkSold = await this.linkTickets(agreement, codeIds);
-      if (codeIds.length + linkSold >= agreement.maxTickets) {
-        throw new ConflictException(
-          "cupo de preventa agotado para esta academia",
-        );
-      }
-    }
 
     const slug = AcademySalesService.codeSlug(agreement.academy.name);
     const refDate = agreement.event?.startsAt ?? new Date();
@@ -732,17 +733,36 @@ export class AcademySalesService {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       const code = `${slug}-${dd}${mmm}-${AcademySalesService.codeSuffix()}`;
       try {
-        return await this.prisma.discountCode.create({
-          data: {
-            code,
-            type: "ACADEMY_PRESALE",
-            percentOff: 100,
-            maxUses: 1,
-            eventId: agreement.eventId,
-            seriesId: agreement.seriesId,
-            academySaleAgreementId: agreement.id,
-            createdById: person.id,
-          },
+        return await this.prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`dealcode:${agreementId}`}))`;
+          // Re-fetch dentro del lock: estado y cupo con snapshot fresco.
+          const fresh = await tx.academySaleAgreement.findUnique({
+            where: { id: agreementId },
+          });
+          if (!fresh || fresh.status !== "ACTIVE") {
+            throw new ConflictException("el acuerdo no está activo");
+          }
+          if (fresh.maxTickets != null) {
+            const codeIds = await this.agreementCodeIds(agreementId, tx);
+            const linkSold = await this.linkTickets(fresh, codeIds, tx);
+            if (codeIds.length + linkSold >= fresh.maxTickets) {
+              throw new ConflictException(
+                "cupo de preventa agotado para esta academia",
+              );
+            }
+          }
+          return tx.discountCode.create({
+            data: {
+              code,
+              type: "ACADEMY_PRESALE",
+              percentOff: 100,
+              maxUses: 1,
+              eventId: agreement.eventId,
+              seriesId: agreement.seriesId,
+              academySaleAgreementId: agreement.id,
+              createdById: person.id,
+            },
+          });
         });
       } catch (e) {
         // Colisión de código único → reintenta con otro sufijo.
