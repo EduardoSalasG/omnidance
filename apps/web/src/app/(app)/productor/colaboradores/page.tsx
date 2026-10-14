@@ -116,13 +116,6 @@ function CollaboratorsList() {
             <p role="status" className="text-sm text-ink/60">
               {t("collaborators.empty")}
             </p>
-            <Button
-              size="sm"
-              variant="secondary"
-              href="/productor/colaboradores/nuevo"
-            >
-              {t("collaborators.add")}
-            </Button>
           </Card>
         )}
 

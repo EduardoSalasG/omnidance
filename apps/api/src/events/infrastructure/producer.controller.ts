@@ -5,6 +5,8 @@ import {
   Delete,
   ForbiddenException,
   Get,
+  Inject,
+  Logger,
   NotFoundException,
   Param,
   Post,
@@ -18,6 +20,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from "class-validator";
 import type { Request } from "express";
@@ -26,6 +29,9 @@ import { PrismaService } from "../../prisma.service";
 import { roleKeysHavePermission } from "../../common/rbac/roles.guard";
 import { ParamsService } from "../../params/params.service";
 import { PRESALE_CUTOFF_MAX_MINUTES } from "../../common/presale-cutoff";
+import { AuthService } from "../../auth/domain/auth.service";
+import { MAILER, type Mailer } from "../../auth/domain/ports";
+import { staffInviteEmailHtml } from "../../academies/infrastructure/invite-emails";
 
 class ProducerTableParamsDto {
   /** Mesas reservables por defecto en sus eventos; null = no ofrecer. */
@@ -64,11 +70,20 @@ class AddCollaboratorDto {
   @IsString()
   personId?: string;
 
-  /** Alta directa por correo (persona ya registrada). */
+  /** Alta por correo - si no existe se crea stub + invitación. */
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  /** Nombre para el stub cuando el correo es nuevo. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
 }
+
+/** TTL del magic link de invitación (mismo criterio que academy staff). */
+const INVITE_TOKEN_TTL = "7d";
 
 // Defaults operativos auto-editables del productor (mesas + corte de
 // preventa); los financieros (fees) siguen siendo solo de admin.
@@ -92,9 +107,13 @@ const TABLE_FIELDS = [
 @Controller("producer")
 @UseGuards(SessionGuard)
 export class ProducerController {
+  private readonly logger = new Logger(ProducerController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly params: ParamsService,
+    private readonly auth: AuthService,
+    @Inject(MAILER) private readonly mailer: Mailer,
   ) {}
 
   /**
@@ -355,8 +374,11 @@ export class ProducerController {
 
   /**
    * Agrega un colaborador a la nómina: por personId (selección de la
-   * búsqueda por nombre) o por email directo. Upsert - reenviar no
-   * duplica. No puedes agregarte a ti mismo.
+   * búsqueda por nombre) o por email - correo nuevo crea Person stub +
+   * invitación con magic link largo (mismo patrón que staff de academia).
+   * En ambos caminos la persona queda con rol DANCER aprobado si no lo
+   * tenía (upsert no toca un estado ya existente). No puedes agregarte
+   * a ti mismo.
    */
   @Post("staff")
   async addStaff(@Body() dto: AddCollaboratorDto, @Req() req: Request) {
@@ -365,22 +387,69 @@ export class ProducerController {
     if (!dto.personId && !dto.email) {
       throw new BadRequestException("envía personId o email");
     }
-    const person = await this.prisma.person.findFirst({
-      where: dto.personId ? { id: dto.personId } : { email: dto.email! },
-      select: { id: true, name: true, email: true, photoUrl: true },
-    });
+
+    let invited = false;
+    let email = "";
+    let person: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    } | null;
+    if (dto.personId) {
+      person = await this.prisma.person.findUnique({
+        where: { id: dto.personId },
+        select: { id: true, name: true, email: true, photoUrl: true },
+      });
+    } else {
+      email = dto.email!.trim().toLowerCase();
+      person = await this.prisma.person.findUnique({
+        where: { email },
+        select: { id: true, name: true, email: true, photoUrl: true },
+      });
+      if (!person) {
+        person = await this.prisma.person.create({
+          data: {
+            email,
+            name: dto.name?.trim() || email.split("@")[0],
+          },
+          select: { id: true, name: true, email: true, photoUrl: true },
+        });
+        invited = true;
+      }
+    }
     if (!person) throw new NotFoundException("persona no encontrada");
     if (person.id === me.id) {
       throw new BadRequestException("no puedes agregarte como colaborador");
     }
-    const row = await this.prisma.producerStaff.upsert({
-      where: {
-        producerId_personId: { producerId: me.id, personId: person.id },
-      },
-      create: { producerId: me.id, personId: person.id },
-      update: {},
-    });
-    return { id: row.id, person };
+
+    const [, row] = await this.prisma.$transaction([
+      this.prisma.personRole.upsert({
+        where: { personId_role: { personId: person.id, role: "DANCER" } },
+        create: { personId: person.id, role: "DANCER", status: "APPROVED" },
+        update: {},
+      }),
+      this.prisma.producerStaff.upsert({
+        where: {
+          producerId_personId: { producerId: me.id, personId: person.id },
+        },
+        create: { producerId: me.id, personId: person.id },
+        update: {},
+      }),
+    ]);
+
+    if (invited) {
+      const producer = await this.prisma.person.findUnique({
+        where: { id: me.id },
+        select: { name: true },
+      });
+      await this.sendCollabInvite(
+        email,
+        person.name,
+        producer?.name ?? "Un productor",
+      );
+    }
+    return { id: row.id, person, invited };
   }
 
   /** Quita un colaborador de la nómina (idempotente). */
@@ -392,6 +461,32 @@ export class ProducerController {
       where: { producerId: me.id, personId },
     });
     return { ok: true };
+  }
+
+  /** Magic link largo + email de invitación (mismo patrón que academia). */
+  private async sendCollabInvite(
+    email: string,
+    personName: string | null,
+    producerName: string,
+  ) {
+    try {
+      const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
+      const token = await this.auth.createMagicToken(
+        email,
+        false,
+        INVITE_TOKEN_TTL,
+      );
+      const link = `${webUrl}/api/auth/verify?token=${token}`;
+      await this.mailer.send(
+        email,
+        `${producerName} te agregó como colaborador en Omnidance`,
+        staffInviteEmailHtml({ personName, academyName: producerName, link }),
+      );
+    } catch (e) {
+      this.logger.error(
+        `invitación de colaborador falló (${email}): ${e instanceof Error ? e.message : e}`,
+      );
+    }
   }
 
   /** productor APPROVED o admin.access - permiso desde DB, nunca rol literal. */
