@@ -104,6 +104,23 @@ Magic link también habilitado en dev.
 | `felipe@omnidance.dev` | Felipe Contreras | FROZEN | Enrollment congelado |
 | `daniela@omnidance.dev` | Daniela Fuentes | ACTIVE | Clase particular REQUESTED con Vale |
 
+### Cuentas reales (piloto)
+
+Emails reales fuera de `@omnidance.dev` - **solo magic link** (sin password
+dev). El magic link hace upsert sobre la Person ya sembrada: toda la data
+queda adjunta a la cuenta desde el primer login.
+
+| Email | Nombre | Rol(es) | Data sembrada |
+|---|---|---|---|
+| `gazner3203@gmail.com` | Gabriel Arias | `ACADEMY_OWNER` + `INSTRUCTOR` + `DANCER` | Dueño y profe de Mambo Madness (academia real: parrilla, planes y ~92 alumnos) |
+| `monica@omnidance.cl` | Mónica Soto | `DANCER` | Plan más caro de Adrian y Leo, asistencia completa, sociales y bailes |
+| `maria@omnidance.cl` | María José Herrera | `DANCER` + `INSTRUCTOR` | Profe de Mambo Madness + alumna Ilimitado, asistencias y bailes |
+| `salas.eduardo.cl@gmail.com` | Eduardo Salas | `DANCER` + `INSTRUCTOR` | Co-profe sábados Mambo Madness, historial social |
+| `jokcar12345@gmail.com` | Jorge Camacho | `DANCER` | Plan 2 clases/sem pagado en **Erick Baez** (claim aprobado + Payment MANUAL), todas las clases reservadas, check-ins en 5 sociales, 3 entradas (2 usadas + próxima Bachatamanía), 7 bailes con ratings, en el clique |
+
+Para agregar a Jorge en una DB ya sembrada sin correr todo el seed:
+`apps/api/prisma/seed-jorge-camacho.sql` (idempotente, transaccional).
+
 ### Qué cubre el seed
 
 - **Academias**: MuéveteOnTour (quórum default 15) y Academia Tumbao (12);

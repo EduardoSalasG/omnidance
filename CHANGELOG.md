@@ -3,6 +3,55 @@
 Todos los cambios notables del proyecto se documentan aquí, siguiendo
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y SemVer.
 
+## [0.8.5] - 2026-10-14
+
+### Added
+
+- **OTP de 6 dígitos junto al magic link**: el correo de login incluye
+  un código para que la PWA instalada verifique dentro de su propio
+  origen, sin depender de que el link abra el browser externo.
+- **Preventa por academias** (canal atribuido): las academias emiten
+  códigos de preventa de entradas; la venta queda atribuida a la
+  academia como deuda productor→academia, sin payout de plataforma.
+  Emisión de códigos serializada con advisory lock para evitar
+  colisiones bajo concurrencia.
+- **Nómina de colaboradores del productor**: mantenedor con alta por
+  nombre o correo (con invitación y rol `DANCER`), pool de staff
+  reutilizable y sección de eventos dentro del grupo del módulo.
+- **Consola de productor - ventas y reservas**: comprador y
+  referencia en ventas, pagos pendientes primero (viejos → recientes),
+  filtros por estado, paginación 5/10/todos con scroll interno,
+  reservas de mesa compactas con controles expandibles y tasa efectiva
+  de comisión inline en el header del evento.
+- **Reservas**: chip "por confirmar" y notificación de cancelación
+  con feedback táctil; header completo clickeable con chevron.
+- **Jorge Camacho al seed dev** (`jokcar12345@gmail.com`, `DANCER`,
+  magic link): alumno real de Erick Baez con plan de 2 clases/semana
+  vigente y pagado (PaymentClaim APPROVED + Payment MANUAL, misma forma
+  que `claims.approve`), todas las clases de la academia reservadas con
+  asistencia en las pasadas, check-ins en 5 sociales, 3 entradas (2
+  usadas + próxima Bachatamanía), 7 bailes con ratings, estilos
+  autodeclarados y membresía del clique (badges/puntos/rachas se
+  computan solos en el bloque de gamificación).
+- **`apps/api/prisma/seed-jorge-camacho.sql`**: equivalente SQL directo,
+  idempotente y transaccional, para insertar a Jorge en una DB ya
+  sembrada sin correr todo el seed.
+- README documenta las cuentas reales del piloto (Gabriel, Mónica,
+  María, Eduardo, Jorge).
+- Favicon multi-size (anillo morado).
+
+### Changed
+
+- **Precio SaaS de academias**: mensual base × meses facturados del
+  ciclo, en vez de tarifa plana por ciclo.
+
+### Fixed
+
+- **Checkout de orden $0**: responde `paid=true` inmediato sin redirect
+  de retorno (órdenes gratis no debían pasar por el flujo de pasarela).
+- **Sidebar**: grupo de tabs sin header duplicado del rol; labels sin
+  wrap durante la transición de ancho.
+
 ## [0.8.4] - 2026-10-11
 
 ### Fixed
