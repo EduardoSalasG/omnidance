@@ -462,7 +462,7 @@ describe("push-copy: convención de titles", () => {
     "Conseguiste cupo",
     "Cupo liberado",
     "Mesa confirmada",
-    "Mesa no confirmada",
+    "Tu reserva de mesa fue cancelada",
     "Nueva solicitud de mesa",
     "Clase particular agendada",
     "Clase particular asignada",

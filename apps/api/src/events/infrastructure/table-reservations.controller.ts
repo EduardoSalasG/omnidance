@@ -206,8 +206,8 @@ export class TableReservationsController {
       await this.notifications.notifySafe(reservation.personId, {
         category: "TRANSACTIONAL",
         type: "table.cancelled",
-        title: "Mesa no confirmada",
-        body: event?.name ?? undefined,
+        title: "Tu reserva de mesa fue cancelada",
+        body: `Lamentablemente, tu reserva de mesa fue cancelada${event?.name ? ` en ${event.name}` : ""}. El evento ya no cuenta con mesas disponibles.`,
         data: {
           reservationId: updated.id,
           eventId: reservation.eventId,

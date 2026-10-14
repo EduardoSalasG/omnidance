@@ -279,24 +279,6 @@ export function ReservationsSection({
                         </span>
                       </span>
                     )}
-                    {r.status === "REQUESTED" && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        disabled={busyId === r.id}
-                        onClick={() =>
-                          void manage(
-                            r.id as string,
-                            "CONFIRMED",
-                            (tableDrafts[r.id as string] ?? "").trim() ||
-                              undefined,
-                            toOptionalInt(sizeDrafts[r.id as string] ?? ""),
-                          )
-                        }
-                      >
-                        {t("reservations.confirm")}
-                      </Button>
-                    )}
                     {r.status && (
                       <Badge
                         variant={RES_STATUS_VARIANT[r.status] ?? "muted"}

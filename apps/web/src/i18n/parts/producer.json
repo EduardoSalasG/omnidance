@@ -184,7 +184,7 @@
       "saveChanges": "Guardar cambios",
       "cancel": "Cancelar",
       "statuses": {
-        "REQUESTED": "Solicitada",
+        "REQUESTED": "Por confirmar",
         "CONFIRMED": "Confirmada",
         "CANCELLED": "Cancelada"
       },
