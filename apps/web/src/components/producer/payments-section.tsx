@@ -69,10 +69,18 @@ export function PaymentsSection({ eventId }: Props) {
   // Sin acceso (no-owner / no-admin): la sección no existe para el viewer.
   if (denied) return null;
 
+  // Orden de gestión: pendientes primero (lo que exige revisión) de
+  // más viejo a más nuevo; el resto de más nuevo a más viejo.
+  const sorted = [...(payments ?? [])].sort((a, b) => {
+    const ap = a.status === "PENDING" ? 0 : 1;
+    const bp = b.status === "PENDING" ? 0 : 1;
+    if (ap !== bp) return ap - bp;
+    const ta = new Date(paymentPaidAt(a)).getTime();
+    const tb = new Date(paymentPaidAt(b)).getTime();
+    return ap === 0 ? ta - tb : tb - ta;
+  });
   const filtered =
-    status === "all"
-      ? payments
-      : payments?.filter((p) => p.status === status);
+    status === "all" ? sorted : sorted.filter((p) => p.status === status);
   const total = filtered?.length ?? 0;
   // "all" equivale a size=total: un solo slice sin páginas.
   const size = pageSize === "all" ? Math.max(total, 1) : pageSize;
