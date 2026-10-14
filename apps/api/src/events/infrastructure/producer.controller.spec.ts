@@ -31,12 +31,19 @@ function mk(over: {
     payment: { amount: number };
   }[];
   topEvents?: { id: string; name: string; startsAt: Date }[];
+  existingPerson?: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    photoUrl: string | null;
+  } | null;
 }) {
   const prisma = {
     personRole: {
       findUnique: vi.fn(async () =>
         over.producer ? { status: "APPROVED" } : null,
       ),
+      upsert: vi.fn(async () => ({})),
     },
     role: {
       findMany: vi.fn(async () =>
@@ -80,9 +87,37 @@ function mk(over: {
       count: vi.fn(async () => over.claimsCount ?? 0),
       findMany: vi.fn(async () => over.claims ?? []),
     },
+    // Colaboradores: findUnique resuelve persona existente; create arma
+    // el stub; $transaction ejecuta los upserts en paralelo.
+    person: {
+      findUnique: vi.fn(async () => over.existingPerson ?? null),
+      create: vi.fn(
+        async (args: { data: { email: string; name: string } }) => ({
+          id: "stub-1",
+          name: args.data.name,
+          email: args.data.email,
+          photoUrl: null,
+        }),
+      ),
+      findMany: vi.fn(async () => []),
+    },
+    producerStaff: {
+      findMany: vi.fn(async () => []),
+      upsert: vi.fn(async () => ({ id: "ps-1" })),
+      deleteMany: vi.fn(async () => ({})),
+    },
+    $transaction: vi.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
   } as unknown as PrismaService;
   const params = {} as ParamsService;
-  return new ProducerController(prisma, params);
+  const auth = {
+    createMagicToken: vi.fn(async () => "invite-token"),
+  } as never;
+  const mailer = { send: vi.fn(async () => undefined) } as never;
+  return {
+    ctl: new ProducerController(prisma, params, auth, mailer),
+    prisma,
+    mailer: mailer as { send: ReturnType<typeof vi.fn> },
+  };
 }
 
 describe("ProducerController.dashboard", () => {
@@ -90,7 +125,7 @@ describe("ProducerController.dashboard", () => {
   const past = new Date(Date.now() - 86400_000);
 
   it("sin eventos → todo en cero", async () => {
-    const ctl = mk({ producer: true, events: [] });
+    const { ctl } = mk({ producer: true, events: [] });
     const res = await ctl.dashboard(req("prod-1"));
     expect(res.kpis).toEqual({
       upcoming: 0,
@@ -105,7 +140,7 @@ describe("ProducerController.dashboard", () => {
 
   it("upcoming solo cuenta PUBLISHED/LIVE a futuro; tops y cola mapean", async () => {
     const now = new Date();
-    const ctl = mk({
+    const { ctl } = mk({
       producer: true,
       events: [
         { id: "e1", status: "PUBLISHED", endsAt: future },
@@ -160,7 +195,7 @@ describe("ProducerController.dashboard", () => {
   });
 
   it("groupBy con eventId null se excluye de los tops", async () => {
-    const ctl = mk({
+    const { ctl } = mk({
       producer: true,
       events: [{ id: "e1", status: "PUBLISHED", endsAt: future }],
       revenueBy: [
@@ -174,15 +209,86 @@ describe("ProducerController.dashboard", () => {
   });
 
   it("sin rol productor ni admin → 403", async () => {
-    const ctl = mk({ producer: false, admin: false });
+    const { ctl } = mk({ producer: false, admin: false });
     await expect(ctl.dashboard(req("per-x"))).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });
 
   it("admin sin ser productor también entra", async () => {
-    const ctl = mk({ producer: false, admin: true, events: [] });
+    const { ctl } = mk({ producer: false, admin: true, events: [] });
     const res = await ctl.dashboard(req("adm-1", ["ADMIN"]));
     expect(res.kpis.upcoming).toBe(0);
+  });
+});
+
+// POST /producer/staff: alta por personId o por correo (stub + invitación
+// si no existe). Todo colaborador gana el rol DANCER.
+describe("ProducerController.addStaff", () => {
+  const existing = {
+    id: "per-9",
+    name: "Ya Registrado",
+    email: "ya@omnidance.dev",
+    photoUrl: null,
+  };
+
+  it("personId de persona existente → en nómina, sin email de invitación", async () => {
+    const { ctl, mailer } = mk({ producer: true, existingPerson: existing });
+    const res = await ctl.addStaff({ personId: "per-9" }, req("prod-1"));
+    expect(res.invited).toBe(false);
+    expect(res.person).toMatchObject({ id: "per-9", name: "Ya Registrado" });
+    expect(mailer.send).not.toHaveBeenCalled();
+  });
+
+  it("correo nuevo → crea stub, rol DANCER y manda invitación", async () => {
+    const { ctl, mailer, prisma } = mk({ producer: true });
+    const res = await ctl.addStaff(
+      { email: "Nueva@Correo.CL", name: "Nueva Colab" },
+      req("prod-1"),
+    );
+    expect(res.invited).toBe(true);
+    // stub normaliza el correo y toma el nombre dado
+    const personCreate = (prisma as never as { person: { create: ReturnType<typeof vi.fn> } }).person.create;
+    expect(personCreate).toHaveBeenCalledWith({
+      data: { email: "nueva@correo.cl", name: "Nueva Colab" },
+      select: { id: true, name: true, email: true, photoUrl: true },
+    });
+    // DANCER se crea APPROVED; un rol existente conserva su estado
+    const roleUpsert = (prisma as never as { personRole: { upsert: ReturnType<typeof vi.fn> } }).personRole.upsert;
+    expect(roleUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: { personId: "stub-1", role: "DANCER", status: "APPROVED" },
+      }),
+    );
+    expect(mailer.send).toHaveBeenCalledWith(
+      "nueva@correo.cl",
+      expect.stringContaining("colaborador"),
+      expect.stringContaining("invite-token"),
+    );
+  });
+
+  it("correo de persona existente → se reusa, no invita", async () => {
+    const { ctl, mailer } = mk({ producer: true, existingPerson: existing });
+    const res = await ctl.addStaff({ email: "YA@omnidance.dev" }, req("prod-1"));
+    expect(res.invited).toBe(false);
+    expect(res.person.id).toBe("per-9");
+    expect(mailer.send).not.toHaveBeenCalled();
+  });
+
+  it("agregarse a sí mismo → 400", async () => {
+    const { ctl } = mk({
+      producer: true,
+      existingPerson: { ...existing, id: "prod-1" },
+    });
+    await expect(
+      ctl.addStaff({ personId: "prod-1" }, req("prod-1")),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("sin personId ni email → 400", async () => {
+    const { ctl } = mk({ producer: true });
+    await expect(ctl.addStaff({}, req("prod-1"))).rejects.toMatchObject({
+      status: 400,
+    });
   });
 });

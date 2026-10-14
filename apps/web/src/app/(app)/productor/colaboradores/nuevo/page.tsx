@@ -31,6 +31,13 @@ function NewCollaborator() {
   const [searching, setSearching] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Alta por correo: persona nueva → stub + invitación por magic link;
+  // existente → se suma a la nómina directo. En ambos casos gana el rol
+  // DANCER si no lo tenía.
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [done, setDone] = useState<"added" | "invited" | null>(null);
 
   const backHref = "/productor/colaboradores";
 
@@ -65,11 +72,41 @@ function NewCollaborator() {
         setError((await readError(res)) ?? tc("error"));
         return;
       }
-      router.push(backHref);
+      setDone("added");
+      setTimeout(() => router.push(backHref), 1200);
     } catch {
       setError(tc("error"));
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function invite(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed || inviting) return;
+    setInviting(true);
+    setError(null);
+    try {
+      const res = await apiFetch("/producer/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: trimmed,
+          ...(name.trim() ? { name: name.trim() } : {}),
+        }),
+      });
+      if (!res.ok) {
+        setError((await readError(res)) ?? tc("error"));
+        return;
+      }
+      const body = (await res.json()) as { invited?: boolean };
+      setDone(body.invited ? "invited" : "added");
+      setTimeout(() => router.push(backHref), 1200);
+    } catch {
+      setError(tc("error"));
+    } finally {
+      setInviting(false);
     }
   }
 
@@ -85,6 +122,17 @@ function NewCollaborator() {
           {t("collaborators.add")}
         </h2>
 
+        {done && (
+          <Card className="p-6 text-center">
+            <p role="status" className="text-lg font-bold text-neon">
+              {done === "invited"
+                ? t("collaborators.invited")
+                : t("collaborators.added")}
+            </p>
+          </Card>
+        )}
+
+        {!done && (
         <Card className="flex flex-col gap-3">
           <label className="flex flex-col gap-2">
             <span className="text-sm text-ink/70">
@@ -154,6 +202,52 @@ function NewCollaborator() {
             </p>
           )}
         </Card>
+        )}
+
+        {!done && (
+          <Card className="flex flex-col gap-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">
+              {t("collaborators.inviteByEmail")}
+            </p>
+            <form onSubmit={invite} className="flex flex-col gap-4">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm text-ink/70">
+                  {t("collaborators.emailLabel")}
+                  <span aria-hidden="true" className="text-neon">
+                    {" "}
+                    *
+                  </span>
+                </span>
+                <input
+                  type="email"
+                  required
+                  autoComplete="off"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t("collaborators.emailPlaceholder")}
+                  className={inputCls}
+                />
+              </label>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm text-ink/70">
+                  {t("collaborators.nameLabel")}
+                </span>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+              <Button type="submit" disabled={!email.trim() || inviting}>
+                {inviting
+                  ? tc("loading")
+                  : t("collaborators.inviteSubmit")}
+              </Button>
+            </form>
+          </Card>
+        )}
       </section>
     </>
   );

@@ -400,7 +400,14 @@
       "remove": "Quitar",
       "empty": "Aún no tienes colaboradores. Agrégalos para reutilizarlos como staff en tus eventos.",
       "personName": "Nombre",
-      "personPlaceholder": "Escribe el nombre…"
+      "personPlaceholder": "Escribe el nombre…",
+      "inviteByEmail": "O invítalo por correo",
+      "emailLabel": "Correo",
+      "emailPlaceholder": "persona@correo.cl",
+      "nameLabel": "Nombre (opcional)",
+      "inviteSubmit": "Enviar invitación",
+      "invited": "Invitación enviada — le llegó un correo con acceso",
+      "added": "Colaborador agregado"
     }
   }
 }
