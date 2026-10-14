@@ -1260,6 +1260,56 @@ export class EventsController {
     }));
   }
 
+  /**
+   * Candidatos a staff del evento (owner o admin): solo personas que ya
+   * fueron staff en otros eventos del mismo productor - la nómina de la
+   * productora, no un directorio global. Búsqueda por nombre (mín 2
+   * chars); excluye quienes ya están asignados a este evento.
+   * StaffAssignment es join plano (sin relación): eventos del productor
+   * → personIds históricos → filtro por nombre en Person.
+   */
+  @Get(":id/staff/candidates")
+  @UseGuards(SessionGuard)
+  async staffCandidates(
+    @Param("id") id: string,
+    @Query("q") q = "",
+    @Req() req: Request,
+  ) {
+    const event = await this.findEventOr404(id);
+    await this.requireOwnerOrAdmin(event.producerId, req.person!);
+    const term = q.trim();
+    if (term.length < 2 || !event.producerId) return [];
+
+    const [producerEvents, assigned] = await Promise.all([
+      this.prisma.event.findMany({
+        where: { producerId: event.producerId },
+        select: { id: true },
+      }),
+      this.prisma.staffAssignment.findMany({
+        where: { eventId: id },
+        select: { personId: true },
+      }),
+    ]);
+    const rows = await this.prisma.staffAssignment.findMany({
+      where: { eventId: { in: producerEvents.map((e) => e.id) } },
+      select: { personId: true },
+    });
+    const excluded = new Set(assigned.map((a) => a.personId));
+    const pool = [...new Set(rows.map((r) => r.personId))].filter(
+      (pid) => !excluded.has(pid),
+    );
+    if (pool.length === 0) return [];
+    return this.prisma.person.findMany({
+      where: {
+        id: { in: pool },
+        name: { contains: term, mode: "insensitive" },
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+      take: 20,
+    });
+  }
+
   private async findEventOr404(id: string) {
     const event = await this.prisma.event.findUnique({ where: { id } });
     if (!event) throw new NotFoundException("evento no encontrado");

@@ -18,6 +18,7 @@ import {
 } from "@/components/producer/shared";
 
 type EventState = "loading" | "ok" | "notFound" | "error";
+type Candidate = { id: string; name: string | null; email: string | null };
 
 /**
  * /productor/eventos/[id]/staff/nuevo - alta de staff de puerta
@@ -36,7 +37,13 @@ function NewEventStaff({ eventId }: { eventId: string }) {
   const [eventState, setEventState] = useState<EventState>("loading");
   const [eventNonce, setEventNonce] = useState(0);
 
-  const [personId, setPersonId] = useState("");
+  // El alta es por nombre: /events/:id/staff/candidates?q= solo devuelve
+  // la nómina histórica del productor (no un directorio global); el
+  // personId viaja en el POST pero nunca se tipea.
+  const [query, setQuery] = useState("");
+  const [candidates, setCandidates] = useState<Candidate[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<Candidate | null>(null);
   const [role, setRole] = useState<StaffRole>("DOOR");
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -71,6 +78,26 @@ function NewEventStaff({ eventId }: { eventId: string }) {
     void loadEvent();
   }, [loadEvent, eventNonce]);
 
+  // Búsqueda con debounce: solo corre con ≥2 chars y sin selección hecha.
+  useEffect(() => {
+    const term = query.trim();
+    if (selected || term.length < 2) {
+      setCandidates(null);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      apiFetch(
+        `/events/${eventId}/staff/candidates?q=${encodeURIComponent(term)}`,
+      )
+        .then(async (res) => setCandidates(res.ok ? await res.json() : []))
+        .catch(() => setCandidates([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query, eventId, selected]);
+
   // requireProSelf: el gateo aplica solo cuando el caller ES el dueño.
   const locked =
     serverLocked ||
@@ -80,14 +107,14 @@ function NewEventStaff({ eventId }: { eventId: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!personId.trim() || busy) return;
+    if (!selected || busy) return;
     setBusy(true);
     setFormError(null);
     try {
       const res = await apiFetch(`/events/${eventId}/staff`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personId: personId.trim(), role }),
+        body: JSON.stringify({ personId: selected!.id, role }),
       });
       if (!res.ok) {
         if (await isProRequired(res)) {
@@ -159,20 +186,91 @@ function NewEventStaff({ eventId }: { eventId: string }) {
           ) : (
             <Card>
               <form onSubmit={submit} className="flex flex-col gap-4">
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm text-ink/70">
-                    {t("staffSection.personId")}
-                    <span aria-hidden="true" className="text-neon"> *</span>
-                  </span>
-                  <input
-                    type="text"
-                    required
-                    autoComplete="off"
-                    value={personId}
-                    onChange={(e) => setPersonId(e.target.value)}
-                    className={inputCls}
-                  />
-                </label>
+                {selected ? (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-ink/15 bg-canvas px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {selected.name ?? selected.email ?? selected.id}
+                      </p>
+                      {selected.name && selected.email && (
+                        <p className="truncate text-xs text-ink/50">
+                          {selected.email}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelected(null);
+                        setQuery("");
+                      }}
+                      className="min-h-9 shrink-0 rounded px-2 text-xs text-neon hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                    >
+                      {t("staffSection.change")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm text-ink/70">
+                        {t("staffSection.personName")}
+                        <span aria-hidden="true" className="text-neon">
+                          {" "}
+                          *
+                        </span>
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        autoComplete="off"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={t("staffSection.personPlaceholder")}
+                        className={inputCls}
+                      />
+                    </label>
+                    <p className="text-xs text-ink/50">
+                      {t("staffSection.personHint")}
+                    </p>
+                    <div aria-live="polite">
+                      {searching && (
+                        <p role="status" className="text-xs text-ink/50">
+                          {tc("loading")}
+                        </p>
+                      )}
+                      {candidates !== null && candidates.length === 0 && (
+                        <p role="status" className="text-xs text-ink/50">
+                          {t("staffSection.noResults")}
+                        </p>
+                      )}
+                    </div>
+                    {candidates !== null && candidates.length > 0 && (
+                      <ul className="flex flex-col gap-1" role="listbox">
+                        {candidates.map((c) => (
+                          <li key={c.id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelected(c);
+                                setCandidates(null);
+                              }}
+                              className="flex min-h-11 w-full flex-col justify-center rounded-lg border border-ink/10 bg-canvas px-3 py-2 text-left hover:border-neon/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                            >
+                              <span className="truncate text-sm font-medium">
+                                {c.name ?? c.email ?? c.id}
+                              </span>
+                              {c.name && c.email && (
+                                <span className="truncate text-xs text-ink/50">
+                                  {c.email}
+                                </span>
+                              )}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
 
                 <label className="flex flex-col gap-2">
                   <span className="text-sm text-ink/70">
@@ -199,7 +297,7 @@ function NewEventStaff({ eventId }: { eventId: string }) {
 
                 <Button
                   type="submit"
-                  disabled={!personId.trim() || busy}
+                  disabled={!selected || busy}
                 >
                   {busy ? tc("loading") : t("staffSection.add")}
                 </Button>
