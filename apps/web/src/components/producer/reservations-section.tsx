@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, Pager, RefreshIcon } from "@/components/ui";
-import { SkeletonList } from "@/components/ui";
+import { ChevronDownIcon, SkeletonList } from "@/components/ui";
 import {
   inputCls,
   readError,
@@ -50,6 +50,9 @@ export function ReservationsSection({
   const [pageSize, setPageSize] = useState<5 | 10 | "all">(5);
   // Filtro por estado de la reserva - se aplica antes de paginar.
   const [status, setStatus] = useState<string>("all");
+  // Fila expandida: los controles de ajuste (personas/mesa/confirmar/
+  // cancelar) solo ocupan espacio en la reserva que se está editando.
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(false);
@@ -229,23 +232,71 @@ export function ReservationsSection({
             <ul className="flex flex-col gap-2">
               {visible.map((r, i) => {
             const manageable = Boolean(r.id);
+            const open = openId === r.id;
+            const editable = manageable && r.status !== "CANCELLED";
             return (
               <li key={r.id ?? i}>
-                <Card className="flex flex-col gap-3 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {r.person.name ?? "-"}
-                      </p>
-                      <p className="text-xs text-ink/50">
-                        {t("reservations.partySize", {
-                          count: r.partySize,
-                        })}
-                        {r.tableNo
-                          ? ` · ${t("reservations.table")} ${r.tableNo}`
-                          : ""}
-                      </p>
-                    </div>
+                <Card className="flex flex-col gap-2 p-3">
+                  <div className="flex items-center gap-2">
+                    {editable ? (
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() =>
+                          setOpenId(open ? null : (r.id as string))
+                        }
+                        className="flex min-w-0 flex-1 items-center gap-2 rounded-lg text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">
+                            {r.person.name ?? "-"}
+                          </span>
+                          <span className="block text-xs text-ink/50">
+                            {t("reservations.partySize", {
+                              count: r.partySize,
+                            })}
+                            {r.tableNo
+                              ? ` · ${t("reservations.table")} ${r.tableNo}`
+                              : ""}
+                          </span>
+                        </span>
+                        <ChevronDownIcon
+                          className={`h-4 w-4 shrink-0 text-ink/40 transition-transform ${open ? "rotate-180" : ""}`}
+                        />
+                      </button>
+                    ) : (
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">
+                          {r.person.name ?? "-"}
+                        </span>
+                        <span className="block text-xs text-ink/50">
+                          {t("reservations.partySize", {
+                            count: r.partySize,
+                          })}
+                          {r.tableNo
+                            ? ` · ${t("reservations.table")} ${r.tableNo}`
+                            : ""}
+                        </span>
+                      </span>
+                    )}
+                    {r.status === "REQUESTED" && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={busyId === r.id}
+                        onClick={() =>
+                          void manage(
+                            r.id as string,
+                            "CONFIRMED",
+                            (tableDrafts[r.id as string] ?? "").trim() ||
+                              undefined,
+                            toOptionalInt(sizeDrafts[r.id as string] ?? ""),
+                          )
+                        }
+                      >
+                        {t("reservations.confirm")}
+                      </Button>
+                    )}
                     {r.status && (
                       <Badge
                         variant={RES_STATUS_VARIANT[r.status] ?? "muted"}
@@ -257,7 +308,7 @@ export function ReservationsSection({
                     )}
                   </div>
 
-                  {manageable && r.status !== "CANCELLED" && (
+                  {editable && open && (
                     <div className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
                       {/* El productor ajusta el tamaño al confirmar - la
                           disponibilidad es referencial (checkout declara
