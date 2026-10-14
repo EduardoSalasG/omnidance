@@ -108,7 +108,9 @@ export function AppSidebar({
               key={group.label}
               group={group}
               collapsed={collapsed}
-              separated={collapsed && i > 0}
+              // En riel colapsado no hay headers: el separador solo va
+              // entre grupos "reales" (el bare de arriba no lleva línea).
+              separated={collapsed && i > 0 && !group.bare}
             />
           ))}
         </ul>
@@ -133,7 +135,7 @@ function SidebarGroup({
 }) {
   return (
     <li className={separated ? "mt-3 border-t border-line pt-3" : undefined}>
-      {!collapsed && (
+      {!collapsed && !group.bare && (
         <h3 className="mb-1 truncate px-3 text-xs font-semibold uppercase tracking-wide text-ink/40">
           {group.label}
         </h3>
