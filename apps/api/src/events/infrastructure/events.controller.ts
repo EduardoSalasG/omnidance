@@ -1261,12 +1261,11 @@ export class EventsController {
   }
 
   /**
-   * Candidatos a staff del evento (owner o admin): solo personas que ya
-   * fueron staff en otros eventos del mismo productor - la nómina de la
-   * productora, no un directorio global. Búsqueda por nombre (mín 2
-   * chars); excluye quienes ya están asignados a este evento.
-   * StaffAssignment es join plano (sin relación): eventos del productor
-   * → personIds históricos → filtro por nombre en Person.
+   * Candidatos a staff del evento (owner o admin): la nómina del
+   * productor (ProducerStaff) + personas que ya fueron staff en otros
+   * eventos suyos - nunca un directorio global. Búsqueda por nombre
+   * (mín 2 chars); excluye quienes ya están asignados a este evento.
+   * StaffAssignment/ProducerStaff son joins planos (sin relación).
    */
   @Get(":id/staff/candidates")
   @UseGuards(SessionGuard)
@@ -1280,7 +1279,7 @@ export class EventsController {
     const term = q.trim();
     if (term.length < 2 || !event.producerId) return [];
 
-    const [producerEvents, assigned] = await Promise.all([
+    const [producerEvents, assigned, collabs] = await Promise.all([
       this.prisma.event.findMany({
         where: { producerId: event.producerId },
         select: { id: true },
@@ -1289,15 +1288,22 @@ export class EventsController {
         where: { eventId: id },
         select: { personId: true },
       }),
+      this.prisma.producerStaff.findMany({
+        where: { producerId: event.producerId },
+        select: { personId: true },
+      }),
     ]);
     const rows = await this.prisma.staffAssignment.findMany({
       where: { eventId: { in: producerEvents.map((e) => e.id) } },
       select: { personId: true },
     });
     const excluded = new Set(assigned.map((a) => a.personId));
-    const pool = [...new Set(rows.map((r) => r.personId))].filter(
-      (pid) => !excluded.has(pid),
-    );
+    const pool = [
+      ...new Set([
+        ...rows.map((r) => r.personId),
+        ...collabs.map((c) => c.personId),
+      ]),
+    ].filter((pid) => !excluded.has(pid));
     if (pool.length === 0) return [];
     return this.prisma.person.findMany({
       where: {

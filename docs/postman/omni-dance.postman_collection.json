@@ -4110,6 +4110,82 @@
           }
         },
         {
+          "name": "GET /api/producer/staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/producer/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producer",
+                "staff"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /api/producer/staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/producer/staff",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producer",
+                "staff"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "DELETE /api/producer/staff/{personId}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/producer/staff/{personId}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "producer",
+                "staff",
+                "{personId}"
+              ],
+              "variable": [
+                {
+                  "key": "personId",
+                  "value": ":personId"
+                }
+              ],
+              "query": []
+            }
+          }
+        },
+        {
           "name": "GET /api/producer/gateway-account",
           "request": {
             "method": "GET",

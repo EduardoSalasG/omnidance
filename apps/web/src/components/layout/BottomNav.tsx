@@ -398,6 +398,12 @@ const DRAWER_BY_ROLE: Record<AppRole, DrawerGroupSpec[]> = {
           key: "modules.claims",
           icon: ICONS.card,
         },
+        {
+          href: "/productor/colaboradores",
+          ns: "producer",
+          key: "modules.collaborators",
+          icon: ICONS.users,
+        },
         { href: "/crm", ns: "nav", key: "crm", icon: ICONS.crm },
       ],
     },

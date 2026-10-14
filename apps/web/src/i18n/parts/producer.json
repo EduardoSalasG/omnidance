@@ -145,7 +145,6 @@
       },
       "personName": "Nombre",
       "personPlaceholder": "Escribe el nombre…",
-      "personHint": "Solo aparece staff que ya trabajó en tus eventos.",
       "noResults": "Sin resultados en tu nómina",
       "change": "Cambiar"
     },
@@ -393,6 +392,15 @@
       "orderRef": "N° orden",
       "openReceipt": "Ver comprobante",
       "notFound": "No encontramos este comprobante."
+    },
+    "collaborators": {
+      "title": "Colaboradores",
+      "desc": "Tu nómina: las personas que aparecen como candidatas al agregar staff a tus eventos.",
+      "add": "Agregar colaborador",
+      "remove": "Quitar",
+      "empty": "Aún no tienes colaboradores. Agrégalos para reutilizarlos como staff en tus eventos.",
+      "personName": "Nombre",
+      "personPlaceholder": "Escribe el nombre…"
     }
   }
 }

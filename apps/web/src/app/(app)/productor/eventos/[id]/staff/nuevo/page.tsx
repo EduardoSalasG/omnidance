@@ -229,9 +229,6 @@ function NewEventStaff({ eventId }: { eventId: string }) {
                         className={inputCls}
                       />
                     </label>
-                    <p className="text-xs text-ink/50">
-                      {t("staffSection.personHint")}
-                    </p>
                     <div aria-live="polite">
                       {searching && (
                         <p role="status" className="text-xs text-ink/50">
