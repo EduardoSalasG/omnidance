@@ -1087,6 +1087,10 @@ export function BottomNav({ children }: { children?: React.ReactNode }) {
       : [
           {
             label: roleLabel,
+            // bare: el grupo de tabs va sin header - el rol ya se lee
+            // en el header de la marca (roleLabel) y repetirlo como
+            // sección era ruido.
+            bare: true,
             items: allTabs
               .filter((tab) => !tab.sheet && tab.href !== "/perfil")
               .map((tab) => ({
