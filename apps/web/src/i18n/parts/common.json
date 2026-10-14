@@ -11,6 +11,11 @@
       "loadMore": "Cargar más",
       "perPage": "Ver",
       "all": "Todos"
+    },
+    "filter": {
+      "status": "Estado",
+      "all": "Todos",
+      "noResults": "Sin resultados"
     }
   }
 }

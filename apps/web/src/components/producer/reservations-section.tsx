@@ -48,6 +48,8 @@ export function ReservationsSection({
   // interno (mismo patrón que PaymentsSection).
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<5 | 10 | "all">(5);
+  // Filtro por estado de la reserva - se aplica antes de paginar.
+  const [status, setStatus] = useState<string>("all");
 
   const load = useCallback(async () => {
     setError(false);
@@ -131,12 +133,14 @@ export function ReservationsSection({
   const activeCount = actives.length;
   const seatsUsed = actives.reduce((sum, r) => sum + (r.partySize ?? 0), 0);
 
-  const total = items?.length ?? 0;
+  const filtered =
+    status === "all" ? items : items?.filter((r) => r.status === status);
+  const total = filtered?.length ?? 0;
   // "all" equivale a size=total: un solo slice sin páginas.
   const size = pageSize === "all" ? Math.max(total, 1) : pageSize;
   const pages = Math.max(1, Math.ceil(total / size));
   const safePage = Math.min(page, pages);
-  const visible = items?.slice((safePage - 1) * size, safePage * size);
+  const visible = filtered?.slice((safePage - 1) * size, safePage * size);
 
   return (
     <section className="flex flex-col gap-3">
@@ -144,22 +148,44 @@ export function ReservationsSection({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-ink/50">
           {t("sections.reservations")}
         </h2>
-        <label className="flex items-center gap-2 text-xs text-ink/50">
-          {tc("pager.perPage")}
-          <select
-            value={String(pageSize)}
-            onChange={(e) => {
-              const v = e.target.value;
-              setPageSize(v === "all" ? "all" : (Number(v) as 5 | 10));
-              setPage(1);
-            }}
-            className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
-          >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="all">{tc("pager.all")}</option>
-          </select>
-        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-ink/50">
+            {tc("filter.status")}
+            <select
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <option value="all">{tc("filter.all")}</option>
+              {Object.keys(RES_STATUS_VARIANT).map((s) => (
+                <option key={s} value={s}>
+                  {t.has(`reservations.statuses.${s}`)
+                    ? t(`reservations.statuses.${s}`)
+                    : s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-2 text-xs text-ink/50">
+            {tc("pager.perPage")}
+            <select
+              value={String(pageSize)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setPageSize(v === "all" ? "all" : (Number(v) as 5 | 10));
+                setPage(1);
+              }}
+              className="h-9 rounded-lg border border-ink/15 bg-canvas px-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="all">{tc("pager.all")}</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {tablesTotal != null && (
@@ -189,6 +215,14 @@ export function ReservationsSection({
           {t("reservations.empty")}
         </p>
       )}
+      {visible !== undefined &&
+        visible.length === 0 &&
+        items !== null &&
+        items.length > 0 && (
+          <p role="status" className="text-sm text-ink/50">
+            {tc("filter.noResults")}
+          </p>
+        )}
       {visible !== undefined && visible.length > 0 && (
         <>
           <div className="max-h-[26rem] overflow-y-auto pr-1">
