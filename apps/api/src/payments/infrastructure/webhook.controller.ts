@@ -616,6 +616,16 @@ export class PaymentsController {
       : [];
     const academyNameOf = new Map(academies.map((a) => [a.id, a.name]));
 
+    // Nombre del comprador (personId es escalar → join manual batch).
+    const personIds = [...new Set(payments.map((p) => p.personId))];
+    const persons = personIds.length
+      ? await this.prisma.person.findMany({
+          where: { id: { in: personIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const personNameOf = new Map(persons.map((p) => [p.id, p.name]));
+
     return payments.map((p) => {
       const seriesId =
         p.orderType === "SERIES_PASS"
@@ -642,6 +652,7 @@ export class PaymentsController {
         id: p.id,
         orderType: p.orderType,
         refId: p.refId,
+        personName: personNameOf.get(p.personId) ?? null,
         amount: p.amount,
         fee: p.fee,
         net: p.net,
