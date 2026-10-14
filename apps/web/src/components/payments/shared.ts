@@ -8,6 +8,8 @@ export type PaymentAuditRow = {
   id: string;
   orderType: string;
   refId: string;
+  // Nombre del comprador - null si la persona fue borrada.
+  personName: string | null;
   amount: number;
   fee: number;
   net: number;

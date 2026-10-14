@@ -163,6 +163,14 @@ class FakePrisma {
       this.classes.filter((c) => matchWhere(c, where)),
   };
 
+  // Nombre del comprador en la proyección de auditoría (join manual
+  // por personId - Payment no declara la relación).
+  people: Row[] = [];
+  person = {
+    findMany: async ({ where }: { where: Row }) =>
+      this.people.filter((p) => matchWhere(p, where)),
+  };
+
   paymentEvent = {
     findMany: async ({ where }: { where: { paymentId: string } }) =>
       this.paymentEvents

@@ -174,6 +174,12 @@ export function PaymentsSection({ eventId }: Props) {
                     scope="col"
                     className="sticky top-0 bg-surface px-4 py-3 font-medium"
                   >
+                    {tp("cols.buyer")}
+                  </th>
+                  <th
+                    scope="col"
+                    className="sticky top-0 bg-surface px-4 py-3 font-medium"
+                  >
                     {tp("cols.amount")}
                   </th>
                   <th
@@ -207,7 +213,12 @@ export function PaymentsSection({ eventId }: Props) {
                         {paymentDateTimeFmt.format(new Date(paymentPaidAt(p)))}
                       </span>
                       <span className="block text-xs text-ink/40">
-                        {p.gatewayMedia ?? p.refId.slice(0, 12)}
+                        {p.gatewayMedia ?? `Nº ${p.refId.slice(0, 12)}`}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="block max-w-40 truncate">
+                        {p.personName ?? "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3">

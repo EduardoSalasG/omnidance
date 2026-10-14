@@ -136,8 +136,22 @@ export function ReservationsSection({
   const activeCount = actives.length;
   const seatsUsed = actives.reduce((sum, r) => sum + (r.partySize ?? 0), 0);
 
+  // Orden de gestión: lo pendiente (REQUESTED) primero - es lo que
+  // pide acción - y dentro de cada estado de más antiguo a más nuevo.
+  const STATUS_ORDER: Record<string, number> = {
+    REQUESTED: 0,
+    CONFIRMED: 1,
+    CANCELLED: 2,
+  };
+  const sorted = [...(items ?? [])].sort(
+    (a, b) =>
+      (STATUS_ORDER[a.status ?? ""] ?? 9) -
+        (STATUS_ORDER[b.status ?? ""] ?? 9) ||
+      new Date(a.createdAt ?? 0).getTime() -
+        new Date(b.createdAt ?? 0).getTime(),
+  );
   const filtered =
-    status === "all" ? items : items?.filter((r) => r.status === status);
+    status === "all" ? sorted : sorted.filter((r) => r.status === status);
   const total = filtered?.length ?? 0;
   // "all" equivale a size=total: un solo slice sin páginas.
   const size = pageSize === "all" ? Math.max(total, 1) : pageSize;

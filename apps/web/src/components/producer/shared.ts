@@ -275,6 +275,8 @@ export type TableReservationItem = {
   person: { name: string | null };
   partySize: number;
   tableNo: string | null;
+  // Solo la vista de gestión lo expone (el listado público no).
+  createdAt?: string;
 };
 
 export type RatingAgg = { avg: number | null; count: number };

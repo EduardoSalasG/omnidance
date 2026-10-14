@@ -24,9 +24,10 @@
     },
     "cols": {
       "paidAt": "Cobrado",
+      "buyer": "Comprador",
       "amount": "Monto",
       "gatewayFee": "Costo pasarela",
-      "net": "Neto al actor",
+      "net": "Neto",
       "status": "Estado"
     },
     "ledger": {
