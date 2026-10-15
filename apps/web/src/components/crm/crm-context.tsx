@@ -236,12 +236,23 @@ export function CrmGateScreen({
   return null;
 }
 
-/** Selector de actor CRM: los propios + entrada manual para ADMIN. */
+/** Selector de actor CRM: los propios + entrada manual para ADMIN.
+ *  Con un solo actor propio (y sin ser admin) el select no aporta -
+ *  se muestra el actor como contexto, no como control. */
 export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
   const t = useTranslations("crm");
 
   if (ctx.actors.length === 0 && !ctx.isAdmin) {
     return <p className="text-ink/60">{t("noActor")}</p>;
+  }
+
+  if (ctx.actors.length === 1 && !ctx.isAdmin) {
+    return (
+      <p className="text-sm text-ink/70">
+        {t("actor.label")}:{" "}
+        <span className="font-medium text-ink">{ctx.actors[0].label}</span>
+      </p>
+    );
   }
 
   return (
