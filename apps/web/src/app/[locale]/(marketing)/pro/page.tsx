@@ -6,7 +6,6 @@ import { ChevronRightIcon } from "@/components/ui";
 import { JsonLd } from "@/components/landing/JsonLd";
 import { ProLeadForm } from "@/components/landing/ProLeadForm";
 import { getMessages, getLocale } from "next-intl/server";
-import { SITE_URL } from "@/lib/site-url";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
 import { fetchPublicEvents } from "@/lib/public-events";
@@ -25,7 +24,6 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${m.landingProHub.metaTitle} | Omnidance`,
     description: m.landingProHub.metaDescription,
     url: "/pro",
-    images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630 }],
   },
 };
 }
