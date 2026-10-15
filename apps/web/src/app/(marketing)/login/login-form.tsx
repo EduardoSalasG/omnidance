@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { safeInternalPath } from "@/lib/safe-next";
 import { Button } from "@/components/ui/Button";
 
 type Mode = "password" | "magic" | "register";
@@ -122,9 +123,9 @@ export default function LoginForm({
       if (res.ok) {
         if (mode === "magic") setSent(true);
         else {
-          // next solo rutas internas - nunca un open redirect.
-          const safeNext =
-            next?.startsWith("/") && !next.startsWith("//") ? next : null;
+          // next solo rutas internas - nunca un open redirect
+          // (safeInternalPath también descarta /\host y %5c).
+          const safeNext = safeInternalPath(next);
           // Tras crear cuenta → /bienvenida (paso de perfil salteable,
           // spec post-signup-profile-setup); el next se propaga.
           if (mode === "register") {
@@ -167,8 +168,7 @@ export default function LoginForm({
       setLoading(false);
       if (res.ok) {
         const data = (await res.json()) as { ok: boolean; isNew?: boolean };
-        const safeNext =
-          next?.startsWith("/") && !next.startsWith("//") ? next : null;
+        const safeNext = safeInternalPath(next);
         if (data.isNew) {
           go(
             safeNext

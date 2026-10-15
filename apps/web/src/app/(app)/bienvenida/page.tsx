@@ -10,6 +10,7 @@ import { PageLoading, Spinner } from "@/components/ui/spinner";
 import { GenderGroup, type Gender } from "@/components/profile/GenderGroup";
 import { inputCls } from "@/components/academy/shared";
 import { isProfileStyleVisible } from "@/lib/profile-styles";
+import { safeInternalPath } from "@/lib/safe-next";
 
 type DanceRole = "LEADER" | "FOLLOWER" | "SWITCH";
 type StyleDraft = { role: DanceRole; level: string };
@@ -42,11 +43,7 @@ function BienvenidaForm() {
   const tc = useTranslations("common");
   const router = useRouter();
   const params = useSearchParams();
-  const nextParam = params.get("next");
-  const next =
-    nextParam?.startsWith("/") && !nextParam.startsWith("//")
-      ? nextParam
-      : null;
+  const next = safeInternalPath(params.get("next"));
 
   const { me, loading: meLoading, refresh: refreshMe } = useMe();
   const [name, setName] = useState("");
