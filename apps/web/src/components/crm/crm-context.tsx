@@ -310,10 +310,11 @@ export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
   );
 }
 
-type CrmSection = "people" | "campaigns" | "triggers";
+type CrmSection = "people" | "segments" | "campaigns" | "triggers";
 
 const SECTION_HREF: Record<CrmSection, string> = {
   people: "/crm",
+  segments: "/crm/segmentos",
   campaigns: "/crm/campanas",
   triggers: "/crm/triggers",
 };

@@ -85,3 +85,104 @@ contacto SHALL mostrar el desglose de componentes cuando
 - **GIVEN** un contacto con `breakdown` poblado
 - **WHEN** el actor abre su ficha en `/crm/personas/[id]`
 - **THEN** ve el desglose por componente bajo el score
+
+### Requirement: Filtro por segmento guardado
+
+El listado `/crm/personas` SHALL soportar filtrado por segmento
+guardado además de segmento computado, tag y texto: el parámetro
+`segmentId` restringe a miembros de `ActorSegmentMembership`. El
+selector del UI SHALL ofrecer los segmentos guardados del actor junto
+a los computados.
+
+#### Scenario: filtro por segmento guardado
+
+- **GIVEN** un segmento guardado "VIP" con 5 miembros
+- **WHEN** el actor filtra el listado por "VIP"
+- **THEN** solo ve esas 5 personas
+
+### Requirement: Canal WhatsApp por campaña
+
+`GET /crm/campaigns/:id/whatsapp?text=` SHALL devolver
+`{items:[{personId,name,phone,url}], total, withoutPhone}` para la
+audiencia de la campaña: `result.audienceIds` si está SENT, o la
+audiencia resuelta por `resolveSegment` si está DRAFT/SCHEDULED.
+`url` SHALL ser `https://wa.me/<digits>?text=<encoded>` con el texto
+provisto; personas sin `phone` quedan en `withoutPhone`. La ficha de
+campaña SHALL ofrecer componer el texto y abrir cada chat.
+
+#### Scenario: exportar chats
+
+- **GIVEN** una campaña SENT a 5 personas, 3 con teléfono
+- **WHEN** el actor pide los links con texto "Hola"
+- **THEN** obtiene 3 items con url wa.me codificada y withoutPhone=2
+
+### Requirement: Digest semanal al owner
+
+El job `crm.digest` (default lunes 09:00 America/Santiago) SHALL
+enviar al owner de cada actor CRM con universo (`RelationshipScore`)
+una notificación con el total de personas y los conteos por segmento
+(`NEW`, `AT_RISK`, `BRINGS_PEOPLE`, `CORE`). No notifica a las
+personas ni a actores sin filas.
+
+#### Scenario: resumen del lunes
+
+- **GIVEN** una academia con 40 personas: 10 CORE, 5 AT_RISK, 3 NEW,
+  1 BRINGS_PEOPLE y 21 sin segmento
+- **WHEN** corre `crm.digest`
+- **THEN** el owner recibe una notificación con esos conteos
+
+#### Scenario: actor sin universo
+
+- **GIVEN** un productor sin RelationshipScore
+- **WHEN** corre `crm.digest`
+- **THEN** no se genera notificación para ese actor
+
+### Requirement: Acciones masivas sobre personas
+
+`/crm/personas` SHALL permitir seleccionar múltiples filas y aplicar
+acciones en lote: agregar o quitar un tag a la selección (`POST
+/crm/people/tags/bulk {personIds, tag, op:"add"|"remove"}`, idempotente)
+y crear campaña con `personIds` = selección. El listado conserva la
+navegación a ficha por fila (checkbox no rompe el card clickeable).
+
+#### Scenario: etiquetar selección
+
+- **GIVEN** 3 filas seleccionadas
+- **WHEN** el actor aplica el tag "VIP" en lote
+- **THEN** las 3 personas quedan taggeadas y re-aplicar no duplica
+
+#### Scenario: campaña a seleccionados
+
+- **WHEN** el actor elige "nueva campaña" con la selección activa
+- **THEN** el formulario de campaña llega con `personIds` = los
+  seleccionados en su audiencia
+
+### Requirement: Campaña programada
+
+`createCampaign` SHALL aceptar `scheduledAt` futuro → status
+`SCHEDULED`. El job `crm.campaigns` (default cada 5 minutos,
+America/Santiago) SHALL enviar las campañas SCHEDULED vencidas.
+`POST /crm/campaigns/:id/cancel` SHALL revertir SCHEDULED→DRAFT
+(limpiando scheduledAt). `sendCampaign` manual SHALL aceptar DRAFT y
+SCHEDULED.
+
+#### Scenario: envío programado
+
+- **GIVEN** una campaña SCHEDULED con scheduledAt en el pasado
+- **WHEN** corre el job `crm.campaigns`
+- **THEN** la campaña se envía y queda SENT con su result
+
+### Requirement: Atribución de campaña
+
+`GET /crm/campaigns/:id` SHALL incluir `metrics`: `sent` (del result),
+`redemptions` (payments PAID con `discountCodeId` del código de la
+campaña desde el envío) y `engaged` (personas de la audiencia enviada
+con checkin/attendance en el universo del actor posterior al envío).
+La audiencia materializada SHALL persistirse en `result.audienceIds`
+al enviar.
+
+#### Scenario: métricas tras enviar
+
+- **GIVEN** una campaña DISCOUNT_CODE enviada a 10 personas
+- **WHEN** 3 canjean el código y 2 vuelven a asistir
+- **THEN** metrics muestra sent=10, redemptions=3, engaged=2

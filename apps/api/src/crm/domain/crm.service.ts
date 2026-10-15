@@ -27,8 +27,32 @@ export const CRM_TRIGGER_KEYS = [
   "TRIAL_EXPIRING",
   "REGULAR_NO_PRESALE",
   "ATTENDANCE_DROP",
+  "SEGMENT_ENTER",
+  "SEGMENT_EXIT",
 ] as const;
 export type CrmTriggerKey = (typeof CRM_TRIGGER_KEYS)[number];
+
+// Triggers dirigidos por evento (diff de membresía de ActorSegment en
+// cada recompute) — no se evalúan por fecha en el cron de triggers.
+const EVENT_TRIGGER_KEYS = new Set(["SEGMENT_ENTER", "SEGMENT_EXIT"]);
+
+// Campos/ops permitidos en las reglas de ActorSegment
+// (spec crm-dynamic-segments).
+const NUM_OPS = ["eq", "neq", "gt", "gte", "lt", "lte"] as const;
+const SEGMENT_RULE_OPS: Record<string, readonly string[]> = {
+  score: NUM_OPS,
+  attendanceRecent: NUM_OPS,
+  weeklyStreak: NUM_OPS,
+  monthsContinuous: NUM_OPS,
+  purchases: NUM_OPS,
+  earlyPurchases: NUM_OPS,
+  tenure: NUM_OPS,
+  referrals: NUM_OPS,
+  spend: NUM_OPS,
+  segment: ["eq", "neq"],
+  tag: ["present", "absent"],
+};
+const SEGMENT_RULE_FIELDS = new Set(Object.keys(SEGMENT_RULE_OPS));
 
 type CrmErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "CONFLICT";
 
@@ -52,6 +76,9 @@ interface CampaignSegment {
   enrollmentStatus?: string[];
   planId?: string;
   seriesId?: string;
+  /** id de ActorSegment guardado (spec crm-dynamic-segments) — resuelve
+   *  a la membresía materializada en el último recompute. */
+  segmentRef?: string;
 }
 
 type CampaignAction =
@@ -186,7 +213,13 @@ export class CrmService {
   async listPeople(
     actorType: string,
     actorId: string,
-    filter: { q?: string; segment?: string; tag?: string; sort?: string } = {},
+    filter: {
+      q?: string;
+      segment?: string;
+      tag?: string;
+      segmentId?: string;
+      sort?: string;
+    } = {},
     pg?: { page: number; pageSize: number; skip: number; take: number },
   ) {
     const [scores, tags] = await Promise.all([
@@ -239,6 +272,23 @@ export class CrmService {
     }
 
     let filtered = allRows;
+    // Segmento guardado (spec crm-dynamic-segments): restringe a la
+    // membresía materializada del ActorSegment del actor.
+    if (filter.segmentId) {
+      const seg = await this.prisma.actorSegment.findFirst({
+        where: { id: filter.segmentId, actorType, actorId },
+        select: { id: true },
+      });
+      if (!seg) {
+        throw new CrmDomainError("NOT_FOUND", "segmento no encontrado");
+      }
+      const members = await this.prisma.actorSegmentMembership.findMany({
+        where: { segmentId: filter.segmentId },
+        select: { personId: true },
+      });
+      const memberSet = new Set(members.map((m) => m.personId));
+      filtered = filtered.filter((r) => memberSet.has(r.personId));
+    }
     const seg = filter.segment;
     if (seg && seg !== "ALL") {
       filtered = filtered.filter((r) =>
@@ -504,6 +554,54 @@ export class CrmService {
     await this.prisma.actorTag.delete({ where: { id } });
   }
 
+  /**
+   * Tags en lote (spec crm-campaign-ops): op "add" crea el tag en cada
+   * persona sin duplicar (dedup por actor+persona+tag), op "remove" lo
+   * borra. Devuelve cuántas filas se afectaron.
+   */
+  async bulkTag(
+    actorType: string,
+    actorId: string,
+    personIds: string[],
+    tag: string,
+    op: "add" | "remove",
+  ): Promise<{ affected: number }> {
+    const trimmed = tag.trim();
+    if (!trimmed) {
+      throw new CrmDomainError("BAD_REQUEST", "tag requerido");
+    }
+    const ids = [...new Set(personIds.filter(Boolean))];
+    if (!ids.length) {
+      throw new CrmDomainError("BAD_REQUEST", "personIds vacío");
+    }
+    if (op === "remove") {
+      const r = await this.prisma.actorTag.deleteMany({
+        where: { actorType, actorId, tag: trimmed, personId: { in: ids } },
+      });
+      return { affected: r.count };
+    }
+    const existing = new Set(
+      (
+        await this.prisma.actorTag.findMany({
+          where: { actorType, actorId, tag: trimmed, personId: { in: ids } },
+          select: { personId: true },
+        })
+      ).map((t) => t.personId),
+    );
+    const toCreate = ids.filter((p) => !existing.has(p));
+    if (toCreate.length) {
+      await this.prisma.actorTag.createMany({
+        data: toCreate.map((personId) => ({
+          actorType,
+          actorId,
+          personId,
+          tag: trimmed,
+        })),
+      });
+    }
+    return { affected: toCreate.length };
+  }
+
   // ═══════════════════ SCORES ═══════════════════
 
   /**
@@ -515,22 +613,23 @@ export class CrmService {
    *   slots + compras resueltas por refId (mem_/wks_/pvt_) y claims
    *   APPROVED + membresías vigentes.
    *
-   * Fórmula ACADEMY (spec academy-score-refine, pesos en crm.score.*):
-   * score = min(100, attendanceRecent×attPts + min(streak,cap)×streakPts
+   * Fórmula (specs academy/producer-score-refine, pesos en crm.score.*):
+   * score = min(100, recent×attPts + min(streak,cap)×streakPts
    *   + min(months,cap)×monthsPts + min(purchases,cap)×purchasePts
+   *   + min(early,earlyCap)×earlyPts   (solo PRODUCER)
    *   + min(tenure,cap)×tenurePts + referrals×refPts)
-   *
-   * PRODUCER conserva: score = min(100, attendance*10 + spend/1000 +
-   * referrals*15).
    *
    * segment (primer match):
    * - NEW           primera actividad < crm.new_days (default 30)
    * - AT_RISK       última actividad > crm.winback_days (default 21) o
-   *                 asistencia 4w reciente < 50% de las 4w anteriores
-   *                 (mínimo 2 previas)
+   *                 caída (academy 4w/4w; producer últimos 2 eventos)
    * - BRINGS_PEOPLE ≥ crm.brings_people_referrals (default 2)
    * - CORE          score ≥ crm.score.core_min (default 60)
    * - null          resto
+   *
+   * Al final sincroniza las membresías de los ActorSegment del actor
+   * (spec crm-dynamic-segments): el diff dispara triggers
+   * SEGMENT_ENTER/SEGMENT_EXIT.
    */
   async recomputeScores(
     actorType: string,
@@ -540,6 +639,10 @@ export class CrmService {
     const activity = await this.computeActivity(actorType, actorId, p);
     const now = new Date();
 
+    const computed = new Map<
+      string,
+      { a: PersonActivity; score: number; segment: string | null }
+    >();
     let updated = 0;
     for (const [personId, a] of activity) {
       const { score, breakdown } = this.computeScore(actorType, a, p);
@@ -563,8 +666,10 @@ export class CrmService {
           breakdown: breakdown as Prisma.InputJsonValue,
         },
       });
+      computed.set(personId, { a, score, segment });
       updated++;
     }
+    await this.syncSegments(actorType, actorId, computed);
     return { updated };
   }
 
@@ -1181,9 +1286,24 @@ export class CrmService {
     name: string,
     segment: unknown,
     action: unknown,
+    scheduledAt?: string | null,
   ) {
     const parsedSegment = await this.parseSegment(segment, actorType, actorId);
     const parsedAction = this.parseAction(action);
+    let schedule: Date | null = null;
+    if (scheduledAt) {
+      const d = new Date(scheduledAt);
+      if (Number.isNaN(d.getTime())) {
+        throw new CrmDomainError("BAD_REQUEST", "scheduledAt inválido");
+      }
+      if (d.getTime() <= Date.now()) {
+        throw new CrmDomainError(
+          "BAD_REQUEST",
+          "scheduledAt debe ser una fecha futura",
+        );
+      }
+      schedule = d;
+    }
     return this.prisma.campaign.create({
       data: {
         actorType,
@@ -1191,9 +1311,52 @@ export class CrmService {
         name,
         segment: parsedSegment as Prisma.InputJsonValue,
         action: parsedAction as Prisma.InputJsonValue,
-        status: "DRAFT",
+        status: schedule ? "SCHEDULED" : "DRAFT",
+        scheduledAt: schedule,
       },
     });
+  }
+
+  /** Desprograma una campaña: SCHEDULED → DRAFT (spec crm-campaign-ops). */
+  async cancelCampaign(id: string) {
+    const campaign = await this.prisma.campaign.findUnique({ where: { id } });
+    if (!campaign) {
+      throw new CrmDomainError("NOT_FOUND", "campaña no encontrada");
+    }
+    if (campaign.status !== "SCHEDULED") {
+      throw new CrmDomainError(
+        "CONFLICT",
+        "solo se puede desprogramar una campaña SCHEDULED",
+      );
+    }
+    return this.prisma.campaign.update({
+      where: { id },
+      data: { status: "DRAFT", scheduledAt: null },
+    });
+  }
+
+  /**
+   * Handler del job `crm.campaigns` (cada 5 min): envía las campañas
+   * SCHEDULED con scheduledAt vencido. Devuelve conteo para JobRun.meta.
+   */
+  async sendScheduledCampaigns(): Promise<{ sent: number }> {
+    const due = await this.prisma.campaign.findMany({
+      where: { status: "SCHEDULED", scheduledAt: { lte: new Date() } },
+      select: { id: true },
+    });
+    let sent = 0;
+    for (const c of due) {
+      try {
+        await this.sendCampaign(c.id);
+        sent++;
+      } catch (e) {
+        this.logger.error(
+          `crm.campaigns: sendCampaign ${c.id} falló`,
+          e instanceof Error ? e.stack : String(e),
+        );
+      }
+    }
+    return { sent };
   }
 
   getCampaign(id: string) {
@@ -1233,7 +1396,7 @@ export class CrmService {
     if (!campaign) {
       throw new CrmDomainError("NOT_FOUND", "campaña no encontrada");
     }
-    if (campaign.status !== "DRAFT") {
+    if (campaign.status !== "DRAFT" && campaign.status !== "SCHEDULED") {
       throw new CrmDomainError("CONFLICT", "la campaña ya fue enviada");
     }
 
@@ -1274,13 +1437,206 @@ export class CrmService {
       where: { id },
       data: {
         status: "SENT",
+        scheduledAt: null,
         result: {
           sent: personIds.length,
           ...(code ? { code } : {}),
+          // Audiencia materializada al enviar - base de la atribución
+          // (spec crm-campaign-ops): engaged/redemptions en la ficha.
+          audienceIds: personIds,
           at: new Date().toISOString(),
         },
       },
     });
+  }
+
+  /**
+   * Atribución de la campaña (spec crm-campaign-ops): sobre
+   * result.audienceIds cuenta redenciones del código (DISCOUNT_CODE) y
+   * personas que volvieron a la actividad del actor tras el envío
+   * (checkin en eventos del producer / attendance en clases de la
+   * academia). Se calcula bajo demanda en la ficha.
+   */
+  async campaignMetrics(id: string): Promise<{
+    sent: number;
+    redemptions: number | null;
+    engaged: number | null;
+  }> {
+    const campaign = await this.prisma.campaign.findUnique({ where: { id } });
+    if (!campaign) {
+      throw new CrmDomainError("NOT_FOUND", "campaña no encontrada");
+    }
+    const result = (campaign.result ?? {}) as Record<string, unknown>;
+    const audience = Array.isArray(result.audienceIds)
+      ? (result.audienceIds as string[])
+      : [];
+    const sentAt = result.at ? new Date(String(result.at)) : null;
+
+    let redemptions: number | null = null;
+    const code =
+      typeof result.code === "string" ? result.code : null;
+    if (code && sentAt) {
+      const dc = await this.prisma.discountCode.findUnique({
+        where: { code },
+        select: { id: true },
+      });
+      if (dc) {
+        redemptions = await this.prisma.payment.count({
+          where: {
+            discountCodeId: dc.id,
+            status: "PAID",
+            createdAt: { gte: sentAt },
+          },
+        });
+      } else {
+        redemptions = 0;
+      }
+    }
+
+    let engaged: number | null = null;
+    if (sentAt && audience.length) {
+      if (campaign.actorType === "ACADEMY") {
+        const rows = await this.prisma.attendance.findMany({
+          where: {
+            personId: { in: audience },
+            checkedAt: { gte: sentAt },
+            class: { slot: { academyId: campaign.actorId } },
+          },
+          select: { personId: true },
+          distinct: ["personId"],
+        });
+        engaged = rows.length;
+      } else if (campaign.actorType === "PRODUCER") {
+        const events = await this.prisma.event.findMany({
+          where: { producerId: campaign.actorId },
+          select: { id: true },
+        });
+        const eventIds = events.map((e) => e.id);
+        if (eventIds.length) {
+          const rows = await this.prisma.checkin.findMany({
+            where: {
+              personId: { in: audience },
+              inAt: { gte: sentAt },
+              voidedAt: null,
+              eventId: { in: eventIds },
+            },
+            select: { personId: true },
+            distinct: ["personId"],
+          });
+          engaged = rows.length;
+        } else {
+          engaged = 0;
+        }
+      }
+    }
+
+    return {
+      sent: Number(result.sent ?? 0),
+      redemptions,
+      engaged,
+    };
+  }
+
+  /**
+   * Links wa.me de la audiencia de la campaña (spec
+   * crm-channels-digest): SENT usa result.audienceIds persistida;
+   * DRAFT/SCHEDULED resuelve la audiencia al vuelo. Solo personas con
+   * phone registrado; el resto queda en withoutPhone.
+   */
+  async whatsappLinks(
+    id: string,
+    text?: string,
+  ): Promise<{
+    items: { personId: string; name: string; phone: string; url: string }[];
+    total: number;
+    withoutPhone: number;
+  }> {
+    const campaign = await this.prisma.campaign.findUnique({ where: { id } });
+    if (!campaign) {
+      throw new CrmDomainError("NOT_FOUND", "campaña no encontrada");
+    }
+    const result = (campaign.result ?? {}) as Record<string, unknown>;
+    let audience = Array.isArray(result.audienceIds)
+      ? (result.audienceIds as string[])
+      : null;
+    if (!audience) {
+      const segment = await this.parseSegment(
+        campaign.segment,
+        campaign.actorType,
+        campaign.actorId,
+      );
+      audience = await this.resolveSegment(
+        campaign.actorType,
+        campaign.actorId,
+        segment,
+      );
+    }
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: audience } },
+      select: { id: true, name: true, phone: true },
+    });
+    const encoded = text?.trim() ? encodeURIComponent(text.trim()) : "";
+    const items = people
+      .filter((p) => p.phone)
+      .map((p) => {
+        const digits = String(p.phone).replace(/\D/g, "");
+        return {
+          personId: p.id,
+          name: p.name ?? p.id,
+          phone: String(p.phone),
+          url: `https://wa.me/${digits}${encoded ? `?text=${encoded}` : ""}`,
+        };
+      });
+    return {
+      items,
+      total: people.length,
+      withoutPhone: people.length - items.length,
+    };
+  }
+
+  /**
+   * Handler del job `crm.digest` (spec crm-channels-digest, lunes
+   * 09:00): una notificación al owner de cada actor con universo, con
+   * total y conteos por segmento del RelationshipScore.
+   */
+  async sendDigests(): Promise<{ actors: number; notified: number }> {
+    const actors = await this.prisma.relationshipScore.groupBy({
+      by: ["actorType", "actorId"],
+    });
+    let notified = 0;
+    for (const a of actors) {
+      const ownerId = await this.actorOwnerId(a.actorType, a.actorId);
+      if (!ownerId) continue;
+      const rows = await this.prisma.relationshipScore.findMany({
+        where: { actorType: a.actorType, actorId: a.actorId },
+        select: { segment: true },
+      });
+      const counts: Record<string, number> = {};
+      for (const r of rows) {
+        counts[r.segment ?? "NONE"] = (counts[r.segment ?? "NONE"] ?? 0) + 1;
+      }
+      const parts = [
+        `${rows.length} personas`,
+        counts.CORE ? `${counts.CORE} núcleo` : null,
+        counts.AT_RISK ? `${counts.AT_RISK} en riesgo` : null,
+        counts.NEW ? `${counts.NEW} nuevas` : null,
+        counts.BRINGS_PEOPLE ? `${counts.BRINGS_PEOPLE} trae gente` : null,
+      ].filter(Boolean);
+      await this.notifications.notifySafe(ownerId, {
+        category: "OPERATIONAL",
+        type: "crm.digest",
+        title: "Resumen semanal de tu CRM",
+        body: parts.join(" · "),
+        data: {
+          actorType: a.actorType,
+          actorId: a.actorId,
+          total: rows.length,
+          counts,
+        },
+      });
+      notified++;
+    }
+    return { actors: actors.length, notified };
   }
 
   /** Resuelve el segmento a personIds - unión de los criterios presentes. */
@@ -1341,6 +1697,23 @@ export class CrmService {
         select: { personId: true },
       });
       for (const s of scores) ids.add(s.personId);
+    }
+
+    // Segmento guardado (spec crm-dynamic-segments): la membresía
+    // materializada en el último recompute entra al OR de la audiencia.
+    if (segment.segmentRef) {
+      const seg = await this.prisma.actorSegment.findFirst({
+        where: { id: segment.segmentRef, actorType, actorId },
+        select: { id: true },
+      });
+      if (!seg) {
+        throw new CrmDomainError("BAD_REQUEST", "segmentRef no existe");
+      }
+      const members = await this.prisma.actorSegmentMembership.findMany({
+        where: { segmentId: seg.id },
+        select: { personId: true },
+      });
+      for (const m of members) ids.add(m.personId);
     }
 
     // Criterios de academia (OR entre sí y con el resto) - parseSegment
@@ -1524,6 +1897,7 @@ export class CrmService {
       enrollmentStatus: s.enrollmentStatus,
       planId: s.planId,
       seriesId: s.seriesId,
+      segmentRef: typeof s.segmentRef === "string" ? s.segmentRef : undefined,
     };
   }
 
@@ -1614,6 +1988,529 @@ export class CrmService {
 
   private isStringArray(v: unknown): v is string[] {
     return Array.isArray(v) && v.every((x) => typeof x === "string");
+  }
+
+  // ═══════════════════ SEGMENTOS DINÁMICOS ═══════════════════
+  // ActorSegment = regra nomeada do actor sobre as señales do score +
+  // tags (spec crm-dynamic-segments). A membresía materializa em cada
+  // recomputeScores; o diff (enter/exit) alimenta os triggers
+  // SEGMENT_ENTER/SEGMENT_EXIT.
+
+  /** Valida o payload `rules` de um ActorSegment. Forma:
+   *  {match?: "all"|"any", conditions: [{field, op, value}]}. */
+  parseSegmentRules(raw: unknown): {
+    match: "all" | "any";
+    conditions: { field: string; op: string; value: unknown }[];
+  } {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      throw new CrmDomainError("BAD_REQUEST", "rules debe ser un objeto");
+    }
+    const r = raw as Record<string, unknown>;
+    const match = r.match === undefined ? "all" : r.match;
+    if (match !== "all" && match !== "any") {
+      throw new CrmDomainError("BAD_REQUEST", "rules.match debe ser all o any");
+    }
+    if (!Array.isArray(r.conditions) || !r.conditions.length) {
+      throw new CrmDomainError(
+        "BAD_REQUEST",
+        "rules.conditions debe tener al menos una condición",
+      );
+    }
+    const conditions = r.conditions.map((c, i) => {
+      const cond = c as Record<string, unknown>;
+      const field = String(cond?.field ?? "");
+      const op = String(cond?.op ?? "");
+      if (!SEGMENT_RULE_FIELDS.has(field)) {
+        throw new CrmDomainError(
+          "BAD_REQUEST",
+          `conditions[${i}].field desconocido: ${field} - válidos: ${[...SEGMENT_RULE_FIELDS].join(", ")}`,
+        );
+      }
+      const validOps = SEGMENT_RULE_OPS[field];
+      if (!validOps.includes(op)) {
+        throw new CrmDomainError(
+          "BAD_REQUEST",
+          `conditions[${i}].op inválida para ${field}: ${op} - válidas: ${validOps.join(", ")}`,
+        );
+      }
+      if (cond.value === undefined || cond.value === null) {
+        throw new CrmDomainError(
+          "BAD_REQUEST",
+          `conditions[${i}].value requerido`,
+        );
+      }
+      return { field, op, value: cond.value };
+    });
+    return { match, conditions };
+  }
+
+  private evalSegmentRules(
+    rules: { match: "all" | "any"; conditions: { field: string; op: string; value: unknown }[] },
+    ctx: { a: PersonActivity; score: number; segment: string | null; tags: Set<string> },
+  ): boolean {
+    const fieldValue = (field: string): unknown => {
+      switch (field) {
+        case "score":
+          return ctx.score;
+        case "segment":
+          return ctx.segment;
+        case "attendanceRecent":
+          return ctx.a.attendanceRecent;
+        case "weeklyStreak":
+          return ctx.a.weeklyStreak;
+        case "monthsContinuous":
+          return ctx.a.monthsContinuous;
+        case "purchases":
+          return ctx.a.purchases;
+        case "earlyPurchases":
+          return ctx.a.earlyPurchases;
+        case "tenure":
+          return ctx.a.tenureMonths;
+        case "referrals":
+          return ctx.a.referrals;
+        case "spend":
+          return ctx.a.spend;
+        case "tag":
+          return ctx.tags;
+        default:
+          return undefined;
+      }
+    };
+    const test = (c: { field: string; op: string; value: unknown }): boolean => {
+      const fv = fieldValue(c.field);
+      if (c.field === "tag") {
+        const has = (fv as Set<string>).has(String(c.value));
+        return c.op === "present" ? has : !has;
+      }
+      if (c.field === "segment") {
+        const eq = fv === String(c.value);
+        return c.op === "eq" ? eq : !eq;
+      }
+      const n = Number(fv);
+      const v = Number(c.value);
+      switch (c.op) {
+        case "eq":
+          return n === v;
+        case "neq":
+          return n !== v;
+        case "gt":
+          return n > v;
+        case "gte":
+          return n >= v;
+        case "lt":
+          return n < v;
+        case "lte":
+          return n <= v;
+        default:
+          return false;
+      }
+    };
+    return rules.match === "all"
+      ? rules.conditions.every(test)
+      : rules.conditions.some(test);
+  }
+
+  /**
+   * Contexto de evaluación por persona: actividad + score/segment +
+   * tags. Lo construye syncSegments tras un recompute y el preview lo
+   * reutiliza desde RelationshipScore + ActorTag persistidos.
+   */
+  private segmentEvalCtx(
+    personId: string,
+    c: { a: PersonActivity; score: number; segment: string | null },
+    tagsByPerson: Map<string, Set<string>>,
+  ) {
+    return {
+      a: c.a,
+      score: c.score,
+      segment: c.segment,
+      tags: tagsByPerson.get(personId) ?? new Set<string>(),
+    };
+  }
+
+  /**
+   * Recalcula las membresías de todos los ActorSegment del actor tras un
+   * recompute de scores. Emite enter/exit a los triggers SEGMENT_ENTER/
+   * SEGMENT_EXIT que referencien el segmento. Devuelve resumen por
+   * segmento (miembros, entradas, salidas).
+   */
+  private async syncSegments(
+    actorType: string,
+    actorId: string,
+    computed: Map<
+      string,
+      { a: PersonActivity; score: number; segment: string | null }
+    >,
+  ): Promise<Record<string, { members: number; entered: number; exited: number }>> {
+    const segments = await this.prisma.actorSegment.findMany({
+      where: { actorType, actorId },
+    });
+    const out: Record<string, { members: number; entered: number; exited: number }> = {};
+    if (!segments.length) return out;
+
+    const tagRows = await this.prisma.actorTag.findMany({
+      where: { actorType, actorId },
+      select: { personId: true, tag: true },
+    });
+    const tagsByPerson = new Map<string, Set<string>>();
+    for (const t of tagRows) {
+      (tagsByPerson.get(t.personId) ??
+        tagsByPerson.set(t.personId, new Set()).get(t.personId)!).add(t.tag);
+    }
+
+    const triggers = (await this.prisma.crmTrigger.findMany({
+      where: { actorType, actorId, active: true },
+    })).filter((t) => EVENT_TRIGGER_KEYS.has(t.key));
+
+    for (const seg of segments) {
+      let rules: ReturnType<CrmService["parseSegmentRules"]>;
+      try {
+        rules = this.parseSegmentRules(seg.rules);
+      } catch (e) {
+        this.logger.warn(
+          `ActorSegment ${seg.id} (${seg.name}) con rules inválidas - se ignora: ${e}`,
+        );
+        continue;
+      }
+      const want = new Set<string>();
+      for (const [pid, c] of computed) {
+        if (this.evalSegmentRules(rules, this.segmentEvalCtx(pid, c, tagsByPerson))) {
+          want.add(pid);
+        }
+      }
+      const current = new Set(
+        (
+          await this.prisma.actorSegmentMembership.findMany({
+            where: { segmentId: seg.id },
+            select: { personId: true },
+          })
+        ).map((m) => m.personId),
+      );
+      const entered = [...want].filter((p) => !current.has(p));
+      const exited = [...current].filter((p) => !want.has(p));
+      if (entered.length) {
+        await this.prisma.actorSegmentMembership.createMany({
+          data: entered.map((personId) => ({ segmentId: seg.id, personId })),
+        });
+      }
+      if (exited.length) {
+        await this.prisma.actorSegmentMembership.deleteMany({
+          where: { segmentId: seg.id, personId: { in: exited } },
+        });
+      }
+      for (const t of triggers) {
+        const cfg = this.cfg(t);
+        if (cfg.segmentId !== seg.id) continue;
+        const direction = t.key === "SEGMENT_ENTER" ? "enter" : "exit";
+        const people = direction === "enter" ? entered : exited;
+        if (people.length) {
+          await this.runSegmentTrigger(t, seg.name, seg.id, direction, people, actorType, actorId);
+        }
+      }
+      out[seg.name] = {
+        members: want.size,
+        entered: entered.length,
+        exited: exited.length,
+      };
+    }
+    return out;
+  }
+
+  /**
+   * Ejecuta la acción de un trigger SEGMENT_ENTER/SEGMENT_EXIT sobre las
+   * personas que cambiaron de membresía. config.action:
+   * {type:"NOTIFY",title,body?} | {type:"TAG_ADD"|"TAG_REMOVE",tag} |
+   * {type:"NOTIFY_OWNER",title?,body?}.
+   */
+  private async runSegmentTrigger(
+    t: CrmTrigger,
+    segmentName: string,
+    segmentId: string,
+    direction: "enter" | "exit",
+    personIds: string[],
+    actorType: string,
+    actorId: string,
+  ): Promise<void> {
+    const cfg = this.cfg(t);
+    const action = (cfg.action ?? { type: "NOTIFY" }) as Record<string, unknown>;
+    const type = String(action.type ?? "NOTIFY");
+
+    if (type === "TAG_ADD" || type === "TAG_REMOVE") {
+      const tag = String(action.tag ?? "").trim();
+      if (!tag) return;
+      for (const personId of personIds) {
+        if (type === "TAG_ADD") {
+          const exists = await this.prisma.actorTag.findFirst({
+            where: { actorType, actorId, personId, tag },
+          });
+          if (!exists) {
+            await this.prisma.actorTag.create({
+              data: { actorType, actorId, personId, tag },
+            });
+          }
+        } else {
+          await this.prisma.actorTag.deleteMany({
+            where: { actorType, actorId, personId, tag },
+          });
+        }
+      }
+      return;
+    }
+
+    if (type === "NOTIFY_OWNER") {
+      const ownerId = await this.actorOwnerId(actorType, actorId);
+      if (!ownerId) return;
+      const title = String(action.title ?? `Movimiento en "${segmentName}"`);
+      const body = String(
+        action.body ??
+          `${personIds.length} persona(s) ${direction === "enter" ? "entran a" : "salen de"} "${segmentName}".`,
+      );
+      const recent = await this.prisma.notification.findFirst({
+        where: {
+          personId: ownerId,
+          type: `crm.segment.${direction}`,
+          createdAt: { gte: new Date(Date.now() - DAY_MS) },
+          data: { path: ["segmentId"], equals: segmentId },
+        },
+        select: { id: true },
+      });
+      if (!recent) {
+        await this.notifications.notifySafe(ownerId, {
+          category: "OPERATIONAL",
+          type: `crm.segment.${direction}`,
+          title,
+          body,
+          data: {
+            segmentId,
+            segmentName,
+            direction,
+            count: personIds.length,
+            actorType,
+            actorId,
+            trigger: t.key,
+          },
+        });
+      }
+      return;
+    }
+
+    // NOTIFY (default): una notificación por persona, dedup por
+    // (persona, segmento, dirección, día) — cooldown implícito de 1 día.
+    for (const personId of personIds) {
+      const recent = await this.prisma.notification.findFirst({
+        where: {
+          personId,
+          type: `crm.segment.${direction}`,
+          createdAt: { gte: new Date(Date.now() - DAY_MS) },
+          data: { path: ["segmentId"], equals: segmentId },
+        },
+        select: { id: true },
+      });
+      if (recent) continue;
+      await this.notifications.notifySafe(personId, {
+        category: "MARKETING",
+        type: `crm.segment.${direction}`,
+        title: String(action.title ?? t.key),
+        body: typeof action.body === "string" ? action.body : undefined,
+        data: {
+          segmentId,
+          segmentName,
+          direction,
+          actorType,
+          actorId,
+          trigger: t.key,
+        },
+      });
+    }
+  }
+
+  /** Owner del actor para NOTIFY_OWNER: ACADEMY → Academy.ownerId;
+   *  PRODUCER (y demás) → el propio actorId (persona). */
+  private async actorOwnerId(
+    actorType: string,
+    actorId: string,
+  ): Promise<string | null> {
+    if (actorType === "ACADEMY") {
+      const ac = await this.prisma.academy.findUnique({
+        where: { id: actorId },
+        select: { ownerId: true },
+      });
+      return ac?.ownerId ?? null;
+    }
+    return actorId;
+  }
+
+  // ─── CRUD de segmentos ───
+
+  async listSegments(actorType: string, actorId: string) {
+    const segs = await this.prisma.actorSegment.findMany({
+      where: { actorType, actorId },
+      orderBy: { createdAt: "asc" },
+      include: { _count: { select: { members: true } } },
+    });
+    return segs.map((s) => ({
+      id: s.id,
+      actorType: s.actorType,
+      actorId: s.actorId,
+      name: s.name,
+      rules: s.rules,
+      members: s._count.members,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    }));
+  }
+
+  async createSegment(
+    actorType: string,
+    actorId: string,
+    name: string,
+    rules: unknown,
+  ) {
+    const parsed = this.parseSegmentRules(rules);
+    const trimmed = name.trim();
+    if (!trimmed) {
+      throw new CrmDomainError("BAD_REQUEST", "name requerido");
+    }
+    const dup = await this.prisma.actorSegment.findFirst({
+      where: { actorType, actorId, name: trimmed },
+    });
+    if (dup) {
+      throw new CrmDomainError("CONFLICT", `ya existe el segmento "${trimmed}"`);
+    }
+    const seg = await this.prisma.actorSegment.create({
+      data: {
+        actorType,
+        actorId,
+        name: trimmed,
+        rules: parsed as unknown as Prisma.InputJsonValue,
+      },
+    });
+    return seg;
+  }
+
+  async patchSegment(
+    id: string,
+    patch: { name?: string; rules?: unknown },
+  ) {
+    const seg = await this.prisma.actorSegment.findUnique({ where: { id } });
+    if (!seg) {
+      throw new CrmDomainError("NOT_FOUND", "segmento no encontrado");
+    }
+    const data: Prisma.ActorSegmentUpdateInput = {};
+    if (patch.name !== undefined) {
+      const trimmed = patch.name.trim();
+      if (!trimmed) {
+        throw new CrmDomainError("BAD_REQUEST", "name vacío");
+      }
+      const dup = await this.prisma.actorSegment.findFirst({
+        where: {
+          actorType: seg.actorType,
+          actorId: seg.actorId,
+          name: trimmed,
+          NOT: { id },
+        },
+      });
+      if (dup) {
+        throw new CrmDomainError("CONFLICT", `ya existe el segmento "${trimmed}"`);
+      }
+      data.name = trimmed;
+    }
+    if (patch.rules !== undefined) {
+      data.rules = this.parseSegmentRules(patch.rules) as unknown as Prisma.InputJsonValue;
+    }
+    return this.prisma.actorSegment.update({ where: { id }, data });
+  }
+
+  async getSegment(id: string) {
+    return this.prisma.actorSegment.findUnique({ where: { id } });
+  }
+
+  segmentMembersCount(id: string) {
+    return this.prisma.actorSegmentMembership.count({
+      where: { segmentId: id },
+    });
+  }
+
+  async deleteSegment(id: string): Promise<void> {
+    await this.prisma.actorSegment.delete({ where: { id } });
+  }
+
+  /** Miembros materializados del segmento + join person. */
+  async segmentPeople(id: string) {
+    const members = await this.prisma.actorSegmentMembership.findMany({
+      where: { segmentId: id },
+      orderBy: { since: "desc" },
+    });
+    const people = await this.prisma.person.findMany({
+      where: { id: { in: members.map((m) => m.personId) } },
+      select: { id: true, name: true, photoUrl: true },
+    });
+    const personById = new Map(people.map((p) => [p.id, p]));
+    return {
+      total: members.length,
+      items: members.map((m) => ({
+        personId: m.personId,
+        since: m.since,
+        person: personById.get(m.personId) ?? null,
+      })),
+    };
+  }
+
+  /**
+   * Preview de reglas sin persistir: evalúa contra los
+   * RelationshipScore/breakdown persistidos (último recompute) + tags.
+   */
+  async previewSegmentRules(
+    actorType: string,
+    actorId: string,
+    rulesRaw: unknown,
+  ): Promise<{ count: number; sample: string[] }> {
+    const rules = this.parseSegmentRules(rulesRaw);
+    const [scores, tagRows] = await Promise.all([
+      this.prisma.relationshipScore.findMany({
+        where: { actorType, actorId },
+      }),
+      this.prisma.actorTag.findMany({
+        where: { actorType, actorId },
+        select: { personId: true, tag: true },
+      }),
+    ]);
+    const tagsByPerson = new Map<string, Set<string>>();
+    for (const t of tagRows) {
+      (tagsByPerson.get(t.personId) ??
+        tagsByPerson.set(t.personId, new Set()).get(t.personId)!).add(t.tag);
+    }
+    const matches: string[] = [];
+    for (const s of scores) {
+      const bd = (s.breakdown ?? {}) as Record<string, unknown>;
+      const a = {
+        attendance: 0,
+        spend: Number(bd.spend ?? 0),
+        referrals: Number(bd.referrals ?? 0),
+        firstAt: null,
+        lastAt: null,
+        attendanceRecent: Number(bd.attendanceRecent ?? bd.eventsRecent ?? 0),
+        attendanceRecent4w: 0,
+        attendancePrev4w: 0,
+        weeklyStreak: Number(bd.weeklyStreak ?? bd.eventStreak ?? 0),
+        monthsContinuous: Number(bd.monthsContinuous ?? 0),
+        purchases: Number(bd.purchases ?? 0),
+        tenureMonths: Number(bd.tenure ?? 0),
+        earlyPurchases: Number(bd.earlyPurchases ?? 0),
+        dropping: false,
+      } as PersonActivity;
+      if (
+        this.evalSegmentRules(rules, {
+          a,
+          score: s.score,
+          segment: s.segment,
+          tags: tagsByPerson.get(s.personId) ?? new Set(),
+        })
+      ) {
+        matches.push(s.personId);
+      }
+    }
+    return { count: matches.length, sample: matches.slice(0, 10) };
   }
 
   // ═══════════════════ TRIGGERS ═══════════════════

@@ -1,14 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, Card } from "@/components/ui";
-import type { CrmActor, CrmTrigger, CrmTriggerKey } from "./types";
+import type {
+  CrmActor,
+  CrmSegment,
+  CrmTrigger,
+  CrmTriggerKey,
+  SegmentTriggerAction,
+} from "./types";
 import {
   CRM_TRIGGER_KEYS,
+  EVENT_TRIGGER_KEYS,
+  SEGMENT_TRIGGER_ACTIONS,
   TRIGGER_KEYS_WITH_DAYS,
   actorBody,
+  actorQuery,
 } from "./types";
 
 const inputCls =
@@ -23,8 +32,11 @@ function numOrUndef(v: string): number | undefined {
 
 /**
  * Form de trigger → POST /crm/triggers {key, config} o PATCH /:id {config}.
- * El service solo interpreta config.days (umbral de WINBACK/TRIAL_EXPIRING/
- * ATTENDANCE_DROP) y config.cooldownDays (anti-spam de todos).
+ * - Keys por fecha (WINBACK/TRIAL_EXPIRING/REGULAR_NO_PRESALE/
+ *   ATTENDANCE_DROP): config {days?, cooldownDays?}.
+ * - Keys por evento (SEGMENT_ENTER/EXIT, spec crm-dynamic-segments):
+ *   config {segmentId, action:{type,title?,body?,tag?}} — corren en el
+ *   recompute de scores cuando alguien entra/sale del segmento.
  */
 export function TriggerForm({
   actor,
@@ -53,17 +65,62 @@ export function TriggerForm({
       "WINBACK",
   );
   const cfg = (editing?.config ?? {}) as Record<string, unknown>;
+  const editAction = (cfg.action ?? {}) as Record<string, unknown>;
   const [days, setDays] = useState(
     cfg.days != null ? String(cfg.days) : "",
   );
   const [cooldownDays, setCooldownDays] = useState(
     cfg.cooldownDays != null ? String(cfg.cooldownDays) : "",
   );
+  // Config de keys por evento.
+  const [segmentId, setSegmentId] = useState(
+    typeof cfg.segmentId === "string" ? cfg.segmentId : "",
+  );
+  const [actionType, setActionType] = useState<SegmentTriggerAction>(
+    (typeof editAction.type === "string"
+      ? editAction.type
+      : "NOTIFY") as SegmentTriggerAction,
+  );
+  const [actTitle, setActTitle] = useState(
+    typeof editAction.title === "string" ? editAction.title : "",
+  );
+  const [actBody, setActBody] = useState(
+    typeof editAction.body === "string" ? editAction.body : "",
+  );
+  const [actTag, setActTag] = useState(
+    typeof editAction.tag === "string" ? editAction.tag : "",
+  );
+  const [segments, setSegments] = useState<CrmSegment[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState(false);
 
+  const isEventKey = EVENT_TRIGGER_KEYS.has(key);
   const showDays = TRIGGER_KEYS_WITH_DAYS.has(key);
-  const valid = editing !== null || availableKeys.length > 0;
+
+  // El picker de segmento solo se carga cuando la key lo pide.
+  useEffect(() => {
+    if (!isEventKey || segments !== null) return;
+    let cancelled = false;
+    apiFetch(`/crm/segments?${actorQuery(actor)}`)
+      .then(async (res) => {
+        if (cancelled || !res.ok) return;
+        setSegments((await res.json()) as CrmSegment[]);
+      })
+      .catch(() => {
+        if (!cancelled) setSegments([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEventKey, segments, actor]);
+
+  const needsTitle = actionType === "NOTIFY";
+  const needsTag = actionType === "TAG_ADD" || actionType === "TAG_REMOVE";
+  const eventValid = segmentId !== "" && (!needsTitle || actTitle.trim() !== "") &&
+    (!needsTag || actTag.trim() !== "");
+  const valid =
+    (editing !== null || availableKeys.length > 0) &&
+    (!isEventKey || eventValid);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,11 +128,26 @@ export function TriggerForm({
     setSaving(true);
     setFormError(false);
 
-    const config: Record<string, number> = {};
-    const d = numOrUndef(days);
-    const cd = numOrUndef(cooldownDays);
-    if (d !== undefined) config.days = d;
-    if (cd !== undefined) config.cooldownDays = cd;
+    let config: Record<string, unknown>;
+    if (isEventKey) {
+      const action: Record<string, unknown> = { type: actionType };
+      if (needsTitle) {
+        action.title = actTitle.trim();
+        if (actBody.trim()) action.body = actBody.trim();
+      }
+      if (actionType === "NOTIFY_OWNER") {
+        if (actTitle.trim()) action.title = actTitle.trim();
+        if (actBody.trim()) action.body = actBody.trim();
+      }
+      if (needsTag) action.tag = actTag.trim();
+      config = { segmentId, action };
+    } else {
+      config = {};
+      const d = numOrUndef(days);
+      const cd = numOrUndef(cooldownDays);
+      if (d !== undefined) config.days = d;
+      if (cd !== undefined) config.cooldownDays = cd;
+    }
 
     try {
       const res = editing
@@ -145,19 +217,110 @@ export function TriggerForm({
           </label>
         )}
 
-        <label className="flex flex-col gap-2">
-          <span className="text-sm text-ink/70">
-            {t("triggers.cooldownDays")}
-          </span>
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            value={cooldownDays}
-            onChange={(e) => setCooldownDays(e.target.value)}
-            className={inputCls}
-          />
-        </label>
+        {isEventKey && (
+          <>
+            <label className="flex flex-col gap-2">
+              <span className="text-sm text-ink/70">
+                {t("triggers.segment")}
+              </span>
+              <select
+                value={segmentId}
+                onChange={(e) => setSegmentId(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">
+                  {t("triggers.pickSegment")}
+                </option>
+                {(segments ?? []).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              {segments !== null && segments.length === 0 && (
+                <span className="text-xs text-ink/50">
+                  {t("triggers.noSegments")}
+                </span>
+              )}
+            </label>
+
+            <label className="flex flex-col gap-2">
+              <span className="text-sm text-ink/70">
+                {t("triggers.action")}
+              </span>
+              <select
+                value={actionType}
+                onChange={(e) =>
+                  setActionType(e.target.value as SegmentTriggerAction)
+                }
+                className={inputCls}
+              >
+                {SEGMENT_TRIGGER_ACTIONS.map((a) => (
+                  <option key={a} value={a}>
+                    {t(`triggers.actions.${a}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {(needsTitle || actionType === "NOTIFY_OWNER") && (
+              <>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm text-ink/70">
+                    {t("triggers.notifyTitle")}
+                  </span>
+                  <input
+                    type="text"
+                    value={actTitle}
+                    onChange={(e) => setActTitle(e.target.value)}
+                    className={inputCls}
+                  />
+                </label>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm text-ink/70">
+                    {t("triggers.notifyBody")}
+                  </span>
+                  <input
+                    type="text"
+                    value={actBody}
+                    onChange={(e) => setActBody(e.target.value)}
+                    className={inputCls}
+                  />
+                </label>
+              </>
+            )}
+
+            {needsTag && (
+              <label className="flex flex-col gap-2">
+                <span className="text-sm text-ink/70">
+                  {t("triggers.tag")}
+                </span>
+                <input
+                  type="text"
+                  value={actTag}
+                  onChange={(e) => setActTag(e.target.value)}
+                  className={inputCls}
+                />
+              </label>
+            )}
+          </>
+        )}
+
+        {!isEventKey && (
+          <label className="flex flex-col gap-2">
+            <span className="text-sm text-ink/70">
+              {t("triggers.cooldownDays")}
+            </span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={cooldownDays}
+              onChange={(e) => setCooldownDays(e.target.value)}
+              className={inputCls}
+            />
+          </label>
+        )}
 
         {formError && (
           <p role="alert" className="text-sm text-red-400">

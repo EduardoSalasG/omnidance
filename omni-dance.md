@@ -925,10 +925,13 @@ Wireframe - Mi QR:
 
 **CRM** (del §14)
 - Segmentos de asistentes: núcleo / en riesgo / nuevos / trae-gente
+- **Segmentos guardados** (`/crm/segmentos`): regla nombrada sobre las señales del score (score, racha, compras, antigüedad, tags…) con `match` all/any y preview de conteo en vivo; membresía se mantiene en cada recompute y alimenta triggers `entra/sale del segmento` y audiencias de campaña
 - **Ficha de contacto** (`/crm/personas/[id]`): score + segmento, tags editables, resumen de actividad (asistencias, gasto, referidos, primera/última) y línea de tiempo reciente (checkins/pagos con nombre de evento)
-- `campaign` builder en página dedicada: elegir segmento → acción (push, código de descuento, cortesía) → resultado; ficha de campaña (`/crm/campanas/[id]`) con audiencia, resultado y envío confirmado por diálogo
+- **Acciones masivas** en `/crm/personas`: selección por checkbox → etiquetar/quitar tag en lote o campaña directa a los seleccionados
+- `campaign` builder en página dedicada: elegir segmento/tags/personas/segmento guardado → acción (push, código de descuento) → enviar ahora o **programar** (`scheduledAt`, cancelable); ficha de campaña (`/crm/campanas/[id]`) con audiencia, resultado, **atribución** (enviados / volvieron / canjes del código) y export **WhatsApp** (links `wa.me` por persona con teléfono)
+- **Digest semanal** al owner (job `crm.digest`, lunes 09:00): notificación con total y conteos por segmento de su CRM
 - Embudo de conversión, cohort retention, LTV por asistente
-- `crm_trigger` activos (win-back, "regular no compró preventa"), crear/editar en páginas dedicadas
+- `crm_trigger` activos (win-back, "regular no compró preventa", entra/sale de segmento), crear/editar en páginas dedicadas
 
 **Exportes** - CSV/PDF por evento y por serie
 
