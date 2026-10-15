@@ -17,12 +17,12 @@ const API_PROXY_TARGET = process.env.API_PROXY_TARGET ?? "http://localhost:4000"
 const nextConfig = {
   transpilePackages: ["@omnidance/shared"],
   poweredByHeader: false,
-  // Streaming metadata OFF: con generateMetadata async (getMessages por
-  // locale) Next emite <title>/<meta> al <body> - Lighthouse los busca
-  // en <head> y crawlers fuera de la bot-list pueden perderlos. Como
-  // nuestro metadata resuelve de un catálogo en memoria (~0ms), esperar
-  // es gratis: todas las UAs reciben el head completo.
-  htmlLimitedBots: /.*/,
+  // Streaming metadata: con generateMetadata async (getMessages por
+  // locale) Next emite <title>/<meta> al <body> para usuarios; los UAs
+  // de htmlLimitedBots (Googlebot, Lighthouse, Twitterbot, WhatsApp…)
+  // reciben metadata bloqueante en <head>. El default cubre a los
+  // crawlers que importan - NO extender a /.*/ (cada request re-
+  // renderizaría y todo el árbol serviría no-store).
   // Security headers del documento (el API ya va por helmet): nosniff +
   // anti-framing + referrer mínimo + superficies sensibles cerradas salvo
   // lo que la app usa (cámara → scanner QR, geolocalización → mapa).

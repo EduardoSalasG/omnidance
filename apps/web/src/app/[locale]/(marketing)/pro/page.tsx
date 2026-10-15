@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 
-import { cookies } from "next/headers";
-
 import { ChevronRightIcon } from "@/components/ui";
 import { JsonLd } from "@/components/landing/JsonLd";
 import { ProLeadForm } from "@/components/landing/ProLeadForm";
@@ -9,7 +7,7 @@ import { getMessages, getLocale } from "next-intl/server";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
 import { fetchPublicEvents } from "@/lib/public-events";
-import { Link, redirect } from "@/i18n/navigation";
+import { Link } from "@/i18n/navigation";
 
 
 
@@ -34,11 +32,10 @@ const cardClass =
 // Selector de audiencia: cada rol tiene su landing propia; DJ y locales
 // usan el form compacto de abajo (roles restringidos).
 export default async function ProHub() {
-  const locale = await getLocale();
   const m = (await getMessages()) as { landingProHub: Record<string, string>; landing: Record<string, string> };
   const t = m.landingProHub;
   const base = m.landing;
-  if ((await cookies()).has("omnidance_session")) redirect({ href: "/inicio", locale });
+  // Logueado → /inicio lo decide el middleware (página estática).
   const events = await fetchPublicEvents();
   return (
     <>

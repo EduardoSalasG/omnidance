@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 
 import { Landing } from "@/components/landing/Landing";
 import { JsonLd } from "@/components/landing/JsonLd";
@@ -8,7 +7,6 @@ import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
 import { fetchPublicEvents } from "@/lib/public-events";
 import { fetchPublicAcademies } from "@/lib/public-academies";
-import { redirect } from "@/i18n/navigation";
 
 
 
@@ -28,10 +26,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Landing de audiencia ACADEMY_OWNER: copy y acento del modo Academy.
 export default async function AcademyLanding() {
-  const locale = await getLocale();
   const m = (await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default;
   const t = m.landingAcademy;
-  if ((await cookies()).has("omnidance_session")) redirect({ href: "/inicio", locale });
+  // Logueado → /inicio lo decide el middleware (página estática).
   const [events, academies] = await Promise.all([
     fetchPublicEvents(),
     fetchPublicAcademies(),

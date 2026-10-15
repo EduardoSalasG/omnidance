@@ -12,7 +12,7 @@ export type PublicAcademy = {
 export async function fetchPublicAcademies(): Promise<PublicAcademy[]> {
   try {
     const res = await fetch(`${await serverApiUrl()}/api/academies/public`, {
-      cache: "no-store",
+      next: { revalidate: 300 },
     });
     if (!res.ok) return [];
     const data = (await res.json()) as PublicAcademy[];
