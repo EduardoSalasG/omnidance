@@ -38,6 +38,17 @@ const PUBLIC_PATHS = new Set([
 // (POST) exige sesión vía SessionGuard del API.
 const PUBLIC_PREFIXES = ["/reclamar"];
 
+// Solo-anónimas: con sesión van directo a /inicio. Antes lo hacía cada
+// page con cookies() -> las volvía dinámicas + no-store (y mataba el
+// bfcache). En middleware las landings quedan estáticas y cacheables.
+const ANON_ONLY = new Set(["/", "/pro", "/para-academias", "/para-productores"]);
+
+// Primer segmento con FORMA de locale que no es un locale soportado
+// (/de/eventos, /en-US/x): se salta el gate y cae al notFound() del
+// layout [locale] - 404 limpio en vez del rebote a login que igual
+// terminaba en 404 post-login.
+const LOCALE_SHAPED = /^\/([a-z]{2}(?:-[a-zA-Z]{2,4})?)(?=\/|$)/;
+
 // CSP (headers del documento). Decisión documentada: script-src usa
 // 'unsafe-inline' y NO nonce - verificado con next start: las páginas
 // estáticas (la mayoría del árbol) sirven los scripts inline del
@@ -69,6 +80,16 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const csp = cspHeader();
 
+  // /es-CL/x → /x (308): el default nunca lleva prefijo; normalizar
+  // ANTES del gate evita que next= capture el path ya prefijado.
+  if (pathname.startsWith(`/${routing.defaultLocale}`)) {
+    const url = req.nextUrl.clone();
+    url.pathname = pathname.slice(routing.defaultLocale.length + 1) || "/";
+    const res = NextResponse.redirect(url, 308);
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  }
+
   // Path sin prefijo de locale para el gate de sesión y el next=.
   const prefix = pathname.match(LOCALE_RE)?.[0] ?? "";
   const bare = pathname.slice(prefix.length) || "/";
@@ -77,7 +98,32 @@ export function middleware(req: NextRequest) {
     PUBLIC_PATHS.has(bare) ||
     PUBLIC_PREFIXES.some((p) => bare.startsWith(p));
 
-  if (!isPublic && !req.cookies.has("omnidance_session")) {
+  // Locale-shaped desconocido: no gatear - 404 vía notFound del layout.
+  const maybeLocale = pathname.match(LOCALE_SHAPED)?.[1];
+  const badLocalePrefix =
+    maybeLocale !== undefined &&
+    !routing.locales.includes(
+      maybeLocale as (typeof routing.locales)[number],
+    ) &&
+    pathname.split("/").filter(Boolean).length >= 2;
+
+  // Con sesión, las landings anónimas van a /inicio (antes en cada page
+  // con cookies() - en middleware las páginas quedan estáticas).
+  if (
+    !badLocalePrefix &&
+    isPublic &&
+    ANON_ONLY.has(bare) &&
+    req.cookies.has("omnidance_session")
+  ) {
+    const home = req.nextUrl.clone();
+    home.pathname = `${prefix}/inicio`;
+    home.search = "";
+    const res = NextResponse.redirect(home);
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  }
+
+  if (!badLocalePrefix && !isPublic && !req.cookies.has("omnidance_session")) {
     const login = req.nextUrl.clone();
     login.pathname = `${prefix}/login`;
     // next= guarda el path SIN prefijo: la navegación post-login pasa
@@ -89,6 +135,15 @@ export function middleware(req: NextRequest) {
   }
 
   const res = intlMiddleware(req);
+  // NEXT_LOCALE redundante cuando se sirvió el default sin prefijo y sin
+  // cookie previa: quien llegó a "/" por Accept-Language=es ya resolvió
+  // es-CL - el Set-Cookie no aporta y marca la respuesta no-store, lo que
+  // mata el bfcache y la caché compartida para toda la audiencia es-CL.
+  // La cookie sí se conserva cuando aporta: locales con prefijo (/en…),
+  // preferencia explícita existente, o redirects de detección.
+  if (!prefix && !req.cookies.has("NEXT_LOCALE") && res.status < 300) {
+    res.headers.delete("set-cookie");
+  }
   res.headers.set("Content-Security-Policy", csp);
   return res;
 }

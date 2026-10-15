@@ -7,7 +7,7 @@ import { serverApiUrl } from "@/lib/server-api";
 export async function fetchPublicEvents(): Promise<JsonLdEvent[]> {
   try {
     const res = await fetch(`${await serverApiUrl()}/api/events`, {
-      cache: "no-store",
+      next: { revalidate: 300 },
     });
     if (!res.ok) return [];
     const data = (await res.json()) as JsonLdEvent[];

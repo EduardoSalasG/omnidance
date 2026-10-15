@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 
 import { Landing } from "@/components/landing/Landing";
 import { JsonLd } from "@/components/landing/JsonLd";
@@ -7,7 +6,6 @@ import { getMessages, getLocale } from "next-intl/server";
 import { localeAlternates } from "@/lib/seo";
 import { type Locale } from "@/i18n/routing";
 import { fetchPublicEvents, thisWeek } from "@/lib/public-events";
-import { redirect } from "@/i18n/navigation";
 
 
 
@@ -29,11 +27,10 @@ export async function generateMetadata(): Promise<Metadata> {
 };
 }
 
-// La decisión anónimo/logueado ocurre en el servidor - la landing llega
-// como HTML real (LCP, SEO) y quien tiene sesión va directo al hub.
+// La decisión anónimo/logueado ocurre en el middleware (cookie presente
+// → /inicio) - la página queda estática/cacheable y la landing llega
+// como HTML real (LCP, SEO, bfcache).
 export default async function Home() {
-  const locale = await getLocale();
-  if ((await cookies()).has("omnidance_session")) redirect({ href: "/inicio", locale });
   const events = await fetchPublicEvents();
   return (
     <>
