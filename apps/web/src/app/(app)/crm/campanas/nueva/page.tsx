@@ -7,7 +7,6 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import {
   ActorPicker,
   CrmGateScreen,
-  CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { CampaignForm } from "@/components/crm/campaign-form";
@@ -56,7 +55,6 @@ export default function CrmCampanaNuevaPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
       <ConsoleHeader backHref="/crm/campanas" backLabel={t("campaigns.title")} />
-      <CrmNav active="campaigns" />
       <Suspense fallback={null}>
         <NuevaCampanaInner />
       </Suspense>

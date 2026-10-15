@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -310,32 +309,6 @@ export function ActorPicker({ ctx }: { ctx: CrmContextValue }) {
   );
 }
 
-type CrmSection = "people" | "segments" | "campaigns" | "triggers";
-
-const SECTION_HREF: Record<CrmSection, string> = {
-  people: "/crm",
-  segments: "/crm/segmentos",
-  campaigns: "/crm/campanas",
-  triggers: "/crm/triggers",
-};
-
-/** Navegación entre secciones del CRM - estilo tabs de admin/page.tsx. */
-export function CrmNav({ active }: { active: CrmSection }) {
-  const t = useTranslations("crm");
-  return (
-    <nav className="flex gap-2 overflow-x-auto" aria-label={t("title")}>
-      {(Object.keys(SECTION_HREF) as CrmSection[]).map((k) => (
-        <Link
-          key={k}
-          href={SECTION_HREF[k]}
-          aria-current={active === k ? "page" : undefined}
-          className={`inline-flex min-h-[44px] shrink-0 items-center rounded-full px-4 text-sm font-semibold transition ${
-            active === k ? "bg-neon text-on-accent" : "bg-ink/10 text-ink/70"
-          }`}
-        >
-          {t(`nav.${k}`)}
-        </Link>
-      ))}
-    </nav>
-  );
-}
+// La navegación entre secciones del CRM vive en el drawer/sidebar
+// (CRM_DRAWER_GROUP de BottomNav, spec crm-sidebar-section) - ya no hay
+// tabs internas.

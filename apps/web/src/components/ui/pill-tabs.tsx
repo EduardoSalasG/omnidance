@@ -14,7 +14,7 @@ type PillTabsProps = {
 };
 
 /**
- * Strip de pills deslizable estilo segmented iOS (mismo look que CrmNav):
+ * Strip de pills deslizable estilo segmented iOS (mismo look que los pills de sección):
  * scroll horizontal sin scrollbar, pill activa en neon. Button-based con
  * role="tablist"/"tab" + aria-selected - el patrón correcto para cambiar
  * qué vista se muestra (filtros/lentes), no para navegar entre rutas.

@@ -11,7 +11,6 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import {
   ActorPicker,
   CrmGateScreen,
-  CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { SegmentForm } from "@/components/crm/segment-form";
@@ -101,7 +100,6 @@ export default function CrmSegmentoPage() {
         backHref="/crm/segmentos"
         backLabel={t("actorSegments.title")}
       />
-      <CrmNav active="segments" />
 
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
 

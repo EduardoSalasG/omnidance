@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import {
   ActorPicker,
   CrmGateScreen,
-  CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { SegmentForm } from "@/components/crm/segment-form";
@@ -22,8 +21,6 @@ export default function NuevoSegmentoPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-3xl lg:px-8">
-      <CrmNav active="segments" />
-
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
 
       {ctx.gate === "ready" && (
