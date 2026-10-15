@@ -106,6 +106,10 @@ function PersonDetail({
   const [tagDraft, setTagDraft] = useState("");
   const [tagSaving, setTagSaving] = useState(false);
   const [tagDeleting, setTagDeleting] = useState<string | null>(null);
+  // Error de acciones sobre la ficha (tags): se muestra inline en la
+  // sección - el `error` de página es solo para el fetch del detalle,
+  // un fallo de acción no puede borrar la ficha entera.
+  const [actionError, setActionError] = useState(false);
 
   const load = useCallback(async () => {
     setError(false);
@@ -141,17 +145,18 @@ function PersonDetail({
     const value = tagDraft.trim();
     if (!value || tagSaving) return;
     setTagSaving(true);
+    setActionError(false);
     try {
       const res = await apiFetch("/crm/people/tags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...actorBody(actor), personId, tag: value }),
       });
-      if (!res.ok) return setError(true);
+      if (!res.ok) return setActionError(true);
       setTagDraft("");
       await load();
     } catch {
-      setError(true);
+      setActionError(true);
     } finally {
       setTagSaving(false);
     }
@@ -160,12 +165,13 @@ function PersonDetail({
   async function deleteTag(tag: CrmTag) {
     if (tagDeleting) return;
     setTagDeleting(tag.id);
+    setActionError(false);
     try {
       const res = await apiFetch(`/crm/tags/${tag.id}`, { method: "DELETE" });
-      if (!res.ok) return setError(true);
+      if (!res.ok) return setActionError(true);
       await load();
     } catch {
-      setError(true);
+      setActionError(true);
     } finally {
       setTagDeleting(null);
     }
@@ -201,51 +207,54 @@ function PersonDetail({
   return (
     <div className="flex flex-col gap-6">
       {/* Header del contacto */}
-      <Card className="flex items-center gap-4">
-        {detail.person?.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={detail.person.photoUrl}
-            alt=""
-            className="h-14 w-14 rounded-full object-cover"
-          />
-        ) : (
-          <span
-            aria-hidden
-            className="flex h-14 w-14 items-center justify-center rounded-full bg-elevated text-lg font-bold text-ink/60"
-          >
-            {(detail.person?.name ?? "?").slice(0, 1).toUpperCase()}
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-lg font-semibold">
-            {detail.person?.name ?? detail.personId.slice(0, 8)}
-          </h2>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <Badge variant={SEGMENT_VARIANT[segKey] ?? "muted"}>
-              {t(`segments.${segKey}`)}
-            </Badge>
-            <span className="text-xs text-ink/50">
-              {detail.computedAt
-                ? t("people.updatedAt", {
-                    date: fmtDay.format(new Date(detail.computedAt)),
-                  })
-                : t("people.noScore")}
+      <Card className="flex flex-col gap-3">
+        <div className="flex items-center gap-4">
+          {detail.person?.photoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={detail.person.photoUrl}
+              alt=""
+              className="h-14 w-14 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              aria-hidden
+              className="flex h-14 w-14 items-center justify-center rounded-full bg-elevated text-lg font-bold text-ink/60"
+            >
+              {(detail.person?.name ?? "?").slice(0, 1).toUpperCase()}
             </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-lg font-semibold">
+              {detail.person?.name ?? detail.personId.slice(0, 8)}
+            </h2>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Badge variant={SEGMENT_VARIANT[segKey] ?? "muted"}>
+                {t(`segments.${segKey}`)}
+              </Badge>
+              <span className="text-xs text-ink/50">
+                {detail.computedAt
+                  ? t("people.updatedAt", {
+                      date: fmtDay.format(new Date(detail.computedAt)),
+                    })
+                  : t("people.noScore")}
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-mono text-2xl font-bold text-neon">
+              {detail.score === null ? "-" : Math.round(detail.score)}
+            </p>
+            <p className="text-xs text-ink/50">{t("people.score")}</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="font-mono text-2xl font-bold text-neon">
-            {detail.score === null ? "-" : Math.round(detail.score)}
-          </p>
-          <p className="text-xs text-ink/50">{t("people.score")}</p>
-        </div>
         {/* Desglose del score (spec academy-score-refine): componentes
-            y puntos aportados. Scores previos al cambio traen null →
-            solo número+segmento. */}
+            y puntos aportados - va bajo el header, no como hijo del
+            flex-row. Scores previos al cambio traen null → solo
+            número+segmento. */}
         {detail.breakdown?.points != null &&
           typeof detail.breakdown.points === "object" && (
-            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-t border-line pt-3 text-xs sm:grid-cols-3">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 border-t border-line pt-3 text-xs sm:grid-cols-3">
               {Object.entries(
                 detail.breakdown.points as Record<string, number>,
               ).map(([k, v]) => (
@@ -319,6 +328,11 @@ function PersonDetail({
         </h3>
         {detail.tags.length === 0 && (
           <p className="text-sm text-ink/50">{t("personDetail.tagsEmpty")}</p>
+        )}
+        {actionError && (
+          <p role="alert" className="text-sm text-red-400">
+            {tc("error")}
+          </p>
         )}
         <TagBadges
           tags={detail.tags}

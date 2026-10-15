@@ -65,8 +65,12 @@ export default function CrmCampanaPage() {
   const [sending, setSending] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const sendDialogRef = useDialogFocus<HTMLDivElement>(confirmSend);
-  const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel);
+  const sendDialogRef = useDialogFocus<HTMLDivElement>(confirmSend, () =>
+    setConfirmSend(false),
+  );
+  const cancelDialogRef = useDialogFocus<HTMLDivElement>(confirmCancel, () =>
+    setConfirmCancel(false),
+  );
 
   const load = useCallback(async () => {
     setError(false);
@@ -351,7 +355,10 @@ export default function CrmCampanaPage() {
                       {waBusy ? tc("loading") : t("campaigns.whatsappLoad")}
                     </Button>
                   </div>
-                  {waLinks !== null && (
+                  {/* La lista se arma al click - live region para que
+                      la aparición se anuncie al lector de pantalla. */}
+                  <div aria-live="polite">
+                    {waLinks !== null && (
                     <>
                       {waLinks.items.length === 0 ? (
                         <p className="text-sm text-ink/60">
@@ -384,7 +391,8 @@ export default function CrmCampanaPage() {
                         </p>
                       )}
                     </>
-                  )}
+                    )}
+                  </div>
                 </Card>
               )}
 
@@ -393,7 +401,7 @@ export default function CrmCampanaPage() {
               </div>
 
               {(c.status === "DRAFT" || c.status === "SCHEDULED") && (
-                <section className="flex justify-center gap-3 border-t border-line pt-6">
+                <div className="flex justify-center gap-3 border-t border-line pt-6">
                   {c.status === "SCHEDULED" && (
                     <Button
                       variant="ghost"
@@ -406,7 +414,7 @@ export default function CrmCampanaPage() {
                   <Button onClick={() => setConfirmSend(true)}>
                     {t("campaigns.send")}
                   </Button>
-                </section>
+                </div>
               )}
             </div>
           )}

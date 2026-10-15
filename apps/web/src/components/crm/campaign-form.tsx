@@ -70,7 +70,7 @@ export function CampaignForm({
   const [previewCount, setPreviewCount] = useState<number | null>(null);
 
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const isAcademy = actor.actorType === "ACADEMY";
 
@@ -181,7 +181,7 @@ export function CampaignForm({
     e.preventDefault();
     if (!valid || saving) return;
     setSaving(true);
-    setFormError(false);
+    setFormError(null);
     try {
       const res = await apiFetch("/crm/campaigns", {
         method: "POST",
@@ -211,10 +211,20 @@ export function CampaignForm({
                 },
         }),
       });
-      if (!res.ok) return setFormError(true);
+      if (!res.ok) {
+        // class-validator devuelve message como string[] - normalizar.
+        const errBody = (await res.json().catch(() => null)) as {
+          message?: string | string[];
+        } | null;
+        const msg = Array.isArray(errBody?.message)
+          ? errBody.message.join(" ")
+          : errBody?.message;
+        setFormError(msg ?? tc("error"));
+        return;
+      }
       onCreated();
     } catch {
-      setFormError(true);
+      setFormError(tc("error"));
     } finally {
       setSaving(false);
     }
@@ -514,7 +524,13 @@ export function CampaignForm({
                   <span className="text-xs text-ink/50">
                     {t("campaigns.pickPeople")}
                   </span>
-                  <ul className="max-h-44 overflow-y-auto rounded-lg border border-line bg-canvas">
+                  {/* Región scrolleable: tabIndex 0 la hace enfocable
+                      por teclado (scroll con flechas). */}
+                  <ul
+                    tabIndex={0}
+                    aria-label={t("campaigns.pickPeople")}
+                    className="max-h-44 overflow-y-auto rounded-lg border border-line bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                  >
                     {people.map((row) => (
                       <li key={row.personId}>
                         <label className="flex min-h-11 cursor-pointer items-center gap-3 px-3 text-sm text-ink/80 transition hover:bg-ink/5">
@@ -570,7 +586,7 @@ export function CampaignForm({
 
         {formError && (
           <p role="alert" className="text-sm text-red-400">
-            {tc("error")}
+            {formError}
           </p>
         )}
 

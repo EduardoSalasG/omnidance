@@ -175,6 +175,21 @@ export function TriggerForm({
     }
   }
 
+  // Deep-link a /nuevo cuando ya existe un trigger de cada key
+  // aplicable: sin select ni form útil - mensaje explícito.
+  if (editing === null && availableKeys.length === 0) {
+    return (
+      <Card>
+        <p className="text-sm text-ink/60">{t("triggers.allCreated")}</p>
+        <div className="mt-4">
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            {tc("cancel")}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <form onSubmit={submit} className="flex flex-col gap-4">
@@ -230,11 +245,14 @@ export function TriggerForm({
               </span>
               <select
                 value={segmentId}
+                disabled={segments === null}
                 onChange={(e) => setSegmentId(e.target.value)}
                 className={inputCls}
               >
                 <option value="">
-                  {t("triggers.pickSegment")}
+                  {segments === null
+                    ? tc("loading")
+                    : t("triggers.pickSegment")}
                 </option>
                 {(segments ?? []).map((s) => (
                   <option key={s.id} value={s.id}>
