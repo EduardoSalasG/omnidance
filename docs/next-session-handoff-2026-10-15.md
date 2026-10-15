@@ -1,8 +1,17 @@
-# Handoff 2026-10-15 — academy-score-refine implementado
+# Handoff 2026-10-15 — scores de relación por componentes (academy + producer)
 
 ## Completado
 
-**Change `academy-score-refine`** — implementado, verificado y archivado en OpenSpec (`openspec/changes/archive/2026-10-15-academy-score-refine/`).
+**Changes `academy-score-refine` + `producer-score-refine`** — implementados, verificados y archivados en OpenSpec. Commits `a7719d8` y `6189b52` en `dev`.
+
+### Fase 2 — productor (commit `6189b52`)
+- Fórmula PRODUCER por componentes: `eventsRecent` (checkins últimas 8 semanas), `eventStreak` (eventos pasados consecutivos asistidos — solo PUBLISHED/LIVE/CLOSED, DRAFT/CANCELLED no rompen racha), `monthsContinuous` (checkin o compra), `purchases` (TICKET por `eventId` + SERIES_PASS por `sp_<seriesId>_`→`EventSeries.producerId`), `earlyPurchases` (compra ≥`crm.score.early_days` antes del evento), tenure, referrals. Breakdown con claves producer (`eventsRecent`, `eventStreak`, `earlyPurchases`, ...).
+- Params nuevos: `crm.score.early_days/early_cap/early_pts` (3/3/2) — el resto compartidos con ACADEMY.
+- AT_RISK por caída a nivel evento (0 de los últimos 2 tras ≥2 de los 5 anteriores) — implementado via `PersonActivity.dropping` que cada universo calcula.
+- CORE unificado a `score ≥ crm.score.core_min` para ambos actores (PRODUCER pierde el umbral legado de ≥3 asistencias).
+- Ficha `/crm/personas/[id]` muestra el desglose genérico (`personDetail.components.*` en i18n).
+- `gap-crm.e2e` actualizado a la fórmula nueva (rangos en vez de números exactos — dependen del calendario).
+- Smoke real: producer scores con spread sano (62 CORE / 58-59 borde; ya no dominado por spend).
 
 ### Datos
 - `RelationshipScore.breakdown Json?` — migración `20261015000000_relationship_score_breakdown` (aplicada en dev).
@@ -40,11 +49,11 @@
 
 - `Uint8Array<ArrayBuffer>` en `PushOptIn.tsx` dio TS2315 por **cache incremental stale** de tsc — borrar `*.tsbuildinfo` si reaparece; con cache limpio compila (TS 5.9).
 - `prisma migrate dev` no corre en shell no-interactivo: usar `migrate diff --from-url` + `migrate deploy` + `prisma generate` (matar el dev server antes: DLL bloqueada → EPERM).
-- AT_RISK por caída solo aplica a ACADEMY; PRODUCER conserva segmentos legado (test e2e lo exige).
-- Score "saturado" en seed (muchas asistencias) — normal; los pesos son tunables.
+- AT_RISK por caída: ACADEMY por ventanas 4w/4w; PRODUCER por eventos (últimos 2 vs 5 anteriores). Ambos setean `PersonActivity.dropping`.
+- Score "saturado" en seed (academias con muchas asistencias) — normal; los pesos son tunables.
+- Openspec archive puede dejar `.openspec-archive.lock` stale — borrarlo y reintentar. Proposal requiere secciones `## Why`/`## What Changes` en inglés.
 
 ## Pendiente / próximo slice
 
-- **Score PRODUCER refinado** (fase 2 anunciada por el usuario: compras de entradas, preventa vs puerta, asistencia a eventos, trae-gente) — mismo patrón, params `crm.score.producer.*` probablemente.
-- Commit pendiente de toda la sesión.
+- Posibles fases futuras del score: VENUE/DJ/INSTRUCTOR (sin universo aún), ratings como señal (descartado por privacidad en el spec).
 - `brag-output/` sigue sin trackear (decidir `.gitignore` o borrar).
