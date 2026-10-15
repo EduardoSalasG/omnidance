@@ -30,6 +30,17 @@ export const CRM_TRIGGER_KEYS = [
   "SEGMENT_ENTER",
   "SEGMENT_EXIT",
 ] as const;
+
+/**
+ * Alcance por actor de cada trigger key (spec crm-trigger-actor-scope):
+ * TRIAL_EXPIRING solo tiene sentido con enrollments de academia;
+ * REGULAR_NO_PRESALE con preventa de eventos del productor.
+ * Una key ausente del mapa aplica a todos los actores.
+ */
+const TRIGGER_ACTOR_TYPES: Readonly<Record<string, readonly string[]>> = {
+  TRIAL_EXPIRING: ["ACADEMY"],
+  REGULAR_NO_PRESALE: ["PRODUCER"],
+};
 export type CrmTriggerKey = (typeof CRM_TRIGGER_KEYS)[number];
 
 // Triggers dirigidos por evento (diff de membresía de ActorSegment en
@@ -2536,6 +2547,13 @@ export class CrmService {
       throw new CrmDomainError(
         "BAD_REQUEST",
         `key inválida: ${key} - debe ser una de ${CRM_TRIGGER_KEYS.join(", ")}`,
+      );
+    }
+    const scope = TRIGGER_ACTOR_TYPES[key];
+    if (scope && !scope.includes(actorType)) {
+      throw new CrmDomainError(
+        "BAD_REQUEST",
+        `el trigger ${key} no aplica a actorType ${actorType}`,
       );
     }
     return this.prisma.crmTrigger.create({

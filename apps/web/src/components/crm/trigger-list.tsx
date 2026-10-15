@@ -16,7 +16,7 @@ import type {
   CrmTrigger,
   TriggerEvalResult,
 } from "./types";
-import { actorBody, actorQuery } from "./types";
+import { actorBody, actorQuery, TRIGGER_ACTOR_TYPES } from "./types";
 
 /**
  * Cards de triggers del actor (GET /crm/triggers?actor). El cron diario
@@ -190,6 +190,13 @@ export function TriggerList({
                         ? t("triggers.active")
                         : t("triggers.inactive")}
                     </Badge>
+                    {TRIGGER_ACTOR_TYPES[tr.key] && (
+                      <Badge variant="outline">
+                        {t(
+                          `triggers.scope.${TRIGGER_ACTOR_TYPES[tr.key][0]}`,
+                        )}
+                      </Badge>
+                    )}
                     {cfg.days != null && (
                       <Badge variant="outline">
                         {t("triggers.days")}: {String(cfg.days)}

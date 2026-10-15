@@ -131,6 +131,14 @@ class FakePrisma {
     count: async ({ where }: { where: Row }) =>
       this.paymentRows.filter((p) => matchWhere(p, where)).length,
   };
+  triggerRows: Row[] = [];
+  crmTrigger = {
+    create: async ({ data }: { data: Row }) => {
+      const tr: Row = { id: `tr-${++this.seq}`, active: true, ...data };
+      this.triggerRows.push(tr);
+      return tr;
+    },
+  };
   person = {
     findMany: async ({ where }: { where?: Row }) =>
       where
@@ -598,5 +606,50 @@ describe("CrmService - WhatsApp y digest (crm-channels-digest)", () => {
     const r = await svc.sendDigests();
     expect(r.notified).toBe(0);
     expect(notifySafe).not.toHaveBeenCalled();
+  });
+});
+
+describe("CrmService - alcance de triggers por actor (crm-trigger-actor-scope)", () => {
+  let svc: CrmService;
+
+  beforeEach(() => {
+    svc = new CrmService(
+      new FakePrisma() as unknown as PrismaService,
+      {} as unknown as NotificationsService,
+      { getNumber: async () => 21 } as unknown as ParamsService,
+    );
+  });
+
+  it("TRIAL_EXPIRING solo aplica a ACADEMY", async () => {
+    // createTrigger valida sincrónicamente (throw, no reject).
+    expect(() =>
+      svc.createTrigger("PRODUCER", PRODUCER, "TRIAL_EXPIRING"),
+    ).toThrowError(expect.objectContaining({ code: "BAD_REQUEST" }));
+    const ok = await svc.createTrigger("ACADEMY", ACADEMY, "TRIAL_EXPIRING");
+    expect(ok.key).toBe("TRIAL_EXPIRING");
+  });
+
+  it("REGULAR_NO_PRESALE solo aplica a PRODUCER", async () => {
+    expect(() =>
+      svc.createTrigger("ACADEMY", ACADEMY, "REGULAR_NO_PRESALE"),
+    ).toThrowError(expect.objectContaining({ code: "BAD_REQUEST" }));
+    const ok = await svc.createTrigger("PRODUCER", PRODUCER, "REGULAR_NO_PRESALE");
+    expect(ok.key).toBe("REGULAR_NO_PRESALE");
+  });
+
+  it("las keys sin restricción aplican a ambos actores", async () => {
+    for (const key of [
+      "WINBACK",
+      "ATTENDANCE_DROP",
+      "SEGMENT_ENTER",
+      "SEGMENT_EXIT",
+    ]) {
+      expect(
+        (await svc.createTrigger("ACADEMY", ACADEMY, key)).key,
+      ).toBe(key);
+      expect(
+        (await svc.createTrigger("PRODUCER", PRODUCER, key)).key,
+      ).toBe(key);
+    }
   });
 });
