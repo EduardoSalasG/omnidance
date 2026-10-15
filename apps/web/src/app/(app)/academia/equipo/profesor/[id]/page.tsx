@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import { Button, Card, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { CourseSurveyResults } from "@/components/academy/survey-results";
@@ -79,6 +79,7 @@ function Detail({
   const [loadError, setLoadError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -98,10 +99,6 @@ function Detail({
 
   async function remove() {
     if (!detail) return;
-    const label = detail.person.name ?? detail.person.email ?? personId;
-    if (!window.confirm(t("removeInstructorConfirm", { name: label }))) {
-      return;
-    }
     setBusy(true);
     setErr(null);
     try {
@@ -110,6 +107,7 @@ function Detail({
         { method: "DELETE" },
       );
       if (!res.ok) {
+        setConfirmRemove(false);
         setErr((await readError(res)) ?? t("error"));
         return;
       }
@@ -263,13 +261,24 @@ function Detail({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void remove()}
+          onClick={() => setConfirmRemove(true)}
           className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
         >
           {busy ? <Spinner size="sm" /> : null}
           {t("removeInstructor")}
         </button>
       </div>
+
+      <ConfirmSheet
+        open={confirmRemove}
+        title={t("removeInstructorConfirm", {
+          name: detail.person.name ?? detail.person.email ?? personId,
+        })}
+        confirmLabel={t("removeInstructor")}
+        busy={busy}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmRemove(false)}
+      />
     </div>
   );
 }

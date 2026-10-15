@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { readError } from "@/components/academy/shared";
-import { Badge, Button, Card, SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -86,6 +86,8 @@ function JobsPanel() {
   const [cronDraft, setCronDraft] = useState("");
   const [runsFor, setRunsFor] = useState<string | null>(null);
   const [runs, setRuns] = useState<JobRun[] | null>(null);
+  // Confirmación compartida de "correr ahora" (reemplaza window.confirm).
+  const [pendingRun, setPendingRun] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -119,7 +121,6 @@ function JobsPanel() {
   }
 
   async function runNow(key: string) {
-    if (!window.confirm(t("jobs.runConfirm"))) return;
     setBusy(key);
     setError(null);
     try {
@@ -130,6 +131,7 @@ function JobsPanel() {
       else await load();
     } finally {
       setBusy(null);
+      setPendingRun(null);
     }
   }
 
@@ -268,7 +270,7 @@ function JobsPanel() {
                     variant="ghost"
                     size="sm"
                     disabled={job.orphaned || busy === job.key}
-                    onClick={() => runNow(job.key)}
+                    onClick={() => setPendingRun(job.key)}
                   >
                     {busy === job.key ? <Spinner size="sm" /> : t("jobs.runNow")}
                   </Button>
@@ -336,6 +338,15 @@ function JobsPanel() {
           ))}
         </ul>
       )}
+
+      <ConfirmSheet
+        open={pendingRun !== null}
+        title={t("jobs.runConfirm")}
+        confirmLabel={t("jobs.runNow")}
+        busy={pendingRun !== null && busy === pendingRun}
+        onConfirm={() => pendingRun && void runNow(pendingRun)}
+        onClose={() => setPendingRun(null)}
+      />
     </>
   );
 }

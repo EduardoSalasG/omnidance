@@ -103,7 +103,12 @@ function EncuestaInner({ academyId }: { academyId: string }) {
     return (
       <Card className="flex flex-col items-center gap-3 py-8 text-center">
         <p className="text-base font-semibold text-neon">{t("thanks")}</p>
-        <Button variant="secondary" size="sm" onClick={() => router.back()}>
+        {/* Destino explícito, no router.back(): deep-link seguro. */}
+        <Button
+          variant="secondary"
+          size="sm"
+          href={`/academias/${academyId}`}
+        >
           {tc("back")}
         </Button>
       </Card>

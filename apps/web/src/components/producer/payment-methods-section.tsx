@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, SkeletonList, Spinner } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, SkeletonList, Spinner } from "@/components/ui";
 
 type Method = {
   id: string;
@@ -47,6 +47,8 @@ export function ProducerPaymentMethodsSection() {
   const [order, setOrder] = useState("0");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // Confirmación destructiva compartida (reemplaza window.confirm).
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await apiFetch("/producer/payment-methods").catch(() => null);
@@ -102,7 +104,7 @@ export function ProducerPaymentMethodsSection() {
   }
 
   async function remove(id: string) {
-    if (!window.confirm(t("deleteConfirm"))) return;
+    setPendingDelete(null);
     await apiFetch(`/producer/payment-methods/${id}`, { method: "DELETE" });
     await load();
   }
@@ -250,7 +252,7 @@ export function ProducerPaymentMethodsSection() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => void remove(m.id)}
+                  onClick={() => setPendingDelete(m.id)}
                 >
                   {t("remove")}
                 </Button>
@@ -259,6 +261,15 @@ export function ProducerPaymentMethodsSection() {
           ))}
         </ul>
       )}
+
+      <ConfirmSheet
+        open={pendingDelete !== null}
+        title={t("deleteConfirm")}
+        confirmLabel={t("remove")}
+        busy={busy}
+        onConfirm={() => pendingDelete && void remove(pendingDelete)}
+        onClose={() => setPendingDelete(null)}
+      />
     </Card>
   );
 }

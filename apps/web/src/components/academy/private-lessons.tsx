@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import type { QueryFilters } from "@omnidance/shared";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
-import { Badge, Button, Card, Pager, PriceTag, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, Pager, PriceTag, RefreshIcon } from "@/components/ui";
 import type { BadgeVariant } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { FilterBar } from "@/components/query/FilterBar";
@@ -127,6 +127,9 @@ export function PrivateLessons({ academy }: Props) {
 
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Cancelar clase particular pide confirmación destructiva (sheet,
+  // no window.confirm).
+  const [pendingCancel, setPendingCancel] = useState<string | null>(null);
   const [reschedId, setReschedId] = useState<string | null>(null);
   const [reschedWhen, setReschedWhen] = useState("");
 
@@ -267,8 +270,7 @@ export function PrivateLessons({ academy }: Props) {
   }
 
   function cancel(id: string): void {
-    if (!window.confirm(t.confirmCancel)) return;
-    void act(id, "cancel");
+    void act(id, "cancel").finally(() => setPendingCancel(null));
   }
 
   function submitAssign(e: React.FormEvent, id: string): void {
@@ -472,7 +474,7 @@ export function PrivateLessons({ academy }: Props) {
                               <button
                                 type="button"
                                 disabled={busyId === l.id}
-                                onClick={() => cancel(l.id)}
+                                onClick={() => setPendingCancel(l.id)}
                                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-400/30 px-4 text-sm font-semibold text-red-400/80 transition-colors transition-transform hover:border-red-400/60 hover:text-red-400 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon disabled:pointer-events-none disabled:opacity-50"
                               >
                                 {t.cancel}
@@ -589,6 +591,15 @@ export function PrivateLessons({ academy }: Props) {
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}
       </p>
+
+      <ConfirmSheet
+        open={pendingCancel !== null}
+        title={t.confirmCancel}
+        confirmLabel={t.cancel}
+        busy={busyId !== null}
+        onConfirm={() => pendingCancel && cancel(pendingCancel)}
+        onClose={() => setPendingCancel(null)}
+      />
     </div>
   );
 }

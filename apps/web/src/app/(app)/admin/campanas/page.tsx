@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { readError } from "@/components/academy/shared";
-import { Badge, Button, Card, SkeletonList } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, SkeletonList } from "@/components/ui";
 import { Spinner } from "@/components/ui/spinner";
 import { AdminGate } from "@/components/admin/admin-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
@@ -145,6 +145,11 @@ function CampaignsPanel() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Campaign | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Confirmación destructiva compartida: correr/cancelar una campaña.
+  const [pending, setPending] = useState<{
+    id: string;
+    action: "run" | "cancel";
+  } | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -172,6 +177,7 @@ function CampaignsPanel() {
       else await load();
     } finally {
       setBusy(null);
+      setPending(null);
     }
   }
 
@@ -285,9 +291,7 @@ function CampaignsPanel() {
                     c.status === "SENDING" ||
                     c.status === "CANCELLED"
                   }
-                  onClick={() => {
-                    if (window.confirm(t("campaigns.runConfirm"))) void act(c.id, "run");
-                  }}
+                  onClick={() => setPending({ id: c.id, action: "run" })}
                 >
                   {busy === `${c.id}:run` ? <Spinner size="sm" /> : t("campaigns.runNow")}
                 </Button>
@@ -296,9 +300,7 @@ function CampaignsPanel() {
                     variant="ghost"
                     size="sm"
                     disabled={busy === `${c.id}:cancel`}
-                    onClick={() => {
-                      if (window.confirm(t("campaigns.cancelConfirm"))) void act(c.id, "cancel");
-                    }}
+                    onClick={() => setPending({ id: c.id, action: "cancel" })}
                   >
                     {t("campaigns.cancel")}
                   </Button>
@@ -308,6 +310,23 @@ function CampaignsPanel() {
           ))}
         </ul>
       )}
+
+      <ConfirmSheet
+        open={pending !== null}
+        title={
+          pending?.action === "run"
+            ? t("campaigns.runConfirm")
+            : t("campaigns.cancelConfirm")
+        }
+        confirmLabel={
+          pending?.action === "run"
+            ? t("campaigns.runNow")
+            : t("campaigns.cancel")
+        }
+        busy={pending !== null && busy === `${pending.id}:${pending.action}`}
+        onConfirm={() => pending && void act(pending.id, pending.action)}
+        onClose={() => setPending(null)}
+      />
     </>
   );
 }

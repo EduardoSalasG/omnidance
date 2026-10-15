@@ -9,6 +9,7 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmSheet,
   RefreshIcon,
   XIcon,
 } from "@/components/ui";
@@ -100,6 +101,10 @@ function SeriesDetail({
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  // Confirmación destructiva compartida: serie entera o un horario.
+  const [confirm, setConfirm] = useState<
+    { kind: "series" } | { kind: "slot"; slotId: string } | null
+  >(null);
 
   // ─── mini-form "agregar horario" (PATCH addSlots) - día/hora +
   // instructor opcional; cupos y modalidad son de la serie. ───
@@ -228,7 +233,6 @@ function SeriesDetail({
   // DELETE = borrado lógico (spec academies/class-series): la serie se
   // desactiva y se oculta de la consola; sigue en analítica.
   async function remove(): Promise<void> {
-    if (!window.confirm(t("deleteConfirm"))) return;
     setBusy(true);
     setActionError(null);
     try {
@@ -237,11 +241,13 @@ function SeriesDetail({
         { method: "DELETE" },
       );
       if (!res.ok) {
+        setConfirm(null);
         setActionError((await readError(res)) ?? t("error"));
         return;
       }
       router.replace("/academia/series");
     } catch {
+      setConfirm(null);
       setActionError(t("error"));
       setBusy(false);
     }
@@ -266,7 +272,6 @@ function SeriesDetail({
   }
 
   async function removeSlot(slotId: string): Promise<void> {
-    if (!window.confirm(t("removeSlotConfirm"))) return;
     setBusy(true);
     setActionError(null);
     try {
@@ -275,11 +280,14 @@ function SeriesDetail({
         { method: "DELETE" },
       );
       if (!res.ok) {
+        setConfirm(null);
         setActionError((await readError(res)) ?? t("error"));
         return;
       }
+      setConfirm(null);
       await reload();
     } catch {
+      setConfirm(null);
       setActionError(t("error"));
     } finally {
       setBusy(false);
@@ -404,7 +412,7 @@ function SeriesDetail({
                     className="ml-auto px-2"
                     aria-label={t("removeSlot")}
                     disabled={busy}
-                    onClick={() => void removeSlot(slot.id)}
+                    onClick={() => setConfirm({ kind: "slot", slotId: slot.id })}
                   >
                     <XIcon className="h-4 w-4" />
                   </Button>
@@ -611,12 +619,31 @@ function SeriesDetail({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void remove()}
+          onClick={() => setConfirm({ kind: "series" })}
           className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
         >
           {t("delete")}
         </button>
       </div>
+
+      <ConfirmSheet
+        open={confirm !== null}
+        title={
+          confirm?.kind === "slot"
+            ? t("removeSlotConfirm")
+            : t("deleteConfirm")
+        }
+        confirmLabel={
+          confirm?.kind === "slot" ? t("removeSlot") : t("delete")
+        }
+        busy={busy}
+        onConfirm={() =>
+          confirm?.kind === "slot"
+            ? void removeSlot(confirm.slotId)
+            : void remove()
+        }
+        onClose={() => setConfirm(null)}
+      />
     </div>
   );
 }

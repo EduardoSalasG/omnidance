@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, RefreshIcon, SkeletonList, Spinner } from "@/components/ui";
 import { AcademyGate } from "@/components/academy/academy-gate";
 import { ConsoleHeader } from "@/components/console/console-header";
 import { inputCls, readError, type Academy } from "@/components/academy/shared";
@@ -67,6 +67,7 @@ function MethodDetail({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -137,7 +138,7 @@ function MethodDetail({
   }
 
   async function remove() {
-    if (!method || !window.confirm(t("deleteConfirm"))) return;
+    if (!method) return;
     setBusy(true);
     setErr(null);
     try {
@@ -146,6 +147,7 @@ function MethodDetail({
         { method: "DELETE" },
       );
       if (!res.ok) {
+        setConfirmDelete(false);
         setErr((await readError(res)) ?? t("error"));
         return;
       }
@@ -270,13 +272,22 @@ function MethodDetail({
         <button
           type="button"
           disabled={busy}
-          onClick={() => void remove()}
+          onClick={() => setConfirmDelete(true)}
           className="min-h-11 rounded-lg px-3 py-2 text-sm font-medium text-red-400/80 transition-colors hover:text-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon disabled:opacity-50"
         >
           {busy ? <Spinner size="sm" /> : null}
           {t("remove")}
         </button>
       </div>
+
+      <ConfirmSheet
+        open={confirmDelete}
+        title={t("deleteConfirm")}
+        confirmLabel={t("remove")}
+        busy={busy}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

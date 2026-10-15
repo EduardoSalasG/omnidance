@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   CheckIcon,
+  ConfirmSheet,
   RefreshIcon,
 } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
@@ -105,6 +106,8 @@ function CatalogSection({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Confirmación destructiva compartida (reemplaza window.confirm).
+  const [pendingItem, setPendingItem] = useState<Item | null>(null);
 
   const load = useCallback(async () => {
     setLoadError(false);
@@ -201,7 +204,6 @@ function CatalogSection({
   // DELETE rechaza con 409 cuando el valor está referenciado - el
   // message del backend lo explica; fallback a inUse.
   async function remove(item: Item): Promise<void> {
-    if (!window.confirm(t("deleteConfirm", { name: item.name }))) return;
     setBusy(true);
     setError(null);
     try {
@@ -209,13 +211,16 @@ function CatalogSection({
         method: "DELETE",
       });
       if (!res.ok) {
+        setPendingItem(null);
         const msg = await readError(res);
         setError(msg ?? (res.status === 409 ? t("inUse") : t("error")));
         return;
       }
+      setPendingItem(null);
       if (editId === item.id) setEditId(null);
       await load();
     } catch {
+      setPendingItem(null);
       setError(t("error"));
     } finally {
       setBusy(false);
@@ -322,7 +327,7 @@ function CatalogSection({
                         size="sm"
                         variant="ghost"
                         disabled={busy}
-                        onClick={() => void remove(item)}
+                        onClick={() => setPendingItem(item)}
                       >
                         {t("delete")}
                       </Button>
@@ -405,6 +410,15 @@ function CatalogSection({
           {t("saved")}
         </p>
       )}
+
+      <ConfirmSheet
+        open={pendingItem !== null}
+        title={t("deleteConfirm", { name: pendingItem?.name ?? "" })}
+        confirmLabel={t("delete")}
+        busy={busy}
+        onConfirm={() => pendingItem && void remove(pendingItem)}
+        onClose={() => setPendingItem(null)}
+      />
     </section>
   );
 }
