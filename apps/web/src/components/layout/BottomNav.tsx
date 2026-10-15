@@ -359,11 +359,12 @@ const CRM_DRAWER_GROUP: DrawerGroupSpec = {
 };
 // /analitica es la única superficie de analítica: consola de consultas
 // por lente activa (el dashboard por lente se eliminó - los KPIs clave
-// viven en cada módulo).
+// viven en cada módulo). El ítem dice "Consultas" - el nombre del grupo
+// ya es "Analítica" (mismo patrón de la sección CRM).
 const ANALYTICS_ITEM: DrawerSpec = {
   href: "/analitica",
   ns: "analytics",
-  key: "title",
+  key: "nav.queries",
   icon: ICONS.slider,
   // exact: el admin también lista /analitica/usuarios en el mismo grupo.
   exact: true,
