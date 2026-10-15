@@ -10,7 +10,16 @@
       "@prisma/engines",
       "esbuild",
       "prisma"
-    ]
+    ],
+    "overrides": {
+      "multer": ">=2.3.0",
+      "js-yaml": ">=4.3.2",
+      "qs": ">=6.16.0",
+      "body-parser": ">=1.20.6",
+      "uuid": ">=11.1.1",
+      "postcss": ">=8.5.23",
+      "source-map-js": ">=1.2.2"
+    }
   },
   "scripts": {
     "dev": "pnpm -r --parallel run dev",

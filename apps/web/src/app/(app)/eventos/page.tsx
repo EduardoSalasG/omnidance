@@ -109,10 +109,10 @@ function groupByDay(events: EventListItem[]) {
     null = fallo de carga (no confundir con "sin entradas": un 500/red
     no puede renderizar el empty de la wallet). */
 async function getMyTickets(): Promise<MyTicket[] | null> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/tickets/mine`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (!res?.ok) return null;
   return (await res.json()) as MyTicket[];
@@ -124,10 +124,10 @@ async function getMyTickets(): Promise<MyTicket[] | null> {
     para que nadie llegue a puerta creyendo que tiene entrada. [] en
     fallo (mejor omitir la sección que bloquear la wallet). */
 async function getPendingOrders(): Promise<PendingOrder[]> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/payments/mine`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (!res?.ok) return [];
   const rows = (await res.json()) as (PendingOrder & { status: string })[];
@@ -149,22 +149,23 @@ function eventCells(
   }));
 }
 
-export default async function EventosPage({
-  searchParams,
-}: {
-  searchParams?: {
-    genre?: string;
-    venue?: string;
-    view?: string;
-    month?: string;
-    week?: string; // legado: <día> → su mes
-    day?: string;
-    upto?: string;
-  };
-}) {
+export default async function EventosPage(
+  props: {
+    searchParams?: Promise<{
+      genre?: string;
+      venue?: string;
+      view?: string;
+      month?: string;
+      week?: string; // legado: <día> → su mes
+      day?: string;
+      upto?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const t = eventsDict;
   const tc = messages.common as Record<string, string>;
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   // El middleware exige sesión para esta ruta - todo visitante está
   // autenticado (no hay ramas anónimas).
   const [res, myTickets, pendingOrders] = await Promise.all([

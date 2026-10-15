@@ -17,7 +17,7 @@ export type ClaimInfo = {
 };
 
 async function getClaimInfo(token: string): Promise<ClaimInfo | "gone" | "error"> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/tickets/claim/${token}`, {
     cache: "no-store",
   }).catch(() => null);
@@ -26,14 +26,15 @@ async function getClaimInfo(token: string): Promise<ClaimInfo | "gone" | "error"
   return (await res.json()) as ClaimInfo;
 }
 
-export default async function ClaimPage({
-  params,
-}: {
-  params: { token: string };
-}) {
+export default async function ClaimPage(
+  props: {
+    params: Promise<{ token: string }>;
+  }
+) {
+  const params = await props.params;
   const t = messages.claim as Record<string, string>;
   const info = await getClaimInfo(params.token);
-  const hasSession = cookies().has("omnidance_session");
+  const hasSession = (await cookies()).has("omnidance_session");
 
   if (info === "gone" || info === "error") {
     return (

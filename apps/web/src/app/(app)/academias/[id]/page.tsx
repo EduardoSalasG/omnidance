@@ -65,10 +65,10 @@ type AcademyProfile = {
 };
 
 async function getProfile(id: string): Promise<AcademyProfile | "error"> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/academies/${id}/profile`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (res?.status === 404) notFound();
   if (!res || !res.ok) return "error";
@@ -102,15 +102,16 @@ const dayFmt = new Intl.DateTimeFormat("es-CL", {
   timeZone: "UTC",
 });
 
-export default async function AcademiaDetailPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  // `sub` lo escribe el redirect de POST /payments/flow/customer-return
-  // (retorno del disclaimer de registro de tarjeta): ok | error.
-  searchParams: { sub?: string };
-}) {
+export default async function AcademiaDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+    // `sub` lo escribe el redirect de POST /payments/flow/customer-return
+    // (retorno del disclaimer de registro de tarjeta): ok | error.
+    searchParams: Promise<{ sub?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const t = { ...messages.academy, ...academyExtrasPart.academy };
   const tc = messages.common;
   const ts = subscriptionsPart.subscriptions;

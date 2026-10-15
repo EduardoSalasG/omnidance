@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 // Landing de audiencia ACADEMY_OWNER: copy y acento del modo Academy.
 export default async function AcademyLanding() {
-  if (cookies().has("omnidance_session")) redirect("/inicio");
+  if ((await cookies()).has("omnidance_session")) redirect("/inicio");
   const [events, academies] = await Promise.all([
     fetchPublicEvents(),
     fetchPublicAcademies(),

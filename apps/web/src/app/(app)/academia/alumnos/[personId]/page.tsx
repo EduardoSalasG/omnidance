@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -51,11 +51,12 @@ const KNOWN_HISTORY_STATUS = ["attended", "booked", "cancelled"];
  * reservas. GET /academies/:id/students/:personId (owner e instructor).
  * AcademyGate resuelve la academia (el endpoint es por academia).
  */
-export default function AcademiaAlumnoPage({
-  params,
-}: {
-  params: { personId: string };
-}) {
+export default function AcademiaAlumnoPage(
+  props: {
+    params: Promise<{ personId: string }>;
+  }
+) {
+  const params = use(props.params);
   const t = useTranslations("academy");
 
   return (

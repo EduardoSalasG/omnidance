@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -136,11 +136,12 @@ const fmtClp = (n: number) => clpFmt.format(n);
 const selectCls =
   "min-h-[44px] rounded-lg border border-ink/15 bg-canvas px-3 text-sm";
 
-export default function UsuarioDetallePage({
-  params,
-}: {
-  params: { personId: string };
-}) {
+export default function UsuarioDetallePage(
+  props: {
+    params: Promise<{ personId: string }>;
+  }
+) {
+  const params = use(props.params);
   const t = useTranslations("admin");
 
   return (
@@ -337,7 +338,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
           <div className="flex items-center gap-4">
             {person.photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
-              <img
+              <img loading="lazy" decoding="async"
                 src={person.photoUrl}
                 alt=""
                 className="h-16 w-16 shrink-0 rounded-full border border-line object-cover"

@@ -19,12 +19,12 @@ import { headers } from "next/headers";
  *                          localhost y todo fetch SSR fallaba.
  * 5. localhost:4000      - dev local.
  */
-export function serverApiUrl(): string {
+export async function serverApiUrl(): Promise<string> {
   if (process.env.API_URL) return process.env.API_URL;
   if (process.env.API_PROXY_TARGET) return process.env.API_PROXY_TARGET;
   if (process.env.NEXT_PUBLIC_WEB_URL) return process.env.NEXT_PUBLIC_WEB_URL;
   try {
-    const h = headers();
+    const h = await headers();
     const host = h.get("x-forwarded-host") ?? h.get("host");
     if (host) {
       const local = host.startsWith("localhost") || host.startsWith("127.");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -207,11 +207,12 @@ function NewAcademyDeal({ eventId }: { eventId: string }) {
   );
 }
 
-export default function NewAcademyDealPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function NewAcademyDealPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = use(props.params);
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-3xl lg:px-8">
       <ProducerGate>

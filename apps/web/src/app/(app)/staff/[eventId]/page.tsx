@@ -7,6 +7,7 @@ import {
   useState,
   useSyncExternalStore,
   type FormEvent,
+  use,
 } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -118,7 +119,7 @@ function Avatar({
     // configurar remotePatterns - fuera de alcance v1.
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
+      <img loading="lazy" decoding="async"
         src={photoUrl}
         alt=""
         className="h-11 w-11 shrink-0 rounded-full object-cover"
@@ -135,11 +136,12 @@ function Avatar({
   );
 }
 
-export default function DoorConsolePage({
-  params,
-}: {
-  params: { eventId: string };
-}) {
+export default function DoorConsolePage(
+  props: {
+    params: Promise<{ eventId: string }>;
+  }
+) {
+  const params = use(props.params);
   const { eventId } = params;
   const t = useTranslations("staff");
   const tc = useTranslations("common");

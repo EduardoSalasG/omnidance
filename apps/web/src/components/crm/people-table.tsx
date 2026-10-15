@@ -439,7 +439,7 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
                     <div className="flex items-center gap-3">
                       {r.person?.photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <img loading="lazy" decoding="async"
                           src={r.person.photoUrl}
                           alt=""
                           className="h-10 w-10 rounded-full object-cover"

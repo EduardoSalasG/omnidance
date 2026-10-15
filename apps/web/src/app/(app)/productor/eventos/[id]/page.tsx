@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useMe } from "@/lib/me-context";
@@ -41,11 +41,12 @@ type EventState = "loading" | "ok" | "notFound" | "error";
  * /productor/eventos/[id] - consola operativa del evento: estado, acciones
  * (publicar/editar/cancelar), staff, pases, sugerencias, reservas y ratings.
  */
-export default function ProducerEventDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function ProducerEventDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = use(props.params);
   const eventId = params.id;
 
   const t = useTranslations("producer");

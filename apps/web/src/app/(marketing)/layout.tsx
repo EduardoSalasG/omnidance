@@ -1,6 +1,13 @@
+import { NextIntlClientProvider } from "next-intl";
+import { marketingMessages } from "@/i18n/messages";
+
 // Grupo (marketing): superficies públicas sin chrome de app.
 // Sin BottomNav, sin RealtimeProvider, sin padding de tab bar -
 // eso vive en (app)/layout.tsx.
+//
+// Provider propio con SOLO los namespaces de sus client components
+// (login-form, claim-client): la pública no serializa el catálogo
+// completo de la app en cada page load (~15KB vs ~190KB).
 //
 // .force-dark: las públicas son siempre oscuras (identidad de marca
 // nocturna, landings de locales/fiesta). El marcador activa el override
@@ -11,5 +18,9 @@ export default function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="force-dark min-h-dvh">{children}</div>;
+  return (
+    <NextIntlClientProvider locale="es-CL" messages={marketingMessages}>
+      <div className="force-dark min-h-dvh">{children}</div>
+    </NextIntlClientProvider>
+  );
 }

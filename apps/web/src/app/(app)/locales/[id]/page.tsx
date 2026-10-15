@@ -107,21 +107,22 @@ function dayLabel(key: string, te: EventsT): string {
 // Solo un 404 real es not-found: 5xx/red es un fallo de carga y la
 // página muestra error con retry - esconderlo como "no existe" miente.
 async function getVenue(id: string): Promise<VenueProfile | "error"> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/venues/${id}?days=62`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (res?.status === 404) notFound();
   if (!res?.ok) return "error";
   return (await res.json()) as VenueProfile;
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { id: string };
-}): Promise<Metadata> {
+export async function generateMetadata(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+): Promise<Metadata> {
+  const params = await props.params;
   const tv = messages.venuePublic as VenueT;
   const venue = await getVenue(params.id);
   return {
@@ -132,19 +133,20 @@ export async function generateMetadata({
   };
 }
 
-export default async function VenueProfilePage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams?: {
-    vista?: string;
-    mes?: string;
-    semana?: string; // legado: <día> → su mes
-    dia?: string;
-    genre?: string;
-  };
-}) {
+export default async function VenueProfilePage(
+  props: {
+    params: Promise<{ id: string }>;
+    searchParams?: Promise<{
+      vista?: string;
+      mes?: string;
+      semana?: string; // legado: <día> → su mes
+      dia?: string;
+      genre?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const t = messages.venuePublic as VenueT;
   const te = messages.events as EventsT;
   const tc = messages.common as { error: string; retry: string; back: string };
@@ -316,7 +318,7 @@ export default async function VenueProfilePage({
       <header className="flex items-start gap-4">
         {venue.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- URL externa del venue
-          <img
+          <img loading="lazy" decoding="async"
             src={venue.logoUrl}
             alt=""
             className="h-16 w-16 shrink-0 rounded-2xl border border-ink/10 object-cover"

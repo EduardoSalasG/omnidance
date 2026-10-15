@@ -16,8 +16,8 @@ módulos según el rol/lente activo del usuario.
 
 | Pieza | Tech |
 |---|---|
-| Web | Next.js 14 + React 18 + TypeScript - PWA instalable, dark-first, mobile-first |
-| API | NestJS 10 (arquitectura hexagonal) + Prisma + PostgreSQL 16 |
+| Web | Next.js 15 + React 19 + TypeScript - PWA instalable, dark-first, mobile-first |
+| API | NestJS 11 (arquitectura hexagonal) + Prisma + PostgreSQL 16 |
 | Realtime | WebSockets + BullMQ sobre Redis 7 |
 | Compartido | `@omnidance/shared` - enums, constantes y types front/back |
 | i18n | next-intl, catálogo `es-CL` en parts (`apps/web/src/i18n/parts/`) |

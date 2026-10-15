@@ -11,7 +11,7 @@ export type PublicAcademy = {
 
 export async function fetchPublicAcademies(): Promise<PublicAcademy[]> {
   try {
-    const res = await fetch(`${serverApiUrl()}/api/academies/public`, {
+    const res = await fetch(`${await serverApiUrl()}/api/academies/public`, {
       cache: "no-store",
     });
     if (!res.ok) return [];

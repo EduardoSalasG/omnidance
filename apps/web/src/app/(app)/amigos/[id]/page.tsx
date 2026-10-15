@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, EventDate } from "@/components/ui";
@@ -41,11 +41,12 @@ type PersonProfile = {
 
 type PageState = "loading" | "ready" | "unauth" | "notfound" | "error";
 
-export default function AmigoPerfilPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function AmigoPerfilPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = use(props.params);
   const { id } = params;
   const t = useTranslations("friends");
   const tc = useTranslations("common");

@@ -1,6 +1,12 @@
 import createNextIntlPlugin from "next-intl/plugin";
+import bundleAnalyzer from "@next/bundle-analyzer";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+// ANALYZE=true pnpm --filter @omnidance/web build → reporte HTML del
+// bundle (auditoría de tamaño; default off para no pagar el costo).
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
 // Origen del API para el proxy same-origin: el browser pide /api/* al front
 // y Next lo reenvía acá. Así PWA+túnel quedan same-origin (cookies Lax, sin
@@ -43,4 +49,4 @@ const nextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default withBundleAnalyzer(withNextIntl(nextConfig));

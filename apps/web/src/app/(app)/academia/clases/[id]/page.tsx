@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
@@ -28,11 +28,12 @@ type LoadState =
  * decide el acceso (instructor de la clase u owner/admin): 401/403/404
  * tienen estado propio.
  */
-export default function AcademiaClaseRosterPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function AcademiaClaseRosterPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = use(props.params);
   const classId = params.id;
   const t = useTranslations("instructor");
   const tc = useTranslations("common");

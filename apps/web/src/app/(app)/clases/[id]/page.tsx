@@ -107,10 +107,10 @@ type LessonDetail = {
 // El endpoint va con SessionGuard - cookie del request, como en
 // /eventos/[id] (getMissions).
 async function getClass(id: string): Promise<ClassDetail | "error" | null> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/classes/${id}`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (res?.status === 404) return null;
   if (!res || !res.ok) return "error";
@@ -122,10 +122,10 @@ async function getClass(id: string): Promise<ClassDetail | "error" | null> {
 async function getLesson(
   id: string,
 ): Promise<LessonDetail | "error" | null> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/private-lessons/${id}`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (res?.status === 404 || res?.status === 403) return null;
   if (!res || !res.ok) return "error";
@@ -157,11 +157,12 @@ const lessonFmt = new Intl.DateTimeFormat("es-CL", {
   timeZone: "America/Santiago",
 });
 
-export default async function ClaseDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function ClaseDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const t = { ...messages.classes, ...classesPart.classes };
   const tc = messages.common;
   const tl = academyPart.academyExtras.lessons;

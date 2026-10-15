@@ -24,7 +24,9 @@ import {
 } from "@/components/ui";
 import { OnboardingRunner, type TourStep } from "@/components/onboarding/OnboardingRunner";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { version as appVersion } from "../../../../package.json";
+import pkg from "../../../../package.json";
+
+const appVersion = pkg.version;
 
 type Streak = {
   currentWeeks: number;
@@ -439,7 +441,7 @@ export default function PerfilPage() {
         <Card className="flex items-center gap-4 transition-colors hover:border-neon/40">
           {me.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
-            <img
+            <img loading="lazy" decoding="async"
               src={me.photoUrl}
               alt=""
               className="h-16 w-16 shrink-0 rounded-full border border-line object-cover"

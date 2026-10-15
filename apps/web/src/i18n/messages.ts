@@ -99,3 +99,31 @@ export const messages = parts.reduce<Dict>(
   (acc, p) => merge(acc, p),
   { ...base },
 );
+
+/**
+ * Scoping de mensajes por route group - el provider de root layout NO
+ * serializa el catálogo completo (~190KB) en el Flight payload de cada
+ * página. Cada grupo monta su NextIntlClientProvider:
+ * - (marketing): solo lo que usan sus client components (login-form,
+ *   claim-client) - las landings son server y no pagan el costo igual.
+ * - (app): todo menos los namespaces puramente marketing (landings y
+ *   textos legales, que solo viven en las públicas).
+ */
+const MARKETING_NS = ["common", "login", "claim", "consent"] as const;
+export const marketingMessages = Object.fromEntries(
+  MARKETING_NS.flatMap((ns) =>
+    ns in messages ? [[ns, messages[ns]]] : [],
+  ),
+) as Dict;
+
+const APP_EXCLUDE = new Set([
+  "landing",
+  "landingPro",
+  "landingAcademy",
+  "landingProducer",
+  "landingProHub",
+  "legal",
+]);
+export const appMessages = Object.fromEntries(
+  Object.entries(messages).filter(([k]) => !APP_EXCLUDE.has(k)),
+) as Dict;

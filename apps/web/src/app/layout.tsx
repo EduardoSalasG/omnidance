@@ -1,6 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { NextIntlClientProvider } from "next-intl";
-import { messages } from "@/i18n/messages";
 import { PageLoadingHost } from "@/components/ui/page-loading-host";
 import { SITE_URL } from "@/lib/site-url";
 import "./globals.css";
@@ -78,6 +76,8 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: la clase dark/light la ajusta el script
     // inline según preferencia - React no debe reconciliarla.
+    // La CSP lo permite por sha256 fijo (middleware.ts) - no por nonce:
+    // usar headers() acá convertiría TODAS las páginas en dinámicas.
     <html
       lang="es-CL"
       className="dark scroll-smooth motion-reduce:scroll-auto"
@@ -87,12 +87,14 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className="bg-canvas text-ink min-h-dvh antialiased">
-        <NextIntlClientProvider locale="es-CL" messages={messages}>
-          {children}
-          {/* Host del beacon de carga: spinner único para navegación
-              (NavPendingOverlay) y cargas de página (PageLoading). */}
-          <PageLoadingHost />
-        </NextIntlClientProvider>
+        {/* Sin provider de i18n acá: serializar el catálogo en root
+            lo pagaría CADA página. Los route groups (app)/(marketing)
+            montan el suyo con su subconjunto (src/i18n/messages.ts).
+            Nada en este nivel usa useTranslations. */}
+        {children}
+        {/* Host del beacon de carga: spinner único para navegación
+            (NavPendingOverlay) y cargas de página (PageLoading). */}
+        <PageLoadingHost />
       </body>
     </html>
   );
