@@ -152,6 +152,26 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
     });
   }
 
+  // "Seleccionar página": marca/desmarca todas las rows visibles -
+  // etiquetar de a una una página de 20 no es usable.
+  const allPageSelected =
+    rows !== null &&
+    rows.length > 0 &&
+    rows.every((r) => selected.has(r.personId));
+
+  function selectPage() {
+    if (!rows) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (rows.every((r) => next.has(r.personId))) {
+        for (const r of rows) next.delete(r.personId);
+      } else {
+        for (const r of rows) next.add(r.personId);
+      }
+      return next;
+    });
+  }
+
   async function applyBulkTag(op: "add" | "remove") {
     const tag = bulkTag.trim();
     if (!tag || !selected.size || bulkBusy) return;
@@ -185,20 +205,29 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
         <p className="text-sm text-ink/60">
           {t("people.total", { count: data?.total ?? 0 })}
         </p>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={recomputing}
-          onClick={() => void recompute()}
-        >
-          {recomputing ? (
-            t("people.recomputing")
-          ) : (
-            <>
-              <RefreshIcon /> {t("people.recompute")}
-            </>
+        <div className="flex items-center gap-2">
+          {rows !== null && rows.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={selectPage}>
+              {allPageSelected
+                ? t("people.deselectPage")
+                : t("people.selectPage")}
+            </Button>
           )}
-        </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={recomputing}
+            onClick={() => void recompute()}
+          >
+            {recomputing ? (
+              t("people.recomputing")
+            ) : (
+              <>
+                <RefreshIcon /> {t("people.recompute")}
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Stats por segmento del universo completo (vienen en la respuesta) */}
@@ -384,18 +413,22 @@ export function PeopleTable({ actor }: { actor: CrmActor }) {
           {rows.map((r) => {
             const segKey = r.segment ?? "NONE";
             return (
-              <li key={r.personId} className="flex items-start gap-2">
+              <li key={r.personId} className="flex items-start gap-1">
                 {/* Checkbox de selección masiva - fuera del Link (patrón
-                    de consola: sin interactivos anidados). */}
-                <input
-                  type="checkbox"
-                  checked={selected.has(r.personId)}
-                  onChange={() => toggleSelect(r.personId)}
-                  aria-label={t("people.selectRow", {
-                    name: r.person?.name ?? r.personId,
-                  })}
-                  className="mt-4 size-5 shrink-0 accent-neon"
-                />
+                    de consola: sin interactivos anidados). El label
+                    envolvente agranda el área táctil a 44px (el input
+                    desnudo es 20px, bajo el mínimo WCAG 2.5.8). */}
+                <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-start justify-center pt-4">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(r.personId)}
+                    onChange={() => toggleSelect(r.personId)}
+                    aria-label={t("people.selectRow", {
+                      name: r.person?.name ?? r.personId,
+                    })}
+                    className="size-5 accent-neon"
+                  />
+                </label>
                 {/* Card completo clickeable → ficha; la edición de tags
                     vive en /crm/personas/[id], no inline. */}
                 <Link

@@ -15,13 +15,18 @@ const FOCUSABLE =
  * al elemento que lo tenía.
  *
  * Uso:
- *   const dialogRef = useDialogFocus<HTMLDivElement>(open);
+ *   const dialogRef = useDialogFocus<HTMLDivElement>(open, onClose);
  *   <div ref={dialogRef}> ...contenido del diálogo... </div>
  *
  * El ref puede ir en el overlay que envuelve al role="dialog" - el
  * ciclo de Tab solo considera los controles dentro del contenedor.
+ * `onEscape` cierra el diálogo con la tecla Escape (WCAG 2.1.1: todo
+ * diálogo modal debe poder descartarse por teclado).
  */
-export function useDialogFocus<T extends HTMLElement>(open: boolean) {
+export function useDialogFocus<T extends HTMLElement>(
+  open: boolean,
+  onEscape?: () => void,
+) {
   const ref = useRef<T | null>(null);
 
   useEffect(() => {
@@ -47,6 +52,11 @@ export function useDialogFocus<T extends HTMLElement>(open: boolean) {
     }
 
     function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onEscape?.();
+        return;
+      }
       if (e.key !== "Tab") return;
       const items = focusables();
       if (items.length === 0) {
@@ -77,7 +87,7 @@ export function useDialogFocus<T extends HTMLElement>(open: boolean) {
         previouslyFocused.focus();
       }
     };
-  }, [open]);
+  }, [open, onEscape]);
 
   return ref;
 }

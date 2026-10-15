@@ -152,10 +152,15 @@ export function SegmentForm({
             body: JSON.stringify({ ...actorBody(actor), ...payload }),
           });
       if (!res.ok) {
+        // class-validator devuelve message como string[] cuando fallan
+        // varias reglas - normalizar a texto para el role="alert".
         const body = (await res.json().catch(() => null)) as {
-          message?: string;
+          message?: string | string[];
         } | null;
-        setFormError(body?.message ?? tc("error"));
+        const msg = Array.isArray(body?.message)
+          ? body.message.join(" ")
+          : body?.message;
+        setFormError(msg ?? tc("error"));
         return;
       }
       onSaved();

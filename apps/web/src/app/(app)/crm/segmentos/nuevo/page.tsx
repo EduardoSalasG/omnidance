@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { ConsoleHeader } from "@/components/console/console-header";
 import {
   ActorPicker,
   CrmGateScreen,
@@ -12,7 +13,7 @@ import { SegmentForm } from "@/components/crm/segment-form";
 import { ProPaywall } from "@/components/producer/pro-paywall";
 
 // Crear segmento → POST /crm/segments (patrón de consola: página
-// dedicada, vuelve al listado tras aviso breve de éxito).
+// dedicada con ConsoleHeader, vuelve al listado tras aviso de éxito).
 export default function NuevoSegmentoPage() {
   const t = useTranslations("crm");
   const router = useRouter();
@@ -21,6 +22,11 @@ export default function NuevoSegmentoPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-3xl lg:px-8">
+      <ConsoleHeader
+        backHref="/crm/segmentos"
+        backLabel={t("actorSegments.title")}
+      />
+
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
 
       {ctx.gate === "ready" && (

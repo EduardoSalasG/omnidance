@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
@@ -43,7 +44,9 @@ export default function CrmSegmentoPage() {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const deleteDialogRef = useDialogFocus<HTMLDivElement>(confirmDelete);
+  const deleteDialogRef = useDialogFocus<HTMLDivElement>(confirmDelete, () =>
+    setConfirmDelete(false),
+  );
 
   const load = useCallback(async () => {
     setError(false);
@@ -188,21 +191,32 @@ export default function CrmSegmentoPage() {
                   <ul className="flex flex-col gap-2">
                     {people.items.map((m) => (
                       <li key={m.personId}>
-                        <Card className="flex items-center justify-between gap-3 py-3">
-                          <span className="font-medium">
-                            {m.person?.name ?? m.personId}
-                          </span>
-                          <span className="text-xs tabular-nums text-ink/50">
-                            {fmtDay.format(new Date(m.since))}
-                          </span>
-                        </Card>
+                        {/* Miembro → ficha del contacto (mismo patrón
+                            que las rows de /crm/personas). */}
+                        <Link
+                          href={`/crm/personas/${m.personId}`}
+                          className="block rounded-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-neon"
+                        >
+                          <Card className="flex items-center justify-between gap-3 py-3 transition-colors hover:border-neon/60">
+                            <span className="font-medium">
+                              {m.person?.name ?? m.personId}
+                            </span>
+                            <span className="text-xs tabular-nums text-ink/50">
+                              {t("actorSegments.memberSince", {
+                                date: fmtDay.format(new Date(m.since)),
+                              })}
+                            </span>
+                          </Card>
+                        </Link>
                       </li>
                     ))}
                   </ul>
                 )}
               </section>
 
-              <section className="flex justify-center border-t border-line pt-6">
+              {/* Zona destructiva al pie - div, no landmark (una
+                  <section> sin nombre crea ruido en el árbol a11y). */}
+              <div className="flex justify-center border-t border-line pt-6">
                 <Button
                   variant="ghost"
                   className="text-red-400 hover:text-red-300"
@@ -210,7 +224,7 @@ export default function CrmSegmentoPage() {
                 >
                   {t("actorSegments.delete")}
                 </Button>
-              </section>
+              </div>
             </div>
           )}
         </>

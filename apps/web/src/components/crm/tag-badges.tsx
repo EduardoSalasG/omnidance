@@ -30,7 +30,7 @@ export function TagBadges({
                 aria-label={t("people.deleteTag", { tag: tag.tag })}
                 disabled={deleting === tag.id}
                 onClick={() => onDelete(tag)}
-                className="-mr-1 inline-flex h-5 w-5 items-center justify-center rounded-full text-ink/60 hover:bg-ink/10 hover:text-ink disabled:opacity-40"
+                className="-mr-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-ink/60 hover:bg-ink/10 hover:text-ink disabled:opacity-40"
               >
                 ×
               </button>
