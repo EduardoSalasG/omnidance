@@ -109,6 +109,11 @@ export const messages = parts.reduce<Dict>(
  * - (app): todo menos los namespaces puramente marketing (landings y
  *   textos legales, que solo viven en las públicas).
  */
+/** Solo `common`: el provider del ROOT layout. PageLoadingHost/Spinner
+    viven a ese nivel y traducen con ese namespace; el resto del
+    catálogo lo aporta cada route group (nested providers hacen merge). */
+export const commonMessages = { common: messages.common } as Dict;
+
 const MARKETING_NS = ["common", "login", "claim", "consent"] as const;
 export const marketingMessages = Object.fromEntries(
   MARKETING_NS.flatMap((ns) =>
