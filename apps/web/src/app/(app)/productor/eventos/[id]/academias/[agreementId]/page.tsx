@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
@@ -521,11 +521,12 @@ function DealDetail({
   );
 }
 
-export default function AcademyDealDetailPage({
-  params,
-}: {
-  params: { id: string; agreementId: string };
-}) {
+export default function AcademyDealDetailPage(
+  props: {
+    params: Promise<{ id: string; agreementId: string }>;
+  }
+) {
+  const params = use(props.params);
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 lg:max-w-3xl lg:px-8">
       <ProducerGate>

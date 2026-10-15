@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Badge, Button, Card, PillTabs } from "@/components/ui";
@@ -187,11 +187,12 @@ function CountList({ rows }: { rows: { label: string; count: number }[] }) {
  * listan los roles APPROVED y cada selección refetchea
  * /admin/users/:personId/analytics?role=X.
  */
-export default function AnaliticaUsuarioPage({
-  params,
-}: {
-  params: { personId: string };
-}) {
+export default function AnaliticaUsuarioPage(
+  props: {
+    params: Promise<{ personId: string }>;
+  }
+) {
+  const params = use(props.params);
   const t = useTranslations("analytics");
 
   return (

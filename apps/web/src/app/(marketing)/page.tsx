@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 // La decisión anónimo/logueado ocurre en el servidor - la landing llega
 // como HTML real (LCP, SEO) y quien tiene sesión va directo al hub.
 export default async function Home() {
-  if (cookies().has("omnidance_session")) redirect("/inicio");
+  if ((await cookies()).has("omnidance_session")) redirect("/inicio");
   const events = await fetchPublicEvents();
   return (
     <>

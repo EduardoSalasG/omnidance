@@ -23,18 +23,55 @@ const PUBLIC_PATHS = new Set([
 // (POST) exige sesión vía SessionGuard del API.
 const PUBLIC_PREFIXES = ["/reclamar"];
 
+// CSP (headers del documento). Decisión documentada: script-src usa
+// 'unsafe-inline' y NO nonce - verificado con next start: las páginas
+// estáticas (la mayoría del árbol) sirven los scripts inline del
+// framework SIN nonce (Next no los re-escribe en HTML prerenderizado),
+// y forzar todo a render dinámico por CSP estricta costaría TTFB real.
+// La policy aún bloquea scripts externos no-self, eval en prod,
+// framing, objects, exfil por connect-src y sube http→https.
+const isDev = process.env.NODE_ENV !== "production";
+
+function cspHeader(): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https: wss:",
+    "media-src 'self' blob:",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ].join("; ");
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
+  const csp = cspHeader();
+
+  const next = () => {
+    const res = NextResponse.next();
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  };
+
+  if (PUBLIC_PATHS.has(pathname)) return next();
   if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
+    return next();
   }
-  if (req.cookies.has("omnidance_session")) return NextResponse.next();
+  if (req.cookies.has("omnidance_session")) return next();
 
   const login = req.nextUrl.clone();
   login.pathname = "/login";
   login.search = `?next=${encodeURIComponent(pathname + req.nextUrl.search)}`;
-  return NextResponse.redirect(login);
+  const res = NextResponse.redirect(login);
+  res.headers.set("Content-Security-Policy", csp);
+  return res;
 }
 
 // Excluye /api, internals de Next y todo archivo con extensión

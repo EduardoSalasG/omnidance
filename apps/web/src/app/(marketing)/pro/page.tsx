@@ -29,7 +29,7 @@ const cardClass =
 // Selector de audiencia: cada rol tiene su landing propia; DJ y locales
 // usan el form compacto de abajo (roles restringidos).
 export default async function ProHub() {
-  if (cookies().has("omnidance_session")) redirect("/inicio");
+  if ((await cookies()).has("omnidance_session")) redirect("/inicio");
   const events = await fetchPublicEvents();
   return (
     <>

@@ -177,7 +177,7 @@ function NewCollaborator() {
                   >
                     {p.photoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={p.photoUrl}
                         alt=""
                         className="size-8 rounded-full object-cover"

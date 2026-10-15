@@ -20,7 +20,7 @@ export function PartnerAvatar({
   if (photoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
-      <img
+      <img loading="lazy" decoding="async"
         src={photoUrl}
         alt=""
         className={`${dims} shrink-0 rounded-full border border-line object-cover`}

@@ -6,7 +6,7 @@ import { serverApiUrl } from "@/lib/server-api";
 // Fallo silencioso: la página no depende de esto.
 export async function fetchPublicEvents(): Promise<JsonLdEvent[]> {
   try {
-    const res = await fetch(`${serverApiUrl()}/api/events`, {
+    const res = await fetch(`${await serverApiUrl()}/api/events`, {
       cache: "no-store",
     });
     if (!res.ok) return [];

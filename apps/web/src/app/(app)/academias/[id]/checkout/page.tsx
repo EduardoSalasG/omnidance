@@ -39,12 +39,12 @@ export type MembershipQuote = {
 async function getQuote(
   planId: string,
 ): Promise<MembershipQuote | "notfound" | "unavailable" | "error"> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(
     `${API_URL}/api/checkout/membership-quote?planId=${encodeURIComponent(planId)}`,
     {
       cache: "no-store",
-      headers: { cookie: cookies().toString() },
+      headers: { cookie: (await cookies()).toString() },
     },
   ).catch(() => null);
   if (res?.status === 401) redirect("/login");
@@ -54,13 +54,14 @@ async function getQuote(
   return (await res.json()) as MembershipQuote;
 }
 
-export default async function MembershipCheckoutPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { plan?: string; mode?: string };
-}) {
+export default async function MembershipCheckoutPage(
+  props: {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ plan?: string; mode?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const t = membershipCheckoutPart.membershipCheckout;
   const tc = messages.common;
 

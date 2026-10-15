@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 
 async function getEventName(id: string): Promise<string | null> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
   }).catch(() => null);
@@ -18,11 +18,12 @@ async function getEventName(id: string): Promise<string | null> {
   return ((await res.json()) as { name: string }).name;
 }
 
-export default async function EvaluarPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function EvaluarPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const name = await getEventName(params.id);
   return <SurveyForm eventId={params.id} eventName={name} />;
 }

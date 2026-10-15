@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, use } from "react";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { AcademyGate } from "@/components/academy/academy-gate";
@@ -346,11 +346,12 @@ function DealDetail({
   );
 }
 
-export default function AcademyPresaleDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function AcademyPresaleDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = use(props.params);
   const t = useTranslations("academySales");
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:max-w-3xl lg:px-8">

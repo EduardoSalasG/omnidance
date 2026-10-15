@@ -105,7 +105,7 @@ type MissionView = {
 };
 
 async function getEvent(id: string): Promise<EventDetail | "error"> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
   }).catch(() => null);
@@ -120,10 +120,10 @@ async function getEvent(id: string): Promise<EventDetail | "error"> {
  * Shape real (GamificationService.missionsFor → MissionView): ver type abajo.
  */
 async function getMissions(eventId: string): Promise<MissionView[] | null> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${eventId}/missions`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (!res || !res.ok) return null;
   return (await res.json()) as MissionView[];
@@ -135,10 +135,10 @@ async function getMissions(eventId: string): Promise<MissionView[] | null> {
  * 401/fallo → null y la sección se omite (nunca error visible).
  */
 async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${eventId}/friends-going`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (!res || !res.ok) return null;
   return (await res.json()) as FriendGoing[];
@@ -149,10 +149,10 @@ async function getFriendsGoing(eventId: string): Promise<FriendGoing[] | null> {
  * ACTIVE para este evento - dispara el popup de confirmación en el CTA.
  */
 async function hasActiveTicket(eventId: string): Promise<boolean> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/tickets/mine`, {
     cache: "no-store",
-    headers: { cookie: cookies().toString() },
+    headers: { cookie: (await cookies()).toString() },
   }).catch(() => null);
   if (!res?.ok) return false;
   // event puede ser null (evento eliminado tras la compra) - el API
@@ -164,15 +164,16 @@ async function hasActiveTicket(eventId: string): Promise<boolean> {
   return rows.some((r) => r.event?.id === eventId && r.status === "ACTIVE");
 }
 
-export default async function EventoDetailPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  // ?a=<academyId> - link de preventa de una academia (spec
-  // academy-presale-commission): lo persiste AcademyAttribution.
-  searchParams?: { a?: string };
-}) {
+export default async function EventoDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+    // ?a=<academyId> - link de preventa de una academia (spec
+    // academy-presale-commission): lo persiste AcademyAttribution.
+    searchParams?: Promise<{ a?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const t = messages.events as EventsT;
   const tc = messages.common as Record<string, string>;
   const tg = messages.gamification as Record<string, string>;
@@ -576,7 +577,7 @@ export default async function EventoDetailPage({
               <li key={`${dj.person.name}-${i}`} className="flex items-center gap-3">
                 {dj.person.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- URLs externas, dominios no configurados
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={dj.person.photoUrl}
                     alt=""
                     className="h-11 w-11 shrink-0 rounded-full border border-line object-cover"

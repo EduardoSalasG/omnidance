@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 
 // Landing de audiencia PRODUCER: ticketing, puerta QR y números.
 export default async function ProducerLanding() {
-  if (cookies().has("omnidance_session")) redirect("/inicio");
+  if ((await cookies()).has("omnidance_session")) redirect("/inicio");
   const events = await fetchPublicEvents();
   return (
     <>

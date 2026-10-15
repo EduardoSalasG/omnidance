@@ -33,7 +33,7 @@ export type CheckoutEvent = {
 };
 
 async function getEvent(id: string): Promise<CheckoutEvent | "error"> {
-  const API_URL = serverApiUrl();
+  const API_URL = await serverApiUrl();
   const res = await fetch(`${API_URL}/api/events/${id}`, {
     cache: "no-store",
   }).catch(() => null);
@@ -42,11 +42,12 @@ async function getEvent(id: string): Promise<CheckoutEvent | "error"> {
   return (await res.json()) as CheckoutEvent;
 }
 
-export default async function CheckoutPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function CheckoutPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   const t = messages.events as Record<string, string>;
   const event = await getEvent(params.id);
 

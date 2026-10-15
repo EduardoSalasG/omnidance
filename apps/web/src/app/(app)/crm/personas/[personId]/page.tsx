@@ -211,7 +211,7 @@ function PersonDetail({
         <div className="flex items-center gap-4">
           {detail.person?.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <img loading="lazy" decoding="async"
               src={detail.person.photoUrl}
               alt=""
               className="h-14 w-14 rounded-full object-cover"
