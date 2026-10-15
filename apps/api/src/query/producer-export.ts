@@ -21,7 +21,7 @@ import { validateEntityFilters } from "./filters";
  */
 
 /** Celda CSV: quotea si contiene , " \n \r; comillas internas → "". */
-export function csvCell(v: unknown): string {
+function csvCell(v: unknown): string {
   const s = v === null || v === undefined ? "" : String(v);
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
@@ -58,7 +58,7 @@ export function assertDataset(d: string): asserts d is ExportDataset {
  * Type alias (mapped) para que el DTO con index signature implícita
  * sea asignable a Record<string, unknown>.
  */
-export type DatasetFilterInput = Partial<
+type DatasetFilterInput = Partial<
   Record<
     "from" | "to" | "status" | "channel" | "method" | "voided" | "listId",
     string
@@ -94,7 +94,7 @@ export function exportDataset(
 }
 
 /** Una fila por Ticket - incluye cancelados, la cuadratura los mira. */
-export async function exportSales(
+async function exportSales(
   prisma: PrismaService,
   eventId: string | { in: string[] },
   labelByEvent?: Map<string, string>,
@@ -181,7 +181,7 @@ export async function exportSales(
 }
 
 /** Una fila por Checkin - incluye anulados con anulado=si (salvo filtro). */
-export async function exportCheckins(
+async function exportCheckins(
   prisma: PrismaService,
   eventId: string | { in: string[] },
   labelByEvent?: Map<string, string>,
@@ -243,7 +243,7 @@ export async function exportCheckins(
 }
 
 /** Una fila por GuestListEntry de las listas del evento. */
-export async function exportGuestlist(
+async function exportGuestlist(
   prisma: PrismaService,
   eventId: string | { in: string[] },
   labelByEvent?: Map<string, string>,

@@ -18,14 +18,14 @@ import { NotificationsService } from "../../notifications/domain/notifications.s
 import { PaymentSettlementService } from "../application/payment-settlement.service";
 import { decodeSeriesPassRef } from "../domain/order-ref";
 
-export const CLAIM_FOLDER = "claims";
+const CLAIM_FOLDER = "claims";
 export const CLAIM_MAX_BYTES = 5 * 1024 * 1024; // 5MB
 export const PRODUCER_METHOD_TYPES = [
   "TRANSFER",
   "PAYMENT_LINK",
   "CASH",
 ] as const;
-export type ProducerMethodType = (typeof PRODUCER_METHOD_TYPES)[number];
+type ProducerMethodType = (typeof PRODUCER_METHOD_TYPES)[number];
 
 /**
  * Métodos propios del productor + cola de comprobantes (spec

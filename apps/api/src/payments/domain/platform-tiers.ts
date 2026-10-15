@@ -59,7 +59,7 @@ export const CYCLE_MONTHS: Record<BillingCycle, number> = {
  * hay params por ciclo. Anual cobra 11 de 12 (un mes gratis); semestral
  * cobra 5.75 de 6 (medio mes gratis al año → ×11.5/año vs ×12 mensual).
  */
-export const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
+const CYCLE_BILLED_MONTHS: Record<BillingCycle, number> = {
   MONTHLY: 1,
   SEMIANNUAL: 5.75,
   ANNUAL: 11,

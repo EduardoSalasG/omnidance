@@ -42,7 +42,7 @@ import { SERVICE_FEE } from "@omnidance/shared";
  *   → el evento de liquidación se emite como RENEWAL_SETTLED en vez de
  *   SETTLED.
  */
-export interface SettleMeta {
+interface SettleMeta {
   actor: string;
   gatewayData?: unknown;
   kind?: "renewal";

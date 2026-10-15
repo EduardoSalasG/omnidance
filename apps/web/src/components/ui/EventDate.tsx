@@ -20,9 +20,9 @@ const timeFmt = new Intl.DateTimeFormat("es-CL", {
   hourCycle: "h23", // "22:00" - compacto para columnas de hora
 });
 
-export type EventDateVariant = "compact" | "full" | "time";
+type EventDateVariant = "compact" | "full" | "time";
 
-export type EventDateProps = {
+type EventDateProps = {
   start: string | Date;
   /** Si se entrega, muestra un rango "start – end" (end siempre en formato hora). */
   end?: string | Date;

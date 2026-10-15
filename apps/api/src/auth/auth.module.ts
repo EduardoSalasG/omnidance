@@ -9,8 +9,6 @@ import { MAILER, AUTH_REPO } from "./domain/ports";
 import type { AuthRepo } from "./domain/ports";
 import { secretOrDevFallback } from "../common/env";
 
-export { MAILER, AUTH_REPO };
-
 @Module({
   imports: [PrismaModule],
   controllers: [AuthController],

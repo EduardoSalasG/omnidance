@@ -21,7 +21,7 @@ function sortKeys(v: unknown): unknown {
   return v;
 }
 
-export function canonicalJson(v: unknown): string {
+function canonicalJson(v: unknown): string {
   // Round-trip a JSON puro ANTES de ordenar keys: convierte Date→ISO string,
   // Decimal→número y cualquier objeto con toJSON a su forma serializada -
   // exactamente lo que jsonb persiste. Sin esto, un Date tiene Object.entries

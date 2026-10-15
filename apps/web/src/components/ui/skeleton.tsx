@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl";
 // beacon): fetches rápidos pintan el contenido directo, sin flash.
 // motion-reduce apaga el pulse - los bloques quedan estáticos.
 
-export type SkeletonProps = {
+type SkeletonProps = {
   className?: string;
 };
 
@@ -24,7 +24,7 @@ export function Skeleton({ className = "" }: SkeletonProps) {
   );
 }
 
-export type SkeletonTextProps = {
+type SkeletonTextProps = {
   lines?: number;
   className?: string;
 };
@@ -47,7 +47,7 @@ export function SkeletonText({ lines = 2, className = "" }: SkeletonTextProps) {
   );
 }
 
-export type SkeletonCardProps = {
+type SkeletonCardProps = {
   /** Líneas de texto dentro de la card. */
   lines?: number;
   /** Barra alta tipo título sobre las líneas. */
@@ -69,7 +69,7 @@ export function SkeletonCard({ lines = 2, title = true }: SkeletonCardProps) {
   );
 }
 
-export type SkeletonListProps = {
+type SkeletonListProps = {
   items?: number;
   /** Líneas por card. */
   lines?: number;

@@ -14,7 +14,7 @@ export type AcademyCap =
 
 // GET /academies/:id/access - qué ve el viewer en la consola de esta
 // academia (spec academy-staff-roles). Owner/ADMIN reportan caps all-true.
-export type AcademyAccessInfo = {
+type AcademyAccessInfo = {
   isOwner: boolean;
   isAdmin: boolean;
   isInstructor: boolean;

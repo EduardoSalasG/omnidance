@@ -79,7 +79,7 @@ const RATING_DIMS = [
 ] as const;
 type RatingDim = (typeof RATING_DIMS)[number];
 
-export type PersonCtx = { id: string; roles: string[] };
+type PersonCtx = { id: string; roles: string[] };
 
 /** productor del evento o admin.access - permiso desde DB, nunca rol literal. */
 export async function assertProducerOrAdmin(

@@ -23,7 +23,7 @@ export type SavedQuery = {
   createdAt: string;
 };
 
-export type SavedQueriesProps = {
+type SavedQueriesProps = {
   role: QueryRole;
   /** Consultas propias del usuario en este lente. */
   saved: SavedQuery[];

@@ -16,4 +16,3 @@ import {
 })
 export class StorageModule {}
 
-export type { FileStorage };

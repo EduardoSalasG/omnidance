@@ -23,7 +23,7 @@ type BlockDraft = {
 
 type SeriesOption = { id: string; name: string };
 
-export type EventFormProps = {
+type EventFormProps = {
   venues: Venue[];
   styles: Style[];
   /** Series propias con id conocido; si está vacío el campo se oculta (v1). */

@@ -9,13 +9,13 @@ export const PRIME_THRESHOLD_PCT = 0.2;
 /** Aforo de referencia cuando el evento no declara capacity ni primeThreshold. */
 export const PRIME_DEFAULT_CAPACITY = 200;
 /** Top-N público del leaderboard (spec §6: mostrar top-20, no el ranking completo). */
-export const LEADERBOARD_TOP_N = 20;
+const LEADERBOARD_TOP_N = 20;
 /** Mínimo de muestra para exponer un count real (k-anonymity, spec §6). */
 export const PUBLIC_COUNT_MIN = 5;
 /** Ventana hacia atrás para reconstruir la racha semanal. */
-export const STREAK_LOOKBACK_WEEKS = 52;
+const STREAK_LOOKBACK_WEEKS = 52;
 /** Sesiones confirmadas para el badge `bailarin_constante`. */
-export const BAILARIN_CONSTANTE_SESSIONS = 10;
+const BAILARIN_CONSTANTE_SESSIONS = 10;
 /**
  * Check-in "temprano": antes del cutoff (minutos desde medianoche local,
  * param `early_checkin.cutoff_minutes`, default 23:00) y después del
@@ -38,11 +38,11 @@ export const CROWN_BADGE_KEY = "prime_time_crown";
 /** Duración de la corona tras otorgarse (spec §7: 1 semana). */
 export const CROWN_TTL_DAYS = 7;
 /** Mínimo de evaluaciones recibidas para ser candidato en el reveal. */
-export const REVEAL_MIN_EVALUATIONS = 3;
+const REVEAL_MIN_EVALUATIONS = 3;
 /** Prior bayesiano: pseudo-evaluaciones con la media del evento (spec §6). */
 export const REVEAL_BAYES_C = 10;
 /** Ambos lados de la pareja deben puntuarse al menos esto (spec §6). */
-export const COUPLE_MIN_MUTUAL_SCORE = 4;
+const COUPLE_MIN_MUTUAL_SCORE = 4;
 
 // ─── Streaks ─────────────────────────────────────────────
 
@@ -115,7 +115,7 @@ export function primeWindow(startsAt: Date, windowMinutes: number): TimeWindow {
   return { start: new Date(end.getTime() - windowMinutes * 60 * 1000), end };
 }
 
-export interface PrimeTimeInput {
+interface PrimeTimeInput {
   /** Timestamp que cuenta por sesión CONFIRMED (confirmedAt ?? scannedAt). */
   sessions: { at: Date }[];
   window: TimeWindow;
@@ -149,12 +149,12 @@ export function computePrimeTime(input: PrimeTimeInput): {
 
 // ─── Leaderboard (Prime Time) ────────────────────────────
 
-export interface LeaderboardSession {
+interface LeaderboardSession {
   inviterId: string;
   inviteeId: string;
 }
 
-export interface LeaderboardEntry {
+interface LeaderboardEntry {
   personId: string;
   count: number;
 }
@@ -201,7 +201,7 @@ export interface MissionActivity {
   checkins: { inAt: Date }[];
 }
 
-export interface MissionEval {
+interface MissionEval {
   progress: number;
   target: number;
   completed: boolean;
@@ -278,7 +278,7 @@ export function evaluateMission(
 
 // ─── Badges ──────────────────────────────────────────────
 
-export interface BadgeStats {
+interface BadgeStats {
   /** Sesiones CONFIRMED históricas de la persona (cualquier rol). */
   confirmedSessions: number;
   /** Check-ins dentro de la ventana "temprana" [mediodía, cutoff). */
@@ -433,7 +433,7 @@ export function summarizePoints(
 // ─── Prime Time reveal ───────────────────────────────────
 
 /** Sesión elegible para el reveal (CONFIRMED/RATED, retroDeclared:false). */
-export interface RevealSession {
+interface RevealSession {
   inviterId: string;
   inviteeId: string;
   styleId: string | null;
@@ -441,7 +441,7 @@ export interface RevealSession {
 }
 
 /** Fila de PersonStyleRole (rol autodeclarado por estilo). */
-export interface StyleRoleRow {
+interface StyleRoleRow {
   personId: string;
   styleId: string;
   role: string; // "LEADER" | "FOLLOWER" | "SWITCH"
@@ -453,7 +453,7 @@ export interface RevealCandidate {
   evaluations: number;
 }
 
-export interface RevealResult {
+interface RevealResult {
   /** Media global del evento (prior m del score bayesiano). */
   eventMean: number;
   bestLeader: RevealCandidate | null;
@@ -631,7 +631,7 @@ export function computeReveal(input: {
 
 // ─── Badge destacado en QR ───────────────────────────────
 
-export interface BadgeInstance {
+interface BadgeInstance {
   key: string;
   name: string;
   featured: boolean;

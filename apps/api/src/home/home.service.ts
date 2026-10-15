@@ -30,7 +30,7 @@ type NextItem = {
 
 // Evento de "esta noche" enriquecido para el home del bailarín:
 // lo que decide si sale - género, precio, amigos, escasez de preventa.
-export type TonightEvent = {
+type TonightEvent = {
   id: string;
   name: string;
   startsAt: string;
@@ -73,7 +73,7 @@ type ClassCardStats = {
   };
 };
 
-export type HomeStats = {
+type HomeStats = {
   kpis: Kpi[];
   tonight?: Tonight | null;
   scene?: {
@@ -90,7 +90,6 @@ export type HomeStats = {
   myClasses?: ClassCardStats[];
   needsAcademy?: boolean;
 };
-
 
 const DAY = 86_400_000;
 const inDays = (n: number) => new Date(Date.now() + n * DAY);

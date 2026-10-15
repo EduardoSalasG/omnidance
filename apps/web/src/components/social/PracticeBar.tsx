@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { Button, CheckIcon, Spinner } from "@/components/ui";
 
-export type PracticeBarProps = {
+type PracticeBarProps = {
   eventId: string;
   /** rsvpCount del detalle público - visible antes de resolver la sesión. */
   initialCount: number;

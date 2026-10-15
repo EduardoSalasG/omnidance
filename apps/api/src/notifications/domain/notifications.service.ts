@@ -11,21 +11,21 @@ import {
 
 // Centro de notificaciones (omni-dance.md - sistema) - servicio de dominio puro.
 
-export const NOTIFICATION_CATEGORIES = [
+const NOTIFICATION_CATEGORIES = [
   "SOCIAL",
   "TRANSACTIONAL",
   "MARKETING",
   "OPERATIONAL",
 ] as const;
-export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
+type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 export const PUSH_PLATFORMS = ["WEB", "IOS", "ANDROID"] as const;
 export type PushPlatform = (typeof PUSH_PLATFORMS)[number];
 
-export const DEFAULT_LIST_LIMIT = 50;
-export const MAX_LIST_LIMIT = 200;
+const DEFAULT_LIST_LIMIT = 50;
+const MAX_LIST_LIMIT = 200;
 
-export type NotificationErrorCode =
+type NotificationErrorCode =
   | "INVALID_CATEGORY"
   | "INVALID_PLATFORM"
   | "NOT_FOUND"
@@ -41,7 +41,7 @@ export class NotificationDomainError extends Error {
   }
 }
 
-export interface NotifyInput {
+interface NotifyInput {
   category: NotificationCategory;
   type: string;
   title: string;

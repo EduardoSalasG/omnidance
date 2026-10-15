@@ -6,14 +6,6 @@ export type Param = {
   updatedAt: string;
 };
 
-export type UserRow = {
-  id: string;
-  name: string;
-  email: string | null;
-  createdAt: string;
-  roles: { id: string; role: string; status: string; createdAt: string }[];
-};
-
 export type AuditRow = {
   id: string;
   actorId: string | null;

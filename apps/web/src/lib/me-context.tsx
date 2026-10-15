@@ -54,7 +54,7 @@ export type MeContextData = {
   onboarding?: Record<string, string>;
 };
 
-export type MeContextValue = {
+type MeContextValue = {
   /** null tras resolver = sin sesión (401) - no confundir con loading. */
   me: MeContextData | null;
   /** true solo durante el primer fetch (o un refresh sin me previo). */

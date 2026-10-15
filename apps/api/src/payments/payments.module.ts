@@ -176,7 +176,7 @@ export function resolveGateway(
  * convive con Flow: cada orden persiste Payment.gateway y el webhook
  * :provider la confirma con su adaptador.
  */
-export function resolveGateways(
+function resolveGateways(
   env: NodeJS.ProcessEnv,
   onTx?: (e: GatewayTxEntry) => Promise<void>,
 ): GatewayRegistry {

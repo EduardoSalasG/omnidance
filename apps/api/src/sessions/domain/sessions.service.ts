@@ -7,7 +7,7 @@ export const PAIR_COOLDOWN_MS =
 export const INVITE_GRACE_MS =
   SESSION_RULES.CONFIRM_GRACE_HOURS * 60 * 60 * 1000; // cierre +24h
 
-export type SessionErrorCode =
+type SessionErrorCode =
   | "SELF_INVITE"
   | "PAIR_COOLDOWN"
   | "FORBIDDEN"
@@ -33,7 +33,7 @@ export interface SessionLike {
 
 export type SessionAction = "confirm" | "decline" | "discard";
 
-export interface TransitionResult {
+interface TransitionResult {
   status: SessionStatus;
   confirmedAt?: Date;
 }

@@ -20,7 +20,7 @@ export type SubscriptionInfo = {
   canceledAt: string | null;
 };
 
-export type SubscriptionManageProps = {
+type SubscriptionManageProps = {
   subscription: SubscriptionInfo;
   /** "Vigente hasta": enrollment.endsAt del viewer - en CANCEL_PENDING
       es la fecha real de fin del acceso; si no hay, se usa nextInvoiceAt. */

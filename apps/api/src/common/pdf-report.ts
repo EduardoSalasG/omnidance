@@ -11,7 +11,7 @@ import PDFDocument from "pdfkit";
  * por defecto salvo con `lineBreak:false`, y cualquier texto bajo maxY
  * dispara un salto). El salto de página lo controla solo el loop de filas.
  */
-export interface TableReport {
+interface TableReport {
   title: string;
   /** Línea secundaria bajo el título (fecha del evento, scope, generación). */
   subtitle?: string;

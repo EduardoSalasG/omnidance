@@ -44,9 +44,9 @@ import { PushOptIn } from "./PushOptIn";
  * `unreadDelta` cuenta solo las llegadas por socket desde el mount - la
  * página /notificaciones calcula su propio baseline con GET /notifications.
  */
-export const NOTIFICATION_EVENT = "omnidance:notification";
+const NOTIFICATION_EVENT = "omnidance:notification";
 
-export type RealtimeContextValue = {
+type RealtimeContextValue = {
   /** true mientras el socket está conectado y autenticado. */
   connected: boolean;
   /** Última notificación recibida por el socket (null hasta la primera). */

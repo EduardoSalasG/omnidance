@@ -54,7 +54,7 @@ export const CLASS_CARD_SELECT = {
 // Instante UTC en que termina la clase: Class.date es medianoche UTC
 // del día calendario local y slot.endTime es "HH:MM" en hora de Chile.
 // El offset Santiago↔UTC (-3/-4 DST) se deriva con Intl - sin librería.
-export function classEndInstant(date: Date, endTime: string): Date {
+function classEndInstant(date: Date, endTime: string): Date {
   const ymd = date.toISOString().slice(0, 10);
   const probe = new Date(`${ymd}T12:00:00Z`); // mediodía: lejos de bordes DST
   const parts = new Intl.DateTimeFormat("en-CA", {

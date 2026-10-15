@@ -23,7 +23,7 @@ const STATUS_META: Record<
   DISCARDED: { key: "discard", variant: "muted" },
 };
 
-export type SessionCardProps = {
+type SessionCardProps = {
   session: DanceSession;
   busy?: boolean;
   onAct?: (action: SessionAction) => void;

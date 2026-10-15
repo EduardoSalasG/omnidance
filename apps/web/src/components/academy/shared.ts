@@ -333,7 +333,7 @@ export type AcademyInstructor = { personId: string; name: string | null };
 
 // GET /academies/:id/slots - todo slot pertenece a una serie (invariante
 // de schema); capacity null = hereda el quórum de la serie/academia.
-export type ClassSlot = {
+type ClassSlot = {
   id: string;
   weekday: number; // 0-6, domingo = 0
   startTime: string; // "19:00"
@@ -341,16 +341,6 @@ export type ClassSlot = {
   capacity: number | null;
   series: { id: string; name: string };
   types: { type: { id: string; name: string } }[];
-};
-
-// GET /academies/:id/attendance - person viene del join manual del controller
-// (Attendance.personId es FK plana en schema); personId se mantiene por compat.
-export type AttendanceItem = {
-  id: string;
-  personId: string;
-  person: { id: string; name: string | null; email: string | null };
-  checkedAt: string;
-  class: { id: string; date: string; classSlotId: string };
 };
 
 // ─── consola de instructor + quórum (contratos nuevos) ───

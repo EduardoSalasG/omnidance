@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from "react";
 
-export type SegmentedItem = {
+type SegmentedItem = {
   key: string;
   /** Estado en URL - el control navega, no muta estado local. */
   href: string;
@@ -22,7 +22,7 @@ export type SegmentedItem = {
   tour?: string;
 };
 
-export type SegmentedProps = {
+type SegmentedProps = {
   items: SegmentedItem[];
   /** Key del item activo (controlled por la URL). */
   active: string;
@@ -166,7 +166,7 @@ export function Segmented({
   );
 }
 
-export type SegmentedMultiItem = SegmentedItem & {
+type SegmentedMultiItem = SegmentedItem & {
   /** El ítem pertenece a la selección - lleva su propio pill neon. */
   active: boolean;
 };

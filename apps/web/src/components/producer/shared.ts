@@ -24,16 +24,16 @@ export const EVENT_TYPES = [
   "CONGRESS",
   "COMPETITION",
 ] as const;
-export type EventType = (typeof EVENT_TYPES)[number];
+type EventType = (typeof EVENT_TYPES)[number];
 
-export const EVENT_STATUSES = [
+const EVENT_STATUSES = [
   "DRAFT",
   "PUBLISHED",
   "LIVE",
   "CLOSED",
   "CANCELLED",
 ] as const;
-export type EventStatus = (typeof EVENT_STATUSES)[number];
+type EventStatus = (typeof EVENT_STATUSES)[number];
 
 // Espejo de EDITABLE/CANCELLABLE del controller.
 export const EDITABLE_STATUSES: readonly string[] = ["DRAFT", "PUBLISHED"];
@@ -64,7 +64,7 @@ export type EventOption = {
   series: { name: string } | null;
 };
 
-export const PASS_TYPES = [
+const PASS_TYPES = [
   "PAID",
   "ARTIST",
   "STAFF",
@@ -74,7 +74,7 @@ export const PASS_TYPES = [
 ] as const;
 
 export const PAYOUT_STATUSES = ["PENDING", "APPROVED", "PAID"] as const;
-export type PayoutStatus = (typeof PAYOUT_STATUSES)[number];
+type PayoutStatus = (typeof PAYOUT_STATUSES)[number];
 
 // Vocabularios del catálogo de consultas (packages/shared query-catalog.ts:
 // ORDER_TYPES / CHANNELS) - las barras de filtros de la consola las usan

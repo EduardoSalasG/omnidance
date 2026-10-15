@@ -20,7 +20,7 @@ const primaryCtaClass =
 const secondaryCtaClass =
   "inline-flex min-h-12 w-full max-w-xs items-center justify-center rounded-full border border-ink/15 px-8 text-base font-medium text-ink/80 transition-colors hover:border-ink/30 hover:text-ink sm:w-auto";
 
-export type LandingVariant = "dancer" | "academy" | "producer";
+type LandingVariant = "dancer" | "academy" | "producer";
 
 // Copy por audiencia: `landing` es la base, `landingPro` aporta los
 // defaults pro (CTAs, strip semanal, form) y la variante sobrescribe.

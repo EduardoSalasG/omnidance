@@ -62,7 +62,7 @@ export const monthStart = (d: Date) =>
   new Date(d.getFullYear(), d.getMonth(), 1);
 
 /** Lunes de la semana que contiene `d` (semana parte lunes, es-CL). */
-export function weekStart(d: Date): Date {
+function weekStart(d: Date): Date {
   const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
   return monday;

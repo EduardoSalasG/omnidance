@@ -1,7 +1,7 @@
 import { useTranslations } from "next-intl";
 import { PageLoadingBeacon } from "./loading-beacon";
 
-export type SpinnerSize = "sm" | "md" | "lg";
+type SpinnerSize = "sm" | "md" | "lg";
 
 const sizes: Record<SpinnerSize, string> = {
   sm: "h-4 w-4",
@@ -9,7 +9,7 @@ const sizes: Record<SpinnerSize, string> = {
   lg: "h-10 w-10",
 };
 
-export type SpinnerProps = {
+type SpinnerProps = {
   size?: SpinnerSize;
   /** Texto sr-only para lectores de pantalla. Default: common.loading. */
   label?: string;
@@ -55,7 +55,7 @@ export function Spinner({ size = "md", label, className = "" }: SpinnerProps) {
   );
 }
 
-export type PageLoadingProps = {
+type PageLoadingProps = {
   label?: string;
 };
 

@@ -16,7 +16,7 @@ const POLL_MAX_ATTEMPTS = 15; // ~30s - mismo criterio que checkout-client
 
 /** Créditos del plan vigente sobre esta clase (myCredits del API):
     WEEKLY = cuota de la semana ISO; PACK = saldo del pack. */
-export type ClassCredits = {
+type ClassCredits = {
   kind: "WEEKLY" | "PACK";
   used: number | null;
   limit: number | null;

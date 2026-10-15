@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-export interface LogContext {
+interface LogContext {
   requestId?: string;
 }
 

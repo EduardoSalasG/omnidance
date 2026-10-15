@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 
-export type CardProps = HTMLAttributes<HTMLDivElement> & {
+type CardProps = HTMLAttributes<HTMLDivElement> & {
   /** Padding interno por defecto (p-5); desactivar para layouts custom. */
   padded?: boolean;
 };

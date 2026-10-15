@@ -19,7 +19,7 @@ import {
 import type { BadgeVariant } from "@/components/ui";
 import { sortWalletTickets } from "./wallet-sort";
 
-export type WalletTicket = {
+type WalletTicket = {
   id: string;
   status: string;
   listPrice: number;

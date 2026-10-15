@@ -30,7 +30,7 @@ export type AudienceSpec =
  * audiencias de ciclo de vida la traen; sin dedupKey no hay dedup
  * entre corridas (semántica newsletter).
  */
-export interface ResolvedEntry {
+interface ResolvedEntry {
   personId: string;
   ctx: Record<string, string>;
   dedupKey?: string;
@@ -39,7 +39,7 @@ export interface ResolvedEntry {
 const BASE_VARS = ["name", "email"];
 
 /** Variables de plantilla que una audiencia aporta por destinatario. */
-export function varsForAudience(spec: AudienceSpec): string[] {
+function varsForAudience(spec: AudienceSpec): string[] {
   if (
     spec.kind === "ENROLLMENTS_EXPIRING" ||
     spec.kind === "ENROLLMENTS_EXPIRED"
@@ -147,7 +147,7 @@ function validateTemplate(
   }
 }
 
-export interface CampaignInput {
+interface CampaignInput {
   name: string;
   subject: string;
   htmlBody: string;
