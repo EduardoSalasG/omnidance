@@ -10,6 +10,11 @@ import { ENROLLMENT_STATUSES } from "@omnidance/shared";
 import { PrismaService } from "../../prisma.service";
 import { NotificationsService } from "../../notifications/domain/notifications.service";
 import { ParamsService } from "../../params/params.service";
+import {
+  decodeClassRef,
+  decodeMembershipRef,
+  decodePrivateRef,
+} from "../../payments/domain/order-ref";
 
 // CRM transversal (omni-dance.md - CRM por actor): scores de relación,
 // tags, campañas y triggers automáticos para PRODUCER / ACADEMY.
@@ -88,13 +93,66 @@ interface PersonActivity {
   referrals: number; // Referral{referrerId: personId}
   firstAt: Date | null;
   lastAt: Date | null;
+  // Señales ACADEMY (spec academy-score-refine) - 0 para otros actores.
+  attendanceRecent: number; // asistencias últimas attendance_weeks semanas
+  attendanceRecent4w: number; // asistencias últimas 4 semanas
+  attendancePrev4w: number; // asistencias 4-8 semanas atrás
+  weeklyStreak: number; // semanas consecutivas con ≥1 asistencia
+  monthsContinuous: number; // meses calendario seguidos con actividad/membresía
+  purchases: number; // compras PAID/claims APPROVED últimos purchase_months
+  tenureMonths: number; // meses desde la primera inscripción
 }
 
 const DAY_MS = 86_400_000;
-const NEW_DAYS = 30;
-const CORE_ATTENDANCES = 3;
-const BRINGS_PEOPLE_REFERRALS = 2;
+const WEEK_MS = 7 * DAY_MS;
+const CORE_ATTENDANCES = 3; // "regular" del trigger REGULAR_NO_PRESALE
 const DEFAULT_NOTIFY_COOLDOWN_DAYS = 7;
+
+/** Pesos/umbrales del score ACADEMY - leídos de PlatformParam por recompute. */
+interface ScoreParams {
+  attendanceWeeks: number;
+  attendancePts: number;
+  streakCap: number;
+  streakPts: number;
+  monthsCap: number;
+  monthsPts: number;
+  purchaseMonths: number;
+  purchaseCap: number;
+  purchasePts: number;
+  tenureCap: number;
+  tenurePts: number;
+  referralPts: number;
+  coreMin: number;
+  newDays: number;
+  bringsReferrals: number;
+  winbackDays: number;
+}
+
+/** "YYYY-MM-DD" del instante en America/Santiago (calendario civil local). */
+const dtfSantiago = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Santiago",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Medianoche del día civil local expresada como UTC (índice de día). */
+function localDayUtc(d: Date): number {
+  const [y, m, dd] = dtfSantiago.format(d).split("-").map(Number);
+  return Date.UTC(y, m - 1, dd);
+}
+
+/** Índice de semana civil (lunes-inicio) en Santiago. 1970-01-01 fue
+ *  jueves: el shift +3d hace que la semana indexada empiece en lunes. */
+function weekIndex(d: Date): number {
+  return Math.floor((localDayUtc(d) + 3 * DAY_MS) / WEEK_MS);
+}
+
+/** Índice de mes civil absoluto (año*12 + mes) en Santiago. */
+function monthIndex(d: Date): number {
+  const [y, m] = dtfSantiago.format(d).split("-").map(Number);
+  return y * 12 + (m - 1);
+}
 
 @Injectable()
 export class CrmService {
@@ -286,6 +344,7 @@ export class CrmService {
       personId,
       score: score?.score ?? null,
       segment: score?.segment ?? null,
+      breakdown: score?.breakdown ?? null,
       computedAt: score?.computedAt ?? null,
       tags,
       activity: activity
@@ -443,73 +502,223 @@ export class CrmService {
    *
    * Universo:
    * - PRODUCER → checkins no anulados + pagos PAID en eventos del productor.
-   * - ACADEMY  → enrollments de la academia (asistencia vía Attendance en
-   *   clases de sus slots; sin vínculo Payment↔academy en schema v1 → spend=0).
+   * - ACADEMY  → enrollments de la academia + attendances en clases de sus
+   *   slots + compras resueltas por refId (mem_/wks_/pvt_) y claims
+   *   APPROVED + membresías vigentes.
    *
-   * score = min(100, attendance*10 + spend/1000 + referrals*15)
+   * Fórmula ACADEMY (spec academy-score-refine, pesos en crm.score.*):
+   * score = min(100, attendanceRecent×attPts + min(streak,cap)×streakPts
+   *   + min(months,cap)×monthsPts + min(purchases,cap)×purchasePts
+   *   + min(tenure,cap)×tenurePts + referrals×refPts)
+   *
+   * PRODUCER conserva: score = min(100, attendance*10 + spend/1000 +
+   * referrals*15).
    *
    * segment (primer match):
-   * - NEW           primera actividad < 30d
-   * - AT_RISK       última actividad > crm.winback_days (fallback 21)
-   * - BRINGS_PEOPLE ≥ 2 referrals
-   * - CORE          ≥ 3 asistencias
+   * - NEW           primera actividad < crm.new_days (default 30)
+   * - AT_RISK       última actividad > crm.winback_days (default 21) o
+   *                 asistencia 4w reciente < 50% de las 4w anteriores
+   *                 (mínimo 2 previas)
+   * - BRINGS_PEOPLE ≥ crm.brings_people_referrals (default 2)
+   * - CORE          score ≥ crm.score.core_min (default 60)
    * - null          resto
    */
   async recomputeScores(
     actorType: string,
     actorId: string,
   ): Promise<{ updated: number }> {
-    const winbackDays = await this.params.getNumber("crm.winback_days", 21);
-    const activity = await this.computeActivity(actorType, actorId);
+    const p = await this.scoreParams();
+    const activity = await this.computeActivity(actorType, actorId, p);
     const now = new Date();
 
     let updated = 0;
     for (const [personId, a] of activity) {
-      const score = Math.min(
-        100,
-        a.attendance * 10 + a.spend / 1000 + a.referrals * 15,
-      );
-      const segment = this.computeSegment(a, winbackDays, now);
+      const { score, breakdown } = this.computeScore(actorType, a, p);
+      const segment = this.computeSegment(actorType, a, score, p, now);
       await this.prisma.relationshipScore.upsert({
         where: {
           actorType_actorId_personId: { actorType, actorId, personId },
         },
-        update: { score, segment, computedAt: now },
-        create: { actorType, actorId, personId, score, segment },
+        update: {
+          score,
+          segment,
+          breakdown: breakdown as Prisma.InputJsonValue,
+          computedAt: now,
+        },
+        create: {
+          actorType,
+          actorId,
+          personId,
+          score,
+          segment,
+          breakdown: breakdown as Prisma.InputJsonValue,
+        },
       });
       updated++;
     }
     return { updated };
   }
 
-  private computeSegment(
+  /**
+   * Recompute de todos los actores con universo propio - handler del job
+   * diario `crm.scores`. Devuelve conteos por actorType para JobRun.meta.
+   */
+  async recomputeAllScores(): Promise<Record<string, number>> {
+    const [academies, producerIds] = await Promise.all([
+      this.prisma.academy.findMany({
+        where: { active: true },
+        select: { id: true },
+      }),
+      this.prisma.event.findMany({
+        where: { producerId: { not: null } },
+        select: { producerId: true },
+        distinct: ["producerId"],
+      }),
+    ]);
+    const meta: Record<string, number> = {};
+    for (const a of academies) {
+      try {
+        const r = await this.recomputeScores("ACADEMY", a.id);
+        meta.ACADEMY = (meta.ACADEMY ?? 0) + r.updated;
+      } catch (e) {
+        this.logger.warn(`crm.scores academy ${a.id}: ${e}`);
+      }
+    }
+    for (const e of producerIds) {
+      try {
+        const r = await this.recomputeScores("PRODUCER", e.producerId!);
+        meta.PRODUCER = (meta.PRODUCER ?? 0) + r.updated;
+      } catch (err) {
+        this.logger.warn(`crm.scores producer ${e.producerId}: ${err}`);
+      }
+    }
+    return meta;
+  }
+
+  private async scoreParams(): Promise<ScoreParams> {
+    const g = (k: string, d: number) => this.params.getNumber(k, d);
+    return {
+      attendanceWeeks: await g("crm.score.attendance_weeks", 8),
+      attendancePts: await g("crm.score.attendance_pts", 4),
+      streakCap: await g("crm.score.streak_cap", 8),
+      streakPts: await g("crm.score.streak_pts", 3),
+      monthsCap: await g("crm.score.months_cap", 6),
+      monthsPts: await g("crm.score.months_pts", 4),
+      purchaseMonths: await g("crm.score.purchase_months", 6),
+      purchaseCap: await g("crm.score.purchase_cap", 6),
+      purchasePts: await g("crm.score.purchase_pts", 3),
+      tenureCap: await g("crm.score.tenure_cap", 12),
+      tenurePts: await g("crm.score.tenure_pts", 1),
+      referralPts: await g("crm.score.referral_pts", 5),
+      coreMin: await g("crm.score.core_min", 60),
+      newDays: await g("crm.new_days", 30),
+      bringsReferrals: await g("crm.brings_people_referrals", 2),
+      winbackDays: await g("crm.winback_days", 21),
+    };
+  }
+
+  /** Puntaje + breakdown persistible (spec academy-score-refine). */
+  private computeScore(
+    actorType: string,
     a: PersonActivity,
-    winbackDays: number,
+    p: ScoreParams,
+  ): { score: number; breakdown: Record<string, unknown> } {
+    if (actorType === "ACADEMY") {
+      const points = {
+        attendanceRecent: a.attendanceRecent * p.attendancePts,
+        weeklyStreak: Math.min(a.weeklyStreak, p.streakCap) * p.streakPts,
+        monthsContinuous:
+          Math.min(a.monthsContinuous, p.monthsCap) * p.monthsPts,
+        purchases: Math.min(a.purchases, p.purchaseCap) * p.purchasePts,
+        tenure: Math.min(a.tenureMonths, p.tenureCap) * p.tenurePts,
+        referrals: a.referrals * p.referralPts,
+      };
+      const score = Math.min(
+        100,
+        points.attendanceRecent +
+          points.weeklyStreak +
+          points.monthsContinuous +
+          points.purchases +
+          points.tenure +
+          points.referrals,
+      );
+      return {
+        score,
+        breakdown: {
+          attendanceRecent: a.attendanceRecent,
+          weeklyStreak: a.weeklyStreak,
+          monthsContinuous: a.monthsContinuous,
+          purchases: a.purchases,
+          tenure: a.tenureMonths,
+          referrals: a.referrals,
+          attendanceRecent4w: a.attendanceRecent4w,
+          attendancePrev4w: a.attendancePrev4w,
+          spend: a.spend,
+          points,
+        },
+      };
+    }
+    const points = {
+      attendance: a.attendance * 10,
+      spend: a.spend / 1000,
+      referrals: a.referrals * 15,
+    };
+    const score = Math.min(100, Object.values(points).reduce((s, v) => s + v, 0));
+    return {
+      score,
+      breakdown: {
+        attendance: a.attendance,
+        spend: a.spend,
+        referrals: a.referrals,
+        points,
+      },
+    };
+  }
+
+  private computeSegment(
+    actorType: string,
+    a: PersonActivity,
+    score: number,
+    p: ScoreParams,
     now: Date,
   ): string | null {
-    if (a.firstAt && now.getTime() - a.firstAt.getTime() < NEW_DAYS * DAY_MS) {
+    if (a.firstAt && now.getTime() - a.firstAt.getTime() < p.newDays * DAY_MS) {
       return "NEW";
     }
-    if (
-      a.lastAt &&
-      now.getTime() - a.lastAt.getTime() > winbackDays * DAY_MS
-    ) {
+    const inactive =
+      a.lastAt && now.getTime() - a.lastAt.getTime() > p.winbackDays * DAY_MS;
+    // "Cayendo" (solo ACADEMY): la ventana reciente perdió ≥50% vs la
+    // anterior (mínimo 2 asistencias previas para no marcar caída sobre
+    // base ~0).
+    const dropping =
+      actorType === "ACADEMY" &&
+      a.attendancePrev4w >= 2 &&
+      a.attendanceRecent4w < a.attendancePrev4w / 2;
+    if (inactive || dropping) {
       return "AT_RISK";
     }
-    if (a.referrals >= BRINGS_PEOPLE_REFERRALS) return "BRINGS_PEOPLE";
-    if (a.attendance >= CORE_ATTENDANCES) return "CORE";
+    if (a.referrals >= p.bringsReferrals) return "BRINGS_PEOPLE";
+    // CORE: ACADEMY por score (fórmula por componentes); PRODUCER conserva
+    // el umbral legado de asistencias (su fórmula no cambia).
+    if (actorType === "ACADEMY") {
+      if (score >= p.coreMin) return "CORE";
+    } else if (a.attendance >= CORE_ATTENDANCES) return "CORE";
     return null;
   }
 
   /**
    * Actividad por persona dentro del universo del actor.
    * PRODUCER: checkins (voidedAt=null) + payments PAID en sus eventos.
-   * ACADEMY: enrollments + attendances en clases de sus ClassSlot.
+   * ACADEMY: enrollments + attendances en clases de sus ClassSlot +
+   * compras PAID resueltas por refId (mem_/wks_/pvt_/claim-) +
+   * PaymentClaim APPROVED + membresías vigentes.
    */
   private async computeActivity(
     actorType: string,
     actorId: string,
+    p?: ScoreParams,
   ): Promise<Map<string, PersonActivity>> {
+    p ??= await this.scoreParams();
     const activity = new Map<string, PersonActivity>();
     const touch = (personId: string, at: Date | null) => {
       const a: PersonActivity = activity.get(personId) ?? {
@@ -518,6 +727,13 @@ export class CrmService {
         referrals: 0,
         firstAt: null,
         lastAt: null,
+        attendanceRecent: 0,
+        attendanceRecent4w: 0,
+        attendancePrev4w: 0,
+        weeklyStreak: 0,
+        monthsContinuous: 0,
+        purchases: 0,
+        tenureMonths: 0,
       };
       if (at) {
         if (!a.firstAt || at < a.firstAt) a.firstAt = at;
@@ -550,31 +766,12 @@ export class CrmService {
         const a = touch(c.personId, c.inAt);
         a.attendance++;
       }
-      for (const p of payments) {
-        const a = touch(p.personId, p.createdAt);
-        a.spend += p.amount;
+      for (const pmt of payments) {
+        const a = touch(pmt.personId, pmt.createdAt);
+        a.spend += pmt.amount;
       }
     } else if (actorType === "ACADEMY") {
-      const enrollments = await this.prisma.enrollment.findMany({
-        where: { academyId: actorId },
-        select: { personId: true, startedAt: true, createdAt: true },
-      });
-      const personIds = [...new Set(enrollments.map((e) => e.personId))];
-      const attendances = personIds.length
-        ? await this.prisma.attendance.findMany({
-            where: {
-              personId: { in: personIds },
-              class: { slot: { academyId: actorId } },
-            },
-            select: { personId: true, checkedAt: true },
-          })
-        : [];
-
-      for (const e of enrollments) touch(e.personId, e.startedAt ?? e.createdAt);
-      for (const at of attendances) {
-        const a = touch(at.personId, at.checkedAt);
-        a.attendance++;
-      }
+      await this.computeAcademyActivity(actorId, p, activity, touch);
     } else {
       // Actor types futuros (VENUE/DJ/INSTRUCTOR): sin universo definido aún.
       return activity;
@@ -589,6 +786,242 @@ export class CrmService {
       for (const r of referrals) activity.get(r.referrerId)!.referrals++;
     }
     return activity;
+  }
+
+  /**
+   * Universo ACADEMY: enrollments + attendances en clases de sus slots +
+   * compras (Payment PAID por refId mem_/wks_/pvt_/claim- + PaymentClaim
+   * APPROVED) + membresías vigentes para meses continuos.
+   */
+  private async computeAcademyActivity(
+    actorId: string,
+    p: ScoreParams,
+    activity: Map<string, PersonActivity>,
+    touch: (personId: string, at: Date | null) => PersonActivity,
+  ): Promise<void> {
+    const now = new Date();
+    // Ventana de asistencias: la más larga de las ventanas que alimenta
+    // el score (semanas de recencia, meses continuos +1 de margen).
+    const attendanceSince = new Date(
+      now.getTime() - Math.max(p.attendanceWeeks * 7, (p.monthsCap + 1) * 31) *
+        DAY_MS,
+    );
+    const purchaseSince = new Date(
+      now.getTime() - p.purchaseMonths * 31 * DAY_MS,
+    );
+
+    const enrollments = await this.prisma.enrollment.findMany({
+      where: { academyId: actorId },
+      select: {
+        personId: true,
+        startedAt: true,
+        endsAt: true,
+        pausedAt: true,
+        createdAt: true,
+      },
+    });
+    const personIds = [...new Set(enrollments.map((e) => e.personId))];
+    if (!personIds.length) return;
+
+    const [attTotal, attWindow, memberships, payments, claims] =
+      await Promise.all([
+        // Totales históricos (count + último) - alimentan attendance y lastAt.
+        this.prisma.attendance.groupBy({
+          by: ["personId"],
+          where: {
+            personId: { in: personIds },
+            class: { slot: { academyId: actorId } },
+          },
+          _count: { _all: true },
+          _min: { checkedAt: true },
+          _max: { checkedAt: true },
+        }),
+        // checkedAt en ventana → señales de recencia/racha/meses.
+        this.prisma.attendance.findMany({
+          where: {
+            personId: { in: personIds },
+            checkedAt: { gte: attendanceSince },
+            class: { slot: { academyId: actorId } },
+          },
+          select: { personId: true, checkedAt: true },
+        }),
+        // Membresías para "mes continuo": ACTIVE/CANCEL_PENDING cubren
+        // [createdAt, canceledAt ?? now] (sin histórico - aproximación
+        // por ventana, mismo criterio que activeStudentsMonthPrev).
+        this.prisma.membershipSubscription.findMany({
+          where: {
+            academyId: actorId,
+            personId: { in: personIds },
+            status: { in: ["ACTIVE", "CANCEL_PENDING"] },
+          },
+          select: { personId: true, createdAt: true, canceledAt: true },
+        }),
+        // Compras por pasarela/manual atribuibles por refId.
+        this.prisma.payment.findMany({
+          where: {
+            personId: { in: personIds },
+            status: "PAID",
+            orderType: { in: ["MEMBERSHIP", "WORKSHOP", "PRIVATE"] },
+          },
+          select: {
+            personId: true,
+            amount: true,
+            createdAt: true,
+            orderType: true,
+            refId: true,
+          },
+        }),
+        // Claims manuales aprobados (orden MANUAL - el claim es el hecho).
+        this.prisma.paymentClaim.findMany({
+          where: { academyId: actorId, status: "APPROVED" },
+          select: { personId: true, amount: true, reviewedAt: true },
+        }),
+      ]);
+
+    for (const e of enrollments) {
+      touch(e.personId, e.startedAt ?? e.createdAt);
+      const a = activity.get(e.personId)!;
+      const start = e.startedAt ?? e.createdAt;
+      a.tenureMonths = Math.max(
+        a.tenureMonths,
+        monthIndex(now) - monthIndex(start) + 1,
+      );
+    }
+    for (const t of attTotal) {
+      const a = touch(t.personId, t._max.checkedAt);
+      a.attendance = t._count._all;
+      if (t._min.checkedAt) touch(t.personId, t._min.checkedAt);
+    }
+
+    // ── Señales por ventana de asistencia ──
+    const recentSince = now.getTime() - p.attendanceWeeks * 7 * DAY_MS;
+    const prev4Start = now.getTime() - 8 * 7 * DAY_MS;
+    const recent4Start = now.getTime() - 4 * 7 * DAY_MS;
+    const weeks = new Map<string, Set<number>>();
+    const monthsAttended = new Map<string, Set<number>>();
+    for (const at of attWindow) {
+      const a = touch(at.personId, at.checkedAt);
+      const ms = at.checkedAt.getTime();
+      if (ms >= recentSince) a.attendanceRecent++;
+      if (ms >= recent4Start) a.attendanceRecent4w++;
+      else if (ms >= prev4Start) a.attendancePrev4w++;
+      const wk = weekIndex(at.checkedAt);
+      (weeks.get(at.personId) ?? weeks.set(at.personId, new Set()).get(at.personId)!).add(wk);
+      const mk = monthIndex(at.checkedAt);
+      (monthsAttended.get(at.personId) ?? monthsAttended.set(at.personId, new Set()).get(at.personId)!).add(mk);
+    }
+
+    // Meses con membresía vigente: enrollment [startedAt, endsAt|pausedAt|now]
+    // + suscripción ACTIVE [createdAt, canceledAt|now].
+    const monthsCovered = new Map<string, Set<number>>();
+    const coverRange = (
+      personId: string,
+      from: Date,
+      to: Date,
+      map: Map<string, Set<number>>,
+    ) => {
+      const set = map.get(personId) ?? map.set(personId, new Set()).get(personId)!;
+      // Solo meses dentro de la ventana del score + 1 de margen.
+      const first = Math.max(monthIndex(from), monthIndex(now) - (p.monthsCap + 1));
+      const last = monthIndex(to > now ? now : to);
+      for (let m = first; m <= last; m++) set.add(m);
+    };
+    for (const e of enrollments) {
+      const from = e.startedAt ?? e.createdAt;
+      const to = e.endsAt ?? e.pausedAt ?? now;
+      coverRange(e.personId, from, to, monthsCovered);
+    }
+    for (const s of memberships) {
+      coverRange(s.personId, s.createdAt, s.canceledAt ?? now, monthsCovered);
+    }
+
+    const curWeek = weekIndex(now);
+    const curMonth = monthIndex(now);
+    for (const pid of personIds) {
+      const a = activity.get(pid);
+      if (!a) continue;
+      // Racha semanal: desde la semana actual (si ya asistió) o la
+      // anterior, hacia atrás mientras haya asistencia.
+      const wset = weeks.get(pid);
+      if (wset) {
+        let w = wset.has(curWeek) ? curWeek : curWeek - 1;
+        while (wset.has(w)) {
+          a.weeklyStreak++;
+          w--;
+        }
+      }
+      // Meses continuos: unión asistencia ∪ membresía; desde el mes
+      // actual (si ya está cubierto) o el anterior.
+      const mset = new Set([
+        ...(monthsAttended.get(pid) ?? []),
+        ...(monthsCovered.get(pid) ?? []),
+      ]);
+      if (mset.size) {
+        let m = mset.has(curMonth) ? curMonth : curMonth - 1;
+        while (mset.has(m)) {
+          a.monthsContinuous++;
+          m--;
+        }
+      }
+    }
+
+    // ── Compras: resolución por refId (patrón de cobros/kpis) ──
+    // Nota: los Payments MANUAL de claims (`refId=claim-<id>`) se excluyen
+    // aquí a propósito - esa compra la cuenta el bloque de PaymentClaim
+    // (evita doble conteo claim + payment materializado).
+    const planIds: string[] = [];
+    const classIds: string[] = [];
+    for (const pmt of payments) {
+      if (pmt.orderType === "MEMBERSHIP" && pmt.refId.startsWith("mem_")) {
+        planIds.push(decodeMembershipRef(pmt.refId)?.planId ?? "");
+      } else if (pmt.orderType === "WORKSHOP" && pmt.refId.startsWith("wks_")) {
+        classIds.push(decodeClassRef(pmt.refId)?.classId ?? "");
+      } else if (pmt.orderType === "PRIVATE" && pmt.refId.startsWith("pvt_")) {
+        const acad = decodePrivateRef(pmt.refId)?.academyId;
+        if (acad === actorId) {
+          const a = touch(pmt.personId, pmt.createdAt);
+          if (pmt.createdAt >= purchaseSince) a.purchases++;
+          a.spend += pmt.amount;
+        }
+      }
+    }
+    const [academyPlans, academyClasses] = await Promise.all([
+      planIds.length
+        ? this.prisma.membershipPlan.findMany({
+            where: { id: { in: planIds }, academyId: actorId },
+            select: { id: true },
+          })
+        : Promise.resolve([]),
+      classIds.length
+        ? this.prisma.class.findMany({
+            where: {
+              id: { in: classIds },
+              slot: { academyId: actorId },
+            },
+            select: { id: true },
+          })
+        : Promise.resolve([]),
+    ]);
+    const ownedPlans = new Set(academyPlans.map((r) => r.id));
+    const ownedClasses = new Set(academyClasses.map((r) => r.id));
+
+    for (const pmt of payments) {
+      let owned = false;
+      if (pmt.orderType === "MEMBERSHIP" && pmt.refId.startsWith("mem_")) {
+        owned = ownedPlans.has(decodeMembershipRef(pmt.refId)?.planId ?? "");
+      } else if (pmt.orderType === "WORKSHOP" && pmt.refId.startsWith("wks_")) {
+        owned = ownedClasses.has(decodeClassRef(pmt.refId)?.classId ?? "");
+      }
+      if (!owned) continue;
+      const a = touch(pmt.personId, pmt.createdAt);
+      a.spend += pmt.amount;
+      if (pmt.createdAt >= purchaseSince) a.purchases++;
+    }
+    for (const c of claims) {
+      const a = touch(c.personId, c.reviewedAt);
+      a.spend += c.amount;
+      if (c.reviewedAt && c.reviewedAt >= purchaseSince) a.purchases++;
+    }
   }
 
   // ═══════════════════ CAMPAIGNS ═══════════════════

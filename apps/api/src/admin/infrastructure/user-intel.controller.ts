@@ -97,7 +97,133 @@ export class UserIntelController {
       if (!(role in roleData)) roleData[role] = {};
     }
 
-    return { person: personData, roles, roleData };
+    const scores = await this.personScores(personId);
+    return { person: personData, roles, roleData, scores };
+  }
+
+  /**
+   * Scores de relación de la persona por actor (spec
+   * academy-score-refine): RelationshipScore ordenado por score desc,
+   * con el nombre del actor resuelto por su tabla (ACADEMY→Academy,
+   * VENUE→Venue; PRODUCER/DJ/INSTRUCTOR → Person).
+   */
+  private async personScores(personId: string) {
+    const rows = await this.prisma.relationshipScore.findMany({
+      where: { personId },
+      orderBy: { score: "desc" },
+      select: {
+        actorType: true,
+        actorId: true,
+        score: true,
+        segment: true,
+        breakdown: true,
+        computedAt: true,
+      },
+    });
+    if (!rows.length) return [];
+
+    const academyIds = rows
+      .filter((r) => r.actorType === "ACADEMY")
+      .map((r) => r.actorId);
+    const venueIds = rows
+      .filter((r) => r.actorType === "VENUE")
+      .map((r) => r.actorId);
+    const personIds = rows
+      .filter((r) => !["ACADEMY", "VENUE"].includes(r.actorType))
+      .map((r) => r.actorId);
+    const [academies, venues, actors] = await Promise.all([
+      academyIds.length
+        ? this.prisma.academy.findMany({
+            where: { id: { in: academyIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+      venueIds.length
+        ? this.prisma.venue.findMany({
+            where: { id: { in: venueIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+      personIds.length
+        ? this.prisma.person.findMany({
+            where: { id: { in: personIds } },
+            select: { id: true, name: true },
+          })
+        : [],
+    ]);
+    const name = new Map<string, string>();
+    for (const a of academies) name.set(`ACADEMY:${a.id}`, a.name);
+    for (const v of venues) name.set(`VENUE:${v.id}`, v.name);
+    for (const p of actors) name.set(`${p.id}`, p.name);
+
+    return rows.map((r) => ({
+      actorType: r.actorType,
+      actorId: r.actorId,
+      actorName:
+        name.get(`${r.actorType}:${r.actorId}`) ?? name.get(r.actorId) ?? null,
+      score: r.score,
+      segment: r.segment,
+      breakdown: r.breakdown,
+      computedAt: r.computedAt,
+    }));
+  }
+
+  /**
+   * GET /api/admin/academies/score-health - salud de alumnos por
+   * academia (spec academy-score-refine): distribución de segmentos,
+   * score medio, top-3 y en-riesgo. Ordenado por avgScore desc.
+   */
+  @Get("academies/score-health")
+  async academyScoreHealth() {
+    const scores = await this.prisma.relationshipScore.findMany({
+      where: { actorType: "ACADEMY" },
+      select: { actorId: true, personId: true, score: true, segment: true },
+    });
+    if (!scores.length) return { items: [] };
+
+    const academies = await this.prisma.academy.findMany({
+      where: { id: { in: [...new Set(scores.map((s) => s.actorId))] } },
+      select: { id: true, name: true },
+    });
+    const academyName = new Map(academies.map((a) => [a.id, a.name]));
+    const personName = await this.peopleByIds(scores.map((s) => s.personId));
+
+    const byAcademy = new Map<string, typeof scores>();
+    for (const s of scores) {
+      (byAcademy.get(s.actorId) ?? byAcademy.set(s.actorId, []).get(s.actorId)!).push(s);
+    }
+
+    const items = [...byAcademy.entries()].map(([academyId, rows]) => {
+      const segments: Record<string, number> = {};
+      for (const r of rows) {
+        const k = r.segment ?? "NONE";
+        segments[k] = (segments[k] ?? 0) + 1;
+      }
+      const sorted = [...rows].sort((a, b) => b.score - a.score);
+      const brief = (r: (typeof rows)[number]) => ({
+        personId: r.personId,
+        name: personName.get(r.personId)?.name ?? null,
+        score: r.score,
+        segment: r.segment,
+      });
+      return {
+        academyId,
+        academyName: academyName.get(academyId) ?? null,
+        studentCount: rows.length,
+        avgScore: Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length),
+        segments,
+        top: sorted.slice(0, 3).map(brief),
+        atRisk: rows
+          .filter((r) => r.segment === "AT_RISK")
+          .slice(0, 5)
+          .map(brief),
+        // Drill-down (spec academy-score-refine): todos los alumnos con
+        // score, ordenados desc.
+        rows: sorted.map(brief),
+      };
+    });
+    items.sort((a, b) => b.avgScore - a.avgScore);
+    return { items };
   }
 
   // ── Analítica por usuario ───────────────────────────────────────────

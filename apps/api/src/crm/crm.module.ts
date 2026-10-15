@@ -7,11 +7,12 @@ import { JobsModule } from "../jobs/jobs.module";
 import { CrmService } from "./domain/crm.service";
 import { CrmController } from "./infrastructure/crm.controller";
 import { CrmTriggersScheduler } from "./infrastructure/crm-triggers.scheduler";
+import { CrmScoresScheduler } from "./infrastructure/crm-scores.scheduler";
 
 /** CRM transversal: scores, tags, campañas y triggers por actor (producer/academy). */
 @Module({
   imports: [PrismaModule, JobsModule, NotificationsModule, ParamsModule, AuthModule],
   controllers: [CrmController],
-  providers: [CrmService, CrmTriggersScheduler],
+  providers: [CrmService, CrmTriggersScheduler, CrmScoresScheduler],
 })
 export class CrmModule {}

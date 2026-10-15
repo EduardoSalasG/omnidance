@@ -2188,6 +2188,25 @@
           }
         },
         {
+          "name": "GET /api/admin/academies/score-health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/academies/score-health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "academies",
+                "score-health"
+              ]
+            }
+          }
+        },
+        {
           "name": "GET /api/admin/users/{personId}/analytics",
           "request": {
             "method": "GET",

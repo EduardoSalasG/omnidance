@@ -84,6 +84,7 @@ function ProfileModule({
   const t = useTranslations("academy");
   const tp = useTranslations("academy.studentProfile");
   const tc = useTranslations("common");
+  const tcrm = useTranslations("crm");
   const tClasses = useTranslations("classes");
 
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -234,10 +235,40 @@ function ProfileModule({
           <Badge variant="muted">
             {tp("score")}:{" "}
             {profile.score !== null
-              ? `${Math.round(profile.score)}${profile.segment ? ` · ${profile.segment}` : ""}`
+              ? `${Math.round(profile.score)}${profile.segment ? ` · ${tcrm(`segments.${profile.segment}`)}` : ""}`
               : tp("scoreNone")}
           </Badge>
         </div>
+        {/* Desglose por componente (spec academy-score-refine): explica
+            el número. Scores previos al cambio traen breakdown null →
+            solo se muestra el badge. */}
+        {profile.scoreBreakdown?.points && (
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+            {(
+              [
+                "attendanceRecent",
+                "weeklyStreak",
+                "monthsContinuous",
+                "purchases",
+                "tenure",
+                "referrals",
+              ] as const
+            ).map((k) => (
+              <div key={k} className="flex items-baseline justify-between gap-2">
+                <dt className="text-ink/50">{tp(`breakdown.${k}`)}</dt>
+                <dd className="tabular-nums text-ink/80">
+                  {profile.scoreBreakdown?.[k] ?? 0}
+                  {typeof profile.scoreBreakdown?.points?.[k] === "number" && (
+                    <span className="text-ink/40">
+                      {" "}
+                      (+{profile.scoreBreakdown.points[k]})
+                    </span>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {canEdit ? (
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-end gap-x-3 gap-y-2">

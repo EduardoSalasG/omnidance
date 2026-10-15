@@ -1537,11 +1537,24 @@ export class AcademiesController {
       this.prisma.enrollment.count({ where }),
     ]);
     // Enrollment.personId es FK plana (sin relación en schema) - join manual.
-    const people = await this.prisma.person.findMany({
-      where: { id: { in: enrollments.map((e) => e.personId) } },
-      select: { id: true, name: true, email: true },
-    });
+    const [people, scores] = await Promise.all([
+      this.prisma.person.findMany({
+        where: { id: { in: enrollments.map((e) => e.personId) } },
+        select: { id: true, name: true, email: true },
+      }),
+      // Score de relación academia→alumno (spec academy-score-refine):
+      // un query por los personIds de la página, sin tocar total/orden.
+      this.prisma.relationshipScore.findMany({
+        where: {
+          actorType: "ACADEMY",
+          actorId: id,
+          personId: { in: enrollments.map((e) => e.personId) },
+        },
+        select: { personId: true, score: true, segment: true },
+      }),
+    ]);
     const byId = new Map(people.map((p) => [p.id, p]));
+    const scoreById = new Map(scores.map((s) => [s.personId, s]));
     return {
       items: enrollments.map((e) => ({
         id: e.id,
@@ -1554,6 +1567,8 @@ export class AcademiesController {
         status: e.status,
         startsAt: e.startedAt,
         endsAt: e.endsAt,
+        score: scoreById.get(e.personId)?.score ?? null,
+        segment: scoreById.get(e.personId)?.segment ?? null,
       })),
       total,
       page: pg.page,
@@ -1749,7 +1764,7 @@ export class AcademiesController {
             personId,
           },
         },
-        select: { score: true, segment: true, computedAt: true },
+        select: { score: true, segment: true, breakdown: true, computedAt: true },
       }),
     ]);
 
@@ -1820,6 +1835,7 @@ export class AcademiesController {
       })),
       score: relScore?.score ?? null,
       segment: relScore?.segment ?? null,
+      scoreBreakdown: relScore?.breakdown ?? null,
       history,
       upcoming,
     };

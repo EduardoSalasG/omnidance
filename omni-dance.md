@@ -757,7 +757,9 @@ Gestión integral - el benchmark es BoxMagic (reservas con aforo, membresías, c
 
 ### Score de cercanía del alumno (`academy_score`)
 
-**Privado - solo lo ve quien gestiona la academia.** No es gamificación para el alumno, es **CRM para la academia**: la herramienta para saber qué alumnos son claves y a quién está por perder.
+**Privado - solo lo ve quien gestiona la academia** (owner/staff/admin: consola + `/admin`). No es gamificación para el alumno, es **CRM para la academia**: la herramienta para saber qué alumnos son claves y a quién está por perder.
+
+**Fórmula implementada** (spec `academy-score-refine`, pesos en `PlatformParam` `crm.score.*`): 0-100 por componentes con caps — asistencias últimas 8 semanas ×4, racha semanal actual ×3 (cap 8), meses continuos con actividad/membresía ×4 (cap 6), compras últimos 6 meses ×3 (cap 6 - planes, clases sueltas/talleres, particulares y comprobantes aprobados), antigüedad ×1/mes (cap 12), referrals ×5. El desglose se persiste (`RelationshipScore.breakdown`) y se muestra en la ficha del alumno. Recompute diario (job `crm.scores`, 06:00) + manual en la consola CRM.
 
 **Inputs**: clases compradas (planes/packs), tasa de asistencia, asistencia a eventos de la academia (galas, prácticas, sociales propios), antigüedad, puntualidad de pago. Mide compromiso, no técnica.
 
