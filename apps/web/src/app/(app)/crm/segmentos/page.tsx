@@ -6,7 +6,6 @@ import { Button, PlusIcon } from "@/components/ui";
 import {
   ActorPicker,
   CrmGateScreen,
-  CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { SegmentList } from "@/components/crm/segment-list";
@@ -21,8 +20,6 @@ export default function CrmSegmentosPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
-      <CrmNav active="segments" />
-
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
 
       {ctx.gate === "ready" && (

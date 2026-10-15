@@ -16,7 +16,6 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import {
   ActorPicker,
   CrmGateScreen,
-  CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
 import { TagBadges } from "@/components/crm/tag-badges";
@@ -72,7 +71,6 @@ export default function CrmPersonPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6 pb-6 lg:max-w-5xl lg:px-8">
       <ConsoleHeader backHref="/crm" backLabel={t("nav.people")} />
-      <CrmNav active="people" />
 
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
 

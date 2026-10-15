@@ -17,7 +17,6 @@ import { ConsoleHeader } from "@/components/console/console-header";
 import {
   ActorPicker,
   CrmGateScreen,
-  CrmNav,
   useCrmContext,
 } from "@/components/crm/crm-context";
 import {
@@ -167,7 +166,6 @@ export default function CrmCampanaPage() {
         backHref="/crm/campanas"
         backLabel={t("campaigns.title")}
       />
-      <CrmNav active="campaigns" />
 
       <CrmGateScreen gate={ctx.gate} onRetry={() => void ctx.boot()} />
 
