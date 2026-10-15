@@ -47,12 +47,16 @@ anidados dentro del Link** — si el card necesita un link externo
 - Mutaciones de una fila (aprobar/rechazar un comprobante, agregar un
   invitado) viven en la ficha; la cola/listado solo navega.
 
-### 4. Destructivo = zona roja centrada al pie
+### 4. Destructivo = zona roja centrada al pie + `ConfirmSheet`
 
-Delete/cancel/revoke NO va en el action row. Va en una `<section>` al
-final de la ficha, separada con `border-t border-line pt-6`, centrada,
+Delete/cancel/revoke NO va en el action row. Va en un `<div>` al
+final de la ficha (no `<section>`: landmark sin nombre = ruido a11y),
+separada con `border-t border-line pt-6`, centrada,
 `variant="ghost"` + `text-red-400 hover:text-red-300`, siempre con
-confirmación (diálogo focus-trapped con `useDialogFocus`).
+confirmación. La confirmación es `ConfirmSheet` de `components/ui`
+(bottom-sheet mobile / modal desktop, focus trap + Escape + busy) —
+nunca `window.confirm`, que bloquea el hilo, no atrapa foco y no
+respeta el design system.
 
 ### 5. Chrome y jerarquía de título
 

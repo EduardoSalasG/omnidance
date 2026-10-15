@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
-import { Badge, Button, Card, RefreshIcon } from "@/components/ui";
+import { Badge, Button, Card, ConfirmSheet, RefreshIcon } from "@/components/ui";
 import { SkeletonList } from "@/components/ui";
 import { AdminGate } from "@/components/admin/admin-gate";
 import type { RoleRow } from "@/components/admin/types";
@@ -164,6 +164,10 @@ function UserDetailPanel({ personId }: { personId: string }) {
   const [actionError, setActionError] = useState(false);
   const [acting, setActing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Confirmación compartida (revocar rol o hard-delete de la cuenta).
+  const [pending, setPending] = useState<
+    { kind: "revoke"; role: string } | { kind: "delete" } | null
+  >(null);
   const router = useRouter();
   const [newRole, setNewRole] = useState("");
 
@@ -241,14 +245,11 @@ function UserDetailPanel({ personId }: { personId: string }) {
     );
 
   const revoke = (role: string) => {
-    if (!window.confirm(t("users.revokeConfirm", { role: roleLabel(role) }))) {
-      return;
-    }
     void mutateRole(() =>
       apiFetch(`/admin/users/${personId}/roles/${role}`, {
         method: "DELETE",
       }),
-    );
+    ).finally(() => setPending(null));
   };
 
   const addRole = () => {
@@ -266,9 +267,6 @@ function UserDetailPanel({ personId }: { personId: string }) {
   // para cuentas de prueba/duplicadas; auditado server-side.
   async function deleteUser() {
     if (!detail || deleting) return;
-    if (!window.confirm(t("users.delete.confirm", { name: detail.person.name }))) {
-      return;
-    }
     setDeleting(true);
     setActionError(false);
     try {
@@ -276,12 +274,14 @@ function UserDetailPanel({ personId }: { personId: string }) {
         method: "DELETE",
       });
       if (!res.ok) {
+        setPending(null);
         setActionError(true);
         setDeleting(false);
         return;
       }
       router.push("/admin/usuarios");
     } catch {
+      setPending(null);
       setActionError(true);
       setDeleting(false);
     }
@@ -439,7 +439,7 @@ function UserDetailPanel({ personId }: { personId: string }) {
                       size="sm"
                       variant="ghost"
                       disabled={acting}
-                      onClick={() => revoke(r.role)}
+                      onClick={() => setPending({ kind: "revoke", role: r.role })}
                     >
                       {t("users.revoke")}
                     </Button>
@@ -574,13 +574,34 @@ function UserDetailPanel({ personId }: { personId: string }) {
         <p className="text-sm text-ink/60">{t("users.delete.body")}</p>
         <Button
           variant="secondary"
-          onClick={() => void deleteUser()}
+          onClick={() => setPending({ kind: "delete" })}
           disabled={deleting}
           className="self-start border-red-500/50 text-red-300 hover:bg-red-500/10"
         >
           {deleting ? tc("loading") : t("users.delete.cta")}
         </Button>
       </Card>
+
+      <ConfirmSheet
+        open={pending !== null}
+        title={
+          pending?.kind === "revoke"
+            ? t("users.revokeConfirm", { role: roleLabel(pending.role) })
+            : t("users.delete.confirm", { name: detail.person.name })
+        }
+        confirmLabel={
+          pending?.kind === "revoke"
+            ? t("users.revoke")
+            : t("users.delete.cta")
+        }
+        busy={pending?.kind === "revoke" ? acting : deleting}
+        onConfirm={() =>
+          pending?.kind === "revoke"
+            ? revoke(pending.role)
+            : void deleteUser()
+        }
+        onClose={() => setPending(null)}
+      />
     </div>
   );
 }

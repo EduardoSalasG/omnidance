@@ -10,6 +10,7 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmSheet,
   Pager,
   RefreshIcon,
 } from "@/components/ui";
@@ -75,6 +76,8 @@ export function Videos({ academy }: { academy: Academy }) {
   const [state, setState] = useState<LoadState>("loading");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Borrado de video con confirmación destructiva (sheet).
+  const [pendingVideo, setPendingVideo] = useState<VideoItem | null>(null);
   const [filters, setFilters] = useState<QueryFilters>({});
 
   const canAdminister =
@@ -108,7 +111,6 @@ export function Videos({ academy }: { academy: Academy }) {
   }, [load]);
 
   async function remove(v: VideoItem): Promise<void> {
-    if (!window.confirm(t.confirmDelete)) return;
     setBusyId(v.id);
     setFeedback(null);
     try {
@@ -117,12 +119,15 @@ export function Videos({ academy }: { academy: Academy }) {
         { method: "DELETE" },
       );
       if (!res.ok) {
+        setPendingVideo(null);
         setFeedback((await readError(res)) ?? tc("error"));
         return;
       }
+      setPendingVideo(null);
       setFeedback(t.deleted);
       await load();
     } catch {
+      setPendingVideo(null);
       setFeedback(tc("error"));
     } finally {
       setBusyId(null);
@@ -213,7 +218,7 @@ export function Videos({ academy }: { academy: Academy }) {
                           variant="ghost"
                           className="text-red-400/80 hover:text-red-400"
                           disabled={busyId === v.id}
-                          onClick={() => void remove(v)}
+                          onClick={() => setPendingVideo(v)}
                         >
                           {t.delete}
                         </Button>
@@ -237,6 +242,15 @@ export function Videos({ academy }: { academy: Academy }) {
       <p role="status" aria-live="polite" className="text-sm text-neon">
         {feedback}
       </p>
+
+      <ConfirmSheet
+        open={pendingVideo !== null}
+        title={t.confirmDelete}
+        confirmLabel={t.delete}
+        busy={busyId !== null}
+        onConfirm={() => pendingVideo && void remove(pendingVideo)}
+        onClose={() => setPendingVideo(null)}
+      />
     </section>
   );
 }
