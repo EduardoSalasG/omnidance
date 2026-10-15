@@ -57,3 +57,32 @@
 
 - Posibles fases futuras del score: VENUE/DJ/INSTRUCTOR (sin universo aún), ratings como señal (descartado por privacidad en el spec).
 - `brag-output/` sigue sin trackear (decidir `.gitignore` o borrar).
+
+---
+
+## Sesión CRM avanzado (2026-10-15 tarde) — 3 slices commiteadas `c300816`
+
+### crm-dynamic-segments (Slice A)
+- `ActorSegment` + `ActorSegmentMembership` (migración `20261015010000`): regla nombrada `{match:"all"|"any", conditions:[{field,op,value}]}` sobre señales del score + segmento calculado + tags. `SEGMENT_RULE_OPS` valida campo↔op.
+- `recomputeScores` → `syncSegments` materializa membresía y difunde enter/exit; triggers `SEGMENT_ENTER`/`SEGMENT_EXIT` (`EVENT_TRIGGER_KEYS`, config `{segmentId, action:{type:NOTIFY|NOTIFY_OWNER|TAG_ADD|TAG_REMOVE,title?,body?,tag?}}`) con dedup por día+dirección+segmento.
+- Endpoints: CRUD `/crm/segments` + `GET :id` + `GET :id/people` + `POST /preview` (sin persistir) + `GET /crm/people?segmentId=` + `segmentRef` en audiencias de campaña.
+- Front: `/crm/segmentos` (lista + builder con preview debounced 400ms + ficha con miembros y zona roja), tab nuevo en `CrmNav`, optgroup de guardados en el filtro de personas, trigger-form con picker de segmento + acción.
+
+### crm-campaign-ops (Slice B)
+- `POST /crm/people/tags/bulk {personIds, tag, op:add|remove}` idempotente.
+- `Campaign.scheduledAt` → status `SCHEDULED`; job `crm.campaigns` (`*/5 * * * *`) envía las vencidas; `POST /crm/campaigns/:id/cancel` → DRAFT. sendCampaign acepta DRAFT y SCHEDULED.
+- `sendCampaign` persiste `result.audienceIds` → `GET /crm/campaigns/:id` (SENT) agrega `metrics {sent, engaged, redemptions}` (engaged = attendance/checkin post-envío en el universo del actor; redemptions = pagos PAID con `discountCodeId` del código de campaña).
+- Front: checkbox por fila + barra de selección (etiquetar/quitar tag, campaña a selección vía `/crm/campanas/nueva?personIds=` — page con Suspense por useSearchParams), scheduledAt en form, bloque métricas + cancel en ficha.
+
+### crm-channels-digest (Slice C)
+- `GET /crm/campaigns/:id/whatsapp?text=` → `{items:[{personId,name,phone,url wa.me}], total, withoutPhone}` (SENT usa audienceIds; DRAFT resuelve al vuelo).
+- Job `crm.digest` (`0 9 * * 1`): notifySafe al owner de cada actor con universo, total + conteos por segmento.
+
+### Verificación
+- Suite api completa: **98 archivos / 1929 tests verdes** (incluye e2e CRM 35). tsc api+web limpio. i18n ALL_KEYS_OK. openapi.json+postman regenerados (296 paths). architecture.md + omni-dance.md actualizados. 3 changes archivados (specs canónicas `crm/segments` nueva + `crm/contact-console` ampliada).
+- Smoke real DB dev: segmento creado + recompute materializó membresía + filtro listPeople correctos.
+
+### Notas
+- `impeccable detect` no se corrió sobre el diff UI (skill no resolvió CLI en esta sesión) — pendiente para QA visual.
+- Untracked ajenos quedan fuera del commit: `.agents/`, `.claude/`, `.devin/skills/brag/`, `brag-output/`, `skills-lock.json`.
+- Stack sigue arriba (api :4000, web :3000, Postgres+Redis).
