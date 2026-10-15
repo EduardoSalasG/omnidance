@@ -158,7 +158,9 @@
     "genericError": "Une erreur est survenue. Réessaie",
     "noAccount": "Pas de compte ? Inscris-toi",
     "hasAccount": "Déjà un compte ? Connecte-toi",
-    "sending": "Envoi…"
+    "sending": "Envoi…",
+    "metaTitle": "Connectez-vous avec votre e-mail",
+    "metaDescription": "Accédez à Omnidance avec votre e-mail : lien magique ou code à usage unique. Pas de mot de passe."
   },
   "events": {
     "title": "Prochains événements",

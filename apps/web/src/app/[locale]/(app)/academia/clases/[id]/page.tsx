@@ -13,6 +13,7 @@ import {
   type ClassRoster,
 } from "@/components/academy/shared";
 import { Link } from "@/i18n/navigation";
+import { getDateFmt } from "@/lib/intl";
 
 type LoadState =
   | "loading"
@@ -255,18 +256,14 @@ function RosterDetail({
         {roster.canMark && !windowOpen && (
           <p className="text-xs text-ink/50">
             {t("attendanceWindow", {
-              opens: new Date(
-                roster.attendanceWindow.opensAt,
-              ).toLocaleTimeString("es-CL", {
+              opens: getDateFmt(locale, {
                 hour: "2-digit",
                 minute: "2-digit",
-              }),
-              closes: new Date(
-                roster.attendanceWindow.closesAt,
-              ).toLocaleTimeString("es-CL", {
+              }).format(new Date(roster.attendanceWindow.opensAt)),
+              closes: getDateFmt(locale, {
                 hour: "2-digit",
                 minute: "2-digit",
-              }),
+              }).format(new Date(roster.attendanceWindow.closesAt)),
             })}
           </p>
         )}

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { getNumFmt } from "@/lib/intl";
 import { useMe } from "@/lib/me-context";
 import { Button, Card } from "@/components/ui";
 import { inputCls, readError, type Academy } from "./shared";
@@ -19,6 +20,7 @@ const DEFAULT_QUORUM_FALLBACK = 20;
  * (evita flash del card a instructores).
  */
 export function AcademySettings({ academy }: { academy: Academy }) {
+  const locale = useLocale();
   const t = useTranslations("academy.settings");
   const tc = useTranslations("common");
 
@@ -141,7 +143,7 @@ export function AcademySettings({ academy }: { academy: Academy }) {
           />
           <span className="text-xs text-ink/40">
             {t("privateLessonPriceHint")}{" "}
-            {currentLessonPrice != null && `$${currentLessonPrice.toLocaleString("es-CL")}`}
+            {currentLessonPrice != null && `$${getNumFmt(locale).format(currentLessonPrice)}`}
           </span>
         </label>
         {error && (

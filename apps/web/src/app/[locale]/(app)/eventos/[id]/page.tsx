@@ -1,7 +1,7 @@
 
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { getMessages } from "next-intl/server";
+import { getLocale, getMessages } from "next-intl/server";
 import {
   aggregateMix,
   ArrowUpRightIcon,
@@ -24,6 +24,7 @@ import { GENRE_TEXT } from "@/lib/calendar";
 import type { GenreKey } from "@/lib/calendar";
 import { serverApiUrl } from "@/lib/server-api";
 import { Link } from "@/i18n/navigation";
+import { getNumFmt } from "@/lib/intl";
 
 // El merge i18n devuelve Dict - las claves se declaran explícitas
 // (mismo patrón que locales/[id]).
@@ -174,6 +175,7 @@ export default async function EventoDetailPage(
 ) {
   const searchParams = await props.searchParams;
   const params = await props.params;
+  const locale = await getLocale();
   const m = (await getMessages()) as typeof import("@/i18n/catalogs/es-CL").default;
   const t = m.events;
   const tc = m.common;
@@ -363,7 +365,7 @@ export default async function EventoDetailPage(
                   capacity != null
                     ? t.capacity.replace(
                         "{count}",
-                        capacity.toLocaleString("es-CL"),
+                        getNumFmt(locale).format(capacity),
                       )
                     : null,
                 ]

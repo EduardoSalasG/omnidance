@@ -115,7 +115,7 @@ export function CampaignList({
                         ? t(`campaigns.status.${c.status}`)
                         : c.status}
                     </Badge>
-                    <Badge variant="outline">{actionLabel(t, c)}</Badge>
+                    <Badge variant="outline">{actionLabel(t, c, locale)}</Badge>
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink/60">
                     <span>

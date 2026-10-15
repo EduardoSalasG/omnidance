@@ -48,7 +48,10 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },
-  alternates: { canonical: "/" },
+  // Sin canonical global: heredado declaraba a toda página como duplicado
+  // del home (audit `canonical` fallaba en /terminos). Cada página pública
+  // declara el suyo via localeAlternates (lib/seo.ts).
+
   manifest: "/manifest.json",
   // iOS "Añadir a pantalla de inicio": icono dedicado (iOS ignora el
   // manifest) + launch standalone sin chrome de Safari.

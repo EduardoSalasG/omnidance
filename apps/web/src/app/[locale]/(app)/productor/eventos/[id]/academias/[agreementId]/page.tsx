@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState, use } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
+import { getNumFmt } from "@/lib/intl";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import {
   Badge,
@@ -45,6 +46,7 @@ function DealDetail({
   eventId: string;
   agreementId: string;
 }) {
+  const locale = useLocale();
   const t = useTranslations("academySales");
   const tp = useTranslations("producer");
   const tc = useTranslations("common");
@@ -413,11 +415,11 @@ function DealDetail({
               <p className="text-sm text-ink/60">
                 {deal.stats.pendingClp > 0
                   ? t("markPaidDesc", {
-                      amount: `$${deal.stats.pendingClp.toLocaleString("es-CL")}`,
+                      amount: `$${getNumFmt(locale).format(deal.stats.pendingClp)}`,
                       academy: deal.academyName,
                     })
                   : t("markCollectDesc", {
-                      amount: `$${Math.abs(deal.stats.pendingClp).toLocaleString("es-CL")}`,
+                      amount: `$${getNumFmt(locale).format(Math.abs(deal.stats.pendingClp))}`,
                       academy: deal.academyName,
                     })}
               </p>

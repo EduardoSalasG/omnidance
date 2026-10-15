@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { apiFetch } from "@/lib/api";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import {
@@ -41,6 +41,7 @@ const STATUS_VARIANT: Record<string, "neon" | "muted" | "outline"> = {
 // resultado y el envío del borrador - la acción masiva confirma en un
 // diálogo focus-trapped (patrón bottom-sheet, no window.confirm).
 export default function CrmCampanaPage() {
+  const locale = useLocale();
   const fmtDay = useDateFmt({
   dateStyle: "medium",
   timeStyle: "short",
@@ -205,7 +206,7 @@ export default function CrmCampanaPage() {
                   <Badge variant={STATUS_VARIANT[c.status] ?? "muted"}>
                     {t(`campaigns.status.${c.status}`)}
                   </Badge>
-                  <Badge variant="outline">{actionLabel(t, c)}</Badge>
+                  <Badge variant="outline">{actionLabel(t, c, locale)}</Badge>
                 </div>
                 <dl className="grid gap-2 text-sm">
                   <div className="flex flex-wrap gap-2">

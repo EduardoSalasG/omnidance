@@ -32,7 +32,7 @@ import {
 import type { GenreKey } from "@/lib/calendar";
 import { serverApiUrl } from "@/lib/server-api";
 import { Link } from "@/i18n/navigation";
-import { getDateFmt } from "@/lib/intl";
+import { getDateFmt, getNumFmt } from "@/lib/intl";
 
 export const dynamic = "force-dynamic";
 
@@ -390,7 +390,7 @@ export default async function VenueProfilePage(
             <p className="mt-1 text-xs text-ink/50">
               {t.capacity.replace(
                 "{count}",
-                venue.capacity.toLocaleString("es-CL"),
+                getNumFmt(locale).format(venue.capacity),
               )}
             </p>
           )}

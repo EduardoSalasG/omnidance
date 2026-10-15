@@ -47,7 +47,7 @@ export async function LegalPage({ doc }: { doc: "terms" | "privacy" }) {
       <h1 className="text-display mt-4 text-3xl font-extrabold sm:text-4xl">
         {data.title}
       </h1>
-      <p className="mt-2 text-xs uppercase tracking-[0.2em] text-ink/40">
+      <p className="mt-2 text-xs uppercase tracking-[0.2em] text-ink/60">
         {legal.versionNote}
       </p>
       <p className="mt-6 leading-relaxed text-ink/70">{data.intro}</p>
